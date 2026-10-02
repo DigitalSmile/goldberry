@@ -24,7 +24,9 @@ import dev.goldberry.widget.ElementTree;
 import dev.goldberry.widget.Widget;
 import dev.goldberry.widget.style.Styled;
 
-/// The accelerator map §7.2 asks for, and the text it is written in.
+/// The accelerator map, and the text it is written in.
+///
+/// Read more: [Accelerators](https://goldberry.dev/docs/guide/input.html#accelerators).
 class ShortcutTest {
 
     @Nested
@@ -207,7 +209,7 @@ class ShortcutTest {
         }
 
         /// Who bound a key, so that giving it back cannot take somebody else's
-        /// ([ADR-0220]). The map still holds one binding per key and the last
+        /// The map still holds one binding per key and the last
         /// registration still wins — what changed is that the loser can no longer
         /// unbind the winner.
         @Test
@@ -281,8 +283,8 @@ class ShortcutTest {
     @DisplayName("the platform's own modifier")
     class Primary {
 
-        /// §2.3's accelerator modifier, without the silent remapping the shipped
-        /// `Shortcut` refused — [ADR-0378].
+        /// The desktop's own accelerator modifier, without the silent remapping the shipped
+        /// `Shortcut` refused.
         @Test
         @DisplayName("`Cmd` on macOS, `Ctrl` everywhere else")
         void resolution() {

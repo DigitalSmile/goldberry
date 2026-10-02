@@ -4,7 +4,9 @@ package dev.goldberry.layout;
 ///
 /// The toolkit's own vocabulary, for [FlexDirection]'s reason: these are
 /// questions about layout, not about a C header, and the numbering that makes
-/// them C stays in `:natives` where the layout probe checks it (ADR-0279).
+/// them C stays in `:natives` where the layout probe checks it.
+///
+/// Read more: [How layout works](https://goldberry.dev/docs/layout/index.html#text-is-a-measured-leaf).
 public enum MeasureMode {
 
     /// There is no constraint; the accompanying number means nothing.

@@ -17,13 +17,13 @@ import dev.goldberry.widget.Widget;
 /// `RecordWitherTest`'s check, applied to **every widget in the catalog** rather
 /// than to `Box` and `ComputedStyle`.
 ///
-/// The argument moved. ADR-0181
-/// made it about the two widest records in `:core`; since then `Select` has grown
+/// The argument moved. The check began with the two widest records in `:core`;
+/// since then `Select` has grown
 /// to twelve components across four sessions of adding options to it — `multiple`,
 /// `autocomplete`, `free`, `onQuery`, `tree` — and every one of those churned
 /// every hand-written positional copy in the file. That is where an argument
 /// lands in the wrong slot, and it compiles whenever the two components share a
-/// type ([ADR-0185]).
+/// type.
 ///
 /// ## The check needs no value factory
 ///

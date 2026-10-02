@@ -31,7 +31,7 @@ class FpsLogTest {
     @DisplayName("a timeline that advances while raf does not blames the engine, not the pump")
     void rafStarvedIsTheEnginesFault() {
         // The reading measured on WebKitGTK 2.52.6: the context is drained, the
-        // engine composites, and the page's callbacks never arrive (ADR-0455).
+        // engine composites, and the page's callbacks never arrive.
         var log = new FpsLog();
         log.add(1, 63, 125, true);
         log.add(1, 63, 125, true);

@@ -18,8 +18,7 @@ import dev.goldberry.media.ffi.FfmpegDecoder;
 import dev.goldberry.media.ffi.VideoConverter;
 import dev.goldberry.media.picture.PictureForm;
 
-/// The video decode thread of one [Playback] (`docs/goldberry-media.md` §3,
-/// "Video decode").
+/// The video decode thread of one [Playback].
 ///
 /// Takes packets, decodes, and prepares every picture it keeps in a buffer from
 /// the [FrameQueue], where it waits for the master clock. Preparing here rather
@@ -29,7 +28,7 @@ import dev.goldberry.media.picture.PictureForm;
 /// ## Converted or planes
 ///
 /// What a picture is prepared as is the playback's [PictureForm], read afresh
-/// for each picture (`docs/gpu-plan.md`, D8). [PictureForm#CONVERTED] converts
+/// for each picture. [PictureForm#CONVERTED] converts
 /// it to premultiplied BGRA with swscale, which CPU present only blits.
 /// [PictureForm#PLANES] copies its planes as they are, for a view that uploads
 /// them and converts them on the GPU, and the copy is the lighter of the two
@@ -60,7 +59,7 @@ import dev.goldberry.media.picture.PictureForm;
 ///
 /// ## Retiring
 ///
-/// A switch of video track (§6) [#retire]s this thread and starts another on the
+/// A switch of video track [#retire]s this thread and starts another on the
 /// same [FrameQueue]. A retired thread stops at its next check, queues and
 /// reports nothing more, and closes its decoder and converter on the way out;
 /// the picture it showed last stays up until the new thread's first replaces it.
@@ -68,7 +67,7 @@ import dev.goldberry.media.picture.PictureForm;
 /// ## Hardware, and falling back
 ///
 /// The decoder is opened with the playback's [dev.goldberry.media.ffi.Hardware],
-/// so the built-in one may decode on a device (ADR-0470). What it reports as its
+/// so the built-in one may decode on a device. What it reports as its
 /// name follows what it does: `ffmpeg (videotoolbox)` while pictures come from the
 /// device, `ffmpeg` once they do not.
 ///
@@ -78,7 +77,7 @@ import dev.goldberry.media.picture.PictureForm;
 /// of the pictures the next one refers to, so the thread asks for an accurate
 /// seek to the position, and drops the packets queued before it. The demuxer
 /// goes back to the keyframe before the position, and the new decoder shows the
-/// picture that covers it (S4). A decoder that fails before its first picture
+/// picture that covers it. A decoder that fails before its first picture
 /// since a seek, which is how a device that has no engine for the codec fails,
 /// resumes from that seek's target, or from the start.
 ///

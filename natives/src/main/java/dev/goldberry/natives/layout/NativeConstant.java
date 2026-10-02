@@ -9,6 +9,9 @@ import java.util.Objects;
 /// layouts. Hand-written bindings mean hand-written enumerator values, and those
 /// fail more quietly than offsets do: a wrong `SDL_EVENT_WINDOW_CLOSE_REQUESTED`
 /// does not crash, it just never matches, and the window never closes.
+///
+/// Read more:
+/// [Repository layout](https://goldberry.dev/docs/contributing/repository.html#the-export-list-and-the-layout-probe).
 public record NativeConstant(String name, long value) {
 
     public NativeConstant {

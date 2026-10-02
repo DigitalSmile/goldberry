@@ -10,19 +10,19 @@ import dev.goldberry.render.model.LogicalSize;
 /// logical pixels whatever the display scale is. The backend resolves the
 /// physical size, because only it knows which monitor the window landed on.
 ///
-/// Decorations default to server-side on every platform (`docs/ARCHITECTURE.md`
-/// §4); client-side decorations are an opt-in theme feature, not a backend
-/// choice.
+/// Decorations default to server-side on every platform; client-side
+/// decorations are an opt-in theme feature, not a backend choice.
 ///
 /// [#maximized] is the odd one out and deliberately so: it is a *state* the
 /// desktop owns rather than a property of the window, so it is asked for at
-/// creation and never read back here. See
-/// ADR-0221.
+/// creation and never read back here.
 ///
 /// [#minimumSize] is the floor the **user** may drag the window down to. It is
 /// here rather than checked in a resize handler because the window manager is
 /// what enforces it: the pointer stops at the edge, instead of the window
-/// shrinking and springing back a frame later (ADR-0304).
+/// shrinking and springing back a frame later.
+///
+/// Read more: [Windows, popups and the host](https://goldberry.dev/docs/guide/windows.html#the-lifecycle).
 ///
 /// @param size        the size the window is created at, and the one it returns
 ///                    to when a [#maximized] window is restored

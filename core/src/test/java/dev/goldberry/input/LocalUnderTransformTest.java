@@ -22,12 +22,10 @@ import dev.goldberry.widget.style.Styled;
 /// out.
 ///
 /// A `scroll` does not lay its content out somewhere else — it puts a
-/// `translate` on it, for §1.7's reason that movement stays off layout
+/// `translate` on it, because movement stays off layout
 /// properties. So every widget inside a scrolled viewport is laid out where it
 /// always was and painted a long way from there, and a hit-test region stores
-/// the layout rectangle plus the **inverse** of the matrix it was painted with
-/// (ADR-0054,
-/// ADR-0068).
+/// the layout rectangle plus the **inverse** of the matrix it was painted with.
 ///
 /// `Region.contains` uses that inverse. Everything that answers *where inside*
 /// has to use it too, or a control keeps receiving events and starts reading a

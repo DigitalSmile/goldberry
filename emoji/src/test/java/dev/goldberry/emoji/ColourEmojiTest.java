@@ -30,9 +30,9 @@ import dev.goldberry.text.font.sfnt.CompositeMode;
 import dev.goldberry.text.font.sfnt.GlyphOutlines;
 import dev.goldberry.text.font.sfnt.OutlineSink;
 
-/// The half of [ADR-0393] and [ADR-0456] that can only be checked against the
-/// real face: that the shipped build's colour is readable, and that the pixels
-/// come out coloured.
+/// The part of emoji drawing that can only be checked against the real face:
+/// that the shipped build's colour is readable, and that the pixels come out
+/// coloured rather than as a silhouette in the text colour.
 ///
 /// Every assertion about drawing is about **pixels**, not about calls. A paint
 /// graph drawn with every fill in the text colour would satisfy any test that
@@ -211,7 +211,7 @@ class ColourEmojiTest {
 
             // The same font, the same string, twice: once with nowhere to route
             // emoji to and once with the face attached. The first is what
-            // `docs/gaps.md` G49 reported.
+            // what a user saw before the face was routed: a silhouette.
             var unrouted = paint(frame -> Paragraph.of(plain, sentence).paint(frame, 2, 2, SIZE, 0xFF000000));
 
             plain.emoji(emoji);

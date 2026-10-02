@@ -9,7 +9,7 @@ import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * The bump job in {@code release.yml}, held as text (ADR-0426).
+ * The bump job in {@code release.yml}, held as text.
  *
  * <p>Every rule here is one that fails <em>quietly</em>, which is what makes them
  * worth a drift guard rather than a comment. A job that lost its {@code needs:

@@ -32,8 +32,8 @@ import java.util.stream.Collectors;
  * the row never matched on any machine, present or absent, and it was marked
  * optional besides. {@code xtst} was not listed at all. Both CI workflows had
  * already been taught, by the same failure, that the two are hard dependencies;
- * the local check never learned it. ADR-0082 records that, and
- * {@code LinuxDependenciesTest} now asserts the two cannot drift apart again.
+ * the local check never learned it. {@code LinuxDependenciesTest} now asserts the
+ * two cannot drift apart again.
  *
  * <h2>A row can also cost a capability</h2>
  *
@@ -44,8 +44,9 @@ import java.util.stream.Collectors;
  * answers nothing — the system theme, the portal file dialog, the input method on
  * X11, device hotplug. A row therefore also names the {@code Capability} constants
  * a library loses without it, which is the same fact the superbuild compiles into
- * the binary and {@code Goldberry.capabilities()} reads back. See
- * {@code docs/gaps.md} G32 and ADR-0325.
+ * the binary and {@code Goldberry.capabilities()} reads back.
+ *
+ * <p>Read more: <a href="https://goldberry.dev/docs/contributing/building.html#linux">Linux</a>.
  *
  * <h2>What a row means</h2>
  *
@@ -117,7 +118,6 @@ public final class LinuxDependencies {
      *                     library loses without it, empty when it costs none --
      *                     the link between this table and what an application can
      *                     read back from {@code Goldberry.capabilities()}
-     *                     (ADR-0325, {@code docs/gaps.md} G32)
      */
     public record Dependency(String module,
                              String aptPackage,
@@ -244,24 +244,24 @@ public final class LinuxDependencies {
             // does not do server-side decorations, so on GNOME/Wayland libdecor is
             // the ONLY thing that draws a titlebar or a resize edge. Build without
             // its headers and SDL compiles a Wayland driver that opens a window with
-            // no close button and no way to resize it, and says nothing (ADR-0083).
+            // no close button and no way to resize it, and says nothing.
             new Dependency("libdecor-0", "libdecor-0-dev", "libdecor-devel",
                     Necessity.NEEDED, "SDL3 Wayland decorations and resize"),
             // Goldberry binds no xkbcommon: SDL owns keyboard translation and loads
-            // libxkbcommon itself (ADR-0055). Its headers are still needed to BUILD
+            // libxkbcommon itself. Its headers are still needed to BUILD
             // SDL's Wayland backend, and the keymap data at run time.
             new Dependency("xkbcommon", "libxkbcommon-dev", "libxkbcommon-devel",
                     Necessity.NEEDED, "SDL3 keyboard translation"),
             new Dependency("xkeyboard-config", "xkb-data", "xkeyboard-config",
                     Necessity.NEEDED, "SDL3 keymaps"),
 
-            // NEEDED, and OPTIONAL until ADR-0488, from before goldberry-media
-            // played its sound through SDL's audio stream (ADR-0462). SDL dlopen()s
+            // NEEDED, and OPTIONAL from before goldberry-media played its sound
+            // through SDL's audio stream. SDL dlopen()s
             // libasound and libpulse at run time, so the shipped library needs
             // neither installed. It needs their headers to compile the drivers in.
             // Without them SDL has only `dummy` and `disk`, which it never picks by
             // itself, the configure succeeds, and every source with audio on that
-            // build plays silently (ADR-0487). That cost a showcase run to find.
+            // build plays silently. That cost a showcase run to find.
             // Both, not either: PulseAudio is what a desktop, PipeWire's included,
             // answers on, and ALSA is what a machine without a sound server has.
             new Dependency("alsa", "libasound2-dev", "alsa-lib-devel",
@@ -291,7 +291,7 @@ public final class LinuxDependencies {
             // Host.systemTheme() is a shipped API answering empty for ever.
             //
             // Optional was the honest word while nothing bound SDL_GetSystemTheme.
-            // ADR-0322 bound it. See docs/gaps.md G32.
+            // The system theme is bound now, so the headers are needed.
             new Dependency("dbus-1", "libdbus-1-dev", "dbus-devel",
                     Necessity.NEEDED,
                     "SDL3 system theme, portal file dialogs and screensaver inhibition",
@@ -307,7 +307,7 @@ public final class LinuxDependencies {
                     Necessity.OPTIONAL, "SDL3 input method on X11",
                     List.of("INPUT_METHOD")),
 
-            // §9's `web-view`, and the only row here that is not SDL's (ADR-0441).
+            // The engine behind `web-view`, and the only row here that is not SDL's.
             //
             // Present, the superbuild produces a SECOND shared library beside
             // libgoldberry -- libgoldberry-webview, linked into nothing and opened
@@ -338,7 +338,7 @@ public final class LinuxDependencies {
      * library builds, links, paints and takes input, and one call answers "the
      * desktop does not say" for ever. {@code Goldberry.capabilities()} is what
      * finally reports it at run time; installing the package is what keeps there
-     * being nothing to report. See {@code docs/gaps.md} G32 and ADR-0325.
+     * being nothing to report.
      *
      * @return the rows naming at least one capability
      */

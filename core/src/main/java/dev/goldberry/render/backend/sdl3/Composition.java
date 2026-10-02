@@ -4,28 +4,31 @@ import java.util.Locale;
 
 import org.jspecify.annotations.Nullable;
 
-/// When a window presents through the GPU rather than its window surface
-/// (`docs/gpu-plan.md`, D3; ADR-0479, ADR-0480), from two system properties:
+/// When a window presents through the GPU rather than its window surface, from
+/// two system properties:
 ///
 /// - `goldberry.gpu`: `off` never touches the GPU, and GPU layers show what
 ///   their painters draw without one; `auto` (the default) uses it;
 /// - `goldberry.gpu.composite`: `always` (the default) composites every window
 ///   from its first frame, `auto` composites a window while it shows GPU
-///   layers (ADR-0481), `never` composites none, and GPU layers are read back.
+///   layers, `never` composites none, and GPU layers are read back.
 ///
-/// **The GPU by default, the CPU as the fallback** (ADR-0480). A window that
+/// **The GPU by default, the CPU as the fallback.** A window that
 /// cannot be composited -- no `:gpu` on the module path, no device, a window
 /// the driver will not claim, a GPU that fails mid-run -- presents on the CPU
 /// exactly as it did before there was a GPU path, and the log says which and
 /// why. Popups are transparent windows, which SDL will not claim, and stay on
 /// the CPU whatever this says.
+///
+/// Read more:
+/// [Logging and diagnostics](https://goldberry.dev/docs/guide/logging.html#which-way-a-window-presents).
 enum Composition {
     /// No GPU at all: no window is composited, and no GPU layer is rendered.
     OFF,
     /// No window is composited; GPU layers are rendered and read back.
     NEVER,
     /// A window is composited while it shows GPU layers, and for a while after
-    /// the last one goes (ADR-0481); until then its layers are read back.
+    /// the last one goes; until then its layers are read back.
     AUTO,
     /// Every window is composited from its first frame. The default.
     ALWAYS;
@@ -68,14 +71,14 @@ enum Composition {
     /// Whether a window may be claimed for the GPU and later given back to its
     /// surface: `always` gives one back when a present fails, `auto` when its
     /// last layer goes. Under X11 that give-back is what used to cost the window
-    /// its id (ADR-0491).
+    /// its id.
     boolean claimsWindows() {
         return this == AUTO || this == ALWAYS;
     }
 
     /// Why a window this policy did not composite is on the CPU, when nothing
     /// else kept it there: the property that says so, for the log and
-    /// `Window.presentation()` (ADR-0492).
+    /// `Window.presentation()`.
     String whyOnTheCpu() {
         return switch (this) {
             case OFF -> GPU_PROPERTY + "=off";

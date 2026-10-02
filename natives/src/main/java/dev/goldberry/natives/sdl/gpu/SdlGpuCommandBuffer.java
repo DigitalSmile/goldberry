@@ -42,6 +42,8 @@ import dev.goldberry.natives.sdl.gpu.enums.SdlGpuTransferUsage;
 /// - a transfer buffer is unmapped while a copy pass uses it;
 /// - resources are the same device's, regions lie inside their texture, and
 ///   the bytes fit the transfer buffer.
+///
+/// Read more: [The native boundary](https://goldberry.dev/docs/overview/architecture.html#the-native-boundary).
 public final class SdlGpuCommandBuffer {
 
     private enum State {
@@ -467,8 +469,8 @@ public final class SdlGpuCommandBuffer {
             }
         }
 
-        /// Draws nothing outside `region` of the target: a layer's clip
-        /// (`docs/gpu-plan.md`, D4).
+        /// Draws nothing outside `region` of the target: the clip rectangle of a GPU
+        /// layer, which is drawn scissored to its clip in paint order.
         ///
         /// @throws IllegalArgumentException when it lies outside the target
         public void setScissor(SdlGpuRegion region) {

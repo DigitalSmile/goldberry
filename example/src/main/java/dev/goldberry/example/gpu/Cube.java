@@ -27,7 +27,7 @@ import dev.goldberry.gpu.view.Canvas3dRenderer;
 import dev.goldberry.gpu.view.Canvas3dTarget;
 
 /// The GPU screen's lit cube: a `canvas3d` renderer written as an application
-/// writes one (`docs/gpu-plan.md`, phase 5).
+/// writes one.
 ///
 /// Its shaders are the showcase's own HLSL, `src/main/shaders/cube.*.hlsl`,
 /// compiled by `:gpu:compileShaders` into this package's resources and loaded
@@ -38,6 +38,8 @@ import dev.goldberry.gpu.view.Canvas3dTarget;
 /// How far it is turned is a function of the frame's time: [#spinning] turns
 /// with it, and [#turnedBy] turns to whatever its supplier says, for a canvas
 /// that is drawn only when that changes.
+///
+/// Read more: [The renderer](https://goldberry.dev/docs/components/gpu.html#the-renderer).
 public final class Cube implements Canvas3dRenderer {
 
     private static final int STRIDE = 40;

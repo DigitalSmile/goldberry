@@ -12,6 +12,8 @@ package dev.goldberry.natives.blend2d.enums;
 /// Every target Goldberry builds for is little-endian, so the equivalence holds
 /// everywhere it needs to. It is written down here because it is an assumption,
 /// and because a big-endian port would have to revisit exactly this.
+///
+/// Read more: [The native boundary](https://goldberry.dev/docs/overview/architecture.html#the-native-boundary).
 public enum BlendFormat implements BlendEnum {
 
     /// No format. What an uninitialised image reports, and never something to

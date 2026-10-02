@@ -8,7 +8,7 @@ import java.nio.file.Path;
 import dev.goldberry.golden.Png;
 import dev.goldberry.media.picture.VideoPicture;
 
-/// Byte-exact goldens of decoded pictures (`docs/goldberry-media.md` §7, S5).
+/// Byte-exact goldens of decoded pictures.
 ///
 /// The toolkit's own `GoldenImage` allows two levels a channel on 2% of the
 /// pixels, which is right for a rasterizer whose SIMD paths round differently.
@@ -21,7 +21,7 @@ import dev.goldberry.media.picture.VideoPicture;
 /// reviewable. They are read and written by the golden harness's own [Png], in
 /// `java.base`, and not decoded by the rasterizer: a picture golden says what
 /// FFmpeg decoded, and the Media workflow's runners have FFmpeg and no
-/// `libgoldberry` to decode a PNG with (ADR-0517).
+/// `libgoldberry` to decode a PNG with; a lane without the library stays green.
 /// `-Dgoldberry.golden.update=true` rewrites them, which is a review step as it
 /// is for every golden. A mismatch writes the actual picture to
 /// `build/golden-failures/`.

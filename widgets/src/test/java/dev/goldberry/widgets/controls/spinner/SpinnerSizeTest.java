@@ -10,7 +10,10 @@ import org.junit.jupiter.api.Test;
 
 import dev.goldberry.widget.attr.Attributes;
 
-/// A spinner's size — [ADR-0447].
+/// A spinner's `size`, which is a value the widget reads and not only a class:
+/// a ring has a stroke, and the stroke has to scale with the ring.
+///
+/// Read more: [Spinner](https://goldberry.dev/docs/components/values.html#spinner).
 @DisplayName("a spinner's size")
 class SpinnerSizeTest {
 
@@ -18,7 +21,7 @@ class SpinnerSizeTest {
     @DisplayName("changes the ring's stroke")
     class Stroke {
 
-        /// The whole reason this is a value and not only a class: §8's CSS
+        /// The whole reason this is a value and not only a class: the CSS
         /// subset has no property for the weight of a mark the painter draws, so
         /// a 32px ring drawn with a 16px ring's 2px stroke would be a thin hoop
         /// and no stylesheet could have said otherwise.

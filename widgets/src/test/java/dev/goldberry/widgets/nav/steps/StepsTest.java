@@ -34,7 +34,7 @@ import dev.goldberry.widget.semantics.Role;
 import dev.goldberry.widgets.Controls;
 import dev.goldberry.widgets.Widgets;
 
-/// §6's `steps` — where a process is, as a list ([ADR-0344]).
+/// `steps` — where a process is, as a list.
 ///
 /// The list is a composition, so what is asserted is read off the **built**
 /// tree: which step is current, which connectors are filled, and which steps
@@ -111,9 +111,10 @@ class StepsTest {
         }
     }
 
-    /// §3.1's "connector fill `transform: scaleX` base", read off the toolkit's
-    /// own stylesheet ([ADR-0356]). The fill is a child that is always there, so
-    /// the only thing a step changing does is move its transform.
+    /// The connector fill is a `transform: scaleX` base, read off the toolkit's
+    /// own stylesheet. The fill is a child that is always there, so the only
+    /// thing a step changing does is move its transform, and a transform is
+    /// paint rather than layout.
     @Nested
     @DisplayName("the connector's fill")
     class TheFill {
@@ -298,7 +299,7 @@ class StepsTest {
         @DisplayName("a list and its steps inflate with what the document may say")
         void inflates() {
             // A numeric change crosses the registry as the string a document
-            // would have written (ADR-0073), so the handler parses it.
+            // would have written, so the handler parses it.
             var actions = ActionRegistry.strict()
                     .bind("app.go-step", (String index) -> pressed.add((int) Double.parseDouble(index)));
             var list = (Steps)

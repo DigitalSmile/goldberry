@@ -3,7 +3,7 @@
 #
 # Each pass compiles, feeds what NullAway reported to `annotate.py`, and compiles
 # again. It stops when the module is clean or when a pass changes nothing, which
-# means what is left needs a person. See docs/testing.md §2.
+# means what is left needs a person. See https://goldberry.dev/docs/contributing/testing.html#static-analysis.
 set -uo pipefail
 module="${1:?usage: sweep.sh <module> [max-passes]}"
 passes="${2:-8}"

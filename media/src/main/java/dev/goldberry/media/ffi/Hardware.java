@@ -10,7 +10,7 @@ import org.jspecify.annotations.Nullable;
 
 import dev.goldberry.media.HardwareDecoding;
 
-/// How the built-in decoder uses hardware (phase 5, ADR-0470): which device types
+/// How the built-in decoder uses hardware: which device types
 /// it tries, in order, and what it has learned does not work.
 ///
 /// A [HardwareDecoding] choice becomes one of these through [#of]. [#OFF] tries
@@ -29,7 +29,7 @@ import dev.goldberry.media.HardwareDecoding;
 ///
 /// The two FFmpeg calls that fail on a real machine, opening the device and
 /// copying a picture back, go through [Calls]. A test hands in its own to inject
-/// the failures of scenario S4.
+/// the failures a real device produces.
 public final class Hardware {
 
     /// The FFmpeg calls hardware decode makes that fail on real machines, so that

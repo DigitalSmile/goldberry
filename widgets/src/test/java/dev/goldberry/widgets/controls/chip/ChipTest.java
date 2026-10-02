@@ -29,8 +29,10 @@ import dev.goldberry.widget.attr.Attributes;
 import dev.goldberry.widget.semantics.Role;
 import dev.goldberry.widgets.Widgets;
 
-/// §3's `chip` — the small rounded label you can choose and take away
-/// ([ADR-0305]).
+/// The catalogue's `chip` — the small rounded label you can choose and take
+/// away.
+///
+/// Read more: [Chip](https://goldberry.dev/docs/components/buttons.html#chip).
 ///
 /// Nothing here needs the native library: what a chip *looks* like is
 /// [ChipGoldenTest]'s, and what is asserted below is the value, the states it
@@ -71,8 +73,9 @@ class ChipTest {
         @Test
         @DisplayName("a chip with no word in it is refused")
         void anEmptyLabelIsRefused() {
-            // §13: a chip is a word you can choose. One with no word is a
-            // coloured dot that nothing can announce.
+            // A chip is a word you can choose. One with no word is a coloured
+            // dot that nothing can announce, and a control nothing can read out
+            // is a failure rather than a blank.
             var thrown = assertThrows(IllegalArgumentException.class, () -> new Chip(""));
 
             assertTrue(thrown.getMessage().contains("label"), thrown.getMessage());
@@ -166,8 +169,9 @@ class ChipTest {
         @Test
         @DisplayName("it selects nothing itself — the application does")
         void itDoesNotSelectItself() {
-            // ADR-0063: a chip whose handler does nothing stays as it was, which
-            // is the visible form of "the model did not change".
+            // Data flows down and events flow up: a chip whose handler does
+            // nothing stays as it was, which is the visible form of "the model
+            // did not change".
             var chip = new Chip("Unread", false, () -> {});
 
             chip.onPointer(click(chip));

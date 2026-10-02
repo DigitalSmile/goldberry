@@ -9,12 +9,14 @@ import org.jspecify.annotations.Nullable;
 /// One compressed frame from the demuxer, on its way to a [Decoder].
 ///
 /// The data is native memory, so a provider can decode straight from it without
-/// a copy (`docs/goldberry-media.md` §5). It belongs to whoever made the packet.
+/// a copy. It belongs to whoever made the packet.
 /// The Engine closes each packet once its decoder has taken it, and a decoder
 /// that needs the bytes after [Decoder#send] returns copies them.
 ///
 /// Timestamps count ticks of [#timeBase()]. [#NO_TIMESTAMP] marks one the
 /// container did not give.
+///
+/// Read more: [Bringing a codec](https://goldberry.dev/docs/components/media.html#bringing-a-codec).
 public final class Packet implements AutoCloseable {
 
     /// Marks a timestamp the container did not give.

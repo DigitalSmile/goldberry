@@ -9,7 +9,7 @@ import dev.goldberry.natives.layout.Layouts;
 ///
 /// The command set is SVG's, one for one, because the thing Goldberry builds
 /// paths out of is SVG path data: Lucide's 1544 icons are strings of exactly
-/// these commands in a 24×24 box (ADR-0043). Two of them are worth naming:
+/// these commands in a 24×24 box. Two of them are worth naming:
 ///
 /// - [#ellipticArcTo] is SVG's `A`, argument for argument, flags included.
 ///   Converting an elliptic arc to cubics is a page of arithmetic that Blend2D
@@ -24,6 +24,8 @@ import dev.goldberry.natives.layout.Layouts;
 /// times, at many origins, which is the whole reason an icon costs one parse.
 ///
 /// Confined to the thread that created it, and must be closed.
+///
+/// Read more: [The native boundary](https://goldberry.dev/docs/overview/architecture.html#the-native-boundary).
 public final class BlendPath implements AutoCloseable {
 
     private final Blend2dPath calls = Blend2dPath.get();

@@ -35,7 +35,7 @@ import java.util.regex.Pattern;
 
 /// Rewires a `@Model`'s raw fields into bindings, in its own bytecode.
 ///
-/// The whole of ADR-0125, and it is smaller than it sounds. For a model like
+/// This is the whole of model weaving, and it is smaller than it sounds. For a model like
 ///
 /// ```java
 /// @Model final class Settings {
@@ -66,13 +66,15 @@ import java.util.regex.Pattern;
 /// the only place the rewrite can happen, and doing it to the compiled class in
 /// the build is the one option that needs no agent, no `opens`, and nothing
 /// generated at run time. That last part is what lets the result go into a
-/// GraalVM image at all (ADR-0127).
+/// GraalVM native image at all: an image cannot load a class generated after the build.
+///
+/// Read more: [Model weaving](https://goldberry.dev/docs/weaving.html#what-the-weaver-actually-does).
 public final class ModelWeaver {
 
     private static final String BIND_PACKAGE = "dev.goldberry.bind.";
 
     /// The registries an application fills in, and the runtime a woven model
-    /// leans on. Two packages of their own since ADR-0172, so the descriptors
+    /// leans on. They live in two packages of their own, so the descriptors
     /// this weaver writes are built from three prefixes rather than one.
     private static final String REGISTRY_PACKAGE = BIND_PACKAGE + "registry.";
     private static final String RUNTIME_PACKAGE = BIND_PACKAGE + "runtime.";
@@ -102,7 +104,7 @@ public final class ModelWeaver {
     private static final String BINDINGS_FIELD = "goldberry$bindings";
 
     /// `identifier(.identifier)*` — the same grammar `BindingRegistry` enforces at run
-    /// time, checked here first so a typo is a build failure (ADR-0062).
+    /// time, checked here first so a typo is a build failure instead of a window that never binds.
     private static final Pattern PATH = Pattern.compile("[A-Za-z_][A-Za-z0-9_-]*(\\.[A-Za-z_][A-Za-z0-9_-]*)*");
 
     private ModelWeaver() {
@@ -113,8 +115,7 @@ public final class ModelWeaver {
     /// What pass one of [WeaverMain] collects, so pass two can rewrite a write to
     /// `model.gain` wherever it appears — not only inside the model. Which is
     /// what lets an application keep its values in one class and the methods that
-    /// change them in another
-    /// (ADR-0134).
+    /// change them in another.
     ///
     /// @param owner  the model's own type
     /// @param fields every rewired `@Bind` field, by name, to its declared type
@@ -159,7 +160,7 @@ public final class ModelWeaver {
     ///
     /// - **every** class has its writes to a woven `@Bind` field rewritten, so an
     ///   application may keep its values in one class and the methods that change
-    ///   them in another (ADR-0134);
+    ///   them in another;
     /// - a `@Model` also gets the interface, the listener store, the setters and
     ///   the two registries.
     ///
@@ -177,7 +178,7 @@ public final class ModelWeaver {
     ///
     /// Those, and only those, get package-private setters. Everything else keeps
     /// `private` ones, so a model whose actions are a nested class is exactly as
-    /// encapsulated as one that has no actions at all (ADR-0137).
+    /// encapsulated as one that has no actions at all.
     ///
     /// @param reachedFromOutsideTheNest internal names of the models that need a
     ///                                  setter a sibling class can call
@@ -197,7 +198,7 @@ public final class ModelWeaver {
             // One thing can still have changed around it, though. A sibling
             // compiled since may now write to this model from outside its nest,
             // and the setters this class was given were private because, the last
-            // time it was woven, nothing did (ADR-0137). Widening them is the
+            // time it was woven, nothing did. Widening them is the
             // whole of the second pass.
             return reachedFromOutsideTheNest.contains(model.thisClass().asInternalName())
                     ? openSetters(classFile, model)
@@ -315,7 +316,7 @@ public final class ModelWeaver {
     /// Every model `bytes` writes a `@Bind` field of, by internal name.
     ///
     /// What decides a setter's visibility: a model written to only from inside
-    /// its own nest keeps private ones (ADR-0137).
+    /// its own nest keeps private ones.
     ///
     /// Both forms of the write count. A class javac has just recompiled says so
     /// with a `putfield`; a class the weaver got to on an earlier build says so
@@ -410,8 +411,7 @@ public final class ModelWeaver {
     /// The nest a class belongs to — itself, unless it is nested in something.
     ///
     /// What decides whether a model's synthesised setters can stay `private`: a
-    /// nestmate may call one, and anything else needs the package
-    /// (ADR-0137).
+    /// nestmate may call one, and anything else needs the package.
     public static String nestHost(byte[] bytes) {
         var model = ClassFile.of().parse(bytes);
         return model.findAttribute(java.lang.classfile.Attributes.nestHost())
@@ -433,7 +433,7 @@ public final class ModelWeaver {
     /// Either marker: `@Model` for a class with values, `@Actions` for one with
     /// only methods. Both get the same treatment — the interface, the listener
     /// store, and the two registries — because a class with no `@Bind` field
-    /// simply has an empty half (ADR-0139).
+    /// simply has an empty half.
     private static boolean isModel(ClassModel model) {
         return marked(model, CD_MODEL) || marked(model, CD_ACTIONS_MARKER);
     }
@@ -441,8 +441,8 @@ public final class ModelWeaver {
     /// Every annotation on `member`, whichever attribute it was written into.
     ///
     /// Both, because retention is not this weaver's business. `@Bind` and
-    /// `@Action` became `RUNTIME`-retained when an unwoven jar started reading
-    /// them reflectively (ADR-0155), and a weaver that looked only in
+    /// `@Action` are `RUNTIME`-retained because an unwoven jar reads them
+    /// reflectively, and a weaver that looked only in
     /// `RuntimeInvisibleAnnotations` would silently have stopped seeing them —
     /// which presents as a model that compiles, weaves nothing, and publishes an
     /// empty registry.
@@ -521,7 +521,7 @@ public final class ModelWeaver {
             if (!PATH.matcher(path).matches()) {
                 throw new WeaveException(where + " claims \"" + path + "\", which is not a dotted"
                         + " path. A path is a name, or names joined by dots — `gain`,"
-                        + " `app.gain` (ADR-0062).");
+                        + " `app.gain`.");
             }
             claim(claimed, path, where);
             if (field.flags().has(AccessFlag.STATIC)) {
@@ -613,7 +613,7 @@ public final class ModelWeaver {
         // A write to *any* woven model's field, wherever it appears. Rewriting
         // only the declaring class was the original rule and it left a silent
         // gap: a nested class assigning to its outer's `@Bind` field compiles to
-        // a `putfield` in a different class, which nothing saw (ADR-0134).
+        // a `putfield` in a different class, which nothing saw.
         CodeTransform rewrite = rewriter(self, models, false);
         // Inside a constructor the class's *own* fields are left alone -- nothing
         // can have subscribed yet and the listener store does not exist -- but a
@@ -856,7 +856,7 @@ public final class ModelWeaver {
         // which case the package is the smallest visibility that lets the call
         // verify. A model whose actions are a nested class therefore keeps every
         // field *and* every setter private -- exactly as encapsulated as a model
-        // with no actions at all (ADR-0137). Synthetic either way, so it is not
+        // with no actions at all. Synthetic either way, so it is not
         // something an IDE offers or a reader trips over.
         builder.withMethodBody(SETTER_PREFIX + bound.field(),
                 MethodTypeDesc.of(ConstantDescs.CD_void, type),
@@ -889,7 +889,7 @@ public final class ModelWeaver {
                     if (bound.restyle()) {
                         // Before `fire`, so a window has dropped its resolved
                         // styles by the time it is asked for the frame that will
-                        // use them (ADR-0133).
+                        // use them.
                         code.aload(0).invokevirtual(owner, "boundListeners",
                                         MethodTypeDesc.of(CD_FIELD_LISTENERS))
                                 .invokevirtual(CD_FIELD_LISTENERS, "restyled",
@@ -906,7 +906,7 @@ public final class ModelWeaver {
                     if (bound.repaint()) {
                         // Per field, and emitted rather than decided at run time:
                         // a value declared `repaint = false` costs not a branch
-                        // but an instruction that is not there (ADR-0135).
+                        // but an instruction that is not there.
                         code.aload(0).invokevirtual(owner, "boundListeners",
                                         MethodTypeDesc.of(CD_FIELD_LISTENERS))
                                 .invokevirtual(CD_FIELD_LISTENERS, "repainted",
@@ -993,7 +993,7 @@ public final class ModelWeaver {
     /// bootstrap, the same three static arguments, the model captured as the
     /// single dynamic argument. Which is the point — this is not a new mechanism,
     /// it is the mechanism a method reference already uses, written by something
-    /// other than javac (ADR-0126).
+    /// other than javac.
     private static DynamicCallSiteDesc callSite(ClassDesc owner, Act action, boolean valued) {
         var bootstrap = MethodHandleDesc.ofMethod(DirectMethodHandleDesc.Kind.STATIC, CD_LMF,
                 "metafactory", MethodTypeDesc.of(ConstantDescs.CD_CallSite,
@@ -1102,7 +1102,7 @@ public final class ModelWeaver {
     /// All five annotations are `RUNTIME`-retained: `@Model` and `@Actions` so
     /// that [dev.goldberry.bind.runtime.Models] can tell an annotated
     /// class from an ordinary one, and `@Bind` and `@Action` because a jar that
-    /// was never woven binds from them reflectively (ADR-0155). This reads the
+    /// was never woven binds from them reflectively. This reads the
     /// class file, where the distinction is only which attribute an annotation
     /// sits in -- so [#annotationsOn] looks in both and neither retention can
     /// break it again.

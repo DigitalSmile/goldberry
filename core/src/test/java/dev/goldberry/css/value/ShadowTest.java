@@ -26,8 +26,7 @@ import dev.goldberry.css.cascade.CascadeLayer;
 import dev.goldberry.css.cascade.StyleResolver;
 import dev.goldberry.css.parse.Token;
 
-/// `box-shadow`: what it parses, what it refuses, and how far it reaches —
-/// ADR-0310.
+/// `box-shadow`: what it parses, what it refuses, and how far it reaches.
 class ShadowTest {
 
     private static final CssLength.Context CONTEXT = CssLength.Context.DEFAULT;
@@ -130,7 +129,7 @@ class ShadowTest {
             // `rgba(0, 0, 0, 0.25)` is one component and not four. Splitting on
             // the spaces inside it hands `CssColor.parse` the fragment `rgba(0,`,
             // which is how `--gb-border-strong` was silently absent from every
-            // card for months (ADR-0215).
+            // card for months.
             var shadow = parse("0 0 4px rgba(0, 0, 0, 0.5)");
 
             assertNotNull(shadow);
@@ -156,7 +155,7 @@ class ShadowTest {
         /// Every value that is not a shadow, and why each one is not.
         ///
         /// A missing colour is refused rather than defaulted because CSS's
-        /// default here is `currentColor`, which §8's subset does not have:
+        /// default here is `currentColor`, which the supported subset does not have:
         /// guessing black would paint a hard black halo where an author meant a
         /// tinted one, so the declaration is dropped and logged. A percentage
         /// goes for `border-radius`'s reason — it means "of this box's size", and

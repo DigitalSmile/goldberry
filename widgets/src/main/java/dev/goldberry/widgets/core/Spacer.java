@@ -16,12 +16,22 @@ import dev.goldberry.widget.style.Styled;
 import dev.goldberry.widgets.markup.Markup;
 import dev.goldberry.widgets.markup.Wiring;
 
-/// Empty space that takes what is left over — `docs/core-widgets.md` §1's
-/// `spacer`, "a `flex-grow: 1` shorthand widget".
+/// Empty space that takes whatever its row or column has left over.
 ///
 /// ```kdl
-/// row { text "Goldberry"; spacer; button "Theme" }
+/// row { text "Goldberry"; spacer; button press="theme" "Theme" }
 /// ```
+///
+/// `new Spacer()` is the whole constructor; `new Spacer(Attributes)` gives it an
+/// id and classes.
+///
+/// A spacer grows by 1 unless the stylesheet gives it a `flex-grow` of its own,
+/// so two spacers share the free space equally and `spacer.wide { flex-grow: 2 }`
+/// takes twice the share. It cannot be told not to grow: `flex-grow: 0` is the
+/// computed value when nothing was declared, and is read as unset. A fixed gap
+/// between two neighbours is `gap` on the container or `margin` on one of them.
+///
+/// Read more: [Spacer](https://goldberry.dev/docs/layout/spacer.html#spacer).
 @Markup("spacer")
 public record Spacer(Attributes attributes) implements Widget.Leaf, Styled, Paints, Attributed<Spacer> {
 

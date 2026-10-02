@@ -6,6 +6,10 @@ import org.jspecify.annotations.Nullable;
 
 /// What a page is opened with: somewhere to start, a title, and a window size.
 ///
+/// ```java
+/// var spec = WebViewSpec.of("https://goldberry.dev").title("Goldberry").sized(800, 600, WebSize.INITIAL);
+/// ```
+///
 /// The value half of a page, as [dev.goldberry.render.tray.TraySpec]
 /// is the value half of a tray — and for its reason: opening is not a value, so
 /// what can be described ahead of time is separated from the act.
@@ -16,6 +20,8 @@ import org.jspecify.annotations.Nullable;
 /// blank page, which is legitimate — an application that will `navigate` a moment
 /// later has nothing to put here — and a spec with **both** is rejected, because
 /// the two would race and which one won would be an implementation detail.
+///
+/// Read more: [Markdown, HTML and the web](https://goldberry.dev/docs/components/content.html#the-web-view).
 ///
 /// @param url    where to start, or null
 /// @param html   the document to start with, or null
@@ -46,7 +52,7 @@ public record WebViewSpec(
     /// @see #DEFAULT_WIDTH
     public static final int DEFAULT_HEIGHT = 768;
 
-    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    /// Written out so that each parameter that takes null for a default can say so.
     public WebViewSpec(
             @Nullable String url,
             @Nullable String html,

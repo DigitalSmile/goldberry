@@ -21,7 +21,7 @@ import dev.goldberry.widget.ElementTree;
 import dev.goldberry.widgets.TestHost;
 import dev.goldberry.widgets.core.Column;
 
-/// Two trees over the same node ids, in one window — [ADR-0437].
+/// Two trees over the same node ids, in one window.
 ///
 /// **Worse than `list`'s case before the router had the notion**, and settled by
 /// the same change. A list prefixes its rows with its own `id` and a tree never

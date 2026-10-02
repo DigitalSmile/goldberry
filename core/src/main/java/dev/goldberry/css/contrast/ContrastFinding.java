@@ -10,12 +10,14 @@ import java.util.Locale;
 /// the failures can say so in one `filter` while the other direction is
 /// impossible.
 ///
+/// Read more: [The design system](https://goldberry.dev/docs/guide/design-system.html#colour).
+///
 /// @param background   the token naming the fill, `--gb-badge-warning-bg`
 /// @param foreground   the token naming what sits on it
 /// @param backgroundArgb what `background` resolved to
 /// @param foregroundArgb what `foreground` resolved to
 /// @param ratio        the WCAG 2.1 ratio between them
-/// @param floor        the ratio §1.2 asks of this pair
+/// @param floor        the ratio the design system asks of this pair
 public record ContrastFinding(
         String background, String foreground, int backgroundArgb, int foregroundArgb, double ratio, double floor) {
 

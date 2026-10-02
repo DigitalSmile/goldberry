@@ -37,8 +37,9 @@ import dev.goldberry.widgets.core.Column;
 /// `GalleryGoldenTest` can show four banners sitting there. It cannot show the
 /// screen's actual subject, which is that **a banner arrives when an application
 /// describes one and goes when it stops** — the reason this screen is Java and
-/// the reason a `message` takes no `bind=`
-/// (ADR-0175).
+/// the reason a `message` takes no `bind=`: a banner says its kind twice, in
+/// its icon and its colour, and an application describes it rather than
+/// building it.
 ///
 /// So this presses the buttons.
 class NotificationsScreenTest {
@@ -88,7 +89,7 @@ class NotificationsScreenTest {
             // The three cards as the Overlays screen's wall offers them, in a
             // plain column rather than a `masonry`: what this test asserts is
             // which banners are described, and a wall would put them in three
-            // columns without changing one of those answers (ADR-0222).
+            // columns without changing one of those answers.
             tree = new ElementTree(new Column(Notifications.cards().toArray(dev.goldberry.widget.Widget[]::new)));
             render = RenderTree.create();
             router.focusRoot(tree.root());
@@ -139,7 +140,7 @@ class NotificationsScreenTest {
         }
 
         /// The × of the banner with this id, which has no id of its own: it is a
-        /// part, and a part is styleable and not constructible (ADR-0065). It is
+        /// part, and a part is styleable and not constructible. It is
         /// found by walking the banner's subtree for the node a stylesheet calls
         /// `message-dismiss`.
         void dismiss(String bannerId) {
@@ -201,7 +202,7 @@ class NotificationsScreenTest {
         return here;
     }
 
-    /// The five the screen always shows: four kinds and §4's summary.
+    /// The five the screen always shows: four kinds and the summary.
     private static final long RESIDENT = 5;
 
     @Test

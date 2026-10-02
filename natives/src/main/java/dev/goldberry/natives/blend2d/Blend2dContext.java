@@ -39,8 +39,8 @@ final class Blend2dContext {
     ///
     /// `createInfo` may be [MemorySegment#NULL], which asks for the defaults: a
     /// synchronous context on the calling thread. Blend2D's banded
-    /// multithreading is a `thread_count` away and deliberately not taken yet —
-    /// see ADR-0031.
+    /// multithreading is a `thread_count` away; [BlendContext] decides whether
+    /// to ask for it.
     void contextBegin(MemorySegment context, MemorySegment image, MemorySegment createInfo) {
         check("bl_context_init_as", calls.contextInitAs().call(context, image, createInfo));
     }
@@ -121,8 +121,8 @@ final class Blend2dContext {
     ///
     /// The `_d` suffix is the origin's type: doubles, so a baseline can land
     /// between physical pixels. The `_i` variant takes a `BLPointI` and is not
-    /// bound, because rounding the baseline is exactly what ADR-0031 went to some
-    /// trouble to stop doing for rectangles.
+    /// bound: a baseline snapped to a whole pixel is the same rounding this
+    /// module avoids for rectangles.
     void contextFillGlyphRun(
             MemorySegment context, MemorySegment origin, MemorySegment font, MemorySegment glyphRun, int argb) {
         check(
@@ -130,7 +130,7 @@ final class Blend2dContext {
                 calls.contextFillGlyphRunDRgba32().call(context, origin, font, glyphRun, argb));
     }
 
-    /// Stroke state (ADR-0043). The width is in the context's own units, so a
+    /// Stroke state. The width is in the context's own units, so a
     /// scaled context strokes in logical pixels like everything else.
     void contextSetStrokeWidth(MemorySegment context, double width) {
         int result;
@@ -178,7 +178,7 @@ final class Blend2dContext {
     /// `const BLPathCore*)`
     ///
     /// The only styleless drawing call bound, and the only way a gradient
-    /// reaches a path (ADR-0207). Its caller is responsible for what the style
+    /// reaches a path. Its caller is responsible for what the style
     /// is when it runs and for what it is afterwards.
     void contextFillPathStyled(MemorySegment context, MemorySegment origin, MemorySegment path) {
         int result;
@@ -216,7 +216,7 @@ final class Blend2dContext {
     ///
     /// The whole image: `img_area` crosses as NULL, which Blend2D reads as the
     /// full source rectangle.
-    /// Compositing a layer back onto its parent (ADR-0071). The last argument is
+    /// Compositing a layer back onto its parent. The last argument is
     /// a `const BLRectI*` naming a sub-rectangle of the source, and it is always
     /// NULL here — Blend2D reads that as the whole image, which is what a layer
     /// always wants — so no `BLRectI` ever crosses.
@@ -230,7 +230,7 @@ final class Blend2dContext {
     /// units, so the image is drawn to that size rather than one pixel per unit.
     /// The same, into a destination `BLRect` rather than at a point — which is
     /// what reconciles a raster measured in physical pixels with a context
-    /// measured in logical ones (ADR-0157). NULL `img_area`, which Blend2D reads
+    /// measured in logical ones. NULL `img_area`, which Blend2D reads
     /// as the whole image.
     void contextBlitScaledImage(MemorySegment context, MemorySegment rect, MemorySegment image) {
         contextBlitScaledImage(context, rect, image, MemorySegment.NULL);
@@ -240,7 +240,7 @@ final class Blend2dContext {
     /// source to draw.
     ///
     /// The first `BLRectI` to cross in either direction, which is why
-    /// `Layouts.BL_RECT_I` exists (ADR-0283). A layer never wanted one; a drawn
+    /// `Layouts.BL_RECT_I` exists. A layer never wanted one; a drawn
     /// image with a crop does.
     void contextBlitScaledImage(
             MemorySegment context, MemorySegment rect, MemorySegment image, MemorySegment sourceRect) {
@@ -262,7 +262,7 @@ final class Blend2dContext {
 
     /// Restricts drawing to the `BLRect` in `rect`, intersected with whatever
     /// clip is already in force.
-    /// Restricting a frame to the region that changed (ADR-0072). The rect is a
+    /// Restricting a frame to the region that changed. The rect is a
     /// `BLRect` — four doubles, in the context's own units, so a clip is stated in
     /// logical coordinates like every other call on the context.
     void contextClipToRect(MemorySegment context, MemorySegment rect) {
@@ -276,8 +276,7 @@ final class Blend2dContext {
     /// **Not to the previous clip** — this is why [#contextSave] exists. For the
     /// frame path one depth is all there is and this is the cheaper call; for a
     /// `canvas`, whose painter runs inside whatever the tree already set up,
-    /// going back to the whole image would paint over a scroll viewport's edge
-    /// (ADR-0193).
+    /// going back to the whole image would paint over a scroll viewport's edge.
     void contextRestoreClipping(MemorySegment context) {
         int result;
         result = calls.contextRestoreClipping().call(context);

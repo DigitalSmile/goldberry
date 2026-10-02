@@ -4,23 +4,23 @@ import org.jspecify.annotations.Nullable;
 
 import dev.goldberry.widgets.core.scroll.ScrollController;
 
-/// One step of a [Tour] — `docs/core-widgets.md` §5: "each stop names a target by
-/// id, a title, a body, and Back/Next/Skip".
+/// One step of a [Tour]: a target named by id, a title and a body, shown on a
+/// card with Back, Next and Skip.
 ///
-/// The target is named rather than referenced, for `menu`'s reason
-/// (ADR-0108):
+/// The target is named rather than referenced, for a context menu's reason:
 /// an application holds ids, not elements, and a tour is usually written far away
 /// from the widgets it describes — often in a different file, and often before
 /// they exist.
 ///
 /// ## The viewport is usually nobody's business but the tour's
 ///
-/// §5 asks a tour to scroll its target into view, and [#scroll] used to be the
-/// only way it could: a tour was told which viewport to move because it had no
-/// way of finding out. It finds out now — the walk is up from the *target*, which
-/// [dev.goldberry.widgets.core.scroll.ScrollScope] does
-/// ([ADR-0439]) — so leaving it null is the ordinary case and [#within] is for
+/// A tour scrolls its target into view, and finds the viewport to move by
+/// walking up from the *target*, which
+/// [dev.goldberry.widgets.core.scroll.ScrollScope] does. So leaving [#scroll]
+/// null is the ordinary case, and [#within] is for
 /// the application that means a **different** viewport from the innermost one.
+///
+/// Read more: [Overlays](https://goldberry.dev/docs/components/overlays.html#tours).
 ///
 /// @param targetId the `id=` of the widget this stop is about
 /// @param title    the heading of the popover
@@ -33,7 +33,7 @@ public record Stop(
         String body,
         @Nullable ScrollController scroll) {
 
-    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    /// Written out so that the parameters taking null for a default can say so.
     public Stop(String targetId, @Nullable String title, @Nullable String body, @Nullable ScrollController scroll) {
         // Non-null by contract, and checked anyway: a caller without NullAway can
         // pass null, and TourTest holds it to the same refusal as a blank id.

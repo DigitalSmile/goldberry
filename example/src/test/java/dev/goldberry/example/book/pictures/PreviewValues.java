@@ -29,7 +29,7 @@ import dev.goldberry.widgets.panel.tree.TreeNode;
 /// every path the catalogue's samples name is given one value here, of the type
 /// the widget reads: a number for a slider, a `LocalDate` for the date picker,
 /// the `ListView` itself for `list`, because a row factory is code a document
-/// cannot write (ADR-0367).
+/// cannot write.
 ///
 /// The wiring is **lenient** in every other respect, as `BookMarkupTest`'s is:
 /// an action resolves to nothing and a path not listed here to no value, so a

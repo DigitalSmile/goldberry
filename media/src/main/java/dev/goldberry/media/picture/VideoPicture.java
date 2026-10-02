@@ -7,7 +7,7 @@ import java.util.Objects;
 import dev.goldberry.media.MediaPlayer;
 
 /// One decoded picture, ready to draw: premultiplied BGRA, opaque, at the size it
-/// was decoded at (`docs/goldberry-media.md` §3, "CPU present").
+/// was decoded at: what a view that blits on the CPU draws.
 ///
 /// **Borrowed.** The pixels live in a buffer the Engine reuses. A picture handed
 /// out by [MediaPlayer#currentPicture()] keeps its pixels until two more pictures
@@ -19,6 +19,8 @@ import dev.goldberry.media.MediaPlayer;
 ///
 /// The format is the toolkit's own, `0xAARRGGBB` in memory on a little-endian
 /// machine, so a widget wraps the buffer and blits it with no conversion.
+///
+/// Read more: [`video-view`](https://goldberry.dev/docs/components/media.html#video-view).
 public final class VideoPicture implements Picture {
 
     private final int width;

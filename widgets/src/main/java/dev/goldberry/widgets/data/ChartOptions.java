@@ -7,13 +7,11 @@ import org.jspecify.annotations.Nullable;
 
 /// Everything about a chart that is not its numbers.
 ///
-/// A chart is `series`, `categories`, **this**, and `attributes`. Before it there
-/// were six components on each of the three axis charts and the next feature made
-/// seven, with every one of them threaded by hand through `ChartParts`,
-/// `ChartPlot` and `ChartSurface` — which is four places to forget something and
-/// three charts to forget it in.
-/// ADR-0202
-/// said the next one should bundle them, and the time axis is the next one.
+/// A chart is `series`, `categories`, **this**, and `attributes`. One record
+/// rather than a component per knob on each of the three axis charts, because
+/// every knob would otherwise be threaded by hand through `ChartParts`,
+/// `ChartPlot` and `ChartSurface` — four places to forget something and three
+/// charts to forget it in.
 ///
 /// **A subject rather than a bag.** What is in here is what a chart does with
 /// data it has been given: whether it has any yet, what to do where a value is
@@ -24,6 +22,8 @@ import org.jspecify.annotations.Nullable;
 /// Applications rarely name this type. The charts keep their withers —
 /// `chart.loading()`, `chart.nulls(ZERO)`, `chart.threshold(…)` — and each of
 /// them is one line that rebuilds this record.
+///
+/// Read more: [Charts](https://goldberry.dev/docs/components/charts.html#what-the-five-share).
 ///
 /// @param status     whether the chart has its data, is waiting, or gave up
 /// @param nulls      what to do where a series has no value
@@ -61,7 +61,7 @@ public record ChartOptions(
             null,
             Fill.NONE);
 
-    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    /// The canonical constructor, written out so that the parameters taking null for a default can say so.
     public ChartOptions(
             @Nullable ChartStatus status,
             @Nullable NullPolicy nulls,

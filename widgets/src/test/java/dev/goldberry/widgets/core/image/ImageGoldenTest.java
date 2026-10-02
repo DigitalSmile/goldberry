@@ -24,7 +24,7 @@ import dev.goldberry.widgets.controls.TestFont;
 import dev.goldberry.widgets.core.Column;
 import dev.goldberry.widgets.core.Row;
 
-/// What an image looks like (§14, [ADR-0050], [ADR-0358]).
+/// What an image looks like, held as golden images.
 ///
 /// The picture is a 120×60 banner of four coloured quarters with a white
 /// border, so a crop, a letterbox and a stretch are each visible by which

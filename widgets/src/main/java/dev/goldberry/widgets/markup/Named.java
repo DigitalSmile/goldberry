@@ -9,35 +9,33 @@ import org.jspecify.annotations.Nullable;
 
 import dev.goldberry.widgets.Icons;
 
-/// The **objects** a document may name — a `FormController`, a `Validator`.
+/// The objects a document may name but cannot build — a `FormController`, a
+/// `Validator`.
 ///
-/// [Icons]'s shape, and the third registry for the third kind of thing markup can
-/// refer to and cannot describe. The set is now:
+/// ```java
+/// var named = Named.strict().bind("app.signup-form", controller);
+/// var inflater = Widgets.inflater(named, icons, model);
+/// ```
 ///
-/// - [dev.goldberry.bind.registry.ActionRegistry] — what `press=` names.
-///   A method.
-/// - [dev.goldberry.bind.registry.BindingRegistry] — what `bind=` names.
-///   A **value that changes**.
-/// - [Icons] — what `icon=` names. A resource with a lifetime.
-/// - this — what `controller=` and `validator=` name. An object that does not
-///   change and is not a resource.
+/// ```kdl
+/// form controller="app.signup-form" { … }
+/// ```
 ///
-/// ## Why not `bind=`
+/// This is the fourth registry a document resolves names against, beside the
+/// three the model publishes: an `ActionRegistry` answers `press=` with a
+/// method, a `BindingRegistry` answers `bind=` with a value that changes, and
+/// [Icons] answers `icon=` with a resource built once. `controller=` and
+/// `validator=` name an object that neither changes nor closes, which is why it
+/// is not a binding: a binding is a subscription, and a handle that never
+/// changes is nothing to subscribe to.
 ///
-/// That was the first answer, and the binding machinery refused it in as many
-/// words: *"a `@Bind` field is final; a value that cannot change is not something
-/// to subscribe to, and binding one shows up as a control that never moves."*
-/// Which is right. A binding is a subscription, a controller is a handle, and the
-/// registry that told the difference was the one already written.
-///
-/// ## Why not just build one in markup
-///
-/// Because markup is data (§9). `validator="app.port-rule"` says *which* rule;
-/// a document that could say what the rule **is** would be code with a different
-/// syntax, and hot-reloading it would mean hot-reloading code — [Icons] and
-/// `ActionRegistry` both turn on exactly this sentence.
+/// A document names the rule and never writes it. `validator="app.port-rule"`
+/// says which rule; a document that could say what the rule is would be code in
+/// another syntax, and reloading it would mean reloading code.
 ///
 /// Confined to the UI thread, like everything it hands out.
+///
+/// Read more: [Markup](https://goldberry.dev/docs/guide/markup.html#the-four-registries).
 public final class Named {
 
     private final Map<String, Object> byName = new LinkedHashMap<>();
@@ -47,10 +45,9 @@ public final class Named {
         this.strict = strict;
     }
 
-    /// A registry that refuses an unknown name — the right default, for the
-    /// reason [dev.goldberry.bind.registry.ActionRegistry#strict()]
-    /// gives: `controller="signip"` is a typo, and a form that silently cannot
-    /// be submitted is the hardest kind of bug to notice.
+    /// A registry that refuses an unknown name, which is the right default:
+    /// `controller="signip"` is a typo, and a form that silently cannot be
+    /// submitted is the hardest kind of bug to notice.
     public static Named strict() {
         return new Named(true);
     }

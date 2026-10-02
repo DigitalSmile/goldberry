@@ -3,7 +3,7 @@ package dev.goldberry.render.clipboard;
 import dev.goldberry.render.Backend;
 
 /// The session's **primary selection** — X11's middle-click buffer, which Wayland
-/// carries too — as the toolkit sees it ([ADR-0504]).
+/// carries too — as the toolkit sees it.
 ///
 /// Selecting text puts it here and a middle click pastes it, with no `Ctrl+C` in
 /// between. It is a second buffer beside the [Clipboard] and never the same one:
@@ -37,6 +37,8 @@ import dev.goldberry.render.Backend;
 /// client on the desktop is told about.
 ///
 /// Confined to the UI thread, like everything else in this package.
+///
+/// Read more: [Text, fonts and icons](https://goldberry.dev/docs/guide/text.html#the-clipboard).
 public interface PrimarySelection {
 
     /// Whether the primary selection holds any text.

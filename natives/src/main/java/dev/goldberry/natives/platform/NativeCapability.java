@@ -13,16 +13,18 @@ package dev.goldberry.natives.platform;
 /// to dark, on every session, for ever, and reports nothing anywhere: not on the
 /// desktop, not in the build log, not at run time. The same probe gates the XDG
 /// portal file dialog and the screensaver inhibit; a second gates the input
-/// method on X11 and a third input-device hotplug (`docs/gaps.md` G32).
+/// method on X11 and a third input-device hotplug.
 ///
-/// So the superbuild now records what it found, and this is how it is read back.
+/// So the superbuild records what it found, and this is how it is read back.
 /// The bits describe the **library**, not the session it is loaded into: a build
 /// that can ask reports [#SYSTEM_THEME] even on a desktop that has no such
 /// setting, because "could not ask" and "asked and was told nothing" are
-/// different facts and only the first is fixable (ADR-0325).
+/// different facts and only the first is fixable.
 ///
 /// Bit values are hard-coded here and checked against the compiled library by the
-/// layout probe (ADR-0010), like every other constant the bindings carry.
+/// layout probe, like every other constant the bindings carry.
+///
+/// Read more: [What this build can do](https://goldberry.dev/docs/guide/logging.html#what-this-build-can-do).
 public enum NativeCapability {
 
     /// The desktop's light-or-dark setting, and the event when it changes —
@@ -66,13 +68,11 @@ public enum NativeCapability {
     /// **On Linux this is libdecor at build time**, and its absence is the first
     /// half of a two-part trap: `libdecor-0-dev` missing when the superbuild ran
     /// means SDL compiled no client-side decoration support at all, so a Wayland
-    /// window opens bare however the session is configured
-    /// ([ADR-0083]). The second half is a *run-time* one — the
-    /// plugin libdecor loads by default refuses to start off the process's initial
-    /// thread and a JVM is never on it
-    /// ([ADR-0084]) — and this bit says nothing about it.
-    /// Built able to ask is what it reports; whether a titlebar appears is the
-    /// other record's subject.
+    /// window opens bare however the session is configured. The second half is
+    /// a *run-time* one — the plugin libdecor loads by default refuses to start
+    /// off the process's initial thread and a JVM is never on it — and this bit
+    /// says nothing about it. Built able to ask is what it reports; whether a
+    /// titlebar appears is another matter.
     ///
     /// On macOS and Windows the window server draws them and there is no optional
     /// library in the way, so the bit is always set.
@@ -88,8 +88,8 @@ public enum NativeCapability {
     /// with one `pkg_check_modules` over five specs, and a machine missing any one
     /// of them — `mesa-libEGL-devel` is the one that has actually happened —
     /// builds an SDL with no Wayland driver and no complaint. Every session then
-    /// falls back to X11 or XWayland, which resizes visibly worse and is the thing
-    /// [ADR-0027] chose against.
+    /// falls back to X11 or XWayland, which resizes visibly worse than the
+    /// Wayland driver the toolkit prefers.
     ///
     /// **This bit describes the library and not the session.** A build with the
     /// driver in it still runs on X11 when that is what the desktop is.

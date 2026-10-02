@@ -1,11 +1,11 @@
 package dev.goldberry.motion;
 
-/// What time it is, for everything that animates — `docs/design-system.md` §1.7.
+/// What time it is, for everything that animates.
 ///
 /// ## Why animation reads a clock rather than counting frames
 ///
-/// §1.7's last rule: "animations are functions of the frame timestamp, not frame
-/// counts". A frame-counting animation runs at a different speed on a 144 Hz
+/// Animations are functions of the frame timestamp, not of frame counts. A
+/// frame-counting animation runs at a different speed on a 144 Hz
 /// panel than on a 60 Hz one, and slows down whenever a frame is late — so a
 /// dropped frame becomes a visibly slower transition rather than an invisible
 /// one. Reading a timestamp makes a 160 ms transition take 160 ms whatever the
@@ -22,14 +22,17 @@ package dev.goldberry.motion;
 /// The renderer reads this **once** per frame and animates everything against
 /// that one value. Two nodes in the same frame must not see different times, or
 /// two properties transitioning together — a toggle's thumb and its track, which
-/// §3.1 says "arrive together" — would arrive a few microseconds apart and drift
+/// must arrive together — would arrive a few microseconds apart and drift
 /// further the longer they ran.
+///
+/// Read more: [Motion](https://goldberry.dev/docs/guide/design-system.html#motion),
+/// and [The virtual clock](https://goldberry.dev/docs/guide/testing.html#the-virtual-clock).
 @FunctionalInterface
 public interface Clock {
 
     /// The current time in **milliseconds**, on an arbitrary origin.
     ///
-    /// Milliseconds because that is the unit every duration in §1.7 is written
+    /// Milliseconds because that is the unit the design system writes every duration
     /// in, and a `double` because sub-millisecond precision is what keeps a
     /// 100 ms transition smooth at 144 Hz — 6.9 ms a frame does not divide into
     /// whole milliseconds.

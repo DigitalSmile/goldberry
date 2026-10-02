@@ -16,20 +16,19 @@ import dev.goldberry.widget.Widget;
 import dev.goldberry.widget.style.Paints;
 import dev.goldberry.widget.style.Styled;
 
-/// One day in the grid — `calendar-day`, a **part**: styleable and not
-/// constructible (ADR-0065).
+/// One day in the grid — `calendar-day`, a part: a stylesheet can select it and
+/// a document cannot write it.
 ///
-/// **Not focusable**, and it says so by saying nothing: `Handles.isFocusable`
+/// Not focusable, and it says so by saying nothing: `Handles.isFocusable`
 /// already answers false, and `SemanticsSweepTest` reads an *override* of it as a
 /// type making focusability its business — which then owes a role. This does not
-/// want one. §10: "The grid is one Tab stop with a roving day (§2.2)", so
-/// [CalendarBox] takes the keys and this wears the roving highlight as a class;
-/// forty-two focusable cells would be forty-two Tab stops in a control the
-/// specification calls one.
+/// want one. The grid is one Tab stop with a roving day, so [CalendarBox] takes
+/// the keys and this wears the roving highlight as a class; forty-two focusable
+/// cells would be forty-two Tab stops in a control that is meant to be one.
 ///
 /// ## The classes, and why each is a class
 ///
-/// §8's subset has `:checked` and `:disabled` and nothing that means "this day is
+/// The CSS subset has `:checked` and `:disabled` and nothing that means "this day is
 /// in the month the grid is of", "this day is the one the arrows are on" or "this
 /// day is inside a range". So `outside`, `today`, `roving`, `range-start`,
 /// `range-end` and `in-range` are classes, exactly as `text-value`'s
@@ -39,8 +38,8 @@ import dev.goldberry.widget.style.Styled;
 /// unreachable one is `:disabled`.
 ///
 /// **A range's ends are `:checked` and its middle is not**, which is what lets
-/// §2's "radius `full` on the selected day, range ends only" be one rule rather
-/// than a rule and an exception.
+/// the `full` radius on the selected day, and on range ends only, be one rule
+/// rather than a rule and an exception.
 ///
 /// @param date       which day this is
 /// @param label      what to draw — the day of the month
@@ -126,7 +125,7 @@ record CalendarDay(
     /// The number, and whatever the application put under it.
     ///
     /// The decoration is a **child** rather than a replacement, which is what
-    /// makes §10's "a dot, a `badge`, a background" one seam instead of three: a
+    /// makes a dot, a `badge` and a background one seam instead of three: a
     /// dot is a child under the number, a badge is a child beside it, and a
     /// background is a class the application's own stylesheet reaches through
     /// `decoration` returning a node with one.

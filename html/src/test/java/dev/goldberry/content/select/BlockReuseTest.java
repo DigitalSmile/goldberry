@@ -40,15 +40,16 @@ import dev.goldberry.widget.style.Styled;
 import dev.goldberry.widgets.Controls;
 import dev.goldberry.widgets.controls.button.Button;
 
-/// What a keystroke costs a rendered document, as a **count** — `docs/gaps.md` G45
-/// and [ADR-0389].
+/// What a keystroke costs a rendered document, as a **count**: a block nobody typed
+/// in keeps its widget, and a keystroke rebuilds one block.
 ///
 /// [dev.goldberry.markdown.view.MarkdownFrameBenchmark] has the
 /// milliseconds and asserts none of them, for the reason every benchmark in this
 /// repository gives: a threshold that passes alone and fails under a parallel build
 /// teaches nobody anything. What holds on any machine is how many blocks were built,
 /// how many paragraphs were shaped, and whether the element under an untouched
-/// paragraph is the one that was there before — so that is what this asserts.
+/// paragraph is the one that was there before — so that is what this asserts. See
+/// [A cost is guarded by a count](https://goldberry.dev/docs/contributing/testing.html#a-cost-is-guarded-by-a-count).
 ///
 /// In this package rather than beside the view because the memo belongs to
 /// [SelectableDocument]'s state, and the state is what a mounted document is.
@@ -202,7 +203,7 @@ class BlockReuseTest {
             }
             // **The same instance, not an equal one.** `Element.update` stops at an
             // identical description and never walks below it, which is the whole of
-            // what this buys (ADR-0315, ADR-0389).
+            // what this buys.
             assertSame(widgets.get(index), after.get(index).widget(), "block " + index + " should keep its widget");
         }
     }
@@ -249,9 +250,9 @@ class BlockReuseTest {
         var shaped = paragraphs.misses() - before;
 
         // The edited paragraph is seven words and one of them is new. Nothing else in
-        // the note may be shaped: a miss is 56 microseconds of HarfBuzz (ADR-0037),
-        // and a note that shaped every word on every keystroke is the frame G45 was
-        // about.
+        // the note may be shaped: a miss is 56 microseconds of HarfBuzz, and a note
+        // that shaped every word on every keystroke is the slow preview this test
+        // exists to keep away.
         assertTrue(shaped <= 2, "a keystroke should shape the word that changed and no more, not " + shaped);
     }
 
@@ -345,7 +346,7 @@ class BlockReuseTest {
         // Two lists with a paragraph between them, so that each task is a top-level
         // block of its own and the edit is in the middle of them. `tasksSeen` is what
         // the fold carries across a block it skipped: a box whose ordinal reset would
-        // toggle the wrong line of the source (ADR-0300).
+        // toggle the wrong line of the source.
         var pressed = new ArrayList<Integer>();
         source.set("- [ ] one\n\nBetween them.\n\n- [ ] two\n");
         mount(MarkdownView.following(source).onTask(pressed::add).id("note"));
@@ -362,7 +363,7 @@ class BlockReuseTest {
     @Test
     @DisplayName("a memoised link calls the handler the view has now")
     void aKeptLinkCallsTheNewHandler() {
-        // The indirection ADR-0389 put in: an application that writes `onLink(this::open)`
+        // The indirection the memo needs: an application that writes `onLink(this::open)`
         // in its own build hands the view a new object every frame, and a button built
         // three keystrokes ago would otherwise call the first one it ever saw.
         var first = new ArrayList<String>();
@@ -412,7 +413,7 @@ class BlockReuseTest {
     ///
     /// Through the router and the hit-test capture rather than by calling the widget,
     /// because `task-mark` is `markdown-view`'s own and what it reports is only visible
-    /// from outside it as a press (`docs/testing.md` §4).
+    /// from outside it as a press.
     private void pressTaskBoxes() {
         var boxes = new ArrayList<LogicalRect>();
         for (var region : HitTest.capture(render)) {

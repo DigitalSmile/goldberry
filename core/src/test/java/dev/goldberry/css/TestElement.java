@@ -9,11 +9,10 @@ import dev.goldberry.css.select.Selector;
 
 /// A [StyleElement] tree, built by hand.
 ///
-/// Public because the CSS engine's stages are packages of their own now and
-/// each of them tests against this same hand-built tree
-/// (ADR-0172).
+/// Public because the CSS engine's stages are packages of their own and each of
+/// them tests against this same hand-built tree.
 ///
-/// Stands in for the element tree of ADR-0004, which does not exist yet. That is
+/// Stands in for the real element tree. That is
 /// exactly what [StyleElement] is for: the cascade can be built and tested
 /// against something this small, and the real tree implements the same four
 /// questions later.

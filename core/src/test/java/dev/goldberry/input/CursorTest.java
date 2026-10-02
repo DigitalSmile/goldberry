@@ -41,12 +41,14 @@ import dev.goldberry.widget.ElementTree;
 import dev.goldberry.widget.Widget;
 import dev.goldberry.widget.style.Styled;
 
-/// The cursor, from `cursor: pointer` in a stylesheet to the platform (§7.3).
+/// The cursor, from `cursor: pointer` in a stylesheet to the platform.
 ///
 /// Its route is deliberately the same one hit testing takes: the shape is
 /// recorded on the box while it is painted and read back off the rectangle under
 /// the pointer, because what the cursor should be is a question about what is on
-/// screen (ADR-0054).
+/// screen.
+///
+/// Read more: [The cursor](https://goldberry.dev/docs/guide/input.html#the-cursor).
 class CursorTest {
 
     @Nested
@@ -259,7 +261,7 @@ class CursorTest {
         }
     }
 
-    /// [ADR-0237]: the shape follows the *frame*, not only the pointer.
+    /// The shape follows the *frame*, not only the pointer.
     ///
     /// A widget that becomes disabled under a still pointer resolves
     /// `cursor: not-allowed` in the frame it is painted for, and a router that
@@ -359,7 +361,7 @@ class CursorTest {
         /// before it became disabled does not keep the state". It did keep it —
         /// clearing is not suppressed, but nothing called it, because
         /// `updateHover` returns early when the element under the pointer has not
-        /// changed. §2.1 says a disabled control must not light up.
+        /// changed. A disabled control must not light up.
         @Test
         @DisplayName("a control that disables itself under the pointer loses :hover")
         void hoverIsRestated() {

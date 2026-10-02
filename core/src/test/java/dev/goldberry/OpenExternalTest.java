@@ -23,8 +23,8 @@ import dev.goldberry.widget.attr.Attributes;
 import dev.goldberry.widget.style.Paints;
 import dev.goldberry.widget.style.Styled;
 
-/// [Host#openExternal] — a URL handed to the desktop through the backend
-/// ([ADR-0346]).
+/// [Host#openExternal] — a URL handed to the desktop through the backend, which
+/// opens it with its own handler for the scheme.
 ///
 /// Headless, so there is no desktop: the backend records what it was asked
 /// and answers true. The SDL half is `SdlOpenUrlTest` in `:natives`.

@@ -42,7 +42,10 @@ import dev.goldberry.widget.style.Styled;
 /// [dev.goldberry.backend.headless.HeadlessPopupTest] covers
 /// the SPI's rules. This is the layer above: a widget tree of its own, painted
 /// into a second window by the same renderer, and closed by input its own router
-/// never sees ([ADR-0103]).
+/// never sees.
+///
+/// Read more:
+/// [In a window of its own](https://goldberry.dev/docs/guide/windows.html#in-a-window-of-its-own).
 class PopupLifecycleTest {
 
     /// A node that fills whatever it is given, so a popup's frame has something
@@ -75,12 +78,11 @@ class PopupLifecycleTest {
     }
 
     /// A box that **translates its children**, which is what a `scroll` is: Yoga
-    /// lays the content out where it always was and the viewport moves it
-    /// ([ADR-0114], [ADR-0116]).
+    /// lays the content out where it always was and the viewport moves it.
     ///
     /// Bound to a [dev.goldberry.bind.Property], so changing
     /// the offset marks this element for a rebuild and asks for a frame by the
-    /// same route a `setState` does ([ADR-0062], [ADR-0122]) — which is the
+    /// same route a `setState` does — which is the
     /// point: the anchor moves between two frames, with no resize and no event
     /// that says so.
     private record Scrolled(dev.goldberry.bind.Property<Float> offset, List<Widget> kids, Attributes attributes)
@@ -348,7 +350,7 @@ class PopupLifecycleTest {
                         host -> {}),
                 new String[] {"--frames=3"});
 
-        assertFalse(opened[0].isOpen(), "a press below a menu closes it (§7's light dismissal)");
+        assertFalse(opened[0].isOpen(), "a press outside a menu is a light dismissal and closes it");
     }
 
     @Test
@@ -369,8 +371,8 @@ class PopupLifecycleTest {
         assertFalse(opened[0].isOpen());
     }
 
-    /// **A floor under the width** — [ADR-0145], and the only thing a
-    /// measurement of the content cannot say.
+    /// **A floor under the width** — a dropdown is as wide as what it drops
+    /// from, and that is the only thing a measurement of the content cannot say.
     ///
     /// `Sized` is 200 wide by the test's stylesheet, so a floor of 320 has to
     /// win and a floor of 100 has to lose.
@@ -420,7 +422,7 @@ class PopupLifecycleTest {
                 .thenRun(action);
     }
 
-    /// **A popup goes away when the application does** — [ADR-0144].
+    /// **A popup goes away when the application does.**
     ///
     /// Nothing reported this before: the toolkit had no focus event at all, so a
     /// menu left open while the user switched to another application stayed on
@@ -479,8 +481,8 @@ class PopupLifecycleTest {
     /// A tooltip is that popup, and it is open over exactly the control a menu is
     /// most often dismissed by: the pointer rests on the button, the tooltip
     /// appears, the user presses to close the menu, and the press closed the menu
-    /// *and* pressed the button — the double activation [ADR-0141] describes,
-    /// with a tooltip as the reason it came back.
+    /// *and* pressed the button — the double activation a closed `select` is
+    /// built to avoid, with a tooltip as the reason it came back.
     @Test
     @Timeout(20)
     @DisplayName("a press that closed a menu is a dismissal, tooltip or no tooltip")
@@ -690,8 +692,8 @@ class PopupLifecycleTest {
                         + " — inside the popup, from a key the owner window received");
     }
 
-    /// A focus scope with items in it — which is what §7 says every overlay
-    /// wraps, and what makes `Down` mean "the next item" rather than nothing.
+    /// A focus scope with items in it — which is what every overlay wraps, and
+    /// what makes `Down` mean "the next item" rather than nothing.
     private record Menu(List<Widget> items, Set<String> classes)
             implements Widget.Leaf, Styled, Paints, dev.goldberry.input.handler.Handles {
 
@@ -735,8 +737,7 @@ class PopupLifecycleTest {
     }
 
     /// A popup lives at an **offset from its owner**, so dragging the window
-    /// carries it along and only a *resize* moves what it was anchored to
-    /// ([ADR-0231]).
+    /// carries it along and only a *resize* moves what it was anchored to.
     ///
     /// The root is a column filling the window with one node at the bottom, so
     /// shrinking the window by 200 moves the anchor up by 200 — and the popup
@@ -796,8 +797,7 @@ class PopupLifecycleTest {
 
     /// A **move** does not move the anchor and does not repaint anything. What it
     /// moves is the work area *in this window's coordinates*, and a menu that was
-    /// flipped or clamped against the old position has to be asked again
-    /// ([ADR-0270]).
+    /// flipped or clamped against the old position has to be asked again.
     ///
     /// The window opens 400x500 at the desktop's origin, where the work area is
     /// 1920x1040 and a menu under a target at the bottom of the window has all
@@ -854,12 +854,12 @@ class PopupLifecycleTest {
     /// pixels higher. Two things have to be true for the menu to follow it: the
     /// anchor rectangle has to be the *painted* one rather than the laid-out one,
     /// and something has to re-ask the question on a frame that no resize and no
-    /// move produced ([ADR-0270]).
+    /// move produced.
     ///
     /// **This scrolled by 120 and the anchor is 80 tall**, so it used to travel
     /// the whole way with a target that had gone entirely off the top of the
-    /// window — which was the following working and the case [ADR-0433] now
-    /// closes the popup for. 60 keeps 20 pixels of the anchor drawn, which is
+    /// window — which was the following working and the case the popup is now
+    /// closed for. 60 keeps 20 pixels of the anchor drawn, which is
     /// what this test was always about: the following, not its limit.
     /// [PopupAnchorVisibilityTest] is the limit.
     @Test

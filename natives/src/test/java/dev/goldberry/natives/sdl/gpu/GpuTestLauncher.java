@@ -16,7 +16,7 @@ import org.junit.platform.launcher.listeners.SummaryGeneratingListener;
 /// Runs the tests tagged `gpu` on the thread that calls [#main].
 ///
 /// A GPU device needs SDL's video subsystem, and on macOS that is Cocoa, which
-/// refuses every thread but the process's first (ADR-0039). Gradle's `Test` task
+/// refuses every thread but the process's first. Gradle's `Test` task
 /// runs tests on a worker thread whatever the JVM is started with, so the GPU
 /// tests cannot run there on a Mac. `:natives:gpuTest` starts a JVM with
 /// `-XstartOnFirstThread` and runs this, and JUnit runs the tests on the thread

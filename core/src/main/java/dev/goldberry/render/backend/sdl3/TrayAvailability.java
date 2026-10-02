@@ -17,9 +17,9 @@ import org.jspecify.annotations.Nullable;
 /// Assertion failed: (CGAtomicGet(&is_initialized)), function CGSConnectionByID
 /// ```
 ///
-/// — and the process is aborted rather than told. That is how a headless
-/// native-image trace on a macOS runner died with no Java frame in sight
-/// (ADR-0338). SDL returns NULL for every other reason a tray cannot exist, so
+/// — and the process is aborted rather than told, which is how a headless
+/// native-image trace on a macOS runner dies with no Java frame in sight.
+/// SDL returns NULL for every other reason a tray cannot exist, so
 /// this is the one absence that has to be known before the call.
 ///
 /// Elsewhere the dummy driver and a tray coexist: the Linux tray is a D-Bus

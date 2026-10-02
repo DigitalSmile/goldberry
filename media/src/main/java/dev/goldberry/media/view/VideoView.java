@@ -17,9 +17,9 @@ import dev.goldberry.widgets.core.image.Fit;
 import dev.goldberry.widgets.markup.Markup;
 import dev.goldberry.widgets.markup.Wiring;
 
-/// `video-view`: a [MediaPlayer]'s pictures, and nothing else
-/// (`docs/goldberry-media.md` §6). The surface `media-player` is built on, for an
-/// application that draws its own controls or none.
+/// `video-view`: a [MediaPlayer]'s pictures, and nothing else. The surface
+/// `media-player` is built on, for an application that draws its own controls
+/// or none.
 ///
 /// ```java
 /// var player = MediaPlayer.builder().build();
@@ -31,7 +31,7 @@ import dev.goldberry.widgets.markup.Wiring;
 /// video-view player="trailer" fit="cover"
 /// ```
 ///
-/// `fit` is §6's `contain | cover | fill` (and `none`, the picture at its own
+/// `fit` is `contain | cover | fill` (and `none`, the picture at its own
 /// size), `object-fit` by another name: [Fit]. The picture is centred; the rest
 /// of the box shows its background, which `media.css` makes black.
 ///
@@ -42,6 +42,8 @@ import dev.goldberry.widgets.markup.Wiring;
 /// @param player     the player to show
 /// @param fit        how a picture fills a box of another shape
 /// @param attributes id, classes and key
+///
+/// Read more: [`video-view`](https://goldberry.dev/docs/components/media.html#video-view).
 @Markup("video-view")
 public record VideoView(MediaPlayer player, Fit fit, Attributes attributes)
         implements Widget.Stateful, Attributed<VideoView> {

@@ -23,32 +23,40 @@ import dev.goldberry.kdl.KdlNode;
 import dev.goldberry.widgets.markup.Wiring;
 import dev.goldberry.widgets.markup.Markup;
 
-/// A rotary control — `docs/core-widgets.md` §3's `knob`, and the tenth in the
-/// catalog.
+/// A rotary control: a dial with a pointer, an arc that fills as the value
+/// rises, and a vertical drag as its gesture.
 ///
 /// ```kdl
 /// knob min=0 max=11 value=5 step=1
-/// knob class="large" detents=5 bind="mix.send"
+/// knob class="large" detents=5 bind="mix.send" change="mix.set-send"
+/// knob drag="circular" bind="audio.pan" change="audio.set-pan"
 /// ```
 ///
-/// ## Its drag is a rate, and that is the whole of what is new
+/// In Java, `Knob.of(min, max, step, observable, handler)` for a bound knob,
+/// then [#detents], [#circular] and [#disabled] as needed; `new Knob(value,
+/// handler)` is a `0..1` knob with nothing bound. `min=` and `max=` are the
+/// range, `value=` is what shows when nothing is bound, `step=` is the grid the
+/// keyboard and the wheel move on (0 for continuous), `bind=` names a `Number`
+/// to follow and `change=` the action told the value asked for. `class="large"`
+/// makes it 48 px instead of 32.
+///
+/// ## Its drag is a rate
 ///
 /// [dev.goldberry.widgets.controls.slider.Slider] and this control answer the
-/// same question — what value is the user
-/// asking for — from opposite ends. A slider's value is a **position**: the
-/// pointer is somewhere along a track and the fraction it sits at *is* the
-/// answer, read fresh on every event with no history at all ([ADR-0079]). A knob
-/// has no track. §3 gives it a **rate** instead: "value drag 200px per full
-/// range", so the answer is `where it started + how far you have dragged`.
+/// same question — what value is the user asking for — from opposite ends. A
+/// slider's value is a **position**: the pointer is somewhere along a track and
+/// the fraction it sits at *is* the answer, read fresh on every event with no
+/// history at all. A knob has no track, so its drag is a **rate**: 200 px of
+/// vertical drag is the whole range, and the answer is
+/// `where it started + how far you have dragged`.
 ///
-/// "Where it started" is the problem, and it is not one any existing machinery
-/// solved. A widget is an immutable value rebuilt from the model, so by the
-/// second frame of the drag the value at the press is gone — overwritten by the
-/// value the drag itself asked for. The router already remembers the two facts
-/// with exactly this lifetime, `pressX` and `pressY` ([ADR-0075]), so it now
-/// remembers a third: [Handles#gestureAnchor()] is asked once on the press and
-/// handed back on every event of the gesture as [PointerEvent#anchor()]
-/// ([ADR-0089]).
+/// "Where it started" needs remembering, and a widget cannot: it is an immutable
+/// value rebuilt from the model, so by the second frame of the drag the value at
+/// the press is gone — overwritten by the value the drag itself asked for. The
+/// router already remembers where the press happened for exactly this lifetime,
+/// so it remembers one more fact: [Handles#gestureAnchor()] is asked once on the
+/// press and handed back on every event of the gesture as
+/// [PointerEvent#anchor()].
 ///
 /// The fine modifier is a gesture fact for the same reason. Reading the *live*
 /// modifier would rescale travel already covered — press Shift 100px into a drag
@@ -64,10 +72,12 @@ import dev.goldberry.widgets.markup.Markup;
 /// detent is on a physical control, and it is the reason both exist — a knob
 /// with a centre detent is not a knob with a coarse step.
 ///
-/// §3 pins the count's meaning nowhere, so [#PULL] is derived rather than taken:
-/// a detent owns the middle half of the gap to its neighbour, which leaves the
-/// outer half reachable. A pull of a whole half would make the detents a grid
-/// and delete the distinction this paragraph is about.
+/// [#PULL] is a quarter of the spacing: a detent owns the middle half of the gap
+/// to its neighbour, which leaves the outer half reachable. A pull of a whole
+/// half would make the detents a grid and delete the distinction this paragraph
+/// is about.
+///
+/// Read more: [Values and progress](https://goldberry.dev/docs/components/values.html#knob).
 ///
 /// @param min        the low end of the range
 /// @param max        the high end
@@ -75,12 +85,12 @@ import dev.goldberry.widgets.markup.Markup;
 /// @param step       the grid the keyboard moves on, or 0 for continuous
 /// @param detents    how many magnetic points across the travel, or 0 for none;
 ///                   at least 2, because one detent is not a set of them
-/// @param source     §9's `bind=`, or null
+/// @param source     `bind=`, or null
 /// @param onChange   what the user is asking for — never what the knob decided
 /// @param disabled   whether it refuses input and matches `:disabled`
 /// @param circular   whether a drag follows the pointer round the dial rather
-///                   than up and down — §3's optional circular drag (ADR-0369)
-/// @param attributes `id` and `class`; `class="large"` is §3's 48px diameter
+///                   than up and down — `drag="circular"` in markup
+/// @param attributes `id` and `class`; `class="large"` is the 48 px diameter
 @Markup("knob")
 public record Knob(
         double min, double max, double value, double step, int detents,
@@ -88,14 +98,14 @@ public record Knob(
         boolean disabled, boolean circular, Attributes attributes)
         implements Widget.Leaf, Styled, Paints, Handles, Attributed<Knob>, Bindable<Knob> , Semantics {
 
-    /// §3: "value drag **200px** per full range". Logical pixels, so a knob
+    /// How far a drag travels for the full range: 200 logical pixels, so a knob
     /// behaves the same on a hidpi screen as on a 1× one.
     private static final double TRAVEL = 200;
 
-    /// §3: "**×0.1** with fine modifier".
+    /// What `Shift` multiplies the drag by: a tenth.
     private static final double FINE = 0.1;
 
-    /// §3: "arc **270°**", and the travel starts at seven-thirty.
+    /// The arc is 270°, and the travel starts at seven-thirty.
     ///
     /// Radians clockwise from three o'clock, which is [Box.Mark]'s convention.
     /// `3π/4` is the lower left; sweeping 270° clockwise from there ends at the
@@ -117,7 +127,7 @@ public record Knob(
     /// distance is what tells them apart.
     private static final float CLICK_SLOP = 8;
 
-    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    /// The canonical constructor, written out so that the parameters taking null for a default can say so.
     public Knob(double min, double max, double value, double step, int detents, @Nullable Observable<?> source, @Nullable DoubleConsumer onChange, boolean disabled, boolean circular, @Nullable Attributes attributes) {
         if (!Double.isFinite(min) || !Double.isFinite(max) || min >= max) {
             throw new IllegalArgumentException(
@@ -172,7 +182,7 @@ public record Knob(
     ///
     /// Named for [dev.goldberry.widgets.controls.slider.Slider#of]'s
     /// reason: it would otherwise be a second five-argument constructor differing
-    /// only in one parameter's type (ADR-0094).
+    /// only in one parameter's type, and a named method says which one it is.
     public static Knob of(double min, double max, double step, Observable<?> source, DoubleConsumer onChange) {
         return new Knob(min, max, min, step, 0, source, onChange, false, Attributes.NONE);
     }
@@ -189,8 +199,8 @@ public record Knob(
 
     /// Where round the travel the value sits, `0..1`.
     ///
-    /// Linear, and deliberately without `Scale`: §3 gives the dB mapping to
-    /// `fader` and not to this. A knob that wanted one would be asking for the
+    /// Linear, and deliberately without `Scale`: the dB mapping belongs to the
+    /// fader and not to this. A knob that wanted one would be asking for the
     /// same `Scale` this range already has room for, which is a thing to add when
     /// something needs it rather than because a sibling has it.
     public double fraction() {
@@ -231,14 +241,14 @@ public record Knob(
         return step > 0 ? step * 10 : (max - min) / 10;
     }
 
-    /// This knob with §3's optional detents — magnetic positions across the
-    /// travel, which is not the same thing as a `step` (see the class comment).
+    /// This knob with detents — magnetic positions across the travel, which is
+    /// not the same thing as a `step` (see the class comment).
     public Knob detents(int detents) {
         return new Knob(min, max, value, step, detents, source, onChange, disabled, circular, attributes);
     }
 
-    /// This knob dragged round its dial rather than up and down — §3's
-    /// "circular-drag optional" (ADR-0369).
+    /// This knob dragged round its dial rather than up and down — the Java
+    /// spelling of `drag="circular"`.
     public Knob circular(boolean value) {
         return new Knob(min, max, this.value, step, detents, source, onChange, disabled, value, attributes);
     }
@@ -296,7 +306,7 @@ public record Knob(
     /// The full arc, with the value's part of it nested inside.
     ///
     /// **Nested rather than stacked**, because the two rings are concentric and
-    /// §8's subset has no `position: absolute` — a `stack` is M3's. A child at
+    /// the stylesheet subset has no `position: absolute`. A child at
     /// `width: 100%; height: 100%` with no padding between them occupies exactly
     /// its parent's box, so nesting *is* stacking for as long as nothing needs to
     /// overlap in more than one direction.
@@ -314,8 +324,8 @@ public record Knob(
     /// (`knob-arc { padding }`), so an application that changes it would move a
     /// boundary this file had hard-coded.
     ///
-    /// [Handles#localPart()] is exactly that question already answered
-    /// ([ADR-0080]): the router measures [PointerEvent#local()] against the named
+    /// [Handles#localPart()] is exactly that question already answered: a value
+    /// is measured along a part, so the router measures [PointerEvent#local()] against the named
     /// part, so `local.x()` beyond `local.width()` *is* "outside the dial",
     /// derived from the geometry that was actually painted. The drag is
     /// unaffected — it reads `dragY()`, which is the window's.
@@ -333,9 +343,9 @@ public record Knob(
         return resolved();
     }
 
-    /// §3's vertical drag, and §3.1's "1:1, no animation".
+    /// The vertical drag: one to one with the pointer, and never animated.
     ///
-    /// Vertical is the primary gesture. §3's optional circular drag is
+    /// Vertical is the primary gesture. The circular drag is
     /// [#circular(boolean)] — see [#circularTo].
     @Override
     public void onPointer(PointerEvent event) {
@@ -349,7 +359,7 @@ public record Knob(
         }
         // Only while a button is down. Outside a gesture the anchor is NaN, which
         // is the router saying so through the arithmetic rather than through a
-        // flag (ADR-0075, ADR-0089).
+        // flag.
         var dragging = switch (event.kind()) {
             case PRESSED -> event.button() == PointerEvent.Button.PRIMARY;
             case MOVED -> !Double.isNaN(event.anchor());
@@ -377,15 +387,15 @@ public record Knob(
     ///
     /// What it needs is where the pointer is and what the knob holds now, and
     /// both are already here — the angle from [PointerEvent#local()] measured
-    /// against `knob-dial`, and [#resolved()]. The accumulated angle the TODO
-    /// entry expected is not needed, because the one thing it was for is refusing
-    /// a jump, and a jump can be recognised from the current value alone:
+    /// against `knob-dial`, and [#resolved()]. No accumulated angle is kept,
+    /// because the one thing it would be for is refusing a jump, and a jump can
+    /// be recognised from the current value alone:
     ///
     /// - on the travel, a move to a fraction more than half the travel away is a
     ///   jump across the gap, and is held at the end nearer the current value;
     /// - in the 90° gap at the bottom, the value stays at the end nearer the
     ///   current value, so pushing past the top holds it at the top rather than
-    ///   flipping it to the bottom (ADR-0369).
+    ///   flipping it to the bottom.
     private void circularTo(PointerEvent event) {
         var local = event.local();
         if (local.width() <= 0 || local.height() <= 0) {
@@ -423,7 +433,7 @@ public record Knob(
     /// On `CLICKED` rather than on `PRESSED`, and that is the whole of what makes
     /// it compose with the drag. A press is the first event of *both* gestures and
     /// cannot know which one it is; the router synthesizes `CLICKED` only when the
-    /// press and the release landed on the same node ([ADR-0058]), and the
+    /// press and the release landed on the same node, and the
     /// remaining ambiguity — a drag that ended where it began — is settled by
     /// [#CLICK_SLOP], which is [dev.goldberry.widgets.controls.toggle.Toggle]'s
     /// answer to the same question. Jumping on
@@ -453,10 +463,8 @@ public record Knob(
 
     /// A wheel line moves what an arrow key moves.
     ///
-    /// §3's "×0.1 with fine modifier" is attached to the **value drag** and not to
-    /// this, so a modified wheel is deliberately the same as an unmodified one:
-    /// `core-widgets.md` §3 lists "wheel steps, keyboard arrows, modifier for fine
-    /// adjustment" in one breath and `design-system.md` §3 is the precise one.
+    /// The fine modifier belongs to the **value drag** and not to this, so a
+    /// modified wheel is deliberately the same as an unmodified one.
     ///
     /// Detents are not applied. A wheel line is a discrete request for the next
     /// value, exactly as an arrow key is, and magnetism belongs to a continuous
@@ -473,7 +481,7 @@ public record Knob(
     ///
     /// **What is consumed is what moved**, which is
     /// [dev.goldberry.widgets.core.scroll.ScrollViewport]'s rule
-    /// and not a second one ([ADR-0236]): a knob already at its end has nothing to
+    /// and not a second one: a knob already at its end has nothing to
     /// do with a wheel that pushes it further that way, so the event is left
     /// unconsumed and the router's ordinary bubble hands it to whatever is above —
     /// a `scroll` in the usual case. Turning the *other* way still consumes, so
@@ -511,9 +519,9 @@ public record Knob(
     }
 
     /// [dev.goldberry.widgets.controls.slider.Slider]'s keyboard map exactly,
-    /// and deliberately so: §3 gives both
-    /// controls "keyboard arrows (step), PgUp/PgDn, Home/End", and a knob that
-    /// answered them differently would be a second thing to learn.
+    /// and deliberately so: arrows step, `PgUp` and `PgDn` move a page, `Home`
+    /// and `End` go to the ends, and a knob that answered them differently would
+    /// be a second thing to learn.
     @Override
     public void onKey(KeyEvent event) {
         if (event.kind() != KeyEvent.Kind.PRESSED || !event.modifiers().none()) {
@@ -535,7 +543,7 @@ public record Knob(
         ask(moved);
         // Always consumed, even when the value did not move: a knob at its
         // maximum still owns Right, and letting it through would move focus off
-        // the control being adjusted (ADR-0073, ADR-0078, ADR-0079).
+        // the control being adjusted.
         event.consume();
     }
 
@@ -576,7 +584,8 @@ public record Knob(
     }
 
     /// Asks the application for a value, snapped and clamped. It does **not** set
-    /// one ([ADR-0063]).
+    /// one: data flows down and events flow up, so the knob never writes the
+    /// value it shows.
     private void ask(double raw) {
         if (!disabled && onChange != null) {
             onChange.accept(snap(clamp(raw)));
@@ -600,7 +609,7 @@ public record Knob(
     /// Builds a `knob` from markup.
     ///
     /// `detents` is a count, like `slider`'s `ticks` — a value a document can
-    /// carry, naming nothing the application has to have registered (ADR-0080).
+    /// carry, naming nothing the application has to have registered.
     public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
         var min = node.numberProperty("min", 0);
         var max = node.numberProperty("max", 1);

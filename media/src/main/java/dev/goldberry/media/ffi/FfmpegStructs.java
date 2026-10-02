@@ -12,8 +12,8 @@ import java.util.List;
 
 /// The FFmpeg structs the Engine reads fields of, declared by hand.
 ///
-/// `docs/goldberry-media.md` §2's table, written as layouts. Only the fields in
-/// that table are named. Everything between them is unnamed padding, so a struct's
+/// Only the fields the Engine reads are named. Everything between them is
+/// unnamed padding, so a struct's
 /// private and deprecated fields never appear in Java. Each layout is named for
 /// its C type, which is the key [FfmpegLayoutCheck] matches against the probe.
 ///
@@ -173,7 +173,7 @@ public final class FfmpegStructs {
             .withName("AVCodecContext");
 
     /// `AVCodecHWConfig`: one way a decoder can use a hardware device, as
-    /// `avcodec_get_hw_config` lists them (phase 5, ADR-0470).
+    /// `avcodec_get_hw_config` lists them.
     public static final StructLayout AV_CODEC_HW_CONFIG = structLayout(
                     JAVA_INT.withName("pix_fmt"), JAVA_INT.withName("methods"), JAVA_INT.withName("device_type"))
             .withName("AVCodecHWConfig");

@@ -6,8 +6,10 @@ import java.util.Objects;
 /// composited, or why not.
 ///
 /// A reason rather than an empty answer, because the window is what logs the
-/// outcome (ADR-0480), and "presents on the CPU" says nothing a reader can act
-/// on without the why beside it.
+/// outcome, and "presents on the CPU" says nothing a reader can act on without
+/// the why beside it.
+///
+/// Read more: [Logging and diagnostics](https://goldberry.dev/docs/guide/logging.html#which-way-a-window-presents).
 public sealed interface Claim {
 
     /// The window presents through the GPU from now on.

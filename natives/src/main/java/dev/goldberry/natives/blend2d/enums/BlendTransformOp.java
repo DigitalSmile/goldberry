@@ -8,6 +8,8 @@ import dev.goldberry.natives.blend2d.BlendContext;
 /// meaning depends on it: nothing for [#RESET], two doubles for [#TRANSLATE] and
 /// [#SCALE]. That is a signature the compiler cannot check, so the operand shape
 /// is documented per constant and applied in one place — [BlendContext].
+///
+/// Read more: [The native boundary](https://goldberry.dev/docs/overview/architecture.html#the-native-boundary).
 public enum BlendTransformOp implements BlendEnum {
 
     /// Back to identity. Takes no operand.
@@ -21,8 +23,7 @@ public enum BlendTransformOp implements BlendEnum {
     /// `BlendContext.save()` is what an application's own painter runs inside —
     /// but the frame path deliberately does not push and pop the transform with
     /// them: the stack is accumulated in Java, where hit testing
-    /// can invert it, and each box says where it is rather than where it moved to
-    /// (ADR-0068).
+    /// can invert it, and each box says where it is rather than where it moved to.
     ASSIGN(1, "BL_TRANSFORM_OP_ASSIGN"),
 
     /// Offset by `[x, y]`. Two doubles.

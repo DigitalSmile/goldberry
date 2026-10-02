@@ -9,7 +9,7 @@ import dev.goldberry.media.ffi.FfmpegLibraries;
 ///
 /// Skips on a contributor's machine that has not run `:media:ffmpegBuild`, and
 /// fails where `-Pgoldberry.media.required=true` says FFmpeg must be there: a
-/// verification job that skips is a green tick over nothing (ADR-0016).
+/// verification job that skips is a green tick over nothing.
 public final class FfmpegRequirement {
 
     /// The switch that turns a skip into a failure.

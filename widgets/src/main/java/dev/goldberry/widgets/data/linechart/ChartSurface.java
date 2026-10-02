@@ -36,9 +36,8 @@ import dev.goldberry.widgets.data.plot.Ticks;
 /// The drawn half of a chart — the `chart-plot` part itself, and the node the
 /// pointer lands on.
 ///
-/// A **part**, so it is CSS-selectable and not constructible
-/// (ADR-0065).
-/// [ChartPlot] is the widget a chart builds and this is what it builds: the
+/// A part, so it is CSS-selectable and not constructible from outside the
+/// package. [ChartPlot] is the widget a chart builds and this is what it builds: the
 /// split exists because a hovered point is *state* and a widget is a value, so
 /// something above the drawing has to remember which point that is.
 ///
@@ -49,18 +48,19 @@ import dev.goldberry.widgets.data.plot.Ticks;
 /// the readout's, because by then the hovered index is known and only one point
 /// needs writing out. Shaping is 56 µs and a widget tree is rebuilt every frame,
 /// so a chart that shaped its own axis inside the painter would re-shape five
-/// unchanged numbers sixty times a second
-/// (ADR-0037).
+/// unchanged numbers sixty times a second.
 ///
 /// **In the painter**, which has the size: where the gridlines go, where the
 /// polylines go, and how wide the label gutter turned out to be — all of it
 /// through [PlotGeometry], which the pointer reads back through
 /// [PaintedGeometry].
 ///
+/// Read more: [Charts](https://goldberry.dev/docs/components/charts.html#what-the-five-share).
+///
 /// @param isolated the series shown alone, or -1 for all of them
 /// @param hovered the point the pointer is over, or -1 for none
-/// @param painted where the painter leaves its geometry for the pointer
-///                (ADR-0054)
+/// @param painted where the painter leaves its geometry for the pointer, which
+///                is hit-tested against the painted frame
 /// @param onHover  where the pointer says the crosshair is, absolutely — and
 ///                 whether that changed anything
 /// @param onWalk   a **relative** step, for the keyboard, which knows only
@@ -93,14 +93,14 @@ record ChartSurface(
     /// those are rounder.
     private static final int Y_LABELS = 5;
 
-    /// How thick a series line is. §8's subset has no `stroke-width`, and 2px is
+    /// How thick a series line is. The stylesheet subset has no `stroke-width`, and 2px is
     /// what a chart's line takes where a `sparkline`'s takes 1.5 — this one is
     /// drawn at full size and read from further away.
     private static final double STROKE = 2;
 
     /// The radius of the disc on a hovered point.
     ///
-    /// 4, which with the ring around it clears §2.2's 8px hit target — not that
+    /// 4, which with the ring around it clears the 8px minimum hit target — not that
     /// anything is aiming at it: the whole plot is the hit target, and a marker
     /// this size is what makes "this point" legible against a 2px line.
     private static final double MARKER = 4;
@@ -162,7 +162,7 @@ record ChartSurface(
     /// Whether series `index` is drawn at all.
     ///
     /// Everything else about a series keeps its **original index**, because the
-    /// index is the colour (ADR-0194): filtering the list would redraw an
+    /// index is the colour: filtering the list would redraw an
     /// isolated fourth series in the first slot's hue and its own legend swatch
     /// would then disagree with it.
     private boolean shows(int index) {
@@ -238,8 +238,8 @@ record ChartSurface(
             max = 0;
         }
         // **What the axis has to reach**, which is not always what the data
-        // reached: a flat series auto-scaled fills the plot with its own noise
-        // (ADR-0206). Applied before the labelling, so the round numbers are
+        // reached: a flat series auto-scaled fills the plot with its own noise.
+        // Applied before the labelling, so the round numbers are
         // chosen for the axis the reader will see.
         if (options.bounds().isSet()) {
             var lower = options.bounds().applyMin(min);
@@ -261,7 +261,7 @@ record ChartSurface(
         var resolved = resolved();
         // **A log axis only draws what a logarithm has a place for.** Only a
         // line: a bar and a band are lengths from zero, and zero is not on the
-        // axis at all (ADR-0205).
+        // axis at all.
         var logarithmic = options.logY() && mode == ChartPlot.Mode.LINE;
         if (logarithmic) {
             // **Decided before anything is filtered.** A series with nothing
@@ -346,8 +346,7 @@ record ChartSurface(
         // positions come from the instants -- so a series that missed four
         // minutes shows four minutes of gap rather than one step like every
         // other. It does not apply to a bar chart: a bar has a width and sits
-        // *in* a band, and bands of unequal width are a different chart
-        // (ADR-0203).
+        // *in* a band, and bands of unequal width are a different chart.
         var time = options.time();
         var timeAxis = mode != ChartPlot.Mode.BAR && time != null && time.covers(points()) ? time : null;
         var xLabels = new ArrayList<Paragraph>(categories.size());
@@ -381,7 +380,7 @@ record ChartSurface(
         }
 
         // The gridlines are the text colour at low alpha rather than a token of
-        // their own: §14's recessive grid, and one fewer thing for a theme to
+        // their own: a grid should recede, and this is one fewer thing for a theme to
         // define. `--gb-border` would have been the other candidate and is a
         // *structural* line, which a gridline is not.
         var grid = CssColor.fade(style.color(), 0.14);
@@ -431,7 +430,7 @@ record ChartSurface(
     /// **Shaped here and not in the painter**, which is only possible because
     /// the hovered index is part of this widget: one point's worth of text,
     /// re-shaped when the pointer moves to a different point and served from the
-    /// cache when it moves within one (ADR-0037).
+    /// cache when it moves within one.
     private @Nullable Readout readout(
             ComputedStyle style, Context context, List<dev.goldberry.widgets.data.plot.Gaps.Resolved> resolved) {
 
@@ -445,8 +444,8 @@ record ChartSurface(
         // The HUD's tokens, not the surface's. A readout is a floating overlay
         // over content the reader is looking *through* it at, which is exactly
         // what `hud` is, and a chart that invented a fourth surface token would
-        // be a chart the theme cannot restyle with the others (ADR-0195's
-        // mechanism, `hud`'s palette).
+        // be a chart the theme cannot restyle with the others -- the painter
+        // reads the theme through a custom property, and the palette is `hud`'s.
         // **When**, for a chart whose x is time: `#4` is a reading nobody can
         // use, and the category list is usually empty on a timed chart because
         // the axis is labelling itself.
@@ -487,11 +486,9 @@ record ChartSurface(
 
     /// **Focusable**, so a chart can be read without a pointer.
     ///
-    /// §2.2 requires everything to be reachable, and `charts.md` §3.5 says it
-    /// again with feeling: a browser dashboard is a pointer surface and a desktop
-    /// application is not, and Grafana is weak here and is not a model to copy. A
-    /// chart with no points is not a Tab stop, because there is nothing in it to
-    /// walk.
+    /// Everything is reachable from the keyboard: a browser dashboard is a
+    /// pointer surface and a desktop application is not. A chart with no points
+    /// is not a Tab stop, because there is nothing in it to walk.
     @Override
     public boolean isFocusable() {
         return points() > 0;
@@ -502,16 +499,14 @@ record ChartSurface(
     ///
     /// **`Up` and `Down` are left alone.** A chart is very often inside a
     /// `scroll`, and a focused widget that consumed the vertical arrows would
-    /// swallow the keys that move the page — §2.4's own rule about not nesting
+    /// swallow the keys that move the page — the rule about not nesting
     /// scrollers exists because that class of theft is hard to notice. One axis,
     /// one pair of arrows.
     ///
-    /// **And `Tab` is not one of them.** `charts.md` §3.5 asks for `Tab` to move
-    /// between series; `Tab` is this toolkit's focus traversal and cannot also be
-    /// a control's own key (ADR-0073), and there is nothing for it to do anyway —
-    /// the readout already names every series at the point rather than one of
-    /// them. Recorded in `ARCHITECTURE.md` §17.1 rather than resolved by quietly
-    /// not doing it.
+    /// **And `Tab` is not one of them.** `Tab` is this toolkit's focus traversal
+    /// and cannot also be a control's own key, and there is nothing for it to do
+    /// anyway — the readout already names every series at the point rather than
+    /// one of them.
     // See onPointer: the predicate's answer only matters where this widget
     // has to decide whether to consume the event.
     @SuppressWarnings("ReturnValueIgnored")
@@ -589,8 +584,9 @@ record ChartSurface(
 
     /// Which point `event` is over, or -1 when it is not over the plot.
     ///
-    /// Against the geometry of the **painted** frame (ADR-0054): the gutter
-    /// depends on the shaped axis labels, which an event has no way to reach.
+    /// Against the geometry of the **painted** frame, which is what the toolkit
+    /// hit-tests against: the gutter depends on the shaped axis labels, which an
+    /// event has no way to reach.
     /// Null before the first paint, which a pointer cannot reach in an
     /// application and a test can.
     private int at(PointerEvent event) {
@@ -906,15 +902,14 @@ record ChartSurface(
         /// **Which baseline is a question a log axis answers differently.** A
         /// linear chart fills down to zero, because that is what "under the
         /// line" means and where the reader's eye puts the area; on a log axis
-        /// zero is infinitely far down (ADR-0205), so the fill goes to the
+        /// zero is infinitely far down, so the fill goes to the
         /// bottom of the plot instead — which is the same thing the axis itself
         /// already does. Clamped either way, so a chart whose data is entirely
         /// above or below zero fills to the edge it can see rather than off it.
         ///
         /// The path is the run itself, down to the baseline at each end and
-        /// closed. A [Path] rather than the pooled native one this used to be
-        /// handed: since ADR-0277 the rasterizer path belongs to the frame, and
-        /// building a shape costs two Java arrays.
+        /// closed. A [Path] is a value: the rasterizer path belongs to the
+        /// frame, and building a shape costs two Java arrays.
         private void fillUnder(Frame frame, PlotGeometry geometry, double[] xs, double[] ys, int colour) {
 
             if (xs.length < 2) {
@@ -958,7 +953,7 @@ record ChartSurface(
         /// from the reading to the baseline, and a ramp across the x axis would
         /// be saying something about *time* that is not true. Both coordinates
         /// are the frame's own, which is what lets one ramp be right for a path
-        /// drawn at the origin (ADR-0207).
+        /// drawn at the origin.
         ///
         /// A degenerate span — a perfectly flat series, where the two ends
         /// coincide — is filled flat instead. A zero-length gradient is a
@@ -1401,10 +1396,9 @@ record ChartSurface(
         /// drawn for a hovered point whether or not this chart has anything to
         /// say about it, which is what makes a shared one work: every chart in a
         /// [dev.goldberry.widgets.data.CrosshairGroup] draws
-        /// the line and only the one under the pointer draws the box
-        /// (ADR-0206). Guarding both on the readout was the same condition twice
-        /// until the groups arrived, and then it was a linked chart that drew
-        /// nothing at all.
+        /// the line and only the one under the pointer draws the box. Guarding
+        /// both on the readout would make a linked chart that is not under the
+        /// pointer draw nothing at all.
         private void paintHover(Frame frame, PlotGeometry geometry) {
             var points = points();
             if (hovered < 0 || hovered >= points) {

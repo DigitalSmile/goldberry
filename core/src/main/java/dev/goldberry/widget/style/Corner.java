@@ -5,12 +5,13 @@ import dev.goldberry.layout.Length;
 
 /// One of a box's four corners, named the way a stylesheet names them.
 ///
-/// `start` and `end` rather than `left` and `right`, which is the vocabulary
-/// `docs/core-widgets.md` §3 already uses for a floating button's
-/// `corner="bottom-end"`. In a left-to-right window `start` is the left edge;
-/// when right-to-left layout lands (`docs/ARCHITECTURE.md` §17) it is the right
+/// `start` and `end` rather than `left` and `right`, which is the vocabulary a
+/// floating button's `corner="bottom-end"` uses. In a left-to-right window
+/// `start` is the left edge; when right-to-left layout arrives it is the right
 /// one, and every corner in the toolkit flips with it because none of them wrote
 /// down a side.
+///
+/// Read more: [Overlays](https://goldberry.dev/docs/components/overlays.html).
 public enum Corner {
     TOP_START,
     TOP_END,
@@ -42,8 +43,8 @@ public enum Corner {
         return this == TOP_START || this == TOP_END;
     }
 
-    /// Whether this corner is on the start edge — the left one, until §17's
-    /// right-to-left work says otherwise.
+    /// Whether this corner is on the start edge — the left one, until
+    /// right-to-left layout says otherwise.
     public boolean isStart() {
         return this == TOP_START || this == BOTTOM_START;
     }

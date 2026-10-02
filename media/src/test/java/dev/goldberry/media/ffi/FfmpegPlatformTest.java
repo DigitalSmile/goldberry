@@ -18,7 +18,7 @@ class FfmpegPlatformTest {
         "Windows 11, amd64, windows-x64",
         "Mac OS X, aarch64, macos-aarch64",
     })
-    @DisplayName("names the same four classifiers :natives publishes (ADR-0041)")
+    @DisplayName("names the same four classifiers :natives publishes")
     void classifiers(String osName, String osArch, String classifier) {
         assertEquals(classifier, FfmpegPlatform.of(osName, osArch).classifier());
     }

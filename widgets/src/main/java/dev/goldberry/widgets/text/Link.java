@@ -13,49 +13,37 @@ import dev.goldberry.widget.attr.Attributes;
 import dev.goldberry.widgets.markup.Markup;
 import dev.goldberry.widgets.markup.Wiring;
 
-/// Text that does something — `docs/core-widgets.md` §2's `link`.
+/// Text that does something when pressed: an in-app action, an external
+/// target, or both.
 ///
 /// ```kdl
 /// link action="app.show-docs" "Read the docs"
-/// link href="https://github.com/DigitalSmile/goldberry" "Goldberry on GitHub"
+/// link href="https://goldberry.dev" "Goldberry on the web"
 /// link href="mailto:hello@example.org" visited=#true "Write to us"
 /// ```
 ///
-/// ## Two targets, one word
+/// In Java: `new Link("Read the docs", actions::showDocs)`,
+/// `Link.external("Goldberry on the web", "https://goldberry.dev")`.
 ///
-/// `action=` is in-app navigation and `href=` is an external target, "opened
-/// through the platform" — [dev.goldberry.Host#openExternal],
-/// which hands the URL to the desktop's own handler for its scheme. A link
-/// with both runs the action and opens the target. A link with neither is a
-/// word in the link ink that takes no focus, which is what a document gets
-/// while its wiring is not there yet.
+/// `action=` runs through the application's action registry. `href=` is
+/// handed to the desktop's own handler for its scheme, and a warning is logged
+/// when the desktop refuses it. A link with both runs the action and then
+/// opens the target. A link with neither is a word in the link ink that takes
+/// no focus, which is what a document shows while its wiring is not there yet.
 ///
-/// ## What an external link says about itself
+/// An external link carries a trailing 12px `external-link` icon and its
+/// accessible name ends in "opens outside this window", because a colour cannot
+/// say that. The icon is the toolkit's own, so the state that holds it closes
+/// it. `visited` is a class, `link.visited`; the toolkit keeps no history, so
+/// it is the application's to set.
 ///
-/// §2: "External links carry a trailing 12px `external-link` icon and their
-/// accessible name says so, because 'opens outside this window' is not
-/// something a colour can convey." The icon is the toolkit's own and not the
-/// application's — this is the one widget that makes one — so the state that
-/// holds it closes it (ADR-0346).
+/// A link is a row of a word and, sometimes, an icon; it does not flow inside a
+/// sentence. The CSS type `link` is [LinkText], the node the state builds, so
+/// this record holds the model and that node holds the appearance.
 ///
-/// ## `visited` is the application's
+/// Read more: [Text and links](https://goldberry.dev/docs/components/text.html#link).
 ///
-/// "`visited=#true` is the application's to set, because the toolkit keeps no
-/// history." It is a class, `link.visited`, and nothing here sets it.
-///
-/// ## Block-level, and not a `span`
-///
-/// "A `link` inside a paragraph is the block-level spelling of `span
-/// class="link"`; the `span` form stays for mid-sentence use." This widget is
-/// a row of a word and, sometimes, an icon; it does not flow inside a
-/// sentence, and `text`'s inline runs are how a link mid-sentence is written.
-///
-/// ## This node styles nothing
-///
-/// `link` as a **CSS type** is [LinkText], the node the state builds
-/// (ADR-0109).
-///
-/// @param label      the word
+/// @param label      the word; an empty label is refused
 /// @param onPress    what an in-app link does, or null
 /// @param href       what an external link opens, or null
 /// @param visited    whether the application says this has been followed
@@ -65,7 +53,7 @@ public record Link(
         String label, @Nullable Runnable onPress, @Nullable String href, boolean visited, Attributes attributes)
         implements Widget.Stateful, Attributed<Link> {
 
-    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    /// Written out so that the parameters taking null for a default can say so.
     public Link(
             String label,
             @Nullable Runnable onPress,
@@ -76,7 +64,7 @@ public record Link(
         if (label.isEmpty()) {
             throw new IllegalArgumentException(
                     "a link needs a word: it is read as part of the page, and a link with nothing in it"
-                            + " is a target nobody can name (§13)");
+                            + " is a target nobody can name");
         }
         attributes = attributes == null ? Attributes.NONE : attributes;
         this.label = label;

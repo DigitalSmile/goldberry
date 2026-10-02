@@ -5,5 +5,8 @@
  *
  * <p>Build-time only, like the rest of {@code build-logic}. The packages beside this one
  * group the other helpers by the job they do.
+ *
+ * <p>Read more: <a href="https://goldberry.dev/docs/contributing/building.html#the-native-superbuild">The
+ * native superbuild</a>.
  */
 package dev.goldberry.build;

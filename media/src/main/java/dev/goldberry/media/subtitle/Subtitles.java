@@ -17,13 +17,16 @@ import dev.goldberry.media.io.MediaIOProvider;
 import dev.goldberry.media.io.MediaIOs;
 import dev.goldberry.media.io.Source;
 
-/// Text subtitles, read in Java (`docs/goldberry-media.md` §6): an external
+/// Text subtitles, read in Java: an external
 /// `.srt` or `.vtt` file, and the packets of a subtitle track in a container.
 ///
 /// No FFmpeg is involved. The text formats are text, a container's subtitle
 /// packet is one cue's worth of it with the times in the packet, and the result
 /// is plain lines ([Cue]) that Goldberry draws itself. Bitmap subtitles (PGS,
 /// DVB) are not text and are not read.
+///
+/// Read more:
+/// [Tracks and the network](https://goldberry.dev/docs/components/media.html#tracks-subtitles-and-the-network).
 public final class Subtitles {
 
     /// A subtitle file's format.

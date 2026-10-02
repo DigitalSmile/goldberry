@@ -14,9 +14,9 @@ import dev.goldberry.paint.Clip;
 
 /// The arithmetic a skipped subtree rests on.
 ///
-/// Worth a unit test of its own rather than a golden image, for the reason
-/// [ADR-0313] gives: a culler that is wrong by a pixel drops a row off the bottom
-/// of a list, and the frame it drops it from looks perfectly plausible.
+/// Worth a unit test of its own rather than a golden image: a culler that is
+/// wrong by a pixel drops a row off the bottom of a list, and the frame it drops
+/// it from looks perfectly plausible.
 @DisplayName("Ink")
 class InkTest {
 

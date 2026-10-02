@@ -17,7 +17,7 @@ class VersionBumpTest {
 
     /** A file shaped like the real one: four comment lines, then the declaration. */
     private static final String PROPERTIES = """
-            # The release line being worked towards, as YEAR.RELEASE[.PATCH] (ADR-0333).
+            # The release line being worked towards, as YEAR.RELEASE[.PATCH].
             # Never a -SNAPSHOT.
             goldberryVersion=2026.1
 

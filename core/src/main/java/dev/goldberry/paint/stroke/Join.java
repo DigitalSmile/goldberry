@@ -4,7 +4,7 @@ package dev.goldberry.paint.stroke;
 ///
 /// [Cap]'s sibling, and here for its reason: these are drawing concepts, not
 /// native ones, and an application that draws a chevron should not have to name
-/// a `BL_*` constant to round its corner (ADR-0277).
+/// a `BL_*` constant to round its corner.
 ///
 /// ## Why there is one miter and not three
 ///
@@ -14,6 +14,8 @@ package dev.goldberry.paint.stroke;
 /// separate number, and that is the shape a caller thinks in: "join them to a
 /// point, unless the point runs away". [Stroke#miterLimit()] is where the number
 /// lives, so the choice here stays a choice about the corner.
+///
+/// Read more: [Canvas, images and QR codes](https://goldberry.dev/docs/components/drawing.html#the-painter).
 public enum Join {
 
     /// Extend both edges to their intersection, cut off at

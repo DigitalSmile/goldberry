@@ -13,7 +13,9 @@ package dev.goldberry.layout;
 /// The numbering deliberately does not travel with these. `Align.CENTER` and
 /// `Justify.CENTER` are different numbers in the layout engine's headers, and a
 /// toolkit that shared one constant between them would be relying on a
-/// coincidence that is not true (ADR-0279).
+/// coincidence that is not true.
+///
+/// Read more: [How layout works](https://goldberry.dev/docs/layout/index.html#flexbox-from-yoga).
 public enum Align {
 
     /// Take the parent's `align-items`. Only meaningful for `align-self`, where

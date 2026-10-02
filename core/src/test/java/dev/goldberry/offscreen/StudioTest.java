@@ -31,14 +31,14 @@ import dev.goldberry.widget.attr.Attributes;
 import dev.goldberry.widget.style.Paints;
 import dev.goldberry.widget.style.Styled;
 
-/// Reuse between renders — ADR-0425.
+/// Reuse between renders: what a [Studio] may keep from one picture to the next,
+/// and the thread it may keep it on.
 ///
-/// ADR-0284 recorded "the builder is not a cache: rendering the same document
-/// twice does the work twice" as a consequence and left it there. A studio is the
-/// decision about it, and the thing to assert is not that it is faster — a
-/// stopwatch would be a flaky test about that — but that the work is **not done a
-/// second time**. The shaping cache counts its own misses, so that is the evidence
-/// (ADR-0299).
+/// An `Offscreen` builder is not a cache: rendering the same document twice does
+/// the work twice. A studio is the answer to that, and the thing to assert is not
+/// that it is faster — a stopwatch would be a flaky test about that — but that
+/// the work is **not done a second time**. The shaping cache counts its own
+/// misses, so that is the evidence.
 @DisplayName("a studio")
 class StudioTest {
 
@@ -77,7 +77,7 @@ class StudioTest {
         void keepsTheShapingCache() {
             // The entry's own claim, turned around: "rendering the same document
             // twice does the work twice" was true of the shaping, which is the most
-            // expensive step in the text path by an order of magnitude (ADR-0037).
+            // expensive step in the text path by an order of magnitude.
             try (var studio = Studio.of(sheet(CSS))) {
                 studio.picture(64, 32).render(label("the quick brown fox"));
                 var cache = studio.renderer().paragraphs();
@@ -213,8 +213,8 @@ class StudioTest {
         @Test
         @DisplayName("a thread that did not open it")
         void refusesAnotherThread() throws InterruptedException {
-            // The whole of ADR-0425's second half in one assertion: what makes reuse
-            // possible is what must not be shared. A studio holds a font book, and a
+            // The other half of reuse in one assertion: what makes reuse possible
+            // is what must not be shared. A studio holds a font book, and a
             // book holds native faces confined to the thread that opened them.
             try (var studio = Studio.of(sheet(CSS))) {
                 var raised = new AtomicReference<Throwable>();

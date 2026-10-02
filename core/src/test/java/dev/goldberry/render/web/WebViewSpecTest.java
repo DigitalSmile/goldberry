@@ -9,7 +9,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-/// What a page is opened with — ADR-0441.
+/// What a page is opened with: the value an embedded web view is asked for.
 ///
 /// The value half, which is the half a test can reach: opening one needs WebKit
 /// and a desktop, and what is decided *here* is what gets asked for.

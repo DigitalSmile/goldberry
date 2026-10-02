@@ -8,9 +8,11 @@ package dev.goldberry.css.parse;
 /// the application shipped: a silently dropped rule is a widget that is the
 /// wrong colour with nothing in the log to say why.
 ///
-/// Hot reload (§8) is the one place that changes — a stylesheet saved mid-edit
+/// Hot reload is the one place that changes — a stylesheet saved mid-edit
 /// is *expected* to be broken, so the reload path catches this, keeps the last
 /// good stylesheet and reports, rather than tearing the window down.
+///
+/// Read more: [Markup](https://goldberry.dev/docs/guide/markup.html#hot-reload).
 public final class CssSyntaxException extends RuntimeException {
 
     private final int line;

@@ -13,7 +13,8 @@ import java.util.regex.Pattern;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-/// Guards the size decisions of the media superbuild (ADR-0486), which live in
+/// Guards the size decisions of the media superbuild (FFmpeg and dav1d are built
+/// at `-O2` to fit the size gate), which live in
 /// `media/src/main/cmake/CMakeLists.txt` rather than in Java, so this reads it as
 /// text.
 ///
@@ -58,13 +59,16 @@ class FfmpegSuperbuildTest {
         var matcher = BUILD_SUFFIX.matcher(cmakeLists);
         assertTrue(matcher.find(), "no GOLDBERRY_FFMPEG_BUILD_SUFFIX in the media superbuild");
         assertEquals(FfmpegPlatform.BUILD_SUFFIX, matcher.group(1));
-        assertFalse(FfmpegPlatform.BUILD_SUFFIX.isEmpty(), "an empty suffix is FFmpeg's own names (ADR-0490)");
+        assertFalse(
+                FfmpegPlatform.BUILD_SUFFIX.isEmpty(),
+                "an empty suffix is FFmpeg's own sonames, which a distribution's FFmpeg in the same process"
+                        + " would collide with; keep the suffix");
         var configure = group(CONFIGURE, "the GOLDBERRY_FFMPEG_CONFIGURE list");
         assertTrue(configure.contains("--build-suffix=${GOLDBERRY_FFMPEG_BUILD_SUFFIX}"), configure);
     }
 
     @Test
-    @DisplayName("fails a build above 7 MB, as goldberry-media.md §2 says")
+    @DisplayName("fails a build above 7 MB, the size gate")
     void sizeGateIsSevenMegabytes() {
         assertEquals(7L * 1024 * 1024, Long.parseLong(group(SIZE_LIMIT, "GOLDBERRY_MEDIA_SIZE_LIMIT")));
     }

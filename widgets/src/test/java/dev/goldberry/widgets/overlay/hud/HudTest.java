@@ -54,7 +54,7 @@ class HudTest {
     /// The text of every reading in a rendered HUD, in order.
     ///
     /// **Without the caption**, which is the last child and is not a reading: it
-    /// says what the numbers are rather than being one (ADR-0150). [#caption]
+    /// says what the numbers are rather than being one. [#caption]
     /// asserts it on its own.
     private static List<String> readings(Box box) {
         var all = box.children();
@@ -90,7 +90,7 @@ class HudTest {
         assertEquals(List.of("60 fps", "refresh 60 Hz", "paint 2.1 / 2.1 / 2.1 ms"), readings(box));
     }
 
-    /// The breakdown — [ADR-0146].
+    /// The breakdown into stages.
     ///
     /// A total tells you a frame is slow; the stages tell you *which* part of it
     /// is. The showcase spent a month at 10ms a frame with the cascade running
@@ -166,9 +166,9 @@ class HudTest {
         assertEquals(List.of("0 fps"), readings(stalled));
     }
 
-    /// §5's rule about a locale-formatted number inside the toolkit, applied to
-    /// numbers that are the toolkit's own: they are formatted the one way that is
-    /// the same on every machine, or the golden images below are a lottery.
+    /// The toolkit never formats a number by the machine's locale, and that
+    /// applies to numbers that are the toolkit's own: they are formatted the one
+    /// way that is the same on every machine, or the golden images are a lottery.
     @Test
     @DisplayName("the numbers are formatted in the root locale, whatever the machine's is")
     void rootLocale() {
@@ -192,7 +192,7 @@ class HudTest {
         var hud = new Hud(Reading.FPS, Reading.PAINT);
         var children = hud.children();
 
-        // Two readings and the caption that says what they are (ADR-0150).
+        // Two readings and the caption that says what they are.
         assertEquals(3, children.size());
         assertEquals("hud-reading", ((Styled) children.getFirst()).cssType());
         assertTrue(((Styled) children.getFirst()).classes().contains("fps"));
@@ -200,7 +200,7 @@ class HudTest {
         assertEquals("hud-caption", ((Styled) children.get(2)).cssType());
     }
 
-    /// **What the numbers are** — [ADR-0150].
+    /// **What the numbers are.**
     ///
     /// Every reading is a mean over the ring's whole window, and `paint 2.1 ms`
     /// reads as "this frame" until something says otherwise. A spike looks like a
@@ -221,7 +221,7 @@ class HudTest {
                 "and a HUD with no loop behind it does not describe a window it has not filled");
     }
 
-    /// **The frames that did not happen** — [ADR-0271].
+    /// **The frames that did not happen.**
     ///
     /// Every other reading is a mean over the frames that were painted, so a
     /// frame the loop never reached leaves no record and a frame the platform
@@ -241,7 +241,7 @@ class HudTest {
     /// A dropped frame is not automatically an alarm. A resize refuses a frame
     /// that was painted for the size the window has just stopped being, and that
     /// is ordinary rather than exotic — so one is worth noticing and four in a
-    /// window of sixty is stutter somebody can see ([ADR-0271]).
+    /// window of sixty is stutter somebody can see.
     @Test
     @DisplayName("one late frame is worth noticing and four is a problem")
     void lateLevels() {
@@ -267,7 +267,7 @@ class HudTest {
         assertEquals(List.of(Reading.FPS, Reading.LATE), hud.readings());
     }
 
-    /// **A reading colours itself against a budget** — [ADR-0150].
+    /// **A reading colours itself against a budget.**
     ///
     /// The class comes from
     /// [Styled#classes(FrameStats)] rather than
@@ -305,9 +305,9 @@ class HudTest {
                 "9 of 8 is over");
     }
 
-    /// **The rate is never coloured, and that is the decision** — [ADR-0153].
+    /// **The rate is never coloured, and that is the decision.**
     ///
-    /// §1.7 makes the loop idle when nothing asks for a frame, so a rate counted
+    /// The loop idles when nothing asks for a frame, so a rate counted
     /// between frames measures how long the user did not touch the window. It
     /// collapses the moment they stop clicking and stays low for the next sixty
     /// frames, and colouring it turned normal idling into an alarm.
@@ -326,7 +326,7 @@ class HudTest {
 
     /// **The display's refresh rate is the only rate a platform can be asked
     /// for**, and it is what every budget is a share of — so the same paint time
-    /// is fine at 60 Hz and over budget at 120 (ADR-0153).
+    /// is fine at 60 Hz and over budget at 120.
     @Test
     @DisplayName("a budget is a share of the display's frame, not of a hard-coded 60 Hz")
     void budgetsFollowTheDisplay() {
@@ -397,7 +397,7 @@ class HudTest {
         assertEquals(Hud.DEFAULT, new Hud(List.of(), Attributes.NONE).readings());
     }
 
-    /// A composited window's present ([ADR-0479]): three readings over the
+    /// A composited window's present: three readings over the
     /// composited frames, and dashes where there are none.
     @Test
     @DisplayName("`present` shows where a composited frame's present went, and dashes on a surface")

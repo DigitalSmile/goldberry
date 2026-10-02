@@ -1,5 +1,5 @@
 /// The GPU API: a small, safe layer over SDL's GPU API for `canvas3d` renderers
-/// and GPU layers (`docs/gpu-plan.md`, phase 2). No SDL struct, handle or
+/// and GPU layers. No SDL struct, handle or
 /// `MemorySegment` appears in it.
 ///
 /// ## The pieces
@@ -15,7 +15,7 @@
 ///   [GpuFrame#readback] brings pixels back as a [Readback].
 /// - [GpuLayer]: pixels the GPU draws into a window, placed by a painter in
 ///   paint order among what the CPU paints, and rendered with the window's
-///   device into a texture the toolkit composites or reads back (ADR-0481).
+///   device into a texture the toolkit composites or reads back.
 ///
 /// ## A frame
 ///
@@ -64,7 +64,9 @@
 /// A device takes one family of bytecode: SPIR-V on Vulkan, MSL on Metal, DXIL
 /// on Direct3D 12. [ShaderCode] carries as many as were compiled, and
 /// [GpuDevice#createShader] picks the one the device takes. The toolkit writes
-/// its own in HLSL and compiles them with DXC and SPIRV-Cross
-/// (`docs/gpu-plan.md`, D7); `gpu/build.gradle`'s `compileShaders` is the recipe.
+/// its own in HLSL and compiles them with DXC and SPIRV-Cross;
+/// `./gradlew :gpu:compileShaders` is the recipe.
+///
+/// Read more: [The renderer](https://goldberry.dev/docs/components/gpu.html#the-renderer).
 @org.jspecify.annotations.NullMarked
 package dev.goldberry.gpu;

@@ -21,7 +21,7 @@ import dev.goldberry.widgets.markup.Wiring;
 import dev.goldberry.widgets.overlay.message.Message;
 
 /// A 3D view: a box the GPU draws into, with an application's
-/// [Canvas3dRenderer] (`docs/gpu-plan.md`, phase 5; ADR-0482).
+/// [Canvas3dRenderer].
 ///
 /// ```java
 /// new Canvas3d(new Cube()).continuous(true).depth(Canvas3d.Depth.D16)
@@ -32,7 +32,7 @@ import dev.goldberry.widgets.overlay.message.Message;
 /// ```
 ///
 /// A leaf sized like an `image` or a `canvas`: by its stylesheet, `width` and
-/// `height`. It is a GPU layer (ADR-0481), so what is painted after it is over
+/// `height`. It is a GPU layer, so what is painted after it is over
 /// it, it is opaque, and a clip cuts it to a rectangle. Where the window
 /// presents through the GPU it is composited; elsewhere -- headless, a popup,
 /// `goldberry.gpu.composite=never` -- it is rendered and read back.
@@ -47,11 +47,13 @@ import dev.goldberry.widgets.overlay.message.Message;
 /// **Where there is no GPU** -- `goldberry.gpu=off`, a device that cannot be
 /// made, a canvas inside an `opacity` group -- the box is filled with
 /// `--gb-canvas3d-unavailable` and, in a running window, a notice says why,
-/// as `web-view` does without its engine (ADR-0441).
+/// as `web-view` does without its engine.
 ///
 /// The renderer is the application's and is kept by the canvas while it is
 /// mounted: initialised at its first frame, disposed when the canvas leaves the
 /// tree, or when the widget is rebuilt with another renderer or depth.
+///
+/// Read more: [`canvas3d`](https://goldberry.dev/docs/components/gpu.html#canvas3d).
 ///
 /// @param renderer   what draws the picture
 /// @param continuous whether it is drawn on every frame

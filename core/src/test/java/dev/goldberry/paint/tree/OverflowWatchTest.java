@@ -24,7 +24,8 @@ import dev.goldberry.paint.overflow.OverflowLog;
 import dev.goldberry.paint.overflow.Overrun;
 import dev.goldberry.render.model.LogicalRect;
 
-/// A box that does not fit says so — [ADR-0375].
+/// A box that does not fit says so: an overrun is logged once, unless the clip
+/// is the point.
 ///
 /// The gap this closes had been open since `flex-shrink` landed: a control
 /// pushed off the edge of a window is silent, and looks exactly like a control
@@ -154,7 +155,8 @@ class OverflowWatchTest {
             // own suite, 385 overran by more than a pixel and only 23 by more
             // than two. The cliff is there because layout is rounded onto the
             // device pixel grid and a line box may be shorter than the face's
-            // natural leading ([ADR-0394]).
+            // natural leading; a diagnostic that fired on every one of those
+            // would say nothing.
             assertEquals(
                     null, Overrun.between("a", "b", LogicalRect.of(0, 0, 100, 100), LogicalRect.of(0, 0, 102, 102)));
             assertNotNull(

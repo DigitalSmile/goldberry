@@ -23,8 +23,7 @@ import dev.goldberry.html.model.HtmlText;
 /// Two kinds of test, and the second kind is the point of the file: what a
 /// *well-formed* document parses to, and what a **malformed** one parses to. HTML has
 /// no syntax errors, so every recovery is a decision somebody made and every one of
-/// them is asserted here rather than left to a golden image to notice sideways
-/// (ADR-0298).
+/// them is asserted here rather than left to a golden image to notice sideways.
 @DisplayName("Html.parse")
 class HtmlTest {
 

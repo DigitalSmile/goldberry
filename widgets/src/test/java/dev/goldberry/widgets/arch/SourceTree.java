@@ -14,7 +14,7 @@ import java.util.stream.Stream;
 /// having `/` replaced: `Path.toString()` uses the platform's separator, and on
 /// Windows a `replace('/', '.')` over `widgets\controls\Button` changed nothing —
 /// so `Class.forName` found no class, and both sweeps reported an empty catalog
-/// as though it were the wrong tree (ADR-0338).
+/// as though it were the wrong tree.
 final class SourceTree {
 
     private SourceTree() {}

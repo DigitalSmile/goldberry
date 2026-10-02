@@ -11,7 +11,7 @@ import dev.goldberry.paint.Path;
 /// a statement about **arc length**, and the arc length of a cubic has no closed
 /// form: the only way to walk four pixels along a curve is to walk a polyline
 /// that approximates it. So [Dasher] flattens first, and this is that step,
-/// separated because it is worth testing on its own (ADR-0278).
+/// separated because it is worth testing on its own.
 ///
 /// ## The tolerance
 ///
@@ -27,6 +27,8 @@ import dev.goldberry.paint.Path;
 /// error of at most `max|B''| / (8n²)`, so `n` is the square root of that over
 /// the tolerance — which spends segments where a curve actually bends, and gives
 /// a nearly-straight cubic the one segment it deserves.
+///
+/// Read more: [Canvas, images and QR codes](https://goldberry.dev/docs/components/drawing.html#the-painter).
 public final class Flattener {
 
     /// The greatest distance, in logical pixels, a flattened segment may stray

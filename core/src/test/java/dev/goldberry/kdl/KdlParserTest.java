@@ -54,7 +54,7 @@ class KdlParserTest {
                     """);
 
             assertEquals("button", node.name());
-            // §9: string arguments are the primary content.
+            // String arguments are the primary content.
             assertEquals("Apply", node.argument().orElseThrow().asString());
             assertEquals("apply", node.stringProperty("id"));
             assertEquals("check", node.stringProperty("icon"));
@@ -336,11 +336,11 @@ class KdlParserTest {
     }
 
     @Nested
-    @DisplayName("the document from ARCHITECTURE.md §9")
+    @DisplayName("the settings window from the architecture document")
     class ArchitectureExample {
 
         @Test
-        @DisplayName("parses whole, with the structure §9 describes")
+        @DisplayName("parses whole, with the structure the document describes")
         void settingsWindow() {
             // Lifted from the architecture document, which makes this the test
             // that the documented example is actually valid markup.

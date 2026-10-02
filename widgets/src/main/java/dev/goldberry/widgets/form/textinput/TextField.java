@@ -55,7 +55,7 @@ import dev.goldberry.widgets.form.parts.Value;
 /// The fourth is drawn only while a composition is open, which is never on a
 /// Latin keyboard — and while one is, the **highlight draws the converting
 /// clause** rather than a selection, because a composition replaces the selection
-/// when it commits and every platform's input method collapses it (ADR-0292).
+/// when it commits and every platform's input method collapses it.
 ///
 /// All three children are **absolutely positioned by this node**, because where
 /// they go is a measurement rather than a layout: a caret's x is the width of the
@@ -68,8 +68,8 @@ import dev.goldberry.widgets.form.parts.Value;
 /// possible to keep the caret in view". That needs the content width, which is
 /// this box's width less its padding — and a box does not know its width during
 /// `render`, because Yoga has not run yet. So it uses **the width the last frame
-/// measured** ([Measured]), which is what ADR-0116 already decided a scroll view
-/// does, and is wrong only on the first frame and on the frame a resize lands.
+/// measured** ([Measured]), which is what a scroll view does too, and is wrong
+/// only on the first frame and on the frame a resize lands.
 /// Neither is visible: both are followed immediately by another.
 ///
 /// @param display     the text to draw — already masked, if the field masks, and
@@ -163,8 +163,7 @@ record TextField(
             case PRESSED -> {
                 // The middle button is a paste where the platform has a primary
                 // selection and nothing here where it has not -- which the state
-                // finds out, so this node never learns which platform it is on
-                // (ADR-0504).
+                // finds out, so this node never learns which platform it is on.
                 if (event.button() == PointerEvent.Button.MIDDLE) {
                     if (editor.pastePrimaryAt(event.local().x())) {
                         event.consume();
@@ -180,7 +179,7 @@ record TextField(
             case MOVED -> {
                 // A drag and not a hover. `dragX()` is NaN when no button is
                 // down, which is the router reporting "no gesture" through the
-                // arithmetic rather than through a flag (ADR-0075).
+                // arithmetic rather than through a flag.
                 //
                 // The **button is not asked about here**, and testing it above
                 // this switch was the bug that kept click-and-drag from ever
@@ -203,7 +202,7 @@ record TextField(
 
     // --- the keyboard ---------------------------------------------------------
 
-    /// §4's editing keys, and the accelerators every platform binds on a field.
+    /// The editing keys, and the accelerators every platform binds on a field.
     ///
     /// **Everything here is consumed**, including the keys that do nothing — a
     /// field with focus owns its arrows, or `Left` inside one would walk the
@@ -217,13 +216,13 @@ record TextField(
     /// Declared as well as set from [TextEditor#focusChanged], which is not
     /// belt and braces: the router asks this *before* the handlers run and the
     /// state corrects it afterwards, so the two orders agree and a field that is
-    /// disabled between frames is still right (ADR-0285).
+    /// disabled between frames is still right.
     @Override
     public boolean wantsTextInput() {
         return !disabled && !readOnly;
     }
 
-    /// §4's editing keys, through the map all three editors read ([ADR-0376]).
+    /// The editing keys, through the one key map all three editors read.
     ///
     /// A field is [EditSurface#FIELD]: one line, so `Up` is the start of the text
     /// rather than a line above it — and it must still be taken, or `Up` would
@@ -280,7 +279,7 @@ record TextField(
     }
 
     /// Committed text — what the user actually typed, after the platform's
-    /// layout, compose and IME handling (§7.1).
+    /// layout, compose and IME handling.
     @Override
     public void onText(TextEvent event) {
         if (disabled || readOnly || event.text().isEmpty()) {
@@ -291,7 +290,7 @@ record TextField(
         }
     }
 
-    /// The composition an input method is assembling — `docs/gaps.md` G16.
+    /// The composition an input method is assembling.
     ///
     /// Not an edit: see [TextEditor#compose]. A `password` refuses, so the event
     /// is left unconsumed and the field draws nothing inline.
@@ -306,7 +305,7 @@ record TextField(
     }
 
     /// Where this field's caret is, so the platform can place a candidate window
-    /// beside it rather than over it (ADR-0289).
+    /// beside it rather than over it.
     @Override
     public java.util.Optional<dev.goldberry.render.model.LogicalRect> caretArea() {
         return editor.caretArea();
@@ -342,13 +341,12 @@ record TextField(
         var padding = padding(style.padding().left());
         // Read once and used three times: the caret's box, the room the scroll
         // offset must leave for it, and nothing else. A caret three pixels wide
-        // whose field reserved one would be clipped at the end of the text
-        // (ADR-0253).
+        // whose field reserved one would be clipped at the end of the text.
         var caretWidth =
                 context.length(dev.goldberry.widgets.form.Carets.WIDTH_TOKEN, dev.goldberry.widgets.form.Carets.WIDTH);
         // The alignment goes down with the paragraph, because the editor places the
         // caret and the highlight from it and the `Value` beside them draws from the
-        // same resolved style ([ADR-0324]).
+        // same resolved style.
         var offset =
                 editor.laidOut(paragraph, padding, padding(style.padding().right()), caretWidth, style.textAlign());
 
@@ -357,7 +355,7 @@ record TextField(
         // the clip was the padding box, so without the compensation the first
         // character of every field was drawn under the left padding and clipped
         // away. `ContainingBlock` shifts every absolute child by its containing
-        // block's padding now (ADR-0272), so adding it here as well would count
+        // block's padding now, so adding it here as well would count
         // it twice and start the text a padding's width too far in.
 
         // A line tall, and centred by the field's `align-items` like the text is —
@@ -424,8 +422,8 @@ record TextField(
                 // somewhere, and a pointer that changed shape over the gap would
                 // be saying that the gap is not the field.
                 .cursor(disabled ? Cursor.DEFAULT : Cursor.TEXT)
-                // Read by Yoga for sizing and by the painter as a clip
-                // (ADR-0114). Without it a field would draw its text over the
+                // Read by Yoga for sizing and by the painter as a clip.
+                // Without it a field would draw its text over the
                 // control beside it the moment the text outgrew the box.
                 .overflow(dev.goldberry.layout.Overflow.HIDDEN);
     }
@@ -433,7 +431,7 @@ record TextField(
     /// One edge of the field's padding in logical pixels, or 0 when the style
     /// gives none in points.
     ///
-    /// A percentage padding on a text field is not something §3 asks for and not
+    /// A percentage padding on a text field is not something a theme asks for and not
     /// something this can resolve without the width Yoga has not computed yet, so
     /// it reads as zero rather than as a guess.
     private static double padding(Length edge) {
@@ -449,7 +447,7 @@ record TextField(
         return Role.TEXT_FIELD;
     }
 
-    /// No name of its own: `field` supplies the label, which is the whole point of §4 having one.
+    /// No name of its own: `field` supplies the label, which is the whole point of having one.
     @Override
     public @Nullable String accessibleName() {
         return null;

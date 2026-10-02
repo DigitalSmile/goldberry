@@ -9,12 +9,15 @@ import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-/// Downsampling that keeps the shape — `content-widgets.md` §3.1.
+/// Downsampling that keeps the shape: Largest-Triangle-Three-Buckets, so a
+/// 100k-point series draws as a faithful polyline of about a thousand points.
 ///
 /// The claim being tested is not "fewer points". It is that **the point that
 /// matters survives**, which is the whole difference between this and taking
 /// every *n*th sample, and the reason a spike in a 100k-point series is visible
 /// in a 200px sparkline at all.
+///
+/// Read more: [Sparkline](https://goldberry.dev/docs/components/charts.html#sparkline).
 class LttbTest {
 
     private static List<Double> ramp(int n) {

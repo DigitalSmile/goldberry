@@ -38,8 +38,7 @@ import dev.goldberry.widgets.controls.TestFont;
 import dev.goldberry.widgets.text.Text;
 
 /// `scroll anchor="end"` and `preserve-on-prepend` — the viewport a chat, a log
-/// and a console all wanted and none of them could write (`docs/gaps.md` G48,
-/// ADR-0392).
+/// and a console all wanted and none of them could write.
 ///
 /// Beside [ScrollTest] rather than inside it, because everything here needs a
 /// viewport whose **content changes while the window is up**: a timeline is a
@@ -194,7 +193,7 @@ class ScrollTimelineTest {
         /// convenience: the heights of rows that have just been inserted do not
         /// exist until a frame has been laid out, so the correction is applied
         /// on the frame after the insertion. It is the bargain `Measured` has
-        /// carried since a thumb first needed a size ([ADR-0117]), and at frame
+        /// carried since a thumb first needed a size, and at frame
         /// rate it is not a jump anybody sees.
         void settle() {
             frame();

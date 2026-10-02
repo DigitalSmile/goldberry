@@ -39,11 +39,14 @@ import dev.goldberry.natives.sdl.gpu.enums.SdlGpuTransferUsage;
 /// or whichever the options name.
 ///
 /// The toolkit makes one per process, the first time something needs it, and
-/// never at start-up (`docs/gpu-plan.md`, D2). Everything made from a device is
+/// never at start-up. Everything made from a device is
 /// released when the device closes, if it has not been already.
 ///
 /// Needs SDL's video subsystem, under a video driver that can make a Metal view
 /// or a Vulkan surface; [#create] says which is missing when it cannot.
+///
+/// Read more: [The GPU canvas](https://goldberry.dev/docs/components/gpu.html#what-the-module-does-to-a-window) and
+/// [The native boundary](https://goldberry.dev/docs/overview/architecture.html#the-native-boundary).
 public final class SdlGpuDevice implements AutoCloseable {
 
     /// How a device is asked for.
@@ -69,8 +72,9 @@ public final class SdlGpuDevice implements AutoCloseable {
             Objects.requireNonNull(driver, "driver");
         }
 
-        /// Every format the toolkit ships shaders in (`docs/gpu-plan.md`, D7),
-        /// no validation, the low-power GPU, and SDL's choice of driver.
+        /// Every format the toolkit ships shaders in — SPIR-V, DXIL and MSL, compiled
+        /// offline and committed — no validation, the low-power GPU, and SDL's choice
+        /// of driver.
         public static Options defaults() {
             return new Options(
                     EnumSet.of(SdlGpuShaderFormat.SPIRV, SdlGpuShaderFormat.DXIL, SdlGpuShaderFormat.MSL),
@@ -528,7 +532,7 @@ public final class SdlGpuDevice implements AutoCloseable {
     }
 
     /// How many frames the CPU may record ahead of the GPU, from 1 to 3. SDL's
-    /// default is 2 (`docs/gpu-plan.md`, phase 3).
+    /// default is 2, and the composited window keeps it.
     ///
     /// @throws SdlException when SDL refuses
     public void setAllowedFramesInFlight(int frames) {

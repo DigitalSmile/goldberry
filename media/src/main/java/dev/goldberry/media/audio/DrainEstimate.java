@@ -2,7 +2,9 @@ package dev.goldberry.media.audio;
 
 /// How far a device that takes samples in pulls has got through the samples it
 /// took, as a line that never jumps: what [SdlAudioSink#queuedSamples()] subtracts
-/// from the raw queue, and so what the audio clock moves by (ADR-0463, ADR-0485).
+/// from the raw queue, and so what the audio clock moves by. A clock that jumped
+/// by a whole pull would pass over a picture at 60 fps, so the line is steered,
+/// never stepped.
 ///
 /// ## What is measured
 ///

@@ -57,7 +57,7 @@ class TabsTest {
     ///
     /// Through the element tree rather than off the record: a strip is stateful
     /// now — it has to remember which tabs are arriving and which are on their way
-    /// out (ADR-0109) — so what it *draws* is the state's answer and not its own
+    /// out — so what it *draws* is the state's answer and not its own
     /// children list.
     private static List<Tab> headersOf(Widget strip) {
         var tree = new ElementTree(strip);
@@ -111,8 +111,8 @@ class TabsTest {
                 new Tab("b", "Second", new Text("content of B")));
     }
 
-    /// §5's "lazy content instantiation", and it is lazy by omission: an
-    /// unselected tab's content is never put in the tree at all.
+    /// Content is instantiated lazily, and it is lazy by omission: an unselected
+    /// tab's content is never put in the tree at all.
     @Test
     @DisplayName("only the selected tab's content is built")
     void lazyContent() {
@@ -222,7 +222,7 @@ class TabsTest {
 
         var box = render(new Tabs("a", coloured, plain));
         // The rule is the list's own child; the headers are inside the viewport
-        // beside it, so they start at 0 rather than at 1 (ADR-0118).
+        // beside it, so they start at 0 rather than at 1.
         var headers = box.children()
                 .getFirst() // tab-list
                 .children()

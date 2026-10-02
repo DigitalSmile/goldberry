@@ -26,11 +26,10 @@ import dev.goldberry.natives.sdl.calls.SdlClipboardCalls;
 
 /// SDL3's clipboard calls — text, and bytes under a MIME type.
 ///
-/// The facility `docs/ARCHITECTURE.md` §4 listed and
-/// `Backend` left out, on the rule that
-/// an interface with no consumer gets designed twice (ADR-0019). `text-input`
-/// was the first consumer and wanted three calls; a board that pastes a
-/// screenshot is the second, and wants the other half (ADR-0286).
+/// Bound when a consumer asked for it, on the rule that an interface with no
+/// consumer gets designed twice: `text-input` was the first consumer and wanted
+/// three calls; a board that pastes a screenshot is the second, and wants the
+/// other half.
 ///
 /// ## A write is an offer, not a copy
 ///
@@ -67,6 +66,8 @@ import dev.goldberry.natives.sdl.calls.SdlClipboardCalls;
 /// crosses is a `String`.
 ///
 /// Confined to the UI thread, like everything else in this package.
+///
+/// Read more: [The native boundary](https://goldberry.dev/docs/overview/architecture.html#the-native-boundary).
 public final class SdlClipboard {
 
     private static final Logger LOG = Logs.of(SdlClipboard.class);
@@ -181,7 +182,7 @@ public final class SdlClipboard {
     /// these carry: where the window system has no primary selection — anything
     /// but `x11` and `wayland` — SDL keeps a buffer of its own inside this
     /// process and answers from it. It is not the platform's, and nothing another
-    /// application does reaches it; `:core` is where that is decided (ADR-0504).
+    /// application does reaches it; `:core` is where that is decided.
     public boolean hasPrimaryText() {
         return sdlClipboardCalls.hasPrimarySelectionText().call();
     }

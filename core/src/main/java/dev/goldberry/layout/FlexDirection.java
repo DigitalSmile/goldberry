@@ -5,15 +5,17 @@ package dev.goldberry.layout;
 /// The toolkit's own vocabulary rather than the layout engine's. The engine
 /// numbers these, not alphabetically and not obviously — column is 0 and row is 2
 /// — and that numbering is a fact about a C header, checked against the compiled
-/// library where it belongs. Here a direction is a name (ADR-0279).
+/// library where it belongs. Here a direction is a name.
 ///
 /// **`ROW` is the default**, which is CSS's. Yoga's own default is `COLUMN`,
 /// and the toolkit corrects it: the layout engine is configured with web
 /// defaults, so a box that says nothing about direction lays its children out
-/// left to right, the way the CSS subset in `docs/ARCHITECTURE.md` §8 promises.
+/// left to right, the way the CSS subset promises.
 /// [dev.goldberry.css.ComputedStyle#INITIAL] and
 /// [dev.goldberry.paint.Box#of()] are where that is written
 /// down.
+///
+/// Read more: [How layout works](https://goldberry.dev/docs/layout/index.html#flexbox-from-yoga).
 public enum FlexDirection {
 
     /// Top to bottom.

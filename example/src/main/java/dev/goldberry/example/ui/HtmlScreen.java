@@ -16,9 +16,9 @@ import dev.goldberry.widgets.text.Text;
 /// `text-area` writing one property and a view reading it — so what differs between
 /// them is what differs between the two halves of `goldberry-html`: the parser
 /// (md4c in C, against a tokenizer in Java) and the vocabulary: a fixed dialect
-/// against open tags, with definition lists and a `class` a stylesheet can reach
-/// (ADR-0298). What they share is everything a reader does — links, images and the
-/// binding under both (ADR-0300).
+/// against open tags, with definition lists and a `class` a stylesheet can reach.
+/// What they share is everything a reader does — links, images and the
+/// binding under both.
 ///
 /// ## Why it is a document *and* a class, like every other screen
 ///
@@ -29,8 +29,10 @@ import dev.goldberry.widgets.text.Text;
 /// ## Not scrolled, on purpose
 ///
 /// [Screen] wraps every other screen in a viewport and deliberately not this one or
-/// the Markdown screen: the preview pane owns a `scroll` of its own and §2.4 bans
-/// nested same-axis scrollers.
+/// the Markdown screen: the preview pane owns a `scroll` of its own and nested
+/// same-axis scrollers are not allowed.
+///
+/// Read more: [HTML view](https://goldberry.dev/docs/components/content.html#html-view).
 ///
 /// @param panes what `html.kdl` built, inflated once by [Screen]
 public record HtmlScreen(Widget panes) implements Widget.Stateless {

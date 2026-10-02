@@ -6,12 +6,15 @@ import dev.goldberry.natives.sdl.SdlWindowHandle;
 /// first time a window is to be composited, and one per backend.
 ///
 /// It owns the process's one GPU device, made on the first [#claim] and never
-/// before (`docs/gpu-plan.md`, D2), so an application that composites nothing
-/// never loads a driver. By default that is the first frame of the first window
-/// (ADR-0480). A device that cannot be made is remembered, and every later claim
-/// is refused at once, as a failed hardware decoder is (ADR-0470).
+/// before, so an application that composites nothing never loads a driver. By
+/// default that is the first frame of the first window, because windows present
+/// through the GPU unless the policy or the driver says otherwise. A device that
+/// cannot be made is remembered, and every later claim is refused at once rather
+/// than tried again.
 ///
 /// Confined to the UI thread, which on macOS is the process's first.
+///
+/// Read more: [Logging and diagnostics](https://goldberry.dev/docs/guide/logging.html#which-way-a-window-presents).
 public interface Compositor extends AutoCloseable {
 
     /// Takes `window` over: from now on it presents through a swapchain, and has
@@ -24,7 +27,8 @@ public interface Compositor extends AutoCloseable {
 
     /// A surface that renders GPU layers and reads them back, for one window
     /// that presents on the CPU: one the policy leaves there, one the GPU
-    /// refused, a popup, or a headless one (`docs/gpu-plan.md`, D3; ADR-0481).
+    /// refused, a popup, or a headless one. Its layers are rendered to textures
+    /// and read back into the frame.
     ///
     /// Makes no device. The first layer rendered does, as the first claim does,
     /// and a device that cannot be made leaves the surface rendering nothing,

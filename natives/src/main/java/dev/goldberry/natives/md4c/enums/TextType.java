@@ -7,6 +7,8 @@ package dev.goldberry.natives.md4c.enums;
 /// and the two consumers decide differently — HTML passes an [#ENTITY] through
 /// verbatim because `&amp;` is already correct HTML, while a widget resolves it to
 /// `&` because a reader cannot.
+///
+/// Read more: [The native boundary](https://goldberry.dev/docs/overview/architecture.html#the-native-boundary).
 public enum TextType implements Md4cEnum {
 
     /// Ordinary text.

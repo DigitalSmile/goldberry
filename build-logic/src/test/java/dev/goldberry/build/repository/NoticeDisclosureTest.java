@@ -16,9 +16,10 @@ import org.junit.jupiter.api.Test;
  * published artifact carries.
  *
  * <p>{@code ./gradlew checkLicenses} holds the notices and {@code licenses/} to
- * each other; nothing held {@code NOTICE} to either. It is the file Apache-2.0
- * §4(d) makes a redistributor pass on, and the one every jar carries in
- * {@code META-INF}, and it went without FFmpeg and dav1d for as long as
+ * each other; nothing held {@code NOTICE} to either. It is the file that
+ * section 4(d) of the Apache-2.0 licence makes a redistributor pass on, and the
+ * one every jar carries in {@code META-INF}, and it went without FFmpeg and
+ * dav1d for as long as
  * {@code goldberry-ffmpeg-natives} existed, because step 3 of "Adding a
  * dependency" is a step a person has to remember.
  *

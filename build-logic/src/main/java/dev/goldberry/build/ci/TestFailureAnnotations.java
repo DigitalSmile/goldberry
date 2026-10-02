@@ -8,8 +8,7 @@ import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 /**
- * Writes every failed test as an error annotation on the GitHub Actions run
- * (ADR-0338).
+ * Writes every failed test as an error annotation on the GitHub Actions run.
  *
  * <p>Registered on every {@code Test} task by {@code goldberry.java-conventions},
  * and only on a runner: locally the console already shows the failure, and a line

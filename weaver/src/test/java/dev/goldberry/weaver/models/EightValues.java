@@ -10,7 +10,7 @@ import dev.goldberry.bind.Model;
 /// costs, however many the model has — the setter it was rewritten into knows
 /// which field it is. A sweep costs what *all* of them cost, because it has no
 /// way to know which one moved without looking at each. This is where that shows
-/// up as a number (ADR-0155).
+/// up as a number.
 @Model
 public final class EightValues implements Clicker {
 

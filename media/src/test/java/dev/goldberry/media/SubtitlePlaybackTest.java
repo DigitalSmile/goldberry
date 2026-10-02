@@ -29,7 +29,7 @@ import dev.goldberry.media.subtitle.Cue;
 
 /// Subtitles through the Engine: a container's SubRip and ASS tracks chosen,
 /// read as the demuxer reads, and shown at the right time; an external file
-/// loaded in their place; and none (`docs/goldberry-media.md` §6).
+/// loaded in their place; and none.
 ///
 /// The clip is video only, so its clock is a hand-moved [MediaClock] and "what
 /// shows at 0.2 s" is exact.

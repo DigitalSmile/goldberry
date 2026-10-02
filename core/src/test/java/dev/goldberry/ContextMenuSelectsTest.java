@@ -31,7 +31,7 @@ import dev.goldberry.widget.attr.Attributes;
 import dev.goldberry.widget.style.Paints;
 import dev.goldberry.widget.style.Styled;
 
-/// A right-click selects what it is over before the menu opens ([ADR-0224]).
+/// A right-click selects what it is over before the menu opens.
 ///
 /// The toolkit still has no notion of what "select" means for an arbitrary
 /// widget. What it has is a walk — the one that finds the menu's name — and a
@@ -170,9 +170,9 @@ class ContextMenuSelectsTest {
 
     /// A right-click at (120, 90) on `root`, with `handler` registered.
     ///
-    /// The handler opens nothing by default — this backend has no popup windows
-    /// (ADR-0102) — so what a test reads is the record of who was asked and what
-    /// the handler saw, in the order they happened.
+    /// The handler opens nothing by default — the headless backend has no popup
+    /// windows, and a platform may refuse one — so what a test reads is the record
+    /// of who was asked and what the handler saw, in the order they happened.
     private void rightClick(Widget root, Consumer<Host> handler) {
         Goldberry.launch(new TestApp(root, host -> {
             handler.accept(host);
@@ -234,8 +234,7 @@ class ContextMenuSelectsTest {
     }
 
     /// The keyboard's half shares the walk, so it shares this: the menu key on a
-    /// focused-but-unselected row selects it, exactly as a right-click does
-    /// (ADR-0208).
+    /// focused-but-unselected row selects it, exactly as a right-click does.
     @Test
     @Timeout(20)
     @DisplayName("the menu key selects what it opens over, like the pointer")

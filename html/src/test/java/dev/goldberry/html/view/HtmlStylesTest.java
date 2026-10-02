@@ -23,7 +23,7 @@ import dev.goldberry.css.cascade.CascadeLayer;
 /// `MarkdownStylesTest`'s twin, and it exists for the same reason that one does:
 /// `MarkdownStyles.stylesheet()` passed every class-path test in this module and then
 /// threw on the showcase's **first frame**, because JPMS encapsulates resources as
-/// well as classes and `exports` governs types rather than bytes (ADR-0093). The
+/// well as classes and `exports` governs types rather than bytes. The
 /// second half of this file is therefore about the compiled `module-info.class`
 /// rather than about the JVM these tests run in.
 @DisplayName("the HTML stylesheet")
@@ -53,7 +53,7 @@ class HtmlStylesTest {
         // absence would be invisible: a page that rendered as a column of unstyled
         // words looks like a page somebody wrote badly.
         // `.html-line` and `.html-lines` rather than `.html-prose`, which carries no
-        // declarations since ADR-0426: the geometry of a line moved to the class that
+        // declarations of its own: the geometry of a line belongs to the class that
         // means a line, and a paragraph's box keeps the page's own classes.
         for (var name : List.of(
                 ".html",
@@ -112,7 +112,7 @@ class HtmlStylesTest {
         }
         // `.../build/classes/java/test` -> `.../build/classes/java/main`. Through
         // the URI: `getPath()` keeps the leading slash of `file:/D:/...`, which
-        // `Path.of` refuses on Windows (ADR-0338).
+        // `Path.of` refuses on Windows.
         Path main;
         try {
             main = Path.of(source.getLocation().toURI()).resolveSibling("main");

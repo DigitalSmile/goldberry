@@ -11,9 +11,9 @@ import dev.goldberry.widget.Element;
 ///
 /// [ScrollController] is the handle an *owner* holds: created above a `scroll`,
 /// handed down into it, and used by whoever wired it. This is the other
-/// direction, and the one a caller has when all it holds is the target —
-/// `docs/core-widgets.md` §5's `tour`, which names a widget by id and has to
-/// scroll it into view without knowing anything about the tree around it:
+/// direction, and the one a caller has when all it holds is the target — a
+/// `tour`, which names a widget by id and has to scroll it into view without
+/// knowing anything about the tree around it:
 ///
 /// ```java
 /// host.anchor(targetId)
@@ -22,18 +22,13 @@ import dev.goldberry.widget.Element;
 ///     .ifPresent(scope -> scope.reveal(region.painted(), clip));
 /// ```
 ///
-/// ## Why this is not the wall the TODO entry described
+/// ## How the walk starts from the target
 ///
-/// The entry said the tree offered no way to ask, because
-/// [dev.goldberry.widget.BuildContext#findAncestorState] walks
-/// up from the element being **built** and what is wanted is a walk up from the
-/// element being **named**. Both halves of that are true and the conclusion does
-/// not follow: an [Element] *is* a `BuildContext`, so the walk starts wherever
-/// the caller points it, and a hit-test region already carries the element it
-/// was painted for. ADR-0120 wrote down that `findAncestorState` "stays, because
-/// it is how an application-level `scrollIntoView` from inside a scroll view
-/// reaches the viewport" — which is exactly this call, two years of entries
-/// later ([ADR-0439]).
+/// [dev.goldberry.widget.BuildContext#findAncestorState] walks up from an
+/// element, and an [Element] *is* a `BuildContext`, so the walk starts wherever
+/// the caller points it: a hit-test region already carries the element it was
+/// painted for, and from there the nearest viewport's state is a walk up the
+/// tree.
 ///
 /// ## The nearest one, and only the nearest one
 ///
@@ -55,7 +50,7 @@ public final class ScrollScope {
 
     /// The nearest `scroll` enclosing `target`, or empty when it is in none.
     ///
-    /// Empty is an ordinary answer and not a failure: §5's tour describes plenty
+    /// Empty is an ordinary answer and not a failure: a tour describes plenty
     /// of targets that sit in no viewport at all, and a caller that treated this
     /// as an error would have to special-case the common shape.
     ///
@@ -93,7 +88,7 @@ public final class ScrollScope {
     }
 
     /// Moves by `dx`, `dy` **at once**, clamped to what there is to show — what a
-    /// drag held at the edge asks for, once a frame ([EdgeScroll], [ADR-0500]).
+    /// drag held at the edge asks for, once a frame ([EdgeScroll]).
     ///
     /// Not a [ScrollController#scrollBy], which glides: that is a programmatic move,
     /// and a glide 240 ms long restarted on every frame of a drag would never arrive

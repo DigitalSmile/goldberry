@@ -4,9 +4,9 @@ import java.util.Objects;
 
 import dev.goldberry.widget.Element;
 
-/// What an input method is in the middle of composing — `docs/gaps.md` G15.
+/// What an input method is in the middle of composing.
 ///
-/// The third of §7.1's keyboard events, and the one a Latin keyboard never
+/// The third keyboard event, and the one a Latin keyboard never
 /// produces. [KeyEvent] is a key, [TextEvent] is text the platform has finished
 /// translating, and this is the string **in between**: the underlined
 /// composition a Japanese, Chinese or Korean user watches being assembled while
@@ -23,8 +23,7 @@ import dev.goldberry.widget.Element;
 ///
 /// So it is drawn **beside** the document rather than in it —
 /// [dev.goldberry.text.edit.Editor] paints it at the caret,
-/// underlined — and the value only changes when a [TextEvent] arrives
-/// (ADR-0289).
+/// underlined — and the value only changes when a [TextEvent] arrives.
 ///
 /// ## Ending
 ///
@@ -39,6 +38,12 @@ import dev.goldberry.widget.Element;
 /// offsets into [#text()] as Java sees it — because every consumer is Java and
 /// eleven of them getting it right is eleven chances to get it wrong. `-1` means
 /// the platform did not report a selection, which several do not.
+///
+/// Delivered to the focused widget's `onPreedit` with no capture phase, since
+/// a container has no use for text the user has not accepted yet. Mutable only
+/// in [#consume()].
+///
+/// Read more: [Input and focus](https://goldberry.dev/docs/guide/input.html#keys-and-text-are-different-events).
 public final class PreeditEvent {
 
     private final String text;

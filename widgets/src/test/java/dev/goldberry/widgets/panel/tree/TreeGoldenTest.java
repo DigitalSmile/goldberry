@@ -25,8 +25,8 @@ import dev.goldberry.widgets.panel.Described;
 /// What a `tree` looks like with two levels open — the picture [TreeTest] cannot
 /// take.
 ///
-/// The thing worth seeing is §2's "indent 20 per level; chevron 16 in the indent
-/// gutter": the labels of a folder and a file at one level line up, because a
+/// The thing worth seeing is the indent of 20 per level with a 16 chevron in the
+/// indent gutter: the labels of a folder and a file at one level line up, because a
 /// leaf keeps the chevron's box and draws nothing in it. A tree that dropped the
 /// box on its leaves would step every file half a chevron to the left, which
 /// reads as a second level of nesting that is not there.
@@ -57,7 +57,7 @@ class TreeGoldenTest {
                 host);
 
         // Opened from the keyboard, which is the only way in: expansion is the
-        // widget's own state and no document can set it (ADR-0184).
+        // widget's own state and no document can set it.
         open(tree, "europe");
         open(tree, "uk");
 
@@ -89,13 +89,12 @@ class TreeGoldenTest {
         paint("tree-light", Theme.NORD_LIGHT);
     }
 
-    /// §3's `checkable="cascade"`, and the one state a picture is the only proof
-    /// of: **the mixed mark is a bar and not a greyed tick**.
+    /// `checkable="cascade"`, and the one state a picture is the only proof of:
+    /// **the mixed mark is a bar and not a greyed tick**.
     ///
     /// Norway is ticked and Scotland is not, so United Kingdom reads unchecked,
     /// Europe reads mixed, and the difference between "some of these" and "all of
-    /// these" is a thing a reader can see at a glance rather than a claim
-    /// ([ADR-0210]).
+    /// these" is a thing a reader can see at a glance rather than a claim.
     @Test
     @DisplayName("a cascade tree, with a branch that is only partly ticked")
     void cascade() {

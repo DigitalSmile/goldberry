@@ -17,7 +17,8 @@ import org.junit.jupiter.api.Test;
 
 import dev.goldberry.image.Image;
 
-/// The shared loader's memory ([ADR-0358]).
+/// The shared loader's memory: a source decoded once is handed to every view
+/// that asks for it.
 class ImageCacheTest {
 
     private final List<String> started = new ArrayList<>();

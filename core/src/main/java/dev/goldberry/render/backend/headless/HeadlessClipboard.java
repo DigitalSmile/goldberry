@@ -11,7 +11,7 @@ import org.jspecify.annotations.Nullable;
 import dev.goldberry.render.clipboard.Clipboard;
 
 /// The session clipboard a headless test gets — in memory, **lazy**, and able to
-/// refuse ([ADR-0407]).
+/// refuse.
 ///
 /// Not [Clipboard#none()]: a test that copies and pastes should be testing the
 /// widget's editing model, and against a clipboard that accepts nothing every
@@ -22,7 +22,7 @@ import dev.goldberry.render.clipboard.Clipboard;
 ///
 /// A platform clipboard does not hold bytes, it holds a **callback**: the
 /// compositor asks the owning application to serialise when somebody pastes, and
-/// if nobody ever does, the bytes are never produced ([ADR-0286]). That is the
+/// if nobody ever does, the bytes are never produced. That is the
 /// contract every caller of [Clipboard#write] is written against, so it is the
 /// contract this class keeps: [#offer] takes suppliers, and [#read] is the only
 /// thing that calls one.
@@ -56,6 +56,8 @@ import dev.goldberry.render.clipboard.Clipboard;
 /// which is what a declined offer leaves behind.
 ///
 /// Confined to the UI thread, like the rest of this backend.
+///
+/// Read more: [Text, fonts and icons](https://goldberry.dev/docs/guide/text.html#the-clipboard).
 public final class HeadlessClipboard implements Clipboard {
 
     private final HeadlessBackend backend;

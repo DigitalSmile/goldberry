@@ -18,9 +18,11 @@ import dev.goldberry.natives.platform.calls.CapabilityCalls;
 /// running system, and it can be read before any backend has started.
 ///
 /// `:core` translates it into the toolkit's own vocabulary; an application reads
-/// `Goldberry.capabilities()` and never this ([ADR-0174] keeps `natives.*` inside
-/// `:natives`). See [NativeCapability] for why a library has to report this at
-/// all, and `docs/gaps.md` G32 for the day it could not.
+/// `Goldberry.capabilities()` and never this, because no type of this module
+/// appears in a signature an application can read. See [NativeCapability] for
+/// why a library has to report this at all.
+///
+/// Read more: [What this build can do](https://goldberry.dev/docs/guide/logging.html#what-this-build-can-do).
 public final class NativeCapabilities {
 
     private static final Logger LOG = Logs.of(NativeCapabilities.class);

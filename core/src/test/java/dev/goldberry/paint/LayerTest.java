@@ -15,7 +15,8 @@ import dev.goldberry.layout.FlexDirection;
 import dev.goldberry.layout.Length;
 import dev.goldberry.paint.tree.RenderTree;
 
-/// Layer promotion — ADR-0071.
+/// Layer promotion: a translucent group is rasterized once at full strength and
+/// its alpha goes on the blit.
 ///
 /// The reason this is worth its own file rather than a golden: a golden says two
 /// images differ, and the whole question here is *how*. CSS group opacity and a
@@ -154,7 +155,7 @@ class LayerTest {
         @Test
         @DisplayName("the overlap shows the upper child only, not both faded")
         void overlapIsTheUpperChild() {
-            // The assertion ADR-0064 asked for. Inside the overlap the green
+            // The assertion group opacity exists for. Inside the overlap the green
             // square covered the red one *before* anything was faded, so what
             // reaches the frame is green at 50% over the backdrop — the same
             // colour as the part of the green square that overlaps nothing.
@@ -242,7 +243,7 @@ class LayerTest {
         @Test
         @DisplayName("an unchanged promoted subtree keeps its layer between frames")
         void reusesTheRaster() {
-            // The §1.7 reason for promotion. `hasChanged` is what decides whether
+            // The performance reason for promotion. `hasChanged` is what decides whether
             // the raster is blitted again or drawn again, so it is what to assert
             // on: inferring it from pixels would pass either way.
             try (var tree = RenderTree.create()) {
@@ -292,7 +293,7 @@ class LayerTest {
         @Test
         @DisplayName("a fading group keeps its raster — the case promotion exists for")
         void fadingReusesTheRaster() {
-            // §1.7's actual promise. The subtree looks the same; only the alpha
+            // The actual promise of a layer. The subtree looks the same; only the alpha
             // of the composite moves. The raster was drawn at full strength, so
             // it is still correct at every step of the fade, and a frame of the
             // transition is a blit.
@@ -391,7 +392,7 @@ class LayerTest {
         @Test
         @DisplayName("a focus ring outside the border box survives")
         void coversTheOutline() {
-            // `outline` is drawn outside the box by design (ADR-0064), so a layer
+            // `outline` is drawn outside the box by design, so a layer
             // sized to the border box would cut the ring in half.
             try (var tree = RenderTree.create()) {
                 tree.update(

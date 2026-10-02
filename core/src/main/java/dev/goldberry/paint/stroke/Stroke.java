@@ -15,7 +15,7 @@ import dev.goldberry.paint.Path;
 /// hairline somewhere else entirely, three widgets away, in a golden image
 /// nobody was looking at. Passing the whole style with the call means the
 /// question "what is the stroke width here?" is answered by the line you are
-/// reading (ADR-0043, ADR-0277).
+/// reading.
 ///
 /// The colour is deliberately *not* in here. It is an argument to the drawing
 /// call alongside this, like every other fill in the toolkit, so that the common
@@ -26,6 +26,8 @@ import dev.goldberry.paint.Path;
 /// [#width()] and the lengths in [#dash()] are logical pixels: a 2px stroke is
 /// two CSS pixels at any display scale, and the rasterizer's transform is what
 /// turns that into device pixels.
+///
+/// Read more: [Canvas, images and QR codes](https://goldberry.dev/docs/components/drawing.html#the-painter).
 ///
 /// @param width      the pen width in logical pixels; must be finite and positive
 /// @param cap        what the ends of an open sub-path look like

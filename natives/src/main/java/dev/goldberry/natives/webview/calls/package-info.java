@@ -2,9 +2,12 @@
 /// binds that is built beside `libgoldberry` rather than into it, and opened on
 /// demand. None of its functions is `webview/webview`'s own.
 ///
-/// **Not exported** (ADR-0173). The wrappers in `…natives.webview` are the callers.
+/// **Not exported**, like every `…calls` package. The wrappers in `…natives.webview`
+/// are the callers.
 ///
-/// Marked for NullAway (`docs/testing.md` §2, ADR-0497).
+/// Marked for NullAway, so a parameter that may be null says so on its signature.
+///
+/// Read more: [The native boundary](https://goldberry.dev/docs/overview/architecture.html#the-native-boundary).
 @NullMarked
 package dev.goldberry.natives.webview.calls;
 

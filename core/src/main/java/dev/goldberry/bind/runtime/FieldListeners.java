@@ -37,6 +37,9 @@ import dev.goldberry.bind.registry.BindingRegistry;
 ///
 /// Confined to the UI thread, like [Property] and for the same reason — a
 /// listener rebuilds a widget, and the widget tree belongs to that thread.
+///
+/// Read more:
+/// [What the weaver actually does](https://goldberry.dev/docs/weaving.html#what-the-weaver-actually-does).
 public final class FieldListeners {
 
     /// One list per woven field, allocated when something first subscribes.
@@ -58,14 +61,14 @@ public final class FieldListeners {
     /// Called from the setter of a field the weaver saw declared `@Bind` without
     /// `repaint = false`. **Which fields ask is decided in the build**, so a value
     /// nothing displays costs not a branch here but an instruction that is not
-    /// there (ADR-0135).
+    /// there.
     private @Nullable List<Runnable> repaint;
 
     /// Listeners for a change to a field declared `@Bind(restyle = true)`.
     ///
     /// Separate from [#repaint] because a restyle is much more expensive than
     /// a repaint — every resolved style is thrown away — and the common case is a
-    /// change that moves no rule at all (ADR-0133).
+    /// change that moves no rule at all.
     private @Nullable List<Runnable> restyle;
 
     /// A store for a model with `fields` woven `@Bind` fields.

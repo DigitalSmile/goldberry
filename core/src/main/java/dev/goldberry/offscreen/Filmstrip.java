@@ -37,23 +37,21 @@ import dev.goldberry.widget.WidgetRenderer;
 /// four times at four settle times does not produce four frames of one animation
 /// either — it produces four *first* frames, each from a tree that has just been
 /// mounted, and a `spinner` at 48 ms is not the same picture as a spinner that has
-/// been spinning for 48 ms. What is wanted is a lifetime, and this is it
-/// (ADR-0424).
+/// been spinning for 48 ms. What is wanted is a lifetime, and this is it.
 ///
 /// ## What lives between frames, and what does not
 ///
 /// **Everything above the pixels lives.** The element tree is mounted once — that
 /// is the whole point, and it is what makes a `State`'s animation, a scroll offset
 /// and a `text-area`'s learnt width carry from one frame to the next. The render
-/// tree is retained, so Yoga re-lays out only what moved (ADR-0069); the renderer
-/// is kept, so its shaping cache holds every paragraph it has already shaped
-/// (ADR-0299); the router is kept, so a `Measured` widget is told its region
-/// changed rather than told it again; and the clock is the one object the caller
-/// actually drives.
+/// tree is retained, so Yoga re-lays out only what moved; the renderer is kept,
+/// so its shaping cache holds every paragraph it has already shaped; the router
+/// is kept, so a `Measured` widget is told its region changed rather than told it
+/// again; and the clock is the one object the caller actually drives.
 ///
 /// **The buffer does not.** Each [#frame()] allocates its own, and that is not
 /// tidiness: an [Image] handed back is a *view* over the pixels it was rendered
-/// into and never a copy of them (ADR-0283), so a strip that reused one buffer
+/// into and never a copy of them, so a strip that reused one buffer
 /// would repaint every picture it had already given away. Ten frames of a
 /// 400&times;120 strip is 1.9 MB, and the alternative is one buffer and ten
 /// identical images.
@@ -66,9 +64,11 @@ import dev.goldberry.widget.WidgetRenderer;
 /// the same picture on every machine and in every run. [#isAnimating()] is how a
 /// caller finds out there is any point taking another.
 ///
-/// Confined to the thread it was opened on, and every render is (ADR-0425). Must be
-/// closed: a mounted tree holds `State` objects with `dispose` hooks and a retained
-/// render tree holds native Yoga nodes.
+/// Confined to the thread it was opened on, as every render is. Must be closed: a
+/// mounted tree holds `State` objects with `dispose` hooks and a retained render
+/// tree holds native Yoga nodes.
+///
+/// Read more: [Testing an application](https://goldberry.dev/docs/guide/testing.html#pictures).
 public final class Filmstrip implements AutoCloseable {
 
     private final PhysicalSize size;
@@ -104,7 +104,7 @@ public final class Filmstrip implements AutoCloseable {
     /// Package-private: [Offscreen#strip(Widget)] is the door, because everything
     /// this needs — the size, the scale, the stylesheets, the fonts, the background
     /// — is already a knob on the builder, and a second copy of those six setters
-    /// is the duplication ADR-0423 had just finished removing.
+    /// would be two builders to keep in step.
     Filmstrip(
             PhysicalSize size,
             DisplayScale scale,
@@ -146,8 +146,8 @@ public final class Filmstrip implements AutoCloseable {
     /// a still picture is the useless answer and for a strip is the only correct
     /// one.
     ///
-    /// What the pass *is* still needed for is the other half of ADR-0284's
-    /// argument: a `text-area` or a `masonry` learns its own width from the
+    /// What the pass *is* still needed for is the feedback a laid-out frame
+    /// gives: a `text-area` or a `masonry` learns its own width from the
     /// rectangles a laid-out frame produced, and a strip whose first frame had
     /// never fed them back would photograph the whole animation of a widget
     /// correcting a first guess it should never have been showing.
@@ -167,8 +167,8 @@ public final class Filmstrip implements AutoCloseable {
     /// The picture at the current clock.
     ///
     /// One full paint — there is no previous buffer for a damaged one to be an
-    /// optimization over, which is the same reason [Offscreen] paints in full
-    /// (ADR-0072). The build that precedes it picks up whatever the last frame's
+    /// optimization over, which is the same reason [Offscreen] paints in full.
+    /// The build that precedes it picks up whatever the last frame's
     /// regions dirtied, so a widget that rearranged itself in response to its own
     /// measurements is photographed rearranged.
     ///
@@ -183,11 +183,11 @@ public final class Filmstrip implements AutoCloseable {
             render.paint(frame);
         } finally {
             // Before a pixel is read: a buffer read from a context that has not
-            // ended is half-drawn (ADR-0042).
+            // ended is half-drawn.
             frame.end();
         }
         // After the paint and after the join, exactly as a window does it: what the
-        // regions describe is the frame that was drawn (ADR-0054). A `Measured`
+        // regions describe is the frame that was drawn. A `Measured`
         // widget told about them here acts on the *next* frame, which is what makes
         // a strip's feedback arrive on the same schedule a window's does.
         sequence.captureRegions(frame);
@@ -227,7 +227,7 @@ public final class Filmstrip implements AutoCloseable {
 
     /// Whether anything in the tree is still moving.
     ///
-    /// §1.7's own idle test, borrowed: a window asks this to decide whether to
+    /// The frame loop's own idle test, borrowed: a window asks this to decide whether to
     /// request another frame, and a strip asks it to decide whether another frame
     /// would show anything new. Answered from the last pass, so it is meaningful
     /// from the moment the strip is open — the mount pass is a pass.
@@ -242,7 +242,7 @@ public final class Filmstrip implements AutoCloseable {
 
     /// Unmounts the tree and releases everything the strip was keeping.
     ///
-    /// Idempotent. The order is ADR-0284's and it is not tidiness: no frame is live
+    /// Idempotent. The order is not tidiness: no frame is live
     /// by the time this runs, because [#frame()] ends its own, so what is left is
     /// the render tree before the element tree — a `State` that owns a `Font` closes
     /// it in `dispose`, and Blend2D is still holding it until the joins are done.

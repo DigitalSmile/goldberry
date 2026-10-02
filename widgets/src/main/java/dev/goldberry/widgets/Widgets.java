@@ -18,16 +18,11 @@ import dev.goldberry.widgets.markup.Wiring;
 /// That is the whole wiring. `model` is a
 /// [dev.goldberry.bind.Model] and its `@Bind` paths and
 /// `@Action` names are read off it; the node names come from every
-/// [WidgetCatalog] the build generated, in this module and in any other
-/// (ADR-0131).
+/// [WidgetCatalog] the build generated, in this module and in any other, so an
+/// application that adds a second widget module merges nothing by hand. The
+/// stylesheets that go with the widgets are [Controls].
 ///
-/// ## Why this and not `Controls.inflater`
-///
-/// `Controls.inflater(actions, icons, bindings)` asked the caller for three
-/// registries it could work out for itself, and for a catalog naming exactly the
-/// widgets `:widgets` happens to ship. Neither survives contact with a second
-/// widget module: the application would have to merge two catalogs by hand and
-/// keep the merge in step with both.
+/// Read more: [Markup](https://goldberry.dev/docs/guide/markup.html#parsing-and-inflating).
 public final class Widgets {
 
     private Widgets() {}
@@ -116,7 +111,7 @@ public final class Widgets {
     ///
     /// `ServiceLoader`, which GraalVM resolves when it **builds the image** — so
     /// this is discovery with no runtime scan, and the closed world already knows
-    /// every provider (ADR-0127). On the class path the same lookup reads the
+    /// every provider. On the class path the same lookup reads the
     /// `META-INF/services` entry the build wrote; on the module path it reads the
     /// `provides` the build patched into `module-info`.
     ///

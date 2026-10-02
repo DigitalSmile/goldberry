@@ -35,9 +35,9 @@ import dev.goldberry.widgets.text.Text;
 ///
 /// The pictures carry two things no assertion does. The **scrim** is one — a
 /// number in a stylesheet says nothing about whether the window behind it is
-/// still readable, which is what §1.2 asks of a veil. The **action bar** is the
-/// other: §7's affirmative-right order is a fact about where the eye lands, and
-/// the roles being right in a list is not the same claim.
+/// still readable, which is what the contrast rule asks of a veil. The **action
+/// bar** is the other: the affirmative-right order is a fact about where the eye
+/// lands, and the roles being right in a list is not the same claim.
 ///
 /// `./gradlew :widgets:test -Dgoldberry.golden.update=true` rewrites them.
 class DialogGoldenTest {
@@ -124,7 +124,8 @@ class DialogGoldenTest {
         paintOpen("dialog-light", Theme.NORD_LIGHT);
     }
 
-    /// §3: "in: veil `opacity` overlay + panel `opacity` & `scale` 0.96→1".
+    /// The entrance: the veil fades in over the `overlay` duration while the
+    /// panel fades and scales from 0.96 to 1.
     /// Halfway through, the veil is half dark and the panel is slightly small —
     /// a frame no wall clock can take.
     @Test
@@ -141,8 +142,8 @@ class DialogGoldenTest {
         GoldenImage.assertMatches("dialog-opening", 460, 300, 1.0f, frame -> BoxPainter.paint(frame, midway));
     }
 
-    /// §3: "out: base, reverse", and §1.7's `closing` — the panel is still
-    /// mounted and no longer takes input.
+    /// The exit is the entrance reversed over the `base` duration, and during
+    /// `closing` the panel is still mounted and no longer takes input.
     @Test
     @DisplayName("a dialog caught halfway closed")
     void closing() {

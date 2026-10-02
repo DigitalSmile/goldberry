@@ -8,12 +8,12 @@ import java.util.Objects;
 import dev.goldberry.natives.blend2d.enums.BlendExtendMode;
 import dev.goldberry.natives.layout.Layouts;
 
-/// A gradient — a fill style that is not a colour (ADR-0207).
+/// A gradient — a fill style that is not a colour.
 ///
 /// Three shapes, which are Blend2D's three: [#linear] along a line, [#radial]
 /// between two circles and [#conic] around a point. The first is what a chart's
 /// band wants; the other two arrived with the COLRv1 emoji face, whose glyphs are
-/// filled with them (ADR-0456).
+/// filled with them.
 ///
 /// Every drawing call on [BlendContext] until this one took its colour as an
 /// `0xAARRGGBB` argument, which is what keeps a frame free of style state
@@ -45,6 +45,8 @@ import dev.goldberry.natives.layout.Layouts;
 /// Confined to the thread that created it, and must be closed. It may be closed
 /// as soon as the fill has been issued: `bl_context_set_fill_style` retains what
 /// it is given, so the context keeps its own reference.
+///
+/// Read more: [The native boundary](https://goldberry.dev/docs/overview/architecture.html#the-native-boundary).
 public final class BlendGradient implements AutoCloseable {
 
     private static final long LINEAR_X0 = Layouts.BL_LINEAR_GRADIENT_VALUES.offsetOf("x0");
@@ -141,7 +143,7 @@ public final class BlendGradient implements AutoCloseable {
     /// circle `0` and the focal one `1` while the first stop sits on circle `1`
     /// — so "circle 0" means opposite things on the two sides of a COLRv1
     /// conversion. This is SVG's `r`/`fr` pair, and the two-point conical
-    /// gradient every COLRv1 renderer draws (ADR-0456).
+    /// gradient every COLRv1 renderer draws.
     ///
     /// @throws IllegalArgumentException if any number is not finite, or a
     ///         radius is negative
@@ -177,8 +179,7 @@ public final class BlendGradient implements AutoCloseable {
     /// the positive x axis towards the positive y axis.
     ///
     /// One full turn per ramp: a COLRv1 sweep over less than a turn is placed
-    /// inside this one by where its stops fall, not by a second parameter
-    /// (ADR-0456).
+    /// inside this one by where its stops fall, not by a second parameter.
     ///
     /// @throws IllegalArgumentException if any number is not finite
     public static BlendGradient conic(double x, double y, double angle, BlendExtendMode extend, BlendMatrix transform) {

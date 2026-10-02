@@ -26,7 +26,7 @@ import dev.goldberry.offscreen.Offscreen;
 import dev.goldberry.render.model.PhysicalRect;
 import dev.goldberry.widgets.core.image.Fit;
 
-/// [GpuVideo] and [GpuVideoPresenter] with no device (ADR-0484): whether `:gpu`
+/// [GpuVideo] and [GpuVideoPresenter] with no device: whether `:gpu`
 /// is found, how a picture becomes the layer's image, and what a frame with no
 /// GPU makes of it. The build runs this module's tests twice, with `:gpu` on
 /// the class path and without (`testWithoutGpu`), and says which in

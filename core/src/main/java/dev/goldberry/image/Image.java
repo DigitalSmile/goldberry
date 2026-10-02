@@ -26,17 +26,22 @@ import dev.goldberry.render.model.PixelFormat;
 
 /// A decoded image: pixels, a size, and nothing that has to be closed.
 ///
+/// ```java
+/// Image logo = Image.decode(Files.readAllBytes(file));    // or Image.decode(file)
+/// frame.drawImage(logo, 16, 16);                          // natural size
+/// byte[] png = logo.scaled(64, 64).encodePng();
+/// ```
+///
 /// ## A value, not a handle
 ///
-/// The two `:natives` leaks that were closed before this one taught the
-/// difference (ADR-0277, ADR-0282): a *value* can be mirrored into the toolkit's
-/// own vocabulary, and a *handle* cannot, because somebody has to own it and say
-/// when it dies. So an image is a value. The decoder allocates, its pixels are
-/// copied into a [PixelBuffer] Java owns, and its handle is destroyed before
-/// [#decode(byte[])] returns — which is why there is no `close()` here and why
-/// this class is not `AutoCloseable`, as the proposal for it assumed it would
-/// have to be. The pixels are a direct [ByteBuffer] and the collector owns them,
-/// like every other buffer in the toolkit.
+/// A *value* can be mirrored into the toolkit's own vocabulary, and a *handle*
+/// cannot, because somebody has to own it and say when it dies. So an image is a
+/// value. The decoder allocates, its pixels are copied into a [PixelBuffer] Java
+/// owns, and the native handle is destroyed before [#decode(byte[])] returns,
+/// which is why there is no `close()` here and this class is not
+/// `AutoCloseable`. The pixels are a direct [ByteBuffer] and the collector owns
+/// them, like every other buffer in the toolkit. An image is immutable and safe
+/// to share between threads.
 ///
 /// The cost of that choice is one copy per decode, paid once. What it buys is an
 /// image that can be put in a field, a record, a cache or a document model
@@ -54,19 +59,24 @@ import dev.goldberry.render.model.PixelFormat;
 /// [#fromClipboard] and [#toClipboard] — a pasted screenshot is the most common
 /// way anything reaches a board, and a copied picture is how it leaves. They are
 /// here rather than on [Clipboard] because a clipboard is bytes and a MIME type:
-/// a backend implementing one should not have to know what a PNG is (ADR-0286).
+/// a backend implementing one should not have to know what a PNG is.
 ///
 /// ## Drawing one
 ///
 /// [Frame#drawImage(Image, double,
 /// double)][dev.goldberry.paint.Frame#drawImage(Image,double,double)]
 /// and its overloads. A canvas painter is handed a frame, so an application draws
-/// an image exactly where it draws a path (ADR-0283):
+/// an image exactly where it draws a path:
 ///
 /// ```java
 /// var logo = Image.decode(Files.readAllBytes(file));
 /// new Canvas((frame, size) -> frame.drawImage(logo, 0, 0), attributes);
 /// ```
+///
+/// Natural size is one image pixel per device pixel, so a 96×64 image is 96
+/// logical points wide at 100% scale and 48 at 200%.
+///
+/// Read more: [Text, fonts and icons](https://goldberry.dev/docs/guide/text.html#images).
 public final class Image {
 
     /// Premultiplied BGRA, tightly packed. The one format the whole toolkit
@@ -99,9 +109,8 @@ public final class Image {
     /// own. GIF and WebP are not — the rasterizer is compiled without them — so
     /// the bytes are sniffed first and routed: a WebP goes to libwebp, which is
     /// linked into the same native library, and a GIF to
-    /// [GifDecoder], which is Java. Why the two differ is
-    /// [ADR-0329]'s subject: VP8 is a video codec and GIF is nine pages
-    /// (`docs/gaps.md` G35a).
+    /// [GifDecoder], which is Java. The two differ because VP8 is a video codec
+    /// worth fetching a library for, and GIF is a nine-page format worth writing.
     ///
     /// An **animated** GIF decodes to its first frame. See [GifDecoder].
     ///
@@ -120,9 +129,8 @@ public final class Image {
             throw new IllegalArgumentException("there is nothing to decode: no bytes were given");
         }
         // Sniffed before anything else, because two of the five formats are not
-        // the rasterizer's and it would refuse them (`docs/gaps.md` G35a,
-        // [ADR-0329]). The magic bytes, never a file name: that is what
-        // "the format comes from the bytes" means.
+        // the rasterizer's and it would refuse them. The magic bytes, never a
+        // file name: that is what "the format comes from the bytes" means.
         var format = ImageFormat.of(bytes);
         if (format == ImageFormat.GIF) {
             return decodeGif(bytes);
@@ -132,9 +140,8 @@ public final class Image {
         }
         // The decoder's allocation lives exactly as long as this try block. That
         // is the whole of the exception to "Goldberry never asks Blend2D to
-        // allocate pixels" (ADR-0031, ADR-0283): only the decoder knows how big
-        // the image is, so it allocates, and the pixels are Java's again one
-        // statement later.
+        // allocate pixels": only the decoder knows how big the image is, so it
+        // allocates, and the pixels are Java's again one statement later.
         try (var decoded = BlendDecodedImage.decode(bytes)) {
             var size = new PhysicalSize(decoded.width(), decoded.height());
             var buffer = PixelBuffer.allocate(size, FORMAT);
@@ -180,7 +187,7 @@ public final class Image {
         return ofArgb(decoded.width(), decoded.height(), decoded.pixels());
     }
 
-    /// Decodes every frame — [ADR-0382].
+    /// Decodes every frame.
     ///
     /// **Every image is an animation**, and most are an animation of one frame:
     /// a PNG, a JPEG, a QOI, a WebP and a GIF with one frame in it all come back
@@ -188,9 +195,9 @@ public final class Image {
     /// GIF's frames, each composited under the file's own disposal rules, with
     /// the delay it declares and the number of times it asks to be played.
     ///
-    /// An **animated WebP** is every frame too, since [ADR-0385] linked
-    /// `webpdemux`: libwebp composites each canvas itself, so the disposal model
-    /// GIF needs in Java is upstream's there.
+    /// An **animated WebP** is every frame too: libwebp's `webpdemux` composites
+    /// each canvas itself, so the disposal model GIF needs in Java is upstream's
+    /// there.
     ///
     /// @throws ImageDecodeException if no codec recognises the bytes, or the
     ///         image is malformed
@@ -200,7 +207,7 @@ public final class Image {
             var animated = Webp.get().decodeAnimation(bytes);
             if (animated == null) {
                 // A still WebP, which is most of them: the container is the same
-                // and only an animated one has frames to walk (ADR-0385).
+                // and only an animated one has frames to walk.
                 return dev.goldberry.image.anim.Animation.still(decode(bytes));
             }
             var frames = new java.util.ArrayList<dev.goldberry.image.anim.Animation.Frame>(
@@ -296,14 +303,11 @@ public final class Image {
 
     /// The types [#fromClipboard] will try, in order.
     ///
-    /// Only the ones the decoder can actually read (ADR-0283): a clipboard
-    /// advertising a type this toolkit has no codec for is a paste it cannot do,
-    /// and saying so by finding nothing is better than throwing from inside a
-    /// decoder that was handed bytes it does not know.
-    ///
-    /// `image/webp` and `image/gif` joined the list the day the two codecs did
-    /// ([ADR-0329]) — which is the whole of what a set like this is for: it is a
-    /// statement about what can be decoded, so it moves when that does.
+    /// Only the ones the decoder can actually read: a clipboard advertising a
+    /// type this toolkit has no codec for is a paste it cannot do, and saying so
+    /// by finding nothing is better than throwing from inside a decoder that was
+    /// handed bytes it does not know. The list is a statement about what can be
+    /// decoded, so it moves when that does.
     private static final List<String> CLIPBOARD_MIMES =
             List.of(PNG_MIME, "image/jpeg", "image/jpg", "image/qoi", "image/webp", "image/gif");
 
@@ -341,9 +345,9 @@ public final class Image {
     /// Puts this image on `clipboard` as a PNG, replacing whatever was there.
     ///
     /// Encoding happens **now** rather than when somebody pastes, which is a
-    /// choice: the platform's own offer is lazy (ADR-0286), and an image that
-    /// encoded on demand would hold a reference to itself for as long as it was
-    /// on the clipboard and encode again for every paste. A UI-sized PNG is
+    /// choice: the platform's own offer is lazy, and an image that encoded on
+    /// demand would hold a reference to itself for as long as it was on the
+    /// clipboard and encode again for every paste. A UI-sized PNG is
     /// milliseconds and a copy is a deliberate act.
     ///
     /// @return whether the platform accepted it
@@ -361,8 +365,8 @@ public final class Image {
     ///
     /// What it is for is a frame that has already been painted: an offscreen
     /// render hands its buffer over here rather than copying a megabyte to say the
-    /// same thing (ADR-0284). An application that rasterized something itself can
-    /// do the same.
+    /// same thing. An application that rasterized something itself can do the
+    /// same.
     ///
     /// @throws IllegalArgumentException if the buffer is not premultiplied BGRA —
     ///         the one format the toolkit blits — or has no pixels in it
@@ -427,7 +431,7 @@ public final class Image {
         return readable;
     }
 
-    /// A **copy** of this image, resampled to `width` × `height` — [ADR-0428].
+    /// A **copy** of this image, resampled to `width` × `height`.
     ///
     /// ## Not the same thing as drawing one smaller
     ///
@@ -478,8 +482,7 @@ public final class Image {
         // view over pixels Java already owns, which is the rule everywhere in
         // this toolkit; the destination is the exception, because
         // `bl_image_scale` resizes and allocates the destination itself and has
-        // no form that writes into a buffer somebody else owns (ADR-0283's
-        // exception, widened by ADR-0428).
+        // no form that writes into a buffer somebody else owns.
         try (var source = BlendImage.wrapping(pixels.pixels(), width(), height(), pixels.stride());
                 var scaled = BlendScaledImage.scale(source, width, height, toBlend(filter))) {
 
@@ -517,7 +520,7 @@ public final class Image {
         return PngEncoder.encode(this);
     }
 
-    /// This image as **lossless** WebP bytes — [ADR-0385].
+    /// This image as **lossless** WebP bytes.
     ///
     /// The lossless path, because that is what a picture this toolkit drew wants:
     /// VP8's transform is worst at flat colour and hard edges, which is what a

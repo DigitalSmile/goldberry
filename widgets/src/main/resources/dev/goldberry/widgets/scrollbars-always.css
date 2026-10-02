@@ -1,14 +1,15 @@
 /*
- * "Always show scroll bars" (design-system.md §2.4, §4).
+ * "Always show scroll bars".
+ * https://goldberry.dev/docs/guide/styling.html#themes-density-and-scrollbars
  *
  * The overlay bar swapped for a classic reserved gutter: 12px of layout beside
  * the content, a visible track, a thumb that does not widen or fade. A
  * custom-property stylesheet in the THEME layer and nothing else, for the reason
  * density-compact.css is one -- it is a user preference applied app-wide, and
- * the controls already read these tokens (ADR-0364).
+ * the controls already read these tokens.
  *
  * The gutter is layout, not overlay: a `scroll` gives its content this much
- * padding on the side the bar is on, so §2.4's "components must survive the
+ * padding on the side the bar is on, so the scrollbar rule's "components must survive the
  * gutter appearing" is a narrower box rather than text under a bar.
  */
 

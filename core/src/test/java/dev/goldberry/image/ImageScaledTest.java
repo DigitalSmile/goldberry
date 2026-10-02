@@ -16,7 +16,7 @@ import org.junit.jupiter.api.Test;
 import dev.goldberry.RendererRequirement;
 import dev.goldberry.render.model.PhysicalSize;
 
-/// `Image.scaled(...)` — ADR-0428.
+/// `Image.scaled(...)`: a resampled copy is not a scaled blit.
 ///
 /// A resampled **copy**, which is a different operation from a scaled blit: the
 /// blit knows the destination size because it is drawing onto something, and
@@ -196,7 +196,7 @@ class ImageScaledTest {
         @DisplayName("scaling a scaled image again is ordinary")
         void chains() {
             // Nothing is held open, so there is no lifetime to get wrong: the
-            // whole point of ADR-0283's rule surviving into this operation.
+            // whole point of an image being a value surviving into this operation.
             var twice = checkerboard(64).scaled(32, 32).scaled(8, 8);
 
             assertEquals(new PhysicalSize(8, 8), twice.size());

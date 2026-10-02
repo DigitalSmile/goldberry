@@ -109,8 +109,8 @@ class MotionGoldenTest {
     @Test
     @DisplayName("the frame loop goes idle when the transition ends")
     void settles() {
-        // §1.7: "the frame loop is fully idle when no animation is active -- no
-        // polling, no battery cost". An application asks for another frame only
+        // The frame loop is fully idle when no animation is active: no polling,
+        // no battery cost. An application asks for another frame only
         // while `isAnimating`, so this is the whole of that promise.
         frame();
         tree.root().children().get(1).setPseudoClass(Selector.PseudoClass.HOVER, true);
@@ -129,7 +129,7 @@ class MotionGoldenTest {
     @Test
     @DisplayName("a press applies in 0ms and its release fades")
     void pressIsInstant() {
-        // §1.7's rule 1, and §3.1's "press: instant in, fast out". The pressed
+        // The motion rule for a press: instant in, fast out. The pressed
         // rule declares a zero duration and the resting rule declares the fade,
         // so entering `:active` snaps and leaving it eases -- because the timing
         // that applies is the one on the style being moved *to*.
@@ -148,7 +148,7 @@ class MotionGoldenTest {
     @Test
     @DisplayName("reduced motion reaches the same state with no frames in between")
     void reducedMotion() {
-        // §1.7's rule 6. The declarations are kept at zero duration rather than
+        // The reduced-motion rule. The declarations are kept at zero duration rather than
         // dropped, so a reduced-motion user takes the same route through the
         // toolkit and simply arrives at once.
         renderer.reducedMotion(true);

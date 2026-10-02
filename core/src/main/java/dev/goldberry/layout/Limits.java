@@ -11,7 +11,7 @@ import java.util.Objects;
 /// now grow one. The extra one: they are the *same question* asked four ways, and
 /// a caller that handled three of them is a caller with a bug nobody would find —
 /// a dialog with a minimum width and no maximum reads as working right up until
-/// somebody writes a long sentence in one (ADR-0181).
+/// somebody writes a long sentence in one.
 ///
 /// ## Undefined, not zero
 ///
@@ -21,6 +21,8 @@ import java.util.Objects;
 ///
 /// [Length#AUTO] is not a value any of the four accepts, and the layout boundary
 /// refuses it by name rather than dropping it silently.
+///
+/// Read more: [How layout works](https://goldberry.dev/docs/layout/index.html#the-box-model).
 ///
 /// @param minWidth  the least it may be across, or [Length#UNDEFINED]
 /// @param maxWidth  the most, or undefined

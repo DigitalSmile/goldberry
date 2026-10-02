@@ -1,14 +1,16 @@
-/// `@NullMarked`, which puts this package under NullAway.
+/// The window's own node: the root the launcher puts above an application's
+/// content, with the overlay layer and the tooltip plate that float over it.
 ///
-/// Inside a marked package every type is non-null unless it says `@Nullable`,
-/// and the build fails on a violation. The annotation is the whole content of
-/// this file: there is nothing package-specific to say about nullness, and a
-/// paragraph pretending otherwise in every package would be padding.
+/// `window-root` and `tooltip` can be styled from a stylesheet and are not
+/// written in markup: a document cannot write the node it is the document of,
+/// and a tooltip is produced by an attribute rather than by a widget. Exported
+/// because a launcher of one's own builds the same root.
 ///
-/// Packages are marked one at a time on purpose. NullAway runs in
-/// `OnlyNullMarked` mode, so an unmarked package is invisible to it and a marked
-/// one is checked from the moment it opts in — which is the only way a codebase
-/// this size adopts nullness at all (`docs/testing.md` §2).
+/// The package is null-marked: a parameter or return is non-null unless annotated
+/// `@Nullable`.
+///
+/// Read more:
+/// [Overlays and popups](https://goldberry.dev/docs/guide/windows.html#overlays-and-popups).
 @NullMarked
 package dev.goldberry.widget.root;
 

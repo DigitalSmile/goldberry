@@ -18,12 +18,13 @@ import dev.goldberry.css.cascade.CascadeLayer;
 /// Not added automatically, and not folded into `controls.css`, for the reason this
 /// module exists at all: `:widgets` does not know Markdown exists, and an
 /// application that never renders a document should not carry rules for one. An
-/// optional module brings its own stylesheet exactly as it brings its own natives
-/// (ADR-0190).
+/// optional module brings its own stylesheet exactly as it brings its own natives.
 ///
 /// [CascadeLayer#TOOLKIT_BASE], the layer `controls.css` is in, so that an
 /// application's own sheet overrides a document's appearance without `!important` —
 /// which is what a layer is for.
+///
+/// Read more: [Styling](https://goldberry.dev/docs/components/content.html#styling).
 public final class MarkdownStyles {
 
     /// Where the rules live, beside this class.
@@ -40,7 +41,7 @@ public final class MarkdownStyles {
     /// **The package holding this file is `opens`-ed to `:core`**, and it has to be:
     /// JPMS encapsulates resources as well as classes, so on the module path a `.css`
     /// beside a class is invisible to the module that reads it unless the package is
-    /// open (ADR-0093). A class-path test cannot show that — there are no modules
+    /// open. A class-path test cannot show that — there are no modules
     /// there — which is why `MarkdownStylesTest` asserts it against the compiled
     /// descriptor instead.
     public static Stylesheet stylesheet() {

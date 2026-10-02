@@ -1,12 +1,13 @@
-# Qodana — docs/testing.md §2's advisory dashboard, and §7's checklist.
+# Qodana — an advisory dashboard, guarded on its token.
+# https://goldberry.dev/docs/contributing/testing.html#advisory-dashboards
 #
 # The whole workflow is guarded on a project token existing. Without one the job
 # resolves to a single skipped step rather than a red cross on every pull
 # request: an analyser nobody has connected yet should be silent, not broken.
 #
 # Two secret names, one token. Qodana Cloud's onboarding stores it as
-# `QODANA_TOKEN_<project id>` (here `QODANA_TOKEN_2096098759`); docs/testing.md
-# §7 names it `QODANA_TOKEN`. Either connects the job, the onboarding's first.
+# `QODANA_TOKEN_<project id>` (here `QODANA_TOKEN_2096098759`); the repository's
+# own name for it is `QODANA_TOKEN`. Either connects the job, the onboarding's first.
 # The onboarding also opened a second workflow, `qodana_code_quality.yml`; it was
 # folded into this one, since two jobs named Qodana ran on every pull request.
 #
@@ -42,7 +43,7 @@ jobs:
             echo "connected=true" >> "$GITHUB_OUTPUT"
           else
             echo "connected=false" >> "$GITHUB_OUTPUT"
-            echo "No Qodana token is set — see docs/testing.md §7. Skipping." >> "$GITHUB_STEP_SUMMARY"
+            echo "No Qodana token is set — see https://goldberry.dev/docs/contributing/testing.html#static-analysis. Skipping." >> "$GITHUB_STEP_SUMMARY"
           fi
 
       - uses: actions/checkout@v4
@@ -64,7 +65,7 @@ jobs:
       # gate in qodana.yaml fails on *new* high-severity problems only. It is
       # that run's SARIF with the rule catalogue dropped: Qodana matches a
       # finding by its fingerprint, and the catalogue was 2.6 MB of the 5.
-      # docs/testing.md §7 says how to regenerate it. (Until 2026-09-30 there
+      # Regenerate it from a fresh run's SARIF. (Until 2026-09-30 there
       # was no first run, which is why the flag was absent: the 2026-09-18
       # review, B11.)
       # The release qodana.yaml pins the linter to, so CI and a local run

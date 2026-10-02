@@ -18,7 +18,7 @@ import dev.goldberry.markdown.model.MarkdownNode;
 
 /// Ticking a box, which is an edit to the author's own text.
 ///
-/// The half of ADR-0300 that is arithmetic: `markdown-view` reports **which** task
+/// The half of a toggle that is arithmetic: `markdown-view` reports **which** task
 /// was pressed and this turns that into a one-character rewrite. Two things have to
 /// be true for that to work, and both are asserted here — the rewrite changes one
 /// character and nothing else, and the box it rewrites is the one the parser gave
@@ -182,7 +182,7 @@ class TasksTest {
         @Test
         @DisplayName("about how many tasks a document has")
         void sameCount() {
-            // The load-bearing claim of ADR-0300: the index the renderer hands over is
+            // The load-bearing claim: the index the renderer hands over is
             // counted by **md4c** walking the model, and the character the toggle
             // rewrites is found by **md4c** reporting where it is. Both come off one
             // event stream now, so this asserts that the fold and the stream still

@@ -13,7 +13,7 @@ import dev.goldberry.input.key.Key;
 import dev.goldberry.input.key.Mod;
 import dev.goldberry.input.key.Modifiers;
 
-/// The one key map, and the three surfaces that read it — [ADR-0376].
+/// The one key map, and the three editing surfaces that read it.
 ///
 /// This used to be three tables in three classes that agreed because each was
 /// copied from the last. What is asserted here is the table itself, and — for
@@ -76,9 +76,9 @@ class EditKeysTest {
         }
 
         /// On this desktop the accelerator modifier is `Ctrl`; on macOS the same
-        /// six are on `Cmd`, which is what [ADR-0378] is for. The test names the
-        /// resolved modifier rather than `Ctrl`, so it says the same thing
-        /// wherever it runs.
+        /// six are on `Cmd`, and `PrimaryModifier` is the name for whichever it
+        /// is. The test names the resolved modifier rather than `Ctrl`, so it
+        /// says the same thing wherever it runs.
         @Test
         @DisplayName("the accelerators are the same six on all three")
         void accelerators() {

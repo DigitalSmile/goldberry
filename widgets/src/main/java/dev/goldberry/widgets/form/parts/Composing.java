@@ -1,7 +1,7 @@
 package dev.goldberry.widgets.form.parts;
 
 /// Where the composition an input method is assembling sits inside what a field
-/// is drawing — `docs/gaps.md` G16.
+/// is drawing.
 ///
 /// **Display offsets, like everything else a field's parts are placed with.** A
 /// `password` never composes (see below), so the mask is not in play here, but
@@ -13,7 +13,7 @@ package dev.goldberry.widgets.form.parts;
 /// Because the string is already in the display text. A field splices the
 /// composition into what it draws — so the words after it move along, exactly as
 /// [dev.goldberry.text.edit.Editor] does on a canvas
-/// (ADR-0289) — and what is left to say is *which part of what you are drawing
+/// — and what is left to say is *which part of what you are drawing
 /// is not text yet*. That is two spans: the whole composition, which is
 /// underlined, and the clause the input method is currently converting, which is
 /// highlighted.

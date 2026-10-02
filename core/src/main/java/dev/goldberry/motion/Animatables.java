@@ -12,7 +12,7 @@ import dev.goldberry.css.value.Transform;
 ///
 /// One place for the four switches, shared by the two kinds of motion: a
 /// transition between two styles the cascade resolved, and a keyframe sequence
-/// a stylesheet named (ADR-0067, ADR-0353). Two copies would interpolate a
+/// a stylesheet named. Two copies would interpolate a
 /// colour through OKLCH in one and through sRGB in the other the first time
 /// either changed.
 final class Animatables {
@@ -25,7 +25,7 @@ final class Animatables {
     /// exact — a double holds every 32-bit integer — so the numeric properties
     /// share one representation. `transform` is the [Transform] itself,
     /// `box-shadow` the [Shadow] itself, and `border-color` the [Border] itself,
-    /// because a box's sides can be four colours since ADR-0505 and a transition
+    /// because a box's sides can be four colours and a transition
     /// moves each of them; see `Animations.Running` for why that is worth a
     /// boxed value.
     static Object valueOf(ComputedStyle style, Animatable property) {
@@ -75,9 +75,9 @@ final class Animatables {
     /// Where a property is at eased progress `t`.
     ///
     /// Numbers move linearly; colours move through **OKLCH**, because the sRGB
-    /// midpoint of two saturated colours is a muddy grey that is neither of them
-    /// (§1.7, and the reason the space is specified rather than left to the
-    /// implementation); a transform moves function by function, which is what
+    /// midpoint of two saturated colours is a muddy grey that is neither of them,
+    /// which is why the space is specified rather than left to the
+    /// implementation; a transform moves function by function, which is what
     /// makes halfway between `rotate(0)` and `rotate(180deg)` a rotation rather
     /// than a collapsed box.
     static Object interpolate(Animatable property, Object from, Object to, double t) {

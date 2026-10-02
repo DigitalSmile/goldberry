@@ -44,8 +44,8 @@ import dev.goldberry.natives.sdl.window.SdlPixelFormat;
 /// `SDL_CreatePopupWindow`, whose failure is read to tell "this driver has no
 /// popups" from "you passed nonsense", **no error string is inspected here** —
 /// the Linux path fails with `Could not load AppIndicator libraries`, which is
-/// an absence wearing the words of a failure, and `core-widgets.md` §9 asks for
-/// absence to be reported rather than thrown either way.
+/// an absence wearing the words of a failure, and the tray's rule is that an
+/// absence is reported rather than thrown either way.
 ///
 /// ## Lifetime
 ///
@@ -60,6 +60,8 @@ import dev.goldberry.natives.sdl.window.SdlPixelFormat;
 /// away.
 ///
 /// Confined to the thread that created it.
+///
+/// Read more: [The native boundary](https://goldberry.dev/docs/overview/architecture.html#the-native-boundary).
 public final class SdlTray implements AutoCloseable {
 
     private static final Logger LOG = Logs.of(SdlTray.class);

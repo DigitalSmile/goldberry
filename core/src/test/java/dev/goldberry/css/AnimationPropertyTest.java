@@ -19,7 +19,10 @@ import dev.goldberry.css.cascade.StyleResolver;
 import dev.goldberry.css.value.CssLength;
 import dev.goldberry.motion.Easing;
 
-/// `animation` and its seven longhands, resolved ([ADR-0353]).
+/// `animation` and its seven longhands, resolved.
+///
+/// Read more:
+/// [Transition and animation](https://goldberry.dev/docs/guide/styling.html#transition-and-animation).
 class AnimationPropertyTest {
 
     private static KeyframeAnimations resolve(String declarations) {
@@ -56,7 +59,7 @@ class AnimationPropertyTest {
     }
 
     @Test
-    @DisplayName("the shorthand's defaults are CSS's, with §1.7's enter curve")
+    @DisplayName("the shorthand's defaults are CSS's, with the design system's enter curve")
     void shorthandDefaults() {
         assertEquals(
                 new KeyframeAnimations.Entry("pulse", 1000, Easing.EASE_ENTER, 0, 1, Direction.NORMAL, FillMode.NONE),

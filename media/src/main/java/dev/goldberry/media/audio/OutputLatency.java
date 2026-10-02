@@ -6,8 +6,8 @@ import java.util.Optional;
 import java.util.ServiceLoader;
 
 /// How long the operating system takes to make a sample heard once the audio
-/// library has handed it over: the device's own latency (`docs/goldberry-media.md`
-/// §3, "Master clock", ADR-0474).
+/// library has handed it over: the device's own latency, which the audio clock
+/// takes off so that what it reads is what is heard.
 ///
 /// SDL says how much it holds and nothing about what happens after, and after is
 /// where Bluetooth spends its 150–250 ms. A picture timed against a clock that
@@ -26,6 +26,8 @@ import java.util.ServiceLoader;
 ///
 /// Called from the audio thread. A provider must answer quickly, a few system
 /// calls, and never throw: a system it cannot read answers empty.
+///
+/// Read more: [A player](https://goldberry.dev/docs/components/media.html#a-player).
 @FunctionalInterface
 public interface OutputLatency {
 

@@ -3,10 +3,12 @@
 /// handle per function.
 ///
 /// **Not exported**, like every `…calls` package in this module: a `call` takes and
-/// returns raw addresses (ADR-0173). The smallest example of the shape every holder
-/// has.
+/// returns raw addresses, and raw foreign memory never leaves the module. This is
+/// the smallest example of the shape every holder has.
 ///
-/// Marked for NullAway (`docs/testing.md` §2, ADR-0497).
+/// Marked for NullAway, so a parameter that may be null says so on its signature.
+///
+/// Read more: [The native boundary](https://goldberry.dev/docs/overview/architecture.html#the-native-boundary).
 @NullMarked
 package dev.goldberry.natives.calls;
 

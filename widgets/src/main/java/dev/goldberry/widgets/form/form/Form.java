@@ -13,7 +13,7 @@ import dev.goldberry.widget.attr.Attributes;
 import dev.goldberry.widgets.markup.Markup;
 import dev.goldberry.widgets.markup.Wiring;
 
-/// A set of `field`s that submit together — `docs/core-widgets.md` §4's `form`.
+/// A set of `field`s that validate and submit together.
 ///
 /// ```kdl
 /// form submit="app.save" {
@@ -32,21 +32,18 @@ import dev.goldberry.widgets.markup.Wiring;
 /// registers with the nearest enclosing form when it mounts, through
 /// `BuildContext.findAncestorState`.
 ///
-/// That call has been on `BuildContext` since the element tree was built and this
-/// is its **first consumer**. `TabsState` looked at it and said it "looks the
-/// wrong way" — which was right for tabs, where a strip needs to enumerate its
-/// panels, and is exactly right here: a field knows one form and a form knows
-/// however many fields the document wrote.
+/// Walking up is the right direction here: a field knows one form and a form
+/// knows however many fields the document wrote.
 ///
 /// ## What `submit` carries, and what it does not
 ///
-/// §4 says `form.submit()` "raises a typed event with bound values". The event
-/// here carries **nothing**, and the reason is that the values are already the
+/// The event carries **nothing**, and the reason is that the values are already the
 /// application's: a `bind=` reads *from* the application's model, so a submit
 /// event carrying the bound values would be handing an application its own data
 /// back. The toolkit could not name them anyway —
 /// [Widget#binding()] is an `Observable` and not a path, which is what makes
-/// `bind=` a read-only channel in the first place ([ADR-0063]).
+/// `bind=` a read-only channel in the first place: data flows down and events
+/// flow up.
 ///
 /// So `submit="app.save"` is called when every field passes, and `app.save`
 /// reads the model it already owns.
@@ -56,6 +53,8 @@ import dev.goldberry.widgets.markup.Wiring;
 /// Submitting validates **every** field, including ones nobody has visited —
 /// otherwise a form with an untouched required field would submit empty. That is
 /// the one moment a field speaks without having been left first.
+///
+/// Read more: [Fields and forms](https://goldberry.dev/docs/components/forms.html#form).
 ///
 /// @param children   whatever the document wrote inside
 /// @param onSubmit   run when every field passes, or null
@@ -67,7 +66,7 @@ public record Form(
         @Nullable FormController controller,
         Attributes attributes) implements Widget.Stateful, Attributed<Form> {
 
-    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    /// Written out so that the parameters taking null for a default can say so.
     public Form(
             List<Widget> children,
             @Nullable Runnable onSubmit,
@@ -119,8 +118,8 @@ public record Form(
     /// `controller="app.signup"` names a [FormController] the application holds,
     /// through the same registry and the same path syntax `bind=` uses — because
     /// a controller is a thing a document can *name* and cannot describe, which
-    /// is the rule markup has always followed for actions and icons
-    /// ([ADR-0170]). Without it a document could declare a form and nothing
+    /// is the rule markup has always followed for actions and icons.
+    /// Without it a document could declare a form and nothing
     /// could ever submit it.
     public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
         return new Form(

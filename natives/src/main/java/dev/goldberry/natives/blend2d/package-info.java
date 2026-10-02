@@ -5,9 +5,11 @@
 /// never names one of these. Each wrapper owns its handle, is confined to the thread
 /// that created it and must be closed; the binding class beside it is the only way
 /// to its calls. Blend2D draws into pixels somebody else owns, except in a decode
-/// and a resample, where only Blend2D can allocate (ADR-0283, ADR-0428).
+/// and a resample, where only Blend2D can allocate.
 ///
-/// Marked for NullAway (`docs/testing.md` §2, ADR-0497).
+/// Marked for NullAway, so a parameter that may be null says so on its signature.
+///
+/// Read more: [The native boundary](https://goldberry.dev/docs/overview/architecture.html#the-native-boundary).
 @NullMarked
 package dev.goldberry.natives.blend2d;
 

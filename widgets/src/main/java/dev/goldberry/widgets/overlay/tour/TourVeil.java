@@ -15,18 +15,17 @@ import dev.goldberry.widget.Widget;
 import dev.goldberry.widget.style.Paints;
 import dev.goldberry.widget.style.Styled;
 
-/// The dim over everything except the widget being described — §5's "the window
-/// dims outside the target with a `veil` cut to its rect".
+/// The dim over everything except the widget being described: the window dims
+/// outside the target, with the veil cut to the target's rectangle.
 ///
 /// ## Four rectangles, not one with a hole
 ///
-/// §8's subset has no path, no mask and no `clip-path`, so there is no way to
+/// The CSS subset has no path, no mask and no `clip-path`, so there is no way to
 /// state "this box, minus that rectangle". Four absolutely-positioned bands need
 /// none of it: above the target, below it, and the two beside it between those
-/// two — which tile the window exactly and leave the target uncovered
-/// (ADR-0121).
+/// two — which tile the window exactly and leave the target uncovered.
 ///
-/// The consequence is better than the workaround it started as. **The target
+/// The arrangement is better than a mask would be. **The target
 /// stays live**: nothing is drawn over it, so it takes the pointer and the
 /// keyboard normally, and a tour that says "click Save to continue" can be obeyed
 /// without the tour having to arrange an exception to its own veil. A single
@@ -42,18 +41,17 @@ record TourVeil(
         LogicalRect window)
         implements Widget.Leaf, Styled, Paints {
 
-    /// A veil with nothing to travel from — every caller before §3.1's stop
-    /// change was built ([ADR-0269]).
+    /// A veil with nothing to travel from: a tour that has just opened, or one
+    /// between stops.
     TourVeil(@Nullable LogicalRect target, LogicalRect window) {
         this(target, null, null, window);
     }
 
     /// Frames are owed while the hole is travelling.
     ///
-    /// `AnimationSweepTest` is what says so: a widget that holds a `Phase` and
-    /// does not answer it is a widget painted once at whatever the loop caught
-    /// and left there. It found this one the moment the veil grew a phase
-    /// ([ADR-0269]).
+    /// A widget that holds a `Phase` and does not answer it is a widget painted
+    /// once at whatever the loop caught and left there, which is what
+    /// `AnimationSweepTest` holds every widget to.
     @Override
     public boolean isAnimating() {
         return travel != null && travel.isRunning();
@@ -78,7 +76,7 @@ record TourVeil(
     public Box render(ComputedStyle style, List<Box> children, Context context) {
         // Handed down from [TourStop], which is the node that was measured. A
         // box sized by absolute insets carries no `width` in its style, so there
-        // is nothing here to read it from (ADR-0121).
+        // is nothing here to read it from.
         var width = window.size().width();
         var height = window.size().height();
         // Where the hole is on this frame — [Lit], which [TourStop] asks the same

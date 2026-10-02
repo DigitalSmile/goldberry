@@ -1,14 +1,16 @@
-/// `@NullMarked`, which puts this package under NullAway.
+/// Splitting a string into the runs each face shapes: the words in the family
+/// the cascade chose, and the emoji in the emoji face.
 ///
-/// Inside a marked package every type is non-null unless it says `@Nullable`,
-/// and the build fails on a violation. The annotation is the whole content of
-/// this file: there is nothing package-specific to say about nullness, and a
-/// paragraph pretending otherwise in every package would be padding.
+/// A paragraph hands its text to the [dev.goldberry.text.itemize.Itemizer] before
+/// shaping it. The itemizer reads Unicode's emoji properties out of the JDK and
+/// returns [dev.goldberry.text.itemize.TextRun]s, each tagged with the
+/// [dev.goldberry.text.itemize.Slot] that shapes it; it decides from the text
+/// alone, and whether a face exists for a slot is the font book's question.
 ///
-/// Packages are marked one at a time on purpose. NullAway runs in
-/// `OnlyNullMarked` mode, so an unmarked package is invisible to it and a marked
-/// one is checked from the moment it opts in — which is the only way a codebase
-/// this size adopts nullness at all (`docs/testing.md` §2).
+/// The package is null-marked: a parameter or return is non-null unless annotated
+/// `@Nullable`.
+///
+/// Read more: [Emoji](https://goldberry.dev/docs/guide/text.html#emoji).
 @NullMarked
 package dev.goldberry.text.itemize;
 

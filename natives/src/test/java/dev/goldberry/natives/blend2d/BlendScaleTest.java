@@ -15,7 +15,7 @@ import org.junit.jupiter.api.Test;
 import dev.goldberry.natives.NativeLibraryRequirement;
 import dev.goldberry.natives.blend2d.enums.BlendImageScaleFilter;
 
-/// What `bl_image_scale` produces — ADR-0428.
+/// What `bl_image_scale` produces.
 ///
 /// The binding takes a `BLSizeI` by pointer and a filter by value, which is two
 /// ways to be silently wrong: a size read at the wrong offsets gives an image of

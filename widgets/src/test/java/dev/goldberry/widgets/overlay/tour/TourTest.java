@@ -32,14 +32,15 @@ import dev.goldberry.widgets.core.scroll.ScrollController;
 import dev.goldberry.widgets.core.scroll.ScrollHarness;
 import dev.goldberry.widgets.text.Text;
 
-/// `tour` — §5's guided sequence, and the veil under it
-/// (ADR-0121).
+/// `tour` — a guided sequence of stops, and the veil under it.
 ///
 /// Driven against a stub [Host] rather than a live window: everything a tour
 /// decides is a function of what `anchor` answers, so a host that answers on
 /// demand exercises the whole widget and lets a test say "this target is not on
-/// screen" — which is the case §5 asks about most specifically and which a real
-/// window makes hard to arrange.
+/// screen" — which is the case the design asks about most specifically and
+/// which a real window makes hard to arrange.
+///
+/// Read more: [Overlays](https://goldberry.dev/docs/components/overlays.html#tours).
 class TourTest {
 
     /// A host that answers `anchor` from a map and records what was put on it.
@@ -79,24 +80,21 @@ class TourTest {
             new Stop("two", "Second", "the second thing"),
             new Stop("three", "Third", "the third thing"));
 
-    /// **The card's height is measured, not estimated** ([ADR-0268]).
+    /// **The card's height is measured, not estimated.**
     ///
     /// `TourStop` decides above-or-below from the card's height, and used a
     /// constant of 132 to do it — so a card taller than that near the bottom of a
     /// window was placed *above* its target when it would have fitted below, and
-    /// nothing said why. The entry recording it said measuring "needs the
-    /// measure-then-place machinery ADR-0104 built, which works on windows rather
-    /// than on boxes", and this widget already banks the **window's** rectangle
-    /// from the last frame through `Located`: the card is one node further in and
-    /// the same door.
-    /// §1.7's overlay curve and §3.1's tour row, which asked for two things and
-    /// got neither: a card that **arrives** rather than appears, and a veil
-    /// cut-out that **travels** between stops ([ADR-0269]).
+    /// nothing said why. Measuring was thought to need machinery that works on
+    /// windows rather than on boxes, but this widget already banks the
+    /// **window's** rectangle from the last frame through `Located`: the card is
+    /// one node further in and the same door.
     ///
-    /// The entry called this "`TabPhase` again: the enter/exit lifecycle built
-    /// for one widget, wanted by a third". It was not built for one widget — it
-    /// is `widgets.core.Phase` and six families use it — so what was missing was
-    /// a tour using it.
+    /// **A card arrives rather than appears, and the veil's cut-out travels
+    /// between stops.** The design asked for both and the first tour did neither.
+    /// The enter/exit lifecycle was thought to be built for one widget; it is
+    /// `widgets.core.Phase` and six families use it, so what was missing was a
+    /// tour using it.
     @Nested
     @DisplayName("the arrival and the travel")
     class Motion {
@@ -349,9 +347,9 @@ class TourTest {
         @Test
         @DisplayName("a stop whose target is not on screen is skipped, not thrown on")
         void skipsMissing() {
-            // §5: "A target that is not in the tree is skipped with a warning
-            // rather than throwing — a tour is documentation, and documentation
-            // going stale must not take the window down."
+            // A target that is not in the tree is skipped with a warning rather
+            // than throwing: a tour is documentation, and documentation going
+            // stale must not take the window down.
             var host = new StubHost().anchor("two", 10, 60, 80, 24).anchor("three", 10, 110, 80, 24);
             var tree = new ElementTree(new Tour(THREE, host, () -> {}));
 
@@ -377,7 +375,7 @@ class TourTest {
         void tiles() {
             var veil = new TourVeil(LogicalRect.of(100, 80, 60, 20), LogicalRect.of(0, 0, 400, 300));
 
-            assertEquals(4, veil.children().size(), "§8's subset has no mask, so the cut-out is four rectangles");
+            assertEquals(4, veil.children().size(), "the CSS subset has no mask, so the cut-out is four rectangles");
         }
 
         @Test
@@ -477,8 +475,7 @@ class TourTest {
         }
     }
 
-    /// §5: "the target is scrolled into view before the popover is positioned"
-    /// ([ADR-0439]).
+    /// The target is scrolled into view before the popover is positioned.
     ///
     /// Driven against a **real** viewport rather than the stub host the rest of
     /// this file uses, because the question is whether pixels moved and a stub

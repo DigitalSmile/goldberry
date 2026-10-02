@@ -18,8 +18,7 @@ import dev.goldberry.widget.Widget;
 import dev.goldberry.widget.style.Styled;
 
 /// What a gesture *started from*, which — like where it started — only the router
-/// can answer
-/// (ADR-0089).
+/// can answer.
 ///
 /// [DragOriginTest]'s sibling, and the same argument one step further. That test
 /// is about a gesture's origin as a **point**; this one is about the two facts

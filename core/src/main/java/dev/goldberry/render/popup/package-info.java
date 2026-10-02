@@ -1,14 +1,14 @@
-/// `@NullMarked`, which puts this package under NullAway.
+/// The backend SPI's popup: a platform window owned by another, placed relative
+/// to it and free of its bounds, which is what a menu, a dropdown and a tooltip
+/// open in.
 ///
-/// Inside a marked package every type is non-null unless it says `@Nullable`,
-/// and the build fails on a violation. The annotation is the whole content of
-/// this file: there is nothing package-specific to say about nullness, and a
-/// paragraph pretending otherwise in every package would be padding.
+/// `PopupSpec` says what to open and `PopupKind` what the platform should treat
+/// it as; `BackendPopup` is the open popup. Exported to every module, because a
+/// widget that opens a popup states its request in these.
 ///
-/// Packages are marked one at a time on purpose. NullAway runs in
-/// `OnlyNullMarked` mode, so an unmarked package is invisible to it and a marked
-/// one is checked from the moment it opts in — which is the only way a codebase
-/// this size adopts nullness at all (`docs/testing.md` §2).
+/// Null-marked: a parameter or return is non-null unless it says `@Nullable`.
+///
+/// Read more: [Windows, popups and the host](https://goldberry.dev/docs/guide/windows.html#in-a-window-of-its-own).
 @NullMarked
 package dev.goldberry.render.popup;
 

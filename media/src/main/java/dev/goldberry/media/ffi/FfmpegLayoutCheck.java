@@ -6,11 +6,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 /// Compares the hand-written layouts in [FfmpegStructs] with what the layout probe
-/// reported about the FFmpeg actually built (`docs/goldberry-media.md` §2, "Layout
-/// agreement").
+/// reported about the FFmpeg actually built.
 ///
 /// It stands in for the guarantee jextract would have given, as `:natives`'
-/// `LayoutVerifier` does for `libgoldberry` (ADR-0010), and it is the stronger of
+/// `LayoutVerifier` does for `libgoldberry`, and it is the stronger of
 /// the two: it compares Java with the library for this target rather than
 /// generated code with other generated code.
 ///
@@ -29,7 +28,7 @@ public final class FfmpegLayoutCheck {
     /// - each struct's size and alignment;
     /// - each named field's offset and size;
     /// - that the probe and Java name the same fields. A field only the probe names
-    ///   is one the §2 table lists and Java forgot. A field only Java names is one
+    ///   is one the probe's table lists and Java forgot. A field only Java names is one
     ///   nothing verifies.
     ///
     /// @return one sentence per disagreement; empty means the two agree

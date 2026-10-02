@@ -40,7 +40,7 @@ import dev.goldberry.render.window.WindowSpec;
 /// because it fires from inside a resize gesture. Both are reachable through
 /// `SDL_PushEvent`, which is SDL's own way to synthesize input — the event goes
 /// on the queue, comes back out of the ordinary pump, and takes the shipping
-/// route rather than a copy of it (ADR-0061).
+/// route rather than a copy of it.
 ///
 /// Everything runs under SDL's `dummy` video driver, so there is no display, no
 /// compositor and nothing to see. That is the point: it runs in CI, on all three
@@ -199,7 +199,8 @@ class Sdl3EventPathTest {
     /// A **window move** is not an event any test can produce on the platform —
     /// there is no window manager under the dummy driver and nothing to drag —
     /// so it is fabricated onto SDL's own queue and comes back out of the
-    /// ordinary pump ([ADR-0061], [ADR-0270]).
+    /// ordinary pump, which is what lets a popup be placed again when its window
+    /// moves.
     ///
     /// The position is read off the window rather than out of the event, exactly
     /// as the sizes are, which is why the event's own `data1`/`data2` here are
@@ -259,8 +260,8 @@ class Sdl3EventPathTest {
             var events = pump(backend, sink -> push(buffer -> buffer.writeMouseMotion(id(window), 100f, 80f)));
 
             var moved = only(events, BackendEvent.PointerMoved.class);
-            // The ordinary path, and the one ADR-0211's reconciliation must not
-            // touch: every event on every platform other than a macOS popup comes
+            // The ordinary path, and the one the popup-pointer reconciliation must
+            // not touch: every event on every platform other than a macOS popup comes
             // through here, so a correction that fired for one of these would
             // move the pointer on all three.
             assertEquals(100f, moved.x());
@@ -289,8 +290,9 @@ class Sdl3EventPathTest {
     void coordinatesOutsideTheWindowAreReconciled() {
         withBackend((backend, window) -> {
             // Nowhere near a 320x240 window: the shape of a macOS popup's
-            // mouse-up, which arrives in the *owner's* space and stale
-            // (ADR-0211). The number itself is arbitrary -- what matters is that
+            // mouse-up, which arrives in the *owner's* space and stale, so the
+            // backend asks the desktop where the pointer is instead.
+            // The number itself is arbitrary -- what matters is that
             // it cannot be in this window.
             var events = pump(backend, sink -> push(buffer -> buffer.writeMouseMotion(id(window), 5000f, 5000f)));
 
@@ -317,7 +319,7 @@ class Sdl3EventPathTest {
     /// **The arm the reconciliation was never wired into.** A wheel carries a
     /// pointer position exactly as a motion and a button do, and
     /// [Sdl3Backend#inTheWindowsOwnSpace] says every window's coordinates are
-    /// settled before they leave the backend (ADR-0211) — but this one arm read
+    /// settled before they leave the backend — but this one arm read
     /// its position straight out of the event. A scroll over a macOS popup
     /// therefore arrived in the *owner's* space, and stale, so the router looked
     /// for a scrollable under a pointer that was never there.
@@ -480,8 +482,8 @@ class Sdl3EventPathTest {
                         + " write in close() free never to be seen there");
     }
 
-    /// SDL's two fullscreen events become one SPI event with the boolean
-    /// ([ADR-0473]), whoever caused them: this is the route the user's own
+    /// SDL's two fullscreen events become one SPI event with the boolean,
+    /// whoever caused them: this is the route the user's own
     /// green button takes, which no call of ours precedes.
     @Test
     @DisplayName("entering and leaving fullscreen reach the sink as one event with the state")

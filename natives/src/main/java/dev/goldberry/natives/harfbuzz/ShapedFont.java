@@ -14,11 +14,12 @@ import java.util.Objects;
 ///
 /// **This is not the rasterizer's font.** HarfBuzz decides which glyphs to draw
 /// and where; Blend2D draws them from the same file's outlines. The two are
-/// separate objects over the same bytes, and keeping them so is what
-/// `docs/ARCHITECTURE.md` §6 means by shaping and rendering being different
-/// jobs.
+/// separate objects over the same bytes, and keeping them so is what it means
+/// for shaping and rendering to be different jobs.
 ///
 /// Confined to the thread that created it, and must be closed.
+///
+/// Read more: [The native boundary](https://goldberry.dev/docs/overview/architecture.html#the-native-boundary).
 public final class ShapedFont implements AutoCloseable {
 
     /// The scale a font gets if nothing sets one.
@@ -147,7 +148,7 @@ public final class ShapedFont implements AutoCloseable {
     /// face's own units per em. It matters because that is precisely the
     /// condition under which a [GlyphRun] can be handed to Blend2D without
     /// converting it: Blend2D applies `size / units-per-em` itself, so a run
-    /// that has already been scaled has the size applied twice (ADR-0034).
+    /// that has already been scaled has the size applied twice.
     public boolean isDesignUnits() {
         requireUsable();
         return xScale == UNSCALED || xScale == unitsPerEm();

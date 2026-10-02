@@ -9,6 +9,8 @@ package dev.goldberry.natives.webview;
 /// fetching.
 ///
 /// Polled rather than signalled. See `goldberry_webview_load_state` for why.
+///
+/// Read more: [The native boundary](https://goldberry.dev/docs/overview/architecture.html#the-native-boundary).
 public enum LoadState {
 
     /// The shim could not say — an engine that is not WebKit, or a platform

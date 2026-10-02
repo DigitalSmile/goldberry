@@ -11,39 +11,34 @@ import dev.goldberry.Host;
 import dev.goldberry.platform.Capability;
 import dev.goldberry.render.web.BackendWebView;
 
-/// Opens a [WebPage] on the desktop.
-///
-/// The split `tray` has and `menu` has before it: a page is a value and
-/// **showing** one is not (ADR-0106, ADR-0191). What this adds over calling
-/// [Host#webView] directly is the one thing worth saying out loud — why nothing
-/// happened, when nothing happens.
-///
-/// ## Empty is the ordinary answer
-///
-/// `Trays.show` returns empty on a desktop with no notification area, which is
-/// unusual. This returns empty on **most machines**, which is not: a page needs
-/// `libgoldberry-webview`, and that library is built only where WebKit's
-/// development headers were present and loads only where WebKit is installed. It
-/// is separate precisely so that GTK and WebKit are not load-time dependencies of
-/// every application that ever used the toolkit
-/// ([ADR-0441](../../../../../../../../book/src/adr/0441-a-web-page-is-a-window-not-a-box.md)).
-///
-/// So an application asks before it offers:
+/// Opens a [WebPage] in a platform window of its own.
 ///
 /// ```java
-/// if (Goldberry.capabilities().contains(Capability.WEB_VIEW)) {
+/// if (WebViews.isAvailable()) {
 ///     button("Open the handbook", () -> WebViews.open(host, WebPage.of(HANDBOOK)));
 /// } else {
 ///     button("Open the handbook", () -> Desktop.browse(HANDBOOK));
 /// }
 /// ```
 ///
-/// ## What the caller owns
+/// A page is a value and showing one is a separate call, the same split the
+/// tray and the menus make. What this adds over calling [Host#webView] directly
+/// is a log line saying why nothing happened, when nothing happens.
 ///
-/// **Closing it.** [Goldberry#run()] ends when the last *Goldberry* window
-/// closes, and a page's window is not one of those — it belongs to WebKit. An
-/// application that opens a page and then closes its own window leaves the page
-/// standing on the desktop.
+/// Empty is the ordinary answer: a page needs `libgoldberry-webview`, a
+/// separate library that is built only where WebKit's development headers were
+/// present and loads only where WebKit is installed. It is separate so that
+/// GTK and WebKit are not load-time dependencies of every application that
+/// uses the toolkit, and most builds do not carry it. So an application asks
+/// [#isAvailable] before it offers a page.
+///
+/// The caller owns the page's window. [Goldberry#run()] ends when the last
+/// Goldberry window closes, and a page's window is not one of those, so an
+/// application that opens a page and then closes its own window leaves the
+/// page standing on the desktop until it closes it.
+///
+/// Read more:
+/// [Markdown, HTML and the web](https://goldberry.dev/docs/components/content.html#the-web-view).
 public final class WebViews {
 
     private static final Logger LOG = LoggerFactory.getLogger(WebViews.class);
@@ -66,8 +61,9 @@ public final class WebViews {
             // absence in the catalog that an author is likely to hit on their own
             // machine while writing the code that depends on it.
             LOG.info("no web page was opened: this build has no web view support."
-                    + " Ask Goldberry.capabilities() for WEB_VIEW before offering one,"
-                    + " and see ADR-0441 for why it is a separate library");
+                    + " Ask Goldberry.capabilities() for WEB_VIEW before offering one;"
+                    + " the engine is a separate optional library, see"
+                    + " https://goldberry.dev/docs/components/content.html#the-web-view");
         }
         return opened;
     }

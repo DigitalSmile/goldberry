@@ -33,9 +33,10 @@ import org.jspecify.annotations.Nullable;
 /// the exceptional one.
 ///
 /// Confined to the UI thread, like the tree it reaches into. Work that finishes
-/// on a virtual thread hands back to the UI thread first
-/// (ADR-0020),
-/// and that is where it raises its toast.
+/// on a virtual thread hands back to the UI thread first, and that is where it
+/// raises its toast.
+///
+/// Read more: [Overlays](https://goldberry.dev/docs/components/overlays.html#toasts).
 public final class ToastController {
 
     /// A controller with nothing attached yet.

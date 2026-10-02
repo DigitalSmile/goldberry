@@ -25,16 +25,18 @@ import dev.goldberry.text.font.FontFace;
 ///
 /// The question M1 asks is whether a measure callback is affordable *from inside
 /// a layout pass* — Yoga calls it from C, several times per node per pass, and a
-/// pass runs per frame while a window is being dragged. ADR-0031 established the
-/// habit these follow: get the number before optimising anything, because the
-/// obvious candidate is usually not where the time goes.
+/// pass runs per frame while a window is being dragged. The habit these follow:
+/// get the number before optimising anything, because the obvious candidate is
+/// usually not where the time goes.
 ///
 /// **Tagged `benchmark`, so `check` never runs it.** Nothing here asserts a
 /// timing. A threshold that passes on a workstation and fails on a shared CI
-/// runner teaches nobody anything, and the number itself is the deliverable —
-/// it goes into an ADR, where it can be argued with.
+/// runner teaches nobody anything, and the number itself is the deliverable, to
+/// be read and argued with.
 ///
 /// Run with `./gradlew :core:benchmark`.
+///
+/// Read more: [The benchmark lane](https://goldberry.dev/docs/performance/measuring.html#the-benchmark-lane).
 @Tag("benchmark")
 class TextBenchmark {
 
@@ -70,7 +72,7 @@ class TextBenchmark {
     @DisplayName("the upcall crossing, and what a measure call costs around it")
     void measureCallbackCost() {
         var paragraph = Paragraph.of(font, PROSE);
-        // The paragraph's own measure is the toolkit's type now (ADR-0279), and
+        // The paragraph's own measure is the toolkit's type, not Yoga's, and
         // what this benchmark times is the *crossing* -- so it bridges the two
         // here rather than reaching for the render tree's translator, which is
         // package-private and rightly so.
@@ -82,7 +84,7 @@ class TextBenchmark {
 
         // The crossing on its own: a Java upcall invoked from C, returning YGSize
         // by value, doing nothing. Whatever a measure call costs, this is the
-        // floor under it -- and the number ADR-0017 never put a figure to.
+        // floor under it -- the number the upcall's proof never put a figure to.
         try (var empty = MeasureCallback.of((w, wm, h, hm) -> new MeasuredSize(0, 0))) {
             report("upcall crossing, empty callback", () -> {
                 MeasureProbe.measure(empty, 400, MeasureMode.AT_MOST, Float.NaN, MeasureMode.UNDEFINED);
@@ -166,7 +168,7 @@ class TextBenchmark {
         });
 
         // And what a second size costs once the face already exists. The
-        // difference between these two rows is what ADR-0044 bought: the parse
+        // difference between these two rows is what one face for many sizes bought: the parse
         // and the two copies of the file happen once per face rather than once
         // per size.
         report("FontFace.bundled (the parse on its own)", 50, 200, () -> {

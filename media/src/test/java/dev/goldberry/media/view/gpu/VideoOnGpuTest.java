@@ -56,7 +56,7 @@ import dev.goldberry.widgets.Density;
 import dev.goldberry.widgets.core.Column;
 import dev.goldberry.widgets.core.image.Fit;
 
-/// `video-view` on a real device (`docs/gpu-plan.md`, phase 6; ADR-0484): a
+/// `video-view` on a real device: a
 /// decoded picture shown through `:gpu`'s video layer, composited and read
 /// back, against the CPU's goldens; the player asked for planes once the layer
 /// is shown, and for converted pictures again where a frame has no GPU.
@@ -65,7 +65,7 @@ import dev.goldberry.widgets.core.image.Fit;
 /// comes through exactly, and planes differ from swscale's conversion only by
 /// rounding. Both interpolate chroma bilinearly from centred samples; which is
 /// how swscale sites chroma was found here, and corrected in the shader's
-/// uniforms (ADR-0484).
+/// uniforms.
 @Tag(GpuTestLauncher.TAG)
 @DisplayName("video-view on the GPU")
 class VideoOnGpuTest {
@@ -238,8 +238,8 @@ class VideoOnGpuTest {
                 }
             }
 
-            // And CPU present's own picture, within rounding: the parity of
-            // docs/gpu-plan.md phase 6, pixel by pixel.
+            // And CPU present's own picture, within rounding: GPU present
+            // matches CPU present pixel by pixel.
             var worstFromCpu = 0;
             var squares = 0.0;
             for (var y = 0; y < 90; y++) {

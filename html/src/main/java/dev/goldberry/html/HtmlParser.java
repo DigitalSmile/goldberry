@@ -29,7 +29,7 @@ import dev.goldberry.html.model.Tags;
 /// and means two items, not one item containing the other. A parser without the
 /// table produces the nesting the source literally says and a renderer draws the
 /// second bullet indented under the first — a picture that looks like a styling bug
-/// and is a parsing one (ADR-0298).
+/// and is a parsing one.
 ///
 /// Nothing here throws. A stray `</div>` is dropped, an unclosed `<div>` is closed at
 /// the end of the file, and a `<p>` interrupted by a `<div>` is ended rather than

@@ -2,13 +2,15 @@ package dev.goldberry.assets;
 
 import java.io.Serial;
 
-/// Thrown when something asks for the emoji face and nobody brought it.
+/// Thrown when something asks for the emoji face and the `goldberry-emoji`
+/// artifact is not on the module path.
 ///
 /// Its own type rather than an `IllegalStateException`, because it is a thing an
 /// application can reasonably catch: a chat window that draws a reaction bar
 /// when it can and a plain button when it cannot is doing the right thing, and
-/// [BundledAssets#hasEmojiFont()] is the cheaper way to ask the same question
-/// ([ADR-0384]).
+/// [BundledAssets#hasEmojiFont()] is the cheaper way to ask the same question.
+///
+/// Read more: [Text, fonts and icons](https://goldberry.dev/docs/guide/text.html#emoji).
 public final class MissingEmojiFontException extends RuntimeException {
 
     @Serial
@@ -17,6 +19,6 @@ public final class MissingEmojiFontException extends RuntimeException {
     MissingEmojiFontException() {
         super("the emoji face is not on the module path. Noto Color Emoji ships as its own artifact, so an"
                 + " application that never draws an emoji does not carry it: add"
-                + " dev.goldberry:goldberry-emoji to draw emoji (ADR-0384, ADR-0456).");
+                + " dev.goldberry:goldberry-emoji to draw emoji.");
     }
 }

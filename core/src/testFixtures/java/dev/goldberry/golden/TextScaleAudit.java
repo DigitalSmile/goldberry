@@ -31,8 +31,8 @@ import dev.goldberry.widget.ElementTree;
 import dev.goldberry.widget.Widget;
 import dev.goldberry.widget.WidgetRenderer;
 
-/// What §1.4's 150% text asserts, now that `text-overflow: ellipsis` means some
-/// cutting is correct.
+/// What the design system's 150% text scale asserts, now that
+/// `text-overflow: ellipsis` means some cutting is correct.
 ///
 /// ## Why this is not a golden
 ///
@@ -44,8 +44,7 @@ import dev.goldberry.widget.WidgetRenderer;
 /// image then held the answer. It is not survivable now: at 150% some labels are
 /// **supposed** to end in `…`, some are supposed to wrap, and which is which is a
 /// decision per label. A picture of eleven screens would pin all of them at once,
-/// in a form nobody can review, before anybody had taken a single one
-/// ([ADR-0435]).
+/// in a form nobody can review, before anybody had taken a single one.
 ///
 /// So the assertion is a **rule**, evaluated against the laid-out tree, and the
 /// rule is one sentence:
@@ -71,13 +70,13 @@ import dev.goldberry.widget.WidgetRenderer;
 /// By mirroring the painter, edge for edge, rather than by re-deriving it.
 /// `BoxPainter` draws a paragraph **inside the padding**, at the width layout
 /// settled on less that padding, wrapped when `white-space` wraps and laid out
-/// unconstrained when it does not ([ADR-0255]). This asks the paragraph the same
+/// unconstrained when it does not. This asks the paragraph the same
 /// question with the same numbers, and compares:
 ///
 /// - **across** — the widest line against the content width. Over it is a cut,
 ///   and [Cut#marked] says whether `text-overflow` asked for one. This is the arm
 ///   that is *asserted*: under `nowrap` a line is measured at the width it wants
-///   and drawn at the width it has ([ADR-0235]), so a line over its box is a line
+///   and drawn at the width it has, so a line over its box is a line
 ///   somebody does not get to read.
 /// - **down** — the layout's height against the content height, in
 ///   [Result#spills]. **Measured and not asserted**, and the distinction is the
@@ -87,7 +86,7 @@ import dev.goldberry.widget.WidgetRenderer;
 ///   cuts it. So a spill on its own is not lost text — it is a box that overran,
 ///   wearing a paragraph's clothes, and the honest place for it is the overrun
 ///   arm. It is counted because it is the best evidence in the repository about
-///   where 150% actually hurts, and [ADR-0435] spends it there.
+///   where 150% actually hurts, and that is what it is spent on.
 ///
 /// A half logical pixel of slack, because Yoga rounds a computed edge to a whole
 /// device pixel and a paragraph measured at 118.5 into a box rounded to 118 has
@@ -101,7 +100,7 @@ import dev.goldberry.widget.WidgetRenderer;
 /// reports, and it runs inside every layout already, so
 /// [Result#overruns] carries whatever it said for free. That makes it half of
 /// what is asserted and it cannot be all of it: the walk is gated on the **root**
-/// node's `hadOverflow` ([ADR-0375]), so it sees a window that ran out of room
+/// node's `hadOverflow`, so it sees a window that ran out of room
 /// and stays silent about a button that did while the window had space to spare.
 /// Its noise is a fact; its silence is not evidence.
 ///
@@ -116,8 +115,8 @@ import dev.goldberry.widget.WidgetRenderer;
 ///
 /// So this opens a book. Which means it is also the first check in the repository
 /// to lay the gallery out with `font-family`, `font-size` and `font-weight`
-/// resolved per node — the blindness ADR-0118 recorded and ADR-0386 chipped one
-/// screen off. That was not the goal and it is not free: a heading is 20px
+/// resolved per node — a blindness the goldens had from the start and one screen
+/// had been cured of. That was not the goal and it is not free: a heading is 20px
 /// SemiBold here and 13px Regular in the golden beside it, so the two are
 /// looking at different trees and only this one is looking at the real one.
 ///
@@ -126,10 +125,12 @@ import dev.goldberry.widget.WidgetRenderer;
 /// One. The display scale stays at 1.0 and the *text* scale is the axis under
 /// test, deliberately: a text scale is not a zoom, and multiplying this by
 /// [ScaleInvariance]'s multipliers would be a third axis over the whole corpus
-/// for a question neither of them is asking ([ADR-0434]).
+/// for a question neither of them is asking.
+///
+/// Read more: [Text scale](https://goldberry.dev/docs/guide/styling.html#text-scale).
 public final class TextScaleAudit {
 
-    /// §1.4's number: 150%.
+    /// The design system's number: 150%.
     public static final double LARGE = 1.5;
 
     /// How much of a logical pixel a paragraph may exceed its box by before it
@@ -367,7 +368,7 @@ public final class TextScaleAudit {
     /// An absolute "nothing is ever cut" would be a claim about the stylesheets as
     /// they stand, and it would fail on a label that has been a point too long
     /// since before any of this existed — which makes the 150% question hostage to
-    /// an unrelated backlog. What §1.4 asks is narrower and answerable: **growing
+    /// an unrelated backlog. What the rule asks is narrower and answerable: **growing
     /// the text must not break what was not already broken.** A new `…` is
     /// allowed, because that is `text-overflow` working. A new silent cut is not,
     /// because that is a word nobody gets to read. A new overrun is not, because
@@ -418,7 +419,7 @@ public final class TextScaleAudit {
                 .append((int) Math.round(large.textScale() * 100))
                 .append("% the way it survives 100%. Growing the text may add an ellipsis —")
                 .append(" that is the feature — but it may not cut a paragraph nobody asked to cut,")
-                .append(" and it may not push a box off the edge (ADR-0435).");
+                .append(" and it may not push a box off the edge.");
         for (var cut : introduced) {
             message.append("\n  ").append(cut);
         }

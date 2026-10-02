@@ -7,14 +7,14 @@ import java.nio.channels.ClosedChannelException;
 import java.util.Optional;
 import java.util.OptionalLong;
 
-/// An in-memory [MediaIO] with faults a test can switch on: the start of the
-/// fault-injecting fake `docs/goldberry-media.md` §9 asks for.
+/// An in-memory [MediaIO] with faults a test can switch on: a fault-injecting
+/// fake, so a network test needs no network.
 ///
 /// Short reads, reads that return nothing, failures, a missing size, being
-/// unseekable, and, for the Engine's water marks (S3), a **stall**: reading on
+/// unseekable, and, for the Engine's water marks, a **stall**: reading on
 /// to [#stallAt] blocks until [#release()], as a network that goes quiet, and a
 /// [#close()] ends it as it would end one blocked on a socket. It can also say
-/// it is [#live] and what is [#title]d as playing (S6), and [#holdSeeks()] until
+/// it is [#live] and what is [#title]d as playing, and [#holdSeeks()] until
 /// released, for what happens while the demuxer is still seeking.
 public final class MemoryIO implements MediaIO {
 

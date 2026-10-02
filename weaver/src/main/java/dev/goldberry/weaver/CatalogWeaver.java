@@ -19,7 +19,7 @@ import java.util.Set;
 
 /// Collects a module's `@Markup` widgets into one generated [WidgetCatalog].
 ///
-/// The registration half of ADR-0131. Where [ModelWeaver] *transforms* a class
+/// The registration half of the weaver. Where [ModelWeaver] *transforms* a class
 /// the author wrote, this **writes a new one** — there is nothing to transform,
 /// because the thing being produced is a list and a list has no natural home in
 /// somebody's source file.
@@ -45,14 +45,15 @@ import java.util.Set;
 ///
 /// Each `Button::inflate` is an `invokedynamic` bootstrapped by
 /// `LambdaMetafactory`, exactly like an `@Action`'s call site — one shape, one
-/// mechanism, and one that a closed world resolves when it builds the image
-/// (ADR-0127).
+/// mechanism, and one that a closed world resolves when it builds the image.
+///
+/// Read more: [Model weaving](https://goldberry.dev/docs/weaving.html#the-two-halves).
 public final class CatalogWeaver {
 
-    /// The markup contract -- the annotation, the catalog and the registrar --
-    /// moved into a package of its own in ADR-0172. It is a *written* name here,
-    /// not an import, so nothing but this constant would have caught the move;
-    /// `CatalogWeaverTest` is what does catch it.
+    /// The package of the markup contract -- the annotation, the catalog and the
+    /// registrar. It is a *written* name here, not an import, so a move of that
+    /// package would go unnoticed by the compiler; `CatalogWeaverTest` is what
+    /// catches it.
     private static final String WIDGETS = "dev.goldberry.widgets.markup.";
 
     private static final ClassDesc CD_MARKUP = ClassDesc.of(WIDGETS + "Markup");
@@ -212,7 +213,7 @@ public final class CatalogWeaver {
     /// catalog in a package that belongs to **`:core`**, and two named modules
     /// containing one package is a `LayerInstantiationException` on the module path
     /// rather than a warning. The first application to put both content widgets on
-    /// its path would not have started (ADR-0298).
+    /// its path would not have started.
     ///
     /// So a prefix the module has no class in is descended from, along the first
     /// widget's own package, until a package the module *does* own turns up — for

@@ -112,7 +112,7 @@ class ControlShrinkTest {
     void checkboxGlyphDoesNotShrink() {
         var narrow = regionAt(row(new Checkbox("Show the prose", Checkbox.Value.CHECKED)), 40, 0, 0);
 
-        assertEquals(16, narrow.width(), 0.5, "§3's glyph is 16 and a cramped row does not get to argue");
+        assertEquals(16, narrow.width(), 0.5, "the glyph is 16 and a cramped row does not get to argue");
         assertEquals(16, narrow.height(), 0.5, "and it is square, not an ellipse");
     }
 
@@ -138,7 +138,7 @@ class ControlShrinkTest {
 
     /// The other axis, and the one a column finds. `#options` in the showcase is
     /// a column, so a short window squeezes control *heights* the same way a
-    /// narrow one squeezes glyph widths — and §1.3's hit target goes with it.
+    /// narrow one squeezes glyph widths — and the 32px hit target goes with it.
     @Test
     @DisplayName("a control keeps its height in a column with no room")
     void heightSurvivesAColumn() {
@@ -167,7 +167,7 @@ class ControlShrinkTest {
                         .filter(r -> r.owner() == element)
                         .findFirst()
                         .orElseThrow();
-                assertEquals(32, region.height(), 0.5, "control " + index + " should keep §1.3's 32px hit target");
+                assertEquals(32, region.height(), 0.5, "control " + index + " should keep its 32px hit target");
             }
         }
     }

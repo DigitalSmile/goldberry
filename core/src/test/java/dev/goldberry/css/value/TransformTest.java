@@ -20,7 +20,7 @@ import dev.goldberry.css.cascade.CascadeLayer;
 import dev.goldberry.css.cascade.StyleResolver;
 import dev.goldberry.paint.Box;
 
-/// The matrix, the property, and the arithmetic between them — ADR-0068.
+/// The matrix, the property, and the arithmetic between them.
 class TransformTest {
 
     /// Two matrices agree to within what a `double` round trip costs.
@@ -184,7 +184,7 @@ class TransformTest {
             assertMaps(transform.matrix(200, 40), 0, 0, 100, 10);
         }
 
-        /// [ADR-0242]: `em` inside a `transform` is the element's own computed
+        /// `em` inside a `transform` is the element's own computed
         /// font size, which it was not — `Transform` reached for
         /// `CssLength.Context.DEFAULT`'s constant 16 for every node at every
         /// depth, and said so in a comment naming the gap.

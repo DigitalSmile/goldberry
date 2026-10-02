@@ -31,12 +31,14 @@ import dev.goldberry.widgets.controls.TestFont;
 import dev.goldberry.widgets.controls.button.Button;
 import dev.goldberry.widgets.panel.Described;
 
-/// `toast` — §7's "queued, timeout with hover-pause, optional action button,
-/// stacking corner configurable".
+/// `toast` — queued, timed out with a pause on hover, with an optional action
+/// button, stacked in a configurable corner.
 ///
 /// Every one of those four is a **behaviour over time**, which is why almost
 /// nothing here is about what a toast looks like: `ToastGoldenTest` has the
-/// pictures. What is here is the queue ([ADR-0177]).
+/// pictures. What is here is the queue.
+///
+/// Read more: [Overlays](https://goldberry.dev/docs/components/overlays.html#toasts).
 class ToastTest {
 
     private TestHost host;
@@ -116,8 +118,8 @@ class ToastTest {
     @DisplayName("the queue")
     class Queue {
 
-        /// §7's "queued". The fourth does not appear, is not dropped, and is not
-        /// shown out of order.
+        /// Queued: the fourth does not appear, is not dropped, and is not shown
+        /// out of order.
         @Test
         @DisplayName("only the maximum are showing and the rest wait their turn")
         void queued() {
@@ -168,7 +170,7 @@ class ToastTest {
 
             tickOldest();
             tree.flush();
-            // Leaving, not gone: §1.7 keeps it mounted for the length of the exit.
+            // Leaving, not gone: it stays mounted for the length of the exit.
             assertEquals(List.of("Saved"), texts(tree));
 
             host.tickFirst();
@@ -188,7 +190,7 @@ class ToastTest {
             assertEquals(List.of("Copy failed"), texts(tree));
         }
 
-        /// §7's hover-pause, and the half that is easy to get wrong: leaving
+        /// The hover-pause, and the half that is easy to get wrong: leaving
         /// **resumes** rather than restarting, so a toast you glanced at does not
         /// owe you another five seconds.
         @Test
@@ -364,9 +366,8 @@ class ToastTest {
         }
     }
 
-    /// §3's "siblings reflow via `translate` base — the one sanctioned movement
-    /// effect", and the last thing §7 owed
-    /// (ADR-0178).
+    /// Siblings reflow via `translate` over the `base` duration — the one
+    /// sanctioned movement effect — when a toast leaves the stack.
     ///
     /// Every test here builds a **real renderer**, which the rest of this file
     /// mostly does not need, because the reflow reads two things only a frame
@@ -405,8 +406,7 @@ class ToastTest {
         /// @param measured whether a frame has reported how tall they came out.
         ///                 Fed by hand because a widget test has no window: it is
         ///                 the router that tells a `Measured` widget what the
-        ///                 frame made of it ([ADR-0117]), and there is no router
-        ///                 here.
+        ///                 frame made of it, and there is no router here.
         private ElementTree three(Corner corner, boolean measured) {
             var tree = new ElementTree(new Toaster(toasts, corner), host);
             for (var text : List.of("one", "two", "three")) {
@@ -544,7 +544,7 @@ class ToastTest {
                     "the second hole threw away what was left of the first");
         }
 
-        /// [ADR-0176]'s lesson, asserted the only way it can be: a widget that
+        /// The dialog's lesson, asserted the only way it can be: a widget that
         /// says it has stopped moving is a widget nobody repaints, and one nobody
         /// repaints does not move — it stands still and then is somewhere else.
         /// A golden would photograph that happily.
@@ -569,7 +569,7 @@ class ToastTest {
             assertFalse(renderer.isAnimating(), "it arrived and kept asking for frames");
         }
 
-        /// §1.7: reduced motion turns the movement off, not the outcome. The hole
+        /// Reduced motion turns the movement off, not the outcome. The hole
         /// is closed either way — it is closed *at once*.
         @Test
         @DisplayName("reduced motion closes the hole without travelling")
@@ -604,9 +604,9 @@ class ToastTest {
         }
     }
 
-    /// The way out §7's shape left missing: a toast with `Duration.ZERO` and no
-    /// action button could only be removed by `ToastController.clear()`, which is
-    /// a notification nobody can get rid of ([ADR-0182]).
+    /// The way out the first shape left missing: a toast with `Duration.ZERO`
+    /// and no action button could only be removed by `ToastController.clear()`,
+    /// which is a notification nobody can get rid of.
     @Nested
     @DisplayName("dismissing one")
     class Dismissing {
@@ -670,7 +670,7 @@ class ToastTest {
             assertTrue(Described.first(tree, ToastBox.class).leaving());
         }
 
-        /// §1.7's "no ghost clicks": input is off from the moment an answer is
+        /// No ghost clicks: input is off from the moment an answer is
         /// given, so a click landing during the 160ms exit must not re-end
         /// anything.
         @Test
@@ -694,7 +694,7 @@ class ToastTest {
     @DisplayName("what it tells a reader")
     class Announcement {
 
-        /// §7's live region, and the widget half of it ([ADR-0225]). Nothing
+        /// The live region, and the widget half of it. Nothing
         /// announces anything yet — the bridge is M5 — so what this asserts is
         /// that a toast carries what an announcement would need, which is the
         /// half that can be finished today.

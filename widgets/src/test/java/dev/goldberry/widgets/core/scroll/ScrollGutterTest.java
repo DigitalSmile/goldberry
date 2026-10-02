@@ -31,8 +31,10 @@ import dev.goldberry.widgets.controls.TestFont;
 import dev.goldberry.widgets.core.Column;
 import dev.goldberry.widgets.text.Text;
 
-/// §2.4's "always show scroll bars": a reserved gutter, layout rather than
-/// overlay ([ADR-0364]).
+/// The design system's always-shown scroll bars: a reserved gutter, layout
+/// rather than overlay.
+///
+/// Read more: [Scrollbars](https://goldberry.dev/docs/layout/scroll.html#scrollbars).
 class ScrollGutterTest {
 
     private static final int WIDTH = 240;

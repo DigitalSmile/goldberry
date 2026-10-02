@@ -8,6 +8,9 @@ import java.io.Serial;
 /// An [IOException], because to the caller it is one more way a source fails to
 /// open. It has its own type because it is the one failure that retrying will not
 /// fix. The fix is to install a [MediaIOProvider].
+///
+/// Read more:
+/// [Tracks and the network](https://goldberry.dev/docs/components/media.html#tracks-subtitles-and-the-network).
 public final class UnsupportedSchemeException extends IOException {
 
     @Serial

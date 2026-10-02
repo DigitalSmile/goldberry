@@ -10,11 +10,11 @@ import org.jspecify.annotations.Nullable;
 import dev.goldberry.widget.State;
 import dev.goldberry.widget.Widget;
 
-/// The hour/minute/second wheels a [TimePicker] opens — §4's "column set".
+/// The hour/minute/second wheels a [TimePicker] opens — its column set.
 ///
 /// Package-private and not a widget an application names, unlike `calendar`.
-/// That asymmetry is the specification's: §10 gives a calendar a row of its own
-/// as a widget somebody would put on a page, and gives a time's columns no row at
+/// That asymmetry is deliberate: a calendar is a widget of its own, one somebody
+/// would put on a page, and a time's columns are no widget at
 /// all — they exist only inside a picker's popover, and a bare column set on a
 /// form would be three spinners in a trench coat.
 ///

@@ -3,14 +3,15 @@ import dev.goldberry.build.publish.PublishedModules
 
 plugins {
     id 'goldberry.java-conventions'
-    // Published to Maven Central as `goldberry`, the umbrella (ADR-0336).
+    // Published to Maven Central as `goldberry`, the umbrella.
     id 'goldberry.publish'
 }
 
 description = 'Goldberry: the toolkit in one dependency, with the optional modules listed'
 
 // ============================================================================
-// The umbrella (ADR-0336)
+// The umbrella
+// https://goldberry.dev/docs/contributing/releasing.html#where-things-go
 //
 // No code. What it carries is a POM:
 //

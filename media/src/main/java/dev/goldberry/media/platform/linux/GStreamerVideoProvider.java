@@ -6,7 +6,7 @@ import dev.goldberry.media.codec.DecoderRequest;
 import dev.goldberry.media.platform.bitstream.ParameterSets;
 
 /// H.264 and HEVC, decoded by the GStreamer decoders the Linux system has
-/// installed (`docs/goldberry-media.md` §5, ADR-0489).
+/// installed.
 ///
 /// Supports a video track when this is Linux with GStreamer, the codec is one of
 /// the two, the container gave its configuration record (`avcC` or `hvcC`), the

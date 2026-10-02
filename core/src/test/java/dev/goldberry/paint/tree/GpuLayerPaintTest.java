@@ -29,7 +29,7 @@ import dev.goldberry.render.model.PhysicalSize;
 import dev.goldberry.render.model.PixelFormat;
 import dev.goldberry.render.window.GpuSurface;
 
-/// GPU layers placed by a render tree's walk (ADR-0481): scissored by the
+/// GPU layers placed by a render tree's walk, in paint order: scissored by the
 /// tree's clips, not by the damage a partial repaint is confined to, and not
 /// shown inside a group.
 @DisplayName("a render tree placing GPU layers")

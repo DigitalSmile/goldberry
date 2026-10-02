@@ -21,19 +21,19 @@ import dev.goldberry.widgets.Controls;
 import dev.goldberry.widgets.controls.TestFont;
 import dev.goldberry.widgets.core.Row;
 
-/// What a chip looks like (§14, [ADR-0050]).
+/// What a chip looks like, held as golden images.
 ///
 /// Three things here can only be seen in an image, and each is the kind of defect
 /// that reports no error at all:
 ///
-/// - **The stadium is a stadium.** `border-radius: 12px` on a 24px box is §1.5's
-///   `full`; a height that drifted off 24 would draw a rounded rectangle, and no
+/// - **The stadium is a stadium.** `border-radius: 12px` on a 24px box is the
+///   design system's `full` radius; a height that drifted off 24 would draw a rounded rectangle, and no
 ///   value assertion could tell.
 /// - **The dot is not the ink.** A [ChipDot] takes `background` rather than
 ///   `color` precisely so a muted chip can carry a live hue, and the failure mode
 ///   is a dot the same colour as the label — which looks deliberate.
 /// - **A chosen chip is findable in a row of unchosen ones**, which is the whole
-///   argument for a filled `:checked` rather than an outline ([ADR-0305]).
+///   argument for a filled `:checked` rather than an outline.
 ///
 /// `./gradlew :widgets:test -Dgoldberry.golden.update=true` rewrites them.
 class ChipGoldenTest {

@@ -11,8 +11,8 @@ import dev.goldberry.natives.sdl.gpu.SdlGpuTransferBuffer;
 import dev.goldberry.natives.sdl.gpu.enums.SdlGpuTransferUsage;
 
 /// The staging memory a device's uploads pass through: one transfer buffer,
-/// sized to the largest upload seen and grown by doubling, and cycled
-/// (`docs/gpu-plan.md`, phase 2; ADR-0478). The public API's `CopyPass` and
+/// sized to the largest upload seen and grown by doubling, and cycled.
+/// The public API's `CopyPass` and
 /// the composited window's UI upload share one per device.
 ///
 /// **Cycled** means each stage asks SDL for fresh memory when the GPU may still

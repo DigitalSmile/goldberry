@@ -21,8 +21,7 @@ import dev.goldberry.widgets.Controls;
 import dev.goldberry.widgets.TestHost;
 import dev.goldberry.widgets.controls.TestFont;
 
-/// What one keystroke into a `text-area` costs, **counted** — `docs/gaps.md`
-/// G44, [ADR-0388].
+/// What one keystroke into a `text-area` costs, **counted**.
 ///
 /// The guard for a cost rather than for a feature, so every assertion here is a
 /// count and none is a duration. A style-budget test that reads 3.6 ms alone and
@@ -38,14 +37,17 @@ import dev.goldberry.widgets.controls.TestFont;
 /// ## Characters, not paragraphs
 ///
 /// The count that matters is how many **characters** were shaped and drawn, not
-/// how many paragraphs. Before [ADR-0388] a keystroke into a 500 kB note shaped
-/// exactly one paragraph, the same as a keystroke into a 2 kB note — and that
-/// one paragraph was half a megabyte. Every counter this toolkit had said the
-/// frame was cheap, which is the whole reason G44 arrived as a stopwatch
-/// reading from downstream rather than as a red test here.
+/// how many paragraphs. Before the text was shaped a hard line at a time, a
+/// keystroke into a 500 kB note shaped exactly one paragraph, the same as a
+/// keystroke into a 2 kB note — and that one paragraph was half a megabyte.
+/// Every counter this toolkit had said the frame was cheap, which is why the
+/// defect arrived as a stopwatch reading from an application rather than as a
+/// red test here.
 ///
 /// [TextAreaFrameBenchmark] is where the milliseconds are, and it asserts
 /// nothing.
+///
+/// Read more: [What a frame costs](https://goldberry.dev/docs/performance/index.html).
 class TextAreaKeystrokeCostTest {
 
     /// A short note and a long one, and nothing in between: the entry's table
@@ -177,7 +179,7 @@ class TextAreaKeystrokeCostTest {
         assertTrue(heavyDrawn < 8_000, "and that is a screenful, not a document: " + heavyDrawn + " characters");
     }
 
-    /// The suspect `docs/gaps.md` G44 named first, and it was never the cause —
+    /// The suspect the downstream report named first, and it was never the cause —
     /// kept because a ruled-out suspect is worth keeping ruled out.
     @Test
     @DisplayName("the cascade walks the same tree, whatever the note weighs")

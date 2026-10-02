@@ -27,19 +27,21 @@ import dev.goldberry.widgets.markup.Markup;
 import dev.goldberry.widgets.markup.Wiring;
 import dev.goldberry.widgets.text.Text;
 
-/// A set of options of which exactly one is chosen (§11,
-/// `docs/core-widgets.md` §3).
+/// A set of options of which exactly one is chosen.
 ///
 /// ```kdl
-/// radio-group bind="prefs.theme" change="pickTheme" {
+/// radio-group bind="prefs.theme" change="prefs.pick-theme" {
 ///     radio value="light" "Light"
 ///     radio value="dark"  "Dark"
 ///     radio value="system" "Follow the system"
 /// }
 /// ```
 ///
-/// ## The group holds the invariant, because no radio can
+/// In Java, `new RadioGroup("dark", actions::pickTheme, options…)` for a value
+/// the caller supplies, or `RadioGroup.of(source, actions::pickTheme, options…)`
+/// for a bound one.
 ///
+/// The group holds the invariant, because no radio can.
 /// "Exactly one of these is on" is a fact about the set. A radio that owned its
 /// own checked state would let a document describe two selected options, or none,
 /// and every consumer of the group would then need a rule for what that means.
@@ -49,34 +51,33 @@ import dev.goldberry.widgets.text.Text;
 /// options carries, which shows nothing selected and is exactly right for a model
 /// that has not loaded.
 ///
-/// ## Controlled, like every other value in this toolkit
+/// Controlled, like every other value in this toolkit: the group **reads** its
+/// value through `bind` and reports what the user asked for through `change`.
+/// It sets nothing. A radio group whose handler does nothing does not move,
+/// which is the visible form of "the state did not change" and is where the bug
+/// is when one will not.
 ///
-/// The group **reads** its value through `bind` and reports what the user asked
-/// for through `change`. It sets nothing ([ADR-0063]). A radio group whose
-/// handler does nothing does not move, which is the visible form of "the state
-/// did not change" and is where the bug is when one will not.
-///
-/// `change` is the first action in the toolkit that has to say **which one**, so
-/// it is a `Consumer<String>` taking the picked option's `value` — see
+/// `change` has to say **which one**, so it is a `Consumer<String>` taking the
+/// picked option's `value` — see
 /// [ActionRegistry#bind(String, java.util.function.Consumer)]. A plain `Runnable`
 /// resolves against it too, for a handler that reads the model itself.
 ///
-/// ## One Tab stop, arrows inside
+/// One Tab stop, arrows inside. [#focusScope()] is what makes a group of six
+/// options one Tab stop rather than six. The arrow keys are the router's, not
+/// this widget's, and Tab **re-enters at the selected option**, because the
+/// entry point is derived from `:checked` rather than remembered, so the
+/// selection and the roving position cannot disagree. The group is not itself
+/// focusable: focus lands on one of its radios, which is what lets the focus
+/// ring sit on the option the user is about to pick.
 ///
-/// [#focusScope()] is what makes a group of six options one Tab stop rather than
-/// six (`docs/design-system.md` §7.2). The arrow keys are the router's, not this
-/// widget's — see [ADR-0073] — and Tab **re-enters at the selected option**,
-/// because the entry point is derived from `:checked` rather than remembered.
-///
-/// The group is not itself focusable: focus lands on one of its radios, which is
-/// what lets the focus ring sit on the option the user is about to pick.
+/// Read more: [Choices](https://goldberry.dev/docs/components/choices.html#radio-group).
 ///
 /// @param value      the option selected when nothing is bound; ignored when
 ///                   `source` is set
 /// @param children   the options, as written. Non-[Radio] children are laid out
 ///                   and left alone, so a group can carry a heading
-/// @param source     §9's `bind` — read-only, so this control cannot write to the
-///                   model even by accident ([ADR-0063])
+/// @param source     `bind` — read-only, so this control cannot write to the
+///                   model even by accident; null when nothing is bound
 /// @param onChange   what to tell the application, given the picked value
 /// @param disabled   whether the whole group refuses selection; passed down to
 ///                   every option, so `radio:disabled` matches without a
@@ -92,7 +93,7 @@ public record RadioGroup(
         Attributes attributes)
         implements Widget.Leaf, Styled, Paints, Handles, Attributed<RadioGroup>, Bindable<RadioGroup>, Semantics {
 
-    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    /// Written out so that the parameters taking null for a default can say so.
     public RadioGroup(
             @Nullable String value,
             @Nullable List<Widget> children,
@@ -126,7 +127,8 @@ public record RadioGroup(
 
     /// A group that follows a property. The Java spelling of `bind=`.
     ///
-    /// @param source read-only by construction ([ADR-0063])
+    /// @param source read-only by construction, so the group cannot write to the
+    ///               model
     public static RadioGroup of(Observable<?> source, Consumer<String> onChange, Radio... options) {
         return new RadioGroup(
                 null, List.of(options), Objects.requireNonNull(source, "source"), onChange, false, Attributes.NONE);
@@ -192,15 +194,14 @@ public record RadioGroup(
         return attributes.key();
     }
 
-    /// One Tab stop, with **both** arrow pairs roving inside it (§7.2, [ADR-0073]).
+    /// One Tab stop, with **both** arrow pairs roving inside it.
     ///
     /// [FocusScope#BOTH] rather than an axis, and this is the one composite in
     /// the catalog for which that is right: a group's direction is its
     /// *stylesheet's* — `flex-direction` on `radio-group`, which `.inline` flips
     /// — so input cannot know which pair a user is looking at, and answering to
     /// only one would be wrong half the time. It is also ARIA's rule for a radio
-    /// group. A `menu` or a `tabs` will name an axis, because theirs is theirs
-    /// (ADR-0078).
+    /// group. A `menu` or a `tabs` names an axis, because theirs is theirs.
     ///
     /// A scope even when the group is disabled: a disabled group has no focusable
     /// options left, so the traversal contributes nothing and skips it either
@@ -240,7 +241,7 @@ public record RadioGroup(
                         onChange == null ? null : () -> onChange.accept(option.value()),
                         // The group's own `disabled` is deliberately **not**
                         // pushed down. It propagates for input by itself -- the
-                        // router walks up the ancestors (ADR-0077) -- and pushing
+                        // router walks up the ancestors -- and pushing
                         // it would make every option match `:disabled` too, so the
                         // 45% would apply once for the group and again for each
                         // option and land at 20%. An option's own flag is kept,
@@ -270,9 +271,9 @@ public record RadioGroup(
 
     /// Builds a `radio-group` from markup.
     ///
-    /// The first action that has to say **which one** — a group's handler is
+    /// An action that has to say **which one** — a group's handler is
     /// useless without the value picked, and one action per option would make
-    /// adding an option an edit in Java too (ADR-0073).
+    /// adding an option an edit in Java too.
     public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
         return new RadioGroup(
                 node.stringProperty("value"),

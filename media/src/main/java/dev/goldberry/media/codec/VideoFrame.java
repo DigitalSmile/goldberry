@@ -4,8 +4,7 @@ import java.lang.foreign.MemorySegment;
 import java.util.List;
 import java.util.Objects;
 
-/// One decoded picture: NV12, I420, P010 or I010 planes (`docs/goldberry-media.md`
-/// §5).
+/// One decoded picture: NV12, I420, P010 or I010 planes.
 ///
 /// Borrowed, like every [Frame]: the planes are the decoder's until its next
 /// call. The Engine converts the picture for presentation before it asks for the
@@ -25,6 +24,8 @@ import java.util.Objects;
 /// @param matrix    the YUV→RGB matrix the picture was encoded with
 /// @param fullRange whether luma spans 0–255 (JPEG range) rather than 16–235
 /// @param ptsNanos  when the picture is presented, or [Frame#NO_PTS]
+///
+/// Read more: [Bringing a codec](https://goldberry.dev/docs/components/media.html#bringing-a-codec).
 public record VideoFrame(
         PixelFormat format,
         int width,

@@ -46,7 +46,7 @@ import dev.goldberry.widgets.Widgets;
 ///
 /// So this drives the real controls: a `TextEvent` into the editor, a flush, and the
 /// preview's own document read back. Nothing in the showcase connects the two, which
-/// is the point (ADR-0296).
+/// is the point: a preview is a binding, not a callback.
 class MarkdownScreenTest {
 
     private final Showcase showcase = new Showcase();
@@ -182,7 +182,10 @@ class MarkdownScreenTest {
 
         var after = String.valueOf(Models.observable(model, "md.source").get());
         assertNotEquals(before, after, "the ordinal reached the model and the model rewrote one character");
-        assertEquals(before.length(), after.length(), "one character, not a re-serialisation (ADR-0300)");
+        assertEquals(
+                before.length(),
+                after.length(),
+                "the model should rewrite one character, not re-serialise the document");
         // The first task in the sample is `- [x] Parse it natively`, so a press
         // unticks it.
         assertTrue(after.contains("- [ ] Parse it natively"), "the first task should have been unticked");

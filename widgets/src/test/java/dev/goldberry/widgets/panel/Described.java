@@ -8,7 +8,7 @@ import dev.goldberry.widget.ElementTree;
 import dev.goldberry.widget.Widget;
 import dev.goldberry.widget.style.Styled;
 
-/// Walking a built element tree, for §5's container tests.
+/// Walking a built element tree, for the container tests in this package.
 ///
 /// A widget's own `children()` says what it *would* describe; this says what the
 /// element layer actually built — which is the difference the whole of

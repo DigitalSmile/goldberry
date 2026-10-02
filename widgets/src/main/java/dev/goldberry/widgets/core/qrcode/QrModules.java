@@ -26,8 +26,8 @@ import dev.goldberry.render.model.LogicalSize;
 /// The code is then centred in the box with whatever is left over. A module is
 /// always a whole number of device pixels, which is the promise; and it is
 /// always the *same* code at the same size on the same box however the display
-/// is scaled, which is ADR-0157's invariant and is why the logical step comes
-/// first.
+/// is scaled — a widget does not change size with the display scale — and that
+/// is why the logical step comes first.
 ///
 /// Quantizing straight into device pixels — the largest whole number of *those*
 /// that fits — was the first attempt and breaks the second half. A 108-pixel box
@@ -52,13 +52,12 @@ import dev.goldberry.render.model.LogicalSize;
 /// Blend2D would have picked anyway.
 ///
 /// Setting the frame's transform to `1 / factor` and drawing in whole device
-/// pixels would be the obvious answer. It was unreachable when this was written
-/// -- [Frame#transform] *replaces* the transform rather than composing with it
-/// (ADR-0068), and what it would replace is the translation to this box's own
-/// corner -- and [Frame#concat] closed that on the same day ([ADR-0390]). This
-/// still draws a path, because the path is verified down to the decoded module
-/// and a composed transform would be a second way to be right rather than a
-/// better one.
+/// pixels would be the obvious answer, and [Frame#concat] makes it possible:
+/// [Frame#transform] *replaces* the transform, and what it would replace is the
+/// translation to this box's own corner, but `concat` composes. This still
+/// draws a path, because the path is verified down to the decoded module and a
+/// composed transform would be a second way to be right rather than a better
+/// one.
 ///
 /// The corner has to be on the pixel grid for any of this to be worth anything,
 /// and it is: layout runs with Yoga's point scale factor set to the display
@@ -108,7 +107,7 @@ final class QrModules {
 
     /// Paints `matrix` into `size` with `quietZone` light modules around it.
     ///
-    /// The paper is one fill under the whole thing, quiet zone included: §6.3's
+    /// The paper is one fill under the whole thing, quiet zone included: the standard's
     /// quiet zone is **part of the code**, and a code drawn straight onto a
     /// themed surface is a code with no quiet zone at all wherever the surface is
     /// not white.

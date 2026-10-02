@@ -6,19 +6,19 @@ import java.util.Objects;
 /// Which of the four native targets this process runs on, and what FFmpeg's
 /// libraries are called there.
 ///
-/// The same four targets `:natives` publishes (ADR-0041): `linux-x64`,
-/// `linux-aarch64`, `windows-x64` and `macos-aarch64`. The detection repeats
-/// `NativePlatform`'s rather than importing it. That class is in `:natives`'
-/// unexported root package, and exporting it to one more reader to save forty
-/// lines would widen a seal ADR-0280 drew on purpose. `FfmpegPlatformTest` holds
-/// the two to the same classifiers.
+/// The same four targets `:natives` publishes: `linux-x64`, `linux-aarch64`,
+/// `windows-x64` and `macos-aarch64`. The detection repeats `NativePlatform`'s
+/// rather than importing it. That class is in `:natives`' unexported root
+/// package, which is exported to `:core` and to nobody else on purpose, and
+/// exporting it to one more reader to save forty lines would widen that seal.
+/// `FfmpegPlatformTest` holds the two to the same classifiers.
 ///
 /// @param os   the operating system
 /// @param arch the CPU architecture
 public record FfmpegPlatform(Os os, Arch arch) {
 
     /// What follows each library's name: FFmpeg's `--build-suffix`, which the
-    /// media superbuild configures (ADR-0490). It keeps these libraries apart
+    /// media superbuild configures. It keeps these libraries apart
     /// from a distribution's FFmpeg of the same major in one process: GStreamer's
     /// gst-libav, loaded after them, would otherwise link against them by soname.
     /// `FfmpegSuperbuildTest` holds it to the superbuild's.
@@ -48,7 +48,7 @@ public record FfmpegPlatform(Os os, Arch arch) {
                 };
         if (!published) {
             throw new UnsupportedOperationException("no FFmpeg natives for " + classifierOf(os, arch)
-                    + "; the targets are linux-x64, linux-aarch64, windows-x64 and macos-aarch64 (ADR-0041)");
+                    + "; the targets are linux-x64, linux-aarch64, windows-x64 and macos-aarch64");
         }
     }
 

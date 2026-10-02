@@ -15,14 +15,13 @@ import dev.goldberry.widget.semantics.Semantics;
 import dev.goldberry.widget.style.Paints;
 import dev.goldberry.widget.style.Styled;
 
-/// The row you click to open a [Collapse] — §5's "disclosure button".
+/// The row you click to open a [Collapse]: its disclosure button.
 ///
-/// **One tab stop, and the only focusable thing in a `collapse`.** §5: "The
-/// header is one Tab stop, `Enter`/`Space` toggles, `Left`/`Right` close and
-/// open."
+/// **One tab stop, and the only focusable thing in a `collapse`.** `Enter` and
+/// `Space` toggle it; `Left` closes and `Right` opens.
 ///
-/// `Left` and `Right` are absolute rather than a toggle, which is what the
-/// specification asks for and what a disclosure does everywhere: pressing `Right`
+/// `Left` and `Right` are absolute rather than a toggle, which is what a
+/// disclosure does everywhere: pressing `Right`
 /// on an open section leaves it open. A user holding `Right` down a list of
 /// sections opens all of them, where a toggle would flap the one under the
 /// cursor.
@@ -95,13 +94,14 @@ record CollapseHeader(String title, boolean open, Runnable onToggle)
 
     /// The marker, as a child rather than a mark drawn here.
     ///
-    /// It has to be a node the cascade reaches: §5 asks for a chevron that
-    /// **rotates on `base`**, a rotation is a `transform`, and a transform is
+    /// It has to be a node the cascade reaches: the chevron **rotates on
+    /// `base`**, a rotation is a `transform`, and a transform is
     /// resolved for an element — so a mark drawn inline by this widget could
     /// never turn. That is also why it is `CHEVRON_END` turned by the stylesheet
     /// rather than `CHEVRON_DOWN` swapped in when the section opens: a mark that
-    /// changed *kind* would jump where §5 wants it to travel, and `transform` is
-    /// on §1.7's whitelist precisely so that travelling costs no layout.
+    /// changed *kind* would jump where this one travels, and `transform` is one
+    /// of the few properties allowed to animate precisely so that travelling
+    /// costs no layout.
     @Override
     public List<Widget> children() {
         return List.of(new CollapseChevron(open));
@@ -120,9 +120,8 @@ record CollapseHeader(String title, boolean open, Runnable onToggle)
         return Box.of().style(style).children(content.toArray(Box[]::new));
     }
 
-    /// The disclosure marker — a **part**, so it is CSS-selectable and not
-    /// constructible
-    /// (ADR-0065).
+    /// The disclosure marker — a part, so a stylesheet can select it and a
+    /// document cannot write it.
     record CollapseChevron(boolean open) implements Widget.Leaf, Styled, Paints {
 
         @Override

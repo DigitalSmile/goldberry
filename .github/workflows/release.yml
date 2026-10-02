@@ -1,8 +1,9 @@
-# Release (ADR-0333, ADR-0334)
+# Release
+# https://goldberry.dev/docs/contributing/releasing.html#cutting-a-release
 #
 # Push a `v<version>` tag on the commit whose gradle.properties declares that
 # version -- `v2026.1` on `goldberryVersion=2026.1` -- and this builds every
-# platform, packages the §15 classifier jars, signs everything and uploads it to
+# platform, packages the classifier jars, signs everything and uploads it to
 # a Central Portal deployment. A tag naming any other version fails before a
 # single jar is built.
 #
@@ -14,12 +15,10 @@
 # mavenLocal, uploading nothing. It is the way to find out that javadoc, signing
 # configuration or a POM is broken on a day that is not release day.
 #
-# The bump that used to be step 5 of the runbook is a job here now (ADR-0426):
+# The bump that used to be a step of the runbook is a job here now:
 # a successful release opens a pull request moving master to the next line, so
 # forgetting it is a review request nobody merged rather than a snapshot that
 # Maven orders below the release it follows.
-#
-# docs/releasing.md is the checklist.
 #
 # STATUS: never run.
 
@@ -45,7 +44,7 @@ jobs:
       publish: ${{ github.event_name == 'push' }}
     secrets: inherit
 
-  # Move master on, as a pull request (ADR-0426).
+  # Move master on, as a pull request.
   #
   # After `publish`, because a release that failed has nothing to follow. On a tag
   # push only: a `workflow_dispatch` rehearsal publishes nothing and must not
@@ -121,6 +120,6 @@ jobs:
           git push --force-with-lease origin "bump/$TO"
           gh pr create --fill --base "${{ github.event.repository.default_branch }}" \
             --title "The release line moves to $TO" \
-            --body "$TAG is published, so master declares $TO from here ($BUMP). Opened by release.yml — ADR-0426." \
+            --body "$TAG is published, so master declares $TO from here ($BUMP). Opened by release.yml." \
             || gh pr edit "bump/$TO" --title "The release line moves to $TO"
           echo "Opened the bump to **$TO**." >> "$GITHUB_STEP_SUMMARY"

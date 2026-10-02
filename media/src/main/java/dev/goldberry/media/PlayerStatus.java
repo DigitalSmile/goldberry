@@ -24,14 +24,16 @@ import java.util.Optional;
 ///                       first packet and after a seek
 /// @param bufferedRanges the stretches a network source has fetched and not
 ///                       thrown away, mapped from bytes to time in proportion
-///                       to the source's length (§4). Empty for a local file,
+///                       to the source's length. Empty for a local file,
 ///                       where every byte is at hand, and for a source whose
 ///                       length or duration is unknown
 /// @param nowPlaying     what the stream says is playing, such as an ICY
-///                       station's `StreamTitle` (S6)
+///                       station's `StreamTitle`
 /// @param audioTrack     the audio track playing, once the tracks are chosen
 /// @param videoTrack     the video track the player shows, never cover art
 /// @param subtitles      where the subtitles showing come from, when any show
+///
+/// Read more: [A player](https://goldberry.dev/docs/components/media.html#a-player).
 public record PlayerStatus(
         PlaybackState state,
         Duration position,

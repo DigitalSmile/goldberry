@@ -19,13 +19,15 @@ import dev.goldberry.widget.attr.Attributes;
 import dev.goldberry.widget.semantics.Role;
 import dev.goldberry.widgets.markup.Wiring;
 
-/// §1's `qr-code`: the value, what a document says to make one, and what it
-/// tells a reader.
+/// The `qr-code` primitive: the value, what a document says to make one, and
+/// what it tells a reader.
 ///
 /// The picture is [QrModulesTest]'s and the encoding is `:core`'s. What is left
 /// is the widget's own contract, and the half of it that is easy to get wrong is
 /// at the bottom: a widget is described again on every frame, and the dialog
 /// this exists for is rebuilt on every keystroke.
+///
+/// Read more: [QR code](https://goldberry.dev/docs/components/drawing.html#qr-code).
 class QrCodeTest {
 
     @BeforeEach

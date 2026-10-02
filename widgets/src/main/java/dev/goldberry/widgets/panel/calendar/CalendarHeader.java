@@ -13,21 +13,19 @@ import dev.goldberry.widget.style.Styled;
 
 /// The month, and the two ways to leave it — `calendar-header`, a **part**.
 ///
-/// ## An addition, and it is written down as one
+/// ## Why there is a header
 ///
-/// §10 gives this widget a keyboard and no pointer affordance for changing month:
-/// "`PgUp`/`PgDn` a month, `Shift+PgUp`/`PgDn` a year". §2's metrics row names a
-/// "header row `caption`", and that is the **weekday** row — `calendar-weekdays`.
-/// So a calendar built to the letter of both would be one a mouse cannot page,
-/// which is not a calendar. This is the addition that fixes it, and
-/// `docs/design-system.md` §2 gained a row for it in the same change rather than
-/// this being an undocumented part (ADR-0274).
+/// The keyboard pages the calendar on its own: `PgUp`/`PgDn` a month,
+/// `Shift+PgUp`/`PgDn` a year. A mouse has no key, and a calendar a mouse cannot
+/// page is not a calendar, so this row carries the month's name and an arrow
+/// each way. The design system's component metrics have a row for it, so it is
+/// a documented part with its own tokens, not a private one.
 ///
 /// ## Neither arrow is focusable
 ///
-/// §10: "The grid is one Tab stop with a roving day". Two focusable arrows would
-/// make it three stops, and a `date-picker`'s popover four — `TabClose`'s
-/// argument, unchanged. The keyboard already reaches both, by the keys §10 names.
+/// The grid is one Tab stop with a roving day. Two focusable arrows would make
+/// it three stops, and a `date-picker`'s popover four — `TabClose`'s argument,
+/// unchanged. The keyboard already reaches both months by the paging keys.
 ///
 /// Neither arrow *overrides* `isFocusable` either, and that is the same decision
 /// said the way the sweeps read it: the default is already false, and an override

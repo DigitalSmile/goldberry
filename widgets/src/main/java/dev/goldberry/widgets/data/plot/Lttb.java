@@ -4,7 +4,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
-/// Largest-Triangle-Three-Buckets — `content-widgets.md` §3.1's downsampling.
+/// Largest-Triangle-Three-Buckets: how a long series is reduced to about one
+/// point per pixel before it is drawn.
 ///
 /// **The problem it solves is not speed, it is truth.** A hundred thousand points
 /// drawn into a two-hundred-pixel sparkline is five hundred points per pixel, and
@@ -20,6 +21,8 @@ import java.util.Objects;
 ///
 /// First and last are always kept: a series whose ends moved would be a series
 /// drawn over a different range than it has.
+///
+/// Read more: [Charts](https://goldberry.dev/docs/components/charts.html#what-the-five-share).
 public final class Lttb {
 
     private Lttb() {}

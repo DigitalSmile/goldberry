@@ -21,8 +21,8 @@ import dev.goldberry.widgets.controls.TestFont;
 
 /// What a `list` looks like — the picture [ListTest] cannot take.
 ///
-/// The thing worth seeing is §3's "selection = `--gb-selection` **full-row**":
-/// the wash runs edge to edge because nothing insets a row, which is what
+/// The thing worth seeing is that a selection is a **full-row** wash of
+/// `--gb-selection`: it runs edge to edge because nothing insets a row, which is what
 /// distinguishes a list's selection from a menu's highlighted item. And a
 /// multi-selection list is the only one where "a run of chosen rows" is a shape
 /// rather than a number — three adjacent washes read as one block, which is what

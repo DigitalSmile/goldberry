@@ -13,7 +13,7 @@ import dev.goldberry.widget.style.Paints;
 import dev.goldberry.widget.style.Styled;
 
 /// The axis beside one entry: its marker, and the line running on from it — a
-/// **part**, CSS-selectable and not constructible (ADR-0065).
+/// part, so a stylesheet can select it and a document cannot write it.
 ///
 /// The rail stretches to the entry's full height, so the line is drawn from
 /// this marker to the next whatever the body beside it holds; the line is
@@ -21,7 +21,7 @@ import dev.goldberry.widget.style.Styled;
 ///
 /// The marker sits in a [TimelineMarkerCell] as tall as one line of the head
 /// beside it, centred — so the dot is on the label's centre whatever the
-/// line-height token is, rather than a padding that assumed one (ADR-0345).
+/// line-height token is, rather than a padding that assumed one.
 ///
 /// @param icon      an icon for the marker, or null for a dot
 /// @param colour    the dot's colour, or 0 for the stylesheet's

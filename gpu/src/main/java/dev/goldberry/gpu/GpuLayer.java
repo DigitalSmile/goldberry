@@ -6,8 +6,7 @@ import dev.goldberry.paint.Painter;
 import dev.goldberry.render.GpuContent;
 
 /// Pixels the GPU draws into a window, in the tree among what the CPU paints:
-/// what `canvas3d` and a video on the GPU are (`docs/gpu-plan.md`, D4 and D5;
-/// ADR-0481).
+/// what `canvas3d` and a video on the GPU are.
 ///
 /// A layer is placed by a painter, like anything else in a frame, and drawn by
 /// the toolkit:
@@ -22,7 +21,7 @@ import dev.goldberry.render.GpuContent;
 /// drawn into the window's composite; elsewhere it is rendered, read back and
 /// drawn into the frame as pixels. [#render] is asked the same thing either way.
 ///
-/// **The rules** (ADR-0481):
+/// **The rules:**
 ///
 /// - **Opaque.** A layer hides what is under it, as an opaque box does. What it
 ///   leaves translucent does not show the frame through.
@@ -34,6 +33,9 @@ import dev.goldberry.render.GpuContent;
 ///
 /// Compared by identity: the same object placed on every frame is one layer,
 /// and the texture it renders into is kept for it between frames.
+///
+/// Read more:
+/// [What the module does to a window](https://goldberry.dev/docs/components/gpu.html#what-the-module-does-to-a-window).
 public interface GpuLayer extends GpuContent {
 
     /// Renders this layer's picture into `target`, a texture exactly the size

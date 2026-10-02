@@ -16,7 +16,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 ///
 /// The platform reports focus **per window**: opening a popup sends a lost for
 /// the owner and then a gained for the popup, in that order, so a menu that acted
-/// on the first of the pair would close as it opened ([ADR-0144]). The way out is
+/// on the first of the pair would close as it opened. The way out is
 /// to wait, and the wait is one number covering every driver — which is a
 /// calibration nobody can derive, because the gap between the two events is the
 /// compositor's own scheduling and nothing reports what it will be.

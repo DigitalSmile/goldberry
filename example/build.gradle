@@ -6,8 +6,7 @@ plugins {
     // Does nothing to an ordinary build of this module -- the showcase ships no
     // @Markup widgets, so the catalog half has nothing to collect, and the model
     // half only runs for an image. It is here because `nativeImage` below depends
-    // on `weaveModels`, and a module that cannot be woven cannot be imaged
-    // (ADR-0155).
+    // on `weaveModels`, and a module that cannot be woven cannot be imaged.
     id 'goldberry.weave'
     id 'application'
 }
@@ -22,26 +21,25 @@ dependencies {
     implementation project(':widgets')
 
     // The first content module, and the showcase is where an application opts
-    // into one (ADR-0190). It buys two things on the Panels screen: the
+    // into one. It buys two things on the Panels screen: the
     // `markdown-view` node, which `panels.kdl` names without this file being
     // mentioned anywhere in it -- the catalog arrives through a `uses`, which is
-    // ADR-0131's promise about a second widget module -- and the stylesheet
+    // how any second widget module announces itself -- and the stylesheet
     // `Showcase.stylesheets()` adds beside the toolkit's own.
     implementation project(':html')
 
-    // The emoji face (ADR-0384, ADR-0456). An application adds this on
+    // The emoji face. An application adds this on
     // purpose; the Emoji screen names the face and its licence anyway, as an
     // About box would. Nothing here names a type of it: the face reaches `:core`
     // through a service, so this puts a provider on the module path and nothing
     // else.
     implementation project(':emoji')
-    // The Media screen (docs/media-plan.md). FFmpeg itself is a separate build,
+    // The Media screen. FFmpeg itself is a separate build,
     // found at run time -- see `run` below.
     // It carries the operating system's own decoders too, for the H.264, HEVC,
-    // AAC, AC-3 and E-AC-3 samples the published natives do not build (ADR-0472,
-    // ADR-0489, ADR-0493).
+    // AAC, AC-3 and E-AC-3 samples the published natives do not build.
     implementation project(':media')
-    // The GPU (docs/gpu-plan.md, ADR-0479, ADR-0480, ADR-0482): the GPU screen's
+    // The GPU: the GPU screen's
     // `canvas3d` and its cube, whose shaders `:gpu:compileShaders` compiles
     // into this module's resources. Being on the module path is also what lets
     // the sdl3 backend find its compositor, so the showcase's windows present
@@ -49,7 +47,7 @@ dependencies {
     implementation project(':gpu')
 
     // The golden-image harness and the renderer requirement, so the gallery can
-    // be checked as pictures the way the catalog is (§14, ADR-0110).
+    // be checked as pictures the way the catalog is.
     testImplementation testFixtures(project(':core'))
 
     // :natives' GPU test helpers: the device requirement and the launcher that
@@ -64,7 +62,8 @@ dependencies {
 
     // Logback only here, and only at runtime. The toolkit binds no SLF4J
     // provider, so choosing one is the application's call -- this is what making
-    // that call looks like (ADR-0023).
+    // that call looks like.
+    // https://goldberry.dev/docs/guide/logging.html#a-logback-configuration
     runtimeOnly libs.logback.classic
 }
 
@@ -75,9 +74,9 @@ dependencies {
 // Unicode files each emoji under a group in `emoji-test.txt`. Neither is worth
 // shipping as it comes -- 1544 JSON files and 650 KB of sequences the sheet never
 // shows -- so `:assets` compiles both into one line per entry, the way it
-// compiles the icons themselves (ADR-0033).
+// compiles the icons themselves.
 //
-// Under this module's **own** package, for ADR-0387's reason: a resource
+// Under this module's **own** package, and not for tidiness: a resource
 // directory is a package to the module system, and a table written somewhere
 // another module also writes is a split package and a showcase that will not
 // open.
@@ -147,19 +146,20 @@ application {
 
     // JEP 472: the natives module is the one that touches native code, so it is
     // the one named here. Naming a module rather than ALL-UNNAMED is what the
-    // module descriptors in the toolkit exist for (ADR-0007), and running the
+    // module descriptors in the toolkit exist for, and running the
     // showcase on the module path is what proves they are right.
     applicationDefaultJvmArgs = [
             '--enable-native-access=dev.goldberry.natives',
-            // goldberry-media binds FFmpeg itself (ADR-0461), and the system's
-            // decoders (ADR-0472, ADR-0493).
+            // goldberry-media binds FFmpeg itself, and the system's
+            // decoders.
             '--enable-native-access=dev.goldberry.media',
     ]
 
     // macOS drives AppKit from the process's first thread, and the java launcher
     // runs main on a secondary one unless told otherwise. Without this, SDL's
     // Cocoa driver cannot create a device and SDL_Init fails with "No available
-    // video device" -- which mentions neither threads nor this flag (ADR-0039).
+    // video device" -- which mentions neither threads nor this flag.
+    // https://goldberry.dev/docs/contributing/building.html#macos
     //
     // Harmless nowhere else, but only macOS needs it, so only macOS gets it.
     if (hostTarget.startsWith('macos')) {
@@ -167,30 +167,31 @@ application {
     }
 }
 
-// The jar is not published: it is a demonstration, not an artifact (§15). What
-// ships is the native image below, attached to a release by `showcase.yml`
-// (ADR-0340). There is no jlink image any more: ADR-0048's runtime image was a
-// second way to package the same showcase, and the native image is the one that
-// is one file (ADR-0159).
+// The jar is not published: it is a demonstration, not an artifact. What
+// ships is the native image below, attached to a release by `showcase.yml`.
+// There is no jlink image any more: the runtime image was a second way to
+// package the same showcase, and the native image is the one that is one file.
+// https://goldberry.dev/docs/contributing/releasing.html#the-showcase-binaries
 
 // The application module, which is what `--module` names for the image and
 // what JEP 472's `--enable-native-access` is granted to.
 def appModule = 'dev.goldberry.example'
 
 // ============================================================================
-// The GPU lane (docs/gpu-plan.md, phase 5)
+// The GPU lane
+// https://goldberry.dev/docs/contributing/testing.html#the-gpu-tests
 //
 // The GPU screen drawn with a real device: its cubes in the showcase's own
 // shaders, read back into a gallery picture. Tagged `gpu`, so `test` leaves it
 // out, and run by `gpuTest` on the JVM's first thread, as :natives' and :gpu's
 // are and for their reason: macOS's Cocoa, which a Metal device needs, refuses
-// every other thread (ADR-0475).
+// every other thread.
 // ============================================================================
 tasks.named('test') {
     useJUnitPlatform { excludeTags 'gpu' }
     // `BookMarkupTest` inflates every kdl sample under book/src. The guide is
     // not on any classpath, so without this line a chapter edited after a green
-    // run leaves the task up to date and the sample unchecked (ADR-0511).
+    // run leaves the task up to date and the sample unchecked.
     inputs.dir(rootProject.layout.projectDirectory.dir('book/src'))
             .withPropertyName('bookSources')
             .withPathSensitivity(PathSensitivity.RELATIVE)
@@ -240,11 +241,12 @@ tasks.named('test') {
     // Forwarded for the same reason the run task forwards it: a golden that has
     // to be rewritten is rewritten by a property, and one that stopped at the
     // Gradle daemon would look like a test that refuses to update. The scale
-    // settings ride along for ADR-0162's second half, which is a property too.
+    // settings ride along for the scale sweep, which is a property too.
     // `goldberry.trace.frames` rides along for the same reason: it is read into a
     // `static final` when the renderer's classes initialise, so a property that
     // stopped at the Gradle daemon would silently trace nothing -- and the two
-    // defects that probe exists for (ADR-0142, ADR-0149) were both found from a
+    // defects that probe exists for -- a handed-down style losing its identity,
+    // and a state invalidating less than it reaches -- were both found from a
     // test rather than from a window.
     ['goldberry.golden.update', 'goldberry.golden.scales',
      'goldberry.golden.scales.report', 'goldberry.trace.frames'].each { name ->
@@ -254,7 +256,7 @@ tasks.named('test') {
         }
     }
 
-    // No web view, on purpose, for every test in this module (ADR-0441).
+    // No web view, on purpose, for every test in this module.
     //
     // The Web screen photographs a CAPABILITY, and that is the one thing a golden
     // must not do: `Capability.WEB_VIEW` is present only where the build found
@@ -308,7 +310,7 @@ tasks.named('run') {
 
     // Forwarded to the forked JVM, because that is where the application runs.
     // `logback.xml` documents `-Dgoldberry.log.level=TRACE` as the way to see
-    // the start-up timeline and per-frame timings (ADR-0028), and without this
+    // the start-up timeline and per-frame timings, and without this
     // that property reached the Gradle daemon and stopped there -- the flag
     // appeared to do nothing at all.
     def logLevel = providers.systemProperty('goldberry.log.level')
@@ -354,7 +356,7 @@ tasks.named('run') {
     if (size.present) {
         showcaseArgs += '--size=' + size.get()
     }
-    // The frame-evidence pair (ADR-0342): walk the window's size a pixel a
+    // The frame-evidence pair: walk the window's size a pixel a
     // frame towards WxH, and exit non-zero past N late refreshes.
     var resize = providers.gradleProperty('goldberry.example.resize')
     if (resize.present) {
@@ -379,9 +381,10 @@ tasks.named('run') {
     }
 }
 
-// --- GraalVM native image (ADR-0127, ADR-0156) ---------------------------
+// --- GraalVM native image ------------------------------------------------
+// https://goldberry.dev/docs/native.html
 //
-// The artifact ADR-0127's whole design was for: a closed world, no class
+// The artifact the binding schema was designed for: a closed world, no class
 // loading, no reflection on the binding path, and a start-up measured against
 // the process rather than against the JVM.
 //
@@ -391,14 +394,13 @@ tasks.named('run') {
 //   nativeImageMetadata  runs the showcase under GraalVM's tracing agent and
 //                        writes what it observed into src/main/resources. FFM
 //                        descriptors, resources, and the reflection logback
-//                        does -- traced rather than hand-written (ADR-0156).
+//                        does -- traced rather than hand-written.
 //   nativeImage          runs `native-image` over the woven jar and that
 //                        metadata.
 //
 // Both need a GraalVM. There is none in this repository's toolchain, so neither
 // task is wired into `build`; `showcase.yml` installs one and runs both on every
-// platform, on a release tag or by hand (ADR-0337, ADR-0340). See
-// book/src/native.md.
+// platform, on a release tag or by hand.
 
 def graalvmHome = providers.gradleProperty('graalvm.home')
         .orElse(providers.environmentVariable('GRAALVM_HOME'))
@@ -439,7 +441,7 @@ def graalTool = { String tool ->
                 "${graalvmHome.get()} has no bin/${tool}. That is a JDK but not a GraalVM"
                         + " -- native-image and the tracing agent ship only with the latter.")
     }
-    // CI builds with one GraalVM line (GraalVmRelease.CI_LINE, ADR-0337). Another
+    // CI builds with one GraalVM line (GraalVmRelease.CI_LINE). Another
     // one here is allowed and worth a line in the log: since 25.1 GraalVM versions
     // apart from its JDK, and two lines can disagree about what an image needs.
     def releaseFile = new File(graalvmHome.get(), 'release')
@@ -452,7 +454,8 @@ def graalTool = { String tool ->
 
 // Beside the code, because it is source: the agent produces it, a human reads
 // the diff, and it is packaged into the jar like any other resource so that a
-// downstream image build finds it without being told (ADR-0156).
+// downstream image build finds it without being told.
+// https://goldberry.dev/docs/native.html#two-metadata-directories-traced-and-written
 def metadataDir = layout.projectDirectory
         .dir('src/main/resources/META-INF/native-image/dev.goldberry/goldberry-example')
 
@@ -468,7 +471,7 @@ tasks.register('nativeImageMetadata', Exec) {
 
     // The same two, in the same order, as `nativeImage` -- the trace has to be of
     // the artifact the image is built from. Tracing an unwoven run would record
-    // the reflection ADR-0155's runtime binding does and the image never will.
+    // the reflection a jar's runtime binding does and the image never will.
     dependsOn tasks.named('weaveModels')
     dependsOn tasks.named('jar')
 
@@ -480,7 +483,7 @@ tasks.register('nativeImageMetadata', Exec) {
     // Every binding and every sweep still happens; only the compositor does not.
     // The macOS leg of showcase.yml asks for `cocoa`, because SDL's status-bar
     // tray cannot exist without a Cocoa application and the trace should record
-    // it (TraceVideoDriver, ADR-0338).
+    // it (TraceVideoDriver).
     def videoDriver = TraceVideoDriver.choose(
             providers.gradleProperty(TraceVideoDriver.PROPERTY).getOrNull())
     inputs.property 'videoDriver', videoDriver
@@ -504,13 +507,12 @@ tasks.register('nativeImageMetadata', Exec) {
                        "-Dgoldberry.backend.videoDriver=${videoDriver}",
                        "-Dgoldberry.native.library=${hostLibrary.absolutePath}"]
         if (macos) {
-            command += '-XstartOnFirstThread'  // ADR-0039
+            command += '-XstartOnFirstThread'  // AppKit runs on the first thread
         }
         // A real run, and that is the point: the agent records what this window
         // actually did. A screen the run never reaches contributes nothing, which
         // is why the frame count is high enough to open the menu and the HUD and
-        // why ADR-0156 says the trace is checked in and reviewed rather than
-        // trusted.
+        // why the trace is checked in and reviewed rather than trusted.
         command += ['--module-path', modulePath,
                     '--module', "${appModule}/dev.goldberry.example.Showcase",
                     '--frames=120']
@@ -522,7 +524,8 @@ def imageDirNative = layout.buildDirectory.dir('native')
 def imageName = "goldberry-showcase-${hostTarget}"
 
 // The classifier jar holding libgoldberry, which is what makes the image one
-// file instead of two (ADR-0159).
+// file instead of two.
+// https://goldberry.dev/docs/native.html#why-the-library-is-carried-rather-than-linked
 //
 // `:natives` already packages the library at exactly the resource path
 // `NativeLibrary.resourcePath()` looks for -- that is the released-application
@@ -534,7 +537,7 @@ def nativesTaskSuffix = hostTarget.split('-').collect { it.capitalize() }.join('
 def nativesJarTask = ":natives:nativeJar${nativesTaskSuffix}"
 
 // The jar packages whatever is in :natives' artifacts directory, which CI fills
-// by downloading each platform's build (ADR-0012). Locally nothing fills it
+// by downloading each platform's build. Locally nothing fills it
 // unless `stageHostArtifact` runs, so an image built from a source tree asks for
 // both -- and in that order, which `dependsOn` alone does not promise.
 //
@@ -553,7 +556,7 @@ tasks.register('nativeImage', Exec) {
 
     // Both, and in this order -- see `mustRunAfter` in goldberry.weave.gradle.
     // An image built from a model bound at run time would be an image that binds
-    // by reflection, which is the one thing ADR-0155 says an image never does.
+    // by reflection, which is the one thing an image never does.
     dependsOn tasks.named('weaveModels')
     dependsOn tasks.named('jar')
     // And the library, staged out of this machine's build and packaged as the
@@ -595,13 +598,13 @@ tasks.register('nativeImage', Exec) {
                 '-cp', nativesJar.get().asFile.absolutePath,
                 '--module', "${appModule}/dev.goldberry.example.Showcase",
                 '-o', new File(target.get().asFile, imageName).absolutePath,
-                // JEP 472, the same module the jar names (ADR-0007).
+                // JEP 472, the same module the jar names.
                 '--enable-native-access=dev.goldberry.natives',
                 // No `--no-fallback`. It was here because a fallback image is a
                 // JVM in a trench coat, and GraalVM 25.3 -- the line CI pins --
                 // has no fallback images left to refuse: the flag reports
                 // "deprecated ... No effect, no replacement" and was both of the
-                // build's two warnings. Failing is still what happens (ADR-0337).
+                // build's two warnings. Failing is still what happens.
                 // Names the class and the trace that reached it rather than a
                 // stack in the builder.
                 '-H:+ReportExceptionStackTraces'
@@ -610,9 +613,9 @@ tasks.register('nativeImage', Exec) {
                 // native-image.properties naming the two classes that have an
                 // opinion -- NativeLibrary, which dlopens and so must wait for
                 // run time, and Downcalls, which must NOT wait if the image is
-                // to make foreign calls at the speed the JVM does (ADR-0161).
+                // to make foreign calls at the speed the JVM does.
                 // Both travel in the jar, so an application building its own
-                // image gets them without knowing they exist (ADR-0160).
+                // image gets them without knowing they exist.
         if (!graalvmArgs.isEmpty()) {
             logger.lifecycle("native-image: extra arguments ${graalvmArgs}")
             args graalvmArgs
@@ -623,13 +626,13 @@ tasks.register('nativeImage', Exec) {
         // No library beside the binary and no launcher script to point at one:
         // libgoldberry is *inside* the image, and NativeLibrary unpacks it to a
         // temporary file on first use exactly as it does from a classifier jar
-        // (ADR-0159). One file is the whole point.
+        // One file is the whole point.
         logger.lifecycle("native image: {}",
                 new File(target.get().asFile, imageName).absolutePath)
     }
 }
 
-// The web pump probe (docs/web-pump-probe.md). Not part of any check: it opens
+// The web pump probe. Not part of any check: it opens
 // a real window, needs a real engine, and answers a question about *this*
 // machine rather than about the code. `:example:test` must stay able to run on
 // a machine with no WebKit at all, which is why this is its own task.
@@ -653,7 +656,7 @@ tasks.register('webPumpProbe', JavaExec) {
     // on the `gradlew` command line otherwise reaches the daemon and stops there.
     //
     // Just the two. There is deliberately no flag here for `WEB_VIEW_TIMEOUT` or
-    // for the pump's iteration bound: ADR-0455 measured both and neither is what
+    // for the pump's iteration bound: the probe measured both and neither is what
     // a slow page is waiting on, so a knob for them would invite tuning the one
     // thing already known not to matter.
     ['goldberry.log.level', 'goldberry.webpump.seconds'].each { name ->

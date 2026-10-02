@@ -9,6 +9,8 @@ import dev.goldberry.natives.sdl.gpu.enums.SdlGpuBufferUsage;
 
 /// A buffer on a [SdlGpuDevice]: vertices or indices, filled by a copy pass from
 /// a transfer buffer, and read by draws.
+///
+/// Read more: [The native boundary](https://goldberry.dev/docs/overview/architecture.html#the-native-boundary).
 public final class SdlGpuBuffer extends SdlGpuResource {
 
     private final Set<SdlGpuBufferUsage> usages;

@@ -25,8 +25,8 @@ import dev.goldberry.widget.ElementTree;
 import dev.goldberry.widget.Widget;
 import dev.goldberry.widget.style.Styled;
 
-/// "A disabled container disables its descendants for input and semantics"
-/// (`docs/core-widgets.md`) — [ADR-0077].
+/// A disabled container disables its descendants for input and semantics, and
+/// not for paint.
 ///
 /// Written against bare widgets in `:core` rather than against `radio-group`,
 /// because the containers this exists for are `form` and `group-box` and neither
@@ -144,7 +144,7 @@ class DisabledPropagationTest {
             assertEquals(List.of(), input());
         }
 
-        /// [ADR-0238], and the half the entry above cannot see: nothing in this
+        /// A wheel chains past a dead control — the half the entry above cannot see: nothing in this
         /// tree is *above* the disabled container, so "refused" and "swallowed"
         /// look identical here. They are not the same thing, and a wheel is the
         /// one kind where the difference matters.
@@ -220,7 +220,7 @@ class DisabledPropagationTest {
     @DisplayName("observation still does")
     class Observation {
 
-        /// ADR-0059's two cases, and they are why this is not simply "drop every
+        /// Two cases, and they are why this is not simply "drop every
         /// event": a disabled control still hit-tests so a click cannot fall
         /// through to whatever is behind it, and a tooltip explaining *why* it is
         /// unavailable needs the enter and the exit.

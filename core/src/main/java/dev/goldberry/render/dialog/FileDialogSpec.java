@@ -32,8 +32,9 @@ import org.jspecify.annotations.Nullable;
 /// `SDL_ShowFileDialogWithProperties`, which means a second code path and a
 /// properties object for three strings that the platform's own dialogs are
 /// entitled to ignore — macOS has no dialog title at all. When something needs
-/// them, they arrive together with that call and a record component each
-/// (ADR-0287).
+/// them, they arrive together with that call and a record component each.
+///
+/// Read more: [Windows, popups and the host](https://goldberry.dev/docs/guide/windows.html#the-host).
 ///
 /// @param kind      which dialog
 /// @param filters   the type dropdown, in order; empty for none
@@ -46,7 +47,7 @@ public record FileDialogSpec(
         @Nullable Path location,
         boolean allowMany) {
 
-    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    /// Written out so that each parameter that takes null for a default can say so.
     public FileDialogSpec(
             FileDialogKind kind, @Nullable List<FileFilter> filters, @Nullable Path location, boolean allowMany) {
         Objects.requireNonNull(kind, "kind");

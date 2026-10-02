@@ -32,11 +32,15 @@ import dev.goldberry.widgets.controls.TestFont;
 import dev.goldberry.widgets.core.Column;
 import dev.goldberry.widgets.data.linechart.LineChart;
 
-/// One crosshair across two charts — `charts.md` §3.1's shared crosshair.
+/// One crosshair across two charts: a shared group is one value two widgets
+/// read, every chart in it draws the line, and only the one under the pointer
+/// draws the readout.
 ///
 /// Driven through the real router, because the claim is about what happens to
 /// the chart the pointer is **not** over, and nothing short of a dispatch
 /// produces that.
+///
+/// Read more: [What the five share](https://goldberry.dev/docs/components/charts.html#what-the-five-share).
 class CrosshairGroupTest {
 
     private static final int WIDTH = 320;

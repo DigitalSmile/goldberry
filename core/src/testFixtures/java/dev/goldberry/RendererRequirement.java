@@ -11,12 +11,15 @@ import dev.goldberry.natives.blend2d.BlendImage;
 /// [dev.goldberry.natives.NativeLibraryRequirement] does this
 /// job in `:natives`, and cannot be reused: it lives in that module's *test*
 /// sources, and the class it asks — `NativeLibrary` — is in the one package
-/// `:natives` deliberately does not export (ADR-0007). So the question is asked
+/// `:natives` deliberately does not export. So the question is asked
 /// the only way an outside module can ask it: by trying.
 ///
 /// The distinction that matters is between "no library" and "a broken library".
 /// A missing library is an ordinary state on a contributor's machine and skips;
 /// anything else is a real failure and is left to propagate.
+///
+/// Read more: [Skipping without
+/// the native library](https://goldberry.dev/docs/guide/testing.html#skipping-without-the-native-library).
 public final class RendererRequirement {
 
     private RendererRequirement() {}

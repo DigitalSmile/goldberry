@@ -9,7 +9,7 @@ import dev.goldberry.layout.Length;
 /// they are not the same number. Doubling the left edge was right for every
 /// stylesheet the catalog ships and wrong for `padding: 12px 16px 12px 0`: the
 /// text then wrapped 16 pixels wider than the room it had and ran under the
-/// right padding (`docs/gaps.md` G43, ADR-0350).
+/// right padding.
 ///
 /// A percentage padding reads as zero, which `TextField` does too: resolving
 /// one needs the width Yoga has not computed yet.

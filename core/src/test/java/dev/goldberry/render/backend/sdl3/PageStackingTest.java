@@ -10,7 +10,8 @@ import org.junit.jupiter.params.provider.EnumSource;
 
 import dev.goldberry.render.window.NativeHandle;
 
-/// Which windows keep the GPU with a page in them (ADR-0491).
+/// Which windows keep the GPU with a page in them: the ones whose window system
+/// draws the page above the swapchain, which has been measured on X11 alone.
 @DisplayName("a page's stacking against a swapchain")
 class PageStackingTest {
 

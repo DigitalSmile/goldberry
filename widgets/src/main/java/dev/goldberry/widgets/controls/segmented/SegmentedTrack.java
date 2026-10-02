@@ -15,11 +15,11 @@ import dev.goldberry.widget.style.Styled;
 import dev.goldberry.widgets.controls.option.Option;
 
 /// The box a [Segmented]'s segments are laid along, and the one its indicator is
-/// placed against — a **part**, and the reason there is one at all.
+/// placed against — styled as `segmented-track`.
 ///
 /// ## Why the bar is not the track
 ///
-/// The indicator is absolutely positioned and its width is a percentage. Yoga
+/// The indicator is absolutely positioned and its width is a percentage. Layout
 /// resolves an in-flow child's percentage against its parent's **content** box
 /// and an absolute child's against the parent's **padding** box — CSS's rule,
 /// and a real 2px of disagreement on a bar whose padding is 1. A pill one-third
@@ -28,18 +28,18 @@ import dev.goldberry.widgets.controls.option.Option;
 ///
 /// A track with no padding of its own makes the two bases the same box. The bar
 /// keeps the padding, the border and the radius; the track keeps the grid, and
-/// the hairlines between its cells are placed against it for the same reason
-/// (ADR-0217). That
-/// is `slider`'s anatomy for the same reason it grew one: two boxes were doing
-/// one job, and the day a third thing joined they stopped being the same box
-/// (ADR-0080,
-/// ADR-0099).
+/// the hairlines between its cells are placed against it for the same reason.
+/// That is `slider`'s anatomy for the same reason it grew one: two boxes were
+/// doing one job, and the day a third thing joined they stopped being the same
+/// box.
+///
+/// Read more: [Choices](https://goldberry.dev/docs/components/choices.html#segmented).
 ///
 /// @param segments the options, already told whether they are selected
 /// @param index    the selected segment, or -1 when the value matches none
 record SegmentedTrack(List<Widget> segments, int index) implements Widget.Leaf, Styled, Paints {
 
-    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    /// The canonical constructor, written out so that the parameters taking null for a default can say so.
     SegmentedTrack(@Nullable List<Widget> segments, int index) {
         segments = List.copyOf(segments == null ? List.of() : segments);
         this.segments = segments;
@@ -57,14 +57,14 @@ record SegmentedTrack(List<Widget> segments, int index) implements Widget.Leaf, 
     }
 
     /// **Dividers, then the indicator, then the labels** — a box tree has no
-    /// z-order beyond document order (ADR-0053), so this list *is* the stacking
-    /// and it is a decision rather than an accident.
+    /// z-order beyond document order, so this list *is* the stacking and it is a
+    /// decision rather than an accident.
     ///
     /// The hairlines go under the pill because the pill **travels**: painted
     /// after it, a divider would draw a line across the moving fill for the
     /// 160 ms it takes to cross. Under it, the pill covers whatever it passes.
     /// The labels go on top of both, because a segment's own wash is translucent
-    /// and its text has to be legible on the fill (ADR-0217).
+    /// and its text has to be legible on the fill.
     @Override
     public List<Widget> children() {
         var count = optionCount();
@@ -105,8 +105,7 @@ record SegmentedTrack(List<Widget> segments, int index) implements Widget.Leaf, 
     /// has no width of its own.** A cell is a percentage, so the track's content
     /// size is indefinite and the bar takes the width it is given — filling its
     /// parent when nothing gives it one. That is the trade the travelling
-    /// indicator costs, and §3's row records it
-    /// (ADR-0099).
+    /// indicator costs.
     @Override
     public Box render(ComputedStyle style, List<Box> children, Context context) {
         var count = optionCount();
@@ -129,11 +128,11 @@ record SegmentedTrack(List<Widget> segments, int index) implements Widget.Leaf, 
             }
             var cell = child.size(share, child.height());
             if (segments.get(i - parts) instanceof Option) {
-                // §3's "radius 8 outer, 0 between", on the segment: a cell is
-                // round only where the bar it is joined into is. Which cell is an
-                // end is a fact about a count, and no selector can count -- so
-                // the *radius* stays in `controls.css` and only the choice of
-                // which corners keep it is made here (ADR-0217).
+                // Radius 8 on the outer corners and 0 between, on the segment: a
+                // cell is round only where the bar it is joined into is. Which
+                // cell is an end is a fact about a count, and no selector can
+                // count -- so the *radius* stays in `controls.css` and only the
+                // choice of which corners keep it is made here.
                 cell = cell.decoration(
                         cell.decoration().corners(cell.decoration().corners().inRow(seen == 0, seen == count - 1)));
                 seen++;

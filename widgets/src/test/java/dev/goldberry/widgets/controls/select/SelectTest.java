@@ -46,7 +46,9 @@ import dev.goldberry.widgets.controls.selectlist.SelectList;
 /// `change` that reports, an exactly-one invariant computed rather than stored.
 /// What is new here is everything about the *list*: it is somewhere else, it has
 /// to be asked for, and the thing asking is a widget, which until now could not
-/// ([ADR-0140], [ADR-0141]).
+/// reach its window.
+///
+/// Read more: [Select](https://goldberry.dev/docs/components/choices.html#select).
 ///
 /// Driven against a stub [Host] that records what it was asked to open and
 /// answers empty, which is a real answer — a driver with no popup windows gives
@@ -226,9 +228,9 @@ class SelectTest {
         /// trailing edge, and shrinking used to be the problem rather than the
         /// answer: a box with text is a measured leaf, so a narrowed value was
         /// measured again and **wrapped** — two lines in a fixed-height field,
-        /// which is worse than the overflow it replaced (ADR-0235). `nowrap`
+        /// which is worse than the overflow it replaced. `nowrap`
         /// keeps the paragraph at its natural width whatever it is given, and the
-        /// ellipsis says the value was cut rather than mis-typed ([ADR-0255]).
+        /// ellipsis says the value was cut rather than mis-typed.
         ///
         /// Read off the *cascade* rather than off a painted box: `SelectValue`
         /// applies its style to the box it returns, so the flow reaches the text
@@ -319,7 +321,7 @@ class SelectTest {
             assertEquals(
                     fromSelect.options().getFirst(),
                     inBar,
-                    "one node, one record — §3 gives both controls the same child");
+                    "one node, one record — `select` and `segmented` share the `option` child");
         }
     }
 
@@ -361,7 +363,7 @@ class SelectTest {
             assertEquals(Placement.BELOW, host.opened.getFirst().placement());
         }
 
-        /// **A dropdown is at least as wide as what it drops from** — [ADR-0145].
+        /// **A dropdown is at least as wide as what it drops from.**
         ///
         /// The list is measured from its content, and its content knows nothing
         /// about the field: a `select` stretched across a form opened a panel as
@@ -378,7 +380,7 @@ class SelectTest {
             assertEquals(240f, host.opened.getFirst().minimumWidth(), 0.5f);
         }
 
-        /// The defect [ADR-0179] was written for: a `select` never capped its own
+        /// The defect that taught a popup to say what it measured: a `select` never capped its own
         /// list, so one with more options than the display is tall was clamped to
         /// the near edge by the placement and lost its bottom — the last options
         /// simply not there, with nothing to say so. `menu` had solved this from
@@ -481,7 +483,7 @@ class SelectTest {
         }
 
         @Test
-        @DisplayName("`Alt+Down` and a bare `Down` both open it — §3's keyboard")
+        @DisplayName("`Alt+Down` and a bare `Down` both open it")
         void arrowsOpen() {
             var tree = tree(two());
 
@@ -537,7 +539,7 @@ class SelectTest {
     }
 
     @Nested
-    @DisplayName("typeahead (§3)")
+    @DisplayName("typing on the closed control moves the selection")
     class Typeahead {
 
         private final List<String> picked = new ArrayList<>();
@@ -588,7 +590,7 @@ class SelectTest {
             assertEquals(List.of("light"), picked);
         }
 
-        /// [ADR-0246]: the same typeahead, reached from the **open** list.
+        /// The same typeahead, reached from the **open** list.
         ///
         /// A `TextEvent` goes to the focused node, which in an open popup is an
         /// `option` — so the letters used to stop at a row that does not know
@@ -759,8 +761,8 @@ class SelectTest {
         }
     }
 
-    /// §3: "`multiple=#true` renders the selection as `badge` chips inside the
-    /// closed control, each with a remove affordance" ([ADR-0182]).
+    /// The catalogue's `multiple=#true`: the selection is rendered as `badge`
+    /// chips inside the closed control, each with a remove affordance.
     @Nested
     @DisplayName("holding more than one")
     class Multiple {
@@ -891,8 +893,7 @@ class SelectTest {
         /// Found by running the application: the chip appeared and the row it came
         /// from stayed grey. The list was re-described at the moment of the click,
         /// where `widget()` is still the description that was current *before* the
-        /// application was told — so it drew the selection the list already had
-        /// ([ADR-0185]).
+        /// application was told — so it drew the selection the list already had.
         @Test
         @DisplayName("choosing does not re-describe the list from the model it has not seen yet")
         void doesNotRedescribeFromAStaleWidget() {
@@ -923,10 +924,10 @@ class SelectTest {
         }
     }
 
-    /// §3's `autocomplete=#true`: "makes the closed control an editable
-    /// `text-input`: typing filters the options, the popup stays open and
-    /// narrows, `Esc` restores the last committed value rather than clearing, and
-    /// a free-typed value is refused unless `free=#true`" ([ADR-0183]).
+    /// The catalogue's `autocomplete=#true`: it makes the closed control an
+    /// editable `text-input`. Typing filters the options, the popup stays open
+    /// and narrows, `Esc` restores the last committed value rather than clearing,
+    /// and a free-typed value is refused unless `free=#true`.
     @Nested
     @DisplayName("typing in it")
     class Autocompleting {
@@ -1040,8 +1041,8 @@ class SelectTest {
         /// `settle` lumped an exact match in with the refusal above, on a
         /// comment that claimed "a match is already the committed value, or is
         /// about to be reported by whatever chose it". Neither half is true:
-        /// typing selects nothing — §3 says a user typing is narrowing, not
-        /// choosing, and [SelectState#typed] is careful about it — so a user who
+        /// typing selects nothing — a user typing is narrowing, not choosing,
+        /// and [SelectState#typed] is careful about it — so a user who
         /// typed `Light` into a combobox holding `dark` and tabbed away watched
         /// the field spring back to `Dark`, with the application told nothing at
         /// all.
@@ -1090,7 +1091,7 @@ class SelectTest {
             assertEquals("Dark", editor(tree).value());
         }
 
-        /// The other reading, which §4's free-text form always is: the
+        /// The other reading, which a free-text field always is: the
         /// suggestions are a convenience and any value is legal.
         @Test
         @DisplayName("free=#true keeps it and reports it")
@@ -1107,7 +1108,7 @@ class SelectTest {
 
         /// Found by running the application: the field took one character and then
         /// went dead. The list focused its first row when it opened, which took
-        /// the keyboard off the editor the user was typing into ([ADR-0185]).
+        /// the keyboard off the editor the user was typing into.
         @Test
         @DisplayName("the list does not take the keyboard off the editor")
         void theListLeavesTheKeyboardAlone() {
@@ -1153,7 +1154,7 @@ class SelectTest {
             assertFalse(field(tree).delegatesFocus());
         }
 
-        /// §3 lists `Space` as a way to open a *closed* control, and a combobox is
+        /// `Space` opens a *closed* control, and a combobox is
         /// not one — a space is a character.
         @Test
         @DisplayName("Space types a space rather than opening the list")

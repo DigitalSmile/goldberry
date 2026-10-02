@@ -14,7 +14,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 
 import dev.goldberry.css.value.Shadow;
 
-/// The alphas a blur is faked with — ADR-0310.
+/// The alphas a blur is faked with: what each band of the stack contributes.
 ///
 /// These are the tests the golden images cannot write. A golden says "the
 /// picture changed"; it does not say *why* a shadow with a visible ring in it is
@@ -62,7 +62,7 @@ class ShadowRampTest {
         @DisplayName("a hard shadow entirely inside the border box is still a band here")
         void hardShadowHidden() {
             // Offset 2px with a 4px *negative* spread: the shape is inside the
-            // box on every side. Before ADR-0427 this method was told so and
+            // box on every side. This method used to be told so and
             // returned nothing; now it reports the arithmetic and
             // `ShadowGeometry.coveredAt` is what says the band cannot be seen —
             // see ShadowGeometryTest for the other half of this claim.
@@ -237,7 +237,7 @@ class ShadowRampTest {
         @Test
         @DisplayName("a translucent box hides no more and no less than an opaque one")
         void translucencyIsNotAQuestionAnyMore() {
-            // The point of ADR-0427, as arithmetic. This used to take a flag
+            // The point of cutting the hole, as arithmetic. This used to take a flag
             // meaning "will the background cover its own rectangle", and a
             // translucent box got every band because its shadow showed through
             // it. The hole is cut whatever the background's alpha is, so there

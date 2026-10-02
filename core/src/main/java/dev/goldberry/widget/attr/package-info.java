@@ -1,12 +1,15 @@
 /// What every widget carries and no widget decides: `id`, `class` and the
-/// reconciler's key, and a value that can come from a property through §9's
-/// `bind=`.
+/// reconciler's key, and a value that can come from a property through `bind=`.
 ///
 /// The attributes markup fills in, as chainable interfaces a widget implements
-/// rather than a base class it extends — a record cannot extend one. Exported as
-/// one part of the widget layer, split by what each part does (ADR-0172).
+/// rather than a base class it extends, because a record cannot extend one.
+/// Exported as one part of the widget layer, split by what each part does.
 ///
-/// Marked for NullAway (`docs/testing.md` §2, ADR-0497).
+/// The package is null-marked: a parameter or return is non-null unless annotated
+/// `@Nullable`.
+///
+/// Read more:
+/// [Attributes and binding](https://goldberry.dev/docs/guide/writing-a-widget.html#attributes-and-binding).
 @NullMarked
 package dev.goldberry.widget.attr;
 

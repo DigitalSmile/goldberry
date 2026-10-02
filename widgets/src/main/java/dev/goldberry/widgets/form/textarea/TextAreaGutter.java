@@ -10,15 +10,13 @@ import dev.goldberry.widget.style.Paints;
 import dev.goldberry.widget.style.Styled;
 
 /// The column the line numbers sit in — `text-area-gutter`, a **part**, so it is
-/// CSS-selectable and not constructible
-/// (ADR-0065).
+/// CSS-selectable and not constructible.
 ///
 /// It draws nothing itself beyond whatever the stylesheet gives it: a fill, and
 /// usually a rule down its right-hand edge. It exists as a node rather than as a
 /// rectangle the box paints because that is what makes the column themeable at
 /// all — `text-area-gutter { background: … ; border-right: … }` is a rule an
-/// author can write, and a hard-coded fill is not (`docs/gaps.md` G37,
-/// [ADR-0331]).
+/// author can write, and a hard-coded fill is not.
 ///
 /// **It is not what is numbered.** The numbers are drawn by [TextAreaBox] itself
 /// as one paragraph, because where a hard line ended up is a fact about the wrap

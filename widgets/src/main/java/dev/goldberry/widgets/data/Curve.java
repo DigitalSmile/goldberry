@@ -2,12 +2,17 @@ package dev.goldberry.widgets.data;
 
 import dev.goldberry.widgets.data.plot.Curves;
 
-/// How a line gets from one point to the next — `charts.md` §3.1's
-/// "interpolation: linear, smooth, step".
+/// How a line gets from one point to the next: straight, smooth or stepped.
+///
+/// ```java
+/// chart.curve(Curve.SMOOTH)
+/// ```
 ///
 /// The three are not decorations. Each says something different about what
 /// happened *between* two readings, and a chart that picks the wrong one is
 /// asserting something nobody measured.
+///
+/// Read more: [Charts](https://goldberry.dev/docs/components/charts.html#line-chart).
 public enum Curve {
 
     /// A straight segment — the **default**.

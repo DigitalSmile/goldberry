@@ -27,12 +27,14 @@ import dev.goldberry.widgets.TestHost;
 import dev.goldberry.widgets.Widgets;
 import dev.goldberry.widgets.controls.TestFont;
 
-/// §4's one-time-code field, driven the way a user drives it.
+/// The one-time-code field, driven the way a user drives it.
 ///
 /// The editing rules are [CodeEditTest]'s, testable with no widget at all. What
 /// is here is everything that needs one: which key means what, when the model is
 /// told, when `complete` fires, what a `mask` draws, and what a document can
 /// write.
+///
+/// Read more: [`code-input`](https://goldberry.dev/docs/components/forms.html#code-input).
 class CodeInputTest {
 
     private final TestHost host = new TestHost();
@@ -173,7 +175,7 @@ class CodeInputTest {
             assertFalse(event.isConsumed());
         }
 
-        /// §4's "a paste of the full code fills every box at once", through the
+        /// A paste of the full code fills every box at once — here through the
         /// clipboard rather than through committed text — which is how every
         /// desktop delivers `Ctrl+V`.
         @Test
@@ -250,8 +252,8 @@ class CodeInputTest {
             assertEquals(List.of("1", "12", "1"), seen);
         }
 
-        /// §4: `complete` "fires when the last box fills, which is what lets a
-        /// form submit without a button".
+        /// `complete` fires when the last box fills, which is what lets a form
+        /// submit without a button.
         @Test
         @DisplayName("complete fires on the edit that filled the last box")
         void complete() {
@@ -368,8 +370,8 @@ class CodeInputTest {
             assertEquals("12", held(tree));
         }
 
-        /// §2's "group gap 16 at the midpoint when `length` is even", which no
-        /// selector can express — see [CodeGroup].
+        /// The group gap of 16 sits at the midpoint when `length` is even, which
+        /// no selector can express — see [CodeGroup].
         @Test
         @DisplayName("an even length is two groups and an odd one is a single group")
         void groups() {
@@ -417,8 +419,8 @@ class CodeInputTest {
             assertTrue(second.classes().contains("active"));
         }
 
-        /// §4: "six boxes are a drawing, not six fields, and announcing them
-        /// separately would be a lie."
+        /// Six boxes are a drawing, not six fields, and announcing them
+        /// separately would be a lie.
         @Test
         @DisplayName("the field is the one Tab stop and the one node with a name")
         void oneNode() {

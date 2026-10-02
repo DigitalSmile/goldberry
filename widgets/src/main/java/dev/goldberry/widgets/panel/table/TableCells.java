@@ -12,11 +12,10 @@ import dev.goldberry.widget.style.Styled;
 
 /// One row's cells — what a [Table] hands `list` as its item-factory.
 ///
-/// This is the whole of how a table is a list: §10 gives a `list` "any widget as
-/// row", and this is that widget. Everything a row does — being focusable, being
+/// This is the whole of how a table is a list: a `list` takes any widget as a
+/// row, and this is that widget. Everything a row does — being focusable, being
 /// selected, carrying a context menu, being built only when the viewport can see
-/// it — is `list-row`'s and arrives unchanged
-/// (ADR-0214).
+/// it — is `list-row`'s and arrives unchanged.
 ///
 /// **The cells come from the same column model the header does**, which is what
 /// keeps them in step: there is no way to draw four headers over five cells,

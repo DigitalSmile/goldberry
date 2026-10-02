@@ -23,16 +23,16 @@ import dev.goldberry.widgets.Controls;
 import dev.goldberry.widgets.TestHost;
 import dev.goldberry.widgets.controls.TestFont;
 
-/// What a `calendar` looks like — §2's row for it, photographed.
+/// What a `calendar` looks like — its metrics, photographed.
 ///
-/// Everything on that row is a geometry no assertion in [CalendarTest] can see:
+/// Every one of those metrics is a geometry no assertion in [CalendarTest] can see:
 /// a 32-point square cell, a **grid gap of zero** so a range's shading is one run
 /// rather than seven stripes a week, a `caption` header row in
 /// `--gb-text-muted`, and a `full` radius on the chosen day and on a range's two
 /// ends and nowhere between them.
 ///
 /// **September 2026**, fixed, and `today` supplied: a calendar cannot read the
-/// clock (ADR-0274) and an image of one that could would fail every midnight.
+/// clock, and an image of one that could would fail every midnight.
 ///
 /// `./gradlew :widgets:test -Dgoldberry.golden.update=true` rewrites them.
 class CalendarGoldenTest {
@@ -47,8 +47,8 @@ class CalendarGoldenTest {
         RendererRequirement.enforce();
     }
 
-    /// A surface to sit on, and the padding a `date-picker`'s popover gives it —
-    /// §2's "popup radius 12, padding 8".
+    /// A surface to sit on, and the padding a `date-picker`'s popover gives it:
+    /// the popup is 12 round with 8 of padding.
     private static final String SCENE = """
             calendar { padding: 8px; background: var(--gb-surface) }
             """;
@@ -88,8 +88,9 @@ class CalendarGoldenTest {
         paint("calendar-light", Theme.NORD_LIGHT, september(DateSelection.of(LocalDate.of(2026, 9, 14))), false);
     }
 
-    /// §2's "radius `full` on the selected day, **range ends only**" — the middle
-    /// is square and continuous, which is the whole reason the grid has no gap.
+    /// A `full` radius on the selected day and on a **range's ends only** — the
+    /// middle is square and continuous, which is the whole reason the grid has no
+    /// gap.
     @Test
     @DisplayName("a range is round at both ends and square between them")
     void range() {
@@ -100,7 +101,7 @@ class CalendarGoldenTest {
                 false);
     }
 
-    /// §10's `min`, `max` and disabled predicate, in one picture: nothing before
+    /// `min`, `max` and the disabled predicate, in one picture: nothing before
     /// the 7th, nothing after the 25th, and no Sundays in between.
     @Test
     @DisplayName("what min, max and the predicate refuse")
@@ -115,7 +116,7 @@ class CalendarGoldenTest {
     }
 
     /// The roving day, which is a ring **inside** one cell rather than around the
-    /// grid — §10's "one Tab stop with a roving day".
+    /// grid: the calendar is one Tab stop, and the arrows move the day inside it.
     @Test
     @DisplayName("the ring is on the roving day, not around the month")
     void focused() {

@@ -36,7 +36,7 @@ import dev.goldberry.widgets.panel.masonry.Masonry;
 /// *copy* of a property draws exactly like one that reached the model; a `#name`
 /// the stylesheet targets and no document builds is a rule that silently does
 /// nothing; and a screen whose root stopped being a `masonry` would put its Java
-/// cards in a second wall with no error at all (ADR-0222).
+/// cards in a second wall with no error at all.
 class ShowcaseDocumentsTest {
 
     private final Showcase showcase = new Showcase();
@@ -119,7 +119,7 @@ class ShowcaseDocumentsTest {
             // added, and it has to carry the document's **mode** and not just a
             // number -- a screen that came back as a count when the document said
             // a width would stop following the window and nothing would say so.
-            // Since ADR-0436 there are two legal shapes and no third: a count of
+            // There are two legal shapes and no third: a count of
             // at least one, or a minimum column width of at least one.
             if (wall.responsive()) {
                 assertTrue(
@@ -151,7 +151,7 @@ class ShowcaseDocumentsTest {
         var types = everyType();
 
         for (var control : List.of(
-                // §3 -- the controls. No `select`: it is `Stateful`, so the node
+                // The controls. No `select`: it is `Stateful`, so the node
                 // that carries a css type is the `select-field` its state builds,
                 // and the widget itself reports none. It is asserted by class in
                 // `theLightIsPickedFourWays` instead.
@@ -167,7 +167,7 @@ class ShowcaseDocumentsTest {
                 "spinner",
                 "progress",
                 "button",
-                // §5 -- the containers
+                // The containers
                 "panel",
                 "card",
                 "group-box",
@@ -177,12 +177,12 @@ class ShowcaseDocumentsTest {
                 "split-pane",
                 "carousel",
                 "collapse",
-                // §4 -- the fields
+                // The fields
                 "text-input",
                 "text-area",
                 "form",
                 "field",
-                // §7 and §8. No `item` and no `separator`: a menu bar draws a row
+                // Menus and overlays. No `item` and no `separator`: a menu bar draws a row
                 // of titles and builds its rows only when one is *opened*, so the
                 // items `overlays.kdl` writes are not in a closed bar's tree at
                 // all -- which is the whole point of a menu being a popup.
@@ -204,7 +204,7 @@ class ShowcaseDocumentsTest {
         // `markdown.kdl` says `markdown-view` and nothing in this application tells
         // the inflater where that node comes from: `goldberry-html` declares a
         // `WidgetCatalog`, the module path carries it, and `Widgets.inflater` finds it
-        // through a `uses` (ADR-0131, ADR-0294). If that mechanism broke, the document
+        // through a `uses`. If that mechanism broke, the document
         // would fail to inflate rather than render oddly -- so this is the assertion
         // that a second widget module works at all.
         var views = new ArrayList<MarkdownView>();
@@ -216,7 +216,7 @@ class ShowcaseDocumentsTest {
 
         // **The live-ness, asserted rather than described.** The editor and the
         // preview are bound to the same property, which is what makes a keystroke a
-        // new document: nothing in this application connects them (ADR-0296).
+        // new document: nothing in this application connects them.
         var preview = views.getFirst();
         var editor = editors.getFirst();
         assertNotNull(preview.binding(), "the preview follows a property or it is not live");
@@ -286,8 +286,8 @@ class ShowcaseDocumentsTest {
         // controls* read one number; where they fall in the tree is the
         // masonry's, and it packs by column height — so adding a card anywhere
         // in the wall can reorder these four without any of them changing what
-        // they read. That is exactly what happened when the buttons card landed
-        // (ADR-0293), and an assertion that failed for it was testing the wall's
+        // they read. That is exactly what happened when the buttons card landed,
+        // and an assertion that failed for it was testing the wall's
         // packing under a name about bindings.
         assertEquals(
                 List.of("knob", "progress", "slider", "slider"),
@@ -327,7 +327,7 @@ class ShowcaseDocumentsTest {
             // The element's own type when it has one, and otherwise the type of
             // the node it builds. A **stateful** control carries its binding on
             // the widget a document wrote and its CSS type on the node that
-            // widget builds — `slider` since ADR-0430, the arrangement `tabs`,
+            // widget builds — `slider`, the arrangement `tabs`,
             // `collapse` and `toaster` have always had. Asking only the bound
             // element would have this test quietly counting two readers where
             // there are four, which is what it caught when `slider` became
@@ -476,7 +476,7 @@ class ShowcaseDocumentsTest {
         var registry = Models.actions(actions);
 
         // The field is private and the value is reached by path, which is the only
-        // route markup has (ADR-0129).
+        // route markup has: a value is named one way.
         assertSame(Models.observable(model, "app.theme"), bindings.resolve("app.theme"));
 
         // Called through the woven call site, with the value parsed on the way in.

@@ -20,9 +20,9 @@ import dev.goldberry.widget.style.Styled;
 /// `id` and classes the document wrote — the arrangement every stateful widget in
 /// this catalog uses.
 ///
-/// [FocusScope#VERTICAL], which is most of §3's keyboard: `Up` and `Down` rove
-/// between the **visible** rows, and the tree is one Tab stop from outside
-/// (§7.2). `Right` and `Left` are the rows' own, because only a row knows whether
+/// [FocusScope#VERTICAL], which is most of the keyboard: `Up` and `Down` rove
+/// between the **visible** rows, and the tree is one Tab stop from outside.
+/// `Right` and `Left` are the rows' own, because only a row knows whether
 /// it is open.
 ///
 /// Horizontal roving is absent for `menu`'s reason, and here it is load-bearing

@@ -18,8 +18,7 @@ import dev.goldberry.widget.style.Styled;
 import dev.goldberry.widgets.markup.Markup;
 import dev.goldberry.widgets.markup.Wiring;
 
-/// A titled cluster of settings — `docs/core-widgets.md` §5's `group-box`,
-/// "titled border group for settings clusters".
+/// A titled frame around a cluster of settings.
 ///
 /// ```kdl
 /// group-box title="Appearance" {
@@ -32,9 +31,9 @@ import dev.goldberry.widgets.markup.Wiring;
 ///
 /// A `fieldset` puts its legend **through** the border, with the frame broken
 /// behind the words. That needs a box painting over its parent's edge, which
-/// means either a notch (nothing in §10's subset expresses one) or the page's own
-/// background painted behind the title — wrong the moment a `group-box` sits on
-/// anything but the page.
+/// means either a notch, which nothing in the CSS subset expresses, or the
+/// page's own background painted behind the title — wrong the moment a
+/// `group-box` sits on anything but the page.
 ///
 /// The first cut put the title **above** the frame instead. That was a mistake and
 /// it was reported as one: "what is the purpose of group box? I thought I should
@@ -45,7 +44,7 @@ import dev.goldberry.widgets.markup.Wiring;
 /// So the border goes round **both**: the title is a header row *inside* the
 /// frame, with a rule under it. That is a titled group with one look and no
 /// ambiguity, it needs nothing the subset has not got, and it wraps at a narrow
-/// width where a legend through a border would break the frame ([ADR-0166]).
+/// width where a legend through a border would break the frame.
 ///
 /// ## The parts
 ///
@@ -67,6 +66,8 @@ import dev.goldberry.widgets.markup.Wiring;
 /// @param title      the heading, or null for an untitled frame
 /// @param content    what goes inside the frame
 /// @param attributes the `id` and classes, which land on the `group-box` node
+///
+/// Read more: [Panels](https://goldberry.dev/docs/components/panels.html#group-box).
 @Markup("group-box")
 public record GroupBox(@Nullable String title, List<Widget> content, Attributes attributes)
         implements Widget.Leaf, Styled, Paints, Attributed<GroupBox> {
@@ -75,7 +76,7 @@ public record GroupBox(@Nullable String title, List<Widget> content, Attributes 
         this(title, List.of(kids), Attributes.NONE);
     }
 
-    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    /// Written out so that the parameters taking null for a default can say so.
     public GroupBox(@Nullable String title, @Nullable List<Widget> content, @Nullable Attributes attributes) {
         content = List.copyOf(content == null ? List.of() : content);
         attributes = attributes == null ? Attributes.NONE : attributes;
@@ -165,7 +166,7 @@ public record GroupBox(@Nullable String title, List<Widget> content, Attributes 
     /// What the author put in, under the header row.
     record GroupBoxBody(List<Widget> children) implements Widget.Leaf, Styled, Paints {
 
-        /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+        /// Written out so that the parameters taking null for a default can say so.
         GroupBoxBody(@Nullable List<Widget> children) {
             children = List.copyOf(children == null ? List.of() : children);
             this.children = children;

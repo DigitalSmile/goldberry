@@ -25,12 +25,14 @@ import dev.goldberry.widgets.TestHost;
 import dev.goldberry.widgets.Widgets;
 import dev.goldberry.widgets.controls.TestFont;
 
-/// The line-number gutter — `docs/gaps.md` G37, [ADR-0331].
+/// The line-number gutter of a `text-area`.
 ///
-/// The rule the whole entry is about is the last test here: the numbers count
+/// The rule the whole thing is about is the last test here: the numbers count
 /// **hard** lines and sit at **soft** positions, so a line that wraps takes one
 /// number and more than one line's height. A column of numbers built beside the
 /// control is right until the first wrap and wrong for everything below it.
+///
+/// Read more: [`text-area`](https://goldberry.dev/docs/components/forms.html#text-area).
 class TextAreaGutterTest {
 
     private final TestHost host = new TestHost();
@@ -71,7 +73,8 @@ class TextAreaGutterTest {
     /// The **last** child of the control's clipped content layer, because the
     /// numbers are drawn by `TextAreaBox` itself after every part: an area with no
     /// gutter ends in an underline, which carries no text. The strip is outside
-    /// that layer, beside it (ADR-0350).
+    /// that layer, beside it, so that it can reach the border the clip would cut
+    /// it at.
     private Box numbers(ElementTree tree) {
         var last = content(render(tree)).children().getLast();
         return last.text() == null ? null : last;
@@ -79,7 +82,7 @@ class TextAreaGutterTest {
 
     /// The layer the scrolling parts are in: the control's child that clips. Not
     /// simply the last child, because a text that overflows puts its scrollbar
-    /// after it (ADR-0362).
+    /// after it.
     private static Box content(Box area) {
         return area.children().stream()
                 .filter(child -> child.overflow() == Overflow.HIDDEN)
@@ -224,9 +227,9 @@ class TextAreaGutterTest {
 
         assertTrue(state(tree).scrolledBy() > 0, "something scrolled");
         // Against the **text's** own top rather than against the scroll offset:
-        // both are now drawn from the first line in view rather than from the
-        // top of the document, which is what keeps a long note's cost bounded
-        // ([ADR-0388]). What the entry is about is that the two agree.
+        // both are drawn from the first line in view rather than from the
+        // top of the document, which is what keeps a long note's cost bounded.
+        // What matters here is that the two agree.
         assertEquals(
                 pointsOf(firstLine(tree).inset().top()),
                 pointsOf(numbers(tree).inset().top()),

@@ -17,6 +17,9 @@ import dev.goldberry.render.window.BackendWindow;
 /// without a display. A `select` whose list opens in the wrong place fails here
 /// on a CI runner with no compositor, rather than on the one platform whose
 /// driver nobody happened to test.
+///
+/// Read more:
+/// [Windows, popups and the host](https://goldberry.dev/docs/guide/windows.html#in-a-window-of-its-own).
 public final class HeadlessPopup extends HeadlessWindow implements BackendPopup {
 
     private final HeadlessWindow owner;
@@ -71,7 +74,7 @@ public final class HeadlessPopup extends HeadlessWindow implements BackendPopup 
         // wrong on two of the three desktops. Applying it instantly would make
         // this fake the one place that bug passes, so the size lands when the
         // event is delivered, exactly as it does through SDL. The mechanism is
-        // the window's, since ADR-0342 gave a window the same request.
+        // the window's, which takes the same request.
         request(size);
         resizes++;
     }

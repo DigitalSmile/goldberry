@@ -2,6 +2,11 @@ package dev.goldberry.image;
 
 /// How [Image#scaled(int, int, Resampling)] invents the pixels it does not have.
 ///
+/// ```java
+/// Image thumb = photo.scaled(160, 120);                         // LANCZOS
+/// Image big = sprite.scaled(64, 64, Resampling.NEAREST);        // crisp pixels
+/// ```
+///
 /// ## Why this is a choice and not a quality slider
 ///
 /// It is tempting to pick one filter, call it "good", and not have this type at
@@ -20,13 +25,15 @@ package dev.goldberry.image;
 /// both directions: a nearest-neighbour photograph looks like a mistake, and a
 /// Lanczos icon looks like a slightly blurry icon that nobody files a bug about.
 /// So [Image#scaled(int, int)] names a default for the case the operation
-/// exists for — a thumbnail, which is a downscale — and anything else says which
-/// it wants (ADR-0428).
+/// exists for, a thumbnail, which is a downscale, and anything else says which
+/// it wants.
 ///
 /// ## The underlying call
 ///
-/// Blend2D's `BLImageScaleFilter`, four of its five. The fifth is "no filter",
-/// which is the enum's zero value rather than a choice anybody can make.
+/// The rasterizer's own scale filters, four of its five. The fifth is "no
+/// filter", which is its zero value rather than a choice anybody can make.
+///
+/// Read more: [Text, fonts and icons](https://goldberry.dev/docs/guide/text.html#images).
 public enum Resampling {
 
     /// Take the nearest source pixel and nothing else.

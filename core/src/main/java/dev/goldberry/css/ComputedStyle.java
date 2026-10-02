@@ -45,44 +45,47 @@ import dev.goldberry.text.flow.WhiteSpace;
 
 /// Every property a node resolved to, typed.
 ///
-/// The end of the CSS pipeline and the start of the rendering one: ADR-0004 gives
-/// each render object a `YGNode` and one of these. What arrives is a map of
-/// property names to tokens; what leaves is values Yoga and Blend2D can be handed
-/// without either of them knowing CSS exists.
+/// The end of the CSS pipeline and the start of the rendering one: each render
+/// object owns a Yoga node and one of these. What arrives is a map of property
+/// names to tokens; what leaves is values Yoga and Blend2D can be handed without
+/// either of them knowing CSS exists.
+///
+/// The cascade builds one per element with [#of], and a widget reads it off its
+/// element; an application almost never constructs one. Two static helpers serve
+/// tools above the cascade: [#applies] asks whether the engine does anything with
+/// a declaration, and [#durationMillis] reads a time the way the cascade would.
 ///
 /// ## The property split
 ///
-/// §8 calls the split a design invariant, and it is visible in the field list:
+/// The split is a design invariant, and it is visible in the field list:
 /// [#direction()], [#justifyContent()], [#width()] and the rest **compile to
 /// Yoga**, while [#background()], [#color()] and [#opacity()] are **resolved for
 /// paint**. Nothing here does both, and nothing here is a string.
 ///
-/// [#cursor()] belongs to neither half, which is the one thing §8's split did not
-/// anticipate. It compiles to no engine: it rides along to the box tree so that
-/// hit testing can read it off whichever rectangle the pointer is over (§7.3).
+/// [#cursor()] belongs to neither half. It compiles to no engine: it rides along
+/// to the box tree so that hit testing can read it off whichever rectangle the
+/// pointer is over.
 ///
-/// ## What is not here yet
+/// ## What is not here
 ///
-/// §8's full list also has `flex-wrap`, `margin`, `min/max`, `position`, `inset`,
-/// `aspect-ratio`, `overflow`, shadows, transforms, transitions and the font
-/// properties. They are absent because
-/// [Box] cannot express them yet, and a
-/// property that resolves into nothing is a property with no test that means
-/// anything. Each arrives with the thing that paints it — which is why
-/// [#decoration()] is here now and was not before: the design system's radii
-/// (§1.5), its 1px borders and its focus ring (§2.2) all arrived together,
-/// because they are drawn by one rounded-rectangle path.
+/// The subset is closed. A property the engine does not know, such as
+/// `backdrop-filter` or `letter-spacing`, is logged at debug and ignored; a known
+/// property with a value it cannot read is dropped with a warning that quotes the
+/// text. Each property arrives with the thing that paints it, which is why the
+/// design system's radii, its 1px borders and its focus ring are one
+/// [#decoration()]: they are drawn by one rounded-rectangle path.
 ///
 /// Immutable, and every field has a default, so a node with no matching rules is
 /// still a usable style rather than a null.
+///
+/// Read more: [Styling](https://goldberry.dev/docs/guide/styling.html#properties).
 public record ComputedStyle(
         // --- layout: compiled to Yoga ---
         FlexDirection direction,
         Justify justifyContent,
         Align alignItems,
-        // The per-child companion of `align-items`, which §8 listed and this did
-        // not: a child shorter than its row had no way to say where in the cross
-        // axis it sat, and a tab strip's `+` is what found it (ADR-0244).
+        // The per-child companion of `align-items`: where a child shorter than
+        // its row sits in the cross axis.
         // `Align.AUTO` is the default and is the only value that means anything
         // *here* rather than on the parent -- it is the enum's own word for
         // "whatever my container said".
@@ -91,26 +94,20 @@ public record ComputedStyle(
         // about *lines* rather than about children: with `flex-wrap: wrap` a
         // container has as many lines as its children needed, and this is how
         // the leftover cross-axis room is shared between them. Meaningless on a
-        // container that does not wrap, which is CSS's own rule and Yoga's
-        // (ADR-0374).
+        // container that does not wrap, which is CSS's own rule and Yoga's.
         Align alignContent,
-        // §8 has listed `flex-wrap` from the start and nothing had needed it
-        // either: every row in the catalog was a row that fitted, until `select
-        // multiple` grew a row of chips (ADR-0192).
+        // Whether a row that does not fit breaks into lines, which a `select
+        // multiple` full of chips needs.
         Wrap wrap,
         Length width,
         Length height,
-        // §8 listed `min-width` / `max-width` from the start and nothing had
-        // needed them: every box in the catalog was either its content's size or
-        // a fixed one, so `dialog`, `toast` and `tooltip` each wrote a *width*
-        // where they meant a maximum and lived with it (ADR-0181).
+        // `min-width` / `max-width` and their height pair, so a `dialog`, a
+        // `toast` or a `tooltip` can say how small and how large it may be
+        // instead of writing a *width* where it means a maximum.
         Limits limits,
-        // §8 listed it from the start and it was one of four properties written
-        // into the toolkit's own sheets, silently discarded, and found by
-        // looking at a picture (ADR-0215). Everything it needed was already
-        // bound: Yoga has had `YGNodeStyleSetMargin` since the first day and
-        // `Yoga` binds it **with** its `auto` function, which `padding` and
-        // `inset` are bound without (ADR-0311).
+        // `Yoga` binds margin **with** its `auto` function, which `padding` and
+        // `inset` are bound without, so `margin: 0 auto` is a value here and a
+        // dropped declaration there.
         //
         // Separate from `padding` and not a second use of it, because the two
         // answer opposite questions — padding is room *inside* a box for its
@@ -123,36 +120,30 @@ public record ComputedStyle(
         double flexGrow,
         double flexShrink,
         // The main-axis size a box *starts* from, before `flex-grow` shares out
-        // what is left and `flex-shrink` takes back what is missing. §8 has
-        // listed all three since the start and this was the last one
-        // unimplemented: a row of equal columns had to be written as a
-        // percentage width that the widget had to count, and a split pane had to
-        // measure itself first (ADR-0373).
+        // what is left and `flex-shrink` takes back what is missing. It is what
+        // lets a row of equal columns be written as `flex-basis: 0; flex-grow: 1`
+        // rather than as a percentage width the widget has to count.
         Length flexBasis,
         // `position` and `inset` are the layout half's answer to a box that is
-        // not where the flow would put it. §8 listed them from the start and
-        // nothing had needed one: every widget until `segmented`'s travelling
-        // indicator was a box beside another box (ADR-0099).
+        // not where the flow would put it, such as a segmented control's
+        // travelling indicator sitting over its siblings.
         Position position,
         Insets inset,
-        // §8 has listed `overflow` since the beginning and nothing had needed
-        // it: until `scroll`, no box in the catalog had content it was meant to
-        // hide rather than grow around. Yoga reads it for *sizing* — a HIDDEN
-        // parent does not stretch to fit a child — and the painter reads it for
-        // the clip, which are two different jobs from one keyword
-        // (ADR-0114).
+        // Yoga reads `overflow` for *sizing* — a HIDDEN parent does not stretch
+        // to fit a child — and the painter reads it for the clip, which are two
+        // different jobs from one keyword.
         Overflow overflow,
         // --- text: read by the paragraph, which is both engines at once ---
         // `white-space` **inherits** and `text-overflow` does not, which is CSS's
         // rule and the only reason these are two components rather than one
         // `TextFlow`: a bundle cannot be half-inherited. [#textFlow()] puts them
-        // back together for everything below the cascade (ADR-0255).
+        // back together for everything below the cascade.
         WhiteSpace whiteSpace,
         TextOverflow textOverflow,
         // The too-narrow half of the same question, and the third property on
         // the same value. It inherits, like `white-space` and unlike
         // `text-overflow`, which is CSS's split and the reason these are three
-        // components (ADR-0256).
+        // components.
         TextAlign textAlign,
         // The fourth property on the same value, and the first that is a mark on
         // the glyphs rather than a placement of them: `text-decoration-line`, as a
@@ -160,7 +151,7 @@ public record ComputedStyle(
         // approximation of CSS's *propagation* to in-flow descendants and is chosen
         // for `text-align`'s reason -- a control's text is very often an anonymous
         // child box, and a property that stopped at the node it was written on
-        // would decorate nothing (ADR-0321).
+        // would decorate nothing.
         Set<TextDecoration> textDecoration,
         // --- paint: resolved into pixels ---
         int background,
@@ -169,15 +160,15 @@ public record ComputedStyle(
         Decoration decoration,
         Typography typography,
         Transitions transitions,
-        // The other half of §1.7's motion: what runs by itself rather than moving
-        // between two styles. Resolved like `transition`, and like it not
-        // inherited (ADR-0353).
+        // The other half of motion: what runs by itself rather than moving
+        // between two styles, named by `@keyframes`. Resolved like `transition`,
+        // and like it not inherited.
         KeyframeAnimations animations,
         // Not finished when the cascade produces it, unlike everything above.
         // `transform: translate(50%)` and the `transform-origin` default of
         // `50% 50%` are proportions of the box, and the box has no size until
         // Yoga has run -- so what is carried is the functions, and the painter
-        // resolves them (ADR-0068).
+        // resolves them.
         Transform transform,
         // --- neither: read by input, not by either engine ---
         Cursor cursor) {
@@ -199,8 +190,8 @@ public record ComputedStyle(
             Align.AUTO,
             // How wrapped *lines* share the cross axis. `stretch` is Yoga's
             // default under `useWebDefaults` and CSS's `normal` for a flex
-            // container, so a box that never mentions it lays out exactly as it
-            // did before this was a property (ADR-0374).
+            // container, so a box that never mentions it leaves the cross axis
+            // to `align-items`.
             Align.STRETCH,
             // One line, however much it overflows -- Yoga's default and CSS's.
             Wrap.NO_WRAP,
@@ -221,7 +212,7 @@ public record ComputedStyle(
             // preferred width, and a cramped row may take it back.
             1,
             // `auto`: the main size comes from `width`/`height` or the content,
-            // which is CSS's initial value and Yoga's (ADR-0373).
+            // which is CSS's initial value and Yoga's.
             Length.AUTO,
             Position.RELATIVE,
             // Not `Insets.ZERO`: an inset of zero pins a node to its container's
@@ -317,12 +308,9 @@ public record ComputedStyle(
 
         // `font-size` is resolved **first and against the parent's size**, and
         // everything else against the size that produced — which is CSS's rule
-        // and not a refinement of it ([ADR-0242]). `1.2em` on `font-size` means
-        // "a fifth larger than my parent"; `1.2em` on `padding` means "a fifth
-        // larger than my own text". One pass with one context cannot say both,
-        // and the old code said neither: it used `CssLength.Context`'s constant
-        // for every node at every depth, so `1em` was 16 even where the computed
-        // font-size was `Typography.INITIAL`'s 13.
+        // and not a refinement of it. `1.2em` on `font-size` means "a fifth
+        // larger than my parent"; `1.2em` on `padding` means "a fifth larger
+        // than my own text". One pass with one context cannot say both.
         var parentSize = parent == null
                 ? context.fontSize()
                 : (float) parent.typography().size();
@@ -334,19 +322,19 @@ public record ComputedStyle(
         // whatever was inherited, which is exactly what `em` should resolve
         // against.
         //
-        // **`rem` gets the same treatment, for the root and only for the root**
-        // ([ADR-0416]). CSS says `rem` is the *root element's* computed
-        // `font-size`, with one exception that is this method's own two-pass
-        // structure seen from the other end: on the root element's `font-size`
-        // itself, `rem` cannot be the value being computed, so it resolves
-        // against the configured size above. Everything else on the root -- and,
-        // through the context the renderer hands down, everything below it --
-        // resolves against what the root just computed.
+        // **`rem` gets the same treatment, for the root and only for the root.**
+        // CSS says `rem` is the *root element's* computed `font-size`, with one
+        // exception that is this method's own two-pass structure seen from the
+        // other end: on the root element's `font-size` itself, `rem` cannot be
+        // the value being computed, so it resolves against the configured size
+        // above. Everything else on the root -- and, through the context the
+        // renderer hands down, everything below it -- resolves against what the
+        // root just computed.
         //
         // A node with a parent takes `rootFontSize` as given, because by then it
         // is the renderer's business rather than this method's: a node is handed
-        // its parent's style and not the root's, which is the whole reason
-        // ADR-0242 left this open.
+        // its parent's style and not the root's, and only the walk down the tree
+        // knows which style the root's was.
         var rootSize = parent == null ? (float) style.typography().size() : context.rootFontSize();
         var own = new CssLength.Context((float) style.typography().size(), rootSize);
         for (var entry : declarations.entrySet()) {
@@ -358,7 +346,7 @@ public record ComputedStyle(
     }
 
     /// This style with `declarations` applied **on top of it** — what a keyframe
-    /// is (ADR-0353).
+    /// is.
     ///
     /// Not [#of], which starts from [#INITIAL]: a keyframe that says `opacity: 0`
     /// leaves every other property where the element's own rules put it, so it is
@@ -383,7 +371,7 @@ public record ComputedStyle(
     /// The inherited half is `color` and `typography`, which is
     /// [#inheritingFrom]'s whole body, plus nothing: a child reads no other
     /// component of its parent's style, so two parents that agree on these are
-    /// indistinguishable from below ([ADR-0248]).
+    /// indistinguishable from below.
     ///
     /// It exists because the alternative is `equals`, and `equals` compares the
     /// **transform** — which nothing inherits and which a `scroll` moves on every
@@ -410,16 +398,15 @@ public record ComputedStyle(
     /// - **`cursor`**, which CSS does inherit. Goldberry inherits it through the
     ///   stack of painted rectangles instead — hit testing reads it off whichever
     ///   box the pointer is over, because what the cursor should be is a question
-    ///   about what is on screen
-    ///   (ADR-0057).
-    ///   Inheriting it here as well would be a second mechanism for one property,
-    ///   and the two would disagree the first time a box was styled without an
-    ///   element behind it.
+    ///   about what is on screen. Inheriting it here as well would be a second
+    ///   mechanism for one property, and the two would disagree the first time a
+    ///   box was styled without an element behind it.
     /// - **`opacity`**, which CSS does not inherit — its *effect* does, and the
-    ///   painter accumulates it down the box tree
-    ///   (ADR-0064).
-    ///   Inheriting the value here would then apply it once per level per
-    ///   ancestor: a label under a control at 45% would be drawn at 20%.
+    ///   painter accumulates it down the box tree. Inheriting the value here
+    ///   would then apply it once per level per ancestor: a label under a control
+    ///   at 45% would be drawn at 20%.
+    ///
+    /// Read more: [Inheritance](https://goldberry.dev/docs/guide/styling.html#inheritance).
     private ComputedStyle inheritingFrom(ComputedStyle parent) {
         // `transition` is deliberately absent: CSS does not inherit it, and a
         // panel that faded its background must not make every label inside it
@@ -428,7 +415,7 @@ public record ComputedStyle(
         // exactly what CSS says about the pair. It is also what an author means:
         // `menu { white-space: nowrap }` is a statement about the rows, and
         // `text-overflow` on a container that draws no text of its own would
-        // otherwise put a mark on every label underneath it (ADR-0255).
+        // otherwise put a mark on every label underneath it.
         return INITIAL.color(parent.color())
                 .typography(parent.typography())
                 .whiteSpace(parent.whiteSpace())
@@ -437,15 +424,14 @@ public record ComputedStyle(
                 // is exactly why it has to: `slider-value { text-align: end }`
                 // is a rule about a node whose text is its own, and
                 // `column.numeric { text-align: end }` is one about nodes whose
-                // text is not (ADR-0256).
+                // text is not.
                 .textAlign(parent.textAlign())
                 // And `text-decoration`, which CSS does not inherit but *propagates*
                 // to in-flow descendants -- a rule drawn across the whole of an
                 // element's text, children included. Inheritance is how that reads
                 // here, because the child is usually an anonymous box holding the
                 // paragraph: `button.link { text-decoration: underline }` has to
-                // reach the label inside it or it decorates nothing at all
-                // ([ADR-0321]).
+                // reach the label inside it or it decorates nothing at all.
                 .textDecoration(parent.textDecoration());
     }
 
@@ -464,12 +450,12 @@ public record ComputedStyle(
             // The per-child companion, and the one place `auto` is a value rather
             // than a missing one: it is the enum's word for "whatever my
             // container said", so `align-self: auto` is a real declaration that
-            // undoes a more general rule (ADR-0244).
+            // undoes a more general rule.
             case "align-self" ->
                 keyword(value, Align.class).map(this::alignSelf).orElseGet(() -> dropped(property, value));
 
             // The same value space again, read by a container about its wrapped
-            // lines (ADR-0374).
+            // lines.
             case "align-content" ->
                 keyword(value, Align.class).map(this::alignContent).orElseGet(() -> dropped(property, value));
 
@@ -491,11 +477,11 @@ public record ComputedStyle(
             // state its own metrics.
             //
             // `fixed` and not `length`, here and everywhere below: Yoga has no
-            // `YGNodeStyleSetPaddingAuto`, so `padding: auto` reached a binding
-            // that refuses `auto` **by name** and threw mid-frame. §8's rule for
-            // a value the engine cannot honour is to drop the declaration, and
-            // this is where that decision belongs — the layout pass is far too
-            // late to be making it (ADR-0311).
+            // `YGNodeStyleSetPaddingAuto`, so `padding: auto` would reach a
+            // binding that refuses `auto` **by name** and throw mid-frame. The
+            // rule for a value the engine cannot honour is to drop the
+            // declaration, and this is where that decision belongs — the layout
+            // pass is far too late to be making it.
             case "padding" ->
                 insets(value, context, false).map(this::padding).orElseGet(() -> dropped(property, value));
 
@@ -509,7 +495,7 @@ public record ComputedStyle(
             // `margin: 0 auto` is how a box centres itself in a container it
             // does not control, which is the whole reason the property was
             // wanted: `align-self: center` centres on the **cross** axis, and
-            // nothing in the subset centred on the main one (ADR-0311).
+            // nothing else in the subset centres on the main one.
             //
             // Negative margins are allowed and deliberately not clamped. A
             // negative margin pulls a box over its neighbour, which is how a
@@ -522,11 +508,10 @@ public record ComputedStyle(
                         .map(v -> margin(edge(margin, edgeOf(property), v)))
                         .orElseGet(() -> dropped(property, value));
 
-            // §2 asks a `dialog` for "min width 320, max 80% window", and until
-            // these four existed the scrim's padding was a de-facto maximum with
-            // no minimum at all: a dialog with three words in it was three words
-            // wide. `toast` and `tooltip` each wrote a *width* meaning a maximum
-            // for the same reason (ADR-0181).
+            // The four bounds. A `dialog` is "min width 320, max 80% window", and
+            // without them the scrim's padding would be a de-facto maximum with
+            // no minimum at all: a dialog with three words in it would be three
+            // words wide. `toast` and `tooltip` want a maximum for the same reason.
             case "min-width" ->
                 fixed(value, context).map(v -> limits(limits.minWidth(v))).orElseGet(() -> dropped(property, value));
 
@@ -544,23 +529,21 @@ public record ComputedStyle(
             case "flex-grow" ->
                 number(value).filter(v -> v >= 0).map(this::flexGrow).orElseGet(() -> dropped(property, value));
 
-            // §8 lists `flex-grow/shrink/basis` and only grow was implemented, so
-            // every fixed-size part in the catalog was negotiable and a narrow
-            // window squashed it (ADR-0076).
+            // Without `flex-shrink: 0` every fixed-size part in a row is
+            // negotiable and a narrow window squashes it, and an icon or a glyph
+            // must not be.
             case "flex-shrink" ->
                 number(value).filter(v -> v >= 0).map(this::flexShrink).orElseGet(() -> dropped(property, value));
 
-            // The third of §8's flex trio, and the one whose `auto` is a value:
+            // The third of the flex trio, and the one whose `auto` is a value:
             // `flex-basis: auto` is "ask `width` or the content", which is what
-            // undoes a more general rule (ADR-0373).
+            // undoes a more general rule.
             case "flex-basis" -> length(value, context).map(this::flexBasis).orElseGet(() -> dropped(property, value));
 
-            // §8 has listed `position` since the beginning and nothing had
-            // needed it: a segmented control's indicator is the first box in
-            // the catalog that has to sit *over* its siblings rather than
-            // beside them. `static` is admitted as well as CSS's two, because it
-            // is how a container declines to be the thing an absolute
-            // descendant is placed against (ADR-0099).
+            // A segmented control's indicator is the kind of box that has to sit
+            // *over* its siblings rather than beside them. `static` is admitted
+            // as well as CSS's two, because it is how a container declines to be
+            // the thing an absolute descendant is placed against.
             case "position" ->
                 keyword(value, Position.class).map(this::position).orElseGet(() -> dropped(property, value));
 
@@ -577,32 +560,29 @@ public record ComputedStyle(
             // identically. What separates them is above the layout engine: a
             // `scroll` offers scrollbars for `scroll` and `auto` and none for
             // `hidden`, so the keyword is how a stylesheet says which of the
-            // two a box is (ADR-0114). `auto` resolves to SCROLL and is told
+            // two a box is. `auto` resolves to SCROLL and is told
             // apart by the widget, not by the box.
             case "overflow" -> overflow(value).map(this::overflow).orElseGet(() -> dropped(property, value));
-            // §8 has listed neither, and four widgets reached for the pair and
-            // found nothing: a menu row, an `option`, a `select-value` and a
-            // segment all overflow their cells rather than being cut, because a
-            // box with text is a measured leaf and narrowing it *wraps* the text
-            // instead of overflowing it. `white-space: nowrap` is what stops that
-            // and `text-overflow` is what marks the result (ADR-0235, ADR-0255).
+            // A box with text is a measured leaf, so narrowing it *wraps* the
+            // text instead of overflowing it. A menu row, an `option`, a
+            // `select-value` and a segment all want to be cut instead:
+            // `white-space: nowrap` is what stops the wrap and `text-overflow` is
+            // what marks the result.
             case "white-space" ->
                 keyword(value, WhiteSpace.class).map(this::whiteSpace).orElseGet(() -> dropped(property, value));
             case "text-overflow" ->
                 keyword(value, TextOverflow.class).map(this::textOverflow).orElseGet(() -> dropped(property, value));
-            // §8 has listed `text-align` from the start and §8's own note said
-            // `Box` could not express it. That was true of `Box` and never true
-            // of the paragraph, which has always known its lines' widths -- so
-            // it is the paint that places them, and `Box` is untouched
-            // (ADR-0256). `left` and `right` are refused for ADR-0247's reason:
-            // they are not the same as `start`/`end` under RTL.
+            // The paragraph knows its lines' widths and the box does not, so it
+            // is the paint that places them and `Box` is untouched. `left` and
+            // `right` are refused: they are not the same as `start`/`end` under
+            // RTL.
             case "text-align" ->
                 keyword(value, TextAlign.class).map(this::textAlign).orElseGet(() -> dropped(property, value));
             // The shorthand and the one longhand of it that exists here. CSS's
             // shorthand also carries a colour and a style, and a declaration that
             // names either is dropped whole rather than half-applied: a rule that
             // asked for `underline wavy red` and got a straight rule in the text's
-            // own colour would be a property that lies (ADR-0321).
+            // own colour would be a property that lies.
             case "text-decoration", "text-decoration-line" ->
                 decorations(value).map(this::textDecoration).orElseGet(() -> dropped(property, value));
 
@@ -613,7 +593,7 @@ public record ComputedStyle(
             // not a value the longhand takes. `select text-input` is what wanted
             // it, for the same sentence that made it write `border: none` on the
             // line above: an editor inside a control is that control's interior,
-            // with no fill of its own (ADR-0183).
+            // with no fill of its own.
             case "background" -> backgroundLayer(value).map(this::background).orElseGet(() -> dropped(property, value));
 
             case "background-color" -> colour(value).map(this::background).orElseGet(() -> dropped(property, value));
@@ -626,21 +606,21 @@ public record ComputedStyle(
                         .map(this::opacity)
                         .orElseGet(() -> dropped(property, value));
 
-            // --- the decoration half (docs/design-system.md §1.5, §2.2) -------
+            // --- the decoration half: corners, border, outline, shadow --------
             //
             // CSS's 1-4 corner shorthand, over [Corners]. Every radius the design
             // system pins is uniform (4, 8, 12, full) and writes one number; the
             // second form is for a box that meets a rounded parent on one edge
-            // and a square sibling on the other, which is `group-box-title` and
-            // which ADR-0216 is about. `full` is spelled `9999px`.
+            // and a square sibling on the other, which is what `group-box-title`
+            // is. `full` is spelled `9999px`.
             case "border-radius" ->
                 corners(value, context)
                         .map(v -> decoration(decoration.corners(v)))
                         .orElseGet(() -> dropped(property, value));
 
             // CSS's 1-4 side shorthand, in `padding`'s order, since the sides
-            // could differ (ADR-0505). One value is still every side, which is
-            // what every rule the toolkit ships writes.
+            // can differ. One value is still every side, which is what every
+            // rule the toolkit ships writes.
             case "border-width" ->
                 sides(value, part -> points(part, context))
                         .map(v -> decoration(
@@ -653,18 +633,18 @@ public record ComputedStyle(
                                 decoration.border(decoration.border().colours(v.get(0), v.get(1), v.get(2), v.get(3)))))
                         .orElseGet(() -> dropped(property, value));
 
-            // One side of the border, which §8 did not have and which rules kept
-            // reaching for: `border-bottom` under `table-head` and `tab-new`,
-            // `border-left` on a quotation, `border-right` down a gutter, and a
-            // rule between a document table's cells (ADR-0215, ADR-0505). The
-            // shorthand is `border`'s grammar over one side -- the style keyword
-            // is read and drawn solid, `none` is a zero width -- and it resets
-            // that side's colour the way `border` resets all four.
+            // One side of the border, which rules keep reaching for:
+            // `border-bottom` under `table-head` and `tab-new`, `border-left` on
+            // a quotation, `border-right` down a gutter, and a rule between a
+            // document table's cells. The shorthand is `border`'s grammar over
+            // one side -- the style keyword is read and drawn solid, `none` is a
+            // zero width -- and it resets that side's colour the way `border`
+            // resets all four.
             //
             // The cascade applies declarations in the order they won, so `border`
             // then `border-left` is a uniform border with its left side replaced,
             // and `border-left` then `border` is a uniform border: later wins,
-            // per side, which is CSS's rule and ADR-0311's ordering.
+            // per side, which is CSS's rule.
             case "border-top", "border-right", "border-bottom", "border-left" ->
                 stroke(value, context)
                         .map(v -> decoration(decoration.border(
@@ -719,23 +699,19 @@ public record ComputedStyle(
                         .map(v -> decoration(decoration.outline(v.width(), v.argb(), decoration.outlineOffset())))
                         .orElseGet(() -> dropped(property, value));
 
-            // §8 listed it from the beginning and two ADRs turned it down: a
-            // card's elevation became an edge (ADR-0166) because `Box` had no
-            // field for a shadow and nothing in the toolkit painted outside a
-            // box's own rectangle. Both of those stopped being true -- the ring
-            // paints outside the rectangle and the damage rectangle already grows
-            // for it -- so the reason left was the drawing, and a rasterizer
-            // with no blur can still draw a fade out of the one primitive it is
-            // fastest at (ADR-0310). `--gb-elevation-1/-2/-3` are what a rule
-            // should name; the numbers in them are the theme's, because the same
-            // alpha that reads as a shadow on nord-light is invisible on
-            // nord-dark.
+            // A shadow paints outside the box's own rectangle, as the focus ring
+            // does, and the damage rectangle already grows for it. A rasterizer
+            // with no blur still draws the fade out of the one primitive it is
+            // fastest at: a stack of rectangles. `--gb-elevation-1/-2/-3` are
+            // what a rule should name; the numbers in them are the theme's,
+            // because the same alpha that reads as a shadow on nord-light is
+            // invisible on nord-dark.
             case "box-shadow" -> {
                 var parsed = Shadow.parse(value, context);
                 yield parsed == null ? dropped(property, value) : decoration(decoration.shadow(parsed));
             }
 
-            // --- the typography half (docs/design-system.md §1.4) ------------
+            // --- the typography half ------------------------------------------
             //
             // Inherited, which is what makes `panel { font-size: 13px }` reach
             // every label under it and is why `Typography` is one record: the
@@ -756,7 +732,7 @@ public record ComputedStyle(
             // `normal` and `italic`, and **not** `oblique`: an italic here is a
             // drawn face rather than a slant, so answering `oblique` with it would
             // answer a different question and answering it with a shear would be a
-            // type-design decision taken by a stylesheet (ADR-0323).
+            // type-design decision taken by a stylesheet.
             case "font-style" ->
                 fontStyle(value).map(v -> typography(typography.style(v))).orElseGet(() -> dropped(property, value));
 
@@ -768,14 +744,14 @@ public record ComputedStyle(
                         .map(v -> typography(typography.lineHeight(v)))
                         .orElseGet(() -> dropped(property, value));
 
-            // --- motion (docs/design-system.md §1.7) --------------------------
+            // --- motion: transitions and keyframe animations ------------------
             //
             // Resolved by the cascade like everything else, which is what lets
             // `button` and `button:hover` declare different transitions and lets
             // an application turn one off by overriding a rule.
             // `@keyframes`, run by name: the shorthand and its seven longhands,
-            // each a comma-separated list (ADR-0353). A bad value drops the
-            // declaration and names it, `transition`'s rule.
+            // each a comma-separated list. A bad value drops the declaration and
+            // names it, `transition`'s rule.
             case "animation" -> animationList(value).map(v -> animations(v)).orElseGet(() -> dropped(property, value));
 
             case "animation-name" ->
@@ -840,18 +816,15 @@ public record ComputedStyle(
             }
 
             // Resolved here and read by neither engine: the cursor is carried
-            // through the cascade to the box tree, where hit testing picks it up
-            // (§7.3). The enum's names are CSS's, so `ew-resize` maps onto
+            // through the cascade to the box tree, where hit testing picks it
+            // up. The enum's names are CSS's, so `ew-resize` maps onto
             // `EW_RESIZE` by the same rule `space-between` maps onto Yoga.
             case "cursor" -> keyword(value, Cursor.class).map(this::cursor).orElseGet(() -> dropped(property, value));
 
-            // Not an error. §8's property list is longer than this record, and a
-            // stylesheet naming a property before it is implemented should not
+            // Not an error. CSS has more properties than this record, and a
+            // stylesheet naming one the toolkit does not implement should not
             // stop a window opening -- but it is logged, because "my
-            // `backdrop-filter` does nothing" needs an answer. `box-shadow` was
-            // this comment's example for two hundred ADRs and is a case above
-            // now (ADR-0310); `backdrop-filter` and `letter-spacing` are what is
-            // left of §8's list.
+            // `backdrop-filter` does nothing" needs an answer.
             default -> {
                 LOG.debug("ignoring unsupported property \"{}\"", property);
                 yield this;
@@ -902,7 +875,7 @@ public record ComputedStyle(
     /// ## How it can be this short
     ///
     /// [#with] returns **`this`** in exactly two places and both of them are
-    /// failures: the `default` arm, where the property is not in §8's subset, and
+    /// failures: the `default` arm, where the property is not in the subset, and
     /// [#dropped], where it is and the value would not parse. Every success goes
     /// through a wither, and every wither allocates. So identity *is* the answer,
     /// and it cannot fall out of step with the behaviour because it is the
@@ -914,13 +887,13 @@ public record ComputedStyle(
     ///
     /// **The two failures are not told apart**, deliberately. Distinguishing them
     /// would mean the engine reporting rather than being asked — a sink threaded
-    /// through thirty switch arms, for a difference the author reads off §8's
-    /// list in either case ([ADR-0257]).
+    /// through thirty switch arms, for a difference the author reads off the
+    /// guide's property list in either case.
     ///
     /// Custom properties are **not** this method's business and answer `false`:
     /// `--gb-accent` reaches the `default` arm and is not a fault, because the
-    /// resolver has already consumed it for `var()` substitution ([ADR-0049]). A
-    /// caller that does not filter them reports every token in the theme.
+    /// resolver has already consumed it for `var()` substitution. A caller that
+    /// does not filter them reports every token in the theme.
     ///
     /// @param property the property name, already lowercased by the parser
     /// @param value    the declaration's tokens, with `var()` already substituted
@@ -939,9 +912,9 @@ public record ComputedStyle(
     /// cleared would make the second test in a class depend on whether the first
     /// one had already tripped the same warning. It is **public** because one of
     /// those tests is in another module — `:example`'s lint over the toolkit's own
-    /// stylesheets reads what the cascade said about them (ADR-0215), and a drop
-    /// another test in the same JVM had already reported would be a lint that
-    /// passed by seeing nothing at all (ADR-0216).
+    /// stylesheets reads what the cascade said about them, and a drop another
+    /// test in the same JVM had already reported would be a lint that passed by
+    /// seeing nothing at all.
     public static void forgetReportedDrops() {
         REPORTED.clear();
     }
@@ -1746,7 +1719,7 @@ public record ComputedStyle(
     /// [Box#style(ComputedStyle)] carries onto a [Box.Text] and what a widget
     /// building an anonymous label box passes to
     /// [Box#text(dev.goldberry.text.Paragraph, int,
-    /// TextFlow)] ([ADR-0255]).
+    /// TextFlow)].
     public TextFlow textFlow() {
         return new TextFlow(whiteSpace, textOverflow, textAlign, textDecoration);
     }
@@ -1961,7 +1934,7 @@ public record ComputedStyle(
                 cursor);
     }
 
-    /// This style running `v` — `animation` (ADR-0353).
+    /// This style running `v`: what the `animation` properties resolved to.
     public ComputedStyle animations(KeyframeAnimations v) {
         return new ComputedStyle(
                 direction,
@@ -2084,10 +2057,11 @@ public record ComputedStyle(
     /// A font family name — an identifier or a quoted string.
     ///
     /// Only the **first** name of a list is taken. CSS's comma-separated list is
-    /// a fallback chain, and §6.1 is explicit that there is no fallback cascade
-    /// in v1: a character outside the bundled faces renders `.notdef`,
-    /// deliberately. Honouring the rest of the list would be pretending to a
-    /// mechanism that does not exist.
+    /// a fallback chain, and there is no fallback cascade here: a character
+    /// outside the bundled faces renders `.notdef`, deliberately. Honouring the
+    /// rest of the list would be pretending to a mechanism that does not exist.
+    ///
+    /// Read more: [The bundled faces](https://goldberry.dev/docs/guide/text.html#the-bundled-faces).
     private static Optional<String> family(List<Token> value) {
         for (var part : split(value)) {
             if (part.isEmpty()) {
@@ -2098,8 +2072,7 @@ public record ComputedStyle(
                 // `Inter, sans-serif` and `"JetBrains Mono", monospace` both stop
                 // at the first name. No comma to strip: the tokenizer emits one as
                 // a `COMMA` of its own, so an IDENT or a STRING never carries a
-                // trailing one and the strip that stood here could not fire (the
-                // 2026-09-18 review, §7).
+                // trailing one.
                 return Optional.of(token.text());
             }
         }
@@ -2177,9 +2150,12 @@ public record ComputedStyle(
     /// property that made it bad is named. Half a transition list is worse than
     /// none: the author sees two of their three properties moving and has
     /// nothing to tell them which one the parser refused. In particular
-    /// `transition: width 200ms` is refused rather than ignored — §1.7 says
-    /// layout properties never transition, and an author who asked for one is
-    /// asking for something the system deliberately will not do.
+    /// `transition: width 200ms` is refused rather than ignored — layout
+    /// properties never transition, and an author who asked for one is asking
+    /// for something the system deliberately will not do.
+    ///
+    /// Read more:
+    /// [Transition and animation](https://goldberry.dev/docs/guide/styling.html#transition-and-animation).
     private Optional<Transitions> transitionList(List<Token> value) {
 
         var entries = splitOnCommas(value);
@@ -2239,7 +2215,7 @@ public record ComputedStyle(
                     property,
                     new Transitions.Timing(
                             duration,
-                            // §1.7's default for anything that does not say: an enter
+                            // The default for anything that does not say: an enter
                             // curve, because most transitions are something arriving.
                             easing == null ? Easing.EASE_ENTER : easing,
                             delay == null ? 0 : delay));
@@ -2250,7 +2226,7 @@ public record ComputedStyle(
     /// An `animation` shorthand: a comma-separated list of
     /// `<name> <duration> [<easing>] [<delay>] [<count>] [<direction>] [<fill>]`,
     /// in any order but with the first time the duration and the second the delay,
-    /// which is CSS's rule and `transition`'s (ADR-0353).
+    /// which is CSS's rule and `transition`'s.
     ///
     /// `none` alone turns every animation off. A name that collides with a
     /// keyword (`infinite`, `both`, `reverse`) is read as the keyword, which is
@@ -2437,8 +2413,8 @@ public record ComputedStyle(
     /// [#applies] does: something above the cascade has a question only the
     /// cascade's own parser can answer honestly. Here it is a **duration custom
     /// property** — `--gb-tooltip-delay: 500ms` — read by the launcher, which
-    /// schedules a timer and has no `ComputedStyle` to read it off
-    /// ([ADR-0262]).
+    /// schedules a timer and has no `ComputedStyle` to read it off: a delay is a
+    /// metric, and metrics are tokens in the theme.
     ///
     /// Reusing this rather than writing a second `ms`/`s` reader is the whole
     /// point: two parsers for one syntax disagree the day either grows a unit,
@@ -2559,10 +2535,10 @@ public record ComputedStyle(
     /// exception thrown in the middle of a layout pass, which is a window
     /// closing over one typo.
     ///
-    /// So the refusal moves to where the declaration is read. §8's rule for a
+    /// So the refusal moves to where the declaration is read. The rule for a
     /// value the engine cannot honour is to drop it and say so, and dropping it
     /// here is the difference between a rule that does nothing and a frame that
-    /// does not happen (ADR-0311).
+    /// does not happen.
     ///
     /// `width`, `height` and `margin` do **not** go through this: Yoga binds all
     /// three with their auto call, and `margin: 0 auto` is the reason margin was
@@ -2689,10 +2665,8 @@ public record ComputedStyle(
     ///
     /// That is not a hypothetical. `--gb-border-strong` is `rgba(…)` by design —
     /// an alpha over whatever is underneath is the only way to say "lighter than
-    /// its own surface" in a subset with no colour functions (ADR-0166) — and
-    /// `card`'s edge, which is the whole of how a raised thing is told apart, has
-    /// been silently absent on both themes ever since. The warning was there and
-    /// said "dropping border"; nothing was looking at it.
+    /// its own surface" in a subset with no colour functions — and `card`'s edge,
+    /// which is the whole of how a raised thing is told apart, depends on it.
     private static List<List<Token>> split(List<Token> value) {
         var parts = new ArrayList<List<Token>>();
         var current = new ArrayList<Token>();
@@ -2757,24 +2731,21 @@ public record ComputedStyle(
     ///
     /// By name rather than by a hand-written table because the two vocabularies
     /// already agree — Yoga's enums are the CSS names — and a table would be a
-    /// second place for them to drift apart.
-    /// CSS's own spellings for the two alignment keywords Yoga names
-    /// differently ([ADR-0247]).
+    /// second place for them to drift apart. The aliases are CSS's own spellings
+    /// for the two alignment keywords Yoga names differently.
     ///
     /// `align-items: start` is **valid CSS** — Box Alignment Level 3 — and Yoga
-    /// has only `flex-start`, so a document that wrote what the specification
-    /// allows had its declaration dropped with a warning. That is the toolkit
-    /// refusing valid CSS rather than the author making a typo, and it filled the
-    /// console on the Panels screen for long enough to need deduplicating
-    /// (ADR-0216).
+    /// has only `flex-start`, so without the alias a document that wrote what the
+    /// specification allows would have its declaration dropped with a warning:
+    /// the toolkit refusing valid CSS rather than the author making a typo.
     ///
     /// Two entries and no more. `start` and `end` are writing-mode-relative in
     /// full CSS and identical to the flex pair in a subset with one writing mode
     /// and no grid, which is what makes the mapping exact rather than
     /// approximate. `left` and `right` are deliberately absent: they are
     /// `justify-content` only, they are *not* the same as `start`/`end` under
-    /// RTL, and §2.4's bidi support (ADR-0218) means the toolkit cannot promise
-    /// they would stay equivalent.
+    /// RTL, and a paragraph approximates bidi rather than refusing it, so the
+    /// toolkit cannot promise they would stay equivalent.
     private static final java.util.Map<String, String> KEYWORD_ALIASES = java.util.Map.of(
             "START", "FLEX_START",
             "END", "FLEX_END");
@@ -2809,7 +2780,7 @@ public record ComputedStyle(
     /// Empty — a dropped declaration — for anything else, which deliberately
     /// includes the rest of the shorthand: `underline red` names a colour this
     /// toolkit cannot draw, and dropping it with a warning is how every other
-    /// property here reports a value outside the subset (ADR-0321).
+    /// property here reports a value outside the subset.
     ///
     /// `none` beside another keyword is also refused rather than resolved. CSS says
     /// the same, and the alternative is guessing which half of a contradiction the
@@ -2855,11 +2826,13 @@ public record ComputedStyle(
     ///
     /// `auto` is not a `YGOverflow`, and it sizes exactly as `scroll` does — the
     /// difference in CSS is whether the bars appear only when they are needed.
-    /// The design system routes that question elsewhere: §2.4 makes overlay
-    /// auto-hiding bars the default for *both* and gives the always-visible
-    /// gutter to an application setting rather than to a keyword. So `auto` maps
-    /// onto [Overflow#SCROLL] and nothing downstream has to carry a distinction
-    /// no rule in the canon can act on (ADR-0114).
+    /// The design system routes that question elsewhere: overlay auto-hiding bars
+    /// are the default for *both*, and the always-visible gutter is an
+    /// application setting rather than a keyword. So `auto` maps onto
+    /// [Overflow#SCROLL] and nothing downstream has to carry a distinction no
+    /// rule can act on.
+    ///
+    /// Read more: [Scrollbars](https://goldberry.dev/docs/guide/styling.html#themes-density-and-scrollbars).
     private static Optional<Overflow> overflow(List<Token> value) {
         var tokens = value.stream().filter(t -> !t.is(TokenType.WHITESPACE)).toList();
         if (tokens.size() == 1

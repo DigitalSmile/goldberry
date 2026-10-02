@@ -13,10 +13,10 @@ import dev.goldberry.input.key.Mod;
 ///
 /// [Key] deliberately names no modifier: a [dev.goldberry.input.key.Shortcut]
 /// is a key plus modifiers, and a shortcut on a modifier alone can never fire —
-/// there is nothing left to press. That refusal is right, and it left §8's
-/// "`Alt`-style keyboard activation" unexpressible, because what a menu bar wants
-/// is not an accelerator at all: it is a **tap**, which is a press and a release
-/// with nothing in between ([ModifierTaps]).
+/// there is nothing left to press. That refusal is right, and it leaves a menu
+/// bar's `Alt`-style keyboard activation unexpressible, because what a menu bar
+/// wants is not an accelerator at all: it is a **tap**, which is a press and a
+/// release with nothing in between ([ModifierTaps]).
 ///
 /// So this is a second, much smaller vocabulary beside [Key], and it is small on
 /// purpose. There are four modifiers and no way to write a fifth.
@@ -31,9 +31,12 @@ import dev.goldberry.input.key.Mod;
 /// The keycodes are SDL's `SDLK_L*`/`SDLK_R*` values, which are the only form the
 /// window ever sees — [Key#fromSdl] answers [Key#UNKNOWN] for every one of them,
 /// which is exactly why a tap cannot be detected from a translated [Key] and has
-/// to be read from the raw code (ADR-0223).
+/// to be read from the raw code.
+///
+/// Read more: [Input and focus](https://goldberry.dev/docs/guide/input.html#accelerators).
 public enum ModifierKey {
-    /// `Alt` / `Option`. The one §8 names, and the reason this type exists.
+    /// `Alt` / `Option`. The one a menu bar opens on, and the reason this type
+    /// exists.
     ALT(Mod.ALT, 0x400000e2, 0x400000e6),
     CONTROL(Mod.CTRL, 0x400000e0, 0x400000e4),
     SHIFT(Mod.SHIFT, 0x400000e1, 0x400000e5),

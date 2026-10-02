@@ -1,14 +1,13 @@
-/// `@NullMarked`, which puts this package under NullAway.
+/// The `bar-chart` — magnitude by category: grouped bars, one group per
+/// category and one bar per series, over a value axis that always includes
+/// zero.
 ///
-/// Inside a marked package every type is non-null unless it says `@Nullable`,
-/// and the build fails on a violation. The annotation is the whole content of
-/// this file: there is nothing package-specific to say about nullness, and a
-/// paragraph pretending otherwise in every package would be padding.
+/// [dev.goldberry.widgets.data.barchart.BarChart] is the widget. Its plot and
+/// legend are the parts every axis chart shares, in `…widgets.data.linechart`.
 ///
-/// Packages are marked one at a time on purpose. NullAway runs in
-/// `OnlyNullMarked` mode, so an unmarked package is invisible to it and a marked
-/// one is checked from the moment it opts in — which is the only way a codebase
-/// this size adopts nullness at all (`docs/testing.md` §2).
+/// Every reference is non-null unless it says `@Nullable`.
+///
+/// Read more: [Charts](https://goldberry.dev/docs/components/charts.html#bar-chart).
 @NullMarked
 package dev.goldberry.widgets.data.barchart;
 

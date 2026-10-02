@@ -1,14 +1,15 @@
-/// `@NullMarked`, which puts this package under NullAway.
+/// The controls group: one package per control, and here the one type they
+/// share.
 ///
-/// Inside a marked package every type is non-null unless it says `@Nullable`,
-/// and the build fails on a violation. The annotation is the whole content of
-/// this file: there is nothing package-specific to say about nullness, and a
-/// paragraph pretending otherwise in every package would be padding.
+/// [dev.goldberry.widgets.controls.Scale] is the curve between a value and a
+/// position along a track or round a dial, which `slider` and `knob` both use.
+/// Every control lives in its own sub-package with its parts, so a part is
+/// styleable from CSS and not constructible from outside the control that owns
+/// it.
 ///
-/// Packages are marked one at a time on purpose. NullAway runs in
-/// `OnlyNullMarked` mode, so an unmarked package is invisible to it and a marked
-/// one is checked from the moment it opts in — which is the only way a codebase
-/// this size adopts nullness at all (`docs/testing.md` §2).
+/// Every reference is non-null unless it says `@Nullable`.
+///
+/// Read more: [The catalogue](https://goldberry.dev/docs/components/index.html#parts-are-not-widgets).
 @NullMarked
 package dev.goldberry.widgets.controls;
 

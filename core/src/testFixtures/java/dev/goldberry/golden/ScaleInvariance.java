@@ -14,14 +14,15 @@ import dev.goldberry.render.model.PhysicalSize;
 /// The second half of a golden: the same scene, drawn at another display scale.
 ///
 /// A golden says what a scene looks like. It says it at **one** scale, and until
-/// this existed that scale was 1.0 for 37 of the 39 images in the repository —
-/// which is the gap [ADR-0157] closed one bug of and then wrote down: "almost
-/// every pixel assertion in this repository is at 1x, where this whole class of
-/// bug is invisible". The bug in question was a layer whose raster is allocated
+/// this existed that scale was 1.0 for 37 of the 39 images in the repository, so
+/// almost every pixel assertion was at 1x, where a whole class of bug is
+/// invisible. The bug in question was a layer whose raster is allocated
 /// in physical pixels being blitted one raster pixel per *logical* unit. At 1x
 /// the two spaces coincide and the arithmetic is right by accident; at 2x every
 /// disabled control on the screen was twice the size it should be, and not one
 /// assertion here could see it.
+///
+/// Read more: [Pictures](https://goldberry.dev/docs/guide/testing.html#pictures).
 ///
 /// ## Why this is not a second set of goldens
 ///
@@ -90,14 +91,13 @@ public final class ScaleInvariance {
     /// Prints the measurement for every check, passing or not.
     static final String REPORT_PROPERTY = "goldberry.golden.scales.report";
 
-    /// Three, chosen by **rounding family** rather than by popularity
-    /// ([ADR-0434]).
+    /// Three, chosen by **rounding family** rather than by popularity.
     ///
     /// Yoga rounds a computed edge to a whole device pixel, so what a multiplier
     /// exercises is the set of sub-pixel offsets an integer logical coordinate can
     /// land on — `k * m mod 1`, over integer `k`:
     ///
-    ///   - **2** is a Retina display and the scale ADR-0157's bug needed. Its
+    ///   - **2** is a Retina display and the scale the layer bug needed. Its
     ///     offset set is `{0}`: nothing ever lands between pixels, which is why it
     ///     catches a doubled subtree and catches no rounding at all.
     ///   - **1.5** is the ordinary fractional case on Linux and Windows' second
@@ -180,7 +180,7 @@ public final class ScaleInvariance {
                     + "x its scale: " + result.describe()
                     + ". A difference this size is geometry rather than antialiasing —"
                     + " something is using a physical size where a logical one belongs,"
-                    + " or the other way round (ADR-0157). The 1x render, the"
+                    + " or the other way round. The 1x render, the"
                     + " resampled one and the diff are in " + FAILURE_DIR.toAbsolutePath());
         }
     }

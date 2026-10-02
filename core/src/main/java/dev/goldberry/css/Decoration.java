@@ -15,37 +15,29 @@ import dev.goldberry.paint.Box;
 /// seven arguments through every constructor call in the cascade for no reader's
 /// benefit.
 ///
-/// ## Why the shadow is here and not on `Box`
+/// The shadow is here and not on [Box] for the sentence this class opens with: a
+/// drop shadow is drawn **around** a box and not in it, it is geometry derived
+/// from [#corners], and nothing reads it without also reading them.
 ///
-/// [Box] already carries twenty-seven components and `box-shadow` would have been
-/// the twenty-eighth, with a wither to write in every one of the others. It
-/// belongs here on the sentence this class opens with: a drop shadow is drawn
-/// **around** a box and not in it, it is geometry derived from [#corners], and
-/// nothing reads it without also reading them (ADR-0310).
+/// The focus ring is a property rather than a widget's decision. The design
+/// system pins it at 2px `--gb-focus`, 2px offset, following the control's
+/// radius. A widget that drew its own would be a second place for that number to
+/// live, and would have to know its own radius to follow it. As `outline` on
+/// `:focus-visible` it is one rule in the toolkit-base layer, it inherits nothing
+/// and affects no layout: CSS outlines are drawn outside the border box and take
+/// no space, which is exactly what a ring at a 2px offset needs.
 ///
-/// ## Why the ring is a property and not a widget's decision
+/// Units are logical pixels, resolved. Percentages are refused by the parser
+/// rather than carried: a percentage radius means "of this box's size", and a box
+/// does not know its size until layout has run, long after the cascade.
 ///
-/// The design system pins the focus ring at 2px `--gb-focus`, 2px offset,
-/// following the control's radius (`docs/design-system.md` §2.2). A widget that
-/// drew its own would be a second place for that number to live, and would have
-/// to know its own radius to follow it. As `outline` on `:focus-visible` it is one
-/// rule in the toolkit-base layer, it inherits nothing and affects no layout — CSS
-/// outlines are drawn outside the border box and take no space, which is exactly
-/// what a ring at a 2px offset needs.
-///
-/// ## Units
-///
-/// Logical pixels, resolved. Percentages are refused by the parser rather than
-/// carried: a percentage radius means "of this box's size", and a box does not
-/// know its size until Yoga has run — long after the cascade.
+/// Read more: [Styling](https://goldberry.dev/docs/guide/styling.html#border-outline-and-shadow).
 ///
 /// @param corners       the four corner radii; [Corners#SQUARE] is a square box.
-///                      One number until `border-radius: 7px 7px 0 0` needed two
-///                      (ADR-0216) — see [Corners] for why a box ever wants that
+///                      See [Corners] for why a box ever wants four numbers
 /// @param border        the four sides' widths and colours, drawn *inside* the
-///                      box's edge and over its padding. One width and one colour
-///                      until a table asked for a rule between its cells
-///                      (ADR-0505) — see [Border] for why a box ever wants four
+///                      box's edge and over its padding. See [Border] for why a
+///                      box ever wants four sides
 /// @param outlineWidth  ring thickness, drawn outside the edge
 /// @param outlineColor  `0xAARRGGBB`, not premultiplied
 /// @param outlineOffset the gap between the box's edge and the inside of the ring
@@ -59,8 +51,8 @@ public record Decoration(
             new Decoration(Corners.SQUARE, Border.NONE, 0, CssColor.TRANSPARENT, 0, Shadow.NONE);
 
     public Decoration {
-        // Clamped rather than refused. These arrive from a stylesheet, and §8's
-        // rule for a bad declaration is to drop it and carry on — a negative
+        // Clamped rather than refused. These arrive from a stylesheet, and the
+        // rule for a bad declaration is to drop it and carry on: a negative
         // radius should not take a window down mid-frame. The corners clamp
         // themselves, in [Corners], for the same reason.
         java.util.Objects.requireNonNull(corners, "corners");
@@ -72,8 +64,7 @@ public record Decoration(
     }
 
     /// A decoration with the same border on all four sides, which is every border
-    /// the design system pins — the shape this record had before a side could
-    /// differ, kept because a uniform border is still the one a caller means.
+    /// the design system pins and the one a caller usually means.
     public Decoration(
             Corners corners,
             double borderWidth,

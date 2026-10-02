@@ -2,13 +2,12 @@ package dev.goldberry.widgets.data;
 
 import dev.goldberry.widget.style.Paints;
 
-/// Which colour a series is drawn in — `charts.md` §2.
+/// Which colour a series is drawn in.
 ///
 /// Eight slots, read from the theme as `--gb-chart-1…8` and **assigned in order**.
 /// The order is not a preference: it is the mechanism that keeps adjacent series
 /// distinguishable under colour-vision deficiency, and it was searched over all
-/// 40 320 permutations rather than chosen
-/// (ADR-0194).
+/// 40 320 permutations rather than chosen.
 ///
 /// ## Never cycled
 ///
@@ -25,7 +24,9 @@ import dev.goldberry.widget.style.Paints;
 /// overrides one with an ordinary rule — `#revenue { --gb-chart-1: #b48ead }`
 /// recolours one chart's first series and nothing else. A Java table would have
 /// been simpler and would have made the palette the toolkit's rather than the
-/// theme's (ADR-0195).
+/// theme's.
+///
+/// Read more: [Charts](https://goldberry.dev/docs/components/charts.html#what-the-five-share).
 public final class SeriesPalette {
 
     /// How many slots the theme defines. Past this the answer repeats; see the

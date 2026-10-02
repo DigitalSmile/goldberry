@@ -10,21 +10,21 @@ import dev.goldberry.widget.Widget;
 import dev.goldberry.widget.style.Paints;
 import dev.goldberry.widget.style.Styled;
 
-/// The full-height box a slider's value is measured along — a **part** of
-/// [Slider], and the seventh.
+/// The full-height box a slider's value is measured along — a part of
+/// [Slider], styled as `slider-track`.
 ///
 /// It paints nothing. What it is, is a **rectangle**: the groove is 4px tall and
 /// the control is 32, and between them the thing the pointer is mapped along has
-/// to be one specific box. Until §3's value label there was no difference — the
-/// track was the control — and a label at the end of the row is exactly what
-/// makes them different, by its own width
-/// (ADR-0080).
-/// [SliderControl#localPart()] names this part, and the router measures against
-/// it.
+/// to be one specific box. Without a value label the track and the control are
+/// the same box; a label at the end of the row is exactly what makes them
+/// different, by its own width. [SliderControl#localPart()] names this part,
+/// and the router measures against it.
 ///
 /// It is also what gives the groove and the tick marks somewhere to be *stacked*:
 /// the slider's own axis is taken by the value, and a scale under a groove is the
 /// cross axis of a control that has no cross axis left.
+///
+/// Read more: [Values and progress](https://goldberry.dev/docs/components/values.html#slider).
 ///
 /// @param fraction where the thumb sits, `0..1`, passed to the groove
 /// @param ticks    how many marks to draw under it; `0` for none

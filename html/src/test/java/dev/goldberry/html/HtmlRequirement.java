@@ -8,7 +8,7 @@ import org.junit.jupiter.api.Assumptions;
 /// narrower job: parsing HTML is pure Java, so almost every test in this package runs
 /// on a machine with no native library at all. The one thing that crosses is the
 /// named-entity table, which is md4c's — 2125 names through one exported symbol
-/// rather than a copy that drifts (ADR-0010, ADR-0294) — so a test that writes
+/// rather than a copy that drifts — so a test that writes
 /// `&amp;` asks for the library and the rest do not.
 final class HtmlRequirement {
 

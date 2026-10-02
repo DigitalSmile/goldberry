@@ -14,7 +14,7 @@ import java.util.Objects;
 /// and the wrong one for an application, which wants to say *what the ramp is*
 /// and have the toolkit worry about when the native object exists. So this is an
 /// immutable value, and [Frame] is what turns one into a fill for the length of a
-/// call (ADR-0207, ADR-0277).
+/// call.
 ///
 /// ## Coordinates
 ///
@@ -37,6 +37,8 @@ import java.util.Objects;
 /// means adding it later is a new record and an exhaustive `switch` that stops
 /// compiling until every consumer handles it, rather than a silent default branch
 /// that draws the wrong thing.
+///
+/// Read more: [Canvas, images and QR codes](https://goldberry.dev/docs/components/drawing.html#the-painter).
 public sealed interface Gradient {
 
     /// The stops, in ascending offset order and never empty.

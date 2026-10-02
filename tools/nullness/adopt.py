@@ -24,7 +24,8 @@ NOTE = """/// `@NullMarked`, which puts this package under NullAway.
 /// Packages are marked one at a time on purpose. NullAway runs in
 /// `OnlyNullMarked` mode, so an unmarked package is invisible to it and a marked
 /// one is checked from the moment it opts in — which is the only way a codebase
-/// this size adopts nullness at all (`docs/testing.md` §2).
+/// this size adopts nullness at all; see
+/// [Tests and gates](https://goldberry.dev/docs/contributing/testing.html#static-analysis).
 @NullMarked
 package %s;
 

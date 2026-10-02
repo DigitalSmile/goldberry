@@ -10,8 +10,9 @@ import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * The javadoc of the published modules is linted, and linted <em>early</em> --
- * ADR-0343 and ADR-0405, held as text (ADR-0082).
+ * The javadoc of the published modules is linted, and linted <em>early</em>:
+ * doclint is on in {@code goldberry.publish}, and {@code check} generates the
+ * javadoc. Both held as text.
  *
  * <p>Both halves fail quietly when broken, and the second one already did. With
  * the lint on but nothing generating javadoc before {@code javadocJar}, a broken
@@ -41,7 +42,7 @@ class PublishedJavadocTest {
         var text = Repository.read(PLUGIN);
         assertTrue(text.contains("Xdoclint:all,-missing"),
                 "goldberry.publish no longer passes -Xdoclint:all,-missing, so a rotted [link] in a"
-                        + " published module is a warning nobody reads (ADR-0343)");
+                        + " published module is a warning nobody reads. Put the option back.");
     }
 
     @Test
@@ -52,7 +53,8 @@ class PublishedJavadocTest {
                 () -> assertTrue(CHECK_RUNS_JAVADOC.matcher(text).find(),
                         "nothing makes `check` generate javadoc, so the only thing that does is"
                                 + " `javadocJar` in publish.yml's last step -- the release's last step is"
-                                + " the first to find a broken [link] again (ADR-0405)"),
+                                + " the first to find a broken [link] again. Make `check` depend on"
+                                + " `javadoc` in goldberry.publish"),
                 // The guard that keeps `:bom` out of it. A bare `tasks.named('check')`
                 // at the top level of this plugin fails configuration of the platform,
                 // which has no `javadoc` task at all -- and that failure is every

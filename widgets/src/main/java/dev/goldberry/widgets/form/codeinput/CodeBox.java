@@ -10,14 +10,14 @@ import dev.goldberry.widget.style.Paints;
 import dev.goldberry.widget.style.Styled;
 
 /// One box of a [CodeInput] — `code-box`, a **part**: styleable and not
-/// constructible (ADR-0065).
+/// constructible.
 ///
-/// A drawing rather than a field. §4 is explicit that "six boxes are a drawing,
-/// not six fields", which is why this takes no focus, hears no keys and has no
+/// A drawing rather than a field. Six boxes are a drawing, not six fields,
+/// which is why this takes no focus, hears no keys and has no
 /// semantics of its own: [CodeField] is the one Tab stop and the one textbox
 /// anything is told about.
 ///
-/// ## Two classes, because §8 has no pseudo-class for either fact
+/// ## Two classes, because CSS has no pseudo-class for either fact
 ///
 /// `filled` is whether this box has a character in it, and `active` is whether it
 /// is the one the next character goes into. Neither is a state CSS can ask about
@@ -26,10 +26,9 @@ import dev.goldberry.widget.style.Styled;
 /// `placeholder` does and for the same stated reason.
 ///
 /// The focus ring is drawn on the `active` box by a rule that reads the *field's*
-/// `:focus-visible`, because the field is what has the keyboard. §2.2's row asks
-/// for the ring to be instant as it moves between boxes, which it is: nothing
-/// transitions `outline`, and §1.7 rule 3 puts a focus ring outside motion
-/// anyway.
+/// `:focus-visible`, because the field is what has the keyboard. The ring is
+/// instant as it moves between boxes: nothing transitions `outline`, and a
+/// focus ring is outside motion anyway.
 ///
 /// @param character what to draw — one code point, already a bullet if the field
 ///                  masks, or empty

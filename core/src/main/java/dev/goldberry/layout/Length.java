@@ -9,9 +9,9 @@ import java.util.Locale;
 /// It is the value `css` resolves a declaration to and the value a [dev.goldberry.paint.Box] is
 /// built
 /// from, which makes it the single most-written type in the widget catalogue —
-/// nineteen files in `:widgets` name it. It was the layout engine's own type
-/// until ADR-0279, which meant every application writing a widget read a
-/// `:natives` class to say `8px`.
+/// nineteen files in `:widgets` name it. Were it the layout engine's own type,
+/// every application writing a widget would read a `:natives` class to say
+/// `8px`.
 ///
 /// Nothing about a length is native. It is a number, a unit and two keywords.
 ///
@@ -26,6 +26,8 @@ import java.util.Locale;
 /// Sealed, so the translation is an exhaustive `switch` with no default arm: a
 /// kind added here fails to compile everywhere it is not handled, rather than
 /// falling through to a silent no-op.
+///
+/// Read more: [How layout works](https://goldberry.dev/docs/layout/index.html#logical-pixels).
 public sealed interface Length {
 
     /// Size to the content, or — for a margin — absorb the free space. The
@@ -58,7 +60,7 @@ public sealed interface Length {
     /// agree: the painter resolves a box's padding to decide where a `canvas`
     /// draws, and the hit-test snapshot resolves the same padding to decide where
     /// its input lands. Two resolutions kept alike by hand is how a pointer ends
-    /// up a few pixels from the ink (ADR-0281).
+    /// up a few pixels from the ink.
     ///
     /// Both keywords resolve to zero. Neither is a length: `auto` is a question
     /// for the layout engine and `undefined` is the absence of a declaration, and

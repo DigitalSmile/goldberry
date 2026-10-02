@@ -111,8 +111,7 @@ public record NodeCalls(
     ///
     /// One node and not its subtree: freeing a tree is
     /// [dev.goldberry.natives.yoga.YogaNode]’s job, which
-    /// does it child-first and marks each Java wrapper dead on the way
-    /// (ADR-0029).
+    /// does it child-first and marks each Java wrapper dead on the way.
     ///
     /// `void YGNodeFree(void*)`
     public static final class NodeFree {
@@ -250,8 +249,7 @@ public record NodeCalls(
 
     /// Gives a leaf a callback that measures its own content.
     ///
-    /// How text gets a size: Yoga cannot measure a paragraph, so it asks
-    /// (ADR-0017).
+    /// How text gets a size: Yoga cannot measure a paragraph, so it asks.
     ///
     /// `void YGNodeSetMeasureFunc(void*, void*)`
     public static final class NodeSetMeasureFunc {
@@ -416,8 +414,7 @@ public record NodeCalls(
     /// Runs the layout pass over a subtree.
     ///
     /// Incremental: a node whose style has not been set since the last pass is
-    /// not recomputed, which is why every setter here is guarded by a comparison
-    /// (ADR-0069).
+    /// not recomputed, which is why every setter here is guarded by a comparison.
     ///
     /// `void YGNodeCalculateLayout(void*, float, float, int)`
     public static final class NodeCalculateLayout {

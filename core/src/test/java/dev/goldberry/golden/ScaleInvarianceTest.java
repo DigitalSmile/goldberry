@@ -24,14 +24,14 @@ import org.opentest4j.AssertionFailedError;
 import dev.goldberry.RendererRequirement;
 import dev.goldberry.paint.Frame;
 
-/// The check that closes ADR-0157's gap, checked itself.
+/// The scale sweep every golden runs, checked itself.
 ///
 /// A test harness that cannot fail is not a harness, and this one is easier to
 /// get wrong than most: every threshold in it is a judgement about what
 /// antialiasing is allowed to do, and a threshold set one step too generous
 /// produces a suite that runs at three scales and notices nothing. So the
 /// interesting test here is [Detection#aPhysicalSizeUsedAsALogicalOneIsCaught],
-/// which reconstructs ADR-0157's actual bug — a rectangle sized in physical
+/// which reconstructs the HiDPI bug the sweep was built for — a rectangle sized in physical
 /// pixels and drawn in logical ones — and asserts the check rejects it. The
 /// tolerance tests either side of it say what it is allowed to forgive.
 class ScaleInvarianceTest {
@@ -128,7 +128,7 @@ class ScaleInvarianceTest {
             assertTrue(ScaleInvariance.compare(reference, shifted, 2.0f).matches());
         }
 
-        /// ADR-0157's bug in its purest form: the same rectangle, twice the size.
+        /// The HiDPI bug in its purest form: the same rectangle, twice the size.
         /// Nothing in the middle of where it grew has a match anywhere near it.
         @Test
         @DisplayName("a rectangle drawn at twice its size is not")
@@ -189,7 +189,7 @@ class ScaleInvarianceTest {
 
         private void check(Consumer<Frame> painter) {
             // Through the same adapter the harness uses, so what is swept here is
-            // what a golden sweeps (ADR-0284).
+            // what a golden sweeps.
             var scene = GoldenImage.painting(painter);
             ScaleInvariance.assertScaleInvariant("scale-invariance-self-test", WIDTH, HEIGHT, 1.0f, scene, at1x(scene));
         }
@@ -205,7 +205,7 @@ class ScaleInvarianceTest {
             });
         }
 
-        /// **The one that matters.** ADR-0157's bug was a size in physical pixels
+        /// **The one that matters.** The HiDPI bug was a size in physical pixels
         /// handed to a call that takes logical ones — right at 1x by coincidence
         /// and twice too big at 2x. Every golden in the repository was blind to
         /// it. This asserts that none of them is any more.
@@ -222,7 +222,7 @@ class ScaleInvarianceTest {
                         frame.fillRect(20, 16, 60 * factor, 40 * factor, INK);
                     }));
             assertTrue(caught.getMessage().contains("does not draw the same picture"), caught.getMessage());
-            assertTrue(caught.getMessage().contains("ADR-0157"), caught.getMessage());
+            assertTrue(caught.getMessage().contains("physical size where a logical one belongs"), caught.getMessage());
         }
 
         /// The subtler half of the same family, and the reason the threshold is
@@ -290,13 +290,14 @@ class ScaleInvarianceTest {
             return found;
         }
 
-        /// [ADR-0434]'s argument, held as an assertion rather than left in prose.
+        /// The argument for the three multipliers, held as an assertion rather
+        /// than left in prose.
         ///
         /// The reason 1.25 was added and 1.75 was not is not that one is more
         /// popular — though it is — but that `5/4` and `7/4` are the same four
         /// quarters, so the second of them re-asks a question the first has
-        /// answered. If that ever stops being true, this fails and the ADR is
-        /// wrong.
+        /// answered. If that ever stops being true, this fails and the list of
+        /// multipliers is wrong.
         @Test
         @DisplayName("1.75 would visit no offset 1.25 does not, which is why it is not in the list")
         void theFourthMultiplierWouldRepeatTheThird() {

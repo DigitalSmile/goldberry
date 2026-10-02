@@ -29,13 +29,15 @@ import dev.goldberry.widgets.overlay.dialog.DialogAction.Role;
 import dev.goldberry.widgets.panel.Described;
 import dev.goldberry.widgets.text.Text;
 
-/// `dialog` — §7's modal.
+/// `dialog` — the modal overlay.
 ///
 /// The focus trap is **not** here: it is the router's and is tested in `:core`'s
 /// `FocusTrapTest` against a real element tree, because the mechanism has to hold
 /// for whatever declares itself modal next. What is here is everything a dialog
 /// decides for itself — the roles, the order they land in, the two keys, and the
-/// closing animation that runs before the application is told ([ADR-0176]).
+/// closing animation that runs before the application is told.
+///
+/// Read more: [Overlays](https://goldberry.dev/docs/components/overlays.html#dialog).
 class DialogTest {
 
     private TestHost host;
@@ -123,8 +125,8 @@ class DialogTest {
     @DisplayName("the action bar")
     class Actions {
 
-        /// §7's "platform button order … applied by the dialog's action bar
-        /// automatically". The canonical order ships affirmative-right; a theme
+        /// The platform's button order is applied by the dialog's action bar
+        /// automatically. The canonical order ships affirmative-right; a theme
         /// reverses the bar.
         @Test
         @DisplayName("neutral, then dismissive, then affirmative — whatever order they were written")
@@ -270,8 +272,8 @@ class DialogTest {
     @DisplayName("closing")
     class Closing {
 
-        /// §1.7: "the element stays mounted through `closing` … removal fires on
-        /// animation end". The application's handler is what removes the overlay,
+        /// The element stays mounted through `closing`, and removal fires on
+        /// animation end. The application's handler is what removes the overlay,
         /// so calling it late is what buys the animation.
         @Test
         @DisplayName("the panel fades before the application is told")
@@ -331,7 +333,7 @@ class DialogTest {
             assertEquals(0, Described.counting(tree, "dialog"), "a dialog that has closed is still describing a panel");
         }
 
-        /// §3: "out: base, reverse" — 160ms, against 240 to open.
+        /// The exit is the `base` duration, reversed: 160ms, against 240 to open.
         @Test
         @DisplayName("the exit is `base` where the entrance is `overlay`")
         void exitIsShorter() {
@@ -344,7 +346,8 @@ class DialogTest {
                     "the delays were " + host.scheduledDelays());
         }
 
-        /// §1.7: "input is disabled the instant closing starts (no ghost clicks)".
+        /// Input is disabled the instant closing starts, so a click during the
+        /// fade is not a ghost answer.
         @Test
         @DisplayName("a second answer during the fade is not a second answer")
         void oneAnswerOnly() {

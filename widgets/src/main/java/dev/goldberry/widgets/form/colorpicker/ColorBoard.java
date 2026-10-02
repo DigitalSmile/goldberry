@@ -20,11 +20,11 @@ import dev.goldberry.widget.style.Styled;
 /// ├── color-plane      the saturation/value plane
 /// ├── color-ramp.hue   the hue slider
 /// ├── color-ramp.alpha the alpha slider, when there is one
-/// ├── text-input       the hex field — §4's source of truth
+/// ├── text-input       the hex field — the source of truth
 /// └── color-presets    the application's swatches, when there are any
 /// ```
 ///
-/// Everything §4 lists, in the order it lists them, and the order is not
+/// Everything a colour picker has, in this order, and the order is not
 /// arbitrary: the plane is what a pointer reaches for, the ramps are what change
 /// what the plane shows, and the hex field is what a keyboard reaches for and
 /// what the whole thing is really holding. Presets last, because they are a
@@ -77,13 +77,13 @@ record ColorBoard(
         return Box.of().style(style).children(children.toArray(Box[]::new));
     }
 
-    /// §4's "application-supplied palette of preset swatches" — `color-presets`,
-    /// a **part**.
+    /// The application-supplied palette of preset swatches — `color-presets`, a
+    /// **part**.
     ///
     /// A wrapping row, because a palette is however many colours an application
-    /// has and a picker 200 points wide fits eight of them: §2 sizes the swatch
+    /// has and a picker 200 points wide fits eight of them: the metrics size the swatch
     /// and the gap and says nothing about how many fit, which is a question only
-    /// the width can answer. §8's subset has `flex-wrap`, so the stylesheet
+    /// the width can answer. The CSS subset has `flex-wrap`, so the stylesheet
     /// answers it.
     record ColorPresets(List<Integer> colours, IntConsumer onPress) implements Widget.Leaf, Styled, Paints {
 

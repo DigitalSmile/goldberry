@@ -15,21 +15,20 @@ import dev.goldberry.widgets.core.Row;
 /// **Shared by both content halves**, which is why it is in a package of its own and
 /// not beside either of them: `markdown-view` and `html-view` disagree about what a
 /// paragraph *is* — one gets it from md4c and the other from a tag — and agree
-/// exactly about what a line of mixed faces has to become
-/// (ADR-0295, ADR-0298). The package is
-/// not exported: this is how the two views are built and not something an
-/// application composes.
+/// exactly about what a line of mixed faces has to become. The package is not
+/// exported: this is how the two views are built and not something an application
+/// composes.
 ///
 /// A separate class from the folds that use it for one plain reason beside that: a
 /// fold imports a *model* node called `Text` or `HtmlText`, and the word it produces
 /// is a third thing again — [WordMinter]'s [dev.goldberry.content.select.Word],
-/// which draws what a `text` widget draws and also says where it landed (ADR-0301).
+/// which draws what a `text` widget draws and also says where it landed.
 ///
 /// ## Why a word is not a fragment
 ///
 /// The text stack shapes one font per paragraph, so a line with a bold word in it
 /// cannot be one shaped run — which is why an inline run is split into words with a
-/// `text` widget each and a row that wraps (see `markdown.css`, and ADR-0295).
+/// `text` widget each and a row that wraps (see `markdown.css`).
 ///
 /// The first version of this split each *fragment* on whitespace and stopped there,
 /// and the golden image said why that is not enough. `*emphasis*, and` is three
@@ -65,14 +64,14 @@ public record Words(String wordClass, String tokenClass, WordMinter minter) {
     ///
     /// Two of the three kinds are there because of the anchor. `markdown-view` produces
     /// nothing but text and could take a list of fragments; `html-view` turns an
-    /// `<a href>` into a `button.link` in the middle of a sentence (ADR-0298), and that
-    /// button has to be part of the **token** it is written in — otherwise the full stop
-    /// after a link becomes a word of its own with a space in front of it, which is the
-    /// exact mistake ADR-0295 recorded about `*emphasis*, and`.
+    /// `<a href>` into a `button.link` in the middle of a sentence, and that button has
+    /// to be part of the **token** it is written in — otherwise the full stop after a
+    /// link becomes a word of its own with a space in front of it, which is the exact
+    /// mistake described above for `*emphasis*, and`.
     ///
     /// The third is [Break], and it is why a run of pieces is a list and not a row: a
     /// hard break is a *boundary* between two lines rather than anything drawn, so
-    /// [#lines] cuts the list where it finds one (ADR-0426).
+    /// [#lines] cuts the list where it finds one.
     public sealed interface Piece permits Fragment, Node, Break {}
 
     /// One piece of a paragraph, with the marks it is inside.
@@ -104,7 +103,7 @@ public record Words(String wordClass, String tokenClass, WordMinter minter) {
     ///
     /// Nothing is drawn for it and it carries no marks: what it *is* is the place
     /// [#lines] cuts, and a fold that lays a run out as a single row treats it as a
-    /// token boundary and no more (ADR-0426).
+    /// token boundary and no more.
     public record Break() implements Piece {
 
         /// The only one there is, because a break has nothing to say about itself.
@@ -146,7 +145,7 @@ public record Words(String wordClass, String tokenClass, WordMinter minter) {
     ///
     /// The caller builds the boxes, because what a paragraph *is* is the one thing the
     /// two folds disagree about — this says where its lines are and nothing about their
-    /// shape (ADR-0426).
+    /// shape.
     ///
     /// Two things happen here that a caller could not do afterwards, and both are about
     /// the order words are minted in:

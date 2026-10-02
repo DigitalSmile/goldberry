@@ -14,17 +14,18 @@ import org.jspecify.annotations.Nullable;
 
 import dev.goldberry.image.Image;
 
-/// Where an [ImageView]'s pixels come from — §1's "path, classpath, bytes, or
-/// async supplier", plus an image already in hand.
+/// Where an [ImageView]'s pixels come from: a path, a classpath resource, bytes,
+/// an asynchronous supplier, or an image already in hand.
 ///
 /// Sealed, because the loader has to know which of these can be read on the UI
 /// thread for free (a [Decoded] one) and which is a file read and a decode that
 /// belongs on a virtual thread (every other). Each answers a [#key()] the shared
 /// cache is keyed on, so two views of the same file decode it once.
 ///
-/// **An SVG is not decoded here.** §1 routes `image/svg+xml` to a
-/// `goldberry-vector` module that does not exist; an SVG source fails with the
-/// decoder's message and the view shows its error state (ADR-0358).
+/// **An SVG is not decoded here.** There is no vector decoder; an SVG source
+/// fails with the decoder's message and the view shows its error state.
+///
+/// Read more: [Canvas, images and QR codes](https://goldberry.dev/docs/components/drawing.html#image).
 public sealed interface ImageSource {
 
     /// What the cache calls this source, or **null for a source with nothing to
@@ -167,8 +168,7 @@ public sealed interface ImageSource {
         /// a stylesheet — still gets nothing for an image.
         ///
         /// Saying "no image resource" for that case sends somebody looking for a
-        /// file that is sitting right where they put it, which is what happened
-        /// to the showcase ([ADR-0395]).
+        /// file that is sitting right where they put it.
         /// [dev.goldberry.css.Stylesheet#resource] had already
         /// learned to tell the two apart; this is the same message for pixels.
         private String absent() {

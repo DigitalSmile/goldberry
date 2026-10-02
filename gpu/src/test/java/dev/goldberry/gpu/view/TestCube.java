@@ -24,8 +24,8 @@ import dev.goldberry.gpu.VertexBufferLayout;
 import dev.goldberry.gpu.VertexFormat;
 import dev.goldberry.render.model.PhysicalSize;
 
-/// A lit cube, drawn with depth: `docs/gpu-plan.md` phase 5's golden, written
-/// as an application's renderer would be, on the public API alone. It uses the
+/// A lit cube, drawn with depth: the `canvas3d` golden's scene, written as an
+/// application's renderer would be, on the public API alone. It uses the
 /// tests' mesh shaders (a position and a colour, placed by one matrix), so the
 /// light is worked out here, per face, as the cube turns.
 ///

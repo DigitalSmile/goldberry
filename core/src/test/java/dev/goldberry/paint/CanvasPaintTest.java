@@ -21,8 +21,7 @@ import dev.goldberry.render.model.LogicalSize;
 ///
 /// The three guarantees are the whole of the primitive: the painter draws from
 /// its own origin, it cannot draw outside its box, and whatever it leaves on the
-/// context is undone
-/// (ADR-0193).
+/// context is undone.
 /// Each is asserted in pixels rather than by inspecting calls, because each is a
 /// claim about what ends up on the screen.
 class CanvasPaintTest {

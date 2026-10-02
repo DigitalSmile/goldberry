@@ -2,6 +2,8 @@ package dev.goldberry.natives.sdl.gpu.enums;
 
 /// What a sampler reads outside a texture's 0 to 1, as SDL's
 /// `SDL_GPUSamplerAddressMode`.
+///
+/// Read more: [The native boundary](https://goldberry.dev/docs/overview/architecture.html#the-native-boundary).
 public enum SdlGpuAddressMode {
     /// Wraps around: a tiled texture.
     REPEAT(0),

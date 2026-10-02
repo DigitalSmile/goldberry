@@ -75,14 +75,14 @@ interface TextEditor {
     /// @return whether anything was inserted
     boolean type(String text);
 
-    /// The composition an input method is assembling — `docs/gaps.md` G16.
+    /// The composition an input method is assembling.
     ///
     /// **Nothing is inserted.** What changes is what the field *draws*: the
     /// composition is spliced into the display string and marked with a span, and
     /// the text, the caret offset, the undo history and the bound value are
-    /// untouched until the accepted candidate arrives through [#type] (ADR-0292).
+    /// untouched until the accepted candidate arrives through [#type].
     ///
-    /// A **`password` refuses**, and that is the one decision in G16 that was not
+    /// A **`password` refuses**, and that is the one decision here that was not
     /// mechanical: the candidate window an input method opens is a separate,
     /// unmasked window showing what is being typed, so a masked field that
     /// composed would put the password on screen beside itself. Windows and macOS
@@ -117,7 +117,7 @@ interface TextEditor {
     ///
     /// [dev.goldberry.input.handler.Handles#caretArea]'s
     /// answer: what the platform is told so an input method can put its candidate
-    /// window beside the text rather than over it (ADR-0289). Answered here
+    /// window beside the text rather than over it. Answered here
     /// rather than in `render` because the router asks after every event, and
     /// only the state has the last frame's shaped paragraph.
     Optional<LogicalRect> caretArea();
@@ -137,13 +137,13 @@ interface TextEditor {
     void dragTo(double x);
 
     /// A button came up. A selection the press and drag made is finished now, and
-    /// goes on the primary selection where there is one ([ADR-0504]) — once per
+    /// goes on the primary selection where there is one — once per
     /// selection rather than once per pointer move.
     void released();
 
     /// The middle button went down at `x`: where there is a primary selection,
     /// the caret goes there and its text goes in, as one undoable edit — X11's
-    /// paste ([ADR-0504]).
+    /// paste.
     ///
     /// @return whether anything was pasted, which is whether the press is
     ///         consumed; without a primary selection, in a read-only field, or
@@ -164,8 +164,7 @@ interface TextEditor {
     /// A **rectangle** where [#measured] is a size, and the difference is the
     /// whole reason both exist: a caret is placed from a width, and a popover of
     /// suggestions is anchored to a *position* that no widget can compute and
-    /// only the painted frame knows ([ADR-0119]). §4's autocomplete is what
-    /// needed it.
+    /// only the painted frame knows. Autocomplete is what needed it.
     void located(dev.goldberry.render.model.LogicalRect self, dev.goldberry.render.model.LogicalRect clip);
 
     /// A frame is being described: here is the paragraph the field's text shaped
@@ -179,11 +178,9 @@ interface TextEditor {
     /// @param rightPadding what comes off the far end; a field's two paddings need
     ///                     not match, and doubling the left one scrolled the caret
     ///                     into view late under `padding: 0 16px 0 4px`
-    ///                     (`docs/gaps.md` G43, ADR-0355)
     /// @param align what the cascade said about `text-align`, which decides where
     ///              a line **narrower** than the field sits in it — and therefore
     ///              where the caret, the highlight and the composition's rule go
-    ///              ([ADR-0324])
     /// @return how far the content is shifted left of the content box's leading
     ///         edge: the scroll, **less** the alignment's indent. One number
     ///         because the two can never both be non-zero — a line that overflows

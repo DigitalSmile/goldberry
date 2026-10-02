@@ -23,10 +23,11 @@ import org.junit.jupiter.api.Test;
 import dev.goldberry.render.backend.headless.HeadlessBackend;
 import dev.goldberry.render.backend.headless.HeadlessClipboard;
 
-/// The two things the in-memory clipboard could not model — [ADR-0407].
+/// The two things the in-memory clipboard once could not model: a platform that
+/// serialises an offer only when somebody pastes, and one that refuses a write.
 ///
-/// [ADR-0286] built the byte half and said so in its own consequences: "what it
-/// cannot model is laziness or a refusal, and it does not pretend to". Both are
+/// The byte half came first and said so of itself: "what it cannot model is
+/// laziness or a refusal, and it does not pretend to". Both are
 /// real parts of the platform's contract that every caller is written against, so
 /// both were branches no test on any machine ever took. This is where they are
 /// taken.
@@ -64,7 +65,7 @@ class HeadlessClipboardTest {
 
             // The whole point. On a real desktop the compositor holds a callback
             // and calls it if and when somebody pastes; a copy that nobody pastes
-            // never serialises anything (ADR-0286).
+            // never serialises anything.
             assertEquals(0, produced.get(), "an offer that nobody read must not have produced its bytes");
         }
 
@@ -119,7 +120,7 @@ class HeadlessClipboardTest {
             clipboard.offer(byMime);
 
             // The order is part of the offer: a pasting application takes the
-            // first type it understands (ADR-0286).
+            // first type it understands.
             assertEquals(List.of(SHAPE, "image/png"), clipboard.types());
         }
 

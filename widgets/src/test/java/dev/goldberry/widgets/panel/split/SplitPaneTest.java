@@ -27,7 +27,7 @@ import dev.goldberry.widgets.Widgets;
 import dev.goldberry.widgets.panel.Described;
 import dev.goldberry.widgets.text.Text;
 
-/// `split-pane` — §5's two children and a draggable divider ([ADR-0165]).
+/// `split-pane` — two children and a draggable divider.
 ///
 /// The interesting claims are all about the **anchor**. A divider does not read
 /// the pointer's position the way a slider does — the pointer is somewhere inside
@@ -155,8 +155,7 @@ class SplitPaneTest {
             view(tree).measured(new Extent(LENGTH, 120), null);
 
             assertFalse(
-                    tree.needsBuild(),
-                    "a still window must rebuild nothing, or the idle frame loop wakes every frame (§1.7)");
+                    tree.needsBuild(), "a still window must rebuild nothing, or the idle frame loop wakes every frame");
         }
 
         @Test
@@ -427,8 +426,8 @@ class SplitPaneTest {
     @DisplayName("the keyboard")
     class Keyboard {
 
-        /// §5's "keyboard-resizable when focused". A step in **pixels**, so it
-        /// feels the same on a narrow split and a wide one.
+        /// The divider is keyboard-resizable when focused. A step in **pixels**,
+        /// so it feels the same on a narrow split and a wide one.
         @Test
         @DisplayName("the arrows along the axis move the divider by a step")
         void arrows() {
@@ -495,7 +494,7 @@ class SplitPaneTest {
                     Attributes.NONE);
         }
 
-        /// §5's "optional collapse-to-edge". Past *half* the minimum, so a
+        /// The optional collapse-to-edge. Past *half* the minimum, so a
         /// divider parked at its minimum does not collapse because a window
         /// narrowed a little.
         @Test
@@ -532,9 +531,9 @@ class SplitPaneTest {
             assertEquals(0.4, view(tree).position(), 1e-6);
         }
 
-        /// A collapsed pane is still **built**. §5 asks for collapse-to-edge, not
-        /// for unmounting — the opposite of `collapse`, where the absence is the
-        /// point.
+        /// A collapsed pane is still **built**. A split pane collapses to its
+        /// edge, it does not unmount — the opposite of `collapse`, where the
+        /// absence is the point.
         @Test
         @DisplayName("a collapsed pane is still there, unlike a closed collapse")
         void collapsedPaneIsStillBuilt() {

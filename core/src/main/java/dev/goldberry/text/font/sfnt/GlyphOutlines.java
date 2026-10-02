@@ -5,31 +5,32 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
-/// A face's TrueType outlines — its `glyf` table, read through `loca`.
+/// A face's TrueType outlines: its `glyf` table, read through `loca`.
 ///
-/// ## Why the toolkit reads outlines at all
+/// ```java
+/// var outlines = GlyphOutlines.read(bytes);
+/// boolean drawn = outlines.outline(glyphId, path);   // path is an OutlineSink
+/// ```
 ///
-/// It did not need to while every glyph went straight to the rasterizer, which
-/// reads `glyf` itself. A `COLR` version 1 glyph changes that: its outlines are
-/// **clips** — a gradient is filled *inside* a glyph's shape — and the
-/// rasterizer's glyph call fills with a colour and nothing else. So the painter
-/// needs the shape as a path it can fill with anything, and this is where the
-/// shape comes from ([ADR-0456]).
+/// The rasterizer reads `glyf` itself when it fills a glyph with a colour, so
+/// ordinary text never comes through here. A `COLR` version 1 glyph is
+/// different: its outlines are clips, a gradient is filled inside a glyph's
+/// shape, and the rasterizer's glyph call fills with a colour and nothing else.
+/// So the painter needs the shape as a path it can fill with anything, and this
+/// is where the shape comes from. It is Java for the same reason the other
+/// readers here are: the format is a page of flags and deltas, and binding the
+/// rasterizer's outline call would put a native path and its lifetime across
+/// the foreign function boundary for arithmetic.
 ///
-/// Java for [ColorLayers]'s reason: the format is a page of flags and deltas,
-/// and binding the rasterizer's outline call would put a native path and its
-/// lifetime across FFM for arithmetic.
+/// Simple glyphs are read as contours of on- and off-curve points, with the
+/// implied on-curve midpoints between two off-curve ones, and composite glyphs
+/// as components placed by offset and by a scale or a 2×2 matrix. A component
+/// placed by matching points rather than by offset is placed at its origin:
+/// that form is for hinting-era fonts and no colour face uses it. CFF outlines
+/// (`OTTO` fonts) are not read; such a face has no `glyf` table and [#read]
+/// answers [#NONE]. Coordinates reach the [OutlineSink] in design units, y up.
 ///
-/// ## What is read
-///
-/// Simple glyphs — contours of on- and off-curve points, with the implied
-/// on-curve midpoints between two off-curve ones — and composite glyphs, whose
-/// components are placed by offset and by a scale or a 2×2 matrix. A component
-/// placed by **matching points** rather than by offset is placed at its origin:
-/// that form is for hinting-era fonts and no colour face uses it.
-///
-/// CFF outlines (`OTTO` fonts) are not read; such a face has no `glyf` table and
-/// [#read] answers [#NONE].
+/// Read more: [Emoji](https://goldberry.dev/docs/guide/text.html#emoji).
 public final class GlyphOutlines {
 
     private static final int HEAD = TableDirectory.tag('h', 'e', 'a', 'd');
@@ -101,7 +102,7 @@ public final class GlyphOutlines {
         }
     }
 
-    /// Design units to the em — what turns a size in pixels into the scale a
+    /// Design units to the em: what turns a size in pixels into the scale a
     /// glyph's coordinates are multiplied by.
     public int unitsPerEm() {
         return unitsPerEm;
@@ -114,13 +115,13 @@ public final class GlyphOutlines {
 
     /// Sends the outline of `glyphId` to `sink`, and says whether it could.
     ///
-    /// **All or nothing.** The glyph is read completely — every component of a
-    /// composite — before the first call reaches the sink, so a glyph whose data
-    /// runs off the end of the table sends nothing and answers false, rather
-    /// than half a shape.
+    /// All or nothing. The glyph is read completely, every component of a
+    /// composite included, before the first call reaches the sink, so a glyph
+    /// whose data runs off the end of the table sends nothing and answers false
+    /// rather than half a shape.
     ///
-    /// A glyph with no contours at all — a space — sends nothing and answers
-    /// true: that is its outline.
+    /// A glyph with no contours at all, such as a space, sends nothing and
+    /// answers true: that is its outline.
     ///
     /// @return false when the glyph is out of range or its data is unreadable
     public boolean outline(int glyphId, OutlineSink sink) {
@@ -315,7 +316,7 @@ public final class GlyphOutlines {
 
         /// The contours as moves, lines and quadratics.
         ///
-        /// TrueType leaves an on-curve point **implied** halfway between two
+        /// TrueType leaves an on-curve point implied halfway between two
         /// consecutive off-curve ones, so a run of controls is a chain of
         /// quadratics through their midpoints. A contour may also start on an
         /// off-curve point, in which case it starts at the last point if that is

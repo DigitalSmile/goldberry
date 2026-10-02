@@ -21,10 +21,10 @@ import dev.goldberry.widgets.Controls;
 import dev.goldberry.widgets.controls.TestFont;
 import dev.goldberry.widgets.controls.option.Option;
 
-/// `select-list` after the move — [ADR-0417].
+/// `select-list` after its move to a package of its own.
 ///
 /// These tests exist to hold down a claim rather than a behaviour, which is
-/// unusual and is the point. ADR-0182 filed this move as costing "a change to
+/// unusual and is the point. The move was expected to cost "a change to
 /// every stylesheet and every golden", and that was wrong: a CSS type is a
 /// **string a widget returns**, so the only thing a package move can break is
 /// Java. If the two tests below ever start failing together, somebody has made

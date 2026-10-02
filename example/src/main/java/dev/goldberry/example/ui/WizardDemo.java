@@ -13,17 +13,19 @@ import dev.goldberry.widgets.nav.wizard.Wizard;
 import dev.goldberry.widgets.nav.wizard.WizardPage;
 import dev.goldberry.widgets.text.Text;
 
-/// §6's `steps` and `wizard`, on one card and one index ([ADR-0344]).
+/// The `steps` and the `wizard`, on one card and one index.
 ///
 /// The wizard owns no policy — Back, Next and Finish are requests the state
 /// answers by moving the index — and the standalone `steps` above it reads the
 /// same index, so the two cannot drift. The list is `clickable`, and only the
 /// pages already reached are `reachable`: a press on a step ahead of where you
 /// have been is refused by the application, not by the widget, which is the
-/// whole of §6's sentence about reachability.
+/// whole of what reachability means.
 ///
 /// **In Java** for [TabsDemo]'s reason: the index changes while the window is
 /// open, and markup is data.
+///
+/// Read more: [Wizard](https://goldberry.dev/docs/components/navigation.html#wizard).
 public record WizardDemo() implements Widget.Stateful {
 
     private static final List<String> PAGES = List.of("Provisions", "Company", "Road");

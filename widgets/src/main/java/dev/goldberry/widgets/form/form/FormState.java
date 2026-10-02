@@ -124,7 +124,7 @@ final class FormState extends State<Form> implements FormAccess {
     }
 
     /// What the fields are currently complaining about, in registration order —
-    /// §4's error summary.
+    /// the form's error summary.
     public List<String> errors() {
         var messages = new ArrayList<String>();
         for (var field : fields) {

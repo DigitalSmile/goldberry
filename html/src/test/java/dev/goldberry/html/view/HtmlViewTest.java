@@ -36,7 +36,7 @@ import dev.goldberry.widgets.markup.Wiring;
 /// mounting is the only way to see what it produced. The assertions are about
 /// **classes**, because the classes are the contract — `html.css` styles them and an
 /// application restyles them — plus the one thing this view has that the other does
-/// not, which is a `button` where an anchor was (ADR-0293, ADR-0298).
+/// not, which is a `button` where an anchor was.
 @DisplayName("html-view")
 class HtmlViewTest {
 
@@ -205,7 +205,7 @@ class HtmlViewTest {
             assertEquals(1, withClass(elements, "html-quote").size());
             assertTrue(
                     withClass(elements, "html-quote-bar").isEmpty(),
-                    "the bar is the quote's border-left since ADR-0505, not a widget beside it");
+                    "the bar is the quote's border-left, not a widget beside it");
             assertEquals(List.of("quoted"), wordsOf(withClass(elements, "html-quote")));
         }
 
@@ -238,7 +238,7 @@ class HtmlViewTest {
             assertEquals(1, withClass(elements, "end").size(), "align= is what a hand-written table uses");
         }
 
-        /// The rules between cells are one side of each (ADR-0505): a row draws the
+        /// The rules between cells are one side of each: a row draws the
         /// line above it and a cell the line before it, and `first` is what stops the
         /// top row and the leftmost cells drawing one over the table's own border.
         @Test
@@ -445,7 +445,7 @@ class HtmlViewTest {
         }
 
         @Test
-        @DisplayName("carries ADR-0293's variant and its own tag class")
+        @DisplayName("carries the link variant and its own tag class")
         void classes() {
             var button = buttonsOf(mount("<p><a href=\"/x\">go</a></p>")).getFirst();
 
@@ -485,7 +485,7 @@ class HtmlViewTest {
         @Test
         @DisplayName("with no text is not a button either, because a button needs something to read out")
         void anchorWithNoText() {
-            // §13: a button with neither a label nor an icon throws. An anchor round an
+            // A button with neither a label nor an icon throws. An anchor round an
             // image is the case that would have found it.
             var elements = mount("<p><a href=\"/x\"><img src=\"y.png\" alt=\"a chart\"></a></p>");
 

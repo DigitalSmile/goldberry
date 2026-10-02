@@ -17,7 +17,7 @@ import dev.goldberry.widgets.data.Series;
 import dev.goldberry.widgets.markup.Markup;
 import dev.goldberry.widgets.markup.Wiring;
 
-/// A total, and what it is made of — `docs/core-widgets.md` §11's `area-chart`.
+/// A total, and what it is made of: a stacked area chart, one band per series.
 ///
 /// ```kdl
 /// area-chart {
@@ -25,6 +25,11 @@ import dev.goldberry.widgets.markup.Wiring;
 ///     series name="origin" { point "Mon" 12; point "Tue" 9 }
 /// }
 /// ```
+///
+/// In Java, `new AreaChart(series)`, then [#categories], [#fill] and the
+/// [ChartSpec] withers — `curve`, `times`, `threshold`, `softAxis`, `loading`
+/// — as needed. The `series` children are the data; everything else is the
+/// chart's `id` and `class`.
 ///
 /// **Stacked, always.** Overlapping translucent areas are the classic unreadable
 /// chart: three series make seven possible colours on screen and none of them is
@@ -48,11 +53,13 @@ import dev.goldberry.widgets.markup.Wiring;
 /// [ChartSpec#times], and ignores [ChartSpec#markers] and [ChartSpec#logY], which
 /// each say so. [#fill] is this chart's own, because a band fades within its own
 /// extent and a line's fill fades under the line.
+///
+/// Read more: [Charts](https://goldberry.dev/docs/components/charts.html#area-chart).
 @Markup("area-chart")
 public record AreaChart(List<Series> series, List<String> categories, ChartOptions options, Attributes attributes)
         implements Widget.Stateful, ChartSpec<AreaChart>, Attributed<AreaChart> {
 
-    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    /// The canonical constructor, written out so that the parameters taking null for a default can say so.
     public AreaChart(
             @Nullable List<Series> series,
             @Nullable List<String> categories,
@@ -83,8 +90,7 @@ public record AreaChart(List<Series> series, List<String> categories, ChartOptio
     /// bands are adjacent rather than overlapping, they add up to the total, and
     /// a reader compares their thicknesses. [Fill#GRADIENT] fades each band
     /// **within its own extent** rather than across the plot, so a thin band under
-    /// a thick one is still there to be read
-    /// (ADR-0207).
+    /// a thick one is still there to be read.
     ///
     /// [Fill#NONE] is read as a flat wash: a band with no fill is not a band.
     ///
@@ -133,7 +139,7 @@ public record AreaChart(List<Series> series, List<String> categories, ChartOptio
         return new AreaChart(series, categories, options, value);
     }
 
-    /// Builds an `area-chart` from markup — §3.2's inline form.
+    /// Builds an `area-chart` from markup, reading its inline `series` children.
     public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
         var read = ChartParts.read(children);
         return new AreaChart(read.series(), read.categories(), Attributes.of(node));

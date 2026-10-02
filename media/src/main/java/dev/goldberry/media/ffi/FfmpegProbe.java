@@ -9,9 +9,8 @@ import dev.goldberry.media.io.Source;
 /// Says what a [MediaIO] holds, decoding nothing: a [Demuxer] opened, asked, and
 /// closed.
 ///
-/// Phase 1's exit criterion ("Java probes a file through MediaIO and lists
-/// Tracks"), and the first half of what the Engine's demux thread does when it
-/// opens a source (`docs/goldberry-media.md` §3).
+/// Java probes a file through a `MediaIO` and lists its tracks: the first half
+/// of what the Engine's demux thread does when it opens a source.
 public final class FfmpegProbe {
 
     private FfmpegProbe() {}

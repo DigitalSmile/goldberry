@@ -2,8 +2,8 @@ package dev.goldberry.widgets.core.scroll;
 
 import dev.goldberry.motion.Easing;
 
-/// A programmatic scroll on its way — §3.1's "`scrollIntoView` / programmatic:
-/// overlay duration".
+/// A programmatic scroll on its way: a `scrollIntoView` or a `scrollBy` glides
+/// over the overlay duration rather than jumping.
 ///
 /// ## The offset is the target; only the drawing travels
 ///
@@ -12,17 +12,17 @@ import dev.goldberry.motion.Easing;
 /// view is *going*. What travels is the translation the viewport draws the
 /// content at, which is a function of the frame clock and is applied in
 /// [ScrollViewport#render] — the one place a widget is handed a clock, as
-/// [ScrollFade] already found (ADR-0363).
+/// [ScrollFade] already found.
 ///
 /// A glide that starts during another starts from where the first had got to,
 /// so two reveals in quick succession never jump back.
 ///
-/// Direct input cancels it: §1.7's first rule is that drags and the wheel track
+/// Direct input cancels it: the first rule of motion is that drags and the wheel track
 /// the pointer 1:1, and a wheel notch that waited for a glide to finish would be
 /// input lagging behind animation.
 final class ScrollGlide {
 
-    /// §1.7's `--gb-motion-overlay`. A constant rather than the token for
+    /// The design system's `--gb-motion-overlay`. A constant rather than the token for
     /// [ScrollFade#FADE_MILLIS]'s reason: a clock-driven animation cannot read a
     /// `transition` declaration, because it is not one.
     static final double DURATION_MILLIS = 240;

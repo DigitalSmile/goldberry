@@ -14,14 +14,13 @@ import org.junit.jupiter.api.Test;
 /// The cross-class rewrite: a `putfield` in one class file, on a `@Bind` field
 /// declared in another.
 ///
-/// The capability [ADR-0134] added, and the one that makes "values here, actions
-/// there" possible at all — before it a write was only rewritten inside the class
+/// The capability that makes "values here, actions
+/// there" possible at all — without it a write was only rewritten inside the class
 /// that declared the field, so an actions class assigning to a model's field
 /// compiled, ran, and notified nobody.
 ///
-/// It lived in `:widgets` while every module wove its models. Since
-/// ADR-0155
-/// they do not, so the assertion moved to where the woven bytes are actually
+/// It lived in `:widgets` while every module wove its models. Now only a
+/// native image does, so the assertion moved to where the woven bytes are actually
 /// produced: [Woven#group] does in memory what `WeaverMain` does to a directory,
 /// which is the two-pass collection this rule needs. `SplitModelTest` in
 /// `:widgets` is the same shape asserted against the reflective binding.
@@ -125,7 +124,7 @@ class SplitWeaveTest {
     @Test
     @DisplayName("the setters stay private, because the two classes are nestmates")
     void nestmatesKeepTheirFields() {
-        // ADR-0137: a model whose actions sit beside it in the same nest needs no
+        // A model whose actions sit beside it in the same nest needs no
         // package-private setter, because a nestmate may call a private one. The
         // synthesised members are what the weaver adds, and every one of them is
         // still private here.

@@ -13,6 +13,9 @@ import dev.goldberry.natives.GoldberryShim;
 /// The table is `sizeof`, `_Alignof`, and `offsetof` as the C compiler computed
 /// them for this exact target — the ground truth the hand-written layouts in
 /// [Layouts] are checked against.
+///
+/// Read more:
+/// [Repository layout](https://goldberry.dev/docs/contributing/repository.html#the-export-list-and-the-layout-probe).
 public final class LayoutProbe {
 
     /// Sanity bound on the table size. The count is read before anything is

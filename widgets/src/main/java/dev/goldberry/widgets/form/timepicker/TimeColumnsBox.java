@@ -32,8 +32,8 @@ import dev.goldberry.widget.style.Styled;
 /// is what the arrows mean. A calendar is a grid and all four move a *cell*; a
 /// column set is a row of independent wheels, so **`Up`/`Down` change a value and
 /// `Left`/`Right` change which column** — which is what a segmented pair of
-/// spinners does everywhere, and is why §4 could give the two pickers the same
-/// sentence ("arrows move within the grid") and mean different things by it.
+/// spinners does everywhere, and is why "arrows move within the grid" holds for
+/// both pickers and means different things in each.
 ///
 /// `Home` and `End` are the ends of the **column**, not of the row: `00` and `23`
 /// on the hours, `00` and `59` on the minutes. A row has three items and reaching
@@ -74,7 +74,7 @@ record TimeColumnsBox(List<Widget> columns, boolean disabled, TimeKeys keys)
     /// scope of the window underneath it.
     ///
     /// `Escape` is deliberately absent — it belongs to the popup, which the
-    /// launcher dismisses before anything here is reached (ADR-0233).
+    /// launcher dismisses before anything here is reached.
     @Override
     public void onKey(KeyEvent event) {
         if (disabled || event.kind() != KeyEvent.Kind.PRESSED) {

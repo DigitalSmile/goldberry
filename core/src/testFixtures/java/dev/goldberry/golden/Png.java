@@ -15,9 +15,9 @@ import java.util.zip.Inflater;
 ///
 /// `ImageIO` would do this in two lines and lives in `java.desktop` — a module
 /// the toolkit does not require and should not start requiring for a test
-/// helper. Goldberry's whole point is that it does not go through AWT
-/// (ADR-0003); a golden-image harness that drags AWT in to compare its output
-/// would be a strange thing to have.
+/// helper. Goldberry's whole point is that it does not go through AWT; a
+/// golden-image harness that drags AWT in to compare its output would be a
+/// strange thing to have.
 ///
 /// Deliberately the narrowest PNG that is still a real PNG: 8-bit RGBA, no
 /// interlacing, one `IDAT`. That is what is written, and — because a golden file
@@ -25,9 +25,10 @@ import java.util.zip.Inflater;
 ///
 /// Public, because `:media`'s picture goldens read and write their PNGs through
 /// it too: a decoded picture is compared where FFmpeg is and `libgoldberry` is
-/// not, so the rasterizer cannot be what decodes the golden (ADR-0517). The
-/// toolkit's own `PngEncoder` writes the same shape, so a golden it wrote reads
-/// here.
+/// not, so the rasterizer cannot be what decodes the golden. The toolkit's own
+/// `PngEncoder` writes the same shape, so a golden it wrote reads here.
+///
+/// Read more: [Pictures](https://goldberry.dev/docs/guide/testing.html#pictures).
 public final class Png {
 
     private static final byte[] SIGNATURE = {(byte) 0x89, 'P', 'N', 'G', '\r', '\n', 0x1A, '\n'};

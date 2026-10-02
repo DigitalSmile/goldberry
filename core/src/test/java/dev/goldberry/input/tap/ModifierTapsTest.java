@@ -17,7 +17,7 @@ import org.junit.jupiter.api.Test;
 import dev.goldberry.input.key.Key;
 import dev.goldberry.input.key.Mod;
 
-/// A tap of a bare modifier — §8's "`Alt`-style keyboard activation" ([ADR-0223]).
+/// A tap of a bare modifier — `Alt`-style keyboard activation.
 ///
 /// The claims worth the most are the **negative** ones. A detector that fires on
 /// a tap is easy; one that does not fire on `Alt+F`, on `Alt` held open, on
@@ -187,7 +187,8 @@ class ModifierTapsTest {
             assertEquals(0, fired.get());
         }
 
-        /// ADR-0220's rule, applied to the second registry that has owners.
+        /// An accelerator is given back by whoever took it, applied to the second
+        /// registry that has owners.
         @Test
         @DisplayName("only the binder takes a tap back")
         void ownership() {

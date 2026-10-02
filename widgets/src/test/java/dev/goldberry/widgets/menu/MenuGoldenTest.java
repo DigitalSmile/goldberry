@@ -31,7 +31,7 @@ import dev.goldberry.widgets.core.Row;
 /// A menu is drawn in a popup window of its own, so none of it appears in any
 /// other image in this corpus. The one these exist for: **a menu with nothing
 /// checkable in it has no tick column**, and every label in it starts where the
-/// icon would ([ADR-0113]). Before that was a per-row decision, every menu in the
+/// icon would. Before that was a per-row decision, every menu in the
 /// toolkit indented every label by a column nobody in it could ever use.
 class MenuGoldenTest {
 
@@ -119,7 +119,7 @@ class MenuGoldenTest {
     }
 
     /// An icon, an accelerator and a row that leads somewhere, which is every
-    /// part of §8's row in one picture.
+    /// part of a menu row in one picture.
     @Test
     @DisplayName("icons, accelerators and a submenu row")
     void everything() {
@@ -136,7 +136,7 @@ class MenuGoldenTest {
     }
 
     /// The keyboard's highlight, which is `:focus-visible` and not `:focus` —
-    /// a menu opened with a pointer has none of it (ADR-0112).
+    /// a menu opened with a pointer has none of it.
     @Test
     @DisplayName("the keyboard highlight is on the row the arrows reached")
     void keyboardHighlight() {
@@ -153,16 +153,16 @@ class MenuGoldenTest {
                 new PseudoState(1, Selector.PseudoClass.FOCUS_VISIBLE));
     }
 
-    /// The same ring on the light theme, because §2.2's ring is the one mark in
+    /// The same ring on the light theme, because the focus ring is the one mark in
     /// the system with **no second means of being seen**.
     ///
     /// A hover has a wash, a checked control has a fill, a disabled one has its
     /// opacity — each is a state whose colours other goldens already cover. A
     /// focus ring is only a ring, and `--gb-focus` resolves differently per
     /// theme, so a ring photographed on one theme is a ring unwatched on the
-    /// other. That is not hypothetical: §2.2's ring sat below §1.2's floor on
+    /// other. That is not hypothetical: the ring sat below the contrast floor on
     /// every light surface, and fixing it moved **no golden at all** — which is
-    /// the gap saying so out loud ([ADR-0240], [ADR-0261]).
+    /// the gap saying so out loud.
     ///
     /// `FocusGoldenPairTest` is the rule rather than this comment: every
     /// `*-focus.png` in the corpus must have a `-light` twin.
@@ -201,10 +201,10 @@ class MenuGoldenTest {
                         new Item("More").submenu(new Item("Reset", () -> {}))));
     }
 
-    /// **An icon sits in the middle of its column** — [ADR-0143].
+    /// **An icon sits in the middle of its column.**
     ///
     /// The leading column is 16 square, because it has to be one width whether it
-    /// holds a tick or an icon (ADR-0113). The icon is whatever size the
+    /// holds a tick or an icon. The icon is whatever size the
     /// application built it, and it was drawn at the column's top-left corner —
     /// so the showcase's 20px palette hung 4px above and left of the tick it is
     /// supposed to line up with, and the row read as the odd one out.

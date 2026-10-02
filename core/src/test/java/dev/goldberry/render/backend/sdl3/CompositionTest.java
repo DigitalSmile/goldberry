@@ -8,12 +8,15 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 /// When a window presents through the GPU, from `goldberry.gpu` and
-/// `goldberry.gpu.composite` (ADR-0479, ADR-0480).
+/// `goldberry.gpu.composite`: every window by default, the CPU where it cannot.
+///
+/// Read more:
+/// [Which way a window presents](https://goldberry.dev/docs/guide/logging.html#which-way-a-window-presents).
 @DisplayName("the composition policy")
 class CompositionTest {
 
     @Test
-    @DisplayName("composites every window by default, the GPU first and the CPU where it cannot (ADR-0480)")
+    @DisplayName("composites every window by default, the GPU first and the CPU where it cannot")
     void defaultsToAlways() {
         assertEquals(Composition.ALWAYS, Composition.of(null, null));
         assertEquals(Composition.ALWAYS, Composition.of("auto", " ALWAYS "));
@@ -34,7 +37,7 @@ class CompositionTest {
     }
 
     @Test
-    @DisplayName("uses the GPU for layers unless it is off, composited or not (ADR-0481)")
+    @DisplayName("uses the GPU for layers unless it is off, composited or not")
     void layersUseTheGpuUnlessOff() {
         assertTrue(Composition.NEVER.usesGpu(), "never composites, and still reads layers back");
         assertTrue(Composition.AUTO.usesGpu());

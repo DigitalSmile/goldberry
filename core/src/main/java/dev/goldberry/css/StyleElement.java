@@ -8,18 +8,20 @@ import dev.goldberry.css.cascade.StyleResolver;
 import dev.goldberry.css.parse.Token;
 import dev.goldberry.css.select.Selector;
 
-/// What the cascade needs to know about a node to style it.
+/// What the cascade needs to know about a node to style it: its type, id,
+/// classes, parent and state.
 ///
-/// The element tree of [ADR-0004] does not exist yet. This is the seam it will
-/// implement — deliberately the smallest set of questions a selector can ask, so
-/// that matching and the cascade can be built and tested now and the element tree
-/// can arrive later without either changing.
+/// The element tree implements it, and a test can hand the resolver a
+/// hand-written one. It is deliberately the smallest set of questions a selector
+/// can ask, so that matching and the cascade depend on nothing else about the
+/// tree.
 ///
-/// It is also the reason `ARCHITECTURE.md` §8's selector subset stops where it
-/// does. There is no `nextSibling()` here and no `indexInParent()`, so `+`, `~`
-/// and `:nth-child` cannot be expressed — which is the point: every one of them
-/// forces the matcher to know about ordering, and ordering is what makes
-/// invalidation expensive.
+/// It is also the reason the selector subset stops where it does. There is no
+/// `nextSibling()` here and no `indexInParent()`, so `+`, `~` and `:nth-child`
+/// cannot be expressed, which is the point: every one of them forces the matcher
+/// to know about ordering, and ordering is what makes invalidation expensive.
+///
+/// Read more: [Styling](https://goldberry.dev/docs/guide/styling.html#selectors).
 public interface StyleElement {
 
     /// The element type — `button`, `row`. Lowercase, matching the type
@@ -58,12 +60,10 @@ public interface StyleElement {
     /// a node's are its parent's plus its own, so resolving one node at depth ten
     /// ran eleven cascades. Cached against the parent's map by identity, the walk
     /// collapses to one, and an unchanged parent keeps its children's entries
-    /// valid without anything having to tell them
-    /// (ADR-0152).
+    /// valid without anything having to tell them.
     ///
-    /// The same scheme the computed style already uses (ADR-0070), one level
-    /// down: a cascade is to custom properties what a style resolve is to a
-    /// [ComputedStyle].
+    /// The same scheme the computed style already uses, one level down: a cascade
+    /// is to custom properties what a style resolve is to a [ComputedStyle].
     ///
     /// @param resolver  the resolver asking, compared by identity
     /// @param inherited what this element's parent handed down, by identity

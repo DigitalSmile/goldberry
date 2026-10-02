@@ -6,5 +6,5 @@
 // all of it, letterboxed.
 //
 // `player=` names the Video screen's own MediaPlayer, which the model registered
-// as a named object (ADR-0170), and which the cards drive from Java too.
+// as a named object, and which the cards drive from Java too.
 media-player id="video-player" player="video.player" fit="contain"

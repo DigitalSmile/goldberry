@@ -10,12 +10,16 @@ import dev.goldberry.render.PresentTimings;
 /// A window a [Compositor] has claimed: its painted frames are uploaded to the
 /// GPU, damage only, and composited onto its swapchain.
 ///
+/// The sdl3 backend holds one per window that presents through the GPU, calls
+/// [#present] once per frame and [#close]s it to give the window back to the CPU.
 /// Confined to the UI thread.
+///
+/// Read more: [Logging and diagnostics](https://goldberry.dev/docs/guide/logging.html#which-way-a-window-presents).
 public interface CompositedWindow extends AutoCloseable {
 
     /// Uploads `damage` of `frame`, renders `layers`, and presents them: each
-    /// layer where it was placed, in paint order, and the frame over them all
-    /// (`docs/gpu-plan.md`, D4; ADR-0481).
+    /// layer where it was placed, in paint order, and the frame over them all,
+    /// showing through the hole the frame leaves where each layer is.
     ///
     /// Waits for the swapchain when the GPU is a frame ahead, which is what paces
     /// a composited window to its display. `frame` is borrowed for the call. A
@@ -40,11 +44,11 @@ public interface CompositedWindow extends AutoCloseable {
     PresentTimings lastPresent();
 
     /// SDL's name for the GPU driver this window presents through: `vulkan`,
-    /// `metal`, `direct3d12`. For the log and `Window.presentation()` (ADR-0492).
+    /// `metal`, `direct3d12`. For the log and `Window.presentation()`.
     String driver();
 
     /// Says the window system lost what the window showed, and the next
-    /// [#present] shows the whole frame again, damage or none (ADR-0491).
+    /// [#present] shows the whole frame again, damage or none.
     ///
     /// Nothing painted changed, so nothing is uploaded: the frame is still in
     /// the compositor's texture, and the present draws it once more. What is

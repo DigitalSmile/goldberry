@@ -1,12 +1,13 @@
 package dev.goldberry.render;
 
-/// Where the time of a present through the GPU went, in nanoseconds
-/// (`docs/gpu-plan.md`, phase 3; ADR-0479).
+/// Where the time of a present through the GPU went, in nanoseconds.
 ///
 /// Reported by a composited window for the frame it last presented, and banked
 /// by the frame loop beside that frame's paint stages, which is what a `hud`
 /// reads it from. A window presenting through its window surface reports
 /// [#NONE]: its present is SDL's copy, which it does not time.
+///
+/// Read more: [What a frame costs](https://goldberry.dev/docs/performance/index.html#the-frame-loop).
 ///
 /// @param uploadNanos  copying the frame's damage into staging memory and
 ///                     recording its upload

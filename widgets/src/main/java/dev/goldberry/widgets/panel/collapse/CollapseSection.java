@@ -30,7 +30,7 @@ record CollapseSection(
         Attributes attributes)
         implements Widget.Leaf, Styled, Paints {
 
-    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    /// Written out so that the parameters taking null for a default can say so.
     CollapseSection(
             String title,
             boolean open,
@@ -75,7 +75,7 @@ record CollapseSection(
     /// changes no behaviour — what it buys is that `AnimationSweepTest`'s rule
     /// stays sharp: a widget holding a [dev.goldberry.widgets.core.presence.Phase]
     /// answers the frame loop, with no exception for "it hands it to a child"
-    /// that nothing could check ([ADR-0228]).
+    /// that nothing could check.
     ///
     /// **Guarded by `open`**, and that guard is the bug in miniature: a section
     /// closed half way through its arrival keeps an `ENTERING` phase that nothing

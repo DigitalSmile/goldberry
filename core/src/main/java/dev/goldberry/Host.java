@@ -26,21 +26,30 @@ import dev.goldberry.widget.Widget;
 
 /// What a running [Application] can ask of the toolkit.
 ///
+/// ```java
+/// host.title("Notes");
+/// host.shortcut(Mod.CTRL.and(Key.S), this::save);
+/// host.popup(new Menu(items), "menu-button", Placement.BELOW);
+/// ```
+///
 /// Handed to [Application#start], and the only handle an application needs: the
 /// window, the frame loop and the trees are the launcher's, and everything an
-/// application legitimately wants from them is a method here
-/// (ADR-0093).
+/// application legitimately wants from them is a method here. A widget reaches
+/// it through [dev.goldberry.widget.BuildContext#host()].
 ///
-/// Confined to the UI thread, except [#repaint()] — see there.
+/// Confined to the UI thread, except [#repaint()], which is safe from any thread.
+///
+/// Read more: [The host](https://goldberry.dev/docs/guide/windows.html#the-host).
 public interface Host {
 
     /// The clock this window's frames are timed against.
     ///
     /// A widget that needs to know how long ago something happened asks here
-    /// rather than reading `System.nanoTime()`, and the difference is the whole
-    /// of `docs/testing.md` §0.1: a test drives a [Clock#virtual()] and can then
-    /// assert what happens *after* a timeout, where against the real clock it
-    /// would have to sleep and hope.
+    /// rather than reading `System.nanoTime()`, and the difference is what makes
+    /// a timeout testable: a test drives a [Clock#virtual()] and can then assert
+    /// what happens *after* a timeout, where against the real clock it would have
+    /// to sleep and hope
+    /// ([The virtual clock](https://goldberry.dev/docs/guide/testing.html#the-virtual-clock)).
     ///
     /// Distinct from the frame time a painter is handed. That one is read once
     /// per frame and shared, so two spinners tick together
@@ -61,9 +70,9 @@ public interface Host {
     /// The framework does **not** call this for you after a `setState`: it does
     /// not know whether the change is visible, and an application does.
     ///
-    /// The one method here that is safe from any thread, because a value set from
-    /// a virtual thread wanting to redraw is the ordinary case
-    /// (ADR-0020).
+    /// The one method here that is safe from any thread: there is one UI thread
+    /// and background work runs on virtual threads behind it, so a value set from
+    /// a virtual thread wanting to redraw is the ordinary case.
     void repaint();
 
     /// Re-reads [Application#stylesheets()] before the next frame and rebuilds
@@ -83,8 +92,10 @@ public interface Host {
     /// Binds a window accelerator built from enums — `Mod.CTRL.and(Key.S)`.
     ///
     /// The form to reach for: a `Shortcut` built this way cannot be misspelled,
-    /// where a string is only checked when it is parsed
-    /// (ADR-0095).
+    /// where a string is only checked when it is parsed. The modifiers must match
+    /// exactly, so `Ctrl+S` does not fire on `Ctrl+Shift+S`.
+    ///
+    /// Read more: [Accelerators](https://goldberry.dev/docs/guide/input.html#accelerators).
     void shortcut(dev.goldberry.input.key.Shortcut accelerator, Runnable action);
 
     /// Binds a window accelerator and remembers **who** bound it.
@@ -92,8 +103,7 @@ public interface Host {
     /// The owner is a token for [#removeShortcut(Shortcut, Object)], compared by
     /// identity and never called. A widget that binds keys while it is mounted —
     /// `menubar` is the one in the toolkit — passes itself, so that giving them
-    /// back cannot take somebody else's binding with it
-    /// (ADR-0220).
+    /// back cannot take somebody else's binding with it.
     void shortcut(dev.goldberry.input.key.Shortcut accelerator, Runnable action,
             Object owner);
 
@@ -109,8 +119,7 @@ public interface Host {
     ///
     /// The other end of [#shortcut(Shortcut, Runnable)], and it exists because
     /// `menubar` registers the accelerators of every command in its menus when
-    /// it is mounted and has to give them back when it is not
-    /// (ADR-0163).
+    /// it is mounted and has to give them back when it is not.
     ///
     /// **This form removes whatever is bound to `accelerator`**, including a
     /// binding somebody else made — which is what an application unbinding its own
@@ -123,10 +132,9 @@ public interface Host {
     ///
     /// The other half of [#shortcut(Shortcut, Runnable, Object)], and the reason
     /// both exist: a `menubar` registers every accelerator in its menus when it is
-    /// mounted and has to give them back when it is not, and the map used to be
-    /// keyed by the shortcut alone — so a bar going away took `Ctrl+O` with it
-    /// even when the application had bound that key to something else in between
-    /// (ADR-0220).
+    /// mounted and has to give them back when it is not, and giving them back by
+    /// shortcut alone would take `Ctrl+O` with it even when the application had
+    /// bound that key to something else in between.
     ///
     /// Owners are compared by identity. Harmless when nothing was bound, and a
     /// no-op when something else was.
@@ -141,12 +149,11 @@ public interface Host {
     /// Binds a **tap** of a bare modifier key — pressed and released with nothing
     /// in between.
     ///
-    /// `docs/core-widgets.md` §8's "`Alt`-style keyboard activation", and the
-    /// reason it is not a [dev.goldberry.input.key.Shortcut]:
-    /// an accelerator is a key plus modifiers and fires on the press of the key,
-    /// and there is no key here. What the rule is — and everything that spoils it
-    /// — is [dev.goldberry.input.tap.ModifierTaps]
-    /// (ADR-0223).
+    /// `Alt`-style keyboard activation, which is how a `menubar` takes the
+    /// keyboard. It is not a [dev.goldberry.input.key.Shortcut] because an
+    /// accelerator is a key plus modifiers and fires on the press of the key, and
+    /// there is no key here. What the rule is — and everything that spoils it —
+    /// is [dev.goldberry.input.tap.ModifierTaps].
     ///
     /// The owner is the same token [#shortcut(Shortcut, Runnable, Object)] takes,
     /// compared by identity and never called.
@@ -159,9 +166,9 @@ public interface Host {
 
     /// Unbinds a modifier tap **only if `owner` still holds it**.
     ///
-    /// The other half of [#modifierTap], and it exists for the reason ADR-0220
-    /// gave for accelerators: a widget that binds while it is mounted has to give
-    /// the binding back, and must not take a later one with it.
+    /// The other half of [#modifierTap], and it exists for the reason
+    /// [#removeShortcut(Shortcut, Object)] does: a widget that binds while it is
+    /// mounted has to give the binding back, and must not take a later one with it.
     ///
     /// Harmless when nothing was bound, and a no-op when something else was.
     void removeModifierTap(dev.goldberry.input.tap.ModifierKey modifier,
@@ -169,8 +176,8 @@ public interface Host {
 
     /// Floats `widget` over the window's content, pinned to `corner`.
     ///
-    /// The in-window overlay layer (`docs/core-widgets.md` §7): the widget is a
-    /// sibling of the application's root rather than a descendant of it, so it is
+    /// The in-window overlay layer: the widget is a sibling of the application's
+    /// root rather than a descendant of it, so it is
     /// painted after everything and takes no space from anything. A widget
     /// already in the tree cannot do this for itself — an absolute box is placed
     /// against its own parent, so the furthest it can reach is the panel it is in.
@@ -197,8 +204,7 @@ public interface Host {
     /// An overlay covering the **whole window** rather than tucked into a corner.
     ///
     /// For the one thing a corner cannot express: a `tour` dims everything except
-    /// the widget it is describing, so it has to reach every edge
-    /// (ADR-0121).
+    /// the widget it is describing, so it has to reach every edge.
     ///
     /// It takes the pointer wherever it is opaque, which for a veil is
     /// everywhere except the cut-out — that is the point of a veil, and it is
@@ -210,39 +216,35 @@ public interface Host {
     ///
     /// **What a popup is anchored to.** A menu belongs under the button that
     /// opened it, and where that button *is* is a fact about the last frame:
-    /// geometry exists after a paint and it is the router that has it
-    /// (ADR-0080).
+    /// geometry exists after a paint and it is the router that has it.
     ///
-    /// By `id` rather than by element because that is how the specification asks
-    /// for it — `docs/core-widgets.md` §7's `tour` "names a target by id" — and
-    /// because an application holds ids, not elements. A `popover` anchoring to
-    /// *itself* wants the element form, and will want it when it is built.
+    /// By `id` rather than by element because a `tour` names its target by id,
+    /// and because an application holds ids, not elements.
     ///
     /// Empty before the first frame, and for a node that was not painted: a
     /// rectangle for something invisible would be a lie a menu would then point
     /// at.
     java.util.Optional<dev.goldberry.input.hit.HitTest.Region> anchor(String id);
 
-    /// What the desktop's appearance is set to, or empty where it does not say —
-    /// `docs/gaps.md` G26.
+    /// What the desktop's appearance is set to, or empty where it does not say.
     ///
     /// **`Optional`, and that is the whole design.** SDL answers
     /// `SDL_SYSTEM_THEME_UNKNOWN` on a desktop that has no such setting, and an
     /// application needs to tell "the desktop says light" from "the desktop does
-    /// not say": the first is a theme and the second is a default
-    /// ([ADR-0322]).
+    /// not say": the first is a theme and the second is a default.
     ///
     /// The toolkit does **not** act on the answer. Goldberry ships `nord-light` and
     /// `nord-dark`, and which one an application uses — and whether it follows the
     /// desktop at all, or offers a three-way choice of its own — is the
     /// application's. This is the one input to that decision an application cannot
-    /// get for itself: every way of asking is a platform call, and
-    /// [ADR-0004](../../../../book/src/adr/0004-ffm-lives-in-one-module.md) says
-    /// which module may make one.
+    /// get for itself: every way of asking is a platform call, and only the
+    /// native layer may make one.
+    ///
+    /// Read more: [The desktop's theme](https://goldberry.dev/docs/guide/windows.html#the-desktops-theme).
     java.util.Optional<SystemTheme> systemTheme();
 
     /// Whether the desktop asks for less movement, or empty where it does not
-    /// say — §13's reduce-motion switch ([ADR-0383]).
+    /// say: the desktop's reduce-motion switch.
     ///
     /// The toolkit already obeys it: a renderer built by the launcher starts
     /// with it applied. This is here for an application that wants to say so on
@@ -256,10 +258,10 @@ public interface Host {
     /// for `mailto:` — through the platform, which is the one place a process
     /// may ask for one to be opened.
     ///
-    /// What §2's `link` does with an `href`. A request rather than a result:
+    /// What a `link` does with an `href`. A request rather than a result:
     /// the desktop opens it in its own time, and false means the platform would
     /// not — a headless run, a library without the export, a scheme nothing
-    /// handles — which a caller reports rather than retries (ADR-0346).
+    /// handles — which a caller reports rather than retries.
     ///
     /// @param url what to open
     /// @return whether the platform took the request
@@ -283,7 +285,7 @@ public interface Host {
     /// application's own listener lives as long as the window and may drop it,
     /// but a tray that swaps its icon at dusk is closed and shown again every
     /// time its menu changes, and each showing that could not stop listening
-    /// would leave one listener behind (ADR-0501). A widget that wants to follow
+    /// would leave one listener behind. A widget that wants to follow
     /// the desktop should still let the application tell it, in whatever it
     /// already rebuilds from.
     ///
@@ -307,8 +309,7 @@ public interface Host {
     /// **Empty is a normal answer.** Popup support belongs to the platform's
     /// video driver rather than to the request: every desktop driver has it, and
     /// a caller that gets empty falls back to [#overlay(Widget, Corner)] at the
-    /// cost of being clipped to the window
-    /// (ADR-0102).
+    /// cost of being clipped to the window.
     ///
     /// The popup is light-dismissed by default: a press anywhere in this window,
     /// or `Escape`, closes it.
@@ -332,8 +333,8 @@ public interface Host {
     /// Opens a popup **against a rectangle**, sized to its own content and moved
     /// to stay on the screen.
     ///
-    /// The form almost every caller wants, and the one `docs/core-widgets.md`
-    /// §7's `popover` is: a dropdown belongs under its control, a submenu beside
+    /// The form almost every caller wants, and the one a `popover` is: a
+    /// dropdown belongs under its control, a submenu beside
     /// its item, a tooltip above the thing it describes — and none of them has a
     /// size until its content has been laid out, or a position until that size is
     /// compared against the edges of the screen.
@@ -363,8 +364,7 @@ public interface Host {
     /// because a wide control with a narrow panel hanging off its left-hand end
     /// reads as a mistake rather than as a menu. The options decide the rest —
     /// one longer than the field widens the list past it, which is the other half
-    /// of the same rule
-    /// (ADR-0145).
+    /// of the same rule.
     ///
     /// A floor and not a width: this is still measure-then-place, and a caller
     /// asking for less than its content needs would get its content's size.
@@ -382,13 +382,11 @@ public interface Host {
     /// [#popup(Widget, LogicalRect, Placement, float)] with a say in what happens
     /// when the content turns out not to fit.
     ///
-    /// The measure step above is "separately observable" and until now it was
-    /// not: the facility measured, placed and opened, and a caller that needed to
-    /// know how big its content came out had no way to ask. So both callers that
-    /// needed it **guessed** — a menu decided whether it would be taller than the
-    /// screen from its row count times an assumed height, and a `select` did not
-    /// try, which is why a long list lost its bottom
-    /// (ADR-0179).
+    /// This is what makes the measure step above separately observable: a caller
+    /// that needs to know how big its content came out is told, between the
+    /// measure and the place. Without it a menu would have to **guess** whether
+    /// it will be taller than the screen from its row count times an assumed
+    /// height, and a long `select` list would lose its bottom.
     ///
     /// @param fit consulted between the measure and the place, or null for the
     ///            behaviour of the overload above
@@ -399,20 +397,18 @@ public interface Host {
     /// [#popup(Widget, LogicalRect, Placement, float, Fit)] as a panel that hangs
     /// off something the user is **still using**.
     ///
-    /// §4's autocomplete "attaches a `popover` of suggestions to the field", and
-    /// the field is what is being typed into — so this popup must never take the
-    /// keyboard. Not at the router level, which is what
-    /// [Popup#takesFocus(boolean)] settles, but at the **platform** level: a
-    /// window opened as a menu is focusable, and every window manager will hand
-    /// it the keyboard the moment it appears. A field whose suggestion list did
-    /// that took one character and then went dead
-    /// (ADR-0186).
+    /// An autocomplete attaches a list of suggestions to its field, and the field
+    /// is what is being typed into — so this popup must never take the keyboard.
+    /// Not at the router level, which is what [Popup#takesFocus(boolean)]
+    /// settles, but at the **platform** level: a window opened as a menu is
+    /// focusable, and every window manager will hand it the keyboard the moment
+    /// it appears. A field whose suggestion list did that would take one
+    /// character and then go dead.
     ///
     /// So it is opened as the same *kind* of window a tooltip is — never
     /// focusable, and treated as an attached panel by the window manager — while
     /// still being measured, placed and light-dismissed like any other popup. The
-    /// arrows reach it because the owner forwards keys to whatever popup is open
-    /// (ADR-0104).
+    /// arrows reach it because the owner forwards keys to whatever popup is open.
     java.util.Optional<Popup> attachedPopup(Widget content,
                                             LogicalRect anchor, Placement placement,
                                             float minimumWidth, Fit fit);
@@ -424,11 +420,9 @@ public interface Host {
     /// **Whether content that does not fit should scroll or be clamped is a fact
     /// about the content.** A menu that lost its last three commands is the worst
     /// kind of wrong and wants a viewport; a tooltip that scrolled would be
-    /// absurd and would rather be clamped — or rather should have been a dialog
-    /// (ADR-0118).
+    /// absurd and would rather be clamped — or rather should have been a dialog.
     /// `:core` could not act on the answer anyway: a viewport is a widget, and
-    /// `:core` has none
-    /// (ADR-0092).
+    /// `:core` has none.
     ///
     /// So the facility reports and the caller answers. Returning `content`
     /// unchanged is the ordinary answer and costs nothing; returning anything
@@ -452,8 +446,7 @@ public interface Host {
     /// because a caller may need to keep its **content** inside it rather than
     /// leaving the placement to clamp: a menu longer than the screen wants to
     /// become a menu of the screen's height with a scroll view in it, and only
-    /// the thing building the menu can decide that
-    /// (ADR-0118).
+    /// the thing building the menu can decide that.
     ///
     /// **A rectangle and not just a height**, because the same question arises
     /// horizontally for a wide popup and answering half of it would mean
@@ -473,20 +466,18 @@ public interface Host {
     /// [#popup(Widget, String, Placement)] with a floor under the width **and** a
     /// say in what happens when the content does not fit.
     ///
-    /// The overload a menu and a dropdown were missing. Anchoring by id is what
-    /// makes a popup **follow** — the name is a question the next painted frame
-    /// can answer again, where a rectangle is only ever the answer it already was
-    /// ([ADR-0270]) — and until this existed the two callers that also needed a
-    /// minimum width ([ADR-0145]) or a [Fit] ([ADR-0179]) had to resolve the
-    /// anchor to a rectangle themselves and gave the following up to do it
-    /// ([ADR-0432]).
+    /// Anchoring by id is what makes a popup **follow** when its window moves:
+    /// the name is a question the next painted frame can answer again, where a
+    /// rectangle is only ever the answer it already was. A menu or a dropdown
+    /// that also needs a minimum width or a [Fit] anchors by name here rather
+    /// than resolving the rectangle itself, which would give the following up.
     ///
     /// Empty for [#popup(Widget, String, Placement)]'s two reasons: no popup
     /// windows, or nothing painted under that id.
     ///
-    /// **A `default` rather than a method**, which is the opposite of what
-    /// [ADR-0145] did for `minimumWidth` and for a reason that does not apply
-    /// here: a floor is something an implementation has to *do*, while resolving
+    /// **A `default` rather than an abstract method**, unlike the `minimumWidth`
+    /// overload, and for a reason that does not apply there: a floor is
+    /// something an implementation has to *do*, while resolving
     /// a name is [#anchor(String)] followed by the rectangle overload, and an
     /// implementation that wrote that out by hand could only write it out
     /// differently. What a [Launcher] adds on top is the remembering, which is
@@ -501,19 +492,19 @@ public interface Host {
         Objects.requireNonNull(anchorId, "anchorId");
         // `painted()` and not `bounds()`: a menu belongs under where its anchor
         // was drawn, and a button inside a `scroll` is laid out where it always
-        // was and drawn a long way from there ([ADR-0270]).
+        // was and drawn a long way from there.
         return anchor(anchorId)
                 .flatMap(region -> popup(content, region.painted(), placement, minimumWidth, fit));
     }
 
     /// What to do when a widget carrying `context-menu="…"` is right-clicked.
     ///
-    /// §8 attaches a context menu to **any** widget by name, and this is the seam
-    /// between the two halves of that: the toolkit notices the right-click, walks
-    /// up from what is under the pointer to find the name, and hands it over with
-    /// the point it happened at. What the name *means* — and the opening — is the
-    /// catalog's, because a menu is a widget and opening one needs `Menus`
-    /// (ADR-0108).
+    /// `context-menu="…"` attaches a context menu to **any** widget by name, and
+    /// this is the seam between the two halves of that: the toolkit notices the
+    /// right-click, walks up from what is under the pointer to find the name, and
+    /// hands it over with the point it happened at. What the name *means* — and
+    /// the opening — is the catalogue's, because a menu is a widget and opening
+    /// one needs `Menus`.
     ///
     /// An application using the catalog writes one line:
     ///
@@ -523,6 +514,8 @@ public interface Host {
     ///
     /// One handler, not a list: two things deciding what a right-click means is
     /// two menus opening.
+    ///
+    /// Read more: [Context menus](https://goldberry.dev/docs/guide/input.html#context-menus).
     void onContextMenu(ContextMenuHandler handler);
 
     /// Moves the keyboard focus to the node with this `id`.
@@ -540,11 +533,10 @@ public interface Host {
     ///
     /// Refused rather than obeyed when the node cannot take focus, is disabled,
     /// or is **outside a modal that is open** — a dialog's focus trap is not
-    /// something a stray call gets to step around
-    /// (ADR-0176).
+    /// something a stray call gets to step around.
     ///
     /// @param id           the `id` of the node to focus
-    /// @param fromKeyboard whether to show the focus ring — §7.2's
+    /// @param fromKeyboard whether to show the focus ring — the
     ///                     `:focus-visible` distinction. A dialog opened by a
     ///                     keyboard shortcut says true; one opened by a click
     ///                     says false, or the ring appears under a pointer that
@@ -558,9 +550,10 @@ public interface Host {
     /// on time, where anything sleeping elsewhere would fire on time and then wait
     /// for the loop to come back and notice.
     ///
-    /// What §8's "hover-intent timing" is made of, and §7's tooltip delay before
-    /// that. An application wanting to do something in half a second wants this
-    /// rather than a thread (ADR-0105).
+    /// What a tooltip's delay and a menu's hover-intent timing are made of. An
+    /// application wanting to do something in half a second wants this rather
+    /// than a thread: the action lands on the UI thread, where a thread's would
+    /// have to be handed back to it.
     ///
     /// @return a handle that cancels it
     EventLoop.Timer after(
@@ -582,15 +575,17 @@ public interface Host {
     /// On [Host] rather than reached through [#window()] because a widget is the
     /// consumer — `text-input`'s `Ctrl+C` — and reaching a window's backend from a
     /// widget is what [dev.goldberry.widget.BuildContext#host()]
-    /// exists to avoid (ADR-0140).
+    /// exists to avoid.
     ///
     /// Never null: a platform with no clipboard reports
     /// [Clipboard#none()], which accepts
     /// nothing and always reads empty.
+    ///
+    /// Read more: [The clipboard](https://goldberry.dev/docs/guide/text.html#the-clipboard).
     Clipboard clipboard();
 
     /// The session's primary selection — X11's middle-click buffer — or empty
-    /// where the platform has none ([ADR-0504]).
+    /// where the platform has none.
     ///
     /// On [Host] for [#clipboard()]'s reason: the consumer is a widget. What a
     /// `text-input` does with it is publish a finished selection and paste on a
@@ -603,12 +598,12 @@ public interface Host {
         return Optional.empty();
     }
 
-    /// The platform's own open, save and folder dialogs — `docs/gaps.md` G9.
+    /// The platform's own open, save and folder dialogs.
     ///
     /// On [Host] for the clipboard's reason: the consumer is a widget — a
     /// toolbar's "Export…" — and reaching a window's backend from a widget is
     /// what [dev.goldberry.widget.BuildContext#host()] exists
-    /// to avoid (ADR-0140).
+    /// to avoid.
     ///
     /// Never null: a backend with no dialogs reports [FileDialogs#none()], which
     /// answers every request with a [FileChoice.Failed]. Ask
@@ -629,8 +624,8 @@ public interface Host {
     /// ```
     ///
     /// **The answer arrives with a repaint behind it**, and without one a dialog
-    /// looks broken in a way nothing reports — the same failure a tray row has
-    /// (ADR-0191), and for the same reason: the user's choice comes back from the
+    /// looks broken in a way nothing reports — the same failure a tray row has,
+    /// and for the same reason: the user's choice comes back from the
     /// platform's own thread, produces no input event, and so nothing would ask
     /// for the frame that draws what it changed.
     ///
@@ -648,8 +643,7 @@ public interface Host {
         });
     }
 
-    /// Puts an icon in the desktop's notification area — `docs/core-widgets.md`
-    /// §9's `tray-icon`.
+    /// Puts an icon in the desktop's notification area: what a `tray-icon` is.
     ///
     /// **Empty is an ordinary answer**: a session with no notification area, a
     /// Linux desktop without the AppIndicator library, a container with no shell.
@@ -663,19 +657,19 @@ public interface Host {
     /// none of the toolkit's styling, layout or input reaches them; see
     /// [dev.goldberry.render.tray.TrayItem].
     ///
+    /// Read more: [The tray icon](https://goldberry.dev/docs/components/menus.html#the-tray-icon).
+    ///
     /// @param spec the icon, the tooltip and the menu
     /// @return the tray, or empty if this desktop has none
     java.util.Optional<dev.goldberry.render.tray.BackendTray> tray(
             dev.goldberry.render.tray.TraySpec spec);
 
-    /// Opens a web page in a window of the engine's own — `docs/core-widgets.md`
-    /// §9's `web-view`.
+    /// Opens a web page in a window of the engine's own: what a `web-view` opens.
     ///
     /// **Empty is the usual answer, not an unlucky one.** A page needs
     /// `libgoldberry-webview`, which is a separate library precisely so that GTK
     /// and WebKit are not load-time dependencies of the toolkit, and most builds
-    /// do not have it
-    /// ([ADR-0441](../../../../book/src/adr/0441-a-web-page-is-a-window-not-a-box.md)).
+    /// do not have it.
     /// An application that wants to know before it offers the button asks
     /// [dev.goldberry.Goldberry#capabilities()] for
     /// [dev.goldberry.platform.Capability#WEB_VIEW].
@@ -689,13 +683,15 @@ public interface Host {
     /// [dev.goldberry.Goldberry#run()] returns when the last
     /// *Goldberry* window closes, and a page's window is not one.
     ///
+    /// Read more: [The web view](https://goldberry.dev/docs/components/content.html#the-web-view).
+    ///
     /// @param spec where the page starts, its title and its window size
     /// @return the page, or empty where no page can be opened here
     java.util.Optional<dev.goldberry.render.web.BackendWebView> webView(
             dev.goldberry.render.web.WebViewSpec spec);
 
     /// Opens a page **inside this window**, at the given rectangle in its own
-    /// logical coordinates — §9's `web-view` as a widget ([ADR-0442]).
+    /// logical coordinates: a `web-view` as a widget.
     ///
     /// **Empty on Wayland, always.** Embedding means reparenting the engine's
     /// window into this one; X11, Win32 and Cocoa allow that and Wayland does
@@ -729,9 +725,9 @@ public interface Host {
     /// How many device pixels one logical pixel covers in this window right now —
     /// 1 at 100%, 2 on a retina display.
     ///
-    /// For a widget choosing between rasters of one picture (ADR-0358), which
-    /// must not reach for [#window()] to ask: a widget never names a window
-    /// (ADR-0121). 1 by default, which is right for a host with no window under it.
+    /// For a widget choosing between rasters of one picture, which must not reach
+    /// for [#window()] to ask: a widget never names a window. 1 by default, which
+    /// is right for a host with no window under it.
     default double displayScale() {
         return 1.0;
     }
@@ -750,7 +746,7 @@ public interface Host {
     /// Added for `web-view`, which is the one widget that cannot be covered by
     /// an overlay: a page is a platform window above the frame, so a dialog over
     /// it is painted and invisible. The widget takes its page off the screen
-    /// while this is true ([ADR-0444]). Nothing else needs it yet, and other
+    /// while this is true. Nothing else needs it yet, and other
     /// widgets that want to stand aside for a modal now can.
     ///
     /// **A frame behind**, like [#anchor]: it describes the frame that was
@@ -762,8 +758,7 @@ public interface Host {
         return false;
     }
 
-    /// Whether this host has a window that can be asked to fill its display
-    /// (ADR-0473).
+    /// Whether this host has a window that can be asked to fill its display.
     ///
     /// What a control decides by whether to **offer** fullscreen at all: a
     /// `media-player` shows its fullscreen button only where pressing it could

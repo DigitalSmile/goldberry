@@ -16,8 +16,7 @@ import org.junit.jupiter.api.Test;
 
 /// Pricing an option: should a jar **generate** its binding instead of reflecting?
 ///
-/// ADR-0155
-/// gave an ordinary jar a reflective binding, and `BindingSchemeBenchmark`
+/// An ordinary jar binds its models reflectively, and `BindingSchemeBenchmark`
 /// measured what that costs against the woven form. The obvious next thought is
 /// to close the gap without a build step: bind reflectively at start-up, and the
 /// first time a model is used, emit a small class with the class-file API and
@@ -224,7 +223,7 @@ class BindingCodegenBenchmark {
     void generationCost() {
         // One class per model per field is the shape that would be needed, and it
         // is paid on first use rather than at start-up -- so it is a hitch in the
-        // first frame, not a line in the start-up timeline (ADR-0028).
+        // first frame, not a line in the start-up timeline.
         var first = System.nanoTime();
         generateProbe(OneValue.class, "clicks");
         var firstTook = System.nanoTime() - first;

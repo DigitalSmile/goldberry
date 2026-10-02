@@ -16,15 +16,13 @@ import dev.goldberry.widget.style.Styled;
 /// would make this a loop rather than a layout, which is why `masonry` takes a
 /// count rather than a list of widths.
 ///
-/// ## The width is a rule's, and it used to be the widget's
+/// ## The width is a rule's, not the widget's
 ///
 /// `flex-basis: 0` with `flex-grow: 1`, in `controls.css`. Every column starts
-/// from nothing and they share the whole row, so `1/n` needs no `n` — which is
-/// what this could not say until §8's last flex property was resolved
-/// ([ADR-0373]). Before that the count was carried into the widget and written
-/// out as an inline `width: 100/n %`, which was `1/n` of the row **plus** the
-/// gaps between the columns: three columns and two 12px gaps overflowed their
-/// row by 24px, and the last column was the one that paid.
+/// from nothing and they share the whole row, so `1/n` needs no `n`. An inline
+/// `width: 100/n %` would be `1/n` of the row **plus** the gaps between the
+/// columns: three columns and two 12px gaps would overflow their row by 24px,
+/// and the last column would be the one that paid.
 ///
 /// `flex-grow: 1` alone would size the columns to their *content*, so a column
 /// holding a wide chart would be wider than one holding a statistic — and then a

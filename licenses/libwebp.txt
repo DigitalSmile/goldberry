@@ -9,7 +9,7 @@ animation demuxer, the near-lossless path and all nine command-line tools, so
 what is linked is `webpdecode`, `webpdspdecode` and `webputilsdecode` and
 nothing else. Three symbols reach Java -- WebPGetInfo, WebPDecodeRGBA and
 WebPFree -- bound directly with no C glue, which is the same arrangement every
-other upstream here has (ADR-0329).
+other upstream here has.
 
 BSD-3-Clause requires the copyright notice, the conditions and the disclaimer to
 travel with a binary redistribution, which is what this file is for.

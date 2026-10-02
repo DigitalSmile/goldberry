@@ -23,12 +23,10 @@ import dev.goldberry.widgets.core.scroll.ScrollController;
 /// ## Why a strip needs any state at all
 ///
 /// The list of tabs is the application's — a strip reports `close` and the
-/// application shortens its own list
-/// (ADR-0107).
-/// Which means that by the time a tab should be *animating out*, it is already
-/// gone from everything the strip is given. Something has to hold on to it for
-/// the length of its departure, and this is that something
-/// (ADR-0109).
+/// application shortens its own list. Which means that by the time a tab should
+/// be *animating out*, it is already gone from everything the strip is given.
+/// Something has to hold on to it for the length of its departure, and this is
+/// that something.
 ///
 /// Arrivals need it for the mirror-image reason: a tab that has just appeared
 /// must be told it is new, and only something that saw the *previous* build knows
@@ -42,7 +40,7 @@ import dev.goldberry.widgets.core.scroll.ScrollController;
 final class TabsState extends State<Tabs> {
 
     /// The viewport the headers live in, so a selected tab that is scrolled out
-    /// of the strip can be brought back ([ADR-0120]).
+    /// of the strip can be brought back.
     ///
     /// Created here and handed *down* into the `tab-list`, which is the one
     /// direction a controller can travel: the scroll view is a descendant, so
@@ -76,11 +74,11 @@ final class TabsState extends State<Tabs> {
     private boolean opened;
 
     /// The tabs a `keep-alive` strip has shown and still has, in the order they
-    /// were first shown (ADR-0366).
+    /// were first shown.
     private final Set<String> kept = new LinkedHashSet<>();
 
     /// The tab being dragged to a new place, how far it has travelled, and where
-    /// the pointer is — or null while nothing is (ADR-0372).
+    /// the pointer is — or null while nothing is.
     private @Nullable String dragging;
 
     private double dragOffset;
@@ -91,8 +89,8 @@ final class TabsState extends State<Tabs> {
     /// strip order.
     ///
     /// Two things read it: a drop, which asks which headers it landed between
-    /// ([ADR-0372]), and the underline, which travels from the header it was
-    /// under to the one it is under now ([ADR-0377]). The second is why every
+    /// and the underline, which travels from the header it was
+    /// under to the one it is under now. The second is why every
     /// strip collects them and not only a reorderable one.
     private final Map<String, LogicalRect> headerRects = new LinkedHashMap<>();
 
@@ -114,7 +112,7 @@ final class TabsState extends State<Tabs> {
     protected void initState() {
         // The strip's page buttons depend on whether the headers overflow and
         // where they are scrolled to, which is the viewport's state and not ours;
-        // the controller says when it moves (ADR-0365).
+        // the controller says when it moves.
         headerScroll.onChange(() -> {
             var next = headerScroll.position();
             if (isMounted() && !next.equals(headerPosition)) {
@@ -145,8 +143,8 @@ final class TabsState extends State<Tabs> {
     /// which is what makes it slide home.
     ///
     /// Called from a `render`, so it only **marks** — the rebuild happens on the
-    /// next frame, which is what a deferred rebuild is for (ADR-0052) and how a
-    /// tab's departure ends too.
+    /// next frame, which is what a deferred rebuild is for and how a tab's
+    /// departure ends too.
     private void arrived(int journey) {
         if (travel != null && travel.id() == journey && travel.isDisplaced()) {
             setState(() -> travel = new Tab.Travel(0, 1, journey, null));
@@ -160,7 +158,7 @@ final class TabsState extends State<Tabs> {
     /// indicator needs and all this can honestly give: a strip whose headers
     /// nothing has measured — a tree painted with no router behind it — gets
     /// null and the underline simply appears where it belongs, exactly as it did
-    /// before this existed ([ADR-0377]).
+    /// before the underline could travel.
     private Tab.@Nullable Travel journey(@Nullable String selected) {
         if (selected == null) {
             underlined = null;
@@ -235,7 +233,7 @@ final class TabsState extends State<Tabs> {
     ///
     /// Handed the selected header's rectangle and the one that clips it, which is
     /// the strip's viewport — the controller turns those two into a distance and
-    /// the viewport clamps it ([ADR-0119], [ADR-0120]).
+    /// the viewport clamps it.
     private void revealed(LogicalRect self, LogicalRect clip) {
         if (pendingReveal == null) {
             return;
@@ -281,10 +279,10 @@ final class TabsState extends State<Tabs> {
 
         var selected = strip.selected();
         // The selection moving is the one moment a reveal is asked for
-        // ([ADR-0120]). `underlined` is what the *previous* build was told, and
+        // `underlined` is what the *previous* build was told, and
         // `journey` below is where it moves on, so this has to be read first --
         // which is also why the request is written here rather than in `select`:
-        // the strip does not decide the selection, it is handed one (ADR-0063),
+        // the strip does not decide the selection, it is handed one,
         // and a bound value or a keyboard move arrives as a rebuild and nothing
         // else.
         if (selected != null && !selected.equals(underlined)) {
@@ -319,9 +317,9 @@ final class TabsState extends State<Tabs> {
                     now -> visibility(value, phase, now),
                     // Every header of every strip, because two things read the
                     // rectangles: a drop is placed against all of them
-                    // (ADR-0372) and the underline travels between them
-                    // (ADR-0377). A reveal is still one tab's, and is still
-                    // cleared as soon as it is acted on (ADR-0120).
+                    // and the underline travels between them. A reveal is
+                    // still one tab's, and is still cleared as soon as it is
+                    // acted on.
                     leaving ? null : (self, clip) -> located(value, self, clip),
                     isSelected ? journey : null);
             headers.add(
@@ -393,8 +391,7 @@ final class TabsState extends State<Tabs> {
     ///
     /// Called from the tab's `render`, which is the only place the frame clock
     /// reaches a widget: the first call stamps the phase's start, and the call
-    /// that finds a departure over is what asks for the tab to be dropped
-    /// (ADR-0109).
+    /// that finds a departure over is what asks for the tab to be dropped.
     private double visibility(String value, Phase phase, double now) {
         var progress = phase.progressAt(now);
         if (phase.hasDeparted(now)) {
@@ -407,7 +404,7 @@ final class TabsState extends State<Tabs> {
     /// A departure has finished — drop the tab on the next build.
     ///
     /// Called from `render`, so it only *marks*: the rebuild happens on the next
-    /// frame, which is what a deferred rebuild is for (ADR-0052).
+    /// frame, which is what a deferred rebuild is for.
     private void departed(String value) {
         if (phases.containsKey(value)) {
             setState(() -> {

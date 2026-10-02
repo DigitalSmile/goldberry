@@ -14,8 +14,8 @@ import dev.goldberry.widgets.form.Validator;
 import dev.goldberry.widgets.markup.Markup;
 import dev.goldberry.widgets.markup.Wiring;
 
-/// One labelled control and what to say about it —
-/// `docs/core-widgets.md` §4's `field`.
+/// One labelled control and what to say about it: a label, the control, the
+/// required marker, and the reason the value is invalid when it is.
 ///
 /// ```kdl
 /// field label="Name" required=#true {
@@ -55,11 +55,11 @@ import dev.goldberry.widgets.markup.Wiring;
 /// what it holds. The alternative is failing forever — a form gated on a control
 /// somebody can type into and never satisfy — which is worse than a flag that
 /// does nothing. It is the same shape as a `menu` that is only ever opened
-/// registering no accelerators, because nothing is holding it (ADR-0163).
+/// registering no accelerators, because nothing is holding it.
 ///
 /// ## When it validates
 ///
-/// §4 says "on blur and on submit". Blur is
+/// On blur and on submit. Blur is
 /// [dev.goldberry.input.handler.Handles#onFocusWithin] — the field is
 /// told when the keyboard leaves its subtree, which is once, however many controls
 /// are in it and however they were moved between.
@@ -70,6 +70,8 @@ import dev.goldberry.widgets.markup.Wiring;
 /// a field *has* complained, though, it re-checks on every change — so the message
 /// goes away the instant the value is fixed rather than at the next blur, which is
 /// the asymmetry every good form has and no specification states.
+///
+/// Read more: [Fields and forms](https://goldberry.dev/docs/components/forms.html#field).
 ///
 /// @param label      what to write beside the control, or `""` for none
 /// @param children   the control slot — whatever the document wrote inside
@@ -95,8 +97,8 @@ public record Field(
     /// instead, and gets it.
     public static final String REQUIRED_MESSAGE = "This field is required";
 
-    /// The canonical constructor, written out because `label` and `attributes` take null for a default
-    /// (ADR-0497).
+    /// The canonical constructor, written out because `label` and `attributes`
+    /// take null for a default.
     public Field(
             @Nullable String label,
             List<Widget> children,
@@ -163,8 +165,8 @@ public record Field(
     ///
     /// `validator="app.port-rule"` **names** a [Validator] the application holds,
     /// exactly as `press=` names an action: markup is data and a validator is a
-    /// function, so a document can say which rule and not what the rule is
-    /// ([ADR-0170]). `required=#true` stays a flag because it is the one rule
+    /// function, so a document can say which rule and not what the rule is.
+    /// `required=#true` stays a flag because it is the one rule
     /// that *is* data.
     @SuppressWarnings("unchecked")
     public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {

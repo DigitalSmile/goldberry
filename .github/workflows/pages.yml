@@ -79,7 +79,7 @@ jobs:
         run: |
           # content.js and news.js point into the book; a renamed chapter should
           # fail here, not as a 404 on the live site. SiteTest checks the same
-          # links against book/src without building anything (ADR-0509).
+          # links against book/src without building anything.
           for file in site/content.js site/news.js; do
             for target in $(grep -o '"docs/[^"#]*' "$file" | tr -d '"' | sort -u); do
               [ -e "_site/$target" ] || [ -e "_site/${target}index.html" ] \

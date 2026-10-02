@@ -7,7 +7,8 @@ import dev.goldberry.build.publish.PublishedModule
 import dev.goldberry.build.publish.PublishedModules
 
 // ============================================================================
-// Publishing to Maven Central (docs/ARCHITECTURE.md §15, ADR-0334)
+// Publishing to Maven Central
+// https://goldberry.dev/docs/contributing/releasing.html#where-things-go
 //
 // Applied by the shipped modules and nothing else -- `PublishedModules` is the
 // list, and applying this anywhere off it fails here rather than putting a
@@ -16,20 +17,23 @@ import dev.goldberry.build.publish.PublishedModules
 // One task does both halves: `./gradlew publishToMavenCentral` uploads a
 // `-SNAPSHOT` to the Central Portal's snapshot repository and a release to a
 // Portal deployment. Only `publish.yml` runs it, once per run, with every
-// platform's library in hand -- see ADR-0334 for why no per-OS workflow may.
+// platform's library in hand. No per-OS workflow may: a snapshot's classifier
+// jars are listed in the metadata its upload writes, so a runner publishing its
+// own platform would leave Central naming whichever finished last.
 //
 // Credentials and the signing key arrive as Gradle properties, which CI sets
 // from secrets through `ORG_GRADLE_PROJECT_*`:
 //   mavenCentralUsername, mavenCentralPassword          the Portal user token
 //   signingInMemoryKey, signingInMemoryKeyPassword      the ASCII-armoured key
-// `docs/releasing.md` is the checklist.
+// The one-time setup and the release steps:
+// https://goldberry.dev/docs/contributing/releasing.html#cutting-a-release
 // ============================================================================
 
 plugins {
     // First, so `version` is resolved before the coordinates read it. Not the
     // java conventions: `:bom` is a `java-platform`, which cannot share a project
     // with `java-library`, so a module applies whichever of the two it is before
-    // this plugin (ADR-0336).
+    // this plugin.
     id 'goldberry.versioning'
     id 'com.vanniktech.maven.publish'
 }
@@ -56,7 +60,7 @@ mavenPublishing {
     // A release stops in the Portal as a validated deployment and a person
     // presses Publish, until `-Pgoldberry.centralAutoRelease=true` says the chain
     // has earned it. A release on Central cannot be withdrawn, so the first few
-    // get a look before they are permanent (ADR-0334).
+    // get a look before they are permanent.
     publishToMavenCentral(providers.gradleProperty('goldberry.centralAutoRelease')
             .map { Boolean.parseBoolean(it) }
             .getOrElse(false))
@@ -95,7 +99,7 @@ mavenPublishing {
     }
 }
 
-// No FFmpeg binary leaves without its source (ADR-0508). LGPL-2.1 §4 has
+// No FFmpeg binary leaves without its source. Section 4 of the LGPL-2.1 has
 // `goldberry-media`'s `ffmpeg-<target>` classifiers distributed only beside
 // their complete corresponding source, from the same place, and a snapshot is a
 // distribution as much as a release is -- so any publication carrying one and
@@ -103,7 +107,8 @@ mavenPublishing {
 //
 // Checked when the task graph is ready rather than in the publish task: the
 // modules upload one after another, and a refusal in :media's own task would
-// come after eight others were already on Central (ADR-0405 is that story).
+// come after eight others were already on Central -- which is how the javadoc
+// lint once failed a snapshot with three modules already uploaded.
 gradle.taskGraph.whenReady { graph ->
     tasks.withType(AbstractPublishToMaven).matching { graph.hasTask(it) }.each { task ->
         CorrespondingSource.require(
@@ -127,7 +132,8 @@ pluginManager.withPlugin('java-test-fixtures') {
     }
 }
 
-// Doclint on for the published javadoc, less the `missing` group (ADR-0343).
+// Doclint on for the published javadoc, less the `missing` group.
+// https://goldberry.dev/docs/contributing/testing.html#static-analysis
 // The 120 errors that used to keep it off were `@param` blocks written on the
 // class above a one-method `...Calls` holder, which doclint reads as a tag on a
 // type, and twenty `[Foo]` links to a type another package or module owns; both
@@ -140,7 +146,7 @@ tasks.withType(Javadoc).configureEach {
     options.addStringOption('Xdoclint:all,-missing', '-quiet')
 }
 
-// ...and it runs with `check`, which is the half ADR-0343 left out (ADR-0405).
+// ...and it runs with `check`, which turning the lint on had left out.
 // Nothing but `javadocJar` generated javadoc, and nothing but `publish.yml` runs
 // that -- so the lint fired in the last step of the last job, after three
 // operating systems had built four native libraries. `[ChartSpec#fill]` on

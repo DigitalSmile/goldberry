@@ -10,7 +10,8 @@ import java.util.List;
 import dev.goldberry.media.ffi.FfmpegDescriptors;
 
 /// Writes this module's `reachability-metadata.json`: every foreign-call shape a
-/// native image of it needs, and the natives jar's resources (ADR-0339).
+/// native image of it needs, and the natives jar's resources. A foreign call is
+/// registered because it exists, not because a traced run reached it.
 ///
 /// Two sources of shapes, FFmpeg's bindings ([FfmpegDescriptors]) and the system
 /// decoders' ([PlatformDescriptors]), in one file, each shape once. The

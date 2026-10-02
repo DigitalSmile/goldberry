@@ -32,13 +32,15 @@ import dev.goldberry.widgets.data.barchart.BarChart;
 import dev.goldberry.widgets.data.donutchart.DonutChart;
 import dev.goldberry.widgets.data.linechart.LineChart;
 
-/// What a chart draws when it has nothing to draw — `charts.md` §3.1's "a themed
-/// message, never an empty grid".
+/// What a chart draws when it has nothing to draw: a themed message, never an
+/// empty grid.
 ///
 /// An empty grid is not a neutral picture. Gridlines and axis labels are an
 /// assertion about a scale, so a chart drawing `0, 5, 10, 15, 20` over no data has
 /// invented every one of those numbers — which is the same class of untruth as a
 /// bar chart with a baseline at 90.
+///
+/// Read more: [What the five share](https://goldberry.dev/docs/components/charts.html#what-the-five-share).
 class ChartStatusTest {
 
     @BeforeEach

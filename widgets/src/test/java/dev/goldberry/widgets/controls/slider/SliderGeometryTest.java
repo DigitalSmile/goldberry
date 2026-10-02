@@ -30,8 +30,7 @@ import dev.goldberry.widgets.Controls;
 import dev.goldberry.widgets.controls.TestFont;
 import dev.goldberry.widgets.core.Column;
 
-/// Where a slider's marks and its readout actually land, after Yoga has run
-/// (ADR-0080).
+/// Where a slider's marks and its readout actually land, after Yoga has run.
 ///
 /// [SliderTest] asserts the arithmetic and [SliderGoldenTest] asserts the
 /// picture. This is the layer between them, and it exists because the claims the
@@ -119,7 +118,7 @@ class SliderGeometryTest {
     /// when nothing transformed it.
     ///
     /// A tick mark is moved clear of the thumb by a `transform`, and a transform
-    /// deliberately costs no layout (ADR-0068) — so the laid-out rectangle is the
+    /// deliberately costs no layout — so the laid-out rectangle is the
     /// one Yoga produced and says nothing about where the mark ended up. A region
     /// carries the inverse of the matrix it was painted with, for hit testing;
     /// inverting it back is the matrix itself.
@@ -135,14 +134,15 @@ class SliderGeometryTest {
     }
 
     /// **The node the router will reach**, which moved when `slider` became a
-    /// composition ([ADR-0430]).
+    /// composition.
     ///
     /// A `Slider` is no longer a `Handles`: it describes a [SliderControl] and
     /// that is what handles, styles and paints. The router hit-tests painted
     /// regions and dispatches from the element that owns one, so the claim worth
     /// pinning is that the region a press lands in belongs to a node that can take
     /// it — and that the node still names `slider-track` as the part the local
-    /// fraction is measured against, which is the whole of [ADR-0080].
+    /// fraction is measured against, which is the whole of measuring a value
+    /// along a part.
     ///
     /// Asserted here rather than argued in a doc comment because the failure mode
     /// is silent: a slider that draws perfectly and ignores the pointer looks like

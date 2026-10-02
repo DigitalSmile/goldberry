@@ -1,14 +1,14 @@
-/// `@NullMarked`, which puts this package under NullAway.
+/// Selectors: what a rule matches, how strongly, and the matcher that decides
+/// whether one applies to an element.
 ///
-/// Inside a marked package every type is non-null unless it says `@Nullable`,
-/// and the build fails on a violation. The annotation is the whole content of
-/// this file: there is nothing package-specific to say about nullness, and a
-/// paragraph pretending otherwise in every package would be padding.
+/// The subset is type, `.class`, `#id`, the descendant and child combinators, and
+/// a closed set of pseudo-classes for widget state. Matching walks up the
+/// ancestor chain and never asks about order, which is what keeps restyling
+/// cheap.
 ///
-/// Packages are marked one at a time on purpose. NullAway runs in
-/// `OnlyNullMarked` mode, so an unmarked package is invisible to it and a marked
-/// one is checked from the moment it opts in — which is the only way a codebase
-/// this size adopts nullness at all (`docs/testing.md` §2).
+/// Null-marked: every reference is non-null unless annotated `@Nullable`.
+///
+/// Read more: [Styling](https://goldberry.dev/docs/guide/styling.html#selectors).
 @NullMarked
 package dev.goldberry.css.select;
 

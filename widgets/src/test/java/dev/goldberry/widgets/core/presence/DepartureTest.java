@@ -17,8 +17,8 @@ import org.junit.jupiter.api.Test;
 import dev.goldberry.RendererRequirement;
 import dev.goldberry.widgets.TestHost;
 
-/// §1.7's `closing → removed`, as the one object two widgets had each written out
-/// ([ADR-0234]).
+/// The design system's `closing → removed`, as the one object two widgets had
+/// each written out.
 ///
 /// `dialog` and `message` held two flags, a timer and the same six lines, and got
 /// the same four rules right independently. Each of those rules is a case here,
@@ -27,7 +27,7 @@ import dev.goldberry.widgets.TestHost;
 /// - **idempotence**, because two handlers on a save dialog is two saves;
 /// - **two flags**, because using "input is off" for "stop drawing" is why a
 ///   closing dialog once stopped asking for frames on the frame it started
-///   closing, and therefore never faded at all ([ADR-0176]);
+///   closing, and therefore never faded at all;
 /// - **stop drawing, then tell the application**, which matters for one frame;
 /// - **gone at once with no host or under reduced motion**, because a hundred
 ///   milliseconds of nothing happening is not a courtesy.
@@ -149,7 +149,7 @@ class DepartureTest {
             assertEquals(List.of("told"), log);
         }
 
-        /// §1.7 asks for movement to be **removed** rather than shortened, and a
+        /// Reduced motion asks for movement to be **removed** rather than shortened, and a
         /// hundred milliseconds of nothing happening is not a courtesy.
         @Test
         @DisplayName("reduced motion means gone now, with no timer at all")

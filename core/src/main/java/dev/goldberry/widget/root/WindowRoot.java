@@ -33,7 +33,7 @@ import dev.goldberry.widget.style.Styled;
 ///
 /// ## What it is for
 ///
-/// **The in-window overlay layer** (`docs/core-widgets.md` §7). An [Overlay] is
+/// **The in-window overlay layer.** An [Overlay] is
 /// pinned to a [Corner] out of flow, so it floats over the content without taking
 /// space from it, and it is a **sibling of the application's root** rather than a
 /// descendant — which is the whole point. A widget deep in the tree cannot pin
@@ -51,18 +51,22 @@ import dev.goldberry.widget.style.Styled;
 /// `Host.overlay(...)` is called at any time, from a handler or from
 /// `Application#start`, and the root widget of an [ElementTree] cannot be
 /// swapped. So the list is a [Property] the launcher owns and this widget
-/// **watches** — §9's `bind`, applied to the toolkit's own state. The element
-/// subscribes for as long as it lives and a change marks it for rebuild, which is
-/// the same route an application's model takes to the screen (ADR-0062). Nothing
-/// here needs a `setState` or a second invalidation path.
+/// **watches** — the `bind=` an application's own widgets use, applied to the
+/// toolkit's own state. The element subscribes for as long as it lives and a
+/// change marks it for rebuild, which is the same route an application's model
+/// takes to the screen. Nothing here needs a `setState` or a second
+/// invalidation path.
 ///
 /// ## Not a catalog widget
 ///
 /// `window-root` is CSS-selectable and **not** KDL-constructible — a stated
-/// exception to §11's parity invariant, on the same grounds a part is one
-/// (ADR-0065): a document cannot write the node it is the document *of*. It is
-/// selectable because it is the element `:root` matches and the one place a
-/// stylesheet can put the window's own background.
+/// exception to the rule that every built-in widget can be written in markup,
+/// on the same grounds a part is one: a document cannot write the node it is
+/// the document *of*. It is selectable because it is the element `:root`
+/// matches and the one place a stylesheet can put the window's own background.
+///
+/// Read more:
+/// [Overlays and popups](https://goldberry.dev/docs/guide/windows.html#overlays-and-popups).
 ///
 /// @param content  the application's root widget
 /// @param overlays what is floating over it, watched rather than captured
@@ -89,7 +93,7 @@ public record WindowRoot(Widget content, Property<List<Overlay>> overlays) imple
         return Set.of();
     }
 
-    /// The overlay list, so a change to it rebuilds this node (ADR-0062).
+    /// The overlay list, so a change to it rebuilds this node.
     @Override
     public Observable<?> binding() {
         return overlays;
@@ -97,7 +101,7 @@ public record WindowRoot(Widget content, Property<List<Overlay>> overlays) imple
 
     /// The content **first**, so everything floating is painted after it.
     ///
-    /// A box tree has no z-order beyond document order (ADR-0053), which is what
+    /// A box tree has no z-order beyond document order, which is what
     /// makes an overlay layer a matter of list position rather than of a new
     /// concept.
     @Override
@@ -138,7 +142,7 @@ public record WindowRoot(Widget content, Property<List<Overlay>> overlays) imple
                 continue;
             }
             // Insets on all four sides is Yoga's "fill"; two sides is a corner.
-            // One flag, no second placement path (ADR-0121).
+            // One flag, no second placement path.
             var inset = entry.isFilling()
                     ? Insets.all(Length.points(0))
                     : entry.corner().insets(entry.margin());
@@ -150,8 +154,7 @@ public record WindowRoot(Widget content, Property<List<Overlay>> overlays) imple
                     // layer is not one. A `window-root { padding: 16px }` is the
                     // application saying where its own widgets start; a toast
                     // pinned 12 points from the corner means 12 from the corner
-                    // of the window, and a veil that fills means the window
-                    // (ADR-0272).
+                    // of the window, and a veil that fills means the window.
                     .inset(ContainingBlock.acrossBorderBox(inset, style.padding())));
         }
         return Box.of().style(style).children(boxes.toArray(Box[]::new));
@@ -161,14 +164,14 @@ public record WindowRoot(Widget content, Property<List<Overlay>> overlays) imple
     ///
     /// **Asked of the box, not of its position in the list.** A child widget and
     /// a child *box* are not the same count and never were: a hidden node
-    /// contributes none ([ADR-0366]), so does [Widget#nothing()], and a
+    /// contributes none, so does [Widget#nothing()], and a
     /// composition contributes as many as the boxes it composes. Matching by
     /// index therefore placed a toast in the corner of the overlay above it the
     /// moment one of them drew nothing, and walked off the end of the list when
     /// one of them drew twice.
     ///
     /// A box carries the element that produced it — the tag hit testing gets from
-    /// a rectangle back to a node (ADR-0054) — so the honest question is which of
+    /// a rectangle back to a node — so the honest question is which of
     /// this node's own children that element is under, and the element tree
     /// answers it. Child 0 is the content, child *i* is overlay *i-1*, which is
     /// the order [#children()] builds them in.

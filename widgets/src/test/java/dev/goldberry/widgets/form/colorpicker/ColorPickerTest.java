@@ -30,12 +30,14 @@ import dev.goldberry.widgets.Widgets;
 import dev.goldberry.widgets.controls.TestFont;
 import dev.goldberry.widgets.form.parts.PickerField;
 
-/// §4's colour field, driven the way a user drives it.
+/// The colour field, driven the way a user drives it.
 ///
 /// The colour model is [HsvColorTest]'s. What is here is the seam: that the hex
 /// field is the source of truth, that the plane and the ramps write into it, that
 /// `alpha=#false` refuses translucency in **both** directions, and what the closed
 /// swatch does.
+///
+/// Read more: [`color-picker`](https://goldberry.dev/docs/components/forms.html#color-picker).
 class ColorPickerTest {
 
     private static final LogicalRect BOUNDS = new LogicalRect(new LogicalPoint(12, 40), new LogicalSize(240, 32));
@@ -154,7 +156,7 @@ class ColorPickerTest {
             assertEquals(hue, state(tree).draggingColour().hue(), 0.001);
         }
 
-        /// §4: "arrows move the plane cursor by 1, `Shift`+arrows by 10" — of the
+        /// Arrows move the plane cursor by 1 and `Shift`+arrows by 10 — of the
         /// plane's own hundred steps, which is what the model is in.
         @Test
         @DisplayName("arrows move the cursor by one step and Shift by ten")
@@ -220,8 +222,8 @@ class ColorPickerTest {
     @DisplayName("alpha")
     class Translucency {
 
-        /// §4: "`alpha=#false` (the default) hides the alpha slider **and refuses
-        /// translucent values**". Both halves, because a picker with no way to
+        /// `alpha=#false` (the default) hides the alpha slider **and refuses
+        /// translucent values**. Both halves, because a picker with no way to
         /// change alpha must not report one.
         @Test
         @DisplayName("is off by default, and there is no ramp for it")
@@ -253,8 +255,8 @@ class ColorPickerTest {
     @DisplayName("the closed control")
     class Swatch {
 
-        /// §4 calls it "a swatch button", so it is one — focusable, and `Space`
-        /// opens the popover.
+        /// The closed control is a swatch *button*, so it is one — focusable, and
+        /// `Space` opens the popover.
         @Test
         @DisplayName("is a focusable swatch and not a field")
         void swatchButton() {
@@ -268,7 +270,7 @@ class ColorPickerTest {
         }
 
         /// A palette of twelve colours would be twelve Tab stops inside a popover,
-        /// and §4 gives them no roving mechanism to be one stop with.
+        /// and the presets have no roving mechanism to be one stop with.
         @Test
         @DisplayName("and a preset is not focusable")
         void presetsAreNotTabStops() {
@@ -349,8 +351,8 @@ class ColorPickerTest {
             assertTrue(picker.alpha());
         }
 
-        /// §4 calls the palette application-supplied, and a list of colours is not
-        /// something §9's property syntax carries — `calendar`'s reason for having
+        /// The palette is application-supplied, and a list of colours is not
+        /// something a KDL property carries — `calendar`'s reason for having
         /// no `@Markup` at all, one option down.
         @Test
         @DisplayName("but not the palette, which a document cannot carry")

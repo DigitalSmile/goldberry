@@ -3,7 +3,7 @@ package dev.goldberry.render.window;
 import java.util.Objects;
 
 /// How a window gets its frames onto the screen: through the GPU, or on the CPU
-/// and why (ADR-0492).
+/// and why.
 ///
 /// Every window presents one way or the other, and which one is a fact about the
 /// machine as much as the application: no device, a driver that refused the
@@ -14,6 +14,9 @@ import java.util.Objects;
 /// It can change while the window is open: `goldberry.gpu.composite=auto` moves a
 /// window to the GPU while it shows GPU layers, and a GPU that fails sends it to
 /// the CPU for good. `Window.onPresentationChange` hears each change.
+///
+/// Read more:
+/// [Logging and diagnostics](https://goldberry.dev/docs/guide/logging.html#which-way-a-window-presents).
 public sealed interface Presentation {
 
     /// Frames are composited through the GPU, by `driver`.

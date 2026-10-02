@@ -1,7 +1,7 @@
 <!--
   Logback configuration for the showcase.
 
-  Goldberry itself binds no SLF4J provider (ADR-0023): a library that ships one
+  Goldberry itself binds no SLF4J provider: a library that ships one
   takes the choice away from the application. This file is that choice being
   made, in the one place entitled to make it.
 
@@ -24,7 +24,7 @@
          went. -->
     <logger name="dev.goldberry" level="${goldberry.log.level:-DEBUG}"/>
 
-    <!-- What the platform's own libraries say about themselves (ADR-0443).
+    <!-- What the platform's own libraries say about themselves.
          GLib's messages arrive on `native.glib.<domain>` and SDL's on
          `native.sdl.<category>`, so each is levelled, routed and silenced here
          like anything else rather than being written to stderr from inside C.

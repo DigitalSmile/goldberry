@@ -2,6 +2,8 @@ package dev.goldberry.natives.sdl.gpu.enums;
 
 /// Whether a vertex buffer advances per vertex or per instance, as SDL's
 /// `SDL_GPUVertexInputRate`.
+///
+/// Read more: [The native boundary](https://goldberry.dev/docs/overview/architecture.html#the-native-boundary).
 public enum SdlGpuVertexInputRate {
     /// One element per vertex.
     VERTEX(0),

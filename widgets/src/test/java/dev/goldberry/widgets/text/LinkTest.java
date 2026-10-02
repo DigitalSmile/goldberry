@@ -28,7 +28,10 @@ import dev.goldberry.widget.semantics.Role;
 import dev.goldberry.widgets.TestHost;
 import dev.goldberry.widgets.Widgets;
 
-/// §2's `link` — text that does something ([ADR-0346]).
+/// `link` — text that does something when pressed: an in-app action, an
+/// external target, or both.
+///
+/// Read more: [Text and links](https://goldberry.dev/docs/components/text.html#link).
 class LinkTest {
 
     private final List<String> log = new ArrayList<>();

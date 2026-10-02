@@ -35,9 +35,10 @@ import dev.goldberry.media.io.MemoryIO;
 import dev.goldberry.media.io.Source;
 import dev.goldberry.media.picture.VideoPicture;
 
-/// The Engine on a hardware decoder, and its fall to software: scenario S4 of
-/// `docs/goldberry-media.md` §7, with the failures injected through
-/// [Hardware.Calls] (ADR-0470).
+/// The Engine on a hardware decoder, and its fall to software, with the failures
+/// injected through [Hardware.Calls]. Hardware decode is one rung of the
+/// built-in decoder's ladder, so a device that fails hands over to software
+/// without the application seeing it.
 ///
 /// It drives a [Playback] directly, since the player's public options name
 /// [HardwareDecoding] and not a policy a test can make fail. The clip is the VP9
@@ -48,7 +49,7 @@ import dev.goldberry.media.picture.VideoPicture;
 ///
 /// Where the device does not decode VP9 (no hwaccel in the build, or none on the
 /// machine), the tests skip.
-@DisplayName("The Engine on a hardware decoder, and its fall to software (S4)")
+@DisplayName("The Engine on a hardware decoder, and its fall to software")
 class HardwareFallbackTest {
 
     private static final AudioFormat FORMAT = AudioFormat.DEFAULT;
@@ -187,7 +188,8 @@ class HardwareFallbackTest {
     /// way. A device that opens and then gives the stream up on its own — a
     /// virtualised macOS runner's VideoToolbox does, and the ladder falls to
     /// software as it should — leaves nothing for an injected failure to test:
-    /// the fall would happen without it (ADR-0517).
+    /// the fall would happen without it, and a lane that cannot test a thing
+    /// skips it rather than failing.
     private void assumeVp9OnTheDevice() {
         Assumptions.assumeTrue(Hardware.of(HardwareDecoding.AUTO).enabled(), "no device type on this platform");
         play(platform(Hardware.Calls.FFMPEG), true);

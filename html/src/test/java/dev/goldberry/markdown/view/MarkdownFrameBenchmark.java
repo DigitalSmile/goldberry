@@ -23,15 +23,16 @@ import dev.goldberry.widget.WidgetRenderer;
 import dev.goldberry.widgets.Controls;
 import dev.goldberry.widgets.core.scroll.Scroll;
 
-/// What a keystroke costs a `markdown-view`, stage by stage — `docs/gaps.md` G45.
+/// What a keystroke costs a `markdown-view`, stage by stage.
 ///
-/// The entry that asked for this was a measurement taken **downstream**: a note
-/// editor with a preview beside it, rebuilt with a new `Document` on every
-/// keystroke, whose layout stage grew with the whole note rather than with the
-/// paragraph the reader was typing in. A number from somebody else's application
-/// is a number nobody here can re-take, so this is the same shape of measurement
-/// living in the repository that has to answer for it (ADR-0045, and ADR-0350 for
-/// what happens when it does not reproduce).
+/// What asked for this was a measurement taken **downstream**: a note editor with a
+/// preview beside it, rebuilt with a new `Document` on every keystroke, whose layout
+/// stage grew with the whole note rather than with the paragraph the reader was
+/// typing in. A number from somebody else's application is a number nobody here can
+/// re-take, so this is the same shape of measurement living in the repository that
+/// has to answer for it. It reports and asserts nothing: a frame is not a benchmark
+/// iteration, and a threshold that fails under a parallel build teaches nobody
+/// anything.
 ///
 /// ## What one iteration is
 ///

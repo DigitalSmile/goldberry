@@ -4,10 +4,10 @@ import java.security.MessageDigest
 
 plugins {
     id 'goldberry.java-conventions'
-    // Published to Maven Central as goldberry-gpu (ADR-0334).
+    // Published to Maven Central as goldberry-gpu.
     id 'goldberry.publish'
     // `canvas3d` is a markup widget: the weaver collects it into this module's
-    // catalog, which the markup finds through a `uses` (ADR-0131).
+    // catalog, which the markup finds through a `uses`.
     id 'goldberry.weave'
 }
 
@@ -19,11 +19,11 @@ dependencies {
     api project(':core')
 
     // `canvas3d` is a widget, and its notice is `:widgets`' `message`; `api`
-    // because Canvas3d's markup signature names `Wiring` (ADR-0482).
+    // because Canvas3d's markup signature names `Wiring`.
     api project(':widgets')
 
     // SDL_GPU's wrappers, which :natives exports to this module and to :core
-    // alone (ADR-0475). Not `api`: no type of :natives is in this module's
+    // alone. Not `api`: no type of :natives is in this module's
     // public surface.
     implementation project(':natives')
 
@@ -31,13 +31,14 @@ dependencies {
     // runs the tests on the first thread (`gpuTest` below).
     testImplementation rootProject.project(':natives').sourceSets.test.output
     testImplementation libs.junit.platform.launcher
-    // GoldenImage, for the GPU layers' z-order goldens (docs/gpu-plan.md,
-    // phase 4), which live in src/test/resources/golden like every module's.
+    // GoldenImage, for the GPU layers' z-order goldens, which live in
+    // src/test/resources/golden like every module's.
     testImplementation testFixtures(project(':core'))
 }
 
 // ============================================================================
-// Shaders (docs/gpu-plan.md, D7)
+// Shaders
+// https://goldberry.dev/docs/components/gpu.html#shaders
 //
 // Authored once in HLSL under src/main/shaders, and compiled on purpose -- not
 // as part of `build` -- into the three formats SDL_GPU takes: SPIR-V (Vulkan)
@@ -154,8 +155,9 @@ tasks.register('compileShaders') {
 //
 // What needs a GPU device is tagged `gpu` and runs in `gpuTest`, on the JVM's
 // first thread, as :natives' do and for the same reason: macOS's Cocoa, which a
-// Metal device needs, refuses every other thread (ADR-0475). The rest runs in
+// Metal device needs, refuses every other thread. The rest runs in
 // `test` with no device at all.
+// https://goldberry.dev/docs/contributing/testing.html#the-gpu-tests
 // ============================================================================
 def hostNativeLibrary = project(':natives').ext.hostNativeLibrary
 def hostTargetId = project(':natives').ext.hostNativeTargetId
@@ -164,7 +166,7 @@ tasks.named('test') {
     useJUnitPlatform { excludeTags 'gpu' }
 
     // What needs no GPU still needs libgoldberry: `canvas3d` with no GPU is a
-    // widget tree painted by Blend2D, and a golden of it (ADR-0482). Without the
+    // widget tree painted by Blend2D, and a golden of it. Without the
     // library those tests skip, which looks exactly like passing.
     jvmArgs '--enable-native-access=ALL-UNNAMED'
     ['goldberry.golden.update', 'goldberry.native.required'].each { name ->
@@ -211,12 +213,13 @@ tasks.named('check') {
     dependsOn gpuTest
 }
 
-// Phase 0's video measurement (docs/gpu-plan.md, D1 and D8): a 4K picture's
-// planes uploaded, converted and composited under the UI every frame, on a real
-// window. Run on purpose and read by a person; not part of `check`.
+// The video measurement: a 4K picture's planes uploaded, converted and
+// composited under the UI every frame, on a real window. Run on purpose and
+// read by a person; not part of `check`.
+// https://goldberry.dev/docs/components/gpu.html#what-is-measured-and-what-is-not-yet
 tasks.register('gpuVideoProbe', JavaExec) {
     group = 'verification'
-    description = 'Measures a composited frame with a 4K video layer on a real window (docs/gpu-plan.md, phase 0).'
+    description = 'Measures a composited frame with a 4K video layer on a real window.'
     classpath = sourceSets.test.runtimeClasspath
     mainClass = 'dev.goldberry.gpu.render.GpuVideoProbe'
     jvmArgs '--enable-native-access=ALL-UNNAMED'
@@ -230,12 +233,12 @@ tasks.register('gpuVideoProbe', JavaExec) {
     outputs.upToDateWhen { false }
 }
 
-// D8's second half (docs/gpu-plan.md, phase 6; ADR-0484): what the video layer
-// costs the UI thread to show a new 4K picture every frame. Run on purpose and
-// read by a person; not part of `check`.
+// The video layer's measurement: what it costs the UI thread to show a new 4K
+// picture every frame. Run on purpose and read by a person; not part of
+// `check`.
 tasks.register('videoLayerProbe', JavaExec) {
     group = 'verification'
-    description = 'Measures the video layer\'s upload of a 4K picture each frame (docs/gpu-plan.md, phase 6).'
+    description = 'Measures the video layer\'s upload of a 4K picture each frame.'
     classpath = sourceSets.test.runtimeClasspath
     mainClass = 'dev.goldberry.gpu.video.VideoLayerProbe'
     jvmArgs '--enable-native-access=ALL-UNNAMED'

@@ -24,10 +24,8 @@ import dev.goldberry.bind.Model;
 ///
 /// The other half of [Model], and a separate annotation for a reason that is not
 /// cosmetic: a class of actions holds no values, publishes no paths, and is
-/// nothing anybody would call a model. Marking it `@Model` said otherwise on
-/// every one of them — including, at its worst, on a class that also implemented
-/// `Application`
-/// (ADR-0139).
+/// nothing anybody would call a model. Marking it `@Model` would say otherwise
+/// on every one of them.
 ///
 /// ## What it may not have
 ///
@@ -44,14 +42,15 @@ import dev.goldberry.bind.Model;
 /// The actions a *window* owns — "open the menu", "toggle the HUD" — need a
 /// `Host` and have no business on anything holding application values. They get a
 /// small `@Actions` record of their own, which is what keeps the annotation off
-/// the class implementing `Application`
-/// (ADR-0138).
+/// the class implementing `Application`.
 ///
 /// ## Read at build time, kept at run time
 ///
 /// `RUNTIME`-retained like [Model], and for the one purpose [Models] needs: so an
 /// author whose build step did not run is told their class was annotated and
 /// never woven, rather than handed a registry with nothing in it.
+///
+/// Read more: [Actions](https://goldberry.dev/docs/applications.html#actions).
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.TYPE)
 public @interface Actions {}

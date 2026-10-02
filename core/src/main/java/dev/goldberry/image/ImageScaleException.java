@@ -7,13 +7,15 @@ import java.io.Serial;
 /// The third of these, after [ImageDecodeException] and [ImageEncodeException],
 /// and the rarest: a decode fails because bytes are not what they claimed, and
 /// an encode fails because WebP has a size limit, whereas a resample of a valid
-/// image to a positive size fails only when the destination cannot be allocated
-/// — which for a size an application computed from a window or a file is a
-/// reachable state rather than an impossible one ([ADR-0428]).
+/// image to a positive size fails only when the destination cannot be
+/// allocated. For a size an application computed from a window or a file that
+/// is a reachable state rather than an impossible one.
 ///
 /// Separate from [ImageEncodeException] rather than folded into it because the
 /// two say different things to an application: an encode that refuses will
-/// refuse again, and a resample that ran out of memory may not.
+/// refuse again, and a resample that ran out of memory may not. Unchecked.
+///
+/// Read more: [Text, fonts and icons](https://goldberry.dev/docs/guide/text.html#images).
 public class ImageScaleException extends RuntimeException {
 
     @Serial

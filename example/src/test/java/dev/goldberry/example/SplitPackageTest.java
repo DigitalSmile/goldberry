@@ -17,7 +17,8 @@ import java.util.TreeSet;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-/// No two Goldberry modules contain the same package — [ADR-0387].
+/// No two Goldberry modules contain the same package: a resource directory is a
+/// package, and a package belongs to one module.
 ///
 /// ## The bug this exists for
 ///
@@ -78,7 +79,7 @@ class SplitPackageTest {
         assertTrue(
                 split.isEmpty(),
                 () -> "a package in two modules is a LayerInstantiationException before the first frame,"
-                        + " and a class path hides it (ADR-0387). A module's resources belong under its own"
+                        + " and a class path hides it. A module's resources belong under its own"
                         + " package: " + split);
     }
 

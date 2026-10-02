@@ -48,7 +48,7 @@ import dev.goldberry.widgets.text.Text;
 /// The widget reads the player's status on every build, so each check mounts a
 /// fresh tree after the player has reached the state being checked. Under
 /// [HeadlessRuntime], because the widget posts every status change to the UI
-/// thread, and that needs a runtime to post to (ADR-0517).
+/// thread, and that needs a runtime to post to.
 @DisplayName("audio-player")
 @ExtendWith(HeadlessRuntime.class)
 class AudioPlayerTest {
@@ -211,7 +211,7 @@ class AudioPlayerTest {
     }
 
     @Test
-    @DisplayName("a live stream: LIVE in place of the seek bar, and what is playing over the controls (S6)")
+    @DisplayName("a live stream: LIVE in place of the seek bar, and what is playing over the controls")
     void live() {
         var io = new MemoryIO(Wav.silence(AudioFormat.DEFAULT.sampleRate(), 2, AudioFormat.DEFAULT.sampleRate() * 2));
         io.seekable = false;

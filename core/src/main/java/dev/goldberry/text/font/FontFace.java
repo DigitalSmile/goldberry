@@ -7,45 +7,40 @@ import dev.goldberry.assets.BundledFont;
 import dev.goldberry.natives.harfbuzz.ShapedFont;
 import dev.goldberry.paint.GlyphFace;
 
-/// One typeface — everything about a font except the size.
-///
-/// A [Font] used to own the whole chain: HarfBuzz's face and Blend2D's, each
-/// with its own copy of the file. Inter is a megabyte and a half, so two copies
-/// per `Font` and one `Font` per size meant an application with four text sizes
-/// carrying twelve megabytes of the same outlines. This is the thing they share
-/// (ADR-0044).
-///
-/// ## What is here and what is not
-///
-/// The **shaper** is here in full, not merely its face. HarfBuzz's font object
-/// carries a scale, and Goldberry never sets one — a shaping result is in design
-/// units and is therefore correct at every size (ADR-0034). So one `hb_font_t`
-/// serves every `Font` over this face, and the size lives only on Blend2D's side.
-///
-/// The **Blend2D face** is here; the Blend2D *font* is not, because that is
-/// precisely the object the size is on.
-///
-/// ## Lifetime
-///
-/// A face must outlive every [Font] made from it — Blend2D and HarfBuzz both
-/// keep references, and closing this first leaves them reading unmapped memory.
-/// The natural shape is a face held for as long as the window that draws with it,
-/// with the fonts inside that scope:
+/// One typeface: everything about a font except the size.
 ///
 /// ```java
 /// try (var face = FontFace.bundled(BundledFont.UI);
 ///         var title = Font.on(face, 18);
 ///         var body = Font.on(face, 14)) {
-///     // ...
+///     // two sizes, one parse of Inter
 /// }
 /// ```
 ///
-/// Nothing here is a global cache. Faces are owned explicitly, the way every
-/// other native-backed object in the toolkit is — a process-wide cache of
-/// thread-confined objects would have to be per-thread, and a per-thread cache of
-/// native memory is a leak with no hook to close it.
+/// A face is what several [Font]s share. HarfBuzz and Blend2D each keep their
+/// own copy of the file, and Inter is a megabyte and a half, so parsing a face
+/// per size would cost an application with four text sizes twelve megabytes of
+/// the same outlines; parsing it once here costs three.
+///
+/// The shaper is here in full, not merely its face. HarfBuzz's font object
+/// carries a scale and Goldberry never sets one, so a shaping result is in
+/// design units and is correct at every size. One shaping font therefore serves
+/// every `Font` over this face, and the size lives only on Blend2D's side. The
+/// Blend2D face is here too; the Blend2D font is not, because that is the
+/// object the size is on.
+///
+/// A face must outlive every [Font] made from it. Both libraries keep
+/// references from a font into its face, and closing the face first leaves them
+/// reading unmapped memory. The natural shape is a face held for as long as the
+/// window that draws with it, with the fonts inside that scope, as above.
+/// Nothing here is a global cache: faces are owned explicitly, because a
+/// process-wide cache of thread-confined native objects would have no hook that
+/// could ever close it.
 ///
 /// Confined to the thread that created it, and must be closed.
+///
+/// Read more:
+/// [Faces, fonts and the book](https://goldberry.dev/docs/guide/text.html#faces-fonts-and-the-book).
 public final class FontFace implements AutoCloseable {
 
     private final String name;
@@ -90,10 +85,10 @@ public final class FontFace implements AutoCloseable {
         return name;
     }
 
-    /// The face's design grid — 2048 for Inter, 1000 for many others.
+    /// The face's design grid: 2048 for Inter, 1000 for many others.
     ///
-    /// The denominator of the font matrix, and the number that decides whether a
-    /// glyph run is in the units Blend2D expects (ADR-0034).
+    /// The denominator of the font matrix, `size / units-per-em`, and the units a
+    /// shaped run is measured in.
     public int unitsPerEm() {
         requireUsable();
         return unitsPerEm;
@@ -106,10 +101,10 @@ public final class FontFace implements AutoCloseable {
 
     /// Releases both libraries' copies of the typeface.
     ///
-    /// **Every [Font] over it must be closed first.** Nothing here enforces
-    /// that — a reference count would, and would also make the ordering
-    /// invisible rather than wrong — so it is stated, and the scoped form above
-    /// is what makes it automatic.
+    /// Every [Font] over it must be closed first. Nothing here enforces that,
+    /// because a reference count would make the ordering invisible rather than
+    /// wrong; the try-with-resources form in the class comment makes it
+    /// automatic.
     @Override
     public void close() {
         if (closed) {

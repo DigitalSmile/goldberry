@@ -20,8 +20,7 @@ import dev.goldberry.widget.attr.Bindable;
 import dev.goldberry.widgets.markup.Markup;
 import dev.goldberry.widgets.markup.Wiring;
 
-/// A rendered HTML document — `docs/content-widgets.md` §1's `html-view`, and the
-/// entry `docs/gaps.md` G17 asked for.
+/// A rendered HTML document — `html-view`.
 ///
 /// ```java
 /// var page = HtmlView.of(document);                      // already parsed
@@ -43,22 +42,22 @@ import dev.goldberry.widgets.markup.Wiring;
 /// an application adds beside `Controls.stylesheets(theme)`. That is not a
 /// coincidence — the two halves of `goldberry-html` render through one
 /// [dev.goldberry.content.inline.Words] and differ only in what
-/// parsed the document (ADR-0295, ADR-0298).
+/// parsed the document.
 ///
-/// **There is no litehtml behind this.** What that costs and what it saves is
-/// [Html]'s documentation and ADR-0298; the short form is that an engine buys real
-/// inline layout and costs a native library, and everything else on G17's list — the
-/// tags, tables, followable links, a themed stylesheet — is a parser and a fold.
+/// **There is no litehtml behind this.** What that costs and what it saves is in
+/// [Html]'s documentation; the short form is that an engine buys real inline layout
+/// and costs a native library, and everything else a page needs — the tags, tables,
+/// followable links, a themed stylesheet — is a parser and a fold.
 ///
 /// ## One thing `markdown-view` cannot do: a link you can press
 ///
-/// An anchor becomes a `button.link` (ADR-0293) that hands its `href` to
-/// [#onLink(Consumer)]. It is a Tab stop, it hovers, and it takes `Space` and
-/// `Enter` — so a help page is navigable from the keyboard. **Whether a link may be
-/// followed is still the application's**: nothing here opens a browser, resolves a
-/// relative path or fetches anything, for the reason ADR-0291 gave about URL
-/// schemes. A view with no handler draws its links and does nothing when they are
-/// pressed.
+/// An anchor becomes a `button.link` that hands its `href` to [#onLink(Consumer)].
+/// It is a Tab stop, it hovers, and it takes `Space` and `Enter` — so a help page is
+/// navigable from the keyboard. **Whether a link may be followed is still the
+/// application's**: nothing here opens a browser, resolves a relative path or fetches
+/// anything, because what a URL scheme means is packaging, and packaging is the
+/// application's. A view with no handler draws its links and does nothing when they
+/// are pressed.
 ///
 /// ## What it is made of
 ///
@@ -70,21 +69,23 @@ import dev.goldberry.widgets.markup.Wiring;
 /// ## A reader can take a copy of it
 ///
 /// Drag, double-click a word, triple-click a block, `Ctrl+A`, `Ctrl+C`, with the
-/// separators the page implies (ADR-0301) — the same in both views, through the same
-/// code, and nothing to switch on.
+/// separators the page implies — the same in both views, through the same code, and
+/// nothing to switch on.
 ///
 /// **Not scrollable.** A document is as tall as it is, and `scroll` is a widget that
 /// already exists — wrapping one in the other here would take away the choice of
 /// whether the scrollbar belongs round the page or round the pane it sits in.
 ///
+/// Read more: [HTML view](https://goldberry.dev/docs/components/content.html#html-view).
+///
 /// @param document what to render when nothing is bound — and what a bound view falls
 ///        back to before its property has a value, which is what a lenient inflater
-///        produces for a path nothing answers (ADR-0062)
+///        produces for a path nothing answers
 /// @param source the property the source text comes from, or null
 /// @param onLink what an anchor hands its `href` to, or null for a page whose links
 ///        are drawn and inert
 /// @param images where an `<img src=…>` comes from, or null for a page that draws
-///        its alt text (ADR-0300)
+///        its alt text
 /// @param attributes the view's own `id`, classes and key. They land on the column
 ///        this builds, beside the `html` class every rule hangs off
 @Markup("html-view")
@@ -96,7 +97,7 @@ public record HtmlView(
         Attributes attributes)
         implements Widget.Stateless, Attributed<HtmlView>, Bindable<HtmlView> {
 
-    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    /// Written out so that the parameters taking null for a default can say so.
     public HtmlView(
             HtmlDocument document,
             @Nullable Observable<?> source,
@@ -147,7 +148,7 @@ public record HtmlView(
     /// This view, drawing the images `source` can find.
     ///
     /// Without one an `<img>` is its alt text, which is what every view did before
-    /// this existed and what a page with a broken `src` still shows (ADR-0300).
+    /// this existed and what a page with a broken `src` still shows.
     public HtmlView images(ImageSource source) {
         return new HtmlView(document, this.source, onLink, Objects.requireNonNull(source, "source"), attributes);
     }
@@ -195,10 +196,10 @@ public record HtmlView(
     public Widget build(BuildContext context) {
         var document = resolved();
         // Wrapped, for the reason `markdown-view` wraps its own: a rendered page is
-        // something a reader selects text in, and a selection is state (ADR-0301).
-        // The memo is ignored here. ADR-0389 gave `markdown-view` block reuse because
-        // that is where the measurement was taken; the same lever is available to this
-        // fold and is a separate piece of work, not a line of it.
+        // something a reader selects text in, and a selection is state.
+        // The memo is ignored here. `markdown-view` got block reuse because that is
+        // where the measurement was taken; the same lever is available to this fold
+        // and is a separate piece of work, not a line of it.
         return new SelectableDocument((minter, _, overlay) ->
                 new HtmlWidgets(onLink, images, minter).document(document, attributes, overlay));
     }
@@ -207,7 +208,7 @@ public record HtmlView(
     ///
     /// The node's argument is the **HTML source** and `bind=` is a property to follow; a
     /// node with both keeps the argument as what is shown until the property answers,
-    /// which is what a lenient registry does everywhere else (ADR-0062). `link=` names
+    /// which is what a lenient registry does everywhere else. `link=` names
     /// a valued action — one that is handed the `href` — so a help pane navigates with
     /// no Java between the document and the model.
     ///
@@ -216,7 +217,7 @@ public record HtmlView(
     /// html-view bind="doc.source" link="doc.open"
     /// ```
     ///
-    /// **No `src=` yet**, which `content-widgets.md` §1.3 sketches as `html-view
+    /// **No `src=` yet**, which would read as `html-view
     /// src="help/getting-started.html"`. Reading a file means deciding what a relative
     /// path is relative to, what happens when it is missing, and whether a widget may
     /// touch the filesystem while a document is being inflated — three answers `Icons`
@@ -239,7 +240,7 @@ public record HtmlView(
                 wiring.valued(node, "link"),
                 // `images=` names an object rather than an action, because what it
                 // names is neither a value nor a method -- which is the third
-                // registry's whole job (`Wiring.handle`, ADR-0130).
+                // registry's whole job (`Wiring.handle`).
                 wiring.handle(node, "images", ImageSource.class),
                 Attributes.of(node));
     }

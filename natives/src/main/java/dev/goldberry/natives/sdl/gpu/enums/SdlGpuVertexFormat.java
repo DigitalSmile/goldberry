@@ -4,6 +4,8 @@ package dev.goldberry.natives.sdl.gpu.enums;
 ///
 /// The formats a mesh is commonly made of; SDL has thirty, and the rest join
 /// when something asks for one.
+///
+/// Read more: [The native boundary](https://goldberry.dev/docs/overview/architecture.html#the-native-boundary).
 public enum SdlGpuVertexFormat {
     /// One 32-bit unsigned integer.
     UINT(5, 4),

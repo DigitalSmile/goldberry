@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Puts the guide's pictures and tabbed samples into its chapters.
 
-Idempotent, and run by hand after `BookPicturesTest` has taken the pictures
-(docs/book.md). Two edits, under book/src:
+Idempotent, and run by hand after `BookPicturesTest` has taken the pictures.
+Two edits, under book/src:
 
 1. Under every widget heading in Layout and Components -- `## `button`` -- a
    `gb-shot` block showing the widget's two pictures, `images/<name>-light.webp`
@@ -13,7 +13,7 @@ Idempotent, and run by hand after `BookPicturesTest` has taken the pictures
 2. Every run of adjacent fenced samples that starts with `kdl` and goes on in
    another language -- the markup, then the Java that builds the same tree,
    sometimes the CSS that reaches it -- is wrapped in `<div class="gb-tabs">`,
-   which goldberry.js turns into tabs (ADR-0514).
+   which goldberry.js turns into tabs.
 
 A heading already shown, a run already wrapped, is left alone, so running it
 twice changes nothing. A heading without an entry in ALT below is reported and

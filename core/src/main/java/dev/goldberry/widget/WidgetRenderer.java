@@ -27,15 +27,32 @@ import dev.goldberry.widget.style.Styled;
 
 /// Turns a built element tree into a box tree, styling every node on the way.
 ///
-/// The join that makes the last six ADRs one thing: the element tree gives nodes
-/// identity ([ADR-0052]), the cascade resolves each one's style
-/// (ADR-0049),
-/// and `BoxPainter` rasterizes what comes out.
+/// The middle step of a frame: the element tree gives nodes identity, this
+/// resolves each one's style through the cascade and asks each painting widget
+/// for its box, and `BoxPainter` rasterizes what comes out. An application
+/// builds one over its stylesheets and fonts and renders once per frame; the
+/// launcher does this for every window it opens.
+///
+/// ```java
+/// var renderer = new WidgetRenderer(stylesheets, fonts);
+/// renderer.prepare(tree);
+/// window.onPaint(frame -> BoxPainter.paint(frame, renderer.render(tree)));
+/// ```
 ///
 /// Not every element renders. A [Widget.Stateless] exists to describe others and
 /// produces nothing itself, so the renderer passes through it — which is why the
 /// box tree is shallower than the element tree, and why a composition wrapper
 /// costs nothing at paint time.
+///
+/// A resolved style is cached on its element, keyed by identity on this
+/// renderer's resolver and on the parent's style, so a theme swap is a new
+/// renderer and a frame in which nothing changed resolves nothing. Transitions
+/// and keyframe animations are observed here as well, which is why
+/// [#isAnimating()] is the question an application asks before it requests
+/// another frame.
+///
+/// Read more:
+/// [The frame loop](https://goldberry.dev/docs/overview/architecture.html#the-frame-loop).
 public final class WidgetRenderer {
 
     private static final Logger LOG = Logs.of(WidgetRenderer.class);
@@ -46,8 +63,7 @@ public final class WidgetRenderer {
     /// which is what an application passed in and never changes.
     private final CssLength.Context lengths;
 
-    /// [#lengths] with `rem` set to what the root element actually computed
-    /// ([ADR-0416]).
+    /// [#lengths] with `rem` set to what the root element actually computed.
     ///
     /// The one piece of per-frame style state the renderer keeps, and it is
     /// mutable for a reason nothing else here is: CSS defines `rem` as the root
@@ -61,7 +77,8 @@ public final class WidgetRenderer {
 
     private final Paints.Context paintContext;
 
-    /// What time it is, for anything that animates (§1.7).
+    /// What time it is, for anything that animates: motion is a function of the
+    /// frame's timestamp, never of a frame count.
     private Clock clock = Clock.system();
 
     /// What the frame loop is managing, for the widgets that draw it. Nothing
@@ -69,7 +86,8 @@ public final class WidgetRenderer {
     /// a test, a layer — has no frames to report.
     private FrameStats frames = FrameStats.none();
 
-    /// Whether `prefers-reduced-motion` is on — §1.7's rule 6.
+    /// Whether the user asked for less movement, as `prefers-reduced-motion`
+    /// says.
     private boolean reducedMotion;
 
     /// Names `animation-name` used that no sheet declares, reported once each.
@@ -113,7 +131,7 @@ public final class WidgetRenderer {
 
     /// The shaping cache the paint context is built over, for the frame trace —
     /// a frame that shapes text it shaped last frame is a frame with a defect in
-    /// it, and the count is the only thing that says so (ADR-0152).
+    /// it, and the count is the only thing that says so.
     private @Nullable ParagraphCache paragraphs;
 
     /// A paint context over `fonts`, with a shaping cache behind it.
@@ -125,7 +143,7 @@ public final class WidgetRenderer {
     /// The cache is what makes a paragraph the **same instance** frame to frame,
     /// which is not only about the 56 µs of shaping it saves — the retained
     /// render tree reads that identity to decide it can keep the measure callback
-    /// it already bound (ADR-0069).
+    /// it already bound.
     private Paints.Context context(java.util.function.Function<ComputedStyle, Font> fonts) {
         var cache = ParagraphCache.create();
         this.paragraphs = cache;
@@ -163,7 +181,7 @@ public final class WidgetRenderer {
                 }
                 // Cached by element identity against what its parent handed
                 // down, so a chart asking for eight slots pays one cascade
-                // rather than eight (ADR-0152).
+                // rather than eight.
                 // Substituted, not raw: a custom property may hold another one,
                 // and `--gb-chart-1: var(--gb-warning)` is the natural way to
                 // write "this series is the warning hue". Reading the tokens
@@ -188,7 +206,7 @@ public final class WidgetRenderer {
             /// tokens this answers are all `px` — and the day one does, the fix
             /// is to pass the style in, not to guess.
             ///
-            /// **`rem` is exact here**, which it was not before ADR-0416. This
+            /// **`rem` is exact here.** This
             /// seam runs with `currentElement` set, so the walk has reached the
             /// root and [#lengthsBelowRoot] carries the size the root actually
             /// computed rather than the number an application configured.
@@ -248,12 +266,6 @@ public final class WidgetRenderer {
         return this;
     }
 
-    /// Turns every transition instant — §1.7's `prefers-reduced-motion`.
-    ///
-    /// The declarations are kept at zero duration rather than dropped, so the
-    /// machinery still runs and still ends and a reduced-motion user reaches the
-    /// same states by the same route. §4 asks for the same shape from the
-    /// high-contrast theme: an alias swap, never a separate code path.
     /// The frame statistics every node on this renderer reads — see
     /// [Paints.Context#frames()].
     ///
@@ -266,35 +278,37 @@ public final class WidgetRenderer {
         return this;
     }
 
-    /// §1.4's **global text-scale token**, and §13's "text scale to 150%
-    /// without clipping".
+    /// The global text scale: a user setting that makes every piece of text in
+    /// the window larger or smaller, and the switch that shows whether a
+    /// component survives 150% without clipping.
     ///
-    /// A switch on the renderer, which is where §13's other accessibility
-    /// switches are — `reducedMotion` above is the same shape, for the same
-    /// reason: it is a *user* preference applied to a whole window, and there is
-    /// no selector that could express one.
+    /// A switch on the renderer, which is where the other accessibility switches
+    /// are — [#reducedMotion(boolean)] is the same shape, for the same reason:
+    /// it is a *user* preference applied to a whole window, and there is no
+    /// selector that could express one.
     ///
     /// ## It scales the text and not the layout, which is the point
     ///
     /// The factor is applied where a [ComputedStyle] becomes a [Font] and
     /// **nowhere in the cascade**. So a paragraph is shaped larger and a measured
     /// leaf grows around it, while a `height: 32px` stays 32 — which is exactly
-    /// the condition §1.4 asks every component to survive: "every component must
-    /// survive 150% without clipping".
+    /// the condition every component is asked to survive.
     ///
-    /// Scaling in the cascade instead was the other design and is wrong twice
-    /// over: `font-size: 1.2em` resolves against a parent that would already have
-    /// been scaled, so an `em` chain would take the factor once per level; and a
-    /// padding in `em` would grow with it, which would make the boxes get bigger
-    /// too and hide the clipping this exists to reveal.
+    /// Scaling in the cascade instead is wrong twice over: `font-size: 1.2em`
+    /// resolves against a parent that would already have been scaled, so an `em`
+    /// chain would take the factor once per level; and a padding in `em` would
+    /// grow with it, which would make the boxes get bigger too and hide the
+    /// clipping this exists to reveal.
     ///
-    /// **1 is the default and changes nothing** — not one golden moves — which is
-    /// what made it safe to add before anything enforces the 150% case.
+    /// **1 is the default and changes nothing** — not one golden moves.
     ///
-    /// @param value the factor; §1.4's range is 0.9 to 1.5, and this clamps to it
-    ///              rather than refusing, because a text scale is a user setting
-    ///              and a window that failed to open over one is worse than a
-    ///              window whose text is as large as the design system allows
+    /// Read more: [Text scale](https://goldberry.dev/docs/guide/styling.html#text-scale).
+    ///
+    /// @param value the factor; the design system's range is 0.9 to 1.5, and
+    ///              this clamps to it rather than refusing, because a text scale
+    ///              is a user setting and a window that failed to open over one
+    ///              is worse than a window whose text is as large as the design
+    ///              system allows
     public WidgetRenderer textScale(double value) {
         if (!Double.isFinite(value)) {
             throw new IllegalArgumentException("a text scale must be a finite factor, not " + value);
@@ -308,13 +322,22 @@ public final class WidgetRenderer {
         return textScale;
     }
 
-    /// §1.4's range: "Global **text-scale token 90–150%**".
+    /// The smallest text scale the design system allows: 90%.
     public static final double MINIMUM_TEXT_SCALE = 0.9;
 
+    /// The largest text scale the design system allows: 150%.
     public static final double MAXIMUM_TEXT_SCALE = 1.5;
 
     private double textScale = 1;
 
+    /// Turns every transition instant, as `prefers-reduced-motion` asks.
+    ///
+    /// The declarations are kept at zero duration rather than dropped, so the
+    /// machinery still runs and still ends and a reduced-motion user reaches the
+    /// same states by the same route. The high-contrast theme takes the same
+    /// shape: an alias swap, never a separate code path.
+    ///
+    /// Read more: [Motion](https://goldberry.dev/docs/guide/design-system.html#motion).
     public WidgetRenderer reducedMotion(boolean value) {
         this.reducedMotion = value;
         return this;
@@ -324,7 +347,7 @@ public final class WidgetRenderer {
     ///
     /// Package-private, and it exists for one reader: the style-cache test, which
     /// asks an element whether it still holds a style *this* resolver produced.
-    /// That is the mechanism ADR-0070 rests on, and asserting on it directly beats
+    /// That is the mechanism the style cache rests on, and asserting on it beats
     /// inferring it from a colour that would also be right for the wrong reason.
     StyleResolver resolver() {
         return resolver;
@@ -337,7 +360,7 @@ public final class WidgetRenderer {
     /// ([BuildContext#token]), and a build runs before the frame it produces. A
     /// virtualized `list` deciding how many rows to make is the case — on the
     /// first frame it would otherwise have no cascade to ask and would build at
-    /// its default, then correct itself on the next one ([ADR-0254]).
+    /// its default, then correct itself on the next one.
     ///
     /// Idempotent, and the same instance every time: a renderer holds one
     /// resolver for its life, and a theme swap builds a new renderer.
@@ -347,9 +370,9 @@ public final class WidgetRenderer {
 
     /// Whether anything in the last rendered tree is still moving.
     ///
-    /// The whole of §1.7's "the frame loop is fully idle when no animation is
-    /// active": an application asks for another frame only while this is true, so
-    /// a static window costs nothing and there is no polling anywhere.
+    /// The frame loop is idle when nothing is animating: an application asks
+    /// for another frame only while this is true, so a static window costs
+    /// nothing and there is no polling anywhere.
     ///
     /// ```java
     /// window.onPaint(frame -> {
@@ -371,16 +394,16 @@ public final class WidgetRenderer {
     public Box render(ElementTree tree) {
         Objects.requireNonNull(tree, "tree");
         // Read once for the whole frame. Two nodes must not see different times,
-        // or two properties that §3.1 says "arrive together" -- a toggle's thumb
+        // or two properties that must arrive together -- a toggle's thumb
         // and its track -- would arrive microseconds apart and drift.
         var now = clock.nowMillis();
         frameNow = now;
         animating = false;
         // So a node whose state changes between frames can ask what the sheets
-        // say without having resolved a style of its own (ADR-0149).
+        // say without having resolved a style of its own.
         tree.styleResolver(resolver);
         // `rem` starts the frame meaning the configured size and becomes the
-        // root's computed one the moment the walk has it (ADR-0416). Reset here
+        // root's computed one the moment the walk has it. Reset here
         // rather than left from last frame, so a root whose `font-size` changed
         // cannot leave the tree below it resolving against the old number for a
         // frame -- and so the value is never a fact about a render that is over.
@@ -397,7 +420,7 @@ public final class WidgetRenderer {
         // size itself to hold it. A cache smaller than one frame's working set
         // misses *every* lookup on the excess rather than merely missing more
         // often, which is what a document made of one paragraph per word turned
-        // the default capacity into (ADR-0299).
+        // the default capacity into.
         cache.frame();
         if (boxes.isEmpty()) {
             throw new IllegalStateException("nothing in this widget tree paints; the root described only composition");
@@ -412,7 +435,7 @@ public final class WidgetRenderer {
     /// The shaped paragraphs this renderer is keeping, for a diagnostic or a test.
     ///
     /// **Read-only in intent**: the cache is the renderer's, sized by the frames it
-    /// has drawn (ADR-0299), and handing it out is how a test asserts the thing
+    /// has drawn, and handing it out is how a test asserts the thing
     /// that actually matters — that a settled frame shapes *nothing* — without a
     /// stopwatch and without a system property. `ParagraphCache.misses()` before
     /// and after two renders of an unchanged tree is the whole assertion.
@@ -423,14 +446,14 @@ public final class WidgetRenderer {
     }
 
     /// `style` as a user who asked for less movement gets it: every transition
-    /// instant and every keyframe animation gone (§1.7's rule 6).
+    /// instant and every keyframe animation gone.
     private static ComputedStyle reduced(ComputedStyle style) {
         return style.transitions(style.transitions().reduced())
                 .animations(style.animations().reduced());
     }
 
     /// The style `element` enters from, or null when no `@starting-style` rule
-    /// matches it (ADR-0352).
+    /// matches it.
     ///
     /// The widget's inline values are applied to it as they are to the element's
     /// real style. A segmented control's indicator position is the widget's last
@@ -445,7 +468,7 @@ public final class WidgetRenderer {
     }
 
     /// The `@keyframes` block called `name`, resolved for `element` against
-    /// `target`, or null when no stylesheet declares one (ADR-0353).
+    /// `target`, or null when no stylesheet declares one.
     private @Nullable KeyframeTrack track(Element element, String name, ComputedStyle target) {
         var block = resolver.keyframes(name);
         if (block == null) {
@@ -469,9 +492,10 @@ public final class WidgetRenderer {
     ///
     /// @param inherited the resolved style of the nearest ancestor that had one,
     ///                  or null at the root
-    /// @param disabledAbove whether an ancestor is disabled, which this node is
-    ///                  too — `core-widgets.md`'s widget contract, and the half
-    ///                  of it the *cascade* owes ([ADR-0379])
+    /// @param disabledAbove whether an ancestor is disabled, which makes this
+    ///                  node disabled too: the router already walks up to find
+    ///                  that for input, and the cascade owes a stylesheet the
+    ///                  same answer
     private List<Box> render(Element element, @Nullable ComputedStyle inherited, boolean disabledAbove, double now) {
         // The pseudo-classes a widget owns rather than the router. `:disabled`,
         // `:checked` and `:indeterminate` are facts about the *description* —
@@ -484,7 +508,7 @@ public final class WidgetRenderer {
         // that broke the rule instead of letting its stylesheet show it.
         // A hidden node contributes no box, and nothing under it is rendered:
         // its elements stay mounted and keep their state, which is what hiding
-        // rather than removing is for (ADR-0366).
+        // rather than removing is for.
         if (element.widget() instanceof Styled hidden && hidden.isHidden()) {
             return List.of();
         }
@@ -495,13 +519,13 @@ public final class WidgetRenderer {
         if (element.widget() instanceof Styled styled) {
             // What the widget computes from the frame, before the cascade is
             // asked — the same mirroring the pseudo-classes below get, for the
-            // same reason, with the frame added (ADR-0150).
+            // same reason, with the frame added.
             element.frameClasses(styled.classes(frames));
             // Its own, **or** an ancestor's. A button inside a disabled `form`
             // says nothing about itself and is drawn disabled all the same,
-            // which is the same rule the router has enforced for input since
-            // ADR-0077 — it walked up to find it, and this walks down because
-            // the styles already resolve that way (ADR-0379).
+            // which is the rule the router enforces for input — it walks up to
+            // find it, and this walks down because the styles already resolve
+            // that way.
             element.setPseudoClass(PseudoClass.DISABLED, disabledAbove || styled.isDisabled());
             element.setPseudoClass(PseudoClass.CHECKED, styled.isChecked());
             element.setPseudoClass(PseudoClass.INDETERMINATE, styled.isIndeterminate());
@@ -516,15 +540,15 @@ public final class WidgetRenderer {
         // at the cost of a full cascade walk per composition node per frame.
         ComputedStyle self;
         // What the children key their cache on, which is `self` or an older
-        // instance that agrees with it about everything they can read (ADR-0248).
+        // instance that agrees with it about everything they can read.
         ComputedStyle handDown;
         if (element.widget() instanceof Styled || element.widget() instanceof Paints) {
-            // §5's "style resolution (invalidated nodes)". The cache is checked
+            // Style resolution, for invalidated nodes only. The cache is checked
             // against the resolver *and* the inherited style, both by identity:
             // a theme swap builds a new renderer and therefore a new resolver, so
             // every entry misses at once; and a parent that re-resolved hands
             // down a different instance, so its children re-resolve without
-            // anything having to tell them to (ADR-0070).
+            // anything having to tell them to.
             self = element.cachedStyle(resolver, inherited);
             if (self == null) {
                 var began = trace == null ? 0L : System.nanoTime();
@@ -535,7 +559,7 @@ public final class WidgetRenderer {
                     trace.cascade(System.nanoTime() - began);
                 }
             }
-            // §8's `inline` layer, typed: the widget's last word, applied after
+            // The cascade's `inline` layer, typed: the widget's last word, applied after
             // the cascade and **after** the cache — a widget-computed value
             // changes when the widget does, and caching it would pin a segmented
             // control's indicator to whichever segment was selected first.
@@ -543,7 +567,7 @@ public final class WidgetRenderer {
             // Before the animation below rather than inside `render`, which is
             // the whole point: a value written here is part of what the
             // transition observes and therefore moves, where the same value
-            // written in `render` would snap (ADR-0099).
+            // written in `render` would snap.
             var identityBegan = trace == null ? 0L : System.nanoTime();
             if (element.widget() instanceof Styled styled) {
                 self = styled.restyle(self);
@@ -553,10 +577,10 @@ public final class WidgetRenderer {
             // on this by identity, and `restyle` above hands back a new object
             // every frame for every widget that writes an inline value — so
             // without this the cache below a `scroll`, a `tab` or a `segmented`
-            // never hit at all (ADR-0142).
+            // never hit at all.
             //
-            // **Not assigned back to `self`**, which is the narrowing ADR-0248
-            // added: what this node paints has to be what it actually resolved,
+            // **Not assigned back to `self`**: what this node paints has to be
+            // what it actually resolved,
             // and what its children key on only has to agree about `color` and
             // `typography`. Folding the two together would paint a stale
             // transform the moment the comparison stopped being `equals`.
@@ -569,18 +593,17 @@ public final class WidgetRenderer {
             handDown = inherited;
         }
 
-        // **`rem` gets its real meaning here, and it could not get it earlier**
-        // (ADR-0416). CSS says `rem` is the root *element's* computed
-        // `font-size`, and ADR-0242 left it as the configured number because a
+        // **`rem` gets its real meaning here, and it could not get it earlier.**
+        // CSS says `rem` is the root *element's* computed `font-size`, and a
         // node is handed its parent's style and not the root's -- so nothing
         // inside `ComputedStyle.of` can recover it for a descendant. What can is
         // the thing that walks the tree, at the one moment it has the root's
         // style and has not yet descended.
         //
-        // The field is "correct only after the root has resolved", which ADR-0242
-        // listed as a drawback of this shape and is in fact the specification: on
-        // the root's own `font-size`, `rem` refers to the initial value, because
-        // the value being computed cannot be its own input. That case is
+        // The field is "correct only after the root has resolved", and that is
+        // the specification rather than a drawback: on the root's own
+        // `font-size`, `rem` refers to the initial value, because the value
+        // being computed cannot be its own input. That case is
         // `ComputedStyle.of`'s and is handled there; this is every other node.
         //
         // A root that paints nothing and styles nothing keeps the configured
@@ -594,14 +617,14 @@ public final class WidgetRenderer {
         // The target the cascade just produced, and the values actually in
         // flight. `self` stays the target -- it is what the next frame diffs
         // against, and what children inherit -- while `painted` carries the
-        // overlay. §1.7: an animated value is never written back into computed
+        // overlay. An animated value is never written back into computed
         // style, because a cascade that saw the halfway colour as the node's real
         // one would start a second transition from it and never arrive.
         var painted = self;
         // Asked on every element's first styled frame, whether or not it
         // transitions, so the flag means "has been styled" and not "has been
         // styled while something moved". The cascade behind it runs only when a
-        // sheet has a starting rule and one matches (ADR-0352).
+        // sheet has a starting rule and one matches.
         var entering = self != null && element.firstStyled();
         // `element.widget() instanceof Paints` first, and it is not an
         // optimisation. A composition node has no box, so `painted` is discarded
@@ -609,8 +632,7 @@ public final class WidgetRenderer {
         // are not free of consequence: observing the **inherited** style on a node
         // that paints nothing starts transitions keyed on an ancestor's values,
         // and `settle` then reports them as animating, which keeps the frame loop
-        // awake for a node that could not draw a frame if it had one (the
-        // 2026-09-18 review, §7).
+        // awake for a node that could not draw a frame if it had one.
         if (element.widget() instanceof Paints
                 && self != null
                 && (!self.transitions().isEmpty() || !self.animations().isEmpty() || element.isAnimating())) {
@@ -627,7 +649,7 @@ public final class WidgetRenderer {
                 }
             }
             animations.observe(target, now);
-            // Keyframes beneath transitions, CSS's order (ADR-0353).
+            // Keyframes beneath transitions, CSS's order.
             var keyframed = animations.animate(target, self, now, (name, style) -> track(element, name, style));
             painted = animations.apply(keyframed, now);
             animating |= animations.settle(now);
@@ -656,7 +678,7 @@ public final class WidgetRenderer {
         }
 
         // Tagged with the element that produced it, which is how a pointer
-        // event gets from a rectangle on screen back to a node (ADR-0054).
+        // event gets from a rectangle on screen back to a node.
         var boxBegan = trace == null ? 0L : System.nanoTime();
         var style = Objects.requireNonNull(painted, "a node that paints resolved a style of its own above");
         // Set for the duration of the call and cleared after, so a context that
@@ -666,7 +688,7 @@ public final class WidgetRenderer {
         Box box;
         // Asked inside the same window as `render`, so a context read by the
         // answer -- a canvas's predicate is handed its `CanvasStyle` -- is still
-        // this node's (ADR-0348).
+        // this node's.
         boolean wantsFrame;
         try {
             box = paints.render(style, List.copyOf(children), paintContext).owner(element);
@@ -679,18 +701,16 @@ public final class WidgetRenderer {
         }
 
         // A widget that draws itself from the frame clock keeps the loop awake.
-        // §1.7's idle loop stops the frame after the last transition settles, and
-        // a spinner has no transition to settle -- so without this it would be
-        // painted once and left there (ADR-0081).
+        // The idle loop stops asking for frames after the last transition
+        // settles, and a spinner has no transition to settle -- so without this
+        // it would be painted once and left there.
         //
         // **After `render`, and that is worth one frame of every animation in the
         // toolkit.** A clock-driven animation is a `Phase`, and a phase learns it
         // has finished by being *read* -- which happens in `render`, the only
         // place a widget is handed the frame clock. Asked beforehand, the frame
         // that finishes an arrival still answers "yes" and the frame after it is
-        // the one that goes quiet: one wasted frame per arrival, per widget, and
-        // the reason a golden of an arrival had to render three times
-        // (ADR-0228).
+        // the one that goes quiet: one wasted frame per arrival, per widget.
         animating |= wantsFrame;
         return List.of(box);
     }

@@ -3,7 +3,7 @@ package dev.goldberry.layout;
 /// How a box is placed — CSS's `position`.
 ///
 /// Named for the CSS property rather than for the engine's `PositionType`, which
-/// is the sort of name a binding carries and a vocabulary should not (ADR-0279).
+/// is the sort of name a binding carries and a vocabulary should not.
 ///
 /// **[#RELATIVE] is the default**, not CSS's `static`. It is the layout engine's,
 /// and the two lay out identically until something sets an inset — so the box a
@@ -13,6 +13,8 @@ package dev.goldberry.layout;
 /// [dev.goldberry.css.ComputedStyle#INITIAL] and
 /// [dev.goldberry.paint.Box#of()] are where that is written
 /// down.
+///
+/// Read more: [How layout works](https://goldberry.dev/docs/layout/index.html#the-box-model).
 public enum Position {
 
     /// Laid out in flow, and [Insets] on it do nothing.
@@ -24,6 +26,6 @@ public enum Position {
 
     /// Taken out of flow entirely and placed against its containing block's
     /// **padding** box — which is CSS's rule, and not the border box a reader
-    /// might expect (ADR-0272).
+    /// might expect.
     ABSOLUTE
 }

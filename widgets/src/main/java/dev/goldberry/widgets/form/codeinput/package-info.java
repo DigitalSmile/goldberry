@@ -1,8 +1,9 @@
-/// `docs/core-widgets.md` §4's `code-input` — the one-time-code field.
+/// The `code-input` widget: a one-time-code field, one box per digit, that
+/// fills from the keyboard or a paste and reports the code when it is whole.
 ///
-/// `@NullMarked`, which puts this package under NullAway. See
-/// `dev.goldberry.widgets.form.parts` for why every package
-/// opts in one at a time.
+/// Every reference is non-null unless it says `@Nullable`.
+///
+/// Read more: [Fields and forms](https://goldberry.dev/docs/components/forms.html#code-input).
 @NullMarked
 package dev.goldberry.widgets.form.codeinput;
 

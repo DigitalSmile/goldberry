@@ -2,17 +2,15 @@ package dev.goldberry.text;
 
 /// Which way a run of text is shaped.
 ///
-/// The toolkit's own vocabulary, for the reason every other mirrored enum has
-/// one: the shaper numbers these — left-to-right is 4, not 0 — and that numbering
-/// is a fact about a C header, checked against the compiled library where it
-/// belongs (ADR-0282).
+/// The toolkit's own vocabulary rather than the shaper's constants, so the
+/// numbering of a C header stays inside the native layer where it is checked
+/// against the compiled library, and nothing native crosses into this package.
 ///
-/// ## Horizontal only, for now
+/// Only the horizontal directions are here. Nothing in the toolkit lays out a
+/// vertical line, and an enumerator that could be named and would then be
+/// dropped somewhere downstream is worse than one that cannot be named at all.
 ///
-/// The vertical directions the shaper knows are deliberately absent. Nothing in
-/// the toolkit lays out a vertical line, and an enumerator that could be named
-/// and would then be dropped somewhere downstream is worse than one that cannot
-/// be named at all. `docs/gaps.md` is where the case for them goes.
+/// Read more: [Text, fonts and icons](https://goldberry.dev/docs/guide/text.html#paragraphs).
 public enum TextDirection {
 
     /// Left to right.
@@ -21,7 +19,7 @@ public enum TextDirection {
     /// Right to left.
     ///
     /// Shaping a run this way is not bidirectional text: real bidi is splitting a
-    /// paragraph into runs and ordering them, which the toolkit does not do
-    /// (ADR-0218). This is the direction *one* run is shaped in.
+    /// paragraph into runs and ordering them, which the toolkit does not do. This
+    /// is the direction one run is shaped in.
     RTL
 }

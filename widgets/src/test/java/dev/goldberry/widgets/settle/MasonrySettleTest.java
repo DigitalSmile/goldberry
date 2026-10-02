@@ -26,19 +26,22 @@ import dev.goldberry.widgets.panel.masonry.Masonry;
 import dev.goldberry.widgets.text.Text;
 
 /// **A responsive `masonry` settles, and the arrangement that was supposed to
-/// make it oscillate does not** — [ADR-0436].
+/// make it oscillate does not.**
 ///
 /// [MeasuredFixedPointTest] already holds `masonry` with a fixed `columns`: it
 /// moves boxes in answer to a measurement, and it is safe because the columns are
 /// equal width, so a card's height does not depend on which column it landed in.
 /// `min-column-width` opens the door one step further — the wall reads its **own
-/// width** and changes the number of columns — and a second claim under
-/// ADR-0117's third rule needs its own evidence rather than the first one's.
+/// width** and changes the number of columns — and a second claim under the
+/// rule that a widget must not size itself from its own measurement needs its
+/// own evidence rather than the first one's.
 ///
 /// The claim is: *a column count changes the wall's height and not its width.*
-/// `core-widgets.md` §1 hedges it — true of a wall whose width comes from its
-/// parent, and a wall in a shrink-to-fit box "would oscillate". The second half
-/// of that is what [ShrinkToFit] went to check, and it is not what happens.
+/// That is plainly true of a wall whose width comes from its parent; a wall in
+/// a shrink-to-fit box was feared to oscillate. The second half is what
+/// [ShrinkToFit] went to check, and it is not what happens.
+///
+/// Read more: [Masonry](https://goldberry.dev/docs/layout/masonry.html#how-it-places).
 class MasonrySettleTest {
 
     @BeforeEach
@@ -167,25 +170,25 @@ class MasonrySettleTest {
     }
 
     @Nested
-    @DisplayName("a wall in a shrink-to-fit box, which is the case the specification hedges")
+    @DisplayName("a wall in a shrink-to-fit box, which is the case that was feared to oscillate")
     class ShrinkToFit {
 
-        /// **`core-widgets.md` §1 says this would oscillate. It does not, and the
-        /// reason it does not is one line of `controls.css`.**
+        /// **A wall sized to its own content was feared to oscillate. It does not,
+        /// and the reason it does not is one line of `controls.css`.**
         ///
         /// The feared loop is real arithmetic: a masonry sized to its own content
         /// would be `n` columns each as wide as the widest card in it, so a bigger
         /// `n` makes a wider wall, which asks for a bigger `n`. It needs the
-        /// columns to be as wide as their cards — and since ADR-0373 they are not.
+        /// columns to be as wide as their cards — and they are not.
         /// A `masonry-column` is `flex-basis: 0`, so it contributes **nothing** to
         /// its parent's content width, and a masonry with no definite width comes
         /// out at zero however many columns it has.
         ///
         /// So the wall's width is independent of its column count by
-        /// construction, which is precisely what ADR-0117's third rule asks for —
+        /// construction, which is precisely what the measurement rule asks for —
         /// and it is a property of the *stylesheet* rather than of the parent's
-        /// good behaviour. The hedge in the specification describes a layout this
-        /// toolkit cannot produce.
+        /// good behaviour. The feared loop needs a layout this toolkit cannot
+        /// produce.
         ///
         /// What it produces instead is a wall zero pixels wide whose cards hang
         /// out of it: degenerate, stable, and the same picture a fixed `columns`

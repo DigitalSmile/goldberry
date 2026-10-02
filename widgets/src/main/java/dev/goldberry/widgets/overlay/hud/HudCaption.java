@@ -11,14 +11,13 @@ import dev.goldberry.widget.style.Paints;
 import dev.goldberry.widget.style.Styled;
 
 /// The line under a [Hud] that says what its numbers are — a **part**, so it is
-/// CSS-selectable and not constructible (ADR-0065).
+/// CSS-selectable and not constructible.
 ///
 /// It exists because every number above it is a **mean over the last sixty
-/// frames** and nothing said so. `paint 2.1 ms` reads as "this frame" and is not:
+/// frames** and nothing else says so. `paint 2.1 ms` reads as "this frame" and is not:
 /// a spike looks like a plateau on the way in and a plateau looks like a spike on
 /// the way out, and a reader with the wrong model of the number draws the wrong
-/// conclusion from every one of them
-/// (ADR-0150).
+/// conclusion from every one of them.
 ///
 /// **A mean and not a median**, which is worth saying because the benchmarks in
 /// this repository report medians and a reader who knows that would otherwise
@@ -26,7 +25,7 @@ import dev.goldberry.widget.style.Styled;
 /// to discard, and a mean over it is the thing a budget is actually about — sixty
 /// frames took this long between them. The min and the max either side of it are
 /// what a median would have been reached for, and better: they say where the
-/// spread actually is rather than hiding it in the middle (ADR-0154).
+/// spread actually is rather than hiding it in the middle.
 record HudCaption() implements Widget.Leaf, Styled, Paints {
 
     @Override
@@ -57,7 +56,7 @@ record HudCaption() implements Widget.Leaf, Styled, Paints {
         // The unit and the shape, which is everything the rows leave unsaid: each
         // is three numbers and a label, and without this line a reader has to
         // guess whether they are milliseconds, whether they are this frame's, and
-        // which of the three is which (ADR-0154).
+        // which of the three is which.
         return frames.capacity() > 0
                 ? "ms/frame · min / mean / max · last " + frames.capacity()
                 : "ms/frame · min / mean / max";

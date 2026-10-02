@@ -102,7 +102,7 @@ final class Blend2dImage {
     ///
     /// NULL codecs, which Blend2D reads as "the built-in ones" — this library is
     /// compiled with the PNG, JPEG and QOI codecs in it, so no codec object has
-    /// to be constructed and no `bl_image_codec_*` symbol is bound (ADR-0283).
+    /// to be constructed and no `bl_image_codec_*` symbol is bound.
     void imageReadFromData(MemorySegment image, MemorySegment data, long size) {
         check("bl_image_read_from_data", calls.imageReadFromData().call(image, data, size, MemorySegment.NULL));
     }
@@ -122,7 +122,7 @@ final class Blend2dImage {
     /// `destination` must already be initialised — Blend2D resizes and allocates
     /// for it, which makes this the second call in this class that asks Blend2D
     /// for pixels after the decoder, and the second that hands them back on the
-    /// call that made them ([BlendScaledImage], ADR-0428).
+    /// call that made them ([BlendScaledImage]).
     ///
     /// The `BLSizeI` is built in a confined arena per call. That is eight bytes
     /// and an arena for something Blend2D reads and does not keep, and it is
@@ -143,7 +143,7 @@ final class Blend2dImage {
     /// **Where the decode stops being Blend2D's.** The segment built here is the
     /// only one in this module that points at memory Blend2D allocated, it is
     /// reinterpreted to exactly the rows the image says it has, and it does not
-    /// leave this method — §3.1's rule is that a segment never leaves the module,
+    /// leave this method — the module's rule is that a segment never leaves it,
     /// and the narrower rule this keeps is that it never leaves the call.
     ///
     /// Row by row rather than in one `copy`, because the two strides need not

@@ -13,6 +13,8 @@ import dev.goldberry.natives.blend2d.enums.BlendEnum;
 /// this enum is a constant the layout probe checks against the compiled library,
 /// so naming codes nobody can trigger would be registry weight for no reading.
 /// Anything unnamed still reports its hex value, which is enough to look up.
+///
+/// Read more: [The native boundary](https://goldberry.dev/docs/overview/architecture.html#the-native-boundary).
 public enum BlendResultCode implements BlendEnum {
 
     /// Not a failure. Blend2D's `BL_SUCCESS` is zero, the only non-error value.

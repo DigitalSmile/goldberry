@@ -21,8 +21,7 @@ import dev.goldberry.bind.runtime.Models;
 ///
 /// `gain++` is an ordinary field increment. After weaving it also notifies every
 /// widget bound to `app.gain`, because the build rewrote that one `putfield` into
-/// a call that stores the value and then tells the listeners
-/// (ADR-0125).
+/// a call that stores the value and then tells the listeners.
 ///
 /// ## Why the field, and not a `Property`
 ///
@@ -37,16 +36,19 @@ import dev.goldberry.bind.runtime.Models;
 ///
 /// It does not make the field thread-safe, shared, or persistent, and it does not
 /// track dependencies between fields. It makes an assignment observable. Data
-/// still flows down and events still flow up (ADR-0063): the widget tree gets the
+/// still flows down and events still flow up: the widget tree gets the
 /// [Observable] half and reports what the user did as an `@Action`.
 ///
 /// ## Weaving is a build step, not a runtime one
 ///
 /// The rewiring happens to the compiled class, in the build, before the jar —
 /// which is what lets the result run under GraalVM's closed world with nothing
-/// generated, loaded or reflected at runtime (ADR-0127). A class annotated here
-/// and not woven fails loudly the first time [Models] is asked about it, rather
-/// than quietly never notifying anybody.
+/// generated, loaded or reflected at runtime. A class annotated here and not
+/// woven is still a model: an ordinary jar binds it reflectively through
+/// [Models], and notices a change at the next sweep rather than at the write.
+///
+/// Read more: [Values](https://goldberry.dev/docs/applications.html#values) and
+/// [Model weaving](https://goldberry.dev/docs/weaving.html).
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.TYPE)
 public @interface Model {}

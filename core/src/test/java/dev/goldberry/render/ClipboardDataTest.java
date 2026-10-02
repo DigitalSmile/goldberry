@@ -19,13 +19,14 @@ import dev.goldberry.image.Image;
 import dev.goldberry.render.backend.headless.HeadlessBackend;
 import dev.goldberry.render.clipboard.Clipboard;
 
-/// The clipboard's byte half — ADR-0286.
+/// The clipboard's byte half: a write is an offer of types, and bytes come back
+/// for the type a reader picks.
 ///
 /// Against the headless backend's in-memory clipboard, which is the one a test
 /// gets. What is pinned here is the contract every caller is written against —
 /// types go on, bytes come back, a write replaces rather than merges. The
 /// platform's *laziness* and a *refusal* are the same clipboard's other two
-/// halves and are `HeadlessClipboardTest` ([ADR-0407]).
+/// halves and are `HeadlessClipboardTest`.
 ///
 /// The SDL side of the same contract, including the upcall a paste runs, is
 /// `SdlClipboardTest` in `:natives`.
@@ -174,10 +175,10 @@ class ClipboardDataTest {
             // and finding nothing is better than handing bytes to a decoder that
             // will refuse them.
             //
-            // **This used to be WebP**, and it is not any more: `docs/gaps.md`
-            // G35a closed in ADR-0329 and the offered set grew by two the same
-            // day. That is the set working rather than failing — it is a
-            // statement about what can be decoded, so it moves when that does.
+            // **This used to be WebP**, and it is not any more: a WebP codec was
+            // added and the offered set grew by two the same day. That is the set
+            // working rather than failing — it is a statement about what can be
+            // decoded, so it moves when that does.
             clipboard.write("image/tiff", new byte[] {'I', 'I', 42, 0});
 
             assertFalse(Image.onClipboard(clipboard));
@@ -189,8 +190,7 @@ class ClipboardDataTest {
         void theTwoNewTypesAreOffered() {
             // The half of the rule above that is easy to forget: a type the
             // toolkit *can* read has to be picked up, or the codec is linked in
-            // and unreachable from the one place a picture usually arrives
-            // (`docs/gaps.md` G35a, [ADR-0329]).
+            // and unreachable from the one place a picture usually arrives.
             clipboard.write("image/webp", new byte[] {'R', 'I', 'F', 'F'});
             assertTrue(Image.onClipboard(clipboard));
 

@@ -26,7 +26,10 @@ import dev.goldberry.widgets.controls.TestFont;
 import dev.goldberry.widgets.controls.option.Option;
 import dev.goldberry.widgets.core.Row;
 
-/// §3's select does not move when its value does ([ADR-0359]).
+/// A `select` does not move when its value does: the closed control is as wide
+/// as its widest option, so choosing a shorter one leaves the field where it was.
+///
+/// Read more: [Select](https://goldberry.dev/docs/components/choices.html#select).
 class SelectWidthTest {
 
     private static final String LONGEST = "Nord Dark, high contrast";

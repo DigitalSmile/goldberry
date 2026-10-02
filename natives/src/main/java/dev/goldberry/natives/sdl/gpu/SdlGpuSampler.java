@@ -7,6 +7,8 @@ import dev.goldberry.natives.sdl.gpu.enums.SdlGpuFilter;
 
 /// How a shader reads a texture: filtered one way, addressed one way outside 0
 /// to 1, one mip level.
+///
+/// Read more: [The native boundary](https://goldberry.dev/docs/overview/architecture.html#the-native-boundary).
 public final class SdlGpuSampler extends SdlGpuResource {
 
     private final SdlGpuFilter filter;

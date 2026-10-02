@@ -2,7 +2,7 @@ package dev.goldberry.media.picture;
 
 import dev.goldberry.media.MediaPlayer;
 
-/// The form a player's pictures wait in, ready to draw (`docs/gpu-plan.md`, D8).
+/// The form a player's pictures wait in, ready to draw.
 ///
 /// The video thread prepares each picture it keeps before the decoder is called
 /// again, since a decoded frame is borrowed. What it prepares depends on who
@@ -10,6 +10,8 @@ import dev.goldberry.media.MediaPlayer;
 /// planes to the GPU converts them in a shader. A view says which it draws with
 /// [MediaPlayer#attachView(PictureForm)], and the player decides from every view
 /// attached to it ([MediaPlayer#pictureForm()]).
+///
+/// Read more: [`video-view`](https://goldberry.dev/docs/components/media.html#video-view).
 public enum PictureForm {
 
     /// Premultiplied BGRA, converted by swscale on the video thread: a

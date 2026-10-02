@@ -1,14 +1,13 @@
-/// `@NullMarked`, which puts this package under NullAway.
+/// The fonts and icons that ship in the core jar: the bundled faces, their
+/// weights and styles, the Lucide icon table, and the service through which the
+/// emoji face arrives when an application brings it.
 ///
-/// Inside a marked package every type is non-null unless it says `@Nullable`,
-/// and the build fails on a violation. The annotation is the whole content of
-/// this file: there is nothing package-specific to say about nullness, and a
-/// paragraph pretending otherwise in every package would be padding.
+/// Exported because an application choosing a font source, or registering an icon
+/// pack, needs to name what it is replacing.
 ///
-/// Packages are marked one at a time on purpose. NullAway runs in
-/// `OnlyNullMarked` mode, so an unmarked package is invisible to it and a marked
-/// one is checked from the moment it opts in — which is the only way a codebase
-/// this size adopts nullness at all (`docs/testing.md` §2).
+/// Null-marked: every reference is non-null unless annotated `@Nullable`.
+///
+/// Read more: [Text, fonts and icons](https://goldberry.dev/docs/guide/text.html#the-bundled-faces).
 @NullMarked
 package dev.goldberry.assets;
 

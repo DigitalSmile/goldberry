@@ -15,7 +15,8 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
-/// Naming a container from its first bytes, with no FFmpeg (ADR-0471).
+/// Naming a container from its first bytes, with no FFmpeg: an unknown container
+/// is named, not called invalid data.
 @DisplayName("ContainerSniffer")
 class ContainerSnifferTest {
 

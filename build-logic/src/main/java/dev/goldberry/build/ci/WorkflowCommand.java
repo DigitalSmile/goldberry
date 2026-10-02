@@ -5,8 +5,7 @@ import java.util.Objects;
 
 /**
  * One GitHub Actions workflow command -- a line such as
- * {@code ::error title=...::message} that the runner turns into an annotation
- * (ADR-0338).
+ * {@code ::error title=...::message} that the runner turns into an annotation.
  *
  * <p>Annotations are what makes a CI failure readable from outside. A job log
  * cannot be read without signing in, but a check run's annotations are served by

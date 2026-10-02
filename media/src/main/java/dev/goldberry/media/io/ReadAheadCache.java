@@ -9,7 +9,7 @@ import java.util.TreeMap;
 import org.jspecify.annotations.Nullable;
 
 /// The bytes an [HttpIO] has fetched and not yet thrown away: the read-ahead
-/// cache of `docs/goldberry-media.md` §4.
+/// cache a seek bar shades.
 ///
 /// **Extents.** The cache holds disjoint runs of the resource, each a list of
 /// [#CHUNK]-sized arrays, so that a run grows without copying and its front can

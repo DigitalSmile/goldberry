@@ -18,8 +18,8 @@ import org.jspecify.annotations.Nullable;
 /// what it declares.
 ///
 /// A device takes one family of formats, so a shader that should run on every
-/// platform carries SPIR-V, DXIL and MSL, as the toolkit's own do
-/// (`docs/gpu-plan.md`, D7). [GpuDevice#createShader] picks the one the device
+/// platform carries SPIR-V, DXIL and MSL, as the toolkit's own do.
+/// [GpuDevice#createShader] picks the one the device
 /// takes and names the missing one when there is none.
 ///
 /// SDL cannot read what a shader declares out of its bytecode, so the counts

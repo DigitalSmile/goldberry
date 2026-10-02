@@ -18,9 +18,8 @@ import dev.goldberry.widget.style.Styled;
 import dev.goldberry.widgets.markup.Markup;
 import dev.goldberry.widgets.markup.Wiring;
 
-/// The floating panel a popup draws — `docs/core-widgets.md` §7's `popover`, and
-/// what §7 calls "the primitive under menus, dropdowns, `date-picker`,
-/// `color-picker` and autocomplete".
+/// The floating panel a popup draws: the surface under menus, dropdowns,
+/// `date-picker`, `color-picker` and autocomplete.
 ///
 /// ```kdl
 /// popover {
@@ -44,7 +43,7 @@ import dev.goldberry.widgets.markup.Wiring;
 /// `Placement`'s flip and shift against the display's work area, opens a platform
 /// window and light-dismisses it. That machinery serves a `tooltip`, a `select`
 /// and a `menu` equally, none of which is a popover, so it does not belong inside
-/// one ([ADR-0104]).
+/// one.
 ///
 /// What is left is worth a widget on its own: the surface, the edge, the radius,
 /// the elevation and the padding that make a floating panel read as floating.
@@ -56,11 +55,12 @@ import dev.goldberry.widgets.markup.Wiring;
 /// A popup's contents are a root and not a descendant, so **nothing inherits into
 /// this node** — not `color`, not `font-size`, and no descendant selector from
 /// the window that opened it. That is why `popover` carries its own surface and
-/// its own foreground rather than relying on an ancestor for either
-/// ([ADR-0103]).
+/// its own foreground rather than relying on an ancestor for either.
 ///
 /// The `class="menu"` variant is the one this ships with: column direction, no
 /// padding of its own beyond a hairline, and items that fill the width.
+///
+/// Read more: [Overlays](https://goldberry.dev/docs/components/overlays.html#popover).
 ///
 /// @param children   what is in the panel
 /// @param attributes `id` and `class`, exactly as on the primitives
@@ -68,7 +68,7 @@ import dev.goldberry.widgets.markup.Wiring;
 public record Popover(List<Widget> children, Attributes attributes)
         implements Widget.Leaf, Styled, Paints, Attributed<Popover> {
 
-    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    /// Written out so that the parameters taking null for a default can say so.
     public Popover(@Nullable List<Widget> children, @Nullable Attributes attributes) {
         children = List.copyOf(children == null ? List.of() : children);
         attributes = attributes == null ? Attributes.NONE : attributes;
@@ -123,7 +123,7 @@ public record Popover(List<Widget> children, Attributes attributes)
     ///
     /// It is the panel and not the opening: where a popover goes and when it goes
     /// away is `Host.popup`'s, which serves a tooltip and a select equally and is
-    /// not a widget (ADR-0104).
+    /// not a widget.
     public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
         return new Popover(children, Attributes.of(node));
     }

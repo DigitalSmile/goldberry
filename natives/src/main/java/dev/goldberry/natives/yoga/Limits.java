@@ -16,7 +16,7 @@ import dev.goldberry.natives.yoga.style.StyleLength;
 /// somebody writes a long sentence in one.
 ///
 /// Here beside [Insets] and [StyleLength], which is where the vocabulary `css`
-/// and `layout` share already lives ([ADR-0172]).
+/// and `layout` share already lives.
 ///
 /// ## Undefined, not zero
 ///
@@ -29,6 +29,8 @@ import dev.goldberry.natives.yoga.style.StyleLength;
 /// [StyleLength#AUTO] is not a value Yoga has for any of the four — it does not
 /// export `YGNodeStyleSetMaxWidthAuto` — and [YogaNode] refuses it by name rather
 /// than dropping it silently.
+///
+/// Read more: [The native boundary](https://goldberry.dev/docs/overview/architecture.html#the-native-boundary).
 ///
 /// @param minWidth  the least it may be across, or [StyleLength#UNDEFINED]
 /// @param maxWidth  the most, or undefined

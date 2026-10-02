@@ -1,24 +1,24 @@
-/// How a paragraph sits in the box it is drawn in.
+/// How a paragraph sits in the box it is drawn in: `white-space`, `text-overflow`,
+/// `text-align` and `text-decoration`, and the [dev.goldberry.text.flow.TextFlow]
+/// value that carries them together.
 ///
-/// Three CSS properties and the value that carries them together: `white-space`,
-/// which decides whether a paragraph may break a line the author did not;
-/// `text-overflow`, which decides what marks a line that was not broken and did
-/// not fit; and `text-align`, which decides where a line that fitted easily sits
-/// in the room left over. The first two are the too-wide question and the third
-/// is the too-narrow one, and all three are answered in the same place — the
-/// paint, which is the only code that has both the line's width and the box's.
+/// `white-space` decides whether a paragraph may break a line the author did not;
+/// `text-overflow` decides what marks a line that was not broken and did not fit;
+/// `text-align` decides where a line that fitted easily sits in the room left
+/// over; and `text-decoration` draws a rule along it. All four are answered in
+/// the paint, which is the only code that has both the line's width and the
+/// box's.
 ///
-/// Its own package rather than three more types in
-/// [dev.goldberry.text], for the reason ADR-0172 gives for the
-/// rest of the split: `text` is the crossing between HarfBuzz's shaping and
-/// Blend2D's rasterizer, and these are neither — they are *style*, read by the
-/// paragraph and written by the cascade. Beside the paragraph rather than under
-/// `css`, because what they mean is a fact about text layout and the CSS spelling
-/// is one way in.
+/// These types are style, read by the paragraph and written by the cascade, so
+/// they live beside the paragraph rather than under `css`: what they mean is a
+/// fact about text layout, and the CSS spelling is one way in. The cascade
+/// resolves the four properties separately, because CSS inherits some and not
+/// others, and hands everything below it one `TextFlow`.
 ///
-/// See [ADR-0255] for why this exists and [ADR-0256] for the third property,
-/// and [dev.goldberry.text.flow.TextFlow] for why the cascade
-/// carries them apart and everything below it sees one value.
+/// The package is null-marked: a parameter or return is non-null unless annotated
+/// `@Nullable`.
+///
+/// Read more: [Text flow](https://goldberry.dev/docs/guide/styling.html#text-flow).
 @NullMarked
 package dev.goldberry.text.flow;
 

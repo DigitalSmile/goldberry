@@ -41,10 +41,11 @@ import dev.goldberry.widgets.panel.split.SplitPane;
 import dev.goldberry.widgets.panel.table.Column;
 import dev.goldberry.widgets.panel.table.Table;
 
-/// **Every `Measured` consumer this module can build settles** — [ADR-0420].
+/// **Every `Measured` consumer this module can build settles.**
 ///
-/// ADR-0117 opened a door with a rule on it: *read geometry to interpret an input
-/// or to draw something that cannot affect layout, never to decide a size.*
+/// `Measured` lets a widget be told what it measured, with a rule on the door:
+/// *read geometry to interpret an input or to draw something that cannot affect
+/// layout, never to decide a size.*
 /// Nothing enforced it. The scroll view obeyed it by construction, which is the
 /// strongest kind of safe and the least transferable — the next widget gets no
 /// help from it.
@@ -116,7 +117,7 @@ class MeasuredFixedPointTest {
             var failure = assertThrows(AssertionError.class, () -> layouts(new Oscillator(id("swing")), "", 400, 200));
 
             assertTrue(failure.getMessage().contains("oscillates"), failure.getMessage());
-            assertTrue(failure.getMessage().contains("ADR-0117 rule 3"), failure.getMessage());
+            assertTrue(failure.getMessage().contains("read its own geometry to decide its size"), failure.getMessage());
             assertTrue(failure.getMessage().contains("What moved:"), "it says which box moved");
         }
 
@@ -159,7 +160,7 @@ class MeasuredFixedPointTest {
                     2, settle(new Masonry(cards, 3, id("wall")), css.toString(), 320, 400), "one reflow, then still");
         }
 
-        /// `scroll` — ADR-0117's own example, and the one that obeys rule 3 *by
+        /// `scroll` — the first consumer, and the one that obeys rule 3 *by
         /// construction*: the bars are absolutely positioned, so nothing the
         /// rebuild draws can change the rectangle that was measured.
         @Test
@@ -185,7 +186,7 @@ class MeasuredFixedPointTest {
         }
 
         /// `table` — the header banks its own width so a resize drag has something
-        /// to start from (ADR-0361). That is an **input** reading, not a size: the
+        /// to start from. That is an **input** reading, not a size: the
         /// header's actual width comes from the application's column model, and
         /// the banked number is only ever a drag anchor.
         @Test
@@ -224,12 +225,12 @@ class MeasuredFixedPointTest {
 
         // `toast` is deliberately absent, and the attempt is worth recording
         // because of how it failed. A `Toaster` builds its plates into the host's
-        // overlay layer rather than into its own subtree (ADR-0177), so a
-        // windowless harness lays out a `toaster` with nothing in it: `settle()`
-        // returned 1 and `Settled.consumers()` returned 0. The vacuity guard is
-        // the only reason that was a red test rather than a seventh green one.
-        // ADR-0420 records it as uncovered rather than papering over it, and
-        // `ToastTest` feeds `measured(...)` by hand for the same reason.
+        // overlay layer rather than into its own subtree, so a windowless
+        // harness lays out a `toaster` with nothing in it: `settle()` returned 1
+        // and `Settled.consumers()` returned 0. The vacuity guard is the only
+        // reason that was a red test rather than a seventh green one. It stays
+        // uncovered here rather than papered over, and `ToastTest` feeds
+        // `measured(...)` by hand for the same reason.
     }
 
     private record Person(String id, String name, String realm) {}

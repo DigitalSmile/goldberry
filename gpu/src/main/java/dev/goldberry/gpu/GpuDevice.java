@@ -22,8 +22,8 @@ import dev.goldberry.natives.sdl.gpu.SdlGpuTexture;
 /// frames of commands are recorded for.
 ///
 /// **Not made by an application.** There is one per process, owned by the
-/// backend and created the first time a GPU layer needs it, never at start-up
-/// (`docs/gpu-plan.md`, D2); `canvas3d` hands its renderer the device, as a
+/// backend and created the first time a window or a GPU layer needs it, never
+/// before the first frame; `canvas3d` hands its renderer the device, as a
 /// composited window hands its layers. It is closed by its owner, and
 /// everything made on it is released then, if it has not been already.
 ///
@@ -36,10 +36,14 @@ import dev.goldberry.natives.sdl.gpu.SdlGpuTexture;
 /// device's, a draw with nothing bound, a region outside its texture -- throws
 /// `IllegalArgumentException` or `IllegalStateException` at the call that made
 /// it. What only the driver can refuse throws [GpuException].
+///
+/// Read more: [The renderer](https://goldberry.dev/docs/components/gpu.html#the-renderer),
+/// and what creating the device costs under
+/// [Starting fast](https://goldberry.dev/docs/performance/startup.html#the-gpu-device-at-the-first-frame).
 public final class GpuDevice {
 
     // The compositor's way in, for a device it made and the textures layers
-    // render into, which nothing outside the module may reach (ADR-0481).
+    // render into, which nothing outside the module may reach.
     static {
         ApiAccess.register(new ApiAccess() {
             @Override

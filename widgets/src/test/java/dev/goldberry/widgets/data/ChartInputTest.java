@@ -46,14 +46,15 @@ import dev.goldberry.widgets.text.Text;
 
 /// A donut answering the pointer, and every chart answering the keyboard.
 ///
-/// `charts.md` §3.5 is the reason the second half of this file exists: "a browser
-/// dashboard is a pointer surface; a desktop application is not, and §2.2
-/// requires everything to be reachable. Grafana is weak here and it is not a
-/// model to copy."
+/// The second half of this file exists because a browser dashboard is a pointer
+/// surface and a desktop application is not: everything must be reachable from
+/// the keyboard. Grafana is weak here and it is not a model to copy.
 ///
 /// The keyboard assertions are the interesting shape — **what a key does is
 /// compared against what the mouse does**, so the two paths are held to one
 /// answer rather than to two descriptions of one.
+///
+/// Read more: [What the five share](https://goldberry.dev/docs/components/charts.html#what-the-five-share).
 class ChartInputTest {
 
     @BeforeEach
@@ -258,7 +259,7 @@ class ChartInputTest {
         void reachableWithoutAPointer() {
             try (var harness = new Harness(lineChart())) {
                 harness.frame();
-                assertTrue(harness.focus("chart-plot"), "§2.2: everything is reachable");
+                assertTrue(harness.focus("chart-plot"), "everything is reachable from the keyboard");
             }
             try (var harness = new Harness(framed(new LineChart(List.of())))) {
                 harness.frame();

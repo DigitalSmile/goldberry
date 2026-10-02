@@ -12,7 +12,7 @@ import org.junit.jupiter.api.Test;
 
 import dev.goldberry.natives.NativeLibraryRequirement;
 
-/// What `bl_context_set_fill_rule` does to a path with a hole in it — ADR-0427.
+/// What `bl_context_set_fill_rule` does to a path with a hole in it.
 ///
 /// The binding this exists to prove is one `int` wide, which is exactly the kind
 /// that is wrong and silent: pass the wrong enumerator and every fill still

@@ -29,8 +29,10 @@ import dev.goldberry.widgets.data.areachart.AreaChart;
 import dev.goldberry.widgets.data.barchart.BarChart;
 import dev.goldberry.widgets.data.plot.Ticks;
 
-/// §11's other two axis charts, and the rules they do not share with
-/// `line-chart`.
+/// The catalogue's other two axis charts, `area-chart` and `bar-chart`, and the
+/// rules they do not share with `line-chart`.
+///
+/// Read more: [Charts](https://goldberry.dev/docs/components/charts.html).
 class ChartsGoldenTest {
 
     @BeforeEach
@@ -87,7 +89,7 @@ class ChartsGoldenTest {
     }
 
     @Test
-    @DisplayName("both read §3.2's inline data")
+    @DisplayName("both read inline `series` and `point` children from markup")
     void inflateFromKdl() {
         var area = Widgets.inflater().inflate(KdlParser.parse("""
                 area-chart {

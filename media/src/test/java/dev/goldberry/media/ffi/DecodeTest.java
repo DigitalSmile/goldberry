@@ -169,7 +169,7 @@ class DecodeTest {
     }
 
     @Test
-    @DisplayName("a codec no decoder plays is UnsupportedCodec, naming it (S7)")
+    @DisplayName("a codec no decoder plays is UnsupportedCodec, naming it")
     void unsupported() {
         try (var demuxer = demuxer(Wav.withFormatTag(Wav.silence(8_000, 1, 800), 6))) {
             assertEquals("pcm_alaw", demuxer.info().tracks().getFirst().codecName());

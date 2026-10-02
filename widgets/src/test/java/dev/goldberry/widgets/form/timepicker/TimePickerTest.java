@@ -39,7 +39,7 @@ import dev.goldberry.widgets.Widgets;
 import dev.goldberry.widgets.controls.TestFont;
 import dev.goldberry.widgets.form.parts.PickerField;
 
-/// §4's typed time field, driven the way a user drives it.
+/// The typed time field, driven the way a user drives it.
 ///
 /// The wheels are [TimeColumnsTest]'s and the parsing is [TimeFormatTest]'s. What
 /// is here is the seam: that the field is the source of truth, that `min`, `max`
@@ -48,6 +48,8 @@ import dev.goldberry.widgets.form.parts.PickerField;
 /// **A 24-hour formatter throughout**, because asserting a locale's short form
 /// would be asserting a `java.time` table rather than anything this widget
 /// decides.
+///
+/// Read more: [`time-picker`](https://goldberry.dev/docs/components/forms.html#time-picker).
 class TimePickerTest {
 
     private static final TimeFormat HH_MM = TimeFormat.of(DateTimeFormatter.ofPattern("HH:mm", Locale.ROOT));
@@ -76,7 +78,7 @@ class TimePickerTest {
     }
 
     /// The `text-input` inside, found by the name a stylesheet would use —
-    /// `TextField` is package-private, which is ADR-0065's rule working.
+    /// `TextField` is package-private, which is the ownership rule working.
     private Handles field(ElementTree tree) {
         var found = firstStyled(tree.root(), "text-input");
         if (found == null) {
@@ -153,7 +155,7 @@ class TimePickerTest {
             assertEquals("09:", shown(tree));
         }
 
-        /// §4's "an unreachable date cannot be typed either", for times. The text
+        /// An unreachable time cannot be typed either, as for dates. The text
         /// stays, because deleting what somebody typed loses a keystroke they
         /// were halfway through.
         @Test

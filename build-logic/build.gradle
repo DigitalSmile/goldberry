@@ -15,9 +15,11 @@ java {
 // `ToolResolver` is ordinary Java rather than a closure in `natives/build.gradle`
 // for the same reason `:assets` is a module and not a script: locating a build
 // tool across three platforms is real logic, and the bug it fixes is one nobody
-// reproduces by reading (ADR-0040).
+// reproduces by reading.
+// https://goldberry.dev/docs/contributing/building.html#the-native-superbuild
 dependencies {
-    // The analysis plugins the conventions plugin applies (docs/testing.md §2).
+    // The analysis plugins the conventions plugin applies.
+    // https://goldberry.dev/docs/contributing/testing.html#static-analysis
     // A precompiled script plugin can only apply a plugin that is on its own
     // compile classpath, so these are the marker artifacts rather than `plugins`
     // blocks -- the one place this build pays for using precompiled scripts.
@@ -25,7 +27,7 @@ dependencies {
     implementation "net.ltgt.gradle:gradle-errorprone-plugin:${libs.versions.errorprone.get()}"
     implementation "com.github.spotbugs.snom:spotbugs-gradle-plugin:${libs.versions.spotbugsPlugin.get()}"
     implementation "me.champeau.jmh:jmh-gradle-plugin:${libs.versions.jmhPlugin.get()}"
-    // Applied by `goldberry.publish`, which only the shipped modules apply (ADR-0334).
+    // Applied by `goldberry.publish`, which only the shipped modules apply.
     implementation "com.vanniktech:gradle-maven-publish-plugin:${libs.versions.mavenPublishPlugin.get()}"
 
     testImplementation platform(libs.junit.bom)
@@ -40,11 +42,20 @@ tasks.named('test') {
     // table and CI still say the same thing. This build is included, so `rootDir`
     // is `build-logic/` -- the repository is one level up. Handed over explicitly
     // rather than derived from the working directory, which differs between
-    // Gradle and an IDE run (ADR-0082).
+    // Gradle and an IDE run.
+    // https://goldberry.dev/docs/contributing/repository.html#tests-as-drift-guards
     systemProperty 'goldberry.repoRoot', rootDir.parentFile.absolutePath
     // `BookTest` and `SiteTest` read the book, the landing page and the
     // workflows, none of which is on a classpath; declared so an edit to a
-    // chapter re-runs the guards rather than leaving them up to date (ADR-0511).
+    // chapter re-runs the guards rather than leaving them up to date.
+    // `SourceDocsTest` reads every Java source, build script and workflow for a
+    // record number and for the guide links a doc comment carries, so those are
+    // inputs too: a comment edited in :widgets re-runs the guard.
+    inputs.files(fileTree(rootDir.parentFile) {
+        include '*/src/*/java/**/*.java', '*/build.gradle', 'build.gradle', 'settings.gradle',
+                'build-logic/src/main/groovy/*.gradle'
+        exclude '**/build/**'
+    }).withPropertyName('sources')
     ['book/src', 'book/book.toml', 'site', '.github/workflows'].each { path ->
         inputs.files(fileTree(rootDir.parentFile) { include "${path}/**", path })
                 .withPropertyName(path.replaceAll('[^A-Za-z]', '_'))

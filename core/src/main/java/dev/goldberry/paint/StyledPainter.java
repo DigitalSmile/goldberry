@@ -5,7 +5,7 @@ import java.util.Objects;
 import dev.goldberry.render.model.LogicalSize;
 
 /// A [Painter] that is also told what the cascade resolved for the box it is
-/// drawing in — `docs/gaps.md` G11.
+/// drawing in.
 ///
 /// ```java
 /// new Canvas((frame, size, style) -> {
@@ -36,6 +36,8 @@ import dev.goldberry.render.model.LogicalSize;
 /// [dev.goldberry.offscreen.Offscreen#paint] — it is painted
 /// with [CanvasStyle#none()], which is the honest answer for a painter with no
 /// cascade over it rather than a failure mid-frame.
+///
+/// Read more: [Canvas, images and QR codes](https://goldberry.dev/docs/components/drawing.html#the-painter).
 @FunctionalInterface
 public interface StyledPainter extends Painter {
 

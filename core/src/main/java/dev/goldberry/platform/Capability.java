@@ -13,11 +13,9 @@ package dev.goldberry.platform;
 /// were not. The calls then do not fail. They answer *"the desktop does not
 /// say"*, on a desktop that does, on every session, for ever.
 ///
-/// That is `docs/gaps.md` G32, and it cost an application a settings screen that
-/// confidently told its user their desktop had no light-or-dark setting. The
-/// build refuses to produce such a library by accident now
-/// ([ADR-0325](../../../../../book/src/adr/0325-a-build-says-what-it-can-ask-the-desktop.md)),
-/// and this is what an application reads when it wants to be sure:
+/// An application that believed such an answer would tell its user their desktop
+/// has no light-or-dark setting. The build refuses to produce such a library by
+/// accident, and this is what an application reads when it wants to be sure:
 ///
 /// ```java
 /// if (!Goldberry.capabilities().contains(Capability.SYSTEM_THEME)) {
@@ -33,6 +31,9 @@ package dev.goldberry.platform;
 /// the first one is fixable. The second is what an empty
 /// [dev.goldberry.Host#systemTheme()] means, and the two
 /// together are what let an application tell its user something true.
+///
+/// Read more:
+/// [Logging and diagnostics](https://goldberry.dev/docs/guide/logging.html#what-this-build-can-do).
 public enum Capability {
 
     /// The desktop's light-or-dark setting, and being told when it changes —
@@ -73,16 +74,13 @@ public enum Capability {
     /// **On Linux this is libdecor at build time.** Without it SDL compiles no
     /// client-side decoration support at all, and a window on a GNOME/Wayland
     /// session opens with no titlebar and no resize edge however the session is
-    /// configured — which is two consecutive shipped bugs' worth of history
-    /// ([ADR-0083](../../../../../book/src/adr/0083-on-gnome-wayland-libdecor-is-not-a-fallback.md)).
-    /// On macOS and Windows the window server draws them, so this is always
-    /// present there.
+    /// configured. On macOS and Windows the window server draws them, so this is
+    /// always present there.
     ///
     /// **It does not promise a titlebar.** libdecor's default plugin refuses to
     /// start off the process's initial thread and a JVM is never on it, so a build
-    /// that reports this can still open a bare window at run time
-    /// ([ADR-0084](../../../../../book/src/adr/0084-the-gtk-plugin-cannot-decorate-a-jvms-window.md)).
-    /// Built able to ask is the claim.
+    /// that reports this can still open a bare window at run time. Built able to
+    /// ask is the claim.
     WINDOW_DECORATIONS,
 
     /// Whether SDL compiled a Wayland video driver into this build.
@@ -94,19 +92,17 @@ public enum Capability {
     /// with one `pkg_check_modules` over five specs, so a build machine missing any
     /// one of them — EGL's headers being the one that has actually happened —
     /// produces a library whose every session falls back to X11 or XWayland, with
-    /// no error anywhere. XWayland resizes visibly worse, which is what
-    /// [ADR-0027](../../../../../book/src/adr/0027-prefer-wayland-fall-back-to-x11.md)
-    /// chose against.
+    /// no error anywhere. XWayland resizes visibly worse, which is why the
+    /// toolkit prefers a Wayland driver when the build has one.
     ///
     /// Like every other value here this describes the **library**: a build with
     /// the driver still runs on X11 when that is what the desktop is.
     WAYLAND,
 
-    /// Whether this process can open a web page — §9's `web-view`,
-    /// [ADR-0441](../../../../../book/src/adr/0441-a-web-page-is-a-window-not-a-box.md).
+    /// Whether this process can open a web page: the `web-view` widget.
     ///
-    /// **The one value here that is not a bit in `libgoldberry`**, and the reason
-    /// is the whole of that ADR. The engine behind a page is the desktop's own —
+    /// **The one value here that is not a bit in `libgoldberry`.** The engine
+    /// behind a page is the desktop's own —
     /// WebKitGTK, WebView2, WKWebView — so it lives in a second library,
     /// `libgoldberry-webview`, which is linked into nothing and opened on demand.
     /// Linking it into `libgoldberry` would put GTK and WebKit in the toolkit's

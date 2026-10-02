@@ -11,10 +11,10 @@ import org.jspecify.annotations.Nullable;
 /// ([dev.goldberry.input.event.PointerEvent.Local]) and no
 /// text stack. So the painter leaves its answer here and the pointer reads it.
 ///
-/// **This is ADR-0054's
-/// rule one level down.** The toolkit routes a pointer against a snapshot of the
-/// frame that was painted, rather than against a fresh layout, for the reason
-/// that the frame is what the user was looking at when they pointed at it. A
+/// **This is the toolkit's hit-testing rule one level down.** The toolkit
+/// routes a pointer against a snapshot of the frame that was painted, rather
+/// than against a fresh layout, for the reason that the frame is what the user
+/// was looking at when they pointed at it. A
 /// chart deciding *which point* they pointed at owes the same answer: against
 /// the crosshair positions of the frame on screen, not against an arithmetic
 /// that may have moved since.

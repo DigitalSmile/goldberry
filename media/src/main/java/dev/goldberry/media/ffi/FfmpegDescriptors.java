@@ -10,7 +10,8 @@ import dev.goldberry.media.ffi.calls.SwResampleCalls;
 import dev.goldberry.media.ffi.calls.SwScaleCalls;
 
 /// Every foreign-call shape of FFmpeg's bindings, for the module's
-/// `reachability-metadata.json` (ADR-0339), which `…media.nativeimage` writes.
+/// `reachability-metadata.json`, which `…media.nativeimage` writes. A foreign
+/// call is registered because it exists, not because a run reached it.
 ///
 /// `:natives`' `ForeignMetadata` does the same thing before asking: it
 /// initialises every holder, so each `FD_…` constant has been through
@@ -18,8 +19,8 @@ import dev.goldberry.media.ffi.calls.SwScaleCalls;
 /// that run happened to call. This records every holder there is.
 ///
 /// Public in a package the module does not export, so that the writer beside the
-/// system decoders' shapes can read it (ADR-0172); nothing outside the module
-/// sees it.
+/// system decoders' shapes can read it; the module, not the package, is the
+/// fence, and nothing outside it sees this.
 public final class FfmpegDescriptors {
 
     /// The `…Calls` records whose nested holders are the downcall surface.

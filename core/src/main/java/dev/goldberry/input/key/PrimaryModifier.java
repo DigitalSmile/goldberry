@@ -9,16 +9,16 @@ import org.jspecify.annotations.Nullable;
 ///
 /// ## Why this is a modifier you ask for and not a translation
 ///
-/// `docs/design-system.md` §2.3 wants accelerators expressed against a platform
-/// primary modifier "via one `Shortcut` abstraction". [Shortcut] refused, and
-/// its reason stands: a toolkit that silently turned every `Ctrl` into `Cmd` on
+/// An accelerator table wants to be written against the platform's primary
+/// modifier. [Shortcut] does not translate one modifier into another, and its
+/// reason stands: a toolkit that silently turned every `Ctrl` into `Cmd` on
 /// macOS would make `Ctrl+C` mean two different things depending on where it
 /// ran, and a terminal emulator, a text editor with Emacs bindings and anything
 /// else that means the *control key* would be broken by the translation.
 ///
 /// Both are satisfied by naming the thing. `Primary+S` is a shortcut that says
 /// "whatever this desktop uses for Save", and `Ctrl+S` is a shortcut that says
-/// `Ctrl`; neither is guessed from the other ([ADR-0378]).
+/// `Ctrl`; neither is guessed from the other.
 ///
 /// ## The override
 ///
@@ -26,6 +26,8 @@ import org.jspecify.annotations.Nullable;
 /// application that has a reason. Read once, because the answer cannot change
 /// while the process runs — nobody moves a window to a different operating
 /// system.
+///
+/// Read more: [Input and focus](https://goldberry.dev/docs/guide/input.html#accelerators).
 public final class PrimaryModifier {
 
     /// The system property that decides it: `ctrl` or `meta`.

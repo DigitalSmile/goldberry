@@ -19,47 +19,36 @@ import dev.goldberry.css.value.CssLength;
 
 /// Asks a stylesheet whether the engine will do what it says.
 ///
-/// ## Why this is asked and not logged
-///
-/// §8's subset is deliberately small and an unsupported declaration is
-/// deliberately **not** an error: naming `backdrop-filter` before it exists must
-/// not stop a window opening. (That example was `box-shadow` until ADR-0310 built
-/// it.) So the engine logs and carries on — which is right, and
-/// is why `border-bottom`, `currentColor`, `margin` and `max-width` were each
-/// written into the toolkit's own sheets, silently discarded, and found by
-/// looking at a picture.
-///
-/// The fix for the toolkit's own sheets was a test ([ADR-0215], [ADR-0216]), and
-/// it worked; the fix that was *not* available was making the log louder, because
-/// a dropped value already warned and `group-box-title` drew square corners for
-/// months anyway. An application writing its own stylesheet has had neither. This
-/// is the test's machinery with the test taken off it ([ADR-0257]).
-///
 /// ```java
 /// var findings = new StyleLint(sheets).check(mine);
 /// findings.forEach(f -> LOG.warn("{}", f));
 /// ```
 ///
-/// ## What it asks, and how it cannot drift
+/// The CSS subset is small on purpose and an unsupported declaration is not an
+/// error: naming `backdrop-filter` before it exists must not stop a window
+/// opening, so the engine logs the dropped declaration and carries on. That is
+/// right for a stylesheet, and wrong as the only signal an author ever gets,
+/// because a warning in a log nobody is watching is not seen at any level. This
+/// is the check an application asks for instead, and its answer is a list of
+/// [Finding] values.
 ///
-/// Every rule is resolved through the **real** cascade and every declaration
-/// handed to the **real** [ComputedStyle]. There is no list of supported
-/// properties here to fall out of step with the engine: a property added
-/// tomorrow needs no edit, and one removed is found the same day. That was the
-/// rule the test was written under and it is the reason this is worth promoting
-/// rather than reimplementing.
+/// Every rule is resolved through the real cascade and every declaration handed
+/// to the real [ComputedStyle]. There is no list of supported properties here to
+/// fall out of step with the engine: a property added tomorrow needs no edit,
+/// and one removed is found the same day.
 ///
-/// ## Two sheets, not one
+/// The sheets in force and the sheets under scrutiny are separate arguments, and
+/// it is not ceremony. Half of what a declaration means is what its `var()`s
+/// stood for: every colour in the toolkit is `var(--gb-something)`, substitution
+/// is the resolver's, and a sheet linted without its theme reports every one of
+/// them as a value the engine would not take. So an application passes
+/// everything that will be loaded as `inForce` and its own as `linted`.
 ///
-/// The sheets **in force** and the sheets **under scrutiny** are separate
-/// arguments, and it is not ceremony. Half of what a declaration means is what
-/// its `var()`s stood for: every colour in the toolkit is `var(--gb-something)`,
-/// substitution is the resolver's, and a sheet linted without its theme reports
-/// every one of them as a value the engine would not take. So an application
-/// passes everything that will be loaded as `inForce` and its own as `linted`.
+/// Cheap enough to run at start-up, one resolution per selector, and nothing
+/// calls it for you.
 ///
-/// Cheap enough to run at start-up — one resolution per selector, over a
-/// stylesheet — and nothing calls it for you, which is the point.
+/// Read more:
+/// [Logging and diagnostics](https://goldberry.dev/docs/guide/logging.html#failure-messages-and-what-they-mean).
 public final class StyleLint {
 
     /// What `em` and `rem` resolve against.
@@ -106,42 +95,34 @@ public final class StyleLint {
         return check(List.of(Objects.requireNonNull(linted, "linted")));
     }
 
-    /// Whether the sheets in force leave `root` — and so every primitive under it
-    /// that inherits a colour — with no `color` at all ([ADR-0415]).
+    /// Whether the sheets in force leave `root`, and so every primitive under it
+    /// that inherits a colour, with no `color` at all.
     ///
     /// ```java
     /// new StyleLint(everythingLoaded).uncolouredRoot(tree.root()).ifPresent(f -> LOG.warn("{}", f));
     /// ```
     ///
-    /// ## Why this is asked about the root and not about the text
+    /// Asked about the root and not about the text, because the resolved colour
+    /// is not evidence. The initial `color` is black on purpose, and black text on
+    /// a light theme is correct, so a check that fired on a node resolving to
+    /// black would be wrong about every light-themed application there is, once
+    /// per text node per frame. What is evidence is that no declaration anywhere
+    /// set one. `color` inherits, so one rule on the root settles the whole tree;
+    /// a root with no `color` in its cascade means there was nothing to inherit,
+    /// all the way down. That is one question, asked once, about one node.
     ///
-    /// Because the resolved colour is not evidence. `color: INITIAL` is black by
-    /// [ADR-0066]'s deliberate decision, and black text on a light theme is
-    /// **correct** — so a check that fired on a node resolving to black would be
-    /// wrong about every light-themed application in existence, and would be
-    /// wrong about it once per text node per frame. That is exactly the
-    /// distribution [ADR-0394] took a diagnostic apart for: 688 reports of which
-    /// 665 were the check misunderstanding its own question.
+    /// It takes the root rather than looking for `:root` because an application
+    /// that does this right need not write `:root`: the showcase writes
+    /// `#root { color: var(--gb-text) }`, and a synthetic `:root` probe would
+    /// report the one correct example as the defect. A root is whatever the
+    /// tree's root element is, its selector is the application's business, and
+    /// the only thing that can answer whether a rule reaches it is the element
+    /// itself.
     ///
-    /// What *is* evidence is that no declaration anywhere set one. `color`
-    /// inherits, so one rule on the root settles the whole tree; a root with no
-    /// `color` in its cascade means there was nothing to inherit, all the way
-    /// down. That is one question, asked once, about one node.
-    ///
-    /// ## Why it takes the root rather than looking for `:root`
-    ///
-    /// Because the application that does this **right** does not write `:root`.
-    /// The showcase writes `#root { color: var(--gb-text) }`, and a check that
-    /// resolved a synthetic `:root` probe the way the theme audit does would have
-    /// reported the one correct example in the repository as the defect. A root
-    /// is whatever the tree's root element is, its selector is the application's
-    /// business, and the only thing that can answer "does a rule reach it" is the
-    /// element itself.
-    ///
-    /// Nothing calls this for you, which is [ADR-0257]'s whole shape: it is a
-    /// value an application asks for at start-up, beside
-    /// [dev.goldberry.css.contrast.ThemeAudit#failures]
-    /// , and not a line in a log nobody reads.
+    /// Nothing calls this for you: it is a value an application asks for at
+    /// start-up, beside [dev.goldberry.css.contrast.ThemeAudit#failures], and not
+    /// a line in a log nobody reads. The rule it holds a root to is under
+    /// [Inheritance](https://goldberry.dev/docs/guide/styling.html#inheritance).
     ///
     /// @param root the tree's root element — the one whose [StyleElement#parent]
     ///             is null
@@ -154,7 +135,7 @@ public final class StyleLint {
             throw new IllegalArgumentException("not a root: " + name(root) + " has a parent, and what it"
                     + " inherits is that parent's business rather than the sheets'");
         }
-        // The **declared** cascade rather than a `ComputedStyle`, and that is the
+        // The declared cascade rather than a `ComputedStyle`, and that is the
         // whole mechanism. A resolved style always has a colour -- the initial one
         // if nothing else -- so asking it can only ever report the value, never
         // whether anybody chose it. The map the cascade produces has a `color` key
@@ -193,32 +174,30 @@ public final class StyleLint {
     /// unchecked if only the first were built.
     ///
     /// **Each declaration against its own value**, and not against the cascade's
-    /// winner for its property. This ran [StyleResolver#resolve] and looked the
-    /// property up in the result, which answers a different question: a
-    /// declaration that lost was checked against the *winning* rule's value and
-    /// reported at the loser's line, so a rule overridden anywhere in the sheets
-    /// in force could be as wrong as it liked and never be reported, while a
-    /// finding that did fire named a line whose value was not the one printed
-    /// beside it. What a lint wants is what the author wrote, with its `var()`s
-    /// resolved as they would be here — which is [StyleResolver#substitutedFor].
+    /// winner for its property. Looking the property up in [StyleResolver#resolve]
+    /// answers a different question: a declaration that lost would be checked
+    /// against the winning rule's value and reported at the loser's line, so a
+    /// rule overridden anywhere in the sheets in force could be as wrong as it
+    /// liked and never be reported. What a lint wants is what the author wrote,
+    /// with its `var()`s resolved as they would be here, which is
+    /// [StyleResolver#substitutedFor].
     private void checkRule(Selector selector, StyleRule rule, List<Finding> into) {
         var probe = probeFor(selector);
         for (var declaration : rule.declarations()) {
             if (declaration.isCustomProperty()) {
                 // The resolver's, consumed for `var()` substitution before the
-                // engine sees a declaration (ADR-0049). Every theme is nothing
-                // but these, so counting them would report a hundred and fifty
-                // findings against a healthy tree.
+                // engine sees a declaration. Every theme is nothing but these, so
+                // counting them would report a hundred and fifty findings against
+                // a healthy tree.
                 continue;
             }
             var value = resolver.substitutedFor(probe, declaration.value());
             if (value == null) {
-                // **Substitution failed**: a `var()` naming a token nothing
-                // defines takes the whole declaration with it. That is already
-                // reported, once, by the resolver -- which is the shape ADR-0243
-                // settled on after the same message became a stream -- and
-                // saying it again here would be a second mechanism for one
-                // fault, disagreeing with the first the day either changes.
+                // Substitution failed: a `var()` naming a token nothing defines
+                // takes the whole declaration with it. The resolver already reports
+                // that, once per property and element type, and saying it again
+                // here would be a second mechanism for one fault, disagreeing with
+                // the first the day either changes.
                 continue;
             }
             if (!ComputedStyle.applies(declaration.property(), value, CONTEXT)) {
@@ -281,11 +260,6 @@ public final class StyleLint {
             return compound.type();
         }
 
-        // Annotated, and so are `StyleElement` and `Selector.Compound`, both of
-        // which used to document a null `type` and `id` and declare neither
-        // `@Nullable`. This package was unmarked to accommodate that; ADR-0413
-        // annotated the interfaces instead, and these three overrides are the
-        // ones that could not be written honestly before.
         @Override
         public @Nullable String id() {
             return compound.id();

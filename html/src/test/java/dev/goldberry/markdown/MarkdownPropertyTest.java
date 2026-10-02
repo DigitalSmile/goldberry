@@ -19,8 +19,8 @@ import dev.goldberry.markdown.model.Document;
 import dev.goldberry.markdown.model.Inlines;
 import dev.goldberry.markdown.model.Paragraph;
 
-/// The two properties that hold for **every** document, which is what `docs/testing.md`
-/// §1.1 asks a round trip for.
+/// The two properties that hold for **every** document: every word of the source
+/// survives the parse, and nothing the text says reaches the HTML as markup.
 ///
 /// Generated rather than written down, because the interesting inputs are the ones
 /// nobody would think to write: a paragraph that is one ampersand, a word made of

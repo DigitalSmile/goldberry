@@ -5,8 +5,8 @@ package dev.goldberry.content.select;
 /// The unit a selection is made of, and it is deliberately **not** an offset into
 /// the source. A rendered document is a tree of words whose relationship to the text
 /// that produced it is the parser's business, and a selection that had to be
-/// expressed in source offsets would need every fold to carry them (ADR-0301). What
-/// a reader selects is what they can see.
+/// expressed in source offsets would need every fold to carry them. What a reader
+/// selects is what they can see.
 ///
 /// Comparable in document order, because "which end of the drag came first" is the
 /// only question a selection asks of two of these.

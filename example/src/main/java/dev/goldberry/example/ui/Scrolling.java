@@ -22,22 +22,23 @@ import dev.goldberry.widgets.core.scroll.ScrollController;
 import dev.goldberry.widgets.panel.Panel;
 import dev.goldberry.widgets.text.Text;
 
-/// A viewport of its own, with headers that stick — §2.4's `scroll`, §5's `affix`
+/// A viewport of its own, with headers that stick — `scroll`, `affix`
 /// and the `reveal` that puts a section back on screen.
 ///
 /// **A card and not a screen**, which is what changed when the gallery went to
 /// seven tabs: this used to be the one screen the gallery did not wrap in a
-/// viewport, because §2.4 bans nested same-axis scrollers and a screen inside the
-/// gallery's `scroll` that owned another one would be exactly that. As a card in
+/// viewport, because nested same-axis scrollers are not allowed and a screen inside
+/// the gallery's `scroll` that owned another one would be exactly that. As a card in
 /// a masonry it keeps its own fixed height and the ban keeps holding — the
 /// Navigation screen is not scrolled either, and the wall is what makes that
-/// possible: two columns of cards are half as tall as one
-/// (ADR-0222).
+/// possible: two columns of cards are half as tall as one.
 ///
 /// Jumping is a **request**, not a scroll: pressing a button records which section
 /// is wanted, the affix for that section is built with a `revealedBy` callback,
 /// and the callback hands the controller the two rectangles only a laid-out frame
-/// knows. Nothing here computes an offset ([ADR-0116]).
+/// knows. Nothing here computes an offset.
+///
+/// Read more: [Scroll](https://goldberry.dev/docs/layout/scroll.html).
 public record Scrolling() implements Widget.Stateful {
 
     public static final int ROWS_PER_SECTION = 12;

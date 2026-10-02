@@ -15,26 +15,29 @@ import dev.goldberry.icon.Icon;
 import dev.goldberry.kdl.KdlNode;
 import dev.goldberry.widgets.Icons;
 
-/// The three registries a document resolves names against, and the readings of a
-/// node that nearly every widget needs.
+/// The registries a document resolves names against, and the readings of a
+/// node that nearly every widget's `inflate` method needs.
 ///
-/// §9 asks for three lookups because they answer three different questions: what
-/// a name *does* ([ActionRegistry]), what a name *draws* ([Icons]), and where a value
-/// *lives* ([BindingRegistry]). They travel together because a factory generally needs
-/// more than one of them, and threading three parameters through nineteen
-/// registrations was three chances to pass the wrong one.
+/// ```java
+/// var wiring = Wiring.of(icons, appModel, windowModel).with(named);
+/// ```
 ///
-/// ## Why the readings are here
+/// The four registries answer four different questions: what a name does
+/// ([ActionRegistry], for `press=` and `change=`), what it draws ([Icons], for
+/// `icon=`), where a value lives ([BindingRegistry], for `bind=`) and which
+/// object it is ([Named], for `controller=` and `validator=`). They travel
+/// together because a factory generally needs more than one.
 ///
-/// `node.argument().map(v -> v.asString()).orElse("")` appeared eight times in
-/// the catalog, and `change == null ? null : value -> change.accept(String
-/// .valueOf(value))` three times. Neither is a decision — they are the same
-/// sentence written out again — and a widget's factory should be the part that
-/// differs (ADR-0130).
+/// The static readings — [#label], [#colour], [#disabled], [#requiredValue] —
+/// are the attribute readings every widget would otherwise write out again, so
+/// that a widget's factory contains only what is particular to that widget.
 ///
 /// @param actions  what a `press="save"` attribute resolves against
 /// @param icons    what an `icon="plus"` attribute resolves against
 /// @param bindings what a `bind="app.gain"` attribute resolves against
+/// @param named    what a `controller="app.signup-form"` attribute resolves against
+///
+/// Read more: [Markup](https://goldberry.dev/docs/guide/markup.html#the-four-registries).
 public record Wiring(ActionRegistry actions, Icons icons, BindingRegistry bindings, Named named) {
 
     /// Nothing bound, and no complaints — what a preview or a golden image wants.
@@ -42,8 +45,7 @@ public record Wiring(ActionRegistry actions, Icons icons, BindingRegistry bindin
         return new Wiring(ActionRegistry.none(), Icons.none(), BindingRegistry.none(), Named.none());
     }
 
-    /// The three registries a model publishes plus nothing named — the shape
-    /// every caller had before `controller=` and `validator=` existed.
+    /// The three registries a model publishes, with nothing named.
     public Wiring(ActionRegistry actions, Icons icons, BindingRegistry bindings) {
         this(actions, icons, bindings, Named.none());
     }
@@ -55,25 +57,19 @@ public record Wiring(ActionRegistry actions, Icons icons, BindingRegistry bindin
 
     /// The wiring `models` publish, with icons.
     ///
-    /// What removes `Models.bindings(model)` and `Models.actions(model)` from an
-    /// application: a model already declares its paths and its actions, and
-    /// asking the caller to fetch both and hand them back was ceremony around a
-    /// fact the object already carried
-    /// (ADR-0132).
-    ///
-    /// **More than one model**, because a window's own actions — "open the menu",
-    /// "toggle the HUD" — belong to the window rather than to the view model, and
-    /// making the application merge two registries by hand is the thing this
-    /// exists to stop. Later models may not re-declare an earlier one's name: two
-    /// features quietly sharing one path is a bug that presents as a value
-    /// changing by itself, and it is no less a bug for the two being in different
-    /// classes.
+    /// A model already declares its paths (`@Bind`) and its actions (`@Action`),
+    /// so the application hands the models over and this reads both registries
+    /// off them. Several models are allowed because a window's own actions —
+    /// "open the menu", "toggle the HUD" — belong to the window rather than to
+    /// the view model. A later model may not re-declare an earlier one's name:
+    /// two features quietly sharing one path presents as a value changing by
+    /// itself.
     ///
     /// @throws IllegalStateException if two models claim one name
     /// @throws IllegalStateException if any of them is annotated neither
-    ///         `@Model` nor `@Actions`, or is annotated and cannot be bound —
-    ///         an unwoven model is bound at run time rather than refused
-    ///         (ADR-0155)
+    ///         `@Model` nor `@Actions`, or is annotated and cannot be bound; a
+    ///         model that was not woven at build time is bound by reflection
+    ///         at run time rather than refused
     public static Wiring of(Icons icons, Object... models) {
         Objects.requireNonNull(icons, "icons");
         var bindings = BindingRegistry.strict();
@@ -137,9 +133,8 @@ public record Wiring(ActionRegistry actions, Icons icons, BindingRegistry bindin
     /// A colour under a name of the caller's choosing, spelled either way.
     ///
     /// `dot-colour="#bf616a"` and `dot-color="#bf616a"` both answer, for
-    /// [#colour(KdlNode)]'s reason — a widget that carries more than one colour
-    /// needs more than one name, and each of them still has two spellings
-    /// (`docs/gaps.md` G36, [ADR-0328]).
+    /// [#colour(KdlNode)]'s reason: a widget that carries more than one colour
+    /// needs more than one name, and each of them still has two spellings.
     ///
     /// @param british the property as this repository's prose spells it
     /// @param american the same property as CSS spells it
@@ -160,19 +155,17 @@ public record Wiring(ActionRegistry actions, Icons icons, BindingRegistry bindin
     /// The value `bind=` names, read-only.
     ///
     /// An [Observable] and never a `Property`, which is the whole of one-way
-    /// binding: markup names where a value comes from and has no way to name
-    /// where it goes (ADR-0063).
+    /// binding: data flows down and events flow up, so markup names where a
+    /// value comes from and has no way to name where it goes.
     public @Nullable Observable<?> bound(KdlNode node) {
         return bindings.resolve(node.stringProperty("bind"));
     }
 
     /// The **object** an attribute names — a `FormController`, a `Validator`.
     ///
-    /// Resolved through [Named], which is the third registry and exists because
-    /// the other two both refused this job for good reasons: an action is a
-    /// method, a binding is a value that **changes** — the machinery says so out
-    /// loud, refusing a `final` `@Bind` field with "a value that cannot change is
-    /// not something to subscribe to" — and a controller is neither.
+    /// Resolved through [Named], the registry for objects that neither change
+    /// nor close: an action is a method and a binding is a value that changes,
+    /// and a controller is neither.
     ///
     /// @param type what the named object has to be
     /// @return the object, or null when the attribute is absent
@@ -205,11 +198,10 @@ public record Wiring(ActionRegistry actions, Icons icons, BindingRegistry bindin
 
     /// The same, for a control whose value is a number.
     ///
-    /// It still crosses as the string a document would have written, for the
-    /// reason ADR-0073 set and ADR-0075 reused: one valued shape in the registry,
-    /// and an application that wants a `double` parses it in Java, where a bad
-    /// value is a bug it can see. `toggle`, `slider` and `knob` all arrive at this
-    /// door, and used to write the adapter out one at a time.
+    /// The number still crosses as the string a document would have written:
+    /// the registry has one valued shape, and an application that wants a
+    /// `double` parses it in Java, where a bad value is a bug it can see.
+    /// `toggle`, `slider` and `knob` all report through this.
     public @Nullable DoubleConsumer numeric(KdlNode node, String attribute) {
         var change = valued(node, attribute);
         return change == null ? null : value -> change.accept(String.valueOf(value));
@@ -218,8 +210,8 @@ public record Wiring(ActionRegistry actions, Icons icons, BindingRegistry bindin
     /// The same again, for a control whose value is a flag.
     ///
     /// `toggle` reports `true` or `false` rather than "the other one", because a
-    /// drag is a request for a particular state and dragging right on a switch
-    /// already on asks for on (ADR-0075).
+    /// drag is a request for a particular state: dragging right on a switch that
+    /// is already on asks for on.
     public @Nullable Consumer<Boolean> flag(KdlNode node, String attribute) {
         var change = valued(node, attribute);
         return change == null ? null : value -> change.accept(String.valueOf(value));

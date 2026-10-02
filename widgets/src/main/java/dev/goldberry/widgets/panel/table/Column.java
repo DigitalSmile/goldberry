@@ -7,8 +7,7 @@ import org.jspecify.annotations.Nullable;
 
 import dev.goldberry.widget.Widget;
 
-/// One column of a [Table] — `docs/core-widgets.md` §10's "a key, a header, a
-/// width and a cell-factory each".
+/// One column of a [Table]: a key, a header, a width and a cell-factory.
 ///
 /// ```java
 /// Column.of("name", "Name", Person::name).sortable(true)
@@ -20,11 +19,11 @@ import dev.goldberry.widget.Widget;
 /// A [#fixed] column is that many logical pixels. A column that is not fixed has
 /// a **weight**, and the columns with weights share out what the fixed ones left
 /// — which is `flex-grow`, so the layout engine does the arithmetic and there is
-/// no second sizing model to keep in step with it ([ADR-0214]).
+/// no second sizing model to keep in step with it.
 ///
 /// ## The cell-factory is `list`'s item-factory, per column
 ///
-/// §10 gives a list "any widget as row"; a table gives a column any widget as
+/// A list takes any widget as a row; a table gives a column any widget as
 /// *cell*, which is the same function with the same rules — called during build,
 /// handed the item, and free to return anything. A column of buttons is a column
 /// of buttons.
@@ -37,6 +36,8 @@ import dev.goldberry.widget.Widget;
 /// @param fixed   whether [#width] is a size or a share
 /// @param sortable whether clicking the header asks for a sort
 /// @param resizable whether the header has a grip that asks for a new width
+///
+/// Read more: [Collections](https://goldberry.dev/docs/components/collections.html#table).
 public record Column<T>(
         String key,
         String header,
@@ -46,7 +47,7 @@ public record Column<T>(
         boolean sortable,
         boolean resizable) {
 
-    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    /// Written out so that the parameters taking null for a default can say so.
     public Column(
             String key,
             @Nullable String header,
@@ -80,8 +81,7 @@ public record Column<T>(
                 key, header, item -> new dev.goldberry.widgets.text.Text(text.apply(item)), 1, false, false, false);
     }
 
-    /// A column whose cells are whatever `cell` returns — §10's "any widget as a
-    /// cell".
+    /// A column whose cells are whatever `cell` returns: any widget as a cell.
     public static <T> Column<T> widget(String key, String header, Function<T, Widget> cell) {
         return new Column<>(key, header, cell, 1, false, false, false);
     }
@@ -116,13 +116,12 @@ public record Column<T>(
     }
 
     /// This column's header carrying a grip at its trailing edge that asks for a
-    /// new width when it is dragged — §3.1's "column resize: 1:1, like
-    /// `split-pane`'s drag".
+    /// new width when it is dragged. The drag is 1:1, like `split-pane`'s.
     ///
     /// It asks and does not resize, for [#sortable]'s reason: the widths are the
     /// application's, which is what lets one be saved and put back. The answer is
     /// in pixels, and a weighted column that is dragged is a column the
-    /// application makes [#fixed] at that width (ADR-0361).
+    /// application makes [#fixed] at that width.
     public Column<T> resizable(boolean value) {
         return new Column<>(key, header, cell, width, fixed, sortable, value);
     }

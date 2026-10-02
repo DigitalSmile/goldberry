@@ -1,33 +1,31 @@
 package dev.goldberry.text.flow;
 
-/// Where a line sits in a box wider than it is — CSS's `text-align`.
+/// Where a line sits in a box wider than it is: CSS's `text-align`.
 ///
-/// The other half of the paragraph-against-its-box question. [WhiteSpace] and
-/// [TextOverflow] say what happens when a line is **too wide** for the box;
-/// this says what happens when it is too narrow, which until now was always the
-/// same thing: it sat at the left edge. §8 has listed `text-align` from the
-/// start and `docs/ARCHITECTURE.md` §8 listed it among the properties `Box`
-/// cannot express — which was true of `Box` and never true of
-/// [dev.goldberry.text.Paragraph], where a line already knows
-/// its own width and the paint already knows the box's (ADR-0256).
+/// ```css
+/// .readout { text-align: end }
+/// ```
 ///
-/// ## `left` and `right` are refused, and it is not an omission
+/// [WhiteSpace] and [TextOverflow] say what happens when a line is too wide for
+/// its box; this says what happens when it is too narrow. The placement is made
+/// per line, in the paint, because a line already knows its own width there and
+/// the paint knows the box's.
 ///
-/// ADR-0247 settled the same question for `align-items`: `start` and `end` are
-/// Box Alignment's own words and mean "whichever edge text begins at", while
-/// `left` and `right` name sides of the
-/// screen. The two coincide under LTR and part company under RTL, so accepting
-/// `right` as a synonym for [#END] would be writing down an answer that is right
-/// today and silently wrong the day bidi run splitting lands. A stylesheet that
-/// writes one gets the usual dropped-value warning.
+/// `left` and `right` are refused. `start` and `end` mean "whichever edge text
+/// begins at" and "whichever edge it ends at", while `left` and `right` name
+/// sides of the screen. The two coincide under left-to-right text and part
+/// company under right-to-left, so accepting `right` as a synonym for [#END]
+/// would be an answer that is right today and silently wrong once bidi line
+/// placement lands. A stylesheet that writes one gets the usual dropped-value
+/// warning. `justify` is absent because it is a respacing rather than a
+/// placement, and a paragraph here is shaped once and sliced into lines, so
+/// there is nowhere to put the extra advance without re-shaping.
 ///
-/// `justify` is absent for a different reason: it is not a placement but a
-/// respacing, and a paragraph here is shaped once and sliced into lines — there
-/// is nowhere to put the extra advance without re-shaping.
+/// Read more: [Text flow](https://goldberry.dev/docs/guide/styling.html#text-flow).
 public enum TextAlign {
 
-    /// The edge text begins at — the left, until there is RTL layout. CSS's
-    /// initial value, and what every line in the toolkit did before this existed.
+    /// The edge text begins at: the left, until there is right-to-left layout.
+    /// CSS's initial value.
     START,
 
     /// Centred in whatever room the box has.
@@ -37,7 +35,7 @@ public enum TextAlign {
     /// faders wants.
     END;
 
-    /// How far into `slack` a line starts — 0, a half, or all of it.
+    /// How far into the slack a line starts: 0, a half, or all of it.
     ///
     /// A fraction rather than a distance, so the one place that knows the room
     /// available is the one place that measures it.
@@ -52,36 +50,20 @@ public enum TextAlign {
     /// How far in from the box's leading edge a line `lineWidth` wide starts, in
     /// a box `available` wide.
     ///
-    /// **Per line**, which is what `text-align` means: a centred paragraph
-    /// centres each of its lines in the same box rather than centring the block
-    /// they make up.
+    /// Per line, which is what `text-align` means: a centred paragraph centres
+    /// each of its lines in the same box rather than centring the block they
+    /// make up. The painter, the caret, the hit test and the selection all ask
+    /// this one method, so none of them can disagree with the others about where
+    /// a line begins.
     ///
-    /// ## Why the rule is here rather than in the paint
-    ///
-    /// It was in
-    /// [dev.goldberry.text.Paragraph#paint(dev.goldberry.paint.Frame,
-    /// double, double, double, int, TextFlow)], privately, and the caret could not
-    /// see it — so
-    /// [dev.goldberry.text.edit.TextGeometry] measured every x
-    /// from the paragraph's origin and the painter drew each line indented, and
-    /// the two parted company by half a line's slack the moment the text was not
-    /// left-aligned. An application hit it first and wrote the rule out a second
-    /// time, which is `docs/gaps.md` G30 and exactly the duplication that entry
-    /// exists to stop (ADR-0318).
-    ///
-    /// One implementation, on the property it belongs to: the painter, the caret,
-    /// the hit test and the selection all ask *this*, so a fourth reader — a
-    /// justified alignment, an RTL line — cannot disagree with the other three.
-    ///
-    /// Clamped at zero, and both reasons are real. A line **wider** than its box
-    /// — every `nowrap` line that overflows — would otherwise be pulled *left* by
-    /// [#END], hiding its beginning instead of its end; and `available` is
-    /// [dev.goldberry.text.Paragraph#UNCONSTRAINED] wherever a
+    /// Clamped at zero. A line wider than its box, which is every `nowrap` line
+    /// that overflows, would otherwise be pulled left by [#END], hiding its
+    /// beginning instead of its end; and `available` is infinite wherever a
     /// caller is measuring rather than placing, which would make the offset
-    /// infinite.
+    /// infinite too.
     ///
     /// @param lineWidth what the line measured
-    /// @param available the width it was laid out in — what layout gave the box
+    /// @param available the width it was laid out in, which is what layout gave the box
     /// @return a non-negative distance in the same units, and exactly `0` for
     ///         [#START]
     public double indentOf(double lineWidth, double available) {

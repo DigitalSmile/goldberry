@@ -18,6 +18,8 @@ import dev.goldberry.media.MediaPlayer;
 /// Both are **borrowed** under one rule: the bytes live in a buffer the Engine
 /// reuses, and a picture handed out keeps them until two more pictures have been
 /// handed out after it.
+///
+/// Read more: [`video-view`](https://goldberry.dev/docs/components/media.html#video-view).
 public sealed interface Picture permits VideoPicture, VideoPlanes {
 
     /// Width in pixels.

@@ -190,8 +190,8 @@ class TicksTest {
         assertThrows(IllegalArgumentException.class, () -> Ticks.extended(0, Double.POSITIVE_INFINITY, 5));
     }
 
-    /// A clock, so not a test: §1.5's "a cost is guarded by a count, never by a
-    /// clock" -- and this has no count to guard it with, because what it watches
+    /// A clock, so not a test: a cost is guarded by a count, never by a clock --
+    /// and this has no count to guard it with, because what it watches
     /// is the *work* a search does rather than the answer it gives. Under a
     /// parallel Gradle it measures the machine's load as much as the search.
     ///

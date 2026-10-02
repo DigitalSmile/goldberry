@@ -178,7 +178,7 @@ public record AvUtilCalls(
     ///
     /// The only logging control used. `av_log_set_callback` would need a variadic
     /// upcall, which FFM cannot express, so FFmpeg's own log is quieted and the
-    /// Engine reports failures from return codes instead (`docs/goldberry-media.md` §10).
+    /// Engine reports failures from return codes instead.
     public static final class LogSetLevel {
 
         private static final MethodHandle FD_av_log_set_level =

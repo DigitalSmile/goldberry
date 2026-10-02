@@ -17,8 +17,7 @@ import dev.goldberry.css.Keyframes;
 import dev.goldberry.css.Stylesheet;
 import dev.goldberry.css.cascade.CascadeLayer;
 
-/// The two at-rules motion needs: `@starting-style` ([ADR-0352]) and `@keyframes`
-/// ([ADR-0353]).
+/// The two at-rules motion needs: `@starting-style` and `@keyframes`.
 ///
 /// The parser's job is the same for both as for every rule: keep what is in the
 /// subset and refuse, with a position, what is not.

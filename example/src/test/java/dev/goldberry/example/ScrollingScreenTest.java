@@ -91,7 +91,7 @@ class ScrollingScreenTest {
             router.updateRegions(HitTest.capture(render));
         }
 
-        /// A virtual clock, so a jump's glide (ADR-0363) arrives in the frames
+        /// A virtual clock, so a jump's glide arrives in the frames
         /// [#settle] runs rather than whenever the machine gets there.
         final Clock.Virtual clock = Clock.virtual();
 

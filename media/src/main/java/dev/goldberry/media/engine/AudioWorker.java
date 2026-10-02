@@ -20,8 +20,7 @@ import dev.goldberry.media.ffi.Decoders;
 import dev.goldberry.media.ffi.Demuxer;
 import dev.goldberry.media.ffi.Resampler;
 
-/// The audio decode thread of one [Playback] (`docs/goldberry-media.md` §3,
-/// "Audio decode").
+/// The audio decode thread of one [Playback].
 ///
 /// Takes packets, decodes, converts to the sink's format in one resampling pass,
 /// discards what lies before a seek target (an accurate seek), and writes to the
@@ -250,7 +249,7 @@ final class AudioWorker {
                 && !playback.seekPending()) {
             Playback.sleep(10_000_000L);
         }
-        // Then the last samples on their way to the ear (ADR-0474): done is when
+        // Then the last samples on their way to the ear: done is when
         // they are heard, not when they left, or a track followed by another
         // would lose its last 200 ms over Bluetooth.
         if (running() && playback.latestSerial() == serial && !playback.seekPending()) {

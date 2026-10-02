@@ -6,7 +6,7 @@ import org.jspecify.annotations.Nullable;
 
 import dev.goldberry.render.model.PhysicalRect;
 
-/// How an image fills a box whose shape is not its own — §1's
+/// How an image fills a box whose shape is not its own —
 /// `contain | cover | fill | none`, CSS's `object-fit` by another name.
 ///
 /// Each mode answers one question: given an image of some pixels and a natural
@@ -14,11 +14,13 @@ import dev.goldberry.render.model.PhysicalRect;
 /// [Placement], a crop in the image's own pixels and a rectangle in the box's
 /// logical units, which is exactly the pair
 /// [dev.goldberry.paint.Frame] draws. The image is always
-/// centred, which is `object-position`'s default and the only position §1 names.
+/// centred, which is `object-position`'s default and the only position there is.
 ///
 /// **Cover crops rather than clips.** The part of the image outside the box is
 /// never drawn, so `cover` needs no clip on the box and no `overflow: hidden`
-/// from the stylesheet, and cannot paint over a neighbour (ADR-0358).
+/// from the stylesheet, and cannot paint over a neighbour.
+///
+/// Read more: [Canvas, images and QR codes](https://goldberry.dev/docs/components/drawing.html#fit-modes).
 public enum Fit {
 
     /// The whole image, as large as fits, letterboxed. The default: it is the one

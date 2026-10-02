@@ -20,12 +20,11 @@ import dev.goldberry.media.picture.PictureForm;
 import dev.goldberry.media.picture.VideoPicture;
 import dev.goldberry.media.picture.VideoPlanes;
 
-/// Prepared pictures waiting for their time, and the one being shown
-/// (`docs/goldberry-media.md` §1, "Frame queue", and §3, "Presentation").
+/// Prepared pictures waiting for their time, and the one being shown.
 ///
 /// The video decode thread prepares each picture in a [Slot] it [#obtain]s, and
 /// [#put]s it here: converted to BGRA, or its planes copied, as the slot's
-/// [Shape] says ([PictureForm], `docs/gpu-plan.md` D8). Whoever presents calls
+/// [Shape] says ([PictureForm]). Whoever presents calls
 /// [#present] with the master clock: the newest picture whose time has come
 /// becomes the one shown, and the ones it passed are dropped. The view calls it
 /// on each frame it paints, and the decode thread calls it too while it waits
@@ -56,7 +55,7 @@ import dev.goldberry.media.picture.VideoPlanes;
 ///
 /// ## Handed from one video thread to the next
 ///
-/// A switch of video track (§6) retires the video thread and starts another on
+/// A switch of video track retires the video thread and starts another on
 /// the same queue. [#releaseWaiters()] ends the retiring thread's wait in
 /// [#obtain] without [#abort()]ing the queue, which is for good. The picture
 /// shown stays up through the switch, and the seek that follows it flushes what

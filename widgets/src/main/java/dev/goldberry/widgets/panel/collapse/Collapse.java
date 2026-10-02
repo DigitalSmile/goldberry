@@ -14,7 +14,8 @@ import dev.goldberry.widget.attr.Attributes;
 import dev.goldberry.widgets.markup.Markup;
 import dev.goldberry.widgets.markup.Wiring;
 
-/// A header and a body that folds away — `docs/core-widgets.md` §5's `collapse`.
+/// A header and a body that folds away: press the header and the body opens or
+/// closes under it.
 ///
 /// ```kdl
 /// collapse title="Advanced" {
@@ -30,33 +31,29 @@ import dev.goldberry.widgets.markup.Wiring;
 ///
 /// ## The body is unmounted while closed, not hidden
 ///
-/// §5 is explicit and the reason is the whole argument for a widget tree: "a
-/// collapsed section that kept a live subtree would keep its subscriptions, its
-/// images and its scroll position alive for content nobody can see, and 'cheap to
-/// rebuild' is what the widget tree is for"
-/// (ADR-0004).
+/// A collapsed section that kept a live subtree would keep its subscriptions,
+/// its images and its scroll position alive for content nobody can see, and
+/// "cheap to rebuild" is what the widget tree is for. So a closed `collapse`
+/// describes one child: not a child with `display: none`, which the CSS subset
+/// does not have; not a child of zero height, which would still be built, still
+/// be subscribed and still be laid out.
 ///
-/// So a closed `collapse` describes **one** child. Not a child with `display:
-/// none`, which §10's subset does not have; not a child of zero height, which
-/// would still be built, still be subscribed and still be laid out.
-///
-/// The price is stated rather than hidden: **reopening a section rebuilds it**,
-/// and anything that has to survive belongs in the model — which is the same
-/// bargain `tabs` makes for its unselected content
-/// (ADR-0107).
+/// The price is stated rather than hidden: reopening a section rebuilds it, and
+/// anything that has to survive belongs in the model. It is the same bargain
+/// `tabs` makes for its unselected content.
 ///
 /// ## The height does not animate, and that is not a limitation
 ///
-/// §5: "the chevron rotates on `base`; the body does not animate its height,
-/// because height is not on §1.7's whitelist and never will be." An animated
-/// height is a layout pass per frame for the whole subtree below it, and §1.7's
-/// whitelist is `opacity` and `transform` precisely so that a transition can
-/// never cost a reflow. The chevron turning is what says the section opened.
+/// The chevron rotates on the `base` duration; the body does not animate its
+/// height. An animated height is a layout pass per frame for the whole subtree
+/// below it, and the design system lets only `opacity` and `transform` animate
+/// precisely so that a transition can never cost a reflow. The chevron turning
+/// is what says the section opened.
 ///
 /// ## Uncontrolled or controlled, like every other value in the catalog
 ///
-/// With no `open` given, the section keeps its own state — §5's "`open` is
-/// retained state". Give it `open` and `onToggle` and the application decides,
+/// With no `open` given, the section keeps its own state. Give it `open` and
+/// `onToggle` and the application decides,
 /// which is `checkbox`'s arrangement and every other value's here: a `collapse`
 /// whose `onToggle` does nothing stays shut, which is the behaviour and not a bug.
 ///
@@ -67,6 +64,8 @@ import dev.goldberry.widgets.markup.Wiring;
 ///                   state here
 /// @param children   the body, built only while it is showing
 /// @param attributes the `id` and classes, which land on the `collapse` node
+///
+/// Read more: [Panels](https://goldberry.dev/docs/components/panels.html#collapse).
 @Markup("collapse")
 public record Collapse(
         String title, boolean open, @Nullable Consumer<Boolean> onToggle, List<Widget> children, Attributes attributes)
@@ -80,7 +79,7 @@ public record Collapse(
         this(title, open, onToggle, List.of(kids), Attributes.NONE);
     }
 
-    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    /// Written out so that the parameters taking null for a default can say so.
     public Collapse(
             String title,
             boolean open,

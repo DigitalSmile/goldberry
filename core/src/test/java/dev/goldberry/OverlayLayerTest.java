@@ -31,12 +31,14 @@ import dev.goldberry.widget.style.Corner;
 import dev.goldberry.widget.style.Paints;
 import dev.goldberry.widget.style.Styled;
 
-/// [WindowRoot] and the in-window overlay layer — `docs/core-widgets.md` §7's
-/// half that needs no platform window.
+/// [WindowRoot] and the in-window overlay layer — the half of overlays that needs
+/// no platform window.
 ///
 /// The invariants worth a test are all about *not disturbing the application*: an
 /// overlay must not take space from the content, must not re-parent it when it
 /// comes and goes, and must be painted after it.
+///
+/// Read more: [In the window](https://goldberry.dev/docs/guide/windows.html#in-the-window).
 class OverlayLayerTest {
 
     /// Something to float, and something to float it over.
@@ -142,8 +144,7 @@ class OverlayLayerTest {
         assertEquals(
                 "app",
                 ((Styled) children.getFirst()).cssType(),
-                "a box tree has no z-order beyond document order (ADR-0053),"
-                        + " so being painted last is being listed last");
+                "a box tree has no z-order beyond document order," + " so being painted last is being listed last");
         assertEquals("hud", ((Styled) children.get(1)).cssType());
     }
 
@@ -204,7 +205,7 @@ class OverlayLayerTest {
 
         assertTrue(
                 tree.needsBuild(),
-                "the root element subscribes to the list for as long as it lives (ADR-0062):"
+                "the root element subscribes to the list for as long as it lives:"
                         + " nothing else invalidates it, because the root widget of a tree"
                         + " cannot be swapped");
     }

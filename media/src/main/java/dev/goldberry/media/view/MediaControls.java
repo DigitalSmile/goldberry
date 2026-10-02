@@ -18,9 +18,9 @@ import dev.goldberry.widget.attr.Attributes;
 import dev.goldberry.widgets.markup.Markup;
 import dev.goldberry.widgets.markup.Wiring;
 
-/// `media-controls`: the transport controls of a [MediaPlayer], on their own
-/// (`docs/goldberry-media.md` §6), for an application that lays them out itself
-/// under a `video-view`, or drives a player it shows elsewhere.
+/// `media-controls`: the transport controls of a [MediaPlayer], on their own,
+/// for an application that lays them out itself under a `video-view`, or
+/// drives a player it shows elsewhere.
 ///
 /// ```java
 /// new Column(List.of(new VideoView(player), new MediaControls(player)), Attributes.NONE)
@@ -44,6 +44,8 @@ import dev.goldberry.widgets.markup.Wiring;
 ///
 /// @param player     the player to drive
 /// @param attributes id, classes and key
+///
+/// Read more: [`media-controls`](https://goldberry.dev/docs/components/media.html#media-controls).
 @Markup("media-controls")
 public record MediaControls(MediaPlayer player, Attributes attributes)
         implements Widget.Stateful, Attributed<MediaControls> {

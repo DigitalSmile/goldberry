@@ -5,46 +5,40 @@ import java.util.Objects;
 
 /// A string being edited, and where the caret and the selection are in it.
 ///
-/// **A value.** Every operation returns a new `TextEdit` rather than changing
-/// this one, which is the same choice `Widget` makes and it buys the same three
-/// things: a holder swaps one for another, undo is a stack of these rather than a
-/// log of inverse operations, and every editing rule in `docs/core-widgets.md`
-/// §4 can be tested without a window, a font or a frame.
+/// ```java
+/// var edit = TextEdit.of("Goldberry");   // caret at the end, nothing selected
+/// edit = edit.wordLeft(true);           // Ctrl+Shift+Left: the word is selected
+/// edit = edit.insert("River");          // typing replaces the selection
+/// edit.text();                          // "River"
+/// ```
 ///
-/// **It does not know it is in a control.** This lived in `text-input`'s package
-/// until ADR-0285 and never named a widget while it did; the words "field" below
-/// are the shortest name for "the string being edited" and not a claim about what
-/// is drawing it. [Editor] is the same rules driven from a `canvas`.
+/// A value: every operation returns a new `TextEdit` and never changes this one.
+/// So a holder swaps one for another, undo is a stack of these rather than a log
+/// of inverse operations, and every editing rule can be tested without a window,
+/// a font or a frame. It knows nothing about the control around it; "field"
+/// below is the shortest name for the string being edited. [Editor] drives the
+/// same rules from a `canvas`, and `text-input` and `text-area` from a widget.
+/// The cost is a `String` copy per keystroke, which for a field is a few hundred
+/// characters and is not measurable beside the shaping the same keystroke causes.
 ///
-/// The cost is a `String` copy per keystroke. For a single-line field that is a
-/// few hundred characters of `System.arraycopy` and is not measurable beside the
-/// shaping the same keystroke causes. A `text-area` holding a document large
-/// enough for that to matter wants a rope, and will want one whether or not this
-/// is a value — the shape is not what would have to change.
+/// The selection is two offsets, not a caret and a length. The anchor is where a
+/// selection started and the caret is where it has been dragged to, so a
+/// selection made right-to-left keeps its direction and `Shift+Left` from it
+/// shrinks the selection rather than jumping it. [#start()] and [#end()] are the
+/// ordered pair for anyone who wants a range; no selection is `anchor == caret`,
+/// with no separate flag to fall out of step with the offsets.
 ///
-/// ## Caret and anchor
-///
-/// Two offsets, not a caret and a length. The **anchor** is where a selection
-/// started and the **caret** is where it has been dragged to, so a selection made
-/// right-to-left keeps its direction and `Shift+Left` from it shrinks the
-/// selection rather than jumping it. [#start()] and [#end()] are the ordered
-/// pair for anyone who wants a range instead.
-///
-/// No selection is `anchor == caret`. There is no separate "nothing selected"
-/// state to fall out of step with the offsets.
-///
-/// ## Everything steps by grapheme, not by `char`
-///
-/// `java.text.BreakIterator`'s character instance decides where the caret may
-/// sit — the same class `Paragraph` uses to find where a click landed, so the two
-/// cannot disagree. `Backspace` on `é` written as `e` plus a combining accent
-/// deletes both, and `Left` never lands between the halves of a surrogate pair.
-/// Word movement uses the word instance, which knows what a word is in the
-/// locale's terms rather than in `Character.isLetterOrDigit`'s.
-///
+/// Every step is a grapheme, not a `char`. `java.text.BreakIterator`'s character
+/// instance decides where the caret may sit — the same class `Paragraph` uses to
+/// find where a click landed, so the two cannot disagree. `Backspace` on `é`
+/// written as `e` plus a combining accent deletes both, and `Left` never lands
+/// between the halves of a surrogate pair. Word movement uses the word instance
+/// in the root locale, so `Ctrl+Left` does the same thing on every machine.
 /// Offsets that arrive from outside — a click, an application setting a value —
-/// are **snapped** to the nearest legal position rather than refused, because
-/// they come from geometry and geometry has no opinion about clusters.
+/// are snapped to the nearest legal position rather than refused, because they
+/// come from geometry and geometry has no opinion about clusters.
+///
+/// Read more: [Selection and editing](https://goldberry.dev/docs/guide/text.html#selection-and-editing).
 ///
 /// @param text   what the field holds
 /// @param anchor where the current selection started
@@ -70,15 +64,14 @@ public record TextEdit(String text, int anchor, int caret) {
         return new TextEdit(text, text.length(), text.length());
     }
 
-    /// `text` with the caret at its **start** and nothing selected — a field that
+    /// `text` with the caret at its start and nothing selected — a field that
     /// has just been given a value nobody is going to type into.
     ///
-    /// [#of]'s mirror, and the whole difference is which end a viewport narrower
-    /// than the value ends up showing. The caret is what a field scrolls to keep
-    /// in view, so a hundred-character value with the caret at its end opens
-    /// showing its tail; for a value somebody has to *read* — a key, an invite, an
-    /// identifier — the first thing they want is the beginning (`docs/gaps.md`
-    /// G34, [ADR-0326]).
+    /// [#of]'s mirror, and the difference is which end a viewport narrower than
+    /// the value shows. The caret is what a field scrolls to keep in view, so a
+    /// hundred-character value with the caret at its end opens showing its tail;
+    /// a value somebody has to read — a key, an invite, an identifier — opens
+    /// showing its beginning.
     public static TextEdit atStart(String text) {
         Objects.requireNonNull(text, "text");
         return new TextEdit(text, 0, 0);

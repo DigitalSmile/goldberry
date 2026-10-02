@@ -22,7 +22,7 @@ import dev.goldberry.paint.TestFrames;
 ///
 /// A parse test can say a path has vertices; only a painted frame can say those
 /// vertices were the right ones in the right place. Every assertion here is
-/// about a pixel (ADR-0043).
+/// about a pixel.
 class IconPaintTest {
 
     private static final int WIDTH = 120;
@@ -208,7 +208,7 @@ class IconPaintTest {
     /// with a width in them too, onto a context already scaled to the display.
     /// Two multiplications by the same factor, one of which is easy to apply
     /// twice — and at 1x, which is every other assertion in this class, twice is
-    /// indistinguishable from once (ADR-0157).
+    /// indistinguishable from once.
     @Test
     @DisplayName("an icon is the same size and weight at every display scale")
     void iconIsInLogicalUnits() {

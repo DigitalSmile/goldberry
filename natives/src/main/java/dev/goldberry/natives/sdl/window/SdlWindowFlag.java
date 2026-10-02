@@ -9,6 +9,8 @@ import java.util.Collection;
 /// and would be a *negative* `int`. Passing a 32-bit value where SDL
 /// expects 64 is the kind of thing that works on one calling convention and
 /// truncates on another.
+///
+/// Read more: [The native boundary](https://goldberry.dev/docs/overview/architecture.html#the-native-boundary).
 public enum SdlWindowFlag {
 
     /// The window has no decorations. Client-side decorations are drawn by

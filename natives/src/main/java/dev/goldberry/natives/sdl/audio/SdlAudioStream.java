@@ -16,15 +16,18 @@ import dev.goldberry.natives.sdl.SdlSubsystem;
 import dev.goldberry.natives.sdl.calls.SdlAudioCalls;
 
 /// One SDL audio stream on the default playback device, fed interleaved 32-bit
-/// float: `goldberry-media`'s audio sink (ADR-0461).
+/// float: `goldberry-media`'s audio sink.
 ///
 /// Exported to `:media` and to nobody else. What crosses is values: a direct
 /// [ByteBuffer] in, which SDL copies from, and sample counts out. No
-/// `MemorySegment` appears in a signature, which is ADR-0280's rule.
+/// `MemorySegment` appears in a signature, because raw foreign memory never
+/// leaves this module.
 ///
 /// Opening one initialises SDL's audio subsystem, which is reference-counted, and
 /// closing it quits it again, so a stream can be opened with or without a window.
 /// Every method is safe from any thread: SDL locks each stream.
+///
+/// Read more: [The native boundary](https://goldberry.dev/docs/overview/architecture.html#the-native-boundary).
 public final class SdlAudioStream implements AutoCloseable {
 
     private static final class Holder {

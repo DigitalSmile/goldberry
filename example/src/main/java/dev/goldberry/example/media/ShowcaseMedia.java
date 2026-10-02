@@ -44,6 +44,9 @@ import dev.goldberry.media.platform.PlatformDecoders;
 ///   all.
 ///
 /// `file:`, `http:` and `https:` need no provider; they are built in.
+///
+/// Read more:
+/// [The network](https://goldberry.dev/docs/components/media.html#tracks-subtitles-and-the-network).
 public final class ShowcaseMedia implements MediaIOProvider {
 
     /// One entry of the screen's source picker.

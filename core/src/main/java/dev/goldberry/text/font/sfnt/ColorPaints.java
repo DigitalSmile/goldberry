@@ -16,35 +16,37 @@ import dev.goldberry.text.font.sfnt.ColorPaint.ColorStop;
 import dev.goldberry.text.font.sfnt.ColorPaint.Colour;
 import dev.goldberry.text.font.sfnt.ColorPaint.Extend;
 
-/// A face's `COLR` version 1 paint graphs — its colour glyphs, as Noto Color
-/// Emoji draws them ([ADR-0456]).
+/// A face's `COLR` version 1 paint graphs: its colour glyphs, as Noto Color
+/// Emoji draws them.
 ///
-/// ## What is read up front, and what on demand
+/// ```java
+/// var paints = ColorPaints.read(bytes);
+/// ColorPaint graph = paints.paint(glyphId);        // null for a plain glyph
+/// ColorPaints.ClipBox box = paints.clipBox(glyphId);
+/// ```
 ///
-/// The **index** is read when the face is: the sorted list of base glyphs that
-/// have a graph, the layer list's offsets, the clip boxes and the palette. That
-/// is a few flat arrays, four thousand entries long for Noto.
+/// The index is read when the face is: the sorted list of base glyphs that have
+/// a graph, the layer list's offsets, the clip boxes and the palette. That is a
+/// few flat arrays, four thousand entries long for Noto. A glyph's graph is
+/// read the first time it is asked for and kept. Noto's graphs are some 150,000
+/// nodes between them and a window draws a handful, so parsing all of them to
+/// draw a reaction bar would be time and memory spent on emoji nobody sent.
+/// Layers are shared between glyphs, since the same eyes appear in a dozen
+/// faces, so they are cached by layer index as well, and two glyphs that share
+/// one hold one record.
 ///
-/// A glyph's **graph** is read the first time it is asked for and kept. Noto's
-/// graphs are some 150,000 nodes between them and a window draws a handful, so
-/// parsing all of them to draw a reaction bar would be time and memory spent on
-/// emoji nobody sent. Layers are shared between glyphs — the
-/// same eyes appear in a dozen faces — so they are cached by layer index as well,
-/// and two glyphs that share one hold one record.
+/// A malformed graph answers "no colour glyph here", as [ColorLayers] does for
+/// a malformed version 0 table: [#paint] returns null, and the pen draws the
+/// base glyph's own outline. Every read is bounds-checked by the buffer,
+/// recursion is limited to [#MAX_DEPTH], and an unknown paint format is refused
+/// rather than skipped, because a graph with a hole in it is a different
+/// picture from the one the font meant.
 ///
-/// ## What a malformed graph does
+/// Safe to share between threads. The caches are concurrent and the records
+/// they hold are immutable; two threads that race to parse one glyph both
+/// produce the same value and one of them is kept.
 ///
-/// Answers "no colour glyph here", as [ColorLayers] does for a malformed version
-/// 0 table: [#paint] returns null, and the pen draws the base glyph's own
-/// outline. Every read is bounds-checked by the buffer, recursion is limited to
-/// [#MAX_DEPTH], and an unknown paint format is refused rather than skipped — a
-/// graph with a hole in it is a different picture from the one the font meant.
-///
-/// ## Thread safety
-///
-/// Safe to share. The caches are concurrent, and the records they hold are
-/// immutable; two threads that race to parse one glyph both produce the same
-/// value and one of them is kept.
+/// Read more: [Emoji](https://goldberry.dev/docs/guide/text.html#emoji).
 public final class ColorPaints {
 
     private static final int COLR = TableDirectory.tag('C', 'O', 'L', 'R');
@@ -108,7 +110,7 @@ public final class ColorPaints {
     /// The rectangle a colour glyph is drawn inside, in design units, y up.
     ///
     /// A font writes one per glyph so that a renderer knows how large an
-    /// offscreen surface a composite needs without walking the graph first —
+    /// offscreen surface a composite needs without walking the graph first,
     /// which is exactly what the painter uses it for.
     public record ClipBox(double xMin, double yMin, double xMax, double yMax) {
 
@@ -120,8 +122,8 @@ public final class ColorPaints {
 
     /// The version 1 colour glyphs in `font`, or [#NONE] when it has none.
     ///
-    /// [#NONE] rather than an exception for a face this cannot read — no `COLR`,
-    /// no `CPAL`, a version 0 table, an index that points outside the table —
+    /// [#NONE] rather than an exception for a face this cannot read (no `COLR`,
+    /// no `CPAL`, a version 0 table, an index that points outside the table),
     /// for [ColorLayers#read]'s reason: the caller is asking whether there is
     /// colour here, and "no" is an answer it can draw with.
     ///
@@ -224,7 +226,7 @@ public final class ColorPaints {
         return palette.length;
     }
 
-    /// Whether `glyphId` has a paint graph — without reading it.
+    /// Whether `glyphId` has a paint graph, without reading it.
     public boolean has(int glyphId) {
         return Arrays.binarySearch(baseGlyphs, glyphId) >= 0;
     }
@@ -364,8 +366,8 @@ public final class ColorPaints {
         };
     }
 
-    /// The paint an `Offset24` at `at + 1` names — where every single-child node
-    /// keeps its child.
+    /// The paint an `Offset24` at `at + 1` names, which is where every
+    /// single-child node keeps its child.
     private ColorPaint child(int at, ByteBuffer table, int depth) {
         return parse(at + uint24(table, at + 1), depth + 1);
     }
@@ -437,7 +439,7 @@ public final class ColorPaints {
         return around(cos, sin, -sin, cos, cx, cy, child);
     }
 
-    /// A positive x skew leans the top of the glyph to the **left** — the
+    /// A positive x skew leans the top of the glyph to the left: the
     /// specification's sign, which is opposite to the one a CSS `skewX` uses.
     private static ColorPaint skew(double xDegrees, double yDegrees, double cx, double cy, ColorPaint child) {
         return around(1, Math.tan(Math.toRadians(yDegrees)), -Math.tan(Math.toRadians(xDegrees)), 1, cx, cy, child);

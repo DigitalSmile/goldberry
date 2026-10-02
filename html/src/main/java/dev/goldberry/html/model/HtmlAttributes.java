@@ -70,7 +70,7 @@ public record HtmlAttributes(Map<String, String> byName) {
     /// The one attribute with a structure of its own, and the one that reaches the
     /// cascade: `html-view` puts each of these on the widget it builds, prefixed into
     /// the document's own namespace so that a page's `class="card"` cannot be styled
-    /// by the application's rule for a `card` (ADR-0298).
+    /// by the application's rule for a `card`.
     public List<String> classes() {
         var value = value("class");
         if (value == null || value.isBlank()) {

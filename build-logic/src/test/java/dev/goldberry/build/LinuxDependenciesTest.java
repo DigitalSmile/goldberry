@@ -31,7 +31,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * XScrnSaver and XTest are hard dependencies of SDL's X11 driver; it wrote that
  * down in a comment; and the local toolchain check, which exists to say the same
  * thing before the build starts, still called one of them optional under a
- * pkg-config module name that does not exist. See ADR-0082.
+ * pkg-config module name that does not exist. A check that cannot fail is not a
+ * check, so this one reads both places.
  */
 @DisplayName("LinuxDependencies")
 class LinuxDependenciesTest {
@@ -144,7 +145,7 @@ class LinuxDependenciesTest {
         @ValueSource(strings = {"alsa", "libpulse"})
         @DisplayName("requires the audio headers, without which SDL has no driver and media plays silently")
         void requiresAudio(String module) {
-            // ADR-0488. SDL builds with only `dummy` and `disk` without these, and
+            // SDL builds with only `dummy` and `disk` without these, and
             // configures happily: the first sign was a showcase with no sound.
             var audio = LinuxDependencies.byModule(module);
             assertEquals(Necessity.NEEDED, audio.necessity());
@@ -400,7 +401,7 @@ class LinuxDependenciesTest {
             // named none of the three desktop integrations, so the published
             // library could not read the desktop's theme, could not open a portal
             // file dialog and had no input method under X11. Nothing failed; the
-            // build was green every time (docs/gaps.md G32, ADR-0325).
+            // build was green every time.
             var text = workflow(DNF_WORKFLOW);
             var absent = LinuxDependencies.capabilityBacked().stream()
                     .filter(dependency -> !installs(text, dependency.dnfPackage()))
@@ -417,7 +418,7 @@ class LinuxDependenciesTest {
         void theContainerWorkflowInstallsAudio() {
             // That workflow runs CMake directly, past checkToolchain, so the only
             // guard it meets is the superbuild's check of SDL_build_config.h. That
-            // check is fatal (ADR-0488): a list without these fails the release.
+            // check is fatal: a list without these fails the release.
             var text = workflow(DNF_WORKFLOW);
             for (var module : List.of("alsa", "libpulse")) {
                 var dnf = LinuxDependencies.byModule(module).dnfPackage();

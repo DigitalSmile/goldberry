@@ -17,14 +17,14 @@ import dev.goldberry.layout.FlexDirection;
 import dev.goldberry.layout.Length;
 import dev.goldberry.render.model.LogicalRect;
 
-/// `align-self` — where **one child** sits in its parent's cross axis
-/// ([ADR-0244]).
+/// `align-self` — where **one child** sits in its parent's cross axis.
 ///
-/// §8 has listed `align-items/self/content` from the beginning and only the
-/// first was built, which a tab strip's `+` found: a child shorter than its row
-/// sat at the top of it and there was no per-child way to say otherwise.
+/// The CSS subset listed `align-items`, `align-self` and `align-content` from
+/// the beginning and only the first was built, which a tab strip's `+` found: a
+/// child shorter than its row sat at the top of it and there was no per-child
+/// way to say otherwise.
 ///
-/// Asserted against **Yoga's own output** rather than against the record. The
+/// Asserted against **Yoga's own output** rather than against the style. The
 /// property is one line in `RenderObject` and the whole of the risk is whether
 /// that line runs — a test that read `box.alignSelf()` back would pass on a box
 /// nothing ever laid out.

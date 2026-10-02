@@ -1,14 +1,14 @@
-/// `@NullMarked`, which puts this package under NullAway.
+/// The backend SPI's tray icon: a picture, a hover text and a menu in the
+/// desktop's notification area.
 ///
-/// Inside a marked package every type is non-null unless it says `@Nullable`,
-/// and the build fails on a violation. The annotation is the whole content of
-/// this file: there is nothing package-specific to say about nullness, and a
-/// paragraph pretending otherwise in every package would be padding.
+/// `TraySpec` describes the icon and `TrayItem` one row of its menu; `BackendTray`
+/// is the icon once the desktop shows it. Exported to every module, because an
+/// application describes its tray in these and the `tray-icon` widget is built
+/// from them.
 ///
-/// Packages are marked one at a time on purpose. NullAway runs in
-/// `OnlyNullMarked` mode, so an unmarked package is invisible to it and a marked
-/// one is checked from the moment it opts in — which is the only way a codebase
-/// this size adopts nullness at all (`docs/testing.md` §2).
+/// Null-marked: a parameter or return is non-null unless it says `@Nullable`.
+///
+/// Read more: [Menus and the tray](https://goldberry.dev/docs/components/menus.html#the-tray-icon).
 @NullMarked
 package dev.goldberry.render.tray;
 

@@ -34,9 +34,11 @@ import dev.goldberry.natives.sdl.window.SdlWindowFlag;
 /// loop from another thread.
 ///
 /// The present path lives here rather than above the boundary. Copying rows into
-/// an `SDL_Surface` means touching the surface's `pixels` pointer, and §3.1 keeps
-/// that inside this module — so `:core` hands over a [ByteBuffer] and this class
-/// does the blit.
+/// an `SDL_Surface` means touching the surface's `pixels` pointer, and raw foreign
+/// memory stays inside this module — so `:core` hands over a [ByteBuffer] and this
+/// class does the blit.
+///
+/// Read more: [The native boundary](https://goldberry.dev/docs/overview/architecture.html#the-native-boundary).
 public final class SdlVideo {
 
     private static final Logger LOG = Logs.of(SdlVideo.class);
@@ -75,7 +77,7 @@ public final class SdlVideo {
         // because a missing symbol there means a window cannot open and the export
         // list is simply wrong. The display-mode pair is different: it feeds the
         // frame pacer, which already has a defined answer for "the platform will
-        // not say" -- do not pace (ADR-0047). Making them mandatory would mean a
+        // not say" -- do not pace. Making them mandatory would mean a
         // `libgoldberry` built before they were added stops opening windows at
         // all, to enable an optimization.
         if (!sdlDisplayCalls.getDisplayForWindow().isAvailable()
@@ -96,7 +98,7 @@ public final class SdlVideo {
     /// driver cannot ask, **and** where this build of `libgoldberry` predates the
     /// export — all three are the same answer to everyone above this line, and the
     /// distinction an application needs is between "unknown" and a theme rather
-    /// than between the reasons for the first (`docs/gaps.md` G26, [ADR-0322]).
+    /// than between the reasons for the first.
     public SdlSystemTheme systemTheme() {
         if (!sdlThemeCalls.getSystemTheme().isAvailable()) {
             return SdlSystemTheme.UNKNOWN;
@@ -139,7 +141,7 @@ public final class SdlVideo {
     /// desktop drivers Goldberry ships against — x11, wayland, cocoa and the
     /// Windows one — all do. A caller gets a refusal to handle rather than an
     /// exception, because "this platform has no popup windows" is a fact about
-    /// the platform and not a failure ([ADR-0019]).
+    /// the platform and not a failure.
     ///
     /// @param parent  the window this popup belongs to
     /// @param offsetX x, in the parent's logical coordinates
@@ -282,7 +284,7 @@ public final class SdlVideo {
     /// 32px icon when there is one, and it scales the nearest one when there is
     /// not. X11's path reads the base surface alone. So the choice of base is the
     /// caller's and matters: the first image here is the base, and the rest are
-    /// its alternates, in any order (ADR-0351).
+    /// its alternates, in any order.
     ///
     /// Every surface is a view over the caller's buffer and is destroyed before
     /// this returns: `SDL_SetWindowIcon` converts the base and its alternates into
@@ -351,7 +353,7 @@ public final class SdlVideo {
 
     /// Asks the window manager to maximize `window`.
     ///
-    /// **A request, not a setter** (ADR-0252). Whether it happened arrives as
+    /// **A request, not a setter.** Whether it happened arrives as
     /// `SDL_EVENT_WINDOW_MAXIMIZED`, and a window manager that declines sends
     /// nothing — so nothing here reports the state.
     public void maximizeWindow(SdlWindowHandle window) {
@@ -412,7 +414,7 @@ public final class SdlVideo {
         }
     }
 
-    /// Tells the platform where the text being typed is — `docs/gaps.md` G15.
+    /// Tells the platform where the text being typed is.
     ///
     /// Without it, the candidate window an input method opens goes wherever the
     /// compositor guesses, which on a large window is routinely over the very
@@ -466,7 +468,7 @@ public final class SdlVideo {
     /// Two halves of one process can otherwise disagree: SDL is asked for X11
     /// first on Linux and GDK prefers Wayland when asked nothing, so on an
     /// XWayland desktop the window is X11 and the GTK surfaces are Wayland — and
-    /// `web-view` cannot reparent one into the other ([ADR-0442]).
+    /// `web-view` cannot reparent one into the other.
     ///
     /// Must be called before anything initialises GTK, which on Linux means
     /// before the first tray icon.
@@ -479,9 +481,9 @@ public final class SdlVideo {
     /// The platform's own handle for `window`, or empty where there is none that
     /// can be used.
     ///
-    /// §12's escape hatch, and the first thing that needed it is `web-view`
-    /// ([ADR-0442]): embedding a page means reparenting its window into this one,
-    /// which needs this one named in the window system's terms.
+    /// The escape hatch to the window system, and the first thing that needed it
+    /// is `web-view`: embedding a page means reparenting its window into this
+    /// one, which needs this one named in the window system's terms.
     ///
     /// **Wayland answers empty on purpose.** There is a `wl_surface` and it is not
     /// reported, because Wayland has no cross-client surface embedding to use it
@@ -553,7 +555,7 @@ public final class SdlVideo {
     /// How many times a second the display this window is on refreshes.
     ///
     /// What the frame loop needs to stop painting frames that are never scanned
-    /// out (ADR-0047). Read from the *current* mode rather than the desktop one,
+    /// out. Read from the *current* mode rather than the desktop one,
     /// so a window on a second monitor is paced to that monitor.
     ///
     /// Zero is a legitimate answer, not a failure: SDL documents `refresh_rate`
@@ -748,7 +750,7 @@ public final class SdlVideo {
     /// `SDL_GetWindowSize` and `SDL_GetWindowSizeInPixels` are the same C shape
     /// and the same three lines of arena work, so they share this. The holder is
     /// passed as its own `call` rather than as itself: the two are separate types,
-    /// which is what keeps each one's handle a constant (ADR-0173), and a method
+    /// which is what keeps each one's handle a constant, and a method
     /// reference is how one function takes either.
     @FunctionalInterface
     private interface SizeQuery {
@@ -855,7 +857,7 @@ public final class SdlVideo {
     // One per signature, named for what SDL returns. These used to be a single
     // `invokeWithArguments` taking `Object...`, which boxed every argument on
     // every call and — worse — meant the shape was decided at run time from the
-    // arguments rather than at compile time from the constant (ADR-0161).
+    // arguments rather than at compile time from the constant.
 
     /// SDL's own drawing surface, borrowed.
     ///
@@ -878,8 +880,7 @@ public final class SdlVideo {
     /// backend SPI type is `:core`'s vocabulary, and moving it below the FFM
     /// boundary would put it in a module the SPI cannot see. The backend converts,
     /// which is also where "SDL's idea of a size" becomes "the toolkit's" and
-    /// where a future disagreement between them would have somewhere to live
-    /// (ADR-0174).
+    /// where a future disagreement between them would have somewhere to live.
     public record SdlSize(int width, int height) {
 
         public SdlSize {

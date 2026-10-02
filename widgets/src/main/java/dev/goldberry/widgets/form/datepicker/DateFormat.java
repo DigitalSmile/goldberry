@@ -14,9 +14,9 @@ import dev.goldberry.widgets.panel.calendar.DateSelection;
 
 /// What a [DatePicker]'s field says, and what it makes of what was typed into it.
 ///
-/// §4 is emphatic about who owns this: "Parsing and formatting take a
-/// `java.time` formatter the application supplies, defaulting to the locale's
-/// short form — **the toolkit does not invent a date syntax**." So there is no
+/// The application owns this: parsing and formatting take a `java.time`
+/// formatter it supplies, defaulting to the locale's short form, and **the
+/// toolkit does not invent a date syntax**. So there is no
 /// pattern written down here and no list of accepted spellings. There is one
 /// [DateTimeFormatter], used in both directions, and it came from
 /// [DateTimeFormatter#ofLocalizedDate] unless somebody said otherwise.
@@ -24,8 +24,8 @@ import dev.goldberry.widgets.panel.calendar.DateSelection;
 /// ## The one syntax this does invent, and why it had to
 ///
 /// A range has two dates and something between them, and no locale service
-/// answers "how does this language join two dates". §4 asks for
-/// `date-picker range=#true` to select a pair and "report it as one value", so
+/// answers "how does this language join two dates". A
+/// `date-picker range=#true` selects a pair and reports it as one value, so
 /// the pair has to be one string in one field, and something has to separate
 /// them.
 ///
@@ -36,6 +36,8 @@ import dev.goldberry.widgets.panel.calendar.DateSelection;
 /// the reason the separator cannot be a hyphen on its own — `9-1-2026` is a date
 /// in some locales, and a separator that could also be inside a date is one that
 /// makes a range unparseable.
+///
+/// Read more: [Fields and forms](https://goldberry.dev/docs/components/forms.html#date-picker).
 ///
 /// @param formatter how a single date is written and read
 /// @param separator what joins the two dates of a range
@@ -53,7 +55,7 @@ public record DateFormat(DateTimeFormatter formatter, String separator) {
         Objects.requireNonNull(separator, "separator");
     }
 
-    /// §4's default: "the locale's short form".
+    /// The default: the locale's short form.
     public static DateFormat of(Locale locale) {
         Objects.requireNonNull(locale, "locale");
         return new DateFormat(

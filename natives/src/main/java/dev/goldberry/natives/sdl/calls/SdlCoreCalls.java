@@ -327,7 +327,7 @@ public record SdlCoreCalls(
         OpenUrl(SymbolLookup lookup) {
             // Optional, like the theme call: a `libgoldberry` built before this
             // export existed must keep opening windows, and "the platform would
-            // not" is an answer a link already has to handle (ADR-0346).
+            // not" is an answer a link already has to handle.
             this.address = Downcalls.optionalSymbol(lookup, "SDL_OpenURL");
         }
 
@@ -423,8 +423,7 @@ public record SdlCoreCalls(
     /// one: it is the only reading of the pointer that does not depend on which
     /// window the platform decided an event belongs to. A popup's events on
     /// macOS arrive attributed to the popup with coordinates in the *owner's*
-    /// space, so the per-event numbers cannot be trusted for one
-    /// (ADR-0211).
+    /// space, so the per-event numbers cannot be trusted for one.
     ///
     /// `unsigned int SDL_GetGlobalMouseState(float *x, float *y)`
     public static final class GetGlobalMouseState {

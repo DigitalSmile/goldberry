@@ -29,8 +29,7 @@ import dev.goldberry.widget.WidgetRenderer;
 /// a font book opened and closed around the call unless one was handed in, a
 /// [WidgetRenderer] and therefore a fresh [dev.goldberry.css.cascade.StyleResolver]
 /// over stylesheets that have not changed, and a cold shaping cache. Rendering the
-/// same document twice therefore does all of that work twice, which ADR-0284
-/// recorded as a consequence and ADR-0425 is the decision about.
+/// same document twice therefore does all of that work twice.
 ///
 /// A studio is that work, done once and held. It is not a *result* cache: two
 /// renders of the same document still build, style, lay out and rasterize the tree
@@ -62,6 +61,8 @@ import dev.goldberry.widget.WidgetRenderer;
 /// picture taken beside it. A strip opened from [#picture] therefore shares the
 /// book — the expensive part — and builds its own renderer, which costs one
 /// cascade index and buys a strip that cannot interfere with anything.
+///
+/// Read more: [Testing an application](https://goldberry.dev/docs/guide/testing.html#pictures).
 public final class Studio implements AutoCloseable {
 
     private final List<Stylesheet> stylesheets;
@@ -99,7 +100,7 @@ public final class Studio implements AutoCloseable {
 
     /// A studio over `sheets`, with a bundled book of its own plus the faces the
     /// application ships — [dev.goldberry.Application#fonts()]'s
-    /// list, so a preview draws the families the window draws (ADR-0349).
+    /// list, so a preview draws the families the window draws.
     public static Studio of(List<Stylesheet> sheets, List<FontSource> shipped) {
         Objects.requireNonNull(sheets, "sheets");
         Objects.requireNonNull(shipped, "shipped");
@@ -148,7 +149,7 @@ public final class Studio implements AutoCloseable {
     /// Exists for one assertion, and it is the one that says this class works:
     /// `renderer().paragraphs().misses()` does not move when a document is rendered
     /// a second time. A count is the right evidence for a cache — a stopwatch would
-    /// be a flaky test about the same claim (ADR-0299).
+    /// be a flaky test about the same claim.
     public WidgetRenderer renderer() {
         return renderer;
     }

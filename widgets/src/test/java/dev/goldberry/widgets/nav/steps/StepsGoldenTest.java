@@ -22,9 +22,9 @@ import dev.goldberry.widgets.controls.TestFont;
 import dev.goldberry.widgets.core.Column;
 import dev.goldberry.widgets.core.Row;
 
-/// What a list of steps looks like (§14, [ADR-0050]).
+/// What a list of steps looks like.
 ///
-/// Three of §6's rules are only checkable in an image: that a done step has a
+/// Three of the steps rules are only checkable in an image: that a done step has a
 /// tick and a failed one a cross, so the state is not carried by colour alone;
 /// that the connector is filled only behind a done step; and that a vertical
 /// list is the same steps turned rather than a different widget.

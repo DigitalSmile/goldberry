@@ -11,8 +11,7 @@ package dev.goldberry.media.ffi;
 ///
 /// The majors are the pin (`gradle/libs.versions.toml`, FFmpeg `n8.1.3`). A
 /// struct's layout is stable within a major and not across one, so a library of
-/// another major is refused before any struct is touched
-/// (`docs/goldberry-media.md` §2, "Startup check").
+/// another major is refused before any struct is touched.
 public enum FfmpegLibrary {
     AVUTIL("avutil", 60),
     SWRESAMPLE("swresample", 6),

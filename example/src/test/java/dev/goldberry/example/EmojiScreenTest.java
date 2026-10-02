@@ -40,7 +40,8 @@ import dev.goldberry.widgets.controls.chip.Chip;
 import dev.goldberry.widgets.overlay.dialog.Dialog;
 import dev.goldberry.widgets.text.Text;
 
-/// The Emoji screen, driven rather than photographed — [ADR-0386].
+/// The Emoji screen, driven rather than photographed: a sheet of emoji is the
+/// font's own contents.
 ///
 /// `GalleryGoldenTest` shows what it looks like, and through a font book so the
 /// glyphs are the face's own. What a picture cannot show is where the list came
@@ -228,7 +229,8 @@ class EmojiScreenTest {
         void theFaceIsThere() {
             // `:example` depends on `:emoji`, and this is the assertion that says
             // so: without the artifact the sheet is empty and the screen says why
-            // instead of drawing a sheet of blanks (ADR-0384).
+            // instead of drawing a sheet of blanks: the emoji face is an
+            // artifact an application opts into.
             assertTrue(BundledAssets.hasEmojiFont(), "goldberry-emoji is on the showcase's module path");
         }
 
@@ -257,7 +259,7 @@ class EmojiScreenTest {
             // (This comment used to claim the per-tile comparison was being made.
             // It was not, and it cannot be from here: the tile's character sits
             // on a package-private record, and making it public for a test would
-            // be a worse trade than saying so — the 2026-09-18 review, §11.3.)
+            // be a worse trade than saying so.)
             assertTrue(covered.length > 1000, "the face reported " + covered.length + " code points");
         }
 
@@ -268,11 +270,11 @@ class EmojiScreenTest {
 
             assertNotNull(harness.byId("emoji-count"));
             // What an About box would say, where a reader can see it. Noto's OFL
-            // does not require it the way OpenMoji's CC BY-SA did (ADR-0384), and
-            // the screen says it anyway (ADR-0456). Read off the widget rather than out of its `toString`: what is on
-            // screen is the `Text`'s content, and a record's printed form is a
-            // debugging convenience that may stop containing it (the 2026-09-18
-            // review, §11.3).
+            // does not require it the way OpenMoji's CC BY-SA did, and the
+            // screen says it anyway. Read off the widget rather than out of its
+            // `toString`: what is on screen is the `Text`'s content, and a
+            // record's printed form is a debugging convenience that may stop
+            // containing it.
             var note = harness.byType("text").stream()
                     .map(element -> element.widget())
                     .filter(Text.class::isInstance)
@@ -439,8 +441,7 @@ class EmojiScreenTest {
         @Test
         @DisplayName("the rows reflow to the window, on the same rule")
         void reflow() {
-            // Shared rather than reimplemented: one arithmetic, two sheets
-            // (ADR-0386).
+            // Shared rather than reimplemented: one arithmetic, two sheets.
             var wide = new Harness(1200, 900);
             var columns = wide.tileRows().getFirst().children();
 

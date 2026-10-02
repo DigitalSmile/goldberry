@@ -39,7 +39,7 @@ import dev.goldberry.widgets.controls.chip.Chip;
 import dev.goldberry.widgets.overlay.dialog.Dialog;
 import dev.goldberry.widgets.text.Text;
 
-/// The Icons screen, **driven** rather than photographed ([ADR-0309]) — its
+/// The Icons screen, **driven** rather than photographed — its
 /// reflow, its scrolling, its category chips and the dialog a tile opens.
 ///
 /// `GalleryGoldenTest` shows what the sheet looks like at two widths, and that is
@@ -132,7 +132,7 @@ class IconsScreenTest {
         /// Counted off the **element tree** rather than read from the state,
         /// because what is under test is what a reader sees rather than what the
         /// screen believes — and off a *row*, because the sheet is a virtualized
-        /// list of rows since [ADR-0316] and the tiles no longer all exist.
+        /// list of rows and the tiles no longer all exist.
         ///
         /// The **first** row, and every row is padded out to the column count
         /// with empty cells, so this counts the row's children rather than the
@@ -305,7 +305,7 @@ class IconsScreenTest {
             var tiles = harness.byType("icon-tile");
 
             // Twenty rather than a hundred: the sheet is virtualized now, so what
-            // exists is the window and not the model ([ADR-0316]). A number in the
+            // exists is the window and not the model. A number in the
             // twenties still means several full rows were built.
             assertTrue(tiles.size() > 20, "the sheet built " + tiles.size() + " tiles, which is not a sheet");
             // The tiles in a row share it equally, so a count that over-fills
@@ -318,9 +318,8 @@ class IconsScreenTest {
         }
 
         /// **The sheet is a window on the model, not the model.** What this screen
-        /// cost before [ADR-0316] was 4709 elements whatever a reader could see;
-        /// what it costs now follows the viewport, which is the whole of that
-        /// record.
+        /// cost before it became a list of rows was 4709 elements whatever a
+        /// reader could see; what it costs now follows the viewport.
         ///
         /// Asserted as a ratio against the model rather than against a number,
         /// so it holds at any window size: 1544 names and a window that shows
@@ -335,7 +334,7 @@ class IconsScreenTest {
                     tiles * 10 < 1544,
                     "the sheet built " + tiles + " of 1544 tiles, which is not a window onto the model");
             // **And the sheet is still as tall as all 1544 of them.** That is what
-            // the spacers are for (ADR-0213) and it is the property a reader
+            // the spacers are for and it is the property a reader
             // actually sees: a virtualized list whose height followed its window
             // would have a thumb that grew as you scrolled into it.
             var sheet = harness.rectOf(harness.byType("icon-sheet").getFirst());

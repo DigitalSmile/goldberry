@@ -12,7 +12,7 @@ import dev.goldberry.widget.attr.Attributes;
 import dev.goldberry.widgets.markup.Markup;
 import dev.goldberry.widgets.markup.Wiring;
 
-/// Cards in columns, each card under the shortest one — a masonry.
+/// Cards in columns, each card under the shortest one — a masonry wall.
 ///
 /// ```kdl
 /// masonry min-column-width=320 gap=12 {
@@ -21,12 +21,14 @@ import dev.goldberry.widgets.markup.Wiring;
 /// }
 /// ```
 ///
-/// §1's row, which it did not have until ADR-0436: `masonry` was named once in
-/// `core-widgets.md`, as what the showcase's screens are made of, and specified
-/// nowhere. The case it answers is real and has no other answer in the catalog —
-/// a wall of cards whose heights differ, a chart beside a statistic beside a
-/// paragraph, laid out in a `row` of `column`s by hand leaves whichever column
-/// got the tall ones hanging off the bottom.
+/// ```java
+/// new Masonry(List.of(downloads, chart), Masonry.UNSET, 320, Attributes.NONE)
+/// ```
+///
+/// The case it answers has no other answer in the catalog: a wall of cards
+/// whose heights differ, a chart beside a statistic beside a paragraph, laid out
+/// in a `row` of `column`s by hand leaves whichever column got the tall ones
+/// hanging off the bottom.
 ///
 /// ## How it knows how tall a card is
 ///
@@ -56,9 +58,8 @@ import dev.goldberry.widgets.markup.Wiring;
 ///
 /// A `masonry` given **both** is an [IllegalArgumentException] at construction
 /// rather than a precedence rule nobody remembers, and one given **neither** is
-/// responsive at [#DEFAULT_MIN_COLUMN_WIDTH]. The default moved there in
-/// ADR-0436: a fixed three was the old default and it is the one setting that
-/// cannot be right at two window sizes.
+/// responsive at [#DEFAULT_MIN_COLUMN_WIDTH]: a fixed count is the one setting
+/// that cannot be right at two window sizes.
 ///
 /// ## Reading its own width, and the one masonry that must not
 ///
@@ -68,24 +69,24 @@ import dev.goldberry.widgets.markup.Wiring;
 ///
 /// `Measured`'s third rule holds for that too: a column count changes the wall's
 /// **height** and not its width, so the number is stable under the thing it
-/// causes. §1 hedges that — *"only for a `masonry` whose width comes from its
-/// parent"* — and the hedge turns out to be unnecessary here, for a reason that
-/// is worth knowing because it is not this widget's doing.
+/// causes. One might expect that to hold only for a `masonry` whose width comes
+/// from its parent, and it is worth knowing why it holds regardless, because it
+/// is not this widget's doing.
 ///
 /// The feared loop is real arithmetic. A wall sized to its own content would be
 /// `n` columns each as wide as the widest card in it, so a bigger `n` makes a
 /// wider wall, which asks for a bigger `n`. It needs the columns to be as wide as
-/// their cards — and since ADR-0373 they are not: a `masonry-column` is
-/// `flex-basis: 0`, so it contributes **nothing** to its parent's content width,
-/// and a masonry with no definite width of its own comes out at zero however many
-/// columns it has. The count is therefore independent of itself by construction,
-/// which is what rule 3 asks for, and the construction is a line of
-/// `controls.css` rather than a promise about the parent.
+/// their cards — and they are not: a `masonry-column` is `flex-basis: 0`, so it
+/// contributes **nothing** to its parent's content width, and a masonry with no
+/// definite width of its own comes out at zero however many columns it has. The
+/// count is therefore independent of itself by construction, which is what
+/// rule 3 asks for, and the construction is a line of `controls.css` rather than
+/// a promise about the parent.
 ///
 /// So nothing is refused, because there is nothing to refuse — and what is left
 /// is worse *documentation* rather than a worse layout. A `masonry` in a
-/// shrink-to-fit box is zero pixels wide with its cards hanging out of it, and
-/// has been since ADR-0373, with a fixed [#columns()] exactly as much as with
+/// shrink-to-fit box is zero pixels wide with its cards hanging out of it, with
+/// a fixed [#columns()] exactly as much as with
 /// this. `MasonrySettleTest` pins both halves down: the stretched wall settles in
 /// three layouts, and the shrink-to-fit one settles in one, with a fixed count
 /// and a responsive one alike. Put a wall somewhere that gives it a width; the
@@ -105,6 +106,8 @@ import dev.goldberry.widgets.markup.Wiring;
 ///                       of them, in logical pixels; [#UNSET] when a fixed
 ///                       [#columns()] was named
 /// @param attributes     `id` and `class`, exactly as on the other containers
+///
+/// Read more: [Masonry](https://goldberry.dev/docs/layout/masonry.html#masonry).
 @Markup("masonry")
 public record Masonry(List<Widget> children, int columns, int minColumnWidth, Attributes attributes)
         implements Widget.Stateful, Attributed<Masonry> {
@@ -118,17 +121,16 @@ public record Masonry(List<Widget> children, int columns, int minColumnWidth, At
     /// silent change of layout mode.
     public static final int UNSET = -1;
 
-    /// What a `masonry` that names neither `columns` nor `min-column-width` gets,
-    /// from §3's row: a card that holds a line of prose at `body` without
+    /// What a `masonry` that names neither `columns` nor `min-column-width` gets:
+    /// wide enough for a card that holds a line of prose at `body` without
     /// hyphenating.
     ///
-    /// A *width* is the default rather than a count, which is the whole of
-    /// ADR-0436 in one constant. A count cannot be right at two window sizes and
-    /// a default is precisely the value nobody thought about, so the one that
-    /// ships has to be the one that survives a resize.
+    /// A *width* is the default rather than a count. A count cannot be right at
+    /// two window sizes and a default is precisely the value nobody thought
+    /// about, so the one that ships has to be the one that survives a resize.
     public static final int DEFAULT_MIN_COLUMN_WIDTH = 320;
 
-    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    /// Written out so that the parameters taking null for a default can say so.
     public Masonry(@Nullable List<Widget> children, int columns, int minColumnWidth, @Nullable Attributes attributes) {
         children = List.copyOf(children == null ? List.of() : children);
         attributes = attributes == null ? Attributes.NONE : attributes;
@@ -232,9 +234,9 @@ public record Masonry(List<Widget> children, int columns, int minColumnWidth, At
 
     /// Builds a `masonry` from markup.
     ///
-    /// Neither property is clamped. `columns=0` was quietly read as one until
-    /// ADR-0436 and is a build-time failure now, for the reason the two
-    /// properties together are one: a layout that silently disagrees with the
+    /// Neither property is clamped. `columns=0` is a build-time failure, for the
+    /// reason the two properties together are one: a layout that silently
+    /// disagrees with the
     /// document is found by looking at a picture, and a document that throws is
     /// found by running anything.
     public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {

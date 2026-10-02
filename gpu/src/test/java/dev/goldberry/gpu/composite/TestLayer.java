@@ -10,8 +10,8 @@ import dev.goldberry.gpu.GpuTexture;
 import dev.goldberry.gpu.Load;
 import dev.goldberry.render.model.PhysicalRect;
 
-/// `docs/gpu-plan.md` phase 4's test layer: a solid colour with a square of
-/// another on it, where [#moveTo] puts it. Written against the public API alone,
+/// The z-order tests' layer: a solid colour with a square of another on it,
+/// where [#moveTo] puts it. Written against the public API alone,
 /// as an application's layer is, and drawn with no shader: a render pass that
 /// clears, then an upload of the square.
 ///

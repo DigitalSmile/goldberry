@@ -29,7 +29,7 @@ import java.util.regex.Pattern;
 import org.jspecify.annotations.Nullable;
 
 /// A resource over HTTP or HTTPS as a [MediaIO], over the JDK's
-/// [java.net.http.HttpClient] (`docs/goldberry-media.md` §4).
+/// [java.net.http.HttpClient].
 ///
 /// ## What it does
 ///
@@ -65,9 +65,12 @@ import org.jspecify.annotations.Nullable;
 ///
 /// A virtual thread per instance fetches: it only waits on the network and never
 /// calls native code, which is where the Engine's own threads have to be platform
-/// threads (§3). The demux thread reads. [#close()] from any thread ends a
+/// threads. The demux thread reads. [#close()] from any thread ends a
 /// blocked read with an [AsynchronousCloseException], which is the abort
 /// [MediaIO#close()] promises.
+///
+/// Read more:
+/// [Tracks and the network](https://goldberry.dev/docs/components/media.html#tracks-subtitles-and-the-network).
 public final class HttpIO implements MediaIO {
 
     /// How an [HttpIO] fetches.

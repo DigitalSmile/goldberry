@@ -707,8 +707,8 @@ class ModelWeaverTest {
         @DisplayName("an unwoven model is bound at run time rather than refused")
         void unwovenIsBoundAnyway() {
             // The raw class, straight off the test classpath -- annotated and
-            // never woven, which since ADR-0155 is what an ordinary jar contains
-            // rather than what a misconfigured build produces. It used to be an
+            // never woven, which is what an ordinary jar contains rather than
+            // what a misconfigured build produces. It used to be an
             // IllegalStateException naming the missing build step.
             var raw = new Counter();
 

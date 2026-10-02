@@ -7,7 +7,8 @@ import java.util.Set;
 import java.util.function.Predicate;
 
 /// Names a container from its first bytes, for a source no demuxer of this
-/// build recognised (`docs/goldberry-media.md` §7, S7; ADR-0471).
+/// build recognised, so the error names the container instead of calling the
+/// file invalid.
 ///
 /// FFmpeg probes a source with the demuxers it was built with, and a build
 /// without MPEG-TS has nothing that knows what a transport stream looks like. It

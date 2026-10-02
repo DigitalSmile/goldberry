@@ -24,9 +24,9 @@ import dev.goldberry.widgets.CatalogMarkup;
 import dev.goldberry.widgets.Controls;
 import dev.goldberry.widgets.text.TextRank;
 
-/// The two sets of class names, and that they stay apart ([ADR-0414]).
+/// The two sets of class names, and that they stay apart.
 ///
-/// §1.4's type ranks are styled by a class selector with **no type on it**,
+/// The type ranks are styled by a class selector with **no type on it**,
 /// because a rank applies to anything: `.heading` is 15px/600 on whatever carries
 /// it. A widget's own classes are the opposite — `selected` means nothing until
 /// something says `tree-row.selected`. So the two sets live in one namespace with
@@ -44,11 +44,14 @@ import dev.goldberry.widgets.text.TextRank;
 /// Every set below is **derived** — the ranks from [TextRank], the unqualified
 /// rules from the base sheet parsed by the real parser, the widgets from the
 /// inflater's registry. A hand-kept list of seven names is a list that is right
-/// until §1.4 gains an eighth, and the failure of a stale list is the check
-/// passing.
+/// until the type scale gains an eighth, and the failure of a stale list is the
+/// check passing.
+///
+/// Read more:
+/// [The design system: type](https://goldberry.dev/docs/guide/design-system.html#type).
 class ClassNamespaceTest {
 
-    /// The names §1.4 reserves, as CSS spells them.
+    /// The names the type scale reserves, as CSS spells them.
     private static Set<String> ranks() {
         var names = new TreeSet<String>();
         for (var rank : TextRank.values()) {
@@ -110,18 +113,18 @@ class ClassNamespaceTest {
     class TheReservedSet {
 
         @Test
-        @DisplayName("the base sheet's unqualified class rules are exactly §1.4's ranks")
+        @DisplayName("the base sheet's unqualified class rules are exactly the type ranks")
         void theUnqualifiedRulesAreTheRanks() {
             // The convention stated as an assertion. A rule with a bare class
             // selector in the base layer reaches every element in every
             // application, so the base layer gets to write exactly seven of them
-            // and they are the ones §1.4 names. An eighth is either a rank — and
+            // and they are the type ranks. An eighth is either a rank — and
             // belongs in `TextRank` and in the table — or a widget class that
             // forgot its type.
             assertEquals(
                     ranks(),
                     unqualifiedClasses(),
-                    "the base sheet styles a class with no type on it that is not one of §1.4's"
+                    "the base sheet styles a class with no type on it that is not one of the type"
                             + " ranks, so it reaches every element in every application that happens to"
                             + " carry the name. Either it is a rank and belongs in TextRank, or it wants"
                             + " the type it is about in front of it.");
@@ -132,8 +135,8 @@ class ClassNamespaceTest {
         void thereAreSevenRanks() {
             // Guards the sweep rather than the code: a `TextRank` that lost its
             // constants would make every assertion here vacuously true, and
-            // §1.4's table has seven rows.
-            assertEquals(7, ranks().size(), () -> "§1.4 has seven ranks; TextRank has " + ranks());
+            // the design system's type table has seven rows.
+            assertEquals(7, ranks().size(), () -> "the type scale has seven ranks; TextRank has " + ranks());
         }
     }
 
@@ -182,7 +185,7 @@ class ClassNamespaceTest {
 
             assertTrue(
                     carried.isEmpty(),
-                    () -> "<" + type + "> carries " + carried + ", which is one of §1.4's type ranks, so it"
+                    () -> "<" + type + "> carries " + carried + ", which is one of the type ranks, so it"
                             + " renders at that rank's size and weight whatever its own rule says");
         }
     }
@@ -260,7 +263,7 @@ class ClassNamespaceTest {
             var swept = 0;
             for (var type : cssClassEnums()) {
                 // **The one exception, and it is the definition rather than a
-                // weakening.** `TextRank` *is* §1.4's ranks: `text style="title"`
+                // weakening.** `TextRank` *is* the type ranks: `text style="title"`
                 // is how an application asks for one, so an enum whose whole job
                 // is to spell them has to spell them.
                 if (type == TextRank.class) {
@@ -282,7 +285,7 @@ class ClassNamespaceTest {
                             + " reading the wrong source tree");
             assertTrue(
                     offenders.isEmpty(),
-                    () -> "these enum constants mint one of §1.4's type ranks as a class name: " + offenders
+                    () -> "these enum constants mint one of the type ranks as a class name: " + offenders
                             + ". This is the `hud` reading called `display` that drew at 28px — the name"
                             + " never appears in a classes() body, so nothing else here would catch it.");
         }

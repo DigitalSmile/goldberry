@@ -31,8 +31,8 @@ import dev.goldberry.widgets.core.presence.Phase;
 ///
 /// ## One tab stop, and the arrows move between slides
 ///
-/// §5: "Arrows move between slides when the strip is focused; slides are one Tab
-/// stop and their content is reachable inside." So this node is focusable and its
+/// Arrows move between slides when the strip is focused; the slides are one Tab
+/// stop and their content is reachable inside. So this node is focusable and its
 /// scope is [FocusScope#HORIZONTAL] — the arrows along the strip move slides, and
 /// `Tab` goes on into the current slide's own controls rather than round the
 /// carousel's.
@@ -53,9 +53,9 @@ import dev.goldberry.widgets.core.presence.Phase;
 /// @param phase          where the current slide is in its arrival — the [Phase]
 ///                       itself and not a function of the clock, because a phase
 ///                       settles itself on the frame that finishes it and a
-///                       function cannot say whether it has ([ADR-0228]). Reading
-///                       it is also what *starts* the arrival, because `render` is
-///                       the only place a widget is given the clock ([ADR-0109])
+///                       function cannot say whether it has. Reading it is also
+///                       what *starts* the arrival, because `render` is the only
+///                       place a widget is given the clock
 /// @param direction      which way the last move went, `+1` forwards; the arriving
 ///                       slide translates in from that side
 record CarouselView(
@@ -111,15 +111,16 @@ record CarouselView(
 
     /// Focus on the strip pauses the rotation.
     ///
-    /// Focus **inside a slide** does too, which is §5's "on focus anywhere
-    /// inside" and is the third brake ([ADR-0165] shipped two of them).
+    /// Focus inside a slide does too: it is the third brake, beside the pointer
+    /// and the motion preference.
     ///
     /// [Handles#onFocusWithin] is what made it a line rather than a mechanism: it
     /// reports the subtree as a whole gaining or losing the keyboard, so a
     /// carousel is told when somebody tabs into a slide and told nothing about
     /// the moves they make once they are in there. Somebody who has tabbed into a
-    /// slide is exactly somebody reading it, which is §1.7 rule 4's canonical
-    /// violation — a carousel that moves while being read.
+    /// slide is exactly somebody reading it, and a carousel that moves while
+    /// being read is the thing the design system's rule against looping motion
+    /// forbids.
     ///
     /// This node handles both questions and they are different ones: the strip
     /// and the carousel's own controls are focusable themselves, and a widget
@@ -179,7 +180,7 @@ record CarouselView(
     ///
     /// The same answer [CarouselViewport] gives, from the node that carries the
     /// phase rather than the one that draws with it — see `CollapseSection` for
-    /// why both say it ([ADR-0228]). The renderer ORs over the tree, so this
+    /// why both say it. The renderer ORs over the tree, so this
     /// changes nothing but keeps the sweep's rule free of an exception nothing
     /// could check.
     @Override
@@ -218,9 +219,9 @@ record CarouselView(
         ///
         /// Larger than a `tab`'s 6, because a carousel is *about* the movement
         /// between slides where a tab's arrival is a detail — and small enough
-        /// that it is a settle rather than a swipe. §1.7 has no token for this;
-        /// a clock-driven animation cannot read a `transition` declaration
-        /// because it is not one (ADR-0109).
+        /// that it is a settle rather than a swipe. The design system has no
+        /// token for this; a clock-driven animation cannot read a `transition`
+        /// declaration because it is not one.
         private static final double TRAVEL = 24;
 
         @Override
@@ -241,18 +242,18 @@ record CarouselView(
         /// without. That was the claim and not the behaviour: this used to be
         /// handed a `DoubleUnaryOperator` that was never null, so it answered
         /// **true for ever** and any window with a carousel on it never went idle
-        /// ([ADR-0228]). A phase settles itself; a function of the clock cannot.
+        /// A phase settles itself; a function of the clock cannot.
         @Override
         public boolean isAnimating() {
             return phase.isRunning();
         }
 
-        /// **Opacity and a translation, and nothing else** — §1.7's whitelist is
-        /// the compositor-cheap set, and a viewport that animated its own width
-        /// would run Yoga on every frame of every move.
+        /// **Opacity and a translation, and nothing else** — the design system
+        /// lets only the compositor-cheap properties animate, and a viewport that
+        /// animated its own width would run Yoga on every frame of every move.
         ///
         /// Under reduced motion there is no animation at all: the slide is simply
-        /// there. §1.7 asks for movement to be removed rather than shortened.
+        /// there. Movement is removed rather than shortened.
         @Override
         public Box render(ComputedStyle style, List<Box> boxes, Context context) {
             var box = Box.of().style(style).children(boxes.toArray(Box[]::new));
@@ -373,7 +374,7 @@ record CarouselView(
         }
     }
 
-    /// The position indicator — §5's "a dot indicator".
+    /// The position indicator: one dot per slide.
     record CarouselDots(int index, int count, IntConsumer onGo, Consumer<Boolean> onFocus)
             implements Widget.Leaf, Styled, Paints {
 
@@ -400,10 +401,10 @@ record CarouselView(
 
     /// One dot.
     ///
-    /// **Not focusable.** A carousel of nine slides would otherwise be nine tab
-    /// stops on top of the two buttons, which is `tab`'s close-button argument
-    /// (ADR-0107): the keyboard already reaches every slide through the arrows,
-    /// and the dots are a pointer affordance and a position readout.
+    /// Not focusable. A carousel of nine slides would otherwise be nine tab
+    /// stops on top of the two buttons, which is `tab`'s close-button argument:
+    /// the keyboard already reaches every slide through the arrows, and the dots
+    /// are a pointer affordance and a position readout.
     record CarouselDot(boolean current, Runnable onPress, Consumer<Boolean> onFocus)
             implements Widget.Leaf, Styled, Paints, Handles {
 

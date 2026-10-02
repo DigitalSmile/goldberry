@@ -24,27 +24,30 @@ import dev.goldberry.widget.style.Styled;
 import dev.goldberry.widgets.markup.Markup;
 import dev.goldberry.widgets.markup.Wiring;
 
-/// A button (§11, `docs/core-widgets.md` §3).
+/// A label, an icon, or both, with one action behind it.
 ///
-/// The first control, and the shape every other one copies: a Java record, a KDL
-/// node, and a CSS type — the parity invariant — plus [Handles] for the two ways
-/// a button is activated.
+/// ```kdl
+/// button press="app.save" "Save"
+/// button class="primary" icon="plus" press="app.create" "New"
+/// button class="ghost" disabled=#true "Later"
+/// ```
 ///
-/// ## What it decides and what the stylesheet decides
+/// In Java, `new Button("Save", actions::save)`, then [#withIcon], [#disabled]
+/// and `styled("primary")` as needed. The widget owns the behaviour: it is
+/// focusable unless disabled, it activates on a click and on `Space` or
+/// `Enter`, and it never fires twice for one gesture. Everything visual — the
+/// height, the padding, the colours and the variant classes `primary`,
+/// `danger`, `ghost`, `link` and `outlined` — is the stylesheet's, which is what
+/// makes `button.primary` a class rather than a constructor parameter.
 ///
-/// Nothing visual is here. The height, the padding, the colours and the four
-/// variants are all in `controls.css` in the toolkit-base layer, which is what
-/// makes `button.primary` a stylesheet's business rather than a constructor
-/// parameter. What the widget owns is behaviour: it is focusable, it activates on
-/// a click and on `Space`/`Enter`, and it never fires twice for one gesture.
+/// The action is a field on an immutable value, because a widget is rebuilt
+/// every frame and a `Runnable` is part of the description rather than state:
+/// rebuilding with a different action means the button now does something
+/// else. Nothing here remembers a press; the press is the router's, on the
+/// element. A disabled button still lays out, paints and hit-tests, so a click
+/// on it lands nowhere rather than on whatever is behind it.
 ///
-/// ## Why the action is a field on an immutable value
-///
-/// A widget is rebuilt constantly and holds no state ([ADR-0004]) — but a
-/// `Runnable` is not state, it is part of the description. Rebuilding with a
-/// different action simply means the button now does something else, which is
-/// what an author changing it intends. Nothing here remembers a press: the press
-/// is the router's, on the element ([ADR-0052], [ADR-0054]).
+/// Read more: [Buttons, badges and chips](https://goldberry.dev/docs/components/buttons.html#button).
 ///
 /// @param label      the text on the button; empty for an icon-only button
 /// @param icon       the icon before the label, or null. Built at the size it
@@ -60,7 +63,7 @@ public record Button(
         String label, @Nullable Icon icon, @Nullable Runnable onPress, boolean disabled, Attributes attributes)
         implements Widget.Leaf, Styled, Paints, Handles, Attributed<Button>, Semantics {
 
-    /// The canonical constructor, written out because `attributes` takes null for a default (ADR-0497).
+    /// The canonical constructor, written out because `attributes` takes null for a default.
     public Button(
             String label,
             @Nullable Icon icon,
@@ -69,8 +72,8 @@ public record Button(
             @Nullable Attributes attributes) {
         Objects.requireNonNull(label, "label");
         if (label.isEmpty() && icon == null) {
-            throw new IllegalArgumentException("a button with neither a label nor an icon has nothing to click on"
-                    + " and nothing to read out (§13)");
+            throw new IllegalArgumentException(
+                    "a button with neither a label nor an icon has nothing to click on" + " and nothing to read out");
         }
         attributes = attributes == null ? Attributes.NONE : attributes;
         this.label = label;
@@ -90,12 +93,12 @@ public record Button(
         this(label, null, null, false, Attributes.NONE);
     }
 
-    /// This button with an icon before its label (§11: "label, icon, or both").
+    /// This button with an icon before its label.
     ///
     /// The icon is **borrowed**. A widget is a value that is rebuilt every frame
     /// and thrown away, so it must not own something with a `close()`; the
     /// application builds the icon once and keeps it, exactly as it keeps a
-    /// `Font` (ADR-0043).
+    /// `Font`.
     public Button withIcon(Icon icon) {
         return new Button(label, Objects.requireNonNull(icon, "icon"), onPress, disabled, attributes);
     }
@@ -128,11 +131,9 @@ public record Button(
     /// The document's classes — plus `circle` for an icon-only button that was
     /// not told `square`.
     ///
-    /// §3: "A button given an icon and no label is a circle by default — an
-    /// icon-only button is a disc everywhere else in the canon, and requiring
-    /// `class="circle"` to get the obvious result is the kind of improvisation
-    /// Principle 3 exists to prevent; `class="square"` overrides it"
-    /// (ADR-0347).
+    /// An icon-only button is a disc on every desktop, so a button given an icon
+    /// and no label is a circle by default rather than needing `class="circle"`
+    /// to get the obvious result; `class="square"` overrides it.
     @Override
     public Set<String> classes() {
         var written = attributes.classes();
@@ -144,7 +145,7 @@ public record Button(
         return Set.copyOf(classes);
     }
 
-    /// §3's shape classes, and the placement one. Named so a caller does not
+    /// The shape classes, and the placement one. Named so a caller does not
     /// spell them twice.
     public static final String SQUARE = "square";
 
@@ -160,7 +161,7 @@ public record Button(
     }
 
     /// Focusable, which is what puts it in the Tab order and lets `:focus-visible`
-    /// mean something (§7.2) — unless it is disabled, in which case Tab skips it.
+    /// mean something — unless it is disabled, in which case Tab skips it.
     ///
     /// A disabled control that could still be focused would strand a keyboard
     /// user on something that does not respond.
@@ -187,7 +188,7 @@ public record Button(
         }
     }
 
-    /// `Space` and `Enter` activate, per `docs/core-widgets.md` §3.
+    /// `Space` and `Enter` activate.
     ///
     /// Repeats are ignored: holding Space down is one activation, because a
     /// button is not a key. (A repeat-while-held control — a spinner's arrows —
@@ -210,8 +211,8 @@ public record Button(
         // The content is child boxes rather than text on the button's own box: a
         // box with text is a measured leaf and Yoga never lays a measured node's
         // children out, so a button that held its own text could not also hold
-        // an icon (§11: "content = label, icon, or both"). The gap between them
-        // is the stylesheet's -- 6 points, per the design system.
+        // an icon. The gap between them is the stylesheet's -- 6 points, per the
+        // design system.
         var content = new java.util.ArrayList<Box>(2);
         if (icon != null) {
             content.add(Box.icon(icon, style.color()));
@@ -240,10 +241,9 @@ public record Button(
     /// so one reloaded on every keystroke would leak per reload.
     public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
         var button = button(node, wiring);
-        // §3's `float=#true`: a class of *placement*, not of appearance, so it
-        // composes with every variant and shape above. Lifted out of layout by
-        // a stateful wrapper that puts the button in the window's overlay
-        // layer (ADR-0347).
+        // `float=#true` is placement, not appearance, so it composes with every
+        // variant and shape above. Lifted out of layout by a stateful wrapper
+        // that puts the button in the window's overlay layer.
         if (node.booleanProperty(FLOAT)) {
             return new Floated(button, Floated.corner(node.stringProperty("corner")));
         }
@@ -259,7 +259,7 @@ public record Button(
         // neither, and says so, which sends the author to look at a KDL file
         // where the icon is plainly written. `Icons.lenient()` answering null is
         // the whole of it, and an icon-only button is the one shape where that
-        // answer is fatal rather than cosmetic (ADR-0293).
+        // answer is fatal rather than cosmetic.
         if (label.isEmpty() && glyph == null && node.stringProperty("icon") != null) {
             throw new IllegalArgumentException("button icon=\"" + node.stringProperty("icon")
                     + "\" has no label to fall back on, and the icon registry did not supply that name."
@@ -278,9 +278,9 @@ public record Button(
     ///
     /// **An icon-only button has an empty label by construction** — the icon is the
     /// whole of what is on screen — so deriving a name from it produces the empty
-    /// string, which is a control a reader cannot announce. §3 asks for `name=`
-    /// on exactly this case and the attribute exists now, on `Attributes`, where
-    /// every widget gets it rather than each remembering its own ([ADR-0260]).
+    /// string, which is a control a reader cannot announce. `name=` is for
+    /// exactly this case, and it lives on `Attributes`, where every widget gets
+    /// it rather than each remembering its own.
     ///
     /// The label wins where there is one. An author who writes both has said the
     /// same thing twice, and the one on screen is the one a sighted user is

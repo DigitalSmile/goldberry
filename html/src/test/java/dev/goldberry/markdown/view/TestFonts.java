@@ -11,7 +11,7 @@ import dev.goldberry.text.font.Fonts;
 /// module's test sources — so this asks the only question this module needs answered:
 /// can a face be opened. Held for the run rather than built per test, because a
 /// `FontFace` owns native memory from two libraries and parsing one costs about 700
-/// microseconds (ADR-0044).
+/// microseconds.
 final class TestFonts {
 
     private static Fonts fonts;

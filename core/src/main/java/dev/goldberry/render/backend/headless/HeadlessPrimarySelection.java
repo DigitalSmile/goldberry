@@ -6,8 +6,7 @@ import org.jspecify.annotations.Nullable;
 
 import dev.goldberry.render.clipboard.PrimarySelection;
 
-/// The primary selection a headless test gets — in memory, and able to refuse
-/// ([ADR-0504]).
+/// The primary selection a headless test gets — in memory, and able to refuse.
 ///
 /// **Present by default**, which is the opposite of what a desktop without X11
 /// or Wayland reports, and deliberately: the widgets that publish a selection and
@@ -21,6 +20,8 @@ import dev.goldberry.render.clipboard.PrimarySelection;
 /// ([PrimarySelection]'s note on cost).
 ///
 /// Confined to the UI thread, like the rest of this backend.
+///
+/// Read more: [Text, fonts and icons](https://goldberry.dev/docs/guide/text.html#the-clipboard).
 public final class HeadlessPrimarySelection implements PrimarySelection {
 
     private final HeadlessBackend backend;

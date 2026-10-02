@@ -9,8 +9,8 @@ import dev.goldberry.render.window.WindowSpec;
 import dev.goldberry.text.font.FontSource;
 import dev.goldberry.widget.Widget;
 
-/// What a Goldberry application implements. Everything else is
-/// [Goldberry#launch].
+/// The program an application implements: a root widget, and whatever else it
+/// wants to say about its window. Everything else is [Goldberry#launch].
 ///
 /// ```java
 /// public final class Hello implements Application {
@@ -28,26 +28,22 @@ import dev.goldberry.widget.Widget;
 /// }
 /// ```
 ///
-/// ## What the launcher owns, so this does not
+/// The launcher owns everything an application would otherwise set up by hand: a
+/// window, a font book, the element tree, the render tree, the widget renderer,
+/// the pointer router, the frame loop, damage tracking, the hit-test snapshot fed
+/// from the painted frame, the idle rule, and the shutdown order. The last is the
+/// part that is easy to get subtly wrong, because a render object holds a measure
+/// callback that closes over a paragraph that closes over a font, and closing
+/// them in the wrong order reads unmapped memory. None of it is a decision an
+/// application makes differently.
 ///
-/// A window, a font book, the element tree, the render tree, the widget
-/// renderer, the pointer router, the frame loop, damage tracking, the hit-test
-/// snapshot fed from the painted frame, the idle rule, and the shutdown order —
-/// which is the part that is easy to get subtly wrong, because a render object
-/// holds a measure callback that closes over a paragraph that closes over a font,
-/// and closing them in the wrong order reads unmapped memory.
+/// What is left to the application is the widget tree, the stylesheets, and the
+/// native resources only it knows it needs. An [dev.goldberry.icon.Icon] is the
+/// usual one, and [#start] and [#stop] are where it opens and closes them.
+/// Everything on this interface but [#root()] has a default, so the smallest
+/// application is one method. Every method is called on the UI thread.
 ///
-/// None of that is a decision an application makes differently, and every one of
-/// them was fifteen lines of the showcase before this interface existed
-/// (ADR-0093).
-///
-/// ## What is left to the application
-///
-/// The widget tree, the stylesheets, and the native resources only it knows it
-/// needs — an [dev.goldberry.icon.Icon] is the usual one, and
-/// [#start] and [#stop] are where it opens and closes them. Everything on this
-/// interface but [#root()] has a default, so the smallest application is one
-/// method.
+/// Read more: [Building an application](https://goldberry.dev/docs/applications.html#the-application).
 public interface Application {
 
     /// The widget at the root of the window.
@@ -79,7 +75,7 @@ public interface Application {
     /// default: the toolkit does not know what the window contains, and a floor
     /// invented for it would be wrong for a palette and wrong again for an
     /// editor. An application does know, which is why this is one line to
-    /// override (ADR-0304):
+    /// override:
     ///
     /// ```java
     /// @Override public LogicalSize minimumSize() {
@@ -103,8 +99,7 @@ public interface Application {
     /// work area rather than to the whole display, stays clear of panels and
     /// docks, and restores to [#size] when the user un-maximizes it. Asking for a
     /// screen-sized window instead gives one that is too big on a laptop and that
-    /// no titlebar button can put back
-    /// (ADR-0221).
+    /// no titlebar button can put back.
     ///
     /// False by default, which is the right default for a tool: an application
     /// that takes the whole screen without being asked is one the user has to
@@ -141,7 +136,7 @@ public interface Application {
     /// path, because `Image.decode` already exists and an application decodes from
     /// its own resources. A list, because each platform wants its own sizes and a
     /// scaled-down PNG is a blurred one. The toolkit picks which size the platform
-    /// scales from (`docs/gaps.md` G40, ADR-0351).
+    /// scales from.
     ///
     /// Empty by default, which leaves the platform's generic icon. On macOS the
     /// dock shows the application bundle's icon whatever this says, and on Wayland
@@ -166,8 +161,8 @@ public interface Application {
     /// cache together, because all four already share that book. The bundled
     /// families are searched first, so a file called `Inter` does not replace the
     /// face the design system's metrics were drawn against. A face whose bytes
-    /// cannot be read is logged once and drawn in the UI face (`docs/gaps.md`
-    /// G39, ADR-0349).
+    /// cannot be read is logged once, and text in that family is drawn in the UI
+    /// face instead.
     ///
     /// Empty by default: the bundled faces are the whole design system.
     default List<FontSource> fonts() {
@@ -187,19 +182,17 @@ public interface Application {
     /// Naming them here is the whole of the wiring. The toolkit subscribes: a
     /// change to any `@Bind` field asks this window for a frame, and a change to
     /// one declared `@Bind(restyle = true)` asks for a restyle first. An
-    /// application says nothing about repainting, which is the point — a model
-    /// that changed and a window that did not repaint was the failure the old
-    /// `changed()` line existed to prevent and regularly failed to
-    /// (ADR-0128,
-    /// ADR-0133).
+    /// application says nothing about repainting, which is the point: a model that
+    /// changed and a window that did not repaint is the bug this wiring exists to
+    /// make impossible.
     ///
     /// **A list**, because a window's own actions — "open the menu", "toggle the
     /// HUD" — belong to the window rather than to the view model, and an
     /// application that keeps two objects should not have to merge them by hand.
     ///
-    /// A model here is also what
-    /// `dev.goldberry.widgets` resolves a document's `bind=`
-    /// and `press=` against, so the same list answers both questions.
+    /// A model here is also what the markup inflater resolves a document's `bind=`
+    /// and `press=` against, so the same list answers both questions. See
+    /// [Values](https://goldberry.dev/docs/applications.html#values).
     ///
     /// Opt out per model with `@Model(repaint = false)` — for one driving a
     /// background job, where every write would wake a window with nothing new to

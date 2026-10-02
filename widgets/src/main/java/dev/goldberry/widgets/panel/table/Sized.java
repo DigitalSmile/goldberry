@@ -7,8 +7,7 @@ import dev.goldberry.paint.Box;
 ///
 /// A header and the cells under it have to come out the same width or the table
 /// is not a table, and the cheapest way to guarantee that is for both to be sized
-/// by the same three lines rather than by two that look alike
-/// (ADR-0214).
+/// by the same three lines rather than by two that look alike.
 ///
 /// It is flexbox's own arrangement and not a second one: a fixed column is a
 /// width that will not shrink, and a weighted column is `flex-grow` over a zero

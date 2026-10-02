@@ -9,11 +9,14 @@ import dev.goldberry.image.Image;
 ///
 /// **The future completes on the UI thread**, or is already complete. That is
 /// the whole contract an [ImageView] relies on: it reads the result where it can
-/// set its state, with no hand-off of its own (ADR-0020).
+/// set its state, with no hand-off of its own; there is one UI thread, and the
+/// decoding runs on a virtual thread behind it.
 ///
 /// [#shared()] is what a view uses unless told otherwise, and an application
 /// replaces it for one reason — to put its own policy in front, an HTTP cache or
 /// a thumbnail service — by handing a view its own loader.
+///
+/// Read more: [Canvas, images and QR codes](https://goldberry.dev/docs/components/drawing.html#image).
 @FunctionalInterface
 public interface ImageLoader {
 
@@ -24,7 +27,7 @@ public interface ImageLoader {
     /// virtual thread while the toolkit is running, and in the caller when it is
     /// not — a test, or an offscreen render with no event loop, where there is no
     /// UI thread to come back to and a picture that arrived "later" would never be
-    /// photographed (ADR-0358).
+    /// photographed.
     static ImageLoader shared() {
         return ImageCache.SHARED;
     }

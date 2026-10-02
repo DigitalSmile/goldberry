@@ -8,30 +8,8 @@ import dev.goldberry.render.web.WebCallback;
 import dev.goldberry.render.web.WebSize;
 import dev.goldberry.render.web.WebViewSpec;
 
-/// A page this application asks the desktop to show — `docs/core-widgets.md`
-/// §9's `web-view`.
-///
-/// **A value, not a widget**, and the second such thing in `widget.shell` after
-/// [dev.goldberry.widgets.shell.tray.TrayIcon]. The argument
-/// is that one's, taken further: a tray is at least a menu Goldberry describes,
-/// and a page is not described by Goldberry at all. WebKit owns the pixels, the
-/// fonts, the scrolling, the selection and the input. There is no box to lay out,
-/// no `ComputedStyle` to compute and no pointer event to route.
-///
-/// ## Why it could not be a box
-///
-/// Because no shape would have been the same on every platform this ships to.
-/// `webview/webview` cannot render offscreen, so a page is always a real platform
-/// window — and a Wayland session permits neither reparenting a foreign surface
-/// into another client's window nor placing a window where a widget is. A
-/// `web-view` that sat in a layout on X11, Windows and macOS and became a loose
-/// window on Wayland would be two behaviours wearing one name, with the broken
-/// one on the common Linux desktop. See
-/// [ADR-0441](../../../../../../../../book/src/adr/0441-a-web-page-is-a-window-not-a-box.md),
-/// which also records what CEF would have bought and what it would have cost.
-///
-/// So there is **no `web-view` node in markup** either: there is nothing for a
-/// `row` to size and nowhere for KDL to put it.
+/// A web page, described as a value: where it starts, what its window is
+/// called and how big it opens, and the functions its script may call.
 ///
 /// ```java
 /// var page = WebViews.open(host, WebPage.of("https://example.org")
@@ -41,15 +19,22 @@ import dev.goldberry.render.web.WebViewSpec;
 /// page.ifPresent(BackendWebView::close);
 /// ```
 ///
-/// ## Most desktops cannot show one
+/// `WebPage.of(url)`, [#ofHtml] or [#blank] makes one; [#title], [#sized],
+/// [#debug] and [#on] return a changed copy. [WebViews#open] shows the page in a
+/// platform window of its own, and the `web-view` widget shows one inside a
+/// window's box where the window system allows a child window.
 ///
-/// [WebViews#open] answers empty far more often than `Trays.show` does, and that
-/// is expected rather than unlucky: a page needs `libgoldberry-webview`, a
-/// separate library that exists so GTK and WebKit are not load-time dependencies
-/// of the toolkit, and most builds do not carry it. An application that wants to
-/// know before it draws the button asks
+/// It is a value and not a widget because the desktop's engine, not the
+/// toolkit, draws the page: it owns the pixels, the fonts, the scrolling, the
+/// selection and the input, so there is no box to lay out, no style to compute
+/// and no event to route. For the same reason there is no `web-view` node in
+/// markup. Most machines cannot open a page at all, because the engine is
+/// driven through a separate optional library; ask
 /// [dev.goldberry.Goldberry#capabilities()] for
-/// [dev.goldberry.platform.Capability#WEB_VIEW].
+/// [dev.goldberry.platform.Capability#WEB_VIEW] before offering one.
+///
+/// Read more:
+/// [Markdown, HTML and the web](https://goldberry.dev/docs/components/content.html#the-web-view).
 ///
 /// @param url    where the page starts, or null
 /// @param html   the document it starts with, or null. A page names one of these
@@ -73,7 +58,7 @@ public record WebPage(
         boolean debug,
         java.util.Map<String, WebCallback> callbacks) {
 
-    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    /// Written out so that the parameters taking null for a default can say so.
     public WebPage(
             @Nullable String url,
             @Nullable String html,
@@ -102,8 +87,7 @@ public record WebPage(
         this.callbacks = callbacks;
     }
 
-    /// A page with no callbacks — the shape this record had before a page could
-    /// call back into the application.
+    /// A page with no callbacks.
     public WebPage(
             @Nullable String url,
             @Nullable String html,
@@ -128,21 +112,15 @@ public record WebPage(
     /// value must be valid JSON or empty, and throwing rejects the page's
     /// promise. [WebCallback] has the whole of it.
     ///
-    /// ## Bindings are read when the page **opens**
+    /// Bindings are read when the page **opens**: the engine injects each one's
+    /// glue at document start, so a handler added to a page that is already open
+    /// does not take effect. Declare them where the page is declared.
     ///
-    /// The engine injects each one's glue at document start, so they have to be
-    /// in place before anything loads — which means a handler added to a page
-    /// that is already open does not take effect. Declare them where the page is
-    /// declared.
-    ///
-    /// ## And they are why two pages are rarely equal
-    ///
-    /// A handler is a lambda, and lambdas have no value equality: two rebuilds
-    /// of the same `on(...)` expression produce different instances, so this
-    /// record's generated `equals` says two otherwise identical pages differ.
-    /// That is why [#showsSameAs] exists and why `web-view` navigates on *it*
-    /// rather than on `equals` — a page that re-navigated on every rebuild would
-    /// reload itself for ever.
+    /// A handler is a lambda, and lambdas have no value equality, so two
+    /// rebuilds of the same `on(...)` expression make pages that are not
+    /// `equals`. That is why [#showsSameAs] exists and why `web-view` navigates
+    /// on it rather than on `equals`: a page that re-navigated on every rebuild
+    /// would reload itself for ever.
     public WebPage on(String name, WebCallback handler) {
         Objects.requireNonNull(name, "name");
         Objects.requireNonNull(handler, "handler");

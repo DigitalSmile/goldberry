@@ -14,7 +14,7 @@ import dev.goldberry.log.bridge.NativeLogLevel;
 import dev.goldberry.natives.sdl.log.SdlLogCategory;
 import dev.goldberry.natives.sdl.log.SdlLogPriority;
 
-/// The SDL side of ADR-0443, checked without SDL.
+/// The SDL side of the native log bridge, checked without SDL.
 ///
 /// The values themselves are held to the C compiler by `LayoutVerifier` through
 /// `NativeConstants`, which is where a renumbered `SDL_LogPriority` is caught.

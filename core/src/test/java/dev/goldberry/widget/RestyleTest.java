@@ -27,8 +27,8 @@ import dev.goldberry.widget.attr.Attributes;
 import dev.goldberry.widget.style.Paints;
 import dev.goldberry.widget.style.Styled;
 
-/// [Styled#restyle], which is §8's `inline` layer with a type instead of a
-/// string.
+/// [Styled#restyle], which is the cascade's `inline` layer with a type instead
+/// of a string.
 ///
 /// The mechanism exists for one shape of problem: a value that **only the widget
 /// can compute** and that still has to move under a `transition`. A segmented
@@ -37,7 +37,7 @@ import dev.goldberry.widget.style.Styled;
 /// seam rather than a special case is *where* it applies. A value written in
 /// [Paints#render] is applied after the animation has already looked at the
 /// style, so it snaps; the same value written here is part of what the animation
-/// observes (ADR-0099).
+/// observes.
 ///
 /// So these tests are about ordering, and each of the three is a way the ordering
 /// could be wrong: applied before the cache (and frozen), applied after the

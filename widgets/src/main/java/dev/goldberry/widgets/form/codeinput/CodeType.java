@@ -4,7 +4,7 @@ import java.util.Locale;
 
 import org.jspecify.annotations.Nullable;
 
-/// What a [CodeInput] will accept — §4's `type="digits|alnum"`.
+/// What a [CodeInput] will accept — its `type="digits|alnum"`.
 ///
 /// ## Per character, and dropping rather than refusing
 ///
@@ -18,8 +18,8 @@ import org.jspecify.annotations.Nullable;
 /// does not want, which is the opposite policy, and it is the right one here for
 /// two reasons that do not hold for a text field. There is **no caret to move** —
 /// a code has one insertion point and it is wherever the filled boxes end — so
-/// there is nothing for a correction to disturb. And the case §4 calls "the thing
-/// users actually do" is a paste, out of a message that reads `Your code is
+/// there is nothing for a correction to disturb. And the case that matters most,
+/// the thing users actually do, is a paste, out of a message that reads `Your code is
 /// 123 456`: a whole-value filter rejects that paste entirely, and a per-character
 /// one fills the six boxes. Refusing the paste a user was told to make is a worse
 /// answer than ignoring a space.
@@ -27,6 +27,8 @@ import org.jspecify.annotations.Nullable;
 /// The filters themselves are `TextFilter`'s, not second copies of them —
 /// `TextFilter.ALPHANUMERIC`'s javadoc has said "what `code-input type=\"alnum\"`
 /// will want" since it was written.
+///
+/// Read more: [Fields and forms](https://goldberry.dev/docs/components/forms.html#code-input).
 public enum CodeType {
 
     /// `0` to `9`. What an SMS or authenticator code is.

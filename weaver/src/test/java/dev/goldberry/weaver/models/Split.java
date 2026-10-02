@@ -9,12 +9,11 @@ import dev.goldberry.bind.Model;
 ///
 /// The values are a **class**, because a record's components are final and a
 /// bound field has to be assignable. The actions are a **record**, because they
-/// hold one thing and hold it immutably (ADR-0136, ADR-0138).
+/// hold one thing and hold it immutably.
 ///
 /// Both are nested in this one, which is not decoration: they are then
 /// **nestmates**, so `Actions.bump()` may call the private setter the weaver
-/// synthesises on `Values` and nothing about the split has to open up
-/// (ADR-0137).
+/// synthesises on `Values` and nothing about the split has to open up.
 public final class Split {
 
     private Split() {

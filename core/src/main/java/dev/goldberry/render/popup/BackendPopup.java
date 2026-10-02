@@ -13,18 +13,16 @@ import dev.goldberry.render.window.BackendWindow;
 /// pump identified by their own window. What it adds is the two things only a
 /// popup has: an owner, and a position that means something relative to it.
 ///
-/// ## Why this exists at all, given the overlay layer
+/// The toolkit also has an overlay layer inside the window, for a toast, a scrim or
+/// a HUD. A `menu`, a `select`'s list and a `tooltip` cannot use it, because they
+/// are routinely **taller than the space left below the thing that opened them**,
+/// and clipping them to the window is the difference between a dropdown and a
+/// dropdown that shows four of its nine options. Escaping the window needs the
+/// platform's cooperation, and this is where it is asked for.
 ///
-/// ADR-0100
-/// put a layer above the application's root for the overlays that stay inside the
-/// window — a toast, a scrim, a HUD. Three of `docs/core-widgets.md` §7's widgets
-/// cannot use it, and for one reason each time: a `menu`, a `select`'s list and a
-/// `tooltip` are routinely **taller than the space left below the thing that
-/// opened them**, and clipping them to the window is the difference between a
-/// dropdown and a dropdown that shows four of its nine options. Escaping the
-/// window needs the platform's cooperation, and this is where it is asked for.
+/// Confined to the UI thread, like every other window.
 ///
-/// ## Confined to the UI thread, like every other window
+/// Read more: [Windows, popups and the host](https://goldberry.dev/docs/guide/windows.html#in-a-window-of-its-own).
 public interface BackendPopup extends BackendWindow {
 
     /// The window this popup belongs to.

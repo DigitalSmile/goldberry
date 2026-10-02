@@ -32,11 +32,11 @@ import dev.goldberry.widgets.markup.Wiring;
 ///
 /// ## The marker is a dot, an icon, or a widget
 ///
-/// §10 lists "dot, icon or `badge`". A dot takes the entry's `colour`, or the
-/// stylesheet's; an icon sits in a larger disc. Anything else — a `badge` is
-/// the one §10 names — is written in a `marker` slot ([EntryMarker]) and drawn
-/// on the axis in place of the dot; the rail keeps its width, so the axis does
-/// not move under a wide one (ADR-0356). A widget marker wins over an icon.
+/// A dot takes the entry's `colour`, or the stylesheet's; an icon sits in a
+/// larger disc. Anything else — a `badge`, say — is written in a `marker` slot
+/// ([EntryMarker]) and drawn on the axis in place of the dot; the rail keeps
+/// its width, so the axis does not move under a wide one. A widget marker wins
+/// over an icon.
 ///
 /// ```kdl
 /// entry "Released" { marker { badge class="success" "v2" }; text "Published." }
@@ -58,6 +58,8 @@ import dev.goldberry.widgets.markup.Wiring;
 /// @param body       the content shown under the label
 /// @param placement  supplied by [Timeline] on every build; not an attribute
 /// @param attributes `id` and `class`, exactly as on every other widget
+///
+/// Read more: [Panels](https://goldberry.dev/docs/components/panels.html#entry).
 @Markup("entry")
 public record Entry(
         String label,
@@ -93,7 +95,7 @@ public record Entry(
                 new Placement(0, Timeline.Direction.VERTICAL, Side.START, false, true, false);
     }
 
-    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    /// Written out so that the parameters taking null for a default can say so.
     public Entry(
             String label,
             @Nullable String time,
@@ -110,7 +112,7 @@ public record Entry(
         if (label.isEmpty() && !placement.pending()) {
             throw new IllegalArgumentException(
                     "an entry needs a label: a timeline is read as a story, and an event with no name is"
-                            + " a dot on a line (§13)");
+                            + " a dot on a line");
         }
         this.label = label;
         this.time = time;
@@ -144,8 +146,8 @@ public record Entry(
         return new Entry(label, when, icon, colour, marker, body, placement, attributes);
     }
 
-    /// This event with an icon in its marker. The icon is **borrowed**
-    /// (ADR-0043).
+    /// This event with an icon in its marker. The icon is **borrowed**: the
+    /// entry draws it and does not close it.
     public Entry withIcon(@Nullable Icon value) {
         return new Entry(label, time, value, colour, marker, body, placement, attributes);
     }
@@ -174,7 +176,7 @@ public record Entry(
                 attributes);
     }
 
-    /// §10's trailing unfilled marker — an entry with no words, at the end.
+    /// The trailing unfilled marker — an entry with no words, at the end.
     static Entry pending(Timeline.Direction direction, Side side, boolean twoSided) {
         return new Entry(
                 "",
@@ -252,7 +254,7 @@ public record Entry(
         return Box.of().style(style).children(boxes.toArray(Box[]::new));
     }
 
-    /// [Role#ROW] — one item of §10's "ordered list".
+    /// [Role#ROW] — one item of the ordered list a timeline is.
     @Override
     public Role role() {
         return Role.ROW;

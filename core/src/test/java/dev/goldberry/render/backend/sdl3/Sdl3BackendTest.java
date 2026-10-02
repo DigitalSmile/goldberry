@@ -14,7 +14,7 @@ import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.NullSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
-/// The macOS first-thread diagnosis (ADR-0030), and the pump's arithmetic.
+/// The macOS first-thread diagnosis, and the pump's arithmetic.
 ///
 /// Pure logic, deliberately: the condition the first one describes cannot be
 /// reproduced in a test — a JVM either started on the first thread or it did not,
@@ -128,9 +128,8 @@ class Sdl3BackendTest {
         }
     }
 
-    /// ADR-0491: SDL's default surface recreates an X11 window given back from
-    /// the GPU, so the backend asks for the X server's framebuffer there and
-    /// only there.
+    /// SDL's default surface recreates an X11 window given back from the GPU,
+    /// so the backend asks for the X server's framebuffer there and only there.
     @Nested
     @DisplayName("a window surface that keeps the window")
     class SurfaceKeepsTheWindow {
@@ -153,9 +152,9 @@ class Sdl3BackendTest {
         }
     }
 
-    /// ADR-0504: SDL answers the primary-selection calls on every driver, and
-    /// off X11 and Wayland it answers from a buffer inside this process. So the
-    /// driver's name is what decides whether a widget is offered one.
+    /// SDL answers the primary-selection calls on every driver, and off X11 and
+    /// Wayland it answers from a buffer inside this process. So the driver's
+    /// name is what decides whether a widget is offered one.
     @Nested
     @DisplayName("a primary selection")
     class PrimarySelectionByDriver {

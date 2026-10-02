@@ -15,7 +15,7 @@ import dev.goldberry.natives.layout.Layouts;
 /// what a size-independent typeface *is*, and they are also the expensive two —
 /// the bytes are a megabyte and a half for Inter, and the face is what parsing
 /// them produces. This owns those two so that N sizes cost one copy rather than
-/// N (ADR-0044).
+/// N.
 ///
 /// ## Ownership
 ///
@@ -31,6 +31,8 @@ import dev.goldberry.natives.layout.Layouts;
 /// scope rather than of discipline.
 ///
 /// Confined to the thread that created it, and must be closed.
+///
+/// Read more: [The native boundary](https://goldberry.dev/docs/overview/architecture.html#the-native-boundary).
 public final class BlendFontFace implements AutoCloseable {
 
     private final Blend2dFont calls = Blend2dFont.get();

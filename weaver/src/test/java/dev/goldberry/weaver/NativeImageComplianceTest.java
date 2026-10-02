@@ -18,8 +18,8 @@ import org.junit.jupiter.api.Test;
 /// What a closed world can and cannot link, asserted against the woven bytecode.
 ///
 /// GraalVM's native image has no runtime class loading, no runtime class
-/// generation, and no reflection it was not told about at build time. The claim
-/// ADR-0127 makes is that the binding schema needs none of the three — and this
+/// generation, and no reflection it was not told about at build time. The
+/// binding scheme claims to need none of the three — and this
 /// is that claim as a test rather than as a sentence, because "we did not use
 /// reflection" is exactly the kind of thing that stops being true one commit
 /// after somebody writes it down.
@@ -39,8 +39,8 @@ class NativeImageComplianceTest {
     /// Every one of them either loads a class by name, generates one, or reaches
     /// a member the image builder was not told about. `privateLookupIn` and
     /// `findVarHandle` are on the list for a pointed reason: they are what the
-    /// **previous** scheme's generated registry ran in its static initializer
-    /// (ADR-0098), and they are the reason it needed reachability metadata that
+    /// **previous** scheme's generated registry ran in its static initializer,
+    /// and they are the reason it needed reachability metadata that
     /// this one does not.
     private static final Set<String> CLOSED_WORLD_HOSTILE = Set.of(
             "java/lang/Class.forName",
@@ -169,7 +169,7 @@ class NativeImageComplianceTest {
     @Test
     @DisplayName("a model keeps its annotations at runtime, and an image reads none of them")
     void annotationRetention() {
-        // All of them are RUNTIME-retained since ADR-0155, because that is what
+        // All of them are RUNTIME-retained, because that is what
         // an unwoven jar binds from: the weaver is the native-image path and the
         // reflective binder is the ordinary one, and the reflective binder cannot
         // read a CLASS-retained annotation at all.
@@ -177,8 +177,7 @@ class NativeImageComplianceTest {
         // The cost in an image is the annotation metadata itself, which nothing
         // there reads -- a woven model's registries are code, and this whole
         // class is the assertion that they are. That is a few bytes per member
-        // against a build step every consumer would otherwise have to install,
-        // and the trade is recorded in ADR-0155.
+        // against a build step every consumer would otherwise have to install.
         assertTrue(Counter.class.isAnnotationPresent(
                 dev.goldberry.bind.Model.class));
         // Counted against the woven registries rather than against a literal, so

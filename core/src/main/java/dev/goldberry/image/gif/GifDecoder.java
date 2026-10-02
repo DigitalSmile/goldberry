@@ -7,7 +7,17 @@ import java.util.Objects;
 
 import org.jspecify.annotations.Nullable;
 
-/// A GIF, as far as its first frame — `docs/gaps.md` G35a, [ADR-0329].
+/// A GIF decoder: the first frame, or every frame with its delay.
+///
+/// ```java
+/// Image still = Image.decode(bytes);                    // routes here for a GIF
+/// Animation clip = Image.decodeAnimation(bytes);        // every frame
+/// ```
+///
+/// Most callers go through `Image`, which sniffs the bytes and translates a
+/// [GifFormatException] into the one decode exception every format shares;
+/// [#decode] and [#decodeAll] are here for a caller that already knows it has a
+/// GIF.
 ///
 /// ## Why this is Java and WebP is not
 ///
@@ -28,8 +38,7 @@ import org.jspecify.annotations.Nullable;
 /// [#decode] reads the first frame, which is what a still picture on a board
 /// needs and what most GIFs contain. [#decodeAll] reads the sequence: every
 /// frame composited onto the one before it under the file's own disposal rules,
-/// each with the delay it declares, plus how many times the file says to loop
-/// ([ADR-0382]).
+/// each with the delay it declares, plus how many times the file says to loop.
 ///
 /// The disposal model is the whole of why a frame cannot simply be decoded on
 /// its own. A GIF frame is usually a **patch** — an optimizer writes only the
@@ -53,7 +62,9 @@ import org.jspecify.annotations.Nullable;
 /// the toolkit is written in, and what
 /// [dev.goldberry.image.Image#ofArgb] takes. Transparency is
 /// the graphic control extension's transparent index, which is the only kind GIF
-/// has.
+/// has. Stateless and safe to call from any thread.
+///
+/// Read more: [Text, fonts and icons](https://goldberry.dev/docs/guide/text.html#images).
 public final class GifDecoder {
 
     /// Both signatures the format has ever had. `GIF87a` and `GIF89a` differ in

@@ -19,9 +19,9 @@ import org.junit.jupiter.api.Test;
 ///
 /// These are the methods an **application** uses — `text`, `find`, `classes`,
 /// `attribute` — and they are what makes the tree worth exporting rather than hiding
-/// behind the widget: a summary, an outline and a link check are walks of one parse
-/// (ADR-0295's argument, ADR-0298's other half). Built by hand here so that a failure
-/// names the walk rather than the parse.
+/// behind the widget: a summary, an outline and a link check are walks of one parse,
+/// which is the same argument the Markdown model makes. Built by hand here so that a
+/// failure names the walk rather than the parse.
 @DisplayName("the HTML model")
 class HtmlModelTest {
 

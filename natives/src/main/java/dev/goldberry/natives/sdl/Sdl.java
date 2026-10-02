@@ -12,9 +12,9 @@ import dev.goldberry.natives.sdl.calls.SdlCoreCalls;
 
 /// BindingRegistry for SDL3's lifecycle, error and version calls.
 ///
-/// The first slice of the backend (ADR-0003): enough to prove SDL3 is reachable
-/// through `libgoldberry`'s export list and to report which SDL is statically
-/// linked, without needing a display. Windowing follows.
+/// The first slice of the backend: enough to prove SDL3 is reachable through
+/// `libgoldberry`'s export list and to report which SDL is statically linked,
+/// without needing a display. Windowing follows.
 ///
 /// Two SDL conventions are translated at this boundary rather than passed on:
 ///
@@ -28,6 +28,8 @@ import dev.goldberry.natives.sdl.calls.SdlCoreCalls;
 /// SDL is process-global: initializing twice is not an error but quitting once
 /// undoes it for everyone. Ownership of that lifecycle belongs to the backend,
 /// not to callers.
+///
+/// Read more: [The native boundary](https://goldberry.dev/docs/overview/architecture.html#the-native-boundary).
 public final class Sdl {
 
     /// The SDL these bindings were written against, and the floor the pinned ref
@@ -78,7 +80,7 @@ public final class Sdl {
     /// It does: on a platform whose SDL video driver implements no window
     /// surface — Wayland is one — `SDL_GetWindowSurface` falls back to a hidden
     /// `SDL_Renderer`, and every `SDL_UpdateWindowSurfaceRects` ends in that
-    /// renderer's `SDL_RenderPresent` (ADR-0046). This is the only channel that
+    /// renderer's `SDL_RenderPresent`. This is the only channel that
     /// reaches it.
     ///
     /// Must be set before the surface is first acquired, which is when SDL
@@ -94,7 +96,7 @@ public final class Sdl {
     /// OpenGL flag, so building the renderer reconfigures the window. X11 has
     /// no way to do that in place, so SDL destroys the X window and makes a
     /// new one, with a new id. Whatever was parented into the old one goes
-    /// with it: an embedded page, which is how it was found (ADR-0491).
+    /// with it: an embedded page, which is how it was found.
     ///
     /// Read once per video initialisation, when the first surface is made.
     public static final String FRAMEBUFFER_ACCELERATION_HINT = "SDL_FRAMEBUFFER_ACCELERATION";
@@ -116,7 +118,7 @@ public final class Sdl {
     /// `https:` opens the browser, `mailto:` the mail client, `file:` the file
     /// manager — whatever the desktop has registered. Asynchronous on every
     /// platform: SDL returns once the request is made, not once the browser is
-    /// up (ADR-0346).
+    /// up.
     ///
     /// @return whether the request was made; false on a library built before
     ///         the export, or a desktop with no handler for the scheme
@@ -131,7 +133,8 @@ public final class Sdl {
     }
 
     /// Whether this build of the library exports `SDL_OpenURL` at all — false
-    /// on one built before ADR-0346, which [#openUrl] answers false for too.
+    /// on one built before the export was added, which [#openUrl] answers false
+    /// for too.
     public boolean canOpenUrl() {
         return sdlCoreCalls.openUrl().isAvailable();
     }
@@ -158,8 +161,7 @@ public final class Sdl {
     /// The alternative was latching the modifiers from the last key event, which
     /// needs no new symbol and is wrong in a way that lasts: a window that loses
     /// focus while Shift is held never sees the key release, so the flag stays
-    /// down until the next time Shift is pressed and let go
-    /// (ADR-0089).
+    /// down until the next time Shift is pressed and let go.
     ///
     /// Widened to an int here, because the mask is unsigned and Java's short is
     /// not -- SDL's `SDL_KMOD_*` bits stop at 0x4000, but sign extension would
@@ -178,8 +180,7 @@ public final class Sdl {
     /// Polled for [#modifierState()]'s reason — read at the moment an event is
     /// translated, inside the pump that produced it — and used for one thing: a
     /// pointer event whose window and whose coordinates disagree about which
-    /// space they are in. That happens to every popup on macOS
-    /// (ADR-0211),
+    /// space they are in. That happens to every popup on macOS,
     /// and a desktop position plus a window's own position is the one reading
     /// that does not depend on the platform's attribution.
     ///

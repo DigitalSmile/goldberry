@@ -16,9 +16,9 @@ import dev.goldberry.widget.style.Styled;
 /// The scaffolding the offscreen tests were each about to write.
 ///
 /// `:core` has no widget catalog to render, so every test here builds its own
-/// styled box — [OffscreenTest] did, and three more suites arrived with ADR-0424
-/// and ADR-0425 wanting the same one. The fixture is shared rather than copied
-/// four times, which is the whole of why this class exists.
+/// styled box — [OffscreenTest] did, and the strip, studio and threading suites
+/// wanted the same one. The fixture is shared rather than copied four times,
+/// which is the whole of why this class exists.
 final class Scene {
 
     static final int RED = 0xFFFF0000;

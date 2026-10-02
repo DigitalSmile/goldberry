@@ -6,8 +6,8 @@ import java.util.function.Supplier;
 
 import org.jspecify.annotations.Nullable;
 
-/// One node of a [Tree] — `docs/core-widgets.md` §3's "observable node model with
-/// a children supplier".
+/// One node of a [Tree]: an id, a label, and children it either has or knows
+/// how to fetch.
 ///
 /// ```java
 /// TreeNode.of("europe", "Europe",
@@ -17,9 +17,9 @@ import org.jspecify.annotations.Nullable;
 ///
 /// ## The id is load-bearing
 ///
-/// §3: "expansion state is retained across rebuilds by node **id**, not by index
-/// — a tree that collapsed itself when its model reordered would be the same
-/// defect list keys exist to prevent". So an id is required rather than derived,
+/// Expansion state is retained across rebuilds by node **id**, not by index: a
+/// tree that collapsed itself when its model reordered would be the same defect
+/// list keys exist to prevent. So an id is required rather than derived,
 /// and two nodes sharing one is an application bug this cannot see: what it would
 /// look like is two rows expanding together.
 ///
@@ -29,8 +29,7 @@ import org.jspecify.annotations.Nullable;
 /// - **A parent** carries its children, which is every node an application
 ///   already has in memory.
 /// - **A lazy parent** carries a [Supplier] instead, fetched when it first
-///   expands and never again. §3 asks for exactly this — "lazy, so a node's
-///   children are fetched when it first expands" — and it is the reason
+///   expands and never again. That is the reason
 ///   [#mayHaveChildren()] exists apart from [#children()]: a node that has not
 ///   been opened must draw a chevron **before** anyone knows whether it has
 ///   anything in it, or a directory tree would have to stat the whole disk to
@@ -41,13 +40,15 @@ import org.jspecify.annotations.Nullable;
 /// @param children the children it already has, empty for a leaf and ignored when
 ///                 `supplier` is set
 /// @param supplier where to get the children the first time it expands, or null
+///
+/// Read more: [Collections](https://goldberry.dev/docs/components/collections.html#tree).
 public record TreeNode(
         String id,
         String label,
         List<TreeNode> children,
         @Nullable Supplier<List<TreeNode>> supplier) {
 
-    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    /// Written out so that the parameters taking null for a default can say so.
     public TreeNode(
             String id, String label, @Nullable List<TreeNode> children, @Nullable Supplier<List<TreeNode>> supplier) {
         Objects.requireNonNull(id, "id");
@@ -80,8 +81,7 @@ public record TreeNode(
         return new TreeNode(id, label, List.of(), Objects.requireNonNull(supplier, "supplier"));
     }
 
-    /// Whether a chevron is drawn — §3's "nodes that have **or may have**
-    /// children".
+    /// Whether a chevron is drawn: on nodes that have **or may have** children.
     ///
     /// True for a lazy node whose supplier has never run, which is the whole
     /// point: the alternative is fetching everything to find out what to draw.

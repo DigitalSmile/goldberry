@@ -17,7 +17,7 @@ import dev.goldberry.widget.attr.Bindable;
 import dev.goldberry.widgets.markup.Markup;
 import dev.goldberry.widgets.markup.Wiring;
 
-/// A strip of tabs over one panel — `docs/core-widgets.md` §5's `tabs`.
+/// A strip of tab headers over one panel that shows the selected tab's content.
 ///
 /// ```kdl
 /// tabs bind="view.tab" change="app.pick-tab" close="app.close-tab" new="app.new-tab" {
@@ -26,16 +26,23 @@ import dev.goldberry.widgets.markup.Wiring;
 /// }
 /// ```
 ///
+/// ```java
+/// new Tabs(selected, List.of(editor, log), null, this::pick, this::close, null, Attributes.NONE)
+/// ```
+///
+/// `bind=` names the model value that holds the selected tab's `value`;
+/// `change=`, `close=` and `new=` name the actions the strip raises when the
+/// user picks a tab, closes one, or presses the add affordance.
+///
 /// ## Controlled, like every other value in this toolkit
 ///
 /// The strip **reads** which tab is selected through `bind` and reports what the
-/// user asked for through `change`. It selects nothing itself
-/// (ADR-0063),
-/// which is the same shape `radio-group` and `segmented` have — and it is what
-/// makes adding and removing tabs work without a single API for either: the list
-/// of tabs is the application's, `close` asks for one to go, `new` asks for one to
-/// arrive, and the strip draws whatever comes back
-/// (ADR-0107).
+/// user asked for through `change`. It selects nothing itself, because data
+/// flows down and events flow up, which is the same shape `radio-group` and
+/// `segmented` have — and it is what makes adding and removing tabs work
+/// without a single API for either: the list of tabs is the application's,
+/// `close` asks for one to go, `new` asks for one to arrive, and the strip draws
+/// whatever comes back.
 ///
 /// A strip whose `close` handler does nothing keeps its tab, which is the visible
 /// form of "the model did not change" and is where the bug is when a tab will not
@@ -47,21 +54,19 @@ import dev.goldberry.widgets.markup.Wiring;
 /// widget that was also styled would put two `tabs` nodes in the cascade, one
 /// inside the other, and every rule in `controls.css` would apply to both — which
 /// is a doubled padding and a doubled border waiting to happen. So this is a
-/// composition node: it holds the model, and what it builds holds the appearance
-/// (ADR-0109).
+/// composition node: it holds the model, and what it builds holds the appearance.
 ///
 /// ## Three parts, and only one of them is built twice
 ///
 /// `tab-list` holds the headers; `tab-panel` holds the selected tab's content.
-/// **Only the selected tab's content is built into an element at all** — §5's
-/// "lazy content instantiation" — so nine unselected tabs cost nine headers and
-/// nothing behind them.
+/// **Only the selected tab's content is built into an element at all**, so nine
+/// unselected tabs cost nine headers and nothing behind them. [#keepAlive(boolean)]
+/// trades that for a background tab that keeps its state.
 ///
 /// ## Keyboard
 ///
-/// One Tab stop with the arrows roving inside it, per §7.2 — `HORIZONTAL`,
-/// because a top-placed strip is a row and `Up`/`Down` belong to whatever is
-/// above it (ADR-0078).
+/// One Tab stop with the arrows roving inside it — `HORIZONTAL`, because a
+/// top-placed strip is a row and `Up`/`Down` belong to whatever is above it.
 /// `Delete` on a closable tab asks for it to close, which is the keyboard's answer
 /// to an affordance that is otherwise a small target for a pointer.
 ///
@@ -69,12 +74,14 @@ import dev.goldberry.widgets.markup.Wiring;
 /// @param children   the tabs, as written. Anything that is not a [Tab] is drawn
 ///                   in the strip and left alone, which is how a spacer or a
 ///                   button gets into a tab bar
-/// @param source     §9's `bind` — read-only
+/// @param source     the model value `bind` names — read-only
 /// @param onChange   what the user asked to select
 /// @param onClose    what the user asked to close, or null for a strip nobody can
 ///                   shorten
 /// @param onNew      what the user asked to add, or null for no add affordance
 /// @param attributes `id` and `class`, exactly as on the primitives
+///
+/// Read more: [Panels](https://goldberry.dev/docs/components/panels.html#tabs).
 @Markup("tabs")
 public record Tabs(
         @Nullable String value,
@@ -88,7 +95,7 @@ public record Tabs(
         Attributes attributes)
         implements Widget.Stateful, Attributed<Tabs>, Bindable<Tabs> {
 
-    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    /// Written out so that the parameters taking null for a default can say so.
     public Tabs(
             @Nullable String value,
             @Nullable List<Widget> children,
@@ -131,7 +138,7 @@ public record Tabs(
 
     /// This strip letting a tab be dragged along the row to a new place, and
     /// asking `handler` to move it — the tab's value and the index it was dropped
-    /// at among the others (ADR-0372).
+    /// at among the others.
     ///
     /// It asks and does not reorder, for `change`'s reason: the list is the
     /// application's, and the strip draws the order it is given.
@@ -148,9 +155,9 @@ public record Tabs(
 
     /// This strip keeping every tab it has shown mounted, hidden while another is
     /// selected — so a background tab's scroll position, caret and half-typed form
-    /// are still there when it comes back (ADR-0366).
+    /// are still there when it comes back.
     ///
-    /// Off by default: §5 asks for "lazy content instantiation", and a strip of
+    /// Off by default: a tab's content is lazy, and a strip of
     /// twenty heavy documents that kept every one alive would hold all twenty.
     /// A tab that has never been selected is still not built, and a closed one is
     /// let go.
@@ -171,8 +178,8 @@ public record Tabs(
 
     /// This strip with an add affordance at the end of the row.
     ///
-    /// §5 does not ask for one — it asks for "closable tabs optional" and says
-    /// nothing about adding — but a strip that can lose tabs and never gain them
+    /// Closing is optional and adding is not asked for at all, but a strip that
+    /// can lose tabs and never gain them
     /// is half a control, and the alternative is every application drawing its own
     /// `+` and lining it up with the row by hand.
     public Tabs onNew(Runnable handler) {
@@ -216,8 +223,7 @@ public record Tabs(
     /// A tab that has just been added has to fade up from nothing, and one that
     /// has just been closed has to fade down — after the application has already
     /// dropped it from its list, so something has to hold on to it for the length
-    /// of the animation. That is the whole of what [TabsState] does
-    /// (ADR-0109).
+    /// of the animation. That is the whole of what [TabsState] does.
     @Override
     public State<?> createState() {
         return new TabsState();
@@ -241,7 +247,7 @@ public record Tabs(
     ///
     /// `close` and `new` are the two halves of "a tab strip's list is the
     /// application's": the strip asks and the application answers, exactly as
-    /// `change` does for the selection (ADR-0063, ADR-0107).
+    /// `change` does for the selection.
     public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
         return new Tabs(
                 node.stringProperty("value"),

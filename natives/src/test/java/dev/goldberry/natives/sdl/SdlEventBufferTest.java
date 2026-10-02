@@ -28,8 +28,7 @@ import dev.goldberry.natives.sdl.event.SdlWheelDirection;
 /// arena's. The `assumeTrue(NativeLibrary.isAvailable())` this used to open with
 /// skipped the class wherever the superbuild had not run, and skipped it in CI
 /// as well, because an assumption is not
-/// [dev.goldberry.natives.NativeLibraryRequirement]
-/// (ADR-0016).
+/// [dev.goldberry.natives.NativeLibraryRequirement].
 class SdlEventBufferTest {
 
     private static final long WHEEL_X = Layouts.SDL_MOUSE_WHEEL_EVENT.offsetOf("x");

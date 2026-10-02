@@ -11,6 +11,8 @@ import java.lang.foreign.MemorySegment;
 /// what was used, rather than in the driver. A resource still open when its
 /// device closes is released by the device, so closing the device is always
 /// safe; SDL requires it and would otherwise leak or crash.
+///
+/// Read more: [The native boundary](https://goldberry.dev/docs/overview/architecture.html#the-native-boundary).
 public abstract sealed class SdlGpuResource implements AutoCloseable
         permits SdlGpuTexture,
                 SdlGpuBuffer,

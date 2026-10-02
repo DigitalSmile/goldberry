@@ -14,6 +14,9 @@ import org.slf4j.Logger;
 /// because there are two call sites and there will be more: a source that
 /// forgets a level is a message that vanishes, and a missing constant here is a
 /// compile error instead.
+///
+/// Read more:
+/// [The platform's own libraries](https://goldberry.dev/docs/guide/logging.html#the-platforms-own-libraries).
 public enum NativeLogLevel {
 
     /// Something the library could not do. GLib's `G_LOG_LEVEL_ERROR` and

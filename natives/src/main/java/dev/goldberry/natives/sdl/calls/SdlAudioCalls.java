@@ -12,7 +12,7 @@ import java.lang.invoke.MethodHandle;
 
 import dev.goldberry.natives.Downcalls;
 
-/// SDL's audio streams, for `goldberry-media`'s audio sink (ADR-0461).
+/// SDL's audio streams, for `goldberry-media`'s audio sink.
 ///
 /// A push stream on the default playback device: the media engine puts
 /// interleaved f32 into it and reads back how much is still queued, which is its

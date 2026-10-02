@@ -63,8 +63,7 @@ class SdlTest {
     /// held the right answer and the wrong answer are both usually zero. Pressing
     /// a key is not something a headless test can do, so what is checked is that
     /// the call **crosses at all** — the symbol is on the export list, the
-    /// descriptor matches, and nothing above the low 16 bits leaks through
-    /// ([ADR-0089]).
+    /// descriptor matches, and nothing above the low 16 bits leaks through.
     @Test
     @DisplayName("the modifier state crosses, and carries no bits above the mask")
     void readsModifierState() {

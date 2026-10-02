@@ -14,14 +14,20 @@ import org.slf4j.Logger;
 import dev.goldberry.log.Logs;
 
 /// A `text/uri-list` — the way every desktop puts a **file list** on the
-/// clipboard ([ADR-0406]).
+/// clipboard.
 ///
-/// The clipboard's byte half already carried this: `text/uri-list` is bytes under
-/// a MIME type like anything else and has worked since [ADR-0286]. What was
-/// missing is the twenty lines that turn those bytes into names, which every
-/// application would otherwise write, and each of them slightly differently —
-/// percent-decoding is the part that is easy to get wrong and impossible to
-/// notice, because it only shows on a file with a space in it.
+/// ```java
+/// if (UriList.onClipboard(clipboard)) {
+///     List<Path> files = UriList.fromClipboard(clipboard).paths();
+/// }
+/// UriList.of(exported).toClipboard(clipboard);
+/// ```
+///
+/// The clipboard's byte half carries this as bytes under a MIME type like
+/// anything else. This type is the twenty lines that turn those bytes into
+/// names, which every application would otherwise write, and each of them
+/// slightly differently — percent-decoding is the part that is easy to get wrong
+/// and impossible to notice, because it only shows on a file with a space in it.
 ///
 /// ## The format, and where it bites
 ///
@@ -48,13 +54,14 @@ import dev.goldberry.log.Logs;
 /// A line that is not a URI at all is **dropped with a log** rather than
 /// throwing: the list came from another application over a protocol with no
 /// schema, and a paste of nine good names that failed on the tenth is worse than
-/// a paste of nine ([ADR-0330] decided this for the drag-and-drop path, whose
-/// names arrive from the same desktops).
+/// a paste of nine. Dropped files are read the same way, from the same desktops.
 ///
 /// ## Reading one is a paste
 ///
 /// [#fromClipboard] goes through [Clipboard#read], which is a round trip to
 /// whichever application owns the clipboard. [#onClipboard] is the cheap question.
+///
+/// Read more: [Text, fonts and icons](https://goldberry.dev/docs/guide/text.html#the-clipboard).
 ///
 /// @param uris the entries, in the order they were listed; every one a URI, not
 ///             every one a file

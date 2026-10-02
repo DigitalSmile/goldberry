@@ -1,12 +1,12 @@
 package dev.goldberry.widgets.form.parts;
 
 /// What an input method is composing over a field, held beside the field's text
-/// and never in it — `docs/gaps.md` G16.
+/// and never in it.
 ///
 /// A composition is a proposal: `にほんご` becomes `日本語` and every character of
 /// what was typed is replaced when the user picks a candidate. A control that
 /// inserted this would report keystrokes the user never chose and fill the undo
-/// history with them (ADR-0292). So it lives here, is spliced into what is
+/// history with them. So it lives here, is spliced into what is
 /// *drawn* through [#composingAt], and the value only moves when the accepted
 /// candidate arrives as committed text.
 ///

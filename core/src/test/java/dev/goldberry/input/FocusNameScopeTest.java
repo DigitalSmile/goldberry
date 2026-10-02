@@ -18,7 +18,7 @@ import dev.goldberry.widget.Widget;
 import dev.goldberry.widget.style.Styled;
 
 /// A focus name is resolved **inside the composite the keyboard is in** before
-/// the window — [ADR-0437].
+/// the window.
 ///
 /// In `:core` and built from bare widgets rather than from `list`, for
 /// [FocusTrapTest]'s reason: the rule is the router's and holds for whatever

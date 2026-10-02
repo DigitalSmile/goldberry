@@ -13,17 +13,17 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 
-/// The face is declared to `native-image`, not left to a trace (ADR-0160,
-/// ADR-0453).
+/// The face is declared to `native-image` in this module's reachability
+/// metadata, not left to a tracing run to discover.
 ///
 /// This module ships one resource and it is the exact one `:core`'s own
 /// metadata names as the thing a traced run misses — "Inter but neither
 /// JetBrains Mono nor OpenMoji, because the run never switched theme and never
-/// drew mono text or an emoji". OpenMoji then moved out of `:core` (ADR-0384)
-/// and its declaration did not follow, so nothing covered it and the showcase's
+/// drew mono text or an emoji". When the emoji face moved out of `:core`
+/// its declaration did not follow, so nothing covered it and the showcase's
 /// native image died on the first paragraph containing an emoji.
 ///
-/// The face has since changed to Noto Color Emoji (ADR-0456) and the guard
+/// The face has since changed to Noto Color Emoji and the guard
 /// stayed, because it guards the directory rather than the name: a glob over
 /// `emoji/fonts/*.ttf` covers whichever face the asset step writes there.
 ///

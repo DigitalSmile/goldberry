@@ -25,7 +25,8 @@ import dev.goldberry.bind.Model;
 import dev.goldberry.bind.Observable;
 import dev.goldberry.bind.Property;
 
-/// What a model does in a jar the weaver never ran over (ADR-0155).
+/// What a model does in a jar the weaver never ran over: it binds reflectively
+/// at run time.
 ///
 /// `:core` deliberately does not apply `goldberry.weave`, so every model below is
 /// compiled exactly as it is written and every assertion here is about the
@@ -154,7 +155,7 @@ class RuntimeBindingTest {
     }
 
     /// The window's actions: no values at all, and a record, which is the shape
-    /// ADR-0138 asks for.
+    /// a window's actions take.
     @Actions
     record WindowActions(List<String> log) {
 

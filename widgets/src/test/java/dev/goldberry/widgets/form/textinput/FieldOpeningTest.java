@@ -18,7 +18,7 @@ import dev.goldberry.widgets.Controls;
 import dev.goldberry.widgets.TestHost;
 import dev.goldberry.widgets.controls.TestFont;
 
-/// Which end of a long value a field opens on — [ADR-0412].
+/// Which end of a long value a field opens on.
 ///
 /// [dev.goldberry.text.edit.TextEdit#of] puts the caret at the
 /// end of the value, which is where typing goes and is not where reading starts.
@@ -30,7 +30,7 @@ import dev.goldberry.widgets.controls.TestFont;
 /// checks the pair: untouched shows the head, and the first press, key, edit or
 /// focus puts the old behaviour back for good.
 ///
-/// [ReadOnlyCaretTest] is the other half, from [ADR-0326]: a field nobody can type
+/// [ReadOnlyCaretTest] is the other half: a field nobody can type
 /// into has its caret moved instead, because there is no typing to come back to.
 class FieldOpeningTest {
 
@@ -159,7 +159,7 @@ class FieldOpeningTest {
             assertTrue(caret > 0 && caret < INVITE.length() / 2, "the press landed in the head, which was under it");
             // Not exactly zero: a caret at the last visible character needs its own
             // width of room, which is a pixel and a bit of `--gb-caret-width`
-            // (ADR-0253) rather than the width of the tail.
+            // rather than the width of the tail.
             assertTrue(
                     state(tree).scrolledBy() < 5,
                     "and the field stayed on the head: " + state(tree).scrolledBy());

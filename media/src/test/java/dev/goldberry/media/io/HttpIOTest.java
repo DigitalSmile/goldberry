@@ -32,7 +32,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 /// `HttpIO` against a local server: Range, the read-ahead cache, reconnects,
-/// stalls, timeouts, ICY, and the abort (`docs/goldberry-media.md` §4, §9).
+/// stalls, timeouts, ICY, and the abort.
 ///
 /// No FFmpeg here: this is the byte stream the demuxer would read, checked byte
 /// for byte against what the server holds.
@@ -166,7 +166,7 @@ class HttpIOTest {
         }
 
         @Test
-        @DisplayName("a seek into what is cached sends no request (S3)")
+        @DisplayName("a seek into what is cached sends no request")
         void seekInsideTheCache() throws IOException {
             open(DATA, FAST);
             assertArrayEquals(DATA, readAll(io));
@@ -180,7 +180,7 @@ class HttpIOTest {
         }
 
         @Test
-        @DisplayName("a seek outside the cache opens a Range at the new place, under a new connection (S3)")
+        @DisplayName("a seek outside the cache opens a Range at the new place, under a new connection")
         void seekOutsideTheCache() throws IOException {
             // A read-ahead of four chunks: the far end of the file is not fetched
             // until asked for.
@@ -211,7 +211,7 @@ class HttpIOTest {
         }
 
         @Test
-        @DisplayName("a dropped connection resumes by Range at the byte where it broke (S3)")
+        @DisplayName("a dropped connection resumes by Range at the byte where it broke")
         void resumesAfterADrop() throws IOException {
             server = new TestHttpServer(DATA);
             server.dropAfter = 50_000;
@@ -376,7 +376,7 @@ class HttpIOTest {
     }
 
     @Nested
-    @DisplayName("an ICY radio station (S6)")
+    @DisplayName("an ICY radio station")
     class Radio {
 
         @Test

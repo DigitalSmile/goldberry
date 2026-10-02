@@ -23,8 +23,8 @@ import dev.goldberry.widgets.Widgets;
 ///
 /// A sample in documentation is read more often than any test, and a node name
 /// that was renamed after the chapter was written is a reader's first failure.
-/// `docs/book.md` promises that every fenced `kdl` block is a document the
-/// inflater accepts, so this is where that promise is kept. It runs here rather
+/// The guide promises that every fenced `kdl` block is a document the inflater
+/// accepts, so this is where that promise is kept. It runs here rather
 /// than in `:widgets` because the showcase is the one module with every widget
 /// catalogue on its path: `markdown-view`, `video-view` and `canvas3d` are
 /// names the guide writes and `:widgets` alone cannot inflate.
@@ -37,7 +37,9 @@ import dev.goldberry.widgets.Widgets;
 ///
 /// A `markdown-view` parses its text through md4c as it inflates, so that one
 /// sample needs `libgoldberry`. Where a build has none it skips, the way a test
-/// that paints does (ADR-0357), and inflates in every lane that has the library.
+/// that paints does, and inflates in every lane that has the library.
+///
+/// Read more: [Tests and gates](https://goldberry.dev/docs/contributing/testing.html#with-and-without-the-library).
 class BookMarkupTest {
 
     @Test

@@ -2,28 +2,26 @@ package dev.goldberry.widgets.core.scroll;
 
 /// When a scroll view last moved, and therefore how visible its bars are.
 ///
-/// §2.4 asks for "overlay auto-hiding scrollbars […] fade after 800ms idle".
-/// That is not a transition and cannot be one: a transition interpolates between
-/// two styles the cascade resolved
-/// (ADR-0067),
-/// and "800ms after the last time anything happened" is not a style — no selector
-/// can express *when*. So this is [Phase]'s shape and `spinner`'s before it: a
-/// function of the frame clock, read in `render`, which is the only place a
-/// widget is handed one
-/// (ADR-0081).
+/// Overlay scrollbars hide themselves: they fade after 800ms idle. That is not
+/// a transition and cannot be one: a transition interpolates between two styles
+/// the cascade resolved, and "800ms after the last time anything happened" is
+/// not a style — no selector can express *when*. So this is [Phase]'s shape and
+/// `spinner`'s before it: a function of the frame clock, read in `render`, which
+/// is the only place a widget is handed one.
 ///
 /// Mutable and confined to the UI thread, for [Phase]'s reason exactly: when
 /// something last happened cannot be known until the frame that draws it, and a
 /// record would mean rebuilding the widget tree to record the passage of time.
 final class ScrollFade {
 
-    /// How long the bars stay at full strength after the last movement — §2.4's
-    /// number, and the one thing in this file that is quoted rather than derived.
+    /// How long the bars stay at full strength after the last movement — the
+    /// design system's number, and the one thing in this file that is quoted
+    /// rather than derived.
     static final double IDLE_MILLIS = 800;
 
     /// How long they take to go once they start going.
     ///
-    /// §1.7's `base`. A constant rather than a token for [Phase#DURATION_MILLIS]'s
+    /// The design system's `base`. A constant rather than a token for [Phase#DURATION_MILLIS]'s
     /// reason: a clock-driven animation cannot read a `transition` declaration,
     /// because it is not one.
     static final double FADE_MILLIS = 160;
@@ -49,7 +47,7 @@ final class ScrollFade {
     private double now = Double.NaN;
 
     /// Whether the pointer is over the viewport, which holds the bars open
-    /// regardless of the clock — §2.4 widens them on hover, and a bar that faded
+    /// regardless of the clock — the bars widen on hover, and a bar that faded
     /// out from under a pointer resting on it would be absurd.
     private boolean held;
 
@@ -81,7 +79,7 @@ final class ScrollFade {
     ///
     /// Zero before anything has ever moved, which is deliberate: a window that
     /// opens on a scrollable document shows no bar until the user does something
-    /// or points at it. §2.4 calls these *overlay* scrollbars, and an overlay
+    /// or points at it. These are *overlay* scrollbars, and an overlay
     /// that greets you is a reserved gutter with extra steps.
     double opacity() {
         if (held) {
@@ -101,7 +99,7 @@ final class ScrollFade {
     /// Whether another frame is owed at `now` — true while the bars are still on
     /// their way out.
     ///
-    /// The other half of ADR-0081's contract: without this, §1.7's idle frame
+    /// The other half of the frame-clock contract: without this, the idle frame
     /// loop would paint the bars once and stop, leaving them permanently at
     /// whatever opacity the last frame happened to catch.
     boolean isAnimating() {

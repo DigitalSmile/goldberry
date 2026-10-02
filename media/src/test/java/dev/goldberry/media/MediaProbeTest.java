@@ -24,8 +24,7 @@ import dev.goldberry.media.codec.TrackParams;
 import dev.goldberry.media.io.MemoryIO;
 import dev.goldberry.media.io.Source;
 
-/// Phase 1's exit criterion: Java probes a file through MediaIO and lists its
-/// tracks (`docs/goldberry-media.md` §8).
+/// Java probes a file through MediaIO and lists its tracks.
 ///
 /// The input is a WAV written by [Wav] rather than a fixture file, so its
 /// duration, rate and channel count are known exactly.

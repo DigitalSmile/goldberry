@@ -14,14 +14,13 @@ import dev.goldberry.widget.style.Styled;
 
 /// The hairline under a [TabList] — a **part**, and a box.
 ///
-/// It was a box for [TabIndicator]'s reason, that §8's subset had no
-/// `border-bottom`, and it stays one now that it has (ADR-0505): a border on the
+/// A box rather than a `border-bottom` on the list, because a border on the
 /// list is drawn before the tabs, and the indicator has to lie over this line.
 ///
 /// It runs the full width of the strip and the selected tab's indicator is drawn
 /// *over* it, which is what makes a tab read as attached to its panel. Both are
 /// absolutely positioned and the indicator is listed after, because a box tree
-/// has no z-order beyond document order (ADR-0053).
+/// has no z-order beyond document order.
 record TabRule() implements Widget.Leaf, Styled, Paints {
 
     private static final Insets PINNED =

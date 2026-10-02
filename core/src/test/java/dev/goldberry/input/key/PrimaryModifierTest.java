@@ -5,10 +5,10 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-/// The suite presses the same modifier on every desktop — [ADR-0396].
+/// The suite presses the same modifier on every desktop.
 ///
-/// `PrimaryModifier.current()` is `Cmd` on macOS and `Ctrl` elsewhere
-/// (ADR-0378), and the editing accelerators follow it. Every test that types
+/// `PrimaryModifier.current()` is `Cmd` on macOS and `Ctrl` elsewhere,
+/// and the editing accelerators follow it. Every test that types
 /// `Modifiers.of(Mod.CTRL)` into a field is therefore a different test on a
 /// macOS runner unless the build pins the answer, which the test conventions do
 /// with `-Dgoldberry.input.primary=ctrl`. This holds that pin in place: it

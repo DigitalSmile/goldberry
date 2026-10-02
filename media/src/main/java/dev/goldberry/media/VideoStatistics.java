@@ -1,8 +1,7 @@
 package dev.goldberry.media;
 
 /// What has happened to a source's pictures since it was opened
-/// ([MediaPlayer#videoStatistics()]): what a player's smoothness is measured by
-/// (`docs/gpu-plan.md`, phase 6).
+/// ([MediaPlayer#videoStatistics()]): what a player's smoothness is measured by.
 ///
 /// A picture is decoded, then either dropped before it is prepared ([#late]),
 /// or queued; a queued picture is either handed out to a view ([#shown]) or
@@ -16,6 +15,8 @@ package dev.goldberry.media;
 /// @param passed  pictures prepared and queued whose time came and went before
 ///                any view was handed them
 /// @param shown   pictures handed out to a view, each counted once
+///
+/// Read more: [A player](https://goldberry.dev/docs/components/media.html#a-player).
 public record VideoStatistics(long decoded, long late, long passed, long shown) {
 
     /// Nothing open.

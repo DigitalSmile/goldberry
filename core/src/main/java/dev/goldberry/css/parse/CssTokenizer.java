@@ -6,6 +6,10 @@ import java.util.Objects;
 
 /// Turns stylesheet text into [Token]s.
 ///
+/// ```java
+/// List<Token> tokens = CssTokenizer.tokenize(css);
+/// ```
+///
 /// Follows [CSS Syntax Level 3][spec] for everything it implements, because the
 /// awkward parts of CSS tokenization are awkward for reasons — `#ff0000` is not
 /// an identifier, `-5px` is one token and `- 5px` is three, `var (x)` is not a
@@ -19,13 +23,16 @@ import java.util.Objects;
 ///   `url("foo.png")` will tokenize as a normal function when one arrives.
 /// - **CDO/CDC (`<!--`, `-->`).** They exist so 1996 browsers could hide CSS
 ///   inside HTML comments. There is no such thing here.
-/// - **Unicode ranges.** Only meaningful inside `@font-face`, which §6.1 does not
-///   have: fonts are resolved through the asset catalog, not by the stylesheet.
+/// - **Unicode ranges.** Only meaningful inside `@font-face`, which the subset
+///   does not have: fonts are resolved through the font book, not by the
+///   stylesheet.
 /// - **`bad-string` / `bad-url` recovery tokens.** The spec emits these so a
 ///   browser can carry on; [CssSyntaxException] explains why this does not.
 ///
 /// Everything else in the token grammar is here, including escapes and non-ASCII
 /// identifiers.
+///
+/// Read more: [Styling](https://goldberry.dev/docs/guide/styling.html).
 ///
 /// [spec]: https://www.w3.org/TR/css-syntax-3/#tokenization
 public final class CssTokenizer {

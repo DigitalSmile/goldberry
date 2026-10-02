@@ -32,11 +32,11 @@ import dev.goldberry.widgets.core.scroll.ScrollAxis;
 import dev.goldberry.widgets.text.Text;
 
 /// A `knob` inside a `scroll`, which is the bubble path for a wheel and the one
-/// arrangement neither widget's own tests can build ([ADR-0236]).
+/// arrangement neither widget's own tests can build.
 ///
-/// `TODO.md` had been holding this open since [ADR-0089] under the heading
+/// `TODO.md` had been holding this open since the knob shipped, under the heading
 /// "`Kind.WHEEL` had exactly one consumer, and it showed": the wheel *route* has
-/// been covered since ADR-0061 — a fabricated SDL event through the real
+/// been covered since the first pushed events — a fabricated SDL event through the real
 /// translate and the real sink — but until `scroll` shipped there was nothing
 /// above a knob for an unconsumed wheel to reach, so the half of the contract
 /// that is about **not** consuming had never been run. Both cases the entry
@@ -70,7 +70,7 @@ class KnobChainingTest {
     /// One, because the knob has to survive it: a notch is
     /// `ScrollViewport.LINES_PER_NOTCH` lines of `ScrollViewport.LINE`, which is
     /// 60px, and the knob sits about 120 down a list in a 120-tall viewport. This
-    /// was two while a notch was one line and 40px ([ADR-0314]) — the assertion
+    /// was two while a notch was one line and 40px — the assertion
     /// in [Harness#wheelOverTheKnob] is what caught the change, which is what it
     /// was written for.
     private static final float PRE_SCROLL = 1;
@@ -165,7 +165,7 @@ class KnobChainingTest {
                 "the scroll view never saw the wheel; the content is still at " + harness.contentMiddle());
     }
 
-    /// The case that opened [ADR-0238] while this file was being written, and
+    /// The case that came to light while this file was being written, and
     /// the one a knob cannot fix for itself: a **disabled** knob never reaches
     /// [Knob#onPointer] at all, because the router refuses input to a disabled
     /// subtree — and used to refuse it by returning before the chain was built,

@@ -14,10 +14,10 @@ import dev.goldberry.widgets.core.presence.Phase;
 
 /// Which slide a [Carousel] is showing, and whether the rotation is running.
 ///
-/// The rotation is the whole of why this class is interesting. Everything else in
-/// §5 is a description; this holds a **timer**, which is a thing that keeps
-/// happening, and §1.7 rule 4 makes the conditions for stopping it as important
-/// as the rotation itself ([ADR-0165]).
+/// The rotation is the whole of why this class is interesting. Every other panel
+/// is a description; this holds a timer, which is a thing that keeps happening,
+/// and the design system's rule against motion that loops makes the conditions
+/// for stopping it as important as the rotation itself.
 final class CarouselState extends State<Carousel> {
 
     /// Only meaningful while the widget is uncontrolled.
@@ -56,7 +56,7 @@ final class CarouselState extends State<Carousel> {
     /// Whether the keyboard is anywhere in this carousel — the strip, the
     /// carousel's own controls, or a widget inside a slide.
     ///
-    /// §5's "on focus anywhere inside", and the third of the three brakes. Two
+    /// Focus anywhere inside, which is the third of the three brakes. Two
     /// different questions arrive at [#focus]: [CarouselView] is focusable
     /// itself and answers `onFocusChanged`, while a button inside a slide is not
     /// that node at all and reaches here through
@@ -64,7 +64,7 @@ final class CarouselState extends State<Carousel> {
     /// which reports the subtree gaining or losing the keyboard as a whole. So a
     /// carousel is told that somebody tabbed into a slide and told nothing about
     /// the moves they make once they are in there — and somebody who has tabbed
-    /// into a slide is exactly somebody reading it ([ADR-0165]).
+    /// into a slide is exactly somebody reading it.
     private boolean focused;
 
     /// What the last frame said about the motion preference.
@@ -80,7 +80,7 @@ final class CarouselState extends State<Carousel> {
     /// clock is stamped on the first frame that draws it, because `render` is the
     /// only place a widget has one (`tabs`'s arrangement, [Phase]).
     ///
-    /// There is no *departure*. §5 builds only the current slide, and keeping the
+    /// There is no *departure*. Only the current slide is built, and keeping the
     /// old one alive for the length of a fade would be building a slide that has
     /// been moved away from — which is the one thing "only the current slide is
     /// built" says it does not do. So the outgoing slide is dropped and the
@@ -141,7 +141,7 @@ final class CarouselState extends State<Carousel> {
                 // The phase itself, not a function of the clock. This used to be
                 // `this::visibility`, which is never null — so the viewport's
                 // `isAnimating` answered true for ever and a window with a
-                // carousel on it never went idle ([ADR-0228]).
+                // carousel on it never went idle.
                 arriving,
                 direction);
     }
@@ -249,8 +249,8 @@ final class CarouselState extends State<Carousel> {
         }
     }
 
-    /// §5's three reasons to stop, plus the ones that are simply "there is
-    /// nothing to rotate".
+    /// The three reasons to stop — hover, focus, reduced motion — plus the ones
+    /// that are simply "there is nothing to rotate".
     ///
     /// **The last of them is the one a build found**: a carousel that does not
     /// loop has nowhere to go from its final slide, and rescheduling there wakes

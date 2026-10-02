@@ -18,7 +18,9 @@ import dev.goldberry.widgets.controls.option.Suggested;
 import dev.goldberry.widgets.markup.Markup;
 import dev.goldberry.widgets.markup.Wiring;
 
-/// A single-line text field — `docs/core-widgets.md` §4's `text-input`.
+/// A single-line text field: a caret, a selection, a clipboard, undo, a
+/// placeholder, a maximum length, password masking, input filters and
+/// autocomplete.
 ///
 /// ```kdl
 /// field label="Name" required=#true {
@@ -53,8 +55,8 @@ import dev.goldberry.widgets.markup.Wiring;
 /// checkbox's whole state is one bit that the model can hold; a field's includes
 /// a caret, a selection and an undo stack, and a model that held those would have
 /// to be told about every keystroke to keep them right. So the field owns the
-/// edit and **reports** each new value through `change`, exactly as §9's "data
-/// flows down, events flow up" says ([ADR-0063]).
+/// edit and **reports** each new value through `change`: data flows down and
+/// events flow up.
 ///
 /// A `bind=` value therefore behaves as the *initial* text and as an override: a
 /// value arriving that differs from what the field holds is somebody else's and
@@ -62,16 +64,15 @@ import dev.goldberry.widgets.markup.Wiring;
 /// and is ignored. Without that test every `change` handler that wrote back to
 /// its model would reset the caret to the end on every letter.
 ///
-/// ## What §4 asks for, and what is here
+/// ## What is here
 ///
 /// Caret, selection by mouse and keyboard with word operations, clipboard,
 /// undo/redo, placeholder, maximum length, `password` masking with no
-/// clipboard-out, and input filters. IME preedit and right-to-left editing are
-/// M5 and are deferred by `docs/ARCHITECTURE.md` §17 — committed text from an IME
-/// works today, because the platform hands over finished characters and this
-/// field takes them like any others; what is missing is the *underlined
-/// in-progress* text, which needs a second string the field draws and does not
-/// hold.
+/// clipboard-out, input filters, and an input method's composition drawn
+/// underlined at the caret until the user accepts it. Right-to-left editing is
+/// not here yet.
+///
+/// Read more: [Fields and forms](https://goldberry.dev/docs/components/forms.html#text-input).
 ///
 /// @param value       the text when nothing is bound
 /// @param source      the `bind=` value, or null
@@ -81,7 +82,7 @@ import dev.goldberry.widgets.markup.Wiring;
 /// @param password    whether it masks what it holds and refuses to copy it out
 /// @param readOnly    whether it takes focus and a caret but no edits
 /// @param filter      what it will accept — see [TextFilter]
-/// @param suggestions §4's autocomplete: what to offer under the field **right
+/// @param suggestions autocomplete: what to offer under the field **right
 ///                    now**, or empty for an ordinary field. See [#suggestions]
 /// @param disabled    whether it refuses focus and matches `:disabled`
 /// @param attributes  the `id`, classes and key the document wrote
@@ -106,7 +107,7 @@ public record TextInput(
     public static final int UNLIMITED = -1;
 
     /// The canonical constructor, written out because `value`, `placeholder`, `filter`, `suggestions`
-    /// and `attributes` take null for a default (ADR-0497).
+    /// and `attributes` take null for a default.
     public TextInput(
             @Nullable String value,
             @Nullable Observable<?> source,
@@ -166,7 +167,7 @@ public record TextInput(
     /// A field following a property. The Java spelling of `bind=`.
     ///
     /// @param source read-only by construction, so the field cannot write to the
-    ///               model even by accident ([ADR-0063])
+    ///               model even by accident
     public static TextInput of(Observable<?> source, Consumer<String> onChange) {
         return new TextInput(
                 "",
@@ -335,20 +336,19 @@ public record TextInput(
                 value);
     }
 
-    /// This field offering `options` under itself — §4's autocomplete.
+    /// This field offering `options` under itself — autocomplete.
     ///
     /// ## The field's text is never rewritten without the user choosing
     ///
-    /// Which is §4's own sentence, and it falls out of this shape rather than
-    /// being enforced anywhere: the widget reports what was typed through
-    /// `change` and offers back whatever it is handed, and choosing a suggestion
-    /// reports *that* through the same `change`. Nothing here sets anything
-    /// ([ADR-0063]) — so a handler that ignores a suggestion leaves the field
-    /// exactly as the user typed it, which is the visible form of "the model did
-    /// not change".
+    /// That falls out of this shape rather than being enforced anywhere: the
+    /// widget reports what was typed through `change` and offers back whatever
+    /// it is handed, and choosing a suggestion reports *that* through the same
+    /// `change`. Nothing here sets anything — so a handler that ignores a
+    /// suggestion leaves the field exactly as the user typed it, which is the
+    /// visible form of "the model did not change".
     ///
-    /// **Filtering is the application's**, for the reason §3 gives the combobox
-    /// form: a remote-backed autocomplete is then the same widget with a slower
+    /// **Filtering is the application's**, for the reason a combobox's is: a
+    /// remote-backed autocomplete is then the same widget with a slower
     /// model, and nothing in the toolkit has to guess what "matches" means for a
     /// street address or a species name.
     ///
@@ -388,12 +388,12 @@ public record TextInput(
     ///
     /// The `change` action takes the new text, which is the valued form
     /// `segmented` and `select` already use: a field's handler is useless without
-    /// what was typed (ADR-0073).
+    /// what was typed.
     public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
         var field = field(node, wiring);
         // `suggestions=` names the value the application's answer to `change`
         // lands in, which is the channel the comment below says a document did
-        // not have (ADR-0367).
+        // not have.
         var suggestions = node.stringProperty("suggestions");
         return suggestions == null ? field : new Suggested(wiring.bindings().resolve(suggestions), field::suggesting);
     }
@@ -408,13 +408,12 @@ public record TextInput(
                 node.booleanProperty("password"),
                 node.booleanProperty("read-only"),
                 filter(node),
-                // Not from markup, and deliberately. §4 says the *application*
-                // supplies the list — "the widget raises the query, the
-                // application supplies the list" — so the suggestions arrive by
-                // rebuilding this widget with new ones in answer to `change`,
-                // which is a channel a document does not have -- unless it names
-                // where the answer lands, with `suggestions=` (ADR-0182,
-                // ADR-0367).
+                // Not from markup, and deliberately. The *application* supplies
+                // the list: the widget raises the query and the application
+                // answers it, so the suggestions arrive by rebuilding this widget
+                // with new ones in answer to `change`, which is a channel a
+                // document does not have -- unless it names where the answer
+                // lands, with `suggestions=`.
                 java.util.List.of(),
                 Wiring.disabled(node),
                 Attributes.of(node));

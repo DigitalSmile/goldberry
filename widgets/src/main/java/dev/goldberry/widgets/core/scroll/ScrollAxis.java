@@ -2,7 +2,9 @@ package dev.goldberry.widgets.core.scroll;
 
 import org.jspecify.annotations.Nullable;
 
-/// Which way a [Scroll] moves — `docs/core-widgets.md` §1's "one or both axes".
+/// Which way a [Scroll] moves: down the page, along it, or both.
+///
+/// Read more: [Scroll](https://goldberry.dev/docs/layout/scroll.html#attributes).
 public enum ScrollAxis {
 
     /// Down the page. The overwhelmingly common one, and the default.

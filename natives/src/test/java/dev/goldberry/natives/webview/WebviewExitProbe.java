@@ -8,7 +8,7 @@ import java.time.Instant;
 ///
 /// It returns rather than calling `System.exit`, because the defect was in how
 /// the stock launcher ends a process: `main` runs on a thread of its own and the
-/// C exit handlers run on the first one, which is not WebKit's (ADR-0507).
+/// C exit handlers run on the first one, which is not WebKit's.
 ///
 /// Exit codes: 0 for a page opened, loaded and closed; 3 for no page on this
 /// machine, which the test reads as a reason to skip rather than a failure.

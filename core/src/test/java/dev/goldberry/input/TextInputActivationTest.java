@@ -17,7 +17,8 @@ import dev.goldberry.widget.ElementTree;
 import dev.goldberry.widget.Widget;
 import dev.goldberry.widget.style.Styled;
 
-/// Turning the platform's text input on — ADR-0285.
+/// Turning the platform's text input on: the caret is the text stack's, not a
+/// control's.
 ///
 /// **Why this exists.** Committed text is delivered to whatever has the focus,
 /// and on a desktop the platform produces none until something says it is being
@@ -177,7 +178,7 @@ class TextInputActivationTest {
             // router asks it on a focus change, `Window` passes the answer to the
             // backend, and the backend calls the platform. Every link was there
             // except the middle two, which is why a canvas holding an `Editor`
-            // received keys and never a character (ADR-0285).
+            // received keys and never a character.
             var window = dev.goldberry.Window.open(dev.goldberry.render.window.WindowSpec.of(
                     "text input", dev.goldberry.render.model.LogicalSize.of(100f, 100f)));
             window.pointerRouter(router);

@@ -9,10 +9,10 @@
 #    the new one.
 # 2. Strips them.
 # 3. Fails the build when they are larger together than SIZE_LIMIT
-#    (goldberry-media.md §2: target 6 MB, fail above 7).
+#    (target 6 MB, fail above 7).
 # 4. Writes ffmpeg-NOTICE.txt: what was built, from which tags, with which
 #    configure line, and where the source is: the `ffmpeg-sources` classifier
-#    of the same goldberry-media version (ADR-0508). The LGPL's relinking promise
+#    of the same goldberry-media version. The LGPL's relinking promise
 #    is only useful to someone who can rebuild what shipped.
 #
 # In: STAGE, OUT, SYSTEM, STRIP, SIZE_LIMIT, BUILD_SUFFIX, FFMPEG_REF, DAV1D_REF,
@@ -74,7 +74,7 @@ message(STATUS "FFmpeg for ${TARGET_ID}: ${_total_kb} KB in five libraries\n${_s
 if(_total GREATER SIZE_LIMIT)
     math(EXPR _limit_kb "${SIZE_LIMIT} / 1024")
     message(FATAL_ERROR
-        "FFmpeg for ${TARGET_ID} is ${_total_kb} KB, over the ${_limit_kb} KB gate (goldberry-media.md §2).\n"
+        "FFmpeg for ${TARGET_ID} is ${_total_kb} KB, over the ${_limit_kb} KB gate.\n"
         "Something was enabled that the configure line did not mean to enable.\n${_shipped}")
 endif()
 

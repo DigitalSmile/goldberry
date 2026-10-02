@@ -8,7 +8,7 @@ import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-/// The showcase's window icon ([ADR-0351]): drawn at each size, transparent
+/// The showcase's window icon: drawn at each size, transparent
 /// outside its rounded plate, and four different tiles on it.
 class ShowcaseIconTest {
 

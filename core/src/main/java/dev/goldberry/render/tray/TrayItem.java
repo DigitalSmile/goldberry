@@ -7,16 +7,24 @@ import org.jspecify.annotations.Nullable;
 
 /// One row of a tray menu.
 ///
-/// **Not a widget, and the reason is not packaging.** Every other row in the
-/// catalog is a description Goldberry lays out, styles and hit-tests; this one is
-/// handed to the desktop's shell, which draws it in its own theme with its own
-/// font at its own spacing. There is no `ComputedStyle` to give it and no pointer
-/// event to route to it — so `tray-icon` joins `toast` as a widget whose value is
-/// not a widget (ADR-0177).
+/// ```java
+/// var menu = List.of(
+///         TrayItem.checkbox("Mute", false, checked -> settings.mute(checked)),
+///         TrayItem.separator(),
+///         TrayItem.command("Quit", checked -> quit()));
+/// ```
+///
+/// **Not a widget.** Every other row in the catalogue is a description Goldberry
+/// lays out, styles and hit-tests; this one is handed to the desktop's shell,
+/// which draws it in its own theme with its own font at its own spacing. There is
+/// no style to give it and no pointer event to route to it.
 ///
 /// The kinds are an enum rather than SDL's flags mask on purpose: exactly one of
 /// command/checkbox/submenu is mandatory down there, and a mask is precisely the
 /// shape in which that rule gets broken silently. An enum cannot be none of them.
+/// A row's handler runs on the UI thread, from inside the platform's event pump.
+///
+/// Read more: [Menus and the tray](https://goldberry.dev/docs/components/menus.html#the-tray-icon).
 ///
 /// @param kind     what the row is
 /// @param label    its text; ignored for [Kind#SEPARATOR]
@@ -59,7 +67,7 @@ public record TrayItem(
         void chosen(boolean checked);
     }
 
-    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    /// Written out so that each parameter that takes null for a default can say so.
     public TrayItem(
             Kind kind,
             @Nullable String label,

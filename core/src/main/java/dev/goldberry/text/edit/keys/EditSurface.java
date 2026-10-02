@@ -5,8 +5,9 @@ package dev.goldberry.text.edit.keys;
 ///
 /// The three editors differ in the keyboard in exactly two ways — whether `Up`
 /// is a line or the start of the text, and whether `Enter` is a newline or
-/// somebody else's — and those two questions are these three answers
-/// ([ADR-0376]).
+/// somebody else's — and those two questions are these three answers.
+///
+/// Read more: [Input and focus](https://goldberry.dev/docs/guide/input.html#keys-and-text-are-different-events).
 public enum EditSurface {
 
     /// One line that never wraps: `text-input`. `Up` is the start of the text
@@ -14,8 +15,8 @@ public enum EditSurface {
     FIELD,
 
     /// Text that wraps onto more lines than were typed, and takes no newline of
-    /// its own — an [dev.goldberry.text.edit.Editor] that was
-    /// not made multiline. `Up` is a line; `Enter` is the caller's.
+    /// its own — a canvas `Editor` that was not made multiline. `Up` is a line;
+    /// `Enter` is the caller's.
     WRAPPED,
 
     /// Text with lines in it because somebody typed them: `text-area`, and a

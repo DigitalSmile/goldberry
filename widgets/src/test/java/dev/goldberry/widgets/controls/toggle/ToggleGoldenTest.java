@@ -27,10 +27,10 @@ import dev.goldberry.widgets.Controls;
 import dev.goldberry.widgets.controls.TestFont;
 import dev.goldberry.widgets.core.Row;
 
-/// What a switch actually looks like (§14, [ADR-0050]).
+/// What a switch actually looks like, held as golden images.
 ///
 /// [ToggleTest] checks the numbers the cascade resolved. These check where the
-/// thumb *landed*, and they are the only thing that can: §3's travel 16 is a
+/// thumb *landed*, and they are the only thing that can: the thumb's travel of 16 is a
 /// transform applied to a box inside another box, and every way of getting it
 /// wrong — the thumb centred, the thumb overhanging the pill, the pill sliding
 /// with the thumb because the transform went on the wrong node — resolves to
@@ -104,8 +104,8 @@ class ToggleGoldenTest {
     void statesLight() {
         // The two themes reach opposite answers for the thumb: light-on-grey to
         // dark-on-accent on the dark theme, dark-on-grey to light-on-accent
-        // here, because no one colour clears §1.2 against both pills. This is
-        // the image where that is visible rather than argued (ADR-0075).
+        // here, because no one colour clears the contrast floor against both
+        // pills. This is the image where that is visible rather than argued.
         paint(
                 "toggle-states-light",
                 Theme.NORD_LIGHT,
@@ -136,21 +136,22 @@ class ToggleGoldenTest {
     @Test
     @DisplayName("a frame 80ms into the slide, where the thumb is between the ends")
     void midTravel() {
-        // §3.1: "thumb translate base; track color base (**same clock -- they
-        // arrive together**)". This is the frame that asserts they do: at half
+        // The design system says the thumb translates on base and the track's
+        // colour moves on base: the same clock, so they arrive together. This is
+        // the frame that asserts they do: at half
         // of the 160ms base duration the thumb is mid-track *and* the pill is
         // mid-colour -- and the pill is still 36 wide, which is what fails if
         // the transform went on the track instead of the thumb, since a
         // transform applies down its whole subtree.
         //
-        // A picture no wall clock can take (ADR-0067's virtual clock).
+        // A picture no wall clock can take; the virtual clock does.
         var clock = Clock.virtual();
         var renderer = renderer(Theme.NORD_DARK, clock);
 
         // Bound, and driven by setting the property, because the elements have
         // to survive: a node built with its new value has no previous style to
         // move from and would snap. This is also the shipping route -- data down
-        // through the binding, exactly as an application would (ADR-0063).
+        // through the binding, exactly as an application would.
         var offToOn = Property.of(false);
         var onToOff = Property.of(true);
         var tree = new ElementTree(row(Toggle.of("Off", offToOn, value -> {}), Toggle.of("On", onToOff, value -> {})));

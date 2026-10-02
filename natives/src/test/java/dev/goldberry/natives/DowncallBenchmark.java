@@ -16,20 +16,20 @@ import dev.goldberry.natives.calls.ShimCalls;
 
 /// What one foreign call costs, held both ways.
 ///
-/// The measurement behind
-/// ADR-0161.
 /// `goldberry_abi_version` is the cheapest function `libgoldberry` exports — it
 /// returns a constant — so what this times is the crossing and nothing else.
 ///
 /// **On the JVM it will report two numbers that are the same**, which is the
-/// point: the change ADR-0161 made costs the JVM nothing. The difference it was
-/// made for only appears in a native image, where the bound handle cannot be a
-/// compile-time constant and the unbound one can. There is no GraalVM in this
-/// repository's toolchain, so that half is run by hand and written down in the
-/// ADR rather than measured here.
+/// point: keeping a downcall handle as a `static final` constant costs the JVM
+/// nothing. The difference it is kept for only appears in a native image, where
+/// a bound handle cannot be a compile-time constant and an unbound one can.
+/// There is no GraalVM in this repository's toolchain, so that half is run by
+/// hand, and the numbers are written on [Downcalls].
 ///
 /// **Tagged `benchmark`, so `check` never runs it.** Run with
 /// `./gradlew :natives:benchmark`.
+///
+/// Read more: [What the flags are for](https://goldberry.dev/docs/native.html#what-the-flags-are-for).
 @Tag("benchmark")
 class DowncallBenchmark {
 
@@ -48,8 +48,8 @@ class DowncallBenchmark {
     private static Naive naive;
 
     /// The handle as an **instance** field -- the obvious way to pair a handle
-    /// with an address, and the one ADR-0173 rejected: an image cannot fold a
-    /// value read from an object, so this is 4540 ns/call there.
+    /// with an address, and the one a holder does not use: an image cannot fold
+    /// a value read from an object, so this is 4540 ns/call there.
     private record Naive(MethodHandle handle, MemorySegment address) {
         int call() {
             try {
@@ -89,7 +89,7 @@ class DowncallBenchmark {
     /// It does, in an image: **8.9 ns when the helper names the constant itself,
     /// 810 ns when the same constant is passed in as a parameter.** That is why a
     /// holder's `call` names its own `FD_…` field rather than taking a handle —
-    /// see [Downcalls] and ADR-0173.
+    /// see [Downcalls].
     ///
     /// On the JVM the two are equal, because the JIT inlines the helper and
     /// folds the argument. Nothing here reproduces the gap; only an image does.
@@ -181,7 +181,7 @@ class DowncallBenchmark {
         }
     }
 
-    /// The two shapes ADR-0173 chose between: a holder, whose handle is a
+    /// The two shapes a binding could take: a holder, whose handle is a
     /// `static final` constant its own `call` names, and the naive pairing, whose
     /// handle travels in the object.
     ///

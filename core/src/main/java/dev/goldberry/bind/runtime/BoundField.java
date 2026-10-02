@@ -16,11 +16,13 @@ import dev.goldberry.bind.registry.BindingRegistry;
 /// cell is the author's own field, and this is the read-only window onto it that
 /// [BindingRegistry] hands to the widget tree. A widget cannot tell the two apart, and
 /// that is the point — [Observable] is the whole contract, and where the value
-/// is actually stored is the model's business
-/// (ADR-0063).
+/// is actually stored is the model's business.
 ///
 /// Instantiated by woven bytecode, once per path, when a model builds its
 /// [BindingRegistry]. Nothing else has any reason to create one.
+///
+/// Read more:
+/// [What the weaver actually does](https://goldberry.dev/docs/weaving.html#what-the-weaver-actually-does).
 ///
 /// @param <T> the value type
 public final class BoundField<T extends @Nullable Object> implements Observable<T> {

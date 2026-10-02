@@ -21,15 +21,14 @@ import org.junit.jupiter.api.io.TempDir;
 /// `main` reads two positional arguments and two flags and then downloads ninety
 /// megabytes, so the download is not a thing a test drives — but the *parsing* is
 /// pure, and it is where a build script's mistake becomes a jar with the fonts in
-/// the wrong package or with an asset missing. `:assets` had no test naming
-/// either parser (the 2026-09-18 review, §6).
+/// the wrong package or with an asset missing, and for a long time nothing
+/// tested either parser.
 ///
-/// Both matter for a reason recorded elsewhere: `--root=` exists because a
+/// Both matter: `--root=` exists because a
 /// resource directory **is a package** to the module system, and two modules
 /// writing a font into `…goldberry.assets.fonts` is one package in two modules
-/// and an application that refuses to start (ADR-0387). `--only=` exists because
-/// `:emoji` fetches the emoji face alone and must not pull the 90 MB `:core` takes
-/// (ADR-0384).
+/// and an application that refuses to start. `--only=` exists because
+/// `:emoji` fetches the emoji face alone and must not pull the 90 MB `:core` takes.
 class PrepareAssetsTest {
 
     private static Set<String> everyAsset() {

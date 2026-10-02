@@ -11,10 +11,10 @@ import org.jspecify.annotations.Nullable;
 
 /// What a [TimePicker]'s field says, and what it makes of what was typed into it.
 ///
-/// `DateFormat`'s shape and its argument unchanged — §4 puts formatting and
-/// parsing on "a `java.time` formatter the application supplies, defaulting to
-/// the locale's short form", and says in the same breath that the toolkit does
-/// not invent a syntax. So there is no pattern written here, one
+/// `DateFormat`'s shape and its argument unchanged — formatting and parsing take
+/// a `java.time` formatter the application supplies, defaulting to the locale's
+/// short form, and the toolkit does not invent a syntax. So there is no pattern
+/// written here, one
 /// [DateTimeFormatter] used in both directions, and no range: a time picker
 /// chooses one time.
 ///
@@ -28,8 +28,9 @@ import org.jspecify.annotations.Nullable;
 /// the one place this class writes a pattern and does so only because no
 /// `FormatStyle` produces a time with seconds and without a time zone.
 ///
-/// An application that wants otherwise supplies a formatter, which is what §4
-/// says it does.
+/// An application that wants otherwise supplies a formatter.
+///
+/// Read more: [Fields and forms](https://goldberry.dev/docs/components/forms.html#time-picker).
 ///
 /// @param formatter how a time is written and read
 public record TimeFormat(DateTimeFormatter formatter) {
@@ -41,7 +42,7 @@ public record TimeFormat(DateTimeFormatter formatter) {
         Objects.requireNonNull(formatter, "formatter");
     }
 
-    /// §4's default, for a picker at `precision`.
+    /// The default, for a picker at `precision`.
     public static TimeFormat of(Locale locale, TimePrecision precision) {
         Objects.requireNonNull(locale, "locale");
         Objects.requireNonNull(precision, "precision");

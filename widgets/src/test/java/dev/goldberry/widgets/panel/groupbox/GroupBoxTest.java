@@ -24,10 +24,10 @@ import dev.goldberry.widgets.Widgets;
 import dev.goldberry.widgets.panel.Described;
 import dev.goldberry.widgets.text.Text;
 
-/// `group-box` — §5's titled border group ([ADR-0164]).
+/// `group-box` — the titled border group.
 ///
 /// The decision under test is the shape: a title **over** a bordered body rather
-/// than a legend through the frame, which §10's subset cannot express. That makes
+/// than a legend through the frame, which the CSS subset cannot express. That makes
 /// the frame a widget of its own, and the two assertions worth having are that
 /// the author's children land inside it and that an absent title is absent rather
 /// than empty.
@@ -52,17 +52,17 @@ class GroupBoxTest {
                 Described.first(tree, GroupBox.GroupBoxTitle.class).text());
     }
 
-    /// §5's frame is 8px round with a 1px edge, and the header fills the top of
+    /// The frame is 8px round with a 1px edge, and the header fills the top of
     /// it — so the header's top corners are the frame's less its border, and its
     /// bottom ones are square where the body carries on underneath. That is
     /// `border-radius: 7px 7px 0 0`, which the stylesheet has said since the
-    /// widget shipped and which the engine dropped with a warning until
-    /// ADR-0216: the header drew four square corners, and two of them spilled
-    /// out of the frame's curve.
+    /// widget shipped and which the engine dropped with a warning until it
+    /// learned per-corner radii: the header drew four square corners, and two
+    /// of them spilled out of the frame's curve.
     @Test
     @DisplayName("the header's top corners follow the frame and its bottom ones do not")
     void headerCornersFollowTheFrame() {
-        assertEquals(Corners.all(8), styleOf("group-box").decoration().corners(), "§5's frame");
+        assertEquals(Corners.all(8), styleOf("group-box").decoration().corners(), "the frame is 8px round");
         assertEquals(
                 new Corners(7, 7, 0, 0),
                 styleOf("group-box-title").decoration().corners(),

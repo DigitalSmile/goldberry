@@ -1,9 +1,9 @@
-/// `docs/core-widgets.md` §4's `time-picker` — a typed field over hour, minute
-/// and second columns.
+/// The `time-picker` widget: a typed field over hour, minute and second columns
+/// that scroll to the value.
 ///
-/// `@NullMarked`, which puts this package under NullAway. See
-/// `dev.goldberry.widgets.form.parts` for why every package
-/// opts in one at a time.
+/// Every reference is non-null unless it says `@Nullable`.
+///
+/// Read more: [Fields and forms](https://goldberry.dev/docs/components/forms.html#time-picker).
 @NullMarked
 package dev.goldberry.widgets.form.timepicker;
 

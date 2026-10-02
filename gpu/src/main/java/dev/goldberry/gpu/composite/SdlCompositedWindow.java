@@ -22,8 +22,7 @@ import dev.goldberry.render.composite.CompositedWindow;
 
 /// A window [SdlCompositor] claimed: each painted frame's damage uploaded into
 /// the window's UI texture, its GPU layers rendered, then the composite pass
-/// drawn into its swapchain texture and presented (`docs/gpu-plan.md`, phases
-/// 3 and 4; ADR-0479, ADR-0481).
+/// drawn into its swapchain texture and presented.
 ///
 /// The UI texture is `B8G8R8A8_UNORM`, what the frame is painted in, so the
 /// bytes go up unconverted. It is made at the frame's size and remade when the

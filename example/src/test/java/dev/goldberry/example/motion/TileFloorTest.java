@@ -18,7 +18,7 @@ import dev.goldberry.paint.TestFrames;
 import dev.goldberry.render.model.LogicalSize;
 
 /// The floor's choreography: who waits how long, when it stops asking for
-/// frames, and what a swap changes ([ADR-0354]).
+/// frames, and what a swap changes.
 class TileFloorTest {
 
     private static final LogicalSize SIZE = LogicalSize.of(400, 180);

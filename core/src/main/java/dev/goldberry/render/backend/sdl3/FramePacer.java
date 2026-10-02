@@ -7,7 +7,7 @@ import java.time.Duration;
 /// The frame loop asks for a repaint from inside the painter, so left alone it
 /// runs as fast as `present` will return. Measured, that is ~105–145 fps into a
 /// 59.96 Hz panel: two frames in five are rasterized, uploaded to a texture, and
-/// discarded without ever being scanned out (ADR-0046, ADR-0047). A frame nobody
+/// discarded without ever being scanned out. A frame nobody
 /// sees costs its paint *and* its present, which is more than anything left to
 /// win inside either half.
 ///
@@ -143,7 +143,7 @@ final class FramePacer {
     /// undelivered**.
     ///
     /// The pacer's half of a dropped frame, and the half nothing above the
-    /// backend can see ([ADR-0271]). A
+    /// backend can see. A
     /// [dev.goldberry.stats.FrameRing] records the frames that
     /// were painted, so the gap left by a frame that was never painted is
     /// invisible to it: sixty frames at 30 fps and sixty frames at 60 fps are

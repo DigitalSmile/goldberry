@@ -48,10 +48,10 @@ bin/
 .idea/claudeCodeTabState.xml
 
 # The superbuild's cloned upstream sources. Outside build/ on purpose, so that
-# `clean` does not throw away a 330 MB download -- see ADR-0029.
+# `clean` does not throw away a 330 MB download.
 natives/.deps/
 # The media superbuild's FFmpeg and dav1d checkouts, kept outside build/ for the
-# reason natives/.deps is (ADR-0038).
+# reason natives/.deps is.
 media/.deps/
 
 # The example is a separate build with its own outputs.

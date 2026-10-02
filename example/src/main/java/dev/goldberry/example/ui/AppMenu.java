@@ -18,11 +18,10 @@ import dev.goldberry.widgets.menu.Separator;
 /// Because on three of the four targets it is not one. A `menubar` is drawn by
 /// this toolkit, styled by the same stylesheet as everything under it, and reaches
 /// the keyboard through the same router — so `F10`, `Alt`, the arrow keys and the
-/// accelerators are one implementation rather than four
-/// (ADR-0163).
+/// accelerators are one implementation rather than four.
 /// The one menu this application does hand to the desktop is the tray's, and it
 /// is an ordinary [dev.goldberry.widgets.menu.Menu] value for
-/// exactly that reason ([ADR-0191]).
+/// exactly that reason.
 ///
 /// ## Why in Java and not in `statusbar.kdl` beside it
 ///
@@ -34,8 +33,9 @@ import dev.goldberry.widgets.menu.Separator;
 ///
 /// The rows that *are* the model's — the light, the density, the counter — are
 /// direct method references on [ShowcaseModel.Actions], which is the shorter half
-/// of §9's story and worth having one of in the showcase
-/// (ADR-0222).
+/// of the story and worth having one of in the showcase.
+///
+/// Read more: [Menus and the tray](https://goldberry.dev/docs/components/menus.html#menubar).
 ///
 /// @param actions   the model's half — the light, the density and the road
 /// @param window    the window's half — see [Handlers]
@@ -115,7 +115,7 @@ public record AppMenu(ShowcaseModel.Actions actions, Handlers window, Icon palet
                         // Checked from the model rather than remembered here: the same
                         // box is on the Basic screen and the same switch beside it, and a
                         // menu that kept its own copy would disagree with both the moment
-                        // either was used (ADR-0063).
+                        // either was used.
                         new Item("Read the verse", actions::toggleProse)
                                 .checked(actions.values().isProseShown()),
                         new Item("Send word", window.raiseToast()),

@@ -26,7 +26,7 @@ import dev.goldberry.golden.GoldenImage;
 /// samples, two per widget, and this holds each of them to the renderer the
 /// way a golden is held: a stylesheet that changed a button's corner changes
 /// the button's picture, and the picture in the guide follows in the same
-/// change ([ADR-0513]).
+/// change. The guide's pictures are taken from its own samples, in both themes.
 ///
 /// `./gradlew :example:test --tests '*BookPicturesTest*' -Dgoldberry.golden.update=true`
 /// retakes them all. That is the whole workflow for a new widget: write its

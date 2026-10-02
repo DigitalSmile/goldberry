@@ -8,21 +8,25 @@ import org.jspecify.annotations.Nullable;
 
 /// The first twelve bytes of a font file, and the index that follows them.
 ///
+/// ```java
+/// ByteBuffer cmap = TableDirectory.table(bytes, TableDirectory.tag('c', 'm', 'a', 'p'));
+/// ```
+///
 /// Every reader in this package starts here: a font is a header saying how many
 /// tables there are, then one sixteen-byte record per table giving its four-byte
 /// tag, its offset and its length. Finding a table is a linear scan of at most a
 /// few dozen records, done once per face.
 ///
-/// ## Why a slice and not an offset
+/// [#table] hands back a slice rather than a position, so every offset a reader
+/// then follows is the offset the specification writes, since the tables all
+/// number from their own start. A reader given the whole file would have to add
+/// a base to each one and would get no bounds check at the table's end, which
+/// is exactly the mistake a malformed font is waiting for.
 ///
-/// [#table] hands back a **slice** rather than a position, so every offset a
-/// reader then follows is the offset the specification writes — the tables all
-/// number from their own start. A reader given the whole file has to add a base
-/// to each one and gets no bounds check at the table's end, which is exactly the
-/// mistake a malformed font is waiting for.
+/// Read more: [Emoji](https://goldberry.dev/docs/guide/text.html#emoji).
 public final class TableDirectory {
 
-    /// `ttcf` — a font collection, which none of these readers opens.
+    /// `ttcf`: a font collection, which none of these readers opens.
     ///
     /// A collection holds several faces behind one header and this API names
     /// none of them, so it is refused rather than guessed at.
@@ -37,14 +41,12 @@ public final class TableDirectory {
 
     /// The bytes of one table, or null when the font has no such table.
     ///
-    /// **Null rather than an exception** for anything unreadable: a collection, a
+    /// Null rather than an exception for anything unreadable: a collection, a
     /// truncated directory, a record pointing past the end of the file, or bytes
-    /// that are not a font at all. Every caller here is asking *whether* a face
+    /// that are not a font at all. Every caller here is asking whether a face
     /// has something, and a face that does not is ordinary.
     ///
-    /// @param font the face's bytes, as
-    ///        [dev.goldberry.assets.BundledAssets#font] hands
-    ///        them over
+    /// @param font the face's bytes, as `BundledAssets.font` hands them over
     /// @param tag  the table's tag, from [#tag]
     public static @Nullable ByteBuffer table(byte[] font, int tag) {
         Objects.requireNonNull(font, "font");

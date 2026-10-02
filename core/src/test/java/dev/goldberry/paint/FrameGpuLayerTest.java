@@ -26,9 +26,9 @@ import dev.goldberry.render.model.PhysicalSize;
 import dev.goldberry.render.model.PixelFormat;
 import dev.goldberry.render.window.GpuSurface;
 
-/// A frame placing GPU layers (`docs/gpu-plan.md`, D4; ADR-0481): where the hole
-/// goes, what the scissor is, what a read-back layer's pixels replace, and what
-/// the frame says when it has no GPU.
+/// A frame placing GPU layers in paint order: where the hole goes, what the
+/// scissor is, what a read-back layer's pixels replace, and what the frame says
+/// when it has no GPU.
 ///
 /// No GPU is needed: the surfaces here are fakes, which is the point of the
 /// frame's side being `:core`'s. Whether the GPU draws what these record is

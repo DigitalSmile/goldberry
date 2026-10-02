@@ -13,10 +13,12 @@ import dev.goldberry.natives.NativePlatform;
 
 /// Tests the verifier itself, with synthetic tables.
 ///
-/// The verifier is the whole safety argument for hand-writing bindings
-/// (ADR-0010), so "it reports agreement" is not enough — it has to be shown to
-/// actually catch each way a layout can be wrong. These run without any native
-/// library.
+/// The verifier is the whole safety argument for hand-writing bindings, so "it
+/// reports agreement" is not enough — it has to be shown to actually catch each
+/// way a layout can be wrong. These run without any native library.
+///
+/// Read more:
+/// [Repository layout](https://goldberry.dev/docs/contributing/repository.html#the-export-list-and-the-layout-probe).
 class LayoutVerifierTest {
 
     private static final NativePlatform LINUX_X64 = NativePlatform.of("Linux", "amd64");
@@ -71,7 +73,7 @@ class LayoutVerifierTest {
     @DisplayName("the Win64 4-byte C long is caught when it shows up on Linux")
     void catchesWrongCLongWidth() {
         // A table reporting Windows' 4-byte long, verified as though it were
-        // Linux. This is the §3.1 trap the probe exists for.
+        // Linux. This is the trap the probe exists for.
         var table = new ArrayList<>(correctTable(WINDOWS_X64));
 
         var mismatches = LayoutVerifier.verify(LINUX_X64, Layouts.registry(), table);

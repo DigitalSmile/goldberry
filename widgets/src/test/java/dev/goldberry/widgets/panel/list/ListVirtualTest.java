@@ -33,8 +33,7 @@ import dev.goldberry.widgets.controls.TestFont;
 import dev.goldberry.widgets.core.scroll.Scroll;
 import dev.goldberry.widgets.core.scroll.ScrollAxis;
 
-/// §10's virtualization — a `list` that builds only the rows its viewport can
-/// see ([ADR-0213]).
+/// Virtualization — a `list` that builds only the rows its viewport can see.
 ///
 /// Like `affix`'s tests, every one of these needs a **painted frame**: the window
 /// is computed from where the list was painted against what clips it, and neither
@@ -46,7 +45,8 @@ class ListVirtualTest {
     private static final int VIEWPORT_HEIGHT = 256;
     private static final double ROW_HEIGHT = 32;
 
-    /// Ten thousand, which is the number §10 says v1 cannot do and this can.
+    /// Ten thousand, which is the row count an unvirtualised list cannot afford
+    /// and this can.
     private static final int COUNT = 10_000;
 
     private TestFrames.Target target;
@@ -120,7 +120,7 @@ class ListVirtualTest {
 
         void frame() {
             // Before the flush, as `Launcher` does: a build may ask the cascade
-            // about `--gb-list-row-height` (ADR-0254), and a build runs before
+            // about `--gb-list-row-height`, and a build runs before
             // the frame it produces.
             renderer.prepare(tree);
             tree.flush();
@@ -237,7 +237,7 @@ class ListVirtualTest {
         @Test
         @DisplayName("it settles — a frame that changes nothing asks for no new window")
         void itTerminates() {
-            // The rule that makes ADR-0119's facility safe to use this way: the
+            // The rule that makes a measured list safe to use this way: the
             // spacers absorb every row the window leaves out, so the total height
             // is a function of the model and the node that was measured does not
             // move. A list that shortened itself would be told a new position,
@@ -370,9 +370,8 @@ class ListVirtualTest {
         }
     }
 
-    /// §3's "metrics ship as component-token defaults an application may
-    /// override", reaching the one number a virtualized list cannot do without
-    /// ([ADR-0254]).
+    /// Metrics ship as component-token defaults an application may override,
+    /// and that reaches the one number a virtualized list cannot do without.
     ///
     /// `virtualized(32)` states a height that has to be kept in step with a
     /// stylesheet by hand — and `density-compact.css` sets
@@ -449,7 +448,7 @@ class ListVirtualTest {
     }
 
     /// A pitch that disagrees with the stylesheet is a **silent** layout error,
-    /// and now it is not ([ADR-0257]).
+    /// and now it is not.
     ///
     /// The spacers are `index × pitch` tall and the rows between them are
     /// whatever `list-row` resolved to, so a one-pixel disagreement is twenty
@@ -461,7 +460,7 @@ class ListVirtualTest {
     /// **A mismatch has to be seen twice before it is believed**, and the token
     /// form is why: the first build of a tree has no cascade, so a list reading
     /// `--gb-list-row-height` answers the default on that build and the
-    /// stylesheet's value on the next ([ADR-0254]). That is one frame of a real
+    /// stylesheet's value on the next. That is one frame of a real
     /// disagreement that settles by itself, and reporting it would make the form
     /// that *cannot* be wrong the noisiest one.
     ///
@@ -508,7 +507,7 @@ class ListVirtualTest {
         }
 
         /// The form that cannot disagree, which is the one to prefer: it reads
-        /// the same token the stylesheet writes the height from (ADR-0254).
+        /// the same token the stylesheet writes the height from.
         @Test
         @DisplayName("and the token form is quiet by construction")
         void theTokenFormIsQuiet() {

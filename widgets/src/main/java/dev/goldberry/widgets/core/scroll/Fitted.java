@@ -16,19 +16,13 @@ import dev.goldberry.widget.attr.Attributes;
 /// host.popup(list, field, Placement.BELOW, width, new Fitted("select-viewport"));
 /// ```
 ///
-/// ## What it replaces
+/// ## What it prevents
 ///
 /// A popup taller than the work area is clamped to the near edge by [dev.goldberry.Placement],
 /// which keeps the top visible and silently drops everything below it. A menu
 /// that loses its last three commands with no indication that it has is the
-/// worst kind of wrong, and it was the honest thing to do before `scroll`
-/// existed (ADR-0118).
-///
-/// `Menus` has done this since, from an **estimate** — rows times an assumed
-/// height — because nothing reported what a menu actually measured. `select`
-/// did not do it at all, so a list longer than the screen still lost its bottom.
-/// One guess and one gap, and both go away once the popup facility says what it
-/// measured (ADR-0179).
+/// worst kind of wrong. The popup facility reports what the content measured,
+/// and this wraps it in a viewport when that is more than the screen holds.
 ///
 /// ## Nothing happens to content that fits
 ///
@@ -41,6 +35,8 @@ import dev.goldberry.widget.attr.Attributes;
 /// @param viewportClass the class the viewport carries, so a stylesheet can tell
 ///                      a menu's from a list's — neither has any appearance of
 ///                      its own beyond not growing
+///
+/// Read more: [Scroll](https://goldberry.dev/docs/layout/scroll.html#scrolling-from-java).
 public record Fitted(String viewportClass) implements Host.Fit {
 
     /// How much of the work area the content leaves alone at each end.

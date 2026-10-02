@@ -10,7 +10,7 @@ import org.junit.jupiter.api.Test;
 
 import dev.goldberry.render.backend.headless.HeadlessBackend;
 
-/// The desktop's reduce-motion switch, through the SPI — [ADR-0383].
+/// The desktop's reduce-motion switch, through the SPI.
 ///
 /// What the *platform* answers is tested in `:natives`, where the platform is.
 /// What is here is the seam: three answers, empty by default, and a backend that

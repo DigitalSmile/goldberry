@@ -33,8 +33,10 @@ import dev.goldberry.widgets.controls.TestFont;
 import dev.goldberry.widgets.core.Column;
 import dev.goldberry.widgets.text.Text;
 
-/// `scroll` — the viewport three separate pieces of work were waiting on
-/// (ADR-0116).
+/// `scroll` — the viewport three separate pieces of work were waiting on: a
+/// clip, an offset and two extents.
+///
+/// Read more: [Scroll](https://goldberry.dev/docs/layout/scroll.html).
 ///
 /// Everything here needs a **painted frame** before it means anything, and that
 /// is the point rather than an inconvenience: a scroll view is arithmetic on two
@@ -136,7 +138,7 @@ class ScrollTest {
         ///
         /// **Notches and not lines.** A `deltaY` of 1 is one detent of a real
         /// wheel, and a detent is [ScrollViewport#LINES_PER_NOTCH] lines — the
-        /// distinction the wheel handler used to collapse ([ADR-0314]). A
+        /// distinction the wheel handler used to collapse. A
         /// fraction is a trackpad, which is why this takes a float.
         void wheel(float notches) {
             router.pointerWheel(100, 50, 0, notches, Modifiers.NONE);
@@ -231,7 +233,7 @@ class ScrollTest {
     class Wheel {
 
         /// The other end of [ScrollFadeTest]: the fade knows it owes frames, and
-        /// the **widget** is what the frame loop asks ([ADR-0226]). A viewport
+        /// the **widget** is what the frame loop asks. A viewport
         /// that held a fading `ScrollFade` and answered `false` here would paint
         /// its bars once and leave them at whatever the last frame caught —
         /// invisible to every golden, because a golden never asks.
@@ -273,7 +275,7 @@ class ScrollTest {
             // Three lines, because that is a notch. This read `LINE` for as long
             // as the handler multiplied by one, and the two agreeing is exactly
             // what let a viewport a third of the desktop's speed pass its own
-            // test suite ([ADR-0314]).
+            // test suite.
             assertEquals(before - ScrollViewport.LINE * ScrollViewport.LINES_PER_NOTCH, harness.contentTop(), 0.5);
         }
 
@@ -285,7 +287,7 @@ class ScrollTest {
 
             harness.wheel(0.25f);
 
-            // The whole point of ADR-0115's float reaching this far: rounding
+            // The whole point of the wheel's fraction reaching this far: rounding
             // here is what makes a trackpad scroll in jerks.
             assertEquals(
                     before - ScrollViewport.LINE * ScrollViewport.LINES_PER_NOTCH * 0.25, harness.contentTop(), 0.5);
@@ -303,7 +305,7 @@ class ScrollTest {
             harness.wheel(100);
 
             assertEquals(atEnd, harness.contentTop(), 0.01, "a second scroll past the end moved it further");
-            // §2.4: hard edges, no overscroll bounce. The content's bottom is
+            // Hard edges, no overscroll bounce. The content's bottom is
             // level with the viewport's, so it has travelled exactly its own
             // overflow and not a pixel more.
             assertTrue(before - atEnd > 0, "it did not move at all");
@@ -346,8 +348,8 @@ class ScrollTest {
         }
     }
 
-    /// §3's "metrics ship as component-token defaults an application may
-    /// override", reaching a widget at last ([ADR-0251]).
+    /// The design system's rule that metrics ship as component-token defaults an
+    /// application may override, reaching a widget at last.
     ///
     /// `--gb-scroll-line` was a constant and not a token for as long as nothing
     /// let a widget read a resolved custom property — "a number an author could
@@ -393,7 +395,7 @@ class ScrollTest {
         /// **The token is a line and the wheel is a notch**, and the two moving by
         /// different amounts is the whole of what [ScrollViewport#LINES_PER_NOTCH]
         /// says. A viewport where an arrow key and a wheel notch went the same
-        /// distance is the one this had before ([ADR-0314]).
+        /// distance is the one this had before.
         @Test
         @DisplayName("a notch is three arrow presses, whatever a line is set to")
         void aNotchIsThreeArrows() {
@@ -416,8 +418,8 @@ class ScrollTest {
                     "a notch and three arrows should cover the same ground");
         }
 
-        /// The arrow keys move by the same number, because §2.4 gives them one
-        /// step and `ARROW` has always been `LINE`.
+        /// The arrow keys move by the same number, because an arrow key moves
+        /// one line and `ARROW` has always been `LINE`.
         @Test
         @DisplayName("and the arrow keys move by it too")
         void arrowsFollowIt() {
@@ -431,8 +433,8 @@ class ScrollTest {
         }
     }
 
-    /// §2.4 rules out nested same-axis scrollers, and nothing said so
-    /// ([ADR-0251]).
+    /// The design system rules out nested same-axis scrollers, and nothing said
+    /// so.
     ///
     /// Chaining means a nested pair behaves *reasonably* rather than badly, so
     /// the ban cost nothing and the author heard nothing — which is the worst
@@ -443,8 +445,7 @@ class ScrollTest {
     /// Asserted through the report set rather than the log, for
     /// `StyleResolverTest`'s reason: only `slf4j-api` is on the classpath and
     /// there is no appender to read back.
-    /// A child asking to grow inside a scroller gets nothing, and nothing said so
-    /// ([ADR-0257]).
+    /// A child asking to grow inside a scroller gets nothing, and nothing said so.
     ///
     /// The content box is as tall as its content by construction, which is what
     /// makes a scroll view a scroll view — so a `flex-grow` inside one is asking
@@ -521,7 +522,8 @@ class ScrollTest {
         @DisplayName("a vertical scroll inside a vertical scroll is reported, once")
         void sameAxisIsReported() {
             // `tallContent()` is itself a vertical `scroll`, so wrapping it in
-            // another vertical one is the arrangement §2.4 rules out.
+            // another vertical one is the arrangement the canon rules out: nested
+            // same-axis scrollers.
             var nested =
                     new Scroll(List.of(tallContent()), ScrollAxis.VERTICAL, dev.goldberry.widget.attr.Attributes.NONE);
             var harness = new Harness(nested);
@@ -539,13 +541,13 @@ class ScrollTest {
         @DisplayName("but a horizontal one inside a vertical one is not")
         void differentAxesAreFine() {
             // A vertical page holding a horizontally scrolling table is the
-            // arrangement §2.4 allows, and the one every wide table needs.
+            // arrangement that is allowed, and the one every wide table needs.
             new Harness(new Scroll(
                     List.of(tallContent()), ScrollAxis.HORIZONTAL, dev.goldberry.widget.attr.Attributes.NONE));
 
             assertFalse(
                     ScrollState.reportedNesting(),
-                    "crossed axes are the arrangement §2.4 allows, and a table in a page is exactly it");
+                    "crossed axes are the allowed arrangement, and a table in a page is exactly it");
         }
 
         @Test
@@ -576,8 +578,8 @@ class ScrollTest {
             var harness = new Harness(tallContent());
 
             // Already at the top, so there is nothing this viewport can do with
-            // an upward scroll -- and §2.4 says it chains rather than swallowing
-            // it. Unconsumed is the whole mechanism: the router's ordinary
+            // an upward scroll -- and a scroller at its edge chains to its
+            // ancestor rather than swallowing it. Unconsumed is the whole mechanism: the router's ordinary
             // bubble does the rest.
             assertFalse(harness.router.pointerWheel(100, 50, 0, -1), "a scroll view at its edge swallowed the wheel");
         }
@@ -588,7 +590,7 @@ class ScrollTest {
     class Keyboard {
 
         @Test
-        @DisplayName("a viewport takes focus, because §1 says its keys work when focused")
+        @DisplayName("a viewport takes focus, because its keys work when it is focused")
         void focusable() {
             var harness = new Harness(tallContent());
 
@@ -661,7 +663,7 @@ class ScrollTest {
             harness.wheel(3);
             var scrolled = harness.contentTop();
 
-            // §1: "scroll position is retained state surviving rebuilds". The
+            // Scroll position is retained state that survives a rebuild. The
             // element tree keeps the state across a re-description, so this
             // needs no key and no application field.
             harness.tree.root().markNeedsBuild();
@@ -682,8 +684,8 @@ class ScrollTest {
 
             // Not on the first frame, and that is the design rather than a
             // defect: a thumb's length says what proportion of the document is
-            // visible, and nothing knows that until a frame has been laid out
-            // (ADR-0117). The second frame has it.
+            // visible, and nothing knows that until a frame has been laid out.
+            // The second frame has it.
             harness.frame();
 
             assertNotNull(harness.thumb(), "no thumb after a measured frame");
@@ -753,7 +755,7 @@ class ScrollTest {
             var before = harness.contentTop();
 
             // Near the bottom of the bar, which is below a thumb parked at the
-            // top -- so §2.4's "track-click pages" means forward.
+            // top -- so a track click, which pages, means forward.
             harness.pressAt(195, 90);
 
             assertTrue(harness.contentTop() < before - 50, "a track click moved " + (before - harness.contentTop()));

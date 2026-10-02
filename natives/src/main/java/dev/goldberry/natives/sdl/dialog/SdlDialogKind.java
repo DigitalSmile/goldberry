@@ -6,6 +6,8 @@ package dev.goldberry.natives.sdl.dialog;
 /// `SDL_ShowFileDialogWithProperties`, which is not bound. This is Java's own
 /// way of choosing between three separate C functions, and it exists so the
 /// wrapper has one entry point instead of three near-identical ones.
+///
+/// Read more: [The native boundary](https://goldberry.dev/docs/overview/architecture.html#the-native-boundary).
 public enum SdlDialogKind {
 
     /// `SDL_ShowOpenFileDialog` — existing files.

@@ -6,7 +6,7 @@ import java.util.Collections;
 import java.util.List;
 
 /// Where an upcall's signature is declared, so that a native image can be told
-/// about it before the stub is ever made (ADR-0339).
+/// about it before the stub is ever made.
 ///
 /// A downcall's descriptor passes through [Downcalls#link] and is recorded
 /// there. An upcall's does not pass through anything shared: each of the five
@@ -20,6 +20,9 @@ import java.util.List;
 /// class initialisation and hands it straight back. `ForeignSurface` initialises
 /// the owners and reads [#declared()]; a test holds the list of owners to every
 /// class that calls `upcallStub`.
+///
+/// Read more:
+/// [Two metadata directories](https://goldberry.dev/docs/native.html#two-metadata-directories-traced-and-written).
 public final class Upcalls {
 
     private static final List<FunctionDescriptor> DECLARED = Collections.synchronizedList(new ArrayList<>());

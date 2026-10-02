@@ -19,10 +19,10 @@ import dev.goldberry.log.Logs;
 /// GLib is neither: it is the **system's**, it arrives in the process because
 /// something else wanted it, and Goldberry has no opinion about which version.
 ///
-/// Two things drag it in on Linux, and both are Goldberry features:
-/// `docs/core-widgets.md` §9's `tray-icon`, because SDL's tray is
-/// libayatana-appindicator and that links GTK 3; and §9's `web-view`, because
-/// WebKitGTK links GTK. Everything either of them says about itself goes through
+/// Two things drag it in on Linux, and both are Goldberry features: the
+/// `tray-icon` widget, because SDL's tray is libayatana-appindicator and that
+/// links GTK 3; and the `web-view` widget, because WebKitGTK links GTK.
+/// Everything either of them says about itself goes through
 /// `g_log`, and `g_log`'s default destination is this process's stderr.
 ///
 /// ## Why it is `dlopen`ed rather than exported from `libgoldberry`
@@ -49,6 +49,8 @@ import dev.goldberry.log.Logs;
 /// macOS and Windows have no GLib unless somebody installed one, and neither
 /// SDL's tray nor its web view uses it there — SDL uses `NSStatusItem` and
 /// `Shell_NotifyIcon`. Asking would be a `dlopen` that fails on every Mac.
+///
+/// Read more: [The native boundary](https://goldberry.dev/docs/overview/architecture.html#the-native-boundary).
 public final class GlibLibrary {
 
     /// The runtime soname. Not `libglib-2.0.so`, which is the symlink a `-dev`

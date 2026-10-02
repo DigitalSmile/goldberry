@@ -9,11 +9,17 @@ import dev.goldberry.render.model.LogicalSize;
 /// Where a popup goes relative to the thing that opened it, and what happens
 /// when that would put it off the screen.
 ///
-/// `docs/core-widgets.md` §7 asks `popover` for "placement with flip/shift when
-/// near edges", and this is that, as **arithmetic with no state**: an anchor
-/// rectangle, a size, and the rectangle it all has to fit inside, in. A point,
-/// out. Nothing here opens a window, reads a display or knows what a popup is —
-/// which is why every case of it can be a test rather than a screenshot.
+/// ```java
+/// host.popup(new Menu(items), "menu-button", Placement.BELOW);
+/// host.popup(tip, "save-button", Placement.ABOVE.align(Placement.Align.CENTER).gap(8));
+/// ```
+///
+/// A popover near an edge flips to the other side or shifts along it, and this
+/// is that, as **arithmetic with no state**: an anchor rectangle, a size, and
+/// the rectangle it all has to fit inside, in. A point, out. Nothing here opens
+/// a window, reads a display or knows what a popup is, which is why every case
+/// of it can be a test rather than a screenshot. [Host#popup] applies it between
+/// measuring the content and opening the window.
 ///
 /// ## The three rules, in order
 ///
@@ -31,7 +37,7 @@ import dev.goldberry.render.model.LogicalSize;
 ///
 /// If it *still* does not fit — a popup taller than the screen — it is clamped to
 /// the near edge, so the top of a too-long menu is visible rather than the middle
-/// of it. Making it scroll is `scroll`'s job and does not exist yet.
+/// of it. Making it scroll instead is the caller's choice, through a [Host.Fit].
 ///
 /// ## One coordinate space
 ///
@@ -39,6 +45,8 @@ import dev.goldberry.render.model.LogicalSize;
 /// it. Which space that is, this class does not care: a caller working in a
 /// window's own coordinates passes the work area translated into them, and gets a
 /// point it can hand straight to a popup as an offset.
+///
+/// Read more: [Overlays and popups](https://goldberry.dev/docs/guide/windows.html#overlays-and-popups).
 ///
 /// @param side  the side of the anchor to prefer
 /// @param align how to line up along the other axis
@@ -82,8 +90,7 @@ public record Placement(Side side, Align align, float gap) {
         /// Above it.
         TOP,
 
-        /// Before it: the left in a left-to-right window, until §17's
-        /// right-to-left work says otherwise.
+        /// Before it: the left in a left-to-right window.
         START,
 
         /// After it — a submenu.

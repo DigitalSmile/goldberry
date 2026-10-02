@@ -1,4 +1,5 @@
-# Linux CI (ADR-0012)
+# Linux CI
+# https://goldberry.dev/docs/contributing/testing.html#the-ci-matrix
 #
 # The natives job builds inside a manylinux_2_28 container. That container IS the
 # glibc floor: it pins 2.28 (the RHEL 8 baseline) while providing a modern GCC.
@@ -7,14 +8,13 @@
 #
 # CI invokes CMake directly rather than through Gradle, because the manylinux
 # image has no JDK and putting one there would buy nothing. Gradle drives CMake
-# for local development. ADR-0012 records that this means the CMake arguments
-# live in two places.
+# for local development, which means the CMake arguments live in two places.
 #
 # `workflow_call` is what lets publish.yml reuse this without duplicating it --
 # and on a push to master that is the only way this runs. There is no `push`
 # trigger: snapshot.yml calls this workflow on every push and publishes the
 # library it built, so a trigger here would build every native library twice per
-# commit and publish neither (ADR-0334). Pull requests still run it directly.
+# commit and publish neither. Pull requests still run it directly.
 #
 # STATUS: the natives jobs pass on x64 and aarch64. The dependency list below is
 # where this workflow keeps breaking: SDL treats several X11 extensions as hard
@@ -27,7 +27,8 @@
 #       && PATH=/opt/python/cp312-cp312/bin:$PATH cmake -S /src/natives/src/main/cmake \
 #          -B /tmp/b -G Ninja -DGOLDBERRY_TARGET_ID=linux-x64'
 #
-# The verify jobs failed on the first run and were reworked; see ADR-0016.
+# The verify jobs failed on the first run and were reworked: they now download
+# the library the natives job built and refuse to skip a test for want of it.
 
 name: Linux
 
@@ -38,7 +39,7 @@ on:
 
 # Upstream refs are deliberately absent. The superbuild reads them straight out
 # of gradle/libs.versions.toml, which is the only place any of them is written
-# down (ADR-0035). They used to be duplicated here because the manylinux
+# down. They used to be duplicated here because the manylinux
 # container has no JDK -- but reading the catalog never needed a JDK, only
 # something that can parse a text file, and CMake can.
 
@@ -57,18 +58,19 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
       - run: ./gradlew build checkLicenses checkMarkdown -Pgoldberry.skipNative=true --no-daemon
 
-      # docs/testing.md §1.6: the suite runs in BOTH binding modes on every PR.
+      # The suite runs in BOTH binding modes on every PR.
+      # https://goldberry.dev/docs/contributing/testing.html#what-check-runs
       #
       # The one above binds `@Bind` reflectively, which is what a jar does. This
-      # one runs over woven classes, which is what a native image does
-      # (ADR-0155). They are two different code paths through the same tests and
+      # one runs over woven classes, which is what a native image does.
+      # They are two different code paths through the same tests and
       # a defect in either is invisible from the other -- the woven path writes
       # a field directly where the reflective one goes through a handle.
       #
       # A second invocation rather than a second task, because weaving rewrites
       # the compiled classes in place: one build cannot hold both forms.
       # Coverage survives it, because the exec file is named for the mode and the
-      # report reads every file it finds (§3, "merged across modes").
+      # report reads every file it finds, so the two modes are merged.
       - name: The suite again, woven
         run: |
           ./gradlew test -Pgoldberry.skipNative=true -Pgoldberry.nativeImage=true \
@@ -87,9 +89,10 @@ jobs:
           path: build/reports/jacoco/testCodeCoverageReport
           if-no-files-found: ignore
 
-      # docs/testing.md §3's PR diff coverage. Guarded on the secret existing, so
+      # PR diff coverage. Guarded on the secret existing, so
       # the lane is silent until somebody connects Codecov rather than red on
-      # every pull request until then (§7 is the checklist).
+      # every pull request until then.
+      # https://goldberry.dev/docs/contributing/testing.html#advisory-dashboards
       #
       # `fail_ci_if_error: false` on purpose: coverage reporting is a dashboard,
       # and an upload that failed because a third party was down is not a reason
@@ -127,7 +130,7 @@ jobs:
           # AlmaLinux 8's cmake is older than the 3.28 the superbuild requires,
           # so cmake and ninja come from pip instead of dnf. Meson is no longer
           # needed: libxkbcommon was the only meson-built dependency and it is
-          # gone (ADR-0055).
+          # gone, since SDL owns keyboard translation.
           dnf install -y \
             libxml2-devel wayland-devel wayland-protocols-devel \
             libX11-devel libxcb-devel libXext-devel libXrandr-devel \
@@ -137,7 +140,8 @@ jobs:
             dbus-devel systemd-devel ibus-devel
           # dbus-devel, systemd-devel and ibus-devel are the three this list was
           # missing, and the reason the published libgoldberry could not ask the
-          # desktop whether it was set to dark (docs/gaps.md G32, ADR-0325).
+          # desktop whether it was set to dark.
+          # https://goldberry.dev/docs/contributing/building.html#linux
           #
           # None of them is a build failure in SDL's own terms: SDL treats all
           # three as "use it if the headers are here", compiles the feature out
@@ -169,7 +173,7 @@ jobs:
           /opt/python/cp312-cp312/bin/pip install --upgrade cmake ninja
           echo /opt/python/cp312-cp312/bin >> $GITHUB_PATH
 
-      # §9's `web-view`, and the ONE optional dependency in this file (ADR-0441).
+      # The engine behind `web-view`, and the ONE optional dependency in this file.
       #
       # Deliberately its own step and deliberately non-fatal, which nothing else
       # here is. Every package above is required because its absence is a library
@@ -234,14 +238,15 @@ jobs:
   #
   # `goldberry.native.required=true` is not decoration. LayoutVerificationTest
   # skips when no library is loadable, and a verify job that skipped every test
-  # is a green tick over an artifact nothing opened. See ADR-0016.
+  # is a green tick over an artifact nothing opened.
+  # https://goldberry.dev/docs/contributing/testing.html#with-and-without-the-library
   verify:
     name: Verify layouts (${{ matrix.target }})
     needs: natives
     # A matrix job fails if any leg does, so without this one broken target
     # skips verification of every other target's library -- including ones that
     # built fine. A leg whose artifact really is missing fails at the download
-    # step, loudly, which is what ADR-0016 asks for.
+    # step, loudly, which is the point: the check is never skipped.
     if: ${{ !cancelled() }}
     strategy:
       fail-fast: false
@@ -281,7 +286,7 @@ jobs:
       #
       # The coverage floors run here and not in the `java` job: they were measured
       # with the library loaded, and with `-Pgoldberry.skipNative` every test that
-      # shapes or paints skips, which halves the figure (ADR-0338). One leg is
+      # shapes or paints skips, which halves the figure. One leg is
       # enough -- coverage does not differ by CPU.
       - name: Core, widget, Markdown and emoji tests, and the golden images
         env:
@@ -292,13 +297,13 @@ jobs:
             -Dgoldberry.native.required=true
 
       # The GPU tests, on lavapipe: Mesa's software Vulkan, a conformant driver on
-      # a runner with no GPU (docs/gpu-plan.md, phase 2; ADR-0475). SDL makes a
+      # a runner with no GPU. SDL makes a
       # GPU device only under a video driver that can make a Vulkan surface, and
       # `offscreen` makes a headless one, so no display and no Xvfb are needed.
       # The loader is pointed at lavapipe alone, so a runner that ever grows a
       # real GPU still tests the same driver. `goldberry.gpu.required` turns a
-      # missing device into a failure rather than a green tick over nothing
-      # (ADR-0016).
+      # missing device into a failure rather than a green tick over nothing.
+      # https://goldberry.dev/docs/contributing/testing.html#the-gpu-tests
       #
       # Written before it could be run, and its first two runs (Snapshot 32 and
       # 33) failed at the ICD lookup: Mesa's packaging names the file
@@ -333,7 +338,7 @@ jobs:
       # The example's own tests -- its goldens, its gallery order, its screen
       # tests -- need a rasterizer too, and this is the only place they meet a
       # real library on every push: showcase.yml, which used to run them, builds
-      # the native image on a release tag or by hand now (ADR-0340). One leg is
+      # the native image on a release tag or by hand now. One leg is
       # enough, for the coverage floors' reason.
       - name: The example's tests, against the library
         if: matrix.target == 'linux-x64'

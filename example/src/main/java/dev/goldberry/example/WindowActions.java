@@ -21,8 +21,9 @@ import dev.goldberry.bind.Action;
 ///
 /// That the registry is *strict* is the point rather than a detail: a `press=`
 /// typo is otherwise a button that silently does nothing, and this record is what
-/// makes it a failure at inflation that names the action it could not find
-/// (ADR-0132).
+/// makes it a failure at inflation that names the action it could not find.
+///
+/// Read more: [Actions](https://goldberry.dev/docs/applications.html#actions).
 ///
 /// @param openMenu    what `app.open-menu` does — a platform popup under the
 ///                    button that opened it

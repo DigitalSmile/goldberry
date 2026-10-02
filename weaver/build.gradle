@@ -8,14 +8,15 @@ description = 'Goldberry weaver: the widget catalog, and the models a native ima
 // toolkit. This is a **build-time** tool like :assets: it runs over compiled
 // classes between `compileJava` and `jar`, it never reaches an application's
 // runtime classpath, and it has no module-info because it is launched as a plain
-// classpath program (ADR-0125).
+// classpath program.
 //
-// Two halves, wanted at different times (ADR-0155). `--catalog` declares a
+// Two halves, wanted at different times. `--catalog` declares a
 // module's @Markup widgets and every build needs it, because nothing finds
 // annotated classes at run time. `--models` rewires @Bind fields and writes the
 // @Action call sites, and only a GraalVM native image needs it -- an ordinary jar
 // binds the same annotations reflectively, so this is a dependency of the image
 // build rather than of the toolkit.
+// https://goldberry.dev/docs/weaving.html#the-two-halves
 group = 'dev.goldberry'
 version = providers.gradleProperty('goldberryVersion').get()
 
@@ -86,7 +87,7 @@ tasks.named('test') {
 
 // The two binding schemes, measured against each other in one JVM. This is the
 // only module that can: it holds a raw model and can weave a copy of it in
-// memory, so both forms of one class exist side by side (ADR-0155).
+// memory, so both forms of one class exist side by side.
 tasks.register('benchmark', Test) {
     group = 'verification'
     description = 'Runs the benchmarks, which print measurements rather than asserting them.'

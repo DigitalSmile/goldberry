@@ -18,7 +18,7 @@ import org.junit.jupiter.api.Test;
 
 /**
  * Every resource a module ships is declared to {@code native-image} by some
- * module's {@code reachability-metadata.json} (ADR-0160, ADR-0453).
+ * module's {@code reachability-metadata.json}.
  *
  * <p>The guard that would have caught two bugs at once. {@code :emoji} shipped
  * the OpenMoji face and declared nothing, so the showcase's native image died
@@ -74,7 +74,7 @@ class DeclaredResourcesTest {
                         + " Another module declaring them does not count and is the trap this checks for:"
                         + " :html's stylesheets were covered only by the *traced* metadata :example ships,"
                         + " so they reached the showcase's image and would not reach anyone else's."
-                        + " Add a glob under <module>/" + METADATA + "/. See ADR-0160 and ADR-0453.");
+                        + " Add a glob under <module>/" + METADATA + "/.");
     }
 
     /**

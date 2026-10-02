@@ -10,40 +10,40 @@ import dev.goldberry.widget.style.Corner;
 /// One thing floating over a window's content, and the handle that takes it away
 /// again.
 ///
-/// The in-window overlay layer `docs/core-widgets.md` §7 asks for, in its first
-/// and smallest form: a widget, a corner it is pinned to, and a margin from the
-/// two edges that corner touches. It is **not** the popup path — a menu that has
-/// to escape the window needs a platform window and that is the backend's job
-/// (`docs/ARCHITECTURE.md` §4). This is the half that stays inside.
-///
-/// ## Why a handle and not a list an application edits
-///
-/// Adding is one call and removing is the same object; nothing has to be found
-/// again by index or by equality. Two identical HUDs in the same corner are two
-/// overlays, and removing one removes the one you were handed — which is why this
-/// is a class with identity rather than a record with value equality.
-///
 /// ```java
 /// var hud = host.overlay(new Hud(), Corner.BOTTOM_END);
 /// // ...
 /// hud.remove();
 /// ```
 ///
-/// Here beside [Window] rather than in the widget package, because it is the
+/// An overlay is a widget, a corner it is pinned to, and a margin from the two
+/// edges that corner touches. It is painted after the window's content and takes
+/// no space from it. It is **not** the popup path: a menu that has to escape the
+/// window needs a platform window of its own, which is a [Popup]. This is the
+/// half that stays inside.
+///
+/// Adding is one call and removing is the same object; nothing has to be found
+/// again by index or by equality. Two identical HUDs in the same corner are two
+/// overlays, and removing one removes the one you were handed, which is why this
+/// is a class with identity rather than a record with value equality.
+///
+/// It lives beside [Window] rather than in the widget package because it is the
 /// window's list an overlay is on and [Host] is what puts it there. The node that
 /// *draws* it is [dev.goldberry.widget.root.WindowRoot].
 ///
 /// Confined to the UI thread, like the tree it appears in.
+///
+/// Read more: [Overlays and popups](https://goldberry.dev/docs/guide/windows.html#overlays-and-popups).
 public final class Overlay {
 
     /// The gap from the window's edges, in logical pixels, when a caller does not
     /// choose one.
     ///
-    /// This number is in Java rather than in a stylesheet because §8's CSS subset
-    /// has no `position` at all — the same reason `affix` is a widget and not
-    /// `position: sticky`. `--gb-window-margin` in `docs/core-widgets.md` §3 is
-    /// the name it will have when a floating button needs it in a rule; until
-    /// something can read it there, one place is better than two.
+    /// A number in Java rather than in a stylesheet because the CSS subset has no
+    /// `position` property at all, which is also why `affix` is a widget and not
+    /// `position: sticky`. `--gb-window-margin` is the name it will have when a
+    /// floating button needs it in a rule; until something can read it there, one
+    /// place is better than two.
     public static final float WINDOW_MARGIN = 16;
 
     private final Widget widget;
@@ -54,22 +54,12 @@ public final class Overlay {
     /// it has. Set by whoever attached it.
     private @Nullable Runnable detach;
 
-    /// An overlay that is not on a window yet.
-    ///
-    /// [Host#overlay(Widget, Corner)] is how one gets onto a window and is what
-    /// almost every caller wants. This is the constructor behind it, public
-    /// because [dev.goldberry.widget.root.WindowRoot] is — an
-    /// application assembling its own root, and every test of the overlay layer,
-    /// needs to be able to say "this widget, that corner" without a launcher.
-    ///
-    /// A detached overlay is inert: [#remove()] does nothing and nothing draws it.
     /// An overlay laid out to **the whole window** rather than pinned to a
     /// corner.
     ///
     /// Every other overlay is content-sized and tucked into a corner, which is
     /// what a `hud` or a `toast` wants. A `tour` wants the opposite: it dims
-    /// everything except one widget, so it has to cover everything
-    /// (ADR-0121).
+    /// everything except one widget, so it has to cover everything.
     ///
     /// The corner is [Corner#TOP_START] and the margin zero, which with insets on
     /// all four sides is Yoga's way of saying "fill" — so this adds a flag and no
@@ -83,6 +73,16 @@ public final class Overlay {
         return filling;
     }
 
+    /// An overlay that is not on a window yet, [#WINDOW_MARGIN] from its corner's
+    /// edges.
+    ///
+    /// [Host#overlay(Widget, Corner)] is how one gets onto a window and is what
+    /// almost every caller wants. This is the factory behind it, public because
+    /// [dev.goldberry.widget.root.WindowRoot] is: an application assembling its
+    /// own root, and every test of the overlay layer, needs to be able to say
+    /// "this widget, that corner" without a launcher.
+    ///
+    /// A detached overlay is inert: [#remove()] does nothing and nothing draws it.
     public static Overlay of(Widget widget, Corner corner) {
         return new Overlay(widget, corner, WINDOW_MARGIN);
     }

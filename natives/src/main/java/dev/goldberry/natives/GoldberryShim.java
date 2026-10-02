@@ -9,33 +9,27 @@ import dev.goldberry.log.Logs;
 import dev.goldberry.log.Startup;
 import dev.goldberry.natives.calls.ShimCalls;
 
-/// BindingRegistry for libgoldberry's own three exported functions.
+/// The binding for `libgoldberry`'s own exported functions: the ABI version, the
+/// layout table and the GTK backend hint.
 ///
-/// This is the first hand-written binding (ADR-0010) and the template for every
-/// other: declare what is bound as a [ShimCalls], call each function by name, and
-/// never let a [MemorySegment] out of the `natives` module untyped. The holder
-/// keeps the address and the signature together, so this class has neither.
+/// `GoldberryShim.get()` loads the library on first call and checks that the
+/// ABI version it reports is [#SUPPORTED_ABI_VERSION]; a mismatch is an
+/// `UnsatisfiedLinkError` at start-up rather than a struct read wrongly later.
+///
+/// This is the template every other binding follows: declare what is bound as a
+/// [ShimCalls], call each function by name, and never let a [MemorySegment] out
+/// of the `natives` module untyped. The holder keeps the address and the
+/// signature together, so this class has neither.
+///
+/// Read more: [The native boundary](https://goldberry.dev/docs/overview/architecture.html#the-native-boundary).
 public final class GoldberryShim {
 
     /// The ABI this Java code was written against. `goldberry_shim.c` must agree.
     ///
-    /// 2 added `goldberry_probe_measure` (ADR-0017); 3 added SDL3's windowing and
-    /// event surface, and the constant rows in the layout table (ADR-0020); 4
-    /// added `SDL_GetCurrentVideoDriver` and `SDL_SetHint` (ADR-0026); 5 added
-    /// Yoga's node API and its enumerators (ADR-0029); 6 added Blend2D's image
-    /// and context surface (ADR-0031); 7 added HarfBuzz shaping (ADR-0032); 9
-    /// added Markdown's encoded event stream and md4c's entity table (ADR-0294);
-    /// 10 added `goldberry_platform_capabilities`, which is what a build that
-    /// cannot ask the desktop anything says about itself (ADR-0325,
-    /// `docs/gaps.md` G32); 11 added libwebp's three decoder entry points and the
-    /// `SDL_DropEvent` layout, which are the two halves of `docs/gaps.md` G35
-    /// (ADR-0329, ADR-0330); 12 put libwebp's three animation structs, its demux
-    /// ABI version and SDL's `SDL_INIT_*` bits on the layout table, which were
-    /// hand-counted in Java and checked by nothing. 16 added `SDL_GPU`'s first
-    /// surface, the property setters it is configured through, and its structs
-    /// and enumerators on the layout table (`docs/gpu-plan.md`, phase 1); 17
-    /// added the primary selection's three calls, X11's middle-click buffer
-    /// (ADR-0504).
+    /// The number goes up whenever the export list or the layout table changes
+    /// shape: a new library function, a new struct or constant row, a new upcall.
+    /// A Java build and a library that disagree about it are mismatched
+    /// artifacts, and [#get()] refuses the pair.
     public static final int SUPPORTED_ABI_VERSION = 17;
 
     private static final Logger LOG = Logs.of(GoldberryShim.class);
@@ -96,9 +90,9 @@ public final class GoldberryShim {
     /// libayatana-appindicator and that calls `gtk_init`.
     ///
     /// Without it, an application on an XWayland desktop has an X11 window and
-    /// Wayland GTK surfaces, and `web-view` cannot reparent one into the other
-    /// ([ADR-0442]). A no-op off Linux, and it never overwrites a `GDK_BACKEND`
-    /// somebody set deliberately.
+    /// Wayland GTK surfaces, and `web-view` cannot reparent one into the other.
+    /// A no-op off Linux, and it never overwrites a `GDK_BACKEND` somebody set
+    /// deliberately.
     ///
     /// @param backend the GDK backend name — `"x11"` or `"wayland"`
     public void preferGtkBackend(String backend) {

@@ -54,12 +54,12 @@ import dev.goldberry.widgets.core.Row;
 /// Yoga, styled by the cascade and painted by the same painter as every button on the
 /// screen. There is no engine here, no second text stack and nothing that a theme
 /// cannot restyle, which is what made Markdown the toolkit's problem rather than an
-/// application's (ADR-0295, `docs/gaps.md` G8).
+/// application's.
 ///
 /// ## What it does when the application has wired it
 ///
 /// Three things that used to be on the list below and are not any more, each because
-/// an application answered a question only it can (ADR-0300):
+/// an application answered a question only it can:
 ///
 /// - **A link is a `button.link`** when the view has an `onLink` — one widget for the
 ///   whole run, so it is a Tab stop and a hover rather than four coloured words.
@@ -77,23 +77,23 @@ import dev.goldberry.widgets.core.Row;
 /// - **A line of mixed faces is a row of words, not a shaped run**, so there is no
 ///   justification and no hyphenation. This is the one an engine would close, and it
 ///   is what `book/src/TODO.md` still tracks. Selecting text across those words does
-///   work — the words say where they landed (ADR-0301).
+///   work — the words say where they landed.
 ///
-/// **A table's rules between its cells were on that list and are not any more**
-/// (ADR-0505): the subset's border has four sides, so a row draws the line above it
+/// **A table's rules between its cells were on that list and are not any more**:
+/// the subset's border has four sides, so a row draws the line above it
 /// and a cell the line before it, and the `first` class on the leftmost cell and the
 /// top row — put there for this rule before it could be written — stops either
 /// doubling the table's own border.
 ///
-/// **A hard break was on that list and is not any more** (ADR-0426): a paragraph the
+/// **A hard break was on that list and is not any more**: a paragraph the
 /// author ended a line inside is a column of line rows rather than one row, so the
 /// break lands where they put it. A *soft* break still reflows, because that is what
 /// makes it soft.
 final class MarkdownWidgets implements BlockMemo.Fold<Block> {
 
     /// The `md-word` / `md-token` namespace, which is all this fold and
-    /// `html-view`'s disagree about — see [Words]. Per fold rather than static since
-    /// ADR-0301: the words it makes report where they land, and where they land is a
+    /// `html-view`'s disagree about — see [Words]. Per fold rather than static,
+    /// because the words it makes report where they land, and where they land is a
     /// fact about *this* document.
     private final Words words;
 
@@ -133,13 +133,13 @@ final class MarkdownWidgets implements BlockMemo.Fold<Block> {
     /// from Java — merged with `markdown`, which is the class every rule in the
     /// stylesheet hangs off.
     ///
-    /// The top-level blocks go through `memo`, which is the whole of [ADR-0389]: a
+    /// The top-level blocks go through `memo`, which is what makes a keystroke cheap: a
     /// paragraph nobody typed in gets the **same widget instance** it had last frame,
     /// and `Element.update` stops at an identical description rather than walking
     /// under it.
     Widget document(Document document, Attributes attributes, Widget overlay, BlockMemo memo) {
         // The overlay first, because paint order is document order and the wash goes
-        // behind the words (ADR-0301). It is absolutely positioned, so it is in no
+        // behind the words. It is absolutely positioned, so it is in no
         // column and takes no gap.
         var children = new ArrayList<Widget>();
         children.add(overlay);
@@ -196,7 +196,7 @@ final class MarkdownWidgets implements BlockMemo.Fold<Block> {
 
     private Widget block(Block block) {
         // Every block is where a copied selection gets a newline and where a
-        // triple-click stops (ADR-0301).
+        // triple-click stops.
         minter.block();
         return switch (block) {
             case Document(var children) -> new Column(blocks(children), classes("markdown"));
@@ -228,7 +228,7 @@ final class MarkdownWidgets implements BlockMemo.Fold<Block> {
     /// class wider — which is deliberate and is what keeps every golden image of every
     /// document without a break in it unmoved. `md-prose` is the paragraph, whichever
     /// shape it takes, and `md-line` is a line of words; `markdown.css` says which
-    /// declarations belong to which and why (ADR-0426).
+    /// declarations belong to which and why.
     private Widget prose(List<Inline> content, String... extra) {
         minter.block();
         var pieces = new ArrayList<Words.Piece>();
@@ -275,7 +275,7 @@ final class MarkdownWidgets implements BlockMemo.Fold<Block> {
                 // stop being the same one.** A soft break is a newline the author's
                 // editor happened to put in, so it ends the token and the line reflows;
                 // a hard break is a line they ended, so it is a boundary `prose` cuts
-                // the paragraph at (ADR-0426). No `spacer` with `flex-grow` anywhere
+                // the paragraph at. No `spacer` with `flex-grow` anywhere
                 // near it: that fills the rest of the line, which makes the line before
                 // a break look justified.
                 case LineBreak(var hard) -> out.add(hard ? Words.Break.HARD : Words.Fragment.SEPARATOR);
@@ -288,20 +288,20 @@ final class MarkdownWidgets implements BlockMemo.Fold<Block> {
     /// **This is what `markdown-view` could not do**, and the reason it can now is not
     /// an engine: it is that [Words.Piece] can carry a widget, so a link's whole run is
     /// a single `button.link` in the middle of a line rather than four words that would
-    /// each have to hover on their own (ADR-0293, ADR-0300). The full stop after it
+    /// each have to hover on their own. The full stop after it
     /// stays against it, because the button is part of the same token.
     ///
     /// A link with **no text** — one wrapping only an image, or an empty destination —
     /// is folded inline instead, because a button with nothing on it has nothing to
-    /// click and nothing to read out (§13).
+    /// click and nothing to read out.
     ///
     /// **A hard break inside a link does not break the line**, and this is the one place
-    /// ADR-0426 stops: the whole run is one `button.link` — one Tab stop, one hover, one
-    /// press — and two buttons for one destination is a worse lie to a reader than a
-    /// line that did not end where they typed. So the break becomes a space in the
-    /// label, which is also what a copy of it says. [Inlines#text] is where the newline
-    /// comes from, and it is right to produce one: the `<br>` of the HTML writer is what
-    /// it is for.
+    /// a hard break is not a line ending: the whole run is one `button.link` — one Tab
+    /// stop, one hover, one press — and two buttons for one destination is a worse lie
+    /// to a reader than a line that did not end where they typed. So the break becomes
+    /// a space in the label, which is also what a copy of it says. [Inlines#text] is
+    /// where the newline comes from, and it is right to produce one: the `<br>` of the
+    /// HTML writer is what it is for.
     private void link(
             List<Words.Piece> out,
             String destination,
@@ -317,7 +317,7 @@ final class MarkdownWidgets implements BlockMemo.Fold<Block> {
         var target = destination;
         var press = handler == null ? null : (Runnable) () -> handler.accept(target);
         var classes = new LinkedHashSet<String>();
-        // ADR-0293's variant first, then the marks -- so a stylesheet restyling a
+        // The `link` variant first, then the marks -- so a stylesheet restyling a
         // document's links does not have to restate the variant.
         classes.add("link");
         classes.addAll(marks);
@@ -331,7 +331,7 @@ final class MarkdownWidgets implements BlockMemo.Fold<Block> {
         var image = wiring.image(src);
         if (image == null) {
             // **Noted, so the memo does not keep this block.** An `ImageSource` answers
-            // null while it loads and the picture arrives on a later frame (ADR-0300),
+            // null while it loads and the picture arrives on a later frame,
             // and a block handed back unbuilt would never ask again.
             imageMissing = true;
         }
@@ -349,9 +349,9 @@ final class MarkdownWidgets implements BlockMemo.Fold<Block> {
 
     /// A quotation: its blocks, in a box whose `border-left` is the bar.
     ///
-    /// The bar was a widget beside the blocks while §10's CSS subset had one border
-    /// for a whole box and no way to ask for an edge. It is a declaration in
-    /// `markdown.css` since ADR-0505.
+    /// The bar was a widget beside the blocks while the toolkit's CSS subset had one
+    /// border for a whole box and no way to ask for an edge. Now that a border has four
+    /// sides it is a declaration in `markdown.css`.
     private Widget quote(List<Block> children) {
         var body = new Column(blocks(children), classes("md-quote-body"));
         return new Row(List.of(body), classes("md-quote"));
@@ -448,7 +448,7 @@ final class MarkdownWidgets implements BlockMemo.Fold<Block> {
     }
 
     /// One row, and whether it is the table's top one — which draws no rule above
-    /// it, because the table's own border is already there (ADR-0505).
+    /// it, because the table's own border is already there.
     private Widget row(TableRow row, boolean first) {
         var cells = new ArrayList<Widget>(row.cells().size());
         for (var i = 0; i < row.cells().size(); i++) {

@@ -184,7 +184,7 @@ class MediaPlayerGoldenTest {
     }
 
     @Test
-    @DisplayName("media-player, failed: which codecs it could not play (S7)")
+    @DisplayName("media-player, failed: which codecs it could not play")
     void failed() {
         open("clip-h264-aac.mp4", status -> status.state() == PlaybackState.ERROR);
         assertGolden("media-player-error", new MediaPlayerView(player), 584, 204);

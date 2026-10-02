@@ -10,12 +10,14 @@ import org.junit.jupiter.api.Test;
 
 import dev.goldberry.assets.BundledFont;
 
-/// §1.4's **global text-scale token**, which `ARCHITECTURE.md` §17 had recorded
-/// as "neither implemented nor gallery-enforced" ([ADR-0267]).
+/// The design system's **global text-scale token**, which scales the text and not
+/// the layout.
 ///
-/// This is the implemented half. The enforcement half — "every component must
-/// survive 150% without clipping (gallery-enforced)" — needs the mechanism to
-/// exist before an image can be taken of it, and now it does.
+/// This is the implemented half. The enforcement half — every component survives
+/// 150% without clipping — needs the mechanism to exist before an image can be
+/// taken of it, and now it does.
+///
+/// Read more: [Text scale](https://goldberry.dev/docs/guide/styling.html#text-scale).
 class TextScaleTest {
 
     private static final Typography BODY = new Typography("Inter", 13, BundledFont.Weight.REGULAR, 18);
@@ -66,12 +68,12 @@ class TextScaleTest {
         assertThrows(IllegalArgumentException.class, () -> BODY.scaled(Double.NaN));
     }
 
-    /// §1.4 gives the token a **range**, and the renderer clamps to it rather
+    /// The design system gives the token a **range**, and the renderer clamps to it rather
     /// than refusing: a text scale is a user setting, and a window that failed to
     /// open over one is worse than a window whose text is as large as the design
     /// system allows.
     @Test
-    @DisplayName("§1.4's 90–150% is a clamp on the renderer, not a refusal")
+    @DisplayName("the 90–150% range is a clamp on the renderer, not a refusal")
     void theRangeIsAClamp() {
         var renderer =
                 new dev.goldberry.widget.WidgetRenderer(java.util.List.of(), dev.goldberry.text.font.Fonts.bundled());

@@ -9,41 +9,33 @@ import dev.goldberry.widget.Widget;
 import dev.goldberry.widget.style.Paints;
 import dev.goldberry.widget.style.Styled;
 
-/// The body you grab — a **part** of [Knob], and the seventeenth in the catalog.
+/// The body you grab — the disc inside a [Knob]'s rings, styled as `knob-dial`.
 ///
-/// It exists because the first drawing of this control did not work, and the
-/// golden image is the only thing that could have said so. The dial was
-/// [Knob]'s own `background` and the rings were stroked at the edge of the same
-/// box, so the track ran **across the body** — `--gb-border` on `--gb-knob-bg` is
-/// `--nord3` on `--nord2`, about 1.2:1, and the 270° of travel a user is supposed
-/// to read was invisible. Every value assertion passed.
-///
-/// So the dial is inset instead: the rings keep the full 32px and this sits
-/// inside them, with the window showing through the gap. That is what a rotary
-/// control looks like everywhere, and the reason is the one this part is —
-/// **a ring needs something behind it that is not the thing it is measuring**
-/// ([ADR-0089]).
+/// The dial is inset from the rings: they keep the full 32 px and this sits
+/// inside them, with the window showing through the gap. A ring needs something
+/// behind it that is not the thing it is measuring — stroked at the edge of the
+/// dial's own box, the muted track would run across the body at a contrast too
+/// low to read, and the 270° of travel a user is supposed to see would be
+/// invisible.
 ///
 /// ## It carries the pointer
 ///
-/// §3's row asks a knob for an "arc indicator" and `core-widgets.md` §3 for a
-/// rotary control; between them they say what the *value* is and never say which
-/// way the thing is **pointing**. An arc alone reads as a gauge — you can see how
-/// full it is, and there is nothing on the dial that turns. So the dial carries a
+/// An arc alone reads as a gauge — you can see how full it is, and there is
+/// nothing on the dial that turns. So the dial carries a
 /// [Box.Mark.Kind#POINTER], a radial line at the value's own angle, and the
 /// control reads as a knob rather than as a ring with a disc in it.
 ///
-/// It is a mark on this node rather than a part of its own, which is the first
-/// time that answer has been the right one since `CheckMark`: a part is a node
-/// because two things must be styled or **moved** independently ([ADR-0073]), and
-/// the pointer is neither — it is drawn in one colour at one angle, and the angle
-/// is not a `transform` because a mark's geometry is a painter argument
-/// ([ADR-0089]).
+/// It is a mark on this node rather than a part of its own: a part is a node
+/// because two things must be styled or **moved** independently, and the pointer
+/// is neither — it is drawn in one colour at one angle, and the angle is not a
+/// `transform` because a mark's geometry is a painter argument.
+///
+/// Read more: [Values and progress](https://goldberry.dev/docs/components/values.html#knob).
 ///
 /// @param fraction how far round the travel the value is, `0..1` — the angle the
 ///                 pointer is drawn at
 /// @param disabled inherited from the knob, so the part is selectable without a
-///                 descendant combinator ([ADR-0077])
+///                 descendant combinator
 record KnobDial(double fraction, boolean disabled) implements Widget.Leaf, Styled, Paints {
 
     @Override

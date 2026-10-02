@@ -19,27 +19,26 @@ import dev.goldberry.widget.semantics.Semantics;
 import dev.goldberry.widget.style.Paints;
 import dev.goldberry.widget.style.Styled;
 
-/// The bar between a [SplitPane]'s two children — §5's "separator with value".
+/// The bar between a [SplitPane]'s two children: a separator that carries the
+/// split's value.
 ///
-/// **The only tab stop in a split pane**, which is what §5's "keyboard-resizable
-/// when focused" needs: a split whose *panes* were focusable would put a stop
+/// **The only tab stop in a split pane**, which is what resizing from the
+/// keyboard needs: a split whose *panes* were focusable would put a stop
 /// between every pair of them, and one that was not focusable at all could not be
 /// resized from the keyboard.
 ///
 /// ## The drag anchors, and does not track
 ///
 /// The pointer is somewhere inside a six-point bar. Mapping that position to a
-/// fraction of the pane — a slider's arrangement
-/// (ADR-0079)
-/// — would snap the divider so that its centre jumped under the finger on every
-/// press, by up to three points, which is visible and feels broken.
+/// fraction of the pane, as a slider does with its track, would snap the divider
+/// so that its centre jumped under the finger on every press, by up to three
+/// points, which is visible and feels broken.
 ///
 /// So the gesture is a **translation**: this reports its current offset as a
 /// [Handles#gestureAnchor()], the router hands that number back on every event of
 /// the gesture as [PointerEvent#anchor()], and the new offset is
-/// `anchor + dragX`. That is the knob's arrangement
-/// (ADR-0089),
-/// and this is the second widget to want it — for a reason that is not the
+/// `anchor + dragX`. That is the knob's arrangement, and this is the second
+/// widget to want it — for a reason that is not the
 /// knob's, which is worth noticing: a knob needs the anchor because its value has
 /// *already moved* by the second frame; a divider needs it because the pointer's
 /// position inside the grab is not the value.
@@ -162,8 +161,8 @@ record SplitDivider(
     }
 
     /// The resize cursor for this axis, which is the only affordance a six-point
-    /// bar has: it is too thin to carry a grip and §1.6 has no dot pattern for
-    /// one.
+    /// bar has: it is too thin to carry a grip and the icon set has no dot
+    /// pattern for one.
     @Override
     public Box render(ComputedStyle style, List<Box> children, Context context) {
         return Box.of()

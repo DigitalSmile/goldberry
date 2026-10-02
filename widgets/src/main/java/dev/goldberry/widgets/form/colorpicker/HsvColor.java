@@ -8,17 +8,16 @@ import dev.goldberry.css.value.CssColor;
 
 /// What a [ColorPicker] is dragging — hue, saturation, value and alpha.
 ///
-/// **A value**, like every other editing model in §4: every operation returns a
+/// **A value**, like every other editing model in this catalogue: every operation returns a
 /// new one, and the whole of what a drag on the plane or a turn of the hue slider
 /// means is testable with no widget, no font and no frame.
 ///
-/// ## Why HSV and not OKLCH, which §4 asks for
+/// ## Why HSV and not OKLCH
 ///
-/// §4 says "the model carries OKLCH internally because that is what §1.7
-/// interpolates in and what the ramp utility uses". That sentence is right about
-/// §1.7 and wrong about this control, and the reason is in §4's own next clause:
-/// it also asks for **a saturation/value plane**, and a saturation/value plane is
-/// HSV by construction — the axes *are* S and V.
+/// The toolkit interpolates colour in OKLCH, and so does its ramp utility, so
+/// OKLCH looks like the obvious model. It is wrong for this control: the control
+/// is **a saturation/value plane**, and a saturation/value plane is HSV by
+/// construction — the axes *are* S and V.
 ///
 /// OKLCH's axes are lightness, chroma and hue, and its chroma has a gamut
 /// boundary that varies with both of the others: the most saturated blue an sRGB
@@ -30,14 +29,13 @@ import dev.goldberry.css.value.CssColor;
 /// interpolates in the wrong space, and this control interpolates nothing:
 /// dragging is not a transition.
 ///
-/// **`Oklch` keeps the job §1.7 gave it.** Every colour *transition* in the
-/// toolkit still goes through it, which is what that sentence was protecting; a
-/// colour picked here is an ordinary `0xAARRGGBB` and fades like any other
-/// (ADR-0276).
+/// **`Oklch` keeps its job.** Every colour *transition* in the toolkit still
+/// goes through it; a colour picked here is an ordinary `0xAARRGGBB` and fades
+/// like any other.
 ///
 /// ## Why the model is not simply the ARGB value
 ///
-/// §4 makes the hex field the source of truth, and it is — [ColorPickerState]
+/// The hex field is the source of truth, and it is — [ColorPickerState]
 /// holds text. But the *plane cursor* cannot be derived from a colour, because the
 /// conversion is lossy in exactly the place a user drags to: every colour with
 /// `s == 0` is a grey and has no hue, and every colour with `v == 0` is black and
@@ -48,6 +46,8 @@ import dev.goldberry.css.value.CssColor;
 /// So the picker keeps one of these while it is being dragged, and it is the same
 /// arrangement `TextEdit` has: the committed value is what leaves, and this is the
 /// editing state that produces it.
+///
+/// Read more: [Fields and forms](https://goldberry.dev/docs/components/forms.html#color-picker).
 ///
 /// @param hue        `0..360`, degrees round the wheel
 /// @param saturation `0..1`
@@ -166,7 +166,7 @@ public record HsvColor(double hue, double saturation, double value, double alpha
         return new HsvColor(degrees, saturation, value, alpha);
     }
 
-    /// This colour at a point on the plane — §4's "saturation/value plane".
+    /// This colour at a point on the saturation/value plane.
     public HsvColor withPlane(double newSaturation, double newValue) {
         return new HsvColor(hue, newSaturation, newValue, alpha);
     }
@@ -189,8 +189,8 @@ public record HsvColor(double hue, double saturation, double value, double alpha
 
     /// This colour as CSS hex — `#rrggbb`, or `#rrggbbaa` when it is translucent.
     ///
-    /// §4: "Value is the toolkit's `CssColor`, so a picked colour is directly
-    /// usable in a stylesheet". Eight digits only when they say something, because
+    /// The value is a `CssColor` spelling, so a picked colour is directly usable
+    /// in a stylesheet. Eight digits only when they say something, because
     /// `#88c0d0ff` in a stylesheet is a reader wondering what the `ff` is for.
     public String toHex() {
         return hex(toArgb());
@@ -206,7 +206,7 @@ public record HsvColor(double hue, double saturation, double value, double alpha
 
     /// What `text` means as a colour, or null when it means nothing.
     ///
-    /// [CssColor#parse]'s answer, which is every spelling §8's subset accepts —
+    /// [CssColor#parse]'s answer, which is every spelling a stylesheet accepts —
     /// `#rgb`, `#rrggbb`, `rgb()`, a named colour — and not a syntax this widget
     /// invented. A leading `#` is optional, because a field somebody is typing
     /// into is a field they will forget it in.

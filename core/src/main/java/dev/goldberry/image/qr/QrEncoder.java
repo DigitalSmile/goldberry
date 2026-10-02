@@ -2,31 +2,35 @@ package dev.goldberry.image.qr;
 
 import java.util.Objects;
 
-/// ISO/IEC 18004, from a payload to a [QrMatrix].
+/// The QR code encoder: from a payload to a [QrMatrix], following ISO/IEC 18004.
 ///
 /// ```java
-/// var code = QrEncoder.encode("tg://login?token=" + token, Level.M);
+/// var code = QrEncoder.encode("https://goldberry.dev", Level.M);
 /// ```
+///
+/// Stateless and safe to call from any thread. The `qr-code` widget calls it
+/// for its `value=`; an application that wants the modules in a file calls it
+/// directly.
 ///
 /// ## What it does, in the standard's order
 ///
-/// 1. **Mode.** The narrowest of §7.4's modes that covers the whole payload —
+/// 1. **Mode.** The narrowest of ISO/IEC 18004 §7.4's modes that covers the whole payload —
 ///    numeric, alphanumeric, or the bytes of its UTF-8 ([Segment]).
 /// 2. **Version.** The smallest of the forty that holds the segment at the level
 ///    asked for ([Version]). Not the smallest that holds the *bytes*: the
 ///    character count field is wider in a larger code, so the question has to be
 ///    asked version by version.
 /// 3. **Codewords.** Terminator, pad to a byte, then alternating `11101100` and
-///    `00010001` until the data region is full — §7.4.10's pad codewords, which
+///    `00010001` until the data region is full — ISO/IEC 18004 §7.4.10's pad codewords, which
 ///    exist so that the error correction has something to protect rather than a
 ///    block of zeroes.
 /// 4. **Reed–Solomon.** The data split into blocks of two lengths, parity for
 ///    each ([ReedSolomon]), and the whole lot interleaved: codeword *i* of every
 ///    block, then codeword *i + 1*, so a scratch across the code damages a
 ///    little of each block instead of destroying one.
-/// 5. **Placement.** Function patterns, then the data in §7.7.3's zigzag
+/// 5. **Placement.** Function patterns, then the data in ISO/IEC 18004 §7.7.3's zigzag
 ///    ([Grid]).
-/// 6. **Mask.** All eight applied and scored by §7.8.3's four penalty rules; the
+/// 6. **Mask.** All eight applied and scored by ISO/IEC 18004 §7.8.3's four penalty rules; the
 ///    lowest wins, and ties go to the lower mask number.
 ///
 /// ## What it is not
@@ -39,9 +43,11 @@ import java.util.Objects;
 /// payloads split across several codes and for declaring a character set other
 /// than the default, and the default is what a `String` is once it is UTF-8;
 /// Kanji mode is Shift-JIS, which this API has no way to be handed.
+///
+/// Read more: [Canvas, images and QR codes](https://goldberry.dev/docs/components/drawing.html#qr-code).
 public final class QrEncoder {
 
-    /// §7.4.10's two pad codewords, applied alternately.
+    /// ISO/IEC 18004 §7.4.10's two pad codewords, applied alternately.
     private static final int[] PAD = {0xEC, 0x11};
 
     private QrEncoder() {}
@@ -99,7 +105,7 @@ public final class QrEncoder {
         return full;
     }
 
-    /// §7.6's block structure: the data split, each block given its parity, and
+    /// ISO/IEC 18004 §7.6's block structure: the data split, each block given its parity, and
     /// the result interleaved into the order the modules are laid down in.
     ///
     /// The blocks come in two lengths — the shorter ones first — because the

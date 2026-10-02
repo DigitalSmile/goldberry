@@ -31,6 +31,8 @@ import org.slf4j.LoggerFactory;
 /// this exists so that Goldberry's own loggers are all created after the property
 /// above is set. It is exported because `:core` needs it and a qualified export
 /// cannot name a module that is not on `:natives`' compile module path.
+///
+/// Read more: [Logging and diagnostics](https://goldberry.dev/docs/guide/logging.html).
 public final class Logs {
 
     /// Read by `org.slf4j.helpers.Reporter` when it is first loaded. Accepts

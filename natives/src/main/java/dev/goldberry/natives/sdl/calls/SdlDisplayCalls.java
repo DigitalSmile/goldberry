@@ -66,7 +66,7 @@ public record SdlDisplayCalls(
     /// The display’s **work area** — its bounds less panels and docks.
     ///
     /// What a popup is flipped and shifted against, rather than the full bounds:
-    /// a menu that opens under a taskbar is a menu nobody can click (ADR-0104).
+    /// a menu that opens under a taskbar is a menu nobody can click.
     ///
     /// `_Bool SDL_GetDisplayUsableBounds(int, void*)`
     public static final class GetDisplayUsableBounds {
@@ -97,8 +97,7 @@ public record SdlDisplayCalls(
     /// Which display the window is mostly on.
     ///
     /// Optional: an older `libgoldberry` may not export it, and the frame pacer
-    /// has a defined answer for "the platform will not say" — do not pace
-    /// (ADR-0047).
+    /// has a defined answer for "the platform will not say" — do not pace.
     ///
     /// `int SDL_GetDisplayForWindow(void*)`
     public static final class GetDisplayForWindow {

@@ -25,15 +25,16 @@ import org.jspecify.annotations.Nullable;
 /// A rectangle with a flexbox style and children — the smallest thing that can
 /// be laid out and painted.
 ///
-/// This is not the widget model. The three-tree design in ADR-0004 is still
-/// open, and inventing it here would be inventing it twice. What this is: the
-/// join between the two engines that were bound separately — Yoga decides where
-/// the rectangles go, Blend2D draws them — so that the seam between them is
-/// exercised by something before the widget layer lands on top of it.
+/// This is not the widget model: a widget describes what an application wants,
+/// and its element produces one of these for the render tree. A box is the join
+/// between the two engines under it — Yoga decides where the rectangles go,
+/// Blend2D draws them — and every field here is read by one of the two.
 ///
 /// Immutable, and built by chaining: every method returns a new box. A tree of
 /// these is a value, which is what makes it safe to hold one across frames and
-/// what the eventual widget tree will also be.
+/// what lets the retained render tree compare a new one against the last.
+///
+/// Read more: [Architecture](https://goldberry.dev/docs/overview/architecture.html#the-three-trees).
 public record Box(
         int background,
         Decoration decoration,
@@ -43,32 +44,28 @@ public record Box(
         FlexDirection direction,
         Justify justifyContent,
         Align alignItems,
-        // The per-child companion of `align-items` (ADR-0244). `Align.AUTO` is
+        // The per-child companion of `align-items`. `Align.AUTO` is
         // "whatever my container said", which is the default and the only value
         // that means anything on a child rather than on its parent.
         Align alignSelf,
         // The same value space a third time, and the only one of the three that
         // is about *lines*: a container that wraps has as many lines as its
         // children needed, and this shares the leftover cross-axis room between
-        // them (ADR-0374).
+        // them.
         Align alignContent,
-        // §8 has listed `flex-wrap` from the start and nothing had needed it:
-        // every row in the catalog was a row that fitted, until `select
-        // multiple` grew a row of chips that has to fall onto a second line
-        // rather than squeeze (ADR-0192).
+        // Whether a row that overruns falls onto a second line. A `select
+        // multiple`'s row of chips is the case that needs it: without it the
+        // chips squeeze rather than wrap.
         Wrap wrap,
         Length width,
         Length height,
         // How small and how large it may be. Beside `width` and `height`
         // because it is the same question, and one component rather than four
-        // because the four are only meaningful together (ADR-0181).
+        // because the four are only meaningful together.
         Limits limits,
         // Room *outside* the box that its container gives up, where `padding` is
-        // room inside it for the box's own content. §8 listed it from the start
-        // and it was written into the toolkit's own sheets and silently dropped
-        // (ADR-0215); everything it needed was already bound, because Yoga has
-        // had `YGNodeStyleSetMargin` — with its `auto` call — since the first
-        // day (ADR-0311).
+        // room inside it for the box's own content. Yoga has the call for it,
+        // `auto` included, so an `auto` edge absorbs the free space on that side.
         Insets margin,
         Insets padding,
         Length gap,
@@ -76,7 +73,7 @@ public record Box(
         double flexShrink,
         // Where the main axis starts from, before grow and shrink argue about
         // the rest. `Length.AUTO` is "ask `width`, then the content", which is
-        // CSS's initial value and Yoga's (ADR-0373).
+        // CSS's initial value and Yoga's.
         Length flexBasis,
         Position position,
         Insets inset,
@@ -85,9 +82,8 @@ public record Box(
         @Nullable Text text,
         @Nullable Glyph icon,
         @Nullable Mark mark,
-        // §1's `canvas`: the one content slot whose drawing is not the toolkit's.
-        // Null for every box that is not one, which is all but a handful
-        // (ADR-0193).
+        // A `canvas`: the one content slot whose drawing is not the toolkit's.
+        // Null for every box that is not one, which is all but a handful.
         @Nullable Painter painting,
         List<Box> children,
         @Nullable Object owner) {
@@ -96,7 +92,7 @@ public record Box(
     // Hit testing needs to get from a rectangle on screen back to whatever put
     // it there -- an Element, in the widget stack -- and the box tree is the
     // only thing that knows both. Typed as Object so `layout` keeps knowing
-    // nothing about widgets (ADR-0054).
+    // nothing about widgets.
 
     /// Text filling a box, the colour to draw it in, and what it does when it
     /// does not fit.
@@ -110,8 +106,7 @@ public record Box(
     /// is: Yoga asks the paragraph how wide it wants to be and the answer depends
     /// on `white-space`, while the painter asks where to stop drawing and the
     /// answer depends on `text-overflow`. It rides here rather than as a
-    /// component of [Box] because the thing it modifies is the paragraph
-    /// ([ADR-0255]).
+    /// component of [Box] because the thing it modifies is the paragraph.
     ///
     /// @param paragraph the text, already shaped
     /// @param argb      `0xAARRGGBB`, not premultiplied
@@ -122,8 +117,7 @@ public record Box(
             Objects.requireNonNull(flow, "flow");
         }
 
-        /// Text that wraps and marks nothing, which is what every box did before
-        /// §8's subset had either property.
+        /// Text that wraps and marks nothing — CSS's initial values for both.
         public Text(Paragraph paragraph, int argb) {
             this(paragraph, argb, TextFlow.NORMAL);
         }
@@ -138,8 +132,7 @@ public record Box(
     ///
     /// The same shape as [Text] and for the same reason: an icon with no colour
     /// cannot be drawn. Unlike text it needs no measure function — an icon knows
-    /// its own size, which is why it can be a box at all
-    /// (ADR-0043).
+    /// its own size, which is why it can be a box at all.
     ///
     /// @param icon the icon, already built at the size it will draw at
     /// @param argb `0xAARRGGBB`, not premultiplied
@@ -156,12 +149,12 @@ public record Box(
     /// practical reason: an `Icon` owns native memory and has to be closed, so a
     /// widget — a value rebuilt every frame — cannot hold one, and the application
     /// registering an icon just to get a tick inside its own checkbox would be an
-    /// absurd thing to ask ([ADR-0059]). These are three line segments and a
+    /// absurd thing to ask. These are three line segments and a
     /// circle; the painter draws them from the box's own rectangle.
     ///
     /// Stroked in [#argb] at [#thickness] logical pixels, inset into whatever
     /// rectangle the box was given. Sized by the box, not by the mark: a 16px
-    /// glyph is the design system's number (§3) and belongs in a stylesheet, so
+    /// glyph is the design system's number and belongs in a stylesheet, so
     /// the mark fills what it is handed.
     ///
     /// @param kind      which shape
@@ -191,8 +184,7 @@ public record Box(
             /// A mark rather than an icon because it is drawn at 8–10 logical
             /// pixels inside another control, where an icon's own metrics and
             /// lookup buy nothing: what a close × has to do is line up with the
-            /// glyph beside it and take the colour of the thing it closes
-            /// (ADR-0107).
+            /// glyph beside it and take the colour of the thing it closes.
             CROSS,
 
             /// Two crossed strokes at right angles — the add affordance on a tab
@@ -204,12 +196,12 @@ public record Box(
             ///
             /// A mark rather than Lucide's `chevron-right` for [#CROSS]'s reason,
             /// with one more: an icon owns native memory that must be closed
-            /// exactly once (ADR-0043), and a menu is built and thrown away every
+            /// exactly once, and a menu is built and thrown away every
             /// time it opens.
             CHEVRON_END,
 
             /// A single `<` — [#CHEVRON_END] mirrored, for a tab strip's
-            /// page-back affordance (ADR-0365). A kind rather than a mirroring
+            /// page-back affordance. A kind rather than a mirroring
             /// transform for [#CHEVRON_UP]'s reason.
             CHEVRON_START,
 
@@ -217,21 +209,19 @@ public record Box(
             /// there is a list under it.
             ///
             /// [#CHEVRON_END] turned a quarter, and a separate kind rather than a
-            /// rotation because §8's subset has no `transform` on a mark and a
-            /// drop-down chevron is not "a submenu arrow that happens to point
-            /// down": one says *beside*, the other says *below*, and a control
-            /// that drew the wrong one would be pointing at the wrong place
-            /// (ADR-0141).
+            /// rotation because a mark has no `transform` and a drop-down chevron
+            /// is not "a submenu arrow that happens to point down": one says
+            /// *beside*, the other says *below*, and a control that drew the
+            /// wrong one would be pointing at the wrong place.
             CHEVRON_DOWN,
 
             /// A single `^` — a `table`'s ascending sort caret.
             ///
             /// [#CHEVRON_DOWN] mirrored, and a third kind for the second one's
-            /// reason: the subset has no `transform` on a mark, and here the two
-            /// are not decoration but the *value* — a caret pointing the wrong way
-            /// says the column is sorted the other way, which is a lie a rotation
-            /// would make easy to ship
-            /// (ADR-0214).
+            /// reason: a mark has no `transform`, and here the two are not
+            /// decoration but the *value* — a caret pointing the wrong way says
+            /// the column is sorted the other way, which is a lie a rotation would
+            /// make easy to ship.
             CHEVRON_UP,
 
             /// A filled circle — `:checked` on a radio, which is why this is here
@@ -242,15 +232,16 @@ public record Box(
             /// words do.
             ///
             /// The first of four **enclosed glyphs**, and the four are here for
-            /// one reason: `docs/design-system.md` §1.2 forbids colour as the only
-            /// carrier of meaning, so `docs/core-widgets.md` §7's `kind` has to set
-            /// a symbol as well as a hue — and a banner that is built and thrown
+            /// one reason: the design system forbids colour as the only carrier
+            /// of meaning, so a `message`'s `kind` has to set a symbol as well as
+            /// a hue — and a banner that is built and thrown
             /// away every frame cannot own an [dev.goldberry.icon.Icon],
             /// which is native memory somebody has to close exactly once
             /// ([#CROSS] gives the same argument for the same reason).
             ///
             /// They are drawn to Lucide's own `info`, `circle-check`,
-            /// `circle-alert` and `triangle-alert` — the set §1.6 names — so a
+            /// `circle-alert` and `triangle-alert` — the set the design system
+            /// names — so a
             /// banner's glyph and an application's icon beside it are the same
             /// drawing rather than two hands.
             CIRCLE_INFO,
@@ -271,7 +262,8 @@ public record Box(
             ///
             /// The one enclosed glyph that is not a circle, and the shape is the
             /// point: warning and danger are the two kinds nobody may confuse, and
-            /// §1.2's floor is about not leaning on the hue to tell them apart.
+            /// the design system's floor is about not leaning on the hue to tell
+            /// them apart.
             TRIANGLE_ALERT,
 
             /// A ring, or any part of one — a `spinner`'s three quarters, and a
@@ -280,8 +272,7 @@ public record Box(
             /// The only mark whose geometry is not fixed by its kind, because it
             /// is the only one that has to *show a number*: [#start] and [#sweep]
             /// are what a knob's arc indicator is. Every other kind draws the
-            /// same shape at every size and ignores them
-            /// (ADR-0089).
+            /// same shape at every size and ignores them.
             ARC,
 
             /// A radial line — a `knob`'s pointer, saying which way the control
@@ -297,8 +288,9 @@ public record Box(
         /// Where a [Kind#POINTER] line begins, as a fraction of the box's radius.
         ///
         /// A proportion rather than a length, for the reason the tick and the dash
-        /// are proportions: the same drawing has to be right on §3's 32px knob and
-        /// on its 48px one, and on whatever size an application's stylesheet asks
+        /// are proportions: the same drawing has to be right on the design
+        /// system's 32px knob and on its 48px one, and on whatever size an
+        /// application's stylesheet asks
         /// for. It stops short of the centre because a line through the middle of
         /// a dial reads as a diameter rather than as a direction.
         public static final double POINTER_INNER = 0.35;
@@ -312,7 +304,7 @@ public record Box(
         /// o'clock, which is `-π/2` because zero points right.
         public static final double TOP = -Math.PI / 2;
 
-        /// Three quarters of a turn — a `spinner`'s sweep ([ADR-0081]).
+        /// Three quarters of a turn — a `spinner`'s sweep.
         public static final double THREE_QUARTERS = 1.5 * Math.PI;
 
         public Mark {
@@ -343,7 +335,7 @@ public record Box(
     /// Fully transparent — a box that lays out and paints nothing.
     public static final int TRANSPARENT = 0x00000000;
 
-    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    /// Written out so that the parameters taking null for a default can say so.
     public Box(int background, Decoration decoration, double opacity, Transform transform, Cursor cursor, FlexDirection direction, Justify justifyContent, Align alignItems, Align alignSelf, Align alignContent, Wrap wrap, Length width, Length height, Limits limits, Insets margin, Insets padding, Length gap, double flexGrow, double flexShrink, Length flexBasis, Position position, Insets inset, boolean elevated, Overflow overflow, @Nullable Text text, @Nullable Glyph icon, @Nullable Mark mark, @Nullable Painter painting, @Nullable List<Box> children, @Nullable Object owner) {
         Objects.requireNonNull(decoration, "decoration");
         Objects.requireNonNull(transform, "transform");
@@ -438,7 +430,7 @@ public record Box(
                 // "Defer to my container", which is Yoga's default and CSS's.
                 Align.AUTO,
                 // Wrapped lines stretch, which is Yoga's default under
-                // `useWebDefaults` and CSS's `normal` (ADR-0374).
+                // `useWebDefaults` and CSS's `normal`.
                 Align.STRETCH,
                 Wrap.NO_WRAP,
                 Length.UNDEFINED,
@@ -456,22 +448,21 @@ public record Box(
                 // existed.
                 1,
                 // `auto`: the main size is the width, or the content when there
-                // is no width (ADR-0373).
+                // is no width.
                 Length.AUTO,
                 // In flow, and no inset — Yoga's defaults and CSS's, so a box
                 // built here behaves exactly as one did before these existed.
                 // `Insets.ZERO` would be wrong: an inset of zero pins a node to
-                // its container's edge, which is not "no inset at all"
-                // (ADR-0099).
+                // its container's edge, which is not "no inset at all".
                 Position.RELATIVE,
                 Insets.all(Length.UNDEFINED),
                 // In document order, which is where every box is until a widget
-                // says otherwise (ADR-0123).
+                // says otherwise.
                 false,
                 // Content spills rather than being cut off, which is CSS's
                 // initial value and Yoga's. A box that never mentions `overflow`
                 // must not clip, or a control whose focus ring is drawn outside
-                // its border box would lose it (ADR-0114).
+                // its border box would lose it.
                 Overflow.VISIBLE,
                 null,
                 null,
@@ -487,12 +478,11 @@ public record Box(
     /// its non-positioned siblings, which is exactly why a `position: sticky`
     /// header in a browser is not scrolled over by the rows below it.
     ///
-    /// ADR-0053 said the box tree has no z-order and that stands — this is not
-    /// one. There is no stacking context, no `z-index` and no ordering *among*
-    /// elevated siblings: they keep document order relative to each other. It is
-    /// a single bit meaning "draw me last", which is the whole of what a pinned
-    /// header needs and considerably less than a layer
-    /// (ADR-0123).
+    /// The box tree has no z-order, and this is not one. There is no stacking
+    /// context, no `z-index` and no ordering *among* elevated siblings: they keep
+    /// document order relative to each other. It is a single bit meaning "draw me
+    /// last", which is the whole of what a pinned header needs and considerably
+    /// less than a layer.
     ///
     /// **Layout is untouched.** Yoga sees the children in the order they were
     /// given; only the painter and the hit test reorder, and they reorder
@@ -522,7 +512,7 @@ public record Box(
     /// a menu `item`'s label, `select-value` — where [#style(ComputedStyle)] is
     /// applied to the parent and never reaches the leaf. Those callers pass
     /// [ComputedStyle#textFlow()] explicitly, which is the anonymous box's way of
-    /// inheriting ([ADR-0255]).
+    /// inheriting.
     public static Box text(Paragraph paragraph, int argb, TextFlow flow) {
         return of().text(new Text(paragraph, argb, flow));
     }
@@ -535,11 +525,9 @@ public record Box(
 
     /// A box that is one icon, sized by it.
     ///
-    /// The answer to the question ADR-0043 left open — "an icon is not a `Box`,
-    /// because nothing decides an icon's intrinsic size until the widget model
-    /// does". The widget model is here, and the answer turned out to be simpler
-    /// than expected: an icon is built at a size and that size *is* its
-    /// intrinsic one, so it needs no measure function and no callback into C.
+    /// An icon is built at a size and that size *is* its intrinsic one, so the
+    /// box is simply sized to the glyph: it needs no measure function and no
+    /// callback into C.
     ///
     /// @param argb `0xAARRGGBB`, not premultiplied
     public static Box icon(Icon icon, int argb) {
@@ -553,11 +541,11 @@ public record Box(
                 elevated, overflow, text, value, mark, painting, children, owner);
     }
 
-    /// A box that draws whatever `value` draws — §1's `canvas`.
+    /// A box that draws whatever `value` draws — a `canvas`.
     ///
     /// The painter is handed the frame translated to this box's content corner
     /// and clipped to it, inside a `save`/`restore` pair, so it may leave the
-    /// context however it likes (ADR-0193). Null takes the painter off.
+    /// context however it likes. Null takes the painter off.
     public Box painting(@Nullable Painter value) {
         return new Box(background, decoration, opacity, transform, cursor, direction, justifyContent, alignItems,
                 alignSelf, alignContent, wrap, width, height, limits, margin, padding, gap, flexGrow, flexShrink, flexBasis, position, inset,
@@ -568,7 +556,7 @@ public record Box(
     ///
     /// Unlike [#icon(Icon, int)] this does **not** size the box: a [Mark] is
     /// drawn to fill whatever rectangle it is given, and the design system puts
-    /// that number — a 16px glyph (§3) — in a stylesheet where an application can
+    /// that number — a 16px glyph — in a stylesheet where an application can
     /// override it.
     public Box mark(Mark value) {
         return new Box(background, decoration, opacity, transform, cursor, direction, justifyContent, alignItems,
@@ -582,11 +570,11 @@ public record Box(
         return of().background(argb);
     }
 
-    /// The shape the pointer takes over this box (§7.3).
+    /// The shape the pointer takes over this box.
     ///
     /// A property of the painted rectangle rather than of the widget, for the
     /// same reason hit testing is: what the cursor should be is a question about
-    /// what is on screen, and the box tree is what is on screen (ADR-0054).
+    /// what is on screen, and the box tree is what is on screen.
     public Box cursor(Cursor value) {
         return new Box(background, decoration, opacity, transform, Objects.requireNonNull(value, "cursor"),
                 direction, justifyContent, alignItems, alignSelf, alignContent, wrap, width, height, limits, margin, padding, gap,
@@ -622,7 +610,6 @@ public record Box(
     /// transform is applied to the result, which is CSS's rule and the reason
     /// `transform` is cheap enough to animate at all: a control that scales on
     /// hover moves no sibling. It is also why `transition: width` is refused
-    /// (ADR-0067)
     /// and `transition: transform` is not.
     public Box transform(Transform value) {
         return new Box(background, decoration, opacity, Objects.requireNonNull(value, "transform"), cursor,
@@ -658,7 +645,7 @@ public record Box(
     }
 
     /// Where this box sits in its parent's cross axis, overriding whatever the
-    /// parent's `align-items` said — CSS's `align-self` ([ADR-0244]).
+    /// parent's `align-items` said — CSS's `align-self`.
     ///
     /// [Align#AUTO] is the default and means "defer to my container", which is
     /// the only value that reads differently here than it would on a parent.
@@ -696,8 +683,7 @@ public record Box(
     /// **For the caller that has a number a stylesheet cannot have**, which is
     /// the same door `Scroll.height` opens: an overlay capped at a fraction of a
     /// window it cannot measure. Everything else writes `min-width` and
-    /// `max-width` in CSS and arrives here through [#style(ComputedStyle)]
-    /// (ADR-0181).
+    /// `max-width` in CSS and arrives here through [#style(ComputedStyle)].
     public Box limits(Limits value) {
         return new Box(background, decoration, opacity, transform, cursor, direction, justifyContent, alignItems,
                 alignSelf, alignContent, wrap, width, height, value, margin, padding, gap, flexGrow, flexShrink, flexBasis, position, inset, elevated,
@@ -715,8 +701,7 @@ public record Box(
     /// [Length#AUTO] on an edge **absorbs the free space** on that side, which is
     /// what `margin: 0 auto` does in CSS and what centres a box on the main axis
     /// — the axis `align-self` cannot reach. Yoga has the call for it; `padding`
-    /// and `inset` do not, which is why they refuse `auto` at the cascade
-    /// (ADR-0311).
+    /// and `inset` do not, which is why they refuse `auto` at the cascade.
     public Box margin(Insets value) {
         return new Box(background, decoration, opacity, transform, cursor, direction, justifyContent, alignItems,
                 alignSelf, alignContent, wrap, width, height, limits, Objects.requireNonNull(value, "margin"), padding, gap,
@@ -736,8 +721,7 @@ public record Box(
     /// — everything in the catalog until `segmented`'s indicator was a box beside
     /// another box. An absolute box is taken out of flow and placed against its
     /// nearest ancestor that is not [Position#STATIC], so it can sit *over*
-    /// its siblings and move without disturbing them
-    /// (ADR-0099).
+    /// its siblings and move without disturbing them.
     public Box position(Position value) {
         return new Box(background, decoration, opacity, transform, cursor, direction, justifyContent, alignItems,
                 alignSelf, alignContent, wrap, width, height, limits, margin, padding, gap, flexGrow, flexShrink, flexBasis,
@@ -778,7 +762,7 @@ public record Box(
     /// `Length.AUTO` — the default — means "ask `width`, then the content", and
     /// `Length.points(0)` is what a row of equal columns wants: every child
     /// starts from nothing, so `flex-grow: 1` shares the *whole* row between
-    /// them rather than sharing what their content left over (ADR-0373).
+    /// them rather than sharing what their content left over.
     public Box basis(Length value) {
         return new Box(background, decoration, opacity, transform, cursor, direction, justifyContent, alignItems,
                 alignSelf, alignContent, wrap, width, height, limits, margin, padding, gap, flexGrow, flexShrink,
@@ -787,7 +771,7 @@ public record Box(
     }
 
     /// How this box's wrapped lines share its cross axis. Means nothing unless
-    /// it wraps (ADR-0374).
+    /// it wraps.
     public Box alignContent(Align value) {
         return new Box(background, decoration, opacity, transform, cursor, direction, justifyContent, alignItems,
                 alignSelf, Objects.requireNonNull(value, "align-content"), wrap, width, height, limits, margin, padding,
@@ -801,8 +785,7 @@ public record Box(
     /// `useWebDefaults`** — so a `width` is a *preferred* width and a cramped row
     /// is free to take it back. `0` is what a fixed-size thing wants: a
     /// checkbox's 16px glyph, a switch's 36px pill, a control's 32px hit target.
-    /// Every one of those was squashed by a narrow window before this existed
-    /// (ADR-0076).
+    /// Every one of those would otherwise be squashed by a narrow window.
     public Box shrink(double value) {
         return new Box(background, decoration, opacity, transform, cursor, direction, justifyContent, alignItems,
                 alignSelf, alignContent, wrap, width, height, limits, margin, padding, gap, flexGrow, value, flexBasis, position, inset, elevated,
@@ -838,10 +821,11 @@ public record Box(
     /// showing one through the other. Multiplying alpha per box differs exactly
     /// where children overlap — and nothing in the widget canon overlaps: a
     /// control is a row of a mark, an icon and a label, laid out side by side by
-    /// Yoga. The design system asks for opacity in one place, `:disabled` at 45%
-    /// (§2.1), and there it is indistinguishable. `stack` is the widget that will
-    /// make the difference visible, and the layer is what it will need
-    /// ([ADR-0064]).
+    /// Yoga. The design system asks for opacity in one place, `:disabled` at 45%,
+    /// and there it is indistinguishable. A translucent box **with children** is
+    /// not faded this way at all: the render tree rasterizes its subtree into a
+    /// [Layer] at full strength and composites that once, which is the specified
+    /// behaviour. This multiply is what a leaf gets.
     ///
     /// @param alpha 0 to 1
     public Box fade(double alpha) {
@@ -877,13 +861,10 @@ public record Box(
     /// overflow is not [Overflow#VISIBLE] does not grow to contain a child that
     /// overruns it, which is what makes a viewport a fixed size with a taller
     /// thing inside it. **The painter** reads it for the clip: the subtree is
-    /// drawn inside this box's rectangle and nothing of it escapes
-    /// (ADR-0114).
+    /// drawn inside this box's rectangle and nothing of it escapes.
     ///
     /// The clip reaches hit testing as well as paint, so a row scrolled out of
-    /// sight is not merely invisible — it is not clickable either. That is
-    /// ARCHITECTURE §11's promise that hit testing "respects clips", which was
-    /// written down before anything clipped.
+    /// sight is not merely invisible — it is not clickable either.
     public Box overflow(Overflow value) {
         return new Box(background, decoration, opacity, transform, cursor, direction, justifyContent, alignItems,
                 alignSelf, alignContent, wrap, width, height, limits, margin, padding, gap, flexGrow, flexShrink, flexBasis, position, inset,
@@ -893,7 +874,7 @@ public record Box(
     /// This box with every property a [ComputedStyle] carries applied to it.
     ///
     /// The join between the CSS engine and the two rendering engines, and the
-    /// reason §8's property split is worth stating as an invariant: the layout
+    /// reason the property split is worth stating as an invariant: the layout
     /// half of the style lands on the fields Yoga reads, and the paint half on
     /// the ones Blend2D does. Nothing here interprets a string.
     ///
@@ -933,12 +914,12 @@ public record Box(
                 style.position(),
                 style.inset(),
                 // Not the cascade's: no declaration says this, and a widget that
-                // pins itself sets it after the style (ADR-0123).
+                // pins itself sets it after the style.
                 elevated,
                 style.overflow(),
                 // `white-space` and `text-overflow` reach the paragraph exactly
                 // as `color` does — a `text` element is one box with one style,
-                // and the cascade is where both were resolved (ADR-0255).
+                // and the cascade is where both were resolved.
                 text == null ? null : new Text(text.paragraph(), style.color(), style.textFlow()),
                 // `color` reaches an icon exactly as it reaches text: Lucide's
                 // set is drawn to be tinted, and a stylesheet saying `color`

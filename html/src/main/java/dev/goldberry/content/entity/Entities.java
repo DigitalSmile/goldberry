@@ -10,9 +10,9 @@ import dev.goldberry.natives.md4c.Md4c;
 /// [dev.goldberry.markdown.model.Text] node is what a person
 /// reads — so this is where the resolving happens, once, on the way in.
 ///
-/// **The named table is md4c's.** All 2125 of them, through one exported symbol, for
-/// ADR-0010's reason: a copy of somebody else's table is a copy that drifts, and
-/// this one is data rather than code so nothing would notice. Numeric references are
+/// **The named table is md4c's.** All 2125 of them, through one exported symbol,
+/// because a copy of somebody else's table is a copy that drifts, and this one is
+/// data rather than code so nothing would notice. Numeric references are
 /// resolved here, because they are arithmetic rather than a table.
 public final class Entities {
 
@@ -35,7 +35,7 @@ public final class Entities {
     /// `html-view` rather than with the parser above it: md4c *marks* an entity, so the
     /// Markdown side is handed `&amp;` already cut out of the prose and calls
     /// [#resolve] on it. An HTML tokenizer has no such help — a run of text is a run of
-    /// text, and the ampersands in it are found here (ADR-0298).
+    /// text, and the ampersands in it are found here.
     ///
     /// Text with no `&` in it comes straight back, which is almost every run: the scan
     /// below never starts.

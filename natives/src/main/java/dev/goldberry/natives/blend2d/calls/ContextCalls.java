@@ -220,8 +220,7 @@ public record ContextCalls(
     ///
     /// Context state, and the only piece of it that can change what a *path*
     /// means rather than what colour it comes out — a shape with a sub-path
-    /// inside another is one ring under even-odd and a disc under non-zero
-    /// (ADR-0427).
+    /// inside another is one ring under even-odd and a disc under non-zero.
     ///
     /// `int bl_context_set_fill_rule(void*, int)`
     public static final class ContextSetFillRule {
@@ -278,7 +277,7 @@ public record ContextCalls(
     /// Fills a rectangle.
     ///
     /// The `_d` suffix is the rectangle’s type: doubles, so a fractional edge is
-    /// antialiased across the pixels it covers rather than snapped (ADR-0031).
+    /// antialiased across the pixels it covers rather than snapped.
     ///
     /// `int bl_context_fill_rect_d_rgba32(void*, void*, int)`
     public static final class ContextFillRectDRgba32 {
@@ -310,8 +309,8 @@ public record ContextCalls(
     ///
     /// The `_d` suffix is the origin’s type: doubles, so a baseline can land
     /// between physical pixels. The `_i` variant takes a `BLPointI` and is not
-    /// bound, because rounding the baseline is what ADR-0031 went to some trouble
-    /// to stop doing for rectangles.
+    /// bound: a baseline snapped to a whole pixel is the same rounding this
+    /// module avoids for rectangles.
     ///
     /// `int bl_context_fill_glyph_run_d_rgba32(void*, void*, void*, void*, int)`
     public static final class ContextFillGlyphRunDRgba32 {
@@ -343,7 +342,7 @@ public record ContextCalls(
         }
     }
 
-    /// Sets the width subsequent strokes are drawn at (ADR-0043).
+    /// Sets the width subsequent strokes are drawn at.
     ///
     /// `int bl_context_set_stroke_width(void*, double)`
     public static final class ContextSetStrokeWidth {
@@ -431,8 +430,7 @@ public record ContextCalls(
     /// Sets how far a mitered corner may run out before it is cut off.
     ///
     /// A multiple of the stroke width, not a length. SVG's and CSS's default is
-    /// 4, and Blend2D's is too — so this is only ever called to depart from it
-    /// (ADR-0278).
+    /// 4, and Blend2D's is too — so this is only ever called to depart from it.
     ///
     /// `int bl_context_set_stroke_miter_limit(void*, double)`
     public static final class ContextSetStrokeMiterLimit {
@@ -498,7 +496,7 @@ public record ContextCalls(
     /// point of it: every other fill states its colour in the call, which is
     /// what keeps a frame free of style state nobody set back. A gradient cannot
     /// be an argument — it is an object with stops — so it goes on the context
-    /// through [ContextSetFillStyle] and this is what draws with it (ADR-0207).
+    /// through [ContextSetFillStyle] and this is what draws with it.
     ///
     /// `int bl_context_fill_path_d(void*, void*, void*)`
     public static final class ContextFillPathD {
@@ -623,7 +621,7 @@ public record ContextCalls(
 
     /// Composites an image at a point, one source pixel per destination pixel.
     ///
-    /// How a promoted layer gets back onto its parent (ADR-0071). `imageArea` is
+    /// How a promoted layer gets back onto its parent. `imageArea` is
     /// always NULL here — a layer always wants the whole raster — so no
     /// `BLRectI` ever crosses.
     ///
@@ -657,7 +655,7 @@ public record ContextCalls(
     /// Composites an image into a destination rectangle, scaling to fit.
     ///
     /// What reconciles a layer’s raster, measured in physical pixels, with a
-    /// context measured in logical ones (ADR-0157).
+    /// context measured in logical ones.
     ///
     /// `int bl_context_blit_scaled_image_d(void*, void*, void*, void*)`
     public static final class ContextBlitScaledImageD {
@@ -715,7 +713,7 @@ public record ContextCalls(
 
     /// Restricts drawing to a rectangle, intersecting with the clip already in force.
     ///
-    /// How a frame is painted only inside its damage (ADR-0072).
+    /// How a frame is painted only inside its damage.
     ///
     /// `int bl_context_clip_to_rect_d(void*, void*)`
     public static final class ContextClipToRectD {
@@ -772,7 +770,7 @@ public record ContextCalls(
     ///
     /// Bound when `canvas` arrived: an application's painter runs inside whatever
     /// the tree had already set up, and `restore_clipping` goes back to the whole
-    /// frame rather than to the previous region (ADR-0193).
+    /// frame rather than to the previous region.
     ///
     /// `int bl_context_save(void*, void*)`
     public static final class ContextSave {

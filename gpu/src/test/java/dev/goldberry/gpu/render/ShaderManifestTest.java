@@ -25,8 +25,8 @@ import org.junit.jupiter.params.provider.EnumSource;
 import dev.goldberry.natives.sdl.gpu.enums.SdlGpuShaderFormat;
 
 /// The committed shader bytecode is the bytecode of the committed sources, and
-/// every shader the code names is there in the three formats (`docs/gpu-plan.md`,
-/// D7). Needs no device and no DXC: it reads files.
+/// every shader the code names is there in the three formats. Needs no device
+/// and no DXC: it reads files. Read more: [Shaders](https://goldberry.dev/docs/components/gpu.html#shaders).
 @DisplayName("the shipped shaders")
 class ShaderManifestTest {
 

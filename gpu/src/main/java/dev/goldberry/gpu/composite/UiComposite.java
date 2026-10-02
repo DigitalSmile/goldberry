@@ -22,7 +22,7 @@ import dev.goldberry.natives.sdl.gpu.enums.SdlGpuFilter;
 import dev.goldberry.natives.sdl.gpu.enums.SdlGpuTextureFormat;
 import dev.goldberry.render.model.PhysicalRect;
 
-/// The composite pass of a window (`docs/gpu-plan.md`, D4; ADR-0479, ADR-0481):
+/// The composite pass of a window:
 /// clear to opaque black, draw each GPU layer where it was placed, in paint
 /// order, and draw the UI texture 1:1 over them all with premultiplied "over",
 /// from the top left.
@@ -34,8 +34,8 @@ import dev.goldberry.render.model.PhysicalRect;
 ///
 /// A layer's quad replaces what is under it -- layers are opaque -- and is
 /// scissored to the part of it its clips let through. Every quad is
-/// `quad.vert` with `texture.frag` sampled nearest, the pair phase 2 proved
-/// byte for byte, so a layer drawn 1:1 is its texture exactly; no shader of its
+/// `quad.vert` with `texture.frag` sampled nearest, a pair the GPU tests hold
+/// to be exact byte for byte, so a layer drawn 1:1 is its texture exactly; no shader of its
 /// own is needed. Two pipelines per target format, one replacing and one
 /// blending, made the first time a target of it is drawn into, and shared by
 /// every window on the device.
@@ -157,7 +157,7 @@ public final class UiComposite implements AutoCloseable {
     }
 
     /// The pipeline a layer is drawn with: replacing, since layers are opaque
-    /// and a read-back layer replaces what is under it too (ADR-0481).
+    /// and a read-back layer replaces what is under it too.
     private SdlGpuGraphicsPipeline opaque(SdlGpuTextureFormat format) {
         var pipeline = opaquePipelines.get(format);
         if (pipeline == null) {

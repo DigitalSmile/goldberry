@@ -23,7 +23,7 @@ import dev.goldberry.widgets.Controls;
 import dev.goldberry.widgets.controls.TestFont;
 import dev.goldberry.widgets.core.Row;
 
-/// What a checkbox actually looks like (§14, [ADR-0050]).
+/// What a checkbox actually looks like, held as golden images.
 ///
 /// [CheckboxTest] checks what the cascade resolved. These check what Blend2D
 /// drew, and they are the only thing that can: a tick is a stroked path with
@@ -98,7 +98,7 @@ class CheckboxGoldenTest {
     void statesLight() {
         // The tick is nord0 on dark and nord6 on light: a light fill needs a dark
         // mark and a dark fill needs a light one, which is why both are tokens
-        // rather than one shared value (§1.2's 4.5:1).
+        // rather than one shared value: every text-on-fill pair meets 4.5:1.
         paint(
                 "checkbox-states-light",
                 Theme.NORD_LIGHT,

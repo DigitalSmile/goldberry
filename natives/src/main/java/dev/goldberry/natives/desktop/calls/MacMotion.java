@@ -13,7 +13,7 @@ import dev.goldberry.natives.desktop.MotionPreference;
 /// property is the documented way to read it. There is no C function for it, so
 /// the call goes through the Objective-C runtime — `objc_getClass`,
 /// `sel_registerName`, `objc_msgSend` — which is three symbols out of
-/// `libobjc.A.dylib` and no framework linkage at all ([ADR-0383]).
+/// `libobjc.A.dylib` and no framework linkage at all.
 ///
 /// `objc_msgSend` is variadic in its declaration and is **not** called
 /// variadically here: each of the two messages this sends takes no arguments
@@ -25,8 +25,8 @@ public final class MacMotion {
     private MacMotion() {}
 
     // The four Objective-C runtime shapes, declared here rather than inside
-    // read() so that they are recorded whether or not this machine is a Mac
-    // (ADR-0451). read() runs on macOS alone; an image is built wherever it is
+    // read() so that they are recorded whether or not this machine is a Mac.
+    // read() runs on macOS alone; an image is built wherever it is
     // built, and the metadata has to name every shape it might cross.
 
     /// `Class objc_getClass(const char *)` and `SEL sel_registerName(const char *)`.

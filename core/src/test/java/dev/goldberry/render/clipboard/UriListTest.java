@@ -18,12 +18,12 @@ import org.junit.jupiter.api.Test;
 
 import dev.goldberry.render.backend.headless.HeadlessBackend;
 
-/// `text/uri-list` read as names — [ADR-0406].
+/// `text/uri-list` read as a list of file names.
 ///
 /// The format is RFC 2483's and the interesting cases are all the ones a
 /// well-formed list does not have: the separator another application actually
 /// used, an entry that is not a file, and an entry that is not a URI. Each of
-/// those is a decision recorded in the ADR and pinned by a test here.
+/// those is a decision pinned by a test here.
 class UriListTest {
 
     @Nested
@@ -161,7 +161,7 @@ class UriListTest {
         @Test
         @DisplayName("is dropped when the name is one this file system refuses")
         void aNulByteInTheNameIsSkipped() {
-            // The case ADR-0330 decided for drag-and-drop, arriving through the
+            // The case drag-and-drop already decided, arriving through the
             // other door: %00 is a legal percent escape and NUL is not a legal
             // path, so URI accepts what Path.of will not.
             var list = UriList.parse("file:///tmp/a%00b\r\nfile:///tmp/good.png\r\n");

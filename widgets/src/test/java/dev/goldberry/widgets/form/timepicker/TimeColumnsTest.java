@@ -25,7 +25,7 @@ import dev.goldberry.widgets.Controls;
 import dev.goldberry.widgets.TestHost;
 import dev.goldberry.widgets.controls.TestFont;
 
-/// §4's "hour/minute/second column set", driven the way a user drives it.
+/// The hour/minute/second column set, driven the way a user drives it.
 ///
 /// The wheel is the part of this widget with rules in it: what a row shows, what
 /// wraps, which arrows mean what, and what a refused time does to a turn.
@@ -100,8 +100,9 @@ class TimeColumnsTest {
         /// The wheel formatted its digits with `String.format("%02d", …)` and no
         /// locale, so the *default* locale's numbering system chose the glyphs: a
         /// machine set to `hi-IN-u-nu-deva` drew `०९` where CI drew `09`, and the
-        /// golden taken on it was a pixel diff nobody could reproduce
-        /// (`docs/testing.md` §0). `Slider#text()` had already been told this.
+        /// golden taken on it was a pixel diff nobody could reproduce; a test
+        /// must give the same answer on every machine. `Slider#text()` had
+        /// already been told this.
         @Test
         @DisplayName("in the same digits wherever the machine is set")
         void latinDigitsWhateverTheLocale() {
@@ -278,8 +279,8 @@ class TimeColumnsTest {
         }
 
         /// A wheel that turned onto a time the picker would then refuse would be
-        /// a control arguing with itself — §4 asks the gates to hold for the
-        /// popover as well as the field.
+        /// a control arguing with itself — the gates hold for the popover as
+        /// well as the field.
         @Test
         @DisplayName("a refused time is neither shown nor reported")
         void refused() {

@@ -29,15 +29,14 @@ final class TourState extends State<Tour> {
     /// A request, cleared on every move, for
     /// [dev.goldberry.widgets.core.scroll.ScrollController]'s
     /// reason: a stop that scrolled on every frame would hold the viewport
-    /// against a user trying to look at something else (ADR-0120).
+    /// against a user trying to look at something else.
     private boolean revealed;
 
     /// How big the window is, as the last frame measured the tour's own node.
     ///
     /// Zero until the first frame has been laid out, which draws nothing — a
     /// veil of no size — and is corrected on the frame after. One frame of
-    /// nothing at the start of a tour is invisible; guessing would not be
-    /// ([ADR-0121]).
+    /// nothing at the start of a tour is invisible; guessing would not be.
     private LogicalRect window = LogicalRect.of(0, 0, 0, 0);
 
     @Override
@@ -56,7 +55,7 @@ final class TourState extends State<Tour> {
         }
         var anchor = anchorOf(stop);
         if (!revealed) {
-            // §5: the target is scrolled into view *before* the popover is
+            // The target is scrolled into view *before* the popover is
             // positioned. The reveal marks the tree dirty, so the next frame
             // re-reads the anchor and this one draws against where it was --
             // which is why the popover lands correctly on the frame after.
@@ -81,7 +80,7 @@ final class TourState extends State<Tour> {
     }
 
     /// The first stop from here whose target is on screen, skipping any that are
-    /// not — §5's "a target that is not in the tree is skipped with a warning".
+    /// not: a target that is not in the tree is skipped with a warning.
     private @Nullable Stop advanceToAFindableStop() {
         var tour = widget();
         while (index < tour.stops().size()) {
@@ -102,8 +101,7 @@ final class TourState extends State<Tour> {
     /// wired one has said which viewport it means — and it may deliberately mean
     /// an **outer** one, which no walk up from the target would choose. With none
     /// named, the viewport is discovered by walking up from the target itself
-    /// ([ScrollScope]), which is the walk the entry recording this gap believed
-    /// the tree could not do ([ADR-0439]).
+    /// ([ScrollScope]).
     ///
     /// Nothing happens when the target is in no viewport at all, which is the
     /// ordinary case for most stops.
@@ -135,8 +133,8 @@ final class TourState extends State<Tour> {
     /// `painted()` and not `bounds()`. A region's `bounds` is the **layout**
     /// rectangle, and a veil is about what the user can see: a row inside a
     /// scrolled list is laid out where it always was and drawn a long way from
-    /// there ([ADR-0123]). A popup anchors to the same rectangle this does, and
-    /// for the same reason ([ADR-0270]).
+    /// there. A popup anchors to the same rectangle this does, and
+    /// for the same reason.
     private LogicalRect anchorOf(Stop stop) {
         return widget().host()
                 .anchor(stop.targetId())
@@ -158,10 +156,8 @@ final class TourState extends State<Tour> {
                 .orElse(LogicalRect.of(0, 0, 0, 0));
     }
 
-    /// §1.7's overlay curve, for the tour's own arrival: the card fades and
-    /// rises in as a `popover` does, because §3.1 says a tour's card animates
-    /// "as `popover`" and that row is `opacity` 0→1 with `translateY` −4→0
-    /// ([ADR-0269]).
+    /// The overlay curve, for the tour's own arrival: the card fades and
+    /// rises in as a `popover` does — `opacity` 0→1 with `translateY` −4→0.
     ///
     /// One phase for the whole tour rather than one per stop: a tour arrives
     /// once, and a card that faded in again at every stop would be a sequence
@@ -172,12 +168,13 @@ final class TourState extends State<Tour> {
     /// or null on the first stop, which has nowhere to have come from.
     private @Nullable LogicalRect cameFrom;
 
-    /// §3.1's tour row: "stop change: veil cut-out `translate`+size **base**".
+    /// The cut-out's travel between stops — it moves and resizes, over the
+    /// **base** duration.
     ///
     /// Restarted on every stop change, and null while there is nothing to
     /// travel. It carries the *geometry* rather than a style, which is why it is
     /// a `Phase` and not a `transition`: a cut-out's rectangle is computed from
-    /// an anchor the cascade has never seen ([ADR-0269]).
+    /// an anchor the cascade has never seen.
     private @Nullable Phase travel;
 
     /// How tall the card came out, as the last frame laid it out, or 0 before
@@ -190,7 +187,7 @@ final class TourState extends State<Tour> {
     /// It settles in one frame and cannot oscillate, which is `Measured`'s third
     /// rule and holds **by construction** here: the card's width is fixed and its
     /// content is the stop's own text, so its height does not depend on whether
-    /// it was placed above or below ([ADR-0268]).
+    /// it was placed above or below.
     private double cardHeight;
 
     /// Told how tall the card is by the card.
@@ -241,7 +238,7 @@ final class TourState extends State<Tour> {
         });
     }
 
-    /// §5: "`Esc` skips the whole tour, not one stop."
+    /// `Esc` skips the whole tour, not one stop.
     private void skip() {
         end();
     }

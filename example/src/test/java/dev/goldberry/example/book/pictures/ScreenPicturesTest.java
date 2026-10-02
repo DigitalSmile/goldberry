@@ -25,10 +25,10 @@ import dev.goldberry.text.font.Fonts;
 /// shades, and the font book rather than the one-font renderer, because a
 /// picture in the guide is of what the application draws and the application
 /// opens a book. Held to the renderer the way the widget pictures are
-/// ([ADR-0513]); `-Dgoldberry.golden.update=true` retakes them.
+/// (`-Dgoldberry.golden.update=true` retakes them).
 ///
 /// Not every screen: the ones whose subject a picture can show. The Web screen
-/// is a picture of a page that is not there (ADR-0441), the GPU screen needs a
+/// is a picture of a page that is not there, the GPU screen needs a
 /// device, the Canvas screen is pinned at one scale, and the media screens are
 /// stills of a player at rest, which the chapter's own golden shows better.
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)

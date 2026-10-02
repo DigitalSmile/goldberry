@@ -29,16 +29,17 @@ import dev.goldberry.text.font.Font;
 ///
 /// Every other test in the suite asserts about one stage — a token, a cascade, a
 /// glyph advance. These assert about the pixels, which is the only place the
-/// stages are all wrong together or all right together. §14 asks for exactly
-/// this, on all three platforms.
+/// stages are all wrong together or all right together, on all three platforms.
 ///
 /// The scenes are driven through CSS rather than by building `Box`es directly,
 /// deliberately: a golden that goes stylesheet → cascade → `ComputedStyle` →
 /// `Box` → Blend2D is one image that fails if any of those five break.
+///
+/// Read more: [Goldens](https://goldberry.dev/docs/contributing/testing.html#goldens).
 class GoldenImageTest {
 
-    /// A node in a hand-built tree, standing in for the element tree of
-    /// ADR-0004. The same shape `TestElement` uses in the css tests, kept
+    /// A node in a hand-built tree, standing in for the real element tree.
+    /// The same shape `TestElement` uses in the css tests, kept
     /// separate because this one also carries the box content.
     private static final class Node implements StyleElement {
         private final String type;
@@ -95,7 +96,7 @@ class GoldenImageTest {
 
     @BeforeEach
     void openFont() {
-        // Embedded Inter, pinned by checksum at build time (ADR-0033). That is
+        // Embedded Inter, pinned by checksum at build time. That is
         // what makes a golden reproducible: nothing here reads a system font.
         RendererRequirement.enforce();
         font = Font.bundled(BundledFont.UI, 14);
@@ -160,8 +161,8 @@ class GoldenImageTest {
                 "nested-column", 200, 80, 1.0f, frame -> BoxPainter.paint(frame, build(tree, List.of(css))));
     }
 
-    /// A card on a page, elevated by the theme's own token — the picture the two
-    /// ADRs that turned `box-shadow` down were arguing about (ADR-0310).
+    /// A card on a page, elevated by the theme's own token — the picture the
+    /// long argument over `box-shadow` was about.
     ///
     /// One golden per theme, because the alpha is the half of an elevation token
     /// that belongs to the theme: the geometry is identical in the two files and
@@ -202,8 +203,7 @@ class GoldenImageTest {
         // The top row's cells are pushed apart by their own margins; the middle
         // one holds a single cell with `margin: 0 auto`, which is the case
         // nothing in the subset could express before; the bottom one pushes one
-        // cell to the far edge with `margin-left: auto` and no spacer box
-        // (ADR-0311).
+        // cell to the far edge with `margin-left: auto` and no spacer box.
         var css = Stylesheet.parse(CascadeLayer.APPLICATION, """
                 root { background: #eceff4; flex-direction: column; padding: 8px; gap: 8px }
                 row { flex-direction: row; height: 24px; background: #d8dee9 }
@@ -225,7 +225,7 @@ class GoldenImageTest {
     @Test
     @DisplayName("a border per side: uniform as ever, one side, two widths, four colours, and rounded")
     void borders() {
-        // Five boxes, each saying one thing a picture can check (ADR-0505). The
+        // Five boxes, each saying one thing a picture can check. The
         // first is the uniform stroke every golden before this one is made of;
         // the second is the rule under a header that was asked for five times;
         // the third is two widths in one colour, which must have no seam down
@@ -275,7 +275,7 @@ class GoldenImageTest {
     }
 
     /// One widget stylesheet, two themes. Neither of these goldens can be right
-    /// unless custom properties inherit and the theme layer wins (§10).
+    /// unless custom properties inherit and the theme layer wins.
     private Box themedTree(Theme theme) {
         var base = Stylesheet.parse(CascadeLayer.TOOLKIT_BASE, """
                 root { background: var(--gb-bg); padding: 10px; gap: 8px }
@@ -310,7 +310,7 @@ class GoldenImageTest {
                 """);
         var tree = new Node("root").with(new Node("panel"));
 
-        // The selection colour's shape (§10): alpha in a hex literal has to
+        // The selection colour's shape: alpha in a hex literal has to
         // survive parsing, packing, premultiplication and the blend.
         GoldenImage.assertMatches(
                 "translucent-fill", 120, 60, 1.0f, frame -> BoxPainter.paint(frame, build(tree, List.of(css))));
@@ -358,9 +358,9 @@ class GoldenImageTest {
     @Test
     @DisplayName("group opacity composites the subtree once, not each child")
     void groupOpacity() {
-        // ADR-0064 said the difference between CSS group opacity and multiplying
-        // alpha per box "differs exactly where two children overlap", and
-        // predicted `stack` would be what made it visible. This is that scene
+        // The difference between CSS group opacity and multiplying alpha per box
+        // shows exactly where two children overlap, and `stack` is what makes it
+        // visible. This is that scene
         // built by hand: two opaque squares that overlap, under a parent at 50%.
         //
         // Through a layer -- what ships now -- the overlap is the *top* square at

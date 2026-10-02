@@ -9,16 +9,17 @@ import dev.goldberry.widgets.Controls;
 
 /// How one markup node becomes one widget.
 ///
-/// [dev.goldberry.kdl.KdlInflater.Factory] with the [Wiring]
-/// added, and the reason it exists rather than being a lambda in [Controls]: a
-/// widget's own class is where its markup contract belongs. `Button.inflate` sits
-/// beside the record it builds and the javadoc describing the attributes it
-/// reads, so the three forms §9 requires every widget to have — Java, KDL and CSS
-/// — are three things in one file rather than one thing in three
-/// (ADR-0130).
+/// A factory is a `static` method on the widget's own class, referenced as
+/// `Button::inflate`, and the inflater calls it with the node, the node's
+/// already-inflated children and the [Wiring] its names resolve against.
 ///
-/// A factory is a `static` method referenced as `Button::inflate`, which is what
-/// keeps [Controls] a list of names.
+/// It is a `dev.goldberry.kdl.KdlInflater.Factory` with the wiring added, and it
+/// lives on the widget rather than as a lambda in [Controls] because a widget's
+/// markup contract belongs beside the record it builds: the Java, the KDL
+/// attributes and the CSS type of one widget are then described in one file,
+/// and [Controls] stays a list of names.
+///
+/// Read more: [Markup](https://goldberry.dev/docs/guide/markup.html#parsing-and-inflating).
 @FunctionalInterface
 public interface Inflatable {
 
@@ -51,10 +52,10 @@ public interface Inflatable {
 
         /// Registers one name.
         ///
-        /// @throws IllegalStateException if the name is already registered —
-        ///         §9 lets an application shadow a built-in, but silently and at
-        ///         whichever point its registration ran is not a good way to find
-        ///         that out
+        /// @throws IllegalStateException if the name is already registered: an
+        ///         application may shadow a built-in, but doing so silently, at
+        ///         whichever point its registration happened to run, is not a
+        ///         good way to find out
         public Catalog add(String name, Inflatable factory) {
             inflater.register(name, (node, children) -> factory.inflate(node, children, wiring));
             return this;

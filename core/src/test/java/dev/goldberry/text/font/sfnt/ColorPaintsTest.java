@@ -23,7 +23,7 @@ import dev.goldberry.text.font.sfnt.SyntheticFont.Clip;
 import dev.goldberry.text.font.sfnt.SyntheticFont.Line;
 import dev.goldberry.text.font.sfnt.SyntheticFont.Stop;
 
-/// The `COLR` version 1 reader, against tables assembled here — [ADR-0456].
+/// The `COLR` version 1 reader, against tables assembled here.
 ///
 /// Every paint format the shipped face uses is read back field by field, and
 /// the formats it does not use are read too: the reader is for any COLRv1 face,

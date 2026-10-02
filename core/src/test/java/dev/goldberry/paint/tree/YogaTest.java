@@ -33,7 +33,7 @@ import dev.goldberry.natives.yoga.style.StyleLength;
 /// So every constant is checked by **name**, generically, from `values()` rather
 /// than from a list written here. A constant added to either vocabulary is
 /// therefore checked the day it appears, and a translation that transposed two
-/// arms fails on both of them (ADR-0279).
+/// arms fails on both of them.
 ///
 /// The names agreeing is not a coincidence to be relied on elsewhere — the
 /// *numbers* deliberately do not travel, which is the whole reason these are

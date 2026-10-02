@@ -37,7 +37,7 @@ import dev.goldberry.widgets.text.Text;
 
 /// What a stack of toasts looks like, and one caught sliding in.
 ///
-/// The picture carries the thing §2's numbers cannot: three toasts of **one
+/// The picture carries the thing the metrics cannot: three toasts of **one
 /// width** with ragged text in them read as a stack, and three sized to their
 /// contents read as a pile. That is why 360 is a width here and not a maximum.
 ///
@@ -135,7 +135,7 @@ class ToastGoldenTest {
         paintSettled("toast-top-start", Theme.NORD_DARK, Corner.TOP_START);
     }
 
-    /// §3's "siblings reflow via `translate`", caught in the middle of it.
+    /// Siblings reflow via `translate` when one toast goes, caught in the middle of it.
     ///
     /// **In a real window**, which every other picture in this file can do
     /// without and this one cannot. Which toasts move when one goes is decided by
@@ -144,8 +144,7 @@ class ToastGoldenTest {
     /// everything on the far side of the hole comes in to close it. A `toaster`
     /// laid out as an ordinary top-aligned box, which is what a scene like
     /// [#SCENE] gives it, is anchored at the other end and would photograph the
-    /// opposite toast moving
-    /// (ADR-0178).
+    /// opposite toast moving.
     /// This is [dev.goldberry.widgets.overlay.hud.HudGoldenTest]'s
     /// finding in a second place: overlay placement is not assertable as a number.
     ///
@@ -206,7 +205,7 @@ class ToastGoldenTest {
 
     /// Tells every toast how tall it came out, which is what a window's pointer
     /// router does after each paint and what the stack banks against the day one
-    /// of them is dismissed ([ADR-0117]).
+    /// of them is dismissed.
     ///
     /// There is no router here, so the tree is laid out once and the numbers are
     /// read off the same hit-test capture the real one reads — real heights
@@ -225,8 +224,9 @@ class ToastGoldenTest {
         }
     }
 
-    /// §3: "in: slide 16px from edge + `opacity`, overlay". Halfway through, the
-    /// three are part of the way in from the right and half visible.
+    /// The entrance: a 16px slide from the edge with `opacity`, over the
+    /// `overlay` duration. Halfway through, the three are part of the way in
+    /// from the right and half visible.
     @Test
     @DisplayName("a stack caught halfway in")
     void arriving() {

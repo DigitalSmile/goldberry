@@ -6,17 +6,19 @@ import org.jspecify.annotations.Nullable;
 
 /// One thing a stylesheet says that the engine will not do.
 ///
-/// A **value**, not a log line, which is the whole of why this package exists.
-/// Four properties were written into the toolkit's own sheets, silently dropped,
-/// and found by looking at a picture — and the record that fixed that
-/// ([ADR-0215]) argued the point that this generalises: a louder log is not the
-/// answer, because a dropped *value* already warned at `WARN` and
-/// `group-box-title` drew square corners for months anyway. A stream nobody is
-/// watching is a stream nobody is watching at either level.
+/// ```java
+/// new StyleLint(everythingLoaded).check(mine).forEach(f -> LOG.warn("{}", f));
+/// ```
 ///
-/// So the finding carries where it came from — the selector it was written under
-/// and the line and column the parser saw it at — and an application decides when
-/// to ask and what to do with the answer ([ADR-0257]).
+/// A value [StyleLint] returns, not a log line. A dropped declaration already
+/// warns in the log, and a log nobody is watching is not watched at any level;
+/// so the finding carries where it came from, the selector it was written under
+/// and the line and column the parser saw it at, and the application decides
+/// when to ask and what to do with the answer. [#toString()] says what is wrong
+/// and, where there is one, what to write instead.
+///
+/// Read more:
+/// [Logging and diagnostics](https://goldberry.dev/docs/guide/logging.html#failure-messages-and-what-they-mean).
 ///
 /// @param kind     what is wrong
 /// @param selector the selector the declaration was written under, as CSS
@@ -37,43 +39,45 @@ public record Finding(
     /// What is wrong with a rule.
     public enum Kind {
 
-        /// The engine applies **nothing** from this declaration: either §8's
-        /// subset has no such property, or it has one and would not take this
-        /// value.
+        /// The engine applies nothing from this declaration: either the CSS subset
+        /// has no such property, or it has one and would not take this value.
         ///
-        /// The two are not told apart, and the reason is
-        /// [dev.goldberry.css.ComputedStyle#applies]'s: telling
-        /// them apart means the engine reporting rather than being asked, for a
-        /// difference the author reads off §8's list either way. What matters is
-        /// that the rule does nothing, which is what nobody could see.
+        /// The two are not told apart, which is
+        /// [dev.goldberry.css.ComputedStyle#applies]'s shape: telling them apart
+        /// would mean the engine reporting rather than being asked, for a
+        /// difference the author reads off the list of properties either way.
+        /// What matters is that the rule does nothing, which is what nobody could
+        /// see. The properties the engine takes are listed under
+        /// [Properties](https://goldberry.dev/docs/guide/styling.html#properties).
         DEAD_DECLARATION,
 
         /// The rule's selector names no type, and could have.
         ///
-        /// [ADR-0249]'s rule, which the toolkit's own sheets are held to and an
-        /// application's are not: the cascade buckets rules by type, so an
-        /// all-classes sheet is one every element has to consider in full. It is
-        /// a **performance** finding rather than a correctness one, which is why
-        /// it is reported beside the others rather than logged — a warning that
-        /// is usually wrong is the log [ADR-0243] had just finished quietening.
+        /// The cascade buckets rules by the type their rightmost compound names, so
+        /// an all-classes sheet is one every element has to consider in full. The
+        /// toolkit's own sheets are held to this and an application's are not: it
+        /// is a performance finding rather than a correctness one, which is why it
+        /// is reported beside the others rather than logged, where a warning that
+        /// is usually wrong would be noise.
         UNTYPED_RULE,
 
         /// Nothing in force gives the root a `color`, so every primitive that
-        /// inherits one gets the initial black ([ADR-0415]) — the value held by
-        /// [dev.goldberry.css.ComputedStyle#INITIAL]
-        /// .
+        /// inherits one draws in the initial black of
+        /// [dev.goldberry.css.ComputedStyle#INITIAL].
         ///
-        /// A **fact about the sheets**, not about a pixel, and the distinction is
-        /// the whole reason this is a finding rather than a warning. Black text is
+        /// A fact about the sheets, not about a pixel, and the distinction is the
+        /// whole reason this is a finding rather than a warning. Black text is
         /// correct on a light theme and unreadable on a dark one, so the resolved
         /// colour is not evidence of anything; what is evidence is that no
         /// declaration anywhere set one, and the element inherited the initial
         /// value because there was nothing to inherit.
         ///
-        /// A control escapes this — `controls.css` sets `color` on `checkbox`,
-        /// `radio`, `toggle` and `slider` themselves — which is exactly why it
-        /// took a bare `text` on a dark theme to find it, and why the check is
-        /// about the root rather than about any node that happens to be dark.
+        /// A control escapes this because `controls.css` sets `color` on
+        /// `checkbox`, `radio`, `toggle` and `slider` themselves; a bare `text`
+        /// does not, which is why the check is about the root rather than about
+        /// any node that happens to be dark. The fix is `color: var(--gb-text)` on
+        /// the root; see
+        /// [Inheritance](https://goldberry.dev/docs/guide/styling.html#inheritance).
         UNCOLOURED_ROOT;
 
         /// Whether the rule does the wrong thing, as against merely costing more

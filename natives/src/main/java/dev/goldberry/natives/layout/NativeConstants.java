@@ -43,6 +43,9 @@ import dev.goldberry.natives.yoga.style.YogaEnum;
 /// Every entry is checked against the compiled library by [LayoutVerifier], the
 /// same way [Layouts] entries are. **A constant used in a binding belongs here,
 /// and its C expression belongs in `goldberry_shim.c`.**
+///
+/// Read more:
+/// [Repository layout](https://goldberry.dev/docs/contributing/repository.html#the-export-list-and-the-layout-probe).
 public final class NativeConstants {
 
     private NativeConstants() {}
@@ -68,15 +71,14 @@ public final class NativeConstants {
         }
         // The desktop's light-or-dark setting, whose three values are ordinals in
         // a C enum and whose wrong reading starts an application in the wrong
-        // theme with no error anywhere (ADR-0322).
+        // theme with no error anywhere.
         for (var theme : SdlSystemTheme.values()) {
             constants.add(new NativeConstant(theme.nativeName(), theme.value()));
         }
         // What this build of the platform layer can actually do. Bits of
         // libgoldberry's own, not an upstream's, and here for the same reason as
         // everything else: the Java enum hard-codes each one, and a bit that
-        // disagrees reports the wrong capability rather than failing (ADR-0325,
-        // `docs/gaps.md` G32).
+        // disagrees reports the wrong capability rather than failing.
         for (var capability : NativeCapability.values()) {
             constants.add(new NativeConstant(capability.nativeName(), capability.bit()));
         }
@@ -101,7 +103,7 @@ public final class NativeConstants {
             constants.add(new NativeConstant(value.nativeName(), value.nativeValue()));
         }
         // And md4c, whose enums have gained values in the middle before now -- a
-        // block type off by one renders a heading as a block quote (ADR-0294).
+        // block type off by one renders a heading as a block quote.
         for (var value : Md4cEnum.all()) {
             constants.add(new NativeConstant(value.nativeName(), value.nativeValue()));
         }
@@ -112,8 +114,8 @@ public final class NativeConstants {
         for (var subsystem : SdlSubsystem.values()) {
             constants.add(new NativeConstant(subsystem.nativeName(), subsystem.bit()));
         }
-        // SDL's own log priorities and categories, which ADR-0443 turns into an
-        // SLF4J level and a logger name. Ordinals, and the priorities are the
+        // SDL's own log priorities and categories, which the log bridge turns into
+        // an SLF4J level and a logger name. Ordinals, and the priorities are the
         // kind SDL has already renumbered: `SDL_LOG_PRIORITY_TRACE` went in at
         // 1, below `VERBOSE`, and everything above it moved. A Java enum that
         // predates the insertion reports every message one rung too loud and
@@ -127,7 +129,7 @@ public final class NativeConstants {
         // Not an enumerator but a version number, and one that travels on every
         // call to libwebp's two `…Internal` entry points. A pinned libwebp that
         // bumps it refuses every animation, and a refusal is indistinguishable
-        // from "these bytes are not one" (ADR-0385).
+        // from "these bytes are not one".
         constants.add(new NativeConstant("WEBP_DEMUX_ABI_VERSION", WebpCalls.DEMUX_ABI_VERSION));
         // The sample format and device goldberry-media opens its audio stream with.
         // The device is 0xFFFFFFFF, which is the one a signed `int` gets wrong.
@@ -135,7 +137,7 @@ public final class NativeConstants {
         constants.add(new NativeConstant(
                 "SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK",
                 Integer.toUnsignedLong(SdlAudioCalls.SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK)));
-        // SDL_GPU's enumerators and bits (`docs/gpu-plan.md`, phase 1). The
+        // SDL_GPU's enumerators and bits. The
         // texture formats are positions in a list of more than a hundred that
         // SDL keeps adding to, which is exactly what a hand-copied value gets
         // wrong without a word.
@@ -176,8 +178,7 @@ public final class NativeConstants {
                 "SDL_GPU_BLENDFACTOR_ONE_MINUS_SRC_ALPHA", SdlGpuPipelineCalls.BLENDFACTOR_ONE_MINUS_SRC_ALPHA));
         constants.add(new NativeConstant("SDL_GPU_BLENDOP_ADD", SdlGpuPipelineCalls.BLENDOP_ADD));
         constants.add(new NativeConstant("SDL_GPU_COLORCOMPONENT_RGBA", SdlGpuPipelineCalls.COLORCOMPONENT_RGBA));
-        // What the public API's pipeline, sampler and buffer specs map onto
-        // (`docs/gpu-plan.md`, phase 2).
+        // What the public API's pipeline, sampler and buffer specs map onto.
         for (var mode : SdlGpuAddressMode.values()) {
             constants.add(new NativeConstant(mode.nativeName(), mode.value()));
         }

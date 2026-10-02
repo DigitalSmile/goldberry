@@ -1,15 +1,12 @@
 package dev.goldberry.widgets.panel.list;
 
-/// How many rows may be chosen at once — `docs/core-widgets.md` §10's
-/// "selection models: none / single / multi (Ctrl/Shift semantics)".
+/// How many rows may be chosen at once: none, one, or many with `Ctrl` and
+/// `Shift`.
 ///
-/// **Defined here now, and it was defined in `tree` first.** §3 gives a tree
-/// "`list`'s selection models" and `list` was not built, so ADR-0184's rule
-/// applied again: the widget that needs a model first defines it and writes down
-/// that the other will have to agree ([ADR-0210]). This is that debt being paid
-/// the way it was promised — the definition moved to the widget the specification
-/// names it after, and `tree` imports it. Nothing about the shape changed, which
-/// is the evidence that the promise was a small one to make.
+/// Defined here, and shared: `tree` and `table` import it, so the three
+/// collections agree on what a selection model is.
+///
+/// Read more: [Collections](https://goldberry.dev/docs/components/collections.html#list).
 public enum Selection {
 
     /// Nothing is an answer. The rows still navigate and still open, and a click

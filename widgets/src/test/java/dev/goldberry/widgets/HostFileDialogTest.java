@@ -23,7 +23,7 @@ import dev.goldberry.render.dialog.FileFilter;
 /// The repaint is the whole reason this method exists rather than
 /// `host.fileDialogs().show(...)`. A dialog's answer arrives from the platform's
 /// own thread with no input event behind it, so nothing asks for a frame — the
-/// same failure a tray row has (ADR-0191), and the one a widget test can catch
+/// same failure a tray row has, and the one a widget test can catch
 /// where a backend test cannot.
 class HostFileDialogTest {
 

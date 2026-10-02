@@ -23,8 +23,7 @@ import dev.goldberry.widgets.core.scroll.Scroll;
 /// the one thing the geometry cannot show: which `Host.popup` overload the menu
 /// went through. A menu placed against a rectangle sits in exactly the right
 /// place and cannot follow it afterwards, because a rectangle is the answer it
-/// already was and a name is a question the next frame can answer again
-/// ([ADR-0270], [ADR-0432]).
+/// already was and a name is a question the next frame can answer again.
 class MenusAnchorTest {
 
     private static Menu menu(int items) {
@@ -71,10 +70,10 @@ class MenusAnchorTest {
                 "a menu taller than the work area should have been wrapped in a viewport");
     }
 
-    /// A menu is as wide as its commands, so the floor it passes is zero — the
-    /// half of [ADR-0145] that says a `select` is the only caller that wants one.
-    /// Recorded because the new overload made it possible to pass something else
-    /// by accident.
+    /// A menu is as wide as its commands, so the floor it passes is zero: a
+    /// `select` is the only caller that wants a minimum width, so its popup
+    /// is as wide as the field. Recorded because the overload made it possible
+    /// to pass something else by accident.
     @Test
     @DisplayName("a menu asks for no minimum width of its own")
     void aMenuPassesNoFloor() {

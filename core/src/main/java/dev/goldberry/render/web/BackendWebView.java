@@ -2,8 +2,14 @@ package dev.goldberry.render.web;
 
 /// A web page, in a window the engine owns.
 ///
-/// The handle `WebViews.open` hands back, and the whole of what an application
-/// may do to a page after opening it. It is the shape
+/// ```java
+/// try (var page = host.webView(WebViewSpec.of("https://goldberry.dev")).orElseThrow()) {
+///     page.title("Goldberry");
+/// }
+/// ```
+///
+/// The handle `WebViews.open` and the host hand back, and the whole of what an
+/// application may do to a page after opening it. It is the shape
 /// [dev.goldberry.render.tray.BackendTray]
 /// has, for the reason that one has it: what is on screen belongs to somebody
 /// else, and this is the remote control.
@@ -12,12 +18,10 @@ package dev.goldberry.render.web;
 ///
 /// **Not a widget, and not in any tree.** A page is a top-level window of
 /// WebKitGTK's, WebView2's or WKWebView's making — it has no box, no cascade, no
-/// hit test and no place in a layout. That is
-/// [ADR-0441](../../../../../../../../book/src/adr/0441-a-web-page-is-a-window-not-a-box.md):
-/// `webview/webview` cannot render offscreen, and Wayland permits neither
-/// reparenting a foreign surface nor placing a window where a widget is, so
-/// there is no honest way to make a page into a box on every platform this
-/// toolkit ships to.
+/// hit test and no place in a layout. The engine cannot render offscreen, and
+/// Wayland permits neither reparenting a foreign surface nor placing a window
+/// where a widget is, so there is no honest way to make a page into a box on
+/// every platform this toolkit ships to.
 ///
 /// An application that wants a page beside its widgets opens one and lets the
 /// desktop arrange the two.
@@ -31,6 +35,8 @@ package dev.goldberry.render.web;
 /// what it opened.
 ///
 /// UI-thread confined, like every other platform handle here.
+///
+/// Read more: [Markdown, HTML and the web](https://goldberry.dev/docs/components/content.html#the-web-view).
 public interface BackendWebView extends AutoCloseable {
 
     /// Points the page at `url`.
@@ -75,8 +81,7 @@ public interface BackendWebView extends AutoCloseable {
     ///
     /// Asked once a frame by the `web-view` widget, which keeps the page out of
     /// sight and paints a `spinner` until it is ready — because nothing the
-    /// toolkit paints can cover a page, so "loading" cannot be drawn *over* one
-    /// ([ADR-0445]).
+    /// toolkit paints can cover a page, so "loading" cannot be drawn *over* one.
     ///
     /// [WebLoad#UNKNOWN] where the engine will not say, and
     /// [WebLoad#isReady()] is what turns that into "show it anyway".
@@ -92,8 +97,7 @@ public interface BackendWebView extends AutoCloseable {
     /// window, and a yes drops the event: it was typed into the page, which has
     /// already received it. That matters on macOS, where SDL handles a key before
     /// the window delivers it to the focused view, so without this one keystroke
-    /// would type into the page **and** reach the application
-    /// ([ADR-0459](../../../../../../../../book/src/adr/0459-a-key-typed-into-a-page-is-the-pages.md)).
+    /// would type into the page **and** reach the application.
     ///
     /// False where the engine will not say, which is the behaviour every page
     /// had before there was anything to ask.

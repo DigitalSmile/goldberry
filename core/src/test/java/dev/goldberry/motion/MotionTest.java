@@ -21,7 +21,10 @@ import dev.goldberry.css.cascade.Transitions.Timing;
 import dev.goldberry.css.value.CssColor;
 import dev.goldberry.css.value.Transform;
 
-/// The frame clock, the curves, and the overlay — `docs/design-system.md` §1.7.
+/// The frame clock, the curves, and the overlay: motion is an overlay on a
+/// frame clock.
+///
+/// Read more: [Motion](https://goldberry.dev/docs/guide/design-system.html#motion).
 class MotionTest {
 
     private static final Timing FAST = new Timing(100, Easing.LINEAR, 0);
@@ -79,7 +82,7 @@ class MotionTest {
         @Test
         @DisplayName("every curve is monotonic, so a value never goes backwards")
         void monotonic() {
-            // "No bounce or overshoot in system components" (§1.7). A curve that
+            // No bounce or overshoot in system components. A curve that
             // exceeded 1 or dipped below 0 would be an overshoot nobody asked
             // for -- and the solver's Newton step is exactly what would produce
             // one if it were not bounded.
@@ -99,7 +102,7 @@ class MotionTest {
         @DisplayName("ease-enter decelerates and ease-exit accelerates")
         void shapes() {
             // The whole reason there are two: an enter is most of the way there
-            // by halfway, an exit has barely started. §1.7 pairs `ease-exit`
+            // by halfway, an exit has barely started. The design system pairs `ease-exit`
             // with a shorter duration, and together they make a dismissal feel
             // decisive rather than reluctant.
             assertTrue(Easing.EASE_ENTER.at(0.5) > 0.5, "a decelerating curve is ahead at the midpoint");
@@ -127,7 +130,7 @@ class MotionTest {
         @Test
         @DisplayName("the midpoint keeps roughly twice the chroma sRGB would")
         void noGreyDeadZone() {
-            // The whole argument for OKLCH (§1.7), measured rather than asserted.
+            // The whole argument for OKLCH, measured rather than asserted.
             // Nord's danger red and success green:
             //
             //   sRGB midpoint  #b18f7b   channel spread 54
@@ -234,7 +237,7 @@ class MotionTest {
         @Test
         @DisplayName("retargeting mid-flight starts from the current value")
         void retargets() {
-            // §1.7: "values never jump". A pointer leaving a button 50ms into a
+            // Values never jump. A pointer leaving a button 50ms into a
             // 100ms fade must return from where the colour actually is.
             var animations = new Animations();
             animations.observe(style(0xFF000000), 0);
@@ -296,8 +299,8 @@ class MotionTest {
         @Test
         @DisplayName("a zero duration snaps and asks for no frame")
         void instant() {
-            // What `prefers-reduced-motion` collapses everything to (§1.7 rule
-            // 6), and what `button:active` declares so a press applies in 0ms.
+            // What `prefers-reduced-motion` collapses everything to, and what
+            // `button:active` declares so a press applies in 0ms.
             var instant = ComputedStyle.INITIAL.transitions(
                     Transitions.NONE.with(Animatable.BACKGROUND_COLOR, Timing.INSTANT));
             var animations = new Animations();
@@ -352,7 +355,7 @@ class MotionTest {
         }
     }
 
-    /// `border-color` is four colours since a box's sides can differ (ADR-0505),
+    /// `border-color` is four colours since a box's sides can differ,
     /// and a transition moves each side from its own colour to its own target.
     @Nested
     @DisplayName("animating a border's colours")
@@ -445,7 +448,7 @@ class MotionTest {
         @Test
         @DisplayName("retargeting starts from where the transform actually is")
         void retargets() {
-            // §1.7's "values never jump". A control whose hover scale is reversed
+            // Values never jump. A control whose hover scale is reversed
             // halfway must shrink from 1.2, not from the 1.4 it never reached.
             var animations = new Animations();
             animations.observe(moving(scale(1.0)), 0);
@@ -476,12 +479,12 @@ class MotionTest {
         @DisplayName("`transition: transform` parses, where `transition: width` still does not")
         void parses() {
             assertEquals(Animatable.TRANSFORM, Animatable.parse("transform"));
-            assertNull(Animatable.parse("width"), "layout properties never transition (§1.7)");
+            assertNull(Animatable.parse("width"), "layout properties never transition");
         }
     }
 
     @Nested
-    @DisplayName("reduced motion (§1.7 rule 6)")
+    @DisplayName("reduced motion")
     class Reduced {
 
         @Test

@@ -32,13 +32,15 @@ import dev.goldberry.widgets.Icons;
 import dev.goldberry.widgets.Widgets;
 
 /// What a frame of the real application costs, stage by stage and resolution by
-/// resolution — and a ceiling under each, so a regression fails the build
-/// (ADR-0147).
+/// resolution — and a ceiling under each, so a regression fails the build.
+///
+/// Read more: [Measuring](https://goldberry.dev/docs/performance/measuring.html#the-showcase-under-load).
 ///
 /// ## Why this exists
 ///
 /// The showcase spent a month painting at 10–15 ms with nothing moving, because
-/// the style cache had stopped hitting the day `scroll` shipped (ADR-0142). Every
+/// the style cache had stopped hitting the day `scroll` shipped: a style handed
+/// down had lost its identity, so nothing it was keyed on matched. Every
 /// test passed throughout. `FrameBenchmark` in `:widgets` measured the engine on
 /// a synthetic 15-node tree and reported 0.6 ms, which was true and told nobody
 /// anything: the defect only appears in a tree with a `scroll` in it, which is to
@@ -66,12 +68,12 @@ import dev.goldberry.widgets.Widgets;
 ///
 /// ## Why it is tagged `benchmark` and does not run under `check`
 ///
-/// Because every assertion in it is a **clock**, and `docs/testing.md` §1.5 says
-/// a cost is guarded by a count and never by one. Its own history is the
+/// Because every assertion in it is a **clock**, and the rule is that a cost is
+/// guarded by a count and never by one. Its own history is the
 /// argument: the style row reads 3.6 ms on an idle machine and 20 ms under a
 /// parallel Gradle, on the same commit. A budget that fails for what else the
 /// machine was doing is a budget people learn to re-run rather than read, and a
-/// gate nobody believes is worse than no gate — which is the whole of ADR-0031.
+/// gate nobody believes is worse than no gate.
 ///
 /// So it runs in the benchmark lane, nightly and by hand, where its table is
 /// read rather than its assertions. What `check` should grow instead is the pair
@@ -121,13 +123,14 @@ class FrameBudgetTest {
     /// The cascade and the box tree. Measured **0.15 ms** for the Basic screen,
     /// flat across every resolution because it runs per element.
     ///
-    /// The defect this whole class exists for showed up here as **10 ms**
-    /// (ADR-0142), so a budget of 1 ms is 20× the measurement and 160× under the
+    /// The defect this whole class exists for showed up here as **10 ms**,
+    /// so a budget of 1 ms is 20× the measurement and 160× under the
     /// failure. There is no useful middle.
     private static final double STYLE_BUDGET_MS = 1.0;
 
     /// Yoga over the retained render tree. Measured **0.005 ms** settled — a
-    /// frame where nothing changed re-lays out nothing (ADR-0069).
+    /// frame where nothing changed re-lays out nothing, because the render tree
+    /// is retained.
     private static final double LAYOUT_BUDGET_MS = 1.0;
 
     /// Blend2D, whole frame, no damage, **one thread**. Measured 3.1 ms at 800×600
@@ -137,9 +140,9 @@ class FrameBudgetTest {
     /// **These numbers are four times what this constant used to be written
     /// against, and nothing regressed.** The old ones were measured on a screen
     /// that did not exist: every `measure` call named `"controls"`, which stopped
-    /// being a gallery screen at ADR-0222, so `pickScreen` set a property no tab
-    /// matched and the budgets were compared against a window with **nothing
-    /// selected** (ADR-0299). Measuring the Basic screen instead is measuring a
+    /// being a gallery screen when the gallery was reorganised, so `pickScreen`
+    /// set a property no tab matched and the budgets were compared against a
+    /// window with **nothing selected**. Measuring the Basic screen instead is measuring a
     /// window with cards, charts and text in it.
     ///
     /// So the budget is per megapixel with a floor, and the floor is what covers
@@ -157,17 +160,19 @@ class FrameBudgetTest {
     private static final String WALL = "basic";
 
     /// And the one that is a **document** — one `text` widget per word, which is a
-    /// different shape of tree and the one that found ADR-0299.
+    /// different shape of tree and the one that found the paragraph cache smaller
+    /// than one frame.
     private static final String DOCUMENT = "markdown";
 
     /// And the sheet of **1544 icons**, which is the biggest *model* in the
-    /// application and — since [ADR-0316] — no longer the biggest tree.
+    /// application and — since a grid became a list of rows — no longer the
+    /// biggest tree.
     private static final String SHEET = "icons";
 
     /// What a settled frame of the whole sheet is allowed.
     ///
     /// **Two milliseconds, where it was eight.** The sheet was an un-virtualized
-    /// masonry of 4709 elements until [ADR-0316] and the style pass is
+    /// masonry of 4709 elements until it became a list of rows, and the style pass is
     /// O(elements); it is a virtualized `list` now and builds the rows a reader
     /// can see, which is 711 elements and **0.72 ms** measured.
     ///
@@ -178,8 +183,8 @@ class FrameBudgetTest {
     /// the measurement, which is this file's own doctrine — the defect worth
     /// catching is a 34×.
     ///
-    /// The raster is on the wall's footing exactly, and has been since
-    /// [ADR-0313].
+    /// The raster is on the wall's footing exactly: a frame pays for what is on
+    /// screen.
     private static final double SHEET_STYLE_BUDGET_MS = 2.0;
 
     /// And its layout, on the same argument: **0.20 ms** measured over 711
@@ -230,11 +235,11 @@ class FrameBudgetTest {
     /// **The name is checked against the gallery**, and that is not defensive
     /// programming — it is this file's own lesson applied to itself. Every
     /// measurement here named `"controls"`, which was a screen until the gallery
-    /// was reorganised into questions rather than widget families (ADR-0222); after
+    /// was reorganised into questions rather than widget families; after
     /// that `pickScreen` set a property no tab matched, so the budgets were
     /// measured against a window with **no screen selected at all** and reported
     /// numbers nobody could have used. A benchmark measuring the wrong tree is the
-    /// exact failure the class comment describes, and it had it (ADR-0299).
+    /// exact failure the class comment describes, and it had it.
     private ElementTree treeFor(String screen) {
         if (!Screen.GALLERY.contains(screen)) {
             throw new IllegalArgumentException("no screen is called \"" + screen
@@ -360,7 +365,7 @@ class FrameBudgetTest {
     /// a 4K window has the same elements as an 800×600 one, so style and build
     /// must not follow the pixel count. A style cost that did would be a cache
     /// keyed on something it has no business being keyed on — which is one letter
-    /// away from ADR-0142's defect.
+    /// away from the style-cache defect above.
     ///
     /// Three times rather than "equal", because a bigger frame does change the
     /// available width, so a paragraph may wrap differently and a few measure
@@ -394,12 +399,12 @@ class FrameBudgetTest {
                         "build went from %.3f ms to %.3f ms with the resolution", small.build(), large.build()));
     }
 
-    /// **A settled frame re-resolves nothing** — the property ADR-0142 restored,
-    /// asserted as a ratio so it holds on any machine.
+    /// **A settled frame re-resolves nothing** — the property the style-cache fix
+    /// restored, asserted as a ratio so it holds on any machine.
     ///
     /// The first render of a screen resolves every element's style; the second
-    /// should reuse all of them and cost what building the boxes costs. Before
-    /// ADR-0142 the two were the same number, because the cache never hit —
+    /// should reuse all of them and cost what building the boxes costs. With the
+    /// defect the two were the same number, because the cache never hit —
     /// which is exactly what this ratio catches and what no ceiling would have.
     @Test
     @DisplayName("a second render of an unchanged tree is far cheaper than the first")
@@ -417,7 +422,7 @@ class FrameBudgetTest {
 
             // Forty, and the number is chosen against both outcomes rather than
             // picked: with the cache working this ratio is 450-520x, and with
-            // ADR-0142's defect reintroduced it is 11x. Anywhere in between is a
+            // the style-cache defect reintroduced it is 11x. Anywhere in between is a
             // threshold; 40 leaves an order of magnitude of headroom under the
             // good case and nearly four times over the bad one.
             assertTrue(
@@ -426,7 +431,7 @@ class FrameBudgetTest {
                             "a settled render cost %.3f ms against a cold one's %.3f ms,"
                                     + " which is not the two orders of magnitude a working style cache"
                                     + " gives. They come within 11x of each other when it never hits,"
-                                    + " which is what ADR-0142 was about",
+                                    + " which is the style-cache defect this test exists to catch",
                             warm, cold));
         }
     }
@@ -434,7 +439,7 @@ class FrameBudgetTest {
     /// **A settled document shapes nothing**, which is a count rather than a
     /// duration and therefore true on every machine.
     ///
-    /// The defect (ADR-0299): `markdown-view` and `html-view` build one `text`
+    /// The defect: `markdown-view` and `html-view` build one `text`
     /// widget per word, so a page asks the paragraph cache for ~600 distinct
     /// strings a frame against a cache that held 256 — and least-recently-used
     /// eviction then guarantees a **zero** hit rate rather than a lower one, because
@@ -467,7 +472,7 @@ class FrameBudgetTest {
             // above are the wall's, and what is worth watching here is that a document
             // stays in the same order of magnitude as one. It is also where a
             // regression in the selection geometry would show up — every word reports
-            // where it landed, once a frame (ADR-0301).
+            // where it landed, once a frame.
             var style = medianMillis(50, () -> renderer.render(tree));
             var layout = medianMillis(50, () -> render.update(target.frame(), renderer.render(tree)));
             System.out.printf(
@@ -479,7 +484,7 @@ class FrameBudgetTest {
                     cache.misses(),
                     () -> "a frame that changed nothing shaped " + (cache.misses() - before)
                             + " paragraphs; the cache holds " + cache.capacity() + " and the frame asks for "
-                            + cache.highWaterMark() + " (ADR-0299)");
+                            + cache.highWaterMark() + "; a cache smaller than one frame is worse than none");
             assertTrue(
                     cache.capacity() >= cache.highWaterMark(),
                     "a cache smaller than one frame's working set misses every lookup on the excess");
@@ -487,7 +492,7 @@ class FrameBudgetTest {
     }
 
     /// A settled frame of the **whole** icon sheet: 1544 icons, and a tree the
-    /// size of any other screen's ([ADR-0316]).
+    /// size of any other screen's, because a grid is a list of rows.
     ///
     /// This screen had a budget of its own for as long as it was an
     /// un-virtualized `masonry` — 4709 elements, 8 ms of style and 18 ms of
@@ -499,7 +504,7 @@ class FrameBudgetTest {
     /// elements against 4709, and a raster on the wall's own budget. A grid of
     /// equal-height
     /// tiles is a list of equal-height rows, a list builds the rows a reader can
-    /// see, and the painter skips what the viewport clips ([ADR-0313]) — so the
+    /// see, and the painter skips what the viewport clips — so the
     /// screen with the biggest *model* in the application has an ordinary
     /// screen's *tree* and an ordinary screen's frame.
     ///
@@ -522,7 +527,7 @@ class FrameBudgetTest {
         assertTrue(
                 cost.elements() < 1544,
                 "the sheet built " + cost.elements() + " elements for 1544 icons, which is not a window onto"
-                        + " the model — it has stopped virtualizing ([ADR-0316])");
+                        + " the model — it has stopped virtualizing; a grid is a list of rows");
         assertTrue(
                 cost.style() < SHEET_STYLE_BUDGET_MS,
                 "a settled frame of the whole sheet styles in " + cost.style() + " ms, over the "
@@ -534,7 +539,7 @@ class FrameBudgetTest {
                         + SHEET_LAYOUT_BUDGET_MS);
 
         // The rasterizer on the ordinary budget as well, because a viewport costs
-        // what is *visible* ([ADR-0313]). This measured 18.0 ms before the culler.
+        // what is *visible*. This measured 18.0 ms before the culler.
         var pixels = 1280L * 900;
         var rasterBudget = Math.max(RASTER_BUDGET_FLOOR_MS, RASTER_BUDGET_MS_PER_MEGAPIXEL * pixels / 1_000_000.0);
         assertTrue(
@@ -557,7 +562,7 @@ class FrameBudgetTest {
     /// So what is asserted is the property that replaced it: filtering changes
     /// the model by a factor of ten and changes the **cost by nothing**. A sheet
     /// that had quietly stopped virtualizing would fail here rather than merely
-    /// get slower ([ADR-0316]).
+    /// get slower.
     @Test
     @DisplayName("and typing two letters changes the model, not the frame")
     void aFilteredSheetCostsTheSame() {

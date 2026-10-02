@@ -8,53 +8,50 @@ import org.jspecify.annotations.Nullable;
 import dev.goldberry.text.Paragraph;
 import dev.goldberry.text.font.Font;
 
-/// A text shaped one **hard line** at a time, and re-shaped one hard line at a
-/// time when it changes.
+/// A text shaped one hard line at a time, and re-shaped one hard line at a time
+/// when it changes.
 ///
-/// ## Why this exists
+/// ```java
+/// TextDocument document = null;
+/// // every frame, with the text as it is now:
+/// document = TextDocument.of(font, text, document, line -> Paragraph.of(font, line));
+/// DocumentLines rows = document.lines(wrapWidth);
+/// ```
 ///
-/// [Paragraph] shapes a whole string at once and keeps two prefix sums over it,
-/// each an `int` per character. That is exactly right for a label and exactly
-/// wrong for a document: a 500 kB note is half a million characters of HarfBuzz
-/// and sixteen megabytes of arrays, and **every keystroke produces a different
-/// string**, so every keystroke pays all of it again. That is `docs/gaps.md`
-/// G44 — a `text-area` whose style pass grew with its text rather than with the
-/// one node that changed.
+/// A [Paragraph] shapes its whole string at once and keeps two `int`s per
+/// character over it. That is right for a label and wrong for a document: a
+/// 500 kB note is half a million characters of shaping, and every keystroke
+/// produces a different string, so a whole-text paragraph pays all of it again
+/// on every key. Wrapping is already per hard line — [Paragraph#layout] splits on
+/// `\n` first and breaks each piece on its own — so nothing is lost by shaping
+/// the lines separately, and a keystroke then touches one of them.
 ///
-/// Wrapping is already per hard line: [Paragraph#layout] splits on `\n` first
-/// and breaks each piece on its own. So nothing is lost by shaping the pieces
-/// separately, and what is gained is that a keystroke touches **one** of them.
+/// [#of] is handed the document the last frame built. It compares the two strings
+/// from both ends, a scan with no allocation, widens the changed span to whole
+/// hard lines and rebuilds only those. Every other line keeps the [Paragraph] it
+/// had, and its wrap memo with it, so re-laying out a document whose fifth line
+/// changed re-breaks the fifth line and reads a memo for the rest. The comparison
+/// is two passes over the characters against shaping all of them, which is the
+/// ratio this class is for.
 ///
-/// ## How a change is found
-///
-/// [#of] is given the document the last frame built. It compares the two strings
-/// from both ends — a scan with no allocation — which brackets the edit, widens
-/// the bracket to whole hard lines, and rebuilds only those. Every other line
-/// keeps the [Paragraph] instance it already had, which keeps its wrap memo with
-/// it: re-laying out a document whose fifth line changed re-breaks the fifth
-/// line and reads a memo for the rest.
-///
-/// The comparison is `O(text)` in character loads and nothing else. A keystroke
-/// into half a megabyte is two passes over half a megabyte of `char`s against
-/// half a megabyte of shaping, which is the ratio this class is for.
-///
-/// ## What it is not
-///
-/// Not a rope and not an editing structure. The text is still one `String` and
-/// an edit still allocates a new one; what this removes is the *shaping* and the
-/// *wrapping* of the parts that did not change. A text large enough for the
-/// string copy itself to matter wants something else, and would want it in
-/// [dev.goldberry.text.edit] rather than here.
+/// It is not a rope and not an editing structure: the text is one `String` and
+/// an edit still allocates a new one. What it removes is the shaping and the
+/// wrapping of the parts that did not change. Offsets are `char` indices into the
+/// whole text; a hard line's own [Paragraph] has offsets local to that line, and
+/// [#startOf] is the difference between the two.
 ///
 /// Confined to one thread, like the fonts and the paragraph cache behind it.
+///
+/// Read more:
+/// [Keeping frames cheap](https://goldberry.dev/docs/performance/frames.html#edit-a-large-note-in-a-text-area).
 public final class TextDocument {
 
     /// Where a hard line's glyphs come from.
     ///
-    /// A function rather than a [dev.goldberry.text.ParagraphCache]
-    /// so that this class does not decide who caches: a widget hands it the
-    /// renderer's cache and gets the sharing the rest of the frame gets, and a
-    /// test hands it `Paragraph::of` and gets none.
+    /// A function rather than a `ParagraphCache`, so that this class does not
+    /// decide who caches: a widget hands it the renderer's cache and gets the
+    /// sharing the rest of the frame gets, and a test hands it `Paragraph::of`
+    /// and gets none.
     @FunctionalInterface
     public interface Shaper {
 

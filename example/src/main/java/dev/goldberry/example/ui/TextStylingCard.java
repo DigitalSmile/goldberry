@@ -16,9 +16,8 @@ import dev.goldberry.widgets.form.textarea.TextArea;
 import dev.goldberry.widgets.panel.card.Card;
 import dev.goldberry.widgets.text.Text;
 
-/// The **Forms** screen's fourth Java card: every text property §8 has, over one
-/// `text-area` the reader is typing in — `docs/gaps.md` G27 and G30, [ADR-0321],
-/// [ADR-0323] and [ADR-0324].
+/// The **Forms** screen's fourth Java card: every text property the stylesheet
+/// has, over one `text-area` the reader is typing in.
 ///
 /// ## What it is demonstrating, and why a still picture cannot
 ///
@@ -28,7 +27,7 @@ import dev.goldberry.widgets.text.Text;
 /// the paragraph's origin sits half the line's slack away from the text it belongs
 /// to, and on a wrapped line it is a *different* half on every line; the only way
 /// to see that it does not is to put a caret in centred text and press where it is
-/// drawn (ADR-0324).
+/// drawn.
 ///
 /// So this card is a thing to use rather than a thing to look at: change any
 /// option, then click into the middle of a word and type. Nothing about the
@@ -39,7 +38,7 @@ import dev.goldberry.widgets.text.Text;
 /// [Choosers]' reason, arriving from the other side. A document can write
 /// `class="centred"` and it cannot *choose* one: a class set computed from seven
 /// toggles is a value, and `bind=` is a read-only channel for text rather than a
-/// way to hand a widget its own attributes ([ADR-0063]). So the state below is the
+/// way to hand a widget its own attributes. So the state below is the
 /// demonstration: the options are the application's, and the toolkit's half is
 /// that the field honours whatever the cascade resolved for it.
 ///
@@ -53,11 +52,13 @@ import dev.goldberry.widgets.text.Text;
 ///
 /// ## Monospace is where the face-matching rule shows
 ///
-/// Inter ships four faces — 400 and 600, upright and italic (ADR-0323) — and
+/// Inter ships four faces — 400 and 600, upright and italic — and
 /// JetBrains Mono ships one. So switching the family on with *italic* still set
 /// draws upright code: matching is family, then style, then weight, and a family
 /// with no italic keeps the weight it was asked for. The caption says so, and the
 /// reader can watch the slant disappear.
+///
+/// Read more: [Typography](https://goldberry.dev/docs/guide/styling.html#typography).
 public record TextStylingCard() implements Widget.Stateful {
 
     /// Four lines of deliberately different lengths, so an alignment has something
@@ -78,14 +79,14 @@ public record TextStylingCard() implements Widget.Stateful {
         return new StylingState();
     }
 
-    /// The type scale a reader can put the sample at — `docs/design-system.md`
-    /// §1.4's three body ranks, as the `--gb-font-*`/`--gb-line-*` pairs a
-    /// stylesheet writes.
+    /// The type scale a reader can put the sample at — the design system's three
+    /// body ranks, as the `--gb-font-*`/`--gb-line-*` pairs a stylesheet writes.
     ///
-    /// A named triple rather than a free `font-size`, because §1.4 ships a scale
-    /// and Principle 3 says a screen that needs a fourth extends the system rather
-    /// than improvising one — a showcase that offered a spinner of arbitrary sizes
-    /// would be demonstrating the opposite of the design system it is showing.
+    /// A named triple rather than a free `font-size`, because the design system
+    /// ships a scale and a screen that needs a fourth rank extends the system
+    /// rather than improvising one — a showcase that offered a spinner of
+    /// arbitrary sizes would be demonstrating the opposite of the design system
+    /// it is showing.
     private enum Scale {
         CAPTION("caption", 11, 14),
         BODY("body", 13, 18),
@@ -149,10 +150,10 @@ public record TextStylingCard() implements Widget.Stateful {
                     Attributes.NONE.id("styling-card").classes("wall-card"));
         }
 
-        /// §8's `text-align`, as the three keywords the subset takes. `left` and
+        /// `text-align`, as the three keywords the subset takes. `left` and
         /// `right` are deliberately absent from the toolkit, so they are absent
         /// here: they coincide with `start`/`end` under LTR and part company under
-        /// RTL (ADR-0247).
+        /// RTL.
         private Widget alignment() {
             return new Row(
                             new Text("text-align", Attributes.NONE.classes("caption", "option-label")),

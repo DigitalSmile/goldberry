@@ -27,93 +27,55 @@ import dev.goldberry.widget.style.Styled;
 import dev.goldberry.widgets.markup.Markup;
 import dev.goldberry.widgets.markup.Wiring;
 
-/// A small rounded label you can choose and take away — `docs/core-widgets.md`
-/// §3's `chip`.
+/// A badge you can press: a filter that is on or off, a tag you can take off, a
+/// token in a recipient row.
 ///
 /// ```kdl
-/// chip "Draft"
-/// chip dot=#true class="warning" "Degraded"
-/// chip icon="filter" selected=#true press="app.toggle-filter" "Unread"
-/// chip dismiss="app.drop-tag" "typescript"
+/// chip bind="filter.unread" press="filter.toggle-unread" "Unread"
+/// chip class="outlined success" dot=#true "Live"
+/// chip icon="tag" dismiss="tags.drop-java" "java"
+/// chip class="outlined" disabled=#true "Sealed"
 /// ```
 ///
-/// ## A chip is not a badge, and the difference is that you can press it
+/// In Java, `new Chip("Unread", false, actions::toggleUnread)`, then
+/// [#withIcon], [#withDot(int)], [#onDismiss] and [#disabled] as needed.
 ///
-/// [dev.goldberry.widgets.controls.badge.Badge] is §3's
-/// "count/status chip": a leaf with text, no focus, no state, nothing to click.
-/// It answers *what is true* — three unread, one build failing. A chip answers
-/// *what you picked*: a filter that is on or off, a tag you can take off a
-/// document, a value that came from somewhere and can go back. That is a
-/// control, so it is focusable, it carries `:checked`, and it has a keyboard
-/// (ADR-0305).
-///
-/// The two look alike on purpose and share their metrics in `controls.css` for
-/// the reason `select-chip` already shares them: §3 gives one row of numbers for
-/// a stadium with words in it, and three rules that have to be kept agreeing is
-/// how they stop agreeing.
-///
-/// ## The dot and the icon are one slot, not two
-///
-/// §3's row says "an optional leading **dot or icon**", and the widget refuses
-/// both at once rather than stacking them. Two leading marks in a 20-tall stadium
-/// is 8 points of glyph in front of the word it is about, and the second one is
-/// never the one a reader looks at — but more to the point, the two mean the same
-/// thing at different resolutions. A dot is a status nobody has to recognise; an
-/// icon is a status they do. Asking for both is asking a question that has no
-/// answer, so it is a refusal at construction rather than a drawing decision.
-///
-/// ## The dot's colour is data, not a class
-///
-/// The dot draws in the toolkit's colour until somebody says otherwise, and for
-/// a status that a stylesheet can name — `chip.danger chip-dot` — that is the
-/// whole story. It is not the whole story for a *Project*: a hue that lives in a
-/// row of a database has no class a rule could be written for, and thirty
-/// projects would be thirty rules an author cannot write in advance.
-///
-/// So [#withDot(int)] takes the colour itself, as `0xAARRGGBB` — the toolkit's
-/// own currency at the paint boundary, which is what keeps a colour *type* out of
-/// the widget API. `0` means "the stylesheet decides", exactly as it does for
-/// every other colour a document may write (`docs/gaps.md` G36,
-/// [ADR-0328]).
-///
-/// ## Selection is the document's, and that is not a `tab`'s answer
-///
-/// A [dev.goldberry.widgets.panel.tabs.Tab]'s `selected` is
-/// supplied by its strip on every build, because a strip
-/// exists to hold the invariant that exactly one is chosen. A chip has no strip:
-/// a row of filter chips has none, two, or all of them on, and nothing about the
-/// row makes that wrong. So `selected=#true` is an ordinary attribute a document
-/// may write, mirrored to `:checked` — which is the pseudo-class, not a second
-/// vocabulary, so `chip:checked` is the whole of styling a chosen one.
+/// A chip is a control where a [dev.goldberry.widgets.controls.badge.Badge] is
+/// not: it is focusable when it has something to do, it carries `:checked`,
+/// and it has a keyboard. The two look alike on purpose and share their metrics
+/// in `controls.css`.
 ///
 /// **It selects nothing itself.** Pressing raises `press` and the application
-/// decides; a chip whose handler does nothing stays as it was, which is the
-/// visible form of "the model did not change"
-/// (ADR-0063).
+/// decides; the bound value, or the written `selected`, is what draws
+/// `:checked`. The written value is the fallback and the bound one wins, as on
+/// a `toggle` or a `checkbox`, and the binding is an [Observable] and never a
+/// `Property`, because markup names where a value comes from and has no way to
+/// name where it goes. A chip whose handler does nothing stays as it was, which
+/// is the visible form of "the model did not change". Dismissing raises
+/// `dismiss` and removes nothing, because the list a row of chips shows is the
+/// application's.
 ///
-/// `bind=` is the other half and is what makes a row of filters writable as a
-/// document: the written `selected` is the fallback and the bound value wins,
-/// which is `toggle`'s and `checkbox`'s arrangement exactly. An [Observable] and
-/// never a `Property`, because one-way binding is the whole rule — markup names
-/// where a value comes from and has no way to name where it goes
-/// (ADR-0063).
+/// The dot and the icon are one slot: a chip asked for both is refused where
+/// it is built, because they are the same status at two resolutions. The dot's
+/// colour is data, not a class — a project's hue lives in a row of a database
+/// and a stylesheet cannot have a rule per project — so [#withDot(int)] takes
+/// it as `0xAARRGGBB`, and `0` means the stylesheet decides.
 ///
-/// ## Keyboard
+/// `Space` and `Enter` press it. `Delete` and `Backspace` dismiss it when it
+/// has a dismiss: a chip is commonly the last thing before a text field, where
+/// `Backspace` is what a hand reaches for.
 ///
-/// `Space` and `Enter` press it, which is §3's rule for everything you press.
-/// `Delete` and `Backspace` dismiss it when it has a dismiss, which is the
-/// keyboard's answer to a × that is otherwise a 10-point pointer target — the
-/// same argument `tab`'s `Delete` makes, and the same key.
+/// Read more: [Buttons, badges and chips](https://goldberry.dev/docs/components/buttons.html#chip).
 ///
 /// @param label     what the chip reads; never empty, because a chip with no word
-///                  in it is a coloured dot that nothing can announce (§13)
+///                  in it is a coloured dot that nothing can announce
 /// @param icon      an optional leading icon, mutually exclusive with [#dot]
 /// @param dot       whether to draw the 6-point status dot before the label
 /// @param dotColor  the dot's colour as `0xAARRGGBB`, or 0 for the stylesheet's
 ///                  — see [#withDot(int)]
 /// @param selected  mirrored to `:checked` when nothing is bound — see
 ///                  [#resolved()]
-/// @param source    §9's `bind=`, read-only
+/// @param source    `bind=`, read-only, or null
 /// @param onPress   what the user asked to choose, or null for a chip that only
 ///                  reads
 /// @param onDismiss what the user asked to take away, or null for a chip with no
@@ -136,7 +98,7 @@ public record Chip(
         Attributes attributes)
         implements Widget.Leaf, Styled, Paints, Handles, Attributed<Chip>, Bindable<Chip>, Semantics {
 
-    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    /// Written out so that the parameters taking null for a default can say so.
     public Chip(
             String label,
             @Nullable Icon icon,
@@ -152,7 +114,7 @@ public record Chip(
         if (label.isEmpty()) {
             throw new IllegalArgumentException(
                     "a chip needs a label: a chip is a word you can choose, and one with no word"
-                            + " is a coloured dot with nothing to read out (§13)");
+                            + " is a coloured dot with nothing to read out");
         }
         if (dotColor != 0 && !dot) {
             throw new IllegalArgumentException("a chip that draws no dot has no dot to colour, and \"" + label
@@ -189,7 +151,7 @@ public record Chip(
     /// This chip with a leading icon.
     ///
     /// The icon is **borrowed**, like a button's: a widget is a value rebuilt
-    /// every frame, so it must not own something with a `close()` (ADR-0043).
+    /// every frame, so it must not own something with a `close()`.
     ///
     /// @throws IllegalArgumentException if this chip already asked for a dot
     public Chip withIcon(Icon value) {
@@ -224,7 +186,7 @@ public record Chip(
     ///
     /// A colour and not a class name, because the value is **data**: a Project's
     /// hue is a row in a database, and a stylesheet cannot have a rule per
-    /// Project (`docs/gaps.md` G36, [ADR-0328]).
+    /// Project.
     ///
     /// @throws IllegalArgumentException if this chip already has an icon
     public Chip withDot(int argb) {
@@ -245,7 +207,7 @@ public record Chip(
     ///
     /// It raises the handler rather than removing anything: what a row of chips
     /// shows is the application's list, and only the application may shorten it
-    /// — `tab`'s `close` exactly (ADR-0063).
+    /// — `tab`'s `close` exactly.
     public Chip onDismiss(Runnable handler) {
         return new Chip(label, icon, dot, dotColor, selected, source, onPress, handler, disabled, attributes);
     }
@@ -434,8 +396,8 @@ public record Chip(
     ///
     /// `press=` and `dismiss=` name actions, `icon=` names an icon,
     /// `dot-colour=`/`dot-color=` names the dot's colour, and `dot`,
-    /// `selected` and `disabled` are flags — so every one of §11's three forms
-    /// builds the same value, which is what the parity invariant asks for.
+    /// `selected` and `disabled` are flags — so markup and Java build the same
+    /// value.
     public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
         var colour = Wiring.colour(node, "dot-colour", "dot-color");
         return new Chip(
@@ -443,7 +405,7 @@ public record Chip(
                 wiring.icon(node),
                 // A colour is a dot: `dot-colour=` alone turns it on, which is the
                 // one place markup would otherwise have to write two attributes to
-                // say what `withDot(argb)` says in one ([ADR-0328]).
+                // say what `withDot(argb)` says in one.
                 node.booleanProperty("dot") || colour != 0,
                 colour,
                 node.booleanProperty("selected"),

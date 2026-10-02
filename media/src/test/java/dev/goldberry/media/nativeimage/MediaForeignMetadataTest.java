@@ -16,7 +16,8 @@ import org.junit.jupiter.api.io.TempDir;
 import dev.goldberry.media.ffi.FfmpegDescriptors;
 
 /// The one file an image of this module is built from: FFmpeg's shapes and the
-/// system decoders', and the natives jar's resources (ADR-0339, ADR-0493).
+/// system decoders', and the natives jar's resources. A foreign call is
+/// registered because it exists, not because a traced run reached it.
 @DisplayName("MediaForeignMetadata")
 class MediaForeignMetadataTest {
 

@@ -28,7 +28,7 @@ interface CodeEditor {
     /// empty field's `Escape` still closes the dialog.
     boolean clear();
 
-    /// `Ctrl+V`. §4's "the thing users actually do".
+    /// `Ctrl+V` — the thing users actually do with a one-time code.
     boolean paste();
 
     /// Focus arrived or left.

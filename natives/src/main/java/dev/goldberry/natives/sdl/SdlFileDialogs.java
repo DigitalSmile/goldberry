@@ -32,7 +32,8 @@ import dev.goldberry.natives.sdl.dialog.SdlFileFilter;
 /// the reason is one parameter: a file dialog is modal to a window, and
 /// `SDL_Window*` is [SdlWindowHandle]'s package-private secret. Moving the
 /// pointer out of this package to reach a wrapper in another one would undo
-/// exactly what that class exists to do (`docs/ARCHITECTURE.md` §3.1).
+/// exactly what that class exists to do: a raw `MemorySegment` never leaves this
+/// module.
 ///
 /// ## Asynchronous, and the memory has to outlive the call
 ///
@@ -68,6 +69,8 @@ import dev.goldberry.natives.sdl.dialog.SdlFileFilter;
 ///
 /// Show calls themselves must be made on the thread SDL's video subsystem runs
 /// on, like every other window call.
+///
+/// Read more: [The native boundary](https://goldberry.dev/docs/overview/architecture.html#the-native-boundary).
 public final class SdlFileDialogs {
 
     private static final Logger LOG = Logs.of(SdlFileDialogs.class);

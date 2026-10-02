@@ -1,6 +1,6 @@
 # ============================================================================
 # The media superbuild: FFmpeg + dav1d for goldberry-media
-# (docs/goldberry-media.md §2, docs/media-plan.md, ADR-0460, ADR-0461)
+# https://goldberry.dev/docs/components/media.html#the-module
 #
 # Separate from the libgoldberry superbuild in natives/src/main/cmake, and on
 # purpose:
@@ -22,12 +22,12 @@
 #   ffmpeg-NOTICE.txt, with the tags and the configure line the LGPL asks for.
 #
 # The same files, with gradle/libs.versions.toml, are the build recipe in the
-# `ffmpeg-sources` classifier (ADR-0508). GOLDBERRY_FFMPEG_SOURCE_DIR and
+# `ffmpeg-sources` classifier. GOLDBERRY_FFMPEG_SOURCE_DIR and
 # GOLDBERRY_DAV1D_SOURCE_DIR build from that jar's source trees instead of
 # cloning, with nothing fetched.
 #
 # Driven from Gradle by `:media:ffmpegBuild` for the host. CI invokes it directly
-# per runner, like the libgoldberry superbuild (ADR-0012).
+# per runner, like the libgoldberry superbuild.
 # ============================================================================
 cmake_minimum_required(VERSION 3.28)
 project(goldberry_media C)
@@ -37,13 +37,13 @@ include(ProcessorCount)
 
 set(GOLDBERRY_TARGET_ID "host" CACHE STRING "Distribution target id, e.g. linux-x64")
 set(GOLDBERRY_MEDIA_DEPS_DIR "${CMAKE_BINARY_DIR}/deps" CACHE PATH
-    "Where FFmpeg and dav1d are cloned and built; kept outside build/ by Gradle (ADR-0038)")
+    "Where FFmpeg and dav1d are cloned and built; kept outside build/ by Gradle")
 set(GOLDBERRY_MESON "meson" CACHE FILEPATH "meson, for dav1d")
 set(GOLDBERRY_PKG_CONFIG "pkg-config" CACHE FILEPATH "pkg-config, for FFmpeg's configure to find dav1d")
 set(GOLDBERRY_MAKE "make" CACHE FILEPATH "make, for FFmpeg")
 # FFmpeg's configure is a shell script. CMake starts it directly everywhere but
 # Windows, where there is no kernel support for `#!` and it has to be handed to
-# MSYS2's sh (docs/media-plan.md, "Local toolchain").
+# MSYS2's sh.
 set(GOLDBERRY_SH "sh" CACHE FILEPATH "a POSIX sh, for FFmpeg's configure on Windows")
 
 # Empty: clone each upstream at its pinned tag, as every build of the shipped
@@ -52,7 +52,7 @@ set(GOLDBERRY_SH "sh" CACHE FILEPATH "a POSIX sh, for FFmpeg's configure on Wind
 set(GOLDBERRY_FFMPEG_SOURCE_DIR "" CACHE PATH "An FFmpeg source tree to build instead of cloning one")
 set(GOLDBERRY_DAV1D_SOURCE_DIR "" CACHE PATH "A dav1d source tree to build instead of cloning one")
 
-# The VP9/AV1 hardware decoders (phase 5, ADR-0470). On by default where the
+# The VP9/AV1 hardware decoders. On by default where the
 # hwaccel needs only what the OS ships: VideoToolbox on macOS and D3D11 on
 # Windows are system frameworks. Off by default on Linux: VAAPI is libva, which
 # libavutil would then link directly, so a machine without libva could not load
@@ -66,7 +66,7 @@ else()
 endif()
 option(GOLDBERRY_MEDIA_HWACCEL "Build the VP9/AV1 hardware decoders (phase 5)" ${_hwaccel_default})
 
-# Every library's name carries this suffix (ADR-0490): libavcodec-goldberry.so.62,
+# Every library's name carries this suffix: libavcodec-goldberry.so.62,
 # not libavcodec.so.62. A distribution's FFmpeg of the same major has the plain
 # names, and a process that loads both would otherwise get one of them twice:
 # glibc satisfies a DT_NEEDED with any library already loaded under that soname,
@@ -75,18 +75,18 @@ option(GOLDBERRY_MEDIA_HWACCEL "Build the VP9/AV1 hardware decoders (phase 5)" $
 # FfmpegSuperbuildTest holds the two together.
 set(GOLDBERRY_FFMPEG_BUILD_SUFFIX "-goldberry")
 
-# The size gate from goldberry-media.md §2: target 6 MB, fail above 7.
+# The size gate: target 6 MB, fail above 7.
 set(GOLDBERRY_MEDIA_SIZE_LIMIT 7340032 CACHE STRING "Largest total size of the five stripped libraries, in bytes")
 
 # ----------------------------------------------------------------------------
-# Pins, read from gradle/libs.versions.toml and nowhere else (ADR-0035). The
+# Pins, read from gradle/libs.versions.toml and nowhere else. The
 # reader is the libgoldberry superbuild's, repeated because the two builds share
-# no CMake code; a pin that floats is refused the same way (ADR-0030).
+# no CMake code; a pin that floats is refused the same way.
 # ----------------------------------------------------------------------------
 set(GOLDBERRY_VERSION_CATALOG "${CMAKE_CURRENT_SOURCE_DIR}/../../../../gradle/libs.versions.toml"
     CACHE FILEPATH "gradle/libs.versions.toml -- the one place upstream refs are pinned")
 if(NOT EXISTS "${GOLDBERRY_VERSION_CATALOG}")
-    message(FATAL_ERROR "The version catalog is not at '${GOLDBERRY_VERSION_CATALOG}' (ADR-0035).")
+    message(FATAL_ERROR "The version catalog is not at '${GOLDBERRY_VERSION_CATALOG}'.")
 endif()
 set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${GOLDBERRY_VERSION_CATALOG}")
 file(STRINGS "${GOLDBERRY_VERSION_CATALOG}" _catalog_lines)
@@ -98,18 +98,18 @@ function(goldberry_pin _key _out)
             # not it matches.
             set(_value "${CMAKE_MATCH_1}")
             if(_value MATCHES "^(master|main|HEAD|latest|trunk)$")
-                message(FATAL_ERROR "gradle/libs.versions.toml pins ${_key} to '${_value}', which floats (ADR-0030).")
+                message(FATAL_ERROR "gradle/libs.versions.toml pins ${_key} to '${_value}', which floats; pin a tag or a commit.")
             endif()
             set(${_out} "${_value}" PARENT_SCOPE)
             return()
         endif()
     endforeach()
-    message(FATAL_ERROR "gradle/libs.versions.toml has no `${_key} = \"...\"` under [versions] (ADR-0035).")
+    message(FATAL_ERROR "gradle/libs.versions.toml has no `${_key} = \"...\"` under [versions].")
 endfunction()
 
 goldberry_pin(ffmpeg GOLDBERRY_FFMPEG_REF)
 goldberry_pin(dav1d GOLDBERRY_DAV1D_REF)
-# The commits those tags name (ADR-0508): a clone that is not at them is refused,
+# The commits those tags name: a clone that is not at them is refused,
 # so the `ffmpeg-sources` classifier, which is refused the same way, is the
 # source of what this builds.
 goldberry_pin(ffmpegCommit GOLDBERRY_FFMPEG_COMMIT)
@@ -164,7 +164,7 @@ goldberry_source(ffmpeg https://git.ffmpeg.org/ffmpeg.git ${GOLDBERRY_FFMPEG_REF
 # links INTO libavcodec. One fewer file to ship and load, and BSD-2 asks nothing
 # of that arrangement but the notice.
 #
-# -O2 rather than release's -O3, like FFmpeg below (ADR-0486): its hot paths are
+# -O2 rather than release's -O3, like FFmpeg below: its hot paths are
 # assembly, so -O3 buys no speed and costs 255 KB on linux-x64. The buildtype
 # stays release, which keeps NDEBUG and trim_dsp.
 # ----------------------------------------------------------------------------
@@ -193,14 +193,14 @@ if(WIN32)
 endif()
 
 # ----------------------------------------------------------------------------
-# FFmpeg: the configure line of goldberry-media.md §2, in one list so that the
+# FFmpeg: the configure line, in one list so that the
 # NOTICE can quote exactly what was built.
 #
 # --disable-autodetect is what keeps the result reproducible: without it configure
 # links whatever it finds on the build machine (iconv, SecureTransport, VAAPI,
 # zlib) and two runners produce two different libraries.
 #
-# --optflags=-O2 replaces configure's -O3 (ADR-0486). GCC's -O3 unrolls and
+# --optflags=-O2 replaces configure's -O3. GCC's -O3 unrolls and
 # vectorises FFmpeg's C templates, and doubles swscale: 8976 KB on linux-x64,
 # over the 7 MB gate, against 6696 KB at -O2 with dav1d at -O2 too. Decoding
 # runs in hand-written assembly and measured the same at both.
@@ -225,7 +225,7 @@ if(APPLE)
              --enable-hwaccel=vp9_videotoolbox,av1_videotoolbox)
     endif()
 elseif(WIN32)
-    # UNTESTED: written from goldberry-media.md §2 on macOS. Configure runs under
+    # UNTESTED: written on macOS. Configure runs under
     # MSYS2's shell with MSVC as the compiler.
     list(APPEND GOLDBERRY_FFMPEG_CONFIGURE --toolchain=msvc --target-os=win64 --arch=x86_64)
     if(GOLDBERRY_MEDIA_HWACCEL)
@@ -241,11 +241,11 @@ else()
     endif()
 endif()
 
-# Never --enable-gpl, --enable-nonfree or --enable-version3 (goldberry-media.md
-# §10). Checked rather than trusted, because the list above is edited by hand.
+# Never --enable-gpl, --enable-nonfree or --enable-version3: the libraries stay
+# LGPL-2.1+. Checked rather than trusted, because the list above is edited by hand.
 foreach(_forbidden --enable-gpl --enable-nonfree --enable-version3)
     if(_forbidden IN_LIST GOLDBERRY_FFMPEG_CONFIGURE)
-        message(FATAL_ERROR "${_forbidden} would change FFmpeg's licence away from LGPL-2.1+; see goldberry-media.md §10.")
+        message(FATAL_ERROR "${_forbidden} would change FFmpeg's licence away from LGPL-2.1+, which goldberry-media ships under.")
     endif()
 endforeach()
 

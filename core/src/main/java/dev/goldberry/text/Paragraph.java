@@ -20,61 +20,57 @@ import dev.goldberry.text.font.Font;
 import dev.goldberry.text.itemize.Itemizer;
 import dev.goldberry.text.itemize.Slot;
 
-/// A run of text that knows how to wrap itself, and therefore how to be laid out.
+/// A run of text in one font that wraps itself at any width, measures itself for
+/// layout, and paints its lines.
 ///
-/// This is the piece the M1 slice was missing. Yoga cannot see inside a leaf: it
-/// proposes a width and asks how tall the content came out, and the answer for
-/// text is "shape it, break it into lines, count them". That question is asked
-/// from C, several times per layout pass, through the `YGSize` upcall proven in
-/// ADR-0017 — so the answer has to be cheap.
+/// ```java
+/// var prose = Paragraph.of(font, "Prose that has to fit somewhere.");
+/// TextLayout lines = prose.layout(240);        // wrapped at 240 logical px
+/// prose.paint(frame, 16, 16, 240, 0xFFECEFF4);
+/// ```
 ///
-/// ## Shaped once, wrapped many times
+/// A widget never calls [#of] itself: `Paints.Context.paragraph(style, text)`
+/// shapes through a [ParagraphCache] and returns the same instance each frame
+/// for the same text. [#measureFunction] attaches a paragraph to a layout node
+/// as its content, and [#widthBetween] and [#offsetAt] are what a caret and a
+/// click are built on.
 ///
-/// The text is shaped **once**, when the paragraph is created, and never again.
-/// Wrapping is then pure arithmetic over that one `ShapedRun`: a line is a range
-/// of glyphs, and re-wrapping at a new width produces new ranges over the same
-/// glyphs. A measure callback therefore costs a scan, not a shaping pass.
+/// The text is shaped once, when the paragraph is created, and never again.
+/// Wrapping is then arithmetic over that one [ShapedRun]: a line is a range of
+/// glyphs, and re-wrapping at a new width produces new ranges over the same
+/// glyphs, so a measure callback costs a scan rather than a shaping pass. That
+/// is possible because shaping happens in the font's design units, which makes
+/// the run independent of the size it is drawn at and so of the width it is
+/// wrapped to. The layout engine asks for a paragraph's size several times a
+/// pass, so the answer has to be that cheap.
 ///
-/// That is only possible because shaping happens in font design units
-/// (ADR-0034), which makes the run independent of the size it will be drawn at —
-/// so it is also independent of the width it will be wrapped to.
+/// One direction and one style, in up to two faces. Text that Unicode draws as
+/// a picture is shaped in the emoji face when [Font#emoji()] names one, and
+/// everything else in the face the cascade chose. The split is by presentation
+/// and not by script, so a paragraph of Han text in a Latin face is still one
+/// run of `.notdef`. Measurements are prefix sums in logical order over one
+/// array of advances, concatenated from the shapings with the second rescaled
+/// into the first's design units.
 ///
-/// ## What it does not do yet
+/// Text that needs bidi, any right-to-left character, is shaped with the
+/// direction forced to `LTR`, so the glyphs come back in the order the
+/// measurements assume. Every width, caret position and hit test is then
+/// self-consistent, and the text is drawn mirrored rather than reordered.
+/// [#isBidiApproximate()] says when that happened. It is an approximation
+/// that says so rather than a refusal, because a paragraph that threw meant a
+/// field a user pasted Arabic into took the window down with it. Splitting text
+/// into directional runs is not built.
 ///
-/// **One direction, one style — and, since [ADR-0393], up to two faces.** Text
-/// Unicode draws as a picture is shaped in the emoji face when [Font#emoji()]
-/// names one, and everything else in the face the cascade chose. That is the
-/// whole of the itemization `docs/ARCHITECTURE.md` §5 describes: it splits by
-/// **presentation** and not by script, so a paragraph of Han text in a Latin face
-/// is still one run of `.notdef`.
+/// Breaks are not re-shaped. Each line is a slice of the whole paragraph's
+/// shaping, so a kern between the last character of one line and the first of
+/// the next is included where a per-line shaping would drop it. The error is a
+/// fraction of a pixel and it buys wrapping that costs no shaping.
 ///
-/// Splitting for emoji does not change what a measurement is. A paragraph is
-/// still measured as prefix sums in **logical** order over one array of
-/// advances; what changed is that the array is now concatenated from up to two
-/// shapings, with the second rescaled into the first's design units.
+/// Confined to its font's thread. Not immutable, since it memoises the last
+/// wrap, but it holds no native resources of its own, so there is nothing to
+/// close. It must not outlive its font.
 ///
-/// Text that needs bidi — any
-/// right-to-left character, which `java.text.Bidi.requiresBidi` detects — is
-/// therefore shaped with the direction forced to `LTR`, so the glyphs come back
-/// in the order the measurements assume. Every width, every caret position and
-/// every hit test is then self-consistent, and the text is drawn in the **wrong
-/// visual order**: it is mirrored, not reordered.
-///
-/// That is an approximation, and [#isBidiApproximate()] is how a caller asks
-/// whether it is in force. It replaced an exception, because a paragraph that
-/// refused meant a field a user pasted Arabic into took the window down with it
-/// (ADR-0218).
-/// The real fix is splitting text into directional runs — `java.text.Bidi`'s job,
-/// with the same class already here — and it is still ahead.
-///
-/// **Breaks are not re-shaped.** Each line is a slice of the whole paragraph's
-/// shaping, so a kern between the last character of one line and the first of the
-/// next is included where a per-line shaping would drop it. The error is a
-/// fraction of a pixel and it buys wrapping that costs no shaping; re-shaping
-/// each line is the fix if it ever shows.
-///
-/// Confined to its font's thread. Not immutable — it memoises the last wrap —
-/// but it holds no native resources of its own, so there is nothing to close.
+/// Read more: [Text, fonts and icons](https://goldberry.dev/docs/guide/text.html#paragraphs).
 public final class Paragraph {
 
     private static final org.slf4j.Logger LOG = Logs.of(Paragraph.class);
@@ -85,11 +81,11 @@ public final class Paragraph {
     private final Font font;
     private final String text;
 
-    /// The whole paragraph, shaped once, in **the base font's** design units.
+    /// The whole paragraph, shaped once, in the base font's design units.
     ///
     /// One run even when it took two faces to shape: an emoji run's advances are
     /// scaled into this font's grid as they are appended, so every measurement
-    /// below stays the prefix sum it has always been ([ADR-0393]).
+    /// below stays a prefix sum over one array.
     private final ShapedRun run;
 
     /// The pieces [#run] was concatenated from, each with the face that shaped it.
@@ -281,10 +277,9 @@ public final class Paragraph {
 
     /// Shapes `text` with `font`, ready to be wrapped.
     ///
-    /// **Never refuses.** Text that needs bidi is shaped in logical order and
-    /// drawn mirrored rather than throwing — see the note on this class and
-    /// [#isBidiApproximate()]. It used to throw, and what that cost was a window
-    /// taken down by a paste (ADR-0218).
+    /// Never refuses. Text that needs bidi is shaped in logical order and drawn
+    /// mirrored rather than throwing, and logs a warning once per distinct
+    /// string; [#isBidiApproximate()] says when that happened.
     public static Paragraph of(Font font, String text) {
         Objects.requireNonNull(font, "font");
         Objects.requireNonNull(text, "text");
@@ -387,16 +382,16 @@ public final class Paragraph {
     /// The same, told what the box's `white-space` resolved to.
     ///
     /// Under [dev.goldberry.text.flow.WhiteSpace#NOWRAP] the
-    /// width Yoga offers is **ignored**: the paragraph reports the width it
-    /// actually wants, and the box is then free to be laid out narrower than its
-    /// own content. That is the whole of what `nowrap` buys, and it is what makes
-    /// a cut label possible at all — a box with text is a measured leaf, so
-    /// narrowing it re-measures the paragraph, and a paragraph that answers "as
-    /// wide as I offered" can never overflow anything ([ADR-0235]).
+    /// width the layout engine offers is ignored: the paragraph reports the
+    /// width it actually wants, and the box is then free to be laid out narrower
+    /// than its own content. That is what makes a cut label possible at all. A
+    /// box with text is a measured leaf, so narrowing it re-measures the
+    /// paragraph, and a paragraph that answered "as wide as I was offered" could
+    /// never overflow anything.
     ///
     /// `text-overflow` is deliberately not read here. An ellipsised line is drawn
-    /// short and measured long: measuring the truncation would let the ellipsis
-    /// decide the width that caused it ([ADR-0255]).
+    /// short and measured long, because measuring the truncation would let the
+    /// ellipsis decide the width that caused it.
     ///
     /// [MeasureMode#EXACTLY] still wins under either value, because a parent that
     /// has already decided a width is not asking.
@@ -464,7 +459,7 @@ public final class Paragraph {
         var align = flow.textAlign();
         // Read once per paint rather than once per line: it is a downcall into the
         // rasterizer, and it is the same answer for every line of one font. Null
-        // when nothing is decorated, which is nearly every paragraph ([ADR-0321]).
+        // when nothing is decorated, which is nearly every paragraph.
         var rules = flow.isDecorated() ? font.decorations().orElse(font.size(), ascent) : null;
 
         for (var i = 0; i < layout.lines().size(); i++) {
@@ -525,11 +520,11 @@ public final class Paragraph {
 
     /// Draws the rules `flow` asks for along one line, `width` wide from `x`.
     ///
-    /// **In the text's own colour and at the face's own thickness.** A decoration
-    /// is part of the glyphs rather than a box behind them, which is why it takes
-    /// `argb` and not a second colour, and why the position and the thickness come
-    /// from [dev.goldberry.text.font.Font#decorations()] rather
-    /// than from any arithmetic here (`docs/gaps.md` G27, [ADR-0321]).
+    /// In the text's own colour and at the face's own thickness. A decoration is
+    /// part of the glyphs rather than a box behind them, which is why it takes
+    /// `argb` and not a second colour, and why the position and the thickness
+    /// come from [dev.goldberry.text.font.Font#decorations()] rather than from
+    /// any arithmetic here.
     ///
     /// @param rules the face's metrics, already substituted for by
     ///              [dev.goldberry.text.font.Font.Decorations#orElse],
@@ -654,13 +649,13 @@ public final class Paragraph {
     ///
     /// A [TextLine]'s glyph range indexes into this.
     ///
-    /// **Its glyph ids may not all belong to [#font()].** A paragraph with emoji
-    /// in it was shaped by two faces, and this is the two concatenated: the
+    /// Its glyph ids may not all belong to [#font()]. A paragraph with emoji in
+    /// it was shaped by two faces, and this is the two concatenated: the
     /// advances, offsets and clusters are all in one coordinate system and are
     /// what every measurement here is built on, but a glyph id is only meaningful
     /// to the face that produced it. Drawing from this directly would draw the
-    /// emoji face's glyph numbers out of the prose face. [#paint] is what knows
-    /// which is which ([ADR-0393]).
+    /// emoji face's glyph numbers out of the prose face; [#paint] is what knows
+    /// which is which.
     public ShapedRun glyphs() {
         return run;
     }

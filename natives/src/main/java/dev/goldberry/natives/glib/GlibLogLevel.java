@@ -27,6 +27,8 @@ import dev.goldberry.log.bridge.NativeLogLevel;
 /// `ERROR` is `error` rather than anything louder because there is nothing
 /// louder, and because it has already happened: `G_LOG_LEVEL_ERROR` is fatal in
 /// GLib and the process is about to abort. The line is the last thing written.
+///
+/// Read more: [The native boundary](https://goldberry.dev/docs/overview/architecture.html#the-native-boundary).
 public enum GlibLogLevel {
 
     /// `G_LOG_LEVEL_ERROR` — always fatal; GLib aborts after the handler

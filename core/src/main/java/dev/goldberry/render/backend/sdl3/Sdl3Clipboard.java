@@ -10,7 +10,7 @@ import dev.goldberry.render.clipboard.Clipboard;
 /// `SDL_GetClipboardData` hand back and frees it before returning
 /// ([SdlClipboard]), and it owns the arena a lazy offer is served from — so what
 /// crosses into `:core` is a `String` or a `byte[]` and there is no lifetime for
-/// this class to have an opinion about (ADR-0286).
+/// this class to have an opinion about.
 ///
 /// Confined to the UI thread, like the rest of this backend.
 final class Sdl3Clipboard implements Clipboard {

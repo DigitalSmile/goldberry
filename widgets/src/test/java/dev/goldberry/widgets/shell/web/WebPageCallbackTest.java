@@ -13,8 +13,8 @@ import org.junit.jupiter.api.Test;
 
 import dev.goldberry.render.web.WebCallback;
 
-/// A page that can be called back into — [ADR-0448] — and one the application
-/// can point somewhere else — [ADR-0449].
+/// A page that can be called back into, and one the application can point
+/// somewhere else.
 ///
 /// What is checked here is the **value**: that handlers are carried, ordered and
 /// immutable, that they survive the other `with`-style methods, and that

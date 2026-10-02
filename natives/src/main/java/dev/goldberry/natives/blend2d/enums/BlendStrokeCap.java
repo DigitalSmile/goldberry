@@ -8,7 +8,9 @@ package dev.goldberry.natives.blend2d.enums;
 ///
 /// The numbering is not alphabetical and not obvious — round is 2, with a
 /// reversed round at 3 — which is why every value is checked against the
-/// compiled library (ADR-0043).
+/// compiled library.
+///
+/// Read more: [The native boundary](https://goldberry.dev/docs/overview/architecture.html#the-native-boundary).
 public enum BlendStrokeCap implements BlendEnum {
 
     /// Stops flat at the endpoint. Blend2D's default, and SVG's.

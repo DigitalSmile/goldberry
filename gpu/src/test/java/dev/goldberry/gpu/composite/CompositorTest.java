@@ -40,15 +40,16 @@ import dev.goldberry.render.composite.Claim;
 import dev.goldberry.render.model.PhysicalSize;
 import dev.goldberry.render.model.PixelFormat;
 
-/// The composited window's GPU half (`docs/gpu-plan.md`, phase 3; ADR-0479), on
-/// a real device.
+/// The composited window's GPU half — the seam `:core` declares and `:gpu`
+/// provides — on a real device.
 ///
 /// The parity that matters: a frame composited through the GPU shows the same
 /// pixels the window surface would. The surface shows a premultiplied frame's
 /// colour bytes and ignores its alpha; the composite draws it over opaque black
 /// with premultiplied "over", which keeps the colour bytes and makes the alpha
 /// opaque. [Parity#everyByteValue] holds it to that for random frames, so every
-/// byte value and every alpha is covered.
+/// byte value and every alpha is covered. Read more:
+/// [What the module does to a window](https://goldberry.dev/docs/components/gpu.html#what-the-module-does-to-a-window).
 @Tag(GpuTestLauncher.TAG)
 @DisplayName("the compositor, on a real device")
 class CompositorTest {
@@ -63,7 +64,7 @@ class CompositorTest {
     @AfterAll
     static void destroyDevice() {
         // Skipped before SDL was reached: nothing to give back, and no library to
-        // call. Calling it anyway failed the class, and a build without it (ADR-0495).
+        // call. Calling it anyway failed the class, and a build without it.
         if (device == null) {
             return;
         }
@@ -233,7 +234,7 @@ class CompositorTest {
 
         /// The window system lost the window's pixels, so the next present shows
         /// the frame again with nothing changed. On X11 an embedded page moving
-        /// off a region of its window does that (ADR-0491).
+        /// off a region of its window does that.
         @Test
         @DisplayName("presents again after an expose, with nothing damaged and nothing uploaded")
         void exposed() {

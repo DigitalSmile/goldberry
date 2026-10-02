@@ -35,14 +35,14 @@ import dev.goldberry.widget.style.Styled;
 ///     └── code-box    [CodeBox] ×length — a character, or nothing
 /// ```
 ///
-/// **One Tab stop, and one textbox.** §4: "six boxes are a drawing, not six
-/// fields, and announcing them separately would be a lie". So the boxes are
+/// **One Tab stop, and one textbox.** Six boxes are a drawing, not six fields,
+/// and announcing them separately would be a lie. So the boxes are
 /// parts with no focus and no semantics, this node is `Role.TEXT_FIELD`, and its
 /// value is the whole code.
 ///
 /// ## Nothing here is absolutely positioned
 ///
-/// Which is the difference between this and every other field in §4. A
+/// Which is the difference between this and every other form field. A
 /// `text-input` places its caret and its selection by measuring shaped text,
 /// so Yoga is told where they go; a code box is a box in a row, so flexbox
 /// places all of them and this node describes a tree rather than a geometry.
@@ -99,7 +99,7 @@ record CodeField(
 
     // --- the keyboard ---------------------------------------------------------
 
-    /// The four keys §4 gives this widget, and nothing else.
+    /// The four keys this widget answers, and nothing else.
     ///
     /// Unlike `text-input`, **the arrows are not consumed**. A text field owns
     /// them because it has a caret they move; this has one insertion point that
@@ -115,8 +115,8 @@ record CodeField(
         }
         var modifiers = event.modifiers();
         if (modifiers.control() && !modifiers.alt()) {
-            // Paste, and **no copy or cut**. §4 asks for the paste by name; it
-            // asks for no way out, and a `mask`ed code must not have one for
+            // Paste, and **no copy or cut**. A code field takes a paste and
+            // offers no way out, and a `mask`ed code must not have one for
             // `password`'s reason. A code is typed once and read from somewhere
             // else — there is nothing in a form's code field worth taking to the
             // clipboard, and offering it on an unmasked field only would be a
@@ -156,8 +156,8 @@ record CodeField(
 
     /// The boxes, in one group or two.
     ///
-    /// Two when the length is **even**, which is §2's "group gap 16 at the
-    /// midpoint when `length` is even" — see [CodeGroup] for why the split is
+    /// Two when the length is **even**: the design system puts a group gap of 16
+    /// at the midpoint of an even `length` — see [CodeGroup] for why the split is
     /// here rather than in a selector.
     @Override
     public List<Widget> children() {
@@ -193,7 +193,7 @@ record CodeField(
     }
 
     /// No name of its own: `field` supplies the label, which is the whole point
-    /// of §4 having one.
+    /// of wrapping a control in one.
     @Override
     public @Nullable String accessibleName() {
         return null;

@@ -311,7 +311,8 @@ class MarkdownViewTest {
 
             assertEquals(1, buttons.size(), "the whole run is one widget, so it hovers and fires once");
             assertEquals("go", buttons.getFirst().label());
-            assertTrue(buttons.getFirst().attributes().classes().contains("link"), "ADR-0293's variant");
+            assertTrue(
+                    buttons.getFirst().attributes().classes().contains("link"), "a link is the link variant of button");
             assertTrue(buttons.getFirst().attributes().classes().contains("md-link"));
         }
 
@@ -332,7 +333,8 @@ class MarkdownViewTest {
         }
     }
 
-    /// What a break does, which is two different things (ADR-0426).
+    /// What a break does, which is two different things: a soft break reflows and a
+    /// hard break ends the line.
     ///
     /// The assertions are about the **shape** of the paragraph as well as its classes,
     /// because the shape is the fix: a soft break leaves the single wrapping row every
@@ -592,7 +594,7 @@ class MarkdownViewTest {
             marks.forEach(mark -> mark.onToggle().run());
 
             // Nought and one, not nought and two: the ordinal counts **tasks**, which
-            // is what `Markdown.toggleTask` counts in the source (ADR-0300).
+            // is what `Markdown.toggleTask` counts in the source.
             assertEquals(List.of(0, 1), pressed);
         }
 

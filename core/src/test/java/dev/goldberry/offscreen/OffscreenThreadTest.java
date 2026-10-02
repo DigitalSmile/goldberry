@@ -38,13 +38,12 @@ import dev.goldberry.widget.attr.Attributes;
 import dev.goldberry.widget.style.Paints;
 import dev.goldberry.widget.style.Styled;
 
-/// Rendering off the UI thread, and several at once — ADR-0425.
+/// Rendering off the UI thread, and several renders at once.
 ///
-/// The TODO entry this closes said a render "touches no window and no backend, so
-/// a server thread is probably fine — 'probably' is why it is written here rather
-/// than in the javadoc". This suite is what replaced the word: the javadoc on
-/// [Offscreen] now promises concurrent off-thread rendering, and a promise in a doc
-/// comment with no test under it is the same "probably" in a better font.
+/// The javadoc on [Offscreen] promises concurrent off-thread rendering, and this
+/// suite is what stands under the promise: before it, the claim was only that a
+/// render "touches no window and no backend, so a server thread is probably
+/// fine".
 ///
 /// Two claims, and they pull in opposite directions:
 ///

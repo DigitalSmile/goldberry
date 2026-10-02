@@ -3,34 +3,37 @@ package dev.goldberry.stats;
 import dev.goldberry.Window;
 import dev.goldberry.render.PresentTimings;
 
-/// The last [#CAPACITY] frames, and nothing older.
+/// A [Window]'s own record of its frame loop: the last [#CAPACITY] frames and
+/// nothing older, plus the totals a run reports at exit.
 ///
-/// A [Window]'s own record of its frame loop. Two `long`s per frame in two fixed
-/// arrays: this is written on the frame path, so it allocates nothing, and it is
-/// read by a HUD that is itself being drawn inside one of these frames.
+/// The window feeds it on the frame path. [#stages] takes the stage timings
+/// while the painter runs, [#late] the refreshes missed before this frame,
+/// [#record] closes the frame when the painter returns, and [#presented] adds
+/// the present's cost afterwards. Everything [FrameStats] asks is computed on
+/// demand from fixed arrays of `long`s, so recording a frame allocates nothing
+/// and a HUD being drawn inside one of these frames can read it freely.
 ///
-/// ## Why the window is frames and not seconds
-///
-/// A duration window has to be pruned, which means the answer changes when nobody
-/// asked it anything — and a HUD reading it twice in one frame could get two
-/// numbers. A fixed count is a mean over a fixed sample, computed on demand from
-/// data nothing but [#record] touches.
-///
-/// 60 of them: a second at the rate most displays run, so the number a HUD shows
-/// settles within a second of a change and still steadies out the one frame in
+/// The window is a count of frames and not a span of seconds. A duration window
+/// would have to be pruned, so its answer would change when nobody recorded
+/// anything and a HUD reading it twice in one frame could get two numbers. Sixty
+/// frames is a second at the rate most displays run: the number a HUD shows
+/// settles within a second of a change and still smooths out the one frame in
 /// twenty that the compositor makes late.
+///
+/// Confined to the UI thread. An application rarely makes one; it reads the
+/// window's through `Host.frames()`.
+///
+/// Read more: [Measuring](https://goldberry.dev/docs/performance/measuring.html#per-frame-timings-at-trace).
 public final class FrameRing implements FrameStats {
 
     /// An empty ring, holding no frames yet.
     ///
-    /// Public along with the class: a [dev.goldberry.Window]
-    /// owns one and lives in another package now
-    /// (ADR-0172).
-    /// Nothing is lost by an application making its own -- a ring nobody feeds
-    /// reads as zero, and [FixedFrameStats] is the better way to fake one.
+    /// Public because the [Window] that owns one lives in another package. A
+    /// ring nobody feeds reads as zero; [FrameStats#of] is the better way to
+    /// fake one for a test.
     public FrameRing() {}
 
-    /// How many frames are kept. See the class note.
+    /// How many frames are kept: sixty, a second at the rate most displays run.
     public static final int CAPACITY = 60;
 
     /// When each retained frame finished, in `System.nanoTime` units.
@@ -41,16 +44,15 @@ public final class FrameRing implements FrameStats {
 
     /// The four stages of each retained frame, in the same slots.
     ///
-    /// One array per stage rather than one array of records: a ring of 60 frames
-    /// times four `long`s is 1.9 KiB of primitives that never move, where 60
-    /// records would be 60 allocations per second for a diagnostic that must not
-    /// cost anything to leave on (ADR-0146).
+    /// One array per stage rather than one array of records: the arrays are
+    /// primitives that never move, where records would be an allocation per
+    /// frame for a diagnostic that must cost nothing to leave on.
     private final long[] built = new long[CAPACITY];
     private final long[] styled = new long[CAPACITY];
     private final long[] laid = new long[CAPACITY];
     private final long[] rastered = new long[CAPACITY];
 
-    /// The stages of the frame being painted **now**, waiting for [#record].
+    /// The stages of the frame being painted now, waiting for [#record].
     ///
     /// Handed in during the painter and consumed when it returns, because the
     /// thing that can time the stages is inside the painter and the thing that
@@ -70,20 +72,20 @@ public final class FrameRing implements FrameStats {
     }
 
     /// What each retained frame's present cost on the GPU, in the same slots:
-    /// zero for a frame presented through the window surface (ADR-0479).
+    /// zero for a frame presented through the window surface.
     private final long[] uploaded = new long[CAPACITY];
     private final long[] acquired = new long[CAPACITY];
     private final long[] submitted = new long[CAPACITY];
     private final long[] uploadedBytes = new long[CAPACITY];
     private final boolean[] composited = new boolean[CAPACITY];
 
-    /// What the frame **just recorded** cost to present through the GPU.
+    /// What the frame just recorded cost to present through the GPU.
     ///
-    /// After [#record], unlike the stages: a frame is recorded when its painter
-    /// returns, and it is presented after that, so its present is the last thing
-    /// known about it. Banked into the slot [#record] filled. A frame presented
-    /// through the window surface is handed [PresentTimings#NONE], and reads as
-    /// not composited.
+    /// Called after [#record], unlike the stages: a frame is recorded when its
+    /// painter returns and presented after that, so its present is the last
+    /// thing known about it. Stored in the slot [#record] filled. A frame
+    /// presented through the window surface is handed [PresentTimings#NONE], and
+    /// reads as not composited.
     public void presented(PresentTimings timings) {
         if (size == 0) {
             return;
@@ -125,21 +127,21 @@ public final class FrameRing implements FrameStats {
                 submitNanosTotal / 1_000_000.0 / compositedTotal);
     }
 
-    /// Frames that were wanted and never seen, per slot — see [#lateFrames()].
+    /// Frames that were wanted and never seen, per slot; see [#lateFrames()].
     private final long[] late = new long[CAPACITY];
 
     /// What [#record] will bank as this frame's lateness, waiting for it.
     private long pendingLate;
 
-    /// How many refreshes went by with a frame wanted and undelivered **before**
+    /// How many refreshes went by with a frame wanted and undelivered before
     /// the frame now being painted.
     ///
-    /// Handed in by [dev.goldberry.Window] from the two things
-    /// that know: the backend's pacer, which counts the refreshes a frame that
-    /// was asked for did not arrive in time for, and the window itself, which
-    /// counts the frames it painted and the platform then refused ([ADR-0271]).
+    /// Handed in by the [Window] from the two things that know: the backend's
+    /// pacer, which counts the refreshes a frame that was asked for did not
+    /// arrive in time for, and the window itself, which counts the frames it
+    /// painted and the platform then refused.
     ///
-    /// Banked **with the frame that follows the gap**, because that is the frame
+    /// Stored with the frame that follows the gap, because that is the frame
     /// whose interval contains it: a gap has to be attached to something in the
     /// ring, or it ages out on a different schedule from the frames it belongs
     /// between.
@@ -159,17 +161,17 @@ public final class FrameRing implements FrameStats {
 
     /// The run's totals, kept beside the ring rather than in it: what
     /// [#summary] reports once the window has aged the frames out. Three
-    /// `long`s written on the frame path, which is the whole of their cost
-    /// ([ADR-0342]).
+    /// `long`s written on the frame path, which is the whole of their cost.
     private long lateTotal;
 
     private long paintedTotal;
     private long paintedWorst;
 
-    /// What the display does, as the backend last reported it — see
+    /// What the display does, as the backend last reported it; see
     /// [FrameStats#displayHertz].
     private double displayHertz;
 
+    /// Sets the display's refresh rate, as the backend reported it.
     public void displayHertz(double hertz) {
         this.displayHertz = hertz;
     }
@@ -184,7 +186,7 @@ public final class FrameRing implements FrameStats {
     /// Both timestamps are `System.nanoTime` readings taken by [Window#paint]
     /// around the painter, so `paintNanos - startNanos` is the toolkit's own work
     /// and the difference between two consecutive `paintNanos` is the interval
-    /// the loop actually achieved — including everything the platform did in
+    /// the loop actually achieved, including everything the platform did in
     /// between, which is the half a toolkit cannot see and a rate must include.
     ///
     /// @param startNanos when the frame began
@@ -377,8 +379,8 @@ public final class FrameRing implements FrameStats {
     /// The cheapest, the mean and the dearest of one stage's ring.
     ///
     /// One pass over at most sixty `long`s, which is what makes it safe to ask
-    /// inside a `build` that runs every frame — the same promise [#paintMillis]
-    /// already made (ADR-0154).
+    /// inside a `build` that runs every frame, the same promise [#paintMillis]
+    /// makes.
     private Span spanOf(long[] ring) {
         if (size == 0) {
             return Span.NONE;
@@ -407,7 +409,7 @@ public final class FrameRing implements FrameStats {
         return total / 1_000_000.0 / size;
     }
 
-    /// The run so far, from the totals rather than the window — so a run of
+    /// The run so far, from the totals rather than the window, so a run of
     /// three hundred frames reports three hundred, and every refresh it missed,
     /// not the last sixty of either.
     @Override

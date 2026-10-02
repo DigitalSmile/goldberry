@@ -7,7 +7,7 @@ Bundled as:    compiled into libgoldberry (src/md4c.c and src/entity.c)
 Two translation units rather than a library: the superbuild compiles md4c's
 parser and its HTML5 named-entity table straight into the shim's target, and
 neither exports a symbol of its own -- the five `goldberry_md_*` entries on
-the export list are Goldberry's (ADR-0294). The compiled code is present in
+the export list are Goldberry's. The compiled code is present in
 every binary artifact regardless, which is the redistribution this notice is
 about.
 

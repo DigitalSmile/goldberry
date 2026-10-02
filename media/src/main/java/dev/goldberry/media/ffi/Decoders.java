@@ -13,7 +13,7 @@ import dev.goldberry.media.MediaException;
 import dev.goldberry.media.codec.Decoder;
 import dev.goldberry.media.codec.DecoderProvider;
 
-/// Codec resolution (`docs/goldberry-media.md` §3): which decoder plays a track.
+/// Codec resolution: which decoder plays a track.
 ///
 /// The Engine holds no codec whitelist. For each track it asks the
 /// [DecoderProvider]s, highest priority first, and then the built-in FFmpeg
@@ -23,7 +23,7 @@ import dev.goldberry.media.codec.DecoderProvider;
 /// ("provider → next provider → built-in").
 ///
 /// The built-in decoders are two rungs when hardware decode is on and the codec
-/// has a hardware path (phase 5, ADR-0470): FFmpeg on the device, then FFmpeg in
+/// has a hardware path: FFmpeg on the device, then FFmpeg in
 /// software. A mid-stream failure on the device walks one rung down, like a
 /// provider's.
 ///
@@ -53,7 +53,7 @@ public final class Decoders {
     /// Whether anything decodes `stream` of `demuxer`: a provider that says it
     /// supports it, or the built-in decoders. Nothing is opened. The Engine asks
     /// this for every track it is about to play before it plays any of them, so
-    /// that a file with two codecs it cannot play names both (§7, S7).
+    /// that a file with two codecs it cannot play names both.
     public static boolean supports(
             Ffmpeg ffmpeg, Demuxer demuxer, int stream, List<? extends DecoderProvider> providers) {
         var request = demuxer.request(stream);

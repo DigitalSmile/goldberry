@@ -4,7 +4,7 @@ import dev.goldberry.build.toolchain.WindowsToolchain
 
 plugins {
     id 'goldberry.java-conventions'
-    // Published to Maven Central as goldberry-natives (ADR-0334).
+    // Published to Maven Central as goldberry-natives.
     id 'goldberry.publish'
 }
 
@@ -12,7 +12,7 @@ description = 'Goldberry native layer: hand-written FFM bindings and the libgold
 
 // Logging and the start-up timeline, which this module uses and does not own.
 // `api` because module-info says `requires`, so it has to be on the module path
-// of anything compiling against :natives (ADR-0174).
+// of anything compiling against :natives.
 dependencies {
     api project(':common')
 
@@ -23,7 +23,8 @@ dependencies {
 }
 
 // ============================================================================
-// Native build (ADR-0012)
+// Native build
+// https://goldberry.dev/docs/contributing/building.html#the-native-superbuild
 //
 // Every artifact is built on a native runner; there is no cross-compilation.
 // The tasks here build libgoldberry for the HOST only -- they are the local
@@ -32,17 +33,17 @@ dependencies {
 //
 // Consequence worth remembering: a locally built library links against this
 // machine's glibc, so it is NOT the published artifact. Only the container build
-// is shippable. See ADR-0012.
+// is shippable, because its glibc floor is pinned.
 //
 // Nothing here runs as part of `./gradlew build` -- the native build needs CMake,
 // Ninja, a C/C++ toolchain, and network access, and Java-only contributors should
 // not need any of them.
 // ============================================================================
 
-// One row of the §15 distribution matrix. Four rows, not six: Windows on ARM and
-// macOS on Intel are not built (ADR-0041), and `NativePlatform` refuses those two
+// One row of the distribution matrix. Four rows, not six: Windows on ARM and
+// macOS on Intel are not built, and `NativePlatform` refuses those two
 // pairs on the Java side so the two lists cannot drift into disagreement.
-// `webview` is the OPTIONAL second library (ADR-0441). It is built only where
+// `webview` is the OPTIONAL second library. It is built only where
 // WebKit's development headers were present, is linked into nothing, and is
 // opened on demand -- so unlike `library` it may legitimately be absent, and the
 // packaging below includes it when it is there rather than demanding it.
@@ -99,12 +100,12 @@ def installDir = layout.buildDirectory.dir("native/${hostTarget.id}/install")
 // re-deriving the host target. The alternative was duplicating the detection
 // above in a second build file, where it would drift the first time a target is
 // added -- and the two disagreeing means :core silently testing against a
-// library that is not the one :natives just built. See ADR-0031.
+// library that is not the one :natives just built.
 ext.hostNativeLibrary = installDir.map { it.dir('lib').file(hostTarget.library) }
 ext.hostNativeTargetId = hostTarget.id
 
 // Where FetchContent clones the seven upstreams -- roughly 330 MB, and several
-// minutes on a cold cache (ADR-0038).
+// minutes on a cold cache.
 //
 // Deliberately OUTSIDE build/: `./gradlew clean` would otherwise discard every
 // byte of it, and the next build would re-clone from scratch. That is the whole
@@ -127,7 +128,7 @@ def artifactsDir = providers.gradleProperty('goldberry.artifactsDir')
 // --- Locating the tools ------------------------------------------------------
 //
 // Every tool below is invoked by ABSOLUTE path. Never by bare name, and this is
-// not tidiness -- `Exec` cannot be trusted to find one (ADR-0040).
+// not tidiness -- `Exec` cannot be trusted to find one.
 //
 // Gradle passes an explicit environment map to every process it starts, which
 // makes the JDK resolve the executable through `execvpe` against a snapshot of
@@ -175,14 +176,15 @@ def resolveTool = { String name ->
 // Builds a library without the desktop integrations whose headers are missing,
 // instead of stopping (`-Pgoldberry.allowDegradedPlatform=true`).
 //
-// The stop is the default because the alternative is what docs/gaps.md G32 is: a
+// The stop is the default because the alternative has happened: a
 // configure that quietly produced a libgoldberry which could not ask the desktop
 // whether it was set to dark, on any Linux machine, for as long as it was
 // shipped. The escape hatch exists because "cannot install a -dev package right
 // now" is a real situation and a toolkit that cannot be built at all in it is
 // worse -- and because a library built this way is no longer silent about it:
 // `Goldberry.capabilities()` reports what it has and the backend warns at
-// start-up (ADR-0325).
+// start-up.
+// https://goldberry.dev/docs/contributing/building.html#linux
 def allowDegradedPlatform = providers.gradleProperty('goldberry.allowDegradedPlatform')
         .map { Boolean.parseBoolean(it) }
         .getOrElse(false)
@@ -194,8 +196,9 @@ def ninjaExecutable = resolveTool('ninja')
 // its own search, CMake's Ninja generator takes the first `cc` on the PATH --
 // which on a GitHub runner is MinGW's, because `cl` is only on the PATH inside a
 // Developer Command Prompt. That build configured without complaint and wrote a
-// `libgoldberry.dll` nothing here looks for (ADR-0338). `checkToolchain` owns the
+// `libgoldberry.dll` nothing here looks for. `checkToolchain` owns the
 // error when this is null.
+// https://goldberry.dev/docs/contributing/building.html#windows
 def onWindowsHost = hostTarget.id.startsWith('windows')
 def msvcExecutable = onWindowsHost ? resolveTool(WindowsToolchain.COMPILER) : null
 
@@ -281,7 +284,7 @@ def checkToolchain = tasks.register('checkToolchain') {
         // Version floors, not just presence. An upstream that needs a newer tool
         // than the distribution ships is not hypothetical -- libxkbcommon used to
         // force Meson >= 1.4 here, against the 1.3.2 Ubuntu 24.04 ships, and
-        // failed ninety seconds into the build from inside meson (ADR-0055).
+        // failed ninety seconds into the build from inside meson.
         // That dependency is gone; the mechanism stays, because the next one
         // will not announce itself either.
         def versionOf = { String tool ->
@@ -330,7 +333,8 @@ def checkToolchain = tasks.register('checkToolchain') {
         // literal here, and it drifted: XScrnSaver was listed under the module
         // name `xss`, which nothing ships a .pc file for, and marked optional --
         // while SDL's CheckX11 treats it as a hard stop. The check therefore
-        // passed, and the build died two minutes later inside SDL. See ADR-0082.
+        // passed, and the build died two minutes later inside SDL. A test now
+        // holds the table to what CI installs.
         if (onLinux) {
             def absent = LinuxDependencies.ALL.findAll {
                 !succeeds('pkg-config', '--exists', it.module())
@@ -340,8 +344,8 @@ def checkToolchain = tasks.register('checkToolchain') {
             // A build made WITHOUT a desktop integration, on purpose. There is one
             // legitimate reason to want it -- a machine that cannot install the
             // headers -- and the library it produces is not broken, it is lesser:
-            // it reports the capability as absent and says so at start-up
-            // (docs/gaps.md G32, ADR-0325). The same flag reaches CMake below, so
+            // it reports the capability as absent and says so at start-up.
+            // The same flag reaches CMake below, so
             // the two halves of the build cannot disagree about what was asked for.
             def absentRequired = absent.findAll {
                 it.required() && !(allowDegradedPlatform && it.backsACapability())
@@ -383,7 +387,8 @@ def checkToolchain = tasks.register('checkToolchain') {
     }
 }
 
-// --- What a native image has to be told (ADR-0339) ---------------------------
+// --- What a native image has to be told ---------------------------------------
+// https://goldberry.dev/docs/native.html#two-metadata-directories-traced-and-written
 //
 // The foreign-call registrations, generated from the bindings rather than
 // traced from a run. A holder's descriptor is a constant in its class, and the
@@ -425,13 +430,13 @@ tasks.named('jar') {
 // --- Pinned upstream refs ----------------------------------------------------
 //
 // Every ref lives in gradle/libs.versions.toml and nowhere else. CMake reads it
-// directly (ADR-0035), so nothing here passes refs to the superbuild and the CI
+// directly, so nothing here passes refs to the superbuild and the CI
 // workflows do not either -- the manylinux container never needed a JDK to read
 // the catalog, only something that can parse a text file, and CMake can.
 //
 // The copies used to be four, and drifting was survivable only if something
 // noticed. Nothing did, which is how Blend2D stayed on a floating `master`
-// through four ADRs: every copy agreed, and all four were wrong together. This
+// for months: every copy agreed, and all four were wrong together. This
 // check now guards the property that replaced them -- that there is no second
 // copy to drift.
 
@@ -465,7 +470,7 @@ tasks.register('checkPinnedRefs') {
             if (!match) {
                 problems << "the catalog has no `${key} = \"...\"` under [versions]"
             } else if (match[0][1] ==~ /master|main|HEAD|latest|trunk/) {
-                problems << "the catalog pins ${key} to '${match[0][1]}', which floats (ADR-0030)"
+                problems << "the catalog pins ${key} to '${match[0][1]}', which floats; pin a tag or a commit"
             }
         }
 
@@ -498,7 +503,7 @@ tasks.register('checkPinnedRefs') {
                     "Upstream refs must live only in gradle/libs.versions.toml:\n  "
                             + problems.unique().join('\n  ')
                             + "\n\nA second copy is a copy that can drift, and a build that"
-                            + " fetches something other than what was tested. See ADR-0035.")
+                            + " fetches something other than what was tested.")
         }
         logger.lifecycle(
                 "Upstream refs live only in the catalog; checked CMake and ${workflows.size()} workflows.")
@@ -525,7 +530,7 @@ def cmakeConfigure = tasks.register('cmakeConfigure', Exec) {
     // an input in its own right: bumping a pin has to reconfigure, or CMake
     // would keep building the last ref out of its cache. This is what the
     // per-ref input properties used to do -- same guarantee, one input, and it
-    // covers a ref this build file does not know the name of (ADR-0035).
+    // covers a ref this build file does not know the name of.
     inputs.file catalogFile
     // These two change the generated configuration without changing a single
     // input file, so without them a retarget would not re-configure.
@@ -547,7 +552,7 @@ def cmakeConfigure = tasks.register('cmakeConfigure', Exec) {
     // Absolute cmake, and an absolute CMAKE_MAKE_PROGRAM. Handing CMake the Ninja
     // this build resolved keeps the two agreeing: `checkToolchain` would
     // otherwise pass on a Ninja found in a conventional directory that CMake,
-    // searching only the PATH, then failed to find (ADR-0040).
+    // searching only the PATH, then failed to find.
     def configureArguments = [
             '-S', cmakeSourceDir.asFile.absolutePath,
             '-B', cmakeWorkDir.get().asFile.absolutePath,
@@ -557,7 +562,7 @@ def cmakeConfigure = tasks.register('cmakeConfigure', Exec) {
             "-DGOLDBERRY_TARGET_ID=${hostTarget.id}".toString(),
             "-DFETCHCONTENT_BASE_DIR=${depsDir.get().absolutePath}".toString(),
             // No -DGOLDBERRY_*_REF: the superbuild reads gradle/libs.versions.toml
-            // itself, which is the whole of ADR-0035.
+            // itself, so there is no second copy of a ref to drift.
     ]
     if (allowDegradedPlatform) {
         // The other half of the property above. Without this the toolchain check
@@ -580,7 +585,7 @@ def cmakeConfigure = tasks.register('cmakeConfigure', Exec) {
     // The first configure clones seven repositories and prints nothing useful
     // while it does. Say so before the silence rather than after it -- being
     // told "this takes minutes" is the difference between waiting and killing
-    // the build (ADR-0038).
+    // the build.
     doFirst {
         def cache = depsDir.get()
         if (!new File(cache, 'harfbuzz-src').isDirectory()) {
@@ -619,7 +624,8 @@ def cmakeBuild = tasks.register('cmakeBuild', Exec) {
             '--target', 'install'
 }
 
-// --- Packaging (§15 classifier jars) ----------------------------------------
+// --- Packaging (the classifier jars) ----------------------------------------
+// https://goldberry.dev/docs/contributing/releasing.html#where-things-go
 
 nativeTargets.each { target ->
     tasks.register("nativeJar${taskSuffix(target.id)}", Jar) {
@@ -636,7 +642,7 @@ nativeTargets.each { target ->
             // Both libraries, into one directory: WebviewLibrary.resourcePath()
             // resolves against the same classifier jar NativeLibrary does,
             // because one artifact per platform carries whatever that build
-            // produced (ADR-0441).
+            // produced.
             include target.library
             include target.webview
             into "dev/goldberry/natives/${target.id}"
@@ -656,7 +662,7 @@ nativeTargets.each { target ->
             // the two libraries: a build made without WebKit's headers produces
             // one and not the other, and that is a supported build rather than a
             // broken one. Said out loud so that "why has web-view stopped
-            // working" has an answer in the build log (ADR-0441).
+            // working" has an answer in the build log.
             if (!new File(sourceDir.get(), target.webview).isFile()) {
                 logger.lifecycle(
                         "no ${target.webview} for ${target.id}: this jar ships without web view support, " +
@@ -680,7 +686,8 @@ tasks.register('nativeJars') {
 //
 // All four in one upload, never one per runner. A snapshot's classifiers are
 // listed in the `maven-metadata.xml` its upload writes, so four uploads would
-// leave the metadata naming whichever platform finished last (ADR-0334).
+// leave the metadata naming whichever platform finished last.
+// https://goldberry.dev/docs/contributing/releasing.html#snapshots
 if (providers.gradleProperty('goldberry.artifactsDir').isPresent()) {
     publishing.publications.withType(MavenPublication).configureEach { publication ->
         nativeTargets.each { target ->
@@ -711,7 +718,7 @@ tasks.register('stageHostArtifact', Copy) {
 //
 // This is how CI verifies the *published* artifact: the Linux legs build inside
 // the manylinux container, and a library built anywhere else is a different
-// binary (ADR-0012, ADR-0016). Accepted as either -D or -P, because -D is what
+// binary. Accepted as either -D or -P, because -D is what
 // NativeLibrary documents for a plain JVM run and -P is what reaches for the
 // hand first in Gradle.
 def externalLibrary = providers.systemProperty('goldberry.native.library')
@@ -719,7 +726,8 @@ def externalLibrary = providers.systemProperty('goldberry.native.library')
 
 // Turns the "no library, skip quietly" default into a hard failure. CI sets it,
 // because a verification job that skips is a green tick over an unverified
-// artifact -- the one outcome worse than a red one (ADR-0016).
+// artifact -- the one outcome worse than a red one.
+// https://goldberry.dev/docs/contributing/building.html#a-library-built-somewhere-else
 def nativeRequired = providers.systemProperty('goldberry.native.required')
         .orElse(providers.gradleProperty('goldberry.native.required'))
         .map { Boolean.parseBoolean(it) }
@@ -732,7 +740,7 @@ def nativeRequired = providers.systemProperty('goldberry.native.required')
 // the classpath -- the test classes need package-private access to the code under
 // test, so they are not loaded as the named module. Consumers of the published
 // artifact use --enable-native-access=dev.goldberry.natives,
-// which is why the module descriptor exists (ADR-0007).
+// which is why the module descriptor exists.
 // The benchmarks are downcalls too, so they need the library and the JEP 472
 // permission exactly as the tests do. Without this `:natives:benchmark` reports
 // SKIPPED -- which reads as "nothing to measure" rather than as "no library".
@@ -757,8 +765,8 @@ tasks.named('test') {
                     installDir.get().dir('lib').file(hostTarget.library).asFile.absolutePath)
     systemProperty 'goldberry.native.required', nativeRequired
 
-    // A GPU device, for the SDL_GPU tests (docs/gpu-plan.md, phase 1): required
-    // on the GPU lane, as the library is on the verify jobs (ADR-0016), and made
+    // A GPU device, for the SDL_GPU tests: required
+    // on the GPU lane, as the library is on the verify jobs, and made
     // under a named video driver where the default has no GPU -- `offscreen`, for
     // lavapipe on a runner with no display.
     ['goldberry.gpu.required', 'goldberry.gpu.videoDriver'].each { name ->
@@ -771,7 +779,7 @@ tasks.named('test') {
     // The library is an INPUT, not merely something built first. `dependsOn
     // cmakeBuild` orders the two and nothing more, so a rebuilt libgoldberry
     // left these tests UP-TO-DATE -- which is the worst possible outcome for the
-    // one check the hand-written bindings rest on (ADR-0010). Bumping an
+    // one check the hand-written bindings rest on. Bumping an
     // upstream would have reported a green layout verification that had not run
     // against the library it was verifying.
     //
@@ -787,15 +795,16 @@ tasks.named('test') {
 // --- The GPU tests, on the first thread ---------------------------------------
 //
 // A GPU device needs SDL's video subsystem, which on macOS is Cocoa, which
-// refuses every thread but the process's first (ADR-0039). A `Test` task runs
+// refuses every thread but the process's first. A `Test` task runs
 // tests on a worker thread however its JVM is started, so the tests tagged `gpu`
 // are left out of `test` and run here instead: a JVM started with
 // -XstartOnFirstThread on macOS, in which GpuTestLauncher asks JUnit to run them
 // on the calling thread. Everywhere else nothing needs the first thread, and the
-// same task runs them the same way (docs/gpu-plan.md, phase 1).
+// same task runs them the same way.
 //
 // Without a device they skip, as the library's tests do without the library;
-// -Pgoldberry.gpu.required=true makes that a failure on the GPU lane (ADR-0016).
+// -Pgoldberry.gpu.required=true makes that a failure on the GPU lane.
+// https://goldberry.dev/docs/contributing/testing.html#the-gpu-tests
 tasks.named('test') {
     useJUnitPlatform { excludeTags 'gpu' }
 }
@@ -836,13 +845,13 @@ tasks.named('check') {
     dependsOn gpuTest
 }
 
-// Phase 0's present measurements (docs/gpu-plan.md): a real window on the
+// The present measurements: a real window on the
 // screen, the window-surface path, the switch to a swapchain and back, and a
 // composited frame stage by stage. Run on purpose and read by a person; not part
 // of `check`, because the numbers are the machine's and the display's.
 tasks.register('gpuPresentProbe', JavaExec) {
     group = 'verification'
-    description = 'Measures window-surface and composited present on a real window (docs/gpu-plan.md, phase 0).'
+    description = 'Measures window-surface and composited present on a real window.'
     classpath = sourceSets.test.runtimeClasspath
     mainClass = 'dev.goldberry.natives.sdl.gpu.GpuPresentProbe'
     jvmArgs '--enable-native-access=ALL-UNNAMED'
@@ -875,13 +884,14 @@ if (skipNative) {
 } else {
     tasks.named('assemble') { dependsOn cmakeBuild }
     // So the layout verification actually runs locally rather than skipping --
-    // it is the check the hand-written bindings rest on (ADR-0010).
+    // it is the check the hand-written bindings rest on.
+    // https://goldberry.dev/docs/contributing/repository.html#the-export-list-and-the-layout-probe
     //
     // Unless a library was handed to us. Being given one to verify is the whole
     // reason CI's verify jobs exist, and those runners have no C/C++ toolchain:
     // building here would fail in checkToolchain before a single test ran, and
     // succeeding would be worse still -- it would verify a library built on the
-    // wrong machine while the downloaded artifact sat unread (ADR-0016).
+    // wrong machine while the downloaded artifact sat unread.
     if (externalLibrary.present) {
         logger.info("Goldberry: verifying ${externalLibrary.get()}; not building a native library")
     } else {
@@ -891,7 +901,8 @@ if (skipNative) {
 }
 
 // ============================================================================
-// No Error Prone here (docs/testing.md §2)
+// No Error Prone here
+// https://goldberry.dev/docs/contributing/testing.html#static-analysis
 //
 // Two reasons, and the second is the one that settles it:
 //
@@ -905,7 +916,7 @@ if (skipNative) {
 //
 // The module is not unchecked: its contract is the layout probe agreeing across
 // four platforms, which is a stronger statement than any of these checks make --
-// the same argument §3 uses for keeping :natives out of the coverage gates.
+// the same argument that keeps :natives out of the coverage gates.
 // ============================================================================
 tasks.withType(JavaCompile).configureEach {
     options.errorprone.enabled = false

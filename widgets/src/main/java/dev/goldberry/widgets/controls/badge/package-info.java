@@ -1,11 +1,14 @@
-/// `docs/core-widgets.md` §3's `badge` — a count or a status, typically composed
-/// inside a `stack`.
+/// The `badge` — a count or a status in a small pill, typically composed inside
+/// a `stack`.
 ///
-/// [dev.goldberry.widgets.controls.badge.Badge] is the whole
-/// package, and the one entry in §3 that is not a control: it is not focusable, holds
-/// no value and has no parts. Its variants are classes, such as `badge.danger`.
+/// [dev.goldberry.widgets.controls.badge.Badge] is the whole package, and the
+/// one widget among the controls that is not a control: it is not focusable,
+/// holds no value and has no parts. Its variants are classes, such as
+/// `badge.danger`.
 ///
-/// Marked for NullAway (`docs/testing.md` §2, ADR-0497).
+/// Every reference is non-null unless it says `@Nullable`.
+///
+/// Read more: [Buttons, badges and chips](https://goldberry.dev/docs/components/buttons.html#badge).
 @NullMarked
 package dev.goldberry.widgets.controls.badge;
 

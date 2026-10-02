@@ -9,22 +9,28 @@ import java.util.List;
 import dev.goldberry.css.Stylesheet;
 import dev.goldberry.css.cascade.CascadeLayer;
 
-/// Which scrollbars a window draws — `docs/design-system.md` §2.4's two, and one
-/// of §4's accessibility switches.
+/// Which scrollbars a window draws: an overlay thumb that fades, or a gutter
+/// that is always there. One of the accessibility switches.
+///
+/// ```java
+/// var sheets = Controls.stylesheets(theme, density, Scrollbars.ALWAYS);
+/// ```
 ///
 /// An application setting in the same shape as [Density]: a token stylesheet
 /// added after the theme, in the [CascadeLayer#THEME] slot, which the controls
 /// already read. There is no settings mechanism in the toolkit, so an application
 /// passes this to [Controls#stylesheets(dev.goldberry.css.Theme, Density, Scrollbars)]
-/// from its own preferences, exactly as it passes a density (ADR-0364).
+/// from its own preferences, exactly as it passes a density.
+///
+/// Read more: [The design system](https://goldberry.dev/docs/guide/design-system.html#scrollbars).
 public enum Scrollbars {
 
-    /// §2.4's default: a thin thumb over the content that widens on hover and
+    /// The default: a thin thumb over the content that widens on hover and
     /// fades when idle. The toolkit's own tokens, so applying it applies nothing.
     OVERLAY,
 
-    /// §2.4's "always show scroll bars": a 12px gutter reserved beside the
-    /// content, with a track that is always there.
+    /// "Always show scroll bars": a 12px gutter reserved beside the content,
+    /// with a track that is always there.
     ALWAYS;
 
     /// The resource that puts [#ALWAYS] in force.

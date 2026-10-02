@@ -7,7 +7,7 @@ import java.util.regex.Pattern;
 /**
  * A Goldberry version: the year, which release of that year, and an optional
  * patch -- {@code 2026.1}, {@code 2026.2}, {@code 2026.2.1}. The same shape
- * JetBrains ships IntelliJ IDEA under (ADR-0333).
+ * JetBrains ships IntelliJ IDEA under.
  *
  * <h2>One spelling per version</h2>
  *
@@ -60,7 +60,7 @@ public record CalendarVersion(int year, int release, int patch) implements Compa
         if (!matcher.matches()) {
             throw new IllegalArgumentException(
                     "'" + text + "' is not a Goldberry version: expected YEAR.RELEASE or "
-                            + "YEAR.RELEASE.PATCH, such as 2026.1 or 2026.1.1 (ADR-0333)");
+                            + "YEAR.RELEASE.PATCH, such as 2026.1 or 2026.1.1");
         }
         var patch = matcher.group(3);
         return new CalendarVersion(

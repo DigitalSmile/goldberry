@@ -25,9 +25,11 @@ import java.util.zip.ZipFile;
 ///
 /// The licence directory is optional and, when given, the verbatim upstream
 /// texts are written into it. That is a *vendoring* step, run by hand and
-/// committed, not part of the ordinary build: ADR-0015 wants those texts in the
-/// repository so it is self-describing, and a generated file inside a tracked
-/// directory that nobody committed is worse than no file at all.
+/// committed, not part of the ordinary build: the repository keeps the licence
+/// texts of everything it bundles so it is self-describing, and a generated file
+/// inside a tracked directory that nobody committed is worse than no file at all.
+///
+/// Read more: [Building from source](https://goldberry.dev/docs/contributing/building.html).
 public final class PrepareAssets {
 
     /// Where the fonts and the icon table land inside the jar.
@@ -75,14 +77,13 @@ public final class PrepareAssets {
     /// classes is. `:core` and `:emoji` both writing `…goldberry.assets.fonts`
     /// therefore produced two modules containing one package, which is a
     /// `LayerInstantiationException` at start-up and is invisible on a class path
-    /// — so every test passed and the application would not open ([ADR-0387]).
+    /// — so every test passed and the application would not open.
     ///
     /// So each module names a root inside its **own** package, and `--root=` is
     /// how a build script says which.
     /// Package-private rather than private, so the test in this package can ask
     /// it directly: `main` reads a command line and then downloads 90 MB, which
-    /// is not a thing a test can drive (the 2026-09-18 review, §6 — `:assets` had
-    /// no test naming either of these).
+    /// is not a thing a test can drive.
     static String root(String[] args) {
         for (var argument : args) {
             if (argument.startsWith("--root=")) {
@@ -96,8 +97,8 @@ public final class PrepareAssets {
     ///
     /// Two modules fetch assets now rather than one: `:core` takes the faces and
     /// the icons, and `:emoji` takes the emoji face alone, because a 5 MB font
-    /// that most applications never draw is an artifact an application opts into
-    /// ([ADR-0384], [ADR-0456]). The selection is by name so that a build script says which
+    /// that most applications never draw is an artifact an application opts into.
+    /// The selection is by name so that a build script says which
     /// assets it means rather than an index into a list.
     /// Package-private for [#root(String[])]'s reason.
     static Set<String> selection(String[] args) {

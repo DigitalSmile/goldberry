@@ -3,7 +3,11 @@ package dev.goldberry.render;
 import dev.goldberry.render.model.DisplayScale;
 import dev.goldberry.render.model.PixelFormat;
 
-/// The shape the pointer takes over a widget (§7.3).
+/// The shape the pointer takes over a widget.
+///
+/// ```css
+/// .link { cursor: pointer }
+/// ```
 ///
 /// The names are **CSS's**, not the platform's: `not-allowed` rather than
 /// `SDL_SYSTEM_CURSOR_NOT_ALLOWED`, `ew-resize` rather than `SIZEWE`. That is what
@@ -15,6 +19,8 @@ import dev.goldberry.render.model.PixelFormat;
 /// because it is a thing the backend has to map onto something native — and
 /// because both the render tree and the input router name it, and neither should
 /// have to depend on the other to do so.
+///
+/// Read more: [Input and focus](https://goldberry.dev/docs/guide/input.html#the-cursor).
 public enum Cursor {
 
     /// The ordinary arrow. What a window shows unless something says otherwise.
@@ -61,7 +67,7 @@ public enum Cursor {
     /// **No platform system cursor matches** — SDL has none, and neither X11's
     /// cursor font nor Win32's `IDC_*` set has an open hand as a standard shape.
     /// It falls back to [#MOVE], which says the same thing less precisely, until
-    /// custom image cursors ship (§7.3).
+    /// custom image cursors ship.
     GRAB,
 
     /// A closed hand: this is being dragged. Falls back to [#MOVE] for the

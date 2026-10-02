@@ -11,6 +11,8 @@ import dev.goldberry.natives.sdl.gpu.enums.SdlGpuTextureFormat;
 /// SDL owns it. It is valid only in the command buffer that acquired it, and only
 /// until that buffer is submitted or cancelled; using it anywhere else fails
 /// here rather than in the driver.
+///
+/// Read more: [The native boundary](https://goldberry.dev/docs/overview/architecture.html#the-native-boundary).
 public final class SdlGpuSwapchainTexture implements SdlGpuTarget {
 
     private final SdlGpuCommandBuffer owner;

@@ -6,9 +6,11 @@
 /// here, rather than leave each application to get the bookkeeping slightly
 /// wrong, and it keeps the position because a drop means "put this *here*". Its
 /// own package rather than types in `input.event`, because a drop is a gesture
-/// assembled from many platform events (ADR-0330, ADR-0408).
+/// assembled from many platform events. Exported to applications.
 ///
-/// Marked for NullAway (`docs/testing.md` §2, ADR-0497).
+/// `@NullMarked`, which puts this package under NullAway.
+///
+/// Read more: [Input and focus](https://goldberry.dev/docs/guide/input.html#dropped-files-and-text).
 @NullMarked
 package dev.goldberry.input.drop;
 

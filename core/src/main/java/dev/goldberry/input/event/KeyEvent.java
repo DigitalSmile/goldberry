@@ -12,10 +12,23 @@ import dev.goldberry.widget.Element;
 
 /// A key going down or coming up, as a widget sees it.
 ///
-/// Not text. §7.1 keeps the two apart because one character can take several
+/// ```java
+/// @Override public void onKey(KeyEvent event) {
+///     if (event.kind() == KeyEvent.Kind.PRESSED && event.is(Key.ESCAPE)) {
+///         close();
+///         event.consume();
+///     }
+/// }
+/// ```
+///
+/// Not text. The two are kept apart because one character can take several
 /// keys — a compose sequence, a dead key, an IME conversion — so anything that
 /// wants what the user *typed* wants [TextEvent], and anything that wants what
-/// they *pressed* wants this.
+/// they *pressed* wants this. It travels from the window root down to the
+/// focused element and back up; [#consume()] stops it, and an unconsumed press
+/// then reaches the window's accelerators and Tab traversal.
+///
+/// Read more: [Input and focus](https://goldberry.dev/docs/guide/input.html#keys-and-text-are-different-events).
 public final class KeyEvent {
 
     public enum Kind {
@@ -68,7 +81,7 @@ public final class KeyEvent {
     /// story — `Space` on a button needs no geometry. A scroll view is where it
     /// stops being true: `PageDown` moves by a viewport and stops at an edge, so
     /// it needs exactly the two rectangles the wheel does while pointing at
-    /// nothing ([ADR-0116]).
+    /// nothing.
     public Extent bounds() {
         return bounds;
     }

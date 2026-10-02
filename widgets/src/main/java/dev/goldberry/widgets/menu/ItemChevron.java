@@ -9,17 +9,16 @@ import dev.goldberry.widget.Widget;
 import dev.goldberry.widget.style.Paints;
 import dev.goldberry.widget.style.Styled;
 
-/// The `>` on a menu row that leads to a submenu — a **part**, so it is
-/// CSS-selectable and not constructible
-/// (ADR-0065).
+/// The `>` on a menu row that leads to a submenu: a part, so a stylesheet can
+/// select it as `item-chevron` and a document cannot write it.
 ///
-/// It is the only thing that distinguishes a row which opens something from a row
-/// which does something, and a menu without it asks the reader to hover every row
-/// to find out (ADR-0113).
+/// It is the only thing that distinguishes a row which opens something from a
+/// row which does something; a menu without it asks the reader to hover every
+/// row to find out.
 ///
-/// A painter mark rather than Lucide's `chevron-right`, for [ItemLead]'s reason
-/// and one more: an icon owns native memory that must be closed exactly once, and
-/// a menu is built and thrown away every time it opens.
+/// A painter mark rather than an icon, because an icon owns native memory that
+/// must be closed exactly once, and a menu is built and thrown away every time
+/// it opens.
 record ItemChevron() implements Widget.Leaf, Styled, Paints {
 
     @Override

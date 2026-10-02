@@ -25,7 +25,7 @@ import dev.goldberry.widgets.core.canvas.Canvas;
 /// **Why a test for a demo.** The sticky took arrow keys, moved its caret,
 /// extended its selection and inserted newlines — and typing a letter did
 /// nothing, because the platform produces no committed text until a widget says
-/// it is typed into and this one had not (ADR-0285). Every part of that was
+/// it is typed into and this one had not. Every part of that was
 /// working except one `return true`, and no test could tell: the golden image is
 /// of an *unfocused* sticky, and the editor's own tests drive it directly.
 ///

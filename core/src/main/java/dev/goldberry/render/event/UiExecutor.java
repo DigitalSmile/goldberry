@@ -14,9 +14,13 @@ import dev.goldberry.render.BackendException;
 
 /// The way onto the UI thread from anywhere else.
 ///
+/// ```java
+/// Goldberry.ui().execute(() -> host.title(result));   // the loop's UiExecutor
+/// ```
+///
 /// Goldberry's UI thread is single and non-negotiable — AppKit requires window
 /// calls on the process's first thread, so the SPI requires them on one thread
-/// everywhere (ADR-0019). That leaves one question: how does work finishing on a
+/// everywhere. That leaves one question: how does work finishing on a
 /// background thread get its result onto the UI thread safely?
 ///
 /// This is the answer, and the only one. [#execute] queues a task from any thread
@@ -28,6 +32,8 @@ import dev.goldberry.render.BackendException;
 /// dropping UI updates, which is worse. A producer that outruns the UI thread is
 /// a bug in the producer, and one that shows up as memory growth rather than as
 /// a mysterious freeze.
+///
+/// Read more: [Windows, popups and the host](https://goldberry.dev/docs/guide/windows.html#threads).
 public final class UiExecutor implements Executor {
 
     private static final Logger LOG = Logs.of(UiExecutor.class);

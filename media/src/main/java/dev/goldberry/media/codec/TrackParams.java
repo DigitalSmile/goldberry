@@ -24,6 +24,8 @@ import java.util.OptionalLong;
 ///
 /// A value FFmpeg reports as unknown is empty here rather than FFmpeg's sentinel:
 /// no `-99` for a profile, and no zero for a bit rate.
+///
+/// Read more: [Bringing a codec](https://goldberry.dev/docs/components/media.html#bringing-a-codec).
 public sealed interface TrackParams {
 
     /// The kind of stream these parameters describe.

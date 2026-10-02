@@ -46,9 +46,9 @@ final class QrCache {
     /// **Which is the point, and not a smell.** What this class is for is *work
     /// that did not happen*, and a count is the only shape that has — identity
     /// cannot answer it, because [#matrix] hands back the winner of a race and so
-    /// returns the same instance whether or not it encoded. `docs/testing.md` §4
-    /// asks for exactly this rather than a timing, and `BlockMemo.kept()` in
-    /// `:html` is the same counter kept for the same reason.
+    /// returns the same instance whether or not it encoded. A cost is guarded by
+    /// a count and never by a clock, and `BlockMemo.kept()` in `:html` is the
+    /// same counter kept for the same reason.
     private static int encodings;
 
     private QrCache() {}

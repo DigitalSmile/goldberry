@@ -18,8 +18,8 @@ import org.slf4j.LoggerFactory;
 ///     libayatana-appindicator-glib in newly written code.
 /// ```
 ///
-/// That is `g_log_default_handler` writing to stderr from inside the tray
-/// (`docs/core-widgets.md` §9's `tray-icon`), and from an application's point of
+/// That is `g_log_default_handler` writing to stderr from inside the `tray-icon`
+/// widget, and from an application's point of
 /// view it is indistinguishable from Goldberry shouting at it. It cannot be
 /// filtered, it cannot be given a level, it does not reach the file the rest of
 /// the logs are in, and it appears in the console of an application that
@@ -56,6 +56,9 @@ import org.slf4j.LoggerFactory;
 /// [dev.goldberry.log.Logs]
 /// beside it. Applications configure the logger names above; nothing calls this
 /// but the bridges in `:natives`.
+///
+/// Read more:
+/// [The platform's own libraries](https://goldberry.dev/docs/guide/logging.html#the-platforms-own-libraries).
 public final class NativeLogBridge {
 
     /// The root every native logger hangs off.
@@ -122,7 +125,7 @@ public final class NativeLogBridge {
     /// The half that takes the logger, so a test can watch where a message went
     /// without an SLF4J provider on the class path.
     ///
-    /// Goldberry binds no logging implementation, tests included (ADR-0023), so
+    /// Goldberry binds no logging implementation, tests included, so
     /// `LoggerFactory.getLogger` in a test hands back a NOP logger that records
     /// nothing. Splitting the routing from the lookup is what makes both
     /// halves checkable: [#loggerName] says which logger, and this says what

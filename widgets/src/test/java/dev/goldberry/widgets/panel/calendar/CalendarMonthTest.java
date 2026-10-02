@@ -19,7 +19,7 @@ import org.junit.jupiter.api.Test;
 /// Every assertion here is against a locale rather than against a table: the
 /// week's first day, the weekday names and the month name all come from
 /// `java.time`, and a test that hard-coded any of them would be the calendar data
-/// §10 rules out, written in a test file.
+/// the toolkit refuses to ship, written in a test file.
 class CalendarMonthTest {
 
     @Test

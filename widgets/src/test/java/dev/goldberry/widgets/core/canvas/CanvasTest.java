@@ -29,13 +29,15 @@ import dev.goldberry.widgets.Widgets;
 import dev.goldberry.widgets.controls.TestFont;
 import dev.goldberry.widgets.core.Column;
 
-/// §1's `canvas`, as a widget.
+/// The `canvas` primitive, as a widget.
 ///
 /// The painting contract itself is pinned in `:core` by `CanvasPaintTest` —
 /// origin, clip, and the `save`/`restore` that lets an application's code touch
 /// the frame at all. What is checked here is the half that is a *widget*: that it
 /// is a styled box like any other, that markup can write one, and that a painter
 /// and a stylesheet compose rather than fight.
+///
+/// Read more: [Canvas](https://goldberry.dev/docs/components/drawing.html#canvas).
 class CanvasTest {
 
     @BeforeEach
@@ -97,8 +99,8 @@ class CanvasTest {
     @Test
     @DisplayName("a canvas under a theme, painted")
     void golden() {
-        // Two bars in the first two series slots of the derived palette
-        // (ADR-0194), on a themed surface with a border and a radius from CSS.
+        // Two bars in the first two series slots of the derived palette, on a
+        // themed surface with a border and a radius from CSS.
         // The picture says the two halves compose: the frame, the edge and the
         // radius are the stylesheet's, and everything inside is the painter's.
         var sheet = Stylesheet.parse(CascadeLayer.APPLICATION, """

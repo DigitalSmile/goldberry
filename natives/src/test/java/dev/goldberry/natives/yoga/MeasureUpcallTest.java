@@ -21,8 +21,9 @@ import dev.goldberry.natives.yoga.measure.MeasuredSize;
 /// The proof that a `YGSize` returned **by value** from a Java upcall arrives
 /// intact in C.
 ///
-/// This is the check ADR-0017 exists for, and it cannot be replaced by anything
-/// on the Java side: a wrong return convention produces a stub the JVM builds
+/// This is the check the measure probe exists for, and it cannot be replaced by
+/// anything on the Java side: a wrong return convention produces a stub the JVM
+/// builds
 /// happily and C reads as garbage. It has to run on every target, because the
 /// convention differs on each — packed in XMM0 on SysV x86-64, `s0`/`s1` on
 /// AArch64, folded into RAX on Win64.

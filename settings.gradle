@@ -15,58 +15,58 @@ dependencyResolutionManagement {
 
 rootProject.name = 'goldberry'
 
-// Module map -- see docs/ARCHITECTURE.md §15.
+// Module map
+// https://goldberry.dev/docs/contributing/repository.html#the-modules
 //   :common   what both halves need and neither owns -- logging, the start-up
 //             timeline. The lowest module: it requires nothing of Goldberry's,
-//             which is what lets :natives and :core both use it (ADR-0174)
+//             which is what lets :natives and :core both use it
 //   :natives  FFM bindings + the CMake superbuild that produces libgoldberry
 //   :core     widgets, style, layout, text, paint, backend SPI
-//   :widgets  the widget catalog, charts included (ADR-0014)
+//   :widgets  the widget catalog, charts included
 //   :gpu      canvas3d and the GPU composition path
 //
 //   :bom      goldberry-bom, a java-platform pinning every published artifact
 //   :toolkit  `goldberry`, the umbrella: no code, the required modules as
 //             dependencies and the optional ones (:html, :gpu) listed as
-//             <optional> (ADR-0336)
+//             <optional>
 //
 // :assets is a build-time tool, not a published module: it fetches the pinned
 // fonts and icon set and prepares them into resources :core packages. It is
 // ordinary Java rather than build-script code because compiling 1544 SVGs into
-// path data is real logic that deserves real tests (ADR-0033).
+// path data is real logic that deserves real tests.
 //
 // :emoji is the Noto Color Emoji face and nothing else. It is its own artifact
 // because it is 5 MB of paint graphs that an application which never draws an
 // emoji should not carry; it became one when the face was OpenMoji, whose CC
 // BY-SA asked for credit on screen. The face reaches :core through an
-// `EmojiFont` service (ADR-0384, ADR-0456).
+// `EmojiFont` service.
 //
-// :html is the first of `docs/content-widgets.md`'s optional content modules
-// (ADR-0190). Markdown is what it ships today -- md4c, through the four
+// :html is the first of the optional content modules, each of which brings its
+// own natives. Markdown is what it ships today -- md4c, through the four
 // `goldberry_md_*` symbols on the export list -- and `html-view` is not built:
 // litehtml needs a paint surface the export list does not have yet, and
 // `book/src/TODO.md` says which symbols. An application opts in; nothing in
-// :core or :widgets depends on it (ADR-0294, ADR-0295).
+// :core or :widgets depends on it.
 //
-// :media is `goldberry-media` (docs/goldberry-media.md, docs/media-plan.md):
-// audio and video over FFmpeg driven from Java (ADR-0460). It is the one module
+// :media is `goldberry-media`: audio and video over FFmpeg driven from Java,
+// https://goldberry.dev/docs/components/media.html#the-module. It is the one module
 // besides :natives that binds a native library itself, and its libraries are
 // FFmpeg's own shared objects rather than libgoldberry, built by a superbuild of
-// its own in media/src/main/cmake (ADR-0461). The operating system's own
-// decoders -- VideoToolbox and AudioToolbox, GStreamer, Media Foundation -- are
-// part of it too, behind the same Decoder SPI; they were :media-platform until
-// ADR-0493.
+// its own in media/src/main/cmake. The operating system's own decoders --
+// VideoToolbox and AudioToolbox, GStreamer, Media Foundation -- are part of it
+// too, behind the same Decoder SPI.
 //
 // :example is the showcase. It is a subproject rather than a separate build so
-// that Gradle and every IDE see it -- see ADR-0023, which supersedes ADR-0021.
-// It is not published either.
+// that Gradle and every IDE see it. It is not published either.
 // :weaver is a build-time tool too, and the same kind of thing :assets is: it
 // runs over compiled classes and never ships. Two halves: it collects a module's
 // @Markup widgets into a WidgetCatalog and declares it, which every build needs
-// because nothing finds annotated classes at run time (ADR-0131); and it rewires
+// because nothing finds annotated classes at run time; and it rewires
 // a model's @Bind fields into bindings and writes the @Action call sites, which
 // only a GraalVM native image needs -- an ordinary jar binds the same annotations
 // reflectively, so weaving a jar buys a direct field write and costs every
-// consumer a build step (ADR-0125, ADR-0126, ADR-0127, ADR-0155).
+// consumer a build step.
+// https://goldberry.dev/docs/weaving.html#the-two-halves
 include ':common',
         ':natives',
         ':core',

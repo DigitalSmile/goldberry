@@ -37,19 +37,22 @@ import dev.goldberry.widgets.text.Text;
 
 /// The parity invariant, enforced.
 ///
-/// §11: "Every widget: Java record + KDL node + CSS-styleable, per the parity
-/// invariant. […] A widget that can't is a build failure."
+/// Every widget exists three ways — as a Java record, as a KDL node, and as a
+/// type a stylesheet can select — and a widget that cannot is a build failure.
 ///
 /// This is that build failure. Adding a primitive without registering it for KDL,
 /// or giving it a CSS type that nothing can select, fails here rather than being
 /// discovered by whoever tries to style it.
+///
+/// Read more:
+/// [Three ways to say one widget](https://goldberry.dev/docs/components/index.html#three-ways-to-say-one-widget).
 class WidgetParityTest {
 
     /// Every registered widget that describes a node of its own.
     ///
     /// **The whole catalog, which it was not.** This was
     /// `Primitives.builtInTypes()` — ten names, and eleven more in `ChainingTest`
-    /// — so §11's "every widget" was checked over a quarter of the widgets and
+    /// — so "every widget" was checked over a quarter of the widgets and
     /// the other three quarters were on trust. The names come from the
     /// inflater now ([CatalogMarkup]), less the handful below that describe no
     /// node at all.
@@ -126,8 +129,8 @@ class WidgetParityTest {
     @MethodSource("builtIns")
     @DisplayName("every built-in is constructible from KDL")
     void constructibleFromKdl(String type) {
-        // A dozen widgets refuse to exist without an argument -- §13's rule that
-        // a control nobody can read out is a failure rather than a blank -- and
+        // A dozen widgets refuse to exist without an argument -- a control
+        // nobody can read out is a failure rather than a blank -- and
         // `CatalogMarkup` is where what each one is handed lives.
         var markup = CatalogMarkup.markup(type, "");
         var widget = Widgets.inflater().inflate(KdlParser.parse(markup).getFirst());
@@ -145,8 +148,8 @@ class WidgetParityTest {
     /// composition node that styles nothing and builds the node carrying its CSS
     /// type. That is deliberate and not an exception to parity: a stateful widget
     /// that was also styled would put two nodes of the same type in the cascade,
-    /// one inside the other, and every rule would apply to both
-    /// ([ADR-0109], [ADR-0116]). So parity is checked against what the widget
+    /// one inside the other, and every rule would apply to both. So parity is
+    /// checked against what the widget
     /// *describes* rather than against the widget, which is what a stylesheet
     /// sees either way.
     ///
@@ -210,7 +213,7 @@ class WidgetParityTest {
         var element = styledElement(root, type);
         assertNotNull(element, type + " describes nothing a stylesheet can select");
 
-        // The three selector forms §8 supports, against a widget built the KDL
+        // The three selector forms, type, `#id` and `.class`, against a widget built the KDL
         // way -- so `id` and `class` really did survive inflation. Two of them
         // for a widget that carries no attributes at all: see [#NO_ATTRIBUTES].
         for (var selector : NO_ATTRIBUTES.containsKey(type) ? List.of(type) : List.of(type, "#x", ".a")) {
@@ -220,7 +223,7 @@ class WidgetParityTest {
         }
     }
 
-    /// ADR-0109's rule, asked of the catalog: a stateful composite builds the
+    /// The composite rule, asked of the catalog: a stateful composite builds the
     /// node that carries its CSS type, and **one** of them. Two nodes of one type
     /// nested in the cascade take every rule for that type twice — a border drawn
     /// inside a border, a padding applied at both levels — and neither of them is
@@ -332,14 +335,14 @@ class WidgetParityTest {
     /// holds for every canvas an application writes, and the base stylesheet still
     /// gives a bare `canvas` nothing.
     ///
-    /// What changed is that `web-view` builds one (ADR-0442): the page is sized
+    /// What changed is that `web-view` builds one: the page is sized
     /// from the box this widget is painted at, and a canvas has no intrinsic size,
     /// so without `canvas.web-surface { flex-grow: 1 }` a page is asked to be zero
     /// pixels tall. The rule is **class-scoped** and reaches no canvas but that
     /// one, which is why this is a rule the toolkit may have and a bare default is
     /// still not.
     ///
-    /// `stack` left it the same way and for the same widget (ADR-0445). It was
+    /// `stack` left it the same way and for the same widget. It was
     /// here as "a layout container, drawn entirely by what is stacked in it",
     /// which is still true of every stack an application writes; `web-view`
     /// builds one to hold its spinner over the surface, and `stack.web-stage`
@@ -370,7 +373,7 @@ class WidgetParityTest {
     /// rather than of meaning.
     private static final Set<String> READ_LIKE_PARTS = Set.of("radio-group", "text-input", "text-area");
 
-    /// ADR-0065's half that has no other holder: a **part** is CSS-selectable and
+    /// The half of the parts rule that has no other holder: a **part** is CSS-selectable and
     /// deliberately not KDL-constructible, because a `toggle-track` outside a
     /// `toggle` is a pill that means nothing.
     ///
@@ -393,7 +396,10 @@ class WidgetParityTest {
         var parts = styledTypes().stream()
                 .filter(type -> !registered.contains(type))
                 .toList();
-        assertFalse(parts.isEmpty(), "the base stylesheet selects no part at all, so ADR-0065 has nothing to hold");
+        assertFalse(
+                parts.isEmpty(),
+                "the base stylesheet selects no part at all; the parts rule has nothing to hold, so check"
+                        + " that parts are still styled by type");
 
         for (var name : registered) {
             if (READ_LIKE_PARTS.contains(name)) {
@@ -403,7 +409,8 @@ class WidgetParityTest {
                 assertFalse(
                         name.startsWith(owner + "-"),
                         () -> name + " is registered and reads as a part of " + owner
-                                + "; a part is CSS-selectable and not KDL-constructible (ADR-0065)");
+                                + "; a part is CSS-selectable and not KDL-constructible, so rename it or"
+                                + " unregister it");
             }
         }
     }

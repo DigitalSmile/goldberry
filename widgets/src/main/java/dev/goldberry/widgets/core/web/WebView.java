@@ -25,8 +25,8 @@ import dev.goldberry.widgets.overlay.message.Message;
 import dev.goldberry.widgets.shell.web.WebPage;
 import dev.goldberry.widgets.shell.web.WebViews;
 
-/// A web page **inside** the window — `docs/core-widgets.md` §9's `web-view` as a
-/// widget rather than a window.
+/// A web page **inside** the window, drawn by the desktop's own engine into a
+/// child window placed over this widget's box.
 ///
 /// The page keeps a platform window of its own, and that window is made a *child*
 /// of the application's, positioned over this widget's box and moved with it. So
@@ -36,6 +36,10 @@ import dev.goldberry.widgets.shell.web.WebViews;
 /// ```java
 /// new WebView(WebPage.of("https://example.org"))
 /// ```
+///
+/// Java only: there is no markup name, because a page is a platform handle a
+/// document cannot describe. The widget follows the page it is handed, so
+/// navigating is rebuilding with another page.
 ///
 /// ## What it is not
 ///
@@ -67,8 +71,7 @@ import dev.goldberry.widgets.shell.web.WebViews;
 /// window is moved off the side of the application's window, where the parent
 /// clips it away entirely, and moved back when the dialog closes. Moved rather
 /// than resized or hidden, which keeps the document's layout and its scroll
-/// position intact — see [WebViewState#place]
-/// ([ADR-0444](../../../../../../../../book/src/adr/0444-a-page-stands-aside-for-a-modal.md)).
+/// position intact — see [WebViewState#place].
 ///
 /// **The page visibly disappears for as long as the dialog is up.** That is the
 /// intended behaviour rather than a compromise being hidden: a modal is supposed
@@ -88,8 +91,7 @@ import dev.goldberry.widgets.shell.web.WebViews;
 /// `spinner` over it would be a spinner underneath it.
 ///
 /// So the page is **opened parked** and stays there until it reports itself
-/// loaded, and the widget draws a `spinner` in the box it will occupy
-/// ([ADR-0445](../../../../../../../../book/src/adr/0445-a-page-is-not-shown-before-it-can-be-seen.md)).
+/// loaded, and the widget draws a `spinner` in the box it will occupy.
 /// It loads the whole time, so what appears is a finished page rather than one
 /// that finishes in front of the user.
 ///
@@ -132,12 +134,9 @@ import dev.goldberry.widgets.shell.web.WebViews;
 /// | Platform | What the page is | Status |
 /// |---|---|---|
 /// | X11 (and XWayland) | a GTK window, `XReparentWindow`ed into this one | works |
-/// | macOS | a `WKWebView`, a subview of the window's content view | works ([ADR-0458]) |
-/// | Windows | a WebView2 `WS_CHILD` window the engine makes inside this one | written, unverified ([ADR-0459]) |
+/// | macOS | a `WKWebView`, a subview of the window's content view | works |
+/// | Windows | a WebView2 `WS_CHILD` window the engine makes inside this one | written, unverified |
 /// | Wayland | — | never; says so |
-///
-/// [ADR-0458]: ../../../../../../../../book/src/adr/0458-a-page-on-macos-is-a-view-not-a-window.md
-/// [ADR-0459]: ../../../../../../../../book/src/adr/0459-a-key-typed-into-a-page-is-the-pages.md
 ///
 /// On macOS a parked page is **hidden** as well as moved, because an `NSView`
 /// does not reliably clip its subviews and a frame above the content view is in
@@ -156,8 +155,7 @@ import dev.goldberry.widgets.shell.web.WebViews;
 /// *parenting* and errors on anything else, and the request has been open since
 /// 2012. On a Wayland session this widget therefore opens **nothing** and paints
 /// a message saying why, rather than dropping a loose window on the desktop that
-/// the layout cannot move
-/// ([ADR-0442](../../../../../../../../book/src/adr/0442-a-page-is-a-child-window-where-the-window-system-allows-one.md)).
+/// the layout cannot move.
 ///
 /// An application on a Wayland desktop that wants a page *can* have one by asking
 /// SDL for the x11 driver — `-Dgoldberry.backend.videoDriver=x11` — which runs
@@ -174,13 +172,15 @@ import dev.goldberry.widgets.shell.web.WebViews;
 /// so a key typed into the page would type into it *and* fire this
 /// application's shortcuts. The backend therefore drops key and text events
 /// while a page of that window holds the keyboard, and a press anywhere outside
-/// the page gives the keyboard back to the application ([ADR-0459]).
+/// the page gives the keyboard back to the application.
+///
+/// Read more: [Markdown, HTML and the web](https://goldberry.dev/docs/components/content.html#the-web-view).
 ///
 /// @param page       what to open
 /// @param attributes id, classes and styles, as for any widget
 public record WebView(WebPage page, Attributes attributes) implements Widget.Stateful, Attributed<WebView> {
 
-    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    /// Written out so that the parameters taking null for a default can say so.
     public WebView(WebPage page, @Nullable Attributes attributes) {
         Objects.requireNonNull(page, "page");
         attributes = attributes == null ? Attributes.NONE : attributes;
@@ -294,7 +294,7 @@ public record WebView(WebPage page, Attributes attributes) implements Widget.Sta
                     : surface.withAttributes(Attributes.NONE.id(id).classes("web-surface"));
             // The surface goes in a `stack` so that something can be drawn over
             // it while there is no page to hide it — which is the only moment
-            // anything CAN be drawn there ([ADR-0445]). A stack's first child
+            // anything CAN be drawn there. A stack's first child
             // stays in flow and sizes it, so the surface is still the box the
             // page is kept over and still the one carrying the id; the spinner
             // is absolute and covers nothing.
@@ -332,12 +332,11 @@ public record WebView(WebPage page, Attributes attributes) implements Widget.Sta
         /// It is only ever visible because the page is **parked** at the same
         /// time: a page is a platform window above the frame, so a spinner drawn
         /// over one would be drawn underneath it. The two halves are one
-        /// decision ([ADR-0445]).
+        /// decision.
         private static Widget spinner() {
             // LARGE, because it is the only thing in the box: a page's whole
             // region is not ready, and a 16px ring in the middle of a tab reads
-            // as a decoration on something rather than as the subject
-            // ([ADR-0447]).
+            // as a decoration on something rather than as the subject.
             return new Spinner(SpinnerSize.LARGE).withAttributes(Attributes.NONE.classes("web-loading"));
         }
 
@@ -393,13 +392,13 @@ public record WebView(WebPage page, Attributes attributes) implements Widget.Sta
                 open(bounds, scale);
                 return;
             }
-            // The page gives way to a modal ([ADR-0444]). A `dialog` is painted
+            // The page gives way to a modal. A `dialog` is painted
             // into the frame and the page is a platform window above it, so a
             // dialog over a page is drawn where nobody can see it — and its
             // buttons cannot be pressed, because the press lands on WebKit. The
             // only thing that can move is the page.
             //
-            // And a page with nothing to show ([ADR-0445]): between the window
+            // And a page with nothing to show: between the window
             // being mapped and the document painting, WebKit draws its default
             // white, for as long as the network takes. Nothing can be painted
             // over it to say so, so the page waits out of sight and the spinner
@@ -407,7 +406,7 @@ public record WebView(WebPage page, Attributes attributes) implements Widget.Sta
             // The application asking for somewhere else. A `web-view` takes its
             // page from a value, so navigating is the ordinary thing a widget
             // does with a changed input: hold the url in state, rebuild, and the
-            // page follows ([ADR-0449]).
+            // page follows.
             navigateIfAsked(page);
 
             // Asked until it answers yes, and never again: the first load is
@@ -571,7 +570,7 @@ public record WebView(WebPage page, Attributes attributes) implements Widget.Sta
             // spinner and a spinner that arrives one frame after a white flash:
             // the shim maps the page's window and reparents it inside this call,
             // so a page created over its box is visible — and empty — before
-            // anything here could move it ([ADR-0445]).
+            // anything here could move it.
             var opened = Objects.requireNonNull(host, "sync() opens a page only once it has a host")
                     .embeddedWebView(widget().page().spec(), parkedAway(bounds));
             if (opened.isPresent()) {
@@ -591,7 +590,7 @@ public record WebView(WebPage page, Attributes attributes) implements Widget.Sta
                 //
                 // And the frame that does it has to be asked for. Nothing else
                 // will: the tree has not changed, the page is parked and
-                // invisible, and the loop is idle by design (§1.7).
+                // invisible, and the loop is idle by design.
                 pollAgain();
                 return;
             }
@@ -605,7 +604,7 @@ public record WebView(WebPage page, Attributes attributes) implements Widget.Sta
         }
 
         /// Asks for a frame that runs [#sync] again: a **rebuild**, not a
-        /// repaint (ADR-0491).
+        /// repaint.
         ///
         /// `sync` runs from the canvas's painter, and a frame calls a painter
         /// only where the frame is damaged. `Host.repaint` asks for a frame and

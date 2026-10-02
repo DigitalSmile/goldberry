@@ -10,7 +10,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
-/// §4's editing model for `code-input`, with no widget, no font and no frame —
+/// The editing model of `code-input`, with no widget, no font and no frame —
 /// `TextEditTest`'s arrangement and for its reason.
 ///
 /// The specification is four sentences long and every one of them is a test
@@ -46,8 +46,8 @@ class CodeEditTest {
             assertEquals("12", edit.value());
         }
 
-        /// The paste out of `Your code is 123 456`, which is §4's "the thing
-        /// users actually do" — and the reason [CodeType] drops rather than
+        /// The paste out of `Your code is 123 456`, which is the thing users
+        /// actually do — and the reason [CodeType] drops rather than
         /// refuses. A whole-value filter would have rejected this outright.
         @Test
         @DisplayName("a paste with a space in it fills every box at once")
@@ -107,8 +107,8 @@ class CodeEditTest {
     @DisplayName("backspace")
     class Backspace {
 
-        /// §4: "`Backspace` on an empty box moves back and clears the previous
-        /// one" — which is what dropping the last character *is*, given that the
+        /// `Backspace` on an empty box moves back and clears the previous one —
+        /// which is what dropping the last character *is*, given that the
         /// active box is always the first empty one.
         @Test
         @DisplayName("clears the last filled box")

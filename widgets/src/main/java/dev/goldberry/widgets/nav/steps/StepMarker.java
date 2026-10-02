@@ -10,7 +10,7 @@ import dev.goldberry.widget.style.Paints;
 import dev.goldberry.widget.style.Styled;
 
 /// The disc before a step's label — a **part**, CSS-selectable and not
-/// constructible (ADR-0065).
+/// constructible.
 ///
 /// What is in it depends on the state, and that is the one thing colour must
 /// not be left to carry alone: a done step has a tick, a failed one a cross,

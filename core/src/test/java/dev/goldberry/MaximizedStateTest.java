@@ -15,7 +15,8 @@ import dev.goldberry.render.model.DisplayScale;
 import dev.goldberry.render.model.LogicalSize;
 import dev.goldberry.render.window.WindowSpec;
 
-/// A window's maximized state, in both directions ([ADR-0252]).
+/// A window's maximized state, in both directions: the ask is a request, the
+/// platform's event is the truth.
 ///
 /// `Application.maximized()` was a creation flag and nothing else: it became
 /// `SDL_WINDOW_MAXIMIZED` and after that nobody involved knew whether the window

@@ -15,7 +15,7 @@ import java.nio.file.Path;
 /// `Path.of(String)` refuses with `Illegal char <:> at index 3`. `Path.of(URI)` is
 /// the conversion that knows about drive letters, and it is the same call on
 /// every platform. Two tests each carried their own copy of the `getPath()` form
-/// and both failed on the first Windows run that reached them (ADR-0338).
+/// and both failed on the first Windows run that reached them.
 public final class CompiledClasses {
 
     private CompiledClasses() {}

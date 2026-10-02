@@ -9,9 +9,12 @@ package dev.goldberry.natives.blend2d.enums;
 /// usefully pass, which is the same rule [BlendStrokeJoin] applies to the two
 /// miter variants it leaves out.
 ///
-/// The four that are here are a real choice and not a quality slider — see
-/// ADR-0428. They enumerate positionally from 1, so a value inserted upstream
+/// The four that are here are a real choice and not a quality slider: each
+/// filter suits a different kind of image, and the caller names the one it
+/// wants. They enumerate positionally from 1, so a value inserted upstream
 /// shifts every one after it; the layout verifier is what notices.
+///
+/// Read more: [The native boundary](https://goldberry.dev/docs/overview/architecture.html#the-native-boundary).
 public enum BlendImageScaleFilter implements BlendEnum {
 
     /// Take the nearest source pixel. The only filter that invents no colours,

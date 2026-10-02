@@ -60,7 +60,7 @@ import dev.goldberry.widgets.text.Text;
 /// what each builds, what its keys and its seek bar do to the player, and when
 /// the player's controls hide.
 /// Under [HeadlessRuntime]: every one of these widgets posts the player's status
-/// changes to the UI thread, which needs a runtime to post to (ADR-0517).
+/// changes to the UI thread, which needs a runtime to post to.
 @DisplayName("media-controls, video-view and media-player")
 @ExtendWith(HeadlessRuntime.class)
 class MediaWidgetsTest {
@@ -302,7 +302,7 @@ class MediaWidgetsTest {
         }
 
         @Test
-        @DisplayName("the seek bar scrubs paused while held, and plays on from the exact position on release (S2)")
+        @DisplayName("the seek bar scrubs paused while held, and plays on from the exact position on release")
         void scrub() {
             openPlaying();
             var elements = mount(new MediaControls(player));
@@ -457,7 +457,7 @@ class MediaWidgetsTest {
         }
 
         @Test
-        @DisplayName("a stream's title is a line in the overlay, over the controls (S6)")
+        @DisplayName("a stream's title is a line in the overlay, over the controls")
         void nowPlaying() {
             var io = new MemoryIO(fixture("clip-vp9.webm"));
             io.title = "Goldberry TV - The Mandelbrot Hour";
@@ -613,7 +613,7 @@ class MediaWidgetsTest {
         }
 
         @Test
-        @DisplayName("an H.264/AAC file shows which codecs it could not play, over the picture (S7)")
+        @DisplayName("an H.264/AAC file shows which codecs it could not play, over the picture")
         void unsupported() {
             open(fixture("clip-h264-aac.mp4"), "clip-h264-aac.mp4");
             await(status -> status.state() == PlaybackState.ERROR);

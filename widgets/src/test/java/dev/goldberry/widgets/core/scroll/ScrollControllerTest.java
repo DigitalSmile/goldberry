@@ -22,8 +22,11 @@ import dev.goldberry.widgets.core.Column;
 import dev.goldberry.widgets.core.Row;
 import dev.goldberry.widgets.text.Text;
 
-/// §1's `scrollIntoView`, shipped as the API §1 words it as
-/// (ADR-0120).
+/// `scrollIntoView`, shipped as the API the layout chapter words it as: a widget
+/// scrolls itself into view through a controller its viewport is given.
+///
+/// Read more:
+/// [Scrolling from Java](https://goldberry.dev/docs/layout/scroll.html#scrolling-from-java).
 class ScrollControllerTest {
 
     private static final int VIEWPORT_HEIGHT = ScrollHarness.VIEWPORT_HEIGHT;
@@ -155,7 +158,8 @@ class ScrollControllerTest {
 
             // Brought *up to* the bottom edge and no further: a reveal that
             // centred its target would throw away everything the user was
-            // already looking at, and §1 asks only for it to be in view.
+            // already looking at, and `scrollIntoView` asks only for it to be in
+            // view.
             var after = harness.rowRect("row20");
             assertTrue(
                     after.top() > VIEWPORT_HEIGHT / 2.0,
@@ -176,7 +180,8 @@ class ScrollControllerTest {
         }
     }
 
-    /// §3.1: "`scrollIntoView` / programmatic: overlay duration" ([ADR-0363]).
+    /// The design system's motion row for a programmatic scroll: it glides on
+    /// the overlay duration.
     @Nested
     @DisplayName("gliding")
     class Gliding {
@@ -274,7 +279,7 @@ class ScrollControllerTest {
                 .controlledBy(controller);
     }
 
-    /// A reveal limited to one axis ([ADR-0370]).
+    /// A reveal limited to one axis.
     @Nested
     @DisplayName("revealing along one axis")
     class OneAxis {

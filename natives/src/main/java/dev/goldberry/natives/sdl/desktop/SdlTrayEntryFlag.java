@@ -15,6 +15,8 @@ import java.util.Collection;
 /// [#DISABLED] is `0x80000000`, which is a *negative* `int`. SDL's own type here
 /// is `Uint32`, so the value is narrowed at the call and the width is only ever
 /// wrong on the Java side of it.
+///
+/// Read more: [The native boundary](https://goldberry.dev/docs/overview/architecture.html#the-native-boundary).
 public enum SdlTrayEntryFlag {
 
     /// A plain command. One of the three mandatory kinds.

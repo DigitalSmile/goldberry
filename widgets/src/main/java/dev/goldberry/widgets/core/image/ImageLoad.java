@@ -7,8 +7,8 @@ import dev.goldberry.image.Image;
 /// Where one [ImageView]'s load stands: waiting, drawn, or refused.
 sealed interface ImageLoad {
 
-    /// The pixels are on their way. The box is drawn with `image.loading`, which
-    /// is §1's "placeholder fill until loaded".
+    /// The pixels are on their way. The box is drawn with `image.loading`: a
+    /// placeholder fill until the image has loaded.
     record Loading() implements ImageLoad {}
 
     /// The pixels, and the scale of the variant they came from.

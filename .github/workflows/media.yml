@@ -1,19 +1,19 @@
 # goldberry-media: the FFmpeg + dav1d superbuild, and the module's tests against
-# what it built (docs/media-plan.md, phase 1 "CI"). The system decoders' tests
+# what it built. The system decoders' tests
 # run in the same task: they demux with that FFmpeg, and decode with the
-# system's decoders, VideoToolbox on macOS and GStreamer on Linux (ADR-0472,
-# ADR-0489). They were :media-platform's until ADR-0493.
+# system's decoders, VideoToolbox on macOS and GStreamer on Linux.
+# https://goldberry.dev/docs/components/media.html#the-module
 #
 # Separate from linux.yml and macos.yml, because this build has its own
 # toolchain (meson, pkg-config, make, nasm) and its own natives, and a pull
 # request that touches neither should not pay for compiling FFmpeg.
 #
 # Two targets for now. Windows joins when the MSYS2 branch of the superbuild
-# has been run somewhere (docs/media-plan.md); linux-aarch64 joins with the
+# has been run somewhere; linux-aarch64 joins with the
 # natives jar's publication, which needs all four.
 #
 # The FFmpeg and dav1d checkouts are cached by the catalog's hash, the one file
-# that pins them (ADR-0035): a pin that moves invalidates the cache, and nothing
+# that pins them: a pin that moves invalidates the cache, and nothing
 # else does.
 name: Media
 
@@ -40,7 +40,7 @@ jobs:
             runner: ubuntu-24.04
             # GStreamer's runtime and its decoders, for the system decoders: base has
             # appsrc, appsink and the converters, good the audio parsers, bad the
-            # H.264 and HEVC parsers, and libav the decoders (ADR-0489). No
+            # H.264 and HEVC parsers, and libav the decoders. No
             # development package: the providers bind the libraries with FFM.
             tools: >-
               sudo apt-get update && sudo apt-get install -y meson ninja-build nasm pkg-config make
@@ -66,7 +66,7 @@ jobs:
         run: ./gradlew :media:ffmpegBuild -Pgoldberry.skipNative=true --no-daemon
 
       # `required`, so a test that could not load FFmpeg fails rather than skips:
-      # a verification job that skips is a green tick over nothing (ADR-0016).
+      # a verification job that skips is a green tick over nothing.
       # `check` includes the natives-jar test and the coverage floor.
       #
       # Each job requires its own system's decoders too: VideoToolbox and

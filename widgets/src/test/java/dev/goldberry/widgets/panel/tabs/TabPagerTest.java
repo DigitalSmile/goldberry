@@ -29,7 +29,7 @@ import dev.goldberry.widget.attr.Attributes;
 import dev.goldberry.widgets.Controls;
 import dev.goldberry.widgets.controls.TestFont;
 
-/// A tab strip wider than its window has a chevron at each end ([ADR-0365]).
+/// A tab strip wider than its window has a chevron at each end.
 class TabPagerTest {
 
     private TestFrames.Target target;

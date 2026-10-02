@@ -22,8 +22,7 @@ import dev.goldberry.widgets.Widgets;
 import dev.goldberry.widgets.controls.badge.Badge;
 import dev.goldberry.widgets.text.Text;
 
-/// §10's `timeline` — events along an axis, and what tells it from a list
-/// with dots ([ADR-0345]).
+/// `timeline` — events along an axis, and what tells it from a list with dots.
 class TimelineTest {
 
     private static Element listNode(Timeline timeline) {
@@ -174,7 +173,7 @@ class TimelineTest {
         }
     }
 
-    /// §10's third marker, "dot, icon or `badge`" ([ADR-0356]).
+    /// The third kind of marker: a dot, an icon or a `badge`.
     @Nested
     @DisplayName("a widget marker")
     class AWidgetMarker {

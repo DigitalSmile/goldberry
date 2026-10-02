@@ -20,7 +20,8 @@ import dev.goldberry.input.handler.Handles;
 import dev.goldberry.widget.semantics.Semantics;
 import dev.goldberry.widgets.CatalogMarkup;
 
-/// `docs/testing.md` §1.7: **every interactive node exposes a role and a name.**
+/// **Every interactive node exposes a role and a name.** That is the toolkit's
+/// accessibility baseline, and this is the sweep that holds the catalog to it.
 ///
 /// The rule is one sentence and the reason it is worth a test is that its
 /// failures are silent. A control a keyboard can reach and a screen reader cannot
@@ -34,8 +35,8 @@ import dev.goldberry.widgets.CatalogMarkup;
 /// the half that can be a rule.
 ///
 /// The **name** cannot be, and the exceptions are the interesting part rather
-/// than a weakening. A `text-input` has no name of its own: §4's `field` supplies
-/// it, which is what a field is *for*. A `split-pane`'s divider has a position
+/// than a weakening. A `text-input` has no name of its own: the `field` around
+/// it supplies one, which is what a field is *for*. A `split-pane`'s divider has a position
 /// rather than a name. A row is named by the content it was handed. Each of those
 /// returns null from [Semantics#accessibleName()] with the reason written at the
 /// override, and this test asserts that the ones which *do* carry a label expose
@@ -110,8 +111,8 @@ class SemanticsSweepTest {
     }
 
     /// The test this class's own header promises, and which its neighbour below
-    /// only *counted* until the 2026-09-18 review (§11.3) read the two against
-    /// each other: `everyRoleIsAnswered` never called `role()`.
+    /// only *counted* until a review read the two against each other:
+    /// `everyRoleIsAnswered` never called `role()`.
     ///
     /// It can now, because `CatalogMarkup` knows what each registered name needs
     /// in order to exist — the same fixture the parity sweep was widened onto.
@@ -152,7 +153,7 @@ class SemanticsSweepTest {
                         + " reading the wrong source tree rather than the catalog having shrunk");
     }
 
-    /// §7's live region, as a rule rather than as a convention ([ADR-0225]).
+    /// The live region, as a rule rather than as a convention.
     ///
     /// The value of `Live` is entirely in its **rarity**: a reader that is
     /// interrupted by everything is a reader nobody leaves on. So the rule is not

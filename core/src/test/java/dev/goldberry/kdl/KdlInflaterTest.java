@@ -52,7 +52,7 @@ class KdlInflaterTest {
         }
 
         @Test
-        @DisplayName("the first argument is the node's primary content, per §9")
+        @DisplayName("the first argument is the node's primary content")
         void primaryContent() {
             var built = inflater().inflate(KdlParser.parse("button \"Apply\"").getFirst());
             assertEquals("Apply", built.label());
@@ -78,7 +78,7 @@ class KdlInflaterTest {
                     () -> inflater()
                             .inflate(KdlParser.parse("window {\n  spinner\n}").getFirst()));
 
-            // §9 asks for exactly this: hard errors with source positions.
+            // Strict by default: hard errors with source positions.
             assertEquals(2, thrown.line());
             assertTrue(thrown.getMessage().contains("spinner"));
             // And the message lists what would have worked, because a typo is

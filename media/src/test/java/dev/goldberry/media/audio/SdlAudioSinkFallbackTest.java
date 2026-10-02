@@ -15,7 +15,7 @@ import org.junit.jupiter.api.Test;
 import dev.goldberry.natives.sdl.SdlException;
 import dev.goldberry.natives.sdl.audio.SdlAudioStream;
 
-/// The desktop sink on a machine with no audio device (ADR-0487): it plays into
+/// The desktop sink on a machine with no audio device: it plays into
 /// silence rather than failing the source. SDL is never reached, so this needs
 /// no `libgoldberry`.
 @DisplayName("SdlAudioSink, with no audio device")

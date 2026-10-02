@@ -13,6 +13,8 @@ import java.util.Locale;
 /// [#CUSTOM] are deliberately absent: they are SDL's room to grow, they have no
 /// meaning to name, and a row on the table for each would be nine constants
 /// asserting that a gap is still a gap. [#nameOf] is what handles them.
+///
+/// Read more: [The native boundary](https://goldberry.dev/docs/overview/architecture.html#the-native-boundary).
 public enum SdlLogCategory {
 
     /// Where SDL puts an application's own `SDL_Log` calls. Goldberry makes

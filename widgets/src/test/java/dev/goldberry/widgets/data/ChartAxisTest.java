@@ -25,8 +25,11 @@ import dev.goldberry.widgets.data.areachart.AreaChart;
 import dev.goldberry.widgets.data.barchart.BarChart;
 import dev.goldberry.widgets.data.linechart.LineChart;
 
-/// What the axis has to reach, and whether each reading is marked — `charts.md`
-/// §3.1's "axis min/max, soft min/max" and "point markers".
+/// What the axis has to reach, and whether each reading is marked: a hard axis
+/// min/max does not move, a soft one reaches at least that far and further if
+/// the data does, and point markers are shown, hidden, or decided by density.
+///
+/// Read more: [What the five share](https://goldberry.dev/docs/components/charts.html#what-the-five-share).
 class ChartAxisTest {
 
     @BeforeEach

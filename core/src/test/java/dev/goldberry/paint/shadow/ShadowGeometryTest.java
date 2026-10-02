@@ -13,7 +13,7 @@ import dev.goldberry.css.Corners;
 import dev.goldberry.css.value.Shadow;
 import dev.goldberry.paint.Path;
 
-/// Where a band of a shadow is — ADR-0310.
+/// Where a band of a shadow is: the shape each rectangle of the stack takes.
 class ShadowGeometryTest {
 
     private static final int BLACK = 0xFF000000;
@@ -90,7 +90,7 @@ class ShadowGeometryTest {
         @DisplayName("a band shrunk past nothing has no shape rather than a negative one")
         void shrunkAway() {
             // A large negative spread does this, and it is a shadow that draws
-            // nothing rather than an error: §8's rule for a value that goes
+            // nothing rather than an error: the rule for a style value that goes
             // nowhere is to carry on.
             assertSame(Path.EMPTY, ShadowGeometry.band(20, 20, Corners.SQUARE, Shadow.NONE, -10));
             assertSame(Path.EMPTY, ShadowGeometry.band(20, 10, Corners.SQUARE, Shadow.NONE, -6));
@@ -137,7 +137,7 @@ class ShadowGeometryTest {
     }
 
     @Nested
-    @DisplayName("the hole cut out of every band — ADR-0427")
+    @DisplayName("the hole cut out of every band")
     class Hole {
 
         @Test

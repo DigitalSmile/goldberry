@@ -9,6 +9,8 @@ import dev.goldberry.render.PixelBuffer;
 /// conversion nobody asked for. The enum exists because `present()` taking an
 /// untyped buffer is how a format mismatch becomes a screen of blue faces
 /// instead of a type error.
+///
+/// Read more: [Architecture](https://goldberry.dev/docs/overview/architecture.html#the-backend-spi).
 public enum PixelFormat {
 
     /// 32 bits per pixel, blue-green-red-alpha in memory order on little-endian

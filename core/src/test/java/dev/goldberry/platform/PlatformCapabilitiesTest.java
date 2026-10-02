@@ -16,20 +16,23 @@ import org.junit.jupiter.api.Test;
 import dev.goldberry.Goldberry;
 import dev.goldberry.natives.platform.NativeCapability;
 
-/// What this build can do, in the toolkit's own words — `docs/gaps.md` G32,
-/// ADR-0325.
+/// What this build can do, in the toolkit's own words: `Goldberry.capabilities()`
+/// answers from the native library's own record of what it was compiled with.
 ///
 /// The interesting half is the translation. `Capability` and `NativeCapability`
-/// are two enums on purpose — `natives.*` does not leave `:natives` (ADR-0174) —
-/// and two enums that must agree are exactly the pair that quietly stops
+/// are two enums on purpose — nothing from `natives.*` is exported past
+/// `:natives`, so the public enum cannot be the native one — and two enums that
+/// must agree are exactly the pair that quietly stops
 /// agreeing. The `switch` in [PlatformCapabilities] makes the compiler notice a
 /// constant added to the native side; what it cannot notice is one added to the
 /// public side and never reported, which is what the count below is for.
+///
+/// Read more:
+/// [What this build can do](https://goldberry.dev/docs/guide/logging.html#what-this-build-can-do).
 @DisplayName("the platform capabilities")
 class PlatformCapabilitiesTest {
 
-    /// The capabilities that are bits in `libgoldberry`, which since ADR-0441 is
-    /// no longer all of them.
+    /// The capabilities that are not bits in `libgoldberry`.
     ///
     /// [Capability#WEB_VIEW] is the presence of a **second** library,
     /// `libgoldberry-webview`, which exists so that GTK and WebKit are not
@@ -74,9 +77,9 @@ class PlatformCapabilitiesTest {
     @Test
     @DisplayName("a web view is reported from the second library, not from libgoldberry's bits")
     void theWebViewIsNotANativeBit() {
-        // The two halves are independent, which is the whole of ADR-0441's build
-        // argument: a process may have `libgoldberry-webview` and no
-        // `libgoldberry`, or the other way round, and each answer stands alone.
+        // The two halves are independent: a process may have
+        // `libgoldberry-webview` and no `libgoldberry`, or the other way round,
+        // and each answer stands alone.
         var neither = PlatformCapabilities.read(EnumSet.noneOf(NativeCapability.class), false);
         var webViewOnly = PlatformCapabilities.read(EnumSet.noneOf(NativeCapability.class), true);
         var themeOnly = PlatformCapabilities.read(EnumSet.of(NativeCapability.SYSTEM_THEME), false);

@@ -17,44 +17,60 @@ import dev.goldberry.kdl.KdlNode;
 import dev.goldberry.widgets.markup.Wiring;
 import dev.goldberry.widgets.markup.Markup;
 
-/// A continuous value on a track — `docs/core-widgets.md` §3's `slider`. The
-/// sixth control.
+/// A thumb on a track whose position is a number between `min` and `max`.
 ///
-/// The first control whose value is **a number rather than a state**, and that is
-/// what makes it different from everything before it. A checkbox has two
-/// positions and a switch has two; a stylesheet can name both, and
-/// `toggle-track:checked toggle-thumb { transform: translate(16px) }` is how the
-/// switch's thumb moves. No stylesheet can name a number that came out of a
-/// model, so the thumb has to be placed by the widget — and it is placed by
-/// **flex ratio** rather than by a transform, because a transform cannot express
-/// it (ADR-0079).
+/// ```kdl
+/// slider min=0 max=100 step=5 ticks=5 format="%.0f%%" bind="audio.gain" change="audio.set-gain"
+/// slider class="vertical" scale="db" max=1 format="%.2f" bind="audio.gain" change="audio.set-gain"
+/// slider min=0 max=100 value=70 disabled=#true
+/// ```
 ///
-/// ## This record styles nothing, and that is new
+/// In Java, `Slider.of(min, max, step, observable, handler)` for a slider that
+/// follows a property, then [#ticks], [#format], [#scale], [#onCommit] and
+/// [#spans] as needed; `new Slider(value, handler)` is a `0..1` slider with
+/// nothing bound. `min=` and `max=` are the range, `value=` is what shows when
+/// nothing is bound, `step=` is the grid counted from `min` (0 for continuous),
+/// `ticks=` a count of marks along the travel, `format=` a `String.format`
+/// pattern for a value label, `scale=` is `linear` or `db`, `bind=` names a
+/// `Number` to follow, `change=` the action told the value asked for on every
+/// step of a drag, and `commit=` the action told the value when the gesture
+/// ends. `class="vertical"` makes it a fader.
+///
+/// ## A number, not a state
+///
+/// A checkbox has two positions and a switch has two; a stylesheet can name
+/// both, and `toggle-track:checked toggle-thumb { transform: translate(16px) }`
+/// is how the switch's thumb moves. No stylesheet can name a number that came
+/// out of a model, so the thumb has to be placed by the widget — and it is
+/// placed by **flex ratio** rather than by a transform, because a percentage in
+/// a transform is a proportion of the moving box and cannot express it.
+///
+/// ## This record styles nothing
 ///
 /// `slider` as a CSS type is [SliderControl], the node this builds. The split is
 /// `scroll`'s and `tabs`' exactly — a stateful widget that was also styled would
 /// put two `slider` nodes in the cascade, one inside the other, and every rule
-/// would apply twice (ADR-0109, ADR-0116).
+/// would apply twice.
 ///
 /// It is stateful for **one number**: the thumb's width, which the stylesheet
-/// owns and the pointer mapping needs — see [SliderState] (ADR-0430).
-/// Everything here is still a pure function of the record's components; what the
-/// state holds is a measurement, not a value.
+/// owns and the pointer mapping needs — see [SliderState]. Everything here is
+/// still a pure function of the record's components; what the state holds is a
+/// measurement, not a value.
 ///
 /// ## Direct manipulation
 ///
-/// §3.1: "drag: **1:1, no animation**". A press anywhere on the control jumps the
-/// value to where it landed and starts a drag; every move until the release
-/// follows the pointer exactly. Nothing eases, because a thumb that eased toward
-/// the finger would lag it, and lag is the one thing a control being dragged must
-/// not have.
+/// The drag is one to one with the pointer, and never animated. A press anywhere
+/// on the control jumps the value to where it landed and starts a drag; every
+/// move until the release follows the pointer exactly. Nothing eases, because a
+/// thumb that eased toward the finger would lag it, and lag is the one thing a
+/// control being dragged must not have.
 ///
 /// The pointer's position along the track is [SliderControl]'s, mapped over the
 /// thumb's **travel** rather than over the track's full width: the thumb's centre
 /// cannot reach within half a thumb of either end, so a finger at the very edge
 /// of the track is asking for a value the thumb is 8px away from. The press
-/// already takes the pointer until the release ([ADR-0058]), so a drag that
-/// wanders off the track keeps working.
+/// already takes the pointer until the release, so a drag that wanders off the
+/// track keeps working.
 ///
 /// ## The keyboard
 ///
@@ -64,55 +80,34 @@ import dev.goldberry.widgets.markup.Markup;
 /// widget with a class.
 ///
 /// The arrow keys are **consumed**, which is load-bearing rather than tidy: a
-/// slider inside a `radio-group`-style focus scope would otherwise have its
-/// arrows taken as traversal. ADR-0073 put scope traversal *after* the focused
-/// chain declines the key precisely so this works, and this is the first control
-/// that actually relies on it.
+/// slider inside a focus scope would otherwise have its arrows taken as
+/// traversal. Scope traversal runs *after* the focused chain declines the key
+/// precisely so this works.
 ///
 /// ## The value is the application's
 ///
-/// Controlled in the sense [ADR-0063] settled: dragging a bound slider whose
-/// handler does nothing moves neither the property nor the thumb. What travels up
-/// is the value asked for, already **snapped to [#step()] and clamped** to the
+/// Data flows down and events flow up: dragging a bound slider whose handler
+/// does nothing moves neither the property nor the thumb. What travels up is
+/// the value asked for, already **snapped to [#step()] and clamped** to the
 /// range — a widget that reported a raw fraction would make every application
 /// repeat the same arithmetic, and get it slightly differently wrong each time.
 ///
-/// ## The two optional halves of §3, and the scale
-///
-/// §3 asks for "optional **tick marks** and **value label**", and for a fader's
-/// "optional **dB scale** mapping". All three land here
-/// (ADR-0080):
-///
-/// ```kdl
-/// slider min=0 max=100 value=40 step=5 ticks=5 format="%.0f%%"
-/// slider class="vertical" scale="db" max=1 format="%.2f" bind="audio.gain"
-/// ```
+/// ## Tick marks, the value label and the scale
 ///
 /// - [#ticks()] is a **count**, and the marks are evenly spaced along the
 ///   *travel* rather than along the value — which is the same thing on a linear
 ///   slider and the only useful thing on a scaled one.
-/// - [#format()] is a format **string** rather than a function, because §11's
-///   parity invariant compares two records for equality and two lambdas are never
-///   equal. It is validated when the slider is built, so a `%d` against a double
-///   fails at inflation rather than on the frame that first draws it.
+/// - [#format()] is a format **string** rather than a function, because the
+///   Java-built and KDL-built forms of a control have to be `equals` and two
+///   lambdas never are. It is validated when the slider is built, so a `%d`
+///   against a double fails at inflation rather than on the frame that first
+///   draws it.
 /// - [#scale()] is the curve between the value and the position — see `Scale`.
 ///
 /// The label sits **at the end of the control, beside the track**, so the value
 /// is no longer a position along the slider: it is a position along the
-/// [SliderTrack], which is what
-/// [SliderControl#localPart()] tells the router.
+/// [SliderTrack], which is what [SliderControl#localPart()] tells the router.
 ///
-/// @param min      the value at the start of the track
-/// @param max      the value at the end; must be greater than `min`
-/// @param value    where the thumb is, when nothing is bound
-/// @param step     what the value snaps to, and what an arrow key moves by. `0`
-///                 means continuous
-/// @param ticks    how many marks to draw along the travel, both ends included.
-///                 `0` is none, and one mark is refused as meaningless
-/// @param format   a [java.util.Formatter] pattern for the value label, or null
-///                 for no label
-/// @param scale    the curve between the value and the position; `Scale#LINEAR`
-///                 unless a fader says otherwise
 /// ## When a gesture ends
 ///
 /// [#onChange()] fires on every step of a drag, which is what a thumb that
@@ -126,7 +121,20 @@ import dev.goldberry.widgets.markup.Markup;
 /// slider max=100 change="volume.preview" commit="volume.set"
 /// ```
 ///
-/// @param source   §9's `bind`, read-only — see [#resolved()]
+/// Read more: [Values and progress](https://goldberry.dev/docs/components/values.html#slider).
+///
+/// @param min      the value at the start of the track
+/// @param max      the value at the end; must be greater than `min`
+/// @param value    where the thumb is, when nothing is bound
+/// @param step     what the value snaps to, and what an arrow key moves by. `0`
+///                 means continuous
+/// @param ticks    how many marks to draw along the travel, both ends included.
+///                 `0` is none, and one mark is refused as meaningless
+/// @param format   a [java.util.Formatter] pattern for the value label, or null
+///                 for no label
+/// @param scale    the curve between the value and the position; `Scale#LINEAR`
+///                 unless a fader says otherwise
+/// @param source   `bind=`, read-only — see [#resolved()]
 /// @param onChange what the user asked for, already snapped and clamped
 /// @param onCommit what the user settled on when a gesture ended, or null
 /// @param spans    stretches of the range to mark in the groove, under the fill
@@ -152,7 +160,7 @@ public record Slider(
         }
     }
 
-    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    /// The canonical constructor, written out so that the parameters taking null for a default can say so.
     public Slider(double min, double max, double value, double step, int ticks, @Nullable String format, @Nullable Scale scale, @Nullable Observable<?> source, @Nullable DoubleConsumer onChange, boolean disabled, @Nullable Attributes attributes, @Nullable DoubleConsumer onCommit, @Nullable List<Span> spans) {
         if (!Double.isFinite(min) || !Double.isFinite(max) || max <= min) {
             throw new IllegalArgumentException(
@@ -235,7 +243,7 @@ public record Slider(
     /// the second five-argument one and the two differ only in whether the fourth
     /// parameter is a `double` or an `Observable`. A reader cannot tell those
     /// apart at a call site, and the compiler will happily pick the wrong one for
-    /// a `null` (ADR-0094).
+    /// a `null`; a named method says which one it is.
     ///
     /// `of` and not some other verb because the catalog already uses it for
     /// exactly this: [dev.goldberry.widgets.text.Text#of],
@@ -290,9 +298,9 @@ public record Slider(
     /// What `PageUp` and `PageDown` move by — ten steps, or a tenth of the range
     /// when the slider is continuous.
     ///
-    /// Not in §3, and derived rather than invented: "large step" has to be a
-    /// multiple of the small one or the two disagree about where the value can
-    /// land, and a tenth is what a continuous slider has instead of a step.
+    /// Derived rather than invented: "large step" has to be a multiple of the
+    /// small one or the two disagree about where the value can land, and a tenth
+    /// is what a continuous slider has instead of a step.
     ///
     /// The continuous answer is the range's, and is what a `PageUp` moves by only
     /// on a **linear** slider: with a scale, a page is a tenth of the travel
@@ -302,17 +310,17 @@ public record Slider(
         return step > 0 ? step * 10 : (max - min) / 10;
     }
 
-    /// This slider with §3's optional tick marks — a count along the **travel**,
-    /// not one per `step`.
+    /// This slider with tick marks — a count along the **travel**, not one per
+    /// `step`.
     public Slider ticks(int ticks) {
         return new Slider(min, max, value, step, ticks, format, scale,
                 source, onChange, disabled, attributes, onCommit, spans);
     }
 
-    /// This slider with §3's optional value label, as a `String.format` pattern.
+    /// This slider with a value label, as a `String.format` pattern.
     ///
-    /// A pattern and not a function, because §11 compares two records for
-    /// equality and two lambdas are never equal (ADR-0080).
+    /// A pattern and not a function, because the Java-built and KDL-built forms
+    /// of a control have to be `equals` and two lambdas never are.
     public Slider format(String format) {
         return new Slider(min, max, value, step, ticks, format, scale,
                 source, onChange, disabled, attributes, onCommit, spans);
@@ -388,9 +396,9 @@ public record Slider(
         return new SliderState();
     }
 
-    /// Whether this slider runs bottom-to-top — `docs/core-widgets.md` §3's
-    /// `fader`, spelled as a class for the reason `radio-group.inline` is: the
-    /// widget names the semantics and the stylesheet names the axis.
+    /// Whether this slider runs bottom-to-top — a fader, spelled as the class
+    /// `vertical` for the reason `radio-group.inline` is: the widget names the
+    /// semantics and the stylesheet names the axis.
     public boolean isVertical() {
         return attributes.classes().contains("vertical");
     }
@@ -440,8 +448,8 @@ public record Slider(
     /// within one step raises changes that settle rather than looping.
     ///
     /// Package-private rather than private: the handlers that call it are
-    /// [SliderControl]'s now, because the node that carries `slider` in the
-    /// cascade is the node the router delivers to (ADR-0430).
+    /// [SliderControl]'s, because the node that carries `slider` in the cascade
+    /// is the node the router delivers to.
     void ask(double raw) {
         if (!disabled && onChange != null) {
             onChange.accept(snap(clamp(raw)));
@@ -485,7 +493,7 @@ public record Slider(
     ///
     /// `ticks` is a count and `format` is a pattern, so both are values a
     /// document can carry — unlike an action or an icon, neither names anything
-    /// the application has to have registered (ADR-0080). `scale=` is strict:
+    /// the application has to have registered. `scale=` is strict:
     /// `scale="dB"` is refused rather than resolved quietly to linear, which
     /// would be a fader that works and is wrong.
     public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {

@@ -36,14 +36,14 @@ import dev.goldberry.widgets.controls.TestFont;
 import dev.goldberry.widgets.controls.button.Button;
 import dev.goldberry.widgets.panel.Described;
 
-/// `message` — §7's inline banner.
+/// `message` — the inline banner.
 ///
 /// Three things are worth asserting here and none of them is the drawing, which
 /// is `MessageGoldenTest`'s job:
 ///
-///   - **the kind reaches both the glyph and the class**, because §1.2 forbids
-///     colour as the only carrier of meaning and a kind that set only the hue
-///     would be exactly that mistake;
+///   - **the kind reaches both the glyph and the class**, because the design
+///     system forbids colour as the only carrier of meaning and a kind that set
+///     only the hue would be exactly that mistake;
 ///   - **the way out exists only when somebody is listening**, and answers the
 ///     keyboard as well as the pointer — a banner with a mouse-only dismiss is
 ///     a banner a keyboard user cannot close;
@@ -59,7 +59,7 @@ class MessageTest {
     @DisplayName("the kind")
     class Kinds {
 
-        /// The assertion §1.2 asks for: four kinds, four *different* glyphs. A
+        /// The assertion the contrast rule asks for: four kinds, four *different* glyphs. A
         /// mapping that returned the same mark for two of them would leave the
         /// colour carrying the difference alone.
         @Test
@@ -127,8 +127,8 @@ class MessageTest {
                     "a × that tells nobody anything is an affordance that lies");
         }
 
-        /// The author's own widgets, not a node this widget invents: §7 says
-        /// "action links" and `button class="ghost"` already is one.
+        /// The author's own widgets, not a node this widget invents: a banner
+        /// carries action links, and `button class="ghost"` already is one.
         @Test
         @DisplayName("actions are the author's widgets, in a row of their own")
         void actions() {
@@ -202,13 +202,13 @@ class MessageTest {
         }
     }
 
-    /// §3's "out: `opacity` fast", and the order that makes it possible at all.
+    /// The exit, a fast fade of `opacity`, and the order that makes it possible at all.
     ///
     /// A banner has no owner holding it, so there is nothing to keep drawing one
     /// the application has already dropped. The way round it is that the × does
     /// not tell the application and hope: it fades **first** and tells it after,
     /// while the description is still in the tree because nobody has asked for it
-    /// to go ([ADR-0175]).
+    /// to go.
     @Nested
     @DisplayName("the departure")
     class Departing {
@@ -245,7 +245,7 @@ class MessageTest {
                     "the banner stopped being described, so there was nothing to fade");
         }
 
-        /// 100ms, which is §1.7's `fast` — the duration §3 names for this exit.
+        /// 100ms, which is the `fast` duration — the one the design names for this exit.
         /// The arrival is `base`, and a dismissal that took as long as an arrival
         /// reads as the control arguing.
         @Test
@@ -321,7 +321,7 @@ class MessageTest {
             assertTrue(told[0]);
         }
 
-        /// §1.7: a reader who has asked not to be animated at gets no fade —
+        /// A reader who has asked not to be animated gets no fade —
         /// **and no wait either**. Drawing the banner at full strength for a
         /// hundred milliseconds and then removing it would be the animation's
         /// delay with the animation taken out, which is the worst of both.
@@ -355,9 +355,10 @@ class MessageTest {
     @DisplayName("the error summary")
     class Summary {
 
-        /// §4 asks for the summary; ADR-0169 built the register and nothing drew
-        /// it. This is the drawing, and it is a factory rather than something
-        /// `form` emits because a form does not know where its summary belongs.
+        /// A form's errors can be summarised in one banner. The validation
+        /// register existed before anything drew it; this is the drawing, and it
+        /// is a factory rather than something `form` emits because a form does
+        /// not know where its summary belongs.
         @Test
         @DisplayName("nothing wrong is no banner, not an empty one")
         void empty() {
@@ -385,11 +386,11 @@ class MessageTest {
     @DisplayName("bound to a value")
     class Bound {
 
-        /// §9's `bind=`, and the reason it took until [ADR-0227]: a banner bound
-        /// to an empty string would have been *present and empty* — a bordered
-        /// box with 12px of padding saying nothing — and §8's subset has no
-        /// `display`, so no widget could take itself out of a layout. The element
-        /// tree has the word now.
+        /// `bind=`, and the reason it came late: a banner bound to an empty
+        /// string would have been *present and empty* — a bordered box with 12px
+        /// of padding saying nothing — and the CSS subset has no `display`, so
+        /// no widget could take itself out of a layout. The element tree has the
+        /// word now.
         @Test
         @DisplayName("a bound banner says what the value says")
         void readsTheValue() {

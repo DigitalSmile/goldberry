@@ -8,7 +8,7 @@ import net.jqwik.api.lifecycle.SkipExecutionHook;
 /// A JUnit test skips by aborting. A jqwik property cannot: an abort thrown from a
 /// property counts as a rejected try, and one thrown from `@BeforeContainer` is
 /// reported as an execution *error* -- which is what CI's Java job, with no native
-/// library, turned red on (ADR-0338). jqwik's own way to skip is this hook.
+/// library, turned red on. jqwik's own way to skip is this hook.
 public final class MarkdownAvailable implements SkipExecutionHook {
 
     @Override

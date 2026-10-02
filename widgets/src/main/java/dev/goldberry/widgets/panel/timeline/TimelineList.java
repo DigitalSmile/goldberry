@@ -17,7 +17,7 @@ import dev.goldberry.widget.style.Styled;
 
 /// What a [Timeline] draws: the entries, down or along.
 ///
-/// `timeline` as a **CSS type** is this node (ADR-0109). A horizontal one
+/// `timeline` as a **CSS type** is this node. A horizontal one
 /// carries the class `horizontal` and an alternating one `alternate`, which is
 /// the whole of how the stylesheet lays either out.
 ///
@@ -60,7 +60,7 @@ record TimelineList(List<Widget> children, Timeline.Direction direction, Timelin
         return Box.of().style(style).children(boxes.toArray(Box[]::new));
     }
 
-    /// [Role#GROUP] — §10 asks for an ordered list and [Role] has none; the
+    /// [Role#GROUP] — a timeline is an ordered list and [Role] has none; the
     /// entries answer [Role#ROW], and the container's word waits for the
     /// AccessKit bridge, as `breadcrumbs`' and `steps`' do.
     @Override

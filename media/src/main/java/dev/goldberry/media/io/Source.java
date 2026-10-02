@@ -27,6 +27,9 @@ import java.util.Optional;
 /// @param headers request headers for a protocol that has them, in insertion
 ///                order; ignored by `file:`
 /// @param timeout how long an open or a read may wait before it fails
+///
+/// Read more:
+/// [Tracks and the network](https://goldberry.dev/docs/components/media.html#tracks-subtitles-and-the-network).
 public record Source(URI uri, Map<String, String> headers, Duration timeout) {
 
     /// The timeout a source has unless it says otherwise. Long enough for a slow

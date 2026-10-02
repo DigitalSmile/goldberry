@@ -5,7 +5,9 @@
 /// native code will not check. Exported to `:core` alone; the native function
 /// pointer made from a measurer lives in `…natives.yoga`.
 ///
-/// Marked for NullAway (`docs/testing.md` §2, ADR-0497).
+/// Marked for NullAway, so a parameter that may be null says so on its signature.
+///
+/// Read more: [The native boundary](https://goldberry.dev/docs/overview/architecture.html#the-native-boundary).
 @NullMarked
 package dev.goldberry.natives.yoga.measure;
 

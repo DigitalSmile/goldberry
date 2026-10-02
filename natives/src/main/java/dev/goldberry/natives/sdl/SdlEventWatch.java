@@ -24,13 +24,12 @@ import dev.goldberry.natives.sdl.calls.SdlEventWatchCalls;
 /// window is being resized.** The platform takes the thread and does not give it
 /// back until the drag ends, so `SDL_WaitEventTimeout` does not return, the frame
 /// loop does not iterate, and the window shows stale or blank content for as long
-/// as the user is dragging. Wayland and X11 have no such loop and are prompt
-/// (ADR-0024).
+/// as the user is dragging. Wayland and X11 have no such loop and are prompt.
 ///
 /// SDL still pumps events inside that modal loop, and an event watch is called
 /// from inside the pump. A watch is therefore the one place a frame can be drawn
 /// while the platform is holding the thread — which is why the fix is a callback
-/// rather than a change to the loop (ADR-0060).
+/// rather than a change to the loop.
 ///
 /// ## What a handler may assume
 ///
@@ -49,6 +48,8 @@ import dev.goldberry.natives.sdl.calls.SdlEventWatchCalls;
 /// An exception escaping an upcall into native code takes the process with it, so
 /// anything the handler throws is caught here and logged. The alternative is
 /// losing the window because a repaint failed during a drag.
+///
+/// Read more: [The native boundary](https://goldberry.dev/docs/overview/architecture.html#the-native-boundary).
 public final class SdlEventWatch implements AutoCloseable {
 
     private static final Logger LOG = Logs.of(SdlEventWatch.class);

@@ -21,9 +21,9 @@ import dev.goldberry.widgets.Controls;
 import dev.goldberry.widgets.controls.TestFont;
 import dev.goldberry.widgets.core.Column;
 
-/// What a trail looks like (§14, [ADR-0050]).
+/// What a trail looks like.
 ///
-/// Two of §6's rules are only checkable in an image:
+/// Two of the breadcrumbs rules are only checkable in an image:
 ///
 /// - **The current crumb is not a link.** It is the strong weight in full ink
 ///   with no fill, and what would go wrong — a filled current crumb that reads as
@@ -31,10 +31,11 @@ import dev.goldberry.widgets.core.Column;
 /// - **The separator is a mark, not a character.** A chevron drawn in
 ///   `--gb-text-muted` beside labels in `--gb-text` is the one thing that proves
 ///   it never joined the text run; a `>` typed between two labels would take
-///   their colour and shape with them, and would look almost right
-///   ([ADR-0306]).
+///   their colour and shape with them, and would look almost right.
 ///
 /// `./gradlew :widgets:test -Dgoldberry.golden.update=true` rewrites them.
+///
+/// Read more: [Navigation](https://goldberry.dev/docs/components/navigation.html#breadcrumbs).
 class BreadcrumbsGoldenTest {
 
     @BeforeEach
@@ -81,7 +82,7 @@ class BreadcrumbsGoldenTest {
     @Test
     @DisplayName("and the same on light, where the muted ink has the least room")
     void onLight() {
-        // §1.2's 4.5:1 is hardest for `--gb-text-muted` on the light theme, and a
+        // The 4.5:1 contrast floor is hardest for `--gb-text-muted` on the light theme, and a
         // trail is nearly all muted ink — so this is the theme where a separator
         // that vanished would vanish.
         paint(

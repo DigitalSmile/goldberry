@@ -21,7 +21,9 @@ import dev.goldberry.natives.layout.Layouts;
 ///
 /// Today it places a gradient: a COLRv1 colour glyph may turn the fill inside a
 /// glyph without turning the glyph, which is a matrix on the *gradient* rather
-/// than on the context (ADR-0456).
+/// than on the context.
+///
+/// Read more: [The native boundary](https://goldberry.dev/docs/overview/architecture.html#the-native-boundary).
 public record BlendMatrix(double m00, double m01, double m10, double m11, double m20, double m21) {
 
     /// The matrix that moves nothing, which is also what "no matrix" means to

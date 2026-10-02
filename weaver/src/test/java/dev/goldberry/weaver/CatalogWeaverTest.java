@@ -18,7 +18,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
-/// The half of ADR-0131 that `:widgets` cannot test.
+/// The half of the catalog weaver that `:widgets` cannot test: the module-path registration.
 ///
 /// Its test source set runs on the **class path**, so the `META-INF/services`
 /// file is what the service loader reads there and the `provides` patched into
@@ -132,7 +132,7 @@ class CatalogWeaverTest {
             // `:html`'s own shape: two widget trees whose only shared prefix is the
             // package `:core` keeps `Goldberry` and `Host` in. Writing the catalog
             // there would have been a module path that does not start at all, and no
-            // class-path test could have seen it (ADR-0298).
+            // class-path test could have seen it.
             var widgets = List.of(
                     ClassDesc.of("dev.goldberry.html.view.HtmlView"),
                     ClassDesc.of("dev.goldberry.markdown.view.MarkdownView"));

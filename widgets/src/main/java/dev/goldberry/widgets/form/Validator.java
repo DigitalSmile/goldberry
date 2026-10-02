@@ -7,8 +7,13 @@ import java.util.regex.Pattern;
 
 import org.jspecify.annotations.Nullable;
 
-/// Whether a value is acceptable, and what to say when it is not —
-/// `docs/core-widgets.md` §4's validation model.
+/// Whether a value is acceptable, and what to say when it is not — the rule a
+/// `field` checks its control's value against.
+///
+/// ```java
+/// Validator<String> port = text -> text.matches("\\d+") ? Validator.Result.VALID
+///         : Validator.Result.invalid("A port is a number");
+/// ```
 ///
 /// ## It returns a message, not a boolean
 ///
@@ -20,8 +25,8 @@ import org.jspecify.annotations.Nullable;
 ///
 /// The message is the application's words, not the toolkit's. A toolkit that
 /// wrote "Invalid input" would be writing it in one language, in one register,
-/// for every field in every application — and §4 already puts formatting and
-/// parsing on the application for the same reason.
+/// for every field in every application — and formatting and parsing are the
+/// application's for the same reason.
 ///
 /// ## It does not know what the value means
 ///
@@ -35,6 +40,8 @@ import org.jspecify.annotations.Nullable;
 /// [#and] runs this and then the next, and reports the **first** failure. Not
 /// all of them: a field's message slot is one line, and a list of three
 /// complaints about one value is a worse message than the first one.
+///
+/// Read more: [Fields and forms](https://goldberry.dev/docs/components/forms.html#the-validation-model).
 ///
 /// @param <T> what the field's control reports
 @FunctionalInterface
@@ -129,14 +136,13 @@ public interface Validator<T> {
     /// A rule over a **parsed** value, as a rule over the text it was parsed
     /// from.
     ///
-    /// The seam `date-picker` opened. §4 gives a picker a `LocalDate` value and a
-    /// `field` a `Validator<String>`, and this class's own note says why the
-    /// second is right for a `text-input`: "what the user typed is text until
-    /// something parses it, and a validator is exactly the thing that decides
-    /// whether it *can* be parsed". A control whose value is a `LocalDate` does
-    /// not stop that being true — it adds a second question after it, and this is
-    /// the composition of the two rather than a second kind of validator
-    /// ([ADR-0274]).
+    /// A picker has a `LocalDate` value and a `field` has a `Validator<String>`,
+    /// and this class's own note says why the second is right for a
+    /// `text-input`: what the user typed is text until something parses it, and
+    /// a validator is exactly the thing that decides whether it *can* be parsed.
+    /// A control whose value is a `LocalDate` does not stop that being true — it
+    /// adds a second question after it, and this is the composition of the two
+    /// rather than a second kind of validator.
     ///
     /// So an application writes the rule it means:
     ///

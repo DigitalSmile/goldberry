@@ -12,28 +12,28 @@ import dev.goldberry.text.font.sfnt.ColorLayers;
 import dev.goldberry.text.font.sfnt.ColorPaints;
 
 /// A [GlyphFace] at one size, and the thing that actually puts glyphs on a
-/// [Frame] — `docs/gaps.md` G14.
+/// [Frame].
 ///
 /// ## Why it is here and not in `text.font`
 ///
 /// Rasterizing a glyph needs three things: a context, a font and a staged buffer.
-/// `paint` owned the first and `text.font` owned the other two, so the only way
-/// to join them was a public `Frame.drawGlyphs` taking two `:natives` types —
-/// the last leak of the module boundary, in one method, for years (ADR-0290).
-///
-/// Moving the pen here closes it. `text.font` keeps what it is actually about —
-/// shaping, metrics, the fallback chain, the paragraph cache — and hands a
-/// [ShapedRun] to this, which is a value in the font's own design units.
+/// All three live in `paint`, so the one method that joins them is
+/// package-private and no public signature carries a `:natives` type.
+/// `text.font` keeps what it is actually about — shaping, metrics, the fallback
+/// chain, the paragraph cache — and hands a [ShapedRun] to this, which is a
+/// value in the font's own design units.
 ///
 /// ## The units
 ///
 /// A run's offsets and advances are in the face's **design units**, not the
 /// logical coordinates everything else here uses. That asymmetry is the
 /// rasterizer's: the font's own matrix (`size / units-per-em`) converts them,
-/// which is what lets one shaping result be drawn at any size (ADR-0034).
+/// which is what lets one shaping result be drawn at any size.
 ///
 /// Confined to the thread that created it, and must be closed. Closing it leaves
 /// its face alone — other sizes are using it.
+///
+/// Read more: [Text, fonts and icons](https://goldberry.dev/docs/guide/text.html#faces-fonts-and-the-book).
 public final class GlyphPen implements AutoCloseable {
 
     private final BlendFont font;
@@ -114,8 +114,7 @@ public final class GlyphPen implements AutoCloseable {
     ///
     /// The face's own number, scaled to this pen's size. A painter that guessed
     /// instead would be wrong at every size and at every family, which is why this
-    /// is here rather than in whoever draws the rectangle (`docs/gaps.md` G27,
-    /// [ADR-0321]).
+    /// is here rather than in whoever draws the rectangle.
     public double underlinePosition() {
         return metrics().underlinePosition();
     }
@@ -179,7 +178,7 @@ public final class GlyphPen implements AutoCloseable {
     /// [ColourGlyphPainter]; one with version 0 layers is drawn a layer at a time
     /// here; anything else is staged as the outline it is. A face may carry both
     /// formats for one glyph — the older one for renderers that know no better —
-    /// and the graph wins, because it is the picture the font means (ADR-0456).
+    /// and the graph wins, because it is the picture the font means.
     ///
     /// ## What it costs, and why that is acceptable
     ///
@@ -192,7 +191,7 @@ public final class GlyphPen implements AutoCloseable {
     /// glyph, and what the rasterizer does is proportional to the ink. A face
     /// with no colour in it never reaches this method at all — the check above is
     /// one field read — so the cost is paid by the text that is actually
-    /// coloured, which is a reaction chip and not a paragraph ([ADR-0393]).
+    /// coloured, which is a reaction chip and not a paragraph.
     ///
     /// ## Why every placement carries an absolute offset
     ///

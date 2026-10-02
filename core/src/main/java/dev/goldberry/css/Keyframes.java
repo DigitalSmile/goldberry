@@ -5,7 +5,7 @@ import java.util.List;
 import java.util.Objects;
 
 /// A named `@keyframes` block: where each moment of an animation is, and what
-/// it declares there (ADR-0353).
+/// it declares there.
 ///
 /// ```css
 /// @keyframes tile-drop {
@@ -18,6 +18,8 @@ import java.util.Objects;
 /// Declarations are kept as tokens, like a [StyleRule]'s. What `var(--gb-accent)`
 /// means depends on the element the animation runs on, so a keyframe is resolved
 /// per element rather than once per stylesheet.
+///
+/// Read more: [Styling](https://goldberry.dev/docs/guide/styling.html#transition-and-animation).
 ///
 /// @param name   the name `animation-name` refers to, as written; matched with
 ///               case preserved, as CSS matches it

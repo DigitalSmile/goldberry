@@ -46,7 +46,7 @@ class BlendGlyphBufferTest {
             assertEquals((byte) PLACEMENT_STRIDE, run.get(ValueLayout.JAVA_BYTE, RUN_PLACEMENT_ADVANCE));
             assertEquals(16, PLACEMENT_STRIDE, "two BLPointI is sixteen bytes");
 
-            // The field that decides the units of everything else (ADR-0034).
+            // The field that decides the units of everything else.
             assertEquals(
                     (byte) BlendGlyphPlacementType.ADVANCE_OFFSET.nativeValue(),
                     run.get(ValueLayout.JAVA_BYTE, RUN_PLACEMENT_TYPE));

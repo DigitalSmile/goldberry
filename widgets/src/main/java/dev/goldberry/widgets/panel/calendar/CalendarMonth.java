@@ -16,16 +16,15 @@ import java.util.Objects;
 /// **Six rows of seven, always.** A month occupies four to six weeks depending on
 /// its length and which day it starts on, and a grid that changed height between
 /// them would move everything under it — a popover would resize under the
-/// pointer, and §3.1's month cross-fade would be a cross-fade between two shapes.
+/// pointer, and the month cross-fade would be a cross-fade between two shapes.
 /// So the grid is the maximum and the spare days come from the months on either
 /// side, which are drawn quieter and are still real dates a user may press. That
-/// is what every calendar does and it is not in §10, which says only "a month
-/// grid".
+/// is what every calendar does.
 ///
 /// ## The locale decides where the week starts
 ///
-/// §10: "Week starts and month/day names come from the `Locale` the application
-/// supplies — the toolkit ships no calendar data of its own beyond `java.time`."
+/// Week starts and month and day names come from the `Locale` the application
+/// supplies; the toolkit ships no calendar data of its own beyond `java.time`.
 /// So this holds no table of anything. [WeekFields#of(Locale)] answers Monday for
 /// most of Europe and Sunday for the United States, and
 /// [DayOfWeek#getDisplayName] and [java.time.Month#getDisplayName] write the

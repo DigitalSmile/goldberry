@@ -29,11 +29,10 @@ import dev.goldberry.widget.attr.Attributes;
 import dev.goldberry.widgets.Controls;
 import dev.goldberry.widgets.controls.TestFont;
 
-/// A tab the strip has scrolled past is brought back when it is selected —
-/// [ADR-0120].
+/// A tab the strip has scrolled past is brought back when it is selected.
 ///
-/// The ADR describes a pending reveal "set when the selection changes and
-/// cleared the moment it has been acted on", and only the second half was ever
+/// The design was a pending reveal, set when the selection changes and
+/// cleared the moment it has been acted on, and only the second half was ever
 /// written: `TabsState` held the field, compared every located header against it
 /// and cleared it, and nothing ever put a value in it. So a strip of twelve
 /// chapters in a narrow window answered `Ctrl+Tab` — or a bound value the
@@ -70,7 +69,7 @@ class TabRevealTest {
     }
 
     /// An application in miniature, as [TabTravelTest] has: it owns the
-    /// selection, because the strip asks and never decides (ADR-0063).
+    /// selection, because the strip asks and never decides.
     private record Harness() implements Widget.Stateful {
 
         @Override
@@ -125,8 +124,7 @@ class TabRevealTest {
     }
 
     /// Enough frames for a reveal to be measured, acted on, and for the glide it
-    /// starts to land — a programmatic scroll slides rather than jumping
-    /// (ADR-0363).
+    /// starts to land — a programmatic scroll slides rather than jumping.
     private void settle() {
         for (var i = 0; i < 8; i++) {
             frame();

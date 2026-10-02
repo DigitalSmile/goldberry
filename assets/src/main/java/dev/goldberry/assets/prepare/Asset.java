@@ -13,7 +13,7 @@ import java.util.Objects;
 /// asset that changed underneath us would change how every application using the
 /// toolkit renders, silently, with no version number moving.
 ///
-/// This is the same discipline ADR-0030 applies to the native upstreams. It lives
+/// This is the same discipline the native upstreams are pinned with. It lives
 /// in Java rather than in `gradle/libs.versions.toml` because a version catalog
 /// holds versions and has nowhere to put a checksum, an archive layout, or the
 /// list of entries worth extracting — and splitting those across two files is how
@@ -120,7 +120,7 @@ public record Asset(
     // ------------------------------------------------------------------------
     // The manifest.
     //
-    // Fonts per docs/ARCHITECTURE.md §6.1 and §6.2, icons per §6.3. Every
+    // The faces the text stack ships, then the icon set. Every
     // checksum here was computed from the archive that was actually downloaded
     // and used — not copied from a release page, which would only prove the
     // release page and the download agree with each other.
@@ -139,9 +139,9 @@ public record Asset(
     /// same class of local-symbol bug three times and is only ever answered by a
     /// CI run across four targets.
     ///
-    /// `docs/design-system.md` §1.4 ships **exactly two weights**, 400 and 600,
-    /// and Principle 3 says a screen that needs a third extends the system rather
-    /// than improvising one. Two static instances therefore cover the whole
+    /// The design system ships **exactly two weights**, 400 and 600, and a
+    /// screen that needs a third extends the system rather than improvising one.
+    /// Two static instances therefore cover the whole
     /// shipped scale for 400 KB and no native change, and the axis stays a real
     /// optimisation for the day an intermediate weight is actually specified.
     ///
@@ -151,13 +151,13 @@ public record Asset(
     /// different letterforms — a single-storey `a`, a cursive `f` — and the
     /// alternative available without a file is shearing the upright glyphs, which
     /// is a *synthetic oblique* and a decision about type design rather than a
-    /// workaround (`docs/gaps.md` G27, ADR-0323).
+    /// workaround.
     ///
     /// Two of them rather than one, because the matrix has to close: a stylesheet
     /// that writes `font-weight: 600; font-style: italic` on a heading must get
     /// something that is both, and "the nearest of the three we shipped" is how a
     /// design system acquires a weight nobody chose. Two weights × two styles is
-    /// four files and 830 KB more, which is the same trade ADR-0066 took.
+    /// four files and 830 KB more, which is the same trade the second weight took.
     public static final Asset INTER = new Asset(
             "inter",
             "4.1",
@@ -185,11 +185,11 @@ public record Asset(
     /// Noto Color Emoji — the emoji slot.
     ///
     /// **The COLRv1 build**, `Noto-COLRv1.ttf`. Google publishes the same
-    /// pictures two ways and the choice between them is the one ADR-0393 made
-    /// for OpenMoji: the `CBDT` build is 10.7 MB of 136-pixel bitmap strikes that
+    /// pictures two ways and the choice between them is the one the toolkit
+    /// always makes for an emoji face: the `CBDT` build is 10.7 MB of 136-pixel bitmap strikes that
     /// blur at any size above that, and the COLRv1 build is 5 MB of outlines,
     /// gradients and transforms that are crisp at every scale. The toolkit draws
-    /// the paint graph itself (`text.font.sfnt.ColorPaints`, ADR-0456).
+    /// the paint graph itself (`text.font.sfnt.ColorPaints`).
     ///
     /// **A single file, not an archive.** The release has no assets and its
     /// source zip is the whole repository, so the font is pinned by the tag in

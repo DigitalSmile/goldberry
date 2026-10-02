@@ -25,7 +25,7 @@ import dev.goldberry.paint.Box;
 /// - **Width a percentage, height auto:** the height follows the width the last
 ///   frame laid out, through [dev.goldberry.input.handler.Measured].
 ///   One frame late, which the first frame after a load pays once; it is the one
-///   case the renderer cannot answer before layout (ADR-0358).
+///   case the renderer cannot answer before layout.
 /// - **Both given:** the box is the stylesheet's, and [Fit] decides the drawing.
 final class ImagePaint {
 

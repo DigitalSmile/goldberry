@@ -17,7 +17,7 @@ import dev.goldberry.render.backend.headless.HeadlessBackend;
 /// such a widget without a window therefore needs a runtime to be there already,
 /// or the first status change boots SDL from a decoder thread — and in a build
 /// with no native library fails there, with the library's `Holder` poisoned for
-/// every test after it (ADR-0517).
+/// every test after it.
 ///
 /// `:core`'s own tests install a [HeadlessBackend] by hand in `@BeforeEach` and
 /// shut it down in `@AfterEach`. This is that pair as a JUnit extension, for a
@@ -33,6 +33,9 @@ import dev.goldberry.render.backend.headless.HeadlessBackend;
 /// player closed in `@AfterEach` publishes its last status to a runtime that is
 /// still there. A test that installs its own backend as well fails loudly: the
 /// runtime refuses a second installation.
+///
+/// Read more: [Running the launcher
+/// without a display](https://goldberry.dev/docs/guide/testing.html#running-the-launcher-without-a-display).
 public final class HeadlessRuntime implements BeforeEachCallback, AfterEachCallback {
 
     @Override

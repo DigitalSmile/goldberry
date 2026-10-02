@@ -6,7 +6,7 @@ import java.util.stream.IntStream;
 import dev.goldberry.image.Image;
 
 /// The showcase's window icon: four tiles on a rounded square, computed rather
-/// than shipped as PNGs (`docs/gaps.md` G40, ADR-0351).
+/// than shipped as PNGs.
 ///
 /// Computed so the example needs no binary assets to show
 /// [dev.goldberry.Application#icon()] working, and **drawn at
@@ -16,6 +16,8 @@ import dev.goldberry.image.Image;
 ///
 /// Coverage is computed per pixel from a signed distance to each shape, so the
 /// edges are anti-aliased in straight alpha, which is what the method is handed.
+///
+/// Read more: [The application](https://goldberry.dev/docs/applications.html#the-application).
 public final class ShowcaseIcon {
 
     /// The sizes a desktop asks for: a Windows taskbar at 100% and 200%, a dock,

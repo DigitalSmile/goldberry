@@ -11,6 +11,8 @@ package dev.goldberry.natives.sdl.window;
 ///
 /// Anything else means the platform handed back a surface Goldberry cannot blit
 /// into, and the backend says so rather than writing a scrambled frame.
+///
+/// Read more: [The native boundary](https://goldberry.dev/docs/overview/architecture.html#the-native-boundary).
 public enum SdlPixelFormat {
     XRGB8888(0x16161804),
 

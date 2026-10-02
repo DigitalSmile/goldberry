@@ -22,7 +22,7 @@ import dev.goldberry.widgets.core.presence.Phase;
 /// `id` and the classes — the arrangement `field`, `collapse`, `scroll`, `tabs`
 /// and `select` all use.
 ///
-/// @param kind       which of §7's four this is
+/// @param kind       which of the four kinds this is
 /// @param text       the words
 /// @param actions    the author's links, or empty
 /// @param onDismiss  what the × tells, or null for a banner with no way out
@@ -41,7 +41,7 @@ record MessageBox(
         Attributes attributes)
         implements Widget.Leaf, Styled, Paints {
 
-    /// §3's "2px rise" — how far below its place a banner starts.
+    /// The 2px rise: how far below its place a banner starts.
     private static final double TRAVEL = 2;
 
     @Override
@@ -72,11 +72,11 @@ record MessageBox(
 
     /// The glyph, the words and the way out — see [Message]'s diagram.
     ///
-    /// There is no "departed" case here any more. A banner whose exit has run out
+    /// There is no "departed" case here. A banner whose exit has run out
     /// is not an empty banner: [MessageState] answers [Widget#nothing()] and this
     /// record is never built at all, so the × leaves the hit test with the frame
     /// it was pressed on and the container keeps no gap round a node that is not
-    /// there ([ADR-0227]).
+    /// there.
     @Override
     public List<Widget> children() {
         var parts = new ArrayList<Widget>(3);
@@ -94,8 +94,8 @@ record MessageBox(
     /// difference worth writing down: a phase settles **inside `render`**, when
     /// the clock it is reading passes the end. A part that decided at *build*
     /// time whether it was animating would go on saying yes until something else
-    /// rebuilt it — and for a banner, nothing else ever does. §1.7's "the frame
-    /// loop is fully idle when no animation is active" is a promise about a
+    /// rebuilt it — and for a banner, nothing else ever does. That the frame
+    /// loop is fully idle when no animation is active is a promise about a
     /// widget that has been sitting there for a minute, so it has to be the
     /// phase that answers.
     ///
@@ -128,13 +128,13 @@ record MessageBox(
             return box;
         }
         if (leaving) {
-            // §3 asks for `opacity` and nothing else on the way out. A banner
+            // The way out is `opacity` and nothing else. A banner
             // that also slid would move the content under it twice — once as it
             // travelled and again as it stopped being there.
             return box.opacity(visible);
         }
         // Up from below: a banner that pushed the content down as it arrived
-        // would make the whole region jump, so it rises the 2px §3 asks for
+        // would make the whole region jump, so it rises its 2px
         // into a space the layout has already given it.
         return box.opacity(visible)
                 .transform(Transform.of(new Transform.Function.Translate(

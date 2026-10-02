@@ -16,8 +16,7 @@ import org.junit.jupiter.api.Test;
 /// The one behaviour here that is not bookkeeping is [Gradient#fade]: a fade to
 /// `0x00000000` is a fade to transparent *black*, so a green faded that way goes
 /// through grey. That is the classic wrong gradient, it is invisible in code
-/// review, and it is what this type exists to make unwritable (ADR-0207,
-/// ADR-0277).
+/// review, and it is what this type exists to make unwritable.
 class GradientTest {
 
     @Nested

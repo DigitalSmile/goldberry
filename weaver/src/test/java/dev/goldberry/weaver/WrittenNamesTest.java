@@ -18,9 +18,8 @@ import org.junit.jupiter.api.Test;
 /// nothing checks", and that was true of the *annotations* and false of these:
 /// nothing checked them at all.
 ///
-/// ADR-0172
-/// moved `BoundModel`, `FieldListeners`, `BindingRegistry` and `ActionRegistry`
-/// into packages of their own, and every one of those names is written here as
+/// When `BoundModel`, `FieldListeners`, `BindingRegistry` and `ActionRegistry`
+/// moved into packages of their own, every one of those names was written here as
 /// text. The build stayed green through the move; a woven native image would
 /// have failed at class-load time, months later, with a `NoClassDefFoundError`
 /// naming a package that no longer exists.

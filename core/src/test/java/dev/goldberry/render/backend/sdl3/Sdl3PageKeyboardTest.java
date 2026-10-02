@@ -15,7 +15,8 @@ import dev.goldberry.natives.sdl.event.SdlEventType;
 import dev.goldberry.render.web.BackendWebView;
 import dev.goldberry.render.web.WebSize;
 
-/// A key typed into an embedded page is the page's — [ADR-0459].
+/// A key typed into an embedded page is the page's, and the window does not see
+/// it twice.
 ///
 /// On macOS SDL handles every key event before the window delivers it to the
 /// focused view, so a keystroke typed into a page reaches the backend's queue as

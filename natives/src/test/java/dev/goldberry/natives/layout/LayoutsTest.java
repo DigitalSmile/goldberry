@@ -47,8 +47,8 @@ class LayoutsTest {
     /// of a union would assert a structure it does not have.
     ///
     /// `BLPathCore` is the same union again under its own name, registered
-    /// separately because `BlendPath` allocates by it (ADR-0043), and
-    /// `BLGradientCore` is a third for the same reason (ADR-0207).
+    /// separately because `BlendPath` allocates by it, and
+    /// `BLGradientCore` is a third for the same reason.
     private static final List<String> OPAQUE = List.of("SDL_Event", "BLObjectDetail", "BLPathCore", "BLGradientCore");
 
     @Test

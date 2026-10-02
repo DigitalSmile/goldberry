@@ -13,8 +13,8 @@ import dev.goldberry.css.value.Shadow;
 /// A real `box-shadow` is a Gaussian blur of a rounded rectangle, and the
 /// rasterizer binding has no blur: Blend2D's image filters are not on the export
 /// list, there is no offscreen pass a box could afford per frame, and the frost
-/// material's 3-pass box blur (`docs/design-system.md` §1.5) runs over a
-/// *backdrop*, not over a shape the painter is in the middle of drawing.
+/// material's 3-pass box blur runs over a *backdrop*, not over a shape the
+/// painter is in the middle of drawing.
 ///
 /// What it does have is a fast rounded-rectangle fill. So the fade is built out
 /// of them: a run of nested rounded rectangles, the outermost nearly invisible
@@ -24,7 +24,7 @@ import dev.goldberry.css.value.Shadow;
 ///
 /// This class is the arithmetic and nothing else: no rasterizer, no [Shadow]
 /// geometry, no `Frame`. It says *how opaque* each band is, [ShadowGeometry] says
-/// what shape it is, and `ShadowPainter` puts the two together (ADR-0310).
+/// what shape it is, and `ShadowPainter` puts the two together.
 ///
 /// ## Getting the alphas right
 ///
@@ -62,6 +62,8 @@ import dev.goldberry.css.value.Shadow;
 /// σ = blur/2 it is a few percent light in the shoulders. At the alphas a shadow
 /// is painted at — 0.16 to 0.68 across the two themes — a few percent of a few
 /// percent is under a bit of one channel.
+///
+/// Read more: [Styling](https://goldberry.dev/docs/guide/styling.html#border-outline-and-shadow).
 public final class ShadowRamp {
 
     /// The narrowest fade worth more than four bands, and the widest worth more
@@ -93,20 +95,19 @@ public final class ShadowRamp {
     /// for every box in an ordinary window, so this is the cheap answer and not
     /// the exceptional one.
     ///
-    /// **The whole fade, including the bands that will not be drawn.** This used
-    /// to take a second argument saying whether the box would paint an opaque
-    /// fill over its own rectangle, and to drop the bands hidden under it. It no
-    /// longer does, for two reasons that arrived together in ADR-0427:
+    /// **The whole fade, including the bands that will not be drawn.** This does
+    /// not ask whether the box will paint an opaque fill over its own rectangle,
+    /// for two reasons:
     ///
-    /// - the question had two answers and now has one. The painter cuts the
-    ///   border box out of every band with an even-odd fill, so a band inside
-    ///   that rectangle paints nothing whether the box is opaque or not;
-    /// - and deciding *where* a band is was never this class's job. It is
-    ///   [ShadowGeometry#coveredAt]'s, which is where the painter now asks.
+    /// - the question has one answer. The painter cuts the border box out of
+    ///   every band with an even-odd fill, so a band inside that rectangle paints
+    ///   nothing whether the box is opaque or not;
+    /// - and deciding *where* a band is is not this class's job. It is
+    ///   [ShadowGeometry#coveredAt]'s, which is where the painter asks.
     ///
-    /// What is lost is that the hidden bands are constructed and thrown away —
+    /// What it costs is that the hidden bands are constructed and thrown away —
     /// a record of a `double` and an `int` each, for at most half of at most
-    /// forty-eight. What is bought is that the alphas below can be tested across
+    /// forty-eight. What it buys is that the alphas below can be tested across
     /// the whole curve rather than across whatever a culling rule left of it.
     public static List<Band> bands(Shadow shadow) {
         Objects.requireNonNull(shadow, "shadow");

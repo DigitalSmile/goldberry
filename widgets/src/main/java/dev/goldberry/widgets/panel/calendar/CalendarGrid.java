@@ -16,7 +16,7 @@ import dev.goldberry.widget.style.Paints;
 import dev.goldberry.widget.style.Styled;
 import dev.goldberry.widgets.core.presence.Phase;
 
-/// The six weeks — `calendar-grid`, a **part**, and where §3.1's month change
+/// The six weeks — `calendar-grid`, a **part**, and where the month cross-fade
 /// happens.
 ///
 /// > `calendar` | month change: content `opacity` cross-fade fast — **never a
@@ -38,11 +38,12 @@ import dev.goldberry.widgets.core.presence.Phase;
 /// multiplied by an index — a measurement `render` would have had to guess at.
 ///
 /// That absolute child lands where it should because
-/// [dev.goldberry.paint.tree.ContainingBlock] shifts it by this
-/// box's padding (ADR-0272).
+/// [dev.goldberry.paint.tree.ContainingBlock] places an absolutely positioned
+/// child inside its parent's padding, not at the border edge.
 ///
-/// **`fast`, not `base`** — §3.1 says so, and a month change is a change of
-/// content rather than something entering the layout. It is a constant here for
+/// The fade runs at the design system's `fast` duration, not `base`: a month
+/// change is a change of content rather than something entering the layout.
+/// It is a constant here for
 /// [Phase]'s stated reason: a clock-driven animation cannot read a `transition`
 /// declaration, because it is not one.
 ///
@@ -54,7 +55,7 @@ record CalendarGrid(
         @Nullable List<Widget> outgoing,
         @Nullable Phase phase) implements Widget.Leaf, Styled, Paints {
 
-    /// §3.1's `fast`, which is `--gb-motion-fast`'s 100ms.
+    /// The design system's `fast`, which is `--gb-motion-fast`'s 100ms.
     static final double CROSS_FADE_MILLIS = 100;
 
     /// Pinned across the top of the grid, and left to its own height.

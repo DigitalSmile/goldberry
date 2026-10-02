@@ -28,7 +28,7 @@ import dev.goldberry.render.model.LogicalPoint;
 ///
 /// The point sequences asserted below are the ones [RoundRect] and `Arc` emitted
 /// before this type existed. That is the claim this file exists to defend: no
-/// golden image moved when the geometry did (ADR-0277).
+/// golden image moved when the geometry became a value of its own.
 class PathTest {
 
     /// `4 * (sqrt(2) - 1) / 3`, repeated here on purpose. A test that computed it

@@ -24,66 +24,69 @@ import dev.goldberry.widgets.markup.Markup;
 import org.jspecify.annotations.Nullable;
 
 /// One choice in a [dev.goldberry.widgets.controls.segmented.Segmented]
-/// or a [dev.goldberry.widgets.controls.select.Select]
-/// (§11, `docs/core-widgets.md` §3).
+/// or a [dev.goldberry.widgets.controls.select.Select]: a value, a label and,
+/// sometimes, an icon.
 ///
 /// ```kdl
 /// segmented bind="view.mode" change="pickMode" {
 ///     option value="list" "List"
 ///     option value="grid" "Grid"
+///     option value="map" icon="map" name="Map"
 /// }
 /// ```
 ///
+/// In Java, `new Option("list", "List")`, or `new Option("list")` when the
+/// label is the value, then [#withIcon] and [#disabled] as needed. `value=` is
+/// what the control reports when this option is picked, the argument is the
+/// label, `icon=` goes before it, and an icon-only option needs `name=` so a
+/// screen reader has something to say.
+///
 /// ## One node, two controls, one package
 ///
-/// §3 gives `segmented` and `select` the same child node — a value, a label, an
-/// icon, and nothing else — so this is one widget by specification. It lived in
-/// `…controls.segmented` while that was its only caller, under
-/// ADR-0092's
-/// rule about not generalising from one, and moved here when the second arrived:
-/// a package named after one of two callers tells the reader the wrong thing
-/// (ADR-0141).
+/// `segmented` and `select` take the same child node — a value, a label, an
+/// icon, and nothing else — so this is one widget, in a package of its own
+/// because it has two callers and a package named after one of them would tell
+/// the reader the wrong thing.
 ///
 /// **The drawing is not shared, and does not need to be.** A segment is a cell in
 /// a bar and a choice in a dropdown is a row; both are `option` in CSS, and which
 /// is drawn is the ancestor's — `segmented option` against `popover option`. That
 /// is a descendant selector telling one widget's two *surroundings* apart, which
-/// is not what the improvisation below is: that one would be using an ancestor to
-/// tell two different widgets apart, and the difference is whether the selector
-/// is describing where a thing is or what it is.
+/// is a different thing from using an ancestor to tell two different widgets
+/// apart: the difference is whether the selector describes where a thing is or
+/// what it is.
 ///
 /// ## What it knows and what it is told
 ///
 /// The same division [dev.goldberry.widgets.controls.radio.Radio]
-/// makes, because §3 says a segmented control shares `radio-group`'s model
-/// *exactly*: an option owns its [#value()], its label and its icon, and is told
-/// whether it is selected, what picking it does, and whether the set as a whole
-/// is unavailable. "Exactly one of these is on" is a fact about the set
+/// makes, because a segmented control shares `radio-group`'s model exactly: an
+/// option owns its [#value()], its label and its icon, and is told whether it is
+/// selected, what picking it does, and whether the set as a whole is
+/// unavailable. "Exactly one of these is on" is a fact about the set
 /// ([dev.goldberry.widgets.controls.segmented.Segmented#children()]), so an
-/// option inflated from markup starts unselected
-/// and unwired and the control rewrites it on every build — which is also what
-/// keeps §11's parity invariant honest, since that is precisely the value a Java
-/// caller writes.
+/// option inflated from markup starts unselected and unwired and the control
+/// rewrites it on every build — which is also what keeps the Java-built and
+/// KDL-built forms equal, since that is precisely the value a Java caller writes.
 ///
 /// ## Why it is not a `radio`
 ///
 /// A radio is a glyph beside a label and this is a filled cell in a bar: two
 /// drawings that share a model. Sharing the *widget* would mean one CSS type for
 /// both, and a stylesheet could then only tell them apart by their ancestor —
-/// `segmented radio` — which is the descendant-selector improvisation
-/// ADR-0065
-/// exists to avoid. It is named `option` rather than `segment` because that is
-/// the node `docs/core-widgets.md` §3 writes, in both that control and `select` —
-/// which is what eventually put it in a package of its own.
+/// `segmented radio` — and a part's own CSS type is what lets an author style
+/// it without that improvisation. It is named `option` rather than `segment`
+/// because that is the node both controls write.
 ///
 /// ## The content is boxes, not child widgets
 ///
 /// [dev.goldberry.widgets.controls.button.Button]'s shape
 /// rather than the radio's: the icon and the label are boxes on *this* node,
 /// because neither is separately styleable — there is one background, one radius
-/// and one colour across a segment, and §3 gives the pair no metrics of its own
+/// and one colour across a segment, and the pair has no metrics of its own
 /// beyond the gap. A radio needs a child element because its glyph carries a
 /// second background; a segment does not.
+///
+/// Read more: [Choices](https://goldberry.dev/docs/components/choices.html#option).
 ///
 /// @param value      what this segment means, reported to the control's `change`
 ///                   handler — the string the document wrote, uninterpreted
@@ -105,14 +108,14 @@ public record Option(
         boolean disabled, Attributes attributes, boolean roving)
         implements Widget.Leaf, Styled, Paints, Handles, Attributed<Option> , Semantics {
 
-    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    /// The canonical constructor, written out so that the parameters taking null for a default can say so.
     public Option(String value, String label, @Nullable Icon icon, boolean selected, @Nullable Runnable onSelect, boolean disabled, @Nullable Attributes attributes, boolean roving) {
         Objects.requireNonNull(value, "value");
         Objects.requireNonNull(label, "label");
         if (label.isEmpty() && icon == null) {
             throw new IllegalArgumentException(
                     "an option with neither a label nor an icon has nothing to click on"
-                            + " and nothing to read out (§13)");
+                            + " and nothing to read out");
         }
         attributes = attributes == null ? Attributes.NONE : attributes;
         this.value = value;
@@ -145,8 +148,8 @@ public record Option(
         this(value, value);
     }
 
-    /// This segment with an icon before its label (§3: "a label, an icon, or
-    /// both").
+    /// This segment with an icon before its label — a segment is a label, an
+    /// icon, or both.
     ///
     /// The icon is borrowed, for the reason
     /// [dev.goldberry.widgets.controls.button.Button#withIcon]
@@ -169,20 +172,20 @@ public record Option(
     /// This option as its control sees it: told whether it is on, what picking it
     /// does, and whether anything else makes it unavailable.
     ///
-    /// Package-private until `select` needed it from another package, and the
-    /// visibility costs nothing it was protecting: **both controls rewrite every
-    /// option on every build**, so a `selected` an application set here is
-    /// discarded before it is ever drawn. What keeps a set from having two
-    /// selected options was never this modifier — it is that "exactly one" is
-    /// computed in one place from the bound value and stored nowhere (ADR-0141).
+    /// Public because `select` calls it from another package, and the visibility
+    /// costs nothing: **both controls rewrite every option on every build**, so a
+    /// `selected` an application set here is discarded before it is ever drawn.
+    /// What keeps a set from having two selected options is not this modifier —
+    /// it is that "exactly one" is computed in one place from the bound value and
+    /// stored nowhere.
     ///
     /// @param alsoDisabled a further reason this option cannot be picked, or false.
-    ///        **Not the control's own flag**, though the parameter used to be called
-    ///        `groupDisabled` and say so: [dev.goldberry.widgets.controls.segmented.Segmented]
+    ///        **Not the control's own flag**:
+    ///        [dev.goldberry.widgets.controls.segmented.Segmented]
     ///        deliberately passes the option's *own* `disabled` here, because a
     ///        disabled bar already reaches its segments through the router walking
-    ///        the ancestors (ADR-0077) and pushing it down as well would match
-    ///        `:disabled` twice and land the 45% at 20%. A `select`'s list is the
+    ///        the ancestors, and pushing it down as well would match `:disabled`
+    ///        twice and fade the segment twice over. A `select`'s list is the
     ///        caller that really does pass its own: a row of a disabled combobox is
     ///        not pickable and nothing above it is drawn to say so.
     public Option within(boolean isSelected, @Nullable Runnable select, boolean alsoDisabled) {
@@ -198,14 +201,13 @@ public record Option(
     /// This option as a **row in a list** rather than a cell in a bar: the
     /// keyboard moves over it without choosing it, and `Enter` is what chooses.
     ///
-    /// §3 gives the two controls that share this node two different keyboards, in
-    /// as many words. A `radio-group` — and therefore a `segmented` — has "arrow
-    /// keys move selection (roving focus)", so an arrow *is* the choice. A
-    /// `select` has "arrows, Enter/Esc", so an arrow moves and `Enter` commits,
-    /// and `Esc` has something to leave alone. Both are what those controls do
-    /// everywhere, and the difference is not cosmetic: an arrow in a dropdown
-    /// that chose would also close the list, so the second press would have
-    /// nothing to move ([ADR-0141]).
+    /// The two controls that share this node have two different keyboards. In a
+    /// `radio-group` — and therefore a `segmented` — the arrow keys move the
+    /// selection with a roving focus, so an arrow *is* the choice. In a `select`
+    /// an arrow moves and `Enter` commits, and `Esc` has something to leave
+    /// alone. Both are what those controls do everywhere, and the difference is
+    /// not cosmetic: an arrow in a dropdown that chose would also close the list,
+    /// so the second press would have nothing to move.
     ///
     /// One flag rather than two, because the two halves are one decision: a set
     /// where the keyboard chooses has no use for a separate commit, and a set
@@ -269,7 +271,7 @@ public record Option(
     /// the bar, and an option cannot see its siblings; the router moves the focus
     /// along [dev.goldberry.widgets.controls.segmented.Segmented#focusScope()]'s
     /// axis and this widget hears about it in
-    /// [#onFocusChanged] ([ADR-0073]).
+    /// [#onFocusChanged].
     @Override
     public void onKey(KeyEvent event) {
         if (event.kind() != KeyEvent.Kind.PRESSED || event.isRepeat() || !event.modifiers().none()) {
@@ -279,7 +281,7 @@ public record Option(
         // rule is that `Enter` belongs to a dialog's default action, and it holds
         // where a control sits in a form — but a list is in a popup of its own,
         // over everything, and there is no default action behind it to take.
-        // Choosing is the only thing `Enter` can mean there, and §3 says so.
+        // Choosing is the only thing `Enter` can mean there.
         if (event.key() == Key.SPACE || (!roving && event.key() == Key.ENTER)) {
             select();
             event.consume();
@@ -313,8 +315,7 @@ public record Option(
             // anonymous child box that `style` never reaches -- the same move a
             // menu row makes for the same reason. It is what lets the stylesheet
             // say `option { white-space: nowrap; text-overflow: ellipsis }` and
-            // have a segment's label cut at its cell rather than wrap inside it
-            // (ADR-0255).
+            // have a segment's label cut at its cell rather than wrap inside it.
             content.add(Box.text(context.paragraph(style, label), style.color(), style.textFlow()));
         }
         return Box.of().style(style).children(content.toArray(Box[]::new));
@@ -350,9 +351,9 @@ public record Option(
     ///
     /// **An icon-only segment has an empty label by construction** — the icon is the
     /// whole of what is on screen — so deriving a name from it produces the empty
-    /// string, which is a control a reader cannot announce. §3 asks for `name=`
-    /// on exactly this case and the attribute exists now, on `Attributes`, where
-    /// every widget gets it rather than each remembering its own ([ADR-0260]).
+    /// string, which is a control a reader cannot announce. `name=` is for
+    /// exactly this case, and it lives on `Attributes`, where every widget gets
+    /// it rather than each remembering its own.
     ///
     /// The label wins where there is one. An author who writes both has said the
     /// same thing twice, and the one on screen is the one a sighted user is

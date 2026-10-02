@@ -1,4 +1,5 @@
-# Snapshots (ADR-0334)
+# Snapshots
+# https://goldberry.dev/docs/contributing/releasing.html#snapshots
 #
 # Every push to master builds Linux, macOS and Windows -- the per-OS workflows,
 # called through publish.yml -- and publishes `goldberryVersion-SNAPSHOT` to the

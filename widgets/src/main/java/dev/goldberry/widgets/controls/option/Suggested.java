@@ -12,21 +12,25 @@ import dev.goldberry.bind.Observable;
 import dev.goldberry.widget.BuildContext;
 import dev.goldberry.widget.Widget;
 
-/// A field whose suggestions a document names — `text-input suggestions=` and
-/// `select options=` (ADR-0367).
+/// A field whose suggestions a document names — what `text-input suggestions=`
+/// and `select options=` build.
 ///
 /// ```kdl
 /// text-input bind="city.typed" change="city.type" suggestions="city.matches"
+/// select autocomplete=#true query="places.search" options="places.matches"
 /// ```
 ///
-/// §4 says the application supplies the list and the widget raises the query.
-/// In Java that is a rebuild with new options in answer to `change`; a document
-/// has no rebuild, so it names the value the answer lands in. This node
-/// subscribes to that value and describes the field again with whatever it holds
-/// each time it changes.
+/// The application supplies the list and the widget raises the query. In Java
+/// that is a rebuild with new options in answer to `change`; a document has no
+/// rebuild, so it names the value the answer lands in. This node subscribes to
+/// that value and describes the field again with whatever it holds each time it
+/// changes.
 ///
 /// A composition node with no CSS type: the field it builds is the styled node,
 /// so a stylesheet and a hit test see exactly what they saw before.
+///
+/// Read more: [Fields and forms](https://goldberry.dev/docs/components/forms.html#text-input)
+/// and [Choices](https://goldberry.dev/docs/components/choices.html#select).
 ///
 /// @param source what the suggestions are: a collection of [Option]s, or of
 ///               anything else, which is offered as its string

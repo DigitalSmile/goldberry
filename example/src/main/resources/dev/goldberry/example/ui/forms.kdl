@@ -1,4 +1,4 @@
-// The **Forms** screen's markup half: §4 entire — `text-input`, `text-area`,
+// The **Forms** screen's markup half: the whole form group — `text-input`, `text-area`,
 // `code-input`, `date-picker`, `time-picker`, `color-picker`, `field` and `form`,
 // in every state each of them has.
 //
@@ -14,8 +14,7 @@
 // holds a *set* the application edits, an `autocomplete` renders whatever options
 // it is handed *back*, a `tree`'s model is nodes with suppliers under them, and a
 // class set computed from seven toggles is a value rather than an attribute a
-// document can write. All four are channels a document does not have (ADR-0182,
-// ADR-0183, ADR-0184, ADR-0324).
+// document can write. All four are channels a document does not have.
 masonry id="forms-wall" columns=3 {
 
   card id="named-card" class="wall-card" {
@@ -141,7 +140,7 @@ midpoint only exists when there is one"
     }
   }
 
-  // The gutter (docs/gaps.md G37, ADR-0331). The document is written so that one
+  // The gutter. The document is written so that one
   // hard line wraps, which is the whole of what this flag is about: a number
   // counts a line somebody typed and sits at the y the wrap put it at, so the
   // long paragraph takes one number and three lines' height. A column of numbers

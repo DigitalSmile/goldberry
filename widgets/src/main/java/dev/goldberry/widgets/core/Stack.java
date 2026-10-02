@@ -17,53 +17,38 @@ import dev.goldberry.widget.style.Styled;
 import dev.goldberry.widgets.markup.Markup;
 import dev.goldberry.widgets.markup.Wiring;
 
-/// Children drawn on top of one another — `docs/core-widgets.md` §1's `stack`,
-/// and §1's "basis for badges-over-things and custom overlays" ([ADR-0250]).
+/// Children drawn on top of one another: a badge on an avatar, an overlay on a
+/// picture.
 ///
 /// ```kdl
-/// stack {
-///     image src="avatar.png"
-///     badge "3"
+/// stack id="avatar" {
+///     panel class="portrait" { text "GB" }
+///     badge class="info" "3"
 /// }
 /// ```
 ///
-/// ## The first child sizes it and the rest float over it
+/// `new Stack(Widget...)` and `new Stack(List<Widget>, Attributes)` are the two
+/// constructors.
 ///
-/// A stack has to get its size from *something*, and a box whose children are all
-/// out of flow is a box of nothing — so the first child stays **in flow** and
-/// every one after it is `position: absolute`. That is the arrangement the name
-/// implies: the thing, and then what goes on top of it. A stack of one child is
-/// exactly that child in a box, which is what makes adding an overlay to an
-/// existing widget a change that cannot move it.
+/// The first child stays in flow and gives the stack its size; every child
+/// after it is `position: absolute`, so adding an overlay cannot move or resize
+/// the thing it sits on. A stack of one child is that child in a box.
 ///
-/// ## Where an overlay lands is the stylesheet's, and it already worked
-///
-/// Nothing here positions anything. An absolute child with **no inset** is
-/// placed by its container's `align-items` and `justify-content`, and by its own
-/// `align-self` ([ADR-0244]) — so a badge goes to a corner with two declarations
-/// and no arithmetic:
+/// Where an overlay lands is the stylesheet's. An absolute child with no inset
+/// is placed by the stack's `align-items` and `justify-content` and by its own
+/// `align-self`, so a badge goes to a corner with two declarations:
 ///
 /// ```css
-/// stack       { align-items: flex-start; justify-content: flex-start }
-/// stack badge { align-self: flex-start }
+/// #avatar       { align-items: flex-start; justify-content: flex-start }
+/// #avatar badge { align-self: flex-end }
 /// ```
 ///
-/// This is the case [ComputedStyle#INITIAL] has been describing since before
-/// anything could reach it: an inset of zero pins a node to its container's edge,
-/// "no inset at all" is `undefined`, and *"the difference only shows on an
-/// absolute node — where zero would stretch it and undefined leaves it where the
-/// alignment put it"*. `stack` is the widget that finally shows it.
+/// A child that wants a specific offset says so with `top`, `right` and the
+/// other insets; zero pins it to the stack's edge. Later children draw over
+/// earlier ones, which is the painter's rule for siblings and all a stack
+/// promises about order.
 ///
-/// An overlay that wants a **specific** offset says so with `inset` instead, which
-/// is the other half of §1's sentence and needs nothing from this class either.
-///
-/// ## Z-order is document order
-///
-/// Later children draw over earlier ones, which is the painter's rule for
-/// siblings and not a thing this widget arranges. `elevated` is still the way to
-/// lift one box over its siblings out of order (ADR-0069); a stack does not use
-/// it, because "the order they are written in" is the whole of what a stack
-/// promises.
+/// Read more: [Stack](https://goldberry.dev/docs/layout/stack.html#stack).
 @Markup("stack")
 public record Stack(List<Widget> children, Attributes attributes)
         implements Widget.Leaf, Styled, Paints, Attributed<Stack> {
@@ -72,7 +57,7 @@ public record Stack(List<Widget> children, Attributes attributes)
         this(List.of(kids), Attributes.NONE);
     }
 
-    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    /// Written out so that the parameters that take null for a default can say so.
     public Stack(@Nullable List<Widget> children, Attributes attributes) {
         children = List.copyOf(children == null ? List.of() : children);
         this.children = children;

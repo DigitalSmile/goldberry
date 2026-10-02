@@ -9,13 +9,15 @@ import java.lang.foreign.MemorySegment;
 /// Engine a sink that captures samples and plays them in no time, which is what
 /// makes the Engine's behaviour deterministic without a sound card.
 ///
-/// **The sink is the audio clock** (`docs/goldberry-media.md` §3, "Master
-/// clock"). The Engine knows the presentation time of the last sample it
+/// **The sink is the audio clock.** The Engine knows the presentation time of
+/// the last sample it
 /// wrote. [#queuedSamples()] says how many of them have not been heard yet. The
 /// difference is what is playing now.
 ///
 /// Called from the audio thread, except [#setGain], [#setRate], [#pause] and
 /// [#resume], which may come from any thread.
+///
+/// Read more: [A player](https://goldberry.dev/docs/components/media.html#a-player).
 public interface AudioSink extends AutoCloseable {
 
     /// Opens the output, asking for `preferred`.
@@ -31,7 +33,7 @@ public interface AudioSink extends AutoCloseable {
     long queuedSamples();
 
     /// How long, in wall-clock nanoseconds, a sample takes from leaving
-    /// [#queuedSamples()] to being heard (ADR-0474): the buffers of the audio
+    /// [#queuedSamples()] to being heard: the buffers of the audio
     /// library behind the queue, and the operating system's and the device's
     /// after them. Bluetooth is most of it where there is Bluetooth.
     ///
@@ -57,8 +59,8 @@ public interface AudioSink extends AutoCloseable {
     /// Linear gain, 0 for silence and 1 for as decoded.
     void setGain(float gain);
 
-    /// Plays what is queued `rate` times as fast, pitch and all
-    /// (`docs/goldberry-media.md` §3, "Rate"): 2 is twice the speed, an octave
+    /// Plays what is queued `rate` times as fast, pitch and all: 2 is twice the
+    /// speed, an octave
     /// up. [#queuedSamples()] still counts samples as written, so the audio
     /// clock stays in stream time and simply runs faster. May come from any
     /// thread.

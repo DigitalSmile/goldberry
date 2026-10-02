@@ -8,17 +8,17 @@
  *
  * A resource and not a text block in Showcase.java: the toolkit loads its own
  * theme and control sheets this way, an application should be able to as well,
- * and CSS wrapped in Java quotes is CSS no editor will highlight (ADR-0093).
+ * and CSS wrapped in Java quotes is CSS no editor will highlight.
  *
  * The window is three bands and seven screens, and this file is in the same
  * order: the chrome, then what every screen has in common, then the handful of
- * rules a particular screen needs (ADR-0222).
+ * rules a particular screen needs.
  */
 
 /* --- the window ------------------------------------------------------------ */
 
 /* `color` on the root, so nothing in this window can resolve to
-   ComputedStyle.INITIAL's black. That default is deliberate -- ADR-0066 keeps it
+   ComputedStyle.INITIAL's black. That default is deliberate -- the toolkit keeps it
    unthemed so a missing stylesheet looks missing -- which means an application
    has to say what its text colour is somewhere, and the root is the one place
    that covers everything. A control gets away with saying nothing because
@@ -71,7 +71,8 @@
   line-height: var(--gb-line-caption);
 }
 
-/* The switch and the two words that name its ends. §1.2 again: a switch whose
+/* The switch and the two words that name its ends. Meaning is never carried by
+   one cue alone, again: a switch whose
    only label is "Lothlórien" leaves the off position unnamed, so the state has
    to be read out of the thumb's position alone. */
 #dark-label, #light-label {
@@ -82,7 +83,7 @@
 
 /* The gallery: a strip of screens filling everything under the bar. `flex-grow`
    on the strip and on its panel is what makes a screen as tall as the window
-   rather than as tall as its contents (ADR-0110). */
+   rather than as tall as its contents. */
 #gallery {
   flex-grow: 1;
   padding: 0 16px 16px 16px;
@@ -90,7 +91,7 @@
 
 /* --- what every screen has ------------------------------------------------- */
 
-/* Every screen is a heading, a line of prose and a wall, with §1.3's 16 between
+/* Every screen is a heading, a line of prose and a wall, with the spacing ramp's 16 between
    them -- whether it came from a document or from Java, which is the point of the
    split being about *expressions* rather than about appearance.
 
@@ -105,7 +106,7 @@
 }
 
 /* Except the Navigation screen, which the gallery does not wrap in a viewport --
-   §2.4 bans a scroller inside a scroller and one of its cards owns one. Here the
+   the design system bans a scroller inside a scroller and one of its cards owns one. Here the
    growth is real and it is this box that has to fill the tab panel. */
 #screen-navigation {
   flex-grow: 1;
@@ -145,7 +146,7 @@
   flex-shrink: 0;
 }
 
-/* Every card in every wall. A column with §1.3's 8 between its rows: a card is a
+/* Every card in every wall. A column with the spacing ramp's 8 between its rows: a card is a
    set of related controls, which is exactly what that rung is for.
 
    `flex-shrink: 0` because a masonry column is as tall as the cards in it by
@@ -157,7 +158,8 @@
   flex-shrink: 0;
 }
 
-/* A card's own heading: §1.4's `label` rank, muted, above the thing it names. */
+/* A card's own heading: the type scale's `caption` size at the strong weight,
+   muted, above the thing it names. */
 .card-title {
   color: var(--gb-text-muted);
   font-size: var(--gb-font-caption);
@@ -165,7 +167,7 @@
   font-weight: var(--gb-weight-strong);
 }
 
-/* A screen's heading. §1.4's `heading` is the token for exactly this -- 15/20 at
+/* A screen's heading. The type scale's `heading` is the token for exactly this -- 15/20 at
    600. It used to be `font-weight: 600` and nothing else, which made a screen
    title `body-strong`: the same 13px as the prose under it, told apart only by
    weight. On a wide gallery screen that reads as a page with no headings at all,
@@ -185,7 +187,7 @@ section-header {
   font-weight: var(--gb-weight-strong);
 }
 
-/* Prose is not UI. §1.4's `body` is 13/18 and is the right size for a label
+/* Prose is not UI. The type scale's `body` is 13/18 and is the right size for a label
    beside a control; a paragraph set at it across the width of this window is
    technically correct and hard to read, which is the difference between a type
    scale for chrome and one for text. `heading`'s 15/20 is the largest thing in
@@ -201,7 +203,7 @@ section-header {
   color: var(--gb-text-muted);
 }
 
-/* A row of controls: §1.3's 8 for related things, and `align-items: center`
+/* A row of controls: the spacing ramp's 8 for related things, and `align-items: center`
    because a chip's 20px is shorter than the row it sits in. */
 .toolbar, #actions, #badges, #knobs, #busy, #overlays, #named-echo {
   flex-direction: row;
@@ -213,9 +215,9 @@ section-header {
 /* Reset sits at the far end of the notice bar, away from the four buttons that
    spawn things. This was a `spacer` in `Notifications.bar` -- a widget in the
    tree that drew nothing and existed to be measured -- and `margin-left: auto`
-   is the declaration that replaces one (ADR-0311, ADR-0312).
+   is the declaration that replaces one.
 
-   The statusbar keeps its `spacer`, and deliberately: it is a §1 widget an
+   The statusbar keeps its `spacer`, and deliberately: it is a layout primitive an
    application writes in markup, and a gallery that used it nowhere would be a
    gallery that quietly deprecated it. A margin is the better answer when the
    thing doing the pushing is toolkit code with a stylesheet of its own. */
@@ -225,7 +227,7 @@ section-header {
 
 /* --- Basic ----------------------------------------------------------------- */
 
-/* §1.4's six ranks, written out so that the card is the scale rather than a
+/* The type scale's six ranks, written out so that the card is the scale rather than a
    description of it. Nothing here is a heading element -- there is no such
    widget -- which is the whole of what a type scale is. */
 .rank-display {
@@ -270,7 +272,7 @@ section-header {
 }
 
 /* A segmented control has **no width of its own**: its cells are proportions, so
-   it fills whatever it is given (ADR-0099). In a card that is the right answer
+   it fills whatever it is given. In a card that is the right answer
    and needs saying nowhere; what it does need is a ceiling, or a two-option bar
    stretches across a 640px column. */
 #theme-bar {
@@ -303,7 +305,7 @@ section-header {
 
 /* Three surfaces at equal width, so they are compared and not merely listed: a
    `panel` and a `card` beside each other at the same size is the only way to see
-   an elevation expressed as contrast rather than as a shadow (ADR-0164). */
+   an elevation expressed as contrast rather than as a shadow. */
 #surfaces, #numbers, #loading {
   gap: 12px;
   align-items: stretch;
@@ -318,7 +320,7 @@ section-header {
 
 /* Only the padding. The surface, the edge and the radius are `panel`'s own now --
    inventing them here is what made a panel look exactly like a card, which is how
-   the missing rule was reported (ADR-0166). */
+   the missing rule was reported. */
 panel.surface-demo {
   padding: 12px;
 }
@@ -345,7 +347,7 @@ panel.surface-demo {
   gap: 8px;
 }
 
-/* `flex-start` and not `start`: §10's `align-items` takes Yoga's keywords, and the
+/* `flex-start` and not `start`: the CSS subset's `align-items` takes Yoga's keywords, and the
    CSS alias is not one of them. Written as `start` first, which was dropped with a
    warning on every style resolution -- so the avatar sat centred against its two
    lines *and* the console filled up while the screen scrolled. */
@@ -414,19 +416,19 @@ panel.surface-demo {
  * left it out and the banners touched -- four bordered blocks sharing edges, which
  * reads as one control with rules through it rather than as four notices.
  *
- * 12 rather than §1.3's 8 for related controls or 16 for groups: these are
+ * 12 rather than the spacing ramp's 8 for related controls or 16 for groups: these are
  * neither. Each banner is a block of prose with a border round it, and 8 makes two
  * of them look joined while 16 puts a hole between things that arrived together.
- * It is on the ramp, which is what §1.3 asks of a number. */
+ * It is on the ramp, which is what the spacing rule asks of a number. */
 #notice-kinds, #notice-summary, #notices {
   flex-direction: column;
   gap: 12px;
 }
 
-/* Nothing here about the context menu itself: it is a `popover`, and §7's panel
+/* Nothing here about the context menu itself: it is a `popover`, and an overlay's panel
    carries its own surface, edge, radius and padding in `controls.css` -- which it
    has to, being the root of its own element tree with nothing above it to inherit
-   from (ADR-0103, ADR-0104). */
+   from. */
 
 /* --- Forms ----------------------------------------------------------------- */
 
@@ -444,7 +446,7 @@ panel.surface-demo {
    its painter what that turned out to be. A canvas in a column with nothing to
    size it is zero tall -- which is a stylesheet's job to fix and deliberately not
    a default the toolkit guesses, because an intrinsic size would be a number
-   invented by the toolkit and drawn by the application (ADR-0193).
+   invented by the toolkit and drawn by the application.
 
    So every canvas on this screen is given a height here, and that is the whole
    of what these rules are for. */
@@ -467,7 +469,7 @@ panel.surface-demo {
    and is clipped to it, so this is the rule that makes the crosshair card a test
    as well as a demonstration: input is reported from the rectangle the painter
    was given, so the crosshair lands under the pointer rather than eight pixels
-   from it (ADR-0281). */
+   from it. */
 #pointer {
   padding: 8px;
 }
@@ -485,12 +487,12 @@ panel.surface-demo {
 
 /* The one canvas on this screen that is typed into. `text` is what a reader
    expects over something with a caret in it, and `cursor:` on a canvas is the
-   stylesheet's like it is on any other box (ADR-0285). */
+   stylesheet's like it is on any other box. */
 #sticky {
   cursor: text;
 }
 
-/* The image card takes the keyboard now, for Ctrl+C and Ctrl+V (ADR-0286), so it
+/* The image card takes the keyboard now, for Ctrl+C and Ctrl+V, so it
    has a focus ring like anything else that does. */
 #images {
   cursor: default;
@@ -593,12 +595,12 @@ image.framed {
   line-height: var(--gb-line-body);
 }
 
-/* The moment it lifts. §1's whole argument for `:affixed` being a pseudo-class: no
+/* The moment it lifts. The whole argument for `:affixed` being a pseudo-class: no
    selector can say "this node is currently over another one", and a sticky header
    without a surface has the rows travelling *through* it.
 
-   `border` and not `border-bottom`: §8's subset has one `border` and no per-edge
-   longhands (ADR-0107), and a declaration it does not know is dropped with a line
+   `border` and not `border-bottom`: the CSS subset has one `border` and no per-edge
+   longhands, and a declaration it does not know is dropped with a line
    in the log rather than drawn. A full border reads correctly here because the
    header spans the list's whole width, so only the bottom edge is ever against
    anything. */
@@ -611,8 +613,7 @@ image.framed {
 /* The viewport the virtual list is measured against, and the reason it has a
    height at all: a virtual list clipped only by the screen's own scroll would have
    a window the height of the screen, which is correct and shows nothing. Eight
-   rows is enough to see the scrollbar's thumb be honest about ten thousand
-   (ADR-0213). */
+   rows is enough to see the scrollbar's thumb be honest about ten thousand. */
 scroll.tall-list {
   height: 256px;
   flex-grow: 0;
@@ -629,7 +630,7 @@ scroll.tall-list {
   background: var(--gb-surface);
   border: 1px solid var(--gb-border);
   border-radius: 8px;
-  /* Both edges, because `padding-bottom` is not in §8's subset -- there is one
+  /* Both edges, because `padding-bottom` is not in the CSS subset -- there is one
      `padding` and no per-edge longhands, exactly as there is one `border`. */
   padding: 4px 0;
 }
@@ -648,8 +649,7 @@ scroll.tall-list {
 /* The two plots in the dropout card, sized as one: the argument they make is that
    the *same* numbers read two ways, so a difference in height between them would
    be a difference the reader has to rule out first. Shorter than the charts above
-   because there are two of them in one card, each with a line of prose under it
-   (ADR-0201). */
+   because there are two of them in one card, each with a line of prose under it. */
 #beacons, #beacons-zero {
   height: 96px;
 }
@@ -667,13 +667,12 @@ sparkline {
 
 /* One rule, both halves. `--gb-chart-1` is a custom property, so it inherits from
    this card into the chart's plot *and* into its legend swatch -- the line and the
-   key cannot disagree, which is what a Java palette table could not have promised
-   (ADR-0195). */
+   key cannot disagree, which is what a Java palette table could not have promised. */
 #watch-card {
   --gb-chart-1: var(--gb-warning);
 }
 
-/* --- Icons (ADR-0307) -------------------------------------------------------
+/* --- Icons -------------------------------------------------------
  *
  * The sheet of every bundled icon. Not inside the gallery's viewport -- it is a
  * virtualized `list` and owns one -- so, like the Navigation and Markdown
@@ -730,7 +729,7 @@ sparkline {
 }
 
 /* The box that reports its width, and the reason the masonry can follow the
-   window (ADR-0309). It adds nothing of its own: what it is for is the
+   window. It adds nothing of its own: what it is for is the
    measurement, and anything drawn here would be drawn around the whole wall.
 
    **No `flex-grow`**, which is the opposite of what it looks like it wants. This
@@ -743,7 +742,7 @@ icon-sheet {
   flex-direction: column;
 }
 
-/* The sheet is a **virtualized `list` of rows** since ADR-0316, not a masonry:
+/* The sheet is a **virtualized `list` of rows**, not a masonry:
    a grid of equal-height tiles is a list of equal-height rows, and a list is
    the thing in this toolkit that builds only the rows a reader can see.
 
@@ -828,7 +827,7 @@ icon-tile, emoji-tile {
   cursor: pointer;
 }
 
-/* The ring every pressable thing gets from the keyboard (§2.2), for two types
+/* The ring every pressable thing gets from the keyboard, for two types
    the toolkit's own rule cannot name because the showcase declared them. */
 icon-tile:focus-visible, emoji-tile:focus-visible {
   outline: 2px solid var(--gb-focus);
@@ -842,7 +841,7 @@ icon-tile-name {
   flex-shrink: 1;
 }
 
-/* --- the emoji sheet (ADR-0386) -------------------------------------------- */
+/* --- the emoji sheet -------------------------------------------- */
 
 /* The same furniture as the icon sheet above, because it is the same sheet with
    a different tile in it: a virtualized list of reflowing rows, a header that
@@ -919,11 +918,11 @@ emoji-tile:hover {
   background: var(--gb-overlay-hover);
 }
 
-/* **The whole demonstration is this declaration.** §6.1's font chain is a
+/* **The whole demonstration is this declaration.** The font fallback chain is a
    primary family and an emoji slot, and `font-family` is how a document reaches
    the second one — no API, no registry, one rule. The face behind it is
    `goldberry-emoji` -- Noto Color Emoji -- which this application opts into and
-   names on the screen (ADR-0384, ADR-0386, ADR-0456).
+   names on the screen.
 
    A build without that artifact draws these in the UI face instead and says so
    once in the log, rather than failing to open a window. */
@@ -1010,7 +1009,7 @@ specimen-emoji.size-64 { font-size: 64px; line-height: 74px; }
 }
 
 /* The emoji in a line of text, at five sizes. No font-family: the line is in
-   the UI face and the emoji is routed out of it (ADR-0393), which is the point. */
+   the UI face and the emoji is routed out of it, which is the point. */
 .specimen-text {
   flex-direction: column;
   gap: 6px;
@@ -1044,7 +1043,7 @@ specimen-emoji.size-64 { font-size: 64px; line-height: 74px; }
 
 /* A code block: the code face on a sunken surface. The emoji in it are still
    routed to the emoji face -- JetBrains Mono has none, and the itemizer does
-   not care which face the prose is in (ADR-0393). */
+   not care which face the prose is in. */
 .specimen-code {
   flex-direction: column;
   padding: 8px 12px;
@@ -1066,11 +1065,11 @@ specimen-emoji.size-64 { font-size: 64px; line-height: 74px; }
   color: var(--gb-text-muted);
 }
 
-/* --- the chip rows (ADR-0305) ---------------------------------------------- */
+/* --- the chip rows ---------------------------------------------- */
 
 /* `flex-wrap`, which the chip row is the second consumer of: a filter row is as
    wide as its filters and a card is as wide as the column it landed in, so the
-   row that cannot shrink has to be the row that wraps (ADR-0192). */
+   row that cannot shrink has to be the row that wraps. */
 #chip-filters, #chip-status, #chip-tags {
   flex-direction: row;
   flex-wrap: wrap;
@@ -1079,7 +1078,7 @@ specimen-emoji.size-64 { font-size: 64px; line-height: 74px; }
   flex-shrink: 0;
 }
 
-/* --- the trail (ADR-0306) -------------------------------------------------- */
+/* --- the trail -------------------------------------------------- */
 
 #trail-actions {
   flex-direction: row;
@@ -1088,7 +1087,7 @@ specimen-emoji.size-64 { font-size: 64px; line-height: 74px; }
   flex-shrink: 0;
 }
 
-/* --- the text-property card (ADR-0321, ADR-0323, ADR-0324) ----------------- */
+/* --- the text-property card ----------------- */
 
 /* A row of options that is as wide as its card. `flex-wrap` for the chip row's
    reason: a card is as wide as the column the masonry put it in, and the row that
@@ -1125,7 +1124,7 @@ specimen-emoji.size-64 { font-size: 64px; line-height: 74px; }
   text-align: end;
 }
 
-/* §1.4's ranks, as the pairs a stylesheet writes: a size without its line height
+/* The type scale's ranks, as the pairs a stylesheet writes: a size without its line height
    is a paragraph whose lines overlap at the top of the scale and swim at the
    bottom. The control's own height follows, because a `text-area` is as tall as
    `rows` lines of the face it is set in. */
@@ -1143,7 +1142,7 @@ specimen-emoji.size-64 { font-size: 64px; line-height: 74px; }
   font-weight: var(--gb-weight-strong);
 }
 
-/* A face rather than a slant (ADR-0323): Inter's italic is drawn, so this is a
+/* A face rather than a slant: Inter's italic is drawn, so this is a
    different file and not a transform of this one. */
 #styled-area.italic {
   font-style: italic;
@@ -1158,7 +1157,7 @@ specimen-emoji.size-64 { font-size: 64px; line-height: 74px; }
 
 /* `text-decoration` is **one** property holding a set, so the pair is one class
    and not two: two rules each writing the property would leave the later one
-   winning and the reader wondering which rule they had lost (ADR-0321). */
+   winning and the reader wondering which rule they had lost. */
 #styled-area.rule-underline {
   text-decoration: underline;
 }
@@ -1171,7 +1170,7 @@ specimen-emoji.size-64 { font-size: 64px; line-height: 74px; }
   text-decoration: underline line-through;
 }
 
-/* --- the GPU screen (docs/gpu-plan.md, phase 5; ADR-0482) ------------------- */
+/* --- the GPU screen -------------------------------------------------------- */
 
 /* A canvas3d has no size of its own, as a canvas has none. */
 #gpu-spinning,
@@ -1187,7 +1186,7 @@ specimen-emoji.size-64 { font-size: 64px; line-height: 74px; }
   bottom: 12px;
 }
 
-/* --- the Motion screen (ADR-0352, ADR-0353, ADR-0354) ----------------------- */
+/* --- the Motion screen ----------------------- */
 
 /* The floor is a canvas, and a canvas has no size of its own. */
 #motion-floor {
@@ -1302,7 +1301,8 @@ chip.motion-entry {
   }
 }
 
-/* The Web screen — §9's `web-view` (ADR-0441).
+/* The Web screen — `web-view`.
+ * https://goldberry.dev/docs/components/content.html#the-web-view
  *
  * One card rather than a wall, because there is one thing to say and no widget
  * to demonstrate: the page this screen is about opens in a window of WebKit's,
@@ -1321,7 +1321,7 @@ chip.motion-entry {
 }
 
 /* The button and the URL beside it. `align-items: center` so the caption sits on
- * the button's centre line rather than its top, and `gap` is §1.3's 8 -- the
+ * the button's centre line rather than its top, and `gap` is the spacing ramp's 8 -- the
  * rung for two controls that belong together. */
 #web-actions {
   flex-direction: row;
@@ -1329,11 +1329,11 @@ chip.motion-entry {
   gap: 8px;
 }
 
-/* The `web-view` itself: the box a page is kept over (ADR-0442). It must GROW,
+/* The `web-view` itself: the box a page is kept over. It must GROW,
  * because the page is sized from this widget's painted rectangle -- a
  * content-sized box would put a page in a zero-height strip. */
 /* The address bar: a field that grows and a button that does not. Typing is not
-   navigating -- `Go` is what makes the typed text the page (ADR-0449). */
+   navigating -- `Go` is what makes the typed text the page. */
 #web-address {
   flex-direction: row;
   align-items: center;
@@ -1345,7 +1345,7 @@ chip.motion-entry {
   flex-grow: 1;
 }
 
-/* What the page's own script last said (ADR-0448). */
+/* What the page's own script last said. */
 #web-callback {
   flex-shrink: 1;
 }

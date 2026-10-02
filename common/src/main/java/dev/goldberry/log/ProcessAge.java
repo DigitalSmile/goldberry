@@ -16,10 +16,10 @@ import java.util.regex.Pattern;
 /// Linux the JDK builds it from `/proc/self/stat`'s `starttime` — clock ticks
 /// since boot — plus the boot time from `/proc/stat`'s `btime`, which is a whole
 /// number of **seconds**. So the instant is wrong by the fraction `btime`
-/// dropped, up to a second, and the same for every process on that boot. On the
-/// machine ADR-0506 was measured on, it made every "runtime starting" row about
-/// 218 ms late: a native image the kernel had started 55 ms earlier reported 275.
-/// Every Linux timeline this class had printed, ADR-0028's included, carried it.
+/// dropped, up to a second, and the same for every process on that boot. On one
+/// development machine it made every "runtime starting" row about 218 ms late: a
+/// native image the kernel had started 55 ms earlier reported 275. Every Linux
+/// timeline printed from that instant carried the error.
 ///
 /// ## The kernel's own clock, both ends
 ///

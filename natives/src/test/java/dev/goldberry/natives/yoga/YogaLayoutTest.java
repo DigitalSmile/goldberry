@@ -288,9 +288,7 @@ class YogaLayoutTest {
     }
 
     /// **Which box an absolute child is placed against**, when the containing
-    /// block has padding — the question `book/src/TODO.md` said "has not been
-    /// established". It is established here, and the answer is **Yoga**
-    /// ([ADR-0265]).
+    /// block has padding. It is established here, and the answer is **Yoga**.
     ///
     /// CSS is unambiguous: an absolutely positioned box's containing block is the
     /// **padding box** of its nearest positioned ancestor, so `left: 0` inside a
@@ -309,7 +307,7 @@ class YogaLayoutTest {
     /// spec-compliant mode: this is not a setting anybody turned off.
     ///
     /// **Deliberately still asserting Yoga's answer** now that the toolkit
-    /// corrects it (ADR-0272). This test is about the compiled library;
+    /// corrects it. This test is about the compiled library;
     /// `AbsolutePlacementTest` in `:core` is about the toolkit built on it, and
     /// asserts (12, 12). The day Yoga fixes its inset path, this one fails first
     /// and names the correction that has to come out.
@@ -335,7 +333,7 @@ class YogaLayoutTest {
                     child.layout(),
                     "Yoga measures an inset from the *border* box. CSS measures it from the"
                             + " padding box, which would be (12, 12) — so something above Yoga has to"
-                            + " add the padding, and since ADR-0272 that is `ContainingBlock`, once,"
+                            + " add the padding, and that is `ContainingBlock`, once,"
                             + " for every absolutely positioned box in the toolkit");
         }
     }
@@ -343,7 +341,7 @@ class YogaLayoutTest {
     /// The other half, and the one that makes the first a contradiction rather
     /// than a policy: with **no insets at all**, Yoga places the same child at
     /// the padding edge — which is what CSS says and what the inset path does
-    /// not do ([ADR-0265]).
+    /// not do.
     @Test
     @DisplayName("and with no insets it uses the padding box, which is the other answer")
     void absoluteWithoutInsetsUsesThePaddingBox() {

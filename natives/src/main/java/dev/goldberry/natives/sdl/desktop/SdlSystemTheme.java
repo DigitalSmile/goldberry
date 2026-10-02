@@ -5,12 +5,13 @@ package dev.goldberry.natives.sdl.desktop;
 /// One call covers all three platforms, which is the whole reason this is bound
 /// rather than read: the alternatives are `AppleInterfaceStyle` through
 /// `NSUserDefaults`, the `AppsUseLightTheme` registry value, and the XDG settings
-/// portal over D-Bus — three platform integrations for one boolean
-/// (`docs/gaps.md` G26, ADR-0322).
+/// portal over D-Bus — three platform integrations for one boolean.
 ///
 /// Ordinals in a C enum, so every value is checked against the compiled SDL by
-/// the layout probe (ADR-0010): a wrong one starts the application in the wrong
+/// the layout probe: a wrong one starts the application in the wrong
 /// theme and reports nothing.
+///
+/// Read more: [The native boundary](https://goldberry.dev/docs/overview/architecture.html#the-native-boundary).
 public enum SdlSystemTheme {
 
     /// The desktop does not say — SDL's answer where the platform has no such

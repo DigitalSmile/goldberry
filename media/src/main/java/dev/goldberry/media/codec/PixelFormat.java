@@ -1,7 +1,7 @@
 package dev.goldberry.media.codec;
 
-/// How the planes of a [VideoFrame] are laid out: the formats of the frame
-/// contract in `docs/goldberry-media.md` §5.
+/// How the planes of a [VideoFrame] are laid out: the formats a decoder may
+/// hand the Engine.
 ///
 /// All four are 4:2:0: the chroma planes are half the picture's width and half
 /// its height, rounded up. That is what every decoder this module ships produces
@@ -9,6 +9,8 @@ package dev.goldberry.media.codec;
 /// decoder whose output is something else (4:2:2, 4:4:4, 12-bit, RGB) converts it
 /// to [#I420] or [#I010] before handing it over, so the present path has four
 /// layouts to know and not forty.
+///
+/// Read more: [Bringing a codec](https://goldberry.dev/docs/components/media.html#bringing-a-codec).
 public enum PixelFormat {
     /// 8-bit luma plane, then a half-resolution plane of interleaved U and V. What
     /// hardware decoders produce and what copy-back delivers.
@@ -21,8 +23,8 @@ public enum PixelFormat {
     P010(2, 2),
     /// I420's layout with 16-bit little-endian samples holding 10 significant bits
     /// in their low bits: what software decoders (dav1d, VP9 profile 2) produce
-    /// for 10-bit 4:2:0. Added to the contract in phase 3 so that the common 10-bit
-    /// case is lent without a copy (`docs/media-plan.md`).
+    /// for 10-bit 4:2:0. In the contract so that the common 10-bit case is lent
+    /// without a copy.
     I010(3, 2);
 
     private final int planes;

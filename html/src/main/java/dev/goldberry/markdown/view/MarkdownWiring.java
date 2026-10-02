@@ -16,8 +16,7 @@ import dev.goldberry.image.Image;
 /// `onLink(this::open)` inside its own `build` hands the view a *new* object every
 /// frame. A button that had captured one would keep calling the first one it ever
 /// saw. It calls through this instead: one object for the life of the view, given
-/// the current handlers at the start of every build
-/// ([ADR-0389]).
+/// the current handlers at the start of every build.
 ///
 /// It is also what decides when the memo has to be emptied. What a view *has* changes
 /// what a block is — a link with no handler is drawn inert and is not a button at all,
@@ -69,15 +68,15 @@ final class MarkdownWiring {
     /// the memo keeps the block. [MarkdownWidgets#keep()] covers the block that found
     /// nothing and has to ask again; nothing covered the block that found something and
     /// would now find something else, so an application that swapped its assets kept
-    /// the old picture for ever. ADR-0389 §4 argues presence-not-identity for handlers,
-    /// and this is the one of the four that is not one.
+    /// the old picture for ever. Presence rather than identity is the right test for
+    /// a handler, and this is the one of the four that is not one.
     ///
     /// It stays cheap because it is not worked out here. This is asked once per block
     /// per build — [MarkdownWidgets] puts it in every mark — and is a field read; the
     /// one `identityHashCode` is paid in [#of], which a build calls once. What it does
     /// **not** cover is a source that answers differently without being replaced, and
     /// that is deliberate: noticing would mean calling it per image per keystroke,
-    /// which is the cost ADR-0389 exists to remove.
+    /// which is the cost the memo exists to remove.
     int signature() {
         return signature;
     }

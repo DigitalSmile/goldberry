@@ -22,26 +22,30 @@ import dev.goldberry.css.select.Selector;
 import dev.goldberry.css.value.CssLength;
 import dev.goldberry.layout.Length;
 
-/// §1.3's density preference, and the promise attached to it: "token-conformant
-/// apps adapt with zero code" ([ADR-0074]).
+/// The density preference, and the promise attached to it: a density is a token
+/// swap, so an application whose controls take their height from the token
+/// adapts with no code of its own.
 ///
 /// The assertions that matter are about *every* control at once rather than any
 /// one of them. A density that moved `button` and not `checkbox` would pass a
-/// per-control test and be exactly the divergence §3's shared metrics row exists
+/// per-control test and be exactly the divergence a shared height token exists
 /// to prevent — so the heights are asserted over the whole catalog, and a
 /// control added with a literal height fails here on the day it is added.
+///
+/// Read more:
+/// [The design system: density](https://goldberry.dev/docs/guide/design-system.html#density).
 class DensityTest {
 
-    /// §1.3's density row: control heights 32 / 28.
+    /// The two densities' control heights: 32 regular, 28 compact.
     private static final Length REGULAR_HEIGHT = Length.points(32);
     private static final Length COMPACT_HEIGHT = Length.points(28);
 
-    /// The controls §3 gives a height to. `radio-group` is not among them: it is
+    /// The controls the design system gives a height to. `radio-group` is not among them: it is
     /// a container whose height is the sum of its options, and a density that
     /// pinned it would clip the group the moment an option moved.
     ///
     /// `segmented` **is** among them and is the first container that is: its
-    /// height is §3's own number rather than a sum, because a bar is one row of
+    /// height is the control height itself rather than a sum, because a bar is one row of
     /// segments and its segments stretch to it. A density that moved every other
     /// control and left a toolbar's segmented control 32 high would be the exact
     /// divergence this list exists to catch.
@@ -119,7 +123,7 @@ class DensityTest {
             assertTrue(Density.COMPACT.source().contains("--gb-control-height"));
         }
 
-        /// §1.3's "zero code" cuts both ways: a density carries no class and no
+        /// "No code" cuts both ways: a density carries no class and no
         /// type, so an application cannot opt one control out of it and markup
         /// cannot ask for it. It is a preference, not a variant.
         @Test
@@ -167,10 +171,10 @@ class DensityTest {
             }
         }
 
-        /// §3.1's glyph is 16 at either density: compact shrinks the row, not the
-        /// thing the user aims at. That is the trade ADR-0074 makes against
-        /// §1.3's own 32×32 hit-target floor, and it is defensible only while the
-        /// glyph holds still — so this is the assertion that holds it there.
+        /// The glyph is 16 at either density: compact shrinks the row, not the
+        /// thing the user aims at. That is the trade compact makes against the
+        /// 32×32 hit-target floor, and it is defensible only while the glyph
+        /// holds still — so this is the assertion that holds it there.
         @Test
         @DisplayName("the glyph does not shrink with the row")
         void theGlyphHoldsStill() {
@@ -185,9 +189,9 @@ class DensityTest {
             }
         }
 
-        /// The other §3 metrics stay literal, and this keeps them there. Turning
-        /// padding and gap into tokens "for symmetry" would invent a density
-        /// scale §1.3 does not define (Principle 3).
+        /// The other component metrics stay literal, and this keeps them there.
+        /// Turning padding and gap into tokens "for symmetry" would invent a
+        /// density scale the design system does not define.
         @Test
         @DisplayName("padding, gap and radius do not move with a density")
         void onlyHeightMoves() {

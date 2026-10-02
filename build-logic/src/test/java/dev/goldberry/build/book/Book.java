@@ -27,7 +27,7 @@ final class Book {
     /** Where mdBook reads the chapters from. */
     static final Path SOURCE = Path.of("book", "src");
 
-    /** The decision log, which is not a part of the book: it is read on GitHub (ADR-0512). */
+    /** The decision log, which is not a part of the book: it is read on GitHub. */
     static final String LOG = "adr/";
 
     /** Where a chapter links a record: the file on GitHub. */
@@ -124,7 +124,7 @@ final class Book {
     /**
      * Every Markdown file under {@code book/src} that is a page of the book,
      * relative to it, with forward slashes. The decision log under {@code adr/} is
-     * kept there for GitHub and is not built (ADR-0512).
+     * kept there for GitHub and is not built.
      */
     static List<String> pages() {
         var root = Repository.root().resolve(SOURCE);

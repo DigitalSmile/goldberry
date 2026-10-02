@@ -20,6 +20,8 @@ import dev.goldberry.natives.yoga.style.StyleLength;
 /// concept is how a `padding: 0 12px` ends up applied to the wrong pair of edges,
 /// which looks like a layout bug and is a transcription one.
 ///
+/// Read more: [The native boundary](https://goldberry.dev/docs/overview/architecture.html#the-native-boundary).
+///
 /// @param top    space above the content
 /// @param right  space to the right
 /// @param bottom space below

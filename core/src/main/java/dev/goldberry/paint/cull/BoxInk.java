@@ -15,11 +15,11 @@ import dev.goldberry.paint.Box;
 /// - the **drop shadow**, which is cast behind the box and is *asymmetric*:
 ///   `0 8px 32px` reaches 24px below and 8px above, so one outset for four sides
 ///   would either repaint a band nothing drew in or, the day a shadow is offset
-///   further than it is blurred, miss one (ADR-0310);
+///   further than it is blurred, miss one;
 /// - an **icon larger than its slot**, which
 ///   [dev.goldberry.paint.BoxPainter] centres rather than
 ///   corners — a 20px glyph in the 16px lead column of a menu row hangs 2px out
-///   on every side (ADR-0143).
+///   on every side, because a strip keeps its height and an icon its centre.
 ///
 /// ## What is deliberately not here
 ///
@@ -36,6 +36,9 @@ import dev.goldberry.paint.Box;
 /// question for a different reason — a promoted subtree rasterized into a box
 /// smaller than it draws loses its focus ring — so the rule about what is outside
 /// a box lives in exactly one place.
+///
+/// Read more:
+/// [Keeping frames cheap](https://goldberry.dev/docs/performance/frames.html#what-the-toolkit-does-for-you).
 public final class BoxInk {
 
     private BoxInk() {}

@@ -21,7 +21,7 @@ import dev.goldberry.text.font.Font;
 
 /// Threaded painting must produce the same frame as synchronous painting.
 ///
-/// This is the test that makes ADR-0042 safe to have made. Blend2D's workers
+/// This is the test that makes banded rasterization safe to have. Blend2D's workers
 /// split a frame into horizontal bands, and a band boundary landing in the
 /// middle of an antialiased edge — or a frame read before the bands finished —
 /// would show up as a seam or as a partly-drawn frame. Neither would fail

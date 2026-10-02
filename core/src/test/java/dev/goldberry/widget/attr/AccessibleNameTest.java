@@ -10,13 +10,13 @@ import org.junit.jupiter.api.Test;
 
 import dev.goldberry.kdl.KdlParser;
 
-/// `name=`, the attribute §3 asks for and §13 needs — on [Attributes], where
-/// every widget gets it rather than each remembering its own.
+/// `name=`, the accessible name every widget can be given — on [Attributes],
+/// where every widget gets it rather than each remembering its own.
 ///
 /// The case it exists for is the one nothing else can reach: an **icon-only**
 /// control's label is the empty string by construction, because the icon is the
 /// whole of what is on screen, so a name derived from what is showing is a name
-/// that is not there ([ADR-0260]).
+/// that is not there.
 class AccessibleNameTest {
 
     private static KdlNodeLike parse(String markup) {
@@ -105,7 +105,7 @@ class AccessibleNameTest {
     @DisplayName("an unnamed attributes value is the shared NONE rather than a fresh one")
     void noneIsShared() {
         // `assertSame(NONE, NONE)` stood here, which compares a constant with
-        // itself (the 2026-09-18 review, §6). What is worth pinning is that a node
+        // itself. What is worth pinning is that a node
         // carrying no attributes parses to the same *value* as the constant a
         // widget defaults to — so the two ways of saying "nothing" agree, and a
         // parser that started defaulting something would be caught here rather

@@ -13,7 +13,8 @@ import dev.goldberry.layout.Insets;
 import dev.goldberry.layout.Length;
 import dev.goldberry.layout.Position;
 
-/// The rule on its own — ADR-0272.
+/// The containing-block rule on its own: an absolute child's inset is measured
+/// from the padding box, so the padding is added before Yoga sees it.
 ///
 /// No Yoga node, no frame and no widget, because the arithmetic is the part that
 /// can be wrong in a way no picture would show: an inset shifted on the wrong
@@ -49,7 +50,7 @@ class ContainingBlockTest {
 
         /// The one every field, text area and caret depends on: `left: 0` inside
         /// a 12px-padded control has to reach Yoga as `left: 12`, because Yoga
-        /// measures it from the border box (ADR-0265).
+        /// measures it from the border box.
         @Test
         @DisplayName("left: 0 in a padded block becomes left: padding")
         void zeroIsNotNothing() {

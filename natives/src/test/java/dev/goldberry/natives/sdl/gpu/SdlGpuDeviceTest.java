@@ -34,10 +34,11 @@ import dev.goldberry.natives.sdl.gpu.enums.SdlGpuTransferUsage;
 import dev.goldberry.natives.sdl.window.SdlWindowFlag;
 
 /// `SDL_GPU` through the wrappers, on a real device: Metal on macOS, Vulkan
-/// under lavapipe on the GPU lane (`docs/gpu-plan.md`, phase 1).
+/// under lavapipe on the GPU lane.
 ///
-/// Phase 1's exit is here: a texture cleared to a known colour and downloaded
-/// reads back byte for byte, and pixels uploaded come back unchanged.
+/// The proof that the device works is here: a texture cleared to a known colour
+/// and downloaded reads back byte for byte, and pixels uploaded come back
+/// unchanged.
 ///
 /// Tagged `gpu`, so the ordinary `test` task leaves it to `:natives:gpuTest`,
 /// which runs it on the JVM's first thread as macOS needs ([GpuTestLauncher]).
@@ -58,7 +59,7 @@ class SdlGpuDeviceTest {
     @AfterAll
     static void destroyDevice() {
         // Skipped before SDL was reached: nothing to give back, and no library to
-        // call. Calling it anyway failed the class, and a build without it (ADR-0495).
+        // call. Calling it anyway failed the class, and a build without it.
         if (device == null) {
             return;
         }

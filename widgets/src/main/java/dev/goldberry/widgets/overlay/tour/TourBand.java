@@ -11,7 +11,7 @@ import dev.goldberry.widget.style.Paints;
 import dev.goldberry.widget.style.Styled;
 
 /// One of a [TourVeil]'s four rectangles — a **part**, so it is styleable and not
-/// constructible ([ADR-0065]).
+/// constructible.
 ///
 /// It swallows the pointer. That is what makes a tour modal without anything
 /// declaring it so: everything the veil covers is unreachable because the veil is

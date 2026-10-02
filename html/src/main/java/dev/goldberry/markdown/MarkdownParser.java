@@ -52,7 +52,7 @@ import dev.goldberry.natives.md4c.enums.TextType;
 /// vocabulary comes in and the toolkit's goes out, which is why nothing exported
 /// from `:html` mentions a `MarkdownEvent`, a `BlockType` or an `MD_ALIGN`. The same
 /// arrangement `:core` uses for Yoga and Blend2D — a translation in one
-/// package-private file, and a compiler error if it leaks (ADR-0280, ADR-0294).
+/// package-private file, and a compiler error if it leaks.
 ///
 /// The fold is a stack. Every `EnterBlock` and `EnterSpan` pushes a frame, every
 /// `Leave` pops one, builds its node and hands it to the frame underneath. That the
@@ -362,7 +362,7 @@ final class MarkdownParser {
     ///
     /// A URL is where this matters most: `?a=1&amp;b=2` has to become `?a=1&b=2`
     /// before anybody follows it, and md4c hands the parts over separately precisely
-    /// so that whoever consumes them can decide (ADR-0294).
+    /// so that whoever consumes them can decide.
     private static String resolve(MarkdownAttribute attribute) {
         var out = new StringBuilder();
         for (var part : attribute.parts()) {

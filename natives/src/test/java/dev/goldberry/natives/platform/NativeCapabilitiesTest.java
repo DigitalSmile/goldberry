@@ -12,7 +12,7 @@ import dev.goldberry.natives.NativeLibrary;
 import dev.goldberry.natives.NativeLibraryRequirement;
 import dev.goldberry.natives.NativePlatform;
 
-/// What the library on this machine actually reports — `docs/gaps.md` G32.
+/// What the library on this machine actually reports of its capabilities.
 ///
 /// The interesting assertion is not "it has everything": a build made on purpose
 /// without the D-Bus headers is a legitimate library and this test must pass
@@ -48,14 +48,14 @@ class NativeCapabilitiesTest {
         // whole mechanism exists to describe rather than to forbid.
         // Aborted rather than returned. A `return` here reported a green tick for
         // a test that had asserted nothing, on the one platform where this suite
-        // usually runs (the 2026-09-18 review, §6).
+        // usually runs.
         assumeFalse(
                 os == NativePlatform.OperatingSystem.LINUX,
                 "on Linux each capability is a -dev package that may not be installed");
         // **Every capability except `WAYLAND`**, and the exception is a statement
         // rather than an omission: there is no Wayland on either platform, so a
         // library claiming the bit would be claiming something false about the
-        // session it runs in ([ADR-0422]).
+        // session it runs in.
         //
         // Written as a subtraction rather than as a list, so that the next
         // capability added is included here by default — which is the right

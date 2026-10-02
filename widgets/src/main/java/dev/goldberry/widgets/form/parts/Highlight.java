@@ -13,7 +13,7 @@ import dev.goldberry.widget.style.Styled;
 /// package exists.
 ///
 /// Drawn *behind* the glyphs rather than over them, which is why it is built
-/// first: §1.2 requires selected text to stay readable, and a translucent wash
+/// first: selected text must stay readable, and a translucent wash
 /// over a glyph dims the glyph.
 ///
 /// **One per visual line.** A `text-input` has exactly one; a `text-area` has one

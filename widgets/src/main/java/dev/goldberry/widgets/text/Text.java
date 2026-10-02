@@ -19,33 +19,31 @@ import dev.goldberry.widget.style.Styled;
 import dev.goldberry.widgets.markup.Markup;
 import dev.goldberry.widgets.markup.Wiring;
 
-/// A run of text — `docs/core-widgets.md` §2's `text`, and the whole of that
-/// package until `span` and `link` are built.
+/// One run of text. It wraps at the width layout gives it, and nothing else
+/// about it is decided in Java.
 ///
 /// ```kdl
-/// text "Hello"
-/// text class="caption" bind="user.name"
-/// text style="title" "Two spellings of one thing"
+/// text style="title" "The Red Book"
+/// text class="caption" "Marked in a hand that was not steady"
+/// text bind="app.status" "checking…"
 /// ```
 ///
-/// The content is either written down or bound. `source` is §9's `bind`: when it
-/// is set, the text shown is whatever the property holds *now*, and `content` is
-/// what it falls back to before anything is bound — which is what a lenient
-/// inflater produces for a path nothing answers
-/// (ADR-0062).
+/// In Java: `new Text("The Red Book").style(TextRank.TITLE)`, or
+/// `Text.of("checking…", observable)` for a bound one.
 ///
-/// Everything visual is the stylesheet's. This sets no size, no weight and no
-/// colour; `class="body"` and the rest of §1.4's scale are rules in
-/// `controls.css`, which is why a `text` with no ancestor setting `color` is
-/// still an open question rather than a default written here.
+/// The argument is what the text says. With `bind=`, the argument is the
+/// fallback shown until the bound value answers, and a `null` value draws as
+/// nothing rather than as the word `null`. The value is read at render, so a
+/// change that lands between a build and a frame is in that frame.
 ///
-/// ## Two spellings of the type scale
+/// Everything visual is the stylesheet's: this sets no size, no weight and no
+/// colour. `style=` and `class=` are two spellings of one thing. `style="title"`
+/// names a [TextRank] and is checked when the document inflates, so a typo is
+/// refused where it is written; `class="title"` is the CSS spelling. Both put
+/// the class `title` on the node, and a rule written `text.title` matches
+/// either.
 ///
-/// §2 asks for `style="body"` and what shipped was `class="body"`. Both work:
-/// `style=` names a [TextRank] and is checked — a typo is refused where it is
-/// written rather than resolving to a class no rule matches — and `class=` is
-/// the CSS spelling, which is what a rule of an application's own will be
-/// written against anyway ([ADR-0381]).
+/// Read more: [Text and links](https://goldberry.dev/docs/components/text.html#text).
 @Markup("text")
 public record Text(String content, @Nullable Observable<?> source, Attributes attributes)
         implements Widget.Leaf, Styled, Paints, Attributed<Text>, Bindable<Text> {
@@ -63,8 +61,8 @@ public record Text(String content, @Nullable Observable<?> source, Attributes at
         return new Text("", Objects.requireNonNull(source, "source"), Attributes.NONE);
     }
 
-    /// The same, with a fallback shown until the property has a value — what a
-    /// lenient inflater produces for a path nothing answers yet (ADR-0062).
+    /// The same, with a fallback shown until the property has a value, which is
+    /// what `text bind="…" "fallback"` inflates to.
     public static Text of(String fallback, Observable<?> source) {
         return new Text(fallback, Objects.requireNonNull(source, "source"), Attributes.NONE);
     }
@@ -125,7 +123,7 @@ public record Text(String content, @Nullable Observable<?> source, Attributes at
     @Override
     public Box render(ComputedStyle style, List<Box> children, Context context) {
         // A measured leaf: Yoga proposes a width, the paragraph wraps at it, and
-        // the height that comes back is what sizes the box (ADR-0036).
+        // the height that comes back is what sizes the box.
         return Box.text(context.paragraph(style, resolved()), style.color()).style(style);
     }
 
@@ -149,7 +147,7 @@ public record Text(String content, @Nullable Observable<?> source, Attributes at
     /// the two spellings must be **one** thing below the markup: a rule written
     /// `text.title` has to match a `text style="title"`, and a widget carrying a
     /// rank the cascade could not see would be a second mechanism that looks like
-    /// the first ([ADR-0381]).
+    /// the first.
     private static Attributes ranked(Attributes attributes, @Nullable String rank) {
         return rank == null
                 ? attributes
@@ -164,7 +162,7 @@ public record Text(String content, @Nullable Observable<?> source, Attributes at
         return attributes.classes(classes.toArray(String[]::new));
     }
 
-    /// This text at one of §1.4's ranks — the Java spelling of `style="title"`.
+    /// This text at one rank of the type scale: the Java spelling of `style="title"`.
     public Text style(TextRank rank) {
         return withAttributes(
                 withClass(attributes, Objects.requireNonNull(rank, "rank").cssClass()));

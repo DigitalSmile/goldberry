@@ -1,14 +1,17 @@
-/// `@NullMarked`, which puts this package under NullAway.
+/// What a widget says to the cascade and to the painter: [Styled] names it to a
+/// stylesheet, [Paints] turns its resolved style into a box, and [Corner] names
+/// where an overlay pins.
 ///
-/// Inside a marked package every type is non-null unless it says `@Nullable`,
-/// and the build fails on a violation. The annotation is the whole content of
-/// this file: there is nothing package-specific to say about nullness, and a
-/// paragraph pretending otherwise in every package would be padding.
+/// A custom widget that draws implements both interfaces beside `Widget.Leaf`.
+/// The renderer reads the widget's own pseudo-classes through `Styled` before
+/// the cascade runs, and asks `Paints` for a box afterwards with a context that
+/// shapes text and resolves design tokens for that node.
 ///
-/// Packages are marked one at a time on purpose. NullAway runs in
-/// `OnlyNullMarked` mode, so an unmarked package is invisible to it and a marked
-/// one is checked from the moment it opts in — which is the only way a codebase
-/// this size adopts nullness at all (`docs/testing.md` §2).
+/// The package is null-marked: a parameter or return is non-null unless annotated
+/// `@Nullable`.
+///
+/// Read more:
+/// [A name for the cascade](https://goldberry.dev/docs/guide/writing-a-widget.html#styled-a-name-for-the-cascade).
 @NullMarked
 package dev.goldberry.widget.style;
 

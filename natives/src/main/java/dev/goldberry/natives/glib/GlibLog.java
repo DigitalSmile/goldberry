@@ -29,7 +29,7 @@ import dev.goldberry.natives.glib.calls.GlibLogCalls;
 /// where an application's `logback.xml` can level it, route it or switch it off
 /// like any other. See
 /// [dev.goldberry.log.bridge.NativeLogBridge]
-/// for the naming, and [ADR-0443][adr] for the decision.
+/// for the naming.
 ///
 /// ## Two hooks, because GLib has two paths
 ///
@@ -65,7 +65,7 @@ import dev.goldberry.natives.glib.calls.GlibLogCalls;
 /// handler catches everything, and `NativeLogBridge.log` catches everything
 /// again.
 ///
-/// [adr]: ../../../../../../../../book/src/adr/0443-somebody-elses-log-line-is-still-a-log-line.md
+/// Read more: [The native boundary](https://goldberry.dev/docs/overview/architecture.html#the-native-boundary).
 public final class GlibLog {
 
     /// The `source` segment of every logger name this bridge writes to.
@@ -115,7 +115,7 @@ public final class GlibLog {
     /// ```
     ///
     /// **The one struct in this module that is not on the layout table.**
-    /// ADR-0010's rule is that a hand-written layout is checked against
+    /// The module's rule is that a hand-written layout is checked against
     /// `goldberry_shim.c`, which reports `sizeof` and `offsetof` as the target's
     /// own C compiler computed them — and it cannot report this one, because
     /// GLib's headers are not a dependency of the superbuild and must not

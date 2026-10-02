@@ -1,14 +1,15 @@
+/// The interfaces a widget implements to take part in input: reacting to the
+/// pointer and the keyboard, being told what size it came out as and where it
+/// was put, and becoming the subject of a context menu.
+///
+/// Each is opt-in. A widget that implements none of them is scenery: the router
+/// never asks it anything, so dispatch costs the number of interested nodes
+/// rather than the depth of the tree. Exported to applications as one of input's
+/// parts, split by the role each plays.
+///
 /// `@NullMarked`, which puts this package under NullAway.
 ///
-/// Inside a marked package every type is non-null unless it says `@Nullable`,
-/// and the build fails on a violation. The annotation is the whole content of
-/// this file: there is nothing package-specific to say about nullness, and a
-/// paragraph pretending otherwise in every package would be padding.
-///
-/// Packages are marked one at a time on purpose. NullAway runs in
-/// `OnlyNullMarked` mode, so an unmarked package is invisible to it and a marked
-/// one is checked from the moment it opts in — which is the only way a codebase
-/// this size adopts nullness at all (`docs/testing.md` §2).
+/// Read more: [Input and focus](https://goldberry.dev/docs/guide/input.html#what-a-custom-widget-implements).
 @NullMarked
 package dev.goldberry.input.handler;
 

@@ -15,9 +15,13 @@ import dev.goldberry.natives.NativeLibraryRequirement.Skip;
 
 /// The rule that decides whether a missing `libgoldberry` is a skip or a failure.
 ///
-/// Worth its own test because the CI run of 2026-08-15 failed on exactly the
-/// wrong side of it: the verify jobs could not have verified anything, and the
-/// alternative to failing was passing while checking nothing (ADR-0016).
+/// Worth its own test because a CI run once failed on exactly the wrong side of
+/// it: the verify jobs could not have verified anything, and the alternative to
+/// failing was passing while checking nothing. A verify job that skips the check
+/// reports a check that never happened.
+///
+/// Read more:
+/// [With and without the library](https://goldberry.dev/docs/contributing/testing.html#with-and-without-the-library).
 class NativeLibraryRequirementTest {
 
     @ParameterizedTest

@@ -22,7 +22,7 @@ import dev.goldberry.widgets.panel.Described;
 import dev.goldberry.widgets.panel.collapse.Collapse;
 import dev.goldberry.widgets.text.Text;
 
-/// `column accordion=#true` — §5's "one section open at a time" ([ADR-0166]).
+/// `column accordion=#true` — one section open at a time.
 ///
 /// The claim is about **siblings**, which is why it cannot live on a `collapse`:
 /// a section knows nothing about the others. So the assertions here are all of
@@ -174,7 +174,7 @@ class AccordionTest {
         assertTrue(node.classes().contains("accordion"));
     }
 
-    /// §5 puts the flag on `column`, and a document must be able to write that.
+    /// The flag lives on `column`, and a document must be able to write that.
     @Test
     @DisplayName("`column accordion=#true` inflates to one")
     void inflates() {

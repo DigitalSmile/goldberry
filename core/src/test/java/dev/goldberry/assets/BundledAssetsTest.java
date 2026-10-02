@@ -20,7 +20,9 @@ import dev.goldberry.natives.harfbuzz.ShapingBuffer;
 /// [dev.goldberry.natives.harfbuzz.ShapingTest] can only
 /// check the shape of the binding, because `:natives` has no font to shape with.
 /// The fonts live here, so this is where ligatures, kerning and glyph ids stop
-/// being untested — the gap ADR-0032 wrote down.
+/// being untested.
+///
+/// Read more: [The bundled faces](https://goldberry.dev/docs/guide/text.html#the-bundled-faces).
 class BundledAssetsTest {
 
     @Test
@@ -64,7 +66,7 @@ class BundledAssetsTest {
     void fontsAreBundled(BundledFont font) {
         // Every one but the emoji face, which is not in this jar: it ships as
         // `goldberry-emoji`, so the face and the test that shapes with it both
-        // live there ([ADR-0384], [ADR-0456]).
+        // live there.
         var bytes = BundledAssets.font(font);
 
         assertTrue(bytes.length > 10_000, () -> font + " is only " + bytes.length + " bytes");
@@ -96,8 +98,8 @@ class BundledAssetsTest {
 
     // Only the shaping tests below need the library; the resource tests above run
     // everywhere. That used to be said by an empty `@BeforeAll` named
-    // `reportNativeAvailability`, which reported nothing (the 2026-09-18 review,
-    // §6); it is a comment now, which is what it always was.
+    // `reportNativeAvailability`, which reported nothing; it is a comment now,
+    // which is what it always was.
 
     @Test
     @DisplayName("shaping with Inter produces real glyph ids and advances")
@@ -203,8 +205,8 @@ class BundledAssetsTest {
     @DisplayName("the emoji face is not in this jar, and says which artifact it is in")
     void emojiIsItsOwnArtifact() {
         // An application that draws emoji adds the artifact on purpose, and one
-        // that never does carries none of its five megabytes ([ADR-0384],
-        // [ADR-0456]). What is asserted here is that the failure *says* so: a
+        // that never does carries none of its five megabytes. What is asserted
+        // here is that the failure *says* so: a
         // missing resource would be a puzzle, and this is an instruction.
         assertFalse(BundledAssets.hasEmojiFont(), "goldberry-emoji is not on this test's path");
 

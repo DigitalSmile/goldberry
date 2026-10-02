@@ -32,8 +32,7 @@ import dev.goldberry.media.platform.bitstream.ParameterSetsTest;
 import dev.goldberry.media.platform.fixtures.Fixtures;
 
 /// The decoders when things go wrong, and when a stream is played twice: what
-/// the Engine's fallback ladder and its seeks rely on (`docs/goldberry-media.md`
-/// §3, §5).
+/// the Engine's fallback ladder and its seeks rely on.
 @DisplayName("The platform decoders, failing and recovering")
 class DecoderFailureTest {
 

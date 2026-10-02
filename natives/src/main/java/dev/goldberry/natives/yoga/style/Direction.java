@@ -8,6 +8,8 @@ import dev.goldberry.natives.yoga.measure.MeasureMode;
 /// This is the one Yoga enum that also travels *back* across the boundary:
 /// `YGNodeLayoutGetDirection` reports the direction a node resolved to, which is
 /// what turns [Edge#START] and [Edge#END] into left and right.
+///
+/// Read more: [The native boundary](https://goldberry.dev/docs/overview/architecture.html#the-native-boundary).
 public enum Direction implements YogaEnum {
 
     /// Take the owner's direction. The root's owner is the layout call itself,

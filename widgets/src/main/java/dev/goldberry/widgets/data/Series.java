@@ -9,29 +9,34 @@ import dev.goldberry.widgets.data.plot.Gaps;
 
 /// One line on a chart: what it is called, and what it did.
 ///
+/// ```java
+/// Series.of("Downloads", 12, 19, 15)
+/// new Series("Latency", readings)   // a List<Double>; a null is a hole
+/// ```
+///
 /// **A name, not a colour.** Which colour a series takes is decided by its
 /// *position* — slot 1, slot 2 — because the order is what keeps adjacent series
-/// distinguishable under colour-vision deficiency
-/// (ADR-0194),
-/// and a caller that could pass a colour would be a caller that could pass two
-/// that collide. An application that genuinely needs a particular colour writes
-/// a rule: `#revenue { --gb-chart-1: … }`, which is the cascade doing it
-/// (ADR-0195).
+/// distinguishable under colour-vision deficiency, and a caller that could pass
+/// a colour would be a caller that could pass two that collide. An application
+/// that genuinely needs a particular colour writes a rule:
+/// `#revenue { --gb-chart-1: … }`, which is the cascade doing it.
 ///
 /// **The x is not in here.** A series is values in order, and what they are
 /// plotted against is the chart's: by default the point **index**, evenly
-/// spaced and labelled by the caller, or `content-widgets.md` §3.1's
-/// `java.time` axis when the chart is given one `Instant` per point — at which
-/// point an unscraped stretch is as wide as it was long
-/// (ADR-0203, [TimeAxis]).
+/// spaced and labelled by the caller, or a [TimeAxis] when the chart is given
+/// one `Instant` per point — at which point an unscraped stretch is as wide as
+/// it was long.
+///
+/// Read more: [Charts](https://goldberry.dev/docs/components/charts.html#what-the-five-share).
 ///
 /// @param name   what the legend calls it — required, because a series nobody
 ///               can name is a line nobody can read
 /// @param values the points, in order
 public record Series(String name, List<Double> values) {
 
-    /// Written out so that the parameter whose elements may be null can say so
-    /// (ADR-0497). The component holds no null: each one is read as a hole.
+    /// The canonical constructor, written out so that the parameter whose
+    /// elements may be null can say so. The component holds no null: each one is
+    /// read as a hole.
     public Series(String name, List<@Nullable Double> values) {
         Objects.requireNonNull(name, "name");
         if (name.isBlank()) {

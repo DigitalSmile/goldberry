@@ -16,13 +16,17 @@ import dev.goldberry.widgets.data.Series;
 import dev.goldberry.widgets.markup.Markup;
 import dev.goldberry.widgets.markup.Wiring;
 
-/// `content-widgets.md` §3.2's inline data, as a node — the `series` in
+/// A chart's inline data, as a node — the `series` in
 ///
 /// ```kdl
 /// line-chart {
 ///     series name="downloads" { point "0.1" 1200; point "0.2" 3400 }
 /// }
 /// ```
+///
+/// `name=` is what the legend calls it, and each `point` child is a label and
+/// a value. Markup holds small static data; data from a model is Java, through
+/// [dev.goldberry.widgets.data.Series].
 ///
 /// **A widget that draws nothing**, which is `option`'s pattern and is here for
 /// `option`'s reason: the KDL inflater builds a document depth-first and hands a
@@ -35,11 +39,13 @@ import dev.goldberry.widgets.markup.Wiring;
 /// inflater that can be told "my children are data" — is a change to the one
 /// mechanism every widget in the catalog goes through, for a case two widgets
 /// have.
+///
+/// Read more: [Charts](https://goldberry.dev/docs/components/charts.html#series).
 @Markup("series")
 public record ChartSeries(@Nullable String name, List<Double> values, List<String> labels)
         implements Widget.Leaf, Styled, Paints {
 
-    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    /// The canonical constructor, written out so that the parameters taking null for a default can say so.
     public ChartSeries(@Nullable String name, @Nullable List<Double> values, @Nullable List<String> labels) {
         values = List.copyOf(values == null ? List.of() : values);
         labels = List.copyOf(labels == null ? List.of() : labels);

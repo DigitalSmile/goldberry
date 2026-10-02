@@ -5,12 +5,16 @@ import java.util.Objects;
 
 import dev.goldberry.render.model.LogicalPoint;
 
-/// Text dropped on a window, and where — [ADR-0408].
+/// Text dropped on a window, and where.
+///
+/// ```java
+/// host.onTextDrop(drop -> editor.insertAt(drop.at(), drop.text()));
+/// ```
 ///
 /// [FileDrop]'s sibling, and deliberately its shape: a desktop reports a text
 /// drop as a beginning, a moving position, one event per **line** and the same end
 /// a file drop has. Reassembling that run is the same arithmetic, so it is done in
-/// the same place ([ADR-0330]).
+/// the same place.
 ///
 /// ## Lines, not a string
 ///
@@ -41,7 +45,10 @@ import dev.goldberry.render.model.LogicalPoint;
 /// file drop with a different spelling: a file manager that drags a file sends
 /// `SDL_EVENT_DROP_FILE`, and an application that wants to treat a dropped
 /// `file:` URL as a file can say so itself with
-/// [UriList][dev.goldberry.render.clipboard.UriList] ([ADR-0406]).
+/// [UriList][dev.goldberry.render.clipboard.UriList]. Immutable: the list is
+/// copied.
+///
+/// Read more: [Input and focus](https://goldberry.dev/docs/guide/input.html#dropped-files-and-text).
 ///
 /// @param lines the dropped text, one entry per line the platform reported, in
 ///              order; never empty and no entry empty

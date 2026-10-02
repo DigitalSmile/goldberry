@@ -10,11 +10,11 @@ import dev.goldberry.widget.style.Paints;
 import dev.goldberry.widget.style.Styled;
 
 /// The filled part of a [StepConnector] — a **part**, CSS-selectable and not
-/// constructible (ADR-0065).
+/// constructible.
 ///
 /// It carries no state of its own: `step-connector.done step-connector-fill` is
 /// how a stylesheet reaches it, so the one word the list writes is written once.
-/// Its growth is a `transform` the stylesheet owns (ADR-0356).
+/// Its growth is a `transform` the stylesheet owns.
 record StepConnectorFill() implements Widget.Leaf, Styled, Paints {
 
     @Override

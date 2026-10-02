@@ -29,8 +29,8 @@ import dev.goldberry.widgets.text.Text;
 /// what it looks like where *they* will put it: in a 16-point toolbar, on a
 /// 64-point empty state. For an icon that is the difference between a path that
 /// holds up and one whose detail closes into a blot; for an emoji it is the
-/// claim ADR-0456 makes — a paint graph is drawn at whatever size is asked, and
-/// is as sharp at 64 as at 16.
+/// claim a colour font makes — a paint graph is drawn at whatever size is asked,
+/// and is as sharp at 64 as at 16.
 ///
 /// ## And how to write one
 ///
@@ -38,14 +38,14 @@ import dev.goldberry.widgets.text.Text;
 /// this emoji in its own text — a KDL document and Java — each with the
 /// character itself and with its code point, for the editor that cannot type
 /// it. Neither names a font: the text is routed to the emoji face by the
-/// itemizer ([ADR-0393]), which is the whole of what an application has to
+/// itemizer, which is the whole of what an application has to
 /// know. The snippets are built for the emoji pressed, and `SpecimensTest`
 /// parses the KDL one with the toolkit's own parser, so the example cannot
 /// drift from the syntax it shows.
 ///
 /// ## Icons are built at size, emoji are styled at size
 ///
-/// An [Icon] is a path built *at* a size ([ADR-0034]), so the icon row builds
+/// An [Icon] is a path built *at* a size, so the icon row builds
 /// five of them. An emoji is text, and text is sized by the cascade, so the
 /// emoji row is five glyphs each carrying a `size-<n>` class that
 /// `showcase.css` turns into a `font-size`. The same split as the two sheets'
@@ -112,7 +112,7 @@ final class Specimens {
         for (var size : TEXT_SIZES) {
             // The UI face, not the emoji one: this line names no font, so the
             // emoji in it is routed out of the prose and back in by the
-            // itemizer (ADR-0393) — which is how an application actually draws
+            // itemizer — which is how an application actually draws
             // one, and the half of this dialog a glyph on its own cannot show.
             lines.add(new Text(
                     size + " px — shipping on Friday " + character + " as planned " + character,

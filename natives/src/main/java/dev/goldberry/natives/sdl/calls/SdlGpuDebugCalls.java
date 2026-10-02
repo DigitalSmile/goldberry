@@ -10,12 +10,15 @@ import java.lang.invoke.MethodHandle;
 import dev.goldberry.natives.Downcalls;
 
 /// Debug groups and labels in a command buffer: what a frame capture in Xcode,
-/// RenderDoc or PIX names each layer's commands by (`docs/gpu-plan.md`,
-/// phase 2). They cost nothing a driver without a debugger attached notices.
+/// RenderDoc or PIX names each layer's commands by, since a frame opens one
+/// group per layer. They cost nothing a driver without a debugger attached notices.
 ///
 /// One holder per function: its handle, its address, and a `call` whose
 /// parameters are the C prototype’s. See [Downcalls] for why the handle is a
 /// `static final` constant and why these live in a package of their own.
+///
+/// Read more: [The GPU canvas](https://goldberry.dev/docs/components/gpu.html#the-renderer) and
+/// [The native boundary](https://goldberry.dev/docs/overview/architecture.html#the-native-boundary).
 public record SdlGpuDebugCalls(
         PushGPUDebugGroup pushGPUDebugGroup,
         PopGPUDebugGroup popGPUDebugGroup,

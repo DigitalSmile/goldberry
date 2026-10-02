@@ -9,15 +9,14 @@ import dev.goldberry.widget.Widget;
 import dev.goldberry.widget.style.Paints;
 import dev.goldberry.widget.style.Styled;
 
-/// The 16px disc that slides — a **part** of [Toggle], and the sixth part.
+/// The 16px disc that slides — a **part** of [Toggle].
 ///
-/// It is a node of its own for the reason
-/// ADR-0073
-/// established for `check-mark`: **two things must move independently, and the
-/// unit of independent movement is a cascade node.** `docs/design-system.md` §3.1
-/// asks for "thumb `translate` base; track color base", which is a transform on
-/// one box and a background on another — and a `transform` applies down its
-/// subtree, so a thumb drawn onto the track would slide the track with it.
+/// It is a node of its own for the reason `check-mark` is: **two things must
+/// move independently, and the unit of independent movement is a cascade
+/// node.** The thumb translates while the track changes colour, which is a
+/// transform on one box and a background on another — and a `transform`
+/// applies down its subtree, so a thumb drawn onto the track would slide the
+/// track with it.
 ///
 /// It carries no state of its own. Whether it is at rest or travelled is
 /// `toggle-track:checked toggle-thumb { transform: … }` in the stylesheet — the

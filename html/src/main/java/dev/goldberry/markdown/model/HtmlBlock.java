@@ -9,8 +9,8 @@ import java.util.Objects;
 /// because the HTML output has somewhere obvious to put it. A **widget** renderer
 /// does not have an obvious place: there is no engine under it in this module, so
 /// `markdown-view` shows the markup as text rather than pretending to have
-/// rendered it. That is the honest half of ADR-0295 and the reason `html-view`
-/// exists as a gap rather than as a lie.
+/// rendered it. That is the honest answer, and `html-view` is the widget for an
+/// application that has HTML to show.
 ///
 /// An application that does not want raw HTML at all parses without it — see
 /// [dev.goldberry.markdown.MarkdownExtension#NO_HTML].

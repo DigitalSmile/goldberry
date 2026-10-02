@@ -13,8 +13,7 @@ import dev.goldberry.render.GpuContent;
 import dev.goldberry.render.GpuPlacement;
 
 /// Which GPU layers a window shows after a frame: the ones the frame placed,
-/// and, where only part of it was repainted, the ones it did not reach
-/// (ADR-0481).
+/// and, where only part of it was repainted, the ones it did not reach.
 ///
 /// A partial repaint walks only what the damage touches, so a video beside a
 /// blinking caret is not painted on the caret's frames and places nothing. It
@@ -23,6 +22,8 @@ import dev.goldberry.render.GpuPlacement;
 /// there. So a layer from the last frame is kept when the damage does not touch
 /// it, and dropped when it does, since then the frame would have placed it
 /// again had it still been there.
+///
+/// Read more: [The GPU canvas](https://goldberry.dev/docs/components/gpu.html#what-the-module-does-to-a-window).
 final class GpuLayers {
 
     private GpuLayers() {}

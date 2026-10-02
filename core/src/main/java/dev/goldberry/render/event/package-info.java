@@ -1,14 +1,14 @@
-/// `@NullMarked`, which puts this package under NullAway.
+/// The event loop and the events a backend delivers to it.
 ///
-/// Inside a marked package every type is non-null unless it says `@Nullable`,
-/// and the build fails on a violation. The annotation is the whole content of
-/// this file: there is nothing package-specific to say about nullness, and a
-/// paragraph pretending otherwise in every package would be padding.
+/// `EventLoop` drives a backend on the one UI thread, `UiExecutor` is the way
+/// onto that thread from anywhere else, and `BackendEvent` is what a backend
+/// hands an `EventSink` once it has translated the platform's own event.
+/// Exported to every module, because an application's background work comes
+/// back through here.
 ///
-/// Packages are marked one at a time on purpose. NullAway runs in
-/// `OnlyNullMarked` mode, so an unmarked package is invisible to it and a marked
-/// one is checked from the moment it opts in — which is the only way a codebase
-/// this size adopts nullness at all (`docs/testing.md` §2).
+/// Null-marked: a parameter or return is non-null unless it says `@Nullable`.
+///
+/// Read more: [Windows, popups and the host](https://goldberry.dev/docs/guide/windows.html#threads).
 @NullMarked
 package dev.goldberry.render.event;
 

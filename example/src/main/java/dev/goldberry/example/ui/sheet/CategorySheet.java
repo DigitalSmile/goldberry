@@ -26,7 +26,7 @@ import dev.goldberry.widgets.core.Row;
 ///
 /// ## A heading is a row
 ///
-/// Both sheets are a virtualized `list` of equal-height rows ([ADR-0316]), and
+/// Both sheets are a virtualized `list` of equal-height rows, and
 /// a virtualized list is told one pitch and trusts it. So a group's heading is
 /// **a row of the same pitch**, its label sitting at the bottom of the row the
 /// way a section label sits on the content under it. The alternative — a list

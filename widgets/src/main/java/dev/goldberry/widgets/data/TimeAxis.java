@@ -10,8 +10,8 @@ import org.jspecify.annotations.Nullable;
 import dev.goldberry.widgets.data.plot.Scale;
 import dev.goldberry.widgets.data.plot.TimeTicks;
 
-/// When each point happened — `content-widgets.md` §3.1's `java.time`-driven time
-/// axis.
+/// When each point happened: one `Instant` per point, so a chart's x is time
+/// rather than the point index.
 ///
 /// ```java
 /// chart.times(readings.stream().map(Reading::at).toList());
@@ -47,16 +47,17 @@ import dev.goldberry.widgets.data.plot.TimeTicks;
 /// ## One axis per chart
 ///
 /// Like `categories`, and for the same reason: a chart has one x, and a second
-/// series timed differently would be two x axes in one picture, which is the
-/// mistake §3.4 refuses in the other direction. The times line up with the
-/// **point indices** — the *n*th instant belongs to the *n*th point of every
-/// series.
+/// series timed differently would be two x axes in one picture, the same
+/// mistake as two y axes. The times line up with the **point indices** — the
+/// *n*th instant belongs to the *n*th point of every series.
+///
+/// Read more: [Charts](https://goldberry.dev/docs/components/charts.html#line-chart).
 ///
 /// @param times one instant per point index, in order
 /// @param zone  which day is which
 public record TimeAxis(List<Instant> times, ZoneId zone) {
 
-    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    /// The canonical constructor, written out so that the parameters taking null for a default can say so.
     public TimeAxis(@Nullable List<Instant> times, @Nullable ZoneId zone) {
         times = List.copyOf(times == null ? List.of() : times);
         zone = zone == null ? ZoneId.systemDefault() : zone;

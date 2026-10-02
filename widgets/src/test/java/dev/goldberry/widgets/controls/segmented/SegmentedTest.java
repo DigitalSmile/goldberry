@@ -60,12 +60,13 @@ import dev.goldberry.widgets.text.Text;
 /// The eleventh control, and the second composite.
 ///
 /// [dev.goldberry.widgets.controls.radio.RadioTest] proved the
-/// composite machinery; this proves the thing `docs/core-widgets.md` §3 asks for
-/// that the first composite could not show — that a set's **axis** is a property
-/// of the widget and not always of its stylesheet ([ADR-0078]) — and the drawing
-/// decisions ADR-0097
-/// had to make when §3's row turned out to describe something §8's subset cannot
-/// express.
+/// composite machinery; this proves the thing the catalogue asks of a segmented
+/// control that the first composite could not show — that a set's **axis** is a
+/// property of the widget and not always of its stylesheet — and the drawing
+/// decisions a joined bar forces, because the catalogue's row describes something
+/// the CSS subset cannot express on its own.
+///
+/// Read more: [Segmented](https://goldberry.dev/docs/components/choices.html#segmented).
 class SegmentedTest {
 
     private static List<Widget> inflate(String markup) {
@@ -76,8 +77,7 @@ class SegmentedTest {
     /// exactly-one invariant is actually applied.
     ///
     /// One level down from the bar now: a `segmented` builds a `segmented-track`
-    /// and the track holds the segments and the indicator that runs along them
-    /// ([ADR-0099]).
+    /// and the track holds the segments and the indicator that runs along them.
     private static List<Option> options(Segmented bar) {
         return track(bar).segments().stream()
                 .filter(Option.class::isInstance)
@@ -96,7 +96,7 @@ class SegmentedTest {
     }
 
     @Nested
-    @DisplayName("parity (§11)")
+    @DisplayName("markup and Java build the same tree")
     class Parity {
 
         @Test
@@ -134,8 +134,8 @@ class SegmentedTest {
         @Test
         @DisplayName("`segment` is deliberately not a second spelling of `option`")
         void noSegmentAlias() {
-            // §3 writes `option` in this control and in `select`, so that is the
-            // node. A `segment` alias would be a second spelling of one thing.
+            // This control and `select` both take `option` children, so that is
+            // the node. A `segment` alias would be a second spelling of one thing.
             assertFalse(Widgets.inflater().registered().contains("segment"));
         }
 
@@ -151,8 +151,9 @@ class SegmentedTest {
         @Test
         @DisplayName("a segment with neither a label nor an icon is refused")
         void contentRequired() {
-            // §13: an icon-only segment is legal and a *nothing*-only segment is
-            // not -- there would be nothing to click on and nothing to read out.
+            // An icon-only segment is legal and a *nothing*-only segment is not:
+            // there would be nothing to click on and nothing to read out, and a
+            // control nobody can read out is a failure rather than a blank.
             assertThrows(
                     IllegalArgumentException.class,
                     () -> new Option("list", "", null, false, null, false, Attributes.NONE));
@@ -239,7 +240,7 @@ class SegmentedTest {
     }
 
     @Nested
-    @DisplayName("data down, events up (ADR-0063)")
+    @DisplayName("data flows down and events flow up")
     class Binding {
 
         @Test
@@ -330,7 +331,7 @@ class SegmentedTest {
     }
 
     @Nested
-    @DisplayName("one Tab stop, and the arrows are the bar's own axis (§7.2)")
+    @DisplayName("the bar is one Tab stop, and the arrows rove along its own axis")
     class Traversal {
 
         private final List<String> picked = new ArrayList<>();
@@ -361,9 +362,9 @@ class SegmentedTest {
         /// because the track's first child is the indicator, which is painted
         /// under the labels and takes no focus.
         /// The `index`-th segment, found **by type** rather than by counting
-        /// parts: the track also holds the pill and one hairline per boundary
-        /// (ADR-0217), and a fixed offset would say something different every
-        /// time the anatomy changed.
+        /// parts: the track also holds the pill and one hairline per boundary,
+        /// and a fixed offset would say something different every time the
+        /// anatomy changed.
         private Element segment(ElementTree tree, int index) {
             return tree.root().children().get(1).children().getFirst().children().stream()
                     .filter(child -> "option".equals(child.type()))
@@ -402,8 +403,7 @@ class SegmentedTest {
         /// **The one line that separates this control from `radio-group` in
         /// Java.** A group answers to both arrow pairs because its direction is
         /// its stylesheet's; a bar has a direction of its own, so `Up` and `Down`
-        /// are not its to consume and a scroll view above it must still get them
-        /// ([ADR-0078]).
+        /// are not its to consume and a scroll view above it must still get them.
         @Test
         @DisplayName("Down does nothing, because a bar's axis is horizontal")
         void verticalArrowsAreNotTheBars() {
@@ -492,7 +492,7 @@ class SegmentedTest {
             var element = new ElementTree(grid).root();
 
             grid.onKey(new KeyEvent(KeyEvent.Kind.PRESSED, Key.ENTER, Modifiers.NONE, false, element));
-            assertTrue(picked.isEmpty(), "Enter belongs to a dialog's default action (§2.3)");
+            assertTrue(picked.isEmpty(), "Enter belongs to a dialog's default action");
 
             grid.onKey(new KeyEvent(KeyEvent.Kind.PRESSED, Key.SPACE, Modifiers.NONE, false, element));
             assertEquals(List.of("grid"), picked);
@@ -529,7 +529,7 @@ class SegmentedTest {
         @Test
         @DisplayName("a disabled bar does not mark its segments, and does not need to")
         void barDoesNotPushDisabledDown() {
-            // ADR-0077: the flag stays on the node that declared it, the fade
+            // The flag stays on the node that declared it, the fade
             // multiplies down the subtree by itself, and unavailability
             // propagates through the router. Pushing it would fade twice and
             // land at 20%.
@@ -539,12 +539,12 @@ class SegmentedTest {
             assertTrue(options(bar).stream().noneMatch(Option::disabled));
         }
 
-        /// §3 requires `name=` on an icon-only segment, and until ADR-0260 the
-        /// attribute did not exist anywhere. `Option` already refuses a segment
+        /// The catalogue requires `name=` on an icon-only segment, and until every
+        /// widget gained that attribute it did not exist anywhere. `Option` already refuses a segment
         /// with neither a label nor an icon, which was the half that could be
         /// enforced; this is the other half.
         @Test
-        @DisplayName("an icon-only segment is named by `name=`, which §3 requires")
+        @DisplayName("an icon-only segment is named by `name=`, because an icon alone has no accessible name")
         void iconOnlyIsNamed() {
             var icon = dev.goldberry.icon.Icon.bundled("list", 16);
             try {
@@ -576,17 +576,18 @@ class SegmentedTest {
     }
 
     @Nested
-    @DisplayName("§3's drawing, joined")
+    @DisplayName("the drawing, joined")
     class Drawing {
 
-        /// §3: "radius 8 outer, 0 between". It is drawn, since ADR-0217 — the bar
-        /// carries the 8, the segments and the pill carry the 7 that is the 8 less
-        /// the bar's own border, and only the corners at the **ends** of the row
-        /// keep it. ADR-0097 deferred this for two reasons and ADR-0216 removed
-        /// the first; the second, that nothing clips, stopped mattering once a
+        /// The catalogue says radius 8 outer, 0 between, and it is drawn now that
+        /// the bar is joined — the bar carries the 8, the segments and the pill
+        /// carry the 7 that is the 8 less the bar's own border, and only the
+        /// corners at the **ends** of the row keep it. The first drawing deferred
+        /// this for two reasons: a corner was one number, and nothing clipped. A
+        /// corner is four numbers now, and the second stopped mattering once a
         /// fill could round its own outer corners instead of being cut to shape.
         @Test
-        @DisplayName("the bar's radius is §3's 8, and what is inside it is that less the border")
+        @DisplayName("the bar's radius is 8, and what is inside it is that less the border")
         void radii() {
             assertEquals(Corners.all(8), styleOf("segmented").decoration().corners());
             assertEquals(
@@ -599,7 +600,7 @@ class SegmentedTest {
 
         /// The joined drawing's own arithmetic: the bar's padding is its border,
         /// so the track is exactly the box inside the edge. It was 2 while the
-        /// segments were inset pills, and that 2 was §1.3's ramp; this 1 is not a
+        /// segments were inset pills, and that 2 was a spacing step; this 1 is not a
         /// spacing step at all but the width of the line it clears.
         @Test
         @DisplayName("the bar's padding is its border's width, so the track is its inner box")
@@ -615,9 +616,9 @@ class SegmentedTest {
             assertEquals(bar.padding().left(), bar.padding().right());
         }
 
-        /// §3's "1px divider in `--gb-border`", which came back with the drawing
-        /// it belonged to — ADR-0097 dropped it because "a divider separates
-        /// segments that meet", and they meet again.
+        /// The catalogue's 1px divider in `--gb-border`, which came back with the
+        /// drawing it belonged to — the first drawing dropped it because a divider
+        /// separates segments that meet, and they meet again.
         @Test
         @DisplayName("a divider is a hairline in the border's own colour")
         void dividerIsAHairline() {
@@ -635,7 +636,7 @@ class SegmentedTest {
 
         /// The widget says **which** lines are beside the pill and the stylesheet
         /// says what that means — the half of the old `restyle` a stylesheet could
-        /// have written once it was told (ADR-0499).
+        /// have written once it was told.
         @Test
         @DisplayName("the hairlines beside the pill are hidden by the stylesheet, told which by the widget")
         void besideTheSelectionIsTheStylesheets() {
@@ -664,8 +665,7 @@ class SegmentedTest {
         /// other way and says why.
         /// The grid is the **track's**, not the stylesheet's, and this is what
         /// says so: a cell's width is the one metric of this control that no
-        /// selector can write, because no selector can count the segments
-        /// (ADR-0099).
+        /// selector can write, because no selector can count the segments.
         @Test
         @DisplayName("the stylesheet gives a segment every metric except its width")
         void widthIsNotTheStylesheets() {
@@ -675,7 +675,7 @@ class SegmentedTest {
                     Length.UNDEFINED,
                     cell.width(),
                     "a width here would be a number that cannot know how many cells there are");
-            assertEquals(Length.points(12), cell.padding().left(), "§3's padding-x, though");
+            assertEquals(Length.points(12), cell.padding().left(), "the segment's 12px padding-x, though");
             assertEquals(0.0, styleOf("segmented").flexGrow(), "the bar itself takes no space it was not given");
             assertEquals(
                     1.0,
@@ -684,7 +684,7 @@ class SegmentedTest {
         }
 
         @Test
-        @DisplayName("a segment's padding-x is §3's 12, at either density")
+        @DisplayName("a segment's padding-x is 12, at either density")
         void segmentPadding() {
             assertEquals(Length.points(12), styleOf("option").padding().left());
             assertEquals(
@@ -735,7 +735,7 @@ class SegmentedTest {
         }
 
         /// The selected segment's foreground is the **fill's** and not the
-        /// theme's (ADR-0087), which is what `ContrastTest` measures. This is the
+        /// theme's, which is what `ContrastTest` measures. This is the
         /// cheaper half of the same claim: that the rule reaches the label at all.
         @Test
         @DisplayName("the selection carries its own foreground")
@@ -745,17 +745,17 @@ class SegmentedTest {
                     styleOf("option", Selector.PseudoClass.CHECKED).color());
         }
 
-        /// §3.1's row, built: "selection indicator `translate` … between segments,
-        /// **base**". The `width` half is absent and cannot arrive — it is not on
-        /// §1.7's whitelist — and on a grid it never changes, because every cell is
-        /// the same size ([ADR-0099]).
+        /// The design system's row for the indicator, built: it `translate`s
+        /// between segments on **base**. The `width` half is absent and cannot
+        /// arrive — it is not a property the toolkit can transition — and on a
+        /// grid it never changes, because every cell is the same size.
         @Test
         @DisplayName("what moves is the indicator's transform, on the component duration")
         void motion() {
             var pill = styleOf("segmented-indicator").transitions();
 
             var travel = pill.get(Transitions.Animatable.TRANSFORM);
-            assertNotNull(travel, "an indicator that snapped between segments is not §3.1's row");
+            assertNotNull(travel, "the indicator must travel between segments, not snap");
             assertEquals(160, travel.durationMillis(), 0.001, "--gb-motion-base");
             assertEquals(
                     100,
@@ -764,10 +764,10 @@ class SegmentedTest {
                     "a pill appearing is a state change, not a movement: --gb-motion-fast");
 
             // The label's colour moves with it, because a selected segment's
-            // foreground is picked for the fill it sits on (ADR-0088).
+            // foreground is picked for the fill it sits on.
             assertNotNull(styleOf("option").transitions().get(Transitions.Animatable.COLOR));
 
-            // And `width` is not in `Animatable` at all, which is why §3.1's row
+            // And `width` is not in `Animatable` at all, which is why the design system's row
             // could only ever be half built as written.
             assertNull(Transitions.Animatable.parse("width"));
         }
@@ -776,12 +776,12 @@ class SegmentedTest {
         /// control's own comment said it could not do.
         ///
         /// The cells are equal by construction — `SegmentedTrack` sizes them,
-        /// because no selector can count segments (ADR-0099) — so a label wider
+        /// because no selector can count segments — so a label wider
         /// than its cell is the ordinary case rather than an edge one. It used to
         /// overflow, and not because nothing clips: a box with text is a measured
-        /// leaf, so narrowing it re-measured the paragraph and **wrapped** it,
-        /// which is what ADR-0235 spent a record establishing. `white-space` is
-        /// what stops the re-measure ([ADR-0255]).
+        /// leaf, so narrowing it re-measured the paragraph and **wrapped** it:
+        /// `text-overflow` cannot cut a line that `white-space` has let wrap.
+        /// `white-space: nowrap` is what stops the re-measure.
         @Test
         @DisplayName("a segment's label is one line, cut where it does not fit")
         void labelsAreCutRatherThanWrapped() {
@@ -849,7 +849,7 @@ class SegmentedTest {
         ///
         /// Not [HitTest]'s regions, and the difference is the whole subject here:
         /// those carry the *untransformed* rectangle and the matrix beside it,
-        /// because a transform costs no layout and moves no sibling (ADR-0068).
+        /// because a transform costs no layout and moves no sibling.
         /// An indicator that has travelled two segments is still laid out at the
         /// first one, so a test that read the layout alone would say the pill
         /// never moves — and would have passed before any of this was built.
@@ -894,7 +894,7 @@ class SegmentedTest {
                     Attributes.NONE);
         }
 
-        /// §3's "radius 8 outer, 0 between", on the cells: the bar's own 8 less
+        /// A radius of 8 outside and 0 between, on the cells: the bar's own 8 less
         /// its 1px border at the two ends of the row, and nothing in between.
         @Test
         @DisplayName("a segment is round only at the ends of the row")
@@ -940,7 +940,7 @@ class SegmentedTest {
 
         /// One hairline per boundary, each exactly where two cells meet — which
         /// is the claim that says a percentage of the track and the grid the
-        /// cells are laid on are the same measurement (ADR-0217).
+        /// cells are laid on are the same measurement.
         @Test
         @DisplayName("a hairline sits where two cells meet, one per boundary")
         void hairlinesSitOnTheBoundaries() {
@@ -955,7 +955,7 @@ class SegmentedTest {
                         lines.get(gap).left(),
                         0.5,
                         "hairline " + gap + " is not on the seam it divides");
-                assertEquals(1, lines.get(gap).width(), 1e-9, "§3's 1px");
+                assertEquals(1, lines.get(gap).width(), 1e-9, "a divider is a 1px hairline");
             }
         }
 
@@ -967,7 +967,7 @@ class SegmentedTest {
         void hairlinesBesideTheSelectionAreHidden() {
             // Read as the **fill that reaches the screen** rather than as the
             // node's `opacity`: the render tree multiplies opacity down the
-            // subtree into the colours themselves (ADR-0064), so a box that has
+            // subtree into the colours themselves, so a box that has
             // been faded out carries a transparent background and an opacity of 1.
             var lines = ofType(drawn(bar("grid"), 400), "segmented-divider");
 
@@ -1011,8 +1011,8 @@ class SegmentedTest {
         @Test
         @DisplayName("a stylesheet cannot flip the bar into a column")
         void noAxisClass() {
-            // `radio-group.inline` exists because §3 gives a group no axis. §3
-            // gives this one an axis, focusScope() answers to it, and a class
+            // `radio-group.inline` exists because a radio group has no axis of its
+            // own. A bar has one, focusScope() answers to it, and a class
             // that turned the bar vertical would make the two disagree with no
             // way for input to know.
             assertFalse(Controls.baseSource().contains("segmented.vertical"));

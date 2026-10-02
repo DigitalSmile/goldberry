@@ -26,7 +26,7 @@ import dev.goldberry.widget.style.Paints;
 import dev.goldberry.widget.style.Styled;
 
 /// A node's custom properties are its parent's map plus what it changes, and
-/// nothing else — ADR-0502.
+/// nothing else.
 ///
 /// Every answer here is checked twice: against the value the test expects, and
 /// against the **uncached walk**, a stand-in for the same element that has no

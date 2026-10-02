@@ -139,7 +139,7 @@ public record SdlWindowCalls(
     /// Creates a window owned by another, positioned in its coordinates.
     ///
     /// A driver with no popup support refuses this, which is the answer a menu
-    /// has to be able to hear (ADR-0102).
+    /// has to be able to hear.
     ///
     /// `void* SDL_CreatePopupWindow(void*, int, int, int, int, int64_t)`
     public static final class CreatePopupWindow {
@@ -256,7 +256,7 @@ public record SdlWindowCalls(
     ///
     /// SDL converts the surface, and every alternate hung off it, into its own
     /// copy before this returns, so the caller's surface and pixels need only
-    /// outlive the call (ADR-0351).
+    /// outlive the call.
     ///
     /// `_Bool SDL_SetWindowIcon(void*, void*)`
     public static final class SetWindowIcon {
@@ -269,7 +269,7 @@ public record SdlWindowCalls(
         SetWindowIcon(SymbolLookup lookup) {
             // Optional: a `libgoldberry` built before the export must keep opening
             // windows, and a window with the platform's generic icon is still a
-            // window (ADR-0351).
+            // window.
             this.address = Downcalls.optionalSymbol(lookup, "SDL_SetWindowIcon");
         }
 
@@ -299,7 +299,7 @@ public record SdlWindowCalls(
     /// **A request rather than a setter.** On every platform this is a message to
     /// the window manager, which may refuse it — a tiling compositor has its own
     /// idea — so what it returns is whether SDL accepted the *ask*, and the state
-    /// is `SDL_EVENT_WINDOW_MAXIMIZED` arriving afterwards (ADR-0252).
+    /// is `SDL_EVENT_WINDOW_MAXIMIZED` arriving afterwards.
     public static final class MaximizeWindow {
 
         private static final MethodHandle FD_SDL_MaximizeWindow =

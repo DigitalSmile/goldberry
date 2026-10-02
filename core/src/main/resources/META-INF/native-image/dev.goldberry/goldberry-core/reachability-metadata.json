@@ -1,7 +1,7 @@
 {
   "comment": [
     "What :core ships that is read as a resource, declared by glob rather than",
-    "traced (ADR-0160).",
+    "traced.",
     "",
     "GraalVM reads META-INF/native-image/** from every jar on the path, so this",
     "travels with the module and an application building an image gets it without",

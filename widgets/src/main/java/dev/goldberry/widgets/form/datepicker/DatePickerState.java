@@ -23,7 +23,7 @@ import dev.goldberry.widgets.panel.calendar.DateSelection;
 ///
 /// ## The text is the state, and the date is derived
 ///
-/// §4: "the **typed field is the source of truth**, not the popup". So what lives
+/// The **typed field is the source of truth**, not the popup. So what lives
 /// here is a `String`, and a `LocalDate` is what [DateFormat#parse] makes of it
 /// when it is asked. The alternative — holding the date and rendering it into the
 /// field — has to answer "what does the field say while somebody is halfway
@@ -77,7 +77,7 @@ final class DatePickerState extends State<DatePicker> implements PickerField.Pic
         var picker = widget();
         // Re-described rather than reopened, so a keystroke that moves the grid's
         // selection does not close and reopen a platform window — `select`'s rule
-        // for its narrowing list (ADR-0182).
+        // for its narrowing list.
         var open = grid;
         if (isOpen() && open != null) {
             open.content(calendar());
@@ -122,8 +122,8 @@ final class DatePickerState extends State<DatePicker> implements PickerField.Pic
 
     /// The calendar in the popover, configured from this picker.
     ///
-    /// Every gate is handed straight over, which is §4's "gate both the field and
-    /// the grid": one predicate, two readers, and no way for them to disagree.
+    /// Every gate is handed straight over, so the same rule gates both the field
+    /// and the grid: one predicate, two readers, and no way for them to disagree.
     private Widget calendar() {
         var picker = widget();
         var start = selection().first();
@@ -140,12 +140,12 @@ final class DatePickerState extends State<DatePicker> implements PickerField.Pic
     /// A keystroke in the field.
     ///
     /// The value is committed as soon as it parses **and is reachable**, which is
-    /// what makes typing and picking the same act: §4 gives the field no separate
+    /// what makes typing and picking the same act: the field has no separate
     /// confirmation, and a date that only counted on blur would leave a form
     /// holding an older value than the one on screen.
     ///
-    /// A date the bounds refuse is left in the field and **not** committed. §4:
-    /// "an unreachable date cannot be typed either" — and the text stays, because
+    /// A date the bounds refuse is left in the field and **not** committed: an
+    /// unreachable date cannot be typed either — and the text stays, because
     /// deleting what somebody typed is how a field loses a keystroke they were
     /// halfway through.
     private void typed(String typed) {
@@ -181,17 +181,17 @@ final class DatePickerState extends State<DatePicker> implements PickerField.Pic
         if (host == null || bounds == null) {
             // A golden image and a layout preview build the same widget with no
             // host behind it, and a control that threw there could not be drawn
-            // at all (ADR-0140).
+            // at all.
             return false;
         }
         // **Attached**, not a menu: the field is the source of truth and a
-        // focusable popup would take the keyboard off it (ADR-0186). The arrows
+        // focusable popup would take the keyboard off it. The arrows
         // still reach the grid, because while a popup is open the keyboard
-        // belongs to it (ADR-0104).
+        // belongs to it.
         //
         // **No minimum width, and that is the difference from `select`.** A
         // dropdown asks for at least the width of the control it drops from,
-        // because a list narrower than its field reads as a mistake (ADR-0145) —
+        // because a list narrower than its field reads as a mistake —
         // and a list's rows *stretch* to fill whatever it is given. A month grid
         // does not: it is seven cells of `--gb-calendar-day` and cannot be any
         // other width, so a floor produces a panel as wide as the field with the
@@ -221,7 +221,7 @@ final class DatePickerState extends State<DatePicker> implements PickerField.Pic
         open();
     }
 
-    /// §4's `Esc`: the last value that parsed goes back into the field.
+    /// `Esc`: the last value that parsed goes back into the field.
     ///
     /// @return whether there was anything to put back, which is what keeps an
     ///         `Escape` on an untouched picker available to the dialog around it

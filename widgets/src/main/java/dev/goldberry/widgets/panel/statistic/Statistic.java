@@ -19,18 +19,23 @@ import dev.goldberry.widget.style.Styled;
 import dev.goldberry.widgets.markup.Markup;
 import dev.goldberry.widgets.markup.Wiring;
 
-/// A labelled number — `docs/core-widgets.md` §5's `statistic`.
+/// A labelled number: a value, what it is of, an optional unit, and a delta
+/// that says which way it moved.
 ///
 /// ```kdl
 /// statistic label="Active users" value="12,480" delta="+4.2%" direction="up"
 /// statistic label="Latency" value="128" unit="ms" delta="-11 ms" direction="down"
 /// ```
 ///
+/// ```java
+/// new Statistic("Active users", "12,480")
+/// ```
+///
 /// ## The number is a string, and that is deliberate
 ///
-/// §5: "Formatting is the application's — the widget takes a string, for
-/// `slider`'s reason: a locale-aware number formatted inside the toolkit makes a
-/// golden image that cannot be reproduced on another machine." `12,480` is
+/// Formatting is the application's: the widget takes a string, for `slider`'s
+/// reason, because a locale-aware number formatted inside the toolkit makes a
+/// golden image that cannot be reproduced on another machine. `12,480` is
 /// `12.480` in half of Europe and `12 480` in the other half, and a golden that
 /// depends on the runner's default locale is a golden that fails in CI for a
 /// reason nobody can see in the diff. So the toolkit never formats: an
@@ -46,32 +51,31 @@ import dev.goldberry.widgets.markup.Wiring;
 /// what you want. That reading is stated here because the alternative — mapping a
 /// leading `-` to danger — would colour a latency improvement red.
 ///
-/// A glyph is not drawn. §5 asks for the delta "rendered in
-/// `--gb-success`/`--gb-danger`" and nothing more, and an arrow would be the only
-/// thing in the catalog conveying meaning by colour *and* shape while the
-/// accessible name conveys neither.
+/// A glyph is not drawn. The delta is rendered in `--gb-success` or
+/// `--gb-danger` and nothing more, and an arrow would be the only thing in the
+/// catalog conveying meaning by colour *and* shape while the accessible name
+/// conveys neither.
 ///
 /// ## The sparkline
 ///
-/// §5's "optional `sparkline` from a `canvas`" is built, and it turned out to be
-/// exactly what this note predicted: **one more child at the end of the column**,
-/// with no other change. It waited on `canvas`
-/// (ADR-0193),
-/// which was §1's last unbuilt primitive.
+/// An optional trend drawn on a `canvas`: one more child at the end of the
+/// column, with no other change.
 ///
 /// It inherits its colour like everything else here, which is what makes
 /// `statistic.up sparkline { color: var(--gb-success) }` a rule an application
 /// can write — a trend drawn in the same hue as the delta above it, from the
 /// cascade rather than from an argument.
 ///
-/// @param label      what the number is of — always present, because §5 makes the
-///                   label and the value one accessible name
+/// @param label      what the number is of — always present, because the label
+///                   and the value are one accessible name
 /// @param value      the number, already formatted
 /// @param unit       an optional suffix, set smaller and muted beside the value
 /// @param delta      an optional change, or null
 /// @param direction  which way [#delta] went, and therefore what colour it is
-/// @param sparkline  §5's optional trend, or null
+/// @param sparkline  an optional trend, or null
 /// @param attributes the `id` and classes
+///
+/// Read more: [Panels](https://goldberry.dev/docs/components/panels.html#statistic).
 @Markup("statistic")
 public record Statistic(
         String label,
@@ -121,7 +125,7 @@ public record Statistic(
         this(label, value, null, null, Direction.NONE, null, Attributes.NONE);
     }
 
-    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    /// Written out so that the parameters taking null for a default can say so.
     public Statistic(
             String label,
             String value,
@@ -178,7 +182,7 @@ public record Statistic(
     /// The label, the value row, and the delta when there is one.
     ///
     /// Parts rather than one `render`, for `slider`'s reason: three pieces of text
-    /// at three ranks in §1.2's hierarchy are three things a stylesheet has to be
+    /// at three ranks of the type scale are three things a stylesheet has to be
     /// able to reach separately, and a widget that drew them itself would have
     /// baked the hierarchy in.
     @Override
@@ -190,7 +194,7 @@ public record Statistic(
             parts.add(new StatisticDelta(delta, direction));
         }
         if (sparkline != null) {
-            // Last, because §5 reads top to bottom -- what it is, the number, how
+            // Last, because a statistic reads top to bottom -- what it is, the number, how
             // it changed, and then the shape of the change.
             parts.add(sparkline);
         }
@@ -202,7 +206,7 @@ public record Statistic(
         return Box.of().style(style).children(boxes.toArray(Box[]::new));
     }
 
-    /// This statistic with §5's optional trend under it.
+    /// This statistic with a trend drawn under it.
     public Statistic sparkline(dev.goldberry.widgets.data.sparkline.Sparkline value) {
         return new Statistic(label, this.value, unit, delta, direction, value, attributes);
     }

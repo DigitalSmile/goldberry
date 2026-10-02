@@ -25,11 +25,11 @@ import dev.goldberry.widgets.controls.TestFont;
 import dev.goldberry.widgets.core.Column;
 import dev.goldberry.widgets.core.Row;
 
-/// What a slider actually looks like (§14, [ADR-0050]).
+/// What a slider actually looks like, held as golden images.
 ///
 /// [SliderTest] checks the arithmetic. These check that the arithmetic reached
 /// the screen, and they are the only thing that can: the thumb is placed by the
-/// **ratio between two flex children** ([ADR-0079]), and every way of getting that
+/// **ratio between two flex children**, and every way of getting that
 /// wrong — the fill and the rest swapped, the thumb centred regardless, the ratio
 /// taken against the range instead of `0..1` — produces a valid layout and a
 /// perfectly plausible value assertion.
@@ -66,7 +66,8 @@ class SliderGoldenTest {
     /// A pseudo-class forced onto one child of the scene, standing in for the
     /// router.
     ///
-    /// **Onto the child's first *styled* element**, which since [ADR-0430] is not
+    /// **Onto the child's first *styled* element**, which since `slider` became
+    /// a composition is not
     /// the child itself: a `Slider` is a composition that styles nothing and
     /// builds the `slider` node, so a `:hover` set on the composition would be a
     /// `:hover` no rule can see. The router has no such problem — it dispatches to
@@ -132,8 +133,8 @@ class SliderGoldenTest {
         // The groove darkens where the dark theme's lightens, and the thumb is
         // white on both -- but for opposite reasons: nord6 is the *window* on
         // this theme, so the thumb is `#ffffff`, a step past the palette in the
-        // direction it does not otherwise go. That is the lesson ADR-0075 paid
-        // for twice on the switch, applied here for free.
+        // direction it does not otherwise go. That is the lesson the switch paid
+        // for twice, applied here for free.
         paint(
                 "slider-light",
                 Theme.NORD_LIGHT,
@@ -146,8 +147,9 @@ class SliderGoldenTest {
     @DisplayName("hovered, keyboard-focused and disabled")
     void interactionStates() {
         // The ring is around the *control*, which is the 32-tall hit target and
-        // not the 4px groove -- §1.3 gives a slider a target eight times what it
-        // can see, and this is the image that shows the difference.
+        // not the 4px groove -- a hit target is at least 32 even when the visual
+        // is smaller, so a slider's target is eight times what it can see, and this is the image that shows the
+        // difference.
         paint(
                 "slider-interaction",
                 Theme.NORD_DARK,
@@ -161,7 +163,7 @@ class SliderGoldenTest {
     }
 
     @Test
-    @DisplayName("`slider.vertical` is §3's fader, with its minimum at the bottom")
+    @DisplayName("`slider.vertical` is the fader, with its minimum at the bottom")
     void vertical() {
         // `column-reverse` is what puts the minimum at the bottom, and the widget
         // inverts the pointer fraction to match. The two have to agree, and a
@@ -179,8 +181,8 @@ class SliderGoldenTest {
                         id("row")));
     }
 
-    /// §3's tick marks, and the image that says the arithmetic behind them is
-    /// right ([ADR-0080]).
+    /// The catalogue's tick marks, and the image that says the arithmetic behind
+    /// them is right.
     ///
     /// The marks are placed by a ratio and the thumb is placed by a *different*
     /// ratio — the marks' row is inset by half a thumb and the thumb's is not —
@@ -199,10 +201,10 @@ class SliderGoldenTest {
                 new Column(List.of(ticked(0, 5, "a"), ticked(0.5, 5, "b"), ticked(1, 5, "c")), id("scene")));
     }
 
-    /// §3's value label, and the two things it changes about the control.
+    /// The catalogue's value label, and the two things it changes about the control.
     ///
     /// The track is shorter by the label's width — that is what makes the value a
-    /// position along the *track* rather than along the control (ADR-0080) — and
+    /// position along the *track* rather than along the control — and
     /// the label's own width is fixed, so 9 and 100 leave the track the same
     /// length. The three rows here are one slider at three values, and the thumb
     /// positions must still step evenly across.

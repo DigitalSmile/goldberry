@@ -24,16 +24,15 @@ import dev.goldberry.widgets.controls.spinner.Spinner;
 import dev.goldberry.widgets.core.Column;
 import dev.goldberry.widgets.core.Row;
 
-/// What a progress bar and a spinner look like (§14, [ADR-0050]).
+/// What a progress bar and a spinner look like, held as golden images.
 ///
 /// These are the only tests that can see two of the things this change is about.
 /// The spinner's ring is **three cubics and a stroke** — a value assertion can say
 /// the mark is an `ARC` and cannot say the arc closed, or drew inside its box, or
 /// left the gap that makes the rotation visible. And a sweep is a picture of a
 /// moment: the whole point of a virtual clock is that a frame 300 ms into a
-/// 1.2 s loop is a still image that is exactly reproducible
-/// (ADR-0067),
-/// which is impossible against a wall clock.
+/// 1.2 s loop is a still image that is exactly reproducible, which is
+/// impossible against a wall clock.
 ///
 /// `./gradlew :widgets:test -Dgoldberry.golden.update=true` rewrites them.
 class ProgressGoldenTest {
@@ -95,7 +94,7 @@ class ProgressGoldenTest {
 
     /// The bar **part way in**, cut off by the track's leading edge — 180 ms into
     /// the loop, where its left edge is still 0.105 of a track to the left of the
-    /// groove and only the trailing two thirds of it are drawn ([ADR-0418]).
+    /// groove and only the trailing two thirds of it are drawn.
     ///
     /// This is the image that says the clip is real. Without `overflow: hidden` on
     /// `progress` the bar would be drawn whole, hanging into the gap above the
@@ -105,7 +104,7 @@ class ProgressGoldenTest {
     /// function of the clock alone, so two of them in a window are in step. A
     /// controller started at mount would draw this image with the two bars in
     /// different places, and nothing about it would look broken enough to
-    /// investigate ([ADR-0081]).
+    /// investigate.
     @Test
     @DisplayName("a sweep 180ms into its loop, entering under the leading edge")
     void sweeping() {
@@ -128,8 +127,7 @@ class ProgressGoldenTest {
     /// an edge and waits. A bar that reversed would show a whole bar in both.
     ///
     /// 1080 rather than 1200, because at 1200 the bar is entirely outside the clip
-    /// and the picture is an empty groove — true, and a golden of nothing
-    /// ([ADR-0418]).
+    /// and the picture is an empty groove — true, and a golden of nothing.
     @Test
     @DisplayName("and at 1080ms, leaving under the far edge")
     void sweepingAtTheEnd() {
@@ -143,7 +141,8 @@ class ProgressGoldenTest {
                 new Column(List.of(Progress.sweeping()), id("scene")));
     }
 
-    /// §3.1's reduced-motion answer, and the thing to look for is that there is
+    /// Under reduced motion the sweep becomes an opacity pulse, and the thing to
+    /// look for is that there is
     /// still a bar: a reduced-motion user gets a control that says "working",
     /// not an empty groove.
     @Test
@@ -179,8 +178,8 @@ class ProgressGoldenTest {
 
     /// Half a turn later, so the gap is at the bottom. Two images rather than one
     /// with three angles in it, because a spinner has no per-instance phase to
-    /// stagger — which is the property ADR-0081 wanted and the reason it takes a
-    /// second frame to show that the thing turns at all.
+    /// stagger — which is the property a stateless sweep has, and the reason it
+    /// takes a second frame to show that the thing turns at all.
     @Test
     @DisplayName("450ms later, the gap is at the bottom")
     void spinnerHalfTurn() {

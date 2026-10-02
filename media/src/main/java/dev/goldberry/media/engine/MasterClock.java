@@ -7,8 +7,7 @@ import org.jspecify.annotations.Nullable;
 
 import dev.goldberry.media.MediaClock;
 
-/// The time pictures are presented against (`docs/goldberry-media.md` §3,
-/// "Master clock"), in nanoseconds of stream time.
+/// The time pictures are presented against, in nanoseconds of stream time.
 ///
 /// Two sources, one at a time:
 ///

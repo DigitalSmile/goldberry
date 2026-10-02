@@ -70,7 +70,7 @@ class FontFaceTest {
                 var small = Font.on(face, 12);
                 var large = Font.on(face, 36)) {
 
-            // The size is on Blend2D's font alone (ADR-0034), so the shaping
+            // The size is on Blend2D's font alone, so the shaping
             // result -- design units -- is identical, and only the metrics move.
             assertEquals(small.shape("Wg").length(), large.shape("Wg").length());
             assertTrue(

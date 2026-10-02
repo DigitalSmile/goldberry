@@ -18,9 +18,8 @@ import java.lang.annotation.Target;
 /// A button says *that* something happened; a slider says *what* it should
 /// become. So an annotated method takes either no argument or exactly one, and
 /// the weaver emits the right registration for each — including the parse from
-/// the `String` a valued action crosses as, which is the one piece of boilerplate
-/// every application was writing by hand
-/// (ADR-0073).
+/// the `String` a valued action crosses as, so no application writes that
+/// conversion by hand.
 ///
 /// Supported parameter types: `String`, `double`, `int`, `boolean` and their
 /// boxes. Anything else is a build failure naming the method.
@@ -32,8 +31,7 @@ import java.lang.annotation.Target;
 /// byte for byte the call site `javac` emits for `model::click`. So an action is
 /// a direct virtual call behind an interface the JIT inlines through, there is no
 /// reflection on the path, and the linkage is the one shape GraalVM's closed
-/// world can resolve when it builds the image
-/// (ADR-0126).
+/// world can resolve when it builds the image.
 ///
 /// A `private` method is fine, and is the expected case: the call site is written
 /// into the model's own class, where private is not a barrier. An action only the
@@ -41,11 +39,12 @@ import java.lang.annotation.Target;
 ///
 /// ## Or bound by a `MethodHandle`, when nothing wove it
 ///
-/// The paragraph above is what a **native image** runs, and an ordinary jar
-/// resolves the same method reflectively instead — which is why this is
-/// `RUNTIME`-retained since [ADR-0155]. A handle unreflected from a private
-/// method needs the model's package open to the toolkit; an image needs nothing
-/// at all.
+/// The paragraph above is what a **native image** runs. An ordinary jar
+/// resolves the same method reflectively instead, which is why this annotation
+/// is kept at run time. A handle unreflected from a private method needs the
+/// model's package open to the toolkit; an image needs nothing at all.
+///
+/// Read more: [Actions](https://goldberry.dev/docs/applications.html#actions).
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.METHOD)
 public @interface Action {

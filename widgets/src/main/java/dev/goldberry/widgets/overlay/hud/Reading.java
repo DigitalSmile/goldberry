@@ -11,12 +11,14 @@ import dev.goldberry.stats.FrameStats;
 /// [FrameStats] and differ only in which number they take out of it and how many
 /// digits of it are worth reading.
 ///
-/// **[Locale#ROOT], deliberately.** `docs/core-widgets.md` §5 says a
-/// locale-formatted number produced inside the toolkit makes a golden image that
-/// cannot be reproduced on another machine, and that rule was written for
-/// `statistic`, whose numbers are the application's. A HUD's are the toolkit's
+/// **[Locale#ROOT], deliberately.** A locale-formatted number produced inside
+/// the toolkit makes a golden image that cannot be reproduced on another
+/// machine. `statistic` leaves formatting to the application for that reason,
+/// because its numbers are the application's; a HUD's are the toolkit's
 /// own and it formats them itself — so it formats them the one way that is the
 /// same everywhere. A frame rate is not prose.
+///
+/// Read more: [Overlays](https://goldberry.dev/docs/components/overlays.html#hud).
 public enum Reading {
 
     /// Frames per second, whole: `60 fps`.
@@ -31,13 +33,12 @@ public enum Reading {
 
         /// **Never coloured**, and that is why it is still here rather than gone.
         ///
-        /// §1.7 makes the loop idle when nothing asks for a frame, so the gap
+        /// The loop idles when nothing asks for a frame, so the gap
         /// between two frames is however long the user did not touch the window.
         /// A rate counted over that measures the *user*: it collapses the moment
         /// you stop clicking and stays low for the next sixty frames. Judging it
-        /// against a budget turned normal idling into an alarm, which is the
-        /// opposite of what a budget is for
-        /// (ADR-0153).
+        /// against a budget would turn normal idling into an alarm, which is the
+        /// opposite of what a budget is for.
         ///
         /// It is worth showing anyway: while something *is* moving — a drag, a
         /// scroll, a transition — the loop runs continuously and this is exactly
@@ -56,11 +57,10 @@ public enum Reading {
 
     /// What the **display** does: `refresh 60 Hz`.
     ///
-    /// Named `refresh` and not `display`, which is where it started: a reading's
-    /// name is its CSS class, and `.display` is already §1.4's largest type rank
-    /// — so the first draft of this reading rendered at 28px. A widget's class
-    /// names share one namespace with the design system's, and this is the first
-    /// collision (ADR-0153).
+    /// Named `refresh` and not `display`: a reading's name is its CSS class,
+    /// and `.display` is already the design system's largest type rank, so a
+    /// reading by that name would render at 28px. A widget's class names share
+    /// one namespace with the design system's.
     ///
     /// The only rate a platform can be asked for. SDL has no achieved-frame-rate
     /// call and nothing else does either — `SDL_GetCurrentDisplayMode` reports
@@ -69,7 +69,7 @@ public enum Reading {
     ///
     /// It is here because it is the number every budget below is a share of: on a
     /// 120 Hz window a frame is 8.3 ms and not 16.7, and a `hud` judging against
-    /// the wrong one would call a healthy loop late (ADR-0153).
+    /// the wrong one would call a healthy loop late.
     ///
     /// Dashes when the platform will not say — a headless backend, or a mode SDL
     /// cannot describe.
@@ -94,7 +94,7 @@ public enum Reading {
     /// the frames that were painted, so a frame the loop never reached and a
     /// frame the platform refused after it was painted are both invisible —
     /// the first leaves no record at all, and the second is in the mean as
-    /// though somebody had seen it ([ADR-0271]).
+    /// though somebody had seen it.
     ///
     /// A count over the same sixty frames the means are taken over, so it falls
     /// again once the resize that caused it is over. A total since start-up would
@@ -117,7 +117,7 @@ public enum Reading {
         /// **Judged by hand rather than against a budget.** Every other level
         /// here is a share of a display frame, and a count of frames is not a
         /// duration — so this is the one reading whose thresholds are stated
-        /// rather than derived ([ADR-0271]).
+        /// rather than derived.
         ///
         /// Zero is fine. One is not an alarm: a resize refuses a frame that was
         /// painted for the size the window has just stopped being, and that is
@@ -163,7 +163,7 @@ public enum Reading {
         /// window that cannot absorb a resize, whatever the rate currently says.
         ///
         /// A share rather than a number, so a 120 Hz window judges itself against
-        /// 4.2 ms where a 60 Hz one gets 8.3 (ADR-0153).
+        /// 4.2 ms where a 60 Hz one gets 8.3.
         @Override
         double budgetMillis(FrameStats stats) {
             return frameBudget(stats) / 2;
@@ -179,8 +179,7 @@ public enum Reading {
     ///
     /// **Two decimals for the stages**, unlike the three readings above. A stage
     /// that reads `0.0 ms` at one decimal is indistinguishable from a stage that
-    /// is not running, and the whole use of a breakdown is telling those apart
-    /// (ADR-0146).
+    /// is not running, and the whole use of a breakdown is telling those apart.
     BUILD("build") {
         @Override
         String text(FrameStats stats) {
@@ -192,7 +191,7 @@ public enum Reading {
             return stats.build().mean();
         }
 
-        /// A sixteenth of a display frame (ADR-0153).
+        /// A sixteenth of a display frame.
         @Override
         double budgetMillis(FrameStats stats) {
             return frameBudget(stats) / 16;
@@ -201,11 +200,11 @@ public enum Reading {
 
     /// Time spent in the cascade and building boxes: `style 0.29 ms`.
     ///
-    /// The reading this whole breakdown was added for. ADR-0070 measured style
-    /// resolution as the largest term in a frame and cached it; ADR-0142 found
-    /// the cache had quietly stopped working the day `scroll` shipped, and the
-    /// showcase had been spending 10 ms a frame re-deriving last frame's answer
-    /// with nothing on screen able to say so. This is what says so.
+    /// The reading this whole breakdown exists for. Style resolution is the
+    /// largest term in a frame and is cached on the element, and a cache that
+    /// quietly stops working costs milliseconds a frame re-deriving last
+    /// frame's answer, with nothing on screen able to say so. This is what
+    /// says so.
     STYLE("style") {
         @Override
         String text(FrameStats stats) {
@@ -217,7 +216,7 @@ public enum Reading {
             return stats.style().mean();
         }
 
-        /// An eighth of a display frame (ADR-0153).
+        /// An eighth of a display frame.
         @Override
         double budgetMillis(FrameStats stats) {
             return frameBudget(stats) / 8;
@@ -228,7 +227,7 @@ public enum Reading {
     ///
     /// Yoga over the retained render tree, which is why it is usually small: a
     /// frame where nothing resized re-lays out the nodes that changed and reuses
-    /// the rest (ADR-0069).
+    /// the rest.
     LAYOUT("layout") {
         @Override
         String text(FrameStats stats) {
@@ -240,7 +239,7 @@ public enum Reading {
             return stats.layout().mean();
         }
 
-        /// An eighth of a display frame (ADR-0153).
+        /// An eighth of a display frame.
         @Override
         double budgetMillis(FrameStats stats) {
             return frameBudget(stats) / 8;
@@ -250,7 +249,7 @@ public enum Reading {
     /// Time spent rasterizing: `raster 0.34 ms`.
     ///
     /// Blend2D, over the damage rectangle where the platform's buffer retains and
-    /// over the whole frame where it does not (ADR-0072) — so a reading that
+    /// over the whole frame where it does not — so a reading that
     /// jumps when nothing on screen moved is a buffer that stopped retaining
     /// rather than a scene that got harder.
     RASTER("raster") {
@@ -264,7 +263,7 @@ public enum Reading {
             return stats.raster().mean();
         }
 
-        /// A quarter of a display frame (ADR-0153).
+        /// A quarter of a display frame.
         @Override
         double budgetMillis(FrameStats stats) {
             return frameBudget(stats) / 4;
@@ -272,7 +271,7 @@ public enum Reading {
     },
 
     /// A composited frame's upload, and how much went up:
-    /// `upload 0.08 / 0.11 / 0.95 ms, 12.5 KiB` (ADR-0479).
+    /// `upload 0.08 / 0.11 / 0.95 ms, 12.5 KiB`.
     ///
     /// The CPU cost of presenting through the GPU that grows with the damage:
     /// the damaged rows copied into staging memory and the copy recorded. The
@@ -301,7 +300,7 @@ public enum Reading {
     },
 
     /// A composited frame's wait for its swapchain texture:
-    /// `acquire 7.20 / 7.90 / 8.30 ms` (ADR-0479).
+    /// `acquire 7.20 / 7.90 / 8.30 ms`.
     ///
     /// **Not work, and never coloured**: it is the display pacing the loop, as
     /// the frame interval is. Near the rest of a display frame is a loop keeping
@@ -325,7 +324,7 @@ public enum Reading {
     },
 
     /// A composited frame's composite recorded and submitted:
-    /// `submit 0.10 / 0.14 / 0.40 ms` (ADR-0479).
+    /// `submit 0.10 / 0.14 / 0.40 ms`.
     SUBMIT("submit") {
         @Override
         String text(FrameStats stats) {
@@ -348,8 +347,7 @@ public enum Reading {
     ///
     /// Three levels and not a number, because what a colour can say is "fine",
     /// "watch this" and "this is the problem", and a gradient would say none of
-    /// them at a glance
-    /// (ADR-0150).
+    /// them at a glance.
     enum Level {
         OK("ok"),
         NEAR("near"),
@@ -410,8 +408,7 @@ public enum Reading {
     /// **The mean in the middle**, where a reader's eye lands and where the
     /// budget is judged. The two either side are the shape of the cost, which a
     /// mean cannot show: 2 ms that never leaves 1.9–2.1 is steady work, and 2 ms
-    /// ranging 0.2–14 is a spike being averaged away over sixty frames
-    /// (ADR-0154).
+    /// ranging 0.2–14 is a spike being averaged away over sixty frames.
     ///
     /// The unit is said once, at the end, because the caption already says the
     /// numbers are milliseconds a frame and three `ms` on one line is two too
@@ -430,10 +427,8 @@ public enum Reading {
     ///
     /// **The mean of the same span the text prints**, and it has to be: a level
     /// read from one accessor while the row is drawn from another is a colour
-    /// that can disagree with the number beside it, which is exactly what the
-    /// first draft of the over-budget golden did — `style 4.80 / 9.60 / 38.40 ms`
-    /// in the quiet colour, nine milliseconds over an eighth of a frame
-    /// (ADR-0154).
+    /// that can disagree with the number beside it: `style 4.80 / 9.60 / 38.40 ms`
+    /// in the quiet colour, nine milliseconds over an eighth of a frame.
     abstract double value(FrameStats stats);
 
     /// What this reading is allowed to cost, in milliseconds, or 0 for one that
@@ -442,7 +437,7 @@ public enum Reading {
     /// Every budget here is a share of one **display** frame, and every one is a
     /// judgement rather than a measurement — which is why they are on the reading
     /// and not in a stylesheet: a token would invite an application to move the
-    /// line rather than the number (ADR-0150).
+    /// line rather than the number.
     double budgetMillis(FrameStats stats) {
         return 0;
     }
@@ -451,7 +446,7 @@ public enum Reading {
     ///
     /// 16.7 when the platform will not say what the display does — a headless
     /// backend, or a mode SDL cannot describe. A stated assumption rather than a
-    /// hidden one (ADR-0153).
+    /// hidden one.
     static double frameBudget(FrameStats stats) {
         var hertz = stats.displayHertz();
         return hertz > 0 ? 1_000.0 / hertz : 1_000.0 / 60;

@@ -173,12 +173,12 @@ class KeyboardTest {
             router.textInput("é");
 
             // The platform already applied the layout, the dead key and any IME
-            // conversion; the widget just appends it (§7.1).
+            // conversion; the widget just appends it.
             assertTrue(log.contains("text:first:é"));
         }
 
-        /// [ADR-0246]: a `select` with its list open has an `option` focused
-        /// inside a popup, so §3's typeahead had nothing to intercept the text
+        /// A `select` with its list open has an `option` focused
+        /// inside a popup, so its typeahead had nothing to intercept the text
         /// in. A capture phase is the same shape `dispatchKey` has had all along.
         @Test
         @DisplayName("capture runs root-first, before the focused node is told")
@@ -263,7 +263,7 @@ class KeyboardTest {
         void tabIsKeyboardFocus() {
             router.keyPressed(Key.TAB, Modifiers.NONE, false);
 
-            // §7.2: the focus ring renders only for keyboard focus. Tab is the
+            // The focus ring renders only for keyboard focus. Tab is the
             // canonical way to get it.
             assertTrue(first.hasState(PseudoClass.FOCUS));
             assertTrue(first.hasState(PseudoClass.FOCUS_VISIBLE));

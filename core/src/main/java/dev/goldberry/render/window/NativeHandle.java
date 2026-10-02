@@ -4,17 +4,18 @@ import java.util.Objects;
 
 /// The platform's own handle for a window, in the toolkit's vocabulary.
 ///
-/// **`docs/ARCHITECTURE.md` §12's escape hatch** — *"backends expose raw native
-/// window handles for apps embedding external renderers"* — promised since day
-/// one and built when §9's `web-view` needed it
-/// ([ADR-0442](../../../../../../../book/src/adr/0442-a-page-is-a-child-window-where-the-window-system-allows-one.md)).
+/// The escape hatch for an application that embeds an external renderer, and
+/// what the `web-view` widget embeds a page through: a page is a child window
+/// of the one it shows in, where the window system allows one.
 ///
 /// `:core`'s own type rather than `:natives`' `NativeWindowHandle`, which is the
 /// arrangement [dev.goldberry.platform.Capability] has with
 /// `NativeCapability` and for its reason: `:core` does not require `:natives`
-/// transitively (ADR-0290), so a `:natives` type in a signature here would be one
+/// transitively, so a `:natives` type in a signature here would be one
 /// an application could not name. The two are kept in step by an exhaustive
 /// switch at the seam, which is the compiler noticing rather than a convention.
+///
+/// Read more: [Windows, popups and the host](https://goldberry.dev/docs/guide/windows.html#the-low-level-path).
 ///
 /// @param kind  which window system the handle belongs to
 /// @param value the handle: an X11 `Window` id, an `HWND`, or an `NSWindow*`

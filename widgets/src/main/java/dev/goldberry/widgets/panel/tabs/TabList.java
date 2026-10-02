@@ -23,7 +23,7 @@ import org.jspecify.annotations.Nullable;
 /// would be under the panel as well.
 ///
 /// The rule it carries is a [TabRule] rather than a `border-bottom` — see that
-/// class for why it stayed one when §8 grew per-side borders.
+/// class for why it is a box.
 ///
 /// @param headers    the tabs, already told which of them is selected
 /// @param controller the header viewport's controller
@@ -31,7 +31,7 @@ import org.jspecify.annotations.Nullable;
 record TabList(List<Widget> headers, ScrollController controller, ScrollController.Position position)
         implements Widget.Leaf, Styled, Paints {
 
-    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    /// Written out so that the parameters taking null for a default can say so.
     TabList(@Nullable List<Widget> headers, ScrollController controller, ScrollController.Position position) {
         headers = List.copyOf(headers == null ? List.of() : headers);
         this.headers = headers;
@@ -56,14 +56,13 @@ record TabList(List<Widget> headers, ScrollController controller, ScrollControll
     }
 
     /// The rule **first**, so the headers and their indicators are painted over
-    /// it — a box tree has no z-order beyond document order (ADR-0053).
+    /// it — a box tree has no z-order beyond document order.
     ///
     /// ## The headers scroll and the rule does not
     ///
-    /// Enough tabs and the row runs off the side of its window, which was one of
-    /// the three things `scroll` was written for
-    /// (ADR-0116).
-    /// The viewport goes around the **headers only**: the rule is pinned across
+    /// Enough tabs and the row runs off the side of its window, which is one of
+    /// the things `scroll` is for. The viewport goes around the **headers
+    /// only**: the rule is pinned across
     /// the bottom of the whole strip and would otherwise scroll out of the left
     /// edge, leaving the underline of a strip that has been scrolled sitting
     /// somewhere it does not belong.
@@ -76,14 +75,14 @@ record TabList(List<Widget> headers, ScrollController controller, ScrollControll
     public List<Widget> children() {
         var viewport = new Scroll(List.copyOf(headers), ScrollAxis.HORIZONTAL, Attributes.NONE.classes("tab-viewport"))
                 // So a tab selected while the strip is scrolled past it can ask
-                // to be brought back (ADR-0120).
+                // to be brought back.
                 .controlledBy(controller);
         if (!position.overflowsX()) {
             return List.of(new TabRule(), viewport);
         }
         // A strip wider than its window gets a chevron at each end, the
-        // conventional tab bar's affordance beside the viewport's own
-        // (ADR-0365). Most of a width per page, so a tab cut off at one edge is
+        // conventional tab bar's affordance beside the viewport's own.
+        // Most of a width per page, so a tab cut off at one edge is
         // still in view after it.
         var page = Math.max(PAGE_FLOOR, position.width() * PAGE_FRACTION);
         return List.of(

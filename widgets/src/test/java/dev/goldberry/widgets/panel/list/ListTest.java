@@ -27,7 +27,7 @@ import dev.goldberry.widgets.TestHost;
 import dev.goldberry.widgets.panel.Described;
 import dev.goldberry.widgets.text.Text;
 
-/// `list` — `docs/core-widgets.md` §10's vertical list over an item model.
+/// `list` — a vertical list over an item model.
 ///
 /// What is here is the **model over time**: which rows are drawn, what the
 /// keyboard and the pointer ask for, and what the selection models resolve a
@@ -38,7 +38,7 @@ class ListTest {
 
     /// What the widget asked for, in order. A test applies these back to build
     /// the next frame, which is what an application does — the widget selects
-    /// nothing itself ([ADR-0063]).
+    /// nothing itself: data flows down and events flow up.
     private final List<Set<String>> asked = new ArrayList<>();
 
     @BeforeEach
@@ -114,7 +114,7 @@ class ListTest {
         @Test
         @DisplayName("the item-factory decides what a row looks like")
         void anyWidgetAsARow() {
-            // §10's "any widget as row" -- the row's child is whatever came back,
+            // Any widget may be a row -- the row's child is whatever came back,
             // and the row itself contributes only the box and the keyboard.
             var widget = new ListView<Integer>(List.of(1, 2), String::valueOf, n -> new Text("#" + n));
             var content = Described.of(tree(widget), ListRow.class).stream()
@@ -236,8 +236,8 @@ class ListTest {
     @DisplayName("the right-click's selection")
     class ContextSelection {
 
-        /// §10's item menus act on what was clicked, which is what every file
-        /// manager does before it opens one ([ADR-0224]). The launcher asks; the
+        /// An item menu acts on what was clicked, which is what every file
+        /// manager does before it opens one. The launcher asks; the
         /// row decides what the question means.
         @Test
         @DisplayName("a right-click on an unselected row asks for that row alone")
@@ -501,7 +501,7 @@ class ListTest {
         @Test
         @DisplayName("items that expose no text get no typeahead, and the text is not swallowed")
         void withoutTextThereIsNone() {
-            // §10 makes it conditional on items exposing text. A row that
+            // Typeahead exists only when the items expose text. A row that
             // consumed the keystroke anyway would stop a field elsewhere from
             // ever seeing one.
             var tree = tree(new ListView<>(NORDICS, s -> s, Text::new));
@@ -521,7 +521,7 @@ class ListTest {
         void theMenuIsOnTheRow() {
             // A right-click walks up from what is under the pointer and the menu
             // key walks up from what has the focus, which is the row -- so the
-            // row is the only place a name works for both (ADR-0208).
+            // row is the only place a name works for both.
             var tree = tree(ListView.of(NORDICS).itemMenu(name -> "country-menu"));
             assertEquals("country-menu", row(tree, "list-Sweden").attributes().contextMenu());
         }

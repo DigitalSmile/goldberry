@@ -3,7 +3,7 @@ package dev.goldberry.image.gif;
 import java.nio.ByteBuffer;
 
 /// GIF's variable-width LZW, which is the whole of what makes the format worth a
-/// decoder rather than a loop — [ADR-0329].
+/// decoder rather than a loop.
 ///
 /// ## The variant
 ///

@@ -11,13 +11,16 @@ import dev.goldberry.widget.style.Styled;
 import dev.goldberry.widgets.markup.Markup;
 import dev.goldberry.widgets.markup.Wiring;
 
-/// One `point` of a [ChartSeries] — the leaf of §3.2's inline data.
+/// One `point` of a [ChartSeries] — the leaf of a chart's inline data: a label
+/// and a value, as in `point "Mon" 40`.
 ///
 /// It exists so the node is **registered**: the inflater refuses a node it does
 /// not know, and it builds depth-first, so `point` has to be inflatable before
 /// `series` is handed anything. [ChartSeries] reads the values off the raw KDL
 /// rather than off these, because a point is two arguments and re-deriving them
 /// from a widget would be the same parse written twice.
+///
+/// Read more: [Charts](https://goldberry.dev/docs/components/charts.html#point).
 @Markup("point")
 public record ChartPoint() implements Widget.Leaf, Styled, Paints {
 

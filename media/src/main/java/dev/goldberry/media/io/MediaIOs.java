@@ -11,6 +11,9 @@ import java.util.ServiceLoader;
 /// The order is: [MediaIOProvider]s that claim the scheme, highest priority first,
 /// then the built-in protocols: `file:` ([FileIO]), and `http:` and `https:`
 /// ([HttpIO], with ICY radio metadata when the server sends it).
+///
+/// Read more:
+/// [Tracks and the network](https://goldberry.dev/docs/components/media.html#tracks-subtitles-and-the-network).
 public final class MediaIOs {
 
     private MediaIOs() {}

@@ -23,7 +23,7 @@ import dev.goldberry.widget.style.Styled;
 ///
 /// A hairline at every size, which is why its height is the widget's rather than
 /// the stylesheet's — an underline that grew with the font would read as a
-/// highlight by the time the font was large enough to want one (ADR-0292).
+/// highlight by the time the font was large enough to want one.
 ///
 /// @param visible whether this rectangle covers any of the composition
 public record Underline(boolean visible) implements Widget.Leaf, Styled, Paints {

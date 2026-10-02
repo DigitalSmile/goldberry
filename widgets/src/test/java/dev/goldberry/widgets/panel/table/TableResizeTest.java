@@ -27,7 +27,7 @@ import dev.goldberry.widget.WidgetRenderer;
 import dev.goldberry.widgets.Controls;
 import dev.goldberry.widgets.controls.TestFont;
 
-/// §3.1's "column resize: 1:1, like `split-pane`'s drag" ([ADR-0361]).
+/// A column resizes 1:1 with the pointer, like `split-pane`'s drag.
 ///
 /// The widths are the application's: this test is that application, applying
 /// every width the table asks for and rebuilding.

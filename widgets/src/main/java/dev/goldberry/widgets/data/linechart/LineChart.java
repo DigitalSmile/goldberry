@@ -17,7 +17,7 @@ import dev.goldberry.widgets.data.Series;
 import dev.goldberry.widgets.markup.Markup;
 import dev.goldberry.widgets.markup.Wiring;
 
-/// A trend with axes — `docs/core-widgets.md` §11's `line-chart`.
+/// A trend with axes: one line per series, a legend, a crosshair and a readout.
 ///
 /// ```java
 /// new LineChart(List.of(
@@ -31,6 +31,11 @@ import dev.goldberry.widgets.markup.Wiring;
 ///     series name="downloads" { point "0.1" 1200; point "0.2" 3400 }
 /// }
 /// ```
+///
+/// Markup holds small static data: `series` children with `point` children.
+/// Data from a model is Java, through the record, then [#categories], [#fill]
+/// and the [ChartSpec] withers — `times`, `threshold`, `curve`, `logY`,
+/// `markers`, `softAxis`, `crosshair`, `nulls`, `loading` — as needed.
 ///
 /// ## Two halves, and the split is the design
 ///
@@ -49,13 +54,11 @@ import dev.goldberry.widgets.markup.Wiring;
 ///
 /// Hovering draws a **crosshair** at the nearest point, a marker on each series
 /// there, and a readout of what they read; clicking a **legend entry** shows that
-/// series alone and clicking it again puts them all back
-/// (ADR-0198).
+/// series alone and clicking it again puts them all back.
 ///
-/// It answers the **keyboard** too, because §2.2 says everything is reachable:
-/// `Left` and `Right` walk the crosshair, `Home` and `End` are the ends, and
-/// `Escape` lets go
-/// (ADR-0199).
+/// It answers the **keyboard** too, because everything is reachable without a
+/// pointer: `Left` and `Right` walk the crosshair, `Home` and `End` are the
+/// ends, and `Escape` lets go.
 ///
 /// ## The knobs
 ///
@@ -65,8 +68,8 @@ import dev.goldberry.widgets.markup.Wiring;
 /// [ChartSpec#markers] puts a dot at each reading, [ChartSpec#logY] gives each
 /// decade the same room, [ChartSpec#curve] decides what the line claims happened
 /// between two readings — the default is straight and **smooth is monotone**, so
-/// it cannot draw a percentage below zero on its way up (ADR-0204) — and
-/// [ChartSpec#times] makes the x *when* rather than *which* (ADR-0203).
+/// it cannot draw a percentage below zero on its way up — and
+/// [ChartSpec#times] makes the x *when* rather than *which*.
 ///
 /// [#fill] is this chart's own: what goes **under** the line, which is a different
 /// picture from `area-chart`'s bands and is not a picture a bar has at all.
@@ -75,59 +78,49 @@ import dev.goldberry.widgets.markup.Wiring;
 ///
 /// A hole is `Double.NaN` and a `null` is read as one, and what happens there is
 /// [ChartSpec#nulls]: a **gap** by default, because it is the only one of the
-/// three that invents nothing
-/// (ADR-0201).
-/// A chart with no values at all says so rather than drawing an empty grid
-/// (ADR-0200),
-/// and [ChartSpec#loading] and [ChartSpec#failed] are how an application says the
-/// rest.
+/// three that invents nothing. A chart with no values at all says so rather than
+/// drawing an empty grid, and [ChartSpec#loading] and [ChartSpec#failed] are how
+/// an application says the rest.
 ///
 /// ## Limits
 ///
 /// [ChartSpec#threshold] draws one across the chart — a line or a shaded region,
 /// in one of four semantic hues and never a series colour, and part of the domain
-/// so a limit you have not reached is still on screen
-/// (ADR-0202).
+/// so a limit you have not reached is still on screen.
 ///
 /// ## When, rather than which
 ///
 /// [ChartSpec#times] gives the chart one `Instant` per point, and the x becomes
 /// time: an unscraped stretch is as wide as it was long, and the labels step
-/// across second, minute, hour, day, month and year boundaries
-/// (ADR-0203).
+/// across second, minute, hour, day, month and year boundaries.
 ///
 /// ## Straight, smooth or stepped
 ///
 /// [ChartSpec#curve] decides what the line claims happened between two readings.
 /// The default is straight; **smooth is monotone**, so it cannot draw a
-/// percentage below zero on its way up
-/// (ADR-0204).
+/// percentage below zero on its way up.
 ///
 /// ## Under the line
 ///
-/// [#fill] puts a flat wash or a fade beneath the data — `charts.md`
-/// §3.1's last row to be built, and the one that cost a widening of the native
-/// surface before a single pixel of it could be drawn: Blend2D has gradients and
-/// the export list did not
-/// (ADR-0207).
-/// The default is no fill at all, so a chart nobody asked keeps exactly the
-/// picture it had — see
+/// [#fill] puts a flat wash or a fade beneath the data. The default is no fill
+/// at all, so a chart nobody asked keeps exactly the picture it had — see
 /// [dev.goldberry.widgets.data.Fill].
 ///
 /// **No dual y-axis, ever.** Two measures at different scales are two charts, or
 /// one indexed to a common base; a second y-scale is the most reliable way to
-/// make a chart say something untrue, and `charts.md` §3.4 refuses it in as many
-/// words.
+/// make a chart say something untrue.
+///
+/// Read more: [Charts](https://goldberry.dev/docs/components/charts.html#line-chart).
 ///
 /// @param series     the lines, in order — which is also their colour order
-///                   (ADR-0194)
 /// @param categories a label per point, or empty for no x labels
+/// @param options    everything about the chart that is not its numbers
 /// @param attributes `id` and `class`, exactly as on the primitives
 @Markup("line-chart")
 public record LineChart(List<Series> series, List<String> categories, ChartOptions options, Attributes attributes)
         implements Widget.Stateful, ChartSpec<LineChart>, Attributed<LineChart> {
 
-    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    /// The canonical constructor, written out so that the parameters taking null for a default can say so.
     public LineChart(
             @Nullable List<Series> series,
             @Nullable List<String> categories,
@@ -158,8 +151,7 @@ public record LineChart(List<Series> series, List<String> categories, ChartOptio
     /// is: the position is the reading and an area would be claiming a second
     /// encoding for it. [Fill#GRADIENT] is the dashboard convention and says what
     /// it means — the fade thins out downward, so the line stays the data and the
-    /// area is a hint at magnitude
-    /// (ADR-0207).
+    /// area is a hint at magnitude.
     ///
     /// The fill runs down to **zero**, or to the bottom of the plot on a log
     /// axis, where zero has no position at all.
@@ -209,7 +201,7 @@ public record LineChart(List<Series> series, List<String> categories, ChartOptio
         return new LineChart(series, categories, options, value);
     }
 
-    /// Builds a `line-chart` from markup — §3.2's inline form, for small static
+    /// Builds a `line-chart` from markup — the inline form, for small static
     /// data.
     ///
     /// ```kdl

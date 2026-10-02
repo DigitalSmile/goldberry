@@ -8,11 +8,12 @@ import java.util.Optional;
 
 import org.jspecify.annotations.Nullable;
 
-/// One node in a KDL document — which, per §9, is one widget.
+/// One node in a KDL document — which, in markup, is one widget.
 ///
-/// The mapping the architecture states, in one place: node name is the widget
-/// type, string arguments are the primary content, properties are attributes,
-/// children are children.
+/// The mapping in one place: node name is the widget type, string arguments are
+/// the primary content, properties are attributes, children are children.
+///
+/// Read more: [Markup](https://goldberry.dev/docs/guide/markup.html#the-syntax-as-goldberry-reads-it).
 ///
 /// @param name       the node name
 /// @param arguments  positional values, in source order
@@ -40,7 +41,7 @@ public record KdlNode(
         children = List.copyOf(Objects.requireNonNull(children, "children"));
     }
 
-    /// The first argument, which §9 calls the node's primary content — the
+    /// The first argument, which is the node's primary content — the
     /// `"Apply"` of `button "Apply"`.
     public Optional<KdlValue> argument() {
         return arguments.isEmpty() ? Optional.empty() : Optional.of(arguments.getFirst());
@@ -62,15 +63,14 @@ public record KdlNode(
 
     /// A boolean property, `false` when absent.
     ///
-    /// KDL 2.0 writes booleans `#true` / `#false`, and §9's own examples use them
-    /// for exactly this — `default=#true`, `disabled=#true`. A **bare** attribute
+    /// KDL 2.0 writes booleans `#true` / `#false`, and markup uses them for
+    /// exactly this — `default=#true`, `disabled=#true`. A **bare** attribute
     /// is not a KDL thing: `disabled` on its own is an argument, not a property,
     /// so it is not accepted here.
     ///
     /// A value that is not a boolean is `false` rather than an error, for the
-    /// same reason an unparseable declaration is dropped rather than fatal
-    /// (ADR-0051): a document being edited is broken more often than it is
-    /// whole.
+    /// same reason an unparseable declaration is dropped rather than fatal: a
+    /// document being edited is broken more often than it is whole.
     public boolean booleanProperty(String key) {
         return properties.get(key) instanceof KdlValue.Bool bool && bool.value();
     }
@@ -81,8 +81,7 @@ public record KdlNode(
     /// attribute whose default is a constant. It is wrong for the ones whose
     /// default is decided by something else in the same node: `scroll`'s
     /// `preserve-on-prepend` is on for `anchor="end"` and off otherwise, so an
-    /// unset attribute is a third state and has to reach the widget as one
-    /// (ADR-0392).
+    /// unset attribute is a third state and has to reach the widget as one.
     ///
     /// A value that is not a boolean reads as unset rather than as an error, for
     /// [#booleanProperty]'s reason: a document being edited is broken more often

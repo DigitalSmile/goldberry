@@ -12,7 +12,7 @@ import dev.goldberry.natives.NativeLibraryRequirement;
 
 /// What the per-event modifier poll costs.
 ///
-/// ADR-0089 has every pointer event carry the modifier bitmask, and SDL's mouse
+/// Every pointer event carries the modifier bitmask, and SDL's mouse
 /// events have no `mod` field where its keyboard events do — so the backend
 /// polls `SDL_GetModState` inside the pump that produced the event, which is the
 /// closest to "when it happened" that layer can get. The TODO entry that asked

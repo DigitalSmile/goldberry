@@ -20,9 +20,7 @@ import dev.goldberry.widgets.panel.card.Card;
 import dev.goldberry.widgets.text.Text;
 
 /// The **Basic** screen's third Java card: the desktop's own open, save and
-/// folder dialogs — `docs/gaps.md` G9, [ADR-0287][adr].
-///
-/// [adr]: ../../../../../../../../book/src/adr/0287-a-file-dialog-is-the-desktops-and-the-answer-comes-back-later.md
+/// folder dialogs.
 ///
 /// ## Why it is a card and not three lines of `basic.kdl`
 ///
@@ -30,8 +28,7 @@ import dev.goldberry.widgets.text.Text;
 /// name an action, but it cannot **hold what the action answered**. A dialog is
 /// asynchronous — a person is inside the call — so the result arrives long after
 /// the click, on a callback, and something has to be there to remember it. That
-/// is a state, and `docs/core-widgets.md`'s markup has no way to declare one
-/// (ADR-0110).
+/// is a state, and markup has no way to declare one.
 ///
 /// ## What it is demonstrating
 ///
@@ -53,8 +50,10 @@ import dev.goldberry.widgets.text.Text;
 /// A gallery golden is painted through `Offscreen`, which has no host — so
 /// [BuildContext#host()] is empty there. They are **not** disabled for it: the
 /// picture has to be of the application that runs, and three greyed-out buttons
-/// would be a photograph of something nobody sees (ADR-0284). A click with no
+/// would be a photograph of something nobody sees. A click with no
 /// host cannot happen in an image, and says so if it ever does.
+///
+/// Read more: [The host](https://goldberry.dev/docs/guide/windows.html#the-host).
 public record FileDialogsCard() implements Widget.Stateful {
 
     @Override
@@ -138,7 +137,7 @@ public record FileDialogsCard() implements Widget.Stateful {
             // `Host.fileDialog` and not `fileDialogs().show(...)`: it fills in
             // this window as the one to be modal for, and asks for the frame the
             // answer needs -- a choice arrives from the platform's own thread
-            // with no input event behind it, so nothing else would (ADR-0287).
+            // with no input event behind it, so nothing else would.
             window.fileDialog(spec, choice -> setState(() -> answer = describe(choice)));
         }
 

@@ -17,7 +17,8 @@ import dev.goldberry.bind.registry.ActionRegistry;
 import dev.goldberry.bind.registry.BindingRegistry;
 import dev.goldberry.bind.runtime.Models;
 
-/// What the binding schema costs, before and after ADR-0125.
+/// What the binding schema costs, before and after a raw field was woven into
+/// a binding.
 ///
 /// The "before" is not a description — it is [Old] below, which is the scheme the
 /// repository actually shipped: a `Property` per value, `set(get() + 1)` to
@@ -28,7 +29,8 @@ import dev.goldberry.bind.runtime.Models;
 ///
 /// ## Which "after" this measures depends on the build
 ///
-/// Since [ADR-0155] a `@Model` is bound one of two ways, and this module does not
+/// A `@Model` is bound one of two ways, a jar at run time and an image by
+/// weaving, and this module does not
 /// weave — so what runs here is normally the **reflective** binding, which is what
 /// an application's own jar uses. Every label below says which form it got rather
 /// than assuming, because a benchmark that names a mechanism it did not measure is
@@ -39,15 +41,15 @@ import dev.goldberry.bind.runtime.Models;
 ///
 /// **Tagged `benchmark`, so `check` never runs it.** Nothing here asserts a
 /// timing: a threshold on shared hardware fails for reasons that have nothing to
-/// do with the code, and ADR-0045 exists to stop this repository optimising
-/// against a number it has not taken. Run with
+/// do with the code, and a frame is not a benchmark iteration: this repository
+/// does not optimise against a number it has not taken. Run with
 /// `./gradlew :example:benchmark --tests '*BindingBenchmark*'`.
 ///
 /// ## Every write here is a press, and that is not a detail
 ///
 /// `old.click()` notifies, because the `Property` inside it does. `plain.click()`
 /// is an `iinc` and notifies nobody until something sweeps — which is the whole
-/// shape of ADR-0155, and it means a benchmark timing the two *methods* would be
+/// shape of run-time binding, and it means a benchmark timing the two *methods* would be
 /// pricing all of one scheme against a fraction of the other and calling the
 /// difference a speed-up.
 ///
@@ -64,7 +66,7 @@ import dev.goldberry.bind.runtime.Models;
 /// compares, once per press, for every model bound at run time.
 ///
 /// Reads are their own trade: both of the new forms box where `Property.get` is
-/// one `getfield`. That is what ADR-0125 bought — writes are what a model does on
+/// one `getfield`. That is the trade a woven field makes — writes are what a model does on
 /// every event, and reads through a binding happen once per rebuild.
 @Tag("benchmark")
 @DisplayName("the binding schema, before and after")
@@ -74,8 +76,7 @@ class BindingBenchmark {
     private static final int RUNS = 200;
 
     /// What to call the second scheme in this run's output — `woven` when the
-    /// build ran the weaver over this module, `runtime` when it did not
-    /// (ADR-0155).
+    /// build ran the weaver over this module, `runtime` when it did not.
     private static final String FORM = Models.isWoven(new New()) ? "woven" : "runtime";
 
     /// How many writes one sample does, so a sample is long enough to time.
@@ -445,7 +446,7 @@ class BindingBenchmark {
     /// record and the count is read off the model — the same pair `Showcase`
     /// publishes. `ShowcaseActionsTest.theRoadsClickCounts` resolves these two
     /// names under `check`, because this class does not run there and the last
-    /// rename went a week unseen (ADR-0397).
+    /// rename went a week unseen: a benchmark's names are resolved under `check`.
     @Test
     @DisplayName("the showcase's own model, end to end")
     void showcaseModel() {

@@ -17,7 +17,7 @@ import dev.goldberry.input.key.Key;
 import dev.goldberry.input.key.Modifiers;
 import dev.goldberry.text.font.Font;
 
-/// What a page is — [ADR-0410].
+/// What a page is: the caller's viewport height, in visual lines.
 ///
 /// `PageUp` and `PageDown` used to move ten lines whatever the caller had drawn,
 /// because a page is the height of a viewport and an editor on a canvas has none.

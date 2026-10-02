@@ -17,17 +17,16 @@ import dev.goldberry.widgets.panel.masonry.Masonry;
 import dev.goldberry.widgets.text.Link;
 import dev.goldberry.widgets.text.Text;
 
-/// The **Basic** screen: §1's type scale, §2's wrapped paragraph and **every §3
+/// The **Basic** screen: the type scale, a wrapped paragraph and **every
 /// control the toolkit has** — `button` in all five variants and both icon forms,
 /// `toggle`, `checkbox`, `radio`/`radio-group`, `slider`, `knob`, `select`,
 /// `segmented`, `progress`, `spinner` and `badge`.
 ///
-/// The list is the point: §3 names eleven control families and this screen shows
-/// all eleven, so "what does the catalogue actually have" is answered by a
-/// picture rather than by reading a table. What it does **not** show is the parts
-/// of §3 that are specified and unbuilt — a button's `outlined`, `square`,
-/// `circle` and `float`, and `select`'s `multiple`, `autocomplete` and `tree`,
-/// which the Forms screen carries where they exist.
+/// The list is the point: the catalogue has eleven control families and this screen
+/// shows all eleven, so "what does the catalogue actually have" is answered by a
+/// picture rather than by reading a table. It is the screen to read first: a
+/// document, a model, an action and a stylesheet, which is what the first Java
+/// application is made of too.
 ///
 /// ## Why it is a document *and* a class
 ///
@@ -36,29 +35,31 @@ import dev.goldberry.widgets.text.Text;
 ///
 /// - **The prose card is in the tree only while the checkbox says so.** That is a
 ///   structural change and not a value one — the paragraph is *absent*, not
-///   hidden — and §8's markup has no way to say it.
+///   hidden — and markup has no way to say it.
 /// - **The road card's Turn back and Begin again are disabled while the count is
 ///   zero.** `disabled=#true` is a constant; a document cannot say "disabled when
 ///   this property is zero" and is not going to grow a way to, because a document
 ///   that could evaluate `clicks == 0` would be code in a data file with no stack
-///   trace when it went wrong ([ADR-0062], [ADR-0110]).
+///   trace when it went wrong.
 /// - **The dialogs card holds what a dialog answered**, and a dialog answers
 ///   *later* — a person is inside the call. A document can name an action; it has
 ///   nowhere to put a result that arrives on a callback ([FileDialogsCard]).
 ///
 /// So this class takes the wall the document built and appends three cards to it —
 /// to the *same* masonry, because a masonry places by column height and a second
-/// wall underneath would be laid out against different columns
-/// (ADR-0222).
+/// wall underneath would be laid out against different columns.
+///
+/// Read more:
+/// [Your first Java application](https://goldberry.dev/docs/getting-started/first-java-application.html).
 ///
 /// @param cards what `basic.kdl` built, inflated once by [Screen]
 /// @param plus  the icon on the primary button — handed in, because a widget is a
 ///              value that is rebuilt and thrown away and an `Icon` is parsed and
-///              scaled once, at the size it is drawn at (ADR-0043, ADR-0277)
+///              scaled once, at the size it is drawn at
 public record Basic(ShowcaseModel model, ShowcaseModel.Actions actions, Masonry cards, Icon plus)
         implements Widget.Stateless {
 
-    private static final String NOTE = "§1's type scale, §2's paragraph and every §3 control the toolkit has —"
+    private static final String NOTE = "The type scale, a paragraph and every control the toolkit has —"
             + " button, toggle, checkbox, radio, slider, knob, select, segmented,"
             + " progress, spinner and badge. Seven of these cards are basic.kdl and"
             + " three of them cannot be: the verse is in the tree only while the box"
@@ -75,7 +76,8 @@ public record Basic(ShowcaseModel model, ShowcaseModel.Actions actions, Masonry 
             Yoga proposes a width and this paragraph answers with a height, which is the only \
             thing a flexbox algorithm needs to know about text. The answer comes back through a \
             Java method called from C returning a struct by value — the fiddliest thing the \
-            toolkit asks of the Foreign Function & Memory API, and the reason ADR-0017 exists.
+            toolkit asks of the Foreign Function & Memory API, and the one call it proves and \
+            times before anything else.
 
             Drag the window's edge and the text re-wraps without being shaped again. Click a \
             button, or press Tab until one has the focus and then Space. Ctrl+T changes the \
@@ -105,7 +107,7 @@ public record Basic(ShowcaseModel model, ShowcaseModel.Actions actions, Masonry 
         return Wall.of("basic", "Basic", NOTE, cards, extra.toArray(Widget[]::new));
     }
 
-    /// §3's four remaining button options ([ADR-0347]): `outlined`, which
+    /// The four remaining button options: `outlined`, which
     /// composes with the semantic variants; `square`, for buttons that butt
     /// against each other; `circle`, which an icon-only button is without being
     /// told; and `float`, which lifts a button out of this card and into the
@@ -138,8 +140,7 @@ public record Basic(ShowcaseModel model, ShowcaseModel.Actions actions, Masonry 
                                 Attributes.NONE.id("float-button").classes("primary")))));
     }
 
-    /// §2's `link`: a word that does something, in-app or outside the window
-    /// ([ADR-0346]).
+    /// The `link`: a word that does something, in-app or outside the window.
     private Widget links() {
         return Notifications.card(
                 "links-card",
@@ -171,10 +172,11 @@ public record Basic(ShowcaseModel model, ShowcaseModel.Actions actions, Masonry 
     /// The dismissable chips, and the fourth card that cannot be a document.
     ///
     /// A × **removes** a chip, so the row is a different *tree* after a dismiss
-    /// rather than the same tree with a different value — and §8's markup has no
+    /// rather than the same tree with a different value — and markup has no
     /// way to describe a list that shortens. It is the road card's reason wearing
-    /// different clothes, and it is the clearest demonstration of ADR-0063 on this
-    /// screen: the chip asks, `dropTag` answers, and the row redraws from what the
+    /// different clothes, and it is the clearest demonstration on this screen that
+    /// data flows down and events flow up: the chip asks, `dropTag` answers, and
+    /// the row redraws from what the
     /// model now holds. Delete `dropTag` and the × stops working, which is the
     /// behaviour rather than a bug.
     ///
@@ -185,8 +187,7 @@ public record Basic(ShowcaseModel model, ShowcaseModel.Actions actions, Masonry 
         var chips = new ArrayList<Widget>(tags.size() + 1);
         for (var tag : tags) {
             // Keyed by the tag, so removing one from the middle reconciles the
-            // rest in place rather than shuffling every chip's state along one
-            // (ADR-0004).
+            // rest in place rather than shuffling every chip's state along one.
             chips.add(new Chip(tag)
                     .onDismiss(() -> actions.dropTag(tag))
                     .keyed(tag)
@@ -230,9 +231,9 @@ public record Basic(ShowcaseModel model, ShowcaseModel.Actions actions, Masonry 
                                         // is the one button shape a document
                                         // cannot safely write: with no label to
                                         // fall back on, an icon the registry
-                                        // does not answer makes it illegal
-                                        // (ADR-0293). `name=` is the accessible
-                                        // name §1.6 asks for in a label's place.
+                                        // does not answer makes it illegal.
+                                        // `name=` is the accessible name a screen
+                                        // reader is given in a label's place.
                                         new Button(
                                                 "",
                                                 plus,

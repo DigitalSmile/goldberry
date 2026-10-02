@@ -20,10 +20,10 @@ import dev.goldberry.widgets.TestHost;
 import dev.goldberry.widgets.controls.TestFont;
 import dev.goldberry.widgets.form.parts.Underline;
 
-/// `docs/gaps.md` G16: a `text-input` being typed into by an input method.
+/// A `text-input` being typed into by an input method.
 ///
-/// The claim under all of it is the one ADR-0289 made for a canvas and ADR-0292
-/// carries into the catalog's own fields — **a composition is not an edit**. Every
+/// The claim under all of it is the one the canvas made first and the catalog's
+/// own fields carry — **a composition is not an edit**. Every
 /// test here is a way for that to be false: the value changing, the model being
 /// told, the undo history growing, a ghost left after `Escape`.
 ///

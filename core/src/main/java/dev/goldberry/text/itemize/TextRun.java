@@ -2,9 +2,11 @@ package dev.goldberry.text.itemize;
 
 /// A stretch of one string that is shaped in one face.
 ///
-/// Offsets are into the string the itemizer was handed — `[start, end)`, the
+/// Offsets are into the string the itemizer was handed, as `[start, end)`, the
 /// same half-open convention every other range in the toolkit uses, so
 /// `text.subSequence(start, end)` is the run.
+///
+/// Read more: [Emoji](https://goldberry.dev/docs/guide/text.html#emoji).
 ///
 /// @param start the first character, inclusive
 /// @param end   one past the last

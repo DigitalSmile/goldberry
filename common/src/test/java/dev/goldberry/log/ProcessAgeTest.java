@@ -11,7 +11,9 @@ import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-/// Where the start-up timeline's zero comes from (ADR-0506).
+/// Where the start-up timeline's zero comes from: the kernel's own clock on Linux,
+/// `ProcessHandle` elsewhere. `ProcessHandle`'s start instant is up to a second
+/// late on Linux, and a timeline measured from it would flatter every row.
 @DisplayName("A process's age")
 class ProcessAgeTest {
 

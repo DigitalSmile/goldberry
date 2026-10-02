@@ -5,7 +5,7 @@ import dev.goldberry.css.Corners;
 import dev.goldberry.natives.blend2d.BlendPath;
 
 /// Puts a border whose four sides are **not** the same line on the frame, one
-/// side at a time (ADR-0505).
+/// side at a time.
 ///
 /// A uniform border never comes here. [BoxPainter] strokes it as it always has —
 /// one rounded rectangle, inset by half the width — and every golden in the
@@ -26,7 +26,7 @@ import dev.goldberry.natives.blend2d.BlendPath;
 /// The outer corner is the box's own arc and the inner one is concentric-ish: a
 /// circle of the outer radius less the **wider** of the two sides beside it.
 /// CSS makes the inner corner an ellipse, with the outer radius less each side's
-/// own width on its own axis; [Corners] are circles and so is this (ADR-0216).
+/// own width on its own axis; [Corners] are circles and so is this.
 /// The two agree exactly when the sides agree, and differ by at most the
 /// difference between the widths where they do not.
 ///

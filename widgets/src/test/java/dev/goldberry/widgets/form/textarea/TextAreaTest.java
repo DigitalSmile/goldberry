@@ -31,13 +31,15 @@ import dev.goldberry.widgets.Widgets;
 import dev.goldberry.widgets.controls.TestFont;
 import dev.goldberry.widgets.core.scroll.EdgeScroll;
 
-/// §4's multi-line field.
+/// The multi-line field.
 ///
 /// Most of what a `text-area` does is `text-input`'s, unchanged and already
 /// tested: the editing model, the undo history, the clipboard, the caret's blink.
 /// What is here is only what a **second dimension** makes different — `Enter`,
 /// vertical movement and the column it keeps, a selection that is more than one
 /// rectangle, and a control that grows.
+///
+/// Read more: [`text-area`](https://goldberry.dev/docs/components/forms.html#text-area).
 class TextAreaTest {
 
     private final TestHost host = new TestHost();
@@ -58,7 +60,7 @@ class TextAreaTest {
     }
 
     /// The same, with one application rule on top — how a test says `text-align`
-    /// without inventing a stylesheet of its own ([ADR-0324]).
+    /// without inventing a stylesheet of its own.
     private void render(ElementTree tree, String css) {
         tree.flush();
         var sheets = new java.util.ArrayList<dev.goldberry.css.Stylesheet>(
@@ -218,7 +220,7 @@ class TextAreaTest {
             assertEquals(
                     TextArea.DEFAULT_MAX_ROWS,
                     visibleRows(tree),
-                    "§4's auto-grow is what a field in a form does, and this changes none of it");
+                    "auto-grow between min and max rows is what a field in a form does, and this changes none of it");
         }
 
         private double scrolledBy(ElementTree tree) {
@@ -414,7 +416,7 @@ class TextAreaTest {
     }
 
     /// `text-input`'s primary-selection rules, over a second dimension; the
-    /// fuller set is `TextInputTest`'s (ADR-0504).
+    /// fuller set is `TextInputTest`'s.
     @Nested
     @DisplayName("the primary selection")
     class ThePrimarySelection {
@@ -601,7 +603,7 @@ class TextAreaTest {
 
             // `maxRows` highlights, the value, the caret, then `maxRows`
             // underlines. The bounded runs are what a wrapped selection and a
-            // wrapped composition need (ADR-0292), and the two singletons sit
+            // wrapped composition need, and the two singletons sit
             // between them at fixed positions so the reconciler matches them by
             // index through every edit.
             for (var i = 0; i < maxRows; i++) {
@@ -661,7 +663,7 @@ class TextAreaTest {
     class Markup {
 
         @Test
-        @DisplayName("a document writes what §4 spells")
+        @DisplayName("a document writes a text-area and its attributes")
         void inflates() {
             var area = (TextArea)
                     Widgets.inflater().inflateAll(KdlParser.parse("""
@@ -691,7 +693,10 @@ class TextAreaTest {
 
     /// The one scrollable thing in the toolkit that is **not** a `scroll`, and
     /// therefore the one place the wheel's convention had to be written out a
-    /// second time — and was written out wrong ([ADR-0314]).
+    /// second time — and was written out wrong. A notch is three lines of this
+    /// control's own text, and down is down.
+    ///
+    /// Read more: [The wheel is lines](https://goldberry.dev/docs/guide/input.html#the-wheel-is-lines).
     @Nested
     @DisplayName("the wheel")
     class Wheel {
@@ -735,7 +740,7 @@ class TextAreaTest {
         /// is now at the top of the pane rather than by multiplying a line height
         /// out here: the distance is in points and what it has to be worth is a
         /// number of *lines*, which is the conversion the bug got wrong in both
-        /// directions at once — one pixel, upwards ([ADR-0314]).
+        /// directions at once — one pixel, upwards.
         @Test
         @DisplayName("and one notch brings the fourth line to the top, because a notch is three lines")
         void aNotchIsThreeLines() {
@@ -842,7 +847,8 @@ class TextAreaTest {
         }
     }
 
-    /// `text-align` in a multi-line field — `docs/gaps.md` G30, ADR-0324.
+    /// `text-align` in a multi-line field: the caret, the highlight and the hit
+    /// test follow the alignment the stylesheet resolved.
     ///
     /// The area's value box is given a **definite width**, unlike a `text-input`'s,
     /// so the paint indents each line by its own share of the slack and what this
@@ -983,7 +989,9 @@ class TextAreaTest {
         }
     }
 
-    /// A drag held past the top or bottom of the text ([ADR-0500]).
+    /// A drag held past the top or bottom of the text carries the viewport on, at
+    /// a speed set by how far past the edge the pointer is, and selects what is
+    /// under the pointer pulled back inside the viewport.
     ///
     /// Against a **virtual clock**, because what is asserted is a distance per frame
     /// and the distance is a speed times the frame's time: against the wall clock the
@@ -1023,7 +1031,8 @@ class TextAreaTest {
         }
 
         /// A pointer event of `kind` at `y` in the control's own coordinates — with a
-        /// press position, which is what makes a motion a drag ([ADR-0168]).
+        /// press position, which is what makes a motion a drag — a motion carries
+        /// no button, only how far it is from the press.
         private PointerEvent pointer(ElementTree tree, PointerEvent.Kind kind, float y) {
             return pointer(tree, kind, 8, y);
         }

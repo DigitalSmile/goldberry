@@ -10,8 +10,8 @@ import dev.goldberry.input.event.PreeditEvent;
 import dev.goldberry.input.event.TextEvent;
 import dev.goldberry.render.model.LogicalRect;
 
-/// What a `canvas` does with input — [dev.goldberry.paint.Painter]'s
-/// sibling.
+/// What a `canvas` does with the pointer, the keyboard and text input — the
+/// sibling of its [dev.goldberry.paint.Painter].
 ///
 /// ```java
 /// new Canvas(painter, new Input() {
@@ -33,21 +33,19 @@ import dev.goldberry.render.model.LogicalRect;
 /// re-expressed as a `CanvasPointerEvent`. They already carry everything a board
 /// tool needs — the button, the click count, the modifier keys, the wheel's
 /// fraction *and* its detents, and where the gesture started — and a second
-/// vocabulary over the same facts would be one more thing to keep in step
-/// (ADR-0281).
+/// vocabulary over the same facts would be one more thing to keep in step.
 ///
 /// **Read [PointerEvent#content()], not `local()`.** `content()` is measured from
 /// the rectangle the painter draws in, which is inside the padding; `local()` is
 /// measured from the box's own corner. They differ by exactly the padding, and
-/// for `canvas { padding: 8px }` — which `docs/core-widgets.md` §1 documents as a
-/// framed drawing surface — that difference is eight pixels of everything landing
-/// in the wrong place.
+/// for `canvas { padding: 8px }` — a framed drawing surface — that difference is
+/// eight pixels of everything landing in the wrong place.
 ///
 /// ## What comes for free
 ///
 /// - **A drag that leaves the canvas still arrives.** The router captures the
 ///   pointer implicitly on press and releases it on the matching release, so a
-///   marquee dragged off the edge keeps reporting (ADR-0057). Nothing has to ask.
+///   marquee dragged off the edge keeps reporting. Nothing has to ask.
 /// - **The wheel is a [PointerEvent] of kind `WHEEL`**, with `deltaY()` for a
 ///   touchpad's fraction and `ticksY()` for a mouse's detents.
 /// - **`consume()` stops the event**, which is how a canvas keeps a wheel from
@@ -62,6 +60,8 @@ import dev.goldberry.render.model.LogicalRect;
 /// [Canvas#isFocusable()]. Without one there is nothing to deliver a key to, and
 /// a canvas that took a Tab stop to draw a chart would be a keyboard trap with no
 /// exit.
+///
+/// Read more: [Canvas, images and QR codes](https://goldberry.dev/docs/components/drawing.html#input).
 public interface Input {
 
     /// A press, a release, a move, a drag, a click, an enter, an exit or a wheel.
@@ -79,17 +79,17 @@ public interface Input {
     /// Not the same as [#onKey]: this is what an input method produced, which for
     /// anything but a Latin keyboard is not a key at all. It is what
     /// [dev.goldberry.text.edit.Editor#onText] takes, which is
-    /// how a canvas gets a caret in it (ADR-0285).
+    /// how a canvas gets a caret in it.
     default void onText(TextEvent event) {}
 
     /// The composition an input method is assembling, before the user has
-    /// accepted it — `docs/gaps.md` G15.
+    /// accepted it.
     ///
     /// [dev.goldberry.text.edit.Editor#onPreedit] takes it
     /// whole. A canvas that ignores it still receives every committed character,
     /// which is what a Latin keyboard produces; what a Japanese, Chinese or
     /// Korean user loses is the underlined string they watch while choosing, and
-    /// without it they type blind until they commit (ADR-0289).
+    /// without it they type blind until they commit.
     ///
     /// **Not an edit.** See
     /// [dev.goldberry.input.event.PreeditEvent].
@@ -100,7 +100,7 @@ public interface Input {
     /// is measured in.
     ///
     /// Handed to the platform so an input method can put its candidate window
-    /// beside the text (`docs/gaps.md` G15). Only a canvas knows where its own
+    /// beside the text. Only a canvas knows where its own
     /// caret is, which is why this is a question rather than something the
     /// toolkit works out.
     ///
@@ -125,10 +125,9 @@ public interface Input {
     /// The focus arrived or left.
     ///
     /// **What a caret is for.** Everything else a canvas draws looks the same
-    /// focused or not, so this was not worth a method until something on a canvas
-    /// had to stop blinking when the user clicked elsewhere (ADR-0285). A canvas
-    /// that ignores it draws the same picture either way, which is what a chart
-    /// wants.
+    /// focused or not; a caret has to stop blinking when the user clicks
+    /// elsewhere. A canvas that ignores it draws the same picture either way,
+    /// which is what a chart wants.
     ///
     /// @param fromKeyboard whether the focus arrived by `Tab` rather than by a
     ///        click — the same distinction `:focus-visible` is drawn on
@@ -156,7 +155,7 @@ public interface Input {
     /// desktop the platform does not *produce* any until it is told that
     /// something is being typed into: a canvas holding an
     /// [dev.goldberry.text.edit.Editor] and not saying so gets
-    /// keys and never a character (ADR-0285). A board that only wants arrow keys
+    /// keys and never a character. A board that only wants arrow keys
     /// leaves it false, because turning it on pops a keyboard over the board on
     /// the platforms that have one.
     default boolean wantsText() {

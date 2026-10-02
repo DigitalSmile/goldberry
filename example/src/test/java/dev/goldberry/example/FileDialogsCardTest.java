@@ -32,7 +32,7 @@ import dev.goldberry.widgets.text.Text;
 /// `GalleryGoldenTest` can show three buttons and a line of text. It cannot show
 /// the card's actual subject, which is that **a dialog answers later** — the
 /// reason this card is Java and not `basic.kdl`, and the reason it has a state at
-/// all (ADR-0287).
+/// all. A file dialog is the desktop's, and the answer comes back later.
 ///
 /// So this presses the buttons, with a host that says what the user did.
 class FileDialogsCardTest {
@@ -53,7 +53,7 @@ class FileDialogsCardTest {
     ///
     /// It was created in `render()` and never released: a suite that renders a
     /// card in every test opened one set of faces per test and closed none of
-    /// them (the 2026-09-18 review, §6).
+    /// them.
     @AfterEach
     void tearDown() {
         if (fonts != null) {

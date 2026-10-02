@@ -21,11 +21,12 @@ import dev.goldberry.widget.style.Styled;
 /// The obvious implementation is a `selected` class on each covered word, and it is
 /// the wrong one by an order of magnitude: a class is part of a widget's description,
 /// so every pointer move during a drag would rebuild the document and re-resolve six
-/// hundred styles. That is the shape of frame ADR-0299 had just removed.
+/// hundred styles. That is a frame more expensive than the one a document costs to
+/// show in the first place.
 ///
 /// A painter reads **mutable state** instead. The selection is a field the pointer
 /// handler writes and this reads, so a drag costs one `Host.repaint()` and one paint
-/// pass: no build, no cascade, no layout (ADR-0301).
+/// pass: no build, no cascade, no layout.
 ///
 /// ## Why it is absolutely positioned, and first
 ///

@@ -133,7 +133,7 @@ class MediaPlayerTest {
     }
 
     @Test
-    @DisplayName("the position never goes back while audio is written and played (ADR-0485)")
+    @DisplayName("the position never goes back while audio is written and played")
     void positionNeverGoesBack() throws Exception {
         // Two seconds, played by a speaker that takes 64 samples at a time as
         // fast as the Engine writes, through a sink that lingers a millisecond
@@ -231,7 +231,7 @@ class MediaPlayerTest {
         assertEquals(Duration.ofMillis(100), player.status().position());
     }
 
-    /// ADR-0474: the audio clock is what is heard, so a speaker 50 ms behind the
+    /// The audio clock is what is heard, so a speaker 50 ms behind the
     /// queue holds the position, and the pictures timed by it, 50 ms back.
     @Test
     @DisplayName("the position is what is heard: the sink's latency is taken off it")
@@ -331,7 +331,7 @@ class MediaPlayerTest {
     }
 
     @Test
-    @DisplayName("seeks accurately: the first sample written after a seek is the target's (S2)")
+    @DisplayName("seeks accurately: the first sample written after a seek is the target's")
     void seeksAccurately() {
         var rate = FORMAT.sampleRate();
         open(Wav.sine(rate, 2, rate * 3, 50, 20_000), false, List.of());
@@ -573,7 +573,7 @@ class MediaPlayerTest {
     }
 
     @Test
-    @DisplayName("a codec nothing decodes is ERROR with UnsupportedCodec, naming it (S7)")
+    @DisplayName("a codec nothing decodes is ERROR with UnsupportedCodec, naming it")
     void unsupportedCodec() {
         open(Wav.withFormatTag(Wav.silence(8_000, 1, 800), 6), true, List.of());
         var status = awaitState(PlaybackState.ERROR);
@@ -685,7 +685,7 @@ class MediaPlayerTest {
     }
 
     @Test
-    @DisplayName("a provider is preferred, and one that fails mid-stream hands over to the next (S8)")
+    @DisplayName("a provider is preferred, and one that fails mid-stream hands over to the next")
     void fallbackMidStream() {
         open(Wav.silence(FORMAT.sampleRate(), 2, FORMAT.sampleRate()), true, List.of(new FlakyProvider(3)));
         var ended = awaitState(PlaybackState.ENDED);

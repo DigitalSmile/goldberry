@@ -7,7 +7,7 @@ import org.junit.jupiter.api.Assumptions;
 ///
 /// Skips on any other system, and fails where `-Pgoldberry.platform.required=true`
 /// says it must be there: a Windows job that skips its platform decoders is a
-/// green tick over nothing (ADR-0016).
+/// green tick over nothing.
 final class WindowsRequirement {
 
     /// The switch that turns a skip into a failure.

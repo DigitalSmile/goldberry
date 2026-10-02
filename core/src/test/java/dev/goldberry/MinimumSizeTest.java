@@ -15,7 +15,7 @@ import dev.goldberry.render.model.DisplayScale;
 import dev.goldberry.render.model.LogicalSize;
 import dev.goldberry.render.window.WindowSpec;
 
-/// The floor a user may drag a window down to — [ADR-0304].
+/// The floor a user may drag a window down to.
 ///
 /// The constraint is the window manager's on a real backend, so what is asserted
 /// here is the headless one standing in for it: a drag below the floor stops at

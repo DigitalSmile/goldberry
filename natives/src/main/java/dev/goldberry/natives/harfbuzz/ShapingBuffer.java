@@ -22,6 +22,8 @@ import dev.goldberry.natives.harfbuzz.enums.TextDirection;
 /// reason `hb_buffer_add_utf16` is the entry point rather than the UTF-8 one.
 ///
 /// Confined to the thread that created it, and must be closed.
+///
+/// Read more: [The native boundary](https://goldberry.dev/docs/overview/architecture.html#the-native-boundary).
 public final class ShapingBuffer implements AutoCloseable {
 
     private final HarfBuzz harfbuzz = HarfBuzz.get();

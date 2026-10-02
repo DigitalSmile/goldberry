@@ -4,8 +4,9 @@ package dev.goldberry.natives.yoga.style;
 ///
 /// Yoga's two values are CSS's `display: flex` and `display: none`. There is no
 /// `block` or `inline`: every Goldberry widget is a flex container, which is
-/// what makes the CSS subset in `docs/ARCHITECTURE.md` §8 compile to Yoga
-/// directly.
+/// what makes the toolkit's CSS subset compile to Yoga directly.
+///
+/// Read more: [The native boundary](https://goldberry.dev/docs/overview/architecture.html#the-native-boundary).
 public enum Display implements YogaEnum {
 
     /// Laid out, and a flex container for its children.

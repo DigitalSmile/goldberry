@@ -13,14 +13,13 @@ import dev.goldberry.paint.Path;
 /// the one it is running under. Inside a `canvas` that matrix already holds the
 /// translation that puts the canvas on screen, so a painter that sets a rotation
 /// draws at the window's corner instead of at its own. The two ways out are to
-/// compose with what is already there — which `Frame.concat` now does — or to
-/// hand the rasterizer a path that is already turned, which is this.
+/// compose with what is already there — which `Frame.concat` does — or to hand
+/// the rasterizer a path that is already turned, which is this.
 ///
 /// Both exist because they answer different questions. A path is transformed
 /// once and drawn many times, it can be measured and hit-tested afterwards in
 /// the coordinates it will be drawn in, and it needs no state on the frame to be
-/// balanced. The showcase's settling tiles were forty lines of exactly this
-/// arithmetic before it moved here (ADR-0354, ADR-0390, `docs/gaps.md` G46).
+/// balanced.
 ///
 /// ## The arc is the reason this belongs to the toolkit
 ///
@@ -33,6 +32,8 @@ import dev.goldberry.paint.Path;
 /// mirroring transform it also runs the other way round, so the sweep flag
 /// flips. Getting either wrong leaves a shape that still draws, which is why a
 /// second copy of this in every application is a bad trade.
+///
+/// Read more: [Canvas, images and QR codes](https://goldberry.dev/docs/components/drawing.html#the-painter).
 public final class Transformer {
 
     private Transformer() {}

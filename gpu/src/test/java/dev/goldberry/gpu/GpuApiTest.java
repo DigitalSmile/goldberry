@@ -33,7 +33,7 @@ import dev.goldberry.render.model.PhysicalSize;
 import dev.goldberry.render.model.PixelFormat;
 
 /// The public GPU API on a real device: Metal here, Vulkan under lavapipe on the
-/// GPU lane (`docs/gpu-plan.md`, phase 2).
+/// GPU lane.
 ///
 /// Phase 2's exit is [Drawing#triangle]: a triangle from a vertex buffer,
 /// rendered to an offscreen texture and read back, against a reference
@@ -81,7 +81,7 @@ class GpuApiTest {
     @AfterAll
     static void destroyDevice() {
         // Skipped before SDL was reached: nothing to give back, and no library to
-        // call. Calling it anyway failed the class, and a build without it (ADR-0495).
+        // call. Calling it anyway failed the class, and a build without it.
         if (sdl == null) {
             return;
         }

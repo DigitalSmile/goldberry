@@ -8,8 +8,7 @@ import java.util.function.Supplier;
 import dev.goldberry.assets.BundledFont;
 import dev.goldberry.assets.Face;
 
-/// A face an application ships, named the way a stylesheet will ask for it —
-/// `docs/gaps.md` G39.
+/// A face an application ships, named the way a stylesheet will ask for it.
 ///
 /// ```java
 /// @Override public List<FontSource> fonts() {
@@ -19,24 +18,24 @@ import dev.goldberry.assets.Face;
 /// }
 /// ```
 ///
-/// after which `font-family: Forum` reaches the cascade, `Paragraph` layout, a
-/// field's caret and the rasterizer's glyph cache together, because all four
-/// already go through one [Fonts] book and the book now knows the face.
+/// After that, `font-family: Forum` reaches the cascade, paragraph layout, a
+/// field's caret and the rasterizer's glyph cache together, because all four go
+/// through the one [Fonts] book and the book knows the face.
 ///
-/// ## The bytes are read when the face is first drawn
+/// The bytes are a [Supplier] rather than an array because a face is parsed the
+/// first time something asks for it, so an application that ships a display
+/// face and shows no title never reads it. A supplier that fails is reported
+/// once and the text falls back to the UI face; it does not throw from inside
+/// a paint pass.
 ///
-/// A [Supplier] rather than an array, for [Fonts#bundled()]'s reason: a face is
-/// parsed the first time something asks for it, so an application that ships a
-/// display face and shows no title never reads it. A supplier that fails is
-/// reported once and the text falls back to the UI face. It does not throw from
-/// inside a paint pass (ADR-0349).
+/// [BundledFont.Weight] and [BundledFont.Style] are the toolkit's own closed
+/// pairs: two weights and two styles. A family that fills only some corners
+/// falls back the way Inter's does, through [Face#match], so a shipped family
+/// and a bundled one cannot answer `font-weight: 600` differently. The bundled
+/// families are searched first, so a shipped file named `Inter` is never
+/// reached.
 ///
-/// ## The matrix is the toolkit's
-///
-/// [BundledFont.Weight] and [BundledFont.Style] are the two closed pairs §1.4
-/// ships. A family that fills only some corners falls back the way Inter's does,
-/// through [Face#match], so a shipped family and a bundled one cannot answer
-/// `font-weight: 600` differently.
+/// Read more: [Shipping a face](https://goldberry.dev/docs/guide/text.html#shipping-a-face).
 ///
 /// @param family the family name as a stylesheet writes it; compared ignoring case
 /// @param weight which of the two weights this file is
@@ -55,9 +54,8 @@ public record FontSource(String family, BundledFont.Weight weight, BundledFont.S
         }
     }
 
-    /// A face read from a resource beside `anchor`, the way
-    /// [dev.goldberry.css.Stylesheet#resource] reads a
-    /// stylesheet.
+    /// A face read from a resource beside `anchor`, the way a stylesheet is read
+    /// from one.
     ///
     /// @param name the resource name, relative to `anchor`'s package unless it
     ///             starts with `/`

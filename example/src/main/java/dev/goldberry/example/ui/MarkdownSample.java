@@ -15,6 +15,8 @@ import java.nio.charset.StandardCharsets;
 ///
 /// Beside the screens' KDL documents, because it is the same kind of thing: content
 /// the application ships, which somebody edits without recompiling to see it.
+///
+/// Read more: [Markdown view](https://goldberry.dev/docs/components/content.html#markdown-view).
 public final class MarkdownSample {
 
     private static final String RESOURCE = "markdown-sample.md";
@@ -25,7 +27,7 @@ public final class MarkdownSample {
     ///
     /// Read on each call, which is once: the model reads it when it is constructed.
     /// No `opens` is needed for it — this class and the file are in the same module,
-    /// and JPMS encapsulates a resource from *other* modules (ADR-0093).
+    /// and JPMS encapsulates a resource from *other* modules.
     public static String text() {
         try (var in = MarkdownSample.class.getResourceAsStream(RESOURCE)) {
             if (in == null) {

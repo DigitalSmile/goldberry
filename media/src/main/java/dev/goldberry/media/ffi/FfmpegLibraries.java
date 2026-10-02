@@ -33,11 +33,12 @@ import dev.goldberry.media.ffi.calls.SwScaleCalls;
 /// ## Where they come from
 ///
 /// 1. `-Dgoldberry.media.libdir=<dir>`. The LGPL says a user may replace the
-///    library, and this is how (`docs/goldberry-media.md` §2). The build's tests
+///    library, and this is how. The build's tests
 ///    also use it to point at what `:media:ffmpegBuild` just made.
 /// 2. `goldberry-media`'s `ffmpeg-<classifier>` jar on the class or module
-///    path (ADR-0495). Its libraries are unpacked into a temporary directory, because a
-///    shared library has to be a file to be loaded.
+///    path, which an application names among its dependencies. Its libraries are
+///    unpacked into a temporary directory, because a shared library has to be a
+///    file to be loaded.
 ///
 /// Either place holds the five libraries under the names the other libraries link
 /// against ([FfmpegPlatform#fileName]) and the probe's

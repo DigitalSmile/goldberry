@@ -23,8 +23,10 @@ import dev.goldberry.paint.BoxPainter;
 import dev.goldberry.widget.ElementTree;
 import dev.goldberry.widgets.data.linechart.LineChart;
 
-/// Limits drawn across a chart — `charts.md` §3.1's "thresholds: lines and shaded
-/// regions, drawn in the *semantic* hues, never a series slot".
+/// Limits drawn across a chart: thresholds are lines and shaded regions, drawn
+/// in the *semantic* hues and never in a series slot.
+///
+/// Read more: [What the five share](https://goldberry.dev/docs/components/charts.html#what-the-five-share).
 class ThresholdTest {
 
     @BeforeEach

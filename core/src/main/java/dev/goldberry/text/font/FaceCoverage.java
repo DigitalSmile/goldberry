@@ -6,35 +6,29 @@ import java.util.TreeSet;
 
 import dev.goldberry.text.font.sfnt.TableDirectory;
 
-/// Which characters a font file has glyphs for — its `cmap`, read.
+/// Which characters a font file has glyphs for: its `cmap`, read.
 ///
-/// ## What it is for
+/// ```java
+/// int[] emoji = FaceCoverage.codePoints(BundledAssets.font(BundledFont.EMOJI));
+/// ```
 ///
 /// One question, asked by anything that offers characters rather than drawing
 /// the ones it was handed: an emoji picker listing what it can show, a
 /// diagnostic asking whether a face covers a script, a test asserting that the
 /// shipped emoji face still has the characters a screen names. Shaping answers
-/// "what does this text look like"; this answers "what is in here at all"
-/// ([ADR-0386]).
+/// "what does this text look like"; this answers "what is in here at all", and
+/// the answer is the font's own contents rather than a list kept beside it.
 ///
-/// ## Why it is Java, and thirty lines of it
+/// The reader is Java rather than a HarfBuzz binding because the table is
+/// simpler than the binding would be: two subtable formats cover every font
+/// this century, both are arrays of ranges, and the whole reader fits on a page
+/// with no native memory in it. Format 4 is the Basic Multilingual Plane as
+/// segments of 16-bit ranges, which is what every Latin face uses; format 12 is
+/// the whole of Unicode as 32-bit groups, which a face with emoji needs because
+/// the planes above `0xFFFF` do not fit format 4 at all. A subtable in any other
+/// format is skipped.
 ///
-/// HarfBuzz has `hb_face_collect_unicodes`, and binding it would mean a set
-/// object, an iterator and their lifetimes crossing FFM for a question asked
-/// once per face. The table itself is simpler than that binding: two subtable
-/// formats cover every font this century, both are arrays of ranges, and the
-/// whole reader fits on a page with no native memory in it — which is
-/// [dev.goldberry.image.gif.GifDecoder]'s argument for owning
-/// a small format rather than linking one.
-///
-/// ## The two formats
-///
-/// **Format 4** is the BMP: segments of 16-bit ranges, which is what every Latin
-/// face uses. **Format 12** is the whole of Unicode as 32-bit groups, which is
-/// what a face with emoji in it needs — the planes above `0xFFFF` do not fit
-/// format 4 at all. A subtable in any other format is skipped: formats 0, 2, 6
-/// and 13 exist and none of them is how a modern face encodes the characters
-/// anybody asks this about.
+/// Read more: [Emoji](https://goldberry.dev/docs/guide/text.html#emoji).
 public final class FaceCoverage {
 
     /// The `cmap` table's tag, as the four bytes a font writes it.
@@ -44,15 +38,13 @@ public final class FaceCoverage {
 
     /// Every code point `font` has a glyph for, in order.
     ///
-    /// **Empty rather than an exception** for a file this cannot read: a font
-    /// with no `cmap`, a collection, a table in a format not handled, or bytes
-    /// that are not a font at all. The caller is asking what is in a face, and
-    /// "nothing I can tell you" is an answer it can act on — a picker shows no
-    /// characters rather than failing to open.
+    /// Empty rather than an exception for a file this cannot read: a font with no
+    /// `cmap`, a collection, a table in a format not handled, or bytes that are
+    /// not a font at all. The caller is asking what is in a face, and "nothing I
+    /// can tell you" is an answer it can act on; a picker shows no characters
+    /// rather than failing to open.
     ///
-    /// The bytes are the face's, as
-    /// [dev.goldberry.assets.BundledAssets#font]
-    /// hands them over.
+    /// The bytes are the face's, as `BundledAssets.font` hands them over.
     ///
     /// @param font the face's bytes
     /// @return the code points, ascending
@@ -73,13 +65,12 @@ public final class FaceCoverage {
 
     /// Every code point in the `cmap` slice [TableDirectory] handed back.
     ///
-    /// **A slice and not the whole file**, which is what finding the table through
+    /// A slice and not the whole file, which is what finding the table through
     /// [TableDirectory#table] buys: the offsets a subtable record holds are from the
     /// table's own start, exactly as the specification writes them, and the slice
-    /// ends where the table ends — so a record claiming a subtable past the last
+    /// ends where the table ends, so a record claiming a subtable past the last
     /// byte of the `cmap` is refused here rather than read out of whatever follows
-    /// it. This file used to walk the table directory itself, and the copy had the
-    /// directory's tag comparison without its `offset + length > limit` check.
+    /// it.
     private static int[] read(ByteBuffer in) {
         // The best subtable rather than the first: a face with emoji has both a
         // format 4 for the BMP and a format 12 for everything, and reading only

@@ -13,11 +13,9 @@ import java.util.Set;
 ///
 /// ## A mask, and one that cannot be built wrong
 ///
-/// This was four booleans, and every caller wrote them positionally —
-/// `new Modifiers(true, false, false, false)` — which is four chances to get the
-/// order wrong and no way for the compiler to notice. It is one `int` now, and
-/// the only way to *make* one is from [Mod] values
-/// (ADR-0095).
+/// Four positional booleans — `new Modifiers(true, false, false, false)` — are
+/// four chances to get the order wrong and no way for the compiler to notice. So
+/// it is one `int`, and the only way to *make* one is from [Mod] values.
 ///
 /// The mask is not the API even so: [#mask()] exists for the backend boundary and
 /// for tests, and everything else asks [#has(Mod)]. A raw `int` parameter would
@@ -25,6 +23,8 @@ import java.util.Set;
 ///
 /// A value, so two of them are equal and hash the same — which is what lets a
 /// [Shortcut] be a map key.
+///
+/// Read more: [Input and focus](https://goldberry.dev/docs/guide/input.html#accelerators).
 ///
 /// @param mask the [Mod#bit()]s that were down
 public record Modifiers(int mask) {

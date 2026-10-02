@@ -15,7 +15,7 @@ import java.nio.ByteOrder;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-/// The `COLR` and `CPAL` reader, against fonts assembled here — [ADR-0393].
+/// The `COLR` and `CPAL` reader, against fonts assembled here.
 ///
 /// Assembled rather than shipped, because `:core` has no emoji face in it: the
 /// face lives in `goldberry-emoji` and the tests that read the real one are

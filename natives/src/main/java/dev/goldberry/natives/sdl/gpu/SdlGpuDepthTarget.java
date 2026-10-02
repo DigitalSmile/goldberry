@@ -7,6 +7,8 @@ import dev.goldberry.natives.sdl.gpu.enums.SdlGpuTextureUsage;
 /// The depth texture a render pass tests and writes, and what the pass does with
 /// it first.
 ///
+/// Read more: [The native boundary](https://goldberry.dev/docs/overview/architecture.html#the-native-boundary).
+///
 /// @param texture    a texture of a depth format, made for
 ///                   [SdlGpuTextureUsage#DEPTH_STENCIL_TARGET]
 /// @param clear      whether the pass clears it first, rather than keeping what

@@ -24,10 +24,12 @@ import dev.goldberry.widgets.controls.checkbox.Checkbox;
 import dev.goldberry.widgets.panel.Described;
 import dev.goldberry.widgets.panel.list.Selection;
 
-/// `tree` — `docs/core-widgets.md` §3's hierarchical list ([ADR-0184]).
+/// `tree` — the hierarchical list.
 ///
 /// What is here is the **model over time**: what is open, what a lazy node
 /// fetched, and what the keyboard does to both. The drawing is `TreeGoldenTest`'s.
+///
+/// Read more: [`tree`](https://goldberry.dev/docs/components/collections.html#tree).
 class TreeTest {
 
     private final TestHost host = new TestHost();
@@ -119,7 +121,7 @@ class TreeTest {
     }
 
     @Nested
-    @DisplayName("the keyboard §3 says has to be right")
+    @DisplayName("the keyboard, which is the part that has to be right")
     class Keyboard {
 
         @Test
@@ -133,7 +135,7 @@ class TreeTest {
             assertTrue(row(tree, "europe").expanded());
         }
 
-        /// §3: "`Right` … moves to the first child" once it is open. The first
+        /// `Right` moves to the first child once the node is open. The first
         /// child is literally the next row, because the rows are flattened depth
         /// first — so the key falls through to the scope rather than being
         /// handled twice.
@@ -164,7 +166,7 @@ class TreeTest {
             assertEquals(List.of("europe", "asia"), rows(tree));
         }
 
-        /// §3: "`Left` … moves to the parent" when there is nothing to close. By
+        /// `Left` moves to the parent when there is nothing to close. By
         /// **id** through the host, because a row cannot reach another row's
         /// element.
         @Test
@@ -192,11 +194,11 @@ class TreeTest {
         }
     }
 
-    /// §3's three remaining keys, which ADR-0184 shipped without and ADR-0209
-    /// finished. All three need to know about rows the focused one cannot see, so
-    /// all three are the tree's rather than the row's.
+    /// The three keys the first tree shipped without: `Home`, `End` and the
+    /// asterisk. All three need to know about rows the focused one cannot see,
+    /// so all three are the tree's rather than the row's.
     @Nested
-    @DisplayName("the rest of §3's keyboard")
+    @DisplayName("the rest of the keyboard")
     class RestOfTheKeyboard {
 
         private static void type(TreeRow row, String text) {
@@ -239,7 +241,7 @@ class TreeTest {
             assertEquals(List.of("tree-jp"), host.focusRequests(), "and once Asia is open it is Japan");
         }
 
-        /// §3's `*`: "expands every sibling". A character rather than a key,
+        /// `*` expands every sibling. A character rather than a key,
         /// because the key `*` sits on differs by layout.
         @Test
         @DisplayName("* opens every sibling at that level")
@@ -288,7 +290,7 @@ class TreeTest {
             assertEquals(List.of("one", "x", "two"), rows(tree));
         }
 
-        /// §3: type-to-select "matches across visible rows only".
+        /// Type-to-select matches across visible rows only.
         @Test
         @DisplayName("typing moves the focus to the next row that starts with it")
         void typeToSelect() {
@@ -367,8 +369,8 @@ class TreeTest {
     @DisplayName("choosing a node")
     class Choosing {
 
-        /// §3's default, and its reason: "'Europe' is usually a heading and not
-        /// an answer".
+        /// Leaf-only is the default, and its reason: "Europe" is usually a
+        /// heading and not an answer.
         @Test
         @DisplayName("a leaf is an answer and a parent is not")
         void leafOnly() {
@@ -425,7 +427,7 @@ class TreeTest {
 
         /// A right-click selects the row it is over before the menu opens, which
         /// is the file manager's gesture and the same two lines a list's row has
-        /// ([ADR-0224]). A tree names its menu on the `tree` rather than per row,
+        /// A tree names its menu on the `tree` rather than per row,
         /// so the walk finds one menu and this decides what it acts on.
         @Test
         @DisplayName("a right-click asks for the row it is over")
@@ -455,11 +457,10 @@ class TreeTest {
         }
     }
 
-    /// §3's `checkable="none|leaf|any|cascade"` — the checkbox per node, which is
-    /// a **second value** beside the selection rather than a rendering of it
-    /// ([ADR-0210]).
+    /// `checkable="none|leaf|any|cascade"` — the checkbox per node, which is
+    /// a **second value** beside the selection rather than a rendering of it.
     @Nested
-    @DisplayName("the checkbox §3 asks for")
+    @DisplayName("the checkbox beside the selection")
     class Checking {
 
         private final List<java.util.Set<String>> ticked = new ArrayList<>();
@@ -541,7 +542,7 @@ class TreeTest {
             assertEquals(List.of(java.util.Set.of("europe", "no", "se")), ticked);
         }
 
-        /// §3's "shows `indeterminate` upward", and the reason it is a bar and
+        /// `cascade` shows `indeterminate` upward, and the reason it is a bar and
         /// not a greyed tick: "some of these are on" has to be distinguishable
         /// from "all of these are on" at a glance.
         @Test
@@ -631,7 +632,7 @@ class TreeTest {
 
         // --- the two values stay apart ---------------------------------------
 
-        /// The whole point of ADR-0210: ticking is not choosing. A click that did
+        /// The whole point of a second value: ticking is not choosing. A click that did
         /// both would make the box unusable in a single-selection tree, because
         /// every tick would move the highlight.
         @Test
@@ -691,8 +692,8 @@ class TreeTest {
         }
     }
 
-    /// §3's "`list`'s selection models: none / single / multi (Ctrl/Shift
-    /// semantics)" — defined here because `list` is not built ([ADR-0210]).
+    /// The selection models a `list` has — none, single and multi with the
+    /// Ctrl and Shift semantics — defined here because `list` is not built.
     @Nested
     @DisplayName("the selection models")
     class SelectionModels {
@@ -1012,9 +1013,9 @@ class TreeTest {
     @DisplayName("the model")
     class Model {
 
-        /// §3: expansion is retained "by node **id**, not by index — a tree that
+        /// Expansion is retained by node **id**, not by index — a tree that
         /// collapsed itself when its model reordered would be the same defect
-        /// list keys exist to prevent".
+        /// list keys exist to prevent.
         @Test
         @DisplayName("a branch stays open when the model reorders under it")
         void expansionSurvivesAReorder() {
@@ -1042,7 +1043,7 @@ class TreeTest {
 
     /// Found by running the application: none of these branches would open,
     /// because nothing handled a **click** at all. The keyboard tests above all
-    /// passed ([ADR-0185]).
+    /// passed.
     @Nested
     @DisplayName("the pointer")
     class Pointer {

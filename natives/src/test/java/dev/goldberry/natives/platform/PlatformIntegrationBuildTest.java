@@ -18,7 +18,7 @@ import org.junit.jupiter.params.provider.EnumSource;
 
 import dev.goldberry.natives.GoldberryShim;
 
-/// The build's half of `docs/gaps.md` G32, read as text.
+/// The build's half of the capability word, read as text.
 ///
 /// The capability bits are verified against a compiled library by the layout
 /// probe, and the Java side of the word by [NativeCapabilityTest]. Neither can
@@ -115,8 +115,8 @@ class PlatformIntegrationBuildTest {
     void audioStopsTheConfigure() {
         assumeReadable();
 
-        // ADR-0488. Without these SDL has only `dummy` and `disk`, configures
-        // happily, and goldberry-media plays every source silently.
+        // Without these SDL has only `dummy` and `disk`, configures happily, and
+        // goldberry-media plays every source silently — so the loss is a stop.
         var start = cmakeLists.indexOf("_sdl_audio IN ITEMS");
         assertTrue(start >= 0, "the superbuild does not check SDL's audio drivers");
         var block = cmakeLists.substring(start, cmakeLists.indexOf("endforeach()", start));
@@ -161,7 +161,7 @@ class PlatformIntegrationBuildTest {
         // above: there is no pkg-config prediction to confirm, because SDL decides
         // the Wayland driver with one check over five specs plus a scanner binary,
         // and a prediction narrower than what it predicts would fail builds that
-        // were fine (ADR-0422). So the define comes from SDL's own answer.
+        // were fine. So the define comes from SDL's own answer.
         assertTrue(
                 cmakeLists.contains(decided.sdlDefine()),
                 "the superbuild never reads " + decided.sdlDefine() + " out of SDL_build_config.h");
@@ -228,7 +228,7 @@ class PlatformIntegrationBuildTest {
 
         // The layout probe checks this too, and better -- against a compiled
         // library rather than against text. It cannot run without one, and a
-        // contributor with no C toolchain is the ordinary case (ADR-0016).
+        // contributor with no C toolchain is the ordinary case.
         var define = Pattern.compile("#define\\s+" + capability.nativeName() + "\\s+0x([0-9a-fA-F]+)u")
                 .matcher(shim);
         assertTrue(define.find(), capability.nativeName() + " is not #defined in the shim");
@@ -259,8 +259,7 @@ class PlatformIntegrationBuildTest {
     /// A capability whose only source of truth is SDL's generated build config.
     ///
     /// Distinct from [Integration] because there is nothing to predict and nothing
-    /// to cross-check: the define is *read* rather than confirmed
-    /// ([ADR-0422]).
+    /// to cross-check: the define is *read* rather than confirmed.
     ///
     /// @param sdlDefine  the `SDL_build_config.h` define that decides it
     /// @param capability what a library loses without it

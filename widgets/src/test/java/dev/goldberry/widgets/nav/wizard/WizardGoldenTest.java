@@ -23,7 +23,7 @@ import dev.goldberry.widgets.controls.checkbox.Checkbox;
 import dev.goldberry.widgets.core.Column;
 import dev.goldberry.widgets.text.Text;
 
-/// What a wizard looks like (§14, [ADR-0050]): the indicator on top with 24
+/// What a wizard looks like: the indicator on top with 24
 /// below, the page, and a dialog's bar at the bottom with the affirmative on
 /// the right.
 ///

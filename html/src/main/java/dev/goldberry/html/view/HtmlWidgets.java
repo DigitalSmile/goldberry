@@ -30,8 +30,7 @@ import dev.goldberry.widgets.core.Row;
 /// Every node of the model becomes `column`, `row`, `text` and — for a link —
 /// `button` from the catalog, under the ordinary cascade. There is no engine here, no
 /// second text stack and nothing a theme cannot restyle, which is the same argument
-/// `markdown-view` makes and the reason HTML could ship without litehtml at all
-/// (ADR-0295, ADR-0298).
+/// `markdown-view` makes and the reason HTML could ship without litehtml at all.
 ///
 /// ## The class on a widget is the tag that produced it
 ///
@@ -51,29 +50,29 @@ import dev.goldberry.widgets.core.Row;
 ///
 /// - **Nothing here fetches an image.** An `<img>` is drawn as a [Picture] when the
 ///   application's [ImageSource] can find its `src`, and is its alt text when it
-///   cannot — which is the line ADR-0190 and ADR-0300 drew and not a missing widget:
-///   no file is opened and no socket, so a page full of remote images shows what its
-///   author wrote for a reader who cannot see them.
+///   cannot — which is a line drawn on purpose and not a missing widget: no file is
+///   opened and no socket, so a page full of remote images shows what its author
+///   wrote for a reader who cannot see them.
 /// - **A line is a row of words, not a shaped run.** Mixed faces on one line are one
 ///   `text` widget per word, so justification and hyphenation are not available. This
-///   is the one that *is* litehtml's, and it is why ADR-0298 leaves the engine open
-///   rather than closed. **Selecting** across those words does work, because each one
-///   reports where it was painted (ADR-0301).
+///   is the one that *is* litehtml's, and it is why an engine is still an open
+///   question rather than a closed one. **Selecting** across those words does work,
+///   because each one reports where it was painted.
 /// - **`<style>` and `style=` are read into the model and applied by nothing.** The
 ///   cascade here is the application's stylesheets, which is what makes a page follow
 ///   the theme; an author's colours would fight it.
-/// - **`sub` and `sup` are a size and not a baseline shift**, because §10's subset has
-///   no `vertical-align`.
-/// - **A form control draws nothing.** `docs/content-widgets.md` §1.5 puts interactive
-///   widgets out of scope for a content renderer; an `<input>` folds to an empty box
-///   rather than to a `text-input` that would write somewhere nobody asked for.
+/// - **`sub` and `sup` are a size and not a baseline shift**, because the toolkit's
+///   CSS subset has no `vertical-align`.
+/// - **A form control draws nothing.** Interactive widgets are out of scope for a
+///   content renderer; an `<input>` folds to an empty box rather than to a
+///   `text-input` that would write somewhere nobody asked for.
 ///
 /// All of it is in `book/src/TODO.md` as well as here.
 final class HtmlWidgets {
 
     /// The `html-word` / `html-token` namespace — see [Words], which the Markdown
-    /// fold shares with this one. Per fold since ADR-0301, because the words it makes
-    /// report where they land.
+    /// fold shares with this one. Per fold rather than static, because the words it
+    /// makes report where they land.
     private final Words words;
 
     /// Where the blocks are, which only the fold knows — see [WordMinter].
@@ -104,7 +103,7 @@ final class HtmlWidgets {
     /// off.
     Widget document(HtmlDocument document, Attributes attributes, Widget overlay) {
         // The overlay first: paint order is document order, so the wash goes behind
-        // the words (ADR-0301).
+        // the words.
         var children = new ArrayList<Widget>();
         children.add(overlay);
         children.addAll(blocks(document.children()));
@@ -161,7 +160,7 @@ final class HtmlWidgets {
     /// a boundary declared before the `p` was folded is one the `p` has already taken:
     /// the trailing words were minted into the paragraph above them, so a copy joined
     /// the two with a space where the document means a newline and a triple-click on
-    /// either took both (ADR-0301).
+    /// either took both.
     private void flush(Prose run, List<Widget> widgets) {
         if (run.isEmpty()) {
             return;
@@ -231,7 +230,7 @@ final class HtmlWidgets {
     }
 
     /// `lines` as the one box a paragraph is: a wrapping row of words, or a column of
-    /// them when a `br` ended a line inside it (ADR-0426).
+    /// them when a `br` ended a line inside it.
     ///
     /// **With no `br` in it this builds exactly the row it always built**, one class
     /// wider — which is what keeps a page nobody wrote a `br` in pixel-identical.
@@ -251,9 +250,9 @@ final class HtmlWidgets {
 
     /// A quotation: its blocks, in a box whose `border-left` is the bar.
     ///
-    /// The bar was a widget beside the blocks while §10's CSS subset had one border
-    /// for a whole box and no way to ask for an edge. It is a declaration in
-    /// `html.css` since ADR-0505, and `markdown-view` made the same move.
+    /// The bar was a widget beside the blocks while the toolkit's CSS subset had one
+    /// border for a whole box and no way to ask for an edge. Now that a border has four
+    /// sides it is a declaration in `html.css`, and `markdown-view` made the same move.
     private Widget quote(Element element) {
         var body = new Column(blocks(element.children()), classes("html-quote-body"));
         return new Row(List.of(body), classesOf(element, "html-quote"));
@@ -360,13 +359,13 @@ final class HtmlWidgets {
             }
             switch (element.tag()) {
                 // The first thing in the table draws no rule above it: the table's
-                // own border is already there (ADR-0505). A caption is a thing, so
+                // own border is already there. A caption is a thing, so
                 // a head under one is ruled off from it.
                 case "tr" -> rows.add(row(element, rows.isEmpty()));
                 case "thead", "tbody", "tfoot" -> appendRows(element.children(), rows);
                 case "caption" -> rows.add(prose(element, "html-prose", "html-caption"));
                 // A `colgroup` and its `col`s describe widths this cascade cannot set
-                // (§10 has no `flex-basis`), so they are read and not drawn.
+                // (the subset has no `flex-basis`), so they are read and not drawn.
                 default -> {}
             }
         }
@@ -392,7 +391,7 @@ final class HtmlWidgets {
     /// paragraphs rather than one run of words.
     ///
     /// `align=` is honoured because it is what a hand-written table uses, and because
-    /// the `text-align` an author would reach for instead is not in §10's subset.
+    /// the `text-align` an author would reach for instead is not in the CSS subset.
     ///
     /// @param first whether this is the leftmost cell of its row, which draws no
     ///              rule before it — markdown's `first`, for the same reason
@@ -451,7 +450,7 @@ final class HtmlWidgets {
             }
             switch (tag) {
                 // **A `br` ends the line, which is the whole of what it is for**
-                // (ADR-0426). It is a boundary rather than anything drawn, so it goes
+                // It is a boundary rather than anything drawn, so it goes
                 // into the run as one and [#take()] is where the paragraph is cut at
                 // it. No `spacer` with `flex-grow`: that fills the rest of the line,
                 // which makes the line before a break look justified.
@@ -497,14 +496,14 @@ final class HtmlWidgets {
         /// **This is the one thing `markdown-view` cannot do**, and the reason it can be
         /// done here is that an anchor in HTML is an element with a label, so the run it
         /// spans is one widget rather than four words that would each have to hover on
-        /// their own (`docs/gaps.md` G17). The variant is ADR-0293's `button.link`,
-        /// which arrived for a sentence's worth of action and is exactly that; it is a
+        /// their own. The variant is `button.link`, the button that reads as a link,
+        /// which exists for a sentence's worth of action and is exactly that; it is a
         /// Tab stop, it takes `Space` and `Enter`, and `html.css` takes its height back
         /// down to the line it sits in.
         ///
         /// An anchor with no text — one wrapping only an image, or an empty `<a
         /// name="x">` — is *not* a button, because a button with nothing on it has
-        /// nothing to click on and nothing to read out (§13). Its content is folded
+        /// nothing to click on and nothing to read out. Its content is folded
         /// inline instead, so an anchored heading keeps its words.
         private void anchor(Element element, Set<String> marks) {
             var href = element.attribute("href");
@@ -517,7 +516,7 @@ final class HtmlWidgets {
             var target = href;
             var press = onLink == null ? null : (Runnable) () -> onLink.accept(target);
             var classes = new LinkedHashSet<String>();
-            // ADR-0293's variant first, then the tag and the author's own classes, so
+            // The `link` variant first, then the tag and the author's own classes, so
             // that a document restyling its links does not have to restate the variant.
             classes.add("link");
             classes.addAll(marks);

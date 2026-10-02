@@ -26,9 +26,11 @@ import dev.goldberry.natives.layout.Layouts;
 /// by the font matrix, `size / units-per-em`, which is what turns them into
 /// pixels. Staging numbers that have already been scaled to pixels applies the
 /// size twice, produces text roughly `units-per-em / size` too wide, and
-/// reports nothing. See ADR-0034 and [BlendGlyphPlacementType].
+/// reports nothing. See [BlendGlyphPlacementType].
 ///
 /// Confined to the thread that created it, and must be closed.
+///
+/// Read more: [The native boundary](https://goldberry.dev/docs/overview/architecture.html#the-native-boundary).
 public final class BlendGlyphBuffer implements AutoCloseable {
 
     /// The stride of the glyph-id array: one `uint32_t` per glyph.

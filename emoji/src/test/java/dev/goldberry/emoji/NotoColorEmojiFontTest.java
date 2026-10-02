@@ -14,7 +14,8 @@ import dev.goldberry.assets.EmojiFont;
 import dev.goldberry.natives.harfbuzz.ShapedFont;
 import dev.goldberry.natives.harfbuzz.ShapingBuffer;
 
-/// The face this artifact exists to carry — [ADR-0384], [ADR-0456].
+/// The face this artifact exists to carry: it is found through the service, and
+/// an emoji shapes through it.
 ///
 /// The shaping half moved here from `:core`'s `BundledAssetsTest` with the font
 /// itself: "emoji shape through the emoji face" is a test of the thing that
@@ -69,8 +70,8 @@ class NotoColorEmojiFontTest {
             assertNotEquals(0, throughEmoji.glyphId(0), "Noto has this character");
 
             // The same character through the UI face, which is the point of
-            // having two slots: §6.1 says the chain is primary then emoji and
-            // stops there, so choosing the slot is the text stack's job. Nothing
+            // having two slots: the chain is primary then emoji and stops
+            // there, so choosing the slot is the text stack's job. Nothing
             // cascades on its own.
             buffer.reset();
             buffer.addText(snowman);

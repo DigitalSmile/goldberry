@@ -20,10 +20,10 @@ import dev.goldberry.widgets.core.presence.Phase;
 ///
 /// ## Closing runs before the application is told
 ///
-/// `docs/design-system.md` §1.7: an overlay runs `opening → open → closing →
-/// removed`, "the element stays mounted through `closing`, **input is disabled
-/// the instant closing starts** (no ghost clicks), removal fires on animation
-/// end". That is the whole of this class, and it is the same order
+/// An overlay runs `opening → open → closing → removed`: the element stays
+/// mounted through `closing`, **input is disabled the instant closing starts**
+/// so there are no ghost clicks, and removal fires when the animation ends.
+/// That is the whole of this class, and it is the same order
 /// [dev.goldberry.widgets.overlay.message.MessageState] uses:
 /// nothing outside a dialog is holding it, so a dialog that told the application
 /// first would be asking to be removed before it had faded.
@@ -42,29 +42,28 @@ import dev.goldberry.widgets.core.presence.Phase;
 /// thing inside — the panel itself takes no focus.
 ///
 /// The **trap** is not asked for: [dev.goldberry.input.handler.Handles#isModal]
-/// on the panel is a fact about the tree, and the router reads it
-/// (ADR-0176).
+/// on the panel is a fact about the tree, and the router reads it.
+///
+/// Read more: [The design system](https://goldberry.dev/docs/guide/design-system.html#motion).
 final class DialogState extends State<Dialog> {
 
-    /// §1.7's `overlay`, which §3 names for a dialog's entrance: 240ms.
+    /// The overlay duration, which a dialog's entrance takes: 240ms.
     private static final double ENTER_MILLIS = 240;
 
-    /// §3: "out: **base**, reverse" — 160ms. Shorter than the entrance, because
+    /// The exit is the **base** duration, run in reverse: 160ms. Shorter than the entrance, because
     /// a dialog that took as long to go as it took to arrive feels stuck.
     private static final double EXIT_MILLIS = 160;
 
     private final Phase opening = new Phase(Phase.Kind.ENTERING, ENTER_MILLIS);
 
-    /// §1.7's `closing → removed`, and the two flags it needs — see [Departure],
-    /// which is where this and `message`'s identical copy of it now live
-    /// ([ADR-0234]).
+    /// The `closing → removed` half of the lifecycle, and the two flags it needs
+    /// — see [Departure], which `message` shares.
     ///
-    /// **Two flags, and they mean different things**, which is the bug the pair
-    /// replaced: `hasBegun` means *input is off*, from the instant an answer is
-    /// given (§1.7: "no ghost clicks"), and `isOver` means *there is nothing left
-    /// to draw*. Using the first for both is why a closing dialog stopped asking
-    /// for frames on the frame it started closing, and therefore never faded at
-    /// all.
+    /// **Two flags, and they mean different things**: `hasBegun` means *input is
+    /// off*, from the instant an answer is given, so there are no ghost clicks,
+    /// and `isOver` means *there is nothing left to draw*. Using the first for
+    /// both would stop a closing dialog asking for frames on the frame it
+    /// started closing, so it would never fade at all.
     private final Departure closing = new Departure(EXIT_MILLIS, this::setState);
 
     /// Captured in `build` for the handlers that run later.
@@ -119,7 +118,7 @@ final class DialogState extends State<Dialog> {
         return new DialogScrim(panel, this::escape, phase, closing.hasBegun(), closing.isOver());
     }
 
-    /// §7's canonical order: neutral, then dismissive, then **affirmative last**.
+    /// The canonical order: neutral, then dismissive, then **affirmative last**.
     ///
     /// Affirmative-right is macOS' and Linux' order and is what ships; Windows
     /// puts it first, and a theme flips the whole bar with one declaration —
@@ -177,9 +176,9 @@ final class DialogState extends State<Dialog> {
     /// answer, which matters more here than anywhere else in the catalog — two
     /// handlers on a save dialog is two saves.
     private void close(@Nullable Runnable then) {
-        // Every rule this used to spell out is [Departure]'s now: idempotent, two
-        // flags, stop drawing before telling the application, and gone at once
-        // when there is no window or the reader asked for no motion ([ADR-0234]).
+        // The rules are [Departure]'s: idempotent, two flags, stop drawing
+        // before telling the application, and gone at once when there is no
+        // window or the reader asked for no motion.
         closing.begin(host, reducedMotion, then);
     }
 

@@ -17,6 +17,8 @@ import org.jspecify.annotations.Nullable;
 /// that rule is broken silently: an entry claiming to be neither comes back as a
 /// null pointer with nothing said. An enum cannot be none of them.
 ///
+/// Read more: [The native boundary](https://goldberry.dev/docs/overview/architecture.html#the-native-boundary).
+///
 /// @param kind     what the entry is
 /// @param label    the text, ignored for [Kind#SEPARATOR]
 /// @param enabled  false draws it greyed and unselectable

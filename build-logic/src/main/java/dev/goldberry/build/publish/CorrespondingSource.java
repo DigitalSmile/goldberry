@@ -7,10 +7,10 @@ import java.util.TreeSet;
 
 /**
  * The rule that FFmpeg's object code is never published without its source
- * beside it (ADR-0508).
+ * beside it.
  *
  * <p>{@code goldberry-media} carries FFmpeg, which is LGPL-2.1-or-later, as
- * {@code ffmpeg-<target>} classifier jars (ADR-0495). LGPL-2.1 §4 lets the
+ * {@code ffmpeg-<target>} classifier jars. Section 4 of the LGPL-2.1 lets the
  * library be distributed in object form only together with its complete
  * corresponding source, or with equivalent access to copy that source from the
  * same place. The {@code ffmpeg-sources} classifier is that source, published
@@ -21,6 +21,9 @@ import java.util.TreeSet;
  * about to publish, so a build script that attaches the binaries and forgets the
  * source -- or a refactoring that drops the line attaching it -- fails before
  * any module uploads, not on a reader's complaint.
+ *
+ * <p>Read more: <a href="https://goldberry.dev/docs/contributing/releasing.html#where-things-go">Where
+ * things go</a>.
  */
 public final class CorrespondingSource {
 
@@ -60,9 +63,9 @@ public final class CorrespondingSource {
         if (!binaries.isEmpty() && !classifiers.contains(SOURCES)) {
             throw new IllegalStateException(artifactId + " would publish " + String.join(", ", binaries)
                     + " without " + SOURCES + ". FFmpeg is LGPL-2.1: its object code is distributed only beside"
-                    + " its complete corresponding source, from the same place (§4), and a snapshot is a"
+                    + " its complete corresponding source, from the same place (section 4), and a snapshot is a"
                     + " distribution too. Attach :media:ffmpegSourcesJar as the " + SOURCES
-                    + " classifier (ADR-0508).");
+                    + " classifier.");
         }
     }
 }

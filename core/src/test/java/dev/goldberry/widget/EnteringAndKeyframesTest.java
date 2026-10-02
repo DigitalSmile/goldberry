@@ -26,7 +26,7 @@ import dev.goldberry.widget.style.Paints;
 import dev.goldberry.widget.style.Styled;
 
 /// The two animation mechanisms through the renderer, on a virtual clock:
-/// `@starting-style` ([ADR-0352]) and `@keyframes` ([ADR-0353]).
+/// `@starting-style` and `@keyframes`.
 ///
 /// Opacity throughout, with a `linear` curve, so the value a frame paints is a
 /// number to compare rather than a bezier to solve.

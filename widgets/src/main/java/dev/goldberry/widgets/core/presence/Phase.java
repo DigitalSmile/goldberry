@@ -1,26 +1,23 @@
 package dev.goldberry.widgets.core.presence;
 
-/// Where something is in its arrival or its departure — the state behind §1.7's
-/// missing "overlay enter/exit lifecycle".
+/// Where something is in its arrival or its departure: entering, leaving, or
+/// settled.
 ///
-/// Written for `tabs`, which was the first widget to need one, and shared since:
-/// `carousel`'s slides and `collapse`'s body arrive exactly the same way, and
-/// there was never anything tab-shaped in it ([ADR-0166]). The `..Phase` it was
-/// called in that package is this, unchanged.
+/// A `tab`, a `carousel` slide, a `collapse` body, a `dialog` and a `message`
+/// all arrive and leave the same way, and this is the state that says how far
+/// along they are. A widget's `render` asks [#progressAt(double)] with the frame
+/// clock and draws the fraction it answers.
 ///
 /// ## Why this is not a transition
 ///
-/// Everything else that moves in this catalog moves *between two styles the
-/// cascade resolved*, which the renderer interpolates
-/// (ADR-0067).
-/// Something arriving has no two styles: its element did not exist last frame, and
-/// the first frame of a newly built element starts nothing
-/// (ADR-0065).
-/// Something leaving is worse — a tab's application has already dropped it from
-/// its list, so without something holding on there is nothing left to animate.
+/// Everything else that moves in this catalogue moves *between two styles the
+/// cascade resolved*, which the renderer interpolates. Something arriving has no
+/// two styles: its element did not exist last frame, and the first frame of a
+/// newly built element starts nothing. Something leaving is worse — a tab's
+/// application has already dropped it from its list, so without something
+/// holding on there is nothing left to animate.
 ///
-/// So this is `spinner`'s shape instead: a **function of the frame clock**
-/// (ADR-0081),
+/// So this is `spinner`'s shape instead: a **function of the frame clock**,
 /// with the one thing a spinner does not need — a beginning. The clock is read in
 /// `render`, which is the only place a widget has one, and the first read is what
 /// stamps [#startedAt].
@@ -31,25 +28,26 @@ package dev.goldberry.widgets.core.presence;
 /// mutable because "when did this start" cannot be known until the first frame
 /// that draws it, and a record would mean rebuilding the widget tree to record
 /// the passage of time.
+///
+/// Read more: [The design system](https://goldberry.dev/docs/guide/design-system.html#motion).
 public final class Phase {
 
     /// How long an arrival or a departure takes.
     ///
-    /// §1.7's `base`, which is the duration for "something entering or leaving the
-    /// layout" — the same 160ms a `--gb-motion-base` transition uses. A constant
-    /// rather than a token because a clock-driven animation cannot read a
-    /// `transition` declaration: it is not one
-    /// (ADR-0109).
+    /// The design system's `base` duration, the one for something entering or
+    /// leaving the layout — the same 160ms a `--gb-motion-base` transition uses.
+    /// A constant rather than a token because a clock-driven animation cannot
+    /// read a `transition` declaration: it is not one.
     public static final double DURATION_MILLIS = 160;
 
     /// How long *this* phase takes, which is [#DURATION_MILLIS] unless somebody
     /// said otherwise.
     ///
-    /// A field rather than the constant everywhere, because §1.7 gives an
-    /// entrance and an exit different durations: `docs/design-system.md` §3 asks
-    /// `message` for "in … base · out: `opacity` **fast**", and a departure that
-    /// took as long as an arrival would make dismissing something feel like a
-    /// negotiation. Every other phase in the catalog leaves this alone.
+    /// A field rather than the constant everywhere, because the design system
+    /// gives an entrance and an exit different durations: a `message` comes in
+    /// at `base` and goes out at `fast`, and a departure that took as long as an
+    /// arrival would make dismissing something feel like a negotiation. Every
+    /// other phase in the catalogue leaves this alone.
     private final double duration;
 
     /// What this phase is.
@@ -109,8 +107,8 @@ public final class Phase {
     ///
     /// The stamp is here because `render` is the only place a widget is given the
     /// frame clock, and it must be the *renderer's* clock rather than the wall
-    /// one: a golden image of a half-finished arrival is impossible otherwise
-    /// (ADR-0067's argument for `Clock.virtual`).
+    /// one: a golden image of a half-finished arrival is impossible otherwise,
+    /// and a virtual clock is what makes it possible.
     public double progressAt(double now) {
         if (kind == Kind.SETTLED) {
             return 1;

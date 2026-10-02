@@ -3,7 +3,7 @@ package dev.goldberry.build.version;
 /**
  * The version a build stamps on what it produces, decided from three inputs: the
  * release line {@code gradle.properties} declares, whether this is a release, and
- * the tag a release was pushed as (ADR-0333).
+ * the tag a release was pushed as.
  *
  * <p>{@code gradle.properties} names the release being <em>worked towards</em> --
  * {@code goldberryVersion=2026.1} -- and never a {@code -SNAPSHOT}. Every build is
@@ -66,7 +66,7 @@ public sealed interface BuildVersion permits BuildVersion.Snapshot, BuildVersion
         if (declared.strip().endsWith(SNAPSHOT_SUFFIX)) {
             throw new IllegalArgumentException(
                     "goldberryVersion=" + declared + " carries its own " + SNAPSHOT_SUFFIX
-                            + "; declare the release line alone and let the build add it (ADR-0333)");
+                            + "; declare the release line alone and let the build add it");
         }
         var line = CalendarVersion.parse(declared);
         var hasTag = tag != null && !tag.isBlank();

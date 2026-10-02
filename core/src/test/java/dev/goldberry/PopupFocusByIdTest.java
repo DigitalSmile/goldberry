@@ -26,8 +26,8 @@ import dev.goldberry.widget.Widget;
 import dev.goldberry.widget.style.Paints;
 import dev.goldberry.widget.style.Styled;
 
-/// [Host#focus] reaches a node inside an open popup, not only the window's
-/// ([ADR-0368]) — which is how a tree in a `select`'s list moves its typeahead.
+/// [Host#focus] reaches a node inside an open popup, not only the window's —
+/// which is how a tree in a `select`'s list moves its typeahead.
 class PopupFocusByIdTest {
 
     private record Item(String name, List<String> focused) implements Widget.Leaf, Styled, Paints, Handles {

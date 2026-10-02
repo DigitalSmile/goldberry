@@ -1,14 +1,11 @@
-/// `@NullMarked`, which puts this package under NullAway.
+/// The parts a field is built from: the caret, the preedit run of an input
+/// method, the underline, the value box and the picker field that opens a
+/// popup.
 ///
-/// Inside a marked package every type is non-null unless it says `@Nullable`,
-/// and the build fails on a violation. The annotation is the whole content of
-/// this file: there is nothing package-specific to say about nullness, and a
-/// paragraph pretending otherwise in every package would be padding.
+/// A part is selectable from CSS and never written in markup; a field composes
+/// them. Every reference is non-null unless it says `@Nullable`.
 ///
-/// Packages are marked one at a time on purpose. NullAway runs in
-/// `OnlyNullMarked` mode, so an unmarked package is invisible to it and a marked
-/// one is checked from the moment it opts in — which is the only way a codebase
-/// this size adopts nullness at all (`docs/testing.md` §2).
+/// Read more: [Fields and forms](https://goldberry.dev/docs/components/forms.html#how-a-field-talks-to-the-model).
 @NullMarked
 package dev.goldberry.widgets.form.parts;
 

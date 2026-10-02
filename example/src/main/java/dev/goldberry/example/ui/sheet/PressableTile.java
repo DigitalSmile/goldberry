@@ -16,7 +16,7 @@ import dev.goldberry.widget.semantics.Semantics;
 /// `button` keeps, written once:
 ///
 /// - a **click** opens, and is consumed so nothing under the tile also acts;
-/// - `Space` and `Enter` open, §3's rule for everything you press — which is
+/// - `Space` and `Enter` open, the rule for everything you press — which is
 ///   what makes the sheet usable without a pointer at all;
 /// - the tile is **focusable**, so Tab walks the tiles a reader can see, and it
 ///   announces itself as a [Role#BUTTON] under its name.

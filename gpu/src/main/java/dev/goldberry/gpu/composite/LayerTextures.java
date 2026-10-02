@@ -21,7 +21,7 @@ import dev.goldberry.render.GpuPlacement;
 import dev.goldberry.render.model.PhysicalSize;
 
 /// The textures one surface's GPU layers render into, one per layer at the
-/// layer's size (ADR-0481).
+/// layer's size.
 ///
 /// A layer renders into a texture of its own rather than into the window's
 /// swapchain, so that it can have passes of its own -- a depth buffer, several

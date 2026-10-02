@@ -9,7 +9,7 @@ import dev.goldberry.widget.Widget;
 import dev.goldberry.widget.style.Paints;
 import dev.goldberry.widget.style.Styled;
 
-/// The line under a [Field] saying what is wrong with it — §4's message slot.
+/// The line under a [Field] saying what is wrong with it — the message slot.
 ///
 /// ## It is in the tree even when there is nothing to say
 ///

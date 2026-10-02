@@ -13,11 +13,13 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
-/// What a `press=` or `change=` name resolves to (ADR-0051, ADR-0073).
+/// What a `press=` or `change=` name resolves to.
 ///
 /// The registry keeps two maps — plain [Runnable]s and [Consumer]s that are told
 /// which option — and a name belongs to exactly one of them at a time. Most of
 /// what is worth testing here is that the two maps agree about that.
+///
+/// Read more: [The four registries](https://goldberry.dev/docs/guide/markup.html#the-four-registries).
 class ActionRegistryTest {
 
     @Nested

@@ -3,9 +3,10 @@ package dev.goldberry.css.parse;
 /// The token kinds Goldberry's CSS subset needs.
 ///
 /// A deliberate subset of [CSS Syntax Level 3][spec]'s token set. What is here is
-/// everything the selectors, declarations and at-rules of `ARCHITECTURE.md` §8
-/// can be built from; what is missing is listed on [CssTokenizer], with the
-/// reason.
+/// everything the supported selectors, declarations and at-rules can be built
+/// from; what is missing is listed on [CssTokenizer], with the reason.
+///
+/// Read more: [Styling](https://goldberry.dev/docs/guide/styling.html).
 ///
 /// [spec]: https://www.w3.org/TR/css-syntax-3/#tokenization
 public enum TokenType {

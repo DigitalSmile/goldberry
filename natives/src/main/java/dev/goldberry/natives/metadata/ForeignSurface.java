@@ -22,7 +22,7 @@ import dev.goldberry.natives.webview.Webview;
 import dev.goldberry.natives.yoga.MeasureCallback;
 
 /// Every foreign signature this module can cross, found from the classes rather
-/// than from a run (ADR-0339).
+/// than from a run.
 ///
 /// A holder links its `FD_…` handle in its class initialiser, so initialising
 /// every class in the `…calls` packages is what fills [Downcalls#linked()]; the
@@ -33,7 +33,10 @@ import dev.goldberry.natives.yoga.MeasureCallback;
 ///
 /// Initialising a holder needs no `libgoldberry`: an unbound handle is linked
 /// from a descriptor and names no address, which is the whole reason a holder is
-/// shaped as it is (ADR-0173).
+/// shaped as it is.
+///
+/// Read more:
+/// [Two metadata directories](https://goldberry.dev/docs/native.html#two-metadata-directories-traced-and-written).
 public final class ForeignSurface {
 
     /// The packages that hold nothing but holders, which is what lets them be
@@ -48,13 +51,13 @@ public final class ForeignSurface {
             SdlTray.class,
             MeasureCallback.class,
             SdlClipboard.class,
-            // The two log bridges (ADR-0443). `GlibLog` declares two shapes
+            // The two log bridges. `GlibLog` declares two shapes
             // rather than one -- a `GLogFunc` and a `GLogWriterFunc` -- which is
             // the first owner here to do so, and the reason `describe` is a call
             // rather than a field.
             SdlLog.class,
             GlibLog.class,
-            // A page's own script calling back (ADR-0448). One stub for every
+            // A page's own script calling back. One stub for every
             // binding of every page, so the owner is the wrapper rather than
             // anything per-page.
             Webview.class);

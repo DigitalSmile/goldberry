@@ -28,8 +28,10 @@ import dev.goldberry.widgets.controls.TestFont;
 import dev.goldberry.widgets.core.Column;
 import dev.goldberry.widgets.data.Series;
 
-/// §11's `line-chart`: the first chart with axes, and the first with more than
+/// The `line-chart`: the first chart with axes, and the first with more than
 /// one of anything.
+///
+/// Read more: [Line chart](https://goldberry.dev/docs/components/charts.html#line-chart).
 class LineChartTest {
 
     @BeforeEach
@@ -82,7 +84,7 @@ class LineChartTest {
     @Test
     @DisplayName("the swatch takes the palette and the label does not")
     void onlyTheSwatchIsColoured() {
-        // §14's rule about text: a colour beside a word carries identity, and the
+        // The rule about text: a colour beside a word carries identity, and the
         // word stays in the ordinary ink. A legend drawn in the series colour
         // fails a contrast check the moment somebody picks a pale slot.
         var renderer = new WidgetRenderer(List.of(Controls.baseStylesheet(), Theme.NORD_DARK.load()), TestFont.get());
@@ -100,7 +102,7 @@ class LineChartTest {
     @DisplayName("a rule on the chart reaches both the line and its swatch")
     void oneRuleRecoloursBothHalves() {
         // Custom properties inherit, so the token set on the chart reaches the
-        // legend entry nested inside it. One rule, both halves (ADR-0195).
+        // legend entry nested inside it. One rule, both halves.
         var sheet = Stylesheet.parse(CascadeLayer.APPLICATION, "#plot { --gb-chart-1: #b48ead }");
         var renderer =
                 new WidgetRenderer(List.of(Controls.baseStylesheet(), Theme.NORD_DARK.load(), sheet), TestFont.get());
@@ -183,7 +185,7 @@ class LineChartTest {
         var box = renderer.render(new ElementTree(new LineChart(List.of())));
 
         // One part, and it is a sentence rather than a plot: gridlines are an
-        // assertion about a scale, and there is none (ADR-0200). What it says is
+        // assertion about a scale, and there is none. What it says is
         // `ChartStatusTest`'s.
         assertEquals(1, box.children().size(), "the message, and nothing else");
     }

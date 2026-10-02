@@ -8,15 +8,15 @@ import dev.goldberry.widgets.core.presence.Phase;
 /// Where the cut-out is **right now**, between the stop being left and the one being
 /// arrived at.
 ///
-/// §3.1's tour row asks for the cut-out to "`translate`+size" between stops, and both
+/// Between stops the cut-out both moves and resizes, and both
 /// halves fall out of interpolating the rectangle: a target that moves and changes
 /// size does both at once.
 ///
 /// **One function rather than one per node, because three nodes draw it.** [TourVeil]
 /// cuts the hole, [TourStop] frames it with the ring and places the card beside it,
 /// and all three have to agree on every frame or the picture comes apart while it is
-/// moving ([ADR-0269]). They each had their own copy of this arithmetic and their own
-/// `lerp` beneath it; agreeing by construction is cheaper than agreeing by review.
+/// moving. Three copies of this arithmetic would be three chances to disagree;
+/// agreeing by construction is cheaper than agreeing by review.
 ///
 /// Interpolated where it is drawn rather than handed down already interpolated,
 /// because the frame clock reaches a widget in `render` and nowhere else — so the node

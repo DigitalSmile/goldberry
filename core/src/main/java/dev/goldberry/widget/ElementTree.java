@@ -13,12 +13,21 @@ import dev.goldberry.log.Logs;
 
 /// The element tree, and the rebuild schedule that drives it.
 ///
-/// Owns the root element and the set of elements waiting to be rebuilt.
-/// [#flush()] is the whole of the rebuild half of [ADR-0052]: `setState` marks an
-/// element dirty and returns, and exactly one flush per frame turns however many
-/// marks arrived into at most one build each.
+/// Owns the root element and the set of elements waiting to be rebuilt. A window
+/// makes one for its root widget; a test or a golden image makes one with no
+/// window behind it.
 ///
-/// Confined to the UI thread, like everything above the backend SPI.
+/// ```java
+/// var tree = new ElementTree(new Counter("clicks"));
+/// tree.flush();   // rebuilds whatever a setState marked dirty
+/// ```
+///
+/// `setState` marks an element dirty and returns, and exactly one [#flush()] per
+/// frame turns however many marks arrived into at most one build each. The tree
+/// is confined to the UI thread, like everything above the backend SPI.
+///
+/// Read more:
+/// [Writing a widget](https://goldberry.dev/docs/guide/writing-a-widget.html#the-three-shapes).
 public final class ElementTree {
 
     private static final Logger LOG = Logs.of(ElementTree.class);
@@ -34,7 +43,7 @@ public final class ElementTree {
     ///
     /// Held on the tree rather than on each element because it is the same
     /// answer for all of them, and because a popup's tree has a different one
-    /// from the window that opened it (ADR-0140).
+    /// from the window that opened it.
     private final dev.goldberry.@Nullable Host host;
 
     /// Builds a tree from a root widget, with no window behind it.
@@ -70,11 +79,11 @@ public final class ElementTree {
     /// first render.
     ///
     /// Held here because the question it answers is the tree's rather than any
-    /// node's — "which stylesheets are in force" — and because the node that
-    /// needs to ask is often one that has never resolved a style of its own: a
+    /// node's, "which stylesheets are in force", and because the node that needs
+    /// to ask is often one that has never resolved a style of its own: a
     /// composition node in the hover chain has no cache and no resolver, and
-    /// treating that as "unknown, be conservative" re-resolved the whole tree on
-    /// every click (ADR-0149).
+    /// treating that as "unknown, be conservative" would re-resolve the whole
+    /// tree on every click.
     private dev.goldberry.css.cascade.@Nullable StyleResolver styleResolver;
 
     /// Told by the renderer at the start of every frame.
@@ -153,20 +162,17 @@ public final class ElementTree {
     /// Describes this tree's root again, keeping the elements under it.
     ///
     /// What a **popup whose content changed while it was open** needs. A popup is
-    /// an element tree of its own with its own build schedule
-    /// (ADR-0103),
-    /// so a `setState` in the widget that opened it reaches that widget's tree and
-    /// nothing in the window the popup is drawn in — and until this existed, the
-    /// only way to show a popup something new was to close it and open another
-    /// one, which flickers and loses the keyboard's place
-    /// (ADR-0182).
+    /// an element tree of its own with its own build schedule, so a `setState`
+    /// in the widget that opened it reaches that widget's tree and nothing in the
+    /// window the popup is drawn in. Closing the popup and opening another would
+    /// flicker and lose the keyboard's place; this re-describes it in place.
     ///
     /// Reconciliation from the root down, exactly as a rebuild anywhere else: the
     /// elements, their state and their focus survive, and only what the new
     /// description changed is rebuilt.
     ///
     /// @param root the new description, which must be the same kind of widget as
-    ///             the old one — a different type is a different tree, and
+    ///             the old one; a different type is a different tree, and
     ///             replacing one wholesale is [#unmount] and a new tree
     /// @throws IllegalArgumentException if it is not
     public void update(Widget root) {
@@ -189,7 +195,7 @@ public final class ElementTree {
     void markDirty(Element element) {
         // The listener fires on the transition into dirty, not on every mark: a
         // handler calling `setState` ten times asks for one frame, which is the
-        // same coalescing `flush` does one level down (ADR-0052).
+        // same coalescing `flush` does one level down.
         var wasClean = dirty.isEmpty();
         dirty.add(element);
         if (wasClean && onDirty != null) {
@@ -197,22 +203,22 @@ public final class ElementTree {
         }
     }
 
-    /// Told when this tree goes from clean to dirty — see [#onDirty].
+    /// Told when this tree goes from clean to dirty; see [#onDirty].
     private @Nullable Runnable onDirty;
 
     /// Asks `listener` for a frame whenever a `setState` lands on a clean tree.
     ///
     /// **Without this a `setState` reaches nothing.** The frame loop is idle when
-    /// nothing is animating (§1.7), and input handlers do not paint — so a widget
-    /// that changed its own state sat there until some *unrelated* event caused a
-    /// frame, and then showed the change one interaction late. A scroll view was
-    /// where it was noticed: the first turn of the wheel appeared to do nothing
-    /// and the second appeared to do one turn's worth
-    /// (ADR-0122).
+    /// nothing is animating, and input handlers do not paint, so a widget that
+    /// changed its own state would sit there until some *unrelated* event caused
+    /// a frame, and then show the change one interaction late.
     ///
     /// The window sets this. It is a single listener rather than a list because
     /// there is exactly one thing that can paint a tree, and a second one would
     /// mean two windows drawing one element tree.
+    ///
+    /// Read more:
+    /// [The frame loop](https://goldberry.dev/docs/performance/index.html#the-frame-loop).
     public void onDirty(Runnable listener) {
         this.onDirty = listener;
     }

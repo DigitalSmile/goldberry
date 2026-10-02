@@ -6,17 +6,28 @@ import java.util.Objects;
 /// A finished QR code: a square of dark and light modules, and nothing about how
 /// big it is on a screen.
 ///
+/// ```java
+/// var code = QrEncoder.encode("https://goldberry.dev", Level.M);
+/// for (var y = 0; y < code.size(); y++) {
+///     for (var x = 0; x < code.size(); x++) {
+///         if (code.isDark(x, y)) { /* paint one module */ }
+///     }
+/// }
+/// ```
+///
 /// The output of [QrEncoder] and an immutable value, so the same code can be
 /// drawn at three sizes, cached across a rebuild and handed between threads
 /// without anyone copying it. A module is a **module**, not a pixel: turning
 /// this into something with edges is the widget's problem and the reason the two
 /// live in different modules.
 ///
-/// The quiet zone is **not** here. §6.3 requires four light modules around a
+/// The quiet zone is **not** here. ISO/IEC 18004 §6.3 requires four light modules around a
 /// code, and that is a property of where the code is put rather than of the
 /// code: a matrix with a quiet zone baked in could not be drawn on a light
 /// background it already matched, and would have to be un-padded by anything
 /// that wanted the grid itself.
+///
+/// Read more: [Canvas, images and QR codes](https://goldberry.dev/docs/components/drawing.html#qr-code).
 public final class QrMatrix {
 
     private final int version;

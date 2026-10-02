@@ -8,8 +8,7 @@ import dev.goldberry.widget.BuildContext;
 import dev.goldberry.widget.Widget;
 
 /// A tab header that can be dragged to a new place — a composition node around
-/// the [Tab] with no CSS type, so a stylesheet sees the tab exactly as before
-/// (ADR-0372).
+/// the [Tab] with no CSS type, so a stylesheet sees the tab exactly as before.
 ///
 /// It hears the pointer after the tab, which consumes only the click, so a press
 /// and a release that did not travel still select. Past [#SLOP] points of

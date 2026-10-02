@@ -14,7 +14,7 @@ import org.junit.jupiter.api.Test;
 import dev.goldberry.RendererRequirement;
 import dev.goldberry.image.Image;
 
-/// The PNG writer — ADR-0283.
+/// The PNG writer.
 ///
 /// Two kinds of assertion here, and both are needed. The **structural** ones read
 /// the bytes by hand: a signature, an `IHDR` that says what it should, chunk

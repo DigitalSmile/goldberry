@@ -8,8 +8,7 @@ import dev.goldberry.media.codec.DecoderProvider;
 import dev.goldberry.media.codec.DecoderRequest;
 import dev.goldberry.media.codec.TrackParams;
 
-/// AAC, AC-3 and E-AC-3, decoded by Windows's Media Foundation decoders
-/// (`docs/goldberry-media.md` §5, ADR-0472).
+/// AAC, AC-3 and E-AC-3, decoded by Windows's Media Foundation decoders.
 ///
 /// Supports an audio track when this is Windows, the codec is one of the three,
 /// and the system has a decoder for it: AAC with the `AudioSpecificConfig` the

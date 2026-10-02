@@ -19,31 +19,42 @@ import dev.goldberry.widgets.controls.option.Suggested;
 import dev.goldberry.widgets.markup.Markup;
 import dev.goldberry.widgets.markup.Wiring;
 
-/// A closed control with a list under it — `docs/core-widgets.md` §3's `select`.
+/// A closed control that shows the chosen value and opens a list of choices in
+/// a window of its own, so it is never clipped by the card it sits in.
 ///
 /// ```kdl
 /// select bind="app.theme" change="pickTheme" placeholder="Choose a theme" {
 ///     option value="nord-dark"  "Nord Dark"
 ///     option value="nord-light" "Nord Light"
 /// }
+/// select multiple=#true bind="prefs.tongues" change="prefs.toggle-tongue" { ... }
+/// select autocomplete=#true free=#true query="places.search" options="places.matches" \
+///        bind="places.chosen" change="places.choose"
 /// ```
 ///
 /// ```java
 /// Select.of(model.theme(), model::pickTheme,
 ///         new Option("nord-dark", "Nord Dark"),
 ///         new Option("nord-light", "Nord Light"))
+///     .placeholder("Choose a theme")
 /// ```
+///
+/// `value=` is the written selection and `bind=` the value to follow; `change=`
+/// is told the value chosen, or toggled when `multiple`. `placeholder=` is read
+/// when nothing is selected. `multiple=#true` makes the selection a set drawn as
+/// chips, `autocomplete=#true` makes the closed control a field you type in,
+/// `query=` is told the typed text, `free=#true` accepts a typed value no option
+/// offers, and `options=` names a bound list of options that replaces the
+/// written ones. A tree-shaped popup is Java only, through [#tree].
 ///
 /// ## It is `segmented`'s model with a popup instead of a bar
 ///
 /// The value, the options, `change` and the exactly-one invariant are
-/// [dev.goldberry.widgets.controls.segmented.Segmented]'s
-/// exactly, down to the widget the options are —
-/// [Option], which moved into a package of its own the day this control
-/// needed it. What differs is where the choices are: a bar shows all of them
-/// and this shows one, so the rest have to be *somewhere*, and that somewhere
-/// is a platform window (§3: "backend popup window, so it escapes window
-/// bounds") ([ADR-0141]).
+/// [dev.goldberry.widgets.controls.segmented.Segmented]'s exactly, down to the
+/// widget the options are — [Option], which the two controls share. What differs
+/// is where the choices are: a bar shows all of them and this shows one, so the
+/// rest have to be *somewhere*, and that somewhere is a platform window, so the
+/// list escapes the window's bounds.
 ///
 /// ## What it is made of
 ///
@@ -65,42 +76,43 @@ import dev.goldberry.widgets.markup.Wiring;
 /// ## Controlled, like every other value in this toolkit
 ///
 /// It **reads** its value through `bind` and reports what the user asked for
-/// through `change`; it sets nothing ([ADR-0063]). A select whose handler does
-/// nothing opens, closes and never changes its label — which is the visible form
-/// of "the state did not change".
+/// through `change`; it sets nothing, because data flows down and events flow
+/// up. A select whose handler does nothing opens, closes and never changes its
+/// label — which is the visible form of "the state did not change".
 ///
 /// ## Opening one needs a window, and this has one
 ///
 /// `menu` cannot open itself: opening needs a `Host`, and a widget is a value
-/// rebuilt every frame ([ADR-0106]). That reasoning holds and the conclusion does
-/// not transfer, because opening a menu is something an *application* does and
+/// rebuilt every frame. That reasoning holds and the conclusion does not
+/// transfer, because opening a menu is something an *application* does and
 /// opening a select is something the *control* does — a user who clicks a
 /// dropdown has not asked the application anything. So the host arrives through
-/// [dev.goldberry.widget.BuildContext#host()], the widget
-/// still holds nothing, and a `select` built with no window behind it — a golden
-/// image, a layout preview — draws its closed form and refuses to open
-/// ([ADR-0140]).
+/// [dev.goldberry.widget.BuildContext#host()], the widget still holds nothing,
+/// and a `select` built with no window behind it — a golden image, a layout
+/// preview — draws its closed form and refuses to open.
+///
+/// Read more: [Choices](https://goldberry.dev/docs/components/choices.html#select).
 ///
 /// @param value       the option selected when nothing is bound; ignored when
 ///                    `source` is set
 /// @param children    the options, as written. Non-[Option] children are kept and
 ///                    shown in the list, so a heading between two groups survives
-/// @param source      §9's `bind` — read-only, so this control cannot write to
-///                    the model even by accident ([ADR-0063])
+/// @param source      `bind=` — read-only, so this control cannot write to the
+///                    model even by accident
 /// @param onChange    what to tell the application, given the picked value
 /// @param placeholder what the closed control reads when nothing is selected.
 ///                    Empty for a blank field, which is what a select with a
 ///                    value it does not recognise falls back to
-/// @param multiple    §3's `multiple=#true` — the selection is a *set*, drawn as
+/// @param multiple    `multiple=#true` — the selection is a *set*, drawn as
 ///                    chips in the closed control. See [#resolvedAll()]
-/// @param autocomplete §3's `autocomplete=#true` — the closed control becomes an
+/// @param autocomplete `autocomplete=#true` — the closed control becomes an
 ///                    editable `text-input` and typing raises [#onQuery]
 /// @param free        whether a typed value the options do not offer is kept.
 ///                    False refuses it and restores the last committed one, which
-///                    is §3's default: a combobox is a *set* of values
+///                    is the default: a combobox is a *set* of values
 /// @param onQuery     what was typed, for the application to filter on. Filtering
 ///                    is deliberately not this control's — see [#onQuery]
-/// @param tree        §3's `tree=#true` — the popup is a
+/// @param tree        the roots of a tree-shaped popup — a
 ///                    [dev.goldberry.widgets.panel.tree.Tree]
 ///                    over these roots instead of a flat option list, or empty
 /// @param disabled    whether the whole control refuses to open
@@ -122,7 +134,7 @@ public record Select(
         implements Widget.Stateful, Attributed<Select>, Bindable<Select> {
 
     /// The canonical constructor, written out because `children`, `placeholder`, `tree` and `attributes`
-    /// take null for a default (ADR-0497).
+    /// take null for a default.
     public Select(
             @Nullable String value,
             @Nullable List<Widget> children,
@@ -167,7 +179,7 @@ public record Select(
 
     /// A select that follows a property. The Java spelling of `bind=`.
     ///
-    /// @param source read-only by construction ([ADR-0063])
+    /// @param source read-only by construction: the control never writes the value it shows
     public static Select of(Observable<?> source, Consumer<String> onChange, Option... options) {
         return new Select(
                 null,
@@ -233,7 +245,7 @@ public record Select(
         return current == null ? null : String.valueOf(current);
     }
 
-    /// This select taking more than one value — §3's `multiple=#true`.
+    /// This select taking more than one value — the Java spelling of `multiple=#true`.
     public Select multiple(boolean value) {
         return new Select(
                 this.value,
@@ -250,21 +262,22 @@ public record Select(
                 attributes);
     }
 
-    /// This select with an editable closed control — §3's `autocomplete=#true`.
+    /// This select with an editable closed control — the Java spelling of
+    /// `autocomplete=#true`.
     ///
     /// ## Filtering is the application's
     ///
     /// The control raises what was typed through `query` and renders **whatever
-    /// options it is handed back**; it filters nothing itself. §3 says so and
-    /// gives the reason: a remote-backed autocomplete is then the same widget
-    /// with a slower model, and nothing in the toolkit has to guess what
-    /// "matches" means for a street address or a species name.
+    /// options it is handed back**; it filters nothing itself. A remote-backed
+    /// autocomplete is then the same widget with a slower model, and nothing in
+    /// the toolkit has to guess what "matches" means for a street address or a
+    /// species name.
     ///
     /// So an application answers `query` by rebuilding this select with the
     /// options it wants offered — the same round trip `change` already makes, and
-    /// the same one §4's free-text
+    /// the same one a free-text
     /// [dev.goldberry.widgets.form.textinput.TextInput#suggesting]
-    /// makes ([ADR-0183]).
+    /// makes.
     ///
     /// @param onQuery told what was typed, or null for a control nobody filters
     public Select autocomplete(Consumer<String> onQuery) {
@@ -285,11 +298,11 @@ public record Select(
 
     /// This select keeping a typed value its options do not offer.
     ///
-    /// **False by default, which is §3's rule**: a combobox is a set of values
-    /// with a faster way to reach them, so text that names none of them is a
-    /// mistake rather than a new value, and the last committed one comes back.
-    /// `free=#true` is the other reading — the suggestions are a convenience and
-    /// any value is legal, which is what §4's free-text form always is.
+    /// **False by default**: a combobox is a set of values with a faster way to
+    /// reach them, so text that names none of them is a mistake rather than a
+    /// new value, and the last committed one comes back. `free=#true` is the
+    /// other reading — the suggestions are a convenience and any value is legal,
+    /// which is what a free-text field always is.
     public Select free(boolean value) {
         return new Select(
                 this.value,
@@ -306,16 +319,17 @@ public record Select(
                 attributes);
     }
 
-    /// This select opening a **tree** instead of a flat list — §3's `tree=#true`.
+    /// This select opening a **tree** instead of a flat list. Java only: a
+    /// tree's model is nodes with suppliers under them, which a document has no
+    /// way to write.
     ///
-    /// "Takes a `tree`'s model instead of a flat option list, so the popup is a
-    /// `tree` and a selection is a node." The closed control is unchanged: it
-    /// still shows a label and a chevron, and still reports through `change`.
+    /// The popup is a `tree` over these roots and a selection is a node. The
+    /// closed control is unchanged: it still shows a label and a chevron, and
+    /// still reports through `change`.
     ///
-    /// Selection is **leaf-only**, which is §3's default and its reason —
-    /// "'Europe' is usually a heading and not an answer". A parent row is still
-    /// navigable and openable; it is simply not a value
-    /// (ADR-0184).
+    /// Selection is **leaf-only** by default, because "Europe" is usually a
+    /// heading and not an answer. A parent row is still navigable and openable;
+    /// it is simply not a value.
     public Select tree(List<dev.goldberry.widgets.panel.tree.TreeNode> roots) {
         return new Select(
                 value,
@@ -511,12 +525,11 @@ public record Select(
     /// Builds a `select` from markup.
     ///
     /// The same valued action `segmented` and `radio-group` take: a set's handler
-    /// is useless without the value picked (ADR-0073).
+    /// is useless without the value picked.
     public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
         var select = control(node, children, wiring);
         // `options=` names a bound list that replaces the written options each
-        // time it changes -- what an autocomplete's `query` is answered with
-        // (ADR-0367).
+        // time it changes -- what an autocomplete's `query` is answered with.
         var options = node.stringProperty("options");
         return options == null ? select : new Suggested(wiring.bindings().resolve(options), select::withOptions);
     }
@@ -557,8 +570,8 @@ public record Select(
                 node.booleanProperty("free"),
                 wiring.valued(node, "query"),
                 // Not from markup: a tree's model is nodes with suppliers under
-                // them, which is a shape KDL has no way to write and which §3
-                // describes as "a `tree`'s model" — the application's (ADR-0184).
+                // them, which is a shape KDL has no way to write -- it is the
+                // application's.
                 List.of(),
                 Wiring.disabled(node),
                 Attributes.of(node));

@@ -6,6 +6,8 @@ package dev.goldberry.natives.sdl.gpu.enums;
 /// Checked against the compiled library by the layout table, as every other
 /// enumerator the bindings hard-code is: SDL's list is long, ordered, and has
 /// been inserted into before.
+///
+/// Read more: [The native boundary](https://goldberry.dev/docs/overview/architecture.html#the-native-boundary).
 public enum SdlGpuTextureFormat {
     /// One 8-bit channel: a luma plane, or I420's chroma planes.
     R8_UNORM(2, 1),

@@ -19,16 +19,15 @@ import dev.goldberry.log.Logs;
 
 /// Watches files and re-applies them while the application is running.
 ///
-/// What §1 and §8 call hot reload: "markup + stylesheets are hot-reloadable at
-/// runtime". Point it at a stylesheet, edit the file, and the window restyles
-/// without restarting.
+/// Hot reload: markup and stylesheets are re-read at run time. Point it at a
+/// stylesheet, edit the file, and the window restyles without restarting.
 ///
 /// ## Threads
 ///
 /// Watching blocks, so it happens on a daemon thread of its own. Applying does
 /// **not** happen there — the callback is handed to the UI executor, because
 /// everything it will touch (a window, a style, a box tree) is confined to the
-/// UI thread (ADR-0020). That is the whole reason this class takes an
+/// UI thread. That is the whole reason this class takes an
 /// [Executor]: a reload that restyled from a background thread would be a data
 /// race that only shows up under an editor's autosave.
 ///
@@ -45,6 +44,8 @@ import dev.goldberry.log.Logs;
 /// On macOS the JDK's `WatchService` has no kernel backend and polls, so a change
 /// can take a couple of seconds to be noticed. Nothing here can fix that; it is
 /// mentioned because "hot reload is broken on my Mac" is otherwise a puzzle.
+///
+/// Read more: [Markup](https://goldberry.dev/docs/guide/markup.html#hot-reload).
 public final class HotReload implements AutoCloseable {
 
     private static final Logger LOG = Logs.of(HotReload.class);

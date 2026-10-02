@@ -17,7 +17,7 @@ import dev.goldberry.media.codec.TrackParams;
 import dev.goldberry.media.codec.VideoFrame;
 import dev.goldberry.media.platform.bitstream.ParameterSets;
 
-/// One H.264 or HEVC track decoded by GStreamer (ADR-0489).
+/// One H.264 or HEVC track decoded by GStreamer.
 ///
 /// Pictures come out in whichever of the frame contract's four layouts the
 /// decoder produced: I420 or I010 from a software decoder such as `avdec_h264`,

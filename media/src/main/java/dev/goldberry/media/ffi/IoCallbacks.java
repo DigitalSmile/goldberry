@@ -61,7 +61,7 @@ final class IoCallbacks {
     /// `int read_packet(void *opaque, uint8_t *buf, int buf_size)`.
     ///
     /// @param opaque unused. The stub is bound to this object, so there is no
-    ///               context pointer to dispatch on (ADR-0017)
+    ///               context pointer to dispatch on
     /// @param buffer where to read to. Zero-length as FFmpeg hands it over, and
     ///               sized here
     /// @param size   how many bytes FFmpeg can take

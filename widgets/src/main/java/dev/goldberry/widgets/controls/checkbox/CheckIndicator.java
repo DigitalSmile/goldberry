@@ -10,35 +10,23 @@ import dev.goldberry.widget.Widget;
 import dev.goldberry.widget.style.Paints;
 import dev.goldberry.widget.style.Styled;
 
-/// The 16px square with the tick in it — a **part** of [Checkbox], not a widget
-/// of its own.
-///
-/// ## Why a part exists at all
+/// The 16px square with the tick in it — a **part** of [Checkbox], styleable
+/// as `check-indicator` and not a widget a document can write.
 ///
 /// A checkbox has two surfaces that a theme must be able to style differently:
 /// the control, which is 32 tall and holds the label, and the glyph, which is 16
-/// square and is what actually turns blue when ticked (`docs/design-system.md`
-/// §3). A [ComputedStyle] carries one background, one radius and one border, so
-/// one cascade node cannot describe both. Either the glyph's appearance is
-/// hard-coded in Java — and then no stylesheet can touch it, which contradicts
-/// §11's "colours and metrics only via tokens" — or the glyph is a node the
-/// cascade can reach. It is the second.
+/// square and is what fills with the accent when ticked. A [ComputedStyle]
+/// carries one background, one radius and one border, so one cascade node
+/// cannot describe both; the glyph is therefore a node the cascade can reach.
 ///
-/// ## Parts are CSS-selectable and not KDL-constructible
+/// It is **not** registered in the KDL inflater. A `check-indicator` outside a
+/// `checkbox` is a square that means nothing, and registering the node would
+/// let a document create exactly that. What an author wants from a part is to
+/// *restyle* it, and a type selector is the whole of that, so
+/// [dev.goldberry.widgets.Controls#controlTypes()] lists `checkbox` and not
+/// this. Public only so that a `tree` row can draw the same box.
 ///
-/// `check-indicator` is a CSS type selector and is **not** registered in the KDL
-/// inflater, which is a deliberate exception to the parity invariant rather than
-/// an oversight in it. The invariant (§11) is about the widgets in the *catalog*:
-/// every one of those is constructible three ways because an author picks it from
-/// a list and puts it in a document. A part is not in the catalog and has no
-/// independent existence — a `check-indicator` outside a `checkbox` is a square
-/// that means nothing, and registering the node would let a document create
-/// exactly that. What an author wants from a part is to *restyle* it, and a type
-/// selector is the whole of that.
-///
-/// [dev.goldberry.widgets.Controls#controlTypes()] therefore
-/// lists `checkbox` and not this, so the parity test is not asked to build a node
-/// that has no business existing.
+/// Read more: [Choices](https://goldberry.dev/docs/components/choices.html#checkbox).
 ///
 /// @param state      which of the three states to draw, which is also what
 ///                   `:checked` and `:indeterminate` are mirrored from

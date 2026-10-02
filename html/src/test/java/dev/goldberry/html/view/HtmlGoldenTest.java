@@ -19,7 +19,7 @@ import dev.goldberry.widget.Widget;
 import dev.goldberry.widget.WidgetRenderer;
 import dev.goldberry.widgets.Controls;
 
-/// What a page actually looks like (§14, [ADR-0050]).
+/// What a page actually looks like, as a golden image compared within a tolerance.
 ///
 /// `HtmlViewTest` checks which widgets are built and which classes they carry, and no
 /// assertion about a class can say whether the result **reads as a page**: that a
@@ -32,7 +32,8 @@ import dev.goldberry.widgets.Controls;
 /// to its line, `transform: skewX` on a word, a quotation's bar — and a rule the
 /// parser dropped silently would be invisible everywhere else.
 ///
-/// `./gradlew :html:test -Dgoldberry.golden.update=true` rewrites them.
+/// `./gradlew :html:test -Dgoldberry.golden.update=true` rewrites them. Read more:
+/// [Goldens](https://goldberry.dev/docs/contributing/testing.html#goldens).
 class HtmlGoldenTest {
 
     /// One of everything the renderer can draw, in the order a reader meets them.
@@ -77,8 +78,8 @@ class HtmlGoldenTest {
                         // than the page plus whatever the buffer was cleared to.
                         Stylesheet.parse(CascadeLayer.APPLICATION, """
                                 /* On `selection-host`, which is the node a selectable
-                                   document is rooted at (ADR-0301): a background on the
-                                   column inside it stops where the words do. */
+                                   document is rooted at: a background on the column
+                                   inside it stops where the words do. */
                                 selection-host { padding: 12px; background: var(--gb-bg); flex-grow: 1 }
                                 """)),
                 fonts());
@@ -114,7 +115,7 @@ class HtmlGoldenTest {
     /// The `button.link` variant is a control with states, and a golden of a page at
     /// rest cannot show them — but it can show that a link in a sentence sits **on the
     /// line**, which is the one rule in `html.css` that overrides a deliberate decision
-    /// of the toolkit's (ADR-0293's 32px floor; see the rule's own comment).
+    /// of the toolkit's (a button's 32px floor; see the rule's own comment).
     @Test
     @DisplayName("a link inside a sentence, on the line rather than in a 32px box")
     void linkOnItsLine() {
@@ -128,8 +129,8 @@ class HtmlGoldenTest {
                         Theme.NORD_DARK.load(),
                         Stylesheet.parse(CascadeLayer.APPLICATION, """
                                 /* On `selection-host`, which is the node a selectable
-                                   document is rooted at (ADR-0301): a background on the
-                                   column inside it stops where the words do. */
+                                   document is rooted at: a background on the column
+                                   inside it stops where the words do. */
                                 selection-host { padding: 12px; background: var(--gb-bg); flex-grow: 1 }
                                 """)),
                 fonts());

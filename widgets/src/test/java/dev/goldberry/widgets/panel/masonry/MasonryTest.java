@@ -235,7 +235,7 @@ class MasonryTest {
         assertEquals(2, masonry.children().size());
     }
 
-    // --- min-column-width (ADR-0436) -----------------------------------------
+    // --- min-column-width ---------------------------------------------------
 
     @Nested
     @DisplayName("a wall that counts its own columns")
@@ -281,7 +281,8 @@ class MasonryTest {
             assertEquals(2, wall.columnsAt(0, 12));
         }
 
-        /// §1's rule, and the reason it is a throw rather than a precedence: a
+        /// `columns` and `min-column-width` are exclusive, and the reason that is
+        /// a throw rather than a precedence: a
         /// document that said both meant one of them, and guessing which turns a
         /// typo into a layout nobody can explain.
         @Test
@@ -298,8 +299,8 @@ class MasonryTest {
                                     .getFirst()));
         }
 
-        /// §3's row: a wall that names neither is responsive at 320. The default
-        /// is a *width* and not a count, which is the whole of ADR-0436.
+        /// A wall that names neither is responsive at 320. The default is a
+        /// *width* and not a count, so an unconfigured wall fits its window.
         @Test
         @DisplayName("a wall that names neither is responsive at 320")
         void theDefaultIsAWidth() {

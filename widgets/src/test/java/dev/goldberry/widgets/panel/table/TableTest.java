@@ -27,7 +27,7 @@ import dev.goldberry.widgets.panel.list.ListView;
 import dev.goldberry.widgets.panel.list.Selection;
 import dev.goldberry.widgets.text.Text;
 
-/// `table` — `docs/core-widgets.md` §10's list with columns ([ADR-0214]).
+/// `table` — a list with columns.
 ///
 /// What is here is the part a table *adds*: the columns, the header and the
 /// sort. What it inherits from `list` is tested where it lives — the point of
@@ -310,8 +310,8 @@ class TableTest {
         /// asserting here.
         ///
         /// `list`'s rows are its own parts and are package-private, which is
-        /// ADR-0065 working: a table cannot reach into them and neither can this
-        /// test. What a table owes is that the right model reaches the right
+        /// the ownership rule working: a table cannot reach into them and neither
+        /// can this test. What a table owes is that the right model reaches the right
         /// list, and everything after that is tested where it lives — which is
         /// the whole argument for composing rather than reimplementing.
         private ListView<?> list(Table<Person> widget) {

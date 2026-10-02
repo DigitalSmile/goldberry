@@ -3,8 +3,9 @@
 /// describe, shared by every system's provider.
 ///
 /// Pure Java, so every rule here is tested on any system. Not exported.
+/// Null-marked.
 ///
-/// Marked for NullAway from its first commit (`docs/testing.md` §2).
+/// Read more: [Bringing a codec](https://goldberry.dev/docs/components/media.html#bringing-a-codec).
 @NullMarked
 package dev.goldberry.media.platform.bitstream;
 

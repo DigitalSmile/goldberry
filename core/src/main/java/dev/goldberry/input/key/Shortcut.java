@@ -3,7 +3,7 @@ package dev.goldberry.input.key;
 import java.util.Locale;
 import java.util.Objects;
 
-/// A key with modifiers, as an accelerator table names one (§7.2).
+/// A key with modifiers, as an accelerator table names one.
 ///
 /// Written the way a menu prints it — `Ctrl+S`, `Ctrl+Shift+Z`, `F5`, `Alt+F4` —
 /// because that string is going to end up beside the menu item anyway, and two
@@ -11,6 +11,8 @@ import java.util.Objects;
 ///
 /// A value: two shortcuts parsed from the same text are equal and hash the same,
 /// which is what lets them be map keys.
+///
+/// Read more: [Input and focus](https://goldberry.dev/docs/guide/input.html#accelerators).
 ///
 /// @param key       the key itself, never a modifier
 /// @param modifiers exactly which modifiers must be held — `Ctrl+S` does **not**
@@ -38,18 +40,17 @@ public record Shortcut(Key key, Modifiers modifiers) {
     ///
     /// `Shortcut.of(Key.S, Mod.CTRL, Mod.SHIFT)` for code that has the modifiers
     /// in an array already. [Mod#and(Key)] reads better when they are literals,
-    /// because it puts them in the order a menu prints them
-    /// (ADR-0095).
+    /// because it puts them in the order a menu prints them.
     public static Shortcut of(Key key, Mod... mods) {
         return new Shortcut(key, Modifiers.of(mods));
     }
 
-    /// A key with the desktop's own accelerator modifier — §2.3's platform
+    /// A key with the desktop's own accelerator modifier — the platform
     /// primary, which is `Cmd` on macOS and `Ctrl` everywhere else.
     ///
     /// `Shortcut.primary(Key.S)` is Save wherever it runs. Further modifiers are
     /// added as written: `Shortcut.primary(Key.Z, Mod.SHIFT)` is `Cmd+Shift+Z`
-    /// on macOS and `Ctrl+Shift+Z` elsewhere ([ADR-0378]).
+    /// on macOS and `Ctrl+Shift+Z` elsewhere.
     public static Shortcut primary(Key key, Mod... mods) {
         return new Shortcut(key, Modifiers.of(mods).and(PrimaryModifier.current()));
     }
@@ -62,9 +63,9 @@ public record Shortcut(Key key, Modifiers modifiers) {
     ///
     /// **`Primary` is the platform's own**, and is the one name that is not a
     /// key on anybody's keyboard: it resolves to `Cmd` on macOS and to `Ctrl`
-    /// everywhere else, which is what §2.3 asks an accelerator table to be
-    /// written against ([ADR-0378]). `Mod` and `CmdOrCtrl` are accepted as the
-    /// same thing, because those are the two other names it goes by in the wild.
+    /// everywhere else, which is what an accelerator table is written against.
+    /// `Mod` and `CmdOrCtrl` are accepted as the same thing, because those are
+    /// the two other names it goes by in the wild.
     ///
     /// **`Cmd` is still not translated to `Ctrl` on macOS, and `Ctrl` is still
     /// not translated to `Cmd`.** A toolkit that silently remapped them would

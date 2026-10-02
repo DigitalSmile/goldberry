@@ -9,8 +9,8 @@ import dev.goldberry.widget.Widget;
 import dev.goldberry.widget.style.Paints;
 import dev.goldberry.widget.style.Styled;
 
-/// The number beside the groove — a **part** of [Slider], and the thirteenth.
-/// `docs/core-widgets.md` §3's "optional value label".
+/// The number beside the groove — what `format=` draws, a part of [Slider]
+/// styled as `slider-value`.
 ///
 /// A part rather than a `text` child, for the reason every part in this catalog
 /// is one: it needs a width of its own. A label that sized itself to its content
@@ -18,8 +18,9 @@ import dev.goldberry.widget.style.Styled;
 /// take three pixels off the track under the finger, which moves the value under
 /// the pointer that is setting it, at the moment it is being set. The width is
 /// the stylesheet's (`slider-value { width: … }`), and the drift is gone because
-/// there is nothing left to drift
-/// (ADR-0080).
+/// there is nothing left to drift.
+///
+/// Read more: [Values and progress](https://goldberry.dev/docs/components/values.html#slider).
 ///
 /// It draws text directly rather than holding a
 /// [dev.goldberry.widgets.text.Text]
@@ -50,7 +51,7 @@ record SliderValue(String text, boolean disabled) implements Widget.Leaf, Styled
     @Override
     public Box render(ComputedStyle style, List<Box> children, Context context) {
         // A measured leaf, exactly as `text` is: the paragraph reports how tall
-        // it came out at the width Yoga proposed (ADR-0036). The width is the
+        // it came out at the width layout proposed. The width is the
         // stylesheet's, so what is measured here is only the height.
         return Box.text(context.paragraph(style, text), style.color()).style(style);
     }

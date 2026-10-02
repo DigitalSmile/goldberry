@@ -12,7 +12,12 @@ import dev.goldberry.render.model.LogicalRect;
 /// window narrower than its content is *supposed* to overflow rather than
 /// deform. What this records is that it happened and where, because a control
 /// pushed off the edge of a window looks exactly like a control that was never
-/// built ([ADR-0375]).
+/// built.
+///
+/// [OverflowLog] says it once; [#between] is what the render tree asks after
+/// every layout.
+///
+/// Read more: [How layout works](https://goldberry.dev/docs/layout/index.html#the-box-model).
 ///
 /// @param container what the child was laid out in — a type name, an id, or
 ///                  `"a box"` for a node the widget layer did not name
@@ -36,7 +41,7 @@ public record Overrun(String container, String child, float overrunX, float over
     ///
     /// Each of these was measured rather than supposed. Running the showcase's
     /// whole suite produced 688 reports; 665 of them were one of these, and the
-    /// 23 that were left were real ([ADR-0394]).
+    /// 23 that were left were real.
     ///
     /// **A container with no size.** A `0 × 0` box is an anchor that placed
     /// children hang off, not a box anything could fit inside — every child

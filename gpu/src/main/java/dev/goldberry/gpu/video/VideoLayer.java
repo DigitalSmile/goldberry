@@ -29,8 +29,7 @@ import dev.goldberry.render.model.PhysicalRect;
 import dev.goldberry.render.model.PhysicalSize;
 
 /// A video's picture on the GPU: a [GpuLayer] that shows one [VideoImage] at a
-/// time, stretched over the whole of its box (`docs/gpu-plan.md`, phase 6;
-/// ADR-0484).
+/// time, stretched over the whole of its box.
 ///
 /// The caller [#show]s the picture and the part of it to show, then places the
 /// layer over the rectangle it goes in. Letterboxing is the caller's, by where
@@ -46,6 +45,8 @@ import dev.goldberry.render.model.PhysicalSize;
 ///
 /// Confined to the UI thread, as every layer is. Made on first render on the
 /// device it renders with, and made again on a new device.
+///
+/// Read more: [Audio and video](https://goldberry.dev/docs/components/media.html#video-view).
 public final class VideoLayer implements GpuLayer, AutoCloseable {
 
     /// Where the toolkit's shader bytecode is, in this module.

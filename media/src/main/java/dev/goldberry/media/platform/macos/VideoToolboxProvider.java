@@ -7,8 +7,7 @@ import dev.goldberry.media.codec.DecoderProvider;
 import dev.goldberry.media.codec.DecoderRequest;
 import dev.goldberry.media.platform.bitstream.ParameterSets;
 
-/// H.264 and HEVC, decoded by macOS's VideoToolbox (`docs/goldberry-media.md`
-/// §5, ADR-0472).
+/// H.264 and HEVC, decoded by macOS's VideoToolbox.
 ///
 /// Supports a video track when this is macOS, the codec is one of the two, the
 /// container gave its configuration record (`avcC` or `hvcC`, which MP4 and

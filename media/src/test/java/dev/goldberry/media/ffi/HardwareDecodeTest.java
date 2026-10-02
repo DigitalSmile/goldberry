@@ -36,9 +36,8 @@ import dev.goldberry.media.codec.VideoFrame;
 import dev.goldberry.media.io.MemoryIO;
 import dev.goldberry.media.io.Source;
 
-/// Hardware decode against FFmpeg and the machine's own device (phase 5,
-/// ADR-0470): the smoke lane of `docs/goldberry-media.md` §9, and scenario S4
-/// with injected failures.
+/// Hardware decode against FFmpeg and the machine's own device: the smoke lane,
+/// and the fall to software with injected failures.
 ///
 /// Every test makes its own [Hardware], so what one learns ("this device cannot
 /// decode AV1") does not leak into the next, or into the process-wide
@@ -258,7 +257,7 @@ class HardwareDecodeTest {
     }
 
     @Test
-    @DisplayName("S4: a device that will not open is software from the start, and is not asked again")
+    @DisplayName("a device that will not open is software from the start, and is not asked again")
     void deviceWillNotOpen() {
         assumeHardwarePath("clip-vp9.webm");
         var asked = new AtomicInteger();
@@ -290,7 +289,7 @@ class HardwareDecodeTest {
     }
 
     @Test
-    @DisplayName("S4: copy-back failing mid-stream is thrown for the ladder, not as a playback error")
+    @DisplayName("copy-back failing mid-stream is thrown for the ladder, not as a playback error")
     void copyBackFailsMidStream() {
         assumeDecodedOnDevice("clip-vp9.webm");
         var copies = new AtomicInteger();
@@ -326,7 +325,7 @@ class HardwareDecodeTest {
 
     @Test
     @DisplayName(
-            "S4: a device with no engine for the codec fails before its first picture, for the ladder, and is written off")
+            "a device with no engine for the codec fails before its first picture, for the ladder, and is written off")
     void noEngineForTheCodec() {
         assumeHardwarePath("clip-av1.mkv");
         var policy = policy();

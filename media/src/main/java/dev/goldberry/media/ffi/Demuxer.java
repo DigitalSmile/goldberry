@@ -27,8 +27,7 @@ import dev.goldberry.media.codec.TrackParams;
 import dev.goldberry.media.io.MediaIO;
 import dev.goldberry.media.io.Source;
 
-/// An open demuxer over a [MediaIO]: what the Engine's demux thread holds
-/// (`docs/goldberry-media.md` §3).
+/// An open demuxer over a [MediaIO]: what the Engine's demux thread holds.
 ///
 /// Opening it reads the container's header and the first packets of each stream,
 /// which is the whole of a probe ([MediaProbe][dev.goldberry.media.MediaProbe]
@@ -187,7 +186,7 @@ public final class Demuxer implements AutoCloseable {
 
     /// Moves to the last keyframe at or before `positionNanos`, so that decoding
     /// from there reaches the position. The Engine discards what it decodes before
-    /// the position for an accurate seek (§3, "Seeking").
+    /// the position for an accurate seek.
     ///
     /// @throws MediaException when the demuxer cannot seek, or the read it takes
     ///                        fails

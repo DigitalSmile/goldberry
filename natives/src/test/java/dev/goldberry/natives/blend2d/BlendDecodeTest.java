@@ -130,7 +130,7 @@ class BlendDecodeTest {
 
         // Decoded pixels are ordinary pixels: they go back through
         // BlendImage.wrapping like a layer's, and the handle Blend2D allocated is
-        // already gone by the time anything is drawn (ADR-0283).
+        // already gone by the time anything is drawn.
         //
         // At its own size and one pixel in, so the four pixels are exact. A 2x2
         // image drawn into 4x4 would be *interpolated* -- Blend2D's scaled blit

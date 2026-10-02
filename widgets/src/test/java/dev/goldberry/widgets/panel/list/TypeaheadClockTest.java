@@ -29,9 +29,11 @@ import dev.goldberry.widgets.panel.Described;
 ///
 /// `Host.clock()` is what changed. `TestHost` hands out a
 /// [dev.goldberry.motion.Clock#virtual()], so a second of
-/// silence is `advance(1001)` and the test runs in microseconds
-/// (`docs/testing.md` §0.1: determinism is a feature under test, and anything
-/// that cannot be driven is a bug rather than a limitation).
+/// silence is `advance(1001)` and the test runs in microseconds. Determinism
+/// is a feature under test, and anything that cannot be driven is a bug rather
+/// than a limitation.
+///
+/// Read more: [Testing an application](https://goldberry.dev/docs/guide/testing.html#the-virtual-clock).
 class TypeaheadClockTest {
 
     /// Longer than `ListState.TYPEAHEAD_MILLIS`, which is package-private to the

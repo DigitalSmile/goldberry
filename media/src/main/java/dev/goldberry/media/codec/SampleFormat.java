@@ -3,12 +3,14 @@ package dev.goldberry.media.codec;
 /// How the samples of an [AudioFrame] are stored.
 ///
 /// A decoder hands frames over in whichever of these it decodes to. The Engine
-/// converts every one of them to what the audio device plays, in one pass
-/// (`docs/goldberry-media.md` §3). So a provider never converts formats itself,
+/// converts every one of them to what the audio device plays, in one pass.
+/// So a provider never converts formats itself,
 /// and the built-in decoder hands FFmpeg's buffers over without a copy.
 ///
 /// *Interleaved* formats keep every channel in one plane, frame after frame.
 /// *Planar* formats keep one plane per channel.
+///
+/// Read more: [Bringing a codec](https://goldberry.dev/docs/components/media.html#bringing-a-codec).
 public enum SampleFormat {
     U8(1, false, "U8"),
     S16(2, false, "S16"),

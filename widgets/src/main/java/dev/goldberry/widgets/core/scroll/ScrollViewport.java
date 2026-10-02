@@ -27,35 +27,24 @@ import dev.goldberry.widget.style.Styled;
 /// The rectangle a [Scroll] shows through: the CSS type `scroll`, the node that
 /// clips, and the node that takes the wheel and the keys.
 ///
-/// ## Three facts, and a widget can only reach them here
-///
 /// Scrolling is arithmetic on two rectangles — the viewport's and the content's —
-/// and a widget cannot measure either. `build` and `render` both run before Yoga,
-/// which is ADR-0080's
-/// finding. So the two extents arrive **on the event**, resolved by the router
+/// and a widget cannot measure either, because `build` and `render` both run
+/// before layout. So the two extents arrive on the event, resolved by the router
 /// out of the snapshot the last paint left behind: [PointerEvent#bounds()] is this
 /// viewport and [PointerEvent#part()] is the `scroll-content` named by
-/// [#localPart()]
-/// (ADR-0116).
-///
-/// That is also why the keyboard works. A key event carries no position and
-/// `PageDown` needs no position — but it needs both extents exactly as the wheel
-/// does, and before this widget nothing put a size on a [KeyEvent].
-///
-/// ## The clip is the widget's, not the stylesheet's
+/// [#localPart()]. A [KeyEvent] carries the same two extents, which is what
+/// lets `PageDown` work.
 ///
 /// `overflow: hidden` is applied after the cascade, the way `row` and `column`
 /// apply their direction: a `scroll` a stylesheet could un-clip would be a name
 /// that lies, and the clip is the whole of what distinguishes this from a
 /// `column` that overflows.
 ///
-/// ## At the edge it lets go
+/// A wheel or a key is consumed only when it actually moved something. At the
+/// top of a list a further scroll up is left unconsumed and bubbles, so the
+/// viewport around it takes it; nothing here knows an ancestor exists.
 ///
-/// A wheel is consumed only when it actually moved something. At the top of a
-/// list a further scroll up is left unconsumed and bubbles, which is §2.4's
-/// "inner scroller consumes until its edge, then chains to the ancestor" — got
-/// for free by the router's ordinary bubble path rather than by anything here
-/// knowing an ancestor exists.
+/// Read more: [Scroll](https://goldberry.dev/docs/layout/scroll.html#the-wheel).
 record ScrollViewport(
         List<Widget> children,
         ScrollAxis axis,
@@ -86,41 +75,26 @@ record ScrollViewport(
     /// would be worse: a list that scrolled exactly one row per notch is markedly
     /// slower than the rest of the desktop.
     ///
-    /// The **default**, and `--gb-scroll-line` is the token that overrides it
-    /// ([ADR-0251]). It was a constant and not a token for as long as nothing
-    /// let a widget read a resolved custom property — "a number an author could
-    /// set and this could not see" — which [Paints.Context#length] answers.
-    ///
-    /// Read in `render` and **banked** into the state, because the wheel arrives
-    /// at [#onPointer] where there is no context to ask. A frame late by
-    /// construction, and that is [Measured]'s bargain unchanged: nothing can turn
-    /// a wheel between a tree flushing and the frame it produces, and a paint
+    /// The default; `--gb-scroll-line` is the token that overrides it, read in
+    /// `render` through [Paints.Context#length] and banked into the state,
+    /// because the wheel arrives at [#onPointer] where there is no context to
+    /// ask. A frame late by construction, which is [Measured]'s bargain: a paint
     /// always precedes an input.
     static final double LINE = 20;
 
-    /// How many lines one notch of the wheel moves. **Three**, which is what
-    /// every other application on the machine does.
+    /// How many lines one notch of the wheel moves. Three, which is what every
+    /// other application on the machine does.
     ///
-    /// The paragraph above has said "three of these is the conventional notch"
-    /// since this widget was written, and the code multiplied by one: a
-    /// [PointerEvent#deltaY()] of ±1 is one detent and it moved twenty pixels
-    /// where the desktop moves sixty. A viewport three times slower than every
-    /// other window on the screen is not a number anybody reads off a stylesheet
-    /// — it is the report *"scrolling feels heavy"*, which is how this was
-    /// eventually found ([ADR-0314]).
+    /// Applied to the wheel and not to the keys. An arrow key means a line and
+    /// [#ARROW] is one; `PageDown` means a viewport. The notch is the only unit
+    /// here that is a platform convention rather than a document's own idea,
+    /// which is why it is a separate number from the token an author can set:
+    /// `--gb-scroll-line` says how far a line is, and three of them is a notch.
     ///
-    /// Applied to the **wheel** and not to the keys. An arrow key means a line
-    /// and [#ARROW] is one; `PageDown` means a viewport. The notch is the only
-    /// unit here that is a platform convention rather than a document's own
-    /// idea, which is why it is a separate number from the token an author can
-    /// set: `--gb-scroll-line` says how far a *line* is, and three of them is a
-    /// notch whatever that is.
-    ///
-    /// A trackpad is unaffected in the way that matters. Its deltas arrive as
-    /// fractions of a detent — an eighth at a time — so the same multiplier
-    /// turns the same gesture into the same distance, which is precisely why
+    /// A trackpad's deltas arrive as fractions of a detent, so the same
+    /// multiplier turns the same gesture into the same distance; that is why
     /// [#onPointer] reads the fraction rather than the accumulated
-    /// [PointerEvent#ticksY()] (ADR-0115).
+    /// [PointerEvent#ticksY()].
     static final int LINES_PER_NOTCH = 3;
 
     /// How much of a viewport `PageUp` and `PageDown` leave behind.
@@ -135,13 +109,12 @@ record ScrollViewport(
     /// only unit it has.
     static final double ARROW = LINE;
 
-    /// The token an application overrides [#LINE] with — §3's "metrics ship as
-    /// component-token defaults".
+    /// The token an application overrides [#LINE] with; component metrics ship
+    /// as token defaults.
     static final String LINE_TOKEN = "--gb-scroll-line";
 
-    /// §2.4's reserved gutter, in logical pixels: 0 for overlay bars, and the
-    /// width set aside for the bar when "always show scroll bars" is in force
-    /// (ADR-0364).
+    /// The reserved gutter, in logical pixels: 0 for overlay bars, and the width
+    /// set aside for the bar when the application always shows scrollbars.
     static final String GUTTER_TOKEN = "--gb-scrollbar-gutter";
 
     @Override
@@ -163,10 +136,10 @@ record ScrollViewport(
     public List<Widget> children() {
         var nodes = new java.util.ArrayList<Widget>(3);
         nodes.add(new ScrollContent(children, axis, offsetX, offsetY, gutter));
-        // The bars are **last**, so they paint over the content -- §2.4 calls
-        // them overlay scrollbars, and paint order is the whole of what makes
-        // them one. They are absolutely positioned by the stylesheet, so being
-        // in the flow costs the content nothing.
+        // The bars are **last**, so they paint over the content -- they are
+        // overlay scrollbars, and paint order is the whole of what makes them
+        // one. They are absolutely positioned by the stylesheet, so being in
+        // the flow costs the content nothing.
         if (axis.isVertical()) {
             nodes.add(bar(true, viewport.height(), content.height(), offsetY));
         }
@@ -195,7 +168,7 @@ record ScrollViewport(
     }
 
     /// Told what the last frame laid this out as, so the bars can be drawn in
-    /// proportion to content nobody has touched ([ADR-0117]).
+    /// proportion to content nobody has touched.
     @Override
     public void measured(Extent bounds, Extent part) {
         onMeasured.accept(bounds, part);
@@ -224,20 +197,21 @@ record ScrollViewport(
     /// distance for the screen to stay still.
     ///
     /// Passed straight up. The arithmetic is the state's, because the clamp
-    /// needs the extents and the extents live there (ADR-0392).
+    /// needs the extents and the extents live there.
     @Override
     public void contentShifted(double dx, double dy) {
         onShift.shiftBy(dx, dy);
     }
 
-    /// §1: "keyboard (PgUp/PgDn/Home/End/arrows **when focused**)".
+    /// A viewport is a Tab stop: the arrows, `PageUp`, `PageDown`, `Home` and
+    /// `End` act when it has focus.
     @Override
     public boolean isFocusable() {
         return true;
     }
 
-    /// While the bars are on their way out — §1.7's idle loop would otherwise
-    /// paint them once at whatever opacity it caught and stop ([ADR-0081]).
+    /// While the bars are fading or a glide is under way; the idle frame loop
+    /// would otherwise paint them once at whatever opacity it caught and stop.
     @Override
     public boolean isAnimating() {
         return fade.isAnimating() || glide.isAnimating();
@@ -257,9 +231,9 @@ record ScrollViewport(
     public Box render(ComputedStyle style, List<Box> boxes, Context context) {
         // The only place a widget is handed a clock, and therefore the only place
         // "when did this move" can be answered.
-        // Banked for `onPointer`, which has no context to ask (ADR-0251). Only
-        // when it moved: the callback sets state, and a `setState` every frame
-        // would be a rebuild every frame.
+        // Banked for `onPointer`, which has no context to ask. Only when it
+        // moved: the callback sets state, and a `setState` every frame would be
+        // a rebuild every frame.
         var declared = context.length(LINE_TOKEN, LINE);
         if (declared != line) {
             onLine.accept(declared);
@@ -271,7 +245,7 @@ record ScrollViewport(
         }
         fade.stamp(context.nowMillis());
         glide.stamp(context.nowMillis(), context.reducedMotion());
-        // A reserved gutter is always drawn: §2.4's classic bar does not fade.
+        // A reserved gutter is always drawn: a classic bar does not fade.
         var opacity = gutter > 0 ? 1 : fade.opacity();
         return Box.of()
                 .children(fadeBars(glided(boxes), opacity).toArray(Box[]::new))
@@ -285,12 +259,12 @@ record ScrollViewport(
                 .direction(axis == ScrollAxis.HORIZONTAL ? FlexDirection.ROW : FlexDirection.COLUMN)
                 // The one property a stylesheet must not be able to take back.
                 // Yoga reads it for sizing -- a child may exceed this box without
-                // it growing -- and the painter reads it as a clip (ADR-0114).
+                // it growing -- and the painter reads it as a clip.
                 .overflow(Overflow.HIDDEN);
     }
 
     /// The children with the content drawn where a glide has got to, or as they
-    /// were when nothing is gliding (ADR-0363). The content is the first box, and
+    /// were when nothing is gliding. The content is the first box, and
     /// its translation is replaced rather than added to, because what the
     /// cascade put there is the glide's target.
     private List<Box> glided(List<Box> boxes) {
@@ -331,7 +305,7 @@ record ScrollViewport(
             return;
         }
         // The fraction, not the detents: this is a distance, and a trackpad's
-        // eighths are what stop it moving in jerks (ADR-0115). Times three,
+        // eighths are what stop it moving in jerks. Times three,
         // because a detent is a notch and a notch is three lines --
         // see [#LINES_PER_NOTCH].
         var notch = line * LINES_PER_NOTCH;
@@ -375,8 +349,8 @@ record ScrollViewport(
 
     /// Asks for an absolute offset, clamped to what there is to show.
     ///
-    /// **Hard edges, no overscroll bounce** (§2.4), which is what the clamp is:
-    /// there is no state for "past the end" because nothing may be there.
+    /// **Hard edges, no overscroll bounce**, which is what the clamp is: there
+    /// is no state for "past the end" because nothing may be there.
     ///
     /// Returns whether anything actually moved — which is what the caller turns
     /// into consuming the event, and therefore what decides whether an ancestor

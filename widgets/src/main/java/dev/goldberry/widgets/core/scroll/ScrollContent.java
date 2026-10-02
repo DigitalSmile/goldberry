@@ -21,19 +21,17 @@ import dev.goldberry.widget.style.Styled;
 /// ## Why the content moves rather than the viewport
 ///
 /// Because a translate is the one way to move something that costs no layout.
-/// §1.7 is explicit that "layout properties never transition — animating
-/// width/height would run Yoga per frame", and the same arithmetic applies to a
-/// scroll: an offset expressed as `top` or as a margin would re-run Yoga over the
-/// whole subtree on every wheel notch, sixty times a second, to move a box that
-/// did not change size. A `transform` is resolved by the painter, after layout,
-/// and the tree underneath it is untouched
-/// (ADR-0116).
+/// Layout properties never animate — animating a width or a height would run
+/// Yoga every frame — and the same arithmetic applies to a scroll: an offset
+/// expressed as `top` or as a margin would re-run Yoga over the whole subtree on
+/// every wheel notch, sixty times a second, to move a box that did not change
+/// size. A `transform` is resolved by the painter, after layout, and the tree
+/// underneath it is untouched.
 ///
 /// It is also what makes hit testing come out right for free. The painter carries
-/// the accumulated matrix and the router inverts it
-/// (ADR-0068),
-/// so a row scrolled up by 200px is clicked where it *looks*, with nothing in the
-/// scroll view arranging that.
+/// the accumulated matrix and the router inverts it, so a row scrolled up by
+/// 200px is clicked where it *looks*, with nothing in the scroll view arranging
+/// that.
 ///
 /// ## Why it does not shrink
 ///
@@ -45,8 +43,8 @@ import dev.goldberry.widget.style.Styled;
 ///
 /// The translation is applied through [Styled#restyle], not in [#render], so it
 /// is part of what the renderer observes and a programmatic scroll can be given a
-/// `transition` later without moving anything (§3.1 gives `scroll` "wheel/drag:
-/// direct · `scrollIntoView` / programmatic: overlay duration").
+/// `transition` later without moving anything: a wheel or a drag moves the view
+/// directly, and a programmatic scroll glides over the overlay duration.
 ///
 /// ## Why a child asking to grow hears about it
 ///
@@ -60,14 +58,16 @@ import dev.goldberry.widget.style.Styled;
 ///
 /// [#warnIfAChildAsksToGrow] is the diagnostic, and it is only a diagnostic —
 /// the arrangement still works, it merely does nothing. The growth belongs on the
-/// `scroll` box itself ([ADR-0116], [ADR-0257]).
+/// `scroll` box itself.
+///
+/// Read more: [Scroll](https://goldberry.dev/docs/layout/scroll.html#what-a-frame-pays).
 ///
 /// @param children what was written inside the `scroll`
 /// @param axis     which way the parent viewport moves
 /// @param offsetX  how far it has been scrolled right, in logical pixels
 /// @param offsetY  how far down
 /// @param gutter   the width reserved for a bar, added to the content's padding on
-///                 the side the bar is on; 0 for overlay bars (ADR-0364)
+///                 the side the bar is on; 0 for overlay bars
 record ScrollContent(List<Widget> children, ScrollAxis axis, double offsetX, double offsetY, double gutter)
         implements Widget.Leaf, Styled, Paints {
 
@@ -76,7 +76,7 @@ record ScrollContent(List<Widget> children, ScrollAxis axis, double offsetX, dou
     /// Which axes have already been told that a child inside them asks to grow.
     ///
     /// `render` runs per element per paint, so an unguarded warning here would be
-    /// the log [ADR-0243] has just finished quietening — sixty lines a second for
+    /// a stream rather than a message — sixty lines a second for
     /// as long as the screen is up. Static and by axis for
     /// [ScrollState#REPORTED_NESTING]'s reason: what is worth saying is *"this
     /// application puts `flex-grow` inside a scroller"*, and a document that does
@@ -96,7 +96,7 @@ record ScrollContent(List<Widget> children, ScrollAxis axis, double offsetX, dou
         return REPORTED_GROW.size();
     }
 
-    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    /// Written out so that the parameters taking null for a default can say so.
     ScrollContent(@Nullable List<Widget> children, ScrollAxis axis, double offsetX, double offsetY, double gutter) {
         children = List.copyOf(children == null ? List.of() : children);
         this.children = children;
@@ -118,7 +118,7 @@ record ScrollContent(List<Widget> children, ScrollAxis axis, double offsetX, dou
             // Layout, not overlay: the bar's side of the content is padded by the
             // gutter, so nothing is drawn under a bar that is always there. A
             // **sum** of the author's padding and the token, which is why it is
-            // here: §8 defers `calc()`, so no rule can add the two (ADR-0364).
+            // here: the stylesheet has no `calc()`, so no rule can add the two.
             var padding = style.padding();
             style = style.padding(new Insets(
                     padding.top(),
@@ -187,7 +187,7 @@ record ScrollContent(List<Widget> children, ScrollAxis axis, double offsetX, dou
                 // set it back to 1, which is the one declaration that would
                 // silently turn this widget into a `column`. Here rather than in
                 // `restyle`, because it is a pin against the stylesheet and not a
-                // number the stylesheet could not have written (ADR-0499).
+                // number the stylesheet could not have written.
                 .shrink(0)
                 // Along the axis being scrolled. A column for a vertical
                 // viewport, because several children written inside one are a

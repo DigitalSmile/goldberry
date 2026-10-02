@@ -16,8 +16,8 @@ import dev.goldberry.bind.Property;
 /// — the half that leaks if it is wrong — when it lets go.
 ///
 /// The other half of `:widgets`' `BindingTest`, which is about reading `bind=`
-/// off markup. The two were one file until [ADR-0092] moved `text` out of
-/// `:core`, and the seam turned out to be a real one: everything here is a fact
+/// off markup. The two were one file until `text` moved out of `:core` with the
+/// other primitives, and the seam turned out to be a real one: everything here is a fact
 /// about [Element] and nothing here is a fact about `text`.
 ///
 /// Written against a local [Bound] widget for that reason, and for the reason
@@ -85,7 +85,7 @@ class BindingLifecycleTest {
         name.set("c");
         name.set("d");
 
-        // The same bargain setState makes (ADR-0052): the value changes
+        // The same bargain setState makes: the value changes
         // immediately, the rebuild happens once.
         assertEquals(1, tree.flush());
         assertEquals("d", ((Bound) tree.root().widget()).resolved());

@@ -84,6 +84,7 @@ A fact that has to be true in two places gets a test that reads both. The rule c
 | `WrittenNamesTest` | The weaver's constants | Every class name the weaver writes as text resolves |
 | `BoundaryTest`, `DeterminismTest` | The whole graph, through ArchUnit | The module arrows in `ARCHITECTURE.md` §2, and no clock, random source or default locale in the deterministic layer |
 | `SiteTest` | `site/content.js` and the book | The pages the landing page links by name are where it says |
+| `SourceDocsTest` | Every Java, Gradle and workflow source, and the book | No record number in a source; every `goldberry.dev/docs` link lands on a page and a heading that exist; every published package links the guide; no Java source names a file under `docs/` |
 
 Most of these live in `build-logic/src/test/`, which `./gradlew :build-logic:test` runs. The ArchUnit pair lives in `:widgets`, because that is the module whose test classpath holds the whole graph.
 

@@ -21,20 +21,20 @@ import dev.goldberry.css.value.Affine;
 /// would give a stack to push onto — but they arrived later and for a different
 /// job. They are the second clip depth a `canvas` needs, where an application's
 /// own painter runs inside whatever clip the tree already has and is not trusted
-/// to unset what it set ([ADR-0193], and `BoxPainter` is where they are used).
-/// Using a native save/restore pair for *every* clip in the tree would put the
-/// whole stack across the boundary, one pair per box, where what the painter
-/// needs is one rectangle it has already intersected. (This paragraph said the
-/// pair was not exported at all, which was true when it was written and stopped
-/// being true with ADR-0193 — the 2026-09-18 review, §8.)
+/// to unset what it set (`BoxPainter` is where they are used). Using a native
+/// save/restore pair for *every* clip in the tree would put the whole stack
+/// across the boundary, one pair per box, where what the painter needs is one
+/// rectangle it has already intersected.
 ///
 /// So the stack lives here. The painter accumulates the intersection on the way
 /// down, and every change is `resetClip()` followed by one `clipTo` of the
-/// accumulated rectangle — which is the same argument ADR-0068 made for the
-/// transform stack, arrived at from the other end. There it was so hit testing
-/// could invert the matrix; here it is because the native side offers no way to
-/// undo one clip without undoing all of them
-/// (ADR-0114).
+/// accumulated rectangle — the same shape the transform stack has, arrived at
+/// from the other end. There it is so hit testing can invert the matrix; here it
+/// is because the native side offers no way to undo one clip without undoing all
+/// of them.
+///
+/// Read more:
+/// [Keeping frames cheap](https://goldberry.dev/docs/performance/frames.html#what-the-toolkit-does-for-you).
 ///
 /// @param left   the leftmost logical pixel drawn
 /// @param top    the topmost

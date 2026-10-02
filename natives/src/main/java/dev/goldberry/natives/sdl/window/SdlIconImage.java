@@ -8,10 +8,12 @@ import java.util.Objects;
 /// **Straight alpha**, not premultiplied. `SDL_PIXELFORMAT_ARGB8888` is
 /// straight, and the X11 path copies these ints into `_NET_WM_ICON` as they are,
 /// so a premultiplied buffer would dim every soft edge of the mark. The caller
-/// unpremultiplies. This type only checks the shape (ADR-0351).
+/// unpremultiplies. This type only checks the shape.
 ///
 /// The layout is the tray icon's: native-order `0xAARRGGBB` ints, which on every
 /// platform the toolkit ships is B, G, R, A in memory.
+///
+/// Read more: [The native boundary](https://goldberry.dev/docs/overview/architecture.html#the-native-boundary).
 ///
 /// @param pixels a **direct** buffer, read from its position
 /// @param width  in pixels

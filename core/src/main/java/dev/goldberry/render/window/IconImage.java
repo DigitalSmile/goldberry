@@ -12,10 +12,12 @@ import dev.goldberry.render.model.PhysicalSize;
 /// A window icon leaves the toolkit, so it goes in the form the desktop reads.
 /// X11's `_NET_WM_ICON`, a Windows `HICON` and an `xdg-toplevel-icon` buffer all
 /// take straight ARGB. Premultiplied pixels would dim every anti-aliased edge of
-/// the mark by its own coverage (`docs/gaps.md` G40, ADR-0351).
+/// the mark by its own coverage.
 ///
 /// The buffer is direct and native-ordered `0xAARRGGBB` ints, tightly packed,
 /// which is what a backend can hand to the platform without another copy.
+///
+/// Read more: [Windows, popups and the host](https://goldberry.dev/docs/guide/windows.html#the-lifecycle).
 public final class IconImage {
 
     private final PhysicalSize size;

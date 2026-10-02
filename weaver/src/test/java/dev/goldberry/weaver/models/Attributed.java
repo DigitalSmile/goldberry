@@ -45,8 +45,8 @@ public final class Attributed {
     /// it.
     ///
     /// The other half of the same rebuild: a class that is not a model at all
-    /// still has every method rewritten, because one of them writes to one
-    /// (ADR-0134). Its attributes travelled exactly the same road.
+    /// still has every method rewritten, because one of them writes to one.
+    /// Its attributes travelled exactly the same road.
     public static final class Helper {
 
         private final Attributed values;

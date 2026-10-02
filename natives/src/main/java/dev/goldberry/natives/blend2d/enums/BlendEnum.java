@@ -12,11 +12,13 @@ import dev.goldberry.natives.blend2d.error.BlendResultCode;
 /// the width is not in question the way a plain C enum's would be. The *values*
 /// still are: several of these enumerate positionally, so inserting a constant
 /// upstream shifts everything after it — which is one more thing a pinned commit
-/// SHA (ADR-0030) makes a decision rather than an accident.
+/// SHA makes a decision rather than an accident.
 ///
 /// [#all()] feeds every constant to the layout verifier, which compares it
 /// against what the C compiler computed for the library that is actually loaded.
 /// The interface is sealed so the permitted list and [#all()] sit together.
+///
+/// Read more: [The native boundary](https://goldberry.dev/docs/overview/architecture.html#the-native-boundary).
 public sealed interface BlendEnum
         permits BlendCompOp,
                 BlendDataAccess,

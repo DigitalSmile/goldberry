@@ -18,6 +18,8 @@ import java.util.List;
 /// OS's constraints", and on Linux it comes back from the DBus thread that talks
 /// to the XDG portal. Whatever is on the other side of this interface is
 /// responsible for getting onto the thread it wants to be on.
+///
+/// Read more: [The native boundary](https://goldberry.dev/docs/overview/architecture.html#the-native-boundary).
 public interface SdlFileDialogCallback {
 
     /// The user picked something. Never empty.

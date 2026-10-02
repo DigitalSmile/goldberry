@@ -22,14 +22,15 @@ package dev.goldberry.input.key;
 /// [#bit()] exists for [Modifiers#fromSdl] and for tests, and the way an
 /// application composes modifiers is [#and(Mod)], which can only ever produce
 /// [Modifiers], and [#and(Key)], which can only ever produce a [Shortcut]. The
-/// chain reads left to right in the order a menu prints it
-/// (ADR-0095).
+/// chain reads left to right in the order a menu prints it.
 ///
 /// ## Left and right are one modifier
 ///
 /// A platform reports left Shift and right Shift separately and no accelerator
 /// table has ever cared. They are folded on the way in, which is what
 /// [Modifiers#fromSdl] does.
+///
+/// Read more: [Input and focus](https://goldberry.dev/docs/guide/input.html#accelerators).
 public enum Mod {
     SHIFT(1),
     CTRL(1 << 1),

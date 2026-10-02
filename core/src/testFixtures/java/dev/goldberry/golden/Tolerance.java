@@ -17,7 +17,7 @@ package dev.goldberry.golden;
 ///                  `channel` — zero wherever the rasterizer is the toolkit's own
 public record Tolerance(int channel, double differing, double stray) {
 
-    /// Every golden Blend2D draws, and every golden before ADR-0503.
+    /// Every golden Blend2D draws, and every golden before the GPU had its own.
     ///
     /// Two levels out of 256: a rounding disagreement between two SIMD pipelines
     /// lands at one, and a colour that actually changed is nowhere near this

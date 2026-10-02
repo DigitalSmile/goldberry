@@ -12,68 +12,50 @@ import dev.goldberry.text.document.DocumentLines;
 import dev.goldberry.text.document.TextDocument;
 import dev.goldberry.text.flow.TextAlign;
 
-/// Where a caret **is** on a paragraph that has been laid out.
+/// Where a caret is on text that has been laid out: the point for an offset, the
+/// offset for a click, and what `Up` means on lines of different lengths.
+///
+/// ```java
+/// var layout = paragraph.layout(width);
+/// var caret = TextGeometry.caretAt(paragraph, layout, edit.caret(), width, align);
+/// // draw a caret at (x + caret.x(), top + caret.top()), caret.height() tall
+/// int hit = TextGeometry.offsetAt(paragraph, layout, px - x, py - top, width, align);
+/// ```
 ///
 /// [TextEdit] is the model — a string, a caret and an anchor — and it is
-/// deliberately one-dimensional: it knows that the caret is at offset 17 and
-/// nothing about where 17 landed on a screen. Everything in this class is the
-/// other half, and it is the half that needs the font, the shaping and the width
-/// the text wrapped at (ADR-0285).
+/// one-dimensional: it knows the caret is at offset 17 and nothing about where
+/// 17 landed on a screen. This class is the other half, the one that needs the
+/// font, the shaping and the width the text wrapped at. It answers four
+/// questions: where to draw the caret ([#caretAt]); what the user clicked on
+/// ([#offsetAt]); what `Up` and `Down` mean ([#moveLine] — not "an offset minus
+/// a line's worth of characters", because lines differ in length); and what
+/// shape a selection is ([#selectionRects] — a rectangle per visual line,
+/// because a selection across a wrap is L-shaped).
 ///
-/// Three questions, and every text editor asks exactly these:
+/// Everything is in the text's own space: `(0, 0)` is the top-left of the first
+/// line, y grows downwards, and one line is the font's line height tall. A caller
+/// drawing at an offset, inside a padding or under a canvas transform adds its
+/// own translation, which is why nothing here takes an origin. Every method is
+/// static and takes the paragraph and its layout together; they must be the same
+/// layout the text was painted with, or the caret is measured against one wrap
+/// and drawn against another.
 ///
-/// - **Where do I draw the caret?** [#caretAt]
-/// - **What did the user click on?** [#offsetAt]
-/// - **What does `Up` mean?** [#moveLine] — which is not
-///   "offset minus a line's worth of characters", because lines are not the same
-///   length, and is why a `TextEdit` cannot answer it alone.
-///
-/// and one more that only a *selection* needs: [#selectionRects], which is a
-/// rectangle per visual line rather than one box, because a selection that spans
-/// a wrap is L-shaped.
-///
-/// ## Coordinates
-///
-/// Everything here is in the paragraph's own space: `(0, 0)` is the top-left of
-/// the first line, y grows downwards, and one line is
-/// [Font#lineHeight()][dev.goldberry.text.font.Font#lineHeight()]
-/// tall. A caller drawing at an offset, inside a padding, or under a canvas
-/// transform adds its own translation — which is the whole reason this takes no
-/// origin.
-///
-/// Every method is static and every one takes the paragraph and its layout
-/// together. They must be the *same* layout the text was painted with: a caret
-/// measured against one wrap width and drawn against another is the bug this
-/// class exists to make visible rather than possible.
-///
-/// ## Alignment
-///
-/// Each of the four questions has a second form that takes the width the text was
-/// drawn in and its [TextAlign], and those are the ones to reach for in anything
-/// that is not left-aligned. `Paragraph.paint` indents every line by its own share
-/// of the box's slack; the three-argument forms measure from the paragraph's
-/// origin, so under `text-align: center` the caret drifted away from the glyphs by
-/// half the line's slack and grew as the line shortened (`docs/gaps.md` G30,
-/// ADR-0318).
-///
-/// The short forms are kept and mean [TextAlign#START], which is what every caller
-/// written before this assumed. The indent itself is
-/// [TextAlign#indentOf(double, double)] — one implementation, shared with the
-/// paint, because two copies of "where does this line start" is the bug rather
-/// than the fix.
-///
-/// ## A document, not a paragraph
+/// Each question has a form that also takes the width the text was drawn in and
+/// its [TextAlign]; those are the ones to use for anything not left-aligned.
+/// `Paragraph.paint` indents every line by its share of the box's slack, and
+/// these forms measure from the same edge, so under `text-align: center` the
+/// caret sits on the glyphs. The short forms mean [TextAlign#START]. The indent
+/// is [TextAlign#indentOf(double, double)], shared with the paint, so there is
+/// one answer to where a line starts.
 ///
 /// The same four questions have a form over a [TextDocument] and its
-/// [DocumentLines], and they are the ones an editor over a *document* asks: a
-/// text shaped one hard line at a time has no whole-text paragraph to measure
-/// against, and building one to answer where a caret is would be paying for
-/// exactly what shaping a line at a time avoids ([ADR-0411]).
+/// [DocumentLines], for an editor over text shaped one hard line at a time: such
+/// a text has no whole-text paragraph to measure against, and building one would
+/// pay for exactly what shaping a line at a time avoids. They are the same
+/// arithmetic against a different shaping, and they live here so the answer has
+/// one place to be.
 ///
-/// They are the same arithmetic against a different shaping, and they are here
-/// rather than in a second class because that is the point — what a caret is does
-/// not depend on how the glyphs were cached, and two classes would be two places
-/// for the answer to drift.
+/// Read more: [Selection and editing](https://goldberry.dev/docs/guide/text.html#selection-and-editing).
 public final class TextGeometry {
 
     private TextGeometry() {}
@@ -263,9 +245,9 @@ public final class TextGeometry {
 
     /// The rectangles covering `start`..`end` in text the painter aligned.
     ///
-    /// A highlight drifts exactly as a caret does, and for the same reason — a
-    /// selection is geometry the frame already had ([ADR-0301]), and this is that
-    /// geometry told where the glyphs went.
+    /// A highlight drifts exactly as a caret does, and for the same reason: a
+    /// selection is the same geometry as the caret, and this is that geometry
+    /// told where the glyphs went.
     ///
     /// @param wrapWidth the width the text was drawn in
     /// @param align     what the cascade said about `text-align`
@@ -319,7 +301,7 @@ public final class TextGeometry {
     /// [#caretAt(Paragraph, TextLayout, int, double, TextAlign)]'s answer, measured
     /// against the one hard line the caret is on: `widthBetween` is a subtraction
     /// of two prefix widths of the same shaping there as here, and here the
-    /// shaping is one line's ([ADR-0411]).
+    /// shaping is one line's.
     ///
     /// @param wrapWidth the width the text was drawn in
     /// @param align     what the cascade said about `text-align`
@@ -398,10 +380,10 @@ public final class TextGeometry {
     /// The rectangles covering `start`..`end` in a text shaped a hard line at a
     /// time, one per visual line.
     ///
-    /// **Only the lines the selection is on are visited.** The paragraph form walks
+    /// Only the lines the selection is on are visited. The paragraph form walks
     /// every line of the layout and skips what does not intersect, which is fine
-    /// for a label and is a walk over ten thousand rows for a document — on every
-    /// frame, to draw a highlight over three of them ([ADR-0411]).
+    /// for a label and would be a walk over ten thousand rows for a document, on
+    /// every frame, to draw a highlight over three of them.
     ///
     /// @param wrapWidth the width the text was drawn in
     /// @param align     what the cascade said about `text-align`

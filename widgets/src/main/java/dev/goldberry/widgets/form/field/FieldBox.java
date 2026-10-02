@@ -24,7 +24,7 @@ import dev.goldberry.widget.style.Styled;
 ///
 /// It takes no pointer and no key. It implements [Handles] for exactly one
 /// method: [Handles#onFocusWithin], which is how a field learns that the user has
-/// finished with the control inside it. That is §4's "validate on blur", and it
+/// finished with the control inside it. That is "validate on blur", and it
 /// is the only definition of blur that works for a field holding two controls —
 /// a date range, a pair of radio buttons — because it reports the subtree rather
 /// than any one node.
@@ -59,8 +59,8 @@ record FieldBox(
         return attributes.key();
     }
 
-    /// `:invalid` — §4's, and the reason it is a pseudo-class rather than a class
-    /// is that the specification names it (`docs/core-widgets.md` §1).
+    /// `:invalid`, a pseudo-class rather than a class because it is a state like
+    /// `:checked`, and a stylesheet selects it the same way.
     ///
     /// A field is invalid when it has something to say. There is no second flag:
     /// a message and a failure are the same event, so they cannot disagree.
@@ -76,7 +76,7 @@ record FieldBox(
         }
     }
 
-    /// §4's "click-to-focus": clicking the label focuses the control it names.
+    /// Click-to-focus: clicking the label focuses the control it names.
     ///
     /// A label is the control's **sibling**, so the router's walk up from what
     /// was pressed cannot reach it — this is the flag that makes the walk turn
@@ -92,7 +92,7 @@ record FieldBox(
 
     /// The label, and everything else in a box of its own.
     ///
-    /// **Two children and not three**, which is what makes both of §4's layouts
+    /// **Two children and not three**, which is what makes both of a field's layouts
     /// come out of one structure: a label column is a *row* and a message below
     /// is a *column*, and a flat field can only be one of them. See [FieldBody].
     @Override
@@ -105,8 +105,8 @@ record FieldBox(
 
     @Override
     public Box render(ComputedStyle style, List<Box> children, Context context) {
-        // Nothing but the cascade decides this node's shape. §4's "consistent
-        // label column (or stacked labels via class)" is two flex directions and
+        // Nothing but the cascade decides this node's shape. A consistent label
+        // column, or stacked labels via a class, is two flex directions and
         // one class, which is a stylesheet's job entirely -- and making it one
         // here would be the widget overriding what a document asked for.
         return Box.of().style(style).children(children.toArray(Box[]::new));

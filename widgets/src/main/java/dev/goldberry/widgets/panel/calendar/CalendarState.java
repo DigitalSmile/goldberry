@@ -17,7 +17,7 @@ import dev.goldberry.widgets.core.presence.Phase;
 ///
 /// ## The roving day is state and the selection is not
 ///
-/// §10 gives the grid "a roving day", and a roving highlight is not a selection:
+/// The grid has a roving day, and a roving highlight is not a selection:
 /// a user arrowing across a month has chosen nothing yet, and an application told
 /// about every arrow would be told about forty things nobody picked. So the day
 /// under the keyboard lives here and only `Enter`, `Space` or a press reports
@@ -39,7 +39,7 @@ final class CalendarState extends State<CalendarView> implements CalendarBox.Cal
 
     private LocalDate roving = LocalDate.EPOCH;
 
-    /// The month being faded out, and how far through — §3.1's cross-fade. Both
+    /// The month being faded out, and how far through the cross-fade it is. Both
     /// null when nothing is changing, which is nearly always.
     private @Nullable CalendarMonth outgoing;
 
@@ -185,7 +185,7 @@ final class CalendarState extends State<CalendarView> implements CalendarBox.Cal
     /// acceptable one in a direction the caller did not give — and a `Right` that
     /// skipped four days because a weekend was refused is a grid whose arrows
     /// lie. The roving day may therefore sit on a refused date, which draws as
-    /// `:disabled` and cannot be chosen; §10 asks for the days to be unreachable,
+    /// `:disabled` and cannot be chosen; a refused day must be unreachable,
     /// and unreachable is what `choose` enforces.
     private LocalDate clamped(LocalDate date) {
         var calendar = widget();

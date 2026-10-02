@@ -553,3 +553,4 @@ proposing to undo them.
 - [ADR-0515 A scheme in the guide is a drawn picture](0515-a-scheme-in-the-guide-is-a-drawn-picture.md)
 - [ADR-0516 The README is a front door, and the guide is the rest](0516-the-readme-is-a-front-door-and-the-guide-is-the-rest.md)
 - [ADR-0517 A lane without libgoldberry is green](0517-a-lane-without-libgoldberry-is-green.md)
+- [ADR-0518 A doc comment explains the object and links the guide](0518-a-doc-comment-explains-the-object-and-links-the-guide.md)

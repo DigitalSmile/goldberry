@@ -21,10 +21,9 @@ import org.junit.jupiter.api.TestMethodOrder;
 
 /// What the two ways of binding a model cost.
 ///
-/// ADR-0155
-/// made weaving the **native-image** path and reflection the ordinary jar's, and
-/// said the trade was worth it. This is where that claim gets a number instead of
-/// an adjective.
+/// Weaving is the **native-image** path and reflection the ordinary jar's, and
+/// the trade is held to be worth it. This is where that claim gets a number
+/// instead of an adjective.
 ///
 /// Both arms are in one JVM, on the same model class, measured by one loop:
 /// [Woven] weaves the fixture in memory and defines it in a loader of its own,
@@ -34,8 +33,8 @@ import org.junit.jupiter.api.TestMethodOrder;
 ///
 /// **Tagged `benchmark`, so `check` never runs it.** Nothing here asserts a
 /// timing: a threshold on shared hardware fails for reasons that have nothing to
-/// do with the code, and ADR-0045 exists to stop this repository optimising
-/// against a number it has not taken. Run with
+/// do with the code, and this repository does not optimise against a number it
+/// has not taken. Run with
 /// `./gradlew :weaver:benchmark`.
 ///
 /// ## Where the two differ, and where they cannot
@@ -276,7 +275,7 @@ class BindingSchemeBenchmark {
     @Order(6)
     @DisplayName("an action sweeps every model, so the population is the other axis")
     void sweepPopulation() {
-        // The cost ADR-0155 wrote down and did not measure. Reported as a delta
+        // The cost of the reflective scheme that was named but never measured. Reported as a delta
         // across one phase, so whatever this class attached earlier is a constant
         // in both readings and cancels out of the slope.
         var subject = raw(OneValue.class);

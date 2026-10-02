@@ -34,7 +34,8 @@ import dev.goldberry.widget.attr.Attributes;
 import dev.goldberry.widgets.Controls;
 import dev.goldberry.widgets.Widgets;
 
-/// The tenth control, and the first whose drag is a **rate** ([ADR-0089]).
+/// The tenth control, and the first whose drag is a **rate**: a knob turns by
+/// how far the pointer has travelled, not by where it is.
 ///
 /// The pointer tests build events by hand and set the anchor themselves, which is
 /// exactly what the router does — [KnobGestureTest] is the one that proves the
@@ -65,7 +66,7 @@ class KnobTest {
     @DisplayName("the drag")
     class Drag {
 
-        /// §3: "value drag **200px** per full range". Up is more, because `dragY`
+        /// A value drag covers the full range in **200px**. Up is more, because `dragY`
         /// is positive downwards and a knob that turned up when dragged down
         /// would be the one control in the toolkit that disagrees with the rest.
         @Test
@@ -95,7 +96,7 @@ class KnobTest {
             assertEquals(20.0, asked(knob, drag(200, 180, Modifiers.NONE, 10)).getFirst(), 1e-9);
         }
 
-        /// §3: "×0.1 with fine modifier".
+        /// The fine modifier scales a drag by ×0.1.
         @Test
         @DisplayName("Shift makes 200px a tenth of the range")
         void fineIsATenth() {
@@ -135,7 +136,7 @@ class KnobTest {
         }
 
         /// A `MOVED` with no button held carries a `NaN` anchor, which is the
-        /// router reporting "no gesture" through the arithmetic (ADR-0075).
+        /// router reporting "no gesture" through the arithmetic.
         @Test
         @DisplayName("a move with no gesture asks for nothing")
         void hoverIsNotADrag() {
@@ -318,8 +319,8 @@ class KnobTest {
     class Wheel {
 
         /// The first widget in the toolkit to handle [PointerEvent.Kind#WHEEL] —
-        /// the route has been live and tested since ADR-0061 and nothing consumed
-        /// it.
+        /// the route had been live and tested since the first pushed events, and
+        /// nothing consumed it.
         @Test
         @DisplayName("a line moves what an arrow moves, and away from the user is less")
         void aLineIsAStep() {
@@ -371,7 +372,7 @@ class KnobTest {
         }
     }
 
-    /// [ADR-0236]: what is consumed is what moved, which is
+    /// What is consumed is what moved, which is
     /// [dev.goldberry.widgets.core.scroll.ScrollViewport]'s rule
     /// rather than a second one. These are the arithmetic half; the bubble
     /// through a real scroll view is [KnobChainingTest]'s.
@@ -478,7 +479,7 @@ class KnobTest {
             return seen;
         }
 
-        /// §3 gives `slider` and `knob` the same map, so this is deliberately the
+        /// A `slider` and a `knob` share one keyboard map, so this is deliberately the
         /// same set of assertions [SliderTest] makes: a second thing to learn is a
         /// cost with no benefit.
         @Test
@@ -497,8 +498,7 @@ class KnobTest {
         }
 
         /// A knob at its maximum still owns `Right`: letting it through would hand
-        /// the key to a focus scope and move focus off the control being adjusted
-        /// (ADR-0073, ADR-0078).
+        /// the key to a focus scope and move focus off the control being adjusted.
         @Test
         @DisplayName("an arrow is consumed even when the value cannot move")
         void consumedAtTheEnd() {
@@ -511,7 +511,7 @@ class KnobTest {
     }
 
     @Nested
-    @DisplayName("parity (§11)")
+    @DisplayName("markup and Java build the same tree")
     class Parity {
 
         @Test
@@ -551,10 +551,10 @@ class KnobTest {
                 0.5, new Knob(-1, 1, 0, 0, null).fraction(), 1e-9, "and a range through zero is not a special case");
     }
 
-    /// §3's row: diameters 32 / 48. Read off the resolved style rather than the
+    /// The knob's metrics: diameters 32 / 48. Read off the resolved style rather than the
     /// stylesheet, so a rule that stopped matching fails here.
     @Test
-    @DisplayName("§3's two diameters come out of the cascade")
+    @DisplayName("the knob's two diameters come out of the cascade")
     void diameters() {
         assertEquals(Length.points(32), styleOf(new Knob(0, 1, 0, 0, null)).width());
         assertEquals(

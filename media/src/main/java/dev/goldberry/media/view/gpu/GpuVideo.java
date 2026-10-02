@@ -8,7 +8,7 @@ import org.slf4j.Logger;
 import dev.goldberry.log.Logs;
 
 /// Whether `:gpu` is here to show video with, and the [VideoPresenter] that
-/// does (`docs/gpu-plan.md`, phase 6; ADR-0484).
+/// does.
 ///
 /// This module `requires static` `:gpu`: a video plays without it, drawn on the
 /// CPU, and an application that ships no GPU module ships no GPU code. So `:gpu`
@@ -17,8 +17,8 @@ import dev.goldberry.log.Logs;
 /// names `:gpu`'s types, and it is loaded only through [#presenter], only when
 /// [#available()] said yes.
 ///
-/// Public, with [#available()] and [#presenter], for [VideoPresenter]'s reason
-/// (ADR-0496). [GpuVideoPresenter] stays package-private: nothing outside this
+/// Public, with [#available()] and [#presenter], for [VideoPresenter]'s reason.
+/// [GpuVideoPresenter] stays package-private: nothing outside this
 /// package may name it, which is the seal the split exists to show.
 public final class GpuVideo {
 

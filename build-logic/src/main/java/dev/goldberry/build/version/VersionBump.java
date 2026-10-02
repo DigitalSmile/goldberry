@@ -5,12 +5,12 @@ import java.util.regex.Pattern;
 
 /**
  * The rewrite of {@code gradle.properties} that follows a tag: the release line
- * master moves to once the one it declares is out (ADR-0333, ADR-0426).
+ * master moves to once the one it declares is out.
  *
  * <h2>Why this is a value and not a line of shell</h2>
  *
- * <p>The step that does this by hand is the one ADR-0333 listed as a consequence
- * and nothing enforced: <em>"someone has to bump {@code gradle.properties} after
+ * <p>The step that does this by hand was listed as a consequence of calendar
+ * versioning and nothing enforced it: <em>"someone has to bump {@code gradle.properties} after
  * every release, or master keeps publishing snapshots of a version that is
  * already out"</em> -- which Maven orders <em>below</em> the release, so a
  * consumer who followed the snapshot silently goes backwards. Forgetting is

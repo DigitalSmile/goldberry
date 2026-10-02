@@ -16,8 +16,8 @@ import dev.goldberry.widget.style.Styled;
 
 /// What a [Wizard] draws: the indicator, the content and the bar, in a column.
 ///
-/// `wizard` as a **CSS type** is this node and not the stateful one above it
-/// (ADR-0109). The attributes are the wizard's own, carried down so `#signup`
+/// `wizard` as a **CSS type** is this node and not the stateful one above it,
+/// so a stylesheet's rules apply once. The attributes are the wizard's own, carried down so `#signup`
 /// lands on the node a stylesheet can see.
 ///
 /// @param children   the indicator, the content area and the action bar
@@ -51,8 +51,7 @@ record WizardPanel(List<Widget> children, String name, Attributes attributes)
         return Box.of().style(style).children(boxes.toArray(Box[]::new));
     }
 
-    /// [Role#GROUP] "with the step count and position" — §6's semantics line,
-    /// and the position is the name.
+    /// [Role#GROUP], with the step count and position as its name.
     @Override
     public Role role() {
         return Role.GROUP;

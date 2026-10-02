@@ -7,7 +7,7 @@ import org.junit.jupiter.api.Assumptions;
 ///
 /// Skips on any other system, and fails on macOS where
 /// `-Pgoldberry.platform.required=true` says they must be there: a macOS job that
-/// skips its platform decoders is a green tick over nothing (ADR-0016). The flag
+/// skips its platform decoders is a green tick over nothing. The flag
 /// is a job's, and a Linux or Windows job sets it for its own system's decoders.
 final class PlatformRequirement {
 

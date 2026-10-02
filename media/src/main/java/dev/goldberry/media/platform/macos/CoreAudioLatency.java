@@ -10,9 +10,9 @@ import org.slf4j.Logger;
 import dev.goldberry.log.Logs;
 import dev.goldberry.media.audio.OutputLatency;
 
-/// The default output device's latency on macOS, read from Core Audio
-/// (ADR-0474): what `goldberry-media`'s SDL sink takes off the audio clock
-/// beyond SDL's own buffers.
+/// The default output device's latency on macOS, read from Core Audio: what
+/// `goldberry-media`'s SDL sink takes off the audio clock beyond SDL's own
+/// buffers, so that the clock reads what is heard.
 ///
 /// Found by `ServiceLoader` like the decoders, so an application that plays
 /// media has its pictures held back for a Bluetooth headset with no code. On any other system it answers empty.

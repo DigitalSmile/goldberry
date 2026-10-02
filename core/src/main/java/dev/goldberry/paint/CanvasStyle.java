@@ -5,14 +5,13 @@ import java.util.Objects;
 import dev.goldberry.assets.BundledFont;
 import dev.goldberry.text.font.Font;
 
-/// What the cascade resolved for the box a painter is drawing inside —
-/// `docs/gaps.md` G11.
+/// What the cascade resolved for the box a painter is drawing inside.
 ///
-/// A painter is handed a [Frame] and a size, and until this existed that was
-/// all: canvas text had to **name** a font (`Font.bundled(BundledFont.UI, 14)`)
-/// rather than inherit the one `canvas { font-family: … }` resolved, and an
-/// animated canvas had no clock to be a function of. Both are facts the renderer
-/// already had and was not passing on.
+/// A painter is handed a [Frame] and a size, and this is the third thing it is
+/// handed: with it, canvas text inherits the font `canvas { font-family: … }`
+/// resolved rather than naming one (`Font.bundled(BundledFont.UI, 14)`), and an
+/// animated canvas has a clock to be a function of. Both are facts the renderer
+/// already has, passed on.
 ///
 /// ## A snapshot, not a view
 ///
@@ -27,8 +26,9 @@ import dev.goldberry.text.font.Font;
 /// `Paints.Context.color("--gb-chart-1", …)` resolves against the element being
 /// rendered, and a canvas painter cannot name the tokens it will want in advance.
 /// A widget that needs them is a [dev.goldberry.widget.style.Paints]
-/// and reads them in `render`, which is what every chart in the catalog does
-/// (ADR-0195).
+/// and reads them in `render`, which is what every chart in the catalog does.
+///
+/// Read more: [Canvas, images and QR codes](https://goldberry.dev/docs/components/drawing.html#the-painter).
 ///
 /// @param font          the node's own resolved font — `font-family`, `font-size`
 ///                      and `font-weight` as the cascade settled them, from the
@@ -36,7 +36,7 @@ import dev.goldberry.text.font.Font;
 /// @param ink           the node's resolved `color`, as `0xAARRGGBB`
 /// @param nowMillis     this frame's time on the renderer's clock, read once per
 ///                      frame and shared, so two canvases animate on one tick
-/// @param reducedMotion whether the user asked for less movement (§1.7)
+/// @param reducedMotion whether the user asked for less movement
 public record CanvasStyle(Font font, int ink, double nowMillis, boolean reducedMotion) {
 
     /// The size a font is when nothing resolved one — the toolkit's own body

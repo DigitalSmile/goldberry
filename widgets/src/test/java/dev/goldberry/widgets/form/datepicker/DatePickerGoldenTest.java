@@ -27,15 +27,15 @@ import dev.goldberry.widgets.panel.calendar.DateSelection;
 
 /// What a `date-picker` looks like, closed and open.
 ///
-/// The **closed** control is the one thing no other file photographs: §2 gives
-/// this row "field = `text-input`", and the question a picture answers is whether
+/// The **closed** control is the one thing no other file photographs: the field
+/// is a `text-input`, and the question a picture answers is whether
 /// the affordance beside it reads as part of the same control or as a second one
 /// bolted on.
 ///
 /// The **open** one is built by hand rather than by opening the popover, because
-/// a golden has no window and a popup is a platform window (ADR-0140). What it
+/// a golden has no window and a popup is a platform window. What it
 /// photographs is the thing that would otherwise go unwatched: `picker-panel`
-/// is §2's "popup radius 12, padding 8", and the calendar inside draws no surface
+/// is a popup surface — radius 12, padding 8 — and the calendar inside draws no surface
 /// of its own — so if the panel ever stopped drawing one, the grid would float on
 /// the desktop and every test in this module would still pass.
 ///
@@ -108,7 +108,7 @@ class DatePickerGoldenTest {
         paint("date-picker-empty", Theme.NORD_DARK, 224, 56, picker(""));
     }
 
-    /// The popover's surface, with §10's grid on it. Built directly, for the
+    /// The popover's surface, with the `calendar` grid on it. Built directly, for the
     /// reason in the class note.
     @Test
     @DisplayName("the panel the grid opens on")

@@ -15,8 +15,8 @@ import dev.goldberry.media.platform.windows.MediaFoundationAudioProvider;
 import dev.goldberry.media.platform.windows.MediaFoundationVideoProvider;
 import dev.goldberry.media.platform.windows.WindowsDecoders;
 
-/// The operating system's own decoders, as Decoder SPI providers
-/// (`docs/goldberry-media.md` §5, ADR-0472, ADR-0489).
+/// The operating system's own decoders, as Decoder SPI providers: they bind the
+/// system's frameworks and ship no native code.
 ///
 /// These providers are found by `ServiceLoader` like any other, so an
 /// application that has `goldberry-media` needs no code: a `MediaPlayer`
@@ -42,6 +42,8 @@ import dev.goldberry.media.platform.windows.WindowsDecoders;
 /// Each provider supports nothing on another system, so a file in one of these
 /// codecs fails there with `UNSUPPORTED_CODEC` naming it, as it would with no
 /// system decoders at all.
+///
+/// Read more: [Bringing a codec](https://goldberry.dev/docs/components/media.html#bringing-a-codec).
 public final class PlatformDecoders {
 
     private PlatformDecoders() {}

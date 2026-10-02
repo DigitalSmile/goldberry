@@ -18,8 +18,7 @@ import dev.goldberry.text.document.TextDocument;
 import dev.goldberry.text.flow.TextAlign;
 import dev.goldberry.text.font.Font;
 
-/// What one keystroke into a long text costs an [Editor], **counted** —
-/// [ADR-0411].
+/// What one keystroke into a long text costs an [Editor], **counted**.
 ///
 /// The guard for a cost rather than for a feature, so the assertions here are
 /// counts and none of them is a duration: how many characters a keystroke shaped

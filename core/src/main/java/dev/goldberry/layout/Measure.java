@@ -9,12 +9,14 @@ package dev.goldberry.layout;
 /// ## Why the toolkit owns this interface
 ///
 /// It is the return type of `Paragraph.measureFunction()`, which is read by the
-/// render tree — so before ADR-0279 an application reading that signature read a
+/// render tree — so an application reading that signature would otherwise read a
 /// `:natives` callback type. Nothing about the question is native: it is four
 /// numbers in and two out.
 ///
 /// Implementations run on the layout engine's calling thread, in the middle of a
 /// layout pass, so this is the wrong place for anything slow or reentrant.
+///
+/// Read more: [How layout works](https://goldberry.dev/docs/layout/index.html#text-is-a-measured-leaf).
 @FunctionalInterface
 public interface Measure {
 

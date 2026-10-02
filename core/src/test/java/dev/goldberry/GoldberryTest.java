@@ -11,7 +11,7 @@ import org.junit.jupiter.api.Test;
 
 class GoldberryTest {
 
-    /// YEAR.COUNT, an optional patch, an optional -SNAPSHOT (ADR-0333) -- the shape
+    /// YEAR.COUNT, an optional patch, an optional -SNAPSHOT -- the calendar shape
     /// `CalendarVersion` accepts in build-logic.
     private static final String CALENDAR_VERSION = "\\d{4}\\.[1-9]\\d*(\\.[1-9]\\d*)?(-SNAPSHOT)?";
 
@@ -51,7 +51,7 @@ class GoldberryTest {
     @DisplayName("version() is the version the build resolved, and is not a placeholder")
     void versionIsTheBuilds() {
         // `assertTrue(version().equals(version()))` stood here, which compares a
-        // static final with itself and can never fail (the 2026-09-18 review, §6).
+        // static final with itself and can never fail.
         // What is worth pinning is that the generated constant reached the class:
         // an unresolved one reads `unknown`, which is what a jar built outside
         // Gradle would report.

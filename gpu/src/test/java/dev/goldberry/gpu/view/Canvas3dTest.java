@@ -37,7 +37,8 @@ import dev.goldberry.widgets.markup.Named;
 import dev.goldberry.widgets.markup.Wiring;
 
 /// `canvas3d` as a widget, with no GPU: its markup, when it is drawn again,
-/// and what it shows where there is no GPU (ADR-0482). Runs on every leg.
+/// and what it shows where there is no GPU. Runs on every leg. Read more:
+/// [canvas3d](https://goldberry.dev/docs/components/gpu.html#canvas3d).
 @DisplayName("canvas3d, the widget")
 class Canvas3dTest {
 

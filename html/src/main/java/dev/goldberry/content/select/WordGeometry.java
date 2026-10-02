@@ -12,10 +12,10 @@ import dev.goldberry.text.Paragraph;
 ///
 /// The thing a document needs in order to be **selectable** and the one thing a
 /// widget cannot work out for itself: `build` and `render` both run before Yoga, so
-/// a word describing itself has no idea where it is (ADR-0080). Three facilities
-/// answer geometry questions in this toolkit and only one carries a position —
+/// a word describing itself has no idea where it is. Three facilities answer
+/// geometry questions in this toolkit and only one carries a position —
 /// [dev.goldberry.input.handler.Located] — so each [Word] reports
-/// its own rectangle here, once a frame, when it changes (ADR-0301).
+/// its own rectangle here, once a frame, when it changes.
 ///
 /// ## What is registered when
 ///
@@ -31,7 +31,7 @@ import dev.goldberry.text.Paragraph;
 /// ## Entries belong to a block, not to the document
 ///
 /// The words are stored **per block** and flattened afterwards, which looks like a
-/// detail and is the whole of [ADR-0389]. An entry is the identity a word is
+/// detail and is what makes a keystroke cheap. An entry is the identity a word is
 /// reconciled and memoized on, so where it is stored decides what a keystroke costs:
 /// with one flat array, typing a space in the first paragraph gives every word in the
 /// note a new entry and the document is rebuilt, re-measured and re-laid-out from the
@@ -45,6 +45,8 @@ import dev.goldberry.text.Paragraph;
 /// entries are overwritten in place rather than rebuilt, because a scroll moves six
 /// hundred rectangles and allocating six hundred records per frame to say so would be
 /// the cost this whole file exists to avoid.
+///
+/// Read more: [Selection](https://goldberry.dev/docs/components/content.html#selection).
 public final class WordGeometry {
 
     /// One word: what it says, where it is, and what it is part of.

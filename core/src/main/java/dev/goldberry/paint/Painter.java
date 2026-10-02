@@ -2,7 +2,7 @@ package dev.goldberry.paint;
 
 import dev.goldberry.render.model.LogicalSize;
 
-/// What a `canvas` draws — `docs/core-widgets.md` §1's `onPaint(ctx, size)`.
+/// What a `canvas` draws.
 ///
 /// The one place an application is handed the toolkit's own rasterizer. It is
 /// called during the frame, at the point in the tree where the canvas sits, with
@@ -14,9 +14,8 @@ import dev.goldberry.render.model.LogicalSize;
 ///
 /// Anything. Set a clip, a transform, a global alpha, leave them set — the
 /// toolkit brackets the call in a `save`/`restore` pair and the context comes
-/// back exactly as it was
-/// (ADR-0193).
-/// That pair is why this can be an application's code at all: every other painter
+/// back exactly as it was. That pair is why this can be an application's code at
+/// all: every other painter
 /// in the toolkit is trusted to unset what it set, and this one is not asked to
 /// be.
 ///
@@ -30,6 +29,8 @@ import dev.goldberry.render.model.LogicalSize;
 ///
 /// It runs on the UI thread, inside the frame, so it is also the wrong place for
 /// anything slow: a painter that blocks blocks the window.
+///
+/// Read more: [Canvas, images and QR codes](https://goldberry.dev/docs/components/drawing.html#the-painter).
 @FunctionalInterface
 public interface Painter {
 

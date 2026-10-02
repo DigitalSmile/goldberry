@@ -13,8 +13,8 @@ import java.util.stream.Stream;
 /// Which widgets the guide pictures, read from the guide itself.
 ///
 /// Under every heading that is exactly a markup name in code marks —
-/// `` ## `button` `` — the first fenced block is the widget's sample
-/// (`docs/book.md`). When it is a plain `kdl` block the widget is pictured from
+/// `` ## `button` `` — the first fenced block is the widget's sample. When it
+/// is a plain `kdl` block the widget is pictured from
 /// it, in both shades, and the picture is placed under the heading. When the
 /// author fenced it `kdl,ignore`, the sample needs something bound — a player, a
 /// renderer — that a preview cannot supply, and the heading is skipped with

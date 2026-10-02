@@ -22,13 +22,15 @@ import dev.goldberry.widget.ElementTree;
 import dev.goldberry.widgets.data.areachart.AreaChart;
 import dev.goldberry.widgets.data.linechart.LineChart;
 
-/// What each [NullPolicy] looks like — `charts.md` §3.1's "a gap drawn as zero is
-/// a lie about the data and the default is the gap".
+/// What each [NullPolicy] looks like. A gap drawn as zero is a lie about the
+/// data, so the default is the gap.
 ///
 /// `GapsTest` has the arithmetic. These are the pictures, and one of them is the
 /// assertion that matters most: **the three policies must not draw the same
 /// thing.** A chart whose null handling was wired up but never applied would pass
 /// every unit test in the other file.
+///
+/// Read more: [What the five share](https://goldberry.dev/docs/components/charts.html#what-the-five-share).
 class ChartGapsTest {
 
     @BeforeEach

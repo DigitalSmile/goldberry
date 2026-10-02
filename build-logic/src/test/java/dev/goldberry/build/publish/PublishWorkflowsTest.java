@@ -13,7 +13,8 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * The shape ADR-0334 gives the publishing workflows, held as text.
+ * The shape of the publishing workflows -- Central is fed once per run, by
+ * {@code publish.yml} alone -- held as text.
  *
  * <p>Each rule here is one that fails quietly when broken. A per-OS workflow that
  * regains its {@code push} trigger builds every native library twice per commit
@@ -58,7 +59,7 @@ class PublishWorkflowsTest {
                 () -> assertTrue(text.contains("uses: ./.github/workflows/linux.yml")),
                 () -> assertTrue(text.contains("uses: ./.github/workflows/macos.yml")),
                 () -> assertTrue(text.contains("uses: ./.github/workflows/windows.yml")),
-                // FFmpeg for goldberry-media's classifiers (ADR-0495).
+                // FFmpeg for goldberry-media's classifiers.
                 () -> assertTrue(text.contains("uses: ./.github/workflows/media.yml")),
                 () -> assertTrue(text.contains("needs: [linux, windows, macos, media]")),
                 () -> assertTrue(text.contains("-Pgoldberry.media.artifactsDir=")),
@@ -108,7 +109,7 @@ class PublishWorkflowsTest {
     void exampleIsFolded() {
         assertAll(
                 () -> assertFalse(Repository.exists(".github/workflows/example.yml"),
-                        "example.yml is back; ADR-0335 folded it into showcase.yml, ADR-0340 into linux.yml"),
+                        "example.yml is back; it was folded into showcase.yml, and then into linux.yml"),
                 () -> assertTrue(Repository.workflow("linux.yml").contains(":example:build"),
                         "linux.yml's verify leg must run the example's tests against the library"),
                 () -> assertFalse(Repository.workflow("showcase.yml").contains(":example:build"),

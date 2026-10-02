@@ -426,8 +426,8 @@ public record StyleCalls(
     // Eleven properties, each set through two or three C functions that differ
     // only in their address. A holder per function would need eleven record
     // types to group them by property, so these are holders per *shape*: the
-    // handle is still a constant read inside `call`, which is what ADR-0173
-    // requires, and the symbol travels on the instance so a failure names the
+    // handle is still a constant read inside `call`, which is what every holder
+    // promises, and the symbol travels on the instance so a failure names the
     // function that failed rather than the shape.
 
     /// A points or percent setter — `YGNodeStyleSetWidth`, `…WidthPercent`, and

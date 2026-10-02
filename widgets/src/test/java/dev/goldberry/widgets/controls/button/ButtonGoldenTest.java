@@ -25,7 +25,7 @@ import dev.goldberry.widgets.Controls;
 import dev.goldberry.widgets.controls.TestFont;
 import dev.goldberry.widgets.core.Row;
 
-/// What a button actually looks like (§14, [ADR-0050]).
+/// What a button actually looks like, held as golden images.
 ///
 /// The value assertions in [ButtonTest] check what the cascade *resolved*. These
 /// check what Blend2D *drew* — which is a different question, and the one that
@@ -107,9 +107,9 @@ class ButtonGoldenTest {
         // Two files, not one shared rule: the light theme's hover darkens where
         // the dark theme's lightens, and this is where that stops being a claim.
         // `link` is the one whose ink differs between the files rather than its
-        // fill: the dark theme lifts the accent a step to clear §1.2 on
-        // `--gb-surface-2`, and the light theme reaches for the two-steps-darker
-        // fill value instead (ADR-0293).
+        // fill: the dark theme lifts the accent a step to clear the contrast
+        // floor on `--gb-surface-2`, and the light theme reaches for the
+        // two-steps-darker fill value instead.
         paint(
                 "button-variants-light",
                 Theme.NORD_LIGHT,
@@ -143,7 +143,7 @@ class ButtonGoldenTest {
     void withIcon() {
         // The icon is a box beside the label, laid out by Yoga at the 6-point gap
         // the design system asks for -- not drawn over the top of the button,
-        // which is what ADR-0043 had to leave it as.
+        // which is where the first stroked-path icons had to leave it.
         paint(
                 "button-icon",
                 Theme.NORD_DARK,

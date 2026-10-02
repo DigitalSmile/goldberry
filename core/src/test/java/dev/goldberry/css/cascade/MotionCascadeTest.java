@@ -16,8 +16,10 @@ import org.junit.jupiter.api.Test;
 import dev.goldberry.css.Stylesheet;
 import dev.goldberry.css.parse.Token;
 
-/// What the cascade does with `@starting-style` ([ADR-0352]) and `@keyframes`
-/// ([ADR-0353]).
+/// What the cascade does with `@starting-style` and `@keyframes`.
+///
+/// Read more:
+/// [Transition and animation](https://goldberry.dev/docs/guide/styling.html#transition-and-animation).
 class MotionCascadeTest {
 
     private static StyleResolver resolver(String css) {

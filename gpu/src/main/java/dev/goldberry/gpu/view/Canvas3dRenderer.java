@@ -4,8 +4,7 @@ import dev.goldberry.gpu.GpuDevice;
 import dev.goldberry.gpu.GpuFrame;
 import dev.goldberry.render.model.PhysicalSize;
 
-/// What draws a `canvas3d`: an application's own renderer, on the GPU
-/// (`docs/gpu-plan.md`, phase 5; ADR-0482).
+/// What draws a `canvas3d`: an application's own renderer, on the GPU.
 ///
 /// ```java
 /// final class Cube implements Canvas3dRenderer {
@@ -37,12 +36,13 @@ import dev.goldberry.render.model.PhysicalSize;
 /// **What it is drawn into** is the toolkit's: a colour texture at the canvas's
 /// size, and a depth texture beside it when the canvas asks for one. The
 /// renderer covers every pixel of the colour texture -- a render pass that
-/// clears is the usual way -- and its picture is opaque, as every GPU layer is
-/// (ADR-0481).
+/// clears is the usual way -- and its picture is opaque, as every GPU layer is.
 ///
 /// **When it is drawn** is the canvas's choice: on every frame while it is
 /// `continuous`, and otherwise when its [Canvas3d#revision()] changes and when its
 /// size changes. Between those the last picture is shown again.
+///
+/// Read more: [The renderer](https://goldberry.dev/docs/components/gpu.html#the-renderer).
 public interface Canvas3dRenderer {
 
     /// Makes what the renderer draws with, on `device`: pipelines, buffers,

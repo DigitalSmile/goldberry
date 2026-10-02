@@ -2,7 +2,7 @@
  * libgoldberry translation unit.
  *
  * Deliberately tiny. Goldberry binds its native dependencies through
- * hand-written FFM downcalls (ADR-0010), not through C glue, so this file holds
+ * hand-written FFM downcalls, not through C glue, so this file holds
  * only the four things that cannot live on the Java side:
  *
  *   1. An ABI probe, so the Java layer can refuse a mismatched library instead
@@ -17,13 +17,13 @@
  *   3. A caller for the measure callback, because an upcall that returns a
  *      struct BY VALUE cannot be proven from Java alone -- something compiled by
  *      the target's own C compiler has to receive the struct and say what
- *      arrived (ADR-0017).
+ *      arrived.
  *
  *   4. Markdown's event stream, encoded into one buffer. md4c is a SAX parser and
  *      binding it the obvious way would cross the boundary thousands of times per
- *      document; the hot path does not cross FFM (ADR-0190, ADR-0294).
+ *      document; the hot path does not cross FFM.
  *
- * See docs/ARCHITECTURE.md §3.1 and §3.2.
+ * https://goldberry.dev/docs/overview/architecture.html#the-native-boundary
  */
 
 #include <stddef.h>
@@ -49,7 +49,7 @@
  * and the rest -- is one 16-byte BLObjectDetail union, and the Java side
  * allocates them by that size. If that ever stopped being true the bindings
  * would hand Blend2D a segment too small to initialise, so the equality is
- * asserted here rather than assumed. See ADR-0031.
+ * asserted here rather than assumed.
  *
  * blend2d.h is C-compatible: the C++ class bodies are all behind __cplusplus,
  * and the C API is what remains.
@@ -60,7 +60,7 @@
  * For hb_glyph_info_t and hb_glyph_position_t. Shaping returns two parallel
  * arrays of these, read directly out of HarfBuzz's own memory rather than
  * copied -- so their strides have to be exactly right or every glyph after the
- * first lands at the wrong offset. See ADR-0032.
+ * first lands at the wrong offset.
  */
 #include <hb.h>
 
@@ -68,7 +68,7 @@
  * For md4c's parser, and for the HTML5 named-entity table beside it. Both are
  * compiled into this translation unit's target rather than linked as a library
  * (see the CMakeLists), because the only caller of either is the code at the
- * bottom of this file. See ADR-0294.
+ * bottom of this file.
  */
 #include <md4c.h>
 #include <entity.h>
@@ -82,7 +82,7 @@
  * into it by offset: a WebPData holding a pointer and a size, an options block
  * the library fills in, and an info block it reads back. Those three sizes and
  * offsets were counted by hand against demux.h and believed, which is precisely
- * what ADR-0010 says not to do. And WEBP_DEMUX_ABI_VERSION travels on every
+ * what hand-written bindings must never do. And WEBP_DEMUX_ABI_VERSION travels on every
  * `…Internal` call: a pinned libwebp that bumps it makes the decoder refuse
  * every animation, silently, because "not an animation" is a normal answer.
  */
@@ -125,11 +125,12 @@ GOLDBERRY_EXPORT uint32_t goldberry_abi_version(void) {
  * portal file dialog and the screensaver inhibit; a second one gates the input
  * method on X11, and a third input-device hotplug.
  *
- * Three shipped capabilities silently downgraded by an absent -dev package is
- * what docs/gaps.md G32 is, and half its answer is that the build now refuses to
+ * Three shipped capabilities silently downgraded by an absent -dev package has
+ * happened, and half the answer is that the build now refuses to
  * produce such a library by accident (CMakeLists.txt). This is the other half:
  * whatever a build ends up being, it says so, in one word an application can
- * read back through Goldberry.capabilities() (ADR-0325).
+ * read back through Goldberry.capabilities().
+ * https://goldberry.dev/docs/guide/logging.html#what-this-build-can-do
  *
  * Build-time, deliberately. These bits describe the LIBRARY, not the session it
  * is loaded into: a build with D-Bus support running on a desktop that has no
@@ -186,13 +187,13 @@ GOLDBERRY_EXPORT uint32_t goldberry_abi_version(void) {
  * reads them out of the SDL_build_config.h SDL generated, rather than predicting
  * them with a pkg-config probe and confirming them there. SDL decides its Wayland
  * driver with one pkg_check_modules over five specs plus a scanner binary, and a
- * prediction narrower than that would be worse than none (ADR-0422).
+ * prediction narrower than that would be worse than none.
  *
  * A window's decorations are a build-time fact on Linux and only on Linux:
  * without libdecor SDL compiles no client-side decoration support at all, so a
- * Wayland window opens bare however the session is configured (ADR-0083). The
+ * Wayland window opens bare however the session is configured. The
  * plugin that then has to load is a *run-time* matter and a separate defect
- * (ADR-0084) -- this bit says the toolkit was built able to ask for a titlebar,
+ * -- this bit says the toolkit was built able to ask for a titlebar,
  * not that one will appear.
  */
 #if defined(GOLDBERRY_PLATFORM_HAVE_LIBDECOR_H)
@@ -227,7 +228,7 @@ GOLDBERRY_EXPORT uint32_t goldberry_abi_version(void) {
  * out. GOLDBERRY_CAP_WAYLAND is not, and its absence here is a statement rather
  * than an omission -- there is no Wayland on either platform, so a library that
  * claimed the bit would be claiming something false about the session it will run
- * in (ADR-0422).
+ * in.
  */
 #define GOLDBERRY_CAPABILITIES \
     (GOLDBERRY_CAP_SYSTEM_THEME | GOLDBERRY_CAP_INPUT_METHOD | GOLDBERRY_CAP_DEVICE_HOTPLUG \
@@ -394,7 +395,7 @@ static const goldberry_layout_entry_t GOLDBERRY_LAYOUTS[] = {
     GB_FIELD(SDL_TextEditingEvent, start),
     GB_FIELD(SDL_TextEditingEvent, length),
 
-    /* Files dropped on a window (sec. G35b, ADR-0330). The two floats between
+    /* Files dropped on a window. The two floats between
      * `windowID` and the two pointers are what make this worth probing: the
      * compiler pads four bytes before `source` to align it, and a layout that
      * counted by hand would read the dropped path out of the middle of a
@@ -435,7 +436,7 @@ static const goldberry_layout_entry_t GOLDBERRY_LAYOUTS[] = {
     GB_FIELD(SDL_Rect, w),
     GB_FIELD(SDL_Rect, h),
 
-    /* What goldberry-media opens its audio stream with (ADR-0461). */
+    /* What goldberry-media opens its audio stream with. */
     GB_STRUCT(SDL_AudioSpec),
     GB_FIELD(SDL_AudioSpec, format),
     GB_FIELD(SDL_AudioSpec, channels),
@@ -443,7 +444,7 @@ static const goldberry_layout_entry_t GOLDBERRY_LAYOUTS[] = {
     GB_CONSTANT("SDL_AUDIO_F32", SDL_AUDIO_F32),
     GB_CONSTANT("SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK", SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK),
 
-    /* SDL_GPU, for M4's first phase (docs/gpu-plan.md). The structs a texture
+    /* SDL_GPU. The structs a texture
      * is created, cleared, uploaded and downloaded through, and every
      * enumerator the Java side hard-codes. */
     GB_STRUCT(SDL_FColor),
@@ -520,7 +521,7 @@ static const goldberry_layout_entry_t GOLDBERRY_LAYOUTS[] = {
     GB_CONSTANT("SDL_GPU_PRESENTMODE_VSYNC", SDL_GPU_PRESENTMODE_VSYNC),
     GB_CONSTANT("SDL_GPU_PRESENTMODE_IMMEDIATE", SDL_GPU_PRESENTMODE_IMMEDIATE),
     GB_CONSTANT("SDL_GPU_PRESENTMODE_MAILBOX", SDL_GPU_PRESENTMODE_MAILBOX),
-    /* Drawing (docs/gpu-plan.md, phase 2): every struct a pipeline is made of,
+    /* Drawing: every struct a pipeline is made of,
      * and the enumerators its Java builder hard-codes. */
     GB_STRUCT(SDL_GPUShaderCreateInfo),
     GB_FIELD(SDL_GPUShaderCreateInfo, code_size),
@@ -669,7 +670,7 @@ static const goldberry_layout_entry_t GOLDBERRY_LAYOUTS[] = {
     GB_CONSTANT("SDL_GPU_SHADERFORMAT_DXIL", SDL_GPU_SHADERFORMAT_DXIL),
     GB_CONSTANT("SDL_GPU_SHADERFORMAT_MSL", SDL_GPU_SHADERFORMAT_MSL),
     GB_CONSTANT("SDL_GPU_SHADERFORMAT_METALLIB", SDL_GPU_SHADERFORMAT_METALLIB),
-    /* The public API (docs/gpu-plan.md, phase 2): buffers, vertex input and
+    /* The public API: buffers, vertex input and
      * depth, for canvas3d, and the enumerators its specs map onto. */
     GB_STRUCT(SDL_GPUBufferCreateInfo),
     GB_FIELD(SDL_GPUBufferCreateInfo, usage),
@@ -768,7 +769,7 @@ static const goldberry_layout_entry_t GOLDBERRY_LAYOUTS[] = {
     GB_CONSTANT("SDL_EVENT_DROP_BEGIN", SDL_EVENT_DROP_BEGIN),
     GB_CONSTANT("SDL_EVENT_USER", SDL_EVENT_USER),
 
-    /* The desktop's light-or-dark setting (sec. G26, ADR-0322). Ordinals in a C
+    /* The desktop's light-or-dark setting. Ordinals in a C
      * enum, and a wrong one starts the application in the wrong theme with no
      * error anywhere -- which is exactly the failure this table exists for. */
     GB_CONSTANT("SDL_SYSTEM_THEME_UNKNOWN", SDL_SYSTEM_THEME_UNKNOWN),
@@ -806,7 +807,7 @@ static const goldberry_layout_entry_t GOLDBERRY_LAYOUTS[] = {
     GB_CONSTANT("SDL_MOUSEWHEEL_FLIPPED", SDL_MOUSEWHEEL_FLIPPED),
 
     /*
-     * The system cursor shapes §7.3 names. Every one is an ordinal in an enum
+     * The system cursor shapes the toolkit names. Every one is an ordinal in an enum
      * upstream is free to extend in the middle -- SDL_SYSTEM_CURSOR_POINTER is
      * 11 today and was not in SDL2 at all -- so these are values to check, not
      * values to copy once and trust.
@@ -829,7 +830,7 @@ static const goldberry_layout_entry_t GOLDBERRY_LAYOUTS[] = {
     GB_CONSTANT("SDL_PIXELFORMAT_ARGB8888", SDL_PIXELFORMAT_ARGB8888),
 
     /*
-     * Yoga's enumerators (ADR-0029).
+     * Yoga's enumerators.
      *
      * All of them, not just the ones a widget is likely to use: the Java enums
      * are the complete C enums, and a Java constant nothing checks is exactly
@@ -900,7 +901,7 @@ static const goldberry_layout_entry_t GOLDBERRY_LAYOUTS[] = {
     GB_CONSTANT("YGWrapWrapReverse", YGWrapWrapReverse),
 
     /*
-     * Blend2D (ADR-0031).
+     * Blend2D.
      *
      * BLObjectDetail is the whole object model: every core object is exactly one
      * of these, static payload and dynamic Impl pointer overlapped in 16 bytes.
@@ -975,7 +976,7 @@ static const goldberry_layout_entry_t GOLDBERRY_LAYOUTS[] = {
     GB_FIELD(BLMatrix2D, m21),
 
     /*
-     * Gradients (ADR-0207). BLGradientCore is BLObjectDetail-shaped like every
+     * Gradients. BLGradientCore is BLObjectDetail-shaped like every
      * other core object; BLLinearGradientValues is the one that matters,
      * because it crosses bl_gradient_init_as as a `const void*` and nothing on
      * either side of that call checks its shape. Four doubles in the order a
@@ -986,7 +987,7 @@ static const goldberry_layout_entry_t GOLDBERRY_LAYOUTS[] = {
 
     /*
      * The other two shapes bl_gradient_init_as reads through the same
-     * `const void*` (ADR-0456). A COLRv1 emoji face fills with radial
+     * `const void*`. A COLRv1 emoji face fills with radial
      * gradients -- two circles, the FOCAL one first in time and second in
      * this struct -- and may fill with sweeps. Six doubles and four, and every
      * field named: a radial read as a linear, or r0 and r1 swapped, is a
@@ -1011,7 +1012,7 @@ static const goldberry_layout_entry_t GOLDBERRY_LAYOUTS[] = {
     GB_FIELD(BLLinearGradientValues, y1),
 
     /*
-     * Fonts and glyph runs (ADR-0034).
+     * Fonts and glyph runs.
      *
      * The three font objects are BLObjectDetail-shaped like every other core
      * object, so these rows say the same thing BLImageCore's does.
@@ -1068,7 +1069,7 @@ static const goldberry_layout_entry_t GOLDBERRY_LAYOUTS[] = {
     GB_FIELD(BLFontMetrics, strikethrough_thickness),
 
     /*
-     * Paths and strokes (ADR-0043).
+     * Paths and strokes.
      *
      * BLPathCore is BLObjectDetail-shaped like every other core object, so this
      * row says what BLImageCore's does: the Java side allocates one by this
@@ -1135,7 +1136,7 @@ static const goldberry_layout_entry_t GOLDBERRY_LAYOUTS[] = {
     GB_CONSTANT("BL_COMP_OP_SRC_COPY", BL_COMP_OP_SRC_COPY),
 
     /*
-     * The rest of what a COLRv1 PaintComposite may name (ADR-0456). Positional
+     * The rest of what a COLRv1 PaintComposite may name. Positional
      * enumerators, so one inserted upstream shifts every one after it -- and a
      * waving flag composited with the wrong operator is still a flag, just the
      * wrong colour. Every one the font format can ask for is checked, not only
@@ -1165,7 +1166,7 @@ static const goldberry_layout_entry_t GOLDBERRY_LAYOUTS[] = {
     GB_CONSTANT("BL_COMP_OP_EXCLUSION", BL_COMP_OP_EXCLUSION),
 
     /*
-     * Which points a path encloses (ADR-0427). Two values, and the wrong one is
+     * Which points a path encloses. Two values, and the wrong one is
      * as silent as every other constant here: a shadow asked to cut its box out
      * of itself under NON_ZERO paints the hole solid instead, which is a dark
      * rectangle over the control and no error anywhere.
@@ -1174,7 +1175,7 @@ static const goldberry_layout_entry_t GOLDBERRY_LAYOUTS[] = {
     GB_CONSTANT("BL_FILL_RULE_EVEN_ODD", BL_FILL_RULE_EVEN_ODD),
 
     /*
-     * How bl_image_scale resamples (ADR-0428). Positional enumerators, so a
+     * How bl_image_scale resamples. Positional enumerators, so a
      * value inserted upstream shifts every one after it -- and the failure is a
      * thumbnail resampled by the wrong filter, which looks like a thumbnail.
      * BL_IMAGE_SCALE_FILTER_NONE is deliberately absent: it is the absence of a
@@ -1198,7 +1199,7 @@ static const goldberry_layout_entry_t GOLDBERRY_LAYOUTS[] = {
      * those placements by the FONT MATRIX, which is size/units-per-em, so they
      * have to arrive in font design units. Naming DESIGN_UNITS and USER_UNITS
      * beside it is not decoration -- picking either of them by mistake would
-     * scale every advance by the point size and still render. See ADR-0034.
+     * scale every advance by the point size and still render.
      */
     GB_CONSTANT("BL_GLYPH_PLACEMENT_TYPE_NONE", BL_GLYPH_PLACEMENT_TYPE_NONE),
     GB_CONSTANT("BL_GLYPH_PLACEMENT_TYPE_ADVANCE_OFFSET", BL_GLYPH_PLACEMENT_TYPE_ADVANCE_OFFSET),
@@ -1207,7 +1208,7 @@ static const goldberry_layout_entry_t GOLDBERRY_LAYOUTS[] = {
     GB_CONSTANT("BL_GLYPH_PLACEMENT_TYPE_ABSOLUTE_UNITS", BL_GLYPH_PLACEMENT_TYPE_ABSOLUTE_UNITS),
 
     /*
-     * Gradients (ADR-0207). Two enumerators, and both are the zero of their
+     * Gradients. Two enumerators, and both are the zero of their
      * enum -- which is exactly why they are checked: a zero that happens to be
      * right today is indistinguishable from a field nobody wrote, and
      * BL_GRADIENT_TYPE_LINEAR sitting at 0 is the reason a wrong `values`
@@ -1228,7 +1229,7 @@ static const goldberry_layout_entry_t GOLDBERRY_LAYOUTS[] = {
     GB_CONSTANT("BL_RUNTIME_INFO_TYPE_RESOURCE", BL_RUNTIME_INFO_TYPE_RESOURCE),
 
     /*
-     * HarfBuzz (ADR-0032).
+     * HarfBuzz.
      *
      * Shaping hands back two parallel arrays that Goldberry reads in place, so
      * these two strides are load-bearing in a way most layout rows are not: get
@@ -1260,7 +1261,7 @@ static const goldberry_layout_entry_t GOLDBERRY_LAYOUTS[] = {
     GB_CONSTANT("HB_MEMORY_MODE_READONLY", HB_MEMORY_MODE_READONLY),
 
     /*
-     * md4c (ADR-0294).
+     * md4c.
      *
      * The Java side switches on every one of these while decoding the event
      * buffer, and md4c has already inserted a value into the middle of two of
@@ -1271,8 +1272,8 @@ static const goldberry_layout_entry_t GOLDBERRY_LAYOUTS[] = {
      *
      * No struct rows. Every detail struct is read HERE, by the code the same
      * compiler built, and reaches Java as three integers in a record that has no
-     * layout to get wrong -- which is the whole argument of ADR-0294 stated as a
-     * gap in this table.
+     * layout to get wrong -- which is the whole argument for crossing the
+     * boundary once, stated as a gap in this table.
      */
     GB_CONSTANT("MD_BLOCK_DOC", MD_BLOCK_DOC),
     GB_CONSTANT("MD_BLOCK_QUOTE", MD_BLOCK_QUOTE),
@@ -1337,7 +1338,7 @@ static const goldberry_layout_entry_t GOLDBERRY_LAYOUTS[] = {
     /* The capability bits above. Not an upstream's constants but this library's
      * own, and on the table for the same reason every other row is: the Java
      * enum hard-codes each value, and a bit that disagrees reports the wrong
-     * capability rather than failing. See ADR-0325. */
+     * capability rather than failing. */
     GB_CONSTANT("GOLDBERRY_CAP_SYSTEM_THEME", GOLDBERRY_CAP_SYSTEM_THEME),
     GB_CONSTANT("GOLDBERRY_CAP_INPUT_METHOD", GOLDBERRY_CAP_INPUT_METHOD),
     GB_CONSTANT("GOLDBERRY_CAP_DEVICE_HOTPLUG", GOLDBERRY_CAP_DEVICE_HOTPLUG),
@@ -1362,7 +1363,7 @@ static const goldberry_layout_entry_t GOLDBERRY_LAYOUTS[] = {
     GB_CONSTANT("SDL_INIT_CAMERA", SDL_INIT_CAMERA),
 
     /*
-     * SDL's own logging, which ADR-0443 routes into SLF4J.
+     * SDL's own logging, which the backend routes into SLF4J.
      *
      * Ordinals in two C enums, and the priorities are the kind SDL has already
      * renumbered: SDL_LOG_PRIORITY_TRACE was inserted at 1, below VERBOSE, and
@@ -1395,7 +1396,7 @@ static const goldberry_layout_entry_t GOLDBERRY_LAYOUTS[] = {
     GB_CONSTANT("SDL_LOG_CATEGORY_CUSTOM", SDL_LOG_CATEGORY_CUSTOM),
 
     /*
-     * libwebp's animation decoder (ADR-0385).
+     * libwebp's animation decoder.
      *
      * The three structs Java allocates and reads by offset. WebPData is a
      * pointer and a size_t, so its size is 12 on a 32-bit target and 16 here --
@@ -1489,12 +1490,12 @@ GOLDBERRY_EXPORT void goldberry_probe_measure(YGMeasureFunc measure,
  * the document. Bound the obvious way -- five upcall stubs written into an
  * MD_PARSER -- a thousand-word note would cross the FFM boundary several
  * thousand times, and each crossing would hand Java a detail struct whose layout
- * the Java side would then have to model. That is the shape ADR-0190 rules out
+ * the Java side would then have to model. That is the shape ruled out
  * for every content module: the hot path does not cross FFM.
  *
  * So the event stream is *encoded here*, into one growable byte buffer, and Java
  * reads it once. Zero upcalls, no detail struct in the layout table, and the
- * parse is one downcall (ADR-0294).
+ * parse is one downcall.
  *
  * ## The wire format
  *
@@ -1839,7 +1840,7 @@ GOLDBERRY_EXPORT void goldberry_md_free(void *handle) {
  *
  * This is the one thing beyond the parse that has to come from C: the table is
  * 2125 names, it ships inside md4c, and a second copy in Java would be a copy
- * that drifts -- ADR-0010's argument about struct offsets, applied to data.
+ * that drifts -- the argument about struct offsets, applied to data.
  *
  * @return 1 when the name is an entity, 0 when it is not
  */
@@ -1861,9 +1862,9 @@ GOLDBERRY_EXPORT int goldberry_md_entity(const char *name, uint32_t size, uint32
 /* ===========================================================================
  * HarfBuzz, wrapped so that its symbols do not leave this library
  *
- * WHY THIS EXISTS, AND WHY IT IS NOT §3.1's "no C glue in between"
+ * WHY THIS EXISTS, AND WHY IT IS NOT "C glue in between"
  *
- * §3.1 says Goldberry calls upstream functions directly through FFM, and for
+ * The rule is that Goldberry calls upstream functions directly through FFM, and for
  * every other upstream in this build it does. HarfBuzz is the one that cannot,
  * and the reason is a crash rather than a preference.
  *
@@ -1875,7 +1876,7 @@ GOLDBERRY_EXPORT int goldberry_md_entity(const char *name, uint32_t size, uint32
  * names bound to OUR HarfBuzz while its other ~500 calls bound to the system's.
  * Two implementations, two struct layouts, one hb_font_t: the process died in
  * hb_font_set_var_coords_design, from inside gtk_init, before anything of ours
- * ran (ADR-0442).
+ * ran.
  *
  * The measured difference: this machine has HarfBuzz 12.3.2 and the pinned build
  * is 14.3.1.
@@ -1987,7 +1988,7 @@ GOLDBERRY_EXPORT void goldberry_hb_shape(
 ///
 /// Two halves of one process can disagree about the window system, and on a
 /// Wayland desktop running XWayland they do by default. SDL is asked for X11
-/// first (PREFERRED_LINUX_DRIVERS, ADR-0086) because that is the only way to get
+/// first (PREFERRED_LINUX_DRIVERS) because that is the only way to get
 /// a decorated window today; GDK, asked nothing, prefers Wayland because
 /// WAYLAND_DISPLAY is set. The result is an application whose window is an X11
 /// window and whose GTK surfaces are Wayland surfaces.
@@ -1995,7 +1996,7 @@ GOLDBERRY_EXPORT void goldberry_hb_shape(
 /// That is invisible until something needs the two to be related. Embedding a
 /// page is exactly that: `web-view` reparents the engine's window into the
 /// application's, and a Wayland surface cannot become the child of an X11 window
-/// (ADR-0442). The page then silently refuses to embed on a machine where
+/// The page then silently refuses to embed on a machine where
 /// everything else works.
 ///
 /// So the backend says which window system it picked, once, before anything has

@@ -10,6 +10,8 @@ import java.util.Set;
 /// Asking for a format when creating a device is also how a driver is chosen:
 /// SDL creates a Vulkan device only for SPIR-V, a Metal one only for MSL or a
 /// metallib, and a Direct3D 12 one only for DXIL or DXBC.
+///
+/// Read more: [The native boundary](https://goldberry.dev/docs/overview/architecture.html#the-native-boundary).
 public enum SdlGpuShaderFormat {
     /// SPIR-V, for Vulkan.
     SPIRV(1 << 1, "spirv"),
@@ -39,7 +41,7 @@ public enum SdlGpuShaderFormat {
     /// `SDL_PROP_GPU_DEVICE_CREATE_SHADERS_*_BOOLEAN`.
     ///
     /// Public because `SdlGpuDevice`, which asks for it, is in the package the
-    /// enumerations were split from (ADR-0496). The module exports this package
+    /// enumerations were split from. The module exports this package
     /// to `:core` and `:gpu` alone, so no application sees it.
     public String createProperty() {
         return "SDL.gpu.device.create.shaders." + property;

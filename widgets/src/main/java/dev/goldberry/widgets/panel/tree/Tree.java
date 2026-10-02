@@ -17,7 +17,8 @@ import dev.goldberry.widgets.markup.Markup;
 import dev.goldberry.widgets.markup.Wiring;
 import dev.goldberry.widgets.panel.list.Selection;
 
-/// A hierarchical list — `docs/core-widgets.md` §3's `tree`.
+/// A hierarchical list: nodes that open and close, with a selection, optional
+/// checkboxes, and children that can be fetched when a node first expands.
 ///
 /// ```java
 /// new Tree(List.of(
@@ -27,10 +28,19 @@ import dev.goldberry.widgets.panel.list.Selection;
 ///         chosen, this::pick)
 /// ```
 ///
+/// ```kdl
+/// tree bind="app.places" id="places"
+/// ```
+///
+/// A document can only place a tree and name the model value that holds one,
+/// because a node's children are suppliers a document cannot write: the `Tree`
+/// comes from the application, through `bind=`.
+///
 /// ## Controlled, like every other value in this toolkit
 ///
 /// It **reads** which nodes are selected and which are checked, and reports what
-/// the user asked for; it changes neither itself ([ADR-0063]). Expansion is the
+/// the user asked for; it changes neither itself, because data flows down and
+/// events flow up. Expansion is the
 /// one exception and is not an exception at all: which branches are open is not a
 /// value an application models, it is a view state belonging to the thing on
 /// screen — the same distinction `scroll` draws for its offset.
@@ -52,18 +62,16 @@ import dev.goldberry.widgets.panel.list.Selection;
 ///
 /// ## Selecting and checking are two different values
 ///
-/// §3 asks for both and they are not two renderings of one thing: the selection
-/// is where the reader *is* and the checks are what they have *marked*. A file
-/// manager where those were the same could not copy six files, because opening
-/// the seventh folder would clear the list
-/// (ADR-0210).
-/// So [#selected] and [#checked] are separate sets reported through separate
-/// callbacks, and a tree may have either, both, or neither.
+/// They are not two renderings of one thing: the selection is where the reader
+/// *is* and the checks are what they have *marked*. A file manager where those
+/// were the same could not copy six files, because opening the seventh folder
+/// would clear the list. So [#selected] and [#checked] are separate sets
+/// reported through separate callbacks, and a tree may have either, both, or
+/// neither.
 ///
-/// §3 gives `select tree=` `checkable="leaf|any"` and makes **leaf-only** the
-/// default, "because 'Europe' is usually a heading and not an answer". That is a
-/// third thing again — a rule about which rows are an *answer* — and it is
-/// [#leafOnly].
+/// Which rows are an *answer* is a third thing again, and it is [#leafOnly]:
+/// leaf-only by default, because "Europe" is usually a heading and not an
+/// answer.
 ///
 /// @param roots      the top-level nodes
 /// @param selected   the ids of the chosen nodes; empty for none
@@ -74,6 +82,8 @@ import dev.goldberry.widgets.panel.list.Selection;
 /// @param checked    the ids of the ticked nodes; empty for none
 /// @param onCheck    the checked set the user asked for, whole
 /// @param attributes `id` and `class`, exactly as on the primitives
+///
+/// Read more: [Collections](https://goldberry.dev/docs/components/collections.html#tree).
 @Markup("tree")
 public record Tree(
         List<TreeNode> roots,
@@ -87,7 +97,7 @@ public record Tree(
         Attributes attributes)
         implements Widget.Stateful, Attributed<Tree> {
 
-    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    /// Written out so that the parameters taking null for a default can say so.
     public Tree(
             @Nullable List<TreeNode> roots,
             Set<String> selected,
@@ -122,7 +132,7 @@ public record Tree(
         return values.isEmpty() ? Set.of() : java.util.Collections.unmodifiableSet(new LinkedHashSet<>(values));
     }
 
-    /// A single-selection, leaf-only tree with no checkboxes — §3's defaults, and
+    /// A single-selection, leaf-only tree with no checkboxes — the defaults, and
     /// the shape `select tree=` needs.
     ///
     /// **The single-selection form is a `String` and not a set of one**, because
@@ -154,14 +164,13 @@ public record Tree(
         return selected.isEmpty() ? null : selected.iterator().next();
     }
 
-    /// This tree letting a node with children be chosen — §3's `checkable="any"`,
-    /// in the half of it that is a selection rule rather than a checkbox.
+    /// This tree letting a node with children be chosen: the selection-rule half
+    /// of `checkable="any"`, as distinct from a checkbox.
     public Tree anyNode(boolean value) {
         return new Tree(roots, selected, onSelect, selection, !value, checkable, checked, onCheck, attributes);
     }
 
-    /// This tree with a different selection model — §3's "`list`'s selection
-    /// models".
+    /// This tree with a different selection model, the same models a `list` has.
     public Tree selection(Selection value) {
         return new Tree(roots, selected, onSelect, value, leafOnly, checkable, checked, onCheck, attributes);
     }
@@ -182,7 +191,7 @@ public record Tree(
         return new Tree(roots, values, onSelect, selection, leafOnly, checkable, checked, onCheck, attributes);
     }
 
-    /// This tree with a checkbox on its rows — §3's `checkable=`.
+    /// This tree with a checkbox on its rows: `checkable=`.
     public Tree checkable(Checkable value) {
         return new Tree(roots, selected, onSelect, selection, leafOnly, value, checked, onCheck, attributes);
     }
@@ -191,7 +200,7 @@ public record Tree(
     ///
     /// The two together, because a checkbox nobody is listening to is a control
     /// that cannot change and a listener with no value has nothing to draw —
-    /// ADR-0063's loop needs both ends or neither.
+    /// the loop of value down and event up needs both ends or neither.
     public Tree checked(Set<String> values, Consumer<Set<String>> onCheck) {
         return new Tree(roots, selected, onSelect, selection, leafOnly, checkable, values, onCheck, attributes);
     }
@@ -212,8 +221,7 @@ public record Tree(
     }
 
     /// Builds a `tree` from markup: a [Bound] over the `Tree` a model's `bind=`
-    /// value holds, since a node's children are suppliers a document cannot write
-    /// (ADR-0367).
+    /// value holds, since a node's children are suppliers a document cannot write.
     public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
         return new Bound(wiring.bound(node), Tree.class, Attributes.of(node));
     }

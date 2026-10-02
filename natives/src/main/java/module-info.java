@@ -1,19 +1,19 @@
-/// Goldberry native layer: hand-written FFM bindings for Blend2D, Yoga,
-/// HarfBuzz and SDL3 (ADR-0010), plus the thin owning wrappers
-/// around them.
+/// Goldberry's native layer: hand-written FFM bindings for Blend2D, Yoga,
+/// HarfBuzz, SDL3, md4c and libwebp, plus the thin owning wrappers around them.
 ///
 /// This module exports the wrapper packages and nothing else, which is the
-/// point. Per `docs/ARCHITECTURE.md` §3.1, raw `MemorySegment` must never escape
-/// this module; the module graph -- not a naming convention -- is what enforces
-/// it. Every `…calls` package stays unexported, twelve of the wrapper packages
-/// are exported to one named reader each, and `ExportedSurfaceTest` is what holds
-/// the descriptor below to that description rather than this comment.
+/// point. A raw `MemorySegment` never escapes this module, and the module graph
+/// -- not a naming convention -- is what enforces it. Every `…calls` package stays
+/// unexported, most wrapper packages are exported to one named reader each, and
+/// `ExportedSurfaceTest` holds the descriptor below to that description rather
+/// than to this comment.
 ///
 /// This is also the module named in `--enable-native-access` (JEP 472): Java 25
 /// warns on restricted native access from the unnamed module, and a later
 /// release makes it an error.
-/// `@SuppressWarnings("module")` for the qualified exports below, and for nothing
-/// else.
+///
+/// `@SuppressWarnings("module")` is for the qualified exports below, and for
+/// nothing else.
 ///
 /// `exports … to dev.goldberry.core` names a module that is
 /// **not on this module's compile path and cannot be** — `:core` requires
@@ -23,64 +23,52 @@
 /// time and by the modules that read it.
 ///
 /// The alternative was `-Xlint:-module` in the build file, which would switch the
-/// lint off for every directive in this descriptor rather than for the twelve
+/// lint off for every directive in this descriptor rather than for the ones
 /// that need it.
+///
+/// Read more: [The native boundary](https://goldberry.dev/docs/overview/architecture.html#the-native-boundary).
 @SuppressWarnings("module")
 module dev.goldberry.natives {
 
-    // A facade, not an implementation: applications choose the backend, and one
-    // that chooses none sees nothing at all (ADR-0023).
+    // A facade, not an implementation: applications choose the logging backend,
+    // and one that chooses none sees nothing at all.
     requires transitive org.slf4j;
 
     // Logging and the start-up timeline. Not `transitive`: nothing here puts a
     // type of :common in a signature, so a consumer of :natives is not made to
-    // read it (ADR-0174).
+    // read it.
     requires dev.goldberry.common;
 
     // JSpecify's nullness annotations, which appear on exported signatures --
-    // `@Nullable` where a parameter takes null, since ADR-0497 -- so a consumer
-    // compiling against them has to be able to read them, as `-Xlint:exports`
-    // requires. `static`: nothing needs them at run time. This module runs no
-    // Error Prone (see its build script), so the annotations are its contract
-    // for the modules that do: `:core`'s NullAway reads them.
+    // `@Nullable` where a parameter takes null -- so a consumer compiling
+    // against them has to be able to read them, as `-Xlint:exports` requires.
+    // `static`: nothing needs them at run time. This module runs no Error Prone
+    // (see its build script), so the annotations are its contract for the
+    // modules that do: `:core`'s NullAway reads them.
     requires transitive static org.jspecify;
 
     // The wrapper packages, and only those. The `natives` package itself stays
     // unexported: NativeLibrary hands out a SymbolLookup, and a foreign type in
     // the public surface of this module is the boundary leaking by another name.
     // What is exported below traffics in Java types -- SdlWindowHandle wraps the
-    // pointer, MeasureCallback wraps the stub, PixelBuffer arrives as a
-    // ByteBuffer (ADR-0019).
+    // pointer, MeasureCallback wraps the stub, a pixel buffer arrives as a
+    // ByteBuffer.
     //
-    // Each library's wrappers are split by what they are, not by which library
-    // they came from a second time (ADR-0172): the owning wrappers that hold a
-    // handle stay in the library's own package, beside the binding class they
-    // are the only callers of, and the enums and plain values -- which touch no
-    // foreign memory at all -- get packages of their own.
+    // Each library's wrappers are split by what they are: the owning wrappers
+    // that hold a handle stay in the library's own package, beside the binding
+    // class they are the only callers of, and the enums and plain values --
+    // which touch no foreign memory at all -- get packages of their own.
     //
-    // **Qualified, to `:core` and to nobody else** (ADR-0280). This is the
-    // second half of the rule above, and the one that was prose until now: raw
-    // foreign memory never leaves this module, *and* no type of this module
-    // appears in a signature an application can read.
+    // **Qualified, to `:core` and to nobody else.** Raw foreign memory never
+    // leaves this module, *and* no type of this module appears in a signature an
+    // application can read: an application paints with `paint.Path`, `Stroke`
+    // and `Gradient` and lays out with the `layout` vocabulary, and the
+    // translation to what is below happens in `:core`. The compiler says so,
+    // rather than a convention.
     //
-    // Unqualified, these packages reached every application: `:core` required
-    // this module `transitive`ly and `:widgets` requires `:core` the same way,
-    // so an application that had never heard of `:natives` could name a
-    // `BlendPath` or a `StyleLength` -- and did. `paint.Box` was typed on
-    // thirteen of them, and a Box is what every custom widget returns.
-    //
-    // What replaced them: `paint.Path`, `Stroke`, `Gradient` (ADR-0277) and the
-    // `layout` vocabulary (ADR-0279). The translation to what is below happens
-    // in two package-private files in `:core`, and the compiler is what says so
-    // now rather than a convention.
-    //
-    // **All three wrapped libraries are qualified now** (ADR-0290). Blend2D was
-    // the last one open, because `Frame.drawGlyphs` took a `BlendFont` and a
-    // `BlendGlyphBuffer` and was public; `paint.GlyphPen` owns them, that method
-    // is package-private, and `:core` no longer requires this module
-    // `transitive`ly. What is left unqualified is SDL's wrappers, which an
-    // application legitimately names -- a `BackendWindow` handed to a popup, a
-    // tray, a cursor.
+    // What is left unqualified is SDL's wrappers, which an application
+    // legitimately names -- a `BackendWindow` handed to a popup, a tray, a
+    // cursor.
     exports dev.goldberry.natives.blend2d to
             dev.goldberry.core;
     exports dev.goldberry.natives.blend2d.enums to
@@ -97,7 +85,7 @@ module dev.goldberry.natives {
     exports dev.goldberry.natives.sdl.window;
     exports dev.goldberry.natives.sdl.desktop;
 
-    /// GLib's logging hooks, exported to `:core` alone (ADR-0443).
+    /// GLib's logging hooks, exported to `:core` alone.
     ///
     /// Qualified like Yoga's and Blend2D's wrappers, and for the same reason: an
     /// application configures the logger names, which are
@@ -109,14 +97,13 @@ module dev.goldberry.natives {
             dev.goldberry.core;
 
     // What the desktop says that SDL does not ask it — reduce-motion, through
-    // the settings portal, `user32` and `NSWorkspace` (ADR-0383). Its own
-    // package beside `sdl.desktop` rather than inside it, because nothing here
-    // is SDL's: these are read-only queries against libraries the process
-    // already has, and each one answers "the desktop does not say" when it
-    // cannot ask.
+    // the settings portal, `user32` and `NSWorkspace`. Its own package beside
+    // `sdl.desktop` rather than inside it, because nothing here is SDL's: these
+    // are read-only queries against libraries the process already has, and each
+    // one answers "the desktop does not say" when it cannot ask.
     exports dev.goldberry.natives.desktop;
 
-    /// What this build of the platform layer can actually do (ADR-0325).
+    /// What this build of the platform layer can actually do.
     ///
     /// Qualified to `:core`, like Yoga's and Blend2D's wrappers and for the same
     /// reason: an application asks `Goldberry.capabilities()` and reads the
@@ -125,14 +112,13 @@ module dev.goldberry.natives {
     /// an `int` behind it.
     exports dev.goldberry.natives.platform to
             dev.goldberry.core;
-    /// md4c, exported to `:html` and to nobody else (ADR-0294).
+    /// md4c, exported to `:html` and to nobody else.
     ///
-    /// The second name on this seal, and the first that is not `:core`. Markdown is
-    /// not part of the toolkit's own surface — it is `goldberry-html`'s dependency,
-    /// quarantined by ADR-0190 into an optional module an application opts into — so
-    /// the wrapper reaches that module and stops there. `:core` cannot see it either,
-    /// which is the half worth saying: nothing in the widget catalog, the cascade or
-    /// the text stack knows what Markdown is.
+    /// Markdown is not part of the toolkit's own surface — it is `goldberry-html`'s
+    /// dependency, an optional module an application opts into — so the wrapper
+    /// reaches that module and stops there. `:core` cannot see it either: nothing
+    /// in the widget catalogue, the cascade or the text stack knows what Markdown
+    /// is.
     ///
     /// What crosses is values: a `String` in, and records out that carry no foreign
     /// memory and no struct layout. The event stream is encoded in C and read once,
@@ -142,29 +128,26 @@ module dev.goldberry.natives {
             dev.goldberry.html;
     exports dev.goldberry.natives.md4c.enums to
             dev.goldberry.html;
-    /// SDL's audio streams, exported to `:media` and to nobody else (ADR-0461).
+    /// SDL's audio streams, exported to `:media` and to nobody else.
     ///
-    /// md4c's seal, for the media engine's audio sink: the toolkit plays no
-    /// audio itself, and SDL, already linked in, is a second audio library that
-    /// does not have to be shipped. What crosses is a direct `ByteBuffer` in and
-    /// frame counts out.
+    /// The toolkit plays no audio itself, and SDL, already linked in, is a
+    /// second audio library the media engine does not have to ship. What crosses
+    /// is a direct `ByteBuffer` in and frame counts out.
     exports dev.goldberry.natives.sdl.audio to
             dev.goldberry.media;
-    // SDL_GPU, for M4 (docs/gpu-plan.md, D6): to :core, which will claim a
-    // window and present through it, and to :gpu, whose public API is built on
-    // it. The wrappers carry no MemorySegment, as ADR-0280 asks; the two readers
-    // are the amendment ADR-0461 made for :media, made again.
+    // SDL_GPU: to :core, which claims a window and presents through it, and to
+    // :gpu, whose public API is built on it. The wrappers carry no
+    // MemorySegment.
     exports dev.goldberry.natives.sdl.gpu to
             dev.goldberry.core,
             dev.goldberry.gpu;
     // SDL_GPU's enumerations: tables of C constants that touch no foreign
-    // memory, split from the wrappers that hold a handle as `blend2d.enums` is
-    // (ADR-0172, ADR-0496). The same two readers.
+    // memory, split from the wrappers that hold a handle as `blend2d.enums` is.
+    // The same two readers.
     exports dev.goldberry.natives.sdl.gpu.enums to
             dev.goldberry.core,
             dev.goldberry.gpu;
-    /// libwebp's decoder, exported to `:core` alone (`docs/gaps.md` G35a,
-    /// ADR-0329).
+    /// libwebp's decoder, exported to `:core` alone.
     ///
     /// Blend2D's and Yoga's seal exactly, and for their reason: what an
     /// application calls is `Image.decode`, which names no type of this module.
@@ -173,7 +156,7 @@ module dev.goldberry.natives {
     /// returns, so there is no lifetime to hand over.
     exports dev.goldberry.natives.webp to
             dev.goldberry.core;
-    /// `webview/webview`, behind §9's `web-view` (ADR-0441).
+    /// `webview/webview`, behind the `web-view` widget.
     ///
     /// Qualified to `:core` like Blend2D's and Yoga's, and for their reason: an
     /// application names `WebPage` and `WebViews`, which are `:widgets`' types,

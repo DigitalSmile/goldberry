@@ -15,7 +15,7 @@ import dev.goldberry.css.cascade.KeyframeAnimations.Entry;
 import dev.goldberry.css.cascade.KeyframeAnimations.FillMode;
 
 /// CSS's timing model for a keyframe animation: where in an iteration it is,
-/// or whether it shows anything at all ([ADR-0353]).
+/// or whether it shows anything at all.
 ///
 /// Linear throughout, and 100 ms iterations, so every expected value is
 /// arithmetic a reader can check.

@@ -8,8 +8,7 @@ import dev.goldberry.bind.registry.BindingRegistry;
 ///
 /// Four methods, none of which appear in the author's source: the model is
 /// written as plain Java with plain fields, and this interface is added to its
-/// bytecode by the build step that rewires those fields
-/// (ADR-0125).
+/// bytecode by the build step that rewires those fields.
 ///
 /// ## It is not what an application calls
 ///
@@ -21,6 +20,9 @@ import dev.goldberry.bind.registry.BindingRegistry;
 /// An application therefore writes `Models.bindings(model)` and never names this
 /// type. It is public because woven bytecode in another module has to implement
 /// it, not because it is an API.
+///
+/// Read more:
+/// [What the weaver actually does](https://goldberry.dev/docs/weaving.html#what-the-weaver-actually-does).
 public interface BoundModel {
 
     /// The current value of the woven field in `slot`, boxed.
@@ -38,7 +40,7 @@ public interface BoundModel {
     ///
     /// Built fresh on each call, which is what makes a document reloadable: the
     /// new tree resolves its paths against a registry pointing at the same
-    /// fields, so the values survive the reload (ADR-0051).
+    /// fields, so the values survive the reload.
     BindingRegistry bindings();
 
     /// Every `@Action` name on this model, strict.

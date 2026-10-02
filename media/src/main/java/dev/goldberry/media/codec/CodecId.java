@@ -5,7 +5,7 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-/// A codec, in Goldberry's own vocabulary (`docs/goldberry-media.md` §5).
+/// A codec, in Goldberry's own vocabulary.
 ///
 /// The Decoder SPI is written in these, so a provider never sees an FFmpeg type.
 /// The mapping from FFmpeg goes **by codec name**, the string `avcodec_get_name`
@@ -17,6 +17,8 @@ import java.util.stream.Collectors;
 /// `UNSUPPORTED_CODEC` error can call them what they are, and so that a
 /// DecoderProvider can claim them. Anything else is [#UNKNOWN], and its FFmpeg
 /// name travels beside it on the track.
+///
+/// Read more: [Bringing a codec](https://goldberry.dev/docs/components/media.html#bringing-a-codec).
 public enum CodecId {
     // --- Video, royalty-free: decoded by the published natives ----------------
     VP8("vp8", MediaType.VIDEO, true),

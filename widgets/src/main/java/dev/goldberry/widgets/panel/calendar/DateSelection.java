@@ -7,8 +7,7 @@ import java.util.Objects;
 
 import org.jspecify.annotations.Nullable;
 
-/// What a [CalendarView] has chosen — §10's "single date, multiple dates, or a
-/// range".
+/// What a [CalendarView] has chosen: a single date, several dates, or a range.
 ///
 /// **A value**, and the whole of what a press on a day means. Every rule about
 /// what clicking a day does is [#with], testable with no widget, no font and no
@@ -59,7 +58,7 @@ public record DateSelection(Mode mode, List<LocalDate> dates) {
     /// Nothing chosen, in [Mode#SINGLE].
     public static final DateSelection NONE = new DateSelection(Mode.SINGLE, List.of());
 
-    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    /// Written out so that the parameters taking null for a default can say so.
     public DateSelection(Mode mode, @Nullable List<LocalDate> dates) {
         Objects.requireNonNull(mode, "mode");
         dates = List.copyOf(dates == null ? List.<LocalDate>of() : dates);
@@ -115,8 +114,8 @@ public record DateSelection(Mode mode, List<LocalDate> dates) {
     /// Whether `date` is one of the chosen ones.
     ///
     /// **Not** whether it is inside a range — that is [#covers], and the two are
-    /// deliberately separate because §2 asks for a `full` radius on "the selected
-    /// day, range ends only". A day in the middle of a range is shaded and is not
+    /// deliberately separate because the `full` radius goes on the selected day
+    /// and on range ends only. A day in the middle of a range is shaded and is not
     /// a chosen date.
     public boolean contains(LocalDate date) {
         return dates.contains(date);

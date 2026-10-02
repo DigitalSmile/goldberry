@@ -5,8 +5,7 @@ import dev.goldberry.media.codec.DecoderProvider;
 import dev.goldberry.media.codec.DecoderRequest;
 import dev.goldberry.media.codec.TrackParams;
 
-/// AAC, AC-3 and E-AC-3, decoded by macOS's AudioToolbox
-/// (`docs/goldberry-media.md` §5, ADR-0472).
+/// AAC, AC-3 and E-AC-3, decoded by macOS's AudioToolbox.
 ///
 /// Supports an audio track when this is macOS and the codec is one of the three:
 /// AAC with the `AudioSpecificConfig` the container carries (MP4's `esds`,

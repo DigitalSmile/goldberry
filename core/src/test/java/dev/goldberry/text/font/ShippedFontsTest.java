@@ -29,13 +29,15 @@ import dev.goldberry.assets.BundledFont.Weight;
 import dev.goldberry.assets.Face;
 import dev.goldberry.css.Typography;
 
-/// `docs/gaps.md` G39: faces an application ships, reachable from `font-family`
-/// ([ADR-0349]).
+/// Faces an application ships, reachable from `font-family` and found after the
+/// bundled ones.
 ///
 /// No new font file is committed for this. The "shipped" face is JetBrains
 /// Mono's bytes under another family name, which is enough to tell it from Inter
 /// by its advance widths, and it proves the book opened *these* bytes rather than
 /// a bundled face of the same shape.
+///
+/// Read more: [Shipping a face](https://goldberry.dev/docs/guide/text.html#shipping-a-face).
 class ShippedFontsTest {
 
     @Nested

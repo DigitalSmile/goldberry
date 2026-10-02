@@ -11,8 +11,7 @@ import dev.goldberry.media.codec.PixelFormat;
 import dev.goldberry.media.codec.VideoFrame;
 
 /// One decoded picture as its Y'CbCr planes: the [PictureForm#PLANES] form of a
-/// [Picture], which GPU present uploads and converts in a shader
-/// (`docs/gpu-plan.md`, phase 6 and D8).
+/// [Picture], which GPU present uploads and converts in a shader.
 ///
 /// The planes are the decoder's, copied as they were decoded, in one of the
 /// frame contract's four layouts ([PixelFormat]), and tagged with the matrix and
@@ -27,6 +26,8 @@ import dev.goldberry.media.codec.VideoFrame;
 ///
 /// Each plane is read-only and little-endian, which is the byte order of the
 /// 16-bit samples of [PixelFormat#P010] and [PixelFormat#I010].
+///
+/// Read more: [`video-view`](https://goldberry.dev/docs/components/media.html#video-view).
 public final class VideoPlanes implements Picture {
 
     private final PixelFormat format;

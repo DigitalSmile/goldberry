@@ -22,7 +22,8 @@ import dev.goldberry.paint.Painter;
 import dev.goldberry.paint.TestFrames;
 import dev.goldberry.render.DamageRect;
 
-/// Which parts of a frame differ from the last one — ADR-0071.
+/// Which parts of a frame differ from the last one: a changed node damages where
+/// it was and where it is.
 ///
 /// Damage is advisory: getting it wrong shows a stale region rather than a
 /// corrupt one, which makes it the kind of thing that is quietly wrong for
@@ -101,8 +102,6 @@ class DamageTest {
         }
     }
 
-    /// The 2026-09-18 review's §7.
-    ///
     /// A painter is the one piece of a box whose *contents* the comparison cannot
     /// see, and it was not compared at all — so a `canvas`, a `sparkline`, a chart
     /// surface or a colour plane whose painter had changed was called unchanged,
@@ -234,7 +233,7 @@ class DamageTest {
         // ground around it. Getting this wrong leaves the old shadow on screen:
         // a stale smear that survives until something else happens to repaint
         // over it, which is precisely the failure damage is easy to be quietly
-        // wrong about (ADR-0310).
+        // wrong about.
         //
         // The second child sits at y=20..40 and casts `0 8px 24px`, which reaches
         // 20px below its bottom edge -- to y=60, twenty pixels past anything the

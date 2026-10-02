@@ -31,13 +31,12 @@ import dev.goldberry.widget.attr.Attributes;
 import dev.goldberry.widgets.Controls;
 import dev.goldberry.widgets.controls.TestFont;
 
-/// The underline travels from the tab that was selected to the one that is —
-/// [ADR-0377].
+/// The underline travels from the tab that was selected to the one that is.
 ///
-/// §3.1 gives `tabs` and `segmented` the same effect, and `tabs` did not have
-/// it: the underline faded out under one header and in under another, which is
-/// two things happening in place rather than one thing moving. ADR-0097
-/// deferred it for want of geometry; the geometry is the headers' own painted
+/// The design gives `tabs` and `segmented` the same effect, and `tabs` did not
+/// have it: the underline faded out under one header and in under another, which
+/// is two things happening in place rather than one thing moving. It was
+/// deferred for want of geometry; the geometry is the headers' own painted
 /// rectangles, which the strip has kept since it learned to take a drag.
 ///
 /// What is asserted is the displacement rather than a picture, because the
@@ -69,7 +68,7 @@ class TabTravelTest {
     }
 
     /// An application in miniature: it owns which tab is selected, because the
-    /// strip asks and never decides (ADR-0063).
+    /// strip asks and never decides.
     private record Harness() implements Widget.Stateful {
 
         @Override
@@ -213,7 +212,7 @@ class TabTravelTest {
 
         // The frame after the displacement was drawn: the strip takes it back,
         // and because the id has not changed this is the *same* element changing
-        // — which is what a transition needs (ADR-0065).
+        // — which is what a transition needs.
         frame();
         var relaxed = travelOf("t1");
         assertEquals(journey, relaxed.id(), "still the same journey, or the element would be rebuilt and snap");

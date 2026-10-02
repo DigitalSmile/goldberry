@@ -34,8 +34,7 @@ import dev.goldberry.bind.registry.BindingRegistry;
 ///
 /// The second of the two implementations of [BoundModel], and the one an ordinary
 /// jar uses. The weaver rewrites the compiled class so that `gain++` notifies;
-/// this reads the same annotations at run time and notices afterwards
-/// (ADR-0155).
+/// this reads the same annotations at run time and notices afterwards.
 ///
 /// ## What it can do, and the one thing it cannot
 ///
@@ -44,7 +43,7 @@ import dev.goldberry.bind.registry.BindingRegistry;
 /// instant it is asked, exactly as the woven form is.
 ///
 /// **A field write cannot be intercepted.** `putfield` is not virtual, which is
-/// the whole reason the weaver exists (ADR-0125) — no proxy, no subclass and no
+/// the whole reason the weaver exists — no proxy, no subclass and no
 /// handle can see one. So the notification is not raised *by* the write; it is
 /// raised by a **sweep** that compares each field against what it last held and
 /// fires the listeners of the ones that moved.
@@ -53,7 +52,7 @@ import dev.goldberry.bind.registry.BindingRegistry;
 /// are specialised one class per primitive kind rather than read as `Object`:
 /// it runs per press and per frame over every bound field of every bound model,
 /// so a box allocated there and thrown away unread is the difference between 9 ns
-/// a field and 31 (ADR-0155).
+/// a field and 31.
 ///
 /// The sweep runs where a change is expected to have happened:
 ///
@@ -80,6 +79,9 @@ import dev.goldberry.bind.registry.BindingRegistry;
 ///
 /// The failure names the package and that line, because "cannot access a member
 /// of class Settings" does not.
+///
+/// Read more:
+/// [The sweep](https://goldberry.dev/docs/weaving.html#the-sweep-and-the-one-line-it-sometimes-costs).
 final class RuntimeBinding implements BoundModel {
 
     /// The reflection done once per class rather than once per instance:
@@ -101,7 +103,7 @@ final class RuntimeBinding implements BoundModel {
     ///
     /// The woven form keeps its listener store in a field of the model. This has
     /// nowhere to put one, so it keeps it here — and by identity rather than by
-    /// `equals`, because an `@Actions` class is routinely a record (ADR-0138) and
+    /// `equals`, because an `@Actions` class is routinely a record, and
     /// two records holding equal values are two models with two different sets of
     /// listeners.
     private static final Map<Identity, RuntimeBinding> ATTACHED = new HashMap<>();
@@ -138,7 +140,7 @@ final class RuntimeBinding implements BoundModel {
     /// widened, except for `float` and `double`, which go through
     /// `floatToIntBits`/`doubleToLongBits` — canonical NaN and a distinct -0.0,
     /// which is exactly the answer `Objects.equals` gave on the boxes and
-    /// `Double.compare` gives in the woven setter (ADR-0155).
+    /// `Double.compare` gives in the woven setter.
     private final long[] bits;
 
     /// Guards the sweep against itself: a listener may run an action, and an
@@ -146,8 +148,7 @@ final class RuntimeBinding implements BoundModel {
     private boolean sweeping;
 
     /// Built once and kept, like the woven `bindings()` — a document reload
-    /// resolves its paths against the same registry, so the values survive it
-    /// (ADR-0051).
+    /// resolves its paths against the same registry, so the values survive it.
     private @Nullable BindingRegistry bindings;
 
     private RuntimeBinding(Object model, Plan plan) {
@@ -261,11 +262,11 @@ final class RuntimeBinding implements BoundModel {
     /// **Every other one**, because an action routinely does not write to the
     /// model that published it. That is the shape the toolkit asks applications
     /// for — values in one class, the methods that change them in another beside
-    /// it ([ADR-0134], [ADR-0136]) — and an `@Actions` record holds no fields at
-    /// all, so sweeping only itself would sweep nothing whatsoever.
+    /// it — and an `@Actions` record holds no fields at all, so sweeping only
+    /// itself would sweep nothing whatsoever.
     ///
     /// Measured at **14 ns per attached model and 9 ns per bound field**, per
-    /// press (`BindingSchemeBenchmark`, ADR-0155) — so ten models cost a button
+    /// press (`BindingSchemeBenchmark`) — so ten models cost a button
     /// roughly 140 ns against a 16 ms frame. The woven form pays none of it,
     /// because its setter already knows which field moved.
     ///
@@ -305,8 +306,7 @@ final class RuntimeBinding implements BoundModel {
     /// restyle first — so a window has dropped its resolved styles before
     /// anything rebuilds against them — then the field's own listeners, then the
     /// frame request. A sweep that moves three fields asks for three frames, the
-    /// same three a woven model asks for and which the frame scheduler coalesces
-    /// (ADR-0122).
+    /// same three a woven model asks for and which the frame scheduler coalesces.
     ///
     /// @return whether anything had changed
     boolean refresh() {
@@ -406,7 +406,7 @@ final class RuntimeBinding implements BoundModel {
             if (type.isAnnotationPresent(Model.class) && type.isAnnotationPresent(Actions.class)) {
                 throw new IllegalStateException(type.getName() + " is annotated both @Model and"
                         + " @Actions. A class with values is a model; @Actions is for one that"
-                        + " acts on somebody else's (ADR-0139).");
+                        + " acts on somebody else's.");
             }
             for (var parent = type.getSuperclass();
                     parent != null && parent != Object.class;
@@ -450,8 +450,7 @@ final class RuntimeBinding implements BoundModel {
                                 + " its package is not open to this module. Add\n\n    opens "
                                 + type.getPackageName() + " to dev.goldberry.core;\n\n"
                                 + "to module " + application.getName() + ", or weave this module -- the"
-                                + " woven form reflects on nothing and needs no `opens` at all"
-                                + " (ADR-0155).",
+                                + " woven form reflects on nothing and needs no `opens` at all.",
                         e);
             }
         }
@@ -590,7 +589,7 @@ final class RuntimeBinding implements BoundModel {
     /// reason the sweep exists at all: `handle.get(model)` typed as `Object`
     /// **boxes on every read**, and a sweep reads every field of every model on
     /// every press. Asking the same `VarHandle` for an `int` and comparing two
-    /// `long`s is 3× quicker and allocates nothing (ADR-0155).
+    /// `long`s is 3× quicker and allocates nothing.
     ///
     /// The comparison each subclass makes is the one `Objects.equals` made on the
     /// boxes, which is in turn the one the woven setter makes on the raw values —

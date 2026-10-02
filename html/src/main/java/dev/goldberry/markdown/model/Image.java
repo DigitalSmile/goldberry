@@ -14,8 +14,7 @@ import org.jspecify.annotations.Nullable;
 ///
 /// **Nothing here fetches anything.** A `src` is a string; whether it is on disk, in
 /// a jar or behind an `HttpClient` under the application's policy is the
-/// application's business, which is the rule every content module shares
-/// (ADR-0190).
+/// application's business, which is the rule every content module shares.
 ///
 /// @param src where the image is
 /// @param title the tooltip, or null

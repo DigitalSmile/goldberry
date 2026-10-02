@@ -82,7 +82,7 @@ public record MarkdownSyntax(Set<MarkdownExtension> extensions) {
     /// The md4c mask this dialect adds up to.
     ///
     /// Package-private: this is where the toolkit's vocabulary ends and the
-    /// binding's begins (ADR-0294).
+    /// binding's begins.
     Set<MarkdownFlag> flags() {
         var flags = EnumSet.noneOf(MarkdownFlag.class);
         for (var extension : extensions) {

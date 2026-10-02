@@ -12,7 +12,7 @@ import dev.goldberry.media.codec.AudioFrame;
 import dev.goldberry.media.codec.SampleFormat;
 
 /// Converts decoded audio to what the device plays: interleaved 32-bit float at
-/// one rate and channel count (`docs/goldberry-media.md` §3, "Audio decode").
+/// one rate and channel count.
 ///
 /// One `SwrContext`, rebuilt when the input's format, rate or channel count
 /// changes. That happens in chained Ogg, and in a stream whose first frames

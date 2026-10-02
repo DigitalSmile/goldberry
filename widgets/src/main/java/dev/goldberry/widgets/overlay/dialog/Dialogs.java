@@ -7,10 +7,9 @@ import dev.goldberry.Overlay;
 
 /// The half of a dialog that is not a widget: putting one on a window.
 ///
-/// ADR-0106
-/// split `menu` this way and this is the same split for the same reason. A modal
+/// The same split `Menus` makes for a menu, for the same reason. A modal
 /// needs the **window** — something has to cover it and dim it — and a widget has
-/// no window. `Menus` is the other one of these.
+/// no window.
 ///
 /// ```java
 /// var open = Dialogs.show(host, new Dialog("Unsaved changes",
@@ -29,11 +28,12 @@ import dev.goldberry.Overlay;
 ///
 /// What it does **not** have to know is the animation. Every route out of a
 /// dialog — a button, `Esc`, a press on the scrim — runs the closing animation
-/// first and calls the handler when it is over
-/// (ADR-0176),
-/// so a handler that removes the overlay immediately still gets the fade.
+/// first and calls the handler when it is over, so a handler that removes the
+/// overlay immediately still gets the fade.
 ///
 /// Confined to the UI thread, like everything that touches a [Host].
+///
+/// Read more: [Overlays](https://goldberry.dev/docs/components/overlays.html#dialog).
 public final class Dialogs {
 
     /// The id a dialog gets when it arrives without one.
@@ -53,7 +53,7 @@ public final class Dialogs {
     ///
     /// A **filling** overlay ([Overlay#filling]), which is what makes it modal to
     /// the pointer: a filling overlay takes every press wherever it draws, and
-    /// the scrim draws everywhere. `tour`'s veil found that out first (ADR-0121).
+    /// the scrim draws everywhere.
     /// The keyboard half is the panel declaring itself modal, which the router
     /// reads off the tree.
     ///

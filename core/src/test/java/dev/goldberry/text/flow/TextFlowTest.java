@@ -13,7 +13,7 @@ import org.junit.jupiter.api.Test;
 /// The rule is [TextFlow#ellipsises()]: `text-overflow` means nothing without
 /// `white-space: nowrap`, and it is decided **here** rather than in the painter so
 /// that the measure function and the paint cannot come to different conclusions
-/// about the same style ([ADR-0255]).
+/// about the same style.
 class TextFlowTest {
 
     @Test
@@ -90,8 +90,7 @@ class TextFlowTest {
     @DisplayName("the indent is the fraction of the room actually left over")
     void indentOfTheSlack() {
         // The rule the painter, the caret, the hit test and the selection all
-        // share, so that none of them can hold a second copy of it
-        // (`docs/gaps.md` G30, ADR-0318).
+        // share, so that none of them can hold a second copy of it.
         assertEquals(0.0, TextAlign.START.indentOf(40, 100), "start never indents");
         assertEquals(30.0, TextAlign.CENTER.indentOf(40, 100));
         assertEquals(60.0, TextAlign.END.indentOf(40, 100));

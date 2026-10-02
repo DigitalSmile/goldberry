@@ -53,8 +53,8 @@ sealed class Sdl3Window implements BackendWindow permits Sdl3Popup {
     private static final float UNAVAILABLE = -1f;
 
     /// How long a window `goldberry.gpu.composite=auto` composited for its GPU
-    /// layers stays composited after the last one goes (`docs/gpu-plan.md`, D3;
-    /// ADR-0481). Leaving costs about six milliseconds on macOS, a visible hitch
+    /// layers stays composited after the last one goes. Leaving costs about six
+    /// milliseconds on macOS, a visible hitch
     /// at 120 Hz, and a list scrolling a video in and out of view must not pay
     /// it at every turn.
     static final long COMPOSITE_HOLD_NANOS = 2_000_000_000L;
@@ -93,7 +93,7 @@ sealed class Sdl3Window implements BackendWindow permits Sdl3Popup {
     private LogicalSize minimumSize = WindowSpec.NO_MINIMUM;
 
     /// The compositor's hold on this window while it presents through the GPU,
-    /// and null while it presents through its window surface (ADR-0479).
+    /// and null while it presents through its window surface.
     private @Nullable CompositedWindow composited;
 
     /// Why this window presents on the CPU whatever the policy says, once
@@ -102,7 +102,7 @@ sealed class Sdl3Window implements BackendWindow permits Sdl3Popup {
     private @Nullable String cpuOnly;
 
     /// The GPU layers on screen after the last frame painted, which the next
-    /// composited present draws (ADR-0481).
+    /// composited present draws.
     private List<GpuPlacement> layers = List.of();
 
     /// When the last frame that showed a GPU layer was painted, in
@@ -202,8 +202,8 @@ sealed class Sdl3Window implements BackendWindow permits Sdl3Popup {
     ///
     /// True on both branches of `SDL_GetWindowSurface`: where the platform lends
     /// mapped memory it is the platform's own surface, and where SDL falls back
-    /// to a heap buffer and copies into a texture on present (its Wayland driver,
-    /// ADR-0046) that heap buffer is equally persistent. What SDL does *after*
+    /// to a heap buffer and copies into a texture on present (its Wayland driver)
+    /// that heap buffer is equally persistent. What SDL does *after*
     /// present does not disturb it.
     ///
     /// A resize invalidates it, and the caller notices by the size changing
@@ -229,7 +229,7 @@ sealed class Sdl3Window implements BackendWindow permits Sdl3Popup {
             enterComposited();
         } else if (composited != null && !wanted) {
             // `auto`, and the last GPU layer went long enough ago: back to the
-            // surface, and free to come back when a layer does (ADR-0481).
+            // surface, and free to come back when a layer does.
             LOG.debug(
                     "\"{}\" leaves the GPU: it has shown no GPU layer for {} s",
                     title,
@@ -358,7 +358,7 @@ sealed class Sdl3Window implements BackendWindow permits Sdl3Popup {
     ///
     /// Every window logs where it presents, and why when it is the CPU: the
     /// reason comes from the compositor, which knows whether there was no device
-    /// or what the driver said (ADR-0480).
+    /// or what the driver said.
     private void enterComposited() {
         var compositor = backend.compositor();
         if (compositor.isEmpty()) {
@@ -416,7 +416,7 @@ sealed class Sdl3Window implements BackendWindow permits Sdl3Popup {
     ///
     /// Only the composited mode needs telling. A present on the CPU already
     /// shows the whole surface, whatever the damage, because SDL draws its
-    /// whole texture on every update (ADR-0046, ADR-0491).
+    /// whole texture on every update.
     void exposed() {
         backend.requireUiThread();
         var gpu = composited;
@@ -425,7 +425,7 @@ sealed class Sdl3Window implements BackendWindow permits Sdl3Popup {
         }
     }
 
-    /// How this window presents now (ADR-0492): the GPU driver while it is
+    /// How this window presents now: the GPU driver while it is
     /// composited, and otherwise what put it on the CPU, which is its own reason
     /// when it has one and the policy's when it has none.
     @Override
@@ -443,7 +443,7 @@ sealed class Sdl3Window implements BackendWindow permits Sdl3Popup {
         return composited != null && open;
     }
 
-    /// How this window shows GPU layers (ADR-0481): composited while it
+    /// How this window shows GPU layers: composited while it
     /// presents through the GPU, read back while it presents on the CPU. Empty
     /// with the GPU off, and with no `:gpu` on the module path.
     @Override
@@ -501,7 +501,7 @@ sealed class Sdl3Window implements BackendWindow permits Sdl3Popup {
         framePending = true;
         // When it was asked for, which is what makes lateness measurable: the
         // pacer can then tell a frame the loop was too busy to deliver from one
-        // nobody had asked for yet ([ADR-0271]).
+        // nobody had asked for yet.
         framePendingSince = System.nanoTime();
 
         // Wake the loop. Without this the request sits until the next platform
@@ -522,7 +522,7 @@ sealed class Sdl3Window implements BackendWindow permits Sdl3Popup {
 
     /// The platform shape for a toolkit one.
     ///
-    /// Two of §7.3's shapes have no system cursor anywhere: `grab` and `grabbing`
+    /// Two of the toolkit's shapes have no system cursor anywhere: `grab` and `grabbing`
     /// are a CSS invention that X11's cursor font, Win32's `IDC_*` set and
     /// `SDL_SystemCursor` all lack. They fall back to `move`, which says "this can
     /// be dragged" less precisely rather than saying nothing — until custom image
@@ -626,7 +626,7 @@ sealed class Sdl3Window implements BackendWindow permits Sdl3Popup {
     ///
     /// 48, and not the 32 a Windows taskbar draws at 100%. X11 reads the base
     /// alone and a dock scales it, so 48 is the size a scaled-up 32 would blur
-    /// at. On Windows and Wayland the alternates cover the rest (ADR-0351).
+    /// at. On Windows and Wayland the alternates cover the rest.
     static final int BASE_ICON_SIZE = 48;
 
     @Override
@@ -716,7 +716,7 @@ sealed class Sdl3Window implements BackendWindow permits Sdl3Popup {
         video().setWindowSize(handle, Math.round(size.width()), Math.round(size.height()));
     }
 
-    /// Asks the window manager, and records nothing (ADR-0252).
+    /// Asks the window manager, and records nothing.
     ///
     /// The state this produces comes back as `SDL_EVENT_WINDOW_MAXIMIZED` or
     /// `SDL_EVENT_WINDOW_RESTORED`, which is the only thing that knows whether
@@ -732,7 +732,7 @@ sealed class Sdl3Window implements BackendWindow permits Sdl3Popup {
         }
     }
 
-    /// `SDL_SetWindowFullscreen`, and records nothing (ADR-0473).
+    /// `SDL_SetWindowFullscreen`, and records nothing.
     ///
     /// No display mode is set first, so SDL uses borderless fullscreen on the
     /// desktop's own mode. The state comes back as
@@ -772,7 +772,7 @@ sealed class Sdl3Window implements BackendWindow permits Sdl3Popup {
         // And any page embedded in this window, for the same reason: an embedded
         // page is a child X window, and the server destroys a window's children
         // with it — so one torn down afterwards is GTK unwinding a window that is
-        // already gone (ADR-0442).
+        // already gone.
         backend.closeEmbeddedPagesOf(this);
         // The swapchain before the window it belongs to.
         leaveComposited("closed");
@@ -830,8 +830,7 @@ sealed class Sdl3Window implements BackendWindow permits Sdl3Popup {
     /// SDL reports `WINDOW_MOVED` for every pixel of a title-bar drag, and it
     /// reports it again for a move that put the window back where it already
     /// was. What a move costs above the SPI is a popup re-placement per open
-    /// popup, so the same position twice is skipped here rather than there
-    /// ([ADR-0270]).
+    /// popup, so the same position twice is skipped here rather than there.
     boolean movedTo(LogicalPoint position) {
         if (position.equals(reportedPosition)) {
             return false;
@@ -842,7 +841,7 @@ sealed class Sdl3Window implements BackendWindow permits Sdl3Popup {
 
     /// Records a resize and says whether it is news.
     ///
-    /// SDL sends `WINDOW_RESIZED` liberally, and since ADR-0060 the same one
+    /// SDL sends `WINDOW_RESIZED` liberally, and the same one
     /// arrives twice by design: the event watch handles it while the platform is
     /// still inside its resize loop, and the queue hands the copy over when the
     /// loop ends. A resize to the size the window already has costs a layout pass
@@ -871,8 +870,7 @@ sealed class Sdl3Window implements BackendWindow permits Sdl3Popup {
     }
 
     /// Adds to the count of refreshes that went by with this window waiting for a
-    /// frame. Counted by the backend, which owns the pacer that can say
-    /// ([ADR-0271]).
+    /// frame. Counted by the backend, which owns the pacer that can say.
     void frameWasLate(int refreshes) {
         if (refreshes > 0) {
             lateFrames += refreshes;

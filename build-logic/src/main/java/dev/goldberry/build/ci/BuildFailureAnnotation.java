@@ -13,7 +13,7 @@ import java.util.Optional;
 
 /**
  * Writes a failed build's "What went wrong" as an error annotation on the GitHub
- * Actions run (ADR-0338).
+ * Actions run.
  *
  * <p>The failures {@link TestFailureAnnotations} cannot see: a {@code native-image}
  * build that exits non-zero, a CMake configure. The showcase's Windows

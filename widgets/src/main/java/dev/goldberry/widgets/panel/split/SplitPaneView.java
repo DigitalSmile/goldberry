@@ -31,8 +31,8 @@ import dev.goldberry.widget.style.Styled;
 /// Not two `flex-grow`s in proportion, which is the obvious answer and is wrong:
 /// `flex-grow` shares out the space **left over** after content, so two panes
 /// with content in them would land wherever their content put them and the
-/// divider would ignore its own fraction. §10's subset has no `flex-basis`
-/// either.
+/// divider would ignore its own fraction, and a `flex-basis` per pane would be
+/// a second copy of the fraction.
 ///
 /// So the first pane is given an explicit main-axis size in logical pixels —
 /// `fraction × (length − divider)` — with no shrink, and the second takes
@@ -79,11 +79,11 @@ record SplitPaneView(
     /// pane's width is computed against it: a divider whose CSS width disagreed
     /// with this number would put the second pane's edge that many pixels out,
     /// silently. The stylesheet sets the same number and `SplitPaneTest` pins
-    /// them together — the same bargain `Menus` makes with `--gb-menu-item-height`
-    /// (ADR-0117), and the same reason it is not a token.
+    /// them together — the same bargain `Menus` makes with
+    /// `--gb-menu-item-height`, and the same reason it is not a token.
     static final float DIVIDER = 6;
 
-    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    /// Written out so that the parameters taking null for a default can say so.
     SplitPaneView(
             SplitAxis axis,
             double position,
@@ -173,7 +173,7 @@ record SplitPaneView(
             return pane.grow(position).shrink(1).size(Length.UNDEFINED, Length.UNDEFINED);
         }
         if (firstLength == 0) {
-            // Collapsed. Still *built*: §5 asks for collapse-to-edge, not for
+            // Collapsed. Still *built*: a collapse goes to the edge, it does not
             // unmounting, and a pane that lost its state whenever somebody
             // dragged the divider to the edge would be a surprise the
             // specification does not ask for -- and the opposite of `collapse`,

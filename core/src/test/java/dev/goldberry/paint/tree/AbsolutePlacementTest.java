@@ -22,7 +22,8 @@ import dev.goldberry.paint.TestFrames;
 import dev.goldberry.render.DamageRect;
 import dev.goldberry.render.model.LogicalRect;
 
-/// Where an absolutely positioned child actually lands — ADR-0272.
+/// Where an absolutely positioned child actually lands: inside its parent's
+/// padding, as CSS places it.
 ///
 /// `ContainingBlockTest` asserts the arithmetic; this asserts that Yoga does what
 /// the arithmetic was aiming at, against the compiled library. The two Yoga
@@ -82,8 +83,9 @@ class AbsolutePlacementTest {
     @DisplayName("against the padding box, which is what CSS says")
     class PaddingBox {
 
-        /// The exact case ADR-0265 measured: Yoga answers (0, 0) for this and CSS
-        /// answers (12, 12). The toolkit now answers (12, 12).
+        /// The exact case that found the disagreement: Yoga measures an inset
+        /// from the border box and answers (0, 0) for this, CSS answers (12, 12).
+        /// The toolkit answers (12, 12).
         @Test
         @DisplayName("left: 0; top: 0 inside 12px of padding lands at (12, 12)")
         void zeroInsets() {

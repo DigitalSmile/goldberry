@@ -29,7 +29,7 @@ import dev.goldberry.text.flow.TextFlow;
 import dev.goldberry.text.flow.TextOverflow;
 import dev.goldberry.text.font.Font;
 
-/// The rule [ADR-0435] decided on, on boxes small enough to argue about.
+/// The 150% text-scale rule, on boxes small enough to argue about.
 ///
 /// The gallery's eleven screens are where it is *used*; they are not where it can
 /// be shown to work, because a screen that passes proves only that nothing was
@@ -97,7 +97,7 @@ class TextScaleAuditTest {
             // `nowrap` is what makes this possible at all: the measure function
             // reports the width the paragraph *wants* rather than the width it was
             // offered, so the box can be laid out narrower than its own content
-            // (ADR-0235). Under `normal` the same 80 points would wrap instead.
+            // Under `normal` the same 80 points would wrap instead.
             var box = Box.text(Paragraph.of(font, TEXT), INK, nowrap()).size(Length.points(80), Length.AUTO);
 
             var cuts = cutsOf(box);
@@ -146,7 +146,7 @@ class TextScaleAuditTest {
             // The same box twice at the same width. The padded one has 60 points
             // less room for the same line, and a rule that compared against the
             // border box rather than the content box would call them both fine —
-            // which is ADR-0111's bug, asserted from the other side.
+            // which is the padded-text-box bug, asserted from the other side.
             var bare = Box.text(Paragraph.of(font, TEXT), INK, nowrap()).size(Length.points(200), Length.AUTO);
             var padded = Box.text(Paragraph.of(font, TEXT), INK, nowrap())
                     .size(Length.points(200), Length.AUTO)

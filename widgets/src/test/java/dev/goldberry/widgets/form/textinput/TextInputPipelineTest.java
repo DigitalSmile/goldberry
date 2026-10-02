@@ -129,7 +129,8 @@ class TextInputPipelineTest {
                     later(150, () -> {
                         // Two events, because that is what a keyboard produces: one
                         // character each, translated by the platform's own layout and
-                        // compose handling before it reaches us (§7.1).
+                        // compose handling before it reaches us; a key and the
+                        // text it produces are two different events.
                         typeText("G");
                         typeText("o");
                         later(200, Goldberry::stop);

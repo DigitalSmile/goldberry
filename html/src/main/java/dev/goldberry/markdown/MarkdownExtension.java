@@ -10,8 +10,8 @@ import dev.goldberry.natives.md4c.enums.MarkdownFlag;
 /// which are three spellings of one idea and some of which describe an engine this
 /// module does not have; what is here is the set an application chooses between,
 /// each named for what it means rather than for how md4c spells it. The translation
-/// is [#flags()], and it is the only place in this module that mentions md4c at all
-/// (ADR-0294).
+/// is [#flags()], and it is the only place in this module that mentions md4c at all:
+/// a parser crosses the native boundary once, and its vocabulary stays on that side.
 ///
 /// What is deliberately **not** here:
 ///

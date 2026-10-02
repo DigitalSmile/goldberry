@@ -11,7 +11,7 @@ import org.junit.jupiter.api.Test;
 import dev.goldberry.assets.BundledAssets;
 import dev.goldberry.assets.BundledFont;
 
-/// What a face has glyphs for — [ADR-0386].
+/// What a face has glyphs for, read from its own `cmap`.
 ///
 /// Asserted against the faces this jar ships, because a fixture font would be a
 /// `cmap` somebody wrote to match the reader. Inter is the format 4 case; the

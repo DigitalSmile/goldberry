@@ -16,13 +16,19 @@ import dev.goldberry.widgets.data.Series;
 import dev.goldberry.widgets.markup.Markup;
 import dev.goldberry.widgets.markup.Wiring;
 
-/// Magnitude by category — `docs/core-widgets.md` §11's `bar-chart`.
+/// Magnitude by category: grouped bars, one group per category and one bar per
+/// series.
 ///
 /// ```kdl
 /// bar-chart {
 ///     series name="downloads" { point "0.1" 1200; point "0.2" 3400 }
 /// }
 /// ```
+///
+/// In Java, `new BarChart(series)`, then [#categories] and the [ChartSpec]
+/// withers — `threshold`, `softAxis`, `nulls`, `loading` — as needed. The
+/// `series` children are the data; everything else is the chart's `id` and
+/// `class`.
 ///
 /// **Grouped, not stacked.** Two bars side by side answer "which is bigger", and
 /// that is the question a bar chart is read for; stacked bars answer "what is
@@ -50,11 +56,13 @@ import dev.goldberry.widgets.markup.Wiring;
 /// What it does draw is the domain and the annotations — [ChartSpec#softAxis],
 /// [ChartSpec#axis], [ChartSpec#threshold], [ChartSpec#nulls], the crosshair and
 /// the three states of [ChartSpec#status].
+///
+/// Read more: [Charts](https://goldberry.dev/docs/components/charts.html#bar-chart).
 @Markup("bar-chart")
 public record BarChart(List<Series> series, List<String> categories, ChartOptions options, Attributes attributes)
         implements Widget.Stateful, ChartSpec<BarChart>, Attributed<BarChart> {
 
-    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    /// The canonical constructor, written out so that the parameters taking null for a default can say so.
     public BarChart(
             @Nullable List<Series> series,
             @Nullable List<String> categories,
@@ -117,7 +125,7 @@ public record BarChart(List<Series> series, List<String> categories, ChartOption
         return new BarChart(series, categories, options, value);
     }
 
-    /// Builds a `bar-chart` from markup — §3.2's inline form.
+    /// Builds a `bar-chart` from markup, reading its inline `series` children.
     public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
         var read = ChartParts.read(children);
         return new BarChart(read.series(), read.categories(), Attributes.of(node));

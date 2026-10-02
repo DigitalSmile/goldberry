@@ -2,12 +2,12 @@
 /// [dev.goldberry.media.picture.VideoPicture] converted to
 /// BGRA, or [dev.goldberry.media.picture.VideoPlanes] as the
 /// decoder produced them, for a view that converts on the GPU
-/// ([dev.goldberry.media.picture.PictureForm], ADR-0483).
+/// ([dev.goldberry.media.picture.PictureForm]).
 ///
-/// Split from `…media` in ADR-0496: this is what a view draws, not the player
-/// that makes it.
+/// A package of its own because this is what a view draws, not the player that
+/// makes it. Exported to every module. Null-marked.
 ///
-/// Marked for NullAway from its first commit (`docs/testing.md` §2).
+/// Read more: [`video-view`](https://goldberry.dev/docs/components/media.html#video-view).
 @NullMarked
 package dev.goldberry.media.picture;
 

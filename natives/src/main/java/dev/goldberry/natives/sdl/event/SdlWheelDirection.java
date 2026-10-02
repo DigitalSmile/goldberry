@@ -8,6 +8,8 @@ package dev.goldberry.natives.sdl.event;
 /// multiply by -1 to get them back. A reader that ignores the field is correct on
 /// its own machine and scrolls backwards on everyone else's, which is the kind of
 /// bug that survives a whole release.
+///
+/// Read more: [The native boundary](https://goldberry.dev/docs/overview/architecture.html#the-native-boundary).
 public enum SdlWheelDirection {
 
     /// The values mean what they say.

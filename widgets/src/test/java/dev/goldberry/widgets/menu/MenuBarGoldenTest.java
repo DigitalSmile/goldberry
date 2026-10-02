@@ -23,7 +23,7 @@ import dev.goldberry.widgets.Controls;
 import dev.goldberry.widgets.controls.TestFont;
 import dev.goldberry.widgets.core.Column;
 
-/// What a menu bar looks like (§14, [ADR-0163]).
+/// What a menu bar looks like.
 ///
 /// [MenuBarTest] pins the model — which headings are described, what opens, what
 /// is registered. These are the images that say the *drawing* adds up, and there
@@ -116,16 +116,16 @@ class MenuBarGoldenTest {
         paint("menubar-focus", Theme.NORD_DARK, 360, 60, bar(), new PseudoState(2, Selector.PseudoClass.FOCUS_VISIBLE));
     }
 
-    /// The same ring on the light theme, because §2.2's ring is the one mark in
+    /// The same ring on the light theme, because the focus ring is the one mark in
     /// the system with **no second means of being seen**.
     ///
     /// A hover has a wash, a checked control has a fill, a disabled one has its
     /// opacity — each is a state whose colours other goldens already cover. A
     /// focus ring is only a ring, and `--gb-focus` resolves differently per
     /// theme, so a ring photographed on one theme is a ring unwatched on the
-    /// other. That is not hypothetical: §2.2's ring sat below §1.2's floor on
+    /// other. That is not hypothetical: the ring sat below the contrast floor on
     /// every light surface, and fixing it moved **no golden at all** — which is
-    /// the gap saying so out loud ([ADR-0240], [ADR-0261]).
+    /// the gap saying so out loud.
     ///
     /// `FocusGoldenPairTest` is the rule rather than this comment: every
     /// `*-focus.png` in the corpus must have a `-light` twin.

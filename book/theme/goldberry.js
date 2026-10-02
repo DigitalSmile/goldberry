@@ -1,6 +1,6 @@
 /*
  * The landing page's header, built into mdBook's menu bar once the page has
- * loaded (docs/book.md). mdBook's own buttons stay: the sidebar toggle, the
+ * loaded. mdBook's own buttons stay: the sidebar toggle, the
  * theme menu and search on the left, print and the GitHub links on the right.
  * What this adds between them is the brand and the six parts of the guide,
  * which is the navigation the landing page has for its own sections.
@@ -12,8 +12,8 @@
  *
  * The second half turns every `<div class="gb-tabs">` of fenced samples into
  * tabs, one per language, and remembers the reader's choice for the whole book
- * (ADR-0514). The pictures need no script: `goldberry.css` shows the light or
- * the dark one by the theme's class on <html> (ADR-0513).
+ * The pictures need no script: `goldberry.css` shows the light or
+ * the dark one by the theme's class on <html>.
  */
 (function () {
     var bar = document.getElementById("mdbook-menu-bar");

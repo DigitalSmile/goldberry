@@ -6,6 +6,8 @@ import dev.goldberry.media.io.Source;
 
 /// Where the subtitles showing come from ([PlayerStatus#subtitles()]): a
 /// subtitle track of the source, or a file loaded beside it.
+///
+/// Read more: [A player](https://goldberry.dev/docs/components/media.html#a-player).
 public sealed interface SubtitleSource {
 
     /// A subtitle track of the source.

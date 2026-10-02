@@ -28,9 +28,9 @@ permission notices to travel with it.
 | [SDL3](licenses/sdl3.txt) | Zlib | <https://www.libsdl.org> | Windowing, input, DPI, GPU |
 | [Yoga](licenses/yoga.txt) | MIT | <https://www.yogalayout.dev> | Flexbox layout |
 | [HarfBuzz](licenses/harfbuzz.txt) | MIT ("Old MIT") | <https://harfbuzz.github.io> | Text shaping |
-| [md4c](licenses/md4c.txt) | MIT | <https://github.com/mity/md4c> | Markdown parser and the HTML5 entity table, behind `goldberry-html` (ADR-0294) |
-| [libwebp](licenses/libwebp.txt) | BSD-3-Clause | <https://github.com/webmproject/libwebp> | WebP decoding — the `webpdecoder` target only, no encoder and no animation demuxer (ADR-0329) |
-| [webview/webview](licenses/webview.txt) | MIT | <https://github.com/webview/webview> | §9's `web-view`, behind the **separate and optional** `libgoldberry-webview` (ADR-0441) |
+| [md4c](licenses/md4c.txt) | MIT | <https://github.com/mity/md4c> | Markdown parser and the HTML5 entity table, behind `goldberry-html` |
+| [libwebp](licenses/libwebp.txt) | BSD-3-Clause | <https://github.com/webmproject/libwebp> | WebP decoding — the `webpdecoder` target only, no encoder and no animation demuxer |
+| [webview/webview](licenses/webview.txt) | MIT | <https://github.com/webview/webview> | the `web-view` widget, behind the **separate and optional** `libgoldberry-webview` |
 
 webview/webview is the only entry here that is not inside `libgoldberry`, and
 the only one an installation may legitimately not have. It also brings **no
@@ -60,21 +60,20 @@ md4c is here rather than in a notice file of its own, which is a departure from
 own `THIRD-PARTY-NOTICES`. It is compiled **into `libgoldberry`** rather than
 into a native of that module's own — one MIT C file of tens of kilobytes, against
 the four CI legs a second superbuild would cost — so it is redistributed in the
-same artifact as the four above and is disclosed beside them
-([ADR-0294](book/src/adr/0294-a-parser-crosses-the-boundary-once.md)). `html-view`
+same artifact as the four above and is disclosed beside them. `html-view`
 was built without an engine under it — the HTML parser is Java — so no second
 native library and no second notice file were needed after all.
 
 ## Dynamically linked, in `goldberry-media`'s `ffmpeg-<platform>` classifiers
 
-The media engine's libraries (`docs/goldberry-media.md`, ADR-0460). They are
+The media engine's libraries. They are
 **not** in `libgoldberry` and not in any artifact an application gets without
 asking: they ship in the `ffmpeg-<platform>` classifier jars of the optional
-`goldberry-media`, which an application adds by name (ADR-0495).
+`goldberry-media`, which an application adds by name.
 
 | Component | Licence | Upstream | Notes |
 |---|---|---|---|
-| [FFmpeg](licenses/ffmpeg.txt) | LGPL-2.1-or-later | <https://ffmpeg.org> | `avformat`, `avcodec`, `avutil`, `swresample`, `swscale`, shared and replaceable (ADR-0461) |
+| [FFmpeg](licenses/ffmpeg.txt) | LGPL-2.1-or-later | <https://ffmpeg.org> | `avformat`, `avcodec`, `avutil`, `swresample`, `swscale`, shared and replaceable |
 | [dav1d](licenses/dav1d.txt) | BSD-2-Clause | <https://code.videolan.org/videolan/dav1d> | Software AV1 decoder, linked statically into `libavcodec` |
 
 FFmpeg is the only component here under a copyleft licence, and the whole
@@ -93,14 +92,14 @@ same place. That place is `goldberry-media`'s `ffmpeg-sources` classifier
 under the same coordinates, snapshots included: FFmpeg and dav1d at exactly the
 pinned tags and commits, the media superbuild that compiled them, the licence
 texts, and a `README.txt` on rebuilding and relinking. Publication refuses an
-`ffmpeg-<platform>` classifier without it (ADR-0508). An application that
+`ffmpeg-<platform>` classifier without it. An application that
 redistributes the binaries takes the same obligation on with them, and shipping
 that jar beside them is the plain way to meet it.
 
 ### The platform decoders bundle nothing
 
-`goldberry-media`'s system decoders (ADR-0472, ADR-0489; the separate
-`goldberry-media-platform` module until ADR-0493) decode the patent-pool codecs
+`goldberry-media`'s system decoders (once the separate `goldberry-media-platform`
+module, now part of `goldberry-media`) decode the patent-pool codecs
 FFmpeg's build leaves out — H.264, HEVC, AAC, AC-3 and E-AC-3 — by calling the
 decoders the operating system already has: VideoToolbox, AudioToolbox and Core
 Audio on macOS, the GStreamer libraries and plugins a Linux distribution
@@ -121,8 +120,7 @@ vendor's or the distribution's.
 
 ### The emoji face is opt-in, and asks for nothing on screen
 
-**It ships in `goldberry-emoji`, not in `goldberry-core`** (ADR-0384,
-ADR-0456): five megabytes of paint graphs is a lot for an application that never
+**It ships in `goldberry-emoji`, not in `goldberry-core`**: five megabytes of paint graphs is a lot for an application that never
 draws an emoji to inherit.
 
 What ships is Google's **COLRv1** build of Noto Color Emoji (`Noto-COLRv1.ttf`,

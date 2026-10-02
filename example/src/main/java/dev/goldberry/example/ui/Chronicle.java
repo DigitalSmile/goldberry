@@ -10,17 +10,18 @@ import dev.goldberry.widgets.panel.timeline.Entry;
 import dev.goldberry.widgets.panel.timeline.Timeline;
 import dev.goldberry.widgets.text.Text;
 
-/// §10's `timeline`: the road so far, and a pending marker for the rest of it
-/// ([ADR-0345]).
+/// The `timeline`: the road so far, and a pending marker for the rest of it.
 ///
 /// One entry carries its own colour, which is `chip`'s rule for a dot — a
 /// colour is data when the kinds of event differ — and the last marker is
 /// unfilled, because the story is not over. That marker is what tells a
 /// timeline from a list with dots.
 ///
-/// Rivendell's marker is a `badge`, §10's third kind: a widget in the entry's
-/// `marker` slot, drawn on the axis in place of the dot ([ADR-0356]). It is
+/// Rivendell's marker is a `badge`, the third kind of marker: a widget in the entry's
+/// `marker` slot, drawn on the axis in place of the dot. It is
 /// where the company became nine, so the marker says so.
+///
+/// Read more: [Timeline](https://goldberry.dev/docs/components/panels.html#timeline).
 public record Chronicle() implements Widget.Stateless {
 
     @Override

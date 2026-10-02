@@ -24,18 +24,18 @@ import dev.goldberry.widgets.Controls;
 import dev.goldberry.widgets.Icons;
 import dev.goldberry.widgets.controls.TestFont;
 
-/// The door an icon's size is chosen at — [ADR-0419].
+/// The door an icon's size is chosen at.
 ///
-/// An `Icon` is a path built at a size and cannot be rescaled afterwards
-/// (ADR-0043), so the only moment anybody can get this right is the call that
+/// An `Icon` is a path built at a size and cannot be rescaled afterwards,
+/// so the only moment anybody can get this right is the call that
 /// builds it. `item-lead` is the **one** slot in the catalog with a width of its
 /// own — everywhere else `Box.icon` sizes the box to the glyph, so there is no
 /// slot to overflow — and 16 was written in `controls.css` and nowhere a Java
 /// author would look.
 ///
 /// Two things are held down here. The number, so [Icons#SLOT] and the stylesheet
-/// cannot drift apart; and the report, so it stays the *one* line at `debug` that
-/// ADR-0394 allows rather than the `WARN` per row per frame it wants to be.
+/// cannot drift apart; and the report, so it stays the *one* line at `debug` a
+/// diagnostic is allowed rather than the `WARN` per row per frame it wants to be.
 class ItemLeadOverhangTest {
 
     private Icon fits;
@@ -63,7 +63,7 @@ class ItemLeadOverhangTest {
 
     /// A one-row menu, prepared the way [Menus] prepares one: the leading column
     /// is reserved by the *menu*, so a row built any other way has no column for
-    /// an icon to overflow (ADR-0113).
+    /// an icon to overflow.
     private static Box render(Icon icon) {
         var menu = new Menu(new Item("Open", () -> {}).icon(icon));
         var rows = menu.children().stream()
@@ -120,7 +120,7 @@ class ItemLeadOverhangTest {
     }
 
     @Nested
-    @DisplayName("the report, which ADR-0394 says must not be a warning")
+    @DisplayName("the report, which must not be a warning")
     class TheReport {
 
         /// The common case, and the one that decides whether this diagnostic is
@@ -148,8 +148,8 @@ class ItemLeadOverhangTest {
         }
 
         /// **Once**, not once a frame. `render` runs per row per paint, so the
-        /// thing that separates this from the log ADR-0243 spent a record
-        /// quietening is that the second frame adds nothing.
+        /// thing that separates this from a log that had to be quietened once
+        /// before is that the second frame adds nothing.
         @Test
         @DisplayName("the same icon in five frames of five menus is reported once")
         void reportedOnlyOnce() {

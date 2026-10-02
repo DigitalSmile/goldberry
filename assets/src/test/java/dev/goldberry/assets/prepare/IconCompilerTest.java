@@ -45,8 +45,8 @@ class IconCompilerTest {
         assertTrue(path.endsWith("M9 12h6"), path);
         // Concatenation is only safe because every subpath begins with a moveto.
         // `assertEquals(2, path.split(" ").length > 1 ? 2 : 1)` stood here, which
-        // compares 2 with 2 once the asserts above have passed (the 2026-09-18
-        // review, §6). Two subpaths means two `M` commands, so count those.
+        // compares 2 with 2 once the asserts above have passed. Two subpaths
+        // means two `M` commands, so count those.
         assertEquals(2, path.chars().filter(c -> c == 'M').count(), "two subpaths, so two moves");
     }
 
@@ -56,7 +56,7 @@ class IconCompilerTest {
         // Lucide's `a-arrow-down`, which is three <path> elements and two of
         // them open with `m`. Inside its own element that `m` is measured from
         // the origin; joined behind the first subpath it would be measured from
-        // (9.5, 13), putting the A off the 24x24 viewBox entirely (ADR-0302).
+        // (9.5, 13), putting the A off the 24x24 viewBox entirely.
         var path = compile(icon(
                 "<path d=\"M3.5 13h6\"/><path d=\"m2 16 4.5-9 4.5 9\"/><path d=\"M18 7v9\"/>"));
 

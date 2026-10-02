@@ -15,10 +15,11 @@ import dev.goldberry.platform.Capability;
 import dev.goldberry.platform.PlatformCapabilities;
 import dev.goldberry.render.BackendException;
 
-/// Running the toolkit: the loop, background work, and the version.
+/// The entry points of the toolkit: launching an application, running the event
+/// loop, moving work off and back onto the UI thread, and the version.
 ///
-/// Paired with [Window]. Between them an application needs no other Goldberry
-/// type to put something on screen:
+/// Most applications call [#launch] once from `main`. Paired with [Window], an
+/// application needs no other Goldberry type to put something on screen:
 ///
 /// ```java
 /// public static void main(String[] args) {
@@ -30,7 +31,11 @@ import dev.goldberry.render.BackendException;
 ///
 /// [#run()] takes over the **calling** thread as the UI thread rather than
 /// spawning one, because AppKit requires the process's first thread and a rule
-/// that holds on only two platforms is not a rule (`docs/ARCHITECTURE.md` §4).
+/// that holds on only two platforms is not a rule. Everything that touches a
+/// window runs on that thread; [#async] and [#ui] are how work gets off it and
+/// back.
+///
+/// Read more: [Windows, popups and the host](https://goldberry.dev/docs/guide/windows.html#the-lifecycle).
 public final class Goldberry {
 
     private static final String BUILD_INFO_RESOURCE = "build-info.properties";
@@ -51,7 +56,7 @@ public final class Goldberry {
     /// native library only where the machine that built it had the development
     /// headers for them. Where it did not, the calls do not fail: they answer
     /// *"the desktop does not say"*, which is indistinguishable from a desktop
-    /// that really does not (`docs/gaps.md` G32, ADR-0325).
+    /// that really does not. This set is how an application tells the two apart.
     ///
     /// ```java
     /// if (!Goldberry.capabilities().contains(Capability.SYSTEM_THEME)) {
@@ -64,6 +69,7 @@ public final class Goldberry {
     /// library at all.
     ///
     /// @return the capabilities of this build, in declaration order
+    /// @see <a href="https://goldberry.dev/docs/guide/windows.html#capabilities">Capabilities</a>
     public static Set<Capability> capabilities() {
         return PlatformCapabilities.get();
     }
@@ -94,8 +100,10 @@ public final class Goldberry {
     /// thread.
     ///
     /// Every callback chained onto the returned future is therefore already
-    /// somewhere it may touch a window — no hand-off to write, and no rule to
-    /// remember about which thread a callback runs on (ADR-0020):
+    /// somewhere it may touch a window: no hand-off to write, and no rule to
+    /// remember about which thread a callback runs on. The work itself runs on a
+    /// virtual thread.
+    ///
     ///
     /// ```java
     /// Goldberry.async(() -> readTheFile())
@@ -137,8 +145,7 @@ public final class Goldberry {
     /// Everything between opening the window and closing the last font is the
     /// launcher's — the element tree, the render tree, the renderer, the router,
     /// the frame loop, damage, the hit-test snapshot and the shutdown ordering —
-    /// because none of it is a decision an application makes differently
-    /// (ADR-0093).
+    /// because none of it is a decision an application makes differently.
     ///
     /// Returns when the loop ends: the last window closed, or something called
     /// [#stop()].

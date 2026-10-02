@@ -4,15 +4,24 @@ import java.util.List;
 
 /// A paragraph broken into lines at one particular width.
 ///
-/// This is what a Yoga measure function reports: `width` and `height` are the
-/// two numbers that go back into `YGSize`, and the lines are what a paint pass
-/// then draws without re-deciding anything.
+/// ```java
+/// TextLayout layout = paragraph.layout(240);
+/// double height = layout.height();         // what a measure function reports
+/// for (TextLine line : layout.lines()) { ... }
+/// ```
+///
+/// This is what [Paragraph#layout] returns and what a measure function reports
+/// to the layout engine: `width` and `height` are the two numbers that go back
+/// to it, and the lines are what a paint pass then draws without re-deciding
+/// anything. The list is copied on construction, so a layout is a value.
+///
+/// Read more: [Text, fonts and icons](https://goldberry.dev/docs/guide/text.html#paragraphs).
 ///
 /// @param lines  the lines, in order
-/// @param width  the widest line, in logical units — **not** the width it was
-///               asked to fit in. A paragraph that wraps well before the
-///               available width should not claim the space it did not use, or
-///               a centred parent would centre the gap
+/// @param width  the widest line, in logical units, not the width it was asked
+///               to fit in. A paragraph that wraps well before the available
+///               width should not claim the space it did not use, or a centred
+///               parent would centre the gap
 /// @param height the total height in logical units: one line height per line,
 ///               including blank ones
 public record TextLayout(List<TextLine> lines, double width, double height) {

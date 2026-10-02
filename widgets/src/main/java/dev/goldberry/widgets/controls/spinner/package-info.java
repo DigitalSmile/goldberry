@@ -1,14 +1,13 @@
-/// `@NullMarked`, which puts this package under NullAway.
+/// The `spinner` — a small indeterminate activity indicator, a turning ring with
+/// a gap.
 ///
-/// Inside a marked package every type is non-null unless it says `@Nullable`,
-/// and the build fails on a violation. The annotation is the whole content of
-/// this file: there is nothing package-specific to say about nullness, and a
-/// paragraph pretending otherwise in every package would be padding.
+/// [dev.goldberry.widgets.controls.spinner.Spinner] is the widget and
+/// [dev.goldberry.widgets.controls.spinner.SpinnerSize] its three sizes. It has
+/// no value, no state and no input; the rotation is read from the frame clock.
 ///
-/// Packages are marked one at a time on purpose. NullAway runs in
-/// `OnlyNullMarked` mode, so an unmarked package is invisible to it and a marked
-/// one is checked from the moment it opts in — which is the only way a codebase
-/// this size adopts nullness at all (`docs/testing.md` §2).
+/// Every reference is non-null unless it says `@Nullable`.
+///
+/// Read more: [Values and progress](https://goldberry.dev/docs/components/values.html#spinner).
 @NullMarked
 package dev.goldberry.widgets.controls.spinner;
 

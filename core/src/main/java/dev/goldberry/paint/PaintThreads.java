@@ -8,14 +8,13 @@ import dev.goldberry.render.model.PhysicalSize;
 /// How many Blend2D workers a frame is painted with.
 ///
 /// Blend2D can rasterize a frame across threads by splitting it into horizontal
-/// bands (ADR-0002). ADR-0031 parked the knob as "only matters if paint ever
-/// becomes the bottleneck"; ADR-0037 measured a frame in which it had, with paint
-/// at 5.10 ms of a 7.86 ms total. This is where the number is decided, and the
-/// numbers behind it are in ADR-0042.
+/// bands. Paint is the largest part of a live frame — 5.10 ms of a 7.86 ms total
+/// on a 960×640 window painted synchronously — so the count matters, and this is
+/// where it is decided.
 ///
 /// Three things shape the policy, and all three are measured rather than
 /// assumed — `PaintBenchmark` sweeps seven worker counts across six surface
-/// sizes, and ADR-0042 has the table:
+/// sizes:
 ///
 /// 1. **One worker is never better than none.** It pays for the command queue
 ///    and the hand-off and gets no parallelism back — at 640×480 it measured
@@ -28,8 +27,11 @@ import dev.goldberry.render.model.PhysicalSize;
 ///    46 µs — real, but inside the run-to-run spread and 0.3% of a frame budget.
 ///    Below [#MIN_THREADED_PIXELS] a frame paints synchronously.
 ///
-/// `-Dgoldberry.paint.threads=N` overrides all three, and `0` restores the
-/// synchronous behaviour of everything before ADR-0042.
+/// `-Dgoldberry.paint.threads=N` overrides all three, and `0` paints
+/// synchronously.
+///
+/// Read more:
+/// [Keeping frames cheap](https://goldberry.dev/docs/performance/frames.html#what-the-toolkit-does-for-you).
 public final class PaintThreads {
 
     /// Sets the worker count explicitly. `0` paints synchronously.

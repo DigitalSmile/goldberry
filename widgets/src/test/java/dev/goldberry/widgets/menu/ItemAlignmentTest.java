@@ -36,7 +36,7 @@ import dev.goldberry.widgets.controls.TestFont;
 ///
 /// A menu built the way [Menus] builds one, because the leading column is decided
 /// there and an image of a menu assembled any other way is an image of something
-/// nobody sees (ADR-0113).
+/// nobody sees.
 class ItemAlignmentTest {
 
     private Icon oversized;
@@ -46,7 +46,7 @@ class ItemAlignmentTest {
         RendererRequirement.enforce();
         // 20 rather than 16, which is the size the showcase builds and the case
         // the golden images missed for a month: `item-lead` is 16 square, so an
-        // icon larger than it is the one that can push something (ADR-0143).
+        // icon larger than it is the one that can push something.
         oversized = Icon.bundled("palette", 20);
     }
 
@@ -75,10 +75,10 @@ class ItemAlignmentTest {
     /// The same offsets, with the menu squeezed into `width` logical pixels.
     ///
     /// **The reported case.** A popup wider than the window it belongs to is
-    /// measured again with the window's width as a definite one (ADR-0104), and
-    /// a menu row is a row of measured leaves — so before ADR-0148 the widest row
-    /// wrapped to two lines, and a two-line label in a 32px row is centred to the
-    /// row's top edge.
+    /// measured again with the window's width as a definite one, and a menu row
+    /// is a row of measured leaves — so before rows stopped shrinking the widest
+    /// row wrapped to two lines, and a two-line label in a 32px row is centred
+    /// to the row's top edge.
     private List<Float> labelOffsetsSqueezedTo(int width) {
         var target = TestFrames.of(width, 240, 1.0f, 0);
         var tree = new ElementTree(showcaseMenu());
@@ -155,7 +155,7 @@ class ItemAlignmentTest {
     /// row is squeezed and the widest ones used to wrap. A label that wrapped
     /// sat at offset 0 — the top of its row — against 8 for the ones that did
     /// not, which is the difference somebody sees and no assertion about the row
-    /// would catch (ADR-0148).
+    /// would catch.
     @Test
     @DisplayName("a menu squeezed narrower than its content still puts every label on one line")
     void squeezedRowsDoNotWrap() {

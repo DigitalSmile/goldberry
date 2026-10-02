@@ -1,9 +1,9 @@
-/// `docs/core-widgets.md` §4's `color-picker` — a hex field over a plane and two
-/// sliders.
+/// The `color-picker` widget: a hex field over a saturation-and-value plane and
+/// two sliders, for hue and alpha.
 ///
-/// `@NullMarked`, which puts this package under NullAway. See
-/// `dev.goldberry.widgets.form.parts` for why every package
-/// opts in one at a time.
+/// Every reference is non-null unless it says `@Nullable`.
+///
+/// Read more: [Fields and forms](https://goldberry.dev/docs/components/forms.html#color-picker).
 @NullMarked
 package dev.goldberry.widgets.form.colorpicker;
 

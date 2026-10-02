@@ -18,8 +18,8 @@ import dev.goldberry.widgets.form.textinput.TextInput;
 
 /// What a [TimePicker] holds: the text in its field, and the popover under it.
 ///
-/// `DatePickerState`'s shape, and the same argument for it — §4 makes the typed
-/// field the source of truth for both pickers, so what lives here is a `String`
+/// `DatePickerState`'s shape, and the same argument for it — the typed field is
+/// the source of truth for both pickers, so what lives here is a `String`
 /// and a `LocalTime` is what [TimeFormat#parse] makes of it. The wheels write
 /// text into the field exactly as a user would, so a value takes one path and is
 /// parsed in one place.

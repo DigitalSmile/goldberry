@@ -2,28 +2,26 @@ package dev.goldberry.text;
 
 import java.util.Arrays;
 
-/// The glyphs a shaper produced, and where they go.
+/// The glyphs a shaper produced for a string, and where each one goes.
 ///
-/// ## Why the toolkit owns this
+/// `Font.shape` returns one and [Paragraph#glyphs] hands one back. It is a
+/// value: six `int` arrays with no foreign memory, no lifetime and nothing to
+/// close. The shaper's own buffers are read and copied out the moment shaping
+/// finishes, and this is what is left, so an application never holds a native
+/// type to read a glyph position.
 ///
-/// It is what `Font.shape` returns and what `Paragraph.glyphs()` hands back, so
-/// before ADR-0282 reading either meant reading a `:natives` class. Nothing about
-/// it is native: it is six `int` arrays, with no foreign memory, no lifetime and
-/// nothing to close — HarfBuzz's own buffers are read and copied out at the
-/// moment shaping finishes, and this is what is left (ADR-0282).
-///
-/// ## What is in it
-///
-/// One entry per **glyph**, which is not one per character. A ligature is one
-/// glyph for several characters and a decomposed accent is two glyphs for one, so
-/// the only honest mapping back to the text is [#cluster], which is the byte
-/// index of the first character a glyph belongs to. Two glyphs sharing a cluster
-/// are inseparable — that mapping is what a caret and a selection are built on.
+/// One entry per glyph, which is not one per character. A ligature is one glyph
+/// for several characters and a decomposed accent is two glyphs for one, so the
+/// only honest mapping back to the text is [#cluster], the index of the first
+/// character a glyph belongs to. Two glyphs sharing a cluster are inseparable;
+/// that mapping is what a caret and a selection are built on.
 ///
 /// Advances move the pen; offsets move the glyph without moving the pen, which is
-/// how a mark sits over a base. Both are in the font's **design units**, so a run
-/// is correct at any size: it is the face's shaping of that string rather than any
+/// how a mark sits over a base. Both are in the font's design units, so a run is
+/// correct at any size: it is the face's shaping of that string rather than any
 /// one size's.
+///
+/// Read more: [Text, fonts and icons](https://goldberry.dev/docs/guide/text.html#faces-fonts-and-the-book).
 public final class ShapedRun {
 
     /// A run with no glyphs. Shaping empty text produces this rather than null.
@@ -54,8 +52,8 @@ public final class ShapedRun {
     /// A run over copies of these six arrays.
     ///
     /// Copied rather than taken, because a caller that kept a reference could
-    /// write into a run after it was built — and a shaped run is a value that
-    /// a paragraph cache hands out repeatedly.
+    /// write into a run after it was built, and a shaped run is a value that a
+    /// paragraph cache hands out repeatedly.
     ///
     /// @throws IllegalArgumentException if the six are not the same length
     public static ShapedRun of(
@@ -90,7 +88,7 @@ public final class ShapedRun {
         return glyphIds.length == 0;
     }
 
-    /// The face's own index for the glyph at `index` — not a character.
+    /// The face's own index for the glyph at `index`, not a character.
     public int glyphId(int index) {
         return glyphIds[index];
     }
@@ -120,9 +118,9 @@ public final class ShapedRun {
         return yOffsets[index];
     }
 
-    /// The sum of the advances — how wide the run is, in design units.
+    /// The sum of the advances: how wide the run is, in design units.
     ///
-    /// The sum of the *advances* and not the extent of the ink: a trailing space
+    /// The sum of the advances and not the extent of the ink: a trailing space
     /// moves the pen and draws nothing, and a layout pass has to account for it.
     public long totalXAdvance() {
         var total = 0L;

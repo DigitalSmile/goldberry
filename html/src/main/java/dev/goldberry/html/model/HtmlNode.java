@@ -12,11 +12,12 @@ import java.util.List;
 /// drops them rather than modelling something no fold would match on.
 ///
 /// **Sealed, because a fold over a document should stop compiling when the model
-/// grows.** That is the same argument the Markdown model makes
-/// (ADR-0295): an exhaustive `switch` with no
-/// `default` is how `html-view`, a table of contents and a link checker each say
-/// they have considered every node, and a `default` branch drawing "something else"
-/// is how one of them silently stops being true.
+/// grows.** That is the same argument the Markdown model makes: an exhaustive
+/// `switch` with no `default` is how `html-view`, a table of contents and a link
+/// checker each say they have considered every node, and a `default` branch drawing
+/// "something else" is how one of them silently stops being true.
+///
+/// Read more: [HTML view](https://goldberry.dev/docs/components/content.html#html-view).
 public sealed interface HtmlNode permits HtmlDocument, Element, HtmlText, Comment {
 
     /// This node's children, in document order. Empty for the two leaves.

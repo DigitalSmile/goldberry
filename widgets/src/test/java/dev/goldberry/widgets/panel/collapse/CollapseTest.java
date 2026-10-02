@@ -23,14 +23,15 @@ import dev.goldberry.widgets.Widgets;
 import dev.goldberry.widgets.panel.Described;
 import dev.goldberry.widgets.text.Text;
 
-/// `collapse` — §5's disclosure ([ADR-0164]).
+/// `collapse` — the disclosure.
 ///
-/// **The claim is an absence.** §5 asks for a body that is *unmounted* while
-/// closed rather than hidden, so the assertion that matters is not "the body has
-/// zero height" but "there is no body, and the author's own widgets were never
-/// built either" — which is what keeps a shut section's subscriptions, images and
-/// scroll positions from staying alive behind a header nobody has opened
-/// (ADR-0004).
+/// **The claim is an absence.** The body is *unmounted* while closed rather
+/// than hidden, so the assertion that matters is not "the body has zero height"
+/// but "there is no body, and the author's own widgets were never built either"
+/// — which is what keeps a shut section's subscriptions, images and scroll
+/// positions from staying alive behind a header nobody has opened.
+///
+/// Read more: [Panels](https://goldberry.dev/docs/components/panels.html#collapse).
 class CollapseTest {
 
     @BeforeEach
@@ -77,8 +78,8 @@ class CollapseTest {
         assertTrue(built(tree, "Shown"));
     }
 
-    /// §5's "`open` is retained state": the section remembers, and the
-    /// application never hears about it.
+    /// `open` is retained state: the section remembers, and the application
+    /// never hears about it.
     @Test
     @DisplayName("an uncontrolled section opens itself and stays open")
     void uncontrolled() {
@@ -107,7 +108,7 @@ class CollapseTest {
         assertEquals(0, bodies(tree), "and stayed shut, because nobody answered");
     }
 
-    /// §5: "`Left`/`Right` close and open." Absolute rather than a toggle, so
+    /// `Left` closes and `Right` opens. Absolute rather than a toggle, so
     /// holding `Right` down a list of sections opens all of them instead of
     /// flapping the one under the cursor.
     @Test
@@ -140,8 +141,8 @@ class CollapseTest {
         assertEquals(0, bodies(tree));
     }
 
-    /// One tab stop — §5's "the header is one Tab stop". A body full of controls
-    /// has its own, but nothing in the section's chrome does.
+    /// The header is one Tab stop. A body full of controls has its own, but
+    /// nothing in the section's chrome does.
     @Test
     @DisplayName("the header is the only focusable part of the chrome")
     void oneTabStop() {
@@ -153,8 +154,8 @@ class CollapseTest {
         assertEquals(1, focusable.size(), "expected only the header, got " + focusable);
     }
 
-    /// The chevron has to be a node the cascade reaches, or the rotation §5 asks
-    /// for could never be written: a transform is resolved for an element, and a
+    /// The chevron has to be a node the cascade reaches, or its rotation on
+    /// `base` could never be written: a transform is resolved for an element, and a
     /// mark drawn inline by the header would have none.
     @Test
     @DisplayName("the chevron is a node, and says whether the section is open")
@@ -170,8 +171,8 @@ class CollapseTest {
                 .contains("open"));
     }
 
-    /// §5 forbids animating the height and always will, so the body appears at
-    /// full height and fades up into it — `tab`'s arrival, and for the same
+    /// Height is never animated — it is not a compositor-cheap property and never
+    /// will be — so the body appears at full height and fades up into it — `tab`'s arrival, and for the same
     /// reason: a newly built element has no previous style to interpolate from.
     @Test
     @DisplayName("an opening body arrives on the frame clock, from wherever it is")
@@ -186,8 +187,8 @@ class CollapseTest {
         assertEquals(0.5, body.phase().progressAt(5080), 1e-9);
         assertEquals(1, body.phase().progressAt(5160), 1e-9);
         // And it settles itself on the frame that finishes it, which is what
-        // takes the window back out of the frame loop. Before [ADR-0228] this
-        // answered "is the section open" and stayed true for ever.
+        // takes the window back out of the frame loop. This used to answer
+        // "is the section open" and stayed true for ever.
         assertFalse(body.isAnimating(), "an arrived section is still asking for frames");
     }
 

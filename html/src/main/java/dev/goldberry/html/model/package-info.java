@@ -5,8 +5,7 @@
 /// which is the one asymmetry worth knowing about: a fold over the *kinds* is
 /// exhaustive and checked by the compiler, while a tag nobody has heard of still
 /// renders — as a block or an inline according to
-/// [dev.goldberry.html.model.Tags], styled by its own name
-/// (ADR-0298).
+/// [dev.goldberry.html.model.Tags], styled by its own name.
 ///
 /// This is the module's real surface for HTML, in the same way
 /// [dev.goldberry.markdown.model] is for Markdown: a preview is
@@ -14,7 +13,9 @@
 /// a word count and an image prefetch are all walks of one parse.
 ///
 /// `@NullMarked` puts the package under NullAway: every type is non-null unless it
-/// says `@Nullable`, and the build fails on a violation (`docs/testing.md` §2).
+/// says `@Nullable`, and the build fails on a violation.
+///
+/// Read more: [HTML view](https://goldberry.dev/docs/components/content.html#html-view).
 @NullMarked
 package dev.goldberry.html.model;
 

@@ -9,7 +9,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-/// `docs/testing.md` §0.1, enforced: **determinism is a feature under test**.
+/// **Determinism is a feature under test**, and this is what enforces it.
 ///
 /// The suite asserts exact results — images compared pixel by pixel, a virtual
 /// clock stepped in whole milliseconds, every label in the root locale — and each
@@ -27,8 +27,8 @@ import org.junit.jupiter.api.Test;
 /// spanning the whole toolkit would have thirty-eight exceptions and mean nothing.
 /// `Launcher` and `EventLoop` run the frame loop; `Window` and `WidgetRenderer`
 /// time their own phases, which is what feeds the HUD; `Clock` is the real-clock
-/// implementation a virtual one is swapped in *for*. None of that is a violation
-/// of §0.1 — it is what §0.1 is built on.
+/// implementation a virtual one is swapped in *for*. None of that breaks the
+/// rule — it is what the rule is built on.
 ///
 /// ## There is no allowlist
 ///
@@ -42,6 +42,9 @@ import org.junit.jupiter.api.Test;
 /// The rule is better for having no exceptions, and that is the point of writing
 /// the cost of each one down while it exists: an exception with a price on it
 /// gets paid.
+///
+/// Read more:
+/// [Determinism rules](https://goldberry.dev/docs/guide/testing.html#determinism-rules).
 class DeterminismTest {
 
     /// Where the assertions are exact, and therefore where a clock is a bug.
@@ -55,7 +58,7 @@ class DeterminismTest {
     /// has to be drawn in *some* zone and only the application knows which. What
     /// matters is that there is exactly one such call in the catalog, so the
     /// Charts screen passing `ZoneOffset.UTC` is enough to make its picture the
-    /// same picture in every time zone (ADR-0203).
+    /// same picture in every time zone.
     private static final String TIME_AXIS = "dev.goldberry.widgets.data.TimeAxis";
 
     /// `src/testFixtures` is not `src/test`, so ArchUnit's test filter does not
@@ -82,7 +85,7 @@ class DeterminismTest {
                 .callMethod(System.class, "currentTimeMillis")
                 .orShould()
                 .callMethod(System.class, "nanoTime")
-                .because("§0.1: a virtual clock is what lets a motion test assert a"
+                .because("a virtual clock is what lets a motion test assert a"
                         + " mid-transition frame. A painter that read the real one would"
                         + " draw whatever the machine happened to be doing")
                 .check(classes);
@@ -98,7 +101,7 @@ class DeterminismTest {
                 .haveNameNotMatching(TIME_AXIS)
                 .should()
                 .callMethod(java.time.ZoneId.class, "systemDefault")
-                .because("ADR-0203: a time axis is time, and which zone it is drawn in is"
+                .because("a time axis is time, and which zone it is drawn in is"
                         + " the application's answer. One seam is what makes passing UTC"
                         + " enough to pin a chart's picture")
                 .check(classes);
@@ -117,7 +120,7 @@ class DeterminismTest {
                 .haveFullyQualifiedName("java.util.Random")
                 .orShould()
                 .callMethod(Math.class, "random")
-                .because("§0.1: seeded randomness or none. An unseeded source anywhere"
+                .because("seeded randomness or none. An unseeded source anywhere"
                         + " under a golden makes the image a different image each run")
                 .check(classes);
     }
@@ -130,7 +133,7 @@ class DeterminismTest {
                 .resideInAnyPackage(DETERMINISTIC_LAYER)
                 .should()
                 .callMethod(java.util.Locale.class, "getDefault")
-                .because("§1.3: no locale dependence. Every label this toolkit formats is"
+                .because("no locale dependence. Every label this toolkit formats is"
                         + " in the root locale, so a golden taken in Istanbul matches one"
                         + " taken in Reykjavik — the dotted capital I is not hypothetical")
                 .check(classes);
@@ -150,7 +153,7 @@ class DeterminismTest {
                 .accessField(System.class, "err")
                 .orShould()
                 .callMethod(Throwable.class, "printStackTrace")
-                .because("ADR-0023: a library that writes to stdout has taken a decision"
+                .because("a library that writes to stdout has taken a decision"
                         + " belonging to the application. :assets is a build-time tool"
                         + " whose console output IS its product")
                 .check(classes);

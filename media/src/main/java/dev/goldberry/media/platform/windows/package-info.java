@@ -1,5 +1,5 @@
 /// Media Foundation behind the Decoder SPI: Windows's H.264, HEVC, AAC, AC-3 and
-/// E-AC-3 decoders, as decoder MFTs (ADR-0472).
+/// E-AC-3 decoders, as decoder MFTs.
 ///
 /// Not exported. Three layers:
 ///
@@ -21,7 +21,9 @@
 /// struct layouts are from the Windows SDK headers, and CI on Windows is what
 /// confirms them.
 ///
-/// Marked for NullAway from its first commit (`docs/testing.md` §2).
+/// Null-marked.
+///
+/// Read more: [Bringing a codec](https://goldberry.dev/docs/components/media.html#bringing-a-codec).
 @NullMarked
 package dev.goldberry.media.platform.windows;
 

@@ -32,13 +32,12 @@ import dev.goldberry.widgets.controls.TestFont;
 import dev.goldberry.widgets.core.Column;
 import dev.goldberry.widgets.data.Series;
 
-/// What a chart does when a pointer arrives — `charts.md` §3.1's crosshair and
-/// tooltip.
+/// What a chart does when a pointer arrives — the crosshair and the tooltip.
 ///
 /// Driven through the **real router**, against the regions a painted frame
 /// produced, because that is the seam the feature lives in: the hovered point is
 /// resolved from a pointer's local position against the geometry of the frame
-/// that was painted ([ADR-0054]), and a test that called the widget's handler by
+/// that was painted, and a test that called the widget's handler by
 /// hand would assert the arithmetic and skip the only interesting part.
 ///
 /// The assertions are **pictures compared to pictures** rather than expected

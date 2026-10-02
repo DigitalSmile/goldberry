@@ -6,13 +6,15 @@ package dev.goldberry.natives.sdl.desktop;
 /// `SDL_SYSTEM_CURSOR_POINTER` is 11 in SDL3 and did not exist in SDL2, while
 /// `SDL_SYSTEM_CURSOR_HAND` — SDL2's name for the same shape — was 11 for
 /// different reasons. Every value here is checked against the compiled SDL by the
-/// layout probe (ADR-0010), because a wrong one shows the user the wrong cursor
+/// layout probe, because a wrong one shows the user the wrong cursor
 /// and reports no error at all.
 ///
 /// Not the whole enum. SDL3 also has eight per-edge window-resize shapes
 /// (`SDL_SYSTEM_CURSOR_NW_RESIZE` and friends) which it documents as possibly
 /// falling back to the two-headed arrows below; they are absent because nothing
 /// asks for them until client-side decorations do (M3).
+///
+/// Read more: [The native boundary](https://goldberry.dev/docs/overview/architecture.html#the-native-boundary).
 public enum SdlSystemCursor {
     DEFAULT(0),
     TEXT(1),

@@ -2,7 +2,7 @@ package dev.goldberry.build.publish;
 
 /**
  * One thing Goldberry publishes to Maven Central, and the Gradle project it is
- * built from ({@code docs/ARCHITECTURE.md} §15, ADR-0334, ADR-0336).
+ * built from.
  *
  * <p>Three kinds, because they are published three different ways: a
  * {@link Library} is a {@code java-library} with code in it; the {@link Bom} is a
@@ -29,7 +29,7 @@ public sealed interface PublishedModule
         /**
          * An {@code <optional>} dependency of {@code goldberry}: listed, versioned
          * by the BOM, and added by an application that wants it -- the content
-         * modules, {@code :media} and {@code :gpu} (ADR-0190, ADR-0495).
+         * modules, {@code :media} and {@code :gpu}.
          */
         OPTIONAL
     }

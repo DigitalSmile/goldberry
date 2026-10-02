@@ -14,7 +14,7 @@ import dev.goldberry.css.Typography;
 import dev.goldberry.paint.TestFrames;
 import dev.goldberry.text.Paragraph;
 
-/// The italic faces, in ink — `docs/gaps.md` G27, ADR-0323.
+/// The italic faces, in ink.
 ///
 /// The claim being tested is the one an application could not make for itself:
 /// **an italic here is a drawn face and not a sheared upright one.** Nothing about

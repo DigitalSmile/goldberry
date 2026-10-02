@@ -8,8 +8,7 @@ import dev.goldberry.render.GpuPlacement;
 import dev.goldberry.render.PixelBuffer;
 import dev.goldberry.render.model.PhysicalSize;
 
-/// How a window shows GPU layers: [BackendWindow#gpuSurface()]
-/// (`docs/gpu-plan.md`, D3 and D5; ADR-0481).
+/// How a window shows GPU layers: what [BackendWindow#gpuSurface()] answers.
 ///
 /// A frame painted over a surface hands it every GPU layer it places. Which of
 /// the two kinds the surface is decides what the frame does with one:
@@ -26,6 +25,9 @@ import dev.goldberry.render.model.PhysicalSize;
 /// The two kinds are the window's composition mode: sealed, so a caller that
 /// asks which one it has switches over them rather than over a second enum
 /// that could disagree. Confined to the UI thread, as a window is.
+///
+/// Read more:
+/// [Logging and diagnostics](https://goldberry.dev/docs/guide/logging.html#which-way-a-window-presents).
 public sealed interface GpuSurface permits GpuSurface.Composited, GpuSurface.ReadBack {
 
     /// What the frame just painted placed, in paint order, and every layer it
@@ -37,7 +39,7 @@ public sealed interface GpuSurface permits GpuSurface.Composited, GpuSurface.Rea
     /// placed.
     void placed(List<GpuPlacement> layers);
 
-    /// The window presents through the GPU (ADR-0479). Its frames have holes
+    /// The window presents through the GPU. Its frames have holes
     /// where layers are, and [#placed] is what its next present draws in them,
     /// in paint order, under the frame.
     non-sealed interface Composited extends GpuSurface {}

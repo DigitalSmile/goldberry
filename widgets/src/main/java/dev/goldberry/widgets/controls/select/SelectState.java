@@ -23,7 +23,7 @@ import dev.goldberry.widgets.panel.tree.Tree;
 ///
 /// Everything here is the half of the control that cannot be a value: a popup
 /// window, a rectangle from the last frame, and the letters of a typeahead that
-/// has not timed out yet ([ADR-0141]).
+/// has not timed out yet.
 final class SelectState extends State<Select> {
 
     /// How long a typeahead lasts before the next letter starts a new one.
@@ -43,7 +43,7 @@ final class SelectState extends State<Select> {
     ///
     /// **Not `setState`**: nothing drawn depends on it, and marking the element
     /// dirty from [dev.goldberry.input.handler.Located] is how a
-    /// widget told where it is ends up rebuilding forever (ADR-0119).
+    /// widget told where it is ends up rebuilding forever.
     private LogicalRect field = LogicalRect.of(0, 0, 0, 0);
 
     /// The typeahead so far, and when it was last added to.
@@ -75,7 +75,7 @@ final class SelectState extends State<Select> {
         // **Every mode, which it used to be two of.** The guard read `multiple ||
         // isTree`, on the reasoning that a single-valued select closes its list
         // when a row is picked and so has nothing to re-describe. Typing is the
-        // case that reasoning forgets: §3's typeahead moves the selection with
+        // case that reasoning forgets: the typeahead moves the selection with
         // the list still open, and the rows kept the `:checked` the list was
         // opened with -- so a user typing `n`, `o` down a country list watched
         // the tick stay on whatever was chosen before and nothing else move.
@@ -102,7 +102,7 @@ final class SelectState extends State<Select> {
     /// The labels a closed single select could show: every option's and the
     /// placeholder. Empty for a tree, whose labels are nodes that may not be
     /// loaded, and for `multiple` and `autocomplete`, which draw chips or an
-    /// editor instead of a value (ADR-0359).
+    /// editor instead of a value.
     private static List<String> widths(Select select) {
         if (select.isTree() || select.multiple() || select.autocomplete()) {
             return List.of();
@@ -115,13 +115,13 @@ final class SelectState extends State<Select> {
         return List.copyOf(labels);
     }
 
-    /// §3's "renders the selection as `badge` chips ... each with a remove
-    /// affordance", and empty for every select that is not `multiple`.
+    /// The selection as chips, each with a remove affordance, and empty for every
+    /// select that is not `multiple`.
     ///
     /// A chip's × reports the value through `change` exactly as picking it from
     /// the list does, because in a multiple control **`change` is a toggle**: the
     /// set is the application's, and asking for a value that is already in it can
-    /// only mean taking it out ([ADR-0182]). One channel rather than two is also
+    /// only mean taking it out. One channel rather than two is also
     /// what keeps `select multiple=` inside the `Consumer<String>` every other
     /// valued control reports through.
     private java.util.List<Widget> chips(Select select) {
@@ -142,16 +142,15 @@ final class SelectState extends State<Select> {
     /// The **offered** text, in `TextInput`'s sense: it is handed down as that
     /// widget's `value`, and `TextInputState.follow` overwrites the field only
     /// when this *changes* — so typing is never fought, and setting it back to
-    /// the committed label is exactly how `Esc` restores ([ADR-0183]).
+    /// the committed label is exactly how `Esc` restores.
     private @Nullable String typedText;
 
-    /// §3's editable closed control, or null for a `select` you cannot type in.
+    /// The editable closed control, or null for a `select` you cannot type in.
     ///
-    /// A real [dev.goldberry.widgets.form.textinput.TextInput],
-    /// because §3 says "makes the closed control an editable `text-input`" and
-    /// because everything an editable field needs — the edit model, the undo
-    /// history, the clipboard, the caret's blink — already lives there and has
-    /// rules in it. A second editor would be a second set of those rules.
+    /// A real [dev.goldberry.widgets.form.textinput.TextInput], because
+    /// everything an editable field needs — the edit model, the undo history,
+    /// the clipboard, the caret's blink — already lives there and has rules in
+    /// it. A second editor would be a second set of those rules.
     private @Nullable Widget editor(Select select) {
         if (!select.autocomplete()) {
             return null;
@@ -174,7 +173,7 @@ final class SelectState extends State<Select> {
     /// Two things happen and they are separate on purpose: the query goes **up**
     /// for the application to filter on, and the list is opened if it was not.
     /// Nothing is selected and nothing is committed — a user typing is narrowing,
-    /// not choosing (§3).
+    /// not choosing.
     private void typed(String text) {
         setState(() -> typedText = text);
         var onQuery = widget().onQuery();
@@ -188,9 +187,9 @@ final class SelectState extends State<Select> {
         }
     }
 
-    /// §3: "`Esc` restores the last committed value rather than clearing".
+    /// `Esc` restores the last committed value rather than clearing.
     ///
-    /// Which is the sentence that tells a combobox apart from a search box: the
+    /// Which is the rule that tells a combobox apart from a search box: the
     /// control holds a value, typing is a way of *reaching* one, and abandoning
     /// the attempt leaves the value alone. Clearing would throw away something
     /// the user never asked to lose.
@@ -199,7 +198,7 @@ final class SelectState extends State<Select> {
         setState(() -> typedText = null);
     }
 
-    /// §3: "a free-typed value is refused unless `free=#true`".
+    /// A free-typed value is refused unless `free=#true`.
     ///
     /// Called when the editable control loses the keyboard, which is the moment a
     /// half-typed value stops being an attempt and starts being an answer. A
@@ -236,7 +235,7 @@ final class SelectState extends State<Select> {
             return;
         }
         if (!select.free()) {
-            // §3's refusal: a combobox is a set of values, and text naming none
+            // The refusal: a combobox is a set of values, and text naming none
             // of them is a mistake rather than a new member.
             restore();
             return;
@@ -287,8 +286,7 @@ final class SelectState extends State<Select> {
     ///
     /// Nothing happens without a window, and that is a normal outcome rather than
     /// an error: a golden image and a layout preview build the same widget with no
-    /// host behind it, and a control that threw there could not be drawn at all
-    /// (ADR-0140).
+    /// host behind it, and a control that threw there could not be drawn at all.
     private void open() {
         var select = widget();
         if (host == null || select.disabled() || (select.options().isEmpty() && !select.isTree())) {
@@ -299,17 +297,14 @@ final class SelectState extends State<Select> {
         // At least as wide as the field, and wider when an option is longer. A
         // list narrower than the control it hangs off reads as a mistake rather
         // than as a menu, and no measurement of the *content* can know how wide
-        // the field turned out (ADR-0145).
-        // ... and no taller than the screen. A list longer than the display used
-        // to be clamped to the near edge with its last options silently dropped,
-        // which is the same gap `menu` had and the same fix: the popup facility
-        // says what it measured, and a list that does not fit becomes a list of
-        // the screen's height with the options scrolling inside it
-        // (ADR-0179).
+        // the field turned out.
+        // ... and no taller than the screen. The popup facility says what it
+        // measured, and a list that does not fit becomes a list of the screen's
+        // height with the options scrolling inside it, rather than one clamped
+        // to the near edge with its last options silently dropped.
         // A combobox's list is **attached** rather than a menu: it hangs off a
         // field the user is typing into, and a focusable window would take the
-        // keyboard off it (ADR-0186). Every other select opens a menu, which is
-        // what it is.
+        // keyboard off it. Every other select opens a menu, which is what it is.
         var opened = select.autocomplete()
                 ? host.attachedPopup(
                         panel(), field, Placement.BELOW, field.size().width(), VIEWPORT)
@@ -317,7 +312,7 @@ final class SelectState extends State<Select> {
         // The anchor this was placed against, so a report of "it opened in the
         // wrong place" can be settled from a log rather than from guesses. The
         // rectangle is what the last frame *painted* the field as, which is the
-        // only thing a popup can be anchored to (ADR-0119).
+        // only thing a popup can be anchored to.
         LOG.debug(
                 "select list anchored to {} (field {}x{} at {},{})",
                 field,
@@ -328,8 +323,8 @@ final class SelectState extends State<Select> {
         if (opened.isEmpty()) {
             // No popup windows on this driver. The list stays closed rather than
             // falling back to an in-window overlay, because the overlay would be
-            // clipped to the window and §3 asks for this list specifically to
-            // escape it (ADR-0102). Saying so is more use than nothing happening.
+            // clipped to the window and the whole point of this list is to
+            // escape it. Saying so is more use than nothing happening.
             LOG.trace("this platform has no popup windows, so a select cannot open its list");
             return;
         }
@@ -339,7 +334,7 @@ final class SelectState extends State<Select> {
         // **Unless it is a combobox**, where the keyboard belongs to the editor:
         // a list that focused a row on opening would swallow the second keystroke
         // and every one after it. The arrows still reach it, because the owner
-        // forwards keys to whatever popup is open (ADR-0104, ADR-0185).
+        // forwards keys to whatever popup is open.
         if (select.autocomplete()) {
             opened.get().takesFocus(false);
         } else if (chosen != null) {
@@ -356,9 +351,9 @@ final class SelectState extends State<Select> {
     /// **A `multiple` keeps its list open**, which is not a flourish: the whole
     /// point of the mode is picking several, and a list that shut after each one
     /// would make choosing three values three round trips through a popup that
-    /// has to be measured, placed and opened again each time. §3 says the control
-    /// "renders the selection" in the closed field, which is a sentence about a
-    /// control the user has finished with.
+    /// has to be measured, placed and opened again each time. The closed field
+    /// renders the selection, which is a picture of a control the user has
+    /// finished with.
     ///
     /// For the single-valued control the order matters and has not changed: the
     /// list closes **first**, so an application that opens a dialog from its
@@ -369,7 +364,7 @@ final class SelectState extends State<Select> {
             // The editor goes back to showing the model, which the `change` below
             // is about to move. Cleared rather than set to the new label, because
             // what the control shows is the *application's* answer and not this
-            // control's guess at it (ADR-0063).
+            // control's guess at it.
             setState(() -> typedText = null);
         }
         var onChange = widget().onChange();
@@ -382,24 +377,23 @@ final class SelectState extends State<Select> {
         // arrived. Re-describing the rows from it would draw the selection the
         // list had *before* the pick, which is exactly what "the chip appears and
         // the row stays grey" looked like. The refresh belongs in `build`, which
-        // is by definition the first moment the new model is visible (ADR-0185).
+        // is by definition the first moment the new model is visible.
     }
 
-    /// What goes in the popup: §3's flat list, or a `tree` when one was given.
+    /// What goes in the popup: the flat list, or a `tree` when one was given.
     ///
     /// The **same panel either way**, so the surface, the edge, the radius and
     /// the scroll-when-it-does-not-fit are one decision rather than two. What
-    /// differs is the one child inside it, which is exactly what §3's sentence
-    /// says: "takes a `tree`'s model instead of a flat option list, so the popup
-    /// is a `tree`" ([ADR-0184]).
+    /// differs is the one child inside it: a tree-shaped select takes a `tree`'s
+    /// model instead of a flat option list, so the popup is a `tree`.
     private Widget panel() {
         var select = widget();
         if (!select.isTree()) {
             return new SelectList(rows(), this::typeahead);
         }
         // No typeahead of the list's own: the tree has one, over its **visible**
-        // rows (ADR-0209), and a letter that reaches the focused row is handled
-        // there. The list stays out of the capture phase so it does (ADR-0368).
+        // rows, and a letter that reaches the focused row is handled there. The
+        // list stays out of the capture phase so it does.
         return new SelectList(List.of(new Tree(select.tree(), select.resolved(), this::chooseNode)));
     }
 
@@ -478,7 +472,7 @@ final class SelectState extends State<Select> {
 
     /// The tree row the chosen node is drawn as, when it is a root and so is on
     /// screen when the list opens; null otherwise, which lets the popup focus its
-    /// first row (ADR-0368).
+    /// first row.
     ///
     /// Without it a tree select opened on its first row whatever it held, so the
     /// tree's typeahead — which moves from the focused row — started from the top
@@ -496,14 +490,15 @@ final class SelectState extends State<Select> {
         return null;
     }
 
-    /// Re-describes the open list — §3's "the popup stays open and narrows".
+    /// Re-describes the open list, so the popup stays open and narrows as the
+    /// user types.
     ///
     /// Called from [#typed], where it *is* safe to read `widget()`: the query is
     /// this control's own state and does not travel through the application
     /// before the list has to show it.
     ///
-    /// A popup is an element tree of its own with its own build schedule
-    /// ([ADR-0103]), so a `setState` here reaches this control's field and
+    /// A popup is an element tree of its own in a window of its own, with its
+    /// own build schedule, so a `setState` here reaches this control's field and
     /// nothing in the window the list is drawn in. Closing and reopening would
     /// flicker and lose the keyboard's place, so the list's tree is asked to
     /// rebuild where it stands.
@@ -530,7 +525,7 @@ final class SelectState extends State<Select> {
         }
     }
 
-    /// §3's typeahead, on the **closed** control.
+    /// The typeahead, on the **closed** control.
     ///
     /// The letters accumulate for [#TYPEAHEAD_MILLIS] and match the start of an
     /// option's label, case-insensitively. A first letter typed twice cycles
@@ -538,7 +533,7 @@ final class SelectState extends State<Select> {
     /// user has forgotten how the rest of the word is spelled.
     ///
     /// It reports through `change` like everything else — typing does not set
-    /// anything, it asks (ADR-0063).
+    /// anything, it asks.
     private void typeahead(String text) {
         var select = widget();
         if (select.disabled() || select.options().isEmpty()) {
@@ -600,8 +595,8 @@ final class SelectState extends State<Select> {
     /// Where the field was painted — see [SelectField].
     ///
     /// The clip is deliberately dropped. `Located` reports it because `affix`
-    /// needs to compare itself against the viewport that confines it (ADR-0119);
-    /// a popup is placed against the *display's* work area by `Placement`, so a
+    /// needs to compare itself against the viewport that confines it; a popup
+    /// is placed against the *display's* work area by `Placement`, so a
     /// list opened from a row half-scrolled out of a viewport is placed against
     /// where that row is on screen, which is where the user is looking.
     private void located(LogicalRect self, LogicalRect clip) {
@@ -615,7 +610,8 @@ final class SelectState extends State<Select> {
     /// this catalog a test cannot drive: asserting that a gap longer than the
     /// window starts a fresh search meant sleeping for it and hoping, so nothing
     /// asserted it. Against a `Clock.virtual()` it is `advance(600)` and a
-    /// keystroke (`docs/testing.md` §0.1).
+    /// keystroke. See
+    /// [Testing an application](https://goldberry.dev/docs/guide/testing.html#the-virtual-clock).
     ///
     /// Falls back to the system clock when there is no host, which is a widget
     /// built and driven outside a window. Typeahead still works there; it is

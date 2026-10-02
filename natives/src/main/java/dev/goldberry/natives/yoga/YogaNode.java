@@ -26,7 +26,7 @@ import dev.goldberry.natives.yoga.style.Wrap;
 /// This is the layout engine as the rest of Goldberry sees it: a widget owns one
 /// of these, sets the style properties its computed CSS resolved to, and reads
 /// back a [ComputedLayout] after a pass. The `YGNodeRef` inside never leaves the
-/// module (`docs/ARCHITECTURE.md` §3.1).
+/// module.
 ///
 /// ## Who owns a node
 ///
@@ -60,7 +60,9 @@ import dev.goldberry.natives.yoga.style.Wrap;
 /// A node belongs to the thread that created it, and every method checks. Yoga
 /// has no locking whatsoever, and a tree touched from two threads corrupts
 /// quietly rather than failing — which is the worst of the options. The UI
-/// thread is where layout belongs anyway (ADR-0020).
+/// thread is where layout belongs anyway.
+///
+/// Read more: [How layout works](https://goldberry.dev/docs/layout/index.html).
 public final class YogaNode implements AutoCloseable {
 
     /// The absence of a constraint, for [#calculateLayout].

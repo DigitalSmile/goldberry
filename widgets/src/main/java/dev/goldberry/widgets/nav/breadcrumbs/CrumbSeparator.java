@@ -10,13 +10,12 @@ import dev.goldberry.widget.style.Paints;
 import dev.goldberry.widget.style.Styled;
 
 /// The `>` between two crumbs — a **part**, so it is CSS-selectable and not
-/// constructible
-/// (ADR-0065).
+/// constructible.
 ///
-/// ## It is a mark and not a character, and that is §6's whole point about it
+/// ## It is a mark and not a character
 ///
-/// > Separator is a `chevron-right` icon in `--gb-text-muted`, **not a
-/// > character**, so it never joins the text run.
+/// The separator is a chevron drawn in `--gb-text-muted`, **not a character**,
+/// so it never joins the text run.
 ///
 /// A `>` or a `/` typed between two labels is part of a paragraph: it shapes with
 /// the words, it takes their colour, it wraps with them, and a screen reader

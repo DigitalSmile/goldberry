@@ -4,10 +4,12 @@ package dev.goldberry.media.audio;
 /// channel count.
 ///
 /// One format, on purpose. The Engine converts everything to it in one
-/// resampling pass (`docs/goldberry-media.md` §3), so a sink never converts.
+/// resampling pass, so a sink never converts.
 ///
 /// @param sampleRate samples per second per channel
 /// @param channels   the channel count, in FFmpeg's default order for it
+///
+/// Read more: [A player](https://goldberry.dev/docs/components/media.html#a-player).
 public record AudioFormat(int sampleRate, int channels) {
 
     /// What the Engine asks for when it does not know better: CD rate is not it.

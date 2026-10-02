@@ -13,6 +13,8 @@ import java.nio.charset.StandardCharsets;
 ///
 /// Beside the screens' KDL documents, because it is the same kind of thing: content
 /// the application ships, which somebody edits without recompiling to see it.
+///
+/// Read more: [HTML view](https://goldberry.dev/docs/components/content.html#html-view).
 public final class HtmlSample {
 
     private static final String RESOURCE = "html-sample.html";
@@ -23,7 +25,7 @@ public final class HtmlSample {
     ///
     /// Read on each call, which is once: the model reads it when it is constructed.
     /// No `opens` is needed for it — this class and the file are in the same module,
-    /// and JPMS encapsulates a resource from *other* modules (ADR-0093).
+    /// and JPMS encapsulates a resource from *other* modules.
     public static String text() {
         try (var in = HtmlSample.class.getResourceAsStream(RESOURCE)) {
             if (in == null) {

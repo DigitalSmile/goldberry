@@ -27,7 +27,7 @@ import dev.goldberry.widget.attr.Attributes;
 import dev.goldberry.widget.style.Paints;
 import dev.goldberry.widget.style.Styled;
 
-/// [Widget#nothing()] — the word the element tree did not have ([ADR-0227]).
+/// [Widget#nothing()] — the word the element tree did not have.
 ///
 /// Every `build` has to return a widget, so a widget with nothing to show had to
 /// describe an empty box: no room of its own, and still a child, so a `column`
@@ -139,7 +139,7 @@ class NothingTest {
     /// How tall a box tree comes out at, laid out for real — the claim about
     /// gaps is Yoga's and only a layout can show it.
     ///
-    /// The height is left **undefined**, which is ADR-0104's rule: a definite
+    /// The height is left **undefined**, the rule a popup is measured by: a definite
     /// dimension is filled by a root, so measuring against 400 would answer 400
     /// however many children there were.
     private double heightOf(Box box) {

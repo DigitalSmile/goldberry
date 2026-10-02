@@ -22,6 +22,8 @@ package dev.goldberry.natives.harfbuzz;
 /// Advances and offsets are in the units the font's scale was set to
 /// ([ShapedFont#setScale]). Advances move the pen; offsets move the glyph
 /// without moving the pen, which is how a mark sits over a base.
+///
+/// Read more: [The native boundary](https://goldberry.dev/docs/overview/architecture.html#the-native-boundary).
 public final class GlyphRun {
 
     /// A run with no glyphs. Shaping empty text produces this rather than null.

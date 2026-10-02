@@ -26,12 +26,12 @@ import dev.goldberry.widgets.text.Text;
 ///
 /// - A **multiple** holds a *set*, and what is worth seeing is that `change` is a
 ///   **toggle** — a chip's × and a click on an already-chosen row are one channel,
-///   and the set is the application's to edit ([ADR-0182]).
+///   and the set is the application's to edit.
 /// - An **autocomplete** raises what was typed and renders *whatever options it is
-///   handed back*, and a document has no way to hand anything back ([ADR-0183]).
+///   handed back*, and a document has no way to hand anything back.
 /// - A **tree**'s model is nodes with suppliers under them, which is a shape KDL
 ///   cannot write at all — `Select.inflate` passes `List.of()` for it in as many
-///   words ([ADR-0184]).
+///   words.
 ///
 /// So the state below is not scaffolding for a demo — it **is** the demonstration:
 /// the toggling, the filtering and the fetching are the parts an application owns,
@@ -40,6 +40,8 @@ import dev.goldberry.widgets.text.Text;
 ///
 /// Three cards and three states, for [Notifications]'s reason: a masonry places by
 /// column height, and each of these owns a value the other two never read.
+///
+/// Read more: [Select](https://goldberry.dev/docs/components/choices.html#select).
 public final class Choosers {
 
     private Choosers() {}
@@ -53,7 +55,7 @@ public final class Choosers {
         return new Text(text, Attributes.NONE.classes("caption"));
     }
 
-    /// §3's `multiple`: the selection is a set, drawn as chips with a × on each.
+    /// A `select` with `multiple`: the selection is a set, drawn as chips with a × on each.
     record Tongues() implements Widget.Stateful {
 
         private static final List<Option> TONGUES = List.of(
@@ -75,7 +77,7 @@ public final class Choosers {
             /// is the control's own rule and costs this card nothing.
             private List<String> chosen = new ArrayList<>(List.of("sindarin", "westron"));
 
-            /// §3's toggle. The set is the application's, so a value already in it
+            /// The toggle. The set is the application's, so a value already in it
             /// can only be a request to take it out — which is what makes a chip's
             /// × and a click on a chosen row the same gesture.
             private void toggle(String value) {
@@ -107,7 +109,7 @@ public final class Choosers {
         }
     }
 
-    /// §3's `autocomplete`: the closed control is an editable `text-input`, and
+    /// A `select` with `autocomplete`: the closed control is an editable `text-input`, and
     /// the filtering is the application's.
     record Places() implements Widget.Stateful {
 
@@ -147,14 +149,14 @@ public final class Choosers {
             ///
             /// Two fields and not one, because they are two different facts:
             /// `place` is what the control *holds* and `query` is what somebody is
-            /// currently typing at it. §3's `Esc` restores the first from the
+            /// currently typing at it. `Esc` restores the first from the
             /// second, and the control does that itself — this card only has to
             /// filter.
             private String place = "";
             private String query = "";
 
-            /// §3: "typing filters the options" — and the filtering is **here**,
-            /// which is the whole point of the sentence. A remote-backed
+            /// Typing filters the options — and the filtering is **here**,
+            /// which is the whole point. A remote-backed
             /// autocomplete would answer the same `query` from a service and the
             /// control would not know the difference.
             private List<Option> matches() {
@@ -203,12 +205,12 @@ public final class Choosers {
         }
     }
 
-    /// §3's `tree=`: the popup is a tree and a selection is a node.
+    /// A `select` with `tree=`: the popup is a tree and a selection is a node.
     record Realms() implements Widget.Stateful {
 
-        /// A model with a **lazy** branch in it, because that is the half of §3's
-        /// tree a still list cannot show: "a node's children are fetched when it
-        /// first expands". Nothing here reads a disk, but the supplier runs once
+        /// A model with a **lazy** branch in it, because that is the half of a
+        /// tree a still list cannot show: a node's children are fetched when it
+        /// first expands. Nothing here reads a disk, but the supplier runs once
         /// and only when Rhovanion is opened — which is what a directory tree
         /// needs, and why a node draws a chevron before anyone knows what is
         /// under it.

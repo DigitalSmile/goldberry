@@ -12,14 +12,17 @@ import org.junit.jupiter.params.provider.EnumSource;
 import dev.goldberry.css.Theme;
 import dev.goldberry.css.parse.TokenType;
 
-/// `design-system.md` §1.7's rule 4, "nothing loops except explicit continuous
-/// indicators", held against the toolkit's own stylesheets now that a stylesheet
-/// can write a loop ([ADR-0353]).
+/// Nothing loops except an explicit continuous indicator. That is the design
+/// system's motion rule, held against the toolkit's own stylesheets now that a
+/// stylesheet can name keyframes and so can write a loop.
 ///
 /// The continuous indicators (`progress`, `spinner`, `skeleton`) are clock
-/// functions in Java and write no keyframes (ADR-0081), so the rule as a check is
-/// simply that no toolkit rule declares an infinite animation. An application's
-/// sheets are the application's.
+/// functions in Java and write no keyframes, so the rule as a check is simply
+/// that no toolkit rule declares an infinite animation. An application's sheets
+/// are the application's.
+///
+/// Read more:
+/// [The design system: motion](https://goldberry.dev/docs/guide/design-system.html#motion).
 class ToolkitLoopsTest {
 
     @ParameterizedTest

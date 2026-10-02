@@ -28,8 +28,8 @@ import dev.goldberry.widgets.markup.Markup;
 import dev.goldberry.widgets.markup.Wiring;
 import dev.goldberry.widgets.text.Text;
 
-/// `media-player`: a [MediaPlayer]'s pictures with its controls over them
-/// (`docs/goldberry-media.md` §6): `video-view` and `media-controls` in one box.
+/// `media-player`: a [MediaPlayer]'s pictures with its controls over them,
+/// `video-view` and `media-controls` in one box.
 ///
 /// ```java
 /// var player = MediaPlayer.builder().build();
@@ -51,10 +51,10 @@ import dev.goldberry.widgets.text.Text;
 ///   `Space`/`K`, `←`/`→`, `↑`/`↓`, `M`, `Home`, `,`/`.`, `<`/`>`, and `F`
 ///   and `Esc` for fullscreen.
 /// - **A failure is shown over the picture**, in `.media-error`: an H.264 file
-///   says which codecs it could not play (§7, S7).
+///   says which codecs it could not play.
 /// - **A stream's title**, when it announces one, is a line in the overlay, in
-///   `.media-now-playing` (§7, S6).
-/// - **Fullscreen**, where the host has a window to ask (ADR-0473): a button at
+///   `.media-now-playing`.
+/// - **Fullscreen**, where the host has a window to ask: a button at
 ///   the end of the controls, `F`, and `Esc` to leave. A copy of the player
 ///   covers the whole window, `.is-fullscreen` and with no id, and the window is
 ///   asked to fill its display. Leaving gives the window back as it was, and the
@@ -75,6 +75,8 @@ import dev.goldberry.widgets.text.Text;
 /// @param player     the player to show and drive
 /// @param fit        how a picture fills the box
 /// @param attributes id, classes and key
+///
+/// Read more: [`media-player`](https://goldberry.dev/docs/components/media.html#media-player).
 @Markup("media-player")
 public record MediaPlayerView(MediaPlayer player, Fit fit, Attributes attributes)
         implements Widget.Stateful, Attributed<MediaPlayerView> {
@@ -256,7 +258,8 @@ public record MediaPlayerView(MediaPlayer player, Fit fit, Attributes attributes
     }
 
     /// The player where the application laid it out, and the owner of its
-    /// fullscreen (ADR-0473).
+    /// fullscreen. A window is fullscreen when the platform says it is, so the
+    /// copy follows the window's own state rather than a flag of its own.
     ///
     /// Entering lays a [FullscreenPlayer] over the whole window with
     /// [Host#fill], then asks the window to fill its display, unless it already

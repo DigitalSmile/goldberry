@@ -24,9 +24,7 @@ import dev.goldberry.widgets.menu.MenuBar;
 import dev.goldberry.widgets.menu.Separator;
 
 /// The window's three bands: how it opens, what its menu bar says, and that the
-/// gallery's fourteen screens are named in one place
-/// (ADR-0221,
-/// ADR-0222).
+/// gallery's fourteen screens are named in one place.
 ///
 /// None of it is a thing a golden image can show: every picture in
 /// [GalleryGoldenTest] is drawn at a size the test chose, so a window that opened
@@ -74,7 +72,7 @@ class ShowcaseShellTest {
     // --- the gallery ---------------------------------------------------------
 
     /// Thirteen screens, ten of which have a digit — and **which** ten is the
-    /// decision this asserts ([ADR-0307]).
+    /// decision this asserts: the eleventh screen has no digit.
     ///
     /// This test used to say `GALLERY.size() <= 10` and call the eleventh screen
     /// "a decision about which one loses its key". The decision is that **none of
@@ -86,8 +84,8 @@ class ShowcaseShellTest {
     /// galleries a reader moves *between* — the digit is worth having because the
     /// comparison is the point. The two sheets are references opened once and
     /// searched, and re-pointing a shortcut somebody already knows in order to
-    /// give one a key would cost more than it bought ([ADR-0386] added the second
-    /// of them and moved no digit, which is the property being kept).
+    /// give one a key would cost more than it bought (the emoji sheet added the
+    /// second of them and moved no digit, which is the property being kept).
     ///
     /// What is still load-bearing is that the digits and the strip agree about
     /// the first ten, which is [GalleryOrderTest]'s.
@@ -125,8 +123,8 @@ class ShowcaseShellTest {
                 "Ctrl+0 is the tenth screen, and inserting one above it would move every digit");
         assertTrue(
                 Screen.GALLERY.size() > 10,
-                "if the gallery is back to ten, this test and ADR-0307 are describing a window"
-                        + " that no longer exists");
+                "if the gallery is back to ten, this test is describing a window that no longer"
+                        + " exists; rewrite it for the gallery that is");
     }
 
     @Test

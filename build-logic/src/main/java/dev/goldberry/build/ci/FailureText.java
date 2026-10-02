@@ -9,7 +9,7 @@ import java.util.stream.Collectors;
 
 /**
  * A throwable as an annotation's body: its cause chain, one line each, and the
- * top of the deepest stack (ADR-0338).
+ * top of the deepest stack.
  *
  * <p>Gradle wraps what actually went wrong several levels deep -- "Execution failed
  * for task", then "There were failing tests", or a process exit code, and only

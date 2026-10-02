@@ -19,8 +19,7 @@ import dev.goldberry.widget.ElementTree;
 import dev.goldberry.widget.Widget;
 import dev.goldberry.widget.style.Styled;
 
-/// The router never speaks to an element it has let go of — `docs/gaps.md` G31,
-/// ADR-0317.
+/// The router never speaks to an element it has let go of.
 ///
 /// In `:core` and built from bare widgets rather than from `text-input`, which
 /// lives in `:widgets`, for [FocusTrapTest]'s reason: what is under test is the

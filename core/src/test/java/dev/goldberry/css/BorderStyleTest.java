@@ -25,7 +25,7 @@ import dev.goldberry.css.lint.StyleLint;
 import dev.goldberry.css.value.CssLength;
 import dev.goldberry.css.value.Shadow;
 
-/// A border per side through the cascade — ADR-0505.
+/// A border per side through the cascade: a border has four sides.
 ///
 /// What is asserted is the [Border] a rule resolves to, side by side, because the
 /// whole content of the feature is which written value reaches which side: a
@@ -197,7 +197,8 @@ class BorderStyleTest {
         void specificityDecidesTheOrder() {
             // `button.quiet` is more specific than `button`, so its `border` wins
             // and is applied after the less specific rule's `border-left`, even
-            // though the side is written later in the sheet (ADR-0311's order).
+            // though the side is written later in the sheet: winners are applied
+            // in cascade order, not source order.
             var border = borderOf("""
                     button.quiet { border: 1px solid #ff0000 }
                     button { border-left: 4px solid #0000ff }

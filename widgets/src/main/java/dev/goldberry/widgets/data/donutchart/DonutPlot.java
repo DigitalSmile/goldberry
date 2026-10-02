@@ -13,8 +13,7 @@ import dev.goldberry.widget.Widget;
 /// painter, and the node that hears the pointer and the keyboard. The split is
 /// the one the axis charts have and it is there for the same reason: a widget is
 /// a value rebuilt every frame, and which slice is being read has to outlive
-/// those rebuilds
-/// (ADR-0198).
+/// those rebuilds.
 ///
 /// A donut has no second piece of interaction state to keep. Its legend is a key
 /// rather than a control: isolating one slice of a part-to-whole chart leaves a
@@ -45,7 +44,7 @@ record DonutPlot(List<Double> values, List<String> labels) implements Widget.Sta
         /// The guard is the idle frame loop rather than an optimization: a pointer
         /// crossing one slice sends an event per pixel, and a `setState` for each
         /// would rebuild and repaint the chart sixty times a second to draw the
-        /// same two words (§1.7, ADR-0122).
+        /// same two words.
         private boolean hover(int slice) {
             if (slice == hovered) {
                 return false;

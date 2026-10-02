@@ -4,6 +4,8 @@ package dev.goldberry.text.edit.keys;
 ///
 /// Vertical movement is not here: it is [EditCommand.MoveLine], because moving
 /// by a line needs a layout and moving along one does not.
+///
+/// Read more: [Input and focus](https://goldberry.dev/docs/guide/input.html#keys-and-text-are-different-events).
 public enum Motion {
 
     /// One position back, or one word back.
@@ -12,12 +14,12 @@ public enum Motion {
     /// One forward.
     RIGHT,
 
-    /// The start of the **soft** line — what `Home` means to a reader, and not
+    /// The start of the visual line — what `Home` means to a reader, and not
     /// the start of the hard line it wrapped from. On a single-line surface the
     /// two are the same place.
     LINE_START,
 
-    /// The end of the soft line.
+    /// The end of the visual line.
     LINE_END,
 
     /// The start of the whole text — `Ctrl+Home`.

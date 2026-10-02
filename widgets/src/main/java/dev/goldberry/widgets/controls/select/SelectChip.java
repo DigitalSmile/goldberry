@@ -13,22 +13,21 @@ import dev.goldberry.widget.semantics.Semantics;
 import dev.goldberry.widget.style.Paints;
 import dev.goldberry.widget.style.Styled;
 
-/// One of a `select multiple`'s chosen values, shown in the closed control —
-/// §3's "`badge` chips inside the closed control, each with a remove
-/// affordance".
+/// One of a `select multiple`'s chosen values, shown as a chip inside the
+/// closed control with a × that takes it out again.
 ///
-/// A **part**, so it is styleable and not constructible
-/// (ADR-0065):
-/// nobody writes a `select-chip`, a `select multiple` describes one per value it
-/// was handed.
+/// A part, styleable as `select-chip` and not constructible from outside the
+/// package: nobody writes a `select-chip`, a `select multiple` describes one
+/// per value it was handed.
 ///
 /// ## It is a `badge` and it is not the `badge` widget
 ///
-/// §3 says "badge chips", and `controls.css` gives this the badge's metrics by
-/// naming both types in one rule rather than by copying them. It could not
-/// simply *be* a [dev.goldberry.widgets.controls.badge.Badge]:
-/// that is a leaf with text and no children, and a chip has to hold a remove
-/// affordance beside its label ([ADR-0182]).
+/// `controls.css` gives this the badge's metrics by naming both types in one
+/// rule rather than by copying them. It could not simply *be* a
+/// [dev.goldberry.widgets.controls.badge.Badge]: that is a leaf with text and no
+/// children, and a chip has to hold a remove affordance beside its label.
+///
+/// Read more: [Choices](https://goldberry.dev/docs/components/choices.html#select).
 ///
 /// @param label    what it reads — the option's label, not its value, for the
 ///                 reason `option value="nord-dark" "Nord Dark"` exists

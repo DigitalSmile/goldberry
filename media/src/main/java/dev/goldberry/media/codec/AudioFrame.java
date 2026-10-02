@@ -15,6 +15,8 @@ import java.util.Objects;
 ///                   channel for a planar one, each at least
 ///                   [SampleFormat#planeSize] bytes
 /// @param ptsNanos   when the first sample plays, or [Frame#NO_PTS]
+///
+/// Read more: [Bringing a codec](https://goldberry.dev/docs/components/media.html#bringing-a-codec).
 public record AudioFrame(
         SampleFormat format, int sampleRate, int channels, int samples, List<MemorySegment> planes, long ptsNanos)
         implements Frame {

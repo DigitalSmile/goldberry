@@ -4,8 +4,8 @@
 // The rest of the screen — the four resident banners, the error summary and the
 // stack that grows and shrinks — is
 // [dev.goldberry.example.ui.Notifications], because a banner
-// that arrives and goes is a *list the application edits* and §8's markup is
-// data (ADR-0175, ADR-0222).
+// that arrives and goes is a *list the application edits* and markup is
+// data.
 //
 // The root is a `masonry` of cards for the reason every screen's is: these three
 // are three lines, six lines and a paragraph tall.
@@ -36,7 +36,7 @@ covers the window: try Tab with it open, and the keyboard never leaves it."
     // A second `menubar`, below the window's own -- the same widget, driven by
     // this screen's actions rather than by the application's. Two of them on one
     // screen is the demonstration that a menu bar is a *widget* and not a
-    // property of the window (ADR-0192).
+    // property of the window.
     menubar id="demo-menubar" {
       item "Errand" {
         item press="app.click" accelerator="Ctrl+K" "March a league"

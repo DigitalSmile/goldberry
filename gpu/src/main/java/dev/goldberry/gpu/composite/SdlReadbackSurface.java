@@ -14,8 +14,7 @@ import dev.goldberry.render.composite.ReadbackSurface;
 import dev.goldberry.render.model.PhysicalSize;
 
 /// GPU layers for a window that presents on the CPU: each rendered into its
-/// texture, downloaded, and handed to the frame as pixels (`docs/gpu-plan.md`,
-/// D3; ADR-0481).
+/// texture, downloaded, and handed to the frame as pixels.
 ///
 /// The layer renders exactly as it would into a composited window, into the
 /// same kind of texture, so the two modes show the same pixels. What this mode

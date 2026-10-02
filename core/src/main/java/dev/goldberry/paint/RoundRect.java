@@ -5,21 +5,17 @@ import dev.goldberry.natives.blend2d.BlendPath;
 
 /// A rounded rectangle, appended to a Blend2D path.
 ///
-/// ## What is left of this class
-///
-/// The four cubics, the KAPPA constant and the corner-fitting rule moved to
-/// [Path#roundRect(double, double, double, double, Corners)] when `:core` grew a
-/// path type of its own (ADR-0277). What remains is the adapter `:core`'s own
-/// painters reach for: they build into a **pooled** `BlendPath` and reset it
-/// between shapes, and this is how a toolkit-owned shape gets into one.
+/// The four cubics, the KAPPA constant and the corner-fitting rule live in
+/// [Path#roundRect(double, double, double, double, Corners)]. This is the adapter
+/// `:core`'s own painters reach for: they build into a **pooled** `BlendPath` and
+/// reset it between shapes, and this is how a toolkit-owned shape gets into one.
 ///
 /// It delegates rather than keeping its own copy of the arithmetic, because two
-/// derivations of the same four arcs that must agree is exactly what ADR-0216
-/// was written about — and the golden images could not tell them apart until one
-/// of them drifted.
+/// derivations of the same four arcs that must agree would drift — and the golden
+/// images could not tell them apart until one did.
 ///
-/// Package-private since ADR-0277: an application wanting a rounded rectangle
-/// wants [Path#roundRect], which takes no native type and needs no pool.
+/// Package-private: an application wanting a rounded rectangle wants
+/// [Path#roundRect], which takes no native type and needs no pool.
 final class RoundRect {
 
     private RoundRect() {}

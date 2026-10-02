@@ -6,7 +6,7 @@ import java.util.Optional;
 
 /**
  * What a Windows machine needs before {@code :natives:cmakeBuild} may run: MSVC,
- * and the environment that makes {@code cl} callable (ADR-0338).
+ * and the environment that makes {@code cl} callable.
  *
  * <h2>Why the compiler is named at all</h2>
  *
@@ -80,7 +80,7 @@ public final class WindowsToolchain {
                 .append("\nFound instead: ")
                 .append(found)
                 .append("\n  A MinGW build names the library libgoldberry.dll, depends on libstdc++-6.dll,\n")
-                .append("  and is not the goldberry.dll that goldberry-natives ships (ADR-0338).\n"));
+                .append("  and is not the goldberry.dll that goldberry-natives ships.\n"));
         return message.toString();
     }
 }

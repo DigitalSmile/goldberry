@@ -21,7 +21,7 @@ import dev.goldberry.css.value.CssLength;
 import dev.goldberry.log.Logs;
 
 /// A `@keyframes` block resolved for one element: for each animatable property
-/// it mentions, the value at each keyframe that mentions it (ADR-0353).
+/// it mentions, the value at each keyframe that mentions it.
 ///
 /// ## Resolved against the element, once per style
 ///
@@ -35,9 +35,11 @@ import dev.goldberry.log.Logs;
 /// ## The whitelist
 ///
 /// A keyframe may declare anything, and only the six
-/// [Animatable] properties move, for §1.7's reason: a keyframed `width` is a
+/// [Animatable] properties move, for one reason: a keyframed `width` is a
 /// layout pass on every frame. The rest are dropped, and each is named once in
 /// a warning per block and property, not once per frame.
+///
+/// Read more: [The design system](https://goldberry.dev/docs/guide/design-system.html#motion).
 public final class KeyframeTrack {
 
     private static final Logger LOG = Logs.of(KeyframeTrack.class);
@@ -139,7 +141,7 @@ public final class KeyframeTrack {
 
     /// Where an animation is in its current iteration, from 0 to 1, `elapsed`
     /// milliseconds after it was first applied — or null when it shows nothing
-    /// then (ADR-0353).
+    /// then.
     ///
     /// CSS's timing model: the delay first, filled by the first frame only
     /// under `backwards` or `both`; then `iterations` passes of `duration`, each
@@ -195,7 +197,7 @@ public final class KeyframeTrack {
         var key = block + '/' + property;
         if (REPORTED.size() >= REPORT_LIMIT || REPORTED.add(key)) {
             LOG.warn(
-                    "@keyframes {} declares \"{}\", which does not animate; only {} do (§1.7)",
+                    "@keyframes {} declares \"{}\", which does not animate; only {} do",
                     block,
                     property,
                     List.of(Animatable.values()).stream()

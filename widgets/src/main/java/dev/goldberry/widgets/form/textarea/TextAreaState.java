@@ -65,7 +65,7 @@ final class TextAreaState extends State<TextArea> implements AreaEditor {
 
     /// A drag held at the top or bottom of the text, carrying [#scrollOffset] on —
     /// the same mechanism the content views use, over this control's own offset
-    /// rather than a `scroll` around it ([ADR-0500]).
+    /// rather than a `scroll` around it.
     private final EdgeScroll edge = new EdgeScroll();
 
     /// Whether the caret is worth chasing yet.
@@ -90,7 +90,7 @@ final class TextAreaState extends State<TextArea> implements AreaEditor {
     private Extent bounds = Extent.NONE;
 
     /// The text as the last frame shaped it — one paragraph per hard line, so a
-    /// keystroke re-shapes one of them ([ADR-0388]).
+    /// keystroke re-shapes one of them.
     ///
     /// Null until the first render, which is the same "nothing has been measured
     /// yet" every other field here starts in.
@@ -103,11 +103,11 @@ final class TextAreaState extends State<TextArea> implements AreaEditor {
     /// Beside [#padding] rather than folded into it, because the two are not the
     /// same number in the two places they are used: the padding is on *both*
     /// sides and each edge comes off the wrap, and the gutter is on one and comes
-    /// off once (`docs/gaps.md` G37, [ADR-0331]).
+    /// off once.
     private double gutterWidth;
 
-    /// What an input method is composing, or empty when it is not —
-    /// `docs/gaps.md` G16. Beside [#edit] and never in it; see
+    /// What an input method is composing, or empty when it is not.
+    /// Beside [#edit] and never in it; see
     /// [dev.goldberry.widgets.form.textinput.TextEditor#compose].
     ///
     /// The same [Preedit] `text-input` holds, rather than the four fields each
@@ -126,7 +126,7 @@ final class TextAreaState extends State<TextArea> implements AreaEditor {
     ///
     /// [#lastOffered]'s rule exactly, and for its reason: a constant `edit=` that
     /// were adopted on every build would put the caret back at the application's
-    /// last answer after every keystroke ([ADR-0332]).
+    /// last answer after every keystroke.
     private @Nullable TextEdit lastPushed;
 
     @Override
@@ -159,7 +159,7 @@ final class TextAreaState extends State<TextArea> implements AreaEditor {
         var composing = Composing.NONE;
         if (!preedit.isEmpty()) {
             // Spliced at the caret, with the caret inside it -- `text-input`'s
-            // arrangement, and every native field's (ADR-0292).
+            // arrangement, and every native field's.
             var at = edit.caret();
             shown = new StringBuilder(shown).insert(at, preedit.text()).toString();
             displayed = new TextEdit(shown, at + preedit.caret(), at + preedit.caret());
@@ -214,8 +214,7 @@ final class TextAreaState extends State<TextArea> implements AreaEditor {
     ///
     /// After [#follow], so an area that is both bound and pushed to in one frame
     /// ends at the caret the application asked for rather than at the clamp a new
-    /// value left behind — which is what every Markdown shortcut is
-    /// (`docs/gaps.md` G38, [ADR-0332]).
+    /// value left behind — which is what every Markdown shortcut is.
     ///
     /// Not announced back through [TextArea#reportEdit]: the caller already knows
     /// what it pushed, and an application mirroring the report into its own state
@@ -293,8 +292,7 @@ final class TextAreaState extends State<TextArea> implements AreaEditor {
 
         // The column is in the **painted** space, so it carries the source line's
         // indent — and the target line's comes off it again, because the two lines
-        // are not indented by the same amount unless they are the same length
-        // ([ADR-0324]).
+        // are not indented by the same amount unless they are the same length.
         var column = Double.isNaN(preferredColumn)
                 ? indentOf(layout.get(index)) + shaped.widthBetween(layout.get(index).start(), edit.caret())
                 : preferredColumn;
@@ -327,7 +325,7 @@ final class TextAreaState extends State<TextArea> implements AreaEditor {
     }
 
     /// Puts a finished, non-empty selection on the primary selection, where the
-    /// platform has one ([ADR-0504]). A `text-area` has no masked mode, so
+    /// platform has one. A `text-area` has no masked mode, so
     /// unlike `text-input` there is nothing it refuses.
     private void publishSelection() {
         if (!edit.hasSelection() || host == null) {
@@ -352,7 +350,7 @@ final class TextAreaState extends State<TextArea> implements AreaEditor {
     public boolean type(String typed) {
         // Clears the composition first, for `text-input`'s reason: the empty
         // TEXT_EDITING is not ordered against this one on every platform, and an
-        // accepted candidate must not draw twice (ADR-0289).
+        // accepted candidate must not draw twice.
         var wasComposing = clearPreedit();
         var room = room();
         var insertion = room < 0 ? typed : MaxLength.clip(typed, room);
@@ -559,10 +557,10 @@ final class TextAreaState extends State<TextArea> implements AreaEditor {
         }
         var line = layout.get(Math.clamp(row, 0, layout.size() - 1));
         // The press is where the user pressed, so the line's own indent comes off
-        // it — the mirror of what the caret adds ([ADR-0324]).
+        // it — the mirror of what the caret adds.
         // The gutter comes off as well as the padding: a click at the left edge of
         // the *text* is a click one gutter's width in from the left edge of the
-        // control ([ADR-0331]).
+        // control.
         var offset = shaped.offsetAt(line.start(), line.end(), x - padding.left() - gutterWidth - indentOf(line));
 
         var next = switch (Math.min(clickCount, 3)) {
@@ -590,7 +588,7 @@ final class TextAreaState extends State<TextArea> implements AreaEditor {
         // A line of *this* control's text, which is why the conversion is here
         // and not at the caller: a `mono` area at 13px and a body one at 15px
         // move different distances for the same turn of the wheel, and both of
-        // them move a line at a time ([ADR-0314]).
+        // them move a line at a time.
         var lineHeight = document == null ? 0 : document.font().lineHeight();
         if (lineHeight <= 0) {
             return false;
@@ -603,7 +601,7 @@ final class TextAreaState extends State<TextArea> implements AreaEditor {
         if (edge.isHeld()) {
             // A wheel mid-drag moved the text under a pointer that did not move, and
             // the selection follows what arrived — at the wheel's pace, which is the
-            // wheel's business and not the edge's ([ADR-0500]).
+            // wheel's business and not the edge's.
             select(edge.x(), edge.y(), true, 1, true);
         }
         return true;
@@ -645,7 +643,7 @@ final class TextAreaState extends State<TextArea> implements AreaEditor {
     /// it silently would show its first frame's guess until something unrelated
     /// caused another frame — which for a form nobody has touched yet is never.
     ///
-    /// It converges rather than looping, which is what ADR-0119 warns about: the
+    /// It converges rather than looping, which is what a located widget must do: the
     /// only frame this asks for is one where the width **changed**, and the
     /// width the next frame measures is the same one. Two frames on mount, one
     /// per resize, none after.
@@ -666,7 +664,7 @@ final class TextAreaState extends State<TextArea> implements AreaEditor {
     public TextDocument shaped(String text, Font font, TextDocument.Shaper shaper) {
         // The previous document is handed back in, which is what makes this
         // incremental: everything but the hard lines the edit touched keeps the
-        // paragraph it already had, and keeps its wrap with it ([ADR-0388]).
+        // paragraph it already had, and keeps its wrap with it.
         var next = TextDocument.of(font, text, document, shaper);
         document = next;
         return next;
@@ -761,8 +759,7 @@ final class TextAreaState extends State<TextArea> implements AreaEditor {
     /// How far in `line` was drawn, which is what every x here is measured from.
     ///
     /// [TextAlign#indentOf] and not a rule of its own: the paint indents each line
-    /// by that method, so a second implementation here is the drift `docs/gaps.md`
-    /// G30 is about ([ADR-0318], [ADR-0324]).
+    /// by that method, so a second implementation here would drift from the paint.
     private double indentOf(TextLine line) {
         return textAlign.indentOf(line.width(), contentWidth());
     }
@@ -771,7 +768,7 @@ final class TextAreaState extends State<TextArea> implements AreaEditor {
     public double contentWidth() {
         // Both edges, each once. `2 * left` was every shipped stylesheet's answer
         // and nobody else's: `padding: 12px 16px 12px 0` wrapped the text 16
-        // pixels wider than its room (`docs/gaps.md` G43, ADR-0350).
+        // pixels wider than its room.
         var measured = bounds.width() - padding.horizontal() - gutterWidth;
         if (measured > 1) {
             return measured;
@@ -845,8 +842,7 @@ final class TextAreaState extends State<TextArea> implements AreaEditor {
     ///
     /// A computed list rather than a built one: a document of ten thousand lines
     /// is asked about three of them per frame, and materialising the rest would
-    /// be the cost `docs/gaps.md` G44 is about, moved rather than removed
-    /// ([ADR-0388]).
+    /// be the cost of shaping the whole note, moved rather than removed.
     private List<TextLine> lines() {
         var layout = layout();
         return layout == null ? List.of() : layout;
@@ -864,7 +860,7 @@ final class TextAreaState extends State<TextArea> implements AreaEditor {
     ///
     /// A search within the offset's own hard line rather than a walk over the
     /// document's lines, which is what makes it independent of how long the note
-    /// is ([ADR-0388]).
+    /// is.
     private int lineIndex(int offset) {
         var layout = layout();
         return layout == null ? 0 : layout.indexOf(offset);
@@ -887,8 +883,8 @@ final class TextAreaState extends State<TextArea> implements AreaEditor {
     /// text to follow the caret can ask for the rebuild that moves the thumb.
     private double barOffset = Double.NaN;
 
-    /// §4's "scrollbar beyond": `scroll`'s bar over this control's own offset,
-    /// or null while the text fits (ADR-0362).
+    /// The scrollbar beyond `max-rows`: `scroll`'s bar over this control's own
+    /// offset, or null while the text fits.
     ///
     /// The viewport is what the content box shows — the rows for an ordinary
     /// area, the measured height for one that fills — so the thumb's length is
@@ -955,8 +951,7 @@ final class TextAreaState extends State<TextArea> implements AreaEditor {
             widget().report(next.text());
         }
         // **Every** change, including one that moved only the caret: three of the
-        // four things a shortcut needs to know about change no text at all
-        // (`docs/gaps.md` G38, [ADR-0332]).
+        // four things a shortcut needs to know about change no text at all.
         widget().reportEdit(next);
         // Every operation but a vertical move abandons the column, which is why
         // it is cleared here rather than in each of them — and why `moveLine`

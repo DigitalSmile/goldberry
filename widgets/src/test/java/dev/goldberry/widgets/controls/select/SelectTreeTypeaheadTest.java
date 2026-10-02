@@ -15,7 +15,7 @@ import dev.goldberry.widgets.panel.tree.Tree;
 import dev.goldberry.widgets.panel.tree.TreeNode;
 
 /// A `select tree=#true`'s open list takes a typeahead: the tree's own, over its
-/// visible rows, reached through the list rather than stopped by it ([ADR-0368]).
+/// visible rows, reached through the list rather than stopped by it.
 class SelectTreeTypeaheadTest {
 
     private static final List<TreeNode> REALMS = List.of(

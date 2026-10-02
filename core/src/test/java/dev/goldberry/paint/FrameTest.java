@@ -54,7 +54,7 @@ class FrameTest {
     @Test
     @DisplayName("restore puts back the clip that was in force, not the whole frame")
     void restoreReturnsToTheOuterClip() {
-        // The reason the export list grew a state stack (ADR-0193). `resetClip`
+        // The reason the export list grew a state stack. `resetClip`
         // goes back to the whole frame, so a painter that used it inside an
         // existing clip -- which is what a `canvas` in a `scroll` is -- would
         // paint over the viewport's edge. save/restore is what nests.
@@ -176,8 +176,7 @@ class FrameTest {
     void theFactoryIsTheBoundary() {
         // `Window` lives in the shell package and this one is `paint`, so the
         // constructor it used to call is out of reach and this factory is what it
-        // calls instead
-        // (ADR-0172).
+        // calls instead.
         // The contract that used to be kept by package-privacy -- a frame is
         // valid only until it ends -- has to be kept by the frame now.
         var buffer = PixelBuffer.allocate(new PhysicalSize(4, 4), PixelFormat.BGRA32_PREMULTIPLIED);

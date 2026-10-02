@@ -1,8 +1,9 @@
-# libgoldberry -- the single native artifact (docs/ARCHITECTURE.md §3.2)
+# libgoldberry -- the single native artifact
+# https://goldberry.dev/docs/contributing/building.html#the-native-superbuild
 #
 # Statically links every native dependency into ONE shared library, so
 # distribution is a single file per platform/arch, following the LWJGL model.
-# Built natively on each target's own runner (ADR-0012) -- there is no
+# Built natively on each target's own runner -- there is no
 # cross-compilation toolchain. Two runners cross-target within their own native
 # toolchain: MSVC produces ARM64 from an x64 host with `-A ARM64`, and Xcode on
 # Apple Silicon produces x86_64 via CMAKE_OSX_ARCHITECTURES.
@@ -45,7 +46,7 @@ include(FetchContent)
 include(ExternalProject)
 
 # ============================================================================
-# Pinned upstream refs (ADR-0030, ADR-0035)
+# Pinned upstream refs
 #
 # Read straight out of gradle/libs.versions.toml, which is the ONLY place a ref
 # is written down. They used to be duplicated here and in every CI workflow,
@@ -63,7 +64,7 @@ set(GOLDBERRY_VERSION_CATALOG "${CMAKE_CURRENT_SOURCE_DIR}/../../../../gradle/li
 if(NOT EXISTS "${GOLDBERRY_VERSION_CATALOG}")
     message(FATAL_ERROR
         "The version catalog is not at '${GOLDBERRY_VERSION_CATALOG}'.\n"
-        "Every upstream ref is pinned there and nowhere else (ADR-0035). Configuring "
+        "Every upstream ref is pinned there and nowhere else. Configuring "
         "from outside a full checkout needs -DGOLDBERRY_VERSION_CATALOG=<path>.")
 endif()
 
@@ -83,14 +84,14 @@ function(goldberry_pin _key _out)
         if(_line MATCHES "^[ \t]*${_key}[ \t]*=[ \t]*\"([^\"]*)\"")
             set(_value "${CMAKE_MATCH_1}")
 
-            # A pin, not a range (ADR-0030). A floating ref makes the artifact
+            # A pin, not a range. A floating ref makes the artifact
             # irreproducible, and it is invisible: the build succeeds, against
             # whatever upstream happened to have committed that morning.
             if(_value MATCHES "^(master|main|HEAD|latest|trunk)$")
                 message(FATAL_ERROR
                     "gradle/libs.versions.toml pins ${_key} to '${_value}', which floats.\n"
                     "Upstream refs must be a tag or a commit SHA so the artifact is "
-                    "reproducible. See ADR-0030.")
+                    "reproducible.")
             endif()
 
             set(${_out} "${_value}" PARENT_SCOPE)
@@ -99,7 +100,7 @@ function(goldberry_pin _key _out)
     endforeach()
     message(FATAL_ERROR
         "gradle/libs.versions.toml has no `${_key} = \"...\"` under [versions].\n"
-        "Every upstream this build fetches is pinned there (ADR-0035).")
+        "Every upstream this build fetches is pinned there.")
 endfunction()
 
 goldberry_pin(blend2d GOLDBERRY_BLEND2D_REF)
@@ -114,7 +115,7 @@ goldberry_pin(webview GOLDBERRY_WEBVIEW_REF)
 # The WebView2 SDK headers, fetched on Windows and nowhere else -- see the web
 # view section at the bottom of this file. Pinned here with everything else even
 # on the two platforms that never download it, because the catalog is the one
-# list of what this build fetches (ADR-0035) and a ref that appears only inside
+# list of what this build fetches and a ref that appears only inside
 # a platform branch is one nothing reviews.
 goldberry_pin(webview2 GOLDBERRY_WEBVIEW2_REF)
 
@@ -129,7 +130,8 @@ set(GOLDBERRY_TARGET_ID "host" CACHE STRING "Distribution target id, e.g. linux-
 message(STATUS "Goldberry target: ${GOLDBERRY_TARGET_ID} (${CMAKE_SYSTEM_NAME}/${CMAKE_SYSTEM_PROCESSOR})")
 
 # ============================================================================
-# The desktop integrations, asked for on purpose (docs/gaps.md G32, ADR-0325)
+# The desktop integrations, asked for on purpose
+# https://goldberry.dev/docs/contributing/building.html#linux
 #
 # On Linux, three of the things this toolkit ships an API for are compiled into
 # SDL only if a development package happened to be installed on the machine that
@@ -225,8 +227,8 @@ function(goldberry_desktop_integration)
             "No development headers for ${GDI_NAME} (pkg-config: ${GDI_MODULES}).\n"
             "Without them SDL compiles out ${GDI_PURPOSE}, and the calls that back it "
             "answer 'the desktop does not say' on a desktop that does -- on every Linux "
-            "session, forever, with no error anywhere. That is docs/gaps.md G32, and this "
-            "is the stop it asked for.\n"
+            "session, forever, with no error anywhere. That has shipped once, and this "
+            "is the stop that keeps it from shipping again.\n"
             ${_how_to_install}
             "Or configure with -DGOLDBERRY_REQUIRE_PLATFORM_INTEGRATION=OFF to build "
             "without it on purpose: the library then reports the capability as absent "
@@ -280,7 +282,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
         DNF systemd-devel)
 endif()
 
-# --- The download phase must be audible (ADR-0029) ---------------------------
+# --- The download phase must be audible ---------------------------------------
 #
 # FetchContent clones seven repositories totalling roughly 330 MB. Left to its
 # defaults that is several silent minutes: FETCHCONTENT_QUIET swallows the
@@ -294,7 +296,7 @@ endif()
 set(FETCHCONTENT_QUIET FALSE)
 
 # Where the clones live. Gradle points this at natives/.deps/<target-id>, which
-# is OUTSIDE build/ on purpose -- see ADR-0029. Inside build/, `./gradlew clean`
+# is OUTSIDE build/ on purpose. Inside build/, `./gradlew clean`
 # discards all 330 MB and the next build re-clones it.
 #
 # Per target rather than one shared directory: FETCHCONTENT_BASE_DIR holds the
@@ -305,13 +307,13 @@ if(FETCHCONTENT_BASE_DIR)
 endif()
 
 # ============================================================================
-# Blend2D -- 2D vector rasterization (§3, ADR-0002)
+# Blend2D -- 2D vector rasterization
 #
 # JIT pipelines via AsmJit, banded multithreading, built-in PNG/JPEG/QOI codecs.
 # Renders glyph runs straight from font outlines, which is why there is no
 # FreeType here.
 #
-# NOTE (ADR-0002): AsmJit allocates executable memory at runtime. On Apple
+# NOTE: AsmJit allocates executable memory at runtime. On Apple
 # Silicon that needs W^X handling (MAP_JIT + pthread_jit_write_protect_np).
 # Verify on the macOS leg before trusting it.
 # ============================================================================
@@ -326,7 +328,7 @@ endif()
 # rival asmjit subproject and duplicate targets.
 #
 # No GIT_SHALLOW here, and none on Blend2D below, because both are pinned to a
-# commit SHA (ADR-0030) and CMake's own documentation says GIT_SHALLOW "works
+# commit SHA and CMake's own documentation says GIT_SHALLOW "works
 # only with branch names and tags. A commit hash is not allowed."
 #
 # It would appear to work anyway today: a shallow clone fetches `--depth 1
@@ -339,7 +341,7 @@ FetchContent_Declare(asmjit
     GIT_REPOSITORY https://github.com/asmjit/asmjit.git
     GIT_TAG ${GOLDBERRY_ASMJIT_REF}
     # GIT_PROGRESS but NOT GIT_SHALLOW -- see the note above. Progress is the
-    # whole point of ADR-0038; shallow is what a SHA pin forbids (ADR-0030).
+    # whole point of the audible download; shallow is what a SHA pin forbids.
     GIT_PROGRESS TRUE
     SOURCE_SUBDIR goldberry-do-not-add-subdirectory)
 
@@ -372,7 +374,7 @@ set(BLEND2D_STATIC TRUE CACHE BOOL "" FORCE)
 set(BLEND2D_TEST FALSE CACHE BOOL "" FORCE)
 
 # ============================================================================
-# Yoga -- flexbox layout (§3)
+# Yoga -- flexbox layout
 #
 # Hidden behind an internal interface on the Java side so Taffy or a grid engine
 # stays swappable later.
@@ -399,7 +401,7 @@ FetchContent_Declare(yoga
     SOURCE_SUBDIR yoga)
 
 # ============================================================================
-# HarfBuzz -- text shaping (§6)
+# HarfBuzz -- text shaping
 #
 # UTF-16 in (matches Java strings), glyph IDs and positions out. Every optional
 # integration is off: Goldberry segments with java.text.Bidi and BreakIterator,
@@ -422,7 +424,7 @@ set(HB_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 set(SKIP_INSTALL_ALL ON CACHE BOOL "" FORCE)
 
 # ============================================================================
-# SDL3 -- the desktop backend (§3, §4, ADR-0003)
+# SDL3 -- the desktop backend
 #
 # Windowing, input, per-monitor DPI, clipboard, cursors, popups, tray, SDL_GPU.
 # ============================================================================
@@ -441,13 +443,13 @@ set(SDL_INSTALL OFF CACHE BOOL "" FORCE)
 
 
 # ============================================================================
-# md4c -- the Markdown parser (ADR-0294)
+# md4c -- the Markdown parser
 #
 # The smallest upstream here by three orders of magnitude: one C file and a
 # header, MIT, CommonMark plus tables, strikethrough, task lists and permissive
 # autolinks. It is `goldberry-html`'s markdown half, and it is compiled INTO this
-# library rather than into a native of its own -- ADR-0190 quarantines a content
-# module's natives, and ADR-0294 is where that rule was measured against a parser
+# library rather than into a native of its own -- a content module normally
+# brings its own natives, but that rule was measured against a parser
 # this size and found to cost more than it isolates.
 #
 # SOURCE_SUBDIR names a directory that does not exist, which is the trick asmjit
@@ -463,7 +465,7 @@ FetchContent_Declare(md4c
     SOURCE_SUBDIR do-not-add-this-subdirectory)
 
 # ============================================================================
-# webview/webview -- §9's `web-view` (ADR-0441)
+# webview/webview -- the engine behind `web-view`
 #
 # The only upstream here that does NOT end up in libgoldberry. It goes into
 # `libgoldberry-webview`, built at the bottom of this file, because the engine
@@ -485,14 +487,14 @@ FetchContent_Declare(webview
     SOURCE_SUBDIR do-not-add-this-subdirectory)
 
 # ============================================================================
-# libwebp -- the WebP decoder (docs/gaps.md G35a, ADR-0329)
+# libwebp -- the WebP decoder
 #
 # Blend2D is compiled with the PNG, JPEG and QOI codecs and no others, so a WebP
 # -- which is what most screenshot tools now write -- does not decode at all. The
 # format is VP8, which is a video codec; there is no pure-Java answer worth
 # writing, and the reference decoder is BSD and small.
 #
-# **`webp` and `webpdemux`** (ADR-0385). This used to link `webpdecoder` alone --
+# **`webp` and `webpdemux`**, for animation. This used to link `webpdecoder` alone --
 # the decoder-only library -- on the grounds that Goldberry reads one still frame
 # and writes PNG, so an encoder would be several hundred kilobytes nothing could
 # reach. Two things changed: an application that photographs a canvas wants to
@@ -537,13 +539,13 @@ foreach(webp_target webp webpdemux)
         message(FATAL_ERROR
             "libwebp was fetched but defines no `${webp_target}` target.\n"
             "Those two are the codec and the animation reader this build links -- see "
-            "the FetchContent block above, ADR-0329 and ADR-0385. An upstream that "
+            "the FetchContent block above. An upstream that "
             "renamed one is a build failure here rather than a missing symbol at load "
             "time.")
     endif()
 endforeach()
 
-# --- What SDL actually decided (docs/gaps.md G32) ----------------------------
+# --- What SDL actually decided ------------------------------------------------
 #
 # The probe above is a *prediction* of what SDL's own CMake would find. This is
 # the answer, read out of the header SDL just generated -- the same file the gap
@@ -565,8 +567,8 @@ endforeach()
 # during configure it holds the previous run's answer, or nothing on a clean
 # build directory. Reading it meant this check judged the last configure: it
 # passed a build that had just lost a driver, and it failed one that had just
-# gained the driver, as it did when the audio headers were installed
-# (ADR-0488). The generated header is kept as a fallback for an SDL that stops
+# gained the driver, as it did when the audio headers were installed.
+# The generated header is kept as a fallback for an SDL that stops
 # writing the intermediate file.
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     set(_sdl_build_configs "")
@@ -593,7 +595,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
                     "without it:\n"
                     "  ${_sdl_build_config}\n"
                     "So this libgoldberry would report a capability it does not have, which "
-                    "is the one outcome docs/gaps.md G32 rules out. Delete the build "
+                    "is the one outcome this build exists to rule out. Delete the build "
                     "directory and configure again; if it persists, SDL's probe and this "
                     "one have diverged and the superbuild is what needs fixing.")
             endif()
@@ -601,13 +603,13 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
 
         # --- Audio output: required, and checked against SDL's answer ---------
         #
-        # goldberry-media plays through SDL's audio stream (ADR-0462). SDL loads
+        # goldberry-media plays through SDL's audio stream. SDL loads
         # libasound and libpulse at run time, but compiles the two drivers in only
         # when their headers are there at build time. Without them it builds with
         # only `dummy` and `disk`, which it never picks by itself. The configure
-        # succeeds, and on that library every source with audio plays silently
-        # (ADR-0487). So this is fatal, with no degraded-platform waiver
-        # (ADR-0488). The release container runs this file past Gradle's
+        # succeeds, and on that library every source with audio plays silently.
+        # So this is fatal, with no degraded-platform waiver: a library without
+        # an audio driver is wrong, not lesser. The release container runs this file past Gradle's
         # checkToolchain, and this is the only check it meets.
         foreach(_sdl_audio IN ITEMS SDL_AUDIO_DRIVER_ALSA SDL_AUDIO_DRIVER_PULSEAUDIO)
             # `1` at the end: SDL_AUDIO_DRIVER_ALSA_DYNAMIC shares the prefix.
@@ -616,7 +618,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
                     "SDL configured itself without ${_sdl_audio}:\n"
                     "  ${_sdl_build_config}\n"
                     "This libgoldberry would have no audio driver SDL picks by itself, and "
-                    "goldberry-media would play every source without sound (ADR-0488).\n"
+                    "goldberry-media would play every source without sound.\n"
                     "  Debian/Ubuntu:       sudo apt install libasound2-dev libpulse-dev\n"
                     "  RHEL/Fedora/Alma:    sudo dnf install -y alsa-lib-devel pulseaudio-libs-devel\n"
                     "Then delete the build directory and configure again: SDL caches what it found.")
@@ -627,7 +629,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
         #
         # The three above are predicted by a pkg-config probe and confirmed here.
         # These two are read here and not predicted at all, which is a different
-        # arrangement and a deliberate one (ADR-0422).
+        # arrangement and a deliberate one: what SDL compiled is the fact.
         #
         # SDL_VIDEO_DRIVER_WAYLAND is decided by a single pkg_check_modules over
         # five specs in SDL's CheckWayland -- wayland-client, wayland-scanner,
@@ -662,8 +664,8 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
                     "This libgoldberry will report the matching capability as absent through "
                     "Goldberry.capabilities(). For SDL_VIDEO_DRIVER_WAYLAND that means every "
                     "session falls back to X11 or XWayland, which resizes visibly worse "
-                    "(ADR-0027); for HAVE_LIBDECOR_H it means a Wayland window opens with no "
-                    "titlebar and no resize edge (ADR-0083).\n"
+                    "; for HAVE_LIBDECOR_H it means a Wayland window opens with no "
+                    "titlebar and no resize edge.\n"
                     "  Debian/Ubuntu:       sudo apt install libwayland-dev wayland-protocols "
                     "libxkbcommon-dev libegl1-mesa-dev libdecor-0-dev\n"
                     "  RHEL/Fedora/Alma:    sudo dnf install -y wayland-devel wayland-protocols-devel "
@@ -682,8 +684,8 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
         message(WARNING
             "Goldberry: SDL's generated SDL_build_config.h was not found under "
             "${sdl3_BINARY_DIR}, so what SDL compiled in could not be cross-checked "
-            "against this build's own probe (docs/gaps.md G32), and the Wayland driver "
-            "and window decorations are reported as absent (ADR-0422).")
+            "against this build's own probe, and the Wayland driver "
+            "and window decorations are reported as absent.")
     endif()
 endif()
 
@@ -692,12 +694,12 @@ if(NOT EXISTS "${md4c_SOURCE_DIR}/src/md4c.c")
         "md4c was fetched but ${md4c_SOURCE_DIR}/src/md4c.c is not there.\n"
         "The shim compiles md4c's sources directly rather than linking its CMake "
         "targets, so a re-organised upstream tree is a build failure here rather "
-        "than a missing symbol at load time. See ADR-0294.")
+        "than a missing symbol at load time.")
 endif()
 
-# Some upstreams must be compiled with DEFAULT symbol visibility (ADR-0031).
+# Some upstreams must be compiled with DEFAULT symbol visibility.
 #
-# This is ADR-0018's lesson in its third costume: a version script cannot
+# This is the export lesson in its third costume: a version script cannot
 # promote a symbol that is already hidden. There, --exclude-libs,ALL did the
 # hiding. Here it is the upstream headers, in two different ways.
 #
@@ -727,14 +729,14 @@ endif()
 #
 # Turning visibility back on for these targets does NOT leak their internals:
 # the version script's `local: *` still hides everything that is not on the
-# export list, which is the same argument ADR-0018 settled. asmjit is compiled
+# export list, which is the same argument as before. asmjit is compiled
 # into the blend2d target rather than linked, so it is covered with it.
 foreach(_target IN ITEMS blend2d harfbuzz)
     if(NOT TARGET ${_target})
         message(FATAL_ERROR
             "Expected a target named `${_target}`. Without it the visibility fix "
             "below does not apply and its symbols fail to export -- silently, as "
-            "local symbols. See ADR-0031.")
+            "local symbols.")
     endif()
     set_target_properties(${_target} PROPERTIES
         C_VISIBILITY_PRESET default
@@ -747,7 +749,7 @@ endforeach()
 # The one artifact
 #
 # goldberry_shim.c holds only what cannot live on the Java side, which its own
-# header lists: the ABI probe, the layout table that ADR-0010 makes the safety
+# header lists: the ABI probe, the layout table that is the safety
 # argument for hand-written bindings, the capability word, the measure-callback
 # probe, and Markdown's encoded event stream. Everything else crosses the
 # boundary through FFM downcalls.
@@ -762,14 +764,14 @@ add_library(goldberry SHARED goldberry_shim.c)
 # Hidden visibility and no export-list entry of their own: nothing in Java binds
 # `md_parse` directly. The four `goldberry_md_*` functions are the whole surface,
 # because a document's event stream crosses the boundary as one buffer rather
-# than as thousands of upcalls (ADR-0190's hot-path rule, ADR-0294).
+# than as thousands of upcalls: the hot path does not cross FFM.
 target_sources(goldberry PRIVATE
     "${md4c_SOURCE_DIR}/src/md4c.c"
     "${md4c_SOURCE_DIR}/src/entity.c")
 target_include_directories(goldberry PRIVATE "${md4c_SOURCE_DIR}/src")
 
-# What the probe above found, compiled into the library so it can be asked
-# (docs/gaps.md G32, ADR-0325). Empty on macOS and Windows, where the shim needs
+# What the probe above found, compiled into the library so it can be asked.
+# Empty on macOS and Windows, where the shim needs
 # no flag: every one of these is a system framework there rather than an optional
 # third-party header, and `goldberry_platform_capabilities` says so itself.
 target_compile_definitions(goldberry PRIVATE ${GOLDBERRY_PLATFORM_DEFINITIONS})
@@ -798,7 +800,7 @@ target_link_libraries(goldberry PRIVATE
 # Exported surface
 #
 # Goldberry calls upstream functions -- SDL_Init, hb_shape, YGNodeNew -- directly
-# through FFM downcalls, with no C glue in between (§3.1). For that to work each
+# through FFM downcalls, with no C glue in between. For that to work each
 # bound symbol has to be an exported dynamic symbol of libgoldberry. But
 # everything is built with hidden visibility, and the upstream archives are
 # statically linked, so by default those symbols are both hidden and dropped by
@@ -811,7 +813,8 @@ target_link_libraries(goldberry PRIVATE
 # no collision with ours.
 #
 # A narrow, enumerable export list is only possible because the bindings are
-# hand-written (ADR-0010). A generated whole-header surface could not be listed.
+# hand-written. A generated whole-header surface could not be listed.
+# https://goldberry.dev/docs/contributing/repository.html#the-export-list-and-the-layout-probe
 # ============================================================================
 set(_symbols_file "${CMAKE_CURRENT_SOURCE_DIR}/exports/goldberry.symbols")
 file(STRINGS "${_symbols_file}" _symbol_lines)
@@ -847,7 +850,7 @@ set_property(TARGET goldberry APPEND PROPERTY LINK_DEPENDS "${_symbols_file}")
 #
 # MSVC's go in a GENERATED SOURCE FILE rather than on the link line, as
 # `#pragma comment(linker, ...)` directives, and the reason is a hard limit
-# rather than tidiness (ADR-0454). There are 253 of them; at `/INCLUDE:` plus a
+# rather than tidiness. There are 253 of them; at `/INCLUDE:` plus a
 # name each they are 7.7 KB of an 8.5 KB link line, and Ninja runs the link
 # through `cmd.exe /C`, which refuses anything over 8191 characters. It fails
 # as "The command line is too long" with no mention of what was too long.
@@ -870,7 +873,7 @@ if(MSVC)
         "// Generated by CMake from exports/goldberry.symbols -- do not edit.\n"
         "//\n"
         "// One linker directive per exported symbol, so that the static archives\n"
-        "// contribute it even though no Goldberry source names it. See ADR-0454.\n\n")
+        "// contribute it even though no Goldberry source names it.\n\n")
     foreach(_symbol IN LISTS GOLDBERRY_EXPORTED_SYMBOLS)
         list(APPEND _force_block "#pragma comment(linker, \"/INCLUDE:${_symbol}\")\n")
     endforeach()
@@ -939,7 +942,7 @@ install(TARGETS goldberry
 
 
 # ============================================================================
-# libgoldberry-webview -- §9's `web-view` (ADR-0441)
+# libgoldberry-webview -- the engine behind `web-view`
 #
 # The second artifact, and the only one an installation is allowed not to have.
 #
@@ -957,7 +960,7 @@ install(TARGETS goldberry
 #
 # It is also the one place in this build where a missing dependency is NOT a
 # failure. Everything else here is required, because a toolkit that silently
-# drops its text shaping is the bug ADR-0325 exists about; a web view is a
+# drops its text shaping is the bug the capability word exists about; a web view is a
 # feature an application opts into by calling for it, so a build without WebKit's
 # headers produces one library instead of two and says so.
 # ============================================================================
@@ -976,7 +979,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux" OR CMAKE_SYSTEM_NAME STREQUAL "FreeBSD")
     #
     # A Goldberry process is ALREADY a GTK 3 process whenever it shows a tray
     # icon, because SDL's Linux tray is libayatana-appindicator and that links
-    # libgtk-3 (§9, ADR-0191). `tray-icon` is an ordinary part of the catalog, so
+    # libgtk-3. `tray-icon` is an ordinary part of the catalog, so
     # the toolkit cannot be a GTK 4 process on Linux -- and a web view built
     # against webkitgtk-6.0 makes it one the first time a page is opened.
     #
@@ -1010,7 +1013,7 @@ elseif(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
     set(GOLDBERRY_WEBVIEW_ENGINE "WKWebView")
 elseif(CMAKE_SYSTEM_NAME STREQUAL "Windows")
     # WebView2 is two things with one name, and conflating them is what broke the
-    # Windows leg of snapshot run 25 (ADR-0450). The *runtime* is Edge and ships
+    # Windows leg of snapshot run 25. The *runtime* is Edge and ships
     # with the OS -- which is what the line that used to stand here said, and it
     # is true. The *SDK header* does not: `WebView2.h` is delivered only in the
     # Microsoft.Web.WebView2 NuGet package, and `webview.h` includes it by name.
@@ -1102,7 +1105,7 @@ else()
 
     if(CMAKE_SYSTEM_NAME STREQUAL "Linux" OR CMAKE_SYSTEM_NAME STREQUAL "FreeBSD")
         # X11 as well as GTK: embedding a page is XReparentWindow, which is
-        # Xlib's rather than GDK's (ADR-0442). gdk-x11 would pull it in anyway,
+        # Xlib's rather than GDK's. gdk-x11 would pull it in anyway,
         # but a link line that states what the source calls is one that keeps
         # working when a dependency stops re-exporting something.
         pkg_check_modules(GOLDBERRY_X11 IMPORTED_TARGET x11)
@@ -1118,7 +1121,7 @@ else()
     elseif(CMAKE_SYSTEM_NAME STREQUAL "Windows")
         # The SDK headers found above. An include directory and no library: the
         # six below are Windows' own, and `WebView2Loader.dll` is opened by name
-        # at run time rather than linked (ADR-0450).
+        # at run time rather than linked.
         target_include_directories(goldberry-webview PRIVATE "${GOLDBERRY_WEBVIEW2_INCLUDE_DIR}")
         target_link_libraries(goldberry-webview PRIVATE advapi32 ole32 shell32 shlwapi user32 version)
     endif()

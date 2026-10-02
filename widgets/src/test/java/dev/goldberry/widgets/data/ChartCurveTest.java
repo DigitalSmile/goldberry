@@ -24,12 +24,14 @@ import dev.goldberry.widgets.data.areachart.AreaChart;
 import dev.goldberry.widgets.data.barchart.BarChart;
 import dev.goldberry.widgets.data.linechart.LineChart;
 
-/// What each [Curve] draws — `charts.md` §3.1's "interpolation: linear, smooth,
-/// step".
+/// What each [Curve] draws — the three interpolations, linear, smooth and
+/// step.
 ///
 /// `CurvesTest` proves the property that matters about `SMOOTH` and needs no
 /// renderer to do it. This is the half only a picture can answer: that the chart
 /// actually asked for the curve, and that a band's two edges agree.
+///
+/// Read more: [What the five share](https://goldberry.dev/docs/components/charts.html#what-the-five-share).
 class ChartCurveTest {
 
     @BeforeEach

@@ -2,13 +2,15 @@ package dev.goldberry.kdl;
 
 /// Markup that could not be read, with the place that stopped it.
 ///
-/// §9 asks for this by name: "unknown nodes are hard errors with source
-/// positions". The same reasoning as
+/// Markup is strict by default: an unknown node is a hard error with a source
+/// position. The same reasoning as
 /// [dev.goldberry.css.parse.CssSyntaxException] —
 /// a silently dropped node is a widget that is not on screen with nothing in the
 /// log to say why — and the same exception for hot reload to catch: markup saved
 /// mid-edit is *expected* to be broken, so the reload path keeps the last good
 /// document and reports rather than tearing the window down.
+///
+/// Read more: [Strict by default](https://goldberry.dev/docs/guide/markup.html#strict-by-default).
 public final class KdlSyntaxException extends RuntimeException {
 
     private final int line;

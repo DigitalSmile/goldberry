@@ -2,24 +2,27 @@ package dev.goldberry;
 
 import dev.goldberry.render.model.LogicalRect;
 
-/// What to do when a widget that named a context menu is right-clicked —
-/// [Host#onContextMenu].
+/// What to do when a widget that named a context menu is right-clicked: the
+/// handler [Host#onContextMenu] takes.
 ///
-/// ## Why this is a callback and not a registry of menus
+/// An application using the catalogue rarely writes one. `Menus.contextMenus`
+/// registers a handler that turns each name into a menu and opens it:
 ///
-/// `docs/core-widgets.md` §8 gives any widget `context-menu="menuId"`, and the
-/// launcher is the only thing that can notice the right-click: it has the router,
-/// which knows what is under the pointer, and the window, which is where a popup
-/// goes. What it cannot do is **build** the menu — a menu is a widget in the
-/// catalog and the launcher is `:core`'s, which ships none
-/// (ADR-0092) —
-/// and it cannot open one either, because opening a menu means wrapping every
-/// item so that choosing it closes the stack, which is `Menus`'
-/// (ADR-0106).
+/// ```java
+/// Menus.contextMenus(host, Map.of("rows", rowMenu()));
+/// ```
 ///
-/// So the seam is exactly one sentence wide: **`:core` says which name and
-/// where; `:widgets` says what that name is and opens it**
-/// (ADR-0108).
+/// `context-menu="menuId"` on any widget names a menu, and the launcher is the
+/// only thing that can notice the right-click: it has the router, which knows
+/// what is under the pointer, and the window, which is where a popup goes. What
+/// it cannot do is **build** the menu, because a menu is a widget in the
+/// catalogue and `:core` ships no widgets, and it cannot open one either,
+/// because opening a menu means wrapping every item so that choosing it closes
+/// the stack, which is `Menus`' job. So the seam is exactly one sentence wide:
+/// **`:core` says which name and where; `:widgets` says what that name is and
+/// opens it**.
+///
+/// Read more: [Context menus](https://goldberry.dev/docs/guide/input.html#context-menus).
 @FunctionalInterface
 public interface ContextMenuHandler {
 

@@ -13,8 +13,8 @@ import dev.goldberry.widget.attr.Attributes;
 import dev.goldberry.widgets.markup.Markup;
 import dev.goldberry.widgets.markup.Wiring;
 
-/// Two children and a divider you can drag — `docs/core-widgets.md` §5's
-/// `split-pane`.
+/// Two children side by side or one above the other, with a divider between
+/// them that can be dragged or moved from the keyboard.
 ///
 /// ```kdl
 /// split-pane axis="horizontal" position=0.3 first-min=160 second-min=240 {
@@ -40,20 +40,19 @@ import dev.goldberry.widgets.markup.Wiring;
 /// So the fraction is clamped against the pixels on every layout, which needs the
 /// pane's measured length — and that arrives through
 /// [dev.goldberry.input.handler.Measured], once a frame and only on a
-/// change (ADR-0117).
-/// Before the first measurement the fraction is used as given, which is right:
+/// change. Before the first measurement the fraction is used as given, which is
+/// right:
 /// the first frame has no minimum it could be violating yet.
 ///
 /// ## The drag is a translation, not a position
 ///
 /// A slider reads its value straight off the pointer, because the value **is** a
-/// position along a track ([ADR-0079]). A divider cannot: the pointer is
+/// position along a track. A divider cannot: the pointer is
 /// somewhere in a 6-point bar, and mapping that to a fraction of the pane would
 /// snap the divider so its centre jumped under the finger on every press.
 ///
-/// So it is the knob's arrangement instead
-/// (ADR-0089):
-/// the divider reports its current offset as a
+/// So it is the knob's arrangement instead: the divider reports its current
+/// offset as a
 /// [dev.goldberry.input.handler.Handles#gestureAnchor()], the router
 /// hands that back on every event of the gesture, and the new offset is
 /// `anchor + dragX`. Nothing jumps, and the divider does not need to remember
@@ -62,7 +61,8 @@ import dev.goldberry.widgets.markup.Wiring;
 ///
 /// ## The keyboard
 ///
-/// §5: "keyboard-resizable when focused". The **divider** is the tab stop —
+/// The split is resizable from the keyboard when the divider has focus. The
+/// **divider** is the tab stop —
 /// `split-pane` itself is not focusable and neither pane is a composite — and the
 /// arrows along the axis move it by a step, `Home` and `End` go to the
 /// minimums, and `Enter` collapses and restores when the pane is collapsible.
@@ -80,6 +80,8 @@ import dev.goldberry.widgets.markup.Wiring;
 ///                    nothing rather than stopping at it
 /// @param children    exactly two
 /// @param attributes  the `id` and classes, which land on the `split-pane` node
+///
+/// Read more: [Split pane](https://goldberry.dev/docs/layout/split-pane.html#split-pane).
 @Markup("split-pane")
 public record SplitPane(
         SplitAxis axis,
@@ -94,7 +96,7 @@ public record SplitPane(
 
     /// What a child is given when nothing says otherwise.
     ///
-    /// 48 logical points: §1.3's hit-target floor is 32 and a pane squeezed to
+    /// 48 logical points: the hit-target floor is 32 and a pane squeezed to
     /// exactly that is a pane with no room for anything *in* it. Small enough
     /// that it is never in the way, large enough that a divider dragged to the
     /// edge leaves something to grab.
@@ -124,7 +126,7 @@ public record SplitPane(
                 Attributes.NONE);
     }
 
-    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    /// Written out so that the parameters taking null for a default can say so.
     public SplitPane(
             @Nullable SplitAxis axis,
             double position,

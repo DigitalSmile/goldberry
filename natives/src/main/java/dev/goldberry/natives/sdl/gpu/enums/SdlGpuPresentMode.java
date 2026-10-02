@@ -3,6 +3,8 @@ package dev.goldberry.natives.sdl.gpu.enums;
 import dev.goldberry.natives.sdl.calls.SdlGpuSwapchainCalls;
 
 /// How a claimed window presents, as SDL's `SDL_GPUPresentMode`.
+///
+/// Read more: [The native boundary](https://goldberry.dev/docs/overview/architecture.html#the-native-boundary).
 public enum SdlGpuPresentMode {
     /// Waits for vertical blank. Every window supports it, and it is the mode a
     /// window is claimed in.

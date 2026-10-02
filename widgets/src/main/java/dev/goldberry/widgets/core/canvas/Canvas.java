@@ -29,7 +29,7 @@ import dev.goldberry.widget.style.Styled;
 import dev.goldberry.widgets.markup.Markup;
 import dev.goldberry.widgets.markup.Wiring;
 
-/// An immediate-mode drawing surface — `docs/core-widgets.md` §1's `canvas`.
+/// A surface the application draws on itself, with a painter written in Java.
 ///
 /// ```java
 /// new Canvas((frame, size) -> {
@@ -47,10 +47,10 @@ import dev.goldberry.widgets.markup.Wiring;
 /// canvas id="plot" class="chart"
 /// ```
 ///
-/// **The escape hatch, and the substrate.** `content-widgets.md` §3 builds every
-/// chart on this rather than on a chart engine, which is what lets a chart inherit
+/// **The escape hatch, and the substrate.** Every chart in the catalogue is built
+/// on this rather than on a chart engine, which is what lets a chart inherit
 /// the theme, the text stack, hit testing and the golden corpus. It is also what
-/// an application reaches for when the catalog has no widget for what it wants —
+/// an application reaches for when the catalogue has no widget for what it wants —
 /// a waveform, a seating plan, a colour wheel.
 ///
 /// ## It can be told what the cascade resolved
@@ -59,8 +59,7 @@ import dev.goldberry.widgets.markup.Wiring;
 /// [dev.goldberry.paint.CanvasStyle]: the node's **own**
 /// resolved font and `color`, this frame's time, and whether the user asked for
 /// less movement. So `canvas { font-family: Inter; color: var(--gb-text) }` reaches
-/// the drawing, and canvas text follows a theme switch instead of naming a font
-/// (ADR-0288, `docs/gaps.md` G11).
+/// the drawing, and canvas text follows a theme switch instead of naming a font.
 ///
 /// The compiler picks between the two forms by arity and neither is second
 /// class: a painter with nothing to ask the cascade stays a two-parameter
@@ -71,8 +70,8 @@ import dev.goldberry.widgets.markup.Wiring;
 /// Background, border, radius, padding and every layout property are the
 /// stylesheet's, exactly as for `panel`. The painter draws **inside the padding**
 /// and is clipped to it, so `canvas { padding: 8px; background: var(--gb-surface) }`
-/// is a framed drawing surface and not a surprise
-/// (ADR-0193).
+/// is a framed drawing surface and not a surprise. The call is bracketed in
+/// `save` and `restore`, so a painter may set a clip or a transform and leave it set.
 ///
 /// ## It has no size of its own
 ///
@@ -89,14 +88,14 @@ import dev.goldberry.widgets.markup.Wiring;
 /// [PointerEvent] and [KeyEvent] arrive as they are, with
 /// [PointerEvent#content()] measured from the same corner the painter draws at.
 /// A drag that leaves the canvas keeps reporting, because the router captures the
-/// pointer on press like it does for any other widget (ADR-0281).
+/// pointer on press like it does for any other widget.
 ///
 /// A canvas with no `Input` is exactly what it was before: a styled, sized
 /// surface that draws and hears nothing, and not a Tab stop.
 ///
 /// ## It can keep the frame loop turning
 ///
-/// §1.7's loop is idle when nothing moves, so a painter drawn from
+/// The frame loop is idle when nothing moves, so a painter drawn from
 /// [CanvasStyle#nowMillis()] is painted once and left there unless the canvas
 /// asks for the next frame. [#animating(Predicate)] is how it asks — a predicate
 /// over the same [CanvasStyle] the painter was handed, so a settle that ends by
@@ -108,17 +107,17 @@ import dev.goldberry.widgets.markup.Wiring;
 /// ```
 ///
 /// A timer calling `host.repaint()` would do it too, and would repaint the whole
-/// window on a clock the frame pacer cannot see (`docs/gaps.md` G41, ADR-0348).
+/// window on a clock the frame pacer cannot see.
 ///
 /// ## Markup names no painter yet
 ///
 /// A `canvas` node inflates to a styled, sized surface that draws nothing. The
 /// painter is Java, and naming one from a document would need the indirection
-/// `icon` and `action` use — a registry the application owns
-/// (ADR-0043).
-/// That is filed rather than guessed at, because the shape of the registry
-/// depends on whether a painter is a value or a method and nothing has needed
-/// one yet.
+/// `icon` and `action` use — a registry the application owns. There is no such
+/// registry yet, because its shape depends on whether a painter is a value or a
+/// method and nothing has needed one.
+///
+/// Read more: [Canvas, images and QR codes](https://goldberry.dev/docs/components/drawing.html#canvas).
 ///
 /// @param painter    what to draw, or null for a surface that draws nothing. A
 ///                   [StyledPainter] is given the node's resolved style; a plain
@@ -135,7 +134,7 @@ public record Canvas(
         @Nullable Predicate<CanvasStyle> animating)
         implements Widget.Leaf, Styled, Paints, Attributed<Canvas>, Handles, Semantics {
 
-    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    /// Written out so that the parameters taking null for a default can say so.
     public Canvas(
             @Nullable Painter painter,
             @Nullable Input input,
@@ -217,7 +216,7 @@ public record Canvas(
     /// A predicate rather than a boolean, so an animation that ends can stop by
     /// itself. `style -> true` is a loop; `style -> !style.reducedMotion()` is a
     /// loop that stops for a user who asked for less movement, which is the
-    /// painter's to honour and not the canvas's to guess (§1.7).
+    /// painter's to honour and not the canvas's to guess.
     ///
     /// @param value the question, or null for a still drawing
     public Canvas animating(@Nullable Predicate<CanvasStyle> value) {
@@ -271,7 +270,7 @@ public record Canvas(
     }
 
     /// Passed through so a painter can draw a caret only while it is being typed
-    /// into (ADR-0285).
+    /// into.
     @Override
     public void onFocusChanged(boolean focused, boolean fromKeyboard) {
         if (input != null) {
@@ -287,7 +286,7 @@ public record Canvas(
     }
 
     /// Passed through so an editor over a canvas can draw what an input method is
-    /// composing — `docs/gaps.md` G15, and the last piece of ADR-0285's caret.
+    /// composing.
     @Override
     public void onPreedit(PreeditEvent event) {
         if (input != null) {
@@ -329,8 +328,8 @@ public record Canvas(
     /// Focusable only when there is something to deliver a key *to*.
     ///
     /// A canvas drawing a chart would otherwise be a Tab stop that does nothing,
-    /// which is a keyboard trap with no exit and the thing §2.2's "everything
-    /// reachable" is least served by.
+    /// which is a keyboard trap with no exit and the opposite of everything
+    /// being reachable by keyboard.
     @Override
     public boolean isFocusable() {
         return input != null && input.focusable();
@@ -341,8 +340,7 @@ public record Canvas(
     /// A [StyledPainter] is **bound here** rather than at paint time, because
     /// what it is given has to be a snapshot: the token and font accessors on
     /// [Context] answer for the node currently being rendered, so a context read
-    /// during the paint pass would answer for whichever node rendered last
-    /// (ADR-0288).
+    /// during the paint pass would answer for whichever node rendered last.
     @Override
     public Box render(ComputedStyle style, List<Box> children, Context context) {
         // No children: a canvas is a leaf that draws. Boxes inside it would be
@@ -360,7 +358,7 @@ public record Canvas(
     /// The snapshot is taken again rather than shared with [#render]: it is a
     /// record of four values read off the context, and the renderer asks this
     /// inside the same window `render` ran in, so both see this node's style and
-    /// this frame's clock (ADR-0348).
+    /// this frame's clock.
     @Override
     public boolean isAnimating(ComputedStyle style, Context context) {
         return animating != null && animating.test(context.canvasStyle(style));

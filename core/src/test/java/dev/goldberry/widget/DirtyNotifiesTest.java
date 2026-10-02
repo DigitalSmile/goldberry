@@ -8,8 +8,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
-/// A `setState` asks for a frame
-/// (ADR-0122).
+/// A `setState` asks for a frame.
 ///
 /// The rule this covers had no test and could not have had one of the usual
 /// shape: a widget test drives frames itself, so `flush(); update(...)` in a loop
@@ -107,7 +106,7 @@ class DirtyNotifiesTest {
             tree.flush();
             tree.flush();
 
-            // §1.7's idle frame loop. A tree that asked for a frame because it
+            // The idle frame loop. A tree that asked for a frame because it
             // had been flushed would never stop being flushed.
             assertEquals(0, asked[0]);
         }
@@ -122,8 +121,7 @@ class DirtyNotifiesTest {
 
             // The point is that this does not throw with nothing listening, and
             // that the tree still knows it is dirty -- `assertEquals(List.of(),
-            // List.of())` stood here and asserted neither (the 2026-09-18
-            // review, §6).
+            // List.of())` stood here and asserted neither.
             assertDoesNotThrow(() -> stateOf(tree).bump());
             assertTrue(tree.needsBuild(), "a bump with no listener still marks the tree");
         }

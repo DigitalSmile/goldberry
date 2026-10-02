@@ -17,7 +17,7 @@ import dev.goldberry.gpu.TextureFormat;
 import dev.goldberry.render.model.PhysicalRect;
 
 /// [VideoImage] and what a [VideoLayer] accepts before it has a device: the
-/// rules that need no GPU (`docs/gpu-plan.md`, phase 6).
+/// rules that need no GPU.
 @DisplayName("VideoImage, and a VideoLayer before its first render")
 class VideoImageTest {
 

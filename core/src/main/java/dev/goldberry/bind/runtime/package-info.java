@@ -5,10 +5,13 @@
 /// An application's front door is
 /// [dev.goldberry.bind.runtime.Models], which turns a model into
 /// the registries `bind.registry` holds and never says which of the two
-/// implementations it picked (ADR-0155). The rest is public because woven bytecode
-/// in another module has to name it, not because it is an API (ADR-0125, ADR-0172).
+/// implementations it picked. The rest is public because woven bytecode in
+/// another module has to name it, not because it is an API.
 ///
-/// Marked for NullAway (`docs/testing.md` §2, ADR-0497).
+/// Null-marked: every reference is non-null unless annotated `@Nullable`.
+///
+/// Read more:
+/// [Model weaving](https://goldberry.dev/docs/weaving.html#you-probably-do-not-need-to-run-any-of-this).
 @NullMarked
 package dev.goldberry.bind.runtime;
 

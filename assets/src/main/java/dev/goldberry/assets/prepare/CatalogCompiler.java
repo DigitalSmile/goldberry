@@ -17,8 +17,8 @@ import java.util.regex.Pattern;
 /// their bytes tags and contributors — and Unicode keeps an emoji's group in
 /// `emoji-test.txt`, 650 KB of sequences the sheet never shows. What a sheet
 /// needs is one line per entry saying where it goes, so that is what this
-/// writes, and the reasons ADR-0033 gave for compiling the icons apply as they
-/// stand: compiled at build time, pinned by checksum, never committed.
+/// writes, and the rule for the icons applies as it stands: compiled at build
+/// time, pinned by checksum, never committed.
 ///
 /// Pure functions of their input, so every rule here is a test rather than a
 /// comment saying it works — which is why `:assets` is Java at all.

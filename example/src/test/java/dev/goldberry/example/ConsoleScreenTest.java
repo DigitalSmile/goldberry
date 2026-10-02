@@ -40,7 +40,8 @@ import dev.goldberry.widgets.text.Text;
 /// opened on its newest line, and everything else this card is *for* only
 /// happens when a line arrives. The three statements below are the three G48
 /// asked for, made against the real card with the real stylesheet rather than
-/// against a viewport built for a test (ADR-0392).
+/// against a viewport built for a test: a timeline opens at its end and keeps
+/// the reader's line.
 class ConsoleScreenTest {
 
     /// How near two painted positions count as the same — noise, not tolerance.

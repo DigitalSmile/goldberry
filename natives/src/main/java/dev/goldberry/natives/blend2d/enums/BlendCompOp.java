@@ -6,10 +6,12 @@ package dev.goldberry.natives.blend2d.enums;
 /// the rest are here because a COLRv1 colour glyph may name any of them in a
 /// `PaintComposite`, and a font is data the toolkit does not choose — so every
 /// operator the font format can ask for and Blend2D can answer is bound, and
-/// every one is checked against the compiled library (ADR-0456).
+/// every one is checked against the compiled library.
 ///
 /// The four HSL modes (`hue`, `saturation`, `color`, `luminosity`) have no
 /// Blend2D operator at all and are absent for that reason.
+///
+/// Read more: [The native boundary](https://goldberry.dev/docs/overview/architecture.html#the-native-boundary).
 public enum BlendCompOp implements BlendEnum {
 
     /// Blend over the destination, honouring the source's alpha. Blend2D's

@@ -1,4 +1,5 @@
-# CodeQL — docs/testing.md §2's security half.
+# CodeQL — the security half of static analysis, an advisory dashboard.
+# https://goldberry.dev/docs/contributing/testing.html#advisory-dashboards
 #
 # Weekly and on pull requests, not on every push: a CodeQL database is built by
 # compiling the project, so it costs a full build, and the findings it produces
@@ -40,7 +41,7 @@ jobs:
         with:
           languages: java-kotlin
           # `security-and-quality` over the default `security-extended`: this is
-          # an advisory dashboard rather than a gate (§2), so the wider set is
+          # an advisory dashboard rather than a gate, so the wider set is
           # worth having and a false positive costs nothing but a read.
           queries: security-and-quality
 

@@ -16,12 +16,12 @@ import java.util.Set;
 /// unpacked. They are opened by name, which the loader resolves from the system
 /// directory.
 ///
-/// The binding classes follow `:media`'s idiom (ADR-0173), as the macOS ones do:
+/// The binding classes follow `:media`'s idiom, as the macOS ones do:
 /// each function's unbound handle is a `private static final` constant, linked
 /// once. An exported function's address is a field found in the loaded
 /// library; a COM method's is read from the object's vtable on each call
 /// ([Com#method]). A constant handle is what lets a native image compile the
-/// call rather than interpret it (ADR-0161).
+/// call rather than interpret it.
 enum WindowsLibrary {
     MFPLAT("mfplat.dll"),
     OLE32("ole32.dll");
@@ -29,7 +29,7 @@ enum WindowsLibrary {
     private static final Linker LINKER = Linker.nativeLinker();
 
     /// Every descriptor linked so far, in the order linked, for the native-image
-    /// metadata, as the macOS `Framework` records its own (ADR-0339).
+    /// metadata, as the macOS `Framework` records its own.
     private static final Set<FunctionDescriptor> LINKED = new LinkedHashSet<>();
 
     private final String fileName;

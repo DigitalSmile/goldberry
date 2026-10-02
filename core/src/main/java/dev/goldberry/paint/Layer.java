@@ -14,19 +14,16 @@ import dev.goldberry.render.model.PixelFormat;
 /// ## Why a subtree would want one
 ///
 /// **Group opacity.** CSS says `opacity` renders the element and its descendants
-/// into a buffer and composites *that* once. Goldberry has always multiplied
-/// alpha into each box's colours instead, which differs exactly where two
-/// children overlap: faded separately, the lower one shows through the upper.
-/// ADR-0064
-/// stated the difference as an open question and predicted `stack` would make it
-/// visible; this is the answer.
+/// into a buffer and composites *that* once. Goldberry multiplies alpha into
+/// each box's colours for a leaf, which differs exactly where two
+/// children overlap: faded separately, the lower one shows through the upper. A
+/// layer is how a group with children gets the specified answer.
 ///
 /// **A raster worth keeping.** A node whose opacity or transform is animating
 /// changes where and how faintly it is drawn, not what it looks like. If its
 /// pixels are in a layer, a frame of that animation is a blit rather than a
-/// repaint of the subtree — which is `docs/design-system.md` §1.7's "layer
-/// promotion", and the reason a layer is an object with a lifetime rather than a
-/// scratch buffer.
+/// repaint of the subtree — which is layer promotion, and the reason a layer is
+/// an object with a lifetime rather than a scratch buffer.
 ///
 /// ## What it is
 ///
@@ -40,6 +37,9 @@ import dev.goldberry.render.model.PixelFormat;
 /// through wherever the new content does not cover.
 ///
 /// Confined to the UI thread and must be closed.
+///
+/// Read more:
+/// [Keeping frames cheap](https://goldberry.dev/docs/performance/frames.html#what-the-toolkit-does-for-you).
 public final class Layer implements AutoCloseable {
 
     private final PixelBuffer pixels;

@@ -20,7 +20,7 @@ import dev.goldberry.paint.stroke.Stroke;
 ///
 /// Both are values with no rasterizer under them, so everything here is about
 /// what a caller may write and what it reads back as. Whether the pixels come out
-/// dashed is a golden image's question (ADR-0277).
+/// dashed is a golden image's question.
 class StrokeTest {
 
     @Nested

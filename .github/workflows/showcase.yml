@@ -1,19 +1,20 @@
-# The native showcase (ADR-0337, ADR-0340)
+# The native showcase
+# https://goldberry.dev/docs/contributing/releasing.html#the-showcase-binaries
 #
 # Builds the showcase as a GraalVM native image on each desktop platform -- one
-# executable with libgoldberry inside it (ADR-0159) -- runs it for three
+# executable with libgoldberry inside it -- runs it for three
 # hundred frames while its window is resized a pixel a frame, reports what that
-# cost (ADR-0342, ADR-0452), and uploads it. On a `v*` tag the three binaries are
+# cost, and uploads it. On a `v*` tag the three binaries are
 # also attached to the tag's GitHub Release, created as a draft so it is
-# published by hand beside the Central deployment (docs/releasing.md).
+# published by hand beside the Central deployment.
 #
 # Only on a release tag or by hand. A push to master no longer builds it: the
 # example's own tests run against a built library on linux.yml's verify leg, and
 # a native build on three runners is a release artifact, not a check. There is
-# no jlink image and no GitHub Packages upload any more (ADR-0340).
+# no jlink image and no GitHub Packages upload any more.
 #
 # One job per platform rather than one job cross-linking three images: the
-# libgoldberry inside each image has to be built on that platform (ADR-0041), so
+# libgoldberry inside each image has to be built on that platform, so
 # the runner is already committed.
 
 name: Showcase
@@ -62,13 +63,13 @@ jobs:
       # libdecor-0-dev fails the other way and is harder to notice for it: the
       # build succeeds and the Wayland window has no titlebar and cannot be
       # resized, because GNOME does no server-side decorations and libdecor is
-      # the only other implementation (ADR-0083).
+      # the only other implementation.
       #
       # libwebkit2gtk-4.1-dev fails the third way: quietly and by design. Without
       # it the superbuild prints "Goldberry web view: OFF", builds one library
       # instead of two, and succeeds -- so the only symptom is that
-      # `Capability.WEB_VIEW` is absent from everything this job produces
-      # (ADR-0441). It is HEADERS only: no WebKit is compiled, vendored or
+      # `Capability.WEB_VIEW` is absent from everything this job produces.
+      # It is HEADERS only: no WebKit is compiled, vendored or
       # shipped, and the 73 KB library it enables links dynamically against
       # whatever WebKit the machine running it has.
       - name: Install build tools (linux)
@@ -87,7 +88,8 @@ jobs:
             xvfb zlib1g-dev
           # zlib1g-dev for native-image, which links `-lz` through the `libz.so`
           # symlink only the dev package installs; without it the image build
-          # spends minutes on analysis and fails at the link (book/src/native.md).
+          # spends minutes on analysis and fails at the link.
+          # https://goldberry.dev/docs/native.html#before-anything-else-the-c-toolchain
 
       - name: Install build tools (macos)
         if: runner.os == 'macOS'
@@ -98,7 +100,8 @@ jobs:
       # generator took C:\mingw64\bin\cc.exe, built a `libgoldberry.dll` with GNU
       # naming and a libstdc++ dependency, and the image then looked for the
       # `goldberry.dll` an MSVC build writes. `checkToolchain` now refuses to
-      # build without `cl` (ADR-0338).
+      # build without `cl`.
+      # https://goldberry.dev/docs/contributing/building.html#windows
       - name: Install build tools (windows)
         if: runner.os == 'Windows'
         uses: ilammy/msvc-dev-cmd@v1
@@ -112,7 +115,7 @@ jobs:
       # Since 25.1 the community builds are tagged `graal-25.x`; `java-version:
       # '25'` alone still resolves through the old `jdk-25.*` tags and lands on
       # jdk-25.0.2 from January -- two feature releases behind the 25.3.4.1 the
-      # image was built and run with locally (ADR-0337). `version: '25.3'`
+      # image was built and run with locally. `version: '25.3'`
       # takes the newest 25.3 patch.
       - uses: graalvm/setup-graalvm@v1
         with:
@@ -124,10 +127,11 @@ jobs:
           # `:example:nativeImage` looks, and on Windows sets up the MSVC
           # environment native-image links with.
 
-      # The checked-in trace was recorded on linux-x64 and is reviewed as source
-      # (ADR-0156). macOS and Windows get a fresh one for the reflection and
+      # The checked-in trace was recorded on linux-x64 and is reviewed as source.
+      # macOS and Windows get a fresh one for the reflection and
       # resources only that platform's code path reaches; the foreign calls no
-      # longer depend on a trace at all (ADR-0339).
+      # longer depend on a trace at all, being registered from the bindings.
+      # https://goldberry.dev/docs/native.html#two-metadata-directories-traced-and-written
       # Headless (`videoDriver=dummy`) on Windows, so no display is needed.
       - name: Trace the showcase for native-image (windows)
         if: runner.os == 'Windows'
@@ -138,7 +142,7 @@ jobs:
       # CoreGraphics (`CGSConnectionByID ... is_initialized`). The toolkit now
       # declines the tray in that state, but a trace with no tray calls in it
       # would leave the image without them; the runner has a window server, so
-      # the trace is of a real run (ADR-0338).
+      # the trace is of a real run.
       - name: Trace the showcase for native-image (macos)
         if: runner.os == 'macOS'
         run: ./gradlew :example:nativeImageMetadata -Pgoldberry.trace.videoDriver=cocoa --no-daemon --stacktrace
@@ -156,10 +160,10 @@ jobs:
       # the load M1's claim is about: three hundred frames with the window
       # resized a pixel a frame, which is what a drag produces. The launcher
       # counts every refresh that went by with a frame wanted and undelivered
-      # and exits non-zero past the budget (ADR-0342).
+      # and exits non-zero past the budget.
       #
       # NO BUDGET IS ASSERTED, ON ANY PLATFORM, and this is the second answer
-      # to that question rather than the first (ADR-0452).
+      # to that question rather than the first.
       #
       # The first said Linux could keep it because `-screen 0 1920x1200x24`
       # pins the display and a refresh budget is a number about a display. The
@@ -240,7 +244,7 @@ jobs:
           path: native-run.log
           if-no-files-found: warn
 
-  # The three binaries, on the tag's GitHub Release (ADR-0340). Created as a
+  # The three binaries, on the tag's GitHub Release. Created as a
   # draft when it does not exist yet, so that it is published by hand at the
   # same moment as the Central deployment; an existing release, draft or not,
   # gets the files replaced. A manual run builds and uploads nothing here.

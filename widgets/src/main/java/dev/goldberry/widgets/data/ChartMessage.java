@@ -12,30 +12,32 @@ import dev.goldberry.widget.style.Paints;
 import dev.goldberry.widget.style.Styled;
 import dev.goldberry.widgets.text.Text;
 
-/// What a chart shows instead of a picture — a **part**, so it is CSS-selectable
-/// and not constructible.
+/// What a chart shows instead of a picture — a part, styleable as
+/// `chart-message` and not constructible from outside the package.
 ///
-/// `charts.md` §3.1: "a chart with no data draws a themed message, never an empty
-/// grid". An empty grid is not a neutral thing to draw: gridlines and axis labels
-/// are an assertion about a scale, and a chart that draws `0, 5, 10, 15, 20` over
-/// no data has invented every one of those numbers.
+/// A chart with no data draws a themed message, never an empty grid. An empty
+/// grid is not a neutral thing to draw: gridlines and axis labels are an
+/// assertion about a scale, and a chart that draws `0, 5, 10, 15, 20` over no
+/// data has invented every one of those numbers.
 ///
 /// ## Widgets, not paint
 ///
-/// The other direction from the hover readout, which is painted (ADR-0198), and
-/// the rule that decides it is the same one: **does it participate in layout?** A
-/// readout is placed in plot coordinates and must not affect the box. A message
-/// is centred in the box, wraps when the box is narrow, and *is* the content — so
+/// The other direction from the hover readout, which is painted, and the rule
+/// that decides it is the same one: **does it participate in layout?** A readout
+/// is placed in plot coordinates and must not affect the box. A message is
+/// centred in the box, wraps when the box is narrow, and *is* the content — so
 /// it is a node, a stylesheet reaches it, and the shaping cache serves it like
 /// any other sentence.
 ///
 /// ## No spinner
 ///
-/// A loading chart says "Loading…" and does not spin. §1.7 keeps the frame loop
-/// idle when nothing is animating, and a spinner would wake it for every chart on
-/// a dashboard that is waiting — which, on a dashboard, is all of them at once.
+/// A loading chart says "Loading…" and does not spin. The frame loop stays idle
+/// when nothing is animating, and a spinner would wake it for every chart on a
+/// dashboard that is waiting — which, on a dashboard, is all of them at once.
 /// An application that wants one puts it beside the chart, where it is that
-/// application's frame budget being spent (ADR-0081).
+/// application's frame budget being spent.
+///
+/// Read more: [Charts](https://goldberry.dev/docs/components/charts.html#what-the-five-share).
 ///
 /// @param text  the sentence, already decided by [ChartStatus]
 /// @param kind  `empty`, `loading` or `failed` — the class a stylesheet selects

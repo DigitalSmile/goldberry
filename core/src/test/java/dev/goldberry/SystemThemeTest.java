@@ -26,7 +26,7 @@ import dev.goldberry.widget.Widget;
 import dev.goldberry.widget.style.Paints;
 import dev.goldberry.widget.style.Styled;
 
-/// The desktop's light-or-dark setting — `docs/gaps.md` G26, ADR-0322.
+/// The desktop's light-or-dark setting, or its saying nothing.
 ///
 /// Driven through the **real** launcher on the backend that needs no display,
 /// because what is under test is the whole path: a backend answer, an event
@@ -37,6 +37,8 @@ import dev.goldberry.widget.style.Styled;
 ///
 /// The invariant worth naming: **"the desktop says light" and "the desktop does
 /// not say" are different answers**, and an application can tell them apart.
+///
+/// Read more: [The desktop's theme](https://goldberry.dev/docs/guide/windows.html#the-desktops-theme).
 class SystemThemeTest {
 
     /// Something to fill a window with.
@@ -207,7 +209,7 @@ class SystemThemeTest {
     }
 
     /// What a tray that follows the setting relies on: it is closed and shown
-    /// again every time its menu changes, and each showing listens (ADR-0501).
+    /// again every time its menu changes, and each showing listens.
     @Test
     @Timeout(20)
     @DisplayName("a closed subscription is not told, and the same listener's other one still is")

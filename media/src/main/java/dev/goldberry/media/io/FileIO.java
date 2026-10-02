@@ -9,14 +9,17 @@ import java.util.OptionalLong;
 
 /// A local file as a [MediaIO], over a [FileChannel].
 ///
-/// Local playback goes through the same callback path as the network
-/// (`docs/goldberry-media.md` §4), which leaves one I/O path to test. The size is
+/// Local playback goes through the same callback path as the network, which
+/// leaves one I/O path to test. The size is
 /// read once at open. A file that grows while it plays, such as a recording still
 /// being written, is read to the length it had then.
 ///
 /// Closing the channel from another thread ends a read blocked in it with
 /// [java.nio.channels.AsynchronousCloseException]. That is the abort
 /// [MediaIO#close()] promises.
+///
+/// Read more:
+/// [Tracks and the network](https://goldberry.dev/docs/components/media.html#tracks-subtitles-and-the-network).
 public final class FileIO implements MediaIO {
 
     private final FileChannel channel;

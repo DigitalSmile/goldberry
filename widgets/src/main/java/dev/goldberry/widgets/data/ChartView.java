@@ -31,7 +31,7 @@ import dev.goldberry.widget.style.Styled;
 /// @param attributes the chart's, so a rule naming the chart still matches
 record ChartView(String cssType, List<Widget> parts, Attributes attributes) implements Widget.Leaf, Styled, Paints {
 
-    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    /// The canonical constructor, written out so that the parameters taking null for a default can say so.
     ChartView(String cssType, @Nullable List<Widget> parts, @Nullable Attributes attributes) {
         parts = List.copyOf(parts == null ? List.of() : parts);
         attributes = attributes == null ? Attributes.NONE : attributes;

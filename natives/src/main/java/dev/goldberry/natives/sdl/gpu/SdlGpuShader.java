@@ -6,6 +6,8 @@ import dev.goldberry.natives.sdl.gpu.enums.SdlGpuShaderStage;
 
 /// A compiled shader on a [SdlGpuDevice]. A pipeline made from it keeps working
 /// after it is closed.
+///
+/// Read more: [The native boundary](https://goldberry.dev/docs/overview/architecture.html#the-native-boundary).
 public final class SdlGpuShader extends SdlGpuResource {
 
     private final SdlGpuShaderStage stage;

@@ -19,7 +19,7 @@ import dev.goldberry.widget.style.Styled;
 /// Present only while the headers overflow, and `:disabled` at the edge it points
 /// past. A press pages the strip by most of its width, through the strip's own
 /// [dev.goldberry.widgets.core.scroll.ScrollController], so the
-/// move glides like any programmatic scroll (ADR-0363, ADR-0365).
+/// move glides like any programmatic scroll.
 ///
 /// **Not a Tab stop.** The strip is one stop with the arrows roving inside it,
 /// and a selected tab already scrolls itself into view, so a keyboard reaches

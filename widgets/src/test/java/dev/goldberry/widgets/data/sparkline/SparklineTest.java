@@ -29,13 +29,15 @@ import dev.goldberry.widgets.Widgets;
 import dev.goldberry.widgets.controls.TestFont;
 import dev.goldberry.widgets.core.Column;
 
-/// §11's `sparkline` — the first chart, and the one `statistic` has been waiting
+/// The `sparkline` — the first chart, and the one `statistic` has been waiting
 /// for since M2.
 ///
 /// A sparkline has no axes and no labels, so almost everything true of it is true
 /// about *pixels*: where the line sits for a given series is the whole contract.
 /// These drive the painter directly against a size, because a test that had to
 /// build a tree to reach the drawing would be testing the tree.
+///
+/// Read more: [Sparkline](https://goldberry.dev/docs/components/charts.html#sparkline).
 class SparklineTest {
 
     @BeforeEach

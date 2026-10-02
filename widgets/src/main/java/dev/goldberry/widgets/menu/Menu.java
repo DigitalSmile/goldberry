@@ -19,37 +19,37 @@ import dev.goldberry.widget.style.Styled;
 import dev.goldberry.widgets.markup.Markup;
 import dev.goldberry.widgets.markup.Wiring;
 
-/// A list of commands — `docs/core-widgets.md` §8's `menu`.
+/// A column of rows: the value a context menu, a tray and a menu bar heading
+/// all hold.
 ///
 /// ```kdl
-/// menu id="file" {
-///     item press="app.open" icon="folder" accelerator="Ctrl+O" "Open…"
+/// menu id="row-menu" {
+///     item press="app.rename" "Rename"
+///     item press="app.duplicate" "Duplicate"
 ///     separator
-///     item press="app.quit" accelerator="Ctrl+Q" "Quit"
+///     item press="app.delete" "Delete"
 /// }
 /// ```
 ///
 /// ```java
-/// Menus.open(host, "file-button", menu);
+/// var rowMenu = new Menu(new Item("Rename", actions::rename), new Separator(), new Item("Delete", actions::delete));
+/// Menus.open(host, "more-button", rowMenu);
 /// ```
 ///
-/// ## A menu is a widget; opening one is not
+/// A menu is a widget and opening one is not. This is the panel and its rows:
+/// a document can write it, a stylesheet can style it, and it draws in
+/// whatever it is put in. **Opening** it — measuring, placing it against the
+/// thing that summoned it, opening a platform window, closing it again — is
+/// [Menus], because that needs a `Host` and a widget is a value. The children
+/// are [Item]s and [Separator]s; when any row has an icon or is checkable,
+/// every row reserves a lead column so the labels line up.
 ///
-/// This is the panel and its items, exactly as `popover` is a panel
-/// (ADR-0104):
-/// a document can write it, a stylesheet can style it, and it draws in whatever
-/// it is put in. **Opening** it — measuring, placing it against the thing that
-/// summoned it, opening a platform window, closing it again — is [Menus], because
-/// it needs a `Host` and a widget must not have one
-/// (ADR-0106).
+/// A **vertical focus scope**: `Up` and `Down` move between rows, and `Left`
+/// and `Right` are left to the rows, where they mean "close this submenu" and
+/// "open that one". `Escape` closes this menu and no more, and belongs to the
+/// popup rather than to any row.
 ///
-/// ## The keyboard
-///
-/// A **vertical focus scope**: `Up` and `Down` move between items and `Left` and
-/// `Right` are left alone, because in a menu they mean "close this submenu" and
-/// "open that one" — which is [Item]'s business and not a traversal
-/// (ADR-0078).
-/// `Escape` closes the whole thing and belongs to the popup, not to any item.
+/// Read more: [Menus and the tray](https://goldberry.dev/docs/components/menus.html#menu).
 ///
 /// @param children   the items, separators and anything else a menu is made of
 /// @param attributes `id` and `class`, exactly as on the primitives
@@ -57,7 +57,7 @@ import dev.goldberry.widgets.markup.Wiring;
 public record Menu(List<Widget> children, Attributes attributes)
         implements Widget.Leaf, Styled, Paints, Handles, Attributed<Menu> {
 
-    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    /// Written out so that the parameters taking null for a default can say so.
     public Menu(@Nullable List<Widget> children, @Nullable Attributes attributes) {
         children = List.copyOf(children == null ? List.of() : children);
         attributes = attributes == null ? Attributes.NONE : attributes;
@@ -116,7 +116,7 @@ public record Menu(List<Widget> children, Attributes attributes)
     /// Builds a `menu` from markup.
     ///
     /// A document declares a menu; *opening* one is `Menus.open(host, …)`,
-    /// because that needs a `Host` and a widget must not have one (ADR-0106).
+    /// because that needs a `Host` and a widget must not have one.
     public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
         return new Menu(children, Attributes.of(node));
     }

@@ -1,6 +1,6 @@
 package dev.goldberry.media;
 
-/// Where a [MediaPlayer] is in its life (`docs/goldberry-media.md` §3, "State").
+/// Where a [MediaPlayer] is in its life.
 ///
 /// ```
 /// IDLE → OPENING → BUFFERING ⇄ PLAYING ⇄ PAUSED → ENDED
@@ -9,6 +9,8 @@ package dev.goldberry.media;
 ///
 /// A seek from `ENDED` goes back to `BUFFERING`. A new [MediaPlayer#open] goes
 /// back to `OPENING` from any state.
+///
+/// Read more: [A player](https://goldberry.dev/docs/components/media.html#a-player).
 public enum PlaybackState {
     /// Nothing opened.
     IDLE,

@@ -6,11 +6,13 @@ import dev.goldberry.render.model.PhysicalRect;
 
 /// Where a frame placed a GPU layer: what
 /// [Frame#gpuLayer][dev.goldberry.paint.Frame#gpuLayer]
-/// records, in paint order, for the compositor (`docs/gpu-plan.md`, D4; ADR-0481).
+/// records, in paint order, for the compositor.
 ///
 /// Both rectangles are in the frame's physical pixels and rounded by one rule,
 /// each edge to the nearest pixel, so the hole punched in the frame and the quad
 /// the compositor draws cover the same pixels.
+///
+/// Read more: [The GPU canvas](https://goldberry.dev/docs/components/gpu.html#what-the-module-does-to-a-window).
 ///
 /// @param content what is drawn
 /// @param target  the rectangle the content fills, whole: its size is the size

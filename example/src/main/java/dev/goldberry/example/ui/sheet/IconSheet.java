@@ -19,7 +19,7 @@ import dev.goldberry.widget.style.Styled;
 /// much room it has before it is laid out — the same wall
 /// [dev.goldberry.widgets.panel.masonry.Masonry] hits for
 /// heights, answered the same way: read last frame, act on the next
-/// ([Measured], [ADR-0119]).
+/// ([Measured]).
 ///
 /// ## Why it is safe here, which is the only question [Measured] asks
 ///
@@ -34,8 +34,7 @@ import dev.goldberry.widget.style.Styled;
 /// which is exactly the argument `Masonry` makes for moving a card between
 /// columns of equal width.
 ///
-/// The height is deliberately ignored. Reacting to that *would* be the loop
-/// ([ADR-0307]).
+/// The height is deliberately ignored. Reacting to that *would* be the loop.
 ///
 /// @param child   the masonry
 /// @param onWidth told what the last frame made this box, in logical pixels

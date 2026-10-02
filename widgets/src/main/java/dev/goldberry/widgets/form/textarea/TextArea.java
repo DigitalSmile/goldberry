@@ -17,7 +17,8 @@ import dev.goldberry.widget.attr.Bindable;
 import dev.goldberry.widgets.markup.Markup;
 import dev.goldberry.widgets.markup.Wiring;
 
-/// A multi-line text field — `docs/core-widgets.md` §4's `text-area`.
+/// A multi-line text field that soft-wraps, grows between a minimum and a
+/// maximum number of rows, and scrolls after that.
 ///
 /// ```kdl
 /// field label="Bio" { text-area bind="user.bio" rows=4 }
@@ -29,8 +30,9 @@ import dev.goldberry.widgets.markup.Wiring;
 ///
 /// The editing model is the same one, unchanged:
 /// [dev.goldberry.text.edit.TextEdit]
-/// and its history are where §4's rules live, and they were written without a
-/// single line about how many lines there are. What differs is only what a second
+/// and its history are where the editing rules live, and they were written
+/// without a single line about how many lines there are. What differs is only
+/// what a second
 /// dimension makes different:
 ///
 /// - **`Enter` inserts a newline** rather than reaching the form around it.
@@ -60,7 +62,7 @@ import dev.goldberry.widgets.markup.Wiring;
 /// **hard** lines drawn at **soft**-wrapped positions, and only the thing that
 /// laid the text out knows where those fell — a `Column` of numbers next to the
 /// pane is right until the first line that wraps and wrong for every line after
-/// it, which is worse than having none (`docs/gaps.md` G37, [ADR-0331]).
+/// it, which is worse than having none.
 ///
 /// **[#onEdit] and [#edit(TextEdit)]** are the caret and the selection, in and
 /// out. `change=` reports the new whole value, which is exactly right for a form
@@ -69,7 +71,7 @@ import dev.goldberry.widgets.markup.Wiring;
 /// second method is half the request rather than a convenience: wrapping a
 /// selection in `**` is an edit **and** a caret move, and an application that
 /// could compute one but only push back a `String` would leave the caret wherever
-/// the widget decided (`docs/gaps.md` G38, [ADR-0332]).
+/// the widget decided.
 ///
 /// `change=` is untouched and fires as it always did. The two are beside each
 /// other, for the two kinds of caller.
@@ -79,6 +81,8 @@ import dev.goldberry.widgets.markup.Wiring;
 /// A masked multi-line field is not a thing, and a filter over a value with
 /// newlines in it would be judging a document rather than a value. Both are
 /// `text-input`'s and stay there.
+///
+/// Read more: [Fields and forms](https://goldberry.dev/docs/components/forms.html#text-area).
 ///
 /// @param value       the text when nothing is bound
 /// @param source      the `bind=` value, or null
@@ -132,7 +136,7 @@ public record TextArea(
     public static final int DEFAULT_MAX_ROWS = 10;
 
     /// The canonical constructor, written out because `value`, `placeholder` and `attributes` take null
-    /// for a default (ADR-0497).
+    /// for a default.
     public TextArea(
             @Nullable String value,
             @Nullable Observable<?> source,
@@ -183,7 +187,7 @@ public record TextArea(
     /// Kept for [Attributes]' reason: this constructor is written out in the
     /// catalog's own tests and in every application that builds one positionally,
     /// and two more arguments on all of them would be a hundred edits to say
-    /// `null` ([ADR-0332]).
+    /// `null`.
     public TextArea(
             String value,
             @Nullable Observable<?> source,
@@ -334,7 +338,7 @@ public record TextArea(
 
     /// This area **sized by its container** rather than by its text.
     ///
-    /// §4's `text-area` grows to fit what is typed into it, between [#rows] and
+    /// A `text-area` grows to fit what is typed into it, between [#rows] and
     /// [#maxRows], which is right for a field in a form: a control that took the
     /// height of a pane it happened to be in would leave a form full of holes.
     ///
@@ -342,7 +346,7 @@ public record TextArea(
     /// holding a document wants the document to have the pane: the height comes from
     /// the layout, the text scrolls inside it, and how many lines fit is an answer
     /// rather than a setting. Without this, an editor in a `split-pane` was as tall
-    /// as `max-rows` and left the rest of its side empty (ADR-0296).
+    /// as `max-rows` and left the rest of its side empty.
     ///
     /// What changes: the box grows into whatever its parent gives it, and the
     /// visible-line count that decides scrolling comes from the **measured** height
@@ -367,15 +371,14 @@ public record TextArea(
                 attributes);
     }
 
-    /// This area with its **hard** lines numbered down the left edge — §10 E1's
-    /// line-number gutter.
+    /// This area with its **hard** lines numbered down the left edge — an
+    /// editor's line-number gutter.
     ///
     /// One number per line somebody typed, drawn at the y the line was actually
     /// laid out at. A line that soft-wraps into three takes one number and three
     /// lines' worth of height, which is what every editor does and is the whole
     /// reason this cannot be a `Column` of numbers beside the control: only the
-    /// thing that laid the text out knows where a hard line ended up
-    /// (`docs/gaps.md` G37, [ADR-0331]).
+    /// thing that laid the text out knows where a hard line ended up.
     ///
     /// A boolean and not a renderer. What a line number *looks* like is the
     /// stylesheet's — `text-area-line-number`, and the column behind it is
@@ -411,7 +414,7 @@ public record TextArea(
     /// undo — anything that moves the caret, whether or not it changed a
     /// character. Three of the four things a Markdown shortcut needs to know about
     /// change no text at all, which is why the caret cannot simply be inferred
-    /// from two versions of a string (`docs/gaps.md` G38, [ADR-0332]).
+    /// from two versions of a string.
     ///
     /// It is **not** raised for an edit the application itself pushed in through
     /// [#edit(TextEdit)]: that would be an echo of something the caller already
@@ -572,7 +575,7 @@ public record TextArea(
     ///
     /// `onEdit` and [#edit(TextEdit)] have no attribute: `change=` names a method
     /// that takes a value, and a [TextEdit] is not a value a KDL document can
-    /// write or a registry can resolve. An editor is Java (ADR-0332).
+    /// write or a registry can resolve. An editor is Java.
     public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
         var rows = (int) node.numberProperty("rows", DEFAULT_ROWS);
         var maxRows = (int) node.numberProperty("max-rows", 0);

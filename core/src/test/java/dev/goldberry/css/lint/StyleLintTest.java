@@ -24,7 +24,7 @@ import dev.goldberry.css.value.CssLength;
 /// two ways this could report a healthy sheet as broken — a `var()` it was not
 /// given the theme for, and a custom property, which between them produced over
 /// a hundred false findings each while the machinery this promotes was being
-/// written as a test ([ADR-0215], [ADR-0216], [ADR-0257]).
+/// written as a test.
 class StyleLintTest {
 
     /// What `em` and `rem` resolve against. Any context will do here for the same
@@ -55,8 +55,8 @@ class StyleLintTest {
         void unsupportedProperty() {
             // `border-bottom` was this example -- the one that shipped in
             // `table-head`, drew nothing, and left one debug line among thousands
-            // (ADR-0215) -- until ADR-0505 made it a property. `border-style` is
-            // one §8 still refuses by design: style is a word inside a shorthand.
+            // -- until per-side borders made it a property. `border-style` is
+            // one the subset still refuses by design: style is a word inside a shorthand.
             var findings = dead("table-head { border-style: dashed }");
 
             assertEquals(1, findings.size(), () -> findings.toString());
@@ -67,11 +67,11 @@ class StyleLintTest {
         @Test
         @DisplayName("a value the engine would not take is reported, with the property spelled right")
         void badValue() {
-            // The other way a rule does nothing, and the one ADR-0216 found:
+            // The other way a rule does nothing:
             // the property is one the engine has and the value is not one it
             // takes, so the declaration is dropped whole. `align-items: left` is
             // the recorded case -- refused for a reason rather than an omission,
-            // because `left` is not `start` under RTL (ADR-0247).
+            // because `left` is not `start` under RTL.
             var findings = dead("row { align-items: left }");
 
             assertEquals(1, findings.size(), () -> findings.toString());
@@ -132,7 +132,7 @@ class StyleLintTest {
         @DisplayName("a value that only became legal recently is legal here too")
         void itAsksTheEngineRatherThanAList() {
             // Both of these were reported as dead until the engine grew them:
-            // the corner shorthand (ADR-0216) and `start` (ADR-0247).
+            // the corner shorthand and `start`.
             assertTrue(dead("group-box-title { border-radius: 7px 7px 0 0 }").isEmpty());
             assertTrue(dead("row { align-items: start }").isEmpty());
         }
@@ -195,8 +195,8 @@ class StyleLintTest {
         /// **An unresolvable `var()` is not a finding**, and that is a decision
         /// rather than a gap. Substitution failing takes the whole declaration
         /// with it before the engine ever sees one, and the resolver already
-        /// says so once — which is the shape ADR-0243 settled on after the same
-        /// message became a stream. Two mechanisms for one fault disagree the
+        /// says so once — one message, not a stream, which is what was settled
+        /// on after the same message became a stream. Two mechanisms for one fault disagree the
         /// day either changes.
         ///
         /// Asserted so that a later reader finds the reason rather than the
@@ -308,12 +308,12 @@ class StyleLintTest {
         }
     }
 
-    /// A root nothing gives a colour, and every primitive under it
-    /// ([ADR-0415]).
+    /// A root nothing gives a colour, and every primitive under it.
     ///
     /// The premise is asserted first, because the whole check rests on it: a bare
     /// `text` with no ancestor setting `color` really does draw in the initial
-    /// black, which is ADR-0066's deliberate decision and a trap all the same.
+    /// black, which is deliberate — colour inherits, so the root is where it is
+    /// set — and a trap all the same.
     @Nested
     @DisplayName("a root with no colour")
     class UncolouredRoot {
@@ -421,8 +421,7 @@ class StyleLintTest {
         }
     }
 
-    /// The probe's null parent, which this package was left unmarked for
-    /// ([ADR-0413]).
+    /// The probe's null parent, which this package was left unmarked for.
     ///
     /// `Probe` is a record whose `parent` component was declared non-null and is
     /// **null for every single-compound selector** — that is, for most rules in

@@ -23,14 +23,12 @@ import dev.goldberry.widget.style.Styled;
 /// the CSS type and the document's `id` and classes. Which is exactly why the
 /// width is read here and not anywhere else: this is the one node in the subtree
 /// whose rectangle *is* the masonry's, so no wrapper had to be invented to ask
-/// the question. `IconsScreen` invented one (`icon-sheet`) before `masonry` could
-/// answer it, and ADR-0436 is that wrapper turning out to have been the widget's
-/// job.
+/// the question.
 ///
 /// ## Two readings, two moments
 ///
 /// A responsive wall needs both of these and can take neither in the same place,
-/// which is `toaster`'s shape (ADR-0178) rather than a new one:
+/// which is the same shape `toaster` has:
 ///
 ///   - the **gap**, which only `render` is handed, because only `render` is
 ///     handed the style the cascade resolved. Read rather than assumed: `n`

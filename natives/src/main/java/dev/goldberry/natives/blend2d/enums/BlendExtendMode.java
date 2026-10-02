@@ -5,7 +5,9 @@ package dev.goldberry.natives.blend2d.enums;
 /// Only the three simple modes. Blend2D also has the six pad/repeat/reflect
 /// combinations that apply a different rule at each end, which is a thing no CSS
 /// or SVG gradient can ask for; leaving them out keeps every enumerator here one
-/// a document could actually name (ADR-0207).
+/// a document could actually name.
+///
+/// Read more: [The native boundary](https://goldberry.dev/docs/overview/architecture.html#the-native-boundary).
 public enum BlendExtendMode implements BlendEnum {
 
     /// The end colours hold. What CSS specifies, and what a fade under a band

@@ -14,12 +14,14 @@ import dev.goldberry.natives.yoga.measure.MeasuredSize;
 /// code compiled by the target's own C compiler receive the struct and say what
 /// it got. `goldberry_probe_measure` is that code; this is its binding.
 ///
-/// It exists for the check in ADR-0017, not for the layout engine — Yoga will
+/// It exists for that check, not for the layout engine — Yoga will
 /// call the stub itself once the node API is bound. It stays in main sources
 /// rather than test sources for the same reason
 /// [dev.goldberry.natives.layout.LayoutProbe] does: it is a
 /// binding to a symbol the library exports, and the export list and the bindings
 /// are checked against each other.
+///
+/// Read more: [The native boundary](https://goldberry.dev/docs/overview/architecture.html#the-native-boundary).
 public final class MeasureProbe {
 
     /// ```c

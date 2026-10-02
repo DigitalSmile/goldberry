@@ -26,8 +26,7 @@ import dev.goldberry.widgets.panel.list.Selection;
 ///
 /// Every other assertion about the columns is about counts and keys, which would
 /// all still pass if the header row and the body rows were sized by two
-/// different rules. The picture is where a misaligned column is obvious
-/// ([ADR-0214]).
+/// different rules. The picture is where a misaligned column is obvious.
 class TableGoldenTest {
 
     private record Person(String id, String name, String home, int age) {}

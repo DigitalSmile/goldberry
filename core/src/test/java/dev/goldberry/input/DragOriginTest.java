@@ -19,8 +19,7 @@ import dev.goldberry.widget.ElementTree;
 import dev.goldberry.widget.Widget;
 import dev.goldberry.widget.style.Styled;
 
-/// Where a drag started, which only the router can answer
-/// (ADR-0075).
+/// Where a drag started, which only the router can answer.
 ///
 /// A gesture is a sequence of events; a widget is a value rebuilt every frame.
 /// The widget that sees the release is a different instance from the one that saw

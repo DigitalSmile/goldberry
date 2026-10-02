@@ -1,14 +1,12 @@
-/// `@NullMarked`, which puts this package under NullAway.
+/// The `sparkline` — a trend with no axes, no legend and no readout: the shape
+/// of a change beside a number.
 ///
-/// Inside a marked package every type is non-null unless it says `@Nullable`,
-/// and the build fails on a violation. The annotation is the whole content of
-/// this file: there is nothing package-specific to say about nullness, and a
-/// paragraph pretending otherwise in every package would be padding.
+/// [dev.goldberry.widgets.data.sparkline.Sparkline] is the widget, drawn on a
+/// canvas in the theme's first series colour.
 ///
-/// Packages are marked one at a time on purpose. NullAway runs in
-/// `OnlyNullMarked` mode, so an unmarked package is invisible to it and a marked
-/// one is checked from the moment it opts in — which is the only way a codebase
-/// this size adopts nullness at all (`docs/testing.md` §2).
+/// Every reference is non-null unless it says `@Nullable`.
+///
+/// Read more: [Charts](https://goldberry.dev/docs/components/charts.html#sparkline).
 @NullMarked
 package dev.goldberry.widgets.data.sparkline;
 

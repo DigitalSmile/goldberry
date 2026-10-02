@@ -4,7 +4,7 @@ import java.lang.foreign.FunctionDescriptor;
 import java.util.List;
 
 /// This package's foreign-call surface, for the native-image metadata the
-/// module's generator writes (ADR-0339).
+/// module's generator writes.
 ///
 /// Public so that the generator, in its own package, can reach it; the
 /// package is not exported, so nothing outside the module can. Initialising the

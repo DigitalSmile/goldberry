@@ -8,15 +8,15 @@ src = "src"
 [output.html]
 # The two themes are the landing page's: Nord on a near-white page, and Nord
 # dark. `theme/goldberry.css` recolours mdBook's `light` and `navy` to match and
-# hides the other three (docs/book.md). The decision log under src/adr is not
-# listed in SUMMARY.md and is therefore not built: it is read on GitHub (ADR-0512).
+# hides the other three. The decision log under src/adr is not
+# listed in SUMMARY.md and is therefore not built: it is read on GitHub.
 default-theme = "light"
 preferred-dark-theme = "navy"
 additional-css = ["theme/goldberry.css"]
-# The landing page's header, built into the menu bar at load (docs/book.md).
+# The landing page's header, built into the menu bar at load.
 additional-js = ["theme/goldberry.js"]
 git-repository-url = "https://github.com/DigitalSmile/goldberry"
-# Each page links to its own source on GitHub (ADR-0509).
+# Each page links to its own source on GitHub.
 edit-url-template = "https://github.com/DigitalSmile/goldberry/edit/master/book/{path}"
 
 [output.html.fold]

@@ -40,13 +40,16 @@ import dev.goldberry.widget.WidgetRenderer;
 import dev.goldberry.widget.root.WindowRoot;
 import dev.goldberry.widget.style.Corner;
 
-/// Runs an [Application]: the window, the trees, the frame loop and the shutdown
-/// order, in one place instead of in every `main`.
+/// Runs an [Application]: opens its window, builds its trees, drives the frame
+/// loop and takes everything down in the reverse order, in one place instead of
+/// in every `main`.
 ///
-/// Not public — [Goldberry#launch] is the door. There is exactly one right way to
-/// wire these six objects together and no reason for an application to hold a
-/// launcher, so what it gets is a [Host]
-/// (ADR-0093).
+/// Not public: [Goldberry#launch] is the door. There is exactly one right way to
+/// wire these objects together and no reason for an application to hold a
+/// launcher, so what an application is handed is a [Host], which this class
+/// implements for the window it runs.
+///
+/// Read more: [The lifecycle](https://goldberry.dev/docs/guide/windows.html#the-lifecycle).
 final class Launcher implements Host {
 
     private static final Logger LOG = LoggerFactory.getLogger(Launcher.class);
@@ -77,7 +80,7 @@ final class Launcher implements Host {
     private @Nullable WidgetRenderer renderer;
 
     /// The steps a frame runs, in the order they have to run in — shared with
-    /// `Offscreen`, which used to keep a second copy of them (ADR-0423).
+    /// `Offscreen`, so a window and a buffer run the same steps in the same order.
     ///
     /// What is *not* in it is what makes a window a window: the damage pass, the
     /// frame ring, the HUD's stage timings and the model sweep are all below, and
@@ -103,7 +106,7 @@ final class Launcher implements Host {
 
     /// What is floating over the content, watched by [WindowRoot] rather than
     /// handed to it: the root widget of an element tree cannot be swapped, so a
-    /// list that changes has to be one the root *reads* (ADR-0062).
+    /// list that changes has to be one the root *reads*.
     private final Property<List<Overlay>> overlays = Property.of(List.of());
 
     /// How a popup was placed, so it can be placed again — see [#replacePopups].
@@ -131,7 +134,7 @@ final class Launcher implements Host {
     /// Puts every open popup back where its anchor now is.
     ///
     /// Called from the three things that move an anchor without moving the popup
-    /// with it ([ADR-0231], [ADR-0270]):
+    /// with it:
     ///
     /// - a **resize**, which moves the widget the popup hangs off and the work
     ///   area it was clamped against, and tells neither of them;
@@ -169,8 +172,7 @@ final class Launcher implements Host {
                     // confines it, or not painted at all. Following it out of
                     // sight would leave a menu pointing at a widget nobody can
                     // see, and the placement would clamp it back to the work
-                    // area next to something it does not belong to
-                    // ([ADR-0433]).
+                    // area next to something it does not belong to.
                     closeFrom(popup);
                     continue;
                 }
@@ -188,7 +190,7 @@ final class Launcher implements Host {
     /// Whether an anchor is still somewhere a user could look at it.
     ///
     /// Two questions, because one rectangle can leave by two routes and the
-    /// clip only knows about the first ([ADR-0433]):
+    /// clip only knows about the first:
     ///
     /// - [HitTest.Region#isVisible()] — has it left the viewport that clips it,
     ///   which is what a scroll does to it;
@@ -220,7 +222,7 @@ final class Launcher implements Host {
     /// open order is the containment order here — a popup opened while another
     /// was up is either its submenu or something standing on it — so the stack
     /// above the one that lost its anchor goes with it, which is what
-    /// [#dismissPopups()] already does for a press ([ADR-0433]).
+    /// [#dismissPopups()] already does for a press.
     ///
     /// `lightDismiss(false)` is not consulted. It says that *input* does not
     /// close this popup; an anchor that stopped being drawn is not input, and a
@@ -248,7 +250,7 @@ final class Launcher implements Host {
     /// re-resolved against: the rectangle is all there ever was, and re-placing
     /// it every frame would put it back where it already is. An id is a question
     /// the last paint can answer again, and the answer moves when the widget
-    /// does ([ADR-0270]).
+    /// does.
     private boolean followsAnAnchor() {
         for (var entry : placements.entrySet()) {
             if (entry.getValue().anchorId() != null && entry.getKey().isOpen()) {
@@ -271,8 +273,7 @@ final class Launcher implements Host {
     /// A no-op for a woven model, which notified from inside the assignment that
     /// changed it. For one bound at run time it is how a change made from
     /// somewhere no listener could see — a timer callback, a background job
-    /// reporting in — reaches the screen rather than waiting for the next action
-    /// (ADR-0155).
+    /// reporting in — reaches the screen rather than waiting for the next action.
     ///
     /// Read once at start-up rather than per frame: `models()` is a description of
     /// the wiring, and an application that returns a fresh list every call would
@@ -287,9 +288,8 @@ final class Launcher implements Host {
     /// `stop()` ends the loop; it does not unschedule the frames already in
     /// flight -- the resize walk's zero-delay timer and an animating renderer
     /// have each asked for one by then. Those frames still paint, and without
-    /// this flag each of them reported "painted N frame(s); exiting" again. A
-    /// `--frames=300` run logged the line three times, at 300, 301 and 302,
-    /// which reads as three exits rather than one (ADR-0452).
+    /// this flag each of them would report "painted N frame(s); exiting" again,
+    /// which reads as three exits rather than one.
     private boolean stopping;
 
     /// The walk `--resize=` asked for, or null when the window is left alone.
@@ -308,7 +308,6 @@ final class Launcher implements Host {
     /// @param resize     walk the window's size a pixel a frame between the
     ///                   opening size and this one, or null to leave it alone —
     ///                   the load a frame-rate claim is measured under
-    ///                   ([ADR-0342])
     /// @param lateBudget how many refreshes the run may miss before it exits
     ///                   non-zero, or -1 for a run that is not judged
     record Options(
@@ -389,7 +388,7 @@ final class Launcher implements Host {
     ///
     /// The contradiction is only reachable through `--size=`, and that flag is
     /// the reason this is a demotion rather than a refusal: it exists so a
-    /// screenshot or a golden run can pin the window's geometry (ADR-0221), and
+    /// screenshot or a golden run can pin the window's geometry, and
     /// an application that declares a 1024-wide minimum must not be able to make
     /// `--size=800x600` fail to start. The floor is a promise to a *user* about
     /// what dragging an edge may do, and there is no user in a golden run.
@@ -421,12 +420,12 @@ final class Launcher implements Host {
         // `--size=` un-maximizes as well as resizing, because an explicit size on
         // the command line and a window that ignores it is the one combination
         // nobody means: the flag exists so a screenshot or a golden run can pin
-        // the window's geometry (ADR-0221).
+        // the window's geometry.
         window = Window.open(WindowSpec.of(application.title(), size)
                 .withMinimumSize(floorFitting(size))
                 .withMaximized(application.maximized() && options.size() == null));
         // Straight after opening, so the taskbar never shows the generic icon for
-        // longer than the first frame takes (ADR-0351).
+        // longer than the first frame takes.
         var icon = application.icon();
         if (!icon.isEmpty() && !window.icon(icon)) {
             LOG.debug("the platform kept its own window icon");
@@ -440,19 +439,19 @@ final class Launcher implements Host {
         // two libraries, confined to the thread that built them, and opening a
         // face per frame would put font parsing on the frame path.
         // With the application's own faces added after the bundled ones, read
-        // here and never again (ADR-0349).
+        // here and never again.
         fonts = Fonts.bundled(application.fonts());
 
         router = new PointerRouter();
         window.pointerRouter(router);
-        // §7's tooltip: shown on hover *and* on keyboard focus, after a delay.
-        // The router knows when either moved and opens nothing; the launcher owns
-        // the window, so it is where the two meet (ADR-0105).
+        // A tooltip is an attribute, shown on hover *and* on keyboard focus after
+        // a delay. The router knows when either moved and opens nothing; the
+        // launcher owns the window, so it is where the two meet.
         // Held rather than dropped: the registration outlives this line, and a
-        // returned handle nobody keeps is the shape that makes a leak invisible
-        // (ADR-0230). The launcher's own router dies with the launcher, so
-        // closing it is tidiness rather than necessity — and tidiness is what
-        // stops the next caller from thinking it does not have to.
+        // returned handle nobody keeps is the shape that makes a leak invisible.
+        // The launcher's own router dies with the launcher, so closing it is
+        // tidiness rather than necessity — and tidiness is what stops the next
+        // caller from thinking it does not have to.
         pointing = router.onPointingChanged(this::pointingChanged);
 
         // Before `root()`, so an application can open its icons and bind its
@@ -461,8 +460,7 @@ final class Launcher implements Host {
 
         // The application's models drive the window, and it says nothing about
         // it: a change to a bound field asks for a frame, and a change to one
-        // declared `@Bind(restyle = true)` drops the resolved styles first
-        // (ADR-0128, ADR-0133).
+        // declared `@Bind(restyle = true)` drops the resolved styles first.
         models = List.copyOf(application.models());
         for (var model : models) {
             modelSubscriptions.add(Models.onRestyle(model, this::restyle));
@@ -476,18 +474,18 @@ final class Launcher implements Host {
         tree = new ElementTree(new WindowRoot(application.root(), overlays), this);
         // A `setState` anywhere in the tree asks for a frame. Without it the
         // change waits for some unrelated event to paint, which is a widget that
-        // reacts one interaction late (ADR-0122).
+        // reacts one interaction late.
         tree.onDirty(window::repaint);
         router.focusRoot(tree.root());
 
         // Held for the life of the window, which is the whole point of it: the
         // Yoga nodes, their layout cache and the measure callbacks behind every
         // paragraph survive from frame to frame, so a frame where nothing changed
-        // re-lays out nothing (ADR-0069).
+        // re-lays out nothing.
         render = RenderTree.create();
 
-        // The three objects a frame walks, and the order it walks them in
-        // (ADR-0423). Built once beside them because all three outlive a frame.
+        // The three objects a frame walks, and the order it walks them in. Built
+        // once beside them because all three outlive a frame.
         sequence = FrameSequence.over(tree, render, router);
 
         window.onPaint(this::paint);
@@ -496,49 +494,47 @@ final class Launcher implements Host {
         // window carries it along and only **resizing** moves what it was
         // anchored to. Re-placing here is what stops a menu opened at the bottom
         // of a short window from hanging off a taller one, and what keeps a
-        // right-aligned heading's menu under the heading ([ADR-0231]).
+        // right-aligned heading's menu under the heading.
         // In the launcher's own hook and not the application's slot: this runs
-        // after `start`, and taking `onResize` here replaced whatever the
-        // application had just wired into it (ADR-0342).
+        // after `start`, and taking `onResize` here would replace whatever the
+        // application had just wired into it.
         window.launcherOnResize(resized -> replaceAfterPaint = true);
 
         // A **move** does not move the anchor and does not need a paint: the
         // frame on screen is still the right one, and `anchor(id)` answers from
         // it. What moved is the work area *in this window's coordinates*, so a
         // menu that was flipped or shifted against a screen edge has to be asked
-        // again — immediately, from the capture that is already current
-        // ([ADR-0270]).
+        // again — immediately, from the capture that is already current.
         window.launcherOnMove(position -> replacePopups());
 
         // The desktop's light-or-dark setting, forwarded to whoever asked for it.
         // Installed unconditionally rather than on the first listener: there is one
         // handler slot per window, and taking it here means nothing else can be
-        // wired into it later and quietly win (`docs/gaps.md` G26, [ADR-0322]).
+        // wired into it later and quietly win.
         window.onSystemThemeChanged(this::notifySystemTheme);
 
         // A press on nothing, or an Escape, closes whatever is open over this
         // window. Neither reaches a widget, which is why it is watched here
-        // rather than handled by one (ADR-0103).
+        // rather than handled by one.
         window.inputWatcher(new Window.InputWatcher() {
             @Override
             public boolean pressed(dev.goldberry.input.event.PointerEvent.@Nullable Button button, float x, float y) {
                 // **A press that dismissed something is a dismissal and not a
                 // click**, which is what every desktop does: with a menu open,
                 // the click that puts it away does not also press the button it
-                // landed on. The rule was already here for the secondary button
-                // below (ADR-0108); it turns out to be the general one.
+                // landed on. The rule for the secondary button below is the
+                // general one.
                 //
                 // Without it a control that opens its own popup cannot be closed
                 // by clicking it again: the press dismisses the list and the
                 // release then reads as "open it", so a `select` toggles twice
-                // and stays open ([ADR-0141]).
+                // and stays open.
                 if (dismissPopups()) {
                     return true;
                 }
                 // The secondary button, on a widget that named a menu: the press
                 // is *taken*, so it does not also reach whatever it landed on —
-                // right-clicking a button should open its menu, not press it
-                // (ADR-0108).
+                // right-clicking a button should open its menu, not press it.
                 return button == dev.goldberry.input.event.PointerEvent.Button.SECONDARY && openContextMenu(x, y);
             }
 
@@ -554,8 +550,7 @@ final class Launcher implements Host {
                     dev.goldberry.input.key.Key key, dev.goldberry.input.key.Modifiers modifiers, boolean repeat) {
                 // The topmost popup that wants keys at all, which is not always
                 // the topmost popup: a *panel* is open over the window the whole
-                // time something is selected and must take nothing from it
-                // (`docs/gaps.md` G29, [ADR-0319]).
+                // time something is selected and must take nothing from it.
                 var top = topmostKeyboardPopup();
                 if (top == null) {
                     // `Escape` is still a dismissal, because declining keys and
@@ -567,7 +562,7 @@ final class Launcher implements Host {
                     }
                     // **The keyboard's right-click**, and only while nothing is
                     // open over the window: with a menu already showing, the
-                    // menu key belongs to the menu (ADR-0208).
+                    // menu key belongs to the menu.
                     //
                     // `Shift+F10` beside the menu key rather than instead of it.
                     // A Mac keyboard has no menu key at all, and a PC one that
@@ -590,20 +585,19 @@ final class Launcher implements Host {
                     // dismisses the whole thing, because the user pointed at
                     // something else; `Escape` steps back out of it one menu at a
                     // time, which is what every desktop does and what makes a
-                    // submenu escapable without losing the menu that opened it
-                    // ([ADR-0233]).
+                    // submenu escapable without losing the menu that opened it.
                     return dismissTopmostPopup();
                 }
                 // While a menu is open the keyboard belongs to it, whether or not
                 // the platform moved focus there — otherwise an arrow would move
-                // the selection in the window *underneath* the menu (ADR-0104).
+                // the selection in the window *underneath* the menu.
                 return top.handleKey(key, modifiers, repeat);
             }
         });
 
         // A popup goes away when the *application* does, which no platform
         // reports: opening one sends a focus-lost for the window under it and a
-        // focus-gained for the popup itself (ADR-0144).
+        // focus-gained for the popup itself.
         GoldberryRuntime.get().onFocusChange(this::focusMayHaveLeft);
 
         try {
@@ -613,12 +607,12 @@ final class Launcher implements Host {
         }
         LOG.info("{} finished after {} frame(s)", application.getClass().getSimpleName(), painted);
         // The whole run in one line, after the window has gone: the ring kept
-        // the totals, and this is the number a frame-rate claim is (ADR-0342).
+        // the totals, and this is the number a frame-rate claim is.
         var summary = window.frames().summary();
         LOG.info("frames: {}", summary.describe());
         // Where they went: every presented frame, a still one included, so a
-        // window that sat on the GPU says so even when it had nothing to upload
-        // (ADR-0492). A line of its own, for the reason the next one is.
+        // window that sat on the GPU says so even when it had nothing to upload.
+        // A line of its own, for the reason the next one is.
         LOG.info("on screen: {}", window.presentations().describe());
         // A second line rather than more of the first, which a workflow greps.
         var presents = window.frames().presentSummary();
@@ -639,17 +633,17 @@ final class Launcher implements Host {
     /// A new renderer means new resolved styles — but **not** new animations,
     /// which live on the elements a restyle does not touch, so a transition in
     /// flight when the theme changes carries on into the new colours rather than
-    /// snapping (ADR-0067).
+    /// snapping.
     private WidgetRenderer renderer() {
         if (stylesDirty || renderer == null) {
             renderer = new WidgetRenderer(application.stylesheets(), fonts)
                     .frames(window.frames())
                     .clock(clock)
-                    // §13's switch, obeyed rather than merely offered: the
-                    // desktop is asked once and a renderer starts where it said
-                    // (ADR-0383). Empty is "animate", because a default is not
-                    // an instruction — and an application that disagrees calls
-                    // `reducedMotion` on its own renderer afterwards.
+                    // The desktop's reduce-motion switch, obeyed rather than
+                    // merely offered: the desktop is asked once and a renderer
+                    // starts where it said. Empty is "animate", because a default
+                    // is not an instruction — and an application that disagrees
+                    // calls `reducedMotion` on its own renderer afterwards.
                     .reducedMotion(window.reducedMotion().orElse(false));
             stylesDirty = false;
         }
@@ -660,8 +654,7 @@ final class Launcher implements Host {
         // Four timestamps rather than four `if (traced)` pairs: the stages are
         // what a `hud` shows, so they are measured on every frame or the number
         // on screen would be a different frame's. Five `nanoTime` calls against a
-        // frame that costs hundreds of microseconds is not a cost worth a branch
-        // (ADR-0146).
+        // frame that costs hundreds of microseconds is not a cost worth a branch.
         var beganAt = System.nanoTime();
         if (dev.goldberry.widget.FrameTrace.ENABLED) {
             tree.trace().reset();
@@ -670,7 +663,7 @@ final class Launcher implements Host {
         // Before the build rather than after it, so a change a sweep notices is a
         // change *this* frame shows. A listener marks an element dirty, and the
         // flush below is what a dirty element is waiting for -- the other order
-        // would show it one frame late (ADR-0155).
+        // would show it one frame late.
         //
         // Nothing at all for a woven model: `refresh` returns false without
         // looking, which is what makes this line free in a native image.
@@ -679,19 +672,18 @@ final class Launcher implements Host {
         }
 
         // Prepare, flush, render, lay out -- the four steps whose order is the
-        // load-bearing part, and they are not written here any more. `Offscreen`
-        // runs the same four in the same order, and it ran them from its own copy
-        // of this code until ADR-0423 put the order in one place; the reasons each
-        // step is in front of the next one moved with it. `renderer()` is lazy, so
-        // this call is also what creates it on the first frame -- once, rather than
-        // the two calls the steps used to make.
+        // load-bearing part, and they are not written here. `Offscreen` runs the
+        // same four in the same order from the same sequence, and the reasons
+        // each step is in front of the next one live there with them.
+        // `renderer()` is lazy, so this call is also what creates it on the first
+        // frame -- once.
         var stages = sequence.layOut(frame, renderer(), beganAt);
         var builtAt = stages.builtAt();
         var styledAt = stages.styledAt();
         var laidOutAt = stages.laidOutAt();
 
         // What differs from the last frame, computed before painting because the
-        // clip has to be in place before anything is drawn (ADR-0072).
+        // clip has to be in place before anything is drawn.
         //
         // **This half stays here**, and it is the step the shared sequence does
         // not own: a window paints the damaged rectangles because the backend
@@ -710,31 +702,30 @@ final class Launcher implements Host {
 
         // What the pointer is tested against is the frame that was just painted,
         // not a fresh layout -- which would be one frame ahead of what the user
-        // can see (ADR-0054). Kept as well as handed over: `anchor` answers from
-        // the same capture, so a menu opens under where its button *was drawn*
-        // rather than where a fresh layout would put it. The window bounds go in
-        // first, and that ordering is the sequence's too (ADR-0119).
+        // can see. Kept as well as handed over: `anchor` answers from the same
+        // capture, so a menu opens under where its button *was drawn* rather
+        // than where a fresh layout would put it. The window bounds go in first,
+        // and that ordering is the sequence's too.
         regions = sequence.captureRegions(frame, router);
 
         // **After the regions**, which is the whole of why this is a flag and not
         // a call in the resize handler: `anchor(id)` answers from the capture the
         // last paint produced, and during the resize handler that capture is
         // still the *old* window's. Re-placing there would put every menu back
-        // where its heading used to be, which is the bug rather than the fix
-        // ([ADR-0231]).
+        // where its heading used to be, which is the bug rather than the fix.
         //
         // And on **every** frame while something is anchored by id, which is the
         // other half of the same claim: a `popover` hanging off a widget in a
         // `scroll` has to travel with it, and a scroll is a frame rather than an
         // event anybody reports. Guarded by the id, so a window with no anchored
-        // popup open pays nothing ([ADR-0270]).
+        // popup open pays nothing.
         if (replaceAfterPaint || followsAnAnchor()) {
             replaceAfterPaint = false;
             replacePopups();
         }
 
-        // §1.7's "the frame loop is fully idle when no animation is active": ask
-        // for another frame *only* while something is moving.
+        // The frame loop is idle when no animation is active: ask for another
+        // frame *only* while something is moving.
         if (renderer().isAnimating()) {
             window.repaint();
         }
@@ -778,7 +769,7 @@ final class Launcher implements Host {
     /// The stage timings say which part of a frame is expensive and the counts
     /// say why: a `style` of 12ms next to `resolved 74` is a cascade running on
     /// the whole tree, and the `subtree walks` line names the node and the state
-    /// that asked for it (ADR-0151).
+    /// that asked for it.
     ///
     /// Quiet frames are skipped unless `=all`, because an idle loop at 60fps
     /// otherwise writes a line a frame saying nothing happened — and the frames
@@ -807,7 +798,7 @@ final class Launcher implements Host {
     // --- context menus ------------------------------------------------------
 
     /// This launcher's registration for "the hover or the focus moved", closed
-    /// when the window goes ([ADR-0230]).
+    /// when the window goes.
     private @Nullable Subscription pointing;
 
     /// The application's models' restyle and repaint subscriptions, given back
@@ -834,21 +825,20 @@ final class Launcher implements Host {
 
     /// Finds the menu the **keyboard** asked for, and asks for it to be opened.
     ///
-    /// The menu key, and `Shift+F10` on the keyboards that have no menu key
-    /// (ADR-0208).
+    /// The menu key, and `Shift+F10` on the keyboards that have no menu key.
     /// Two things differ from the pointer's half and both follow from there being
     /// no pointer.
     ///
     /// It starts at the **focused** element rather than the hovered one, which is
     /// what "the keyboard's position" means — and it is the reason this is worth
-    /// building at all: a right-click is a thing only a pointer can do, and §2.2
-    /// requires everything to be reachable.
+    /// building at all: a right-click is a thing only a pointer can do, and
+    /// everything a pointer can do has to be reachable from the keyboard.
     ///
     /// And it is anchored to that element's **painted rectangle** rather than to
     /// a point, because there is no point to anchor to. The menu therefore hangs
     /// off the bottom of whatever has the focus ring, which is where a reader is
     /// already looking. The rectangle comes from the last painted frame for
-    /// [#anchor]'s reason (ADR-0054): a key event has no way to reach the
+    /// [#anchor]'s reason: a key event has no way to reach the
     /// geometry, and the geometry is what a placement needs.
     ///
     /// A focused element that has not been painted yet has no rectangle, and
@@ -879,7 +869,7 @@ final class Launcher implements Host {
         // The deepest widget on the walk that can make itself the subject, held
         // rather than told: a menu that never opens must not move a selection,
         // because a selection that changed with nothing to show for it is a
-        // gesture with no visible cause (ADR-0224).
+        // gesture with no visible cause.
         dev.goldberry.input.handler.Selects subject = null;
         for (var node = from;
                 node != null;
@@ -911,33 +901,31 @@ final class Launcher implements Host {
     ///
     /// Long enough not to fire while the pointer is crossing a toolbar on its way
     /// somewhere, short enough that someone who stopped to read is not left
-    /// waiting. `docs/core-widgets.md` §7 says "after delay" and does not say how
-    /// long; `design-system.md` §3's `tooltip` row does, and this is that number
-    /// as the **fallback** rather than as the figure.
+    /// waiting. The design system's `tooltip` row gives this number, and it is
+    /// the **fallback** rather than the figure.
     ///
     /// The token is [#TOOLTIP_DELAY_TOKEN] and it ships in `controls.css`, which
     /// is `:widgets`' — the same arrangement `--gb-list-row-height` has, and for
-    /// the same reason: a `:core` default must not need the catalog to exist
-    /// ([ADR-0262]).
+    /// the same reason: a `:core` default must not need the catalog to exist.
     private static final double TOOLTIP_DELAY_MS = 500;
 
     /// How long a tooltip waits when one is **already showing** and the pointer
     /// has moved to a different node.
     ///
-    /// §3's row is two numbers — "delay 500ms show / 100ms move-between" — and
-    /// only the first had ever been built. The second is what makes a row of
-    /// toolbar buttons readable: having decided to read one tooltip, a user
-    /// reading the next should not serve the full sentence of hover intent
-    /// again. §3.1 gives the same move "instant reposition, never slides", which
-    /// is the drawing half of the same sentence.
+    /// The design system's `tooltip` row is two numbers — 500ms to show and
+    /// 100ms to move between — and the second is what makes a row of toolbar
+    /// buttons readable: having decided to read one tooltip, a user reading the
+    /// next should not serve the full sentence of hover intent again. The same
+    /// move repositions at once and never slides, which is the drawing half of
+    /// the same rule.
     private static final double TOOLTIP_MOVE_DELAY_MS = 100;
 
-    /// §3's `tooltip` row, as component-token defaults.
+    /// The design system's `tooltip` row, as component-token defaults.
     ///
     /// Durations rather than lengths, which is what
     /// [dev.goldberry.widget.BuildContext#duration] is for: a
     /// component metric measured in milliseconds is still a component metric, and
-    /// §3 says those ship as tokens.
+    /// component metrics ship as tokens.
     private static final String TOOLTIP_DELAY_TOKEN = "--gb-tooltip-delay";
 
     private static final String TOOLTIP_MOVE_DELAY_TOKEN = "--gb-tooltip-delay-move";
@@ -950,8 +938,8 @@ final class Launcher implements Host {
     /// **X11 reports that the pointer left a window when another window is mapped
     /// over it**, which is exactly what opening a tooltip does — and delivering
     /// that exit clears the hover and the cursor of the widget the tooltip is
-    /// describing. Headlessly the cursor survives, which is how this was pinned
-    /// on the platform rather than on the router ([ADR-0111]).
+    /// describing. Headlessly the cursor survives, so the fault is the platform's
+    /// and not the router's.
     private long tooltipOpenedAt;
 
     /// How long after opening a tooltip an exit is treated as the toolkit's own
@@ -979,13 +967,13 @@ final class Launcher implements Host {
     ///
     /// Either can summon a tooltip and either can dismiss one, which is why there
     /// is one handler: a keyboard user tabbing along a toolbar gets the same
-    /// tooltips a pointer user does, and §7 asks for exactly that.
+    /// tooltips a pointer user does.
     private void pointingChanged() {
         var target = tooltipTarget();
         if (target == tooltipOwner) {
             return;
         }
-        // Read **before** the hide, because the hide is what makes it false: §3's
+        // Read **before** the hide, because the hide is what makes it false: the
         // shorter delay is for moving *between* tooltips, and by the time the old
         // one has been closed there is no longer any evidence that there was one.
         var moving = tooltip != null;
@@ -1000,7 +988,7 @@ final class Launcher implements Host {
         tooltipTimer = after(tooltipDelay(target, moving), this::showTooltip);
     }
 
-    /// §3's `tooltip` row, resolved against the node the tooltip is for.
+    /// The tooltip delay, resolved against the node the tooltip is for.
     ///
     /// Asked of the **target** rather than of the window, so a panel may set the
     /// token for what is inside it — which is what a custom property inheriting
@@ -1029,20 +1017,19 @@ final class Launcher implements Host {
     ///
     /// ## Keyboard focus, and not merely focus
     ///
-    /// §7 says a tooltip shows "on hover *and on keyboard focus*", and the second
-    /// half of that has to mean what it says. **Clicking a button focuses it** —
-    /// so a fallback that asked only [dev.goldberry.input.PointerRouter#focused()]
-    /// kept the tooltip alive after the pointer left the thing that had just been
-    /// clicked: `hovered` went null, focus was still the button, the target had
-    /// not changed, and `pointingChanged` returned early without hiding anything.
-    /// The tooltip then sat there until something else took the focus
-    /// ([ADR-0308]).
+    /// A tooltip shows on hover *and on keyboard focus*, and the second half of
+    /// that has to mean what it says. **Clicking a button focuses it** — so a
+    /// fallback that asked only [dev.goldberry.input.PointerRouter#focused()]
+    /// would keep the tooltip alive after the pointer left the thing that had
+    /// just been clicked: `hovered` goes null, focus is still the button, the
+    /// target has not changed, and `pointingChanged` returns early without hiding
+    /// anything. The tooltip would sit there until something else took the focus.
     ///
     /// `focusedFromKeyboard()` is the distinction the router already keeps for
-    /// `:focus-visible` ([ADR-0054]), and it is the same distinction for the same
-    /// reason: focus that arrived by pointer is a side effect of the click, not a
+    /// `:focus-visible`, and it is the same distinction for the same reason:
+    /// focus that arrived by pointer is a side effect of the click, not a
     /// statement about where the user is working. **A tooltip follows the focus
-    /// ring**, which is one sentence and is also exactly what the code now does.
+    /// ring**, which is one sentence and is also exactly what the code does.
     private dev.goldberry.widget.@Nullable Element tooltipTarget() {
         var hovered = withTooltip(router.hovered());
         if (hovered != null) {
@@ -1126,7 +1113,7 @@ final class Launcher implements Host {
     /// topmost, panel or not, while a key belongs to the topmost thing that asked
     /// for one. A panel over a menu therefore leaves the menu operable by arrows,
     /// which is what "a panel is not in the keyboard's way" has to mean if it
-    /// means anything ([ADR-0319]).
+    /// means anything.
     private @Nullable Popup topmostKeyboardPopup() {
         for (var i = popups.size() - 1; i >= 0; i--) {
             var popup = popups.get(i);
@@ -1168,8 +1155,7 @@ final class Launcher implements Host {
     /// opens. It cannot be derived — the pair is the compositor's own scheduling
     /// and nothing reports what it will be — so what can be done about it is to
     /// let it be told: [#SETTLE_PROPERTY] overrides it without a rebuild, which
-    /// is what turns "this driver is broken" into a flag somebody can set
-    /// ([ADR-0144]).
+    /// is what turns "this driver is broken" into a flag somebody can set.
     ///
     /// **An instance field and not a constant**: read when the launcher is built
     /// rather than when the class is loaded, so a test that sets the property can
@@ -1209,7 +1195,7 @@ final class Launcher implements Host {
     /// A menu left floating over the application the user switched *to* is the
     /// symptom this exists for, and it is worse than it sounds: a popup is
     /// always-on-top by kind, so it stays visible over the other application's
-    /// window (ADR-0144).
+    /// window.
     private void focusMayHaveLeft() {
         if (popups.isEmpty()) {
             return;
@@ -1257,8 +1243,8 @@ final class Launcher implements Host {
         // open, whatever the press did. A tooltip is exactly that, and a tooltip
         // is open over precisely the control a menu is most likely to be
         // dismissed by: the press closed the menu and was then let through as a
-        // click on the button under it, which is the double activation
-        // [ADR-0141] describes.
+        // click on the button under it, which is the double activation this
+        // rule exists to prevent.
         var dismissed = false;
         for (var popup : List.copyOf(popups)) {
             dismissed |= popup.dismissedByInput();
@@ -1279,8 +1265,7 @@ final class Launcher implements Host {
         hideTooltip();
         // The registration for "the hover or the focus moved". Given back rather
         // than left to die with the router, because a returned handle nobody keeps
-        // is the shape that makes a leak invisible — and this is the first caller
-        // of a facility that now hands one out ([ADR-0230]).
+        // is the shape that makes a leak invisible.
         if (pointing != null) {
             pointing.close();
             pointing = null;
@@ -1306,7 +1291,7 @@ final class Launcher implements Host {
         // And hand the window back before the process goes away. Not tidiness:
         // `Goldberry.stop()` ends the loop with the window still open, so without
         // this the process exits with a live Wayland surface and SDL never quit --
-        // which GNOME 46's Mutter does not always survive (ADR-0085).
+        // which GNOME 46's Mutter does not always survive.
         Goldberry.shutdown();
     }
 
@@ -1351,7 +1336,7 @@ final class Launcher implements Host {
     @Override
     public void modifierTap(dev.goldberry.input.tap.ModifierKey modifier, Runnable action, Object owner) {
         // The window's rather than the router's: a tap is read from the platform
-        // keycode, which is the one thing the router never sees (ADR-0223).
+        // keycode, which is the one thing the router never sees.
         window.modifierTaps().bind(modifier, action, owner);
     }
 
@@ -1421,7 +1406,7 @@ final class Launcher implements Host {
     /// — the shell that swaps the stylesheet, and a settings screen showing what
     /// the desktop currently says. Each registration is removed by the
     /// subscription it returned, which a tray following the setting closes with
-    /// itself (ADR-0501).
+    /// itself.
     private final List<Consumer<SystemTheme>> systemThemeListeners = new ArrayList<>();
 
     @Override
@@ -1496,7 +1481,7 @@ final class Launcher implements Host {
         if (backend.isEmpty()) {
             // The driver has none. The caller's fallback is the overlay layer,
             // clipped to the window, and saying so is more use than an empty
-            // Optional on its own (ADR-0102).
+            // Optional on its own.
             tree.unmount();
             render.close();
             LOG.trace("this platform has no popup windows; a {} will have to be an overlay", spec.kind());
@@ -1535,17 +1520,16 @@ final class Launcher implements Host {
     public java.util.Optional<Popup> attachedPopup(
             Widget content, LogicalRect anchor, Placement placement, float minimumWidth, Fit fit) {
         // TOOLTIP is the *kind*, not the widget: what it buys here is
-        // `NOT_FOCUSABLE`, so the keyboard stays on the field this hangs off
-        // (ADR-0186).
+        // `NOT_FOCUSABLE`, so the keyboard stays on the field this hangs off.
         return placed(content, anchor, placement, PopupKind.ATTACHED, minimumWidth, fit);
     }
 
-    /// Measure, place, open — the three steps `popover` is made of (ADR-0104),
-    /// shared by the menu form and the tooltip one because only the kind differs.
+    /// Measure, place, open — the three steps `popover` is made of, shared by the
+    /// menu form and the tooltip one because only the kind differs.
     ///
     /// A [Host.Fit] sits between the first two: it is handed what the content
     /// measured and answers with what to open, which is nearly always the same
-    /// widget ([ADR-0179]).
+    /// widget.
     private java.util.Optional<Popup> placed(
             Widget content,
             LogicalRect anchor,
@@ -1590,7 +1574,7 @@ final class Launcher implements Host {
         opened.ifPresent(popup -> placements.put(popup, new Placed(null, anchor, placement)));
         // How it measures itself again when its content changes -- the same two
         // passes and the same `Fit`, so a tree that expands grows the window and
-        // gets a viewport when it outgrows the screen (ADR-0186).
+        // gets a viewport when it outgrows the screen.
         var floor = minimumWidth;
         var refit = fit;
         opened.ifPresent(popup -> popup.measuredBy((liveTree, liveRender) -> {
@@ -1637,17 +1621,15 @@ final class Launcher implements Host {
         }
         // `painted()` and not `bounds()`: a menu belongs under where its button
         // was **drawn**, and a button inside a `scroll` is laid out where it
-        // always was and drawn a long way from there ([ADR-0270]). The two are
-        // the same rectangle for anything nothing transformed, which is nearly
-        // every anchor there has ever been — which is why this was not wrong
-        // until something scrolled.
+        // always was and drawn a long way from there. The two are the same
+        // rectangle for anything nothing transformed, which is nearly every
+        // anchor.
         var opened = placed(content, anchor.get().painted(), placement, PopupKind.MENU, minimumWidth, fit);
         // Upgraded from a rectangle to a **name**, which is what makes a resize
         // able to follow the anchor rather than merely re-clamp against the new
         // work area: the id is re-resolved against the frame the resize produced
-        // ([ADR-0231]). A menu and a dropdown could not have this until there was
-        // an overload that took a name *and* the two things they also need
-        // ([ADR-0432]).
+        // A menu and a dropdown get it through this overload, which takes a name
+        // *and* the two things they also need.
         opened.ifPresent(popup -> placements.computeIfPresent(
                 popup, (key, placed) -> new Placed(anchorId, placed.anchor(), placed.placement())));
         return opened;
@@ -1676,7 +1658,7 @@ final class Launcher implements Host {
         var natural = render.measure(box, window.scale(), Float.NaN, Float.NaN);
         var cap = window.size().width();
         // A floor under the width, for a dropdown that must be at least as wide
-        // as the control it drops from (ADR-0145). Bounded by the cap, because a
+        // as the control it drops from. Bounded by the cap, because a
         // popup wider than the window it belongs to is not what any anchor meant.
         var floor = Math.min(minimumWidth, cap);
         if (natural.width() >= floor && natural.width() <= cap) {
@@ -1724,8 +1706,8 @@ final class Launcher implements Host {
         // The open popups first, topmost first, then the window. A widget inside
         // a popup is built with this host, so its own request by name -- a tree's
         // typeahead moving to a row, a select's list -- has to be able to reach
-        // the popup's router rather than only the window's (ADR-0368). Topmost
-        // wins for the reason a key goes to it.
+        // the popup's router rather than only the window's. Topmost wins for the
+        // reason a key goes to it.
         for (var i = popups.size() - 1; i >= 0; i--) {
             var popup = popups.get(i);
             if (popup.isOpen() && popup.focusById(id, fromKeyboard)) {
@@ -1797,14 +1779,13 @@ final class Launcher implements Host {
     /// so the model sweep at the top of [#paint] never runs and a handler that
     /// set a field changed nothing anybody looks at. It is the only input in the
     /// toolkit that arrives without an event behind it, which is why this is the
-    /// one call site that has to say so
-    /// (ADR-0191).
+    /// one call site that has to say so.
     @Override
     public java.util.Optional<dev.goldberry.render.tray.BackendTray> tray(dev.goldberry.render.tray.TraySpec spec) {
         return GoldberryRuntime.get().backend().createTray(spec.andThen(this::repaint));
     }
 
-    /// Opens a page — §9's `web-view`, [ADR-0441].
+    /// Opens a web page in a window of the engine's own.
     ///
     /// No `andThen` and no repaint, which is the difference from the tray above: a
     /// tray row runs an application's handler and the frame that handler changed
@@ -1813,13 +1794,16 @@ final class Launcher implements Host {
     ///
     /// The page is **not** registered with the launcher and is not closed when
     /// this window is. It belongs to whoever opened it.
+    ///
+    /// Read more: [The web view](https://goldberry.dev/docs/components/content.html#the-web-view).
     @Override
     public java.util.Optional<dev.goldberry.render.web.BackendWebView> webView(
             dev.goldberry.render.web.WebViewSpec spec) {
         return GoldberryRuntime.get().backend().createWebView(spec);
     }
 
-    /// Opens a page inside this window — §9's `web-view` as a widget ([ADR-0442]).
+    /// Opens a web page inside this window, where the window system allows a
+    /// child window.
     ///
     /// The rectangle is in this window's **logical** coordinates, which is what a
     /// widget knows about itself; the platform wants its own pixels, so it is
@@ -1880,7 +1864,7 @@ final class Launcher implements Host {
 
     /// The router's answer, which is the only one there is: the deepest mounted
     /// modal is found once per frame beside the hit-test regions, and this reads
-    /// that rather than walking the tree again ([ADR-0444]).
+    /// that rather than walking the tree again.
     @Override
     public boolean isModal() {
         return router.isModal();

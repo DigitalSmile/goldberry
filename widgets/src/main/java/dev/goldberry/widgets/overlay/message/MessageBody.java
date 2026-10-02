@@ -26,7 +26,7 @@ import dev.goldberry.widget.style.Styled;
 /// @param actions the author's links, or empty
 record MessageBody(String text, List<Widget> actions) implements Widget.Leaf, Styled, Paints {
 
-    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    /// Written out so that the parameters taking null for a default can say so.
     MessageBody(String text, @Nullable List<Widget> actions) {
         actions = List.copyOf(actions == null ? List.of() : actions);
         this.text = text;
@@ -68,7 +68,7 @@ record MessageBody(String text, List<Widget> actions) implements Widget.Leaf, St
     /// declarations rather than one compromise.
     record MessageActions(List<Widget> children) implements Widget.Leaf, Styled, Paints {
 
-        /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+        /// Written out so that the parameters taking null for a default can say so.
         MessageActions(@Nullable List<Widget> children) {
             children = List.copyOf(children == null ? List.of() : children);
             this.children = children;

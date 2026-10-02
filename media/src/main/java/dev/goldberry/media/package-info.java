@@ -1,4 +1,4 @@
-/// Audio and video over FFmpeg, driven from Java (`docs/goldberry-media.md`).
+/// Audio and video over FFmpeg, driven from Java.
 ///
 /// [dev.goldberry.media.MediaPlayer] plays a source's audio
 /// and video, reports [dev.goldberry.media.PlayerStatus] values
@@ -10,9 +10,12 @@
 /// I/O SPI and lists its tracks without playing it, and every failure is a
 /// [dev.goldberry.media.MediaError].
 /// [dev.goldberry.media.MediaClock] is the Clock SPI a source
-/// with no audio is timed against. Progress is in `docs/media-plan.md`.
+/// with no audio is timed against.
 ///
-/// Marked for NullAway from its first commit (`docs/testing.md` §2).
+/// Exported to every module. Null-marked: every reference is non-null unless
+/// annotated otherwise.
+///
+/// Read more: [Audio and video](https://goldberry.dev/docs/components/media.html#a-player).
 @NullMarked
 package dev.goldberry.media;
 

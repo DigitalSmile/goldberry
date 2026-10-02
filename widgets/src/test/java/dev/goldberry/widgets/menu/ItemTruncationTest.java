@@ -28,11 +28,11 @@ import dev.goldberry.widgets.controls.TestFont;
 ///
 /// The sibling of [ItemAlignmentTest], which asserts the half that must not
 /// change: a squeezed row still puts its label on **one line**. That was won by
-/// `flex-shrink: 0` (ADR-0148), which stopped the wrap by stopping the shrink and
+/// `flex-shrink: 0`, which stopped the wrap by stopping the shrink and
 /// left the label overflowing the menu. This asserts the half that changed —
 /// the label shrinks again, and is cut rather than wrapped, because
 /// `white-space: nowrap` now measures the paragraph at its natural width whatever
-/// width it is offered ([ADR-0255]).
+/// width it is offered.
 ///
 /// The two together are the whole claim, and neither alone is: a test that only
 /// checked the width would pass against a label that wrapped to two lines inside
@@ -40,7 +40,7 @@ import dev.goldberry.widgets.controls.TestFont;
 class ItemTruncationTest {
 
     /// Narrower than any row of this menu needs — the width a popup is measured
-    /// again at when it would not fit the work area (ADR-0104).
+    /// again at when it would not fit the work area.
     private static final int SQUEEZED = 150;
 
     /// A label nothing will fit, so the case is not an accident of the fixture.
@@ -123,7 +123,7 @@ class ItemTruncationTest {
     @Test
     @DisplayName("and it is still one line, which is what shrinking used to cost")
     void theLabelDoesNotWrap() {
-        // The regression ADR-0148 fixed, reintroduced from the other direction if
+        // The old wrapping regression, reintroduced from the other direction if
         // `nowrap` ever stops reaching the measure function: a box narrower than
         // its text is exactly the state that used to wrap it.
         var label = textBoxes(SQUEEZED).stream()

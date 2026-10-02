@@ -9,13 +9,16 @@ import java.util.Set;
 /// `provides dev.goldberry.media.io.MediaIOProvider with …`,
 /// and a class-path jar lists itself in
 /// `META-INF/services/dev.goldberry.media.io.MediaIOProvider`.
-/// This is how a protocol is added without touching the natives
-/// (`docs/goldberry-media.md` §5): an `s3:` bucket, a content-addressed store, an
+/// This is how a protocol is added without touching the natives: an `s3:`
+/// bucket, a content-addressed store, an
 /// encrypted archive.
 ///
 /// Providers are consulted before the built-in protocols, highest [#priority()]
 /// first, so an application may also *replace* `file:` — to read through a
 /// sandbox, for instance.
+///
+/// Read more:
+/// [Tracks and the network](https://goldberry.dev/docs/components/media.html#tracks-subtitles-and-the-network).
 public interface MediaIOProvider {
 
     /// The URI schemes this provider opens, in lower case.

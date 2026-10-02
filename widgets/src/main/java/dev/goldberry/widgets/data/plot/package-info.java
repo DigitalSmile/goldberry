@@ -3,9 +3,11 @@
 /// interpolation.
 ///
 /// Deterministic, with no widget in it: every chart in `…widgets.data` shares
-/// it and none owns it (ADR-0496).
+/// it and none owns it, which is why it is a package of its own.
 ///
-/// Marked for NullAway from its first commit (`docs/testing.md` §2).
+/// Every reference is non-null unless it says `@Nullable`.
+///
+/// Read more: [Charts](https://goldberry.dev/docs/components/charts.html#what-the-five-share).
 @NullMarked
 package dev.goldberry.widgets.data.plot;
 

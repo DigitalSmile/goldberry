@@ -9,7 +9,7 @@ import dev.goldberry.natives.sdl.gpu.SdlGpuTexture;
 
 /// What this package needs of the public GPU API that the API does not make
 /// public: a [GpuDevice] over the compositor's device, and the SDL texture
-/// under a [GpuTexture] a layer rendered into (ADR-0481).
+/// under a [GpuTexture] a layer rendered into.
 ///
 /// The two are package-private in `…gpu`, because no application should hold
 /// either, and this package is another package. So `…gpu` registers an

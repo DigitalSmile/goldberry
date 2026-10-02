@@ -4,8 +4,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
-/// Where the labels on an axis go — `content-widgets.md` §3.1's "Wilkinson's
-/// extended tick-labeling algorithm".
+/// Where the labels on a numeric axis go — Wilkinson's extended tick-labelling
+/// algorithm.
 ///
 /// **Nice numbers are not a rounding problem.** The naive answer — divide the
 /// range by the tick count and round the step up to something tidy — gets
@@ -37,6 +37,8 @@ import java.util.Locale;
 /// terminates because every loop has a score bound that can only fall — a
 /// candidate whose *best possible* score is already below the best found is
 /// abandoned along with everything after it.
+///
+/// Read more: [Charts](https://goldberry.dev/docs/components/charts.html#line-chart).
 public final class Ticks {
 
     /// The steps people read without thinking, most preferred first. The order

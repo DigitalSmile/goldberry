@@ -12,7 +12,7 @@ import dev.goldberry.kdl.KdlParser;
 import dev.goldberry.widgets.Widgets;
 import dev.goldberry.widgets.text.Text;
 
-/// `card` — §5's elevated surface ([ADR-0164]).
+/// `card` — the elevated surface.
 ///
 /// There is very little to assert, and that is the widget: a card is a `panel`
 /// whose stylesheet says "raised". `PanelsGoldenTest` carries the part that

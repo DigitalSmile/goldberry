@@ -3,12 +3,14 @@ package dev.goldberry.example.motion;
 import dev.goldberry.motion.Easing;
 
 /// How one tile settles: it drops in from above, turned a few degrees, and lands
-/// flat (ADR-0354).
+/// flat.
 ///
-/// Pure arithmetic over a time, with no clock and no state, which is ADR-0081's
+/// Pure arithmetic over a time, with no clock and no state, which is the
 /// rule for anything that moves on a canvas: a pose is a **function** of how long
 /// ago the floor started and how long this tile waits. Two frames asking about the
 /// same moment get the same answer, and a test can ask about any moment.
+///
+/// Read more: [Motion](https://goldberry.dev/docs/guide/design-system.html#motion).
 ///
 /// @param durationMillis how long one tile takes from its first movement to rest
 /// @param dropPixels     how far above its place a tile starts
@@ -63,7 +65,7 @@ public record Settle(double durationMillis, double dropPixels, double turnDegree
             return Pose.REST;
         }
         var t = local / durationMillis;
-        // §1.7's enter curve: fast out of the top, slow onto the floor. The
+        // The design system's enter curve: fast out of the top, slow onto the floor. The
         // opacity is linear and short, so it does not ease twice.
         var eased = Easing.EASE_ENTER.at(t);
         return new Pose(-dropPixels * (1 - eased), start * (1 - eased), Math.min(1, t / OPAQUE_AT));

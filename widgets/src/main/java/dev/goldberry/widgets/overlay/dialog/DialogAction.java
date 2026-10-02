@@ -25,10 +25,9 @@ import dev.goldberry.widgets.markup.Wiring;
 ///
 /// ## Why a role and not a class
 ///
-/// `docs/core-widgets.md` §7 asks a dialog for two things a plain row of buttons
-/// cannot give it: "`Esc` = cancel-role button, `Enter` = default-role button",
-/// and "**platform button order** … applied by the dialog's action bar
-/// automatically". Both need the dialog to know *which button is which*, and a
+/// A dialog needs two things a plain row of buttons cannot give it: a button
+/// for `Esc` and one for `Enter`, and the **platform's button order** applied
+/// by the action bar automatically. Both need the dialog to know *which button is which*, and a
 /// class is a styling hook that anybody may put on anything — a dialog reading
 /// `.primary` to decide what `Enter` does would be a keyboard map that a theme
 /// could break.
@@ -42,6 +41,8 @@ import dev.goldberry.widgets.markup.Wiring;
 /// arrangement, and for the same reason: the bar decides the order, so the
 /// buttons cannot each decide where they go.
 ///
+/// Read more: [Overlays](https://goldberry.dev/docs/components/overlays.html#action).
+///
 /// @param label      what the button says
 /// @param role       what pressing it means — see [Role]
 /// @param onPress    what it does; the dialog wraps this so the panel closes
@@ -53,7 +54,8 @@ public record DialogAction(
         String label, Role role, @Nullable Runnable onPress, Attributes attributes)
         implements Widget.Leaf, Attributed<DialogAction> {
 
-    /// §7's two named roles, and the one it does not name.
+    /// What pressing a button means: the two roles a key presses, and the one
+    /// no key does.
     public enum Role {
 
         /// The one `Enter` presses: Save, Discard, Replace. **At most one** — two
@@ -90,7 +92,7 @@ public record DialogAction(
         }
     }
 
-    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    /// Written out so that the parameters taking null for a default can say so.
     public DialogAction(
             String label, @Nullable Role role, @Nullable Runnable onPress, @Nullable Attributes attributes) {
         Objects.requireNonNull(label, "label");

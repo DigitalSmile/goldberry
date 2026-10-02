@@ -23,8 +23,7 @@ import dev.goldberry.paint.Box;
 /// withers. Adding a component — `Limits` was the last, and there will be more —
 /// means editing 45 argument lists between them, any one of which can put
 /// `height` where `width` goes and produce a record that compiles, runs, and is
-/// subtly wrong in a way no golden would obviously show
-/// (ADR-0181).
+/// subtly wrong in a way no golden would obviously show.
 ///
 /// ## Why this is a test and not a refactor
 ///
@@ -71,7 +70,7 @@ class RecordWitherTest {
                 dev.goldberry.layout.Align.CENTER,
                 // `alignContent`, and a third distinct value of the same type
                 // for the same reason -- and one of the three the property is
-                // alone in accepting (ADR-0374).
+                // alone in accepting.
                 dev.goldberry.layout.Align.SPACE_BETWEEN,
                 dev.goldberry.layout.Wrap.WRAP_REVERSE,
                 length(11),

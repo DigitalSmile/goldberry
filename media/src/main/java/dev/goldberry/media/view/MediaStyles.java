@@ -4,11 +4,13 @@ import dev.goldberry.css.Stylesheet;
 import dev.goldberry.css.cascade.CascadeLayer;
 
 /// The media widgets' stylesheet, `media.css`: layout for `audio-player` and the
-/// `--gb-media-*` component tokens (`docs/goldberry-media.md` §6).
+/// `--gb-media-*` component tokens.
 ///
 /// An application adds it beside the controls' sheets, as it adds
 /// `MarkdownStyles.stylesheet()` for `markdown-view`. It is written in the theme's
 /// `var(--gb-*)` tokens, so it follows whichever theme is on.
+///
+/// Read more: [The module](https://goldberry.dev/docs/components/media.html#the-module).
 public final class MediaStyles {
 
     /// The sheet's resource name, beside this class.

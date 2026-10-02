@@ -15,9 +15,9 @@ import dev.goldberry.css.Decoration;
 /// [dev.goldberry.css.CornersTest] checks the arithmetic; this
 /// checks that the arithmetic reaches the rasterizer — that a corner asked to be
 /// square is square, and that the three beside it are unaffected. The bug this
-/// pins is the one ADR-0216 fixed: `group-box-title` asked for `7px 7px 0 0`, the
-/// engine dropped the whole declaration, and a header spilled square shoulders
-/// out of its rounded frame.
+/// pins: `group-box-title` asked for `7px 7px 0 0`, the engine dropped the whole
+/// four-value declaration, and a header spilled square shoulders out of its
+/// rounded frame.
 class CornerPaintTest {
 
     private static final int RED = 0xFFFF0000;

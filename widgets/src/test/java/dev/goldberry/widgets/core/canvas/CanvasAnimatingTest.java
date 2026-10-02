@@ -23,10 +23,9 @@ import dev.goldberry.widget.WidgetRenderer;
 import dev.goldberry.widgets.Controls;
 import dev.goldberry.widgets.controls.TestFont;
 
-/// `docs/gaps.md` G41: a canvas painted from the clock asks for its next frame
-/// ([ADR-0348]).
+/// A canvas painted from the clock asks for its next frame.
 ///
-/// §1.7's loop is idle when nothing moves, and until this a `canvas` could not
+/// The frame loop is idle when nothing moves, and until this a `canvas` could not
 /// say that it did. The assertions are all about [WidgetRenderer#isAnimating()],
 /// because that is the one question the launcher asks before it schedules
 /// another frame.

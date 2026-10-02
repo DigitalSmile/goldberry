@@ -13,6 +13,8 @@ import dev.goldberry.render.PixelBuffer;
 /// closed and opened again, which is what a declarative caller does anyway.
 ///
 /// UI-thread confined, like every other platform handle here, and must be closed.
+///
+/// Read more: [Menus and the tray](https://goldberry.dev/docs/components/menus.html#the-tray-icon).
 public interface BackendTray extends AutoCloseable {
 
     /// Replaces the icon. Null asks for the platform's default.

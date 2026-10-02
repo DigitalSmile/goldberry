@@ -5,13 +5,15 @@ import java.util.Locale;
 import org.jspecify.annotations.Nullable;
 
 /// Where a [Scroll] sits when it is first laid out, and where it stays as its
-/// content changes — `docs/gaps.md` G48.
+/// content changes — `anchor="start"` or `anchor="end"`.
 ///
 /// Two values because there are two kinds of document. A page is read from the
 /// top and grows at the bottom; a log, a console and a chat are read from the
 /// bottom and the newest line is the one that matters. Everything else about the
 /// two is identical, which is why this is an attribute on `scroll` rather than a
-/// second widget (ADR-0392).
+/// second widget.
+///
+/// Read more: [Scroll](https://goldberry.dev/docs/layout/scroll.html#a-timeline).
 public enum ScrollAnchor {
 
     /// Offset zero, and nothing keeps it there. Today's behaviour, and the

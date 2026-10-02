@@ -1,7 +1,8 @@
 import org.gradle.api.artifacts.VersionCatalogsExtension
 
 // ============================================================================
-// The weaver, in its two halves (ADR-0125, ADR-0131, ADR-0155)
+// The weaver, in its two halves
+// https://goldberry.dev/docs/weaving.html#the-two-halves
 //
 // The weaver does two unrelated things to a module's compiled classes, and a
 // build wants them at different times:
@@ -11,14 +12,14 @@ import org.gradle.api.artifacts.VersionCatalogsExtension
 //            `META-INF/services` entry. EVERY build needs this. There is no
 //            runtime equivalent -- finding annotated classes while the program
 //            runs would mean scanning the path, which is the thing a `provides`
-//            exists to avoid (ADR-0131).
+//            exists to avoid.
 //
 //   models   Rewires `@Bind` fields into bindings and writes the `@Action` call
 //            sites. Only a NATIVE IMAGE needs this. An ordinary jar reads the
 //            same annotations at run time and binds them through handles, so
 //            weaving a jar buys a direct field write and costs a build step that
 //            an IDE, a `mvn exec:java` and an unfamiliar build system each have
-//            to be taught (ADR-0155).
+//            to be taught.
 //
 // So the catalog half hangs off `classes` unconditionally and the model half is
 // asked for -- by the native-image build, or by hand:
@@ -152,7 +153,7 @@ modelTasks.eachWithIndex { task, index ->
 // in the only order that means anything. `weaveModels` rewrites the compiled
 // classes in place, so a `jar` that ran first would package the unwoven ones and
 // the image would be built from a model bound reflectively, which is the one
-// thing an image must not do (ADR-0155).
+// thing an image must not do.
 //
 // `mustRunAfter` and not `dependsOn`: an ordinary `jar` does not want the model
 // weaver at all, and this says nothing until something else has put it in the

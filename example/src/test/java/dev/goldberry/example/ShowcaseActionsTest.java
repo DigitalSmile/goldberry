@@ -15,7 +15,7 @@ import dev.goldberry.bind.runtime.Models;
 /// What the showcase's actions say when a document hands them something they
 /// cannot take.
 ///
-/// `md.toggle-task` is sent an ordinal by the preview (ADR-0300), and the only
+/// `md.toggle-task` is sent an ordinal by the preview, and the only
 /// thing a wrong one can be is a document bug — so the refusal names the action
 /// and the text, which is what a reader needs to find it.
 class ShowcaseActionsTest {
@@ -32,9 +32,9 @@ class ShowcaseActionsTest {
     /// The two names `BindingBenchmark.showcaseModel` resolves, resolved here
     /// under `check`. The benchmark is tagged `benchmark` and runs nightly only,
     /// so when the actions moved into their own record the name it asked for
-    /// stopped resolving and the lane was red for a week before anybody read it
-    /// (ADR-0397). A count rather than a timing, which is what `check` may
-    /// assert.
+    /// stopped resolving and the lane was red for a week before anybody read it.
+    /// A benchmark's names are resolved under `check`: a count rather than a
+    /// timing, which is what `check` may assert.
     @Test
     @DisplayName("the road's click is bound on the actions record and counts on the model")
     void theRoadsClickCounts() {

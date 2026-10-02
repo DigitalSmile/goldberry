@@ -24,27 +24,32 @@ import dev.goldberry.widgets.data.plot.Scale;
 import dev.goldberry.widgets.markup.Markup;
 import dev.goldberry.widgets.markup.Wiring;
 
-/// A trend with no axes — `docs/core-widgets.md` §11's `sparkline`, and the child
-/// `statistic` has been specified to hold since M2 (ADR-0164).
+/// A trend with no axes, no legend and no readout: the shape of a change beside
+/// a number, and what a `statistic` holds.
+///
+/// ```kdl
+/// sparkline 4 9 7 12 11 fill=#true marker=#true
+/// ```
 ///
 /// ```java
 /// new Sparkline(List.of(4.0, 9.0, 7.0, 12.0, 11.0)).fill(true).marker(true);
 /// ```
 ///
-/// **The first chart, and the smallest.** No axes, no legend, no tooltip: a
-/// sparkline is a shape beside a number, read for its direction rather than its
-/// values. Everything the other four will need — scales, ticks, a legend — it
+/// The values are the node's arguments; `fill=` shades beneath the line and
+/// `marker=` dots the last point.
+///
+/// **The smallest chart.** No axes, no legend, no tooltip: a sparkline is a
+/// shape beside a number, read for its direction rather than its values.
+/// Everything the other four charts need — scales, ticks, a legend — it
 /// deliberately does not have.
 ///
 /// ## It is one series, so it takes `color`
 ///
-/// A series palette is for telling series *apart*
-/// (ADR-0194),
-/// and there is nothing here to tell apart. So a sparkline is drawn in the CSS
-/// `color` it inherits, exactly like text — which means it takes a `statistic`'s
-/// delta colour by sitting inside it, and an application recolours one with the
-/// property it would already reach for. The palette arrives with `line-chart`,
-/// which is the first widget that has two of anything.
+/// A series palette is for telling series *apart*, and there is nothing here to
+/// tell apart. So a sparkline is drawn in the CSS `color` it inherits, exactly
+/// like text — which means it takes a `statistic`'s delta colour by sitting
+/// inside it, and an application recolours one with the property it would
+/// already reach for.
 ///
 /// ## What it draws
 ///
@@ -53,9 +58,9 @@ import dev.goldberry.widgets.markup.Wiring;
 /// a series between 1000 and 1004 baselined at zero is a flat line that says
 /// nothing. A flat series is centred rather than divided by a zero range.
 ///
-/// Optionally a fill beneath it at low alpha, and a marker on the last point:
-/// §11's "current value" affordance, which is the one number a sparkline is
-/// sometimes asked to point at.
+/// Optionally a fill beneath it at low alpha, and a marker on the last point —
+/// the current value, which is the one number a sparkline is sometimes asked to
+/// point at.
 ///
 /// ## Long series
 ///
@@ -63,6 +68,8 @@ import dev.goldberry.widgets.markup.Wiring;
 /// a hundred thousand points in two hundred pixels is five hundred per pixel, and
 /// drawing them all means whichever one comes last wins — a picture that omits
 /// the spike, which is the one thing a sparkline exists to show.
+///
+/// Read more: [Charts](https://goldberry.dev/docs/components/charts.html#sparkline).
 ///
 /// @param values     the series, in order; fewer than two draws nothing
 /// @param fill       whether to fill beneath the line
@@ -74,7 +81,7 @@ public record Sparkline(List<Double> values, boolean fill, boolean marker, Attri
 
     /// How thick the line is, in logical pixels.
     ///
-    /// In Java rather than in a stylesheet because §8's subset has no
+    /// In Java rather than in a stylesheet because the stylesheet subset has no
     /// `stroke-width` and inventing one for a single widget would be inventing a
     /// language. 1.5 rather than the 2 a full chart's line takes: a sparkline is
     /// drawn at a fraction of the size and a 2px line at 20px tall is a shape
@@ -87,7 +94,7 @@ public record Sparkline(List<Double> values, boolean fill, boolean marker, Attri
     /// How faint the fill is under the line.
     private static final double FILL_ALPHA = 0.18;
 
-    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    /// The canonical constructor, written out so that the parameters taking null for a default can say so.
     public Sparkline(@Nullable List<Double> values, boolean fill, boolean marker, @Nullable Attributes attributes) {
         values = List.copyOf(values == null ? List.of() : values);
         attributes = attributes == null ? Attributes.NONE : attributes;
@@ -106,7 +113,7 @@ public record Sparkline(List<Double> values, boolean fill, boolean marker, Attri
         return new Sparkline(values, value, marker, attributes);
     }
 
-    /// This sparkline with its last point marked — §11's "current value".
+    /// This sparkline with its last point marked — the current value.
     public Sparkline marker(boolean value) {
         return new Sparkline(values, fill, value, attributes);
     }
@@ -188,9 +195,9 @@ public record Sparkline(List<Double> values, boolean fill, boolean marker, Attri
             points.add(new double[] {x.at(index), y.at(values.get(index))});
         }
 
-        // Values rather than a pooled native path since ADR-0277: a `Path` is
-        // two Java arrays, and the rasterizer path it is replayed into belongs
-        // to the frame -- so the arena this used to open per paint is gone.
+        // A `Path` is a value -- two Java arrays -- and the rasterizer path it is
+        // replayed into belongs to the frame, so no native arena is opened per
+        // paint.
         if (fill) {
             var under = Path.builder().moveTo(points.getFirst()[0], bottom);
             for (var point : points) {
@@ -221,9 +228,8 @@ public record Sparkline(List<Double> values, boolean fill, boolean marker, Attri
     /// Builds a `sparkline` from markup.
     ///
     /// The values come from the node's arguments — `sparkline 4 9 7 12` — which
-    /// is the one chart shape small enough to write inline, and exactly what
-    /// `content-widgets.md` §3.2 says of inline KDL data: "for small static
-    /// data".
+    /// is the one chart shape small enough to write inline, and inline data is
+    /// for small static data.
     public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
         var values = new ArrayList<Double>();
         for (var argument : node.arguments()) {

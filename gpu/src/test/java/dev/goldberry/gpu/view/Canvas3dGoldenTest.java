@@ -33,14 +33,13 @@ import dev.goldberry.widgets.Controls;
 import dev.goldberry.widgets.Density;
 import dev.goldberry.widgets.core.Column;
 
-/// `docs/gpu-plan.md` phase 5's golden: the cube at a fixed angle in a
-/// `canvas3d`, a widget tree rendered both ways a window shows it, on a real
-/// device (ADR-0482).
+/// The cube at a fixed angle in a `canvas3d`, a widget tree rendered both ways
+/// a window shows it, on a real device.
 ///
 /// The angle is the renderer's at the frame's time, and `Offscreen`'s clock is
 /// virtual, so the picture is the same on every run. At one scale: a 3D view is
-/// rendered at its physical size, which a scale sweep does not describe
-/// (ADR-0434).
+/// rendered at its physical size, which a scale sweep does not describe.
+/// Read more: [canvas3d](https://goldberry.dev/docs/components/gpu.html#canvas3d).
 @Tag(GpuTestLauncher.TAG)
 @DisplayName("a canvas3d, composited and read back")
 class Canvas3dGoldenTest {
@@ -125,7 +124,8 @@ class Canvas3dGoldenTest {
 
         // Rasterized and lit by the GPU: blessed on Metal and compared on whatever
         // driver runs this, whose shading may round a level apart everywhere and
-        // whose aliased silhouette may give a pixel to the other side (ADR-0503).
+        // whose aliased silhouette may give a pixel to the other side; a GPU
+        // golden has its own tolerance for that.
         GoldenImage.assertMatchesAtOneScale("canvas3d-cube", WIDTH, HEIGHT, 1f, Tolerance.GPU, (at, scale) -> {
             try (var scene = new Mounted(cube(new TestCube()))) {
                 return harness.readBack(surface -> scene.picture(at, scale.factor(), surface));

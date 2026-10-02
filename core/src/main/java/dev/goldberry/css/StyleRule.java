@@ -13,6 +13,8 @@ import dev.goldberry.css.select.Selector;
 /// list, and duplicating it would mean two rules whose `order` differs when it
 /// should not.
 ///
+/// Read more: [Styling](https://goldberry.dev/docs/guide/styling.html#selectors).
+///
 /// @param selectors    the selector list, in source order; never empty
 /// @param declarations in source order, which is also the order the cascade
 ///                     resolves ties in
@@ -20,7 +22,7 @@ import dev.goldberry.css.select.Selector;
 ///                     nested at-rules
 /// @param starting     whether it was written inside `@starting-style`, which
 ///                     makes it the style an element transitions *from* on its
-///                     first frame rather than one it has (ADR-0352)
+///                     first frame rather than one it has
 public record StyleRule(List<Selector> selectors, List<Declaration> declarations, int order, boolean starting) {
 
     public StyleRule {

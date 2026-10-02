@@ -2,14 +2,16 @@ package dev.goldberry.image.gif;
 
 import java.io.Serial;
 
-/// Bytes that were meant to be a GIF and were not — [ADR-0329].
+/// Bytes that were meant to be a GIF and were not.
 ///
-/// Internal to the decoder: [dev.goldberry.image.Image]
+/// Thrown by [GifDecoder] alone. [dev.goldberry.image.Image]
 /// translates it into
 /// [dev.goldberry.image.ImageDecodeException], which is the
-/// one type an application catches for a failed decode whatever the format was.
-/// A caller that had to know which codec refused it would be the boundary leaking
-/// through a `catch` clause.
+/// one type an application catches for a failed decode whatever the format was;
+/// a caller that had to know which codec refused it would be the boundary
+/// leaking through a `catch` clause. Unchecked.
+///
+/// Read more: [Text, fonts and icons](https://goldberry.dev/docs/guide/text.html#images).
 public final class GifFormatException extends RuntimeException {
 
     @Serial

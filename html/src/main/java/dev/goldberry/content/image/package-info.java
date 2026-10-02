@@ -5,10 +5,13 @@
 /// [dev.goldberry.content.ImageSource] is what an
 /// application implements, so it is part of the module's surface, while
 /// [dev.goldberry.content.image.Picture] is a part — a CSS type a
-/// stylesheet reaches and nothing constructs (ADR-0065, ADR-0300).
+/// stylesheet reaches and nothing constructs.
 ///
 /// `@NullMarked` puts the package under NullAway: every type is non-null unless it
-/// says `@Nullable`, and the build fails on a violation (`docs/testing.md` §2).
+/// says `@Nullable`, and the build fails on a violation.
+///
+/// Read more:
+/// [Links, images and tasks](https://goldberry.dev/docs/components/content.html#links-images-and-tasks).
 @NullMarked
 package dev.goldberry.content.image;
 

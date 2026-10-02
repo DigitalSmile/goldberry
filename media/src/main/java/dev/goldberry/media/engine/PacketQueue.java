@@ -11,8 +11,7 @@ import org.jspecify.annotations.Nullable;
 import dev.goldberry.media.codec.Frame;
 import dev.goldberry.media.codec.Packet;
 
-/// The queue between the demux thread and one track's decode thread
-/// (`docs/goldberry-media.md` §3, "Packet queue").
+/// The queue between the demux thread and one track's decode thread.
 ///
 /// Bounded by **duration**, not by count: 64 packets are three seconds of Opus
 /// and a quarter of a second of 4K video. And by **bytes** as well, because a

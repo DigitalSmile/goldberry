@@ -28,6 +28,8 @@ package dev.goldberry.natives.webview;
 /// callback in the toolkit follows. It may touch state and call `setState`; it
 /// must not block, because the page's promise and the next frame are both
 /// waiting on it.
+///
+/// Read more: [The native boundary](https://goldberry.dev/docs/overview/architecture.html#the-native-boundary).
 @FunctionalInterface
 public interface WebviewCallback {
 

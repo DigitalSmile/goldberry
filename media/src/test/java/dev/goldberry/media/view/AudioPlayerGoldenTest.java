@@ -116,7 +116,7 @@ class AudioPlayerGoldenTest {
         // pixels differently. That is `slider`'s rounding in :widgets, not this
         // widget's layout (the buttons, the labels and both sliders land on the
         // same pixels), and a 300 px seek bar in a 104 px picture carries enough of
-        // it to cross the sweep's threshold (docs/media-plan.md). The failed state
+        // it to cross the sweep's threshold. The failed state
         // below, with one short slider, keeps the sweep.
         assertGolden("audio-player-playing", false);
     }

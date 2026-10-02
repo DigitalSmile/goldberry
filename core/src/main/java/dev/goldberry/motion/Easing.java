@@ -4,10 +4,10 @@ import java.util.Locale;
 
 import org.jspecify.annotations.Nullable;
 
-/// How a value moves between two others — `docs/design-system.md` §1.7.
+/// How a value moves between two others: the design system's three easing curves.
 ///
-/// **Three keywords, and no raw beziers in the stylesheet.** §1.7 says the CSS
-/// subset accepts these names rather than `cubic-bezier(…)`, and that is the
+/// **Three keywords, and no raw beziers in the stylesheet.** The CSS subset
+/// accepts these names rather than `cubic-bezier(…)`, and that is the
 /// whole point: a design system where every screen can invent its own curve has
 /// no motion language, only motion. `ease-enter` decelerates, `ease-exit`
 /// accelerates, `linear` is for continuous indicators. There is deliberately no
@@ -20,6 +20,8 @@ import org.jspecify.annotations.Nullable;
 /// *input* progress is the x coordinate and the eased output is y. Getting from
 /// x to y means solving `bezierX(s) = x` for the parameter `s` first, which has
 /// no closed form.
+///
+/// Read more: [Motion](https://goldberry.dev/docs/guide/design-system.html#motion).
 public enum Easing {
 
     /// `cubic-bezier(0.2, 0, 0, 1)` — decelerate. Enters, and anything arriving.
@@ -27,7 +29,7 @@ public enum Easing {
 
     /// `cubic-bezier(0.4, 0, 1, 1)` — accelerate. Exits, and anything leaving.
     ///
-    /// §1.7's rule 2 says every exit is shorter than its enter *and* uses this,
+    /// Every exit is shorter than its enter *and* uses this curve,
     /// which together are what make a dismissal feel decisive rather than
     /// reluctant.
     EASE_EXIT(0.4, 0, 1, 1),

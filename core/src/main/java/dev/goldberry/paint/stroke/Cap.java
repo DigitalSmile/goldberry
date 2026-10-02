@@ -7,12 +7,14 @@ package dev.goldberry.paint.stroke;
 /// — but the agreement is a fact about today's backend rather than a promise,
 /// and a `canvas` painter naming `BL_STROKE_CAP_ROUND` would be an application
 /// reaching through `:core` into `:natives` for a concept that has nothing
-/// native about it (ADR-0277).
+/// native about it.
 ///
 /// The numbering is deliberately absent. Blend2D's is not alphabetical and not
 /// obvious — round is 2, with a reversed round at 3 — and that ordering is a
 /// property of the C header, checked against the compiled library where it
 /// belongs. Here a cap is a name.
+///
+/// Read more: [Canvas, images and QR codes](https://goldberry.dev/docs/components/drawing.html#the-painter).
 public enum Cap {
 
     /// Stops flat at the endpoint. The default, and SVG's.

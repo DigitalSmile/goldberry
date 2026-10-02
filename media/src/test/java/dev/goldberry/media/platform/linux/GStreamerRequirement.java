@@ -7,7 +7,7 @@ import org.junit.jupiter.api.Assumptions;
 ///
 /// Skips on any other system, and fails on Linux where
 /// `-Pgoldberry.platform.required=true` says the decoders must be there: a Linux
-/// job that skips its platform decoders is a green tick over nothing (ADR-0016).
+/// job that skips its platform decoders is a green tick over nothing.
 /// The flag is a job's, and a macOS or Windows job sets it for its own system's.
 final class GStreamerRequirement {
 

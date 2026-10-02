@@ -13,14 +13,14 @@ import dev.goldberry.widget.style.Styled;
 
 /// An image inside a document — `picture`, a **part**.
 ///
-/// What closes "an image is its alt text" for both content views, and it is not the
-/// engine's work that `docs/gaps.md` G17 said was missing: `Image.decode` and
-/// `Frame.drawImage` have existed since ADR-0283, and what was absent was a widget
-/// that draws one and an answer about who fetches. This is the widget; the fetching
-/// is still the application's, through [dev.goldberry.content.ImageSource] (ADR-0300).
+/// What draws an image for both content views, where before it was only its alt
+/// text. The toolkit could already decode an image and draw one into a frame; what
+/// was missing was a widget that does so inside a document, and an answer about who
+/// fetches. This is the widget; the fetching is still the application's, through
+/// [dev.goldberry.content.ImageSource].
 ///
-/// A part rather than a widget an application builds (ADR-0065): it is a CSS type,
-/// `picture`, and a document is what puts one on the screen.
+/// A part rather than a widget an application builds: it is a CSS type, `picture`,
+/// that a stylesheet can reach, and a document is what puts one on the screen.
 ///
 /// ## How big it is, and why that is not Yoga's decision
 ///
@@ -38,7 +38,10 @@ import dev.goldberry.widget.style.Styled;
 ///   does not. `html.css` and `markdown.css` therefore write their caps in points,
 ///   and say so beside the rule.
 ///
-/// @param image what to draw. A **value** (ADR-0283) — it owns no native handle, so
+/// Read more:
+/// [Links, images and tasks](https://goldberry.dev/docs/components/content.html#links-images-and-tasks).
+///
+/// @param image what to draw. A **value** — it owns no native handle, so
 ///        holding one in a widget that is rebuilt every frame is safe, which is the
 ///        property that makes this a two-line widget
 /// @param alt what the author wrote for a reader who cannot see it, used as the

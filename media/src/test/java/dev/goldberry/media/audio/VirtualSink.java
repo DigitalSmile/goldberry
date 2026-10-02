@@ -9,7 +9,7 @@ import java.util.Arrays;
 /// "played" only when the test says so ([#advance]). In [#instant] mode it plays
 /// the moment it is written.
 ///
-/// This is the virtual clock of `docs/goldberry-media.md` §9, for audio. The
+/// This is the Engine's virtual clock, for audio. The
 /// audio clock is the sink's queue, so a test that controls the queue controls
 /// what the Engine believes is playing, with no sound card and no timing.
 public final class VirtualSink implements AudioSink {

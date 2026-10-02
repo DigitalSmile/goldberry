@@ -5,6 +5,8 @@ package dev.goldberry.natives.harfbuzz.enums;
 /// Only the two safe values are bound. The writable modes let HarfBuzz modify
 /// or take ownership of the caller's memory, which is not something to offer a
 /// font loaded from a Java array.
+///
+/// Read more: [The native boundary](https://goldberry.dev/docs/overview/architecture.html#the-native-boundary).
 public enum MemoryMode implements HarfBuzzEnum {
 
     /// Copy the bytes immediately. The caller's array can then be collected,

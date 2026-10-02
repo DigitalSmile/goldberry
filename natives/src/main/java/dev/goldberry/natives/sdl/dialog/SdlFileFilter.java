@@ -19,6 +19,8 @@ import java.util.Objects;
 /// undefined behaviour, and a dialog that lists no files is the hardest kind of
 /// bug to read backwards.
 ///
+/// Read more: [The native boundary](https://goldberry.dev/docs/overview/architecture.html#the-native-boundary).
+///
 /// @param name    what the dropdown says — "Images", "Markdown"
 /// @param pattern the extensions, `;`-separated and dotless, or `*`
 public record SdlFileFilter(String name, String pattern) {

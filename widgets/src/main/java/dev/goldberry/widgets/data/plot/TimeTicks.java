@@ -11,8 +11,8 @@ import java.util.Locale;
 
 import dev.goldberry.widgets.data.TimeAxis;
 
-/// Where the labels go on a time axis — `content-widgets.md` §3.1's "tick
-/// stepping across sec/min/hour/day/month/year boundaries".
+/// Where the labels go on a time axis: ticks that step across second, minute,
+/// hour, day, month and year boundaries.
 ///
 /// [Ticks] is Wilkinson's algorithm for *numbers*, and it is the wrong shape
 /// here for one reason: a nice number is a round multiple, and time has no round
@@ -41,6 +41,8 @@ import dev.goldberry.widgets.data.TimeAxis;
 /// the month; a yearly tick on the first of January. An axis whose labels are
 /// round times you would say out loud is the whole point of the exercise, and it
 /// is what a step measured from the first data point could never give.
+///
+/// Read more: [Charts](https://goldberry.dev/docs/components/charts.html#line-chart).
 public final class TimeTicks {
 
     private TimeTicks() {}

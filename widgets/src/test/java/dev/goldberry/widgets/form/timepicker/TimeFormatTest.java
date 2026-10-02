@@ -49,7 +49,7 @@ class TimeFormatTest {
         assertEquals("", HH_MM.format(null));
     }
 
-    /// §4's "defaulting to the locale's short form" — asserted against
+    /// The default is the locale's short form — asserted against
     /// `java.time`'s own answer rather than a literal, because a literal would be
     /// asserting a locale table.
     @Test

@@ -20,9 +20,9 @@ import dev.goldberry.widgets.Controls;
 import dev.goldberry.widgets.TestHost;
 import dev.goldberry.widgets.controls.TestFont;
 
-/// What a `code-input` looks like — §2's row for it, photographed.
+/// What a `code-input` looks like — its metrics, photographed.
 ///
-/// Every number in that row is a geometry no assertion in [CodeInputTest] can
+/// Every one of those numbers is a geometry no assertion in [CodeInputTest] can
 /// see: a box 40 wide and 48 tall, 8 between them, **16 at the midpoint** and not
 /// at every gap, a `title` character on the centre of each box, and a focus ring
 /// on one box rather than around the six. Each of those is a thing that would
@@ -86,7 +86,7 @@ class CodeInputGoldenTest {
         paint("code-input-light", Theme.NORD_LIGHT, 320, 88, typed("123"), false);
     }
 
-    /// §2.2: "focus moves between boxes". The ring is on the **fourth** box —
+    /// Focus moves between the boxes. The ring is on the **fourth** box —
     /// the first empty one — and not around the field, which is the one thing
     /// about this control that a picture is the only way to check.
     @Test

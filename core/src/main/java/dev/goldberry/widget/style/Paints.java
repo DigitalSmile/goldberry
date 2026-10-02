@@ -14,24 +14,35 @@ import dev.goldberry.widget.WidgetRenderer;
 /// A widget that becomes something on screen.
 ///
 /// A widget that renders answers one question: given the style the cascade
-/// resolved for it and the boxes its children produced, what box is it?
+/// resolved for it and the boxes its children produced, what box is it? A
+/// custom widget that paints implements this beside [Widget.Leaf] and [Styled].
 ///
-/// The [Box] it returns is a **value**, and that is what makes ADR-0004's third
-/// tree possible without changing anything here. The retained render tree
-/// ([RenderTree]) is reconciled *against*
-/// this box tree rather than replacing it: an immutable description is the ideal
-/// thing to diff, and it keeps a widget's job "describe yourself" rather than
-/// "mutate your render object"
-/// (ADR-0069).
+/// ```java
+/// record Label(String text) implements Widget.Leaf, Styled, Paints {
+///     public Box render(ComputedStyle style, List<Box> children, Context context) {
+///         return Box.text(context.paragraph(style, text), style.color()).style(style);
+///     }
+/// }
+/// ```
+///
+/// The [Box] it returns is a **value**. The retained render tree ([RenderTree])
+/// is reconciled *against* this box tree rather than replacing it: an immutable
+/// description is the ideal thing to diff, and it keeps a widget's job
+/// "describe yourself" rather than "mutate your render object". The [Context]
+/// handed in is how a widget shapes text, reads a design token or asks the
+/// frame clock, each answered for the node being rendered.
+///
+/// Read more:
+/// [From a style to a box](https://goldberry.dev/docs/guide/writing-a-widget.html#paints-from-a-style-to-a-box).
 public interface Paints extends Widget {
 
     /// What a render pass can offer a widget that needs more than its style.
     ///
-    /// An interface rather than a parameter precisely so that it can grow, which
-    /// ADR-0053 said when there was only a font on it. [#paragraph] is the first
-    /// of the growth, and it is not a convenience: shaping is 56 µs and a widget
-    /// tree is re-described every frame, so a `text` node that built its own
-    /// paragraph would re-shape unchanged text sixty times a second.
+    /// An interface rather than a parameter so that it can grow without every
+    /// widget's `render` changing. [#paragraph] is not a convenience: shaping
+    /// is 56 µs and a widget tree is re-described every frame, so a `text` node
+    /// that built its own paragraph would re-shape unchanged text sixty times a
+    /// second.
     interface Context {
 
         /// The font for a node's **own** resolved typography.
@@ -50,7 +61,7 @@ public interface Paints extends Widget {
         /// **Always call this rather than `Paragraph.of`.** Two things depend on
         /// it, and the second is not obvious:
         ///
-        /// 1. Shaping costs 56 µs and a cache hit 0.05 µs (ADR-0037), and a
+        /// 1. Shaping costs 56 µs and a cache hit 0.05 µs, and a
         ///    widget tree is rebuilt every frame.
         /// 2. The paragraph that comes back is the **same instance** as last
         ///    frame's for the same text and font — and the retained render tree
@@ -63,16 +74,14 @@ public interface Paints extends Widget {
         ///         which [dev.goldberry.text.Paragraph] refuses
         Paragraph paragraph(ComputedStyle style, String text);
 
-        /// What time this frame is, on the renderer's clock — §1.7's "animations
-        /// are functions of the frame timestamp, not frame counts".
+        /// What time this frame is, on the renderer's clock: motion is a function
+        /// of the frame's timestamp, never of a frame count.
         ///
         /// For the widgets whose motion **cannot be a transition**. A transition
         /// interpolates between two styles the cascade resolved, which is every
         /// state change in the catalog; a spinner and an indeterminate progress
-        /// bar have no two states to move between, and §8's subset has no
-        /// `@keyframes` to express a loop with. So they are drawn as a function
-        /// of this
-        /// (ADR-0081).
+        /// bar have no two states to move between, so they are drawn as a
+        /// function of this.
         ///
         /// Read **once per frame** by the renderer and handed to every node, so
         /// two spinners in one window are on the same tick rather than a few
@@ -81,12 +90,11 @@ public interface Paints extends Widget {
 
         /// A custom property's value as a colour, resolved for **this node**.
         ///
-        /// The theming mechanism (§8) reaching a widget that cannot express what
-        /// it draws as CSS properties. A chart needs eight series colours and a
-        /// node has one `color`; a stylesheet cannot say "the fourth series" and
-        /// a `canvas` has no child nodes to hang classes on. So the values live
-        /// in the theme as `--gb-chart-1…8` and are read here
-        /// (ADR-0195).
+        /// The theme reaching a widget that cannot express what it draws as CSS
+        /// properties. A chart needs eight series colours and a node has one
+        /// `color`; a stylesheet cannot say "the fourth series" and a `canvas`
+        /// has no child nodes to hang classes on. So the values live in the
+        /// theme as `--gb-chart-1…8` and are read here.
         ///
         /// **Resolved through the cascade, so it inherits and can be overridden.**
         /// `#revenue { --gb-chart-1: #b48ead }` recolours one chart's first
@@ -107,9 +115,9 @@ public interface Paints extends Widget {
 
         /// A **length** custom property, in logical pixels.
         ///
-        /// [#color]'s companion, and the second half of the door ADR-0195 opened
-        /// ([ADR-0251]). A metric that §3 ships as a component-token default is a
-        /// number the stylesheet knows and the widget needs: `--gb-scroll-line`
+        /// [#color]'s companion. A metric the design system ships as a component
+        /// token is a number the stylesheet knows and the widget needs:
+        /// `--gb-scroll-line`
         /// is how far one wheel line moves a viewport, and a token no widget can
         /// read is a number an author sets and nothing honours.
         ///
@@ -122,7 +130,7 @@ public interface Paints extends Widget {
         /// parses, and a general token-returning accessor would invite a widget
         /// to reimplement the parser.
         ///
-        /// `em` and `rem` resolve against the node's own font size ([ADR-0242]),
+        /// `em` and `rem` resolve against the node's own font size,
         /// because this goes through the same `CssLength` the declarations do. A
         /// **percentage** answers the fallback: a percentage is of something, and
         /// a widget asking for a token has no containing block in hand to be a
@@ -154,8 +162,8 @@ public interface Paints extends Widget {
         /// Everything a `canvas` painter needs from the cascade, snapshotted for
         /// one node.
         ///
-        /// `docs/gaps.md` G11. A painter is handed a frame and a size and nothing
-        /// else, so canvas text had to name a font rather than inherit the one
+        /// A painter is handed a frame and a size and nothing else, so canvas
+        /// text would otherwise have to name a font rather than inherit the one
         /// the cascade resolved. This is the bridge: a widget that draws through
         /// a [dev.goldberry.paint.StyledPainter] binds it here
         /// and hands the result to [dev.goldberry.paint.Box#painting].
@@ -176,13 +184,14 @@ public interface Paints extends Widget {
             return new CanvasStyle(font(style), style.color(), nowMillis(), reducedMotion());
         }
 
-        /// Whether the user asked for less movement (§1.7).
+        /// Whether the user asked for less movement.
         ///
         /// A widget that animates itself has to ask, because there is no
         /// declaration for the renderer to collapse: `reducedMotion` turns every
-        /// *transition* instant, and a loop has no duration to zero. §3.1 gives
-        /// both looping controls the same answer — an opacity pulse instead of
-        /// movement — which is a different drawing rather than a slower one.
+        /// *transition* instant, and a loop has no duration to zero. The design
+        /// system gives both looping controls the same answer — an opacity pulse
+        /// instead of movement — which is a different drawing rather than a
+        /// slower one.
         boolean reducedMotion();
     }
 
@@ -191,9 +200,8 @@ public interface Paints extends Widget {
     /// False for everything that moves by CSS: a transition is the renderer's to
     /// track, and it already reports itself through
     /// [WidgetRenderer#isAnimating()]. This is for a widget that draws itself
-    /// from [Context#nowMillis()] — without it, §1.7's idle frame loop would
-    /// paint a spinner once and stop, which is a still picture of a spinner
-    /// ([ADR-0081]).
+    /// from [Context#nowMillis()] — without it, the idle frame loop would
+    /// paint a spinner once and stop, which is a still picture of a spinner.
     ///
     /// A **property of the description** rather than a running state: a progress
     /// bar is indeterminate because it was built that way, and one that has been
@@ -213,8 +221,7 @@ public interface Paints extends Widget {
     /// A widget whose answer depends on the clock overrides this one instead. A
     /// `canvas` whose painter settles after a delay is the case: whether it
     /// wants another frame is "has the last tile landed yet", which is a question
-    /// about [Context#nowMillis()] rather than about the description
-    /// (`docs/gaps.md` G41, [ADR-0348]).
+    /// about [Context#nowMillis()] rather than about the description.
     ///
     /// @param style   the style `render` was given, animation overlay included
     /// @param context the context `render` was given; its per-node accessors still

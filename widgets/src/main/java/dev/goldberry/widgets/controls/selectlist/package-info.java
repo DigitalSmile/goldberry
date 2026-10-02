@@ -3,11 +3,13 @@
 ///
 /// It is a part with two owners, `select` and `text-input`'s autocomplete, so it sits
 /// in a package of its own; that package is deliberately **not exported**, which
-/// keeps the part styleable and not constructible from outside the module (ADR-0065,
-/// ADR-0417). It is the sibling of `menu` rather than a use of it: the same drawing,
-/// but a set of values rather than of commands.
+/// keeps the part styleable and not constructible from outside the module. It is
+/// the sibling of `menu` rather than a use of it: the same drawing, but a set of
+/// values rather than of commands.
 ///
-/// Marked for NullAway (`docs/testing.md` §2, ADR-0497).
+/// Every reference is non-null unless it says `@Nullable`.
+///
+/// Read more: [Choices](https://goldberry.dev/docs/components/choices.html#select).
 @NullMarked
 package dev.goldberry.widgets.controls.selectlist;
 

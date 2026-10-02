@@ -10,6 +10,8 @@ import dev.goldberry.natives.sdl.SdlException;
 
 /// Signals when the GPU has finished a submitted command buffer: how a readback
 /// knows its pixels have arrived.
+///
+/// Read more: [The native boundary](https://goldberry.dev/docs/overview/architecture.html#the-native-boundary).
 public final class SdlGpuFence extends SdlGpuResource {
 
     SdlGpuFence(SdlGpuDevice device, MemorySegment handle) {

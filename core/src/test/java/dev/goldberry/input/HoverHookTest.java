@@ -23,8 +23,8 @@ import dev.goldberry.widget.attr.Attributed;
 import dev.goldberry.widget.attr.Attributes;
 import dev.goldberry.widget.style.Styled;
 
-/// `onPointerEnter` and `onPointerExit` on [Attributes] — `docs/gaps.md` G33,
-/// [ADR-0327].
+/// `onPointerEnter` and `onPointerExit` on [Attributes]: a hover is a node
+/// property, not a menu's.
 ///
 /// The router is driven directly, as [RehoverTest] does, because what is under
 /// test is the enter/exit derivation and not a window or a paint.
@@ -231,7 +231,7 @@ class HoverHookTest {
         assertFalse(log.contains("exit"), log.toString());
     }
 
-    /// The router lets go of an element that leaves the tree ([ADR-0303]), and the
+    /// The router lets go of an element that leaves the tree, and the
     /// walk that does it is the same one that raises these — so a node unmounted
     /// under the pointer hears its exit on the frame the router notices, rather
     /// than never. That is what lets a hover-hold timer be cancelled from the
@@ -255,7 +255,7 @@ class HoverHookTest {
         assertEquals(List.of("enter", "exit"), log);
     }
 
-    /// Where the line is, once [ADR-0317]'s rule reached this walk: the widget's
+    /// Where the line is, once "the router does not talk to the dead" reached this walk: the widget's
     /// own `onPointer` is **not** called on a node that has left the tree — its
     /// state is disposed and `setState` throws — while the hook beside it still
     /// runs, because that one is the application's half of a pair it opened on

@@ -7,6 +7,8 @@ package dev.goldberry.natives.blend2d.enums;
 /// Asking for [#SYSTEM] with a [#BUILD]-sized buffer is a write past the end,
 /// which is why the one call that takes this pairs the two in a single place
 /// rather than accepting both from a caller.
+///
+/// Read more: [The native boundary](https://goldberry.dev/docs/overview/architecture.html#the-native-boundary).
 public enum BlendRuntimeInfoType implements BlendEnum {
 
     /// `BLRuntimeBuildInfo` — version and compiler. The only one bound.

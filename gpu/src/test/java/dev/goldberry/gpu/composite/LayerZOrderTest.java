@@ -26,8 +26,8 @@ import dev.goldberry.paint.tree.RenderTree;
 import dev.goldberry.render.GpuPlacement;
 import dev.goldberry.render.model.PhysicalRect;
 
-/// `docs/gpu-plan.md` phase 4's exit: each z-order case is a golden that is the
-/// same composited and read back, on a real device (ADR-0481).
+/// GPU layers are placed in paint order: each z-order case is a golden that is
+/// the same composited and read back, on a real device.
 ///
 /// Each case is a render tree with [TestLayer]s in it, painted twice through
 /// `Offscreen`:
@@ -41,12 +41,13 @@ import dev.goldberry.render.model.PhysicalRect;
 ///
 /// Both through [CompositeHarness].
 ///
-/// Both are held to one golden, within ADR-0050's tolerance, and to each other
+/// Both are held to one golden, within the golden tolerance, and to each other
 /// at two levels in 256: they differ, if at all, only where translucent UI is
 /// blended over a layer, once by Blend2D and once by the GPU. Each case is
 /// checked at one scale and not swept, because a layer is a raster rendered at
-/// its physical size, which a scale sweep does not describe (ADR-0434); the
-/// scrolled list is also checked at 1.5, whose rounding is the hard one.
+/// its physical size, which a scale sweep does not describe; the scrolled list
+/// is also checked at 1.5, whose rounding is the hard one. Read more:
+/// [The GPU tests](https://goldberry.dev/docs/contributing/testing.html#the-gpu-tests).
 @Tag(GpuTestLauncher.TAG)
 @DisplayName("GPU layers in paint order, composited and read back")
 class LayerZOrderTest {
@@ -131,8 +132,8 @@ class LayerZOrderTest {
         var clip = at(Box.filled(0xFF4060A0).decoration(rounded), 20, 15, 120, 90)
                 .overflow(Overflow.HIDDEN)
                 .children(layer(layer).size(Length.points(120), Length.points(90)));
-        // What rounds a GPU layer's corners until there is a mask pass
-        // (docs/gpu-plan.md, D4): UI painted over it. A frame of the
+        // What rounds a GPU layer's corners until there is a mask pass:
+        // UI painted over it. A frame of the
         // background's colour whose inner edge is the clip, rounded by 16, and
         // the ring drawn again over that.
         var corners = at(Box.of().decoration(Decoration.NONE.radius(32).border(16, GREY)), 4, -1, 152, 122);

@@ -18,7 +18,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * {@link CorrespondingSource}: no FFmpeg binary is published without its source
- * beside it (ADR-0508), and the build is wired so that the rule is the one that
+ * beside it, and the build is wired so that the rule is the one that
  * runs.
  */
 @DisplayName("the FFmpeg corresponding source")
@@ -44,7 +44,8 @@ class CorrespondingSourceTest {
                         "goldberry-media would publish ffmpeg-linux-x64, ffmpeg-macos-aarch64 without ffmpeg-sources"),
                         refusal.getMessage()),
                 () -> assertTrue(refusal.getMessage().contains("snapshot is a distribution"), refusal.getMessage()),
-                () -> assertTrue(refusal.getMessage().contains("ADR-0508"), refusal.getMessage()));
+                () -> assertTrue(refusal.getMessage().contains("Attach :media:ffmpegSourcesJar"),
+                        refusal.getMessage()));
     }
 
     @Test

@@ -31,8 +31,8 @@ import dev.goldberry.widgets.panel.Described;
 /// What a `message` looks like — the four kinds, in both themes, and one caught
 /// halfway through arriving.
 ///
-/// The pictures are the point for this widget more than for most. §1.2 forbids
-/// colour as the only carrier of meaning, and the whole of the compliance is
+/// The pictures are the point for this widget more than for most. The design
+/// system forbids colour as the only carrier of meaning, and the whole of the compliance is
 /// **four glyphs that are four different drawings at 20 logical pixels** — which
 /// no assertion about a `Mark.Kind` can check, because the enum being different
 /// is not the drawing being different. `EnclosedMarkTest` in `:core` measures
@@ -54,7 +54,7 @@ class MessageGoldenTest {
             """;
 
     /// The four kinds, one under another, with the middle two carrying the two
-    /// things §7 makes optional.
+    /// optional parts: a title and a way out.
     private static Widget banners() {
         return new Column(
                 List.of(
@@ -80,8 +80,8 @@ class MessageGoldenTest {
     /// image is of banners that are **there** rather than of four that are one
     /// frame into fading up.
     ///
-    /// This is not golden-test bookkeeping: it is the arrangement §3's entrance
-    /// forces on anything that paints a single frame, and it is worth seeing
+    /// This is not golden-test bookkeeping: it is the arrangement the entrance
+    /// animation forces on anything that paints a single frame, and it is worth seeing
     /// written down before `toast` and `dialog` inherit it.
     private void paintSettled(String name, Theme theme, int width, int height) {
         var tree = new ElementTree(banners());
@@ -117,12 +117,12 @@ class MessageGoldenTest {
         paintSettled("message-light", Theme.NORD_LIGHT, 420, 260);
     }
 
-    /// §3: "out: `opacity` fast", caught in the middle.
+    /// The exit, a fast fade of `opacity`, caught in the middle.
     ///
     /// The picture that says the exit exists at all. A banner has no owner
     /// holding it, so the × fades it **while it is still described** and tells the
     /// application when the fade is over — which is why there is anything here to
-    /// photograph ([ADR-0175]).
+    /// photograph.
     ///
     /// Only the second banner is going. The other three are at rest beside it, so
     /// the image is a comparison rather than a claim about one box's alpha.
@@ -143,7 +143,7 @@ class MessageGoldenTest {
                 .onPointer(new PointerEvent(PointerEvent.Kind.CLICKED, 0, 0, PointerEvent.Button.PRIMARY, 1, null));
         tree.flush();
 
-        // The frame that starts the fade, then half of §1.7's `fast`.
+        // The frame that starts the fade, then half of the `fast` duration.
         renderer.render(tree);
         clock.advance(50);
         var midway = renderer.render(tree);
@@ -152,8 +152,9 @@ class MessageGoldenTest {
         GoldenImage.assertMatches("message-departing", 420, 260, 1.0f, frame -> BoxPainter.paint(frame, midway));
     }
 
-    /// §3: "in: `opacity` + 2px rise, base". A picture no wall clock can take —
-    /// the banners are exactly half way up and half way in.
+    /// The entrance: `opacity` and a 2px rise over the `base` duration. A
+    /// picture no wall clock can take — the banners are exactly half way up and
+    /// half way in.
     @Test
     @DisplayName("a banner caught halfway through arriving")
     void arriving() {

@@ -27,10 +27,9 @@ import dev.goldberry.text.font.Font;
 /// **The measurement** is what makes a cut label possible at all: a box with text
 /// is a measured leaf, so a paragraph that answers "as wide as you offered" can
 /// never overflow anything, and three attempts at clipping one failed on exactly
-/// that ([ADR-0235]). **The ink** is what says the cut happened where it should —
+/// that. **The ink** is what says the cut happened where it should —
 /// inside the width for an ellipsis, past it for a plain `nowrap` — and a
-/// truncation that is off by a glyph renders perfectly and is wrong
-/// ([ADR-0255]).
+/// truncation that is off by a glyph renders perfectly and is wrong.
 class ParagraphFlowTest {
 
     private static final int BACKGROUND = 0xFF000000;

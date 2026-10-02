@@ -20,60 +20,40 @@ import dev.goldberry.widgets.markup.Markup;
 import dev.goldberry.widgets.markup.Wiring;
 import dev.goldberry.widgets.text.Text;
 
-/// A count or a status — `docs/core-widgets.md` §3's `badge`, "count/status chip,
-/// typically composed inside `stack`".
-///
-/// The ninth entry in §3's table and **the first one that is not a control**. It
-/// is not focusable, holds no value, has no keyboard map, and matches none of
-/// §2.1's states: §3 gives its semantics as `text`, and that is the whole of it.
-/// It lives in `widget.controls` because that is where the catalog put it, not
-/// because it behaves like its neighbours.
+/// A count or a status in a small pill: `3`, `offline`, `passing`.
 ///
 /// ```kdl
 /// badge "3"
 /// badge class="danger" "offline"
-/// badge bind="inbox.unread"
+/// badge class="success" bind="build.state" "passing"
 /// ```
 ///
-/// ## The variants are classes, and they are the aurora hues' first honest use
+/// In Java, `new Badge("3")` or `Badge.of("passing", source)`. A badge is not a
+/// control: it is not focusable, holds no value of its own, has no keyboard and
+/// never animates. It shows its argument, or the bound value when `bind=` names
+/// one, with the argument as the fallback until the binding answers.
 ///
-/// `docs/design-system.md` §1.2 lets the aurora hues appear "**only** with
-/// semantic meaning (danger/warning/success/info […]) — never as decoration on
-/// controls". Every widget shipped so far had to obey the *never* half; a status
-/// chip is the first one whose entire job is the *only* half, so `badge.danger`
-/// and `badge.success` are the point of the widget rather than a skin on it.
+/// The variants — `accent`, `danger`, `warning`, `success`, `info` — are
+/// classes rather than an enum, because KDL spells a variant `class="danger"`
+/// and an enum would be a second vocabulary only Java could use. A filled badge
+/// in a semantic hue cannot take the theme's text colour and stay legible, so
+/// each variant pins its own foreground token, and the two hues with no legible
+/// text at either end of the palette ship as a derived, darker fill.
 ///
-/// Classes rather than an enum, for §11's parity invariant: KDL spells a variant
-/// `class="danger"`, and an enum would be a second vocabulary only Java could
-/// use. [dev.goldberry.widgets.controls.button.Button#styled] made the same
-/// choice for the same
-/// reason.
+/// Read more: [Buttons, badges and chips](https://goldberry.dev/docs/components/buttons.html#badge).
 ///
-/// **The foreground is not the theme's.** A filled chip in an aurora hue cannot
-/// take `--gb-text`: white on `--gb-warning` is 1.35:1 against §1.2's 4.5:1
-/// floor. Each variant therefore pins its own text token, and two of the hues
-/// carry no legible text at either end of the palette and ship as a derived,
-/// darker fill
-/// (ADR-0087).
-///
-/// ## Nothing about it moves
-///
-/// §3.1 has no `badge` row, and its preamble is explicit that "anything not
-/// listed does not animate". So `controls.css` declares no `transition` for it —
-/// deliberately, and stated there rather than left to be noticed.
-///
-/// @param text       what the chip says; a count is already a string, because
+/// @param text       what the badge says; a count is already a string, because
 ///                   formatting one is the application's business and not a
 ///                   pattern this widget would have to validate
-/// @param source     §9's `bind=`, or null — a count is the archetypal bound
-///                   value, and an [Observable] rather than a property because a
-///                   badge reports nothing back ([ADR-0063])
+/// @param source     the bound value, or null for a literal. An [Observable]
+///                   rather than a property, because a badge reports nothing
+///                   back
 /// @param attributes `id` and `class`, exactly as on every other widget
 @Markup("badge")
 public record Badge(String text, @Nullable Observable<?> source, Attributes attributes)
         implements Widget.Leaf, Styled, Paints, Attributed<Badge>, Bindable<Badge> {
 
-    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    /// Written out so that the parameters taking null for a default can say so.
     public Badge(String text, @Nullable Observable<?> source, @Nullable Attributes attributes) {
         Objects.requireNonNull(text, "text");
         attributes = attributes == null ? Attributes.NONE : attributes;
@@ -99,8 +79,8 @@ public record Badge(String text, @Nullable Observable<?> source, Attributes attr
     /// What the chip says right now: the bound value, or the literal.
     ///
     /// `String.valueOf` rather than a `Number` check, because unlike a slider's
-    /// binding this one has no numeric meaning to fall back to — §3 says "count
-    /// **or status**", and a status is whatever the model calls it.
+    /// binding this one has no numeric meaning to fall back to — a badge shows a
+    /// count **or a status**, and a status is whatever the model calls it.
     public String resolved() {
         return source == null ? text : String.valueOf(source.get());
     }
@@ -157,8 +137,8 @@ public record Badge(String text, @Nullable Observable<?> source, Attributes attr
 
     /// Builds a `badge` from markup.
     ///
-    /// §3's only entry that is not a control: no action, no state, nothing to
-    /// resolve against a registry. A count is the archetypal bound value, so
+    /// Not a control: no action, no state, nothing to resolve against a
+    /// registry. A count is the archetypal bound value, so
     /// `bind` is the one wiring it takes, and the literal argument stays as the
     /// fallback the way `text`'s does.
     public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {

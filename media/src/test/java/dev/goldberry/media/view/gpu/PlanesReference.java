@@ -8,7 +8,7 @@ import dev.goldberry.media.picture.VideoPlanes;
 
 /// What the GPU's video layer draws for a picture of planes at 1:1, computed in
 /// Java: [YuvConversion] over chroma sampled as a linear sampler samples it,
-/// centred (ADR-0484).
+/// centred.
 ///
 /// At 1:1 a luma texel is read at its centre, exactly. A chroma plane is half
 /// the size, so the luma pixel's centre falls, in chroma texels, at `x / 2 -

@@ -4,38 +4,38 @@ import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Objects;
 
-/// A face's colour glyphs — its `COLR` version 0 and `CPAL` tables, read.
+/// A face's colour glyphs in the layered format: its `COLR` version 0 and `CPAL`
+/// tables, read.
 ///
-/// ## What a colour glyph is, in this format
+/// ```java
+/// var layers = ColorLayers.read(bytes);
+/// int record = layers.find(glyphId);
+/// for (int i = 0; record >= 0 && i < layers.layerCount(record); i++) {
+///     fill(layers.layerGlyph(record, i), layers.layerArgb(record, i, textArgb));
+/// }
+/// ```
 ///
-/// Nothing new. A colour glyph is a **list of ordinary glyphs** drawn one over
+/// In this format a colour glyph is a list of ordinary glyphs drawn one over
 /// the next, each filled with one colour out of a palette the font carries. The
 /// outlines are in `glyf` beside every other outline in the face, so the
-/// rasterizer that draws a letter draws these too — the only thing missing was
-/// somebody to read the list and set the colour between the layers
-/// ([ADR-0393]).
+/// rasterizer that draws a letter draws these too; what this reader adds is the
+/// list and the colour between the layers.
 ///
-/// That is why this format was the first one read. It is no longer the one the
-/// shipped emoji face uses: Noto Color Emoji is `COLR` version 1, a paint graph
-/// with gradients and transforms, and [ColorPaints] reads it. This reader stays
-/// for every face that is still version 0 — and a face may carry both, version 0
-/// records for the renderers that know no better beside version 1 ones for those
-/// that do ([ADR-0456]).
+/// The shipped emoji face, Noto Color Emoji, is `COLR` version 1, a paint graph
+/// with gradients and transforms, and [ColorPaints] reads that. This reader
+/// serves every face that is version 0, and a face may carry both: version 0
+/// records for renderers that know no better beside version 1 graphs for those
+/// that do. Version 1 adds its graph in fields after the version 0 ones, which
+/// keep meaning what they meant, so this reads a version 1 table's layer
+/// records too, if it has any. A painter asks [ColorPaints] first: where a
+/// glyph has both, the graph is the picture the font means.
 ///
-/// ## Why it is Java
+/// The reader is Java rather than a native binding because `COLR` version 0 is
+/// two flat arrays and `CPAL` is a third, the whole reader fits on a page, and
+/// a native equivalent would put a handle and its lifetime across the foreign
+/// function boundary for a question asked once per face.
 ///
-/// [dev.goldberry.text.font.FaceCoverage]'s argument, and the
-/// GIF decoder's before it: `COLR` version 0 is two flat arrays and `CPAL` is a
-/// third, the whole reader fits on a page, and binding a native equivalent would
-/// put a handle and its lifetime across FFM for a question asked once per face.
-///
-/// ## Version 1 is read for its version 0 records
-///
-/// `COLR` version 1 adds its paint graph in fields **after** the version 0 ones,
-/// which stay where they are and keep meaning what they meant. So this reads a
-/// version 1 table's layer records, if it has any, and [ColorPaints] reads the
-/// graph. A painter asks [ColorPaints] first: where a glyph has both, the graph
-/// is the picture the font means.
+/// Read more: [Emoji](https://goldberry.dev/docs/guide/text.html#emoji).
 public final class ColorLayers {
 
     private static final int COLR = TableDirectory.tag('C', 'O', 'L', 'R');
@@ -45,7 +45,7 @@ public final class ColorLayers {
     public static final ColorLayers NONE =
             new ColorLayers(new int[0], new int[0], new int[0], new int[0], new int[0], new boolean[0], 0);
 
-    /// The base glyphs that have layers, ascending — what [#find] searches.
+    /// The base glyphs that have layers, ascending: what [#find] searches.
     private final int[] baseGlyphs;
 
     private final int[] firstLayer;
@@ -81,11 +81,11 @@ public final class ColorLayers {
 
     /// The colour glyphs in `font`, or [#NONE] when it has none.
     ///
-    /// **[#NONE] rather than an exception** for a face this cannot read: no
-    /// `COLR`, no `CPAL`, a version beyond what is described above, records out of
+    /// [#NONE] rather than an exception for a face this cannot read: no `COLR`,
+    /// no `CPAL`, a version beyond what is described above, records out of
     /// order, or bytes that are not a font. The caller is asking whether there is
-    /// colour in here, and "no" is an answer it can draw with — the glyphs come
-    /// out as ordinary outlines, which is what they were before this existed.
+    /// colour in here, and "no" is an answer it can draw with: the glyphs come
+    /// out as ordinary outlines.
     ///
     /// @param font the face's bytes
     public static ColorLayers read(byte[] font) {
@@ -169,7 +169,7 @@ public final class ColorLayers {
         return baseGlyphs.length == 0;
     }
 
-    /// How many colours the face's first palette holds — for a diagnostic, and
+    /// How many colours the face's first palette holds: for a diagnostic, and
     /// for a test that wants to know the palette was read rather than invented.
     public int paletteSize() {
         return paletteSize;
@@ -196,7 +196,7 @@ public final class ColorLayers {
         return layerCounts[record];
     }
 
-    /// The glyph to draw for one layer — an ordinary glyph id in the same face.
+    /// The glyph to draw for one layer: an ordinary glyph id in the same face.
     public int layerGlyph(int record, int index) {
         Objects.checkIndex(index, layerCounts[record]);
         return layerGlyphs[firstLayer[record] + index];

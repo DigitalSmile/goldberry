@@ -8,7 +8,7 @@ import java.util.regex.Pattern;
 /**
  * A GraalVM release, as its {@code release} file names it --
  * {@code GRAALVM_VERSION="25.3.4.1"} -- and the one line of them CI builds native
- * images with (ADR-0337).
+ * images with.
  *
  * <p>Since 25.1 GraalVM versions itself apart from the JDK it is built on:
  * GraalVM 25.3.4.1 is JDK 25.0.4.1, and so was not-quite-25.2.4 before it. The Java
@@ -78,7 +78,7 @@ public record GraalVmRelease(List<Integer> components) {
         return isCiLine()
                 ? Optional.empty()
                 : Optional.of("GraalVM " + this + " is not on the " + CI_LINE + " line CI builds native images with"
-                        + " (showcase.yml, ADR-0337). An image that works here may not in CI, and the reverse.");
+                        + " (showcase.yml). An image that works here may not in CI, and the reverse.");
     }
 
     @Override

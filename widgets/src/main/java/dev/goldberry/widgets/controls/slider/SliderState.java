@@ -8,12 +8,12 @@ import dev.goldberry.widget.Widget;
 ///
 /// ## Why a control whose value belongs to the application has state at all
 ///
-/// ADR-0063's rule is unchanged and this is not an exception to it. What is
-/// banked here is not a value — it is a **measurement of the stylesheet**, and
-/// the application has no opinion about it. `scroll` reached the same shape for
-/// the same reason, one token earlier ([ADR-0251]): `--gb-scroll-line` is
-/// resolved at `render`, where the cascade is in hand, and consumed at
-/// `onPointer`, where it is not.
+/// Data still flows down and events still flow up; this is not an exception.
+/// What is banked here is not a value — it is a **measurement of the
+/// stylesheet**, and the application has no opinion about it. `scroll` reached
+/// the same shape for the same reason: `--gb-scroll-line` is resolved at
+/// `render`, where the cascade is in hand, and consumed at `onPointer`, where it
+/// is not.
 ///
 /// A slider needs the thumb's width for one thing and needs it badly: the thumb's
 /// **centre** cannot reach within half a thumb of either end of the groove, so a
@@ -21,7 +21,7 @@ import dev.goldberry.widget.Widget;
 /// 8px away from. Mapping over the *travel* is the fix and the travel is
 /// `width − thumb` — a number the stylesheet owns and
 /// [dev.goldberry.widget.style.Paints.Context#length] is the
-/// only door to (ADR-0430).
+/// only door to.
 ///
 /// ## It is a frame late, by construction
 ///

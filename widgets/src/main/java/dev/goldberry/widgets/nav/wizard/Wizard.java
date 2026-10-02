@@ -16,8 +16,8 @@ import dev.goldberry.widget.attr.Bindable;
 import dev.goldberry.widgets.markup.Markup;
 import dev.goldberry.widgets.markup.Wiring;
 
-/// `steps` plus a content area plus an action bar — `docs/core-widgets.md` §6's
-/// `wizard`, and the whole of it.
+/// A multi-page form: a `steps` indicator over a content area over an action
+/// bar, showing one page at a time.
 ///
 /// ```kdl
 /// wizard bind="signup.step" back="signup.back" next="signup.next" finish="signup.finish" id="signup" {
@@ -29,19 +29,19 @@ import dev.goldberry.widgets.markup.Wiring;
 ///
 /// ## It owns no policy, and that is the design
 ///
-/// §6: "it owns *no* validation, no navigation policy and no data. Back/Next/
-/// Finish raise events the application answers by moving the index, so a wizard
-/// that refuses to advance is an application that did not move it." So `next`
+/// A wizard owns *no* validation, no navigation policy and no data. Back, Next
+/// and Finish raise events the application answers by moving the index, so a
+/// wizard that refuses to advance is an application that did not move it. `next`
 /// is a request and not a step: the wizard reports it, the application decides
 /// whether page two is valid yet, and `current` — through `bind` or written by
-/// the application — is what moves. That is [ADR-0063]'s rule for every value
-/// in this toolkit, and it is what makes a wizard's validation an ordinary
-/// handler rather than a callback protocol.
+/// the application — is what moves. Data flows down and events flow up, which
+/// is the rule for every value in this toolkit, and it is what makes a wizard's
+/// validation an ordinary handler rather than a callback protocol.
 ///
 /// ## The indicator is the standalone widget
 ///
-/// "`steps` is a child widget rather than a drawing, so a wizard's indicator is
-/// the standalone one and cannot drift from it." The wizard makes one
+/// `steps` is a child widget rather than a drawing, so a wizard's indicator is
+/// the standalone one and cannot drift from it. The wizard makes one
 /// [dev.goldberry.widgets.nav.steps.Step] per page and hands
 /// them to a [dev.goldberry.widgets.nav.steps.Steps]; what
 /// `steps` learns, a wizard learns. A `clickable` wizard forwards a press on a
@@ -50,9 +50,9 @@ import dev.goldberry.widgets.markup.Wiring;
 ///
 /// ## Advancing moves the keyboard
 ///
-/// "The content area is a `focus-scope`: advancing moves focus to the new
+/// The content area is a `focus-scope`: advancing moves focus to the new
 /// step's first control, because a keyboard user who pressed Next and stayed on
-/// the button has not moved." So when the current index changes under a
+/// the button has not moved. So when the current index changes under a
 /// mounted wizard, the state asks the host to focus the content area — which
 /// [dev.goldberry.Host#focus] resolves to the first
 /// focusable thing inside it — on a zero-delay timer, exactly as a dialog does
@@ -68,13 +68,15 @@ import dev.goldberry.widgets.markup.Wiring;
 ///
 /// ## This node styles nothing
 ///
-/// `wizard` as a **CSS type** is [WizardPanel], the node the state builds
-/// (ADR-0109).
+/// `wizard` as a **CSS type** is [WizardPanel], the node the state builds, so
+/// a stylesheet's rules apply once rather than to two nested `wizard` nodes.
+///
+/// Read more: [Navigation](https://goldberry.dev/docs/components/navigation.html#wizard).
 ///
 /// @param children    the pages, as written; anything that is not a [WizardPage]
 ///                    is ignored
 /// @param current     the current page's index when nothing is bound
-/// @param source      §9's `bind` — read-only; a `Number` is read as the index
+/// @param source      the `bind` value — read-only; a `Number` is read as the index
 /// @param onBack      told when Back is pressed, or null for a wizard with no
 ///                    Back
 /// @param onNext      told when Next is pressed, or null
@@ -97,12 +99,12 @@ public record Wizard(
         Attributes attributes)
         implements Widget.Stateful, Attributed<Wizard>, Bindable<Wizard> {
 
-    /// What the three buttons say. §6 names them Back, Next and Finish; an
+    /// What the three buttons say. By default Back, Next and Finish; an
     /// application in another language, or one whose last step is "Pay", says
     /// otherwise here.
     public record Labels(String back, String next, String finish) {
 
-        /// §6's words.
+        /// Back, Next and Finish.
         public static final Labels DEFAULT = new Labels("Back", "Next", "Finish");
 
         public Labels {
@@ -112,7 +114,7 @@ public record Wizard(
         }
     }
 
-    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    /// Written out so that the parameters taking null for a default can say so.
     public Wizard(
             @Nullable List<Widget> children,
             int current,

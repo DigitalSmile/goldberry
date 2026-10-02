@@ -5,9 +5,8 @@ import java.util.List;
 
 import dev.goldberry.bind.Subscription;
 
-/// One crosshair across several charts — `charts.md` §3.1's "shared crosshair
-/// across charts, linked by a shared `CrosshairGroup`; cheap because it is one
-/// value two widgets read".
+/// One crosshair across several charts: a value every chart in the group reads,
+/// so linking them is cheap.
 ///
 /// ```java
 /// var linked = new CrosshairGroup();
@@ -41,9 +40,10 @@ import dev.goldberry.bind.Subscription;
 ///
 /// ## An application holds it, like a `ToastController`
 ///
-/// It is mutable and it outlives any one build, which is what a widget cannot be
-/// (ADR-0177's
-/// shape). Confined to the UI thread, like everything in the widget layer.
+/// It is mutable and it outlives any one build, which is what a widget cannot
+/// be. Confined to the UI thread, like everything in the widget layer.
+///
+/// Read more: [Charts](https://goldberry.dev/docs/components/charts.html#what-the-five-share).
 public final class CrosshairGroup {
 
     private final List<Runnable> listeners = new ArrayList<>(4);
@@ -63,7 +63,7 @@ public final class CrosshairGroup {
     /// **Only on a change**, which is the rule every callback in this area
     /// follows: a pointer crossing one point sends an event per pixel, and a
     /// notification per event would rebuild every chart on the dashboard sixty
-    /// times a second to draw the same line (§1.7).
+    /// times a second to draw the same line.
     public void hover(int index) {
         if (index == hovered) {
             return;

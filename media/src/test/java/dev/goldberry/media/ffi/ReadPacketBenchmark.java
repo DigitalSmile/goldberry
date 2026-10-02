@@ -12,8 +12,8 @@ import org.junit.jupiter.api.Test;
 
 import dev.goldberry.media.io.MediaIO;
 
-/// What one `read_packet` upcall costs: the risk `docs/goldberry-media.md` §10
-/// says phase 1 measures.
+/// What one `read_packet` upcall costs: the crossing every byte FFmpeg reads
+/// pays.
 ///
 /// FFmpeg calls the stub from C. Here it is called from Java through a downcall
 /// handle bound to the stub's address, so each call pays the crossing twice, Java

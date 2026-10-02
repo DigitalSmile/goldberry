@@ -42,7 +42,7 @@ public record ImageCalls(
     /// Wraps memory the caller owns as an image, copying nothing.
     ///
     /// This is what makes a frame cost no blit: the rasterizer writes straight
-    /// into the buffer that will be presented (ADR-0031).
+    /// into the buffer that will be presented.
     ///
     /// `int bl_image_init_as_from_data(void*, int, int, int, void*, int64_t, int, void*, void*)`
     public static final class ImageInitAsFromData {
@@ -91,7 +91,7 @@ public record ImageCalls(
     ///
     /// The starting point for a *decode* rather than for a frame:
     /// [ImageReadFromData] is what gives it a size, because only the decoder
-    /// knows one (ADR-0283).
+    /// knows one.
     ///
     /// `int bl_image_init(void*)`
     public static final class ImageInit {
@@ -122,8 +122,7 @@ public record ImageCalls(
     /// **The one call here that allocates pixels.** Everything else in this
     /// module hands Blend2D memory Java already owns, and cannot: the size of a
     /// PNG is inside the PNG. The wrapper copies the result out and destroys the
-    /// image on the same call, so the allocation does not outlive the decode
-    /// (ADR-0283).
+    /// image on the same call, so the allocation does not outlive the decode.
     ///
     /// `int bl_image_read_from_data(void*, const void*, size_t, const void*)`
     public static final class ImageReadFromData {
@@ -189,8 +188,8 @@ public record ImageCalls(
     /// **The second call here that allocates pixels**, after [ImageReadFromData]
     /// — the destination is resized to the size asked for and Blend2D owns it
     /// until it is destroyed. The wrapper copies the rows out and destroys it on
-    /// the same call, which is the discipline ADR-0283 set for the decoder and
-    /// ADR-0428 keeps for this.
+    /// the same call, which is the discipline the decoder follows and this call
+    /// keeps.
     ///
     /// Distinct from `bl_context_blit_scaled_image_d`, which resamples on its
     /// way onto a surface and keeps nothing: that one is a *drawing* and this one

@@ -21,7 +21,7 @@ import dev.goldberry.widget.Widget;
 /// carries a generation; a view whose `src` moved, or whose window moved to a
 /// display of another scale, asks again, and the answer to the old question —
 /// still decoding on its virtual thread — is dropped when it arrives rather than
-/// drawn over the new one (ADR-0358).
+/// drawn over the new one.
 final class ImageState extends State<ImageView> {
 
     private static final Logger LOG = Logs.of(ImageState.class);
@@ -111,10 +111,9 @@ final class ImageState extends State<ImageView> {
 
     /// The sources whose failure has been reported.
     ///
-    /// One picture shown four ways is four views, four loads and — before this —
+    /// One picture shown four ways is four views, four loads and, without this,
     /// four identical lines about one missing file. `OverflowLog`'s argument and
-    /// `OverflowLog`'s answer: a bounded set of what has already been said
-    /// ([ADR-0395]).
+    /// `OverflowLog`'s answer: a bounded set of what has already been said.
     ///
     /// Keyed on the **source**, not the view, because that is what failed. The
     /// reason cannot differ between two views of one key: they share a cache

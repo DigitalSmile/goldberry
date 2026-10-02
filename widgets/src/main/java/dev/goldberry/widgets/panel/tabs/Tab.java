@@ -54,8 +54,7 @@ import dev.goldberry.widgets.markup.Wiring;
 /// like a label, and there is no selector for "the tab whose project is red". It
 /// is written through `restyle`, so a stylesheet still decides *what* the colour
 /// means — `controls.css` puts it on the selected tab's underline and on its icon
-/// — and an application that sets none gets the theme's accent
-/// (ADR-0107).
+/// — and an application that sets none gets the theme's accent.
 ///
 /// @param value      what this tab is called in the model — what `change` reports
 /// @param label      the text in the header
@@ -74,14 +73,16 @@ import dev.goldberry.widgets.markup.Wiring;
 /// @param visibility how visible this tab is at a given frame time, `0..1`,
 ///                   supplied by the strip. Reading it is also what *starts* an
 ///                   arrival, because `render` is the only place a widget is
-///                   given the clock (ADR-0109)
+///                   given the clock
 /// @param travel     where this tab's underline is coming from, supplied by the
-///                   strip on the tab it has just selected ([ADR-0377]); null on
+///                   strip on the tab it has just selected; null on
 ///                   every other tab and on every frame after the first of a
 ///                   journey
 /// @param onSelect   supplied by [Tabs]
 /// @param onClose    supplied by [Tabs]
 /// @param attributes `id` and `class`, exactly as on the primitives
+///
+/// Read more: [Panels](https://goldberry.dev/docs/components/panels.html#tab).
 @Markup("tab")
 public record Tab(
         String value,
@@ -109,7 +110,7 @@ public record Tab(
 
     /// Where this tab's underline still is, relative to where it belongs — a
     /// **displacement** that shrinks to nothing, which is what makes the
-    /// underline slide from the tab that was selected to this one ([ADR-0377]).
+    /// underline slide from the tab that was selected to this one.
     ///
     /// Supplied by [Tabs], like [#visibility] and [#reveal], and for the same
     /// reason: only the strip has seen both headers. A difference between two
@@ -122,7 +123,7 @@ public record Tab(
     /// @param scale   how many times this header's width it still is, or 1
     /// @param id      which journey, counted by the strip — the indicator's
     ///                **key**, so a displaced underline is a new element whose
-    ///                first frame starts nothing (ADR-0065), and letting go of
+    ///                first frame starts nothing, and letting go of
     ///                the displacement is a change to the same element and
     ///                therefore a transition
     /// @param arrived told when a displaced underline has been drawn once, which
@@ -169,7 +170,7 @@ public record Tab(
                 attributes);
     }
 
-    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    /// Written out so that the parameters taking null for a default can say so.
     public Tab(
             String value,
             String label,
@@ -190,8 +191,8 @@ public record Tab(
         Objects.requireNonNull(label, "label");
         content = List.copyOf(content == null ? List.of() : content);
         if (label.isEmpty() && icon == null) {
-            throw new IllegalArgumentException("a tab with neither a label nor an icon has nothing to click on"
-                    + " and nothing to read out (§13)");
+            throw new IllegalArgumentException(
+                    "a tab with neither a label nor an icon has nothing to click on" + " and nothing to read out");
         }
         attributes = attributes == null ? Attributes.NONE : attributes;
         this.value = value;
@@ -273,7 +274,7 @@ public record Tab(
 
     /// This tab with a close affordance in its header, which raises the strip's
     /// `close` rather than removing anything: what a tab strip shows is the
-    /// application's list, and only the application may shorten it (ADR-0063).
+    /// application's list, and only the application may shorten it.
     public Tab closable(boolean value) {
         return new Tab(
                 this.value,
@@ -299,7 +300,7 @@ public record Tab(
     /// not yet been brought into view. A tab that carries one implements
     /// [dev.goldberry.input.handler.Located] in effect: it is told
     /// where it is once a frame, hands both rectangles over and is then wired
-    /// without one again ([ADR-0120]).
+    /// without one again.
     Tab wired(
             boolean isSelected,
             @Nullable Runnable select,
@@ -404,7 +405,7 @@ public record Tab(
             return style;
         }
         // Being dragged to a new place: drawn where the pointer has taken it, 1:1,
-        // while its slot in the row stays where it was (ADR-0372).
+        // while its slot in the row stays where it was.
         return style.transform(
                 Transform.of(new Transform.Function.Translate(Transform.Length.px(dragOffset), Transform.Length.ZERO)));
     }
@@ -439,7 +440,7 @@ public record Tab(
     }
 
     /// `Space` and `Enter` select. The arrows are the strip's, because a tab strip
-    /// is one Tab stop with a roving selection (§7.2).
+    /// is one Tab stop with a roving selection.
     @Override
     public void onKey(KeyEvent event) {
         if (event.kind() != KeyEvent.Kind.PRESSED
@@ -461,7 +462,7 @@ public record Tab(
     }
 
     /// Whether this tab is arriving or leaving, which is what keeps the frame
-    /// loop awake for the length of either (ADR-0109).
+    /// loop awake for the length of either.
     ///
     /// A tab that has been there a while animates nothing and asks for nothing,
     /// so a window full of tabs is as idle as a window with none.
@@ -479,7 +480,7 @@ public record Tab(
         //
         // Widened back to the header's own edges. An absolutely positioned child
         // is placed against its containing block's **padding** box, which is what
-        // CSS says and what `ContainingBlock` makes true (ADR-0272) — so the
+        // CSS says and what `ContainingBlock` makes true — so the
         // indicator's `left: 0; right: 0` means 24 points narrower than the tab,
         // and an underline that stops short of its label is not one. The number
         // comes from `tab`'s own resolved padding, so `density-compact` moves it
@@ -499,15 +500,15 @@ public record Tab(
 
     /// The arrival or the departure, applied to the finished box.
     ///
-    /// **Opacity and a translation, and nothing else** — §1.7's whitelist is the
-    /// compositor-cheap set, and a tab that animated its own *width* would run
-    /// Yoga on every frame of every arrival and reflow the row beside it
-    /// (ADR-0068).
+    /// **Opacity and a translation, and nothing else** — the design system lets
+    /// only the compositor-cheap properties animate, and a tab that animated its
+    /// own *width* would run Yoga on every frame of every arrival and reflow the
+    /// row beside it.
     /// So a tab appears in its final place and fades up into it, which is also
     /// what makes an arrival and a departure the same animation backwards.
     ///
     /// Under reduced motion there is no animation at all: the tab is simply there,
-    /// or simply gone. §1.7 asks for movement to be removed rather than shortened.
+    /// or simply gone. Under reduced motion movement is removed rather than shortened.
     private Box animated(Box box, Context context) {
         if (visibility == null) {
             return box;

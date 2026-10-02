@@ -19,14 +19,17 @@ import dev.goldberry.render.web.WebViewSpec;
 import dev.goldberry.render.window.BackendWindow;
 import dev.goldberry.render.window.WindowSpec;
 
-/// The only platform-facing interface. Everything above it is platform-agnostic
-/// (`docs/ARCHITECTURE.md` §4).
+/// The only platform-facing interface: windows, popups, the clipboard, the tray,
+/// file dialogs, web pages and the event pump. Everything above it is
+/// platform-agnostic.
 ///
-/// Two implementations are planned and that is the complete list: `sdl3` for
-/// desktop — Linux, Windows and macOS alike — and `headless` for tests. The SPI
-/// exists to serve `headless` and to keep the platform boundary in one place; it
-/// is not an invitation to grow hand-written Win32, Cocoa or Wayland backends
-/// (ADR-0003, ADR-0041).
+/// Two implementations exist and that is the complete list: `sdl3` for the
+/// desktop — Linux, Windows and macOS alike — and `headless`, which renders to
+/// memory for tests and servers. The SPI exists to serve `headless` and to keep
+/// the platform boundary in one place; it is not an invitation to grow
+/// hand-written Win32, Cocoa or Wayland backends. An application never names a
+/// backend: the launcher picks one, and a test asks for the headless one through
+/// the test-scope API.
 ///
 /// ## Threading
 ///
@@ -39,14 +42,14 @@ import dev.goldberry.render.window.WindowSpec;
 /// [#wakeup()] is the single exception, and exists precisely so other threads
 /// have one legal way to reach the UI thread: it is safe to call from anywhere.
 ///
-/// ## What is not here yet
+/// ## What is optional
 ///
-/// The §4 sketch also lists a GPU surface, which is absent from this cut and not
-/// dropped: it needs a consumer before its shape can be decided, and an interface
-/// designed against nothing is an interface that gets designed twice (ADR-0019).
-/// Popups were on that list until §7's menus, tooltips and `select` gave them
-/// one, **the clipboard was until `text-input` did**, and the **tray** was until
-/// §9's `tray-icon` did. `canvas3d` is the one left.
+/// A popup, a tray icon, a web page, the desktop's theme and the primary
+/// selection are `Optional`, because a platform may have none; the clipboard and
+/// the file dialogs are never absent, and a platform without them answers
+/// honestly through [Clipboard#none()] and [FileDialogs#none()].
+///
+/// Read more: [Architecture](https://goldberry.dev/docs/overview/architecture.html#the-backend-spi).
 public interface Backend extends AutoCloseable {
 
     /// A name for logs and diagnostics: `sdl3`, `headless`.
@@ -65,8 +68,8 @@ public interface Backend extends AutoCloseable {
 
     /// Opens a popup window parented to `owner` — a menu, a dropdown, a tooltip.
     ///
-    /// The one thing the in-window overlay layer cannot do is leave the window
-    /// (ADR-0100), and it is exactly what a dropdown taller than the space below
+    /// The one thing the in-window overlay layer cannot do is leave the window,
+    /// and it is exactly what a dropdown taller than the space below
     /// its button has to do. A popup is placed in the **owner's** logical
     /// coordinates and may extend past its edges.
     ///
@@ -94,9 +97,8 @@ public interface Backend extends AutoCloseable {
     /// removed its notification area, a container with no shell at all. Unlike
     /// [#createPopup], no error is read to tell absence from refusal — the Linux
     /// path reports a missing library, which is an absence wearing the words of a
-    /// failure, and `core-widgets.md` §9 asks for absence to be reported either
-    /// way. A caller that gets empty has nowhere else to put a tray icon and is
-    /// expected to carry on without one.
+    /// failure, and absence is reported either way. A caller that gets empty has
+    /// nowhere else to put a tray icon and is expected to carry on without one.
     ///
     /// Process-global rather than per window, like the clipboard: an application
     /// has a tray presence, a window does not.
@@ -110,14 +112,14 @@ public interface Backend extends AutoCloseable {
         return Optional.empty();
     }
 
-    /// Opens a web page in a window the engine owns — §9's `web-view`.
+    /// Opens a web page in a window the engine owns.
     ///
     /// **Empty is a normal answer, and here it is the *usual* one.** Unlike every
     /// other call on this interface, the thing behind it lives in a library the
     /// build is allowed not to produce: the engine is the desktop's own, so
     /// `libgoldberry-webview` is separate and absent from any build made without
-    /// WebKit's development headers ([ADR-0441]). A caller that gets empty offers
-    /// the user their own browser.
+    /// WebKit's development headers. A caller that gets empty offers the user
+    /// their own browser.
     ///
     /// Process-global rather than per window, like the tray and the clipboard: what
     /// this opens is not parented to anything of the toolkit's, and is not a
@@ -132,8 +134,8 @@ public interface Backend extends AutoCloseable {
         return Optional.empty();
     }
 
-    /// Opens a page **inside** a window of this backend's — §9's `web-view` as a
-    /// widget rather than a window ([ADR-0442]).
+    /// Opens a page **inside** a window of this backend's — the `web-view` widget
+    /// rather than a window of the page's own.
     ///
     /// **Empty is the usual answer, and on Wayland it always is.** Embedding
     /// means reparenting the engine's window into the application's, which X11,
@@ -163,7 +165,7 @@ public interface Backend extends AutoCloseable {
     /// setting, a driver that cannot ask and a `libgoldberry` built before the
     /// export all give it, and what a caller needs from the three is the same
     /// thing: use your own default rather than the desktop's, because the desktop
-    /// has not got one (`docs/gaps.md` G26, [ADR-0322]).
+    /// has not got one.
     ///
     /// A change arrives as [dev.goldberry.render.event.BackendEvent.SystemThemeChanged],
     /// through the pump like everything else.
@@ -173,13 +175,13 @@ public interface Backend extends AutoCloseable {
         return Optional.empty();
     }
 
-    /// Whether the desktop asks for less movement — §13's reduce-motion switch.
+    /// Whether the desktop asks for less movement — its reduce-motion switch.
     ///
     /// Process-global like the theme, and **empty is a real answer** for the same
     /// three reasons: a desktop with no such setting, a platform this cannot ask,
     /// and a machine with nothing to ask through. What a caller does about all
     /// three is the same — animate normally, because a default is not an
-    /// instruction ([ADR-0383]).
+    /// instruction.
     ///
     /// Unlike the theme, **no event follows**: nothing listens for a change, so an
     /// answer is what the desktop said when the application started. Listening
@@ -199,7 +201,7 @@ public interface Backend extends AutoCloseable {
     /// is a request, made and not awaited, and **false is an answer rather
     /// than a failure**: a headless backend, a library built before the export
     /// and a desktop with no handler for the scheme all give it, and a `link`
-    /// that hears it has nothing more to do than say so (ADR-0346).
+    /// that hears it has nothing more to do than say so.
     ///
     /// @param url what to open
     /// @return whether the request was made
@@ -221,7 +223,7 @@ public interface Backend extends AutoCloseable {
     }
 
     /// The session's primary selection — X11's middle-click buffer — or empty
-    /// where the platform has none ([ADR-0504]).
+    /// where the platform has none.
     ///
     /// **An [Optional], where [#clipboard()] is not**, because absence changes
     /// what a widget does and not only what it reads: with no primary selection

@@ -19,7 +19,7 @@ import dev.goldberry.widget.attr.Attributes;
 import dev.goldberry.widgets.Widgets;
 import dev.goldberry.widgets.panel.Described;
 
-/// `statistic` — §5's labelled number ([ADR-0164]).
+/// `statistic` — the labelled number.
 ///
 /// Two claims are worth the test: the widget **never formats**, because a
 /// locale-aware number formatted inside the toolkit makes a golden that cannot be
@@ -34,7 +34,7 @@ class StatisticTest {
     }
 
     @Test
-    @DisplayName("holds §5's optional sparkline, as the last child")
+    @DisplayName("holds its optional sparkline, as the last child")
     void theSparklineIsOneMoreChild() {
         // The note on the widget said, while it was waiting on `canvas`, that a
         // sparkline would be "one more child at the end of the column". This is

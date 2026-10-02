@@ -4,8 +4,10 @@ package dev.goldberry.natives.yoga.style;
 ///
 /// Yoga only decides *sizing* from this; nothing here clips. [#HIDDEN] and
 /// [#SCROLL] tell Yoga a child may exceed its parent without the parent growing,
-/// and the paint layer is what actually clips (§5). A node whose overflow is
+/// and the paint layer is what actually clips. A node whose overflow is
 /// [#VISIBLE] is allowed to make its parent's content box larger.
+///
+/// Read more: [The native boundary](https://goldberry.dev/docs/overview/architecture.html#the-native-boundary).
 public enum Overflow implements YogaEnum {
     VISIBLE(0, "YGOverflowVisible"),
 

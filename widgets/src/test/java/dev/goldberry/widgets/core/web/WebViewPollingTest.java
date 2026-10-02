@@ -30,7 +30,7 @@ import dev.goldberry.widgets.core.canvas.Canvas;
 import dev.goldberry.widgets.panel.Described;
 import dev.goldberry.widgets.shell.web.WebPage;
 
-/// How a `web-view` asks for the next look at its page, ADR-0491.
+/// How a `web-view` asks for the next look at its page.
 ///
 /// Everything the widget does after the first frame (opening the page,
 /// asking whether it has loaded, bringing it back from where it waited) runs

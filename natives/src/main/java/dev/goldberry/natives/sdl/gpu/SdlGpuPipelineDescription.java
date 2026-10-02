@@ -21,6 +21,8 @@ import dev.goldberry.natives.sdl.gpu.enums.SdlGpuVertexInputRate;
 /// and `canvas3d` draw with. Several colour targets, multisampling, stencil and
 /// depth bias join when something asks for them.
 ///
+/// Read more: [The native boundary](https://goldberry.dev/docs/overview/architecture.html#the-native-boundary).
+///
 /// @param vertex           the vertex shader
 /// @param fragment         the fragment shader
 /// @param targetFormat     the colour target's format

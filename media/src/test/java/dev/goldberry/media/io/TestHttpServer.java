@@ -20,8 +20,8 @@ import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
 
 /// A local HTTP server serving one resource, with the faults a test switches on:
-/// the server half of `docs/goldberry-media.md` §9's fault-injecting network,
-/// for [HttpIO]'s tests and the Engine's S3 and S6.
+/// the server half of a fault-injecting network, for [HttpIO]'s tests and the
+/// Engine's flaky-link and live-radio tests.
 ///
 /// Every path serves the same bytes. By default it answers `Range` with `206`
 /// and sends a `Content-Length`. The switches:

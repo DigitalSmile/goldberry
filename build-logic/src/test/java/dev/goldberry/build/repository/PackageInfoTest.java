@@ -18,7 +18,7 @@ import org.junit.jupiter.api.Test;
 
 /**
  * Every shipped package says what it is, and every package a module compiles
- * under NullAway has opted in to it (ADR-0497).
+ * under NullAway has opted in to it.
  *
  * <p>The adoption this closes went a package at a time for a month and stopped
  * at 103 of 215, with nothing to say whether the next package would be marked.

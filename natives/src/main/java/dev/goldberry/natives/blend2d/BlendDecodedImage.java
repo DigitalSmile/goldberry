@@ -15,7 +15,7 @@ import dev.goldberry.natives.layout.Layouts;
 /// the decoder has to allocate before anything Java could have allocated
 /// instead. [BlendImage]'s doctrine — a view over a buffer somebody else owns —
 /// holds everywhere else, including for drawing the result of this and for
-/// encoding one (ADR-0283).
+/// encoding one.
 ///
 /// The allocation is meant to be short-lived. The intended use is the whole of
 /// it:
@@ -37,6 +37,8 @@ import dev.goldberry.natives.layout.Layouts;
 /// and a caller that had to ask would be a caller that could forget.
 ///
 /// Confined to the thread that created it, and must be closed.
+///
+/// Read more: [The native boundary](https://goldberry.dev/docs/overview/architecture.html#the-native-boundary).
 public final class BlendDecodedImage implements AutoCloseable {
 
     private final Blend2dImage calls = Blend2dImage.get();

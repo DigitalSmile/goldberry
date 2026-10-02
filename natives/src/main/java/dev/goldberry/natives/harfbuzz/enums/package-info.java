@@ -5,7 +5,9 @@
 /// declared rather than counted from an ordinal. Exported to `:core` alone, with the
 /// wrappers in `…natives.harfbuzz`.
 ///
-/// Marked for NullAway (`docs/testing.md` §2, ADR-0497).
+/// Marked for NullAway, so a parameter that may be null says so on its signature.
+///
+/// Read more: [The native boundary](https://goldberry.dev/docs/overview/architecture.html#the-native-boundary).
 @NullMarked
 package dev.goldberry.natives.harfbuzz.enums;
 

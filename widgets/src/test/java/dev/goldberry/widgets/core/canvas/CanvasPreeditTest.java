@@ -20,14 +20,17 @@ import dev.goldberry.render.Cursor;
 import dev.goldberry.render.model.LogicalRect;
 import dev.goldberry.widget.ElementTree;
 
-/// `docs/gaps.md` G15, as a widget: a composition reaching a canvas, and the
-/// caret's rectangle reaching the platform.
+/// Inline IME preedit, as a widget: a composition reaching a canvas, and the
+/// caret's rectangle reaching the platform. The gap was that a composition
+/// reached an editor and never a canvas, so a painter had no caret to draw.
 ///
 /// The editor's own half is `EditorPreeditTest` in `:core`. What is checked here
 /// is the wiring nobody else can check — that the router delivers a preedit to
 /// the focused canvas and nowhere else, that there is **no capture phase**, and
 /// that the candidate window's position is published whenever it could have
-/// moved (ADR-0289).
+/// moved.
+///
+/// Read more: [Input](https://goldberry.dev/docs/components/drawing.html#input).
 class CanvasPreeditTest {
 
     private PointerRouter router;

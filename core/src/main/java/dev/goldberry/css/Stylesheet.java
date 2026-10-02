@@ -7,12 +7,21 @@ import dev.goldberry.css.cascade.CascadeLayer;
 import dev.goldberry.css.parse.CssParser;
 import dev.goldberry.css.parse.CssSyntaxException;
 
-/// A parsed stylesheet and the layer it belongs to.
+/// A parsed stylesheet and the layer of the cascade it belongs to.
+///
+/// ```java
+/// Stylesheet.resource(CascadeLayer.APPLICATION, MyApp.class, "app.css")
+/// ```
+///
+/// An application's sheets are returned from `Application.stylesheets()`, in
+/// cascade order; the toolkit's own and the theme's sit in the layers below. A
+/// sheet is an immutable value: hot reload replaces it rather than editing it.
+///
+/// Read more: [Styling](https://goldberry.dev/docs/guide/styling.html#the-cascade-four-layers).
 ///
 /// @param layer     where its rules sit in the cascade
 /// @param rules     in source order
 /// @param keyframes the `@keyframes` blocks it declares, in source order
-///                  (ADR-0353)
 public record Stylesheet(CascadeLayer layer, List<StyleRule> rules, List<Keyframes> keyframes) {
 
     public Stylesheet {
@@ -21,8 +30,7 @@ public record Stylesheet(CascadeLayer layer, List<StyleRule> rules, List<Keyfram
         keyframes = List.copyOf(Objects.requireNonNull(keyframes, "keyframes"));
     }
 
-    /// A stylesheet of rules and no keyframes — every one built before
-    /// `@keyframes` was in the subset.
+    /// A stylesheet of rules and no keyframes.
     public Stylesheet(CascadeLayer layer, List<StyleRule> rules) {
         this(layer, rules, List.of());
     }
@@ -39,9 +47,7 @@ public record Stylesheet(CascadeLayer layer, List<StyleRule> rules, List<Keyfram
     ///
     /// What an application's own CSS should be: a `.css` file next to the class
     /// that uses it, rather than a text block in the middle of Java. The toolkit
-    /// loads its own theme and control sheets exactly this way, and an
-    /// application had no supported way to do the same
-    /// (ADR-0093).
+    /// loads its own theme and control sheets exactly this way.
     ///
     /// ```java
     /// Stylesheet.resource(CascadeLayer.APPLICATION, MyApp.class, "app.css")

@@ -10,7 +10,7 @@ import org.junit.jupiter.api.Test;
 import dev.goldberry.natives.NativeLibraryRequirement;
 import dev.goldberry.natives.layout.Layouts;
 
-/// The IME half of the SDL binding — `docs/gaps.md` G15.
+/// The IME half of the SDL binding.
 ///
 /// A composition cannot be produced on a CI runner: it needs an input method, a
 /// user and several keystrokes. What **can** be checked without one is everything
@@ -20,8 +20,8 @@ import dev.goldberry.natives.layout.Layouts;
 ///
 /// The struct is the part that would otherwise fail silently and late: a wrong
 /// offset reads the composition's `start` out of its `length`, which looks like
-/// an input method behaving oddly rather than like a layout bug (ADR-0010's
-/// reasoning, applied once more).
+/// an input method behaving oddly rather than like a layout bug — the reason
+/// every hand-written layout is checked against the compiled library.
 class SdlTextInputAreaTest {
 
     @BeforeAll

@@ -20,7 +20,7 @@ import dev.goldberry.layout.Insets;
 import dev.goldberry.layout.Length;
 
 /// `margin` through the cascade, and the `auto` that four other properties may
-/// not have — ADR-0311.
+/// not have.
 class MarginStyleTest {
 
     /// The whole pipeline: parse, cascade, substitute, compute.
@@ -136,7 +136,7 @@ class MarginStyleTest {
         /// there is no `YGNodeStyleSetPaddingAuto`. `Yoga` binds those without
         /// it and refuses an `auto` **by name**, which is right there and made
         /// `padding: auto` in a stylesheet an exception thrown in the middle of a
-        /// layout pass: a window closing over one typo. §8's rule for a value the
+        /// layout pass: a window closing over one typo. The rule for a value the
         /// engine cannot honour is to drop the declaration, and this is where
         /// that has to happen.
         @ParameterizedTest

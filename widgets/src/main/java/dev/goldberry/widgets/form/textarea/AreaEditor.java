@@ -71,14 +71,14 @@ interface AreaEditor {
     /// Committed text arrived, or `Enter` produced a newline.
     boolean type(String text);
 
-    /// The composition an input method is assembling — `docs/gaps.md` G16.
+    /// The composition an input method is assembling.
     ///
     /// `text-input`'s
     /// [compose][dev.goldberry.widgets.form.textinput.TextEditor]
     /// exactly: nothing is inserted, the composition is spliced into what is
     /// *drawn*, and the text, the caret, the undo history and the bound value
-    /// only move when the accepted candidate arrives through [#type]
-    /// (ADR-0292). There is no masked `text-area`, so the one refusal that
+    /// only move when the accepted candidate arrives through [#type].
+    /// There is no masked `text-area`, so the one refusal that
     /// control has does not arise here.
     ///
     /// `clauseLength` is a **length** and not an end — the platform reports a
@@ -106,15 +106,14 @@ interface AreaEditor {
     void pointerAt(double x, double y, boolean extend, int clickCount);
 
     /// The middle button went down at a point: where there is a primary
-    /// selection, the caret goes there and its text goes in, as one undoable edit
-    /// ([ADR-0504]).
+    /// selection, the caret goes there and its text goes in, as one undoable edit.
     ///
     /// @return whether anything was pasted, which is whether the press is consumed
     boolean pastePrimaryAt(double x, double y);
 
     /// The pointer was dragged to a point, in this control's own coordinates —
     /// which may be past its edge, and then the text scrolls on while the drag is
-    /// held there ([ADR-0500]).
+    /// held there.
     ///
     /// Not [#pointerAt] with `extend` set, which is what it was. A drag past the
     /// bottom used to select the line under the pointer **outside** the control and
@@ -124,7 +123,7 @@ interface AreaEditor {
 
     /// The button came up, or the drag was otherwise over — and a selection the
     /// press and drag made is finished, and goes on the primary selection where
-    /// there is one ([ADR-0504]).
+    /// there is one.
     void released();
 
     /// A frame is being rendered — where a drag held at the edge takes its step.
@@ -148,7 +147,7 @@ interface AreaEditor {
     /// Handing over a pixel distance meant the caller guessing, and what it
     /// guessed was one pixel per notch — with the sign inverted, so the one
     /// scrollable control in the toolkit that is not a `scroll` moved the wrong
-    /// way, a pixel at a time ([ADR-0314]).
+    /// way, a pixel at a time.
     ///
     /// @return whether anything moved, which is what decides whether the wheel is
     ///         consumed or left for the page behind this control
@@ -167,20 +166,18 @@ interface AreaEditor {
     /// is the **cascade's** answer for the frame being described, and because the
     /// caret, the hit test and `Up`/`Down` all have to use the same one the paint
     /// did — a caret measured from the paragraph's origin drifts from centred
-    /// glyphs by half the line's slack, and by a different amount on every line
-    /// (`docs/gaps.md` G30, [ADR-0324]).
+    /// glyphs by half the line's slack, and by a different amount on every line.
+    /// The paint and the measurement have to agree.
     ///
     /// The **gutter** comes down here for the same reason: it is a width the
     /// paint computed from this frame's line count and this node's font, and the
-    /// hit test, the caret and the wrap all measure from the far side of it
-    /// (`docs/gaps.md` G37, [ADR-0331]).
+    /// hit test, the caret and the wrap all measure from the far side of it.
     ///
     /// All four edges of the padding come down, not the leading two: the wrap
     /// comes off both sides and the visible height off both ends, and a stylesheet
-    /// may make them differ (`docs/gaps.md` G43, ADR-0350).
+    /// may make them differ.
     ///
     /// @param document the text as the frame shaped it, a hard line at a time
-    ///                 ([ADR-0388])
     /// @param padding the control's resolved padding
     /// @param gutter  how wide the line-number column is, or 0 when there is none
     /// @return how far the content is scrolled **up**, in logical pixels
@@ -194,7 +191,7 @@ interface AreaEditor {
     /// It goes through the editor rather than being built in the box because the
     /// re-use is the whole point: the previous document is what makes a keystroke
     /// re-shape one hard line instead of half a megabyte, and only the state
-    /// lives long enough to hold it ([ADR-0388]).
+    /// lives long enough to hold it.
     ///
     /// @param text   what is being drawn — the value, or the placeholder
     /// @param font   the face and size the cascade resolved for this frame
@@ -208,7 +205,7 @@ interface AreaEditor {
     /// The last frame's, because `render` runs before Yoga and a box does not
     /// know its width there. It is wrong on the first frame and on the frame a
     /// resize lands, and neither is visible: both are followed immediately by
-    /// another. ADR-0116 settled the same question for a scroll view.
+    /// another. A scroll view answers the same question the same way.
     double contentWidth();
 
     /// `Ctrl+C`, `Ctrl+X`, `Ctrl+V`, `Ctrl+Z`, `Ctrl+Y`.

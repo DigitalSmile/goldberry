@@ -16,8 +16,7 @@ import dev.goldberry.text.font.sfnt.ColorPaint.ColorLine;
 import dev.goldberry.text.font.sfnt.ColorPaints;
 import dev.goldberry.text.font.sfnt.CompositeMode;
 
-/// Draws one `COLR` version 1 colour glyph — a paint graph — onto a [Frame]
-/// ([ADR-0456]).
+/// Draws one `COLR` version 1 colour glyph — a paint graph — onto a [Frame].
 ///
 /// ## The coordinate spaces
 ///
@@ -26,7 +25,7 @@ import dev.goldberry.text.font.sfnt.CompositeMode;
 /// y, move to the glyph's origin on the baseline — and then draws every node in
 /// design units. A `PaintTransform` concatenates its own matrix on top of that
 /// and restores it afterwards, exactly as a `canvas` painter composes with
-/// whatever the tree has set (ADR-0390).
+/// whatever the tree has set.
 ///
 /// ## A glyph is a clip, and a clip is a fill
 ///

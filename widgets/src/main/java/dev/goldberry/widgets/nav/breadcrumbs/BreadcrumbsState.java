@@ -21,8 +21,7 @@ import dev.goldberry.widgets.menu.Menus;
 /// away, so it cannot hold the rectangle a previous frame reported; and opening a
 /// popup needs a [Host], which only a build has
 /// ([BuildContext#host()]). That is the whole of why this widget is stateful —
-/// everything else about a trail is a pure function of its crumbs
-/// ([ADR-0306]).
+/// everything else about a trail is a pure function of its crumbs.
 final class BreadcrumbsState extends State<Breadcrumbs> {
 
     /// The window this is being built into, captured for the handlers.
@@ -36,8 +35,7 @@ final class BreadcrumbsState extends State<Breadcrumbs> {
     ///
     /// Assigned and **never** dirtied, which is [Located]'s rule: a widget told
     /// where it is must not move itself, and calling `setState` from here is how
-    /// a located widget rebuilds forever
-    /// ([ADR-0119]).
+    /// a located widget rebuilds forever.
     /// It is read at the moment of a click, by which time the last frame has
     /// reported it.
     private LogicalRect overflowAt = LogicalRect.of(0, 0, 0, 0);

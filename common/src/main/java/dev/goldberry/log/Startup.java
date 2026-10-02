@@ -13,15 +13,15 @@ import org.slf4j.Logger;
 
 /// The start-up timeline: what Goldberry did before the first pixel, and when.
 ///
-/// `docs/ARCHITECTURE.md` §1 opens with "starts in milliseconds". That is a claim
-/// with a number in it, and until now nothing in the toolkit could say whether it
-/// was true — or, when it stops being true, which part stopped it.
+/// Goldberry promises to start in milliseconds. That is a claim with a number in
+/// it, and this is what lets the toolkit say whether it is true — or, when it
+/// stops being true, which part stopped it.
 ///
 /// Every phase is timed from **process start**, not from the toolkit's first
 /// line, because JVM start-up is part of what a user waits for and leaving it out
 /// would flatter the number. [ProcessAge] supplies that zero — from the kernel's
 /// own clock on Linux, because `ProcessHandle`'s start instant is up to a second
-/// late there (ADR-0506) — and the deltas between marks come from
+/// late there — and the deltas between marks come from
 /// [System#nanoTime()], which is monotonic where a wall clock is not.
 ///
 /// Marks are recorded whether or not anything is listening — they cost a
@@ -37,6 +37,11 @@ import org.slf4j.Logger;
 ///
 /// Recording stops after [#MAX_MARKS], so a mark accidentally placed in a loop
 /// grows the heap by nothing and the timeline stays readable.
+///
+/// An application adds its own rows with `Startup.mark("my phase")` or
+/// `Startup.time("my phase", work)`, and reads the clock with `Startup.sinceProcessStart()`.
+///
+/// Read more: [The start-up timeline](https://goldberry.dev/docs/guide/logging.html#the-start-up-timeline).
 public final class Startup {
 
     /// Enough for every phase the toolkit has, with room for the ones it will

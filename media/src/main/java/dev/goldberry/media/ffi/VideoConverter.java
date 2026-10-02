@@ -13,8 +13,8 @@ import dev.goldberry.media.MediaException;
 import dev.goldberry.media.codec.VideoFrame;
 
 /// Converts pictures with swscale: CPU present's one pass from a decoded
-/// [VideoFrame] to the toolkit's premultiplied BGRA (`docs/goldberry-media.md`
-/// §3, "Presentation"), and the built-in decoder's pass from a pixel format
+/// [VideoFrame] to the toolkit's premultiplied BGRA, and the built-in decoder's
+/// pass from a pixel format
 /// outside the frame contract to I420.
 ///
 /// **The same size in and out.** Nothing here scales: a picture is converted at
@@ -25,7 +25,7 @@ import dev.goldberry.media.codec.VideoFrame;
 /// **The same bytes on every machine.** The context is made with
 /// `SWS_BITEXACT | SWS_ACCURATE_RND`, which turns off the SIMD paths whose
 /// rounding differs between CPUs. The cost is a slower conversion. What it buys
-/// is a golden of a decoded frame that holds on x64 and on ARM (§7, S5), which
+/// is a golden of a decoded frame that holds on x64 and on ARM, which
 /// the software decoders already guarantee for their half.
 ///
 /// The picture's colour is honoured: the matrix and range it was tagged with

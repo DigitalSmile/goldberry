@@ -14,7 +14,8 @@ import dev.goldberry.css.value.Shadow;
 import dev.goldberry.layout.Insets;
 import dev.goldberry.layout.Length;
 
-/// `box-shadow`, in pixels — ADR-0310.
+/// `box-shadow`, in pixels: a shadow is a stack of rounded rectangles, each a
+/// little larger and fainter than the last.
 ///
 /// [dev.goldberry.paint.shadow.ShadowRampTest] checks the
 /// alphas and
@@ -129,8 +130,9 @@ class ShadowPaintTest {
     @Test
     @DisplayName("a translucent box does not show its own shadow through itself")
     void throughATranslucentBox() {
-        // The deviation ADR-0310 recorded and ADR-0427 removed. CSS knocks the
-        // border box out of an outer shadow, and until a fill rule was on the
+        // A deviation from CSS the first shadow painter had, since removed. CSS
+        // knocks the border box out of an outer shadow, and until a fill rule was
+        // on the
         // export list the toolkit could not: it painted the whole shape and
         // relied on the box covering it, so a half-transparent box came out
         // darker than its colour alone. This test used to assert exactly that,

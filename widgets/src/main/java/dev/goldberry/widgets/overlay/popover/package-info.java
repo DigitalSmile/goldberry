@@ -1,14 +1,13 @@
-/// `@NullMarked`, which puts this package under NullAway.
+/// Popovers: the floating panel a popup draws, and the surface under menus,
+/// dropdowns and pickers.
 ///
-/// Inside a marked package every type is non-null unless it says `@Nullable`,
-/// and the build fails on a violation. The annotation is the whole content of
-/// this file: there is nothing package-specific to say about nullness, and a
-/// paragraph pretending otherwise in every package would be padding.
+/// [dev.goldberry.widgets.overlay.popover.Popover] is the panel and nothing
+/// else: where it goes and when it goes away is the host's popup facility,
+/// which serves a tooltip, a select and a menu equally.
 ///
-/// Packages are marked one at a time on purpose. NullAway runs in
-/// `OnlyNullMarked` mode, so an unmarked package is invisible to it and a marked
-/// one is checked from the moment it opts in — which is the only way a codebase
-/// this size adopts nullness at all (`docs/testing.md` §2).
+/// Null-marked: every reference is non-null unless it says `@Nullable`.
+///
+/// Read more: [Overlays](https://goldberry.dev/docs/components/overlays.html#popover).
 @NullMarked
 package dev.goldberry.widgets.overlay.popover;
 

@@ -5,6 +5,8 @@ package dev.goldberry.natives.sdl;
 /// SDL3 encodes a version as one `int` — `SDL_VERSIONNUM(major, minor, patch)` —
 /// rather than SDL2's struct out-parameter, which is why this crosses the
 /// boundary as a plain `int` and is decoded here.
+///
+/// Read more: [The native boundary](https://goldberry.dev/docs/overview/architecture.html#the-native-boundary).
 public record SdlVersion(int major, int minor, int patch) implements Comparable<SdlVersion> {
 
     /// The encoding in `SDL3/SDL_version.h`:

@@ -108,7 +108,7 @@ final class HarfBuzz {
     ///
     /// It is also the scale HarfBuzz reports advances in when nothing has set
     /// one, which is what makes it the number the Blend2D side has to agree
-    /// with (ADR-0034). Commonly 1000 for a PostScript-flavoured face and 2048
+    /// with. Commonly 1000 for a PostScript-flavoured face and 2048
     /// for a TrueType one, and free to be anything.
     int faceUpem(MemorySegment face) {
         return fontCalls.faceGetUpem().call(face);

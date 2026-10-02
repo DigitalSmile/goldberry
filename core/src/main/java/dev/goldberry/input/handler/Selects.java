@@ -5,12 +5,10 @@ import dev.goldberry.widget.Widget;
 /// A widget that makes itself the subject of a context menu about to open over
 /// it.
 ///
-/// Every file manager selects the row you right-click before it opens the menu,
-/// and until this existed that was the application's to do in its own handler —
-/// because the toolkit had no notion of what "select" means for an arbitrary
-/// widget. It still has none. What it has instead is a **widget that knows**: a
-/// row in a list or a tree can say what selecting it means, and nothing else has
-/// to (ADR-0224).
+/// Every file manager selects the row you right-click before it opens the menu.
+/// The toolkit has no notion of what "select" means for an arbitrary widget, so
+/// it asks a **widget that knows**: a row in a list or a tree can say what
+/// selecting it means, and nothing else has to.
 ///
 /// ## Who is asked
 ///
@@ -24,7 +22,7 @@ import dev.goldberry.widget.Widget;
 /// that named none does nothing at all, and a selection that changed without a
 /// menu to show for it would be a gesture with no visible cause.
 ///
-/// The **same walk** serves the keyboard's menu key (ADR-0208), so `Menu` on a
+/// The **same walk** serves the keyboard's menu key, so `Menu` on a
 /// focused-but-unselected row selects it too. That is the same rule seen from the
 /// other input device — the menu acts on what it opened over — and a bar that
 /// disagreed with the pointer about it would be worse than either behaviour.
@@ -40,7 +38,9 @@ import dev.goldberry.widget.Widget;
 ///
 /// Like everything else that reports a gesture, this **asks** rather than
 /// selects: the selection is the application's value, and what a row does here is
-/// report through the same callback a click reports through (ADR-0063).
+/// report through the same callback a click reports through.
+///
+/// Read more: [Input and focus](https://goldberry.dev/docs/guide/input.html#context-menus).
 public interface Selects extends Widget {
 
     /// Asked to become the subject of a context menu that is about to open.

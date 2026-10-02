@@ -16,6 +16,8 @@ import dev.goldberry.log.bridge.NativeLogLevel;
 /// things, and SDL decides for itself what to emit — the bridge is not what
 /// filters it. The two joins are at the ends, where SDL has one rung more than
 /// SLF4J does at each.
+///
+/// Read more: [The native boundary](https://goldberry.dev/docs/overview/architecture.html#the-native-boundary).
 public enum SdlLogPriority {
 
     /// `SDL_LOG_PRIORITY_INVALID`. Never emitted; an argument SDL rejects.

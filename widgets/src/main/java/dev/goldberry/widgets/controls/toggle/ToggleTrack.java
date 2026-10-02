@@ -9,15 +9,14 @@ import dev.goldberry.widget.Widget;
 import dev.goldberry.widget.style.Paints;
 import dev.goldberry.widget.style.Styled;
 
-/// The 36×20 pill the thumb slides in — a **part** of [Toggle], and the fifth.
+/// The 36×20 pill the thumb slides in — a **part** of [Toggle].
 ///
-/// Same argument as `CheckIndicator`, made a third time: a toggle has two
-/// surfaces a theme must style separately — the row that holds the label and is
-/// the hit target, and the pill that turns accent-coloured when on — and one
-/// [ComputedStyle] carries one background. It is also CSS-selectable and
-/// deliberately **not** KDL-constructible, because a `toggle-track` outside a
-/// `toggle` is a pill that means nothing
-/// (ADR-0065).
+/// Same argument as `CheckIndicator`: a toggle has two surfaces a theme must
+/// style separately — the row that holds the label and is the hit target, and
+/// the pill that turns accent-coloured when on — and one [ComputedStyle]
+/// carries one background. It is CSS-selectable and deliberately **not**
+/// KDL-constructible, because a `toggle-track` outside a `toggle` is a pill
+/// that means nothing.
 ///
 /// It is the node `:checked` is mirrored onto rather than [Toggle] alone, which
 /// is what lets the stylesheet write `toggle-track:checked toggle-thumb` and move

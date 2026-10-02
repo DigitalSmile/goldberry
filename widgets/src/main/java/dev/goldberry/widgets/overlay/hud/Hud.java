@@ -16,8 +16,8 @@ import dev.goldberry.kdl.KdlNode;
 import dev.goldberry.widgets.markup.Wiring;
 import dev.goldberry.widgets.markup.Markup;
 
-/// What the frame loop is doing, on top of the window it is doing it to —
-/// `docs/core-widgets.md` §7's `hud`.
+/// What the frame loop is doing, on top of the window it is doing it to: the
+/// rate, the paint time, and where the time went.
 ///
 /// ```kdl
 /// hud
@@ -32,9 +32,9 @@ import dev.goldberry.widgets.markup.Markup;
 ///
 /// A frame-rate display that asked for a frame so it could show a fresh number
 /// would be measuring itself: the window would never idle, the rate would read a
-/// steady 60 whatever the application was doing, and
-/// `docs/design-system.md` §1.7's "the frame loop is fully idle when no animation
-/// is active" would be false for every window with a HUD in the corner. So this
+/// steady 60 whatever the application was doing, and the promise that the
+/// frame loop is fully idle when no animation is active
+/// would be false for every window with a HUD in the corner. So this
 /// widget never calls `repaint`. It draws the numbers as of the frame it is being
 /// drawn in, and when the loop goes quiet they stop moving with it — which is not
 /// a stale reading but the correct one, because the rate of a loop drawing
@@ -57,6 +57,8 @@ import dev.goldberry.widgets.markup.Markup;
 /// [dev.goldberry.paint.Layer] — draws dashes rather than zeroes. A
 /// zero is a measurement.
 ///
+/// Read more: [Overlays](https://goldberry.dev/docs/components/overlays.html#hud).
+///
 /// @param readings   which readings to show, in order. Never empty
 /// @param attributes `id` and `class`, exactly as on the primitives
 @Markup("hud")
@@ -74,31 +76,29 @@ public record Hud(List<Reading> readings, Attributes attributes)
     /// The rate, what the display can do, the toolkit's total, and where that
     /// total went — `hud readings="stages"` and what the showcase turns on.
     ///
-    /// `display` rather than the frame interval it replaced. The interval was
-    /// counted between frames, and §1.7 makes the loop idle when nothing asks for
-    /// one — so it measured how long the user had not touched the window and read
+    /// The display's refresh rather than an interval counted between frames. The
+    /// loop idles when nothing asks for a frame, so a counted interval would
+    /// measure how long the user had not touched the window and read
     /// as a stall every time they stopped. What is worth knowing is what one
     /// frame of *this display* is, because that is what every budget below is a
-    /// share of (ADR-0153).
+    /// share of.
     ///
     /// [Reading#LATE] is in the list and is not a stage: it is the frames that
     /// did not happen, which is the one thing a breakdown of the frames that did
-    /// can never account for ([ADR-0271]).
+    /// can never account for.
     ///
     /// Four stages rather than "everything a frame does": the hit-test capture and
     /// the frame's own setup are in [Reading#PAINT] and not in any of these, so
     /// the four do not add up to the total and are not meant to. What they are for
     /// is telling *which* of the four moved, which is the question a total cannot
-    /// answer — and which went unanswered for a month while the cascade was
-    /// running uncached (ADR-0142,
-    /// ADR-0146).
+    /// answer: a style cache that has quietly stopped working shows up here and
+    /// nowhere else on screen.
     public static final List<Reading> STAGES = List.of(
             Reading.FPS, Reading.REFRESH, Reading.LATE, Reading.PAINT,
             Reading.BUILD, Reading.STYLE, Reading.LAYOUT, Reading.RASTER);
 
     /// The rate, what the display can do, the toolkit's paint, and where a
-    /// composited window's present went: `hud readings="present"`
-    /// (`docs/gpu-plan.md`, phase 3; ADR-0479).
+    /// composited window's present went: `hud readings="present"`.
     ///
     /// Separate from [#STAGES] rather than added to it: on a window presenting
     /// through its surface the three present readings are dashes, and the
@@ -120,7 +120,7 @@ public record Hud(List<Reading> readings, Attributes attributes)
         this(DEFAULT, Attributes.NONE);
     }
 
-    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    /// Written out so that the parameters taking null for a default can say so.
     public Hud(@Nullable List<Reading> readings, @Nullable Attributes attributes) {
         readings = List.copyOf(readings == null || readings.isEmpty() ? DEFAULT : readings);
         attributes = attributes == null ? Attributes.NONE : attributes;
@@ -154,13 +154,12 @@ public record Hud(List<Reading> readings, Attributes attributes)
     /// Parts rather than one text run with separators in it, because each is a
     /// different measurement and a stylesheet should be able to say so — dim the
     /// units, colour a paint time that has run out of budget. A single paragraph
-    /// could carry none of that (ADR-0065).
+    /// could carry none of that.
     ///
     /// The caption exists because every number here is a **mean over the last
-    /// sixty frames** and nothing said so: `paint 2.1 ms` reads as "this frame"
+    /// sixty frames** and nothing else says so: `paint 2.1 ms` reads as "this frame"
     /// and is not, which makes a spike look like a plateau and a plateau look
-    /// like a spike
-    /// (ADR-0150).
+    /// like a spike.
     @Override
     public List<Widget> children() {
         var parts = new java.util.ArrayList<Widget>(readings.size() + 1);
@@ -178,7 +177,7 @@ public record Hud(List<Reading> readings, Attributes attributes)
 
     /// Builds a `hud` from markup.
     ///
-    /// §7's first overlay, and the only widget in the catalog that reads
+    /// The only widget in the catalog that reads
     /// something about the frame loop rather than about a model. Nothing to bind
     /// and nothing to resolve: what it shows arrives on the render context, so a
     /// document writes `hud` and is done.
@@ -196,7 +195,7 @@ public record Hud(List<Reading> readings, Attributes attributes)
         }
         // One name for the whole breakdown, because `readings="fps paint build
         // style layout raster"` is the list nobody wants to type and the one
-        // everybody wants when a frame has gone wrong (ADR-0146).
+        // everybody wants when a frame has gone wrong.
         if ("stages".equals(value.trim())) {
             return STAGES;
         }

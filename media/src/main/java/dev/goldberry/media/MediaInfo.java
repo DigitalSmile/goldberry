@@ -19,6 +19,8 @@ import dev.goldberry.media.io.Source;
 /// @param live     whether the source is live, such as an internet radio
 ///                 station: it has only a "now", and a player shows `LIVE` for it
 ///                 ([dev.goldberry.media.io.MediaIO#isLive()])
+///
+/// Read more: [A player](https://goldberry.dev/docs/components/media.html#a-player).
 public record MediaInfo(
         Source source, Optional<Duration> duration, List<Track> tracks, boolean seekable, boolean live) {
 

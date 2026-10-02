@@ -15,7 +15,7 @@ import org.junit.jupiter.api.Test;
 
 import dev.goldberry.natives.NativeLibraryRequirement;
 
-/// What the six new symbols actually put in the buffer (ADR-0207).
+/// What the six gradient symbols actually put in the buffer.
 ///
 /// Every assertion is a pixel a reader can work out by hand, for
 /// [BlendPaintTest]'s reason and one more that is specific to a ramp: the two
@@ -24,8 +24,8 @@ import dev.goldberry.natives.NativeLibraryRequirement;
 /// renders and looks nearly right. Neither produces an error.
 class BlendGradientTest {
 
-    /// A slot-1 green from `charts.md` §2.1's dark palette, which is the colour
-    /// an area chart's first band is actually drawn in.
+    /// A slot-1 green from the dark chart palette, which is the colour an area
+    /// chart's first band is actually drawn in.
     private static final int GREEN = 0xFF73A340;
 
     @BeforeAll

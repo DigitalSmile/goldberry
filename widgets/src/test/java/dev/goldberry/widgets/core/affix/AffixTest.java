@@ -36,8 +36,9 @@ import dev.goldberry.widgets.core.scroll.Scroll;
 import dev.goldberry.widgets.core.scroll.ScrollAxis;
 import dev.goldberry.widgets.text.Text;
 
-/// `affix` — a child pinned to an edge of the nearest `scroll`
-/// (ADR-0119).
+/// `affix` — a child pinned to an edge of the nearest `scroll`.
+///
+/// Read more: [Affix](https://goldberry.dev/docs/layout/affix.html).
 ///
 /// Like `scroll`'s tests, every one of these needs a **painted frame**: the whole
 /// widget is a comparison between two rectangles that do not exist until Yoga has
@@ -185,7 +186,7 @@ class AffixTest {
         return new Scroll(List.of(new Column(sections.toArray(Widget[]::new))), ScrollAxis.VERTICAL, Attributes.NONE);
     }
 
-    /// CSS's sticky rule: an affix never leaves the box it is in ([ADR-0360]).
+    /// CSS's sticky rule: an affix never leaves the box it is in.
     @Nested
     @DisplayName("inside a section")
     class InsideASection {
@@ -304,7 +305,8 @@ class AffixTest {
             var scrolledHole = harness.holeTop();
             harness.wheel(-6);
 
-            // §1's promise. The hole travels with the document -- it *is* part of
+            // The affix's promise: the child keeps its place in layout. The hole
+            // travels with the document -- it *is* part of
             // the document -- and comes back to precisely where it started, which
             // is what says the affix never took space from it.
             assertTrue(scrolledHole < restingHole, "the hole did not travel");
@@ -405,7 +407,7 @@ class AffixTest {
         @Test
         @DisplayName("an affix with nothing above it pins to the window and never lifts")
         void pinsToTheWindow() {
-            // §1 defines the widget against "the nearest `scroll`", and the router
+            // The widget pins to the nearest `scroll`, and the router
             // answers the window when nothing clips -- so this is well-defined
             // rather than a special case, and a toolbar at the top of a page is
             // simply never past the edge.

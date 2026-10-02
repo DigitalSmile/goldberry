@@ -293,7 +293,7 @@ public record SdlClipboardCalls(
     /// both, and a string the caller frees with [SdlClipboardCalls.Free]. Where
     /// the video driver has no primary selection SDL answers from a buffer of its
     /// own in this process, which is why `:core` asks which driver it is on
-    /// before it offers this to anybody (ADR-0504).
+    /// before it offers this to anybody.
     ///
     /// `char* SDL_GetPrimarySelectionText(void)`
     public static final class GetPrimarySelectionText {

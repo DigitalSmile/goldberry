@@ -21,7 +21,7 @@ import dev.goldberry.widget.semantics.Semantics;
 import dev.goldberry.widget.style.Paints;
 import dev.goldberry.widget.style.Styled;
 
-/// §4's "saturation/value plane" — `color-plane`, a **part**.
+/// The saturation/value plane — `color-plane`, a **part**.
 ///
 /// ## Three fills and no per-pixel loop
 ///
@@ -30,8 +30,7 @@ import dev.goldberry.widget.style.Styled;
 /// of what the alternative costs: a 200×160 plane is 32,000 pixels, and computing
 /// each of them in Java once a frame is a colour picker that makes the frame
 /// budget its problem. Three `fillPath`s with two linear gradients is Blend2D's
-/// problem instead, which is the argument `content-widgets.md` §3 makes for
-/// building charts on `canvas`.
+/// problem instead, which is the argument for building charts on `canvas`.
 ///
 /// The order matters and is not interchangeable: white *then* black. Saturation
 /// is a wash towards white and value is a wash towards black, and black over a
@@ -39,16 +38,16 @@ import dev.goldberry.widget.style.Styled;
 ///
 /// ## It is focusable, and it is the one thing in the popover that is
 ///
-/// §4 gives this control "arrows move the plane cursor by 1, `Shift`+arrows by
-/// 10" and gives the popover nothing else to focus. The sliders are dragged and
+/// Arrows move the plane cursor by 1 and `Shift`+arrows by 10, and nothing else
+/// in the popover takes the keyboard. The sliders are dragged and
 /// the hex field is typed into; the plane is the only part with a keyboard of its
 /// own, so it takes the focus rather than the panel around it having to route to
 /// it.
 ///
-/// **By 1 and by 10 of what**, since §4 does not say: of the plane's own 100
-/// steps, so an arrow is one percent of saturation or value and `Shift` is ten.
-/// Points would tie the step to §2's 200×160 and make a themed plane step
-/// differently; percent is what the model is in.
+/// **By 1 and by 10 of what**: of the plane's own 100 steps, so an arrow is one
+/// percent of saturation or value and `Shift` is ten. Points would tie the step
+/// to the default 200×160 and make a themed plane step differently; percent is
+/// what the model is in.
 ///
 /// @param colour   what is chosen, which the cursor sits on
 /// @param onChange told a new saturation and value as the cursor moves
@@ -102,7 +101,7 @@ record ColorPlane(HsvColor colour, PlaneCursor onChange, boolean disabled)
             }
             case MOVED -> {
                 // `dragX()` is NaN when no button is down, which is the router
-                // reporting "no gesture" through the arithmetic (ADR-0075). The
+                // reporting "no gesture" through the arithmetic. The
                 // button is not asked about here, because which one started the
                 // gesture is the press's question.
                 if (!Double.isNaN(event.dragX())) {
@@ -211,7 +210,7 @@ record ColorPlane(HsvColor colour, PlaneCursor onChange, boolean disabled)
         // Two half arcs rather than `Path.circle`, and with the large-arc flag
         // this control has always set: for an exactly-180 degree sweep the two
         // flags describe the same curve, and keeping the one that was here is
-        // what says no golden moved for a reason nobody chose (ADR-0277).
+        // what says no golden moved for a reason nobody chose.
         var ring = Path.builder()
                 .moveTo(x + CURSOR_RADIUS, y)
                 .arcTo(CURSOR_RADIUS, CURSOR_RADIUS, 0, true, true, x - CURSOR_RADIUS, y)

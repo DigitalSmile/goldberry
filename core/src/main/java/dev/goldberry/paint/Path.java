@@ -16,26 +16,21 @@ import dev.goldberry.render.model.LogicalPoint;
 ///
 /// ## Why this exists
 ///
-/// [Frame] could fill a rectangle and nothing else without reaching for the
-/// rasterizer's own path type, so an ellipse, a polyline or an arrowhead forced
-/// an application into `:natives` — a module whose types are not meant to leave
-/// it. Five widgets in this toolkit did exactly that, and so did the first
-/// application built on it. This is the type that closes that (ADR-0277,
-/// `docs/gaps.md` G1).
+/// [Frame] fills and strokes one of these, so an ellipse, a polyline or an
+/// arrowhead never sends an application into `:natives` — a module whose types
+/// are not meant to leave it.
 ///
 /// ## It is a value, and the rasterizer's path is not
 ///
 /// A `BlendPath` is a native allocation with a confined `Arena` and a thread it
 /// belongs to. That is right for a binding and wrong for something a widget
-/// builds in the middle of a paint call: `:core` already worked around it by
-/// pooling one path per paint walk and threading it through the painter's
-/// signature, and `:widgets` did not, so a chart opened up to four arenas every
-/// frame to draw the same four shapes.
+/// builds in the middle of a paint call, where a chart would open four arenas
+/// every frame to draw the same four shapes.
 ///
 /// A `Path` costs two Java arrays. [Frame] keeps a single scratch `BlendPath`
 /// and replays paths into it, so building one allocates no native memory at all
-/// and the pooling nobody remembered to do happens once, in the one place that
-/// can see every drawing call.
+/// and the pooling happens once, in the one place that can see every drawing
+/// call.
 ///
 /// ## Storage, and why it is not a list of records
 ///
@@ -54,6 +49,8 @@ import dev.goldberry.render.model.LogicalPoint;
 /// it is written rather than passed on: Blend2D accepts one and fills the shape
 /// with nothing, which looks exactly like arithmetic that went wrong three
 /// methods earlier.
+///
+/// Read more: [Canvas, images and QR codes](https://goldberry.dev/docs/components/drawing.html#the-painter).
 public final class Path {
 
     /// `4 * (sqrt(2) - 1) / 3` — the control-point distance that best fits a
@@ -62,7 +59,7 @@ public final class Path {
     /// The approximation is good to about one part in 10,000 of the radius over
     /// 90° and an order of magnitude worse over 180°, which is why every sweep
     /// below is cut into quarters rather than drawn as one curve — the difference
-    /// between invisible and visible on a 16px ring (ADR-0050, ADR-0064).
+    /// between invisible and visible on a 16px ring.
     private static final double KAPPA = 0.5522847498307933;
 
     private static final byte MOVE_TO = 0;
@@ -165,8 +162,8 @@ public final class Path {
     ///
     /// One drawing for both cases rather than a rounded path and a square one:
     /// the uniform case emits exactly the point sequence the single-radius
-    /// version always did, which is what says the four corners did not move
-    /// (ADR-0216). A square corner is a `lineTo` into the corner point and no
+    /// version always did, which is what says the four corners did not move.
+    /// A square corner is a `lineTo` into the corner point and no
     /// cubic at all — a degenerate zero-length curve would otherwise be handed to
     /// the rasterizer on every square box in the window.
     ///
@@ -351,8 +348,7 @@ public final class Path {
     /// is an ordinary path, in the coordinates it will be drawn at, which a
     /// painter may fill inside whatever transform the tree has already set. That
     /// is the difference that matters inside a `canvas`, where the frame's matrix
-    /// already holds the canvas's own position and a painter cannot read it back
-    /// (ADR-0390, `docs/gaps.md` G46).
+    /// already holds the canvas's own position and a painter cannot read it back.
     ///
     /// The identity gives back this very path rather than a copy. An arc stays an
     /// arc — see [Transformer] for what that costs.
@@ -393,7 +389,7 @@ public final class Path {
     /// Package-private, and that is the whole point of the class: `BlendPath` is
     /// a `:natives` type, [Frame] is in this package, and so the one place the two
     /// models meet is invisible from outside it. An application holds a `Path`;
-    /// nothing it can name holds a `BlendPath` (ADR-0277).
+    /// nothing it can name holds a `BlendPath`.
     void replayInto(BlendPath path) {
         var at = 0;
         for (var verb : verbs) {

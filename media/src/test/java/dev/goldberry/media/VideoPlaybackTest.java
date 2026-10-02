@@ -51,21 +51,20 @@ import dev.goldberry.media.picture.PictureForm;
 import dev.goldberry.media.picture.VideoPicture;
 import dev.goldberry.media.picture.VideoPlanes;
 
-/// The Engine playing video, end to end against FFmpeg: phase 3's exit criteria
-/// (`docs/goldberry-media.md` §8) and the scenarios they name.
+/// The Engine playing video, end to end against FFmpeg.
 ///
-/// - **S5**, deterministic goldens: the master clock is moved by hand, through
+/// - **Deterministic goldens**: the master clock is moved by hand, through
 ///   a [VirtualSink] where the source has audio and a [MediaClock] where it does
 ///   not, and the picture shown at each time is compared byte for byte.
-/// - **S2**, scrub and release: keyframe seeks while paused show the keyframe,
+/// - **Scrub and release**: keyframe seeks while paused show the keyframe,
 ///   and the accurate seek on release shows the picture that covers the target.
-/// - **S7** is in `CodecFixturesTest`; **S8**, bring your own codec, is here with
-///   a fake H.264 and AAC provider.
-/// - **Track switching** (§6, ADR-0469): `clip-two-angles.mkv` has the VP9 clip
+/// - **An unsupported codec** is in `CodecFixturesTest`; **bring your own
+///   codec** is here with a fake H.264 and AAC provider.
+/// - **Track switching**, over the same frame queue: `clip-two-angles.mkv` has the VP9 clip
 ///   at 160×90 and SMPTE bars in VP8 at 96×54, so which track shows is the
 ///   picture's width.
 ///
-/// - **Planes** (`docs/gpu-plan.md`, D8): with a view that draws planes, the
+/// - **Planes**: with a view that draws planes, the
 ///   pictures are the decoded planes, and swscale converts them to the same
 ///   goldens.
 ///
@@ -292,7 +291,7 @@ class VideoPlaybackTest {
         "clip-av1.mkv, 0",
         "clip-av1.mkv, 400",
     })
-    @DisplayName("shows the same bytes at the same time on the audio clock (S5)")
+    @DisplayName("shows the same bytes at the same time on the audio clock")
     void goldenOnTheAudioClock(String name, int millis) {
         open(name, false);
         await(status -> status.state() == PlaybackState.PLAYING);
@@ -304,7 +303,7 @@ class VideoPlaybackTest {
     }
 
     @Test
-    @DisplayName("times a source with no audio on the MediaClock, and ends when the last picture has had its time (S5)")
+    @DisplayName("times a source with no audio on the MediaClock, and ends when the last picture has had its time")
     void videoOnlyOnAVirtualClock() {
         var now = new AtomicLong(1_000_000_000L);
         open("clip-vp9-10bit.webm", false, now::get, List.of());
@@ -420,7 +419,7 @@ class VideoPlaybackTest {
     }
 
     @Test
-    @DisplayName("scrubbing shows each keyframe, the release shows the target, and play goes on from there (S2)")
+    @DisplayName("scrubbing shows each keyframe, the release shows the target, and play goes on from there")
     void scrubAndRelease() {
         open("clip-vp9.webm", false);
         await(status -> status.state() == PlaybackState.PLAYING);
@@ -533,7 +532,7 @@ class VideoPlaybackTest {
         assertEquals(Optional.of(wide), player.status().videoTrack());
     }
 
-    // ----------------------------------------------- planes (gpu-plan.md, D8)
+    // ------------------------------------------------------------------ planes
 
     @ParameterizedTest(name = "{0} at {1} ms")
     @CsvSource({
@@ -704,7 +703,7 @@ class VideoPlaybackTest {
     }
 
     @Test
-    @DisplayName("a provider decodes a codec the natives do not build, and the Engine presents it unchanged (S8)")
+    @DisplayName("a provider decodes a codec the natives do not build, and the Engine presents it unchanged")
     void bringYourOwnCodec() {
         open("clip-h264-aac.mp4", true, MediaClock.system(), List.of(new FakeProvider(Integer.MAX_VALUE)));
         var ended = await(status -> status.state() == PlaybackState.ENDED);
@@ -720,7 +719,7 @@ class VideoPlaybackTest {
     }
 
     @Test
-    @DisplayName("a provider failing mid-stream, with nothing after it, is UnsupportedCodec naming the codec (S8)")
+    @DisplayName("a provider failing mid-stream, with nothing after it, is UnsupportedCodec naming the codec")
     void providerFailsMidStream() {
         open("clip-h264-aac.mp4", false, MediaClock.system(), List.of(new FakeProvider(3)));
         var failed = await(status -> status.state() == PlaybackState.ERROR);

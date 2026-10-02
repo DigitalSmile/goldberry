@@ -12,7 +12,8 @@ import dev.goldberry.RendererRequirement;
 import dev.goldberry.image.Image;
 import dev.goldberry.render.model.PhysicalRect;
 
-/// `Frame.drawImage` — ADR-0283.
+/// `Frame.drawImage`: an image is a value, and a blit of one puts its pixels
+/// where the caller said.
 ///
 /// Not a golden image, for [LayerTest]'s reason: what matters here is *which*
 /// pixels move where, and a picture of a blit says only that something was drawn.
@@ -63,7 +64,7 @@ class DrawImageTest {
     @Test
     @DisplayName("at 200% the natural size is half as many logical units, and still crisp")
     void naturalSizeFollowsTheDisplayScale() {
-        // The bug ADR-0157 found in layers, asked of images: a 2x2 image drawn at
+        // The bug a layer blitted at the wrong size had, asked of images: a 2x2 image drawn at
         // "natural size" on a 2x display must cover two DEVICE pixels, which is one
         // logical unit -- not two logical units, which would be four device pixels
         // of interpolated mush.
@@ -194,7 +195,7 @@ class DrawImageTest {
     void drawsTheSameImageTwice() {
         // The practical difference between a value and a handle: nothing here is
         // closed, borrowed or invalidated, so a cached image is drawn every frame
-        // for the life of the application (ADR-0283).
+        // for the life of the application.
         var image = quadrants();
         target.frame().drawImage(image, 0, 0);
         target.frame().drawImage(image, 10, 10);

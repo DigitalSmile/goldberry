@@ -13,8 +13,8 @@ import dev.goldberry.widget.attr.Attributes;
 import dev.goldberry.widgets.markup.Markup;
 import dev.goldberry.widgets.markup.Wiring;
 
-/// The path to here — `docs/core-widgets.md` §6's `breadcrumbs`, and the first
-/// widget of the `nav` package.
+/// The path to here: a row of crumbs, each a way back up the path, with the
+/// last one where you are.
 ///
 /// ```kdl
 /// breadcrumbs {
@@ -27,13 +27,12 @@ import dev.goldberry.widgets.markup.Wiring;
 ///
 /// ## The last crumb is where you are, and it is not a link
 ///
-/// §6 says so and it is the one rule a trail cannot get wrong: a current page
+/// It is the one rule a trail cannot get wrong: a current page
 /// that looked pressable would invite a click that reloads what is already on
 /// screen. So the **trail** decides which crumb is current — the last one — and
 /// writes it down on every build, exactly as a `tabs` tells a `tab` that it is
 /// selected. A document cannot say otherwise, because a document that marked two
-/// crumbs current, or none, would break the only invariant this widget holds
-/// (ADR-0306).
+/// crumbs current, or none, would break the only invariant this widget holds.
 ///
 /// A current crumb is not focusable and raises nothing, whatever `press=` it was
 /// written with. That is a deliberate silent demotion rather than a refusal: a
@@ -43,9 +42,9 @@ import dev.goldberry.widgets.markup.Wiring;
 ///
 /// ## Overflow is a menu, not an ellipsis inside a word
 ///
-/// §6: "Overflow collapses the middle into a `…` that opens a `menu` of the
-/// hidden crumbs, rather than eliding characters — a truncated folder name is
-/// worse than a hidden one, because it looks like a name."
+/// Overflow collapses the middle into a `…` that opens a `menu` of the hidden
+/// crumbs, rather than eliding characters: a truncated folder name is worse
+/// than a hidden one, because it looks like a name.
 ///
 /// So past [#collapseAfter] crumbs the trail shows the **first**, a `…`, and the
 /// last `collapseAfter - 2` — which keeps the number of things on the row at
@@ -64,14 +63,15 @@ import dev.goldberry.widgets.markup.Wiring;
 /// [dev.goldberry.widgets.panel.tabs.Tabs]'s arrangement and
 /// its reason: a stateful widget that was also styled would put two `breadcrumbs`
 /// nodes in the cascade, one inside the other, and every rule in `controls.css`
-/// would apply to both — a doubled padding and a doubled height waiting to happen
-/// (ADR-0109).
+/// would apply to both — a doubled padding and a doubled height waiting to happen.
+///
+/// Read more: [Navigation](https://goldberry.dev/docs/components/navigation.html#breadcrumbs).
 ///
 /// @param children      the crumbs, as written. Anything that is not a [Crumb] is
 ///                      drawn in the row and left alone, which is how a `badge`
 ///                      or a `spacer` gets into a trail
 /// @param collapseAfter how many things the row may hold before the middle
-///                      collapses — §3's "overflow menu after 4 crumbs". Zero or
+///                      collapses; four, unless told otherwise. Zero or
 ///                      less means never collapse, which is what a trail in a
 ///                      window with room to spare wants
 /// @param attributes    `id` and `class`, exactly as on every other widget
@@ -79,7 +79,7 @@ import dev.goldberry.widgets.markup.Wiring;
 public record Breadcrumbs(List<Widget> children, int collapseAfter, Attributes attributes)
         implements Widget.Stateful, Attributed<Breadcrumbs> {
 
-    /// §3's `breadcrumbs` row: "overflow menu after 4 crumbs".
+    /// How many things a row holds before its middle collapses into a menu.
     ///
     /// Four and not three because three is `Home … Here`, which has collapsed a
     /// single crumb into a control that is the same width — a menu that saves
@@ -95,7 +95,7 @@ public record Breadcrumbs(List<Widget> children, int collapseAfter, Attributes a
     /// rather than stop the window opening.
     static final int MINIMUM_COLLAPSE_AFTER = 3;
 
-    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    /// Written out so that the parameters taking null for a default can say so.
     public Breadcrumbs(@Nullable List<Widget> children, int collapseAfter, @Nullable Attributes attributes) {
         children = List.copyOf(children == null ? List.of() : children);
         attributes = attributes == null ? Attributes.NONE : attributes;
@@ -104,7 +104,7 @@ public record Breadcrumbs(List<Widget> children, int collapseAfter, Attributes a
         this.attributes = attributes;
     }
 
-    /// A trail of crumbs, collapsing at §3's four.
+    /// A trail of crumbs, collapsing at four.
     public Breadcrumbs(Widget... children) {
         this(List.of(children), DEFAULT_COLLAPSE_AFTER, Attributes.NONE);
     }

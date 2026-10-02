@@ -9,10 +9,10 @@ import dev.goldberry.widget.Widget;
 import dev.goldberry.widget.style.Paints;
 import dev.goldberry.widget.style.Styled;
 
-/// Half a code — `code-group`, a **part**, and the whole of how §2's "group gap
-/// 16 at the midpoint when `length` is even" is drawn.
+/// Half a code — `code-group`, a **part**, and the whole of how the group gap of
+/// 16 at the midpoint of an even `length` is drawn.
 ///
-/// §8's selector subset has no `:nth-child`, so nothing in a stylesheet can say
+/// The CSS subset's selectors have no `:nth-child`, so nothing in a stylesheet can say
 /// "a wider gap after the third box". The alternatives were a zero-width spacer
 /// between the halves — which turns one 8-point gap into two and arrives at 16 by
 /// an arithmetic nobody reading the CSS would see — or this: the boxes are in
@@ -20,8 +20,10 @@ import dev.goldberry.widget.style.Styled;
 /// are written where they are read.
 ///
 /// A code with an **odd** length is one group, so the outer gap never applies and
-/// the row is the flat one §2 describes. That is the same tree either way, which
-/// is what keeps the stylesheet from having to know which case it is looking at.
+/// the row is the flat one the metrics describe. That is the same tree either way,
+/// which is what keeps the stylesheet from having to know which case it is looking at.
+///
+/// Read more: [Fields and forms](https://goldberry.dev/docs/components/forms.html#code-input).
 ///
 /// @param boxes the boxes in this half, in order
 public record CodeGroup(List<Widget> boxes) implements Widget.Leaf, Styled, Paints {

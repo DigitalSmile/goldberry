@@ -29,7 +29,7 @@ import dev.goldberry.text.font.sfnt.SyntheticFont;
 import dev.goldberry.text.font.sfnt.SyntheticFont.Line;
 import dev.goldberry.text.font.sfnt.SyntheticFont.Stop;
 
-/// A `COLR` version 1 graph, drawn — [ADR-0456].
+/// A `COLR` version 1 paint graph, drawn: the path the emoji face takes to pixels.
 ///
 /// `:core` ships no colour face, so these tests make one: Inter's own tables,
 /// with a `COLR` and a `CPAL` spliced in that give its `H` a paint graph. The

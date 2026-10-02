@@ -22,17 +22,16 @@ import dev.goldberry.widget.WidgetRenderer;
 /// A widget tree in a platform window of its own — a menu, a dropdown, a
 /// tooltip.
 ///
-/// The widget layer over [BackendPopup]
-/// (ADR-0102),
-/// and the answer to the one thing the in-window overlay layer cannot do: leave
-/// the window. A dropdown near the bottom of a window is routinely taller than
-/// the space below its button, and clipped to the window a nine-item list shows
-/// four (ADR-0100).
-///
 /// ```java
 /// host.popup(menu(), LogicalPoint.of(24, 120), LogicalSize.of(180, 132))
 ///     .ifPresent(open -> this.menu = open);
 /// ```
+///
+/// Opened by [Host#popup], which answers empty where the platform has no popup
+/// windows. The widget layer over [BackendPopup], and the answer to the one
+/// thing an in-window [Overlay] cannot do: leave the window. A dropdown near the
+/// bottom of a window is routinely taller than the space below its button, and
+/// clipped to the window a nine-item list shows four.
 ///
 /// ## It has trees of its own
 ///
@@ -51,13 +50,15 @@ import dev.goldberry.widget.WidgetRenderer;
 /// ## Light dismissal
 ///
 /// On by default: a press anywhere in the owner window, or `Escape`, closes the
-/// popup. That is `docs/core-widgets.md` §7's rule for a `popover`, and it is
-/// here rather than in a widget because it needs input the owner window's router
-/// deliberately does not deliver — a press on *nothing* dispatches to nothing,
-/// and light dismissal is exactly the case where nothing was hit.
+/// popup. It is here rather than in a widget because it needs input the owner
+/// window's router deliberately does not deliver: a press on *nothing*
+/// dispatches to nothing, and light dismissal is exactly the case where nothing
+/// was hit.
 ///
 /// Confined to the UI thread, and closed either by [#close()] or by the window
 /// that owns it going away.
+///
+/// Read more: [Overlays and popups](https://goldberry.dev/docs/guide/windows.html#overlays-and-popups).
 public final class Popup implements AutoCloseable {
 
     private static final Logger LOG = LoggerFactory.getLogger(Popup.class);
@@ -101,7 +102,7 @@ public final class Popup implements AutoCloseable {
         this.tree = Objects.requireNonNull(tree, "tree");
         // A popup's tree paints into a popup's window, exactly as the owner's
         // does into its own — a `setState` in a menu item is as much a reason for
-        // a frame as one in the application (ADR-0122).
+        // a frame as one in the application.
         tree.onDirty(window::repaint);
         this.render = Objects.requireNonNull(render, "render");
         this.router = new PointerRouter();
@@ -157,8 +158,7 @@ public final class Popup implements AutoCloseable {
                     && element.widget() instanceof dev.goldberry.widget.style.Styled styled
                     && id.equals(styled.id())) {
                 // Where the item was **painted**, which for a menu tall enough
-                // to scroll is not where it was laid out ([ADR-0118],
-                // [ADR-0270]).
+                // to scroll is not where it was laid out.
                 var bounds = region.painted();
                 return java.util.Optional.of(
                         bounds.offsetBy(backend.offset().x(), backend.offset().y()));
@@ -173,7 +173,7 @@ public final class Popup implements AutoCloseable {
     /// which is what a submenu is placed beside. The difference is the panel's
     /// padding and its border — an item's right edge is a few pixels inside the
     /// menu's, so a submenu anchored to the item overlaps the border of the menu
-    /// it came from (ADR-0113).
+    /// it came from.
     public LogicalRect bounds() {
         return new LogicalRect(backend.offset(), window.size());
     }
@@ -193,7 +193,7 @@ public final class Popup implements AutoCloseable {
         // The tree did not change and the pixels did not either, but every
         // rectangle a [dev.goldberry.input.handler.Located]
         // widget in here was told is now in the wrong place. A frame is the thing
-        // that re-reports them ([ADR-0320]).
+        // that re-reports them.
         window.repaint();
     }
 
@@ -221,15 +221,16 @@ public final class Popup implements AutoCloseable {
         return lightDismiss;
     }
 
+    /// Whether this popup is still showing: not closed here, and not taken away
+    /// by the platform.
     public boolean isOpen() {
         return !closed && backend.isOpen();
     }
 
     /// Shows this popup something new, without closing it.
     ///
-    /// A `select multiple` is what needed it: its list stays open while values
-    /// are picked, so the rows have to follow a model that moves under them
-    /// (ADR-0182).
+    /// What a `select multiple` needs: its list stays open while values are
+    /// picked, so the rows have to follow a model that moves under them.
     /// Reconciled from the root rather than rebuilt, so the keyboard keeps its
     /// place and nothing flickers.
     ///
@@ -246,13 +247,11 @@ public final class Popup implements AutoCloseable {
 
     /// Measures what the tree now describes and asks the window for that size.
     ///
-    /// **A popup was measured once, when it opened, and never again.** For a menu
-    /// that is right — its content does not change. For the two things that now
-    /// re-describe themselves it was a bug with no workaround: a `tree` whose
-    /// branch expanded drew its new rows into a window still the height of the
-    /// collapsed one, so they were simply not there, and no viewport appeared
-    /// either because the fit that would have added one runs at open time
-    /// (ADR-0186).
+    /// A popup is measured when it opens, and a menu never needs measuring again
+    /// because its content does not change. A panel that re-describes itself
+    /// does: a `tree` whose branch expands would otherwise draw its new rows into
+    /// a window still the height of the collapsed one, and no viewport would
+    /// appear either, because the fit that adds one runs at open time.
     ///
     /// The fit is re-applied with the measurement, which is what puts the
     /// viewport in when the content outgrows the screen rather than only when it
@@ -319,8 +318,7 @@ public final class Popup implements AutoCloseable {
     /// One frame of this popup, painted by the same renderer as its owner.
     private void paint(Frame frame) {
         // Before the flush, for `Launcher`'s reason: a build may ask the cascade
-        // about a custom property, and a build runs before the frame it produces
-        // (ADR-0254).
+        // about a custom property, and a build runs before the frame it produces.
         renderer.get().prepare(tree);
         if (tree.needsBuild()) {
             tree.flush();
@@ -328,10 +326,9 @@ public final class Popup implements AutoCloseable {
             // anything outside it knowing: a `tree` expanding a branch is a
             // `setState` in the popup's *own* tree, which flushes here and never
             // reaches the widget that opened the popup. Measuring only in
-            // `content` therefore missed exactly the case that needed it — the
-            // new rows were drawn into a window still the height of the
-            // collapsed one
-            // (ADR-0187).
+            // `content` would miss exactly the case that needs it, and the new
+            // rows would be drawn into a window still the height of the
+            // collapsed one.
             resizeToContent();
         }
         var current = renderer.get();
@@ -349,8 +346,8 @@ public final class Popup implements AutoCloseable {
                 LogicalRect.of(0, 0, frame.size().width(), frame.size().height()));
         // Before the regions, because that call is what notifies every [Located]
         // widget in this popup, and what they are owed is a rectangle in the
-        // *owner* window's space — the space a popover would be placed in
-        // (`docs/gaps.md` G28, [ADR-0320]). Set every frame rather than once,
+        // *owner* window's space — the space a popover would be placed in.
+        // Set every frame rather than once,
         // because a popup moves: a popover following a scrolling anchor is moved
         // rather than closed and reopened.
         router.locationOrigin(backend.offset());
@@ -369,7 +366,7 @@ public final class Popup implements AutoCloseable {
     /// A popup may or may not have the platform's keyboard focus — SDL will give
     /// a `POPUP_MENU` window focus on some drivers and not on others, and a
     /// tooltip must never have it. So the owner forwards, and a menu is operable
-    /// by arrows either way ([ADR-0104]).
+    /// by arrows either way.
     ///
     /// @return whether the popup's router did something with it
     boolean handleKey(dev.goldberry.input.key.Key key, dev.goldberry.input.key.Modifiers modifiers, boolean repeat) {
@@ -377,7 +374,7 @@ public final class Popup implements AutoCloseable {
             // A panel is skipped by the forwarding rule, which is the half of
             // [#keyboard(boolean)] the owner cannot enforce for it: the launcher
             // asks each popup, and one that wants no keys declines every one of
-            // them so the window underneath still hears it ([ADR-0319]).
+            // them so the window underneath still hears it.
             return false;
         }
         var handled = router.keyPressed(key, modifiers, repeat);
@@ -394,8 +391,7 @@ public final class Popup implements AutoCloseable {
     /// third option opens a list whose third row is the one an arrow should move
     /// from; starting at the first row makes `Down` mean "go to the second
     /// option" whatever the value was, which is a control that loses the user's
-    /// place every time they open it
-    /// (ADR-0141).
+    /// place every time they open it.
     ///
     /// Called between [Host#popup] returning and the first frame, which is the
     /// only window there is: the focus is placed after that frame, because
@@ -412,8 +408,8 @@ public final class Popup implements AutoCloseable {
 
     /// Focuses the node in this popup's tree carrying `id`, now, if there is one.
     ///
-    /// What [Host#focus] asks each open popup before the window (ADR-0368): a
-    /// widget in a popup is built with the window's host, and a focus request by
+    /// What [Host#focus] asks each open popup before the window: a widget in a
+    /// popup is built with the window's host, and a focus request by
     /// name from inside it has to be able to land in the tree it came from.
     boolean focusById(String id, boolean fromKeyboard) {
         return router.focusById(id, fromKeyboard);
@@ -424,14 +420,12 @@ public final class Popup implements AutoCloseable {
     /// **Off for a popup that hangs off something the user is typing in.** A
     /// suggestion list under a combobox must not take the keyboard: the field is
     /// what is being typed into, and a list that focused its first row on opening
-    /// swallowed the second keystroke and every one after it — which is what "it
-    /// allows only one character and then is disabled" was
-    /// (ADR-0185).
+    /// would swallow the second keystroke and every one after it, so the field
+    /// would take one character and then go dead.
     ///
     /// The arrows still reach it. A popup may or may not have the platform's
-    /// focus either way, so the owner forwards keys to whatever popup is open
-    /// (ADR-0104)
-    /// — which is the mechanism that makes this safe rather than a compromise.
+    /// focus either way, so the owner forwards keys to whatever popup is open,
+    /// which is the mechanism that makes this safe rather than a compromise.
     public Popup takesFocus(boolean value) {
         this.takesFocus = value;
         return this;
@@ -443,8 +437,7 @@ public final class Popup implements AutoCloseable {
     /// menu. On by default.
     ///
     /// [#takesFocus(boolean)] settles only the opening: it stops [#focusFirst],
-    /// and nothing else. This is the whole question, and it is one question
-    /// (`docs/gaps.md` G29, ADR-0319):
+    /// and nothing else. This is the whole question, and it is one question:
     ///
     /// - nothing is focused when it opens, as with `takesFocus(false)`;
     /// - a **press inside it focuses nothing**, so clicking a swatch and then
@@ -456,7 +449,7 @@ public final class Popup implements AutoCloseable {
     ///
     /// **What it is for.** A bar of buttons floating over a canvas somebody is
     /// typing into — a selection's options, a formatting bar, a HUD. That is open
-    /// the whole time something is selected, which is not what ADR-0104's
+    /// the whole time something is selected, which is not what the owner's
     /// forwarding rule was written for: "while a menu is open the keyboard belongs
     /// to it" is right for a menu and wrong for a panel, and a focused `button`
     /// consuming `Enter` is a line the user could not break in the text
@@ -492,7 +485,7 @@ public final class Popup implements AutoCloseable {
     private void focusFirst() {
         // Not "from the keyboard": nobody pressed anything, and a menu whose
         // first row is lit before the user has touched a key looks like a menu
-        // that has already chosen (ADR-0112). The row is focused so that an arrow
+        // that has already chosen. The row is focused so that an arrow
         // has somewhere to start; `:focus-visible` is what draws it, and the
         // first arrow press is what sets that.
         //
@@ -536,7 +529,7 @@ public final class Popup implements AutoCloseable {
     /// @return whether this actually closed. A tooltip answers false — it is
     ///         `lightDismiss(false)` and is dismissed by the pointer leaving —
     ///         which is what lets a caller walking a stack look past it to the
-    ///         menu underneath ([ADR-0233])
+    ///         menu underneath
     boolean dismissedByInput() {
         if (!lightDismiss || !isOpen()) {
             return false;

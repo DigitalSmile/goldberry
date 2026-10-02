@@ -42,7 +42,7 @@ import dev.goldberry.widgets.core.Column;
 /// no popup windows", which is one of the two real answers and the one that
 /// proves nothing crashes. This is the other: a second platform window with a
 /// tree of its own in it, a router of its own hit-testing what it painted, and
-/// the keyboard arriving in it from the window below ([ADR-0141]).
+/// the keyboard arriving in it from the window below.
 ///
 /// Everything here is a **click at a coordinate**, so what is under test is the
 /// shipping path rather than a method call: the router hit-tests the frame, the
@@ -113,7 +113,7 @@ class SelectPopupTest {
 
     /// A select over three themes, controlled the way an application controls
     /// one: the handler writes the property and the property is what the control
-    /// reads back (ADR-0063).
+    /// reads back.
     private static Select themes(Property<String> value, List<String> picked) {
         return Select.of(
                 value,
@@ -141,7 +141,7 @@ class SelectPopupTest {
                     });
                 })));
 
-        assertEquals(1, open[0], "the list escapes the window, which is what §3 asks for");
+        assertEquals(1, open[0], "the list is a popup window, so it can escape the window's bounds");
     }
 
     @Test
@@ -197,12 +197,12 @@ class SelectPopupTest {
         assertEquals(List.of("dim"), picked, "one Down from `dark` is `dim`, not the second row over again");
     }
 
-    /// **An arrow moves and does not choose**, which is the half of §3's keyboard
-    /// that `segmented` does the other way round.
+    /// **An arrow moves and does not choose**, which is the half of the
+    /// catalogue's keyboard that `segmented` does the other way round.
     ///
     /// Three arrows and nothing reported: a list where the arrow chose would also
     /// have closed on the first one, so the second and third would have had
-    /// nothing to move — which is how this was found ([ADR-0141]).
+    /// nothing to move — which is how this was found.
     @Test
     @Timeout(20)
     @DisplayName("arrows move the highlight and choose nothing until Enter")

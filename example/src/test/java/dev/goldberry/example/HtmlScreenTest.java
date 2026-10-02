@@ -43,7 +43,8 @@ import dev.goldberry.widgets.controls.button.Button;
 /// screen nobody has typed into looks the same whether the binding works or was
 /// quietly dropped. The second half is what this screen has and the other does not —
 /// an anchor that a reader can press, whose `href` arrives at a valued action the
-/// document named and no Java in this application wired (ADR-0296, ADR-0298).
+/// document named and no Java in this application wired: a preview is a binding,
+/// not a callback.
 class HtmlScreenTest {
 
     private final Showcase showcase = new Showcase();
@@ -164,7 +165,7 @@ class HtmlScreenTest {
         assertFalse(links.isEmpty(), "the sample page has anchors, and each should be a button.link");
         assertTrue(
                 links.getFirst().attributes().classes().contains("link"),
-                "ADR-0293's variant, so a link in a sentence reads as a link");
+                "an anchor is the button variant that reads as a link; give it the link class");
     }
 
     @Test

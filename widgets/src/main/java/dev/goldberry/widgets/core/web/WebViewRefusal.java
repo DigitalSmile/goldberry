@@ -26,12 +26,14 @@ enum WebViewRefusal {
     /// present but refusing to load. Same on every platform.
     NO_LIBRARY(
             "no web view library is loaded, so no page can be opened. Check that Capability.WEB_VIEW is"
-                    + " present; see ADR-0441 for why the web view is a separate library",
+                    + " present; the web view is a separate library, libgoldberry-webview, so a build can leave"
+                    + " it out",
             "This build has no web view support, so no page can be opened here. The web view is a separate"
                     + " library, libgoldberry-webview, and this application was built or packaged without it."),
 
     /// Linux, where the one thing that refuses an embedded page is a session that
-    /// is not X11 ([ADR-0442]).
+    /// is not X11: a page is a child window, and only X11 lets one window be
+    /// reparented into another.
     WAYLAND(
             "no page could be put inside the window. Embedding needs a native window handle to reparent"
                     + " into, which X11 gives and Wayland does not. Run on X11 or XWayland"
@@ -42,9 +44,8 @@ enum WebViewRefusal {
                     + " — -Dgoldberry.backend.videoDriver=x11 — is what makes it work."),
 
     /// macOS and Windows, where nothing about the session forbids embedding — a
-    /// `WKWebView` subview ([ADR-0458]) and a WebView2 child window
-    /// ([ADR-0459]) — so a refusal is the engine failing, and the line
-    /// `Webview` logs just before this one says how.
+    /// `WKWebView` subview and a WebView2 child window — so a refusal is the
+    /// engine failing, and the line `Webview` logs just before this one says how.
     ENGINE_FAILED(
             "the web engine could not be put inside the window; the line logged by Webview just before"
                     + " this one says why",

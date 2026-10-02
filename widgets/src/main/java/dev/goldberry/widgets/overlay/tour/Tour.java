@@ -8,7 +8,8 @@ import dev.goldberry.Host;
 import dev.goldberry.widget.State;
 import dev.goldberry.widget.Widget;
 
-/// A guided sequence of popovers over real widgets — `docs/core-widgets.md` §5.
+/// A guided sequence of popovers over real widgets: each stop dims the window
+/// around its target, scrolls it into view and says something about it.
 ///
 /// Started through [Tours#start], which is where the [Host] comes from.
 ///
@@ -20,9 +21,8 @@ import dev.goldberry.widget.Widget;
 /// └── tour-stop     the popover: title, body, Back/Next/Skip
 /// ```
 ///
-/// The veil is **four rectangles rather than one with a hole**, because §8's
-/// subset has no path and no mask, and four boxes need neither
-/// (ADR-0121).
+/// The veil is **four rectangles rather than one with a hole**, because the CSS
+/// subset has no path and no mask, and four boxes need neither.
 /// It is also why the target stays interactive: nothing covers it, so a tour that
 /// says "click here" can be obeyed without the tour having to arrange an
 /// exception to itself.
@@ -35,8 +35,10 @@ import dev.goldberry.widget.Widget;
 /// described, and a veil cut where the widget used to be is worse than no veil.
 ///
 /// A target that is not in the tree is **skipped with a warning** rather than
-/// throwing, which §5 asks for outright: a tour is documentation, and
+/// throwing: a tour is documentation, and
 /// documentation going stale must not take the window down.
+///
+/// Read more: [Overlays](https://goldberry.dev/docs/components/overlays.html#tours).
 ///
 /// @param stops  the sequence, in order
 /// @param host   the window this is running over
@@ -44,7 +46,7 @@ import dev.goldberry.widget.Widget;
 ///               targets it can find
 public record Tour(List<Stop> stops, Host host, Runnable onEnd) implements Widget.Stateful {
 
-    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    /// Written out so that the parameters taking null for a default can say so.
     public Tour(@Nullable List<Stop> stops, Host host, Runnable onEnd) {
         stops = List.copyOf(stops == null ? List.of() : stops);
         this.stops = stops;

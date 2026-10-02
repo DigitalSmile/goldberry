@@ -28,7 +28,7 @@ import dev.goldberry.render.model.LogicalRect;
 /// The two meet only where a `YogaNode` is actually called, and that is
 /// [RenderObject] — whose Yoga-touching members were already package-private
 /// before any of this. So the translation is one file in one package, and nothing
-/// else in the toolkit needs to know Yoga exists (ADR-0279).
+/// else in the toolkit needs to know Yoga exists.
 ///
 /// ## Why it is a `switch` and not an ordinal
 ///
@@ -74,7 +74,7 @@ final class Yoga {
     /// **deletes** a type rather than mirroring it: `render.model.LogicalRect` is
     /// already the toolkit's rectangle — `input.hit.HitTest.Region` has always
     /// returned one — so a `ComputedLayout` mirror would have been a second
-    /// four-float rectangle kept alike by hand (ADR-0279).
+    /// four-float rectangle kept alike by hand.
     static LogicalRect rect(ComputedLayout layout) {
         return LogicalRect.of(layout.left(), layout.top(), layout.width(), layout.height());
     }

@@ -44,7 +44,7 @@ class BoxInkTest {
     /// The asymmetry is the point: `0 8px 32px` reaches 24px below the box and
     /// 8px above it, and one outset for four sides is either a waste on three of
     /// them or — the day a shadow is offset further than it is blurred — a miss
-    /// on one (ADR-0310).
+    /// on one.
     @Test
     @DisplayName("a drop shadow reaches further below than above, and is measured per side")
     void shadowIsAsymmetric() {
@@ -73,7 +73,7 @@ class BoxInkTest {
 
     /// `item-lead` is 16 square because a menu's leading column has to be one
     /// width whether it holds a tick or an icon, and the icons applications put
-    /// in it are 20 (ADR-0143). The painter centres the glyph, so it hangs 2px
+    /// in it are 20. The painter centres the glyph, so it hangs 2px
     /// out on every side of a slot that never grew.
     @Test
     @DisplayName("an icon bigger than its slot hangs out of it, because the painter centres it")

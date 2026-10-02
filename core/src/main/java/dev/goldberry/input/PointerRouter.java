@@ -34,15 +34,37 @@ import dev.goldberry.widget.Widget;
 import dev.goldberry.widget.attr.Attributed;
 import dev.goldberry.widget.style.Styled;
 
-/// Turns pointer positions into events, pseudo-classes and focus.
+/// Turns pointer positions and key presses into events, pseudo-classes and
+/// focus, for one window.
+///
+/// The host owns one per window and feeds it from the backend; an application
+/// mostly meets it through `Host`, which forwards the shortcut and focus calls:
+///
+/// ```java
+/// host.shortcut(Mod.CTRL.and(Key.S), this::save);
+/// host.focusById("search");
+/// ```
+///
+/// A widget meets it through the events it delivers: `onPointer`, `onKey`,
+/// `onTextInput` and the focus callbacks on `Handles`.
+///
+/// Every answer is given against the frame the user is looking at: the hit-test
+/// regions captured after the last paint say what is under the pointer, so a
+/// click lands on what was drawn rather than on where a fresh layout would put
+/// it. A press captures the pointer until the release, so a drag keeps its
+/// target when it wanders off it. Tab, the roving arrow keys of a composite, the
+/// focus trap of a modal and the window's accelerators are all handled here,
+/// because each is a property of the tree rather than of any one node.
 ///
 /// Holds the small amount of state that input needs between frames — who is
-/// hovered, who is pressed, who has focus — and it holds it against **elements**,
-/// which is why the element tree exists
-/// (ADR-0052):
-/// a widget is rebuilt constantly and could not remember any of this.
+/// hovered, who is pressed, who has focus — and it holds it against
+/// **elements**, which is why the element tree exists: a widget is rebuilt
+/// constantly and could not remember any of this. It never holds an element
+/// that has left the tree.
 ///
 /// Confined to the UI thread.
+///
+/// Read more: [Input and focus](https://goldberry.dev/docs/guide/input.html#how-an-event-travels).
 public final class PointerRouter {
 
     /// One per window. Its state is that window's pointer and focus.
@@ -55,17 +77,15 @@ public final class PointerRouter {
     private @Nullable Element focused;
     private boolean focusFromKeyboard;
 
-    /// Where the keyboard goes back to when the thing holding it leaves the tree
-    /// — §7's "restores focus on close".
+    /// Where the keyboard goes back to when the thing holding it leaves the tree:
+    /// a dialog restores focus on close.
     ///
-    /// **The first state the focus trap has held**, and it was deferred for as
-    /// long as it could be. Everything else about the trap is a question about
-    /// the tree, asked fresh: [#deepestModal] walks it on every focus change,
-    /// which is exactly why a dialog opened from inside a dialog gives the first
-    /// one back for nothing when it unmounts. A remembered element cannot be
-    /// derived that way — what had focus before a modal opened is a fact about
-    /// the *past*, and the tree does not record it
-    /// (ADR-0180).
+    /// **The one piece of state the focus trap holds.** Everything else about the
+    /// trap is a question about the tree, asked fresh: [#deepestModal] walks it on
+    /// every focus change, which is exactly why a dialog opened from inside a
+    /// dialog gives the first one back for nothing when it unmounts. A remembered
+    /// element cannot be derived that way: what had focus before a modal opened is
+    /// a fact about the *past*, and the tree does not record it.
     ///
     /// So it is kept to one slot, written at exactly one moment — the trap taking
     /// focus — and it is allowed to go stale on purpose: [#refocus] drops it the
@@ -80,7 +100,7 @@ public final class PointerRouter {
 
     /// Who is receiving pointer events regardless of where the pointer is.
     ///
-    /// §7.1 asks for pointer capture on drag, and a drag is exactly the case
+    /// A press captures the pointer, and a drag is exactly the case
     /// where the pointer leaves the thing it is dragging: a slider whose thumb
     /// stops moving when the pointer wanders off the track is the bug this
     /// prevents, and so is a button that never learns the press it started ended
@@ -100,7 +120,7 @@ public final class PointerRouter {
     /// values rebuilt every frame, so there is nowhere on a `toggle` for "the
     /// press started here" to live. The router already spans exactly that
     /// interval — it takes an implicit capture on the press and drops it on the
-    /// release ([ADR-0058]) — so it is both the only thing that can know and the
+    /// release — so it is both the only thing that can know and the
     /// thing whose lifetime already matches. Read through
     /// [PointerEvent#dragX()].
     private float pressOriginX = Float.NaN;
@@ -112,8 +132,7 @@ public final class PointerRouter {
     /// gesture: the two above span a press-to-release and are `NaN` outside one,
     /// which is precisely what makes them useless for the question this answers.
     /// [#updateRegions] needs a point to ask [#updateCursor] about, and "where the
-    /// pointer is right now" is a fact about the window rather than about a drag
-    /// ([ADR-0237]).
+    /// pointer is right now" is a fact about the window rather than about a drag.
     ///
     /// `NaN` is the whole of "we do not know", and it means it twice: before the
     /// pointer has ever arrived, and after [#pointerExited] — which is another
@@ -126,12 +145,12 @@ public final class PointerRouter {
     /// The third gesture-origin field, and it exists because two of the origins a
     /// drag can have are not points. A slider reads a *position* off the pointer
     /// and needs no history; a knob's drag is a **rate** — 200 logical pixels of
-    /// travel is its whole range (§3) — so where it lands depends on where it
+    /// travel is its whole range — so where it lands depends on where it
     /// started, and by the second frame the value has already moved.
     ///
     /// The router does not know or care what the number means: it asks
     /// [Handles#gestureAnchor()] once on the press and hands the answer back on
-    /// every event of the gesture ([ADR-0089]). Read through
+    /// every event of the gesture. Read through
     /// [PointerEvent#anchor()].
     private double pressOriginValue = Double.NaN;
 
@@ -146,10 +165,10 @@ public final class PointerRouter {
     public void updateRegions(List<HitTest.Region> regions) {
         this.regions = List.copyOf(Objects.requireNonNull(regions, "regions"));
         // Found once per frame and kept beside the regions, which is the same
-        // rule ADR-0054 already states for hit testing: input is answered against
-        // the frame that was painted, so the tree it was painted from is the tree
-        // to ask. Walking for a modal on every pointer motion would be a tree walk
-        // per mouse move ([ADR-0232]).
+        // rule hit testing follows: input is answered against the frame that was
+        // painted, so the tree it was painted from is the tree to ask. Walking
+        // for a modal on every pointer motion would be a tree walk per mouse
+        // move.
         modal = deepestModal(focusRoot);
         refocus();
         rehover();
@@ -158,9 +177,9 @@ public final class PointerRouter {
         // After the two above, and after the extents in particular: a viewport
         // told that its content slid under it answers by moving its offset, and
         // it clamps that move against the sizes `notifyMeasured` has just
-        // delivered (`docs/gaps.md` G48).
+        // delivered.
         notifyAnchored();
-        // The shape follows the frame and not only the pointer ([ADR-0237]). A
+        // The shape follows the frame and not only the pointer. A
         // control that disables itself under a still pointer resolves
         // `cursor: not-allowed` in the frame it is painted for, and nothing else
         // would ever ask -- the user deciding whether to click is the one who is
@@ -174,23 +193,18 @@ public final class PointerRouter {
 
     /// Re-asks the two pointer pseudo-classes against the tree that was painted.
     ///
-    /// The other half of the same frame hook, and the half `mark` already
-    /// believed it had ([ADR-0237]). Its comment says a control "that was hovered
-    /// before it became disabled does not keep the state, which is a real
-    /// sequence, because a button commonly disables itself in its own press
-    /// handler while the pointer is still over it" — and that was **false**, for
-    /// a reason no reader of `mark` could see: clearing is not suppressed, but
-    /// nothing was calling it. `updateHover` is the only caller and it returns
-    /// early when the element under the pointer has not changed, so the wash
-    /// survived every subsequent move *within* the control and went away only
-    /// when the pointer left it.
+    /// The other half of the same frame hook. A button commonly disables itself
+    /// in its own press handler while the pointer is still over it, and
+    /// `updateHover` returns early when the element under the pointer has not
+    /// changed, so without this the hover wash would survive every later move
+    /// *within* the control and go away only when the pointer left it.
     ///
     /// `mark(…, true)` is the whole implementation because `mark` already knows
     /// the rule: it turns a set into a clear on a disabled element, so re-asserting
     /// what the pointer is over sets it where the control is live and takes it
-    /// away where it is not. `docs/design-system.md` §2.1 is what makes that
-    /// non-discretionary — a disabled control that still lightened under the
-    /// pointer would be telling the user it can be used.
+    /// away where it is not. The design system gives a disabled control one
+    /// appearance, and a disabled control that still lightened under the pointer
+    /// would be telling the user it can be used.
     ///
     /// **No `ENTERED` or `EXITED` is emitted**, deliberately. Nothing entered or
     /// exited anything: the pointer has not moved and the element under it is the
@@ -219,9 +233,8 @@ public final class PointerRouter {
     /// [#onPointingChanged] anything, and it runs on pointer **motion**. So a
     /// click that rebuilds the tree — a tab that switches, a row that deletes
     /// itself, a dialog that opens — unmounts the element under the pointer and
-    /// nothing says so. The launcher's tooltip stayed open, anchored to a
-    /// rectangle nothing paints any more, until the user moved the mouse
-    /// ([ADR-0303]).
+    /// nothing says so. A tooltip would stay open, anchored to a rectangle
+    /// nothing paints any more, until the user moved the mouse.
     ///
     /// [#restate] is not the place for it and says so in its own words: it
     /// re-asserts what the pointer is over and deliberately emits no `ENTERED` or
@@ -267,8 +280,8 @@ public final class PointerRouter {
     ///  1. **The router never holds an element that is not in the tree.** A tab
     ///     that switched, a list that shortened and a dialog that closed all end
     ///     the same way, and letting go is right for all three.
-    ///  2. **If there is somewhere to put the keyboard back, put it there** —
-    ///     §7's "restores focus on close", from the one slot [#restoreTo] keeps.
+    ///  2. **If there is somewhere to put the keyboard back, put it there**: a
+    ///     dialog restores focus on close, from the one slot [#restoreTo] keeps.
     ///
     /// ## Called once a frame, and separately callable
     ///
@@ -280,7 +293,7 @@ public final class PointerRouter {
     ///
     /// Being a frame late is not a compromise here. Nothing can press a key
     /// between a tree flushing and the frame it produces, which is the same
-    /// argument [Measured] makes ([ADR-0117]).
+    /// argument [Measured] makes.
     public void refocus() {
         // What we were going to hand back to may itself have gone -- a dialog
         // opened from a row of a list that the dialog's own action then removed.
@@ -344,7 +357,7 @@ public final class PointerRouter {
     ///
     /// Here because this is the one place that holds the painted rectangles and
     /// the one call every window makes once per frame — the same argument that
-    /// put [#localFor] here rather than in the widget ([ADR-0117]).
+    /// put [#localFor] here rather than in the widget.
     private void notifyMeasured() {
         java.util.IdentityHashMap<Element, Measurement> next = null;
         for (var region : regions) {
@@ -372,9 +385,9 @@ public final class PointerRouter {
                 next = new java.util.IdentityHashMap<>();
             }
             next.put(element, measurement);
-            // Only on a change: a still window must notify nothing, or §1.7's
-            // idle frame loop would be woken every frame by a widget being told
-            // what it already knew.
+            // Only on a change: a still window must notify nothing, or the idle
+            // frame loop would be woken every frame by a widget being told what
+            // it already knew.
             if (measurement.sameAs(measuredBounds.get(element))) {
                 continue;
             }
@@ -393,9 +406,9 @@ public final class PointerRouter {
     /// rebuilt may want something different from the same numbers — a header that
     /// has this moment been asked to scroll itself into view is in exactly that
     /// position, and comparing rectangles alone would decide it had nothing to
-    /// hear and never call it ([ADR-0119]).
+    /// hear and never call it.
     ///
-    /// Compared by **identity**, which keeps §1.7's idle guarantee intact: an
+    /// Compared by **identity**, which keeps the idle frame loop idle: an
     /// element that was not rebuilt holds the same widget instance, so a still
     /// window still notifies nobody.
     private record Location(Widget widget, LogicalRect self, LogicalRect clip, LogicalRect container) {
@@ -415,7 +428,7 @@ public final class PointerRouter {
     /// two answer different questions and almost nothing wants both: a scrollbar
     /// needs a size and does not care where it is, and an `affix` needs a
     /// position and does not care how big it is. One walk each, over the nodes
-    /// that asked ([ADR-0119]).
+    /// that asked.
     private void notifyLocated() {
         java.util.IdentityHashMap<Element, Location> next = null;
         java.util.IdentityHashMap<Element, HitTest.Region> byElement = null;
@@ -465,8 +478,7 @@ public final class PointerRouter {
     /// A third walk, for [#notifyLocated]'s reason: the nodes that want a
     /// difference between two frames are a different and much smaller set than
     /// the ones that want a size, and a viewport that has not asked to preserve
-    /// its offset returns a null part and is skipped before anything is walked
-    /// (`docs/gaps.md` G48).
+    /// its offset returns a null part and is skipped before anything is walked.
     private void notifyAnchored() {
         java.util.IdentityHashMap<Element, Anchor> next = null;
         java.util.IdentityHashMap<Element, HitTest.Region> byElement = null;
@@ -604,7 +616,7 @@ public final class PointerRouter {
     ///
     /// A region stores the layout rectangle and the **inverse** of the matrix,
     /// because undoing a transform is what hit testing needs and inverting once
-    /// while painting is what stops two inversions disagreeing (ADR-0068). Going
+    /// while painting is what stops two inversions disagreeing. Going
     /// forwards means inverting it back, which is exact for the translations this
     /// is ever asked about and is only done for the handful of nodes that asked
     /// to be told where they are.
@@ -613,7 +625,7 @@ public final class PointerRouter {
     }
 
     /// The painted rectangle of the nearest ancestor of `element` that has a
-    /// region, or the window's when none does (ADR-0360). A composition node has
+    /// region, or the window's when none does. A composition node has
     /// no box and so no region, which is why this walks rather than asking the
     /// parent.
     private LogicalRect containerRect(Element element, java.util.Map<Element, HitTest.Region> byElement) {
@@ -652,7 +664,7 @@ public final class PointerRouter {
     /// [dev.goldberry.Host#attachedPopup] places in the *owner*
     /// window's coordinates, so the popover it anchored opened in the corner of the
     /// window instead of beside the swatch. The two were different spaces and
-    /// nothing in between could tell (`docs/gaps.md` G28, ADR-0320).
+    /// nothing in between could tell.
     ///
     /// The correction is the one [dev.goldberry.Popup#anchor]
     /// already applied for a submenu, moved a layer down and applied to everyone:
@@ -689,11 +701,11 @@ public final class PointerRouter {
 
     /// Called when the pointer moves to a different node, or focus does.
     ///
-    /// The first caller was the thing that opens a `tooltip`:
-    /// `docs/core-widgets.md` §7 attaches one by attribute to any widget and shows
-    /// it "on hover *and on keyboard focus* after delay", so something above the
-    /// router has to know when either moved and start a timer. The router itself
-    /// opens nothing — it has no window and no notion of one ([ADR-0105]).
+    /// The first caller was the thing that opens a `tooltip`: any widget may
+    /// carry one by attribute, and it shows on hover *and on keyboard focus*
+    /// after a delay, so something above the router has to know when either
+    /// moved and start a timer. The router itself opens nothing — it has no
+    /// window and no notion of one.
     ///
     /// ## Every listener is told, and none can stop another
     ///
@@ -706,7 +718,7 @@ public final class PointerRouter {
     ///
     /// An event — one that could be consumed, or that carried a target — would be
     /// the thing worth refusing, because then a second listener really would be a
-    /// second thing deciding what a hover means ([ADR-0230]).
+    /// second thing deciding what a hover means.
     ///
     /// @return a registration to close; a listener that outlives what it points at
     ///         is the leak this exists to prevent
@@ -736,16 +748,15 @@ public final class PointerRouter {
 
     /// Whether the **keyboard** put the focus where it is.
     ///
-    /// The same fact `:focus-visible` is mirrored from, and the distinction
-    /// [ADR-0054] exists to keep: a control clicked with a mouse is focused and
-    /// draws no ring, because focus that arrived by pointer is a side effect of
-    /// the click rather than a statement about where the user is working.
+    /// The same fact `:focus-visible` is mirrored from: a control clicked with a
+    /// mouse is focused and draws no ring, because focus that arrived by pointer
+    /// is a side effect of the click rather than a statement about where the user
+    /// is working.
     ///
-    /// Exposed because the ring is not the only thing that has to know. §7 shows a
-    /// tooltip "on hover **and on keyboard focus**", and a launcher reading
-    /// [#focused()] alone cannot tell the two apart — which is how a tooltip
-    /// survived the pointer leaving the button that had just been clicked
-    /// ([ADR-0308]).
+    /// Exposed because the ring is not the only thing that has to know. A
+    /// tooltip shows on hover **and on keyboard focus**, and a launcher reading
+    /// [#focused()] alone cannot tell the two apart, so a tooltip would survive
+    /// the pointer leaving the button that had just been clicked.
     ///
     /// False whenever nothing is focused, which is the reading that needs no
     /// null check at the call site: "the keyboard is on this" is false when the
@@ -758,7 +769,7 @@ public final class PointerRouter {
     private Cursor cursor = Cursor.DEFAULT;
     private Consumer<Cursor> cursorSink = c -> {};
 
-    /// Where to send the cursor shape when it changes (§7.3).
+    /// Where to send the cursor shape when it changes.
     ///
     /// A callback rather than a backend window, so the router still knows nothing
     /// about the platform — [dev.goldberry.Window] wires this
@@ -778,7 +789,7 @@ public final class PointerRouter {
     /// [#onCursorChange]'s twin, and for the same reason: turning an input method
     /// on is a platform call, the router must not know about the platform, and
     /// the widget must not know about the window. `Window` wires this to the
-    /// backend; a test wires it to a flag (ADR-0285).
+    /// backend; a test wires it to a flag.
     public void onTextInputChange(Consumer<Boolean> sink) {
         this.textInputSink = Objects.requireNonNull(sink, "sink");
         sink.accept(textInputActive);
@@ -790,8 +801,7 @@ public final class PointerRouter {
     }
 
     /// Where the text being typed is, and where the caret is inside it — what an
-    /// input method needs in order to put its candidate window somewhere sensible
-    /// (`docs/gaps.md` G15).
+    /// input method needs in order to put its candidate window somewhere sensible.
     @FunctionalInterface
     public interface CaretAreaSink {
 
@@ -814,7 +824,7 @@ public final class PointerRouter {
     ///
     /// [#onTextInputChange]'s twin once more: placing a candidate window is a
     /// platform call, the router must not know about the platform, and the widget
-    /// must not know about the window (ADR-0289).
+    /// must not know about the window.
     public void onCaretAreaChange(CaretAreaSink sink) {
         this.caretAreaSink = Objects.requireNonNull(sink, "sink");
         sink.accept(caretArea, caretAreaCursor);
@@ -871,7 +881,7 @@ public final class PointerRouter {
 
     /// Whether a pseudo-class changed since this was last asked.
     ///
-    /// §8 makes invalidation coarse: a pseudo-class change recomputes the
+    /// Style invalidation is coarse: a pseudo-class change recomputes the
     /// subtree. This is the flag that says one happened, so a frame loop can
     /// restyle only when it must — and clearing on read means "did anything
     /// change since the last frame" is the exact question it answers.
@@ -946,7 +956,7 @@ public final class PointerRouter {
             // what clicking the background is for -- **unless a modal is in
             // force**, where "nothing" is the application behind the dialog and
             // dropping focus there would empty a trap the next frame has to
-            // refill ([ADR-0232]).
+            // refill.
             if (modal == null) {
                 focus(null, false);
             }
@@ -963,7 +973,7 @@ public final class PointerRouter {
         pressOriginModifiers = modifiers;
         if (captured == null) {
             // Implicit capture: from here until the button comes up, this
-            // element gets the pointer wherever it goes (§7.1).
+            // element gets the pointer wherever it goes.
             captured = target;
             capturedImplicitly = true;
         }
@@ -1028,7 +1038,7 @@ public final class PointerRouter {
         // same thing as a release: dragging off a button and letting go is how a
         // user cancels, and every control would otherwise have to work that out
         // for itself from a release it cannot locate. Synthesized here, from
-        // pointer flow, exactly as §7.1 says the synthetic events are.
+        // pointer flow, like the other synthetic events.
         //
         // "On the same node" means the release landed on the pressed element or
         // inside it -- releasing on a button's own label is a click on the
@@ -1057,8 +1067,7 @@ public final class PointerRouter {
     ///
     /// Deepest-first, which is dispatch order: a press that lands on a control's
     /// *part* -- a knob's arc, a slider's thumb -- must be anchored by the
-    /// control that will handle it, and the part itself has no value to report
-    /// ([ADR-0089]).
+    /// control that will handle it, and the part itself has no value to report.
     private static double anchorFor(Element target) {
         for (var element : chain(target)) {
             if (element.widget() instanceof Handles handles) {
@@ -1081,7 +1090,7 @@ public final class PointerRouter {
         return pointerWheel(x, y, deltaX, deltaY, Modifiers.NONE);
     }
 
-    /// The same, with modifiers — `Shift` for a fine step on a knob (§3).
+    /// The same, with modifiers — `Shift` for a fine step on a knob.
     public boolean pointerWheel(float x, float y, float deltaX, float deltaY, Modifiers modifiers) {
         return pointerWheel(x, y, deltaX, deltaY, (int) deltaX, (int) deltaY, modifiers);
     }
@@ -1090,9 +1099,8 @@ public final class PointerRouter {
     /// [PointerEvent#ticksY()]. The backend's entry point.
     /// Returns whether anything consumed it, which is what a caller needs to
     /// know to scroll something else — the reason [#keyPressed] reports the same
-    /// thing. §2.4's scroll chaining is exactly this: an inner scroller consumes
-    /// until its edge and then stops, and what is above it takes over
-    /// ([ADR-0116]).
+    /// thing. Scroll chaining is exactly this: an inner scroller consumes
+    /// until its edge and then stops, and what is above it takes over.
     public boolean pointerWheel(
             float x, float y, float deltaX, float deltaY, int ticksX, int ticksY, Modifiers modifiers) {
         pointerAt(x, y);
@@ -1128,14 +1136,14 @@ public final class PointerRouter {
 
     /// Moves focus, recording whether it came from the keyboard.
     ///
-    /// §7.2 keeps `:focus` and `:focus-visible` distinct: the focus ring renders
+    /// `:focus` and `:focus-visible` are distinct: the focus ring renders
     /// only for keyboard focus. Both are set here so a stylesheet can tell them
     /// apart without input having to know what a ring is.
     public void focus(@Nullable Element element, boolean fromKeyboard) {
         if (element != null && !isFocusable(element)) {
             return;
         }
-        // §7's focus trap, and the whole of it: while something modal is mounted,
+        // The focus trap, and the whole of it: while something modal is mounted,
         // the focused node is inside it. Enforced here rather than at each of the
         // routes that move focus, because "each of the routes" is Tab, a press, a
         // roving arrow, a control focusing itself and whatever asks next -- and a
@@ -1184,7 +1192,7 @@ public final class PointerRouter {
         // Before the handlers, not after: `text-input` turns the platform's input
         // on from its own `onFocusChanged` for the read-only and disabled cases
         // this cannot see, and whoever speaks last wins. Asking first and letting
-        // a control correct it is the order that leaves both right (ADR-0285).
+        // a control correct it is the order that leaves both right.
         updateTextInput();
         updateCaretArea();
         // After both pseudo-classes are settled, because a handler may look at
@@ -1195,7 +1203,7 @@ public final class PointerRouter {
         // than a move: [#refocus] establishes that `focused` has left the tree
         // and then hands it here to be let go of, and an unmounted element has
         // already been disposed -- its `State.setState` throws, by design, and
-        // there is nobody left to tell anyway (`docs/gaps.md` G31, ADR-0317).
+        // there is nobody left to tell anyway.
         if (lost != null && lost != focused && lost.isMounted()) {
             notifyFocus(lost, false, fromKeyboard);
         }
@@ -1249,8 +1257,7 @@ public final class PointerRouter {
         for (var element : left) {
             // The same guard the direct notification above makes, for the same
             // reason: a subtree that went away takes its containers with it, and
-            // the chain from a dead element is a chain of dead elements
-            // ([ADR-0317]).
+            // the chain from a dead element is a chain of dead elements.
             if (!shared.contains(element) && element.isMounted() && element.widget() instanceof Handles handles) {
                 handles.onFocusWithin(false, fromKeyboard);
             }
@@ -1275,9 +1282,9 @@ public final class PointerRouter {
     /// A key went down. Returns whether anything consumed it.
     ///
     /// Tab is handled here rather than by a widget, because traversal is a
-    /// property of the tree and not of any node in it (§7.2). It moves focus
+    /// property of the tree and not of any node in it. It moves focus
     /// **from the keyboard**, so `:focus-visible` comes on and the focus ring
-    /// appears -- which is exactly the distinction §7.2 draws.
+    /// appears, which is the distinction between the two pseudo-classes.
     public boolean keyPressed(Key key, Modifiers modifiers, boolean repeat) {
         var event = new KeyEvent(KeyEvent.Kind.PRESSED, key, modifiers, repeat, focused);
         dispatchKey(event);
@@ -1286,7 +1293,7 @@ public final class PointerRouter {
         }
         // Accelerators come after the focused chain has declined the key, which
         // is what lets a text field keep Ctrl+A for "select all" while the window
-        // binds it to something else (§7.2).
+        // binds it to something else.
         //
         // An unnamed key is skipped rather than looked up. `Shortcut` refuses to
         // hold `Key.UNKNOWN` -- an accelerator on it could never fire, so the
@@ -1305,7 +1312,7 @@ public final class PointerRouter {
         if (key == Key.TAB && !modifiers.control() && !modifiers.alt() && !modifiers.meta()) {
             return moveFocus(modifiers.shift() ? -1 : 1);
         }
-        // Roving focus inside a composite (§7.2), by the same argument that puts
+        // Roving focus inside a composite, by the same argument that puts
         // Tab here: which node an arrow key reaches is a property of the group's
         // shape, and the radio it is currently on cannot see its siblings.
         //
@@ -1346,7 +1353,7 @@ public final class PointerRouter {
         // A scope that does not answer to this axis leaves the key alone, and
         // "alone" is the whole point: the focused chain has already declined it,
         // so nothing happens -- which is what a menu item with no submenu should
-        // do about `Right`, rather than sliding focus down the list (ADR-0078).
+        // do about `Right`, rather than sliding focus down the list.
         if (scope == null || !scopeOf(scope).roves(axis)) {
             return false;
         }
@@ -1382,7 +1389,7 @@ public final class PointerRouter {
         return null;
     }
 
-    /// The window's accelerators (§7.2).
+    /// The window's accelerators.
     ///
     /// Per window rather than per application, because that is the scope a user
     /// means: `Ctrl+W` closes *this* window, and a dialog's Escape is not the main
@@ -1393,9 +1400,8 @@ public final class PointerRouter {
     ///
     /// The owner is why this is a record rather than a `Runnable`. A `menubar`
     /// binds every accelerator in its menus when it is mounted and gives them
-    /// back when it is not — and it used to give back whatever was on those keys,
-    /// including a binding the application made in between
-    /// (ADR-0220).
+    /// back when it is not, and it must give back only its own, never a binding
+    /// the application made on the same key in between.
     ///
     /// Compared by **identity**: "who bound it" is a question about an object,
     /// not about a value that might be equal to another one. Null is nobody in
@@ -1433,8 +1439,7 @@ public final class PointerRouter {
     ///
     /// The form that cannot be misspelled, and the one an application should
     /// reach for; [#shortcut(String, Runnable)] is for a menu table or a config
-    /// file, where the accelerator is text before it is anything
-    /// (ADR-0095).
+    /// file, where the accelerator is text before it is anything.
     public PointerRouter shortcut(Mod modifier, Key key, Runnable action) {
         return shortcut(modifier.and(key), action);
     }
@@ -1458,7 +1463,7 @@ public final class PointerRouter {
     /// leave alone the ones somebody else has taken since. Two things claiming
     /// `Ctrl+O` is a conflict the last registration wins, and this is the same
     /// conflict at the other end — the loser must not be able to unbind the
-    /// winner (ADR-0220).
+    /// winner.
     public void removeShortcut(Shortcut shortcut, Object owner) {
         Objects.requireNonNull(shortcut, "shortcut");
         var bound = shortcuts.get(shortcut);
@@ -1494,7 +1499,7 @@ public final class PointerRouter {
         // Capture is root-first, so the chain -- which is deepest-first -- is
         // walked backwards. `dispatchKey`'s shape exactly, and for the same
         // reason a key has one: a container has to be able to read what was typed
-        // before whatever is inside it does ([ADR-0246]).
+        // before whatever is inside it does.
         for (var i = chain.size() - 1; i >= 0; i--) {
             if (event.isConsumed()) {
                 return;
@@ -1515,12 +1520,12 @@ public final class PointerRouter {
     }
 
     /// Delivers the composition an input method is assembling to whatever has
-    /// focus — `docs/gaps.md` G15.
+    /// focus.
     ///
     /// [#textInput]'s shape, with one difference that is the whole point: there
     /// is **no capture phase**. A container reads what was typed before its child
-    /// does because a `select` filters on it and a menu navigates by it
-    /// ([ADR-0246]); nothing can usefully do either with a string the user has
+    /// does because a `select` filters on it and a menu navigates by it;
+    /// nothing can usefully do either with a string the user has
     /// not accepted yet, and offering it would invite a widget to act on
     /// characters that are about to be replaced.
     ///
@@ -1560,8 +1565,7 @@ public final class PointerRouter {
     /// `false` is for the one caller that moves focus without anyone pressing
     /// anything: a menu focuses its first item as it opens, so that an arrow key
     /// has somewhere to start — and a first row lit up before the user has
-    /// touched the keyboard is a menu that looks like it has already chosen
-    /// (ADR-0112).
+    /// touched the keyboard is a menu that looks like it has already chosen.
     public boolean moveFocus(int direction, boolean fromKeyboard) {
         var root = traversalRoot();
         if (root == null) {
@@ -1583,12 +1587,11 @@ public final class PointerRouter {
 
     /// Where Tab enumerates from: the deepest mounted modal, or the whole window.
     ///
-    /// `docs/core-widgets.md` §7's focus trap, and it is one method rather than a
+    /// The focus trap, and it is one method rather than a
     /// mechanism because a trap is exactly this — traversal starting somewhere
     /// else. Nothing is registered when a dialog opens and nothing has to be
     /// unregistered when it closes; the answer is recomputed from the tree, so a
-    /// modal that goes away by any route at all gives the keyboard back
-    /// (ADR-0176).
+    /// modal that goes away by any route at all gives the keyboard back.
     ///
     /// The walk costs the size of the tree and happens on a Tab press, which is
     /// an order of magnitude rarer than a frame.
@@ -1625,7 +1628,7 @@ public final class PointerRouter {
     ///
     /// Refreshed by [#updateRegions] beside the regions themselves, for the
     /// reason those exist: input is answered against the frame the user can see,
-    /// so the tree that frame came from is the tree to ask ([ADR-0054]).
+    /// so the tree that frame came from is the tree to ask.
     private @Nullable Element modal;
 
     /// Whether a modal is in force for the frame that was last painted.
@@ -1635,25 +1638,21 @@ public final class PointerRouter {
     /// which element is doing it. A `web-view` is the first — a page is a
     /// platform window above the frame, so nothing painted into the frame can
     /// cover it, and the widget has to take the page off the screen itself while
-    /// a dialog is up ([ADR-0444]).
+    /// a dialog is up.
     ///
     /// **A frame behind**, like every other answer derived from the hit-test
     /// snapshot: it describes the frame the user can see, which is the frame
-    /// input is answered against ([ADR-0054]).
+    /// input is answered against.
     public boolean isModal() {
         return modal != null;
     }
 
     /// Whether the **pointer** may reach `element`.
     ///
-    /// Modality used to be two unrelated mechanisms: [Handles#isModal] trapped
-    /// the keyboard, and the pointer was blocked by a `dialog`'s scrim happening
-    /// to cover the window — "modality by geometry", as `Handles` put it. So a
-    /// modal without a scrim trapped the keyboard and let every click through,
-    /// and nothing said so ([ADR-0232]).
-    ///
-    /// The rule is one flag now: **while a modal is mounted, the pointer reaches
-    /// its subtree and its ancestors, and nothing else.**
+    /// Modality is one flag, [Handles#isModal], and it governs the pointer as
+    /// well as the keyboard: **while a modal is mounted, the pointer reaches its
+    /// subtree and its ancestors, and nothing else.** A modal without a scrim
+    /// would otherwise trap the keyboard and let every click through.
     ///
     /// The ancestors are not a loophole, they are the point: a `dialog`'s scrim
     /// is the panel's *parent*, and a click on it is what closes the dialog. An
@@ -1695,7 +1694,7 @@ public final class PointerRouter {
 
     /// Focuses the node with this `id`, if there is one and it can take focus.
     ///
-    /// The programmatic door — §4's "a form jumping to its first error", a
+    /// The programmatic door: a form jumping to its first error, a
     /// dialog putting the caret in its first field. By **id** rather than by
     /// element for [dev.goldberry.Host#anchor]'s reason: a
     /// widget has no element and never will, and an id is the one name a
@@ -1743,16 +1742,16 @@ public final class PointerRouter {
     /// The element called `id`, looked for **inside the composites the keyboard
     /// is already in** before the window as a whole.
     ///
-    /// A focus name is global to the window ([ADR-0176]), because the namespace
+    /// A focus name is global to the window, because the namespace
     /// it resolves in is the element tree's `id` — and an id is the document's
     /// name for a node. That is right for the names an application writes down
     /// and wrong for the ones a widget manufactures: a `list` names each row
     /// after the item's identity, so two lists over the same identities name the
-    /// same rows, and `End` in the second one moved the focus into the first
-    /// ([ADR-0437]).
+    /// same rows, and `End` in the second one would move the focus into the
+    /// first.
     ///
     /// **The boundary is [FocusScope]**, which is already the right one for the
-    /// reason it exists. A composite is one Tab stop (ADR-0073) whose items the
+    /// reason it exists. A composite is one Tab stop whose items the
     /// composite itself builds and itself names, so it is exactly the subtree
     /// whose manufactured names are its own business. Nothing new has to be
     /// declared: `list`, `tree`, `menu` and `tabs` all say they are scopes
@@ -1794,7 +1793,7 @@ public final class PointerRouter {
     }
 
     /// Every Tab stop under `element`, in document order — with a composite
-    /// contributing exactly **one** (§7.2).
+    /// contributing exactly **one**.
     private static void collectFocusable(Element element, List<Element> out) {
         // The scope is asked *before* the node itself, so a widget that is both
         // focusable and a composite contributes one stop rather than two -- its
@@ -1829,7 +1828,7 @@ public final class PointerRouter {
     /// selected, not to the top of the list — and it is deliberately **derived**
     /// rather than remembered: a stored roving position would be a second piece
     /// of state beside the selection, and the two would disagree the first time
-    /// an application set the value itself ([ADR-0073]).
+    /// an application set the value itself.
     ///
     /// A composite whose items are not selectable — a toolbar — therefore always
     /// enters at the first, which is the right answer for it too.
@@ -1893,8 +1892,7 @@ public final class PointerRouter {
     /// answers first. The window's overlay layer is painted after the
     /// application's root ([dev.goldberry.widget.root.WindowRoot]),
     /// so a button in a `toast` takes the pointer from whatever is under it
-    /// without either of them knowing about the other. It used to be true and
-    /// unwritten; it is the rule now ([ADR-0232]).
+    /// without either of them knowing about the other.
     ///
     /// **And nothing outside a modal is here at all.** See [#isPointable].
     private @Nullable Element elementAt(float x, float y) {
@@ -1965,7 +1963,7 @@ public final class PointerRouter {
     /// `:active` was set on the deepest element the press hit, so pressing a
     /// checkbox's 16px glyph lit up `check-indicator` and pressing its label lit
     /// up `text`, and the control itself matched only in the sliver of padding
-    /// between them. `docs/design-system.md` §2.1 requires every control to render
+    /// between them. The design system requires every control to render
     /// a pressed state, and a control whose pressed state depends on which of its
     /// own parts you happened to hit does not have one.
     ///
@@ -1995,13 +1993,13 @@ public final class PointerRouter {
     /// Sets or clears one of the router's own pseudo-classes, and never lights up
     /// a disabled control.
     ///
-    /// `docs/design-system.md` §2.1 gives `:disabled` one appearance — 45%
+    /// The design system gives `:disabled` one appearance — 45%
     /// opacity, no colour remap — and a control that still lightened under the
     /// pointer or darkened under a press would be telling the user it can be used.
     /// Enforced here rather than in a stylesheet because the alternative is a rule
     /// per variant per state per control: `button.danger:disabled:hover` and its
     /// dozen siblings, each able to be wrong on its own. CSS would spell it
-    /// `:not(:disabled):hover`, and `:not()` is not in §8's subset.
+    /// `:not(:disabled):hover`, and `:not()` is not in the toolkit's CSS subset.
     ///
     /// Only *setting* is suppressed, and a set on a disabled element becomes a
     /// **clear** rather than a no-op. That is what lets [#restate] re-assert what
@@ -2011,15 +2009,15 @@ public final class PointerRouter {
     /// It has to be re-asserted, because this method is not reached otherwise. A
     /// button commonly disables itself in its own press handler while the pointer
     /// is still over it, and `updateHover` returns early when the element under
-    /// the pointer has not changed — so before [ADR-0237] the wash survived every
-    /// later move *within* the control and went away only when the pointer left
-    /// it. This comment claimed the opposite for a long time.
+    /// the pointer has not changed, so without [#restate] the wash would survive
+    /// every later move *within* the control and go away only when the pointer
+    /// left it.
     ///
     /// The `ENTERED` and `EXITED` events are **not** suppressed: this is about
     /// what a control looks like, not about what it is told. A disabled node still
-    /// hit-tests, so that a click cannot fall through to whatever is behind it
-    /// ([ADR-0059]), and a tooltip explaining *why* something is disabled is the
-    /// case that needs the event.
+    /// hit-tests, so that a click cannot fall through to whatever is behind it,
+    /// and a tooltip explaining *why* something is disabled is the case that
+    /// needs the event.
     private void mark(Element element, PseudoClass pseudoClass, boolean active) {
         if (active && isDisabled(element)) {
             active = false;
@@ -2028,7 +2026,7 @@ public final class PointerRouter {
             stylesDirty = true;
             if (TRACE_INPUT) {
                 // The chain, one line per node, so a frame's `subtree walks` can
-                // be read against what the pointer actually did (ADR-0151).
+                // be read against what the pointer actually did.
                 INPUT_LOG.info(
                         "  {} {} {}",
                         active ? "+" : "-",
@@ -2069,7 +2067,7 @@ public final class PointerRouter {
     }
 
     /// Whether `element` is kept but hidden — by itself or by any ancestor
-    /// ([Styled#isHidden()], ADR-0366). Walked up for [#isDisabled]'s reason.
+    /// ([Styled#isHidden()]). Walked up for [#isDisabled]'s reason.
     private static boolean isHidden(Element element) {
         for (var current = element; current != null; current = parentOf(current)) {
             if (current.widget() instanceof Styled styled && styled.isHidden()) {
@@ -2081,22 +2079,20 @@ public final class PointerRouter {
 
     /// Whether `element` is disabled — **by itself or by any ancestor**.
     ///
-    /// `docs/core-widgets.md`: "disabled state propagates down the tree; a
-    /// disabled container disables its descendants for input and semantics". A
+    /// Disabled state propagates down the tree: a disabled container disables
+    /// its descendants for input and semantics. A
     /// button inside a disabled `form` says `isDisabled() == false` about itself
     /// and is unavailable all the same, and it is not the button's business to
     /// know that.
     ///
     /// **Derived by walking up, not stored and not mirrored onto the element.**
     /// The alternative is a flag pushed down the tree on every build, which is a
-    /// second copy of a fact the tree already holds — and ADR-0073 has already
-    /// been through what happens when a derived thing is remembered instead: the
-    /// two disagree the first time something changes without telling the thing
-    /// that cached it. Nothing to invalidate, nothing to leak, and it costs a
-    /// walk up the ancestors on input events only.
+    /// second copy of a fact the tree already holds, and a derived thing that is
+    /// remembered instead disagrees with its source the first time something
+    /// changes without telling the thing that cached it. Nothing to invalidate,
+    /// nothing to leak, and it costs a walk up the ancestors on input events only.
     ///
-    /// It deliberately does **not** feed `:disabled`. See
-    /// ADR-0077:
+    /// It deliberately does **not** feed `:disabled`:
     /// the container's own 45% already fades everything under it, because opacity
     /// multiplies down a subtree, and a descendant that also matched `:disabled`
     /// would be faded twice.
@@ -2112,8 +2108,8 @@ public final class PointerRouter {
     /// Whether this kind of event is the user *doing* something, as opposed to
     /// the pointer merely being somewhere.
     ///
-    /// The line a disabled subtree is cut along. Observation still arrives —
-    /// which is what keeps ADR-0059's two cases working: a disabled control still
+    /// The line a disabled subtree is cut along. Observation still arrives,
+    /// which is what keeps two things working: a disabled control still
     /// hit-tests so a click cannot fall through to whatever is behind it, still
     /// resolves `cursor: not-allowed`, and still gets the enter/exit a tooltip
     /// explaining *why* it is unavailable would need.
@@ -2124,8 +2120,7 @@ public final class PointerRouter {
         };
     }
 
-    /// Moves focus as a press on `target` would — §7.2's "focus travels by
-    /// pointer press".
+    /// Moves focus as a press on `target` would: focus travels by pointer press.
     ///
     /// It lands on the nearest focusable **ancestor** rather than only on a
     /// directly focusable target, so clicking the label inside a button focuses
@@ -2141,8 +2136,7 @@ public final class PointerRouter {
         if (!pressFocuses) {
             // A router that is not in the keyboard's way at all: a *panel*
             // floating over a canvas somebody is typing into, whose press must
-            // press the swatch and leave the caret where it was
-            // (`docs/gaps.md` G29, ADR-0319).
+            // press the swatch and leave the caret where it was.
             return;
         }
         focus(nearestFocusable(target), false);
@@ -2150,14 +2144,14 @@ public final class PointerRouter {
 
     private boolean pressFocuses = true;
 
-    /// Whether a press moves the keyboard onto what it landed on. On by default,
-    /// which is §7.2's "focus travels by pointer press".
+    /// Whether a press moves the keyboard onto what it landed on. On by default:
+    /// focus travels by pointer press.
     ///
     /// Off for the router of a surface that wants **no** keys: the one thing
     /// [dev.goldberry.Popup#takesFocus(boolean)] could not
     /// settle is what happens *after* the panel is open, because a press inside it
     /// focused what it landed on and the next `Enter` went there instead of to the
-    /// canvas underneath ([ADR-0319]).
+    /// canvas underneath.
     ///
     /// It is the press and nothing else. Traversal, [#focus] and
     /// [#focusById] still do what they are told — a caller that
@@ -2212,19 +2206,16 @@ public final class PointerRouter {
 
     /// Tells one element that the pointer arrived at it or left it.
     ///
-    /// **A widget that has left the tree is not told.** That is [ADR-0317]'s rule
-    /// — "a router does not talk to the dead" — reaching the third and last place
-    /// the router speaks to an element it is holding: [#mark] has had the check
-    /// from the beginning and [#notifyFocus] was given it when a closing dialog
-    /// took the window down, and this is the same hole one field along.
+    /// **A widget that has left the tree is not told**: a router does not talk
+    /// to the dead. This is the third and last place the router speaks to an
+    /// element it is holding, beside [#mark] and [#notifyFocus], and all three
+    /// make the check.
     ///
-    /// [ADR-0303] called the situation safe by construction, on the grounds that
-    /// `Element.markNeedsBuild` is a no-op on an unmounted element. It is a
-    /// no-op, and nothing reaches it: `State.setState` throws one line earlier,
-    /// by its own contract, because an unmounted `setState` is normally a
-    /// callback that outlived its widget. So an `EXITED` delivered to a node that
-    /// the press before it removed — a screen that drops its hover preview in
-    /// `onPointer` is the shape of it — took the frame down with an
+    /// The check is not optional. `State.setState` throws on an unmounted
+    /// element, by its own contract, because an unmounted `setState` is normally
+    /// a callback that outlived its widget. So an `EXITED` delivered to a node
+    /// that the press before it removed — a screen that drops its hover preview
+    /// in `onPointer` is the shape of it — would take the frame down with an
     /// `IllegalStateException`. An unmounted element has been disposed: its
     /// state's `dispose` has run and its bindings are closed, so there is nobody
     /// left to tell, and the one thing a final `EXITED` could have been for is
@@ -2236,7 +2227,7 @@ public final class PointerRouter {
     /// hover-hold timer, a preview it asked for — held on a widget *value* rather
     /// than in element state, and nothing disposes it. Dropping it would leave
     /// every enter unmatched exactly when the node goes away, which is the case
-    /// [ADR-0327] added it for.
+    /// the hook exists for.
     ///
     /// Asked here rather than at the call sites, and **per element at the moment
     /// of telling** rather than once per move. A chain is told one element at a
@@ -2253,11 +2244,11 @@ public final class PointerRouter {
 
     /// Runs the `onPointerEnter`/`onPointerExit` an [Attributes] carries.
     ///
-    /// `docs/gaps.md` G33. Beside the widget's own handler rather than through
+    /// Beside the widget's own handler rather than through
     /// it, because the whole point is that a widget need not be a [Handles] to
     /// hear this: a `row` of ordinary boxes is what a hover-hold preview hangs
     /// off, and making it implement an input interface to be told the pointer
-    /// arrived is choosing a widget for its event hook ([ADR-0327]).
+    /// arrived is choosing a widget for its event hook.
     ///
     /// **Nothing is consumed and nothing can be.** The event these two derive
     /// from is synthetic and goes to one element rather than down a chain — see
@@ -2284,7 +2275,7 @@ public final class PointerRouter {
         }
     }
 
-    /// Capture down the chain, then bubble back up (§7.1).
+    /// Capture down the chain, then bubble back up.
     private void dispatch(PointerEvent event) {
         // One choke point for every control, present and future -- the same
         // argument that put the `:hover` refusal in `mark` rather than in each
@@ -2294,7 +2285,7 @@ public final class PointerRouter {
         var chain = chain(event.target());
         if (isInput(event.kind()) && isDisabled(event.target())) {
             // ...except that a **wheel** chains past a dead control rather than
-            // stopping at it ([ADR-0238]). The argument above is about the thing
+            // stopping at it. The argument above is about the thing
             // aimed at: a click on a disabled button must not become a click on
             // the row underneath. A wheel is not aimed at a control at all -- it
             // is aimed at whatever scrolls -- so a disabled knob in a list that
@@ -2337,8 +2328,8 @@ public final class PointerRouter {
             if (element.widget() instanceof Handles handles) {
                 // Re-pointed per handler, not once per event: dispatch bubbles,
                 // and a press on a slider's thumb targets the thumb while the
-                // slider handling it wants the position along *itself*
-                // (ADR-0079) -- or along one named part of itself (ADR-0080).
+                // slider handling it wants the position along *itself* -- or
+                // along one named part of itself.
                 event.localTo(localFor(element, handles, event));
                 event.contentTo(contentOf(element, event));
                 measure(element, handles, event::measuredAs);
@@ -2353,7 +2344,7 @@ public final class PointerRouter {
     /// because a key event has the first and not the second. Both events are
     /// re-measured per handler for the reason both are re-pointed per handler:
     /// dispatch bubbles, and a scroll view handling a wheel that landed on a row
-    /// wants its **own** rectangle rather than the row's ([ADR-0116]).
+    /// wants its **own** rectangle rather than the row's.
     private void measure(Element element, Handles handles, java.util.function.BiConsumer<Extent, Extent> sink) {
         var own = extentOf(element);
         var name = handles.localPart();
@@ -2386,7 +2377,7 @@ public final class PointerRouter {
     ///
     /// Resolved here rather than in the widget because the widget cannot see its
     /// own elements, which is the same reason the router carries a drag's origin
-    /// (ADR-0075) and decides where Tab goes (ADR-0073).
+    /// and decides where Tab goes.
     ///
     /// The fallback is on the **rectangle** and not on the element, which is the
     /// case that actually happens: a part is in the tree from the first build and
@@ -2426,8 +2417,7 @@ public final class PointerRouter {
     /// less its padding.
     ///
     /// Mapped through the same inverse [#localTo] uses and for the same reason: a
-    /// box inside a `scroll` is painted a long way from where it was laid out
-    /// (ADR-0281).
+    /// box inside a `scroll` is painted a long way from where it was laid out.
     private PointerEvent.Local contentOf(Element element, PointerEvent event) {
         for (var region : regions) {
             if (region.owner() == element) {
@@ -2466,7 +2456,7 @@ public final class PointerRouter {
                 //
                 // Two answers to "where inside this box" is how a chart stops
                 // highlighting halfway down a panel while every one of its
-                // pointer events still arrives (ADR-0054, ADR-0068).
+                // pointer events still arrives.
                 var inverse = region.inverse();
                 var x = inverse == null ? event.x() : (float) inverse.mapX(event.x(), event.y());
                 var y = inverse == null ? event.y() : (float) inverse.mapY(event.x(), event.y());

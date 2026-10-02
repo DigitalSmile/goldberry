@@ -30,7 +30,7 @@ import dev.goldberry.render.window.WindowSpec;
 /// this class assigns rather than a wait it hopes for. `bothOverdueAtOnce` is
 /// why: it slept 25 ms to make two timers overdue at once, and failed under a
 /// loaded machine — a wall-clock test of scheduling has the same problem the
-/// scheduling has (the 2026-09-18 review, §6). Moving the clock and calling
+/// scheduling has. Moving the clock and calling
 /// `wakeup()` is the pair: the first changes what the loop will conclude, the
 /// second ends the pump it is parked in so it is asked.
 class EventLoopTimerTest {
@@ -99,8 +99,6 @@ class EventLoopTimerTest {
                 List.of("kept"), fired, "the cancelled one was still in the list when the loop woke for the other");
     }
 
-    /// The 2026-09-18 review's C14.
-    ///
     /// `isPending()` was `!cancelled`, and `fireDueTimers` removes a timer from
     /// the list without telling it anything — so a timer that had *fired*
     /// answered "still going to fire", for ever. A caller holding one to decide

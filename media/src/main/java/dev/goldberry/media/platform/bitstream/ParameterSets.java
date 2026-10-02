@@ -53,8 +53,8 @@ public final class ParameterSets {
     private static final Set<Integer> H264_HIGH_PROFILES =
             Set.of(100, 110, 122, 244, 44, 83, 86, 118, 128, 138, 139, 134, 135);
 
-    /// The profiles that are intra-only when constraint_set3 is set (§A.2.8 to
-    /// §A.2.11): no picture predicts from another, so none waits for another.
+    /// The profiles that are intra-only when constraint_set3 is set (H.264 §A.2.8 to §A.2.11):
+    /// no picture predicts from another, so none waits for another.
     private static final Set<Integer> H264_INTRA_PROFILES = Set.of(44, 86, 100, 110, 122, 244);
 
     private ParameterSets() {}
@@ -249,12 +249,12 @@ public final class ParameterSets {
             depth = restricted.getAsInt();
         } else if (pocType == 2 || maxRefFrames == 0) {
             // Picture order type 2 is output order equal to decoding order
-            // (§8.2.1.3); no reference pictures means nothing to wait for.
+            // (H.264 §8.2.1.3); no reference pictures means nothing to wait for.
             depth = 0;
         } else if (H264_INTRA_PROFILES.contains(profile) && (constraints & 0x10) != 0) {
             depth = 0;
         } else {
-            // The decoded picture buffer the level allows at this size (§A.3.1,
+            // The decoded picture buffer the level allows at this size (H.264 §A.3.1,
             // Table A-1), as FFmpeg does when the SPS does not say.
             depth = maxDpbFrames(level, (constraints & 0x10) != 0, (long) widthMbs * heightMbs);
         }
@@ -406,7 +406,7 @@ public final class ParameterSets {
         return OptionalInt.of(r.ue()); // max_num_reorder_frames
     }
 
-    /// Passes over `hrd_parameters()` (§E.1.2).
+    /// Passes over `hrd_parameters()` (H.264 §E.1.2).
     private static void skipHrd(BitReader r) {
         var count = r.ue() + 1; // cpb_cnt_minus1
         r.skip(8); // bit_rate_scale, cpb_size_scale
@@ -418,7 +418,7 @@ public final class ParameterSets {
         r.skip(20); // four delay lengths of five bits
     }
 
-    /// Passes over one `scaling_list()` (§7.3.2.1.1.1).
+    /// Passes over one `scaling_list()` (H.264 §7.3.2.1.1.1).
     private static void skipScalingList(BitReader r, int size) {
         var last = 8;
         var next = 8;

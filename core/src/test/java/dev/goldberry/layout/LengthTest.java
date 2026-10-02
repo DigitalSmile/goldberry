@@ -13,7 +13,7 @@ import org.junit.jupiter.api.Test;
 /// What a layout value may be, with no layout engine under it.
 ///
 /// These are the types `paint.Box` and `css.ComputedStyle` are written in, and
-/// they were the layout engine's own until ADR-0279 — so what is asserted here is
+/// they mirror the layout engine's own — so what is asserted here is
 /// mostly that the mirror is faithful. The half that is not bookkeeping is the
 /// NaN rule: the engine spells "undefined" as a NaN, and letting one in through
 /// the front door would give one state two spellings.
@@ -83,7 +83,7 @@ class LengthTest {
         @DisplayName("zero and none are different things")
         void zeroIsNotNone() {
             // An inset of zero pins a node to that edge; an undefined one leaves
-            // it where flow put it (ADR-0272).
+            // it where flow put it.
             assertNotEquals(Insets.ZERO, Insets.NONE);
             assertEquals(Length.points(0), Insets.ZERO.top());
             assertEquals(Length.UNDEFINED, Insets.NONE.top());

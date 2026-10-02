@@ -76,7 +76,7 @@ From a chapter of this book, a link is relative and ends in `.md`:
 [ADR-0063](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0063-data-flows-down-events-flow-up.md)
 ```
 
-From `docs/`, the path is `../book/src/adr/NNNN-slug.md`. From a Java doc comment, a record is the plain reference `ADR-NNNN` and not a link: 510 relative links from source into the book once resolved to nothing, and the plain reference is what they always effectively were.
+From `docs/`, the path is `../book/src/adr/NNNN-slug.md`. A Java doc comment does not cite a record at all: its reader has a tooltip or a javadoc site, not the repository, so the comment states the rule in plain words and links the chapter of this guide that covers it. The chapter's *Read more* is where the record is linked. That is [ADR-0518](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0518-a-doc-comment-explains-the-object-and-links-the-guide.md), and [Writing a doc comment](doc-comments.md) is the house style.
 
 Every chapter's *Read more* names the records behind it, and a widget's chapter links the record for each rule it states. A record that nothing links is a record nobody will find.
 

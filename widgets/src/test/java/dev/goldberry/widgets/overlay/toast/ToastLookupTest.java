@@ -24,10 +24,9 @@ import dev.goldberry.widget.style.Paints;
 import dev.goldberry.widget.style.Styled;
 import dev.goldberry.widgets.TestHost;
 
-/// **A control deep in the tree can raise a toast**, which is the door
-/// `TODO.md` asked for by name — "nothing wraps it in the
-/// `Overlay.of(context)`-shaped call that would put a toast up from there
-/// without the application's help" ([ADR-0264]).
+/// **A control deep in the tree can raise a toast** without the application's
+/// help: `Toasts.of(context)` walks up to the nearest toaster, the way an
+/// `Overlay.of(context)`-shaped call would.
 ///
 /// The assertions are about the two ways `of` answers nothing, as much as about
 /// the way it answers something: a widget with no window and a window with no

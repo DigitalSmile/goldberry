@@ -12,6 +12,8 @@ import java.util.Objects;
 /// concept is how a `padding: 0 12px` ends up applied to the wrong pair of edges,
 /// which looks like a layout bug and is a transcription one.
 ///
+/// Read more: [How layout works](https://goldberry.dev/docs/layout/index.html#the-box-model).
+///
 /// @param top    space above the content
 /// @param right  space to the right
 /// @param bottom space below
@@ -25,8 +27,7 @@ public record Insets(Length top, Length right, Length bottom, Length left) {
     /// and is a different thing from zero.
     ///
     /// An inset of zero pins a node to that edge; an undefined one leaves it
-    /// where flow put it. A `Box` starts with this and not with [#ZERO]
-    /// (ADR-0272).
+    /// where flow put it. A `Box` starts with this and not with [#ZERO].
     public static final Insets NONE = all(Length.UNDEFINED);
 
     public Insets {

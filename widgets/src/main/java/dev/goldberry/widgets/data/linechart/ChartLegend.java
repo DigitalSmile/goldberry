@@ -12,7 +12,8 @@ import dev.goldberry.widget.style.Paints;
 import dev.goldberry.widget.style.Styled;
 import dev.goldberry.widgets.data.Series;
 
-/// Which line is which — a **part** of [LineChart].
+/// Which line is which — the `chart-legend` part every chart with two or more
+/// series carries.
 ///
 /// **Present for two series and absent for one**, which is a rule rather than an
 /// option: with one line the title names it and a legend box would be a second
@@ -22,24 +23,26 @@ import dev.goldberry.widgets.data.Series;
 /// Real widgets rather than something the painter draws. A legend is text and a
 /// swatch — the two things the toolkit is already good at — and making them nodes
 /// means a stylesheet reaches them, the text is shaped by the same cache as
-/// everything else, and the entries wrap when the chart is narrow because §8's
-/// subset has `flex-wrap` now (ADR-0192). A legend drawn inside the canvas would
-/// have re-implemented all three.
+/// everything else, and the entries wrap when the chart is narrow because the
+/// stylesheet has `flex-wrap`. A legend drawn inside the canvas would have
+/// re-implemented all three.
 ///
 /// ## And it is a control, not a caption
 ///
 /// Clicking an entry **isolates** its series; clicking it again puts them all
-/// back. `charts.md` §3.1 calls it "the one interaction Grafana users reach for
-/// first", and it is the second thing the legend being real widgets paid for:
-/// the click is an ordinary pointer handler on an ordinary node, with the
-/// cursor and the hover state a stylesheet already knows how to draw.
+/// back. It is the interaction a dashboard's users reach for first, and it is
+/// the second thing the legend being real widgets paid for: the click is an
+/// ordinary pointer handler on an ordinary node, with the cursor and the hover
+/// state a stylesheet already knows how to draw.
 ///
 /// The entries that are *not* isolated are dimmed rather than removed. A legend
 /// that dropped them would change width as you clicked it, and the way back
 /// would disappear along with them.
 ///
+/// Read more: [Charts](https://goldberry.dev/docs/components/charts.html#what-the-five-share).
+///
 /// @param series    every series, isolated or not — the order is the colour
-///                  order (ADR-0194)
+///                  order
 /// @param isolated  the one being shown alone, or -1 for all of them
 /// @param onIsolate what a click reports, or null for a legend that is only a
 ///                  key — which is what `donut-chart` builds

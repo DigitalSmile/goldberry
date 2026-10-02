@@ -1,5 +1,5 @@
-/// `docs/core-widgets.md` §1's `scroll` — a viewport that shows part of something
-/// larger than itself, on one or both axes, with overlay scrollbars.
+/// The `scroll` widget — a viewport that shows part of something larger than
+/// itself, on one or both axes, with overlay scrollbars.
 ///
 /// [dev.goldberry.widgets.core.scroll.Scroll] is the widget,
 /// [dev.goldberry.widgets.core.scroll.ScrollAxis] and
@@ -16,7 +16,9 @@
 /// that is taller than the screen into a viewport, which is how `menu` and `select`
 /// stay whole. The viewport, content and thumb are parts.
 ///
-/// Marked for NullAway (`docs/testing.md` §2, ADR-0497).
+/// Null-marked: every reference is non-null unless annotated otherwise.
+///
+/// Read more: [Scroll](https://goldberry.dev/docs/layout/scroll.html#scroll).
 @NullMarked
 package dev.goldberry.widgets.core.scroll;
 

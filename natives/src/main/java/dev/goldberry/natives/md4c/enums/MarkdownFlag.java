@@ -13,8 +13,10 @@ import java.util.Set;
 /// The names are md4c's meanings spelled out: `MD_FLAG_PERMISSIVEATXHEADERS`
 /// becomes [#PERMISSIVE_ATX_HEADERS]. What an application chooses from is
 /// `MarkdownExtension` in `:html`, which is a smaller list — this is the whole
-/// surface md4c offers, and translating one into the other is the seam ADR-0294
-/// puts between a binding and a vocabulary.
+/// surface md4c offers, and translating one into the other is the seam between
+/// a binding and a vocabulary.
+///
+/// Read more: [The native boundary](https://goldberry.dev/docs/overview/architecture.html#the-native-boundary).
 public enum MarkdownFlag implements Md4cEnum {
 
     /// Collapse runs of whitespace in ordinary text into one space.

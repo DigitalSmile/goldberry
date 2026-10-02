@@ -11,8 +11,7 @@ import org.junit.jupiter.api.Test;
 import dev.goldberry.css.cascade.CascadeLayer;
 import dev.goldberry.kdl.KdlParser;
 
-/// An application's CSS and markup come from files beside its code
-/// (ADR-0093).
+/// An application's CSS and markup come from files beside its code.
 ///
 /// The toolkit read its own theme and control sheets from resources from the
 /// start; an application had no supported way to do the same and wrote its CSS in
@@ -67,7 +66,7 @@ class ResourceLoadingTest {
 
     /// UTF-8, unconditionally. A stylesheet read in the platform's charset is one
     /// that parses differently on a machine whose default is not UTF-8 — which is
-    /// the class of bug §1.1's "deterministic" principle exists to prevent, and
+    /// the class of bug the "deterministic" principle exists to prevent, and
     /// which no golden image would catch because the developer who wrote the file
     /// is on the machine where it works.
     @Test

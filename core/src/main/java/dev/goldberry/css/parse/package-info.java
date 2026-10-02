@@ -1,5 +1,5 @@
-/// Reading a stylesheet: the CSS Syntax Level 3 tokenizer, the parser for
-/// `docs/ARCHITECTURE.md` §8's subset, and the error that stops both.
+/// Reading a stylesheet: the CSS Syntax Level 3 tokenizer, the parser for the
+/// supported subset, and the error that stops both.
 ///
 /// Strict where a browser is lenient. A browser drops what it does not understand
 /// because the page was written for somebody else; a toolkit is reading a sheet its
@@ -7,9 +7,11 @@
 /// column rather than left as a widget in the wrong colour. Hot reload is the one
 /// caller that catches the refusal, and keeps the last good sheet.
 ///
-/// One of the CSS engine's stages, each its own exported package (ADR-0172).
+/// One of the CSS engine's stages, each its own exported package.
 ///
-/// Marked for NullAway (`docs/testing.md` §2, ADR-0497).
+/// Null-marked: every reference is non-null unless annotated `@Nullable`.
+///
+/// Read more: [Styling](https://goldberry.dev/docs/guide/styling.html).
 @NullMarked
 package dev.goldberry.css.parse;
 

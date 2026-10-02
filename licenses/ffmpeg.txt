@@ -4,7 +4,7 @@ Upstream:      https://ffmpeg.org (git: https://git.ffmpeg.org/ffmpeg.git)
 Licence file:  COPYING.LGPLv2.1 (LICENSE.md says which files it covers)
 Bundled as:    five shared libraries -- libavformat, libavcodec, libavutil,
                libswresample, libswscale -- dynamically linked, in the
-               goldberry-ffmpeg-natives-<platform> jar (ADR-0460, ADR-0461)
+               goldberry-ffmpeg-natives-<platform> jar
 
 Built with none of --enable-gpl, --enable-nonfree or --enable-version3, so the
 whole build is under the LGPL 2.1 or later; the superbuild refuses any of the

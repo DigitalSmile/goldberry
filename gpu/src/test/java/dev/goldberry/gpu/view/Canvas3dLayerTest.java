@@ -28,7 +28,7 @@ import dev.goldberry.natives.sdl.gpu.GpuTestLauncher;
 import dev.goldberry.render.model.PhysicalSize;
 
 /// A `canvas3d`'s layer driving its renderer through the renderer's lifecycle,
-/// on a real device (ADR-0482).
+/// on a real device. Read more: [canvas3d](https://goldberry.dev/docs/components/gpu.html#canvas3d).
 @Tag(GpuTestLauncher.TAG)
 @DisplayName("a canvas3d's layer")
 class Canvas3dLayerTest {

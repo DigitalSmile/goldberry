@@ -37,8 +37,7 @@ import dev.goldberry.widgets.Widgets;
 import dev.goldberry.widgets.core.Row;
 import dev.goldberry.widgets.core.Spacer;
 
-/// The fifth control, and the first with a **gesture**
-/// (ADR-0075).
+/// The fifth control, and the first with a **gesture**.
 ///
 /// [ButtonTest] proves the shape a control has and [CheckboxTest] proves the
 /// controlled-value loop. What is new here is the drag: a sequence of events
@@ -46,7 +45,7 @@ import dev.goldberry.widgets.core.Spacer;
 class ToggleTest {
 
     @Nested
-    @DisplayName("parity (§11)")
+    @DisplayName("markup and Java build the same tree")
     class Parity {
 
         @Test
@@ -67,7 +66,7 @@ class ToggleTest {
     @DisplayName("the drag")
     class Drag {
 
-        /// §3's travel is 16, so the threshold is 8 — the point at which the
+        /// The thumb's travel is 16, so the threshold is 8 — the point at which the
         /// thumb has passed the middle. Past it, the value is the *direction*
         /// and not the opposite of what is showing.
         @Test
@@ -192,7 +191,7 @@ class ToggleTest {
             assertEquals(List.of(true, false), asked);
         }
 
-        /// Enter belongs to a dialog's default action (§2.3). A control that
+        /// Enter belongs to a dialog's default action. A control that
         /// swallowed it would leave a form with no keyboard route to submit once
         /// focus was on one — the same line `checkbox` draws.
         @Test
@@ -222,7 +221,7 @@ class ToggleTest {
     }
 
     @Nested
-    @DisplayName("the value (ADR-0063)")
+    @DisplayName("the value")
     class Value {
 
         @Test
@@ -253,7 +252,7 @@ class ToggleTest {
             assertTrue(new Toggle("Frost", true, Property.of(null), value -> {}, false, null).resolved());
         }
 
-        /// The whole of ADR-0063 in one assertion: a bound toggle whose handler
+        /// The whole of the binding rule in one assertion: a bound toggle whose handler
         /// does nothing moves neither the property nor the thumb.
         @Test
         @DisplayName("a handler that does nothing leaves the switch where it was")
@@ -291,8 +290,8 @@ class ToggleTest {
         }
 
         /// The markup half of the valued action: the value crosses as the string
-        /// a document would have written, which is the rule ADR-0073 set for
-        /// enums and which keeps one valued shape in the registry.
+        /// a document would have written, which is the rule for enums in markup
+        /// and which keeps one valued shape in the registry.
         @Test
         @DisplayName("a KDL change= receives \"true\" or \"false\"")
         void kdlChangeReceivesAString() {
@@ -324,11 +323,11 @@ class ToggleTest {
     @DisplayName("the parts")
     class Parts {
 
-        /// §3's four numbers are one arithmetic statement: 2 + 16 + 16 + 2 = 36
+        /// The toggle's four numbers are one arithmetic statement: 2 + 16 + 16 + 2 = 36
         /// across and 2 + 16 + 2 = 20 down. A track that did not add up would
         /// leave the thumb hanging over an edge at one end of its travel.
         @Test
-        @DisplayName("the track and the thumb are §3's metrics, and they add up")
+        @DisplayName("the track is 36×20, the thumb 16, the travel 16, and they add up")
         void metricsAddUp() {
             // 1 is the toggle (the spacer is 0), then its track, then the thumb.
             var track = styleOf(1, 0);
@@ -343,13 +342,13 @@ class ToggleTest {
             assertEquals(Length.points(2), padding.left());
             assertEquals(Length.points(2), padding.right());
             assertEquals(Length.points(2), padding.top());
-            // §3's travel 16 is what is *left over* rather than a number chosen
+            // The travel of 16 is what is *left over* rather than a number chosen
             // separately: change the track width and the travel is wrong.
             assertEquals(
                     16,
                     36 - points(padding.left()) - points(padding.right()) - 16,
                     1e-6,
-                    "track 36 - padding 2+2 - thumb 16 must leave exactly §3's travel");
+                    "track 36 - padding 2+2 - thumb 16 must leave exactly the travel of 16");
         }
 
         /// `:checked` is mirrored onto the **track**, which is what lets the
@@ -408,8 +407,8 @@ class ToggleTest {
             assertEquals(Length.points(28), toggleStyle(Density.COMPACT).height());
         }
 
-        /// The track is §3's 36×20 at either density: §3's toggle row gives no
-        /// compact value, unlike the rows that carry one in parentheses, so the
+        /// The track is 36×20 at either density: the toggle's metrics give no
+        /// compact value, unlike the controls that carry one, so the
         /// pill does not shrink and only the row around it does.
         @Test
         @DisplayName("the track does not shrink with the density")
@@ -425,7 +424,7 @@ class ToggleTest {
             }
         }
 
-        /// §2.2's ring, once, for every control — asserted here because a new
+        /// The focus ring is one rule for every control — asserted here because a new
         /// control joining the shared rule is a thing that gets forgotten, and a
         /// missing ring is invisible until someone tries the keyboard.
         @Test

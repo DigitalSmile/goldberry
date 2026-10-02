@@ -9,8 +9,8 @@ import java.util.OptionalLong;
 
 /// A readable, optionally seekable stream of bytes: everything FFmpeg ever reads.
 ///
-/// FFmpeg is built without its network layer and without a single protocol
-/// (`docs/goldberry-media.md` §4). The demuxer reads through a custom
+/// FFmpeg is built without its network layer and without a single protocol.
+/// The demuxer reads through a custom
 /// `AVIOContext` whose two callbacks land here, so a file, an HTTP response and an
 /// application's own encrypted container all look alike to it. Because of that,
 /// the JDK supplies TLS, proxies and HTTP/2, and a network test needs no server.
@@ -30,6 +30,9 @@ import java.util.OptionalLong;
 /// Positions are byte offsets from the start of the resource. [#seek(long)] is
 /// absolute. The relative seeks FFmpeg asks for are resolved against
 /// [#position()] before they reach an implementation.
+///
+/// Read more:
+/// [Tracks and the network](https://goldberry.dev/docs/components/media.html#tracks-subtitles-and-the-network).
 public interface MediaIO extends Closeable {
 
     /// Reads up to `target.remaining()` bytes into `target`, advancing its position.
@@ -83,8 +86,7 @@ public interface MediaIO extends Closeable {
     ///
     /// Empty by default, and for a local file, where every byte is at hand and a
     /// list saying so would say nothing. `HttpIO` reports its read-ahead cache,
-    /// which a player's seek bar shows as `bufferedRanges`
-    /// (`docs/goldberry-media.md` §4).
+    /// which a player's seek bar shows as `bufferedRanges`.
     ///
     /// Called from any thread, while another reads.
     default List<ByteRange> buffered() {

@@ -14,7 +14,7 @@ import org.junit.jupiter.api.Test;
 import dev.goldberry.render.backend.headless.HeadlessBackend;
 import dev.goldberry.render.web.WebViewEngine;
 
-/// What an open web page costs the event loop — ADR-0441.
+/// What an open web page costs the event loop, and what a closed one does not.
 ///
 /// A page's engine runs on a loop of its own that nothing else drives, and the
 /// loop can be parked in `pumpEvents` for its one-second heartbeat. So while a

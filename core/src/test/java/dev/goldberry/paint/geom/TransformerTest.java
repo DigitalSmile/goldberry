@@ -21,8 +21,7 @@ import dev.goldberry.paint.Path.Segment;
 /// right answer. The **arc** is asserted twice over: once on the ellipse it
 /// comes back as, and once on where the ink actually goes — the two radii, the
 /// rotation and the sweep flag are four ways of writing the same curve, and a
-/// mistake in one of them can be hidden by a matching mistake in another
-/// (ADR-0390, `docs/gaps.md` G46).
+/// mistake in one of them can be hidden by a matching mistake in another.
 class TransformerTest {
 
     @Nested

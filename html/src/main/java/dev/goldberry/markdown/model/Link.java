@@ -10,7 +10,7 @@ import org.jspecify.annotations.Nullable;
 /// @param href where it points. Resolved as the author wrote it and **not**
 ///        validated: `mailto:`, a relative path and a fragment are all legitimate,
 ///        and deciding what may be followed is the application's — the same
-///        division ADR-0291 drew for URL schemes
+///        division the toolkit draws for URL schemes
 /// @param title the tooltip, or null when there is none
 /// @param autolink whether the author wrote a bare URL rather than brackets, in
 ///        which case [#content()] is the URL again

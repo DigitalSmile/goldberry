@@ -2,18 +2,18 @@ package dev.goldberry.widgets.form.codeinput;
 
 import java.util.Objects;
 
-/// What a [CodeInput] holds, and which box is next — §4's editing model for the
+/// What a [CodeInput] holds, and which box is next — the editing model of the
 /// one-time-code field.
 ///
 /// **A value**, for [dev.goldberry.text.edit.TextEdit]'s
-/// reasons: a `State` holds one and swaps it, and every rule §4 states can be
+/// reasons: a `State` holds one and swaps it, and every editing rule can be
 /// tested with no font, no frame and no window.
 ///
 /// ## Not `TextEdit`, and that is the whole reason this widget exists
 ///
-/// §4 says `code-input` "exists as its own widget rather than a styled
-/// `text-input` because its *editing model* is different, and that is the whole
-/// of the specification". A `TextEdit` is a string, a caret and an anchor; this
+/// `code-input` exists as its own widget rather than a styled `text-input`
+/// because its *editing model* is different, and that model is the whole of the
+/// widget. A `TextEdit` is a string, a caret and an anchor; this
 /// is a string and nothing else, because everything a caret is for has one answer
 /// here:
 ///
@@ -21,16 +21,16 @@ import java.util.Objects;
 ///   to drag over.
 /// - **There is no caret to place.** The active box is the first empty one, which
 ///   is a *function* of what is held rather than a second piece of state that
-///   could disagree with it — and §4's "focus lands wherever the first empty box
-///   is" is then a consequence rather than a rule anything has to implement.
+///   could disagree with it — and "focus lands wherever the first empty box is"
+///   is then a consequence rather than a rule anything has to implement.
 /// - **There are no holes.** Backspace clears the last filled box, so the filled
 ///   boxes are always a prefix. A code with a gap in the middle is not a state a
 ///   one-time code has, and admitting one would mean deciding what its *value*
-///   was — six boxes are announced as a single textbox (§4), and a textbox
+///   was — six boxes are announced as a single textbox, and a textbox
 ///   holding "12" and "56" with a hole between them has no honest string.
 ///
-/// So [#caret] is derived, and the four sentences §4 spends on this widget fall
-/// out of two operations.
+/// So [#caret] is derived, and the widget's four editing rules fall out of two
+/// operations.
 ///
 /// ## Code points, not chars
 ///
@@ -38,11 +38,13 @@ import java.util.Objects;
 /// rather than half of a surrogate pair being drawn in each of two. See
 /// [CodeType#accepts].
 ///
+/// Read more: [Fields and forms](https://goldberry.dev/docs/components/forms.html#code-input).
+///
 /// @param value  what is held — between zero and [#length] code points, in order
 /// @param length how many boxes there are
 public record CodeEdit(String value, int length) {
 
-    /// §4's `length=6`, which is what an SMS code is nearly everywhere.
+    /// Six boxes, which is what an SMS code is nearly everywhere.
     public static final int DEFAULT_LENGTH = 6;
 
     public CodeEdit {
@@ -68,7 +70,7 @@ public record CodeEdit(String value, int length) {
         return value.isEmpty();
     }
 
-    /// Whether every box is filled — what §4's `complete` fires on.
+    /// Whether every box is filled — what `complete` fires on.
     public boolean isComplete() {
         return filled() == length;
     }
@@ -97,8 +99,8 @@ public record CodeEdit(String value, int length) {
 
     /// Typing, and pasting, which are the same operation.
     ///
-    /// §4 asks for two things that are one rule: "typing advances", and "a paste
-    /// of the full code fills every box at once". Committed text arrives as a
+    /// Two rules that are one: typing advances, and a paste of the full code
+    /// fills every box at once. Committed text arrives as a
     /// string — one character from a keystroke, six from a paste — so appending
     /// whatever `type` accepts does both, and a paste that arrives one character
     /// at a time from a platform that splits it comes out the same.
@@ -128,8 +130,7 @@ public record CodeEdit(String value, int length) {
         return taken == 0 ? this : new CodeEdit(added.toString(), length);
     }
 
-    /// `Backspace` — §4's "on an empty box moves back and clears the previous
-    /// one".
+    /// `Backspace` — on an empty box it moves back and clears the previous one.
     ///
     /// Which is what dropping the last code point *is*, given that the active box
     /// is always the first empty one: the box the ring is on is empty, so the

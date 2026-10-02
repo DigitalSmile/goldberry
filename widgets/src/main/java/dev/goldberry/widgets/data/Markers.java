@@ -1,7 +1,11 @@
 package dev.goldberry.widgets.data;
 
-/// Whether a line chart draws a dot at each reading — `charts.md` §3.1's "point
-/// markers, size, show-always/never/auto".
+/// Whether a line chart draws a dot at each reading: always, never, or when
+/// the points are far enough apart for a dot to mean something.
+///
+/// ```java
+/// chart.markers(Markers.ALWAYS)
+/// ```
 ///
 /// A marker says *this is a reading* rather than a point on a curve, which
 /// matters exactly when the two could be confused: a sparse series drawn as a
@@ -11,6 +15,8 @@ package dev.goldberry.widgets.data;
 /// It stops mattering, and starts hurting, when the points are close together: a
 /// hundred readings across two hundred pixels is a dotted mess where a line was
 /// legible.
+///
+/// Read more: [Charts](https://goldberry.dev/docs/components/charts.html#line-chart).
 public enum Markers {
 
     /// Draw them when there is room — the **default**.

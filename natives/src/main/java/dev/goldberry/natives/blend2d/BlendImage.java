@@ -24,6 +24,8 @@ import dev.goldberry.natives.layout.Layouts;
 /// closed inside a single paint.
 ///
 /// Confined to the thread that created it, and must be closed.
+///
+/// Read more: [The native boundary](https://goldberry.dev/docs/overview/architecture.html#the-native-boundary).
 public final class BlendImage implements AutoCloseable {
 
     private final Blend2dImage calls = Blend2dImage.get();

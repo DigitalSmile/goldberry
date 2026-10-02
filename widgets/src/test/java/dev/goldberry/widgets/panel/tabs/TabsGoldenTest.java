@@ -25,7 +25,7 @@ import dev.goldberry.widgets.controls.TestFont;
 import dev.goldberry.widgets.core.Column;
 import dev.goldberry.widgets.text.Text;
 
-/// What a tab strip looks like (§14, [ADR-0050]).
+/// What a tab strip looks like.
 ///
 /// [TabsTest] pins the model: which content is built, what is asked for, what the
 /// colour is. These are the images that say the *drawing* adds up — and there are
@@ -78,7 +78,7 @@ class TabsGoldenTest {
         /// `tab-list`, whose child 0 is the rule and whose child 1 is the
         /// headers' viewport — so a header is two levels further down than it
         /// looks. The viewport is there so a strip wider than its window scrolls
-        /// rather than overflowing (ADR-0118).
+        /// rather than overflowing.
         void applyTo(dev.goldberry.widget.Element strip) {
             strip.children()
                     .getFirst() // tabs
@@ -161,7 +161,7 @@ class TabsGoldenTest {
     }
 
     /// The focus ring is *inside* the header, which is the one place in the
-    /// catalog it has to be: a ring at §2.2's usual 2px offset would be drawn
+    /// catalog it has to be: a ring at the usual 2px offset would be drawn
     /// outside the strip's rule and over the tab beside it.
     @Test
     @DisplayName("the focus ring sits inside the header")
@@ -169,16 +169,16 @@ class TabsGoldenTest {
         paint("tabs-focus", Theme.NORD_DARK, 380, 110, strip(), new PseudoState(2, Selector.PseudoClass.FOCUS_VISIBLE));
     }
 
-    /// The same ring on the light theme, because §2.2's ring is the one mark in
-    /// the system with **no second means of being seen**.
+    /// The same ring on the light theme, because the focus ring is the one mark
+    /// in the system with **no second means of being seen**.
     ///
     /// A hover has a wash, a checked control has a fill, a disabled one has its
     /// opacity — each is a state whose colours other goldens already cover. A
     /// focus ring is only a ring, and `--gb-focus` resolves differently per
     /// theme, so a ring photographed on one theme is a ring unwatched on the
-    /// other. That is not hypothetical: §2.2's ring sat below §1.2's floor on
+    /// other. That is not hypothetical: the ring sat below the contrast floor on
     /// every light surface, and fixing it moved **no golden at all** — which is
-    /// the gap saying so out loud ([ADR-0240], [ADR-0261]).
+    /// the gap saying so out loud.
     ///
     /// `FocusGoldenPairTest` is the rule rather than this comment: every
     /// `*-focus.png` in the corpus must have a `-light` twin.

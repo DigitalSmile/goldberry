@@ -5,7 +5,8 @@ import dev.goldberry.build.version.VersionBump
 import java.time.Year
 
 // ============================================================================
-// Group and version (ADR-0333)
+// Group and version
+// https://goldberry.dev/docs/contributing/releasing.html#versions
 //
 // `gradle.properties` declares the release line -- `goldberryVersion=2026.1` --
 // and every build is a `-SNAPSHOT` of it. Only the release workflow passes
@@ -14,7 +15,7 @@ import java.time.Year
 //
 // Its own plugin rather than part of `goldberry.java-conventions`, because
 // `:bom` needs a version too and is a `java-platform`, which cannot share a
-// project with `java-library` (ADR-0336).
+// project with `java-library`.
 // ============================================================================
 
 group = PublishedModules.GROUP
@@ -33,7 +34,9 @@ tasks.register('printVersion') {
     doLast { println text }
 }
 
-// `./gradlew -q :core:bumpVersion` -- the step after a tag (ADR-0421).
+// `./gradlew -q :core:bumpVersion` -- the step after a tag. Until it is merged,
+// master publishes a snapshot that Maven orders below the release it follows.
+// https://goldberry.dev/docs/contributing/releasing.html#cutting-a-release
 //
 // Invoked as `:core:bumpVersion` for the same reason `printVersion` is: this
 // plugin is applied per module, and the root project cannot apply it. It rewrites

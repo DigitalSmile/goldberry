@@ -9,12 +9,12 @@ import dev.goldberry.widget.Widget;
 import dev.goldberry.widget.style.Paints;
 import dev.goldberry.widget.style.Styled;
 
-/// One of §4's "hour/minute/second" columns — `time-column`, a **part**.
+/// One of the hour, minute and second columns — `time-column`, a **part**.
 ///
 /// ## A wheel and not a list, which is the decision worth writing down
 ///
-/// §4 says "an hour/minute/second column set" and says nothing about how a column
-/// is drawn. Sixty minutes in a scrolling viewport is the other answer, and it
+/// A time picker opens an hour/minute/second column set, and nothing says how a
+/// column is drawn. Sixty minutes in a scrolling viewport is the other answer, and it
 /// costs a `scroll` per column, a `ScrollController` per column and a `Located`
 /// cell to reveal — a popover whose height depends on how much of a list it
 /// decided to show, and a first frame that has to scroll before it is right.

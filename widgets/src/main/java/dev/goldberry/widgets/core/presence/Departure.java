@@ -12,25 +12,23 @@ import dev.goldberry.render.event.EventLoop;
 /// An overlay going away: `closing → removed`, with the ordering that makes it
 /// look right.
 ///
-/// §1.7 asks for an "overlay enter/exit lifecycle" — `opening → open → closing →
-/// removed` — and for a long time that was a specification with no subject,
-/// because the widgets it describes did not exist. They do now, and surveying the
-/// five of them ([ADR-0234]) says the *arrival* half needs nothing shared:
-/// [Phase] is already the beginning and the end of it, and a `collapse`, a
-/// `carousel` and a `tab` arrive with a phase and no other machinery at all.
+/// An overlay's lifecycle is `opening → open → closing → removed`. The *arrival*
+/// half needs nothing shared: [Phase] is the beginning and the end of it, and a
+/// `collapse`, a `carousel` and a `tab` arrive with a phase and no other
+/// machinery at all.
 ///
-/// The **departure** is where they were the same code twice. `dialog` and
-/// `message` each held two flags, a timer and a six-line dance, and got the same
-/// four things right independently:
+/// The **departure** is where `dialog` and `message` would each hold two flags,
+/// a timer and a six-line dance. This is that dance, written once, and it gets
+/// four things right:
 ///
 /// 1. **Idempotence.** A second press during the fade is not a second answer,
 ///    which matters most where it costs most: two handlers on a save dialog is
 ///    two saves.
 /// 2. **Two flags, not one.** "Input is off" starts at the instant an answer is
-///    given (§1.7's "no ghost clicks"); "there is nothing left to draw" starts
-///    when the fade runs out. Conflating them is why a closing dialog used to
-///    stop asking for frames on the frame it started closing, and therefore
-///    never faded at all ([ADR-0176]).
+///    given, so there are no ghost clicks; "there is nothing left to draw"
+///    starts when the fade runs out. Conflating them makes a closing dialog stop
+///    asking for frames on the frame it started closing, so it never fades at
+///    all.
 /// 3. **Stop drawing, then tell the application** — in that order, and it matters
 ///    for one frame: the handler usually rebuilds the tree without this overlay
 ///    in it, and a state still mid-fade would hand a half-faded panel to whatever
@@ -41,20 +39,21 @@ import dev.goldberry.render.event.EventLoop;
 ///
 /// ## Why this is not an `AnimationController`
 ///
-/// ADR-0081 refused a per-element controller for `spinner` and indeterminate
-/// progress, because a loop that never ends has nothing to remember and a
-/// controller would put two spinners permanently out of phase. ADR-0178 refused
-/// one for a toast's reflow, because the interruption turned out to be three
-/// lines of arithmetic. This is what was left of that idea after both refusals,
-/// and it is not a controller: it drives no value, interpolates nothing, and owns
-/// no clock. It owns a **timer and an ordering**, which is exactly the part two
-/// widgets had each written out.
+/// A per-element controller is the wrong shape for a `spinner` or an
+/// indeterminate progress bar, because a loop that never ends has nothing to
+/// remember and a controller would put two spinners permanently out of phase;
+/// and it is the wrong shape for a toast's reflow, which is three lines of
+/// arithmetic. This is not a controller: it drives no value, interpolates
+/// nothing, and owns no clock. It owns a **timer and an ordering**, which is
+/// exactly the part two widgets would each have written out.
 ///
 /// Confined to the UI thread, like everything else a `State` holds.
+///
+/// Read more: [Overlays](https://goldberry.dev/docs/components/overlays.html).
 public final class Departure {
 
-    /// How long the exit takes, in milliseconds — §1.7's `fast` for a `message`
-    /// and `base` for a `dialog`, which is the one thing the two disagree about.
+    /// How long the exit takes, in milliseconds — the design system's `fast` for a
+    /// `message` and `base` for a `dialog`, which is the one thing the two disagree about.
     private final double millis;
 
     /// The owner's `setState`, so a change here asks for the rebuild that draws

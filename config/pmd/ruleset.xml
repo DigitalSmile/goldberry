@@ -24,7 +24,7 @@
        It found 47 sites and every one was the same false positive: a Window, a
        Popup, a RenderObject or a BackendWindow created in one method, stored,
        and closed later by whatever owns it. That is this toolkit's entire
-       lifecycle design (ADR-0043 gives every native handle exactly one owner),
+       lifecycle design (every native handle has exactly one owner),
        and PMD cannot model ownership transfer, so the rule reports the pattern
        rather than a leak. A gate that is wrong 47 times out of 47 teaches people
        to skip the report. -->

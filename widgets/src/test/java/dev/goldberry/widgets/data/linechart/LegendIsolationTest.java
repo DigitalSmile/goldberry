@@ -34,13 +34,15 @@ import dev.goldberry.widgets.controls.TestFont;
 import dev.goldberry.widgets.core.Column;
 import dev.goldberry.widgets.data.Series;
 
-/// Clicking a legend entry — `charts.md` §3.1's "the one interaction Grafana
-/// users reach for first".
+/// Clicking a legend entry isolates its series, and clicking again restores the
+/// rest — the one interaction Grafana users reach for first.
 ///
 /// Driven through the real router, for [ChartHoverTest]'s reason: the click
 /// arrives at the **legend** and changes what the **plot** draws, and those are
 /// siblings, so the interesting part is the state above both of them and not
 /// either handler on its own.
+///
+/// Read more: [What the five share](https://goldberry.dev/docs/components/charts.html#what-the-five-share).
 class LegendIsolationTest {
 
     private static final int WIDTH = 320;
@@ -138,7 +140,7 @@ class LegendIsolationTest {
 
             // Installs alone: still the **second** palette slot, because the
             // index is the colour and filtering the list would recolour it
-            // (ADR-0194) -- and on an axis relabelled to its own range, which is
+            // -- and on an axis relabelled to its own range, which is
             // the point of asking for it alone.
             GoldenImage.assertMatches("line-chart-isolated-dark", WIDTH, HEIGHT, 1.0f, harness::paintInto);
         }

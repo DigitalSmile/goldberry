@@ -35,7 +35,7 @@ import dev.goldberry.widgets.Widgets;
 import dev.goldberry.widgets.controls.TestFont;
 import dev.goldberry.widgets.controls.selectlist.SelectList;
 
-/// §4's first field, driven the way a user drives it.
+/// The single-line field, driven the way a user drives it.
 ///
 /// The editing rules are [TextEditTest]'s and the undo rules are
 /// [EditHistoryTest]'s — both testable with no widget at all, which is why they
@@ -43,6 +43,8 @@ import dev.goldberry.widgets.controls.selectlist.SelectList;
 /// what a click does, when the model is told, what a `password` refuses, and the
 /// two facilities that had to be built underneath this control before it could
 /// exist at all — the clipboard and the platform's text input.
+///
+/// Read more: [`text-input`](https://goldberry.dev/docs/components/forms.html#text-input).
 class TextInputTest {
 
     private final TestHost host = new TestHost();
@@ -64,7 +66,7 @@ class TextInputTest {
     }
 
     /// The same, with one application rule on top — how a test says `text-align`
-    /// without inventing a stylesheet of its own ([ADR-0324]).
+    /// without inventing a stylesheet of its own.
     private void render(ElementTree tree, String css) {
         tree.flush();
         var sheets = css == null
@@ -134,7 +136,7 @@ class TextInputTest {
     }
 
     /// The same, with one application rule on top — how a test says `text-align`
-    /// without inventing a stylesheet of its own ([ADR-0324]).
+    /// without inventing a stylesheet of its own.
     private dev.goldberry.css.ComputedStyle style(ElementTree tree, String css) {
         var element = tree.root().children().getFirst();
         var sheets = new java.util.ArrayList<>(Controls.stylesheets(Theme.NORD_DARK));
@@ -383,7 +385,8 @@ class TextInputTest {
     }
 
     /// X11's middle-click buffer, which the field fills and pastes from without
-    /// knowing it is X11's (ADR-0504).
+    /// knowing it is X11's: the host offers a primary selection where the platform
+    /// has one, and the field only asks for it.
     @Nested
     @DisplayName("the primary selection")
     class ThePrimarySelection {
@@ -622,7 +625,7 @@ class TextInputTest {
         /// paragraph approximates it now — the glyphs are shaped and their order
         /// is mirrored — and what this asserts is the half that is not an
         /// opinion: the paste lands, the field keeps it, and the frame is
-        /// described ([ADR-0218]).
+        /// described.
         @Test
         @DisplayName("pasting right-to-left text keeps it, and does not take the window down")
         void pastesRightToLeftText() {
@@ -756,7 +759,7 @@ class TextInputTest {
             key(tree, Key.C, Modifiers.of(Mod.CTRL));
             key(tree, Key.X, Modifiers.of(Mod.CTRL));
 
-            assertEquals("", host.clipboard().text(), "§4: no clipboard-out from a password");
+            assertEquals("", host.clipboard().text(), "a password lets nothing out to the clipboard");
             assertEquals("secret", text(tree), "and the cut did not happen either");
         }
 
@@ -898,7 +901,7 @@ class TextInputTest {
         }
 
         @Test
-        @DisplayName("a document writes what §4 spells")
+        @DisplayName("a document writes a text-input and its attributes")
         void inflates() {
             var it = inflate("""
                     text-input value="Jane" placeholder="Jane Doe" max-length=64
@@ -956,8 +959,8 @@ class TextInputTest {
 
             assertEquals("Jane Doe", field(tree).display());
             assertTrue(field(tree).placeholder());
-            // The class is how the stylesheet tells the two apart: §3 wants
-            // `--gb-text-muted` here and `--gb-text` for a real value, and §8's
+            // The class is how the stylesheet tells the two apart: a placeholder
+            // takes its own fainter ink and a real value `--gb-text`, and the CSS
             // subset has no pseudo-class that means "standing in for content".
             assertTrue(((dev.goldberry.widgets.form.parts.Value)
                             field(tree).children().get(1))
@@ -1008,9 +1011,9 @@ class TextInputTest {
             var tree = narrow("Yoga laid this out, HarfBuzz shaped it");
 
             // Untouched, the field shows the **head** of its value and a press at
-            // its right edge lands a few characters in ([ADR-0412],
-            // [FieldOpeningTest]). The focus is what makes the caret — which has
-            // been at the end all along — worth chasing.
+            // its right edge lands a few characters in ([FieldOpeningTest] holds
+            // that). The focus is what makes the caret — which has been at the end
+            // all along — worth chasing.
             press(tree, 55, 1, Modifiers.NONE);
             assertTrue(field(tree).edit().caret() < 20, "the head was what was under the press");
 
@@ -1105,8 +1108,9 @@ class TextInputTest {
             key(tree, Key.HOME);
 
             // `dragX()` is NaN when no button is down, which is the router
-            // reporting "no gesture" through the arithmetic (ADR-0075). A field
-            // that read the position anyway would move the caret on hover.
+            // reporting "no gesture" through the arithmetic — zero would mean a
+            // press that has not moved. A field that read the position anyway
+            // would move the caret on hover.
             var hover = new PointerEvent(
                     PointerEvent.Kind.MOVED, 400, 0, null, 0, Float.NaN, Float.NaN, Modifiers.NONE, null);
             hover.localTo(new PointerEvent.Local(400, 0, 200, 32));
@@ -1161,7 +1165,7 @@ class TextInputTest {
         /// screen's first golden showed.
         ///
         /// `ContainingBlock` shifts every absolute child by its containing
-        /// block's padding now (ADR-0272), so the compensation is gone and this
+        /// block's padding now, so the compensation is gone and this
         /// asserts both halves: the field writes zero, and zero still lands at
         /// the padding.
         @Test
@@ -1223,18 +1227,20 @@ class TextInputTest {
             var tree = mounted(new TextInput("abc", null));
             var parts = field(tree).children();
 
-            // The highlight first, so it is behind the glyphs: §1.2 wants
-            // selected text readable, and a wash over a glyph dims it.
+            // The highlight first, so it is behind the glyphs: selected text has
+            // to stay readable, and a wash over a glyph dims it.
             assertTrue(parts.get(0) instanceof dev.goldberry.widgets.form.parts.Highlight);
             assertTrue(parts.get(1) instanceof dev.goldberry.widgets.form.parts.Value);
             assertTrue(parts.get(2) instanceof dev.goldberry.widgets.form.parts.Caret);
         }
     }
 
-    /// §4's autocomplete: "`text-input autocomplete=#true` attaches a `popover` of
-    /// suggestions to the field: the widget raises the query, the application
+    /// Autocomplete: `text-input autocomplete=#true` attaches a `popover` of
+    /// suggestions to the field. The widget raises the query, the application
     /// supplies the list, and the field's text is never rewritten without the
-    /// user choosing" ([ADR-0182]).
+    /// user choosing.
+    ///
+    /// Read more: [`select`](https://goldberry.dev/docs/components/choices.html#select).
     @Nested
     @DisplayName("suggesting")
     class Suggesting {
@@ -1243,7 +1249,7 @@ class TextInputTest {
 
         /// Mounts, focuses and **locates** the field, which is what a window
         /// does after it paints: a popover is anchored to a rectangle only the
-        /// painted frame knows ([ADR-0119]), and a widget test has no router to
+        /// painted frame knows, and a widget test has no router to
         /// report one.
         private ElementTree offering(TextInput input) {
             var tree = mounted(input);
@@ -1320,9 +1326,10 @@ class TextInputTest {
                             .toList());
         }
 
-        /// §4's own sentence, and it falls out of the shape rather than being
-        /// enforced: choosing reports, and what happens next is the
-        /// application's. A handler that ignores it leaves the field as typed.
+        /// The field's text is never rewritten without the user choosing, and
+        /// that falls out of the shape rather than being enforced: choosing
+        /// reports, and what happens next is the application's. A handler that
+        /// ignores it leaves the field as typed.
         @Test
         @DisplayName("choosing a suggestion reports it and rewrites nothing itself")
         void choosingReports() {
@@ -1333,7 +1340,8 @@ class TextInputTest {
             row.onSelect().run();
 
             assertEquals(List.of("London"), reported);
-            assertEquals("Lo", text(tree), "the field rewrote itself, which is the one thing §4 forbids");
+            assertEquals(
+                    "Lo", text(tree), "the field rewrote itself; a suggestion is only ever applied by the application");
         }
 
         /// Arrows move the focus and `Enter` commits — `Option.inAList()` — so a
@@ -1365,7 +1373,8 @@ class TextInputTest {
         }
     }
 
-    /// `text-align` in a single-line field — `docs/gaps.md` G30, ADR-0324.
+    /// `text-align` in a single-line field: the caret and the highlight follow the
+    /// alignment the stylesheet resolved.
     ///
     /// The field ignored the property in the paint *and* in the caret, which was
     /// consistent and useless: a numeric column could not line up on its units.
@@ -1378,6 +1387,8 @@ class TextInputTest {
     /// slack indents by nothing and what moves is the box. Which makes the
     /// structural assertion an exact one: the caret's `left` is the value's `left`
     /// plus the width of the text before it.
+    ///
+    /// Read more: [`text-input`](https://goldberry.dev/docs/components/forms.html#text-input).
     @Nested
     @DisplayName("text-align")
     class Aligned {

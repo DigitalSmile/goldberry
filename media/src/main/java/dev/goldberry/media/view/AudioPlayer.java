@@ -14,14 +14,13 @@ import dev.goldberry.widget.attr.Attributes;
 import dev.goldberry.widgets.markup.Markup;
 import dev.goldberry.widgets.markup.Wiring;
 
-/// `audio-player`: compact controls over a [MediaPlayer] (`docs/goldberry-media.md`
-/// §6).
+/// `audio-player`: compact controls over a [MediaPlayer], for sound.
 ///
 /// Play and pause, the elapsed and remaining time, a seek bar, mute, and volume,
 /// all built from the ordinary controls, so they take the theme and the keyboard
 /// focus like any other. The seek bar is left out for a source that cannot seek.
 /// For a live stream a `LIVE` label stands in its place, and what the station
-/// says is playing (its ICY `StreamTitle`, §7 S6) is a line over the controls.
+/// says is playing (its ICY `StreamTitle`) is a line over the controls.
 /// In [dev.goldberry.media.PlaybackState#ERROR] the error's
 /// message is shown under the controls.
 ///
@@ -46,6 +45,8 @@ import dev.goldberry.widgets.markup.Wiring;
 ///
 /// @param player     the player to show and drive
 /// @param attributes id, classes and key
+///
+/// Read more: [`audio-player`](https://goldberry.dev/docs/components/media.html#audio-player).
 @Markup("audio-player")
 public record AudioPlayer(MediaPlayer player, Attributes attributes)
         implements Widget.Stateful, Attributed<AudioPlayer> {

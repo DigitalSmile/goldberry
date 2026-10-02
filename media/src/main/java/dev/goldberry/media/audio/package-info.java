@@ -1,7 +1,10 @@
 /// Audio output: the [dev.goldberry.media.audio.AudioSink] the
 /// Engine writes to, and the one format it writes.
 ///
-/// Marked for NullAway from its first commit (`docs/testing.md` §2).
+/// Exported to every module, for an application that brings its own sink or
+/// its own latency provider. Null-marked.
+///
+/// Read more: [A player](https://goldberry.dev/docs/components/media.html#a-player).
 @NullMarked
 package dev.goldberry.media.audio;
 

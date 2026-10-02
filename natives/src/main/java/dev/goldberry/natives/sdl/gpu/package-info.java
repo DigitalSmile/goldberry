@@ -1,8 +1,8 @@
 /// SDL's GPU API, wrapped: a device, its textures and transfer buffers, command
-/// buffers with their passes, and fences (`docs/gpu-plan.md`, phase 1).
+/// buffers with their passes, and fences.
 ///
-/// Exported to `:core`, which will claim windows and present through it, and to
-/// `:gpu`, whose public API is built on it (`docs/gpu-plan.md`, D6). Nothing here
+/// Exported to `:core`, which claims windows and presents through it, and to
+/// `:gpu`, whose public API is built on it. Nothing here
 /// has a `MemorySegment` in a public signature: handles stay inside the wrapper
 /// that owns them, and mapped memory leaves as a [java.nio.ByteBuffer] that
 /// stops working, rather than crashing, once it is unmapped.
@@ -14,5 +14,7 @@
 ///
 /// Nothing here is thread-safe. A device and everything made from it belong to
 /// the thread that uses them, which in the toolkit is the UI thread.
+///
+/// Read more: [The native boundary](https://goldberry.dev/docs/overview/architecture.html#the-native-boundary).
 @org.jspecify.annotations.NullMarked
 package dev.goldberry.natives.sdl.gpu;

@@ -4,14 +4,16 @@ import dev.goldberry.render.popup.PopupSpec;
 
 /// A position in logical pixels.
 ///
-/// The companion of [LogicalSize], and here for the same reason [LogicalSize] is:
-/// a pair of floats passed as two arguments is a pair that eventually gets
-/// transposed, and an x/y swap is a popup that opens in the wrong place rather
-/// than an error anyone sees.
+/// The companion of [LogicalSize]: a pair of floats passed as two arguments is a
+/// pair that eventually gets transposed, and an x/y swap is a popup that opens in
+/// the wrong place rather than an error anyone sees. Both coordinates must be
+/// finite.
 ///
 /// **Whose coordinates** is the caller's to know and is never carried here. A
 /// [PopupSpec]'s position is in its owner window's; a top-level window's would be
 /// the display's.
+///
+/// Read more: [How layout works](https://goldberry.dev/docs/layout/index.html#logical-pixels).
 ///
 /// @param x distance from the left edge
 /// @param y distance from the top edge

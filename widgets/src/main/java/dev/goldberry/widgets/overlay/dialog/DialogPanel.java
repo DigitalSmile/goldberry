@@ -36,7 +36,8 @@ import dev.goldberry.widgets.core.presence.Phase;
 /// @param onEscape   the dismissive action
 /// @param onEnter    the affirmative action
 /// @param phase      the shared opening or closing
-/// @param closing    whether input has stopped, per §1.7
+/// @param closing    whether input has stopped, which it does the instant
+///                   closing starts
 /// @param closed     whether the closing animation has run out
 /// @param onMotion   told what each frame says about the motion preference
 /// @param attributes the `id` and classes the document wrote
@@ -53,7 +54,7 @@ record DialogPanel(
         Attributes attributes)
         implements Widget.Leaf, Styled, Paints, Handles, Semantics {
 
-    /// §3: "panel `opacity` & `scale` 0.96→1". Near enough to one that it reads
+    /// A panel arrives on `opacity` and a `scale` from 0.96 to 1. Near enough to one that it reads
     /// as the panel settling rather than as something flying at the reader.
     private static final double FROM = 0.96;
 
@@ -77,7 +78,7 @@ record DialogPanel(
         return attributes.key();
     }
 
-    /// §7's focus trap, declared rather than installed — see
+    /// The focus trap, declared rather than installed — see
     /// [Handles#isModal()]. It stops being true when this element unmounts,
     /// which is the only way a dialog ever goes, so there is nothing to undo.
     ///
@@ -107,7 +108,7 @@ record DialogPanel(
         event.consume();
     }
 
-    /// §7: "`Esc` = cancel-role button, `Enter` = default-role button".
+    /// `Esc` presses the dismissive button and `Enter` the affirmative one.
     ///
     /// On the **bubble** phase, so a control inside that means something by
     /// either key keeps it by consuming it — `Enter` in a `text-area`, `Esc` in
@@ -168,14 +169,14 @@ record DialogPanel(
         if (visible >= 1) {
             return box;
         }
-        // §3's "0.96→1", both axes: a panel that scaled on one would look like a
+        // From 0.96 to 1 on both axes: a panel that scaled on one would look like a
         // door opening rather than a thing arriving.
         var scale = FROM + (1 - FROM) * visible;
         return box.opacity(visible).transform(Transform.of(new Transform.Function.Scale(scale, scale)));
     }
 
     /// The heading. A part, so a stylesheet can reach it and nothing can build
-    /// one ([ADR-0065]).
+    /// one.
     record DialogTitle(String text) implements Widget.Leaf, Styled, Paints {
 
         @Override
@@ -222,13 +223,13 @@ record DialogPanel(
     ///
     /// ## Where the platform's button order lives
     ///
-    /// §7 asks for "**platform button order** (affirmative-right on macOS/Linux;
-    /// theme-controlled) applied by the dialog's action bar automatically", and
-    /// the whole of it is one CSS declaration: the buttons are written in a
+    /// The **platform's button order** — affirmative on the right on macOS and
+    /// Linux, and the theme's to control — is applied by the action bar
+    /// automatically, and the whole of it is one CSS declaration: the buttons are written in a
     /// canonical order — neutral, dismissive, affirmative — and a theme that
     /// wants Windows' order writes `dialog-actions { flex-direction: row-reverse }`.
     ///
-    /// That is what "theme-controlled" has to mean here, because the order is not
+    /// That is what theme-controlled has to mean here, because the order is not
     /// something this widget could decide: `children()` runs before style
     /// resolution and long before anything has asked the platform anything. A
     /// widget that read the operating system to lay itself out would also be a

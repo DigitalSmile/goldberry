@@ -17,7 +17,7 @@ import dev.goldberry.widget.attr.Attributes;
 import dev.goldberry.widgets.markup.Markup;
 import dev.goldberry.widgets.markup.Wiring;
 
-/// A picture — `docs/core-widgets.md` §1's `image`.
+/// A picture from a file, a resource, bytes or the application's own loader.
 ///
 /// ```kdl
 /// image src="photos/harbour.jpg" alt="The harbour at dusk" fit="cover"
@@ -37,7 +37,7 @@ import dev.goldberry.widgets.markup.Wiring;
 /// with `image.loading`, until the pixels arrive on a virtual thread; the
 /// picture after; and `image.error`, with Lucide's `image-off` and the alt text,
 /// when they cannot. The shared loader keeps one decode per source for the
-/// process, so ten thumbnails of one file decode once (ADR-0358).
+/// process, so ten thumbnails of one file decode once.
 ///
 /// ## The size is the image's until a stylesheet says otherwise
 ///
@@ -48,15 +48,16 @@ import dev.goldberry.widgets.markup.Wiring;
 ///
 /// ## Alt text is required, unless it is decoration
 ///
-/// §1: "alt text (required attribute for non-decorative use)". An image with
-/// neither is refused when it is built, because a picture a screen reader calls
+/// An image with neither `alt` nor `decorative` is refused when it is built,
+/// because a picture a screen reader calls
 /// "figure" and nothing else is worse than one it skips. `decorative` is the
 /// other honest answer, and it removes the node from the semantics entirely.
 ///
 /// ## Not built
 ///
-/// §1 routes `image/svg+xml` to `goldberry-vector`, which does not exist; an SVG
-/// fails to decode and shows the error state.
+/// There is no vector decoder: an SVG fails to decode and shows the error state.
+///
+/// Read more: [Canvas, images and QR codes](https://goldberry.dev/docs/components/drawing.html#image).
 ///
 /// @param variants   the rasters, one per display scale; at least one
 /// @param alt        what the picture shows, for a reader who cannot see it
@@ -78,7 +79,7 @@ public record ImageView(
     /// Its size, in logical pixels.
     static final double ERROR_ICON_SIZE = 20;
 
-    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    /// Written out so that the parameters taking null for a default can say so.
     public ImageView(
             List<Variant> variants,
             String alt,
@@ -93,7 +94,7 @@ public record ImageView(
         if (!decorative && alt.isBlank()) {
             throw new IllegalArgumentException(
                     "an image needs alt text, or decorative=#true: a picture a reader is told is a figure and"
-                            + " nothing more is worse than one they are not told about (§1)");
+                            + " nothing more is worse than one they are not told about");
         }
         Objects.requireNonNull(alt, "alt");
         Objects.requireNonNull(fit, "fit");

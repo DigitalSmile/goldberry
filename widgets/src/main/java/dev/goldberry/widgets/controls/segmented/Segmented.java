@@ -26,48 +26,55 @@ import dev.goldberry.widgets.controls.option.Option;
 import dev.goldberry.widgets.markup.Markup;
 import dev.goldberry.widgets.markup.Wiring;
 
-/// A row of mutually exclusive options drawn as one joined bar (§11,
-/// `docs/core-widgets.md` §3).
+/// A row of mutually exclusive options drawn as one joined bar: a radio group
+/// for a toolbar, with the arrows on its own axis.
 ///
 /// ```kdl
-/// segmented bind="view.mode" change="pickMode" {
+/// segmented bind="view.mode" change="view.set-mode" {
 ///     option value="list" "List"
 ///     option value="grid" "Grid"
-///     option value="map"  "Map"
+///     option value="map" icon="map" "Map"
 /// }
 /// ```
 ///
+/// In Java, `Segmented.of(observable, handler, options...)` for a bar that
+/// follows a property, or `new Segmented("list", handler, options...)` for one
+/// with a written value. `value=` is the written selection, `bind=` the value to
+/// follow (it wins over `value=`), `change=` the action told the value of the
+/// segment asked for, and `disabled=` fades the whole bar. The children are
+/// [Option] nodes.
+///
 /// ## It is `radio-group`'s model and not `radio-group`
 ///
-/// §3 is explicit that the two share the model and the invariant *exactly* — one
-/// Tab stop, arrows rove, exactly one selected, `change` reports the value — and
-/// equally explicit that they are two widgets: "a segmented control is a
-/// fixed-width bar that belongs in a toolbar, a radio group is a list that
-/// belongs in a form". They are not substitutable in a layout, so
-/// `radio-group.segmented` would be a class that changes what a thing *is*.
+/// The two share the model and the invariant exactly — one Tab stop, arrows
+/// rove, exactly one selected, `change` reports the value — and they are two
+/// widgets: a segmented control is a bar that belongs in a toolbar, a radio
+/// group is a list that belongs in a form. They are not substitutable in a
+/// layout, so `radio-group.segmented` would be a class that changes what a thing
+/// *is*.
 ///
 /// The difference shows up in this class in exactly one line, and it is not a
 /// drawing: [#focusScope()] is [FocusScope#HORIZONTAL] where a group's is
 /// [FocusScope#BOTH]. A radio group has no axis because its direction is its
 /// stylesheet's; **a segmented control's axis is its own** — it is a bar, in one
-/// direction, and no class turns it into a column. That is
-/// ADR-0078's
-/// rule applied for the first time to something that is not a menu, and it is
+/// direction, and no class turns it into a column. A focus scope with an axis is
 /// the machine-checkable form of "these are two widgets".
 ///
 /// ## Controlled, like every other value in this toolkit
 ///
 /// The control **reads** its value through `bind` and reports what the user asked
-/// for through `change`. It sets nothing ([ADR-0063]). A bar whose handler does
-/// nothing does not move, which is the visible form of "the state did not change"
-/// and is where the bug is when one will not.
+/// for through `change`. It sets nothing: data flows down and events flow up. A
+/// bar whose handler does nothing does not move, which is the visible form of
+/// "the state did not change" and is where the bug is when one will not.
+///
+/// Read more: [Choices](https://goldberry.dev/docs/components/choices.html#segmented).
 ///
 /// @param value      the option selected when nothing is bound; ignored when
 ///                   `source` is set
 /// @param children   the segments, as written. Non-[Option] children are laid out
 ///                   and left alone, so a bar can carry something else
-/// @param source     §9's `bind` — read-only, so this control cannot write to the
-///                   model even by accident ([ADR-0063])
+/// @param source     `bind=` — read-only, so this control cannot write to the
+///                   model even by accident
 /// @param onChange   what to tell the application, given the picked value
 /// @param disabled   whether the whole bar refuses selection
 /// @param attributes `id` and `class`, exactly as on the primitives
@@ -81,7 +88,7 @@ public record Segmented(
         Attributes attributes)
         implements Widget.Leaf, Styled, Paints, Handles, Attributed<Segmented>, Bindable<Segmented>, Semantics {
 
-    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    /// The canonical constructor, written out so that the parameters taking null for a default can say so.
     public Segmented(
             @Nullable String value,
             @Nullable List<Widget> children,
@@ -112,7 +119,7 @@ public record Segmented(
 
     /// A bar that follows a property. The Java spelling of `bind=`.
     ///
-    /// @param source read-only by construction ([ADR-0063])
+    /// @param source read-only by construction: the bar never writes the value it shows
     public static Segmented of(Observable<?> source, Consumer<String> onChange, Option... options) {
         return new Segmented(
                 null, List.of(options), Objects.requireNonNull(source, "source"), onChange, false, Attributes.NONE);
@@ -173,13 +180,12 @@ public record Segmented(
         return attributes.key();
     }
 
-    /// One Tab stop, with `Left` and `Right` roving inside it (§7.2, [ADR-0073]).
+    /// One Tab stop, with `Left` and `Right` roving inside it.
     ///
     /// [FocusScope#HORIZONTAL] and not [FocusScope#BOTH], which is the whole of
     /// what separates this control from `radio-group` in Java. A bar has a
     /// direction; `Up` and `Down` are therefore not this widget's to consume, and
-    /// a segmented control sitting in a scrollable form must let them past
-    /// (ADR-0078).
+    /// a segmented control sitting in a scrollable form must let them past.
     ///
     /// A scope even when the bar is disabled, for the reason `radio-group` gives:
     /// a disabled bar has no focusable segments left, so the traversal skips it
@@ -209,13 +215,13 @@ public record Segmented(
     /// nothing is stored, so there is no path by which two can be on at once. The
     /// **index** is computed in the same pass and handed to the track, because
     /// "which segment, counting from the left" is a fact about the set and the
-    /// only thing an indicator needs to know ([ADR-0099]).
+    /// only thing an indicator needs to know.
     ///
     /// The bar's own `disabled` is deliberately **not** pushed down — it
-    /// propagates for input by itself, because the router walks up the ancestors
-    /// (ADR-0077), and pushing it would make every segment match `:disabled` too,
-    /// so the 45% would apply once for the bar and again for each segment and land
-    /// at 20%, the trap `radio-group` had to undo by hand.
+    /// propagates for input by itself, because the router walks up the ancestors,
+    /// and pushing it would make every segment match `:disabled` too, so the
+    /// disabled fade would apply once for the bar and again for each segment and
+    /// land twice as faint, the trap `radio-group` had to undo by hand.
     @Override
     public List<Widget> children() {
         var selected = resolved();
@@ -249,7 +255,7 @@ public record Segmented(
     public Box render(ComputedStyle style, List<Box> boxes, Context context) {
         // A row, and the stylesheet says so rather than this method: `segmented`
         // is `flex-direction: row` in `controls.css` because that is where every
-        // other §3 metric lives. Unlike `radio-group` there is no class that flips
+        // other control metric lives. Unlike `radio-group` there is no class that flips
         // it -- see focusScope(). What this box holds is one child, the track;
         // the segments are its.
         return Box.of().style(style).children(boxes.toArray(Box[]::new));
@@ -257,9 +263,8 @@ public record Segmented(
 
     /// Builds a `segmented` from markup.
     ///
-    /// The same valued action `radio-group` takes, because §3 says this control
-    /// shares that model exactly — a set's handler is useless without the value
-    /// picked (ADR-0073).
+    /// The same valued action `radio-group` takes, because this control shares
+    /// that model exactly — a set's handler is useless without the value picked.
     public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
         return new Segmented(
                 node.stringProperty("value"),

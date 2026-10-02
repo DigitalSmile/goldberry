@@ -15,7 +15,7 @@ import dev.goldberry.natives.sdl.SdlSubsystem;
 /// What a test that needs a GPU device does when there is none: skip, or fail
 /// where the run said a device is required.
 ///
-/// The rule is `NativeLibraryRequirement`'s (ADR-0016) for a device rather than
+/// The rule is `NativeLibraryRequirement`'s for a device rather than
 /// for the library. A contributor's machine without a usable driver skips; the
 /// GPU lane passes `-Pgoldberry.gpu.required=true`, because a GPU job whose tests
 /// all skipped is a green tick over nothing.

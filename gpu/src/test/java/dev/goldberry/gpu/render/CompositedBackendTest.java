@@ -26,11 +26,12 @@ import dev.goldberry.render.window.WindowSpec;
 
 /// The whole path, through the sdl3 backend: by default a window finds `:gpu`'s
 /// compositor by `ServiceLoader`, lends no surface, and presents its frames
-/// through the GPU; with `goldberry.gpu=off` it presents through its surface
-/// (ADR-0479, ADR-0480).
+/// through the GPU; with `goldberry.gpu=off` it presents through its surface.
+/// Windows present through the GPU by default and on the CPU where they cannot.
 ///
 /// A window that did not become composited would lend its surface, so
-/// `acquireFrame` being empty is what says it did.
+/// `acquireFrame` being empty is what says it did. Read more:
+/// [What the module does to a window](https://goldberry.dev/docs/components/gpu.html#what-the-module-does-to-a-window).
 @Tag(GpuTestLauncher.TAG)
 @DisplayName("a composited window, through the sdl3 backend")
 class CompositedBackendTest {
@@ -66,7 +67,7 @@ class CompositedBackendTest {
                 assertTrue(window.acquireFrame().isEmpty(), "and stays composited");
                 window.present(frame, List.of(new DamageRect(step, step, 10, 10)));
             }
-            // And says so, naming the driver it presents through (ADR-0492).
+            // And says so, naming the driver it presents through.
             var presentation = assertInstanceOf(Presentation.Gpu.class, window.presentation());
             assertTrue(SdlGpuDevice.compiledDrivers().contains(presentation.driver()), presentation::toString);
             window.close();

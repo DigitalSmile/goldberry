@@ -3,13 +3,13 @@
 ///
 /// One class and one font. The face is 5 MB of paint graphs, and an application
 /// that never draws an emoji should not carry it; one that does adds this
-/// artifact and gets emoji in every paragraph it draws
-/// ([ADR-0384](../book/src/adr/0384-the-emoji-face-is-an-artifact-an-application-opts-into.md),
-/// [ADR-0456](../book/src/adr/0456-the-emoji-face-is-noto-drawn-from-its-paint-graphs.md)).
+/// artifact and gets emoji in every paragraph it draws.
 ///
 /// Nothing in `:core` or `:widgets` knows this module exists. The face arrives
 /// through a service, which is how the module system says "somebody may have
 /// brought this".
+///
+/// Read more: [Emoji](https://goldberry.dev/docs/guide/text.html#emoji).
 module dev.goldberry.emoji {
 
     /// The service this implements, and the font stack that asks for it.

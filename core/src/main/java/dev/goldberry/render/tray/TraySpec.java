@@ -20,12 +20,14 @@ import dev.goldberry.render.PixelBuffer;
 /// window and does not inherit its scale; the shell picks a size and rescales,
 /// and 32×32 or 64×64 physical is what every platform's guidance asks for.
 ///
+/// Read more: [Menus and the tray](https://goldberry.dev/docs/components/menus.html#the-tray-icon).
+///
 /// @param icon    the icon's pixels, or null for the platform's default
 /// @param tooltip the hover text, or null for none — not every platform shows one
 /// @param items   the menu's rows, possibly empty
 public record TraySpec(@Nullable PixelBuffer icon, @Nullable String tooltip, List<TrayItem> items) {
 
-    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    /// Written out so that each parameter that takes null for a default can say so.
     public TraySpec(@Nullable PixelBuffer icon, @Nullable String tooltip, @Nullable List<TrayItem> items) {
         items = List.copyOf(items == null ? List.of() : items);
         if (tooltip != null && tooltip.isBlank()) {

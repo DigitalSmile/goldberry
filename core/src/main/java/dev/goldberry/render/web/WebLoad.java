@@ -3,8 +3,8 @@ package dev.goldberry.render.web;
 /// How far through loading a page is — the toolkit's word for
 /// `dev.goldberry.natives.webview.LoadState`.
 ///
-/// A separate enum for [WebSize]'s reason ([ADR-0280]): no type of `:natives`
-/// appears in a signature an application can read. `WebViewEngine` translates
+/// A separate enum for [WebSize]'s reason: no type of `:natives` appears in a
+/// signature an application can read. `WebViewEngine` translates
 /// between the two with an exhaustive switch, which is the line that fails to
 /// compile when a constant is added to one and not the other.
 ///
@@ -17,7 +17,9 @@ package dev.goldberry.render.web;
 ///
 /// The only answer is to keep the page out of sight until it has something to
 /// show and paint a `spinner` in the widget's own box meanwhile, and that needs
-/// somebody to ask whether it has ([ADR-0445]).
+/// somebody to ask whether it has.
+///
+/// Read more: [Markdown, HTML and the web](https://goldberry.dev/docs/components/content.html#the-web-view).
 public enum WebLoad {
 
     /// The engine would not say — not a WebKit build, or a platform where this

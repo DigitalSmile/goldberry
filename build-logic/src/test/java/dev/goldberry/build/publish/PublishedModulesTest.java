@@ -102,8 +102,8 @@ class PublishedModulesTest {
         @DisplayName("lists the content modules, the emoji face, the GPU path and media as optional")
         void listsOptionalModules() {
             // `emoji` is optional for a reason none of the others share: the
-            // face is CC BY-SA, and an application that adds the artifact takes
-            // on an attribution obligation with it (ADR-0384).
+            // face was CC BY-SA, and an application that added the artifact took
+            // on an attribution obligation with it.
             assertEquals(List.of("html", "emoji", "gpu", "media"),
                     PublishedModules.libraries(Inclusion.OPTIONAL).stream().map(Library::project).toList());
         }

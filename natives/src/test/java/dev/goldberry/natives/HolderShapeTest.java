@@ -19,21 +19,17 @@ import org.junit.jupiter.api.Test;
 
 /// Every holder's `call` is the function its `FD_…` descriptor describes.
 ///
-/// This is the check the old `DowncallsTest` did in the only form it could. When
-/// a handle was a shared constant named `INT__PTR_INT`, the only thing checkable
-/// was that the *name* matched the layouts, because nothing tied either to a call
-/// site — `invokeExact` checks the handle against the caller, at run time, on
-/// whichever platform got there first.
-///
-/// A holder ties them together: the descriptor and the `call` method are two
-/// statements of one signature, one in layouts and one in Java types, sitting in
-/// the same class. So the check is now the real one — that they agree — and it
-/// covers the case the old test could not, a descriptor whose *carrier* is right
+/// A holder's descriptor and its `call` method are two statements of one
+/// signature, one in layouts and one in Java types, sitting in the same class.
+/// `invokeExact` checks the handle against the caller only at run time, on
+/// whichever platform gets there first, so this test checks that they agree
+/// before any platform does — including a descriptor whose *carrier* is right
 /// and whose Java type is not.
 ///
 /// It needs no `libgoldberry`: an unbound handle is linked from a descriptor and
-/// names no address, which is the whole point
-/// (ADR-0173).
+/// names no address, which is the whole point of a holder.
+///
+/// Read more: [The native boundary](https://goldberry.dev/docs/overview/architecture.html#the-native-boundary).
 @DisplayName("a bound function's holder")
 class HolderShapeTest {
 
@@ -147,7 +143,7 @@ class HolderShapeTest {
                 if (!Modifier.isStatic(field.getModifiers()) || !Modifier.isFinal(field.getModifiers())) {
                     // This is the whole performance argument: a handle that is not
                     // a static final constant is an interpreted lambda form in a
-                    // native image, and 450x slower (ADR-0161, ADR-0173).
+                    // native image, and 450x slower.
                     wrong.add(holder.getName() + "." + field.getName()
                             + " is not static final, so an image cannot fold it");
                 }

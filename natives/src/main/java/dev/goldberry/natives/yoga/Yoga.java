@@ -32,7 +32,7 @@ import dev.goldberry.natives.yoga.style.YogaEnum;
 /// alive.
 ///
 /// Every method takes the raw pointer as a [MemorySegment], which is exactly the
-/// type `docs/ARCHITECTURE.md` §3.1 keeps inside this module. Package-private
+/// type this module keeps inside itself. Package-private
 /// members are not part of an exported package's surface, so the boundary holds
 /// even though `natives.yoga` is exported.
 ///
@@ -46,8 +46,8 @@ final class Yoga {
     // style and the results -- each one holder per Yoga function,
     // each keeping its own address and naming its own handle. The invocation
     // helpers that used to be at the bottom of this file -- one per signature,
-    // so that a constant was read by the method that called it (ADR-0161) --
-    // are the holders' `call` methods now (ADR-0173).
+    // so that a constant was read by the method that called it --
+    // are the holders' `call` methods now.
 
     private static final class Holder {
         private static final Yoga INSTANCE = new Yoga(NativeLibrary.get().lookup());
@@ -382,7 +382,7 @@ final class Yoga {
     //
     // One per signature, and every Yoga call goes through one: `invokeExact` on
     // a constant handle, never `invokeWithArguments`, so nothing here boxes and
-    // both compilers can lower it into a direct call to the stub (ADR-0161).
+    // both compilers can lower it into a direct call to the stub.
     // That matters here in a way it does not for SDL -- a layout pass touches
     // every node in the tree, and these are the calls it makes.
 

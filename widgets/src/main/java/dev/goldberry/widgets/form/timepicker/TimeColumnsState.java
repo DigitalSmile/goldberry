@@ -18,7 +18,7 @@ import dev.goldberry.widget.Widget;
 /// picker's wheels are the opposite and have to be: there is no "not yet" state
 /// for an hour, because the columns always show *some* time and a user turning
 /// one is changing the value they can see. So every step reports, which is also
-/// what makes the field update as the wheel turns — §4 puts the field in charge,
+/// what makes the field update as the wheel turns — the field is in charge,
 /// and a field that only caught up on `Enter` would be showing a stale time next
 /// to a wheel showing the real one.
 ///
@@ -104,8 +104,8 @@ final class TimeColumnsState extends State<TimeColumns> implements TimeColumnsBo
 
     /// Puts `value` in column `index` and reports the time it makes.
     ///
-    /// A time the picker refuses is **not shown and not reported**: §4 asks the
-    /// gates to hold for the popover as well as the field, and a wheel that
+    /// A time the picker refuses is **not shown and not reported**: `min`, `max`
+    /// and `disabled` gate the popover as well as the field, and a wheel that
     /// turned onto an hour the picker would then refuse would be a control
     /// arguing with itself.
     private void set(int index, int value) {

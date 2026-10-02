@@ -8,6 +8,8 @@ package dev.goldberry.natives.md4c.enums;
 /// which [MarkdownFlag] does not offer — so 5 stays unclaimed rather than taken by
 /// a constant nothing can produce. The same goes for the spans 0.6.0 appended
 /// (`MD_SPAN_SPOILER` onwards): each needs a flag these bindings do not expose.
+///
+/// Read more: [The native boundary](https://goldberry.dev/docs/overview/architecture.html#the-native-boundary).
 public enum SpanType implements Md4cEnum {
 
     /// `*emphasis*`.

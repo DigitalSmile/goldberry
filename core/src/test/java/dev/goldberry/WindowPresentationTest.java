@@ -18,7 +18,7 @@ import dev.goldberry.render.window.Presentation;
 import dev.goldberry.render.window.WindowSpec;
 
 /// A window says how its frames reach the screen, and says it again only when
-/// that changes (ADR-0492).
+/// that changes.
 @DisplayName("a window's presentation, through the frame loop")
 class WindowPresentationTest {
 

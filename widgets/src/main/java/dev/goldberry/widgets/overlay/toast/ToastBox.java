@@ -31,7 +31,7 @@ import dev.goldberry.widgets.core.presence.Phase;
 ///
 /// ## It hears the pointer for one reason
 ///
-/// §7's "timeout with hover-pause". A toast takes no press of its own — the only
+/// The hover-pause. A toast takes no press of its own — the only
 /// thing on it that can be pressed is its action button — but it has to know
 /// when the pointer is over it, because a notification that vanishes while
 /// somebody is reading it is a notification they did not read.
@@ -66,11 +66,11 @@ record ToastBox(
         DoubleConsumer onHeight)
         implements Widget.Leaf, Styled, Paints, Handles, Measured, Semantics {
 
-    /// §3: "in: slide 16px from edge".
+    /// How far a toast slides in from the edge it is nearest.
     private static final double TRAVEL = 16;
 
-    /// A journey to where the stack now puts this toast — §3's "siblings reflow
-    /// via `translate`", which is the one movement effect the design system
+    /// A journey to where the stack now puts this toast — the sibling reflow,
+    /// which runs on `translate`, the one movement effect the design system
     /// sanctions.
     ///
     /// The distance is **unsigned**: how far, and not which way. Which way is the
@@ -118,16 +118,16 @@ record ToastBox(
         return List.copyOf(parts);
     }
 
-    /// §7's hover-pause, reported rather than handled — see the class note. And
+    /// The hover-pause, reported rather than handled — see the class note. And
     /// the click that takes it away.
     ///
-    /// ## Why a click dismisses, when §7 gives a toast no ×
+    /// ## Why a click dismisses, when a toast has no ×
     ///
-    /// §7 gives a `message` a dismiss affordance and gives a toast an action
-    /// button and nothing else, and that shape was followed exactly — which left
-    /// a toast with `Duration.ZERO` and no action button removable only by
+    /// A `message` has a dismiss affordance and a toast has an action button
+    /// and nothing else. Taken literally, that would leave a toast with
+    /// `Duration.ZERO` and no action button removable only by
     /// `ToastController.clear()`. **A notification nobody can get rid of** is not
-    /// what the omission of a × meant; what it meant is that a toast does not
+    /// what the omission of a × means; what it means is that a toast does not
     /// need a *second* affordance competing with its action for a 360×40 plate.
     ///
     /// So the plate itself is the affordance. It costs no vocabulary, no glyph
@@ -143,7 +143,7 @@ record ToastBox(
     ///
     /// A leaving toast reports nothing at all: its clock has stopped, and neither
     /// the pointer arriving nor a click during the last 160ms may restart or
-    /// re-end anything (§1.7's "no ghost clicks").
+    /// re-end anything: there are no ghost clicks.
     @Override
     public void onPointer(PointerEvent event) {
         if (leaving) {
@@ -157,7 +157,7 @@ record ToastBox(
         }
     }
 
-    /// Both clocks, and the second one is the bug [ADR-0176] filed. A toast that
+    /// Both clocks, and the second one is easy to forget. A toast that
     /// is settled but still travelling is one nobody asks to repaint, and a
     /// widget nobody repaints does not move: it would stand still for 160ms and
     /// then be somewhere else.
@@ -166,8 +166,8 @@ record ToastBox(
         return phase.isRunning() || (reflow != null && reflow.phase().isRunning());
     }
 
-    /// §7's **live region**, and the reason a toast needs one where nothing else
-    /// in the catalog does ([ADR-0225]).
+    /// A **live region**, and the reason a toast needs one where nothing else
+    /// in the catalog does.
     ///
     /// Every other widget is announced because something *happens to it*: the
     /// focus lands, the pointer arrives, a value changes under a reader who went
@@ -181,8 +181,8 @@ record ToastBox(
     /// must be dealt with before anything else, and a toast is by construction
     /// dismissible and transient.
     ///
-    /// **Nothing announces this yet** — the bridge is M5, exactly as for every
-    /// other widget's role and name. What is finished here is the widget's half:
+    /// **Nothing announces this yet** — that needs an accessibility bridge,
+    /// exactly as every other widget's role and name do. What is finished here is the widget's half:
     /// a toast raised today already carries everything an announcement needs.
     @Override
     public Live live() {
@@ -208,8 +208,7 @@ record ToastBox(
     ///
     /// Banked against the day it is dismissed: closing the hole it leaves needs
     /// the height of the hole, and `render` runs before Yoga, so a widget cannot
-    /// ask what size it came out as
-    /// (ADR-0117).
+    /// ask what size it came out as.
     ///
     /// This is **last frame's**, which is exactly right here: a toast has to have
     /// been on screen to be dismissed, so by the time the number is wanted it has
@@ -217,7 +216,7 @@ record ToastBox(
     /// stack reads that as no hole to close.
     ///
     /// Obeys [Measured]'s third rule — nothing this triggers changes what it
-    /// reports. A reflow is a `transform`, and §3 chose one for this reason: the
+    /// reports. A reflow is a `transform`, chosen for this reason: the
     /// box it moves is laid out where it always was.
     @Override
     public void measured(Extent bounds, Extent part) {
@@ -250,7 +249,7 @@ record ToastBox(
         // right. The direction is the corner's, because the corner is where the
         // stack is and the edge it is against is the one it comes from.
         //
-        // Arrivals only. §3: "out: `opacity` base" — and nothing else. A toast
+        // Arrivals only. The way out is `opacity` and nothing else. A toast
         // that slid out as well would be moving while the stack under it is also
         // moving, which is two animations saying different things about one place.
         var across = going || visible >= 1
@@ -287,7 +286,7 @@ record ToastBox(
     }
 
     /// What it says. A part, so a stylesheet can reach it and nothing can build
-    /// one ([ADR-0065]) — and a child box rather than text on the toast's own
+    /// one — and a child box rather than text on the toast's own
     /// node, because a box with text is a measured leaf and Yoga never lays a
     /// measured node's children out, which would leave nowhere for the button.
     record ToastText(String text) implements Widget.Leaf, Styled, Paints {

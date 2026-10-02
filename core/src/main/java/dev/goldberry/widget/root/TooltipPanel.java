@@ -11,8 +11,8 @@ import dev.goldberry.widget.Widget;
 import dev.goldberry.widget.style.Paints;
 import dev.goldberry.widget.style.Styled;
 
-/// The little plate a `tooltip="…"` shows — `docs/core-widgets.md` §7's
-/// `tooltip`, "plain text v1".
+/// The little plate a `tooltip="…"` shows: one line of plain text, opened by
+/// the toolkit when the pointer rests on the widget that carries the attribute.
 ///
 /// ## Why it is in `:core` when the catalog is in `:widgets`
 ///
@@ -20,15 +20,16 @@ import dev.goldberry.widget.style.Styled;
 /// widget and opened by the toolkit when the pointer rests on that widget, so
 /// there is no call site an application could pass a widget to — and the thing
 /// doing the opening is the launcher, which is `:core`'s and cannot see the
-/// catalog (ADR-0092
-/// is the record of `:core` not shipping widgets, and this is [WindowRoot]'s
-/// exception rather than a hole in it).
+/// catalog. `:core` ships no other widget; this is [WindowRoot]'s exception
+/// rather than a hole in it.
 ///
 /// `tooltip` is therefore **CSS-selectable and not KDL-constructible**, like
 /// `window-root` and like a part: a document does not write one, it writes the
 /// attribute that produces one. Its rules live in `controls.css` with everything
 /// else that has an appearance, because where a type is declared and where it is
-/// styled are different questions ([ADR-0105]).
+/// styled are different questions.
+///
+/// Read more: [Tooltips](https://goldberry.dev/docs/components/overlays.html#tooltips).
 ///
 /// @param text what to show
 public record TooltipPanel(String text) implements Widget.Leaf, Styled, Paints {

@@ -17,17 +17,23 @@ import dev.goldberry.widget.style.Styled;
 import dev.goldberry.widgets.markup.Markup;
 import dev.goldberry.widgets.markup.Wiring;
 
-/// Children laid out along the main axis — `docs/core-widgets.md` §1's `row`.
+/// Children laid out left to right.
 ///
 /// ```kdl
-/// row gap=8 class="toolbar" { icon name="search"; spacer; button "New" }
+/// row id="toolbar" { button press="find" "Find"; spacer; button press="create" "New" }
 /// ```
 ///
-/// Everything about it except its direction is the stylesheet's: it sets no
-/// colour, no padding and no gap. **The direction is the widget's**, and that is
-/// the one thing a rule cannot take — a `row` a stylesheet could turn into a
-/// column would be a name that lies, and `flex-direction` is therefore applied
-/// after the style rather than read from it.
+/// `new Row(Widget...)` takes the children; `new Row(List<Widget>, Attributes)`
+/// takes them with an id and classes.
+///
+/// Everything about a row except its direction is the stylesheet's: it sets no
+/// colour, no padding and no gap, so `gap` is written as `#toolbar { gap: 8px }`
+/// and not as an attribute. The direction is the widget's, and the one thing a
+/// rule cannot take: `flex-direction: row` is applied after the computed style,
+/// because a `row` a stylesheet could turn into a column would be a name that
+/// lies.
+///
+/// Read more: [Row and column](https://goldberry.dev/docs/layout/row-and-column.html#row).
 @Markup("row")
 public record Row(List<Widget> children, Attributes attributes)
         implements Widget.Leaf, Styled, Paints, Attributed<Row> {
@@ -36,7 +42,7 @@ public record Row(List<Widget> children, Attributes attributes)
         this(List.of(kids), Attributes.NONE);
     }
 
-    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    /// Written out so that the parameters that take null for a default can say so.
     public Row(@Nullable List<Widget> children, Attributes attributes) {
         children = List.copyOf(children == null ? List.of() : children);
         this.children = children;

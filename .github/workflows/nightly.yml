@@ -1,10 +1,10 @@
-# The nightly lane — docs/testing.md §4.
+# The nightly lane
+# https://goldberry.dev/docs/contributing/testing.html#the-ci-matrix
 #
 # What belongs here is everything whose answer is a *number to read* rather than
 # a gate to pass, and everything too slow to sit on a pull request. Neither kind
 # should block a merge: a mutation score that dipped is a conversation, and a
-# benchmark on a shared runner is noise as often as it is signal (ADR-0028,
-# ADR-0031).
+# benchmark on a shared runner is noise as often as it is signal.
 #
 # Deliberately NOT here: the golden images, the unit suite and the static
 # analysis. Those gate every PR in linux.yml, macos.yml and windows.yml, and a
@@ -30,7 +30,7 @@ permissions:
   contents: read
 
 jobs:
-  # §3: mutation testing catches "covered but unasserted", which is the failure
+  # Mutation testing catches "covered but unasserted", which is the failure
   # mode a golden-heavy suite develops -- paint the frame, compare the picture,
   # and never notice the branch above it can never be false.
   #
@@ -51,7 +51,7 @@ jobs:
 
       # The same list as showcase.yml, and for the same reason: this job builds
       # libgoldberry through Gradle, so `checkToolchain` stops the build before
-      # CMake runs if a required header is absent -- and since ADR-0325 that
+      # CMake runs if a required header is absent -- and that
       # includes D-Bus, IBus and udev. This step was missing, and every nightly
       # failed at "Build libgoldberry". LinuxDependenciesTest now holds this file
       # to the table along with showcase.yml.
@@ -85,7 +85,7 @@ jobs:
           path: '**/build/reports/pitest'
           if-no-files-found: ignore
 
-      # SpotBugs reports rather than gates (docs/testing.md §2), so the artifact
+      # SpotBugs reports rather than gates, so the artifact
       # is the deliverable: 146 findings across the project at the time of
       # writing, most of them nullness in packages NullAway cannot see yet.
       - name: SpotBugs
@@ -98,7 +98,7 @@ jobs:
           path: '**/build/reports/spotbugs'
           if-no-files-found: ignore
 
-  # §1.5's frame budget. The benchmarks print measurements and assert almost
+  # The frame budget. The benchmarks print measurements and assert almost
   # nothing on purpose, so this lane exists to keep a record rather than to fail:
   # the numbers are read in the log and argued about in prose.
   benchmarks:
@@ -135,7 +135,7 @@ jobs:
       - name: Run the benchmarks
         run: ./gradlew benchmark --no-daemon --continue
 
-      # JMH on the hot seams that are pure logic (docs/testing.md §1.5). Distinct
+      # JMH on the hot seams that are pure logic. Distinct
       # from the task above, which measures whole operations against a real
       # rasterizer: this one adds forks, warm-up and a blackhole, so the number is
       # not an artifact of the JIT specialising the loop away.

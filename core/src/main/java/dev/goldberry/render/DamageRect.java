@@ -7,13 +7,14 @@ import dev.goldberry.render.model.PhysicalSize;
 /// window's top-left.
 ///
 /// Damage is what makes a repaint cheap: the frame loop re-rasterizes dirty
-/// layers and blits the rest, and the backend uploads only these rectangles
-/// (`docs/ARCHITECTURE.md` §5).
+/// layers and blits the rest, and the backend uploads only these rectangles.
 ///
 /// Physical rather than logical, because this describes a region of a pixel
 /// buffer. Converting at the boundary is [DisplayScale]'s job, and doing it
 /// anywhere else is how a 150% display ends up with a one-pixel undrawn seam
-/// along every damage edge.
+/// along every damage edge. Neither side may be negative.
+///
+/// Read more: [Keeping frames cheap](https://goldberry.dev/docs/performance/frames.html#what-the-toolkit-does-for-you).
 public record DamageRect(int x, int y, int width, int height) {
 
     public DamageRect {

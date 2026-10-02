@@ -14,14 +14,14 @@ import dev.goldberry.widget.style.Styled;
 
 /// The part of an [Affix] that actually moves.
 ///
-/// A translate, for `scroll-content`'s reason: it costs no layout, so a header
-/// that stays put while a thousand rows scroll under it re-runs Yoga exactly
-/// never. It is also what keeps the hole above it the size it was — a margin or
-/// an inset would move the hole too, which is the one thing §1 says must not
-/// happen.
+/// It moves by a translate, for the same reason `scroll-content` does: a
+/// transform costs no layout, so a header that stays put while a thousand rows
+/// scroll under it never re-runs layout. A translate also leaves the hole above
+/// it the size it was, where a margin or an inset would move the hole too, and
+/// the hole must not move.
 record AffixContent(List<Widget> children, double shiftX, double shiftY) implements Widget.Leaf, Styled, Paints {
 
-    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    /// Written out so that the parameters that take null for a default can say so.
     AffixContent(@Nullable List<Widget> children, double shiftX, double shiftY) {
         children = List.copyOf(children == null ? List.of() : children);
         this.children = children;

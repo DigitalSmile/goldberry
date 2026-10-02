@@ -24,7 +24,7 @@ import dev.goldberry.widget.ElementTree;
 import dev.goldberry.widgets.core.canvas.Canvas;
 
 /// The Canvas screen's image card, which is the showcase's use of the clipboard's
-/// byte half — ADR-0286.
+/// byte half: a clipboard write is an offer.
 ///
 /// [StickyEditorTest]'s reason, again: the card looks right in a golden image
 /// whether or not `Ctrl+V` does anything, because the picture is taken of a card
@@ -128,7 +128,7 @@ class ImageClipboardCardTest {
         /// to the widget proves it handles a key; it does not prove the key ever
         /// arrives, which needs a hit region to click, a focusable canvas and a
         /// router that walks the focused chain. Reported as "nothing happens on
-        /// Ctrl+C" and reproduced here in one pass (ADR-0286).
+        /// Ctrl+C" and reproduced here in one pass.
         @Test
         @DisplayName("clicking the card focuses it, and Ctrl+C then copies")
         void aClickAndAKey() {
@@ -191,7 +191,7 @@ class ImageClipboardCardTest {
     @DisplayName("the card is drawn on rather than typed into")
     void doesNotAskForTheKeyboard() {
         // It takes Ctrl+C and Ctrl+V, which are keys. An on-screen keyboard over
-        // a picture would be a bug (ADR-0285).
+        // a picture would be a bug: a caret is the text stack's, not a control's.
         assertFalse(images.wantsTextInput());
     }
 }

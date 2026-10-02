@@ -10,14 +10,17 @@ import dev.goldberry.natives.NativePlatform;
 /// Compares the hand-written layouts in [Layouts] against what the compiled
 /// library reports.
 ///
-/// This is the check that replaces what jextract would have guaranteed
-/// (ADR-0010), and it is a stronger one: it compares the Java declaration
+/// This is the check that replaces what a binding generator would have
+/// guaranteed, and it is a stronger one: it compares the Java declaration
 /// against the actual library for the actual target, rather than comparing
 /// generated code across platforms.
 ///
 /// Mismatches are collected rather than thrown one at a time — one wrong padding
 /// declaration shifts every field after it, and seeing all of them at once is the
 /// difference between a five-minute fix and an afternoon.
+///
+/// Read more:
+/// [Repository layout](https://goldberry.dev/docs/contributing/repository.html#the-export-list-and-the-layout-probe).
 public final class LayoutVerifier {
 
     private LayoutVerifier() {}

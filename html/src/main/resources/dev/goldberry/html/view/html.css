@@ -7,11 +7,11 @@
  * so an application's own sheet wins over it without needing `!important`.
  *
  * **This is litehtml's master stylesheet, in Goldberry's own CSS.**
- * `docs/content-widgets.md` §1.4 says an embedder must supply the default styling
+ * An embedder of an HTML engine must supply the default styling
  * of `h1`, `p`, `a`, `code` and `table`, generated from the active theme so a page
  * is Nord-native in either mode. This is that sheet -- and nothing has to be
  * regenerated on a theme switch, because every colour below is a `var(--gb-*)`
- * the cascade resolves against whichever theme is on (ADR-0298).
+ * the cascade resolves against whichever theme is on.
  *
  * **Every selector is a class, and every class is a tag name.** `HtmlWidgets`
  * builds `column`, `row`, `text` and `button`, and puts `html-<tag>` on each box,
@@ -47,12 +47,13 @@
  * The load-bearing decision, and it is the same one `markdown.css` explains: the
  * text stack shapes one font per `Paragraph`, so a line containing both regular
  * and semibold glyphs cannot be one shaped run. Real inline layout is what an
- * engine would have brought and is the one item on G17's list that ADR-0298
- * leaves open; everything else on it is here.
+ * engine would have brought and is the one thing a document-not-engine design
+ * leaves open; everything else is here.
+ * https://goldberry.dev/docs/components/content.html
  */
 
 /* **`.html-prose` carries no declarations, and the split is the decision**
-   (ADR-0442, which `markdown.css` argues at length beside the same pair of rules).
+   (`markdown.css` argues it at length beside the same pair of rules).
    It is on the paragraph's box whichever shape that box has -- the wrapping row below
    when the page wrote no `br` inside it, the column below that when it did -- so a
    declaration here would have to mean the same thing on a row and on a column, and
@@ -123,7 +124,7 @@
   font-weight: var(--gb-weight-strong);
 }
 
-/* h3 to h6 all land on `heading`, which is the whole of what §1.4's scale has
+/* h3 to h6 all land on `heading`, which is the whole of what the type scale has
    above body -- the same decision `markdown.css` made, for the same reason: a page
    nested six deep is not told apart by size anyway, and inventing three sizes here
    would be inventing three tokens the design system deliberately does not have. */
@@ -137,7 +138,7 @@
 
 /* **A faux oblique, and a compromise nothing forces any more.** It was written when
    the toolkit bundled two upright faces and there was no italic to set `em` in;
-   there is one since ADR-0323, and `text-decoration` arrived with ADR-0321. The
+   there is one now, and `text-decoration` exists too. The
    declaration stays until the picture change is taken on purpose -- it moves every
    HTML golden -- and `font-style: italic` is the one line that replaces it.
    Skewing the word is what every renderer without an italic face does; `transform`
@@ -150,7 +151,8 @@
   font-weight: var(--gb-weight-strong);
 }
 
-/* No `text-decoration` in §10's subset, so a deletion is a colour: the word is
+/* A deletion is a colour and not a line through the word (the rule predates
+   `text-decoration` in the CSS subset): the word is
    muted, the way a completed task is in a Markdown document. Not a lie about what
    the author wrote -- the model keeps the `del` -- and honest about what the
    painter can draw. */
@@ -181,26 +183,26 @@
 .html-small, .html-sub, .html-sup {
   font-size: var(--gb-font-caption);
   line-height: var(--gb-line-caption);
-  /* **A size and not a baseline shift.** §10's subset has no `vertical-align`, so a
+  /* **A size and not a baseline shift.** The CSS subset has no `vertical-align`, so a
      subscript sits on the line with its siblings. Noted in TODO.md rather than
      faked with a `transform` that would move the glyphs out of their own box. */
 }
 
 /* ------------------------------------------------------------------ links --
  *
- * **An anchor is a `button.link`** (ADR-0293) rather than a coloured word: the
+ * **An anchor is a `button.link`** rather than a coloured word: the
  * whole run is one widget, so it hovers as one thing, takes a Tab stop and fires
  * once. `markdown-view` does the same thing now, through the same piece --
  * `Words.Piece` can carry a widget, so a link is one node in the middle of a line
- * rather than four words (ADR-0300).
+ * rather than four words.
  *
  * `button.link` brings the ink, the regular weight and the hover fill. What is
  * left is the geometry, written as a descendant of `.html` so that it beats
  * `button.link`'s own padding whatever order an application added the two sheets
  * in. It is the one rule in this file that overrides a
- * deliberate decision of the toolkit's: ADR-0293 keeps the 32px button height
- * because §1.3 makes that a floor for a *control*. A link inside a sentence is not
- * chrome -- it is a word, its target is the line it sits on, and a 32px-tall word
+ * deliberate decision of the toolkit's: the toolkit keeps the 32px button height
+ * because the design system makes 32 the hit-target floor for a *control*. A link
+ * inside a sentence is not chrome -- it is a word, its target is the line it sits on, and a 32px-tall word
  * would set every paragraph containing a link on triple-spaced lines. Every
  * browser does the same thing, and a block-level action in a page still gets the
  * floor because it is still a `button` somebody wrote.
@@ -232,7 +234,7 @@ picture {
 /* **The bar is the quotation's `border-left`.** It was a 2px widget beside the
    content while the subset's `border` was one line for the whole box, and a
    `border-left` was a rule the cascade dropped; it is the declaration it always
-   wanted to be since ADR-0505. A border takes no room, so the padding is the old
+   wanted to be, now that a border has four sides. A border takes no room, so the padding is the old
    bar's 2px and the old gap's 12 together, and the text starts where it did. */
 .html-quote {
   align-items: stretch;
@@ -322,7 +324,7 @@ picture {
   overflow: hidden;
 }
 
-/* **Rules between the cells**, one side of each (ADR-0505): a row draws the line
+/* **Rules between the cells**, one side of each: a row draws the line
    above it and a cell the line before it, so every pair of neighbours shares exactly
    one. The first row and the first cell of each row draw none -- `first` is the
    builder's, because the subset has no `:first-child` -- since the table's own
@@ -345,9 +347,9 @@ picture {
 /* **Every column is an equal share of its row**, from a zero basis. Each row is a
    flex row of its own and nothing shares a column between them, so while the
    share followed each row's content -- this said `flex-basis` was not in the subset,
-   and it has been since ADR-0373 -- a column started a few pixels further along in
+   and it is now -- a column started a few pixels further along in
    one row than in the next. Space hid that; the rule before a cell drew it, as a
-   line with a step in it at every row (ADR-0505). A `<col width>` is still read
+   line with a step in it at every row. A `<col width>` is still read
    and not drawn. */
 .html-cell {
   flex-direction: column;
@@ -385,7 +387,7 @@ picture {
 
 /* ------------------------------------------------------------- selection --
  *
- * A rendered document is **selectable** (ADR-0301): drag across it, double-click a
+ * A rendered document is **selectable**: drag across it, double-click a
  * word, triple-click a block, `Ctrl+C`.
  *
  * Three parts do it and each has exactly one job here. `selection-host` is the node

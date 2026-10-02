@@ -6,53 +6,45 @@ import java.util.Objects;
 
 import org.jspecify.annotations.Nullable;
 
-/// The undo and redo stacks of one field.
+/// The undo and redo stacks of one edited text.
 ///
-/// `docs/core-widgets.md` §4 asks a `text-input` for an "undo/redo stack", and
-/// [TextEdit] being a value is what makes it a stack of **states** rather than a
-/// log of inverse operations: undoing is handing back a value that already
-/// existed, so nothing has to know how to reverse a word delete.
+/// ```java
+/// var history = new EditHistory();
 ///
-/// ## Coalescing, and why it needs no timer
+/// var next = edit.insert(typed);
+/// history.record(edit, next, EditHistory.Kind.TYPING);   // after the edit, with both ends
+/// edit = next;
 ///
-/// A user who types "Goldberry" and presses `Ctrl+Z` expects one word back, not
-/// one letter. So consecutive changes of the same [Kind] fold into a single undo
-/// entry — and what decides "consecutive" is that the state the new change starts
-/// from is exactly the state the last one ended at.
+/// edit = history.undo(edit);                             // the state before the last run
+/// ```
 ///
-/// That one test does the work of several rules:
+/// It is a stack of [TextEdit] values rather than a log of inverse operations:
+/// undoing hands back a state that already existed, so nothing has to know how
+/// to reverse a word delete.
 ///
-/// - **A caret move breaks the run**, because moving the caret produces a state
-///   the next keystroke starts from that is not the one the last keystroke left.
-///   Nothing here mentions the caret; it falls out.
-/// - **A click breaks it**, for the same reason.
-/// - **Typing after deleting starts a new entry**, because the kinds differ.
-/// - **A value arriving from the model breaks it**, because the text will not
-///   match.
+/// Consecutive changes of the same [Kind] fold into one undo entry, so a user who
+/// types "Goldberry" and presses `Ctrl+Z` gets the word back and not one letter.
+/// What decides "consecutive" is that the state a change starts from is exactly
+/// the state the last one ended at. That one test covers several rules: a caret
+/// move or a click breaks the run, because the next keystroke starts from a state
+/// the last one did not leave; typing after deleting starts a new entry, because
+/// the kinds differ; a value arriving from the model breaks it, because the text
+/// no longer matches. No timer is involved, so a long typed run is one undo
+/// however long it took. A paste, a cut and a replaced selection are
+/// [Kind#OTHER] and never fold: each is one deliberate act, and one `Ctrl+Z`.
 ///
-/// Every editor that coalesces on a *timer* has the bug where thinking for two
-/// seconds mid-word splits the undo; this has the opposite and better failure,
-/// where a long typed run is one undo however long it took.
+/// The stack holds [#DEPTH] entries and drops the oldest, so a field that lives
+/// as long as its window cannot grow without bound. Confined to the UI thread,
+/// like the state that holds it.
 ///
-/// A **paste, a cut and a replaced selection never coalesce**: they are
-/// [Kind#OTHER], and each is one thing the user did deliberately and expects one
-/// `Ctrl+Z` to reverse.
-///
-/// ## Bounded
-///
-/// [#DEPTH] entries, oldest dropped. A field is not a document, and an unbounded
-/// stack on a widget that lives as long as its window is a leak that only shows
-/// up on the machine of whoever leaves the application open all week.
-///
-/// Confined to the UI thread, like the state that holds it.
+/// Read more: [Selection and editing](https://goldberry.dev/docs/guide/text.html#selection-and-editing).
 public final class EditHistory {
 
-    /// How many undo steps a field keeps.
+    /// How many undo steps are kept.
     ///
-    /// A round number rather than a measured one, and generous: the entries are
-    /// strings that already exist elsewhere in the field's own history, so the
-    /// cost of the limit being too high is small and the cost of it being too low
-    /// is somebody losing work.
+    /// Generous rather than measured: an entry is a string the history already
+    /// shares with its neighbours, so a limit too high costs little and one too
+    /// low loses somebody's work.
     public static final int DEPTH = 200;
 
     /// What kind of change produced a state — the first half of "can these fold
@@ -85,16 +77,12 @@ public final class EditHistory {
 
     /// Records that `before` became `after`.
     ///
-    /// Called *after* the edit, with both ends of it. Coalescing needs both: the
-    /// state to restore is `before`, and whether this continues the last run is a
-    /// question about `before` and nothing else.
-    ///
-    /// A change that changed nothing is ignored, so a `Backspace` at the start of
-    /// a field does not silently consume the next `Ctrl+Z`.
-    ///
-    /// Recording anything **clears the redo stack**, which is the universal rule:
-    /// once you have typed something new, the future you undid your way out of is
-    /// not reachable any more.
+    /// Called after the edit, with both ends of it: the state to restore is
+    /// `before`, and whether this continues the last run is a question about
+    /// `before` alone. A change that changed nothing is ignored, so a `Backspace`
+    /// at the start of a field does not silently consume the next `Ctrl+Z`.
+    /// Recording anything clears the redo stack: once something new is typed,
+    /// the future that was undone is no longer reachable.
     public void record(TextEdit before, TextEdit after, Kind kind) {
         Objects.requireNonNull(before, "before");
         Objects.requireNonNull(after, "after");

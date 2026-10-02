@@ -18,14 +18,16 @@ import dev.goldberry.widgets.data.Series;
 /// painter, and the node the pointer lands on.
 ///
 /// The split is the shape `SplitPane` already has — a stateful widget above, and
-/// a leaf below that hears the pointer and reports upward
-/// (ADR-0063).
-/// It costs one element and it is what makes the crosshair possible at all.
+/// a leaf below that hears the pointer and reports upward, so events flow up
+/// and the drawing flows down. It costs one element and it is what makes the
+/// crosshair possible at all.
 ///
 /// One part rather than three, because the axes, the gridlines, the gutter
 /// measurement and the label collision rule are the same for a line, a band and
 /// a bar — and three copies of that would be three chances to have a chart whose
 /// gridlines are a pixel off its labels.
+///
+/// Read more: [Charts](https://goldberry.dev/docs/components/charts.html#what-the-five-share).
 ///
 /// @param options  everything about the chart that is not its numbers — decided
 ///                 above this widget, because every one of those is one
@@ -60,7 +62,7 @@ public record ChartPlot(
         BAR
     }
 
-    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    /// The canonical constructor, written out so that the parameters taking null for a default can say so.
     public ChartPlot(
             @Nullable List<Series> series,
             @Nullable List<String> categories,
@@ -174,7 +176,7 @@ public record ChartPlot(
         /// The guard is not an optimization, it is the idle frame loop: a pointer
         /// moving across one point sends an event per pixel, and a `setState` per
         /// event would rebuild and repaint the chart sixty times a second to draw
-        /// the same crosshair (§1.7, ADR-0122).
+        /// the same crosshair.
         private boolean hover(int index) {
             if (index == hovered) {
                 return false;

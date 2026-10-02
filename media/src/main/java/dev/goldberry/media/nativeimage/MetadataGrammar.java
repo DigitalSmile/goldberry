@@ -12,14 +12,11 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 /// How `reachability-metadata.json` spells a foreign call: the tracing agent's
-/// grammar (`jint`, `void*`, `struct(…)`), which is what a native image reads
-/// (ADR-0339).
+/// grammar (`jint`, `void*`, `struct(…)`), which is what a native image reads.
 ///
-/// One copy for the module. FFmpeg's generator and the system decoders' each had
-/// their own while they were two modules, because the first sat in an unexported
-/// package the second could not reach; in one module that reason is gone
-/// (ADR-0493). `:natives`' `ForeignMetadata` keeps a third, for the reason
-/// ADR-0280 gives.
+/// One copy for the module: FFmpeg's generator and the system decoders' share
+/// it. `:natives`' `ForeignMetadata` keeps a copy of its own, because `:natives`
+/// exports its internals to `:core` and to nobody else.
 public final class MetadataGrammar {
 
     private MetadataGrammar() {}

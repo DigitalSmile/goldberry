@@ -18,7 +18,8 @@ import dev.goldberry.layout.FlexDirection;
 import dev.goldberry.layout.Length;
 import dev.goldberry.render.model.LogicalRect;
 
-/// A border per side, in pixels — ADR-0505.
+/// A border per side, in pixels: each side has its own width and colour, and
+/// the border is drawn inside the box's edge, taking no layout room.
 ///
 /// [dev.goldberry.css.BorderStyleTest] checks which side a
 /// declaration reaches; this checks what the painter puts there. The golden

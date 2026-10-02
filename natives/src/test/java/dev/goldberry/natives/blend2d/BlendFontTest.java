@@ -14,7 +14,7 @@ import dev.goldberry.natives.blend2d.error.BlendException;
 
 /// The font chain's arguments and lifetime, without a font file.
 ///
-/// `:natives` bundles no fonts — they live in `:core` (ADR-0033) — so what a
+/// `:natives` bundles no fonts — they live in `:core` — so what a
 /// real face measures is checked there. What can be checked here is everything
 /// that goes wrong *before* the outlines matter: refusing arguments Blend2D
 /// would accept, and unwinding a chain of three native objects when the middle

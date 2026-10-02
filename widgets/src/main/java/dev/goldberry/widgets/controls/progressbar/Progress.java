@@ -18,56 +18,58 @@ import dev.goldberry.widget.style.Styled;
 import dev.goldberry.widgets.markup.Markup;
 import dev.goldberry.widgets.markup.Wiring;
 
-/// How far along something is — `docs/core-widgets.md` §3's `progress`. The
-/// seventh control, and the first that is not a control at all: nothing here is
-/// focusable, nothing takes a pointer, and there is no value to raise. It reports.
+/// A bar that reports a value out of a maximum, or that something is happening
+/// and nobody can say how much is left. Nothing here is focusable, nothing takes
+/// a pointer, and there is no value to raise: it reports.
 ///
 /// ```kdl
 /// progress value=0.4
+/// progress max=100 bind="download.received"
 /// progress indeterminate=#true
 /// ```
 ///
+/// In Java, `new Progress(0.4)` for a fraction, `Progress.of(max, observable)`
+/// for a bar that follows a property, and `Progress.sweeping()` for one with no
+/// value. `value=` is the written value, `max=` is what a full bar is (1 by
+/// default, so a fraction works), `bind=` names a `Number` to follow and
+/// `indeterminate=#true` sweeps instead of filling.
+///
 /// ## Two widgets in one, and the pseudo-class says which
 ///
-/// §3 asks for "determinate (`value/max`) and indeterminate (animated,
-/// reduced-motion aware)", and those draw differently enough that the obvious
-/// design is two widgets. They are one, because `:indeterminate` already exists
-/// and already means exactly this: a control whose value is not a point on its
-/// scale. [dev.goldberry.widgets.controls.checkbox.Checkbox] mirrors it for its
-/// mixed state
-/// (ADR-0065),
-/// the renderer mirrors it onto the element for free, and a stylesheet reaches
-/// the two states with `progress-fill` and `progress:indeterminate progress-fill`.
+/// A determinate bar and an indeterminate one draw differently enough that the
+/// obvious design is two widgets. They are one, because `:indeterminate` already
+/// exists and already means exactly this: a control whose value is not a point
+/// on its scale. [dev.goldberry.widgets.controls.checkbox.Checkbox] uses it for
+/// its mixed state, the renderer mirrors it onto the element for free, and a
+/// stylesheet reaches the two states with `progress-fill` and
+/// `progress:indeterminate progress-fill`.
 ///
 /// ## The determinate half places a value, and does not use a ratio to do it
 ///
-/// [dev.goldberry.widgets.controls.slider.Slider] places its thumb by flex ratio
-/// because a
-/// percentage `translate` is a
-/// proportion of the *moving box* and could not express it
-/// (ADR-0079).
-/// A progress bar has no thumb, so its fill is simply `width: 40%` — the plain
-/// answer, available here and not there, and the difference between the two is
-/// worth reading before assuming one control's technique belongs on the other.
+/// [dev.goldberry.widgets.controls.slider.Slider] places its thumb by flex
+/// ratio, because a percentage `translate` is a proportion of the *moving box*
+/// and cannot place a thumb along a track. A progress bar has no thumb, so its
+/// fill is simply `width: 40%` — the plain answer, available here and not there.
 ///
 /// ## The indeterminate half is a function of the frame clock
 ///
-/// §3.1: "sweep loop 1.2s `linear`". A transition interpolates between two styles
-/// the cascade resolved, and a sweep has no two styles — so it is drawn from
-/// [Paints.Context#nowMillis()] instead, with **no state anywhere**: the phase is
-/// `now mod 1200`, so two bars in one window sweep together and nothing has to be
-/// started, stopped or disposed
-/// (ADR-0081).
+/// The sweep loops every 1.2 s, linearly. A transition interpolates between two
+/// styles the cascade resolved, and a sweep has no two styles — so it is drawn
+/// from [Paints.Context#nowMillis()] instead, with **no state anywhere**: the
+/// phase is `now mod 1200`, so two bars in one window sweep together and nothing
+/// has to be started, stopped or disposed.
 ///
 /// The sweep is a `transform`, which is what keeps it affordable: animating the
-/// fill's *width* would run Yoga on every frame of a loop that never ends, and
-/// that is the thing §1.7's whitelist exists to prevent. Both halves of the
+/// fill's *width* would run layout on every frame of a loop that never ends,
+/// which is why `width` is not on the motion whitelist. Both halves of the
 /// drawing live on [ProgressFill], because both are facts about that box.
+///
+/// Read more: [Values and progress](https://goldberry.dev/docs/components/values.html#progress).
 ///
 /// @param value         how far along, `0..max`; ignored when indeterminate
 /// @param max           what `value` is out of; 1 by default, so a fraction works
 /// @param indeterminate whether this reports progress it cannot measure
-/// @param source        §9's `bind`, read-only — see [#resolved()]
+/// @param source        `bind=`, read-only — see [#resolved()]
 @Markup("progress")
 public record Progress(
         double value,
@@ -76,7 +78,7 @@ public record Progress(
         @Nullable Observable<?> source,
         Attributes attributes) implements Widget.Leaf, Styled, Paints, Attributed<Progress>, Bindable<Progress> {
 
-    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    /// The canonical constructor, written out so that the parameters taking null for a default can say so.
     public Progress(
             double value,
             double max,
@@ -106,12 +108,12 @@ public record Progress(
     ///
     /// Named, because `new Progress(100, gain)` reads as "a bar at 100" and means
     /// "a bar whose maximum is 100" — the first parameter changes meaning between
-    /// the two constructors and nothing at the call site says so (ADR-0094).
+    /// the two constructors and nothing at the call site says so.
     public static Progress of(double max, Observable<?> source) {
         return new Progress(0, max, false, source, Attributes.NONE);
     }
 
-    /// A bar for work whose size is unknown — §3's second half.
+    /// A bar for work whose size is unknown — the indeterminate form.
     ///
     /// Named `sweeping` rather than `indeterminate` because a record component
     /// already owns that name, and an accessor and a factory cannot share one.
@@ -174,8 +176,8 @@ public record Progress(
     }
 
     /// Only while it sweeps. A bar that has been given a value is a still
-    /// picture, and §1.7's frame loop must be allowed to go back to sleep in
-    /// front of one.
+    /// picture, and the frame loop must be allowed to go back to sleep in front
+    /// of one.
     @Override
     public boolean isAnimating() {
         return indeterminate;

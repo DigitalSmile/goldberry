@@ -1,14 +1,16 @@
-/// `@NullMarked`, which puts this package under NullAway.
+/// The backend SPI's window: what a window is to the platform, what to create one
+/// with, and how it presents its frames.
 ///
-/// Inside a marked package every type is non-null unless it says `@Nullable`,
-/// and the build fails on a violation. The annotation is the whole content of
-/// this file: there is nothing package-specific to say about nullness, and a
-/// paragraph pretending otherwise in every package would be padding.
+/// `WindowSpec` says what to open; `BackendWindow` is the open window, which lends
+/// a frame buffer, presents a painted frame, and reports its size, scale and
+/// presentation path. `Presentation` says whether frames go through the GPU or
+/// the CPU, `GpuSurface` how GPU layers are shown, `IconImage` is one size of the
+/// window's icon, and `NativeHandle` is the platform's own handle where a page can
+/// be embedded. Exported to every module.
 ///
-/// Packages are marked one at a time on purpose. NullAway runs in
-/// `OnlyNullMarked` mode, so an unmarked package is invisible to it and a marked
-/// one is checked from the moment it opts in — which is the only way a codebase
-/// this size adopts nullness at all (`docs/testing.md` §2).
+/// Null-marked: a parameter or return is non-null unless it says `@Nullable`.
+///
+/// Read more: [Windows, popups and the host](https://goldberry.dev/docs/guide/windows.html#the-low-level-path).
 @NullMarked
 package dev.goldberry.render.window;
 

@@ -15,6 +15,8 @@ import java.util.Optional;
 /// The difference is that Blend2D has no `GetError` to ask for a message, so
 /// what a report can carry is the code and the operation that produced it —
 /// which is why [BlendResultCode] exists at all.
+///
+/// Read more: [The native boundary](https://goldberry.dev/docs/overview/architecture.html#the-native-boundary).
 public final class BlendException extends RuntimeException {
 
     @Serial
@@ -24,8 +26,7 @@ public final class BlendException extends RuntimeException {
     private final int result;
 
     /// Public because the binding class that throws it is `blend2d`'s and an
-    /// error is `blend2d.error`'s
-    /// (ADR-0172).
+    /// error is `blend2d.error`'s.
     public BlendException(String operation, int result) {
         super(message(operation, result));
         this.operation = operation;

@@ -1,9 +1,12 @@
 /// `:assets`' build-time half: fetching the pinned fonts and icon set, and
 /// compiling SVG icons and glyph catalogs into the resources the runtime modules
-/// package (ADR-0033).
+/// package. Nothing it produces is committed: every asset is fetched by version,
+/// checked against its checksum and compiled during the build.
 ///
-/// A package of its own since ADR-0496. The build tool had shared its package
-/// name with `:core`'s exported runtime `assets` package, which is also a
-/// resource directory (ADR-0387). That was harmless only while the two never
-/// met on one module path.
+/// A package of its own, apart from `:core`'s exported runtime `assets` package.
+/// That package is also a resource directory, and a resource directory is a
+/// package to the module system, so two modules sharing the name would fail to
+/// load together on one module path.
+///
+/// Read more: [Building from source](https://goldberry.dev/docs/contributing/building.html).
 package dev.goldberry.assets.prepare;

@@ -35,15 +35,16 @@ import dev.goldberry.widget.style.Styled;
 /// What a popup does when the widget it hangs off **stops being drawn**.
 ///
 /// [PopupLifecycleTest] covers the half that was built first: a `popover`
-/// anchored by id travels with an anchor that scrolls ([ADR-0270]). The anchor in
+/// anchored by id travels with an anchor that scrolls. The anchor in
 /// that test scrolls inside a viewport that does not clip, so it never leaves.
 /// Here it does, and the question is what the popup is supposed to do about it —
-/// which is `close`, for the reasons in [ADR-0433].
+/// which is `close`: a menu left open beside something that is no longer drawn
+/// is an orphan, and clamping it back into view would put it beside the wrong
+/// thing.
 ///
 /// The scenery is a real clipping viewport: an `overflow: hidden` box with a
 /// translated child inside it, which is what a `scroll` is — Yoga lays the
-/// content out where it always was and the viewport moves it ([ADR-0114],
-/// ADR-0116).
+/// content out where it always was and the viewport moves it.
 class PopupAnchorVisibilityTest {
 
     /// A box that **clips its children**, which the `Scrolled` in
@@ -53,7 +54,7 @@ class PopupAnchorVisibilityTest {
     /// which is the only arrangement that behaves like a scroll view: a clip set
     /// on the translating box would move with the content it is supposed to be
     /// cutting off (`RenderTree.clipFor` maps the clip through the accumulated
-    /// matrix — ADR-0114).
+    /// matrix).
     private record Clipped(List<Widget> kids, Attributes attributes) implements Widget.Leaf, Styled, Paints {
 
         Clipped(Widget... kids) {
@@ -83,7 +84,7 @@ class PopupAnchorVisibilityTest {
 
     /// The content of the viewport: translated by a bound offset, so setting the
     /// property scrolls between two frames with no resize and no event that says
-    /// so ([ADR-0062], [ADR-0122]).
+    /// so: a bound value that changes asks for the frame itself.
     private record Scrolled(Property<Float> offset, List<Widget> kids, Attributes attributes)
             implements Widget.Leaf, Styled, Paints {
 
@@ -254,7 +255,7 @@ class PopupAnchorVisibilityTest {
     /// The case the whole decision turns on. A menu left pointing at a widget
     /// that is no longer drawn is the defect; the placement would clamp it back
     /// into the work area beside something it does not belong to, which is the
-    /// `pin` behaviour [ADR-0433] rejects.
+    /// `pin` behaviour the rule rejects.
     @Test
     @Timeout(20)
     @DisplayName("a popup closes when its anchor scrolls out of the viewport that clips it")
@@ -273,8 +274,8 @@ class PopupAnchorVisibilityTest {
         assertTrue(survivesAScrollOf(60), "20 logical pixels of the anchor were still drawn and the menu closed");
     }
 
-    /// And it **follows** while it survives, which is [ADR-0270]'s promise and
-    /// the thing the new rule must not have broken.
+    /// And it **follows** while it survives, which is the older promise and
+    /// the thing the closing rule must not have broken.
     @Test
     @Timeout(20)
     @DisplayName("a popup still follows an anchor that is only partly clipped")
@@ -315,8 +316,8 @@ class PopupAnchorVisibilityTest {
     /// A popup placed against a **rectangle** is not closed, because it was never
     /// following anything: the rectangle is all there ever was, and there is
     /// nothing to re-resolve and nothing to discover has gone. The same guard
-    /// [ADR-0270] put on the following, seen from the other end — and the honest
-    /// limit of [ADR-0433], which is a rule about anchors that have names.
+    /// the following has, seen from the other end — and the honest limit of the
+    /// closing rule, which is a rule about anchors that have names.
     @Test
     @Timeout(20)
     @DisplayName("a popup anchored to a rectangle is left alone when the widget under it scrolls away")
@@ -354,7 +355,7 @@ class PopupAnchorVisibilityTest {
     /// A submenu is anchored to a rectangle inside the menu it came from, so it
     /// has no name to be re-resolved and would not notice its root going. Left
     /// alone it would be a panel of commands floating over nothing — the orphan
-    /// [ADR-0433] closes the stack to avoid.
+    /// the stack is closed to avoid.
     @Test
     @Timeout(20)
     @DisplayName("closing a popup whose anchor left takes the popups opened after it")

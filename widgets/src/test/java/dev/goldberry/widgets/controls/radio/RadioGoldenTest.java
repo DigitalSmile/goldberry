@@ -39,12 +39,12 @@ import dev.goldberry.widgets.controls.toggle.Toggle;
 import dev.goldberry.widgets.core.Column;
 import dev.goldberry.widgets.core.Row;
 
-/// What a radio group actually looks like (§14, [ADR-0050]).
+/// What a radio group actually looks like, held as golden images.
 ///
 /// [RadioTest] checks the invariant and the traversal. These check the two things
 /// no value assertion reaches: that the glyph is a **circle** — a `border-radius`
 /// of half the box, drawn by the same four cubics as every other corner
-/// ([ADR-0064]) — and that the dot is a filled shape inside it rather than a ring
+/// — and that the dot is a filled shape inside it rather than a ring
 /// or a tick.
 ///
 /// `./gradlew :widgets:test -Dgoldberry.golden.update=true` rewrites them.
@@ -73,7 +73,7 @@ class RadioGoldenTest {
     }
 
     /// The scene sizes are **content plus padding and nothing spare**, and they
-    /// have to be: a control no longer shrinks to fit (ADR-0076), so a frame 4px
+    /// have to be: a control no longer shrinks to fit, so a frame 4px
     /// too short now clips the last option instead of quietly squashing all
     /// three. Three options are 3x32 + 2x8 of gap + 2x12 of padding = 136.
     private void paint(String name, Theme theme, int width, int height, Widget group, PseudoState... states) {
@@ -117,7 +117,7 @@ class RadioGoldenTest {
     @DisplayName("the same group on the light theme, which is a different set of tokens")
     void columnLight() {
         // The dot is nord0 on dark and nord6 on light, mirroring the checkbox's
-        // tick for the same 4.5:1 reason (§1.2) -- and through its own tokens, so
+        // tick for the same reason, a 4.5:1 floor -- and through its own tokens, so
         // a theme can distinguish a radio from a checkbox without redefining both.
         paint("radio-group-light", Theme.NORD_LIGHT, 300, 140, group("dark"));
     }
@@ -156,10 +156,10 @@ class RadioGoldenTest {
     }
 
     @Test
-    @DisplayName("the dot caught mid-scale, which is the half of §3.1 that was missing")
+    @DisplayName("the dot caught mid-scale, which is the half of its animation that was missing")
     void dotScalesIn() {
-        // §3.1: "check/dot: scale 0.6->1 + opacity, base" -- the half of that row
-        // that could not be drawn until the mark became a node.
+        // A radio's dot scales 0.6->1 and fades in over the base duration -- the
+        // scale is the half that could not be drawn until the mark became a node.
         //
         // A group holds exactly one selection, so a single frame cannot show a
         // dot at 0%, 50% and 100% at once. What it *can* show is better: the
@@ -184,7 +184,7 @@ class RadioGoldenTest {
         // Driven through the binding rather than by poking `:checked`, because
         // the renderer mirrors `isChecked()` off the widget on every frame and
         // would overwrite a pseudo-class set by hand. This is also the real path:
-        // the application sets the property and the tick follows (ADR-0063).
+        // the application sets the property and the tick follows.
         var selection = Property.of((String) null);
         var tree = new ElementTree(new RadioGroup(
                 null,
@@ -245,7 +245,7 @@ class RadioGoldenTest {
     /// Sets the bound value and flushes the rebuild it schedules.
     ///
     /// A change marks the element dirty and defers the build to the frame
-    /// boundary ([ADR-0052]), so a test that read the tree without flushing would
+    /// boundary, so a test that read the tree without flushing would
     /// be looking at the frame before the one it asked for.
     private static void select(ElementTree tree, Property<String> selection, String value) {
         selection.set(value);
@@ -322,17 +322,17 @@ class RadioGoldenTest {
                     // nothing in it moved on its own; a `spinner` draws itself
                     // from the frame time, so under a wall clock this image is a
                     // different ring on every run -- which it duly was, 84 pixels
-                    // apart, the first time it was regenerated (ADR-0081).
+                    // apart, the first time it was regenerated.
                     .clock(dev.goldberry.motion.Clock.virtual());
 
             // Grown from 220 when `progress` and `spinner` joined, and again when
             // `knob` did -- 32px of control plus the column's 8px gap. A
             // frame that fitted only because the last two controls were falling
-            // off the bottom is the same defect ADR-0076 found in six scenes at
+            // off the bottom is the same defect once found in six scenes at
             // once: an image is not evidence of a control it clipped away.
             // 370 -> 402 when the chip row joined: 24 of control plus the
             // column's 8px gap. A frame that fitted only because the last
-            // control was falling off the bottom is the defect ADR-0076 found in
+            // control was falling off the bottom is the defect once found in
             // six scenes at once -- an image is not evidence of a control it
             // clipped away.
             GoldenImage.assertMatches(name, 300, 402, 1.0f, frame -> BoxPainter.paint(frame, renderer.render(tree)));
@@ -380,8 +380,7 @@ class RadioGoldenTest {
                         // dial rather than on the dial. The first drawing of it
                         // got exactly this wrong in the other direction -- the
                         // track ran across the body at 1.2:1 -- which is why it
-                        // is in the scene rather than exempted from it
-                        // (ADR-0089).
+                        // is in the scene rather than exempted from it.
                         new Knob(0, 1, 0.4, 0, null),
                         // A `chip` is filled and is still here rather than
                         // exempted with the badge, because the fill it is filled
@@ -390,13 +389,13 @@ class RadioGoldenTest {
                         // a row of them. Two of them, chosen and not, because the
                         // pair is the whole question: the unchosen one must be
                         // visible against the panel and the chosen one must be
-                        // distinguishable from the unchosen one (ADR-0305).
+                        // distinguishable from the unchosen one.
                         new Row(List.of(new Chip("Unread"), new Chip("Starred", true, null)), id("chips")),
                         // A closed `select` is a field, and a field is exactly
                         // the shape that disappears on a panel: it is a border
                         // and a fill one step off whatever is behind it, so the
                         // one thing this scene has to prove about it is that the
-                        // step is visible in both themes (ADR-0141).
+                        // step is visible in both themes.
                         new Select(
                                 "dark",
                                 List.of(new Option("light", "Light"), new Option("dark", "Dark")),
@@ -418,7 +417,7 @@ class RadioGoldenTest {
     ///
     /// The gap it closes is a real one, twice over. `controls-on-surface-*` exists
     /// because a checkbox's glyph was invisible on `--gb-surface` and every golden
-    /// in the repository painted on `--gb-bg` ([ADR-0073]). Then `slider` shipped
+    /// in the repository painted on `--gb-bg`. Then `slider` shipped
     /// with a groove whose colour **was** `--gb-surface`, and the scene that
     /// exists for exactly that had simply not been extended to it — so the axis
     /// was covered and the control was not.
@@ -433,14 +432,14 @@ class RadioGoldenTest {
         // terms and does better than an exemption: `badge-on-surface.png` is a
         // scene of its own, and it exists because the *default* chip is filled
         // with `--gb-surface-2`, which is one step from the panel under it --
-        // the one distance worth having an image of (ADR-0087).
+        // the one distance worth having an image of.
         //
         // `segmented` and `option` are exempt on the badge's terms and with the
         // badge's image: the bar paints a plate one step off `--gb-surface`, and
         // `segmented-on-surface.png` is that step. A segment has no fill of its
         // own until it is selected, and what it would disappear against is the
         // bar rather than a panel -- which is the axis every image in
-        // `SegmentedGoldenTest` is already on (ADR-0097).
+        // `SegmentedGoldenTest` is already on.
         var exempt = List.of("button", "badge", "segmented", "option");
         var inScene = new java.util.ArrayList<String>();
         collectTypes(new ElementTree(surfaceScene()).root(), inScene);
@@ -464,7 +463,7 @@ class RadioGoldenTest {
     }
 
     @Test
-    @DisplayName("`radio-group.inline` is a row, because §3 gives the group no axis")
+    @DisplayName("`radio-group.inline` is a row, because the group itself has no axis")
     void inline() {
         // The widget names the semantics and the stylesheet names the axis, which
         // is the opposite of `row` and `column` -- those *are* their axis, and a

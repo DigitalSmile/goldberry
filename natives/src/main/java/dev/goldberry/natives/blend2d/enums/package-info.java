@@ -3,10 +3,12 @@
 /// of C constants that touch no foreign memory, each checked against the compiled
 /// library by the layout verifier.
 ///
-/// Split from the wrappers in `…natives.blend2d`, which hold the handles (ADR-0172).
+/// Split from the wrappers in `…natives.blend2d`, which hold the handles.
 /// Exported to `:core` alone, with the wrappers.
 ///
-/// Marked for NullAway (`docs/testing.md` §2, ADR-0497).
+/// Marked for NullAway, so a parameter that may be null says so on its signature.
+///
+/// Read more: [The native boundary](https://goldberry.dev/docs/overview/architecture.html#the-native-boundary).
 @NullMarked
 package dev.goldberry.natives.blend2d.enums;
 

@@ -32,9 +32,9 @@ import dev.goldberry.widget.Widget;
 import dev.goldberry.widget.style.Paints;
 import dev.goldberry.widget.style.Styled;
 
-/// A popup that wants **no** keys — `docs/gaps.md` G29, ADR-0319.
+/// A popup that wants **no** keys: a panel is not a menu.
 ///
-/// [PopupLifecycleTest] covers the menu: ADR-0104's forwarding rule says the
+/// [PopupLifecycleTest] covers the menu: the forwarding rule says the
 /// keyboard belongs to whatever is open over the window, and that is right for a
 /// menu, which is up for as long as the user is choosing from it. A *panel* — a
 /// bar of buttons floating over a canvas somebody is typing into — is up the whole
@@ -281,7 +281,7 @@ class PanelPopupTest {
 
     @Test
     @Timeout(20)
-    @DisplayName("and is taken by a menu, which is ADR-0104's rule unchanged")
+    @DisplayName("and is taken by a menu, which is the forwarding rule unchanged")
     void keysStopAtAMenu() {
         var run = run(
                 false,

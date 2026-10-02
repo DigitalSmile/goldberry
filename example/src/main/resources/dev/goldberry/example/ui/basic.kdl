@@ -1,4 +1,4 @@
-// The **Basic** screen's cards: §1's type scale and every §3 control whose value
+// The **Basic** screen's cards: the type scale and every control whose value
 // is a state or a number.
 //
 // ## Why the root is a `masonry` and not a screen
@@ -13,26 +13,25 @@
 // the prose card (in the tree only while the checkbox says so), the road card
 // (whose Turn back is disabled while the count is zero) and the dialogs card
 // (which holds what a dialog answered, and a dialog answers later), and builds
-// one wall out of all ten. §8's markup has no expressions and is not going to
-// grow any (ADR-0062, ADR-0110, ADR-0222).
+// one wall out of all ten. Markup has no expressions and is not going to
+// grow any.
 //
 // Everything below flows down through `bind=` and back up through `change=`, so
-// the file names what the application registered and never touches a `Property`
-// (ADR-0063).
+// the file names what the application registered and never touches a `Property`.
 //
 // ## Why this wall is the one that says a width instead of a count
 //
-// `columns=2` until ADR-0436, and two columns at 1200 were two columns at 720 as
+// `columns=2` once, and two columns at 1200 were two columns at 720 as
 // well -- half as wide and twice as tall, which is a phone layout on a desktop
 // and is the defect the gallery was photographing in `gallery-basic-narrow`.
 // `min-column-width` is a count the window does: **as many columns as fit at 560,
 // at least one.**
 //
-// 560 and not §3's default of 320, and the arithmetic is worth writing down
+// 560 and not `masonry`'s default of 320, and the arithmetic is worth writing down
 // because it is the whole decision. This wall is 1168 wide in a 1200 window and
 // 688 in a 720 one, and the gap between columns is 12. At 320 it would be three
 // columns at 1200 -- a third narrower than the cards on it were built for, on a
-// screen where §10's `wrap` is not built to catch what overflows -- and still
+// screen where wrapping is not built to catch what overflows -- and still
 // *two* at 720, so the picture the change exists to fix would not have moved.
 // 560 is what these cards are: two of them and a gap is 1132, which 1168 holds
 // and 688 does not. So the wide screen is the screen it always was, and the
@@ -43,7 +42,7 @@
 // redesign of the gallery rather than a demonstration of the attribute.
 masonry id="basic-wall" min-column-width=560 {
 
-  // §1.4's six ranks, in order, so a reader can see what "one rung quieter"
+  // The type scale's six ranks, in order, so a reader can see what "one rung quieter"
   // buys. Nothing here is a heading element -- there is no such widget -- they
   // are `text` nodes with a class each, which is the whole of what a type scale
   // is.
@@ -58,12 +57,13 @@ and turned under the mountain only when the snow refused them."
     text class="rank-code" "leagues = 1795  //  pace 3.1/hr"
   }
 
-  // §3's first control, and every variant the toolkit actually has. A button's
+  // `button`, the first control in the catalogue, and every variant the toolkit
+  // actually has. A button's
   // appearance is a **class** and never a constructor parameter, which is the
   // whole reason this card is a document: five variants, an icon beside a label
   // and a disabled one, and not one line of Java.
   //
-  // `link` is the newest of them (ADR-0293) -- semantically a button, in the tab
+  // `link` is the newest of them -- semantically a button, in the tab
   // order with the focus ring, and visually a piece of running text. Its ink is
   // the one button colour that differs between the two theme files rather than
   // its fill.
@@ -87,20 +87,19 @@ and turned under the mountain only when the snow refused them."
       button id="b-icon-label" class="primary" icon="plus" press="app.click" "Icon and label"
       button id="b-off" disabled=#true "Disabled"
     }
-    // **No icon-only button here, and the reason is a document's.** §3 allows one
+    // **No icon-only button here, and the reason is a document's.** The catalogue allows one
     // -- `name=` supplies the accessible name a missing label would have -- but an
     // icon in markup is a *registry lookup*, and `Icons.lenient()` answers an
     // unbound name with null. A button with a label survives that and draws
     // without its glyph; a button without one becomes illegal, so the only shape
     // whose legality depends on the registry is the one with nothing to fall back
-    // on. It belongs in Java, where the `Icon` is an object rather than a name
-    // (ADR-0293).
+    // on. It belongs in Java, where the `Icon` is an object rather than a name.
     text class="caption" "Nothing above sets a colour: the variant is a class and the tokens are the theme's, so Ctrl+T restyles all eight. The `link` is a button that reads as text -- Tab reaches it and Space presses it, and its ink is measured on every surface a card can sit on."
   }
 
   // One Tab stop, not two: Tab reaches the group and the arrow keys move inside
   // it. An arrow does not move the tick -- it raises the change, the application
-  // sets the property, and the tick follows it back down (ADR-0073, ADR-0063).
+  // sets the property, and the tick follows it back down.
   //
   // Three controls on **one** property, which is the argument of this card: none
   // of the three owns the value, so picking from the dropdown moves the radios
@@ -116,15 +115,15 @@ and turned under the mountain only when the snow refused them."
 
     // It shares `radio-group`'s model exactly and is a different widget anyway:
     // the arrows here answer only Left and Right, because a bar has an axis of
-    // its own where a group's is its stylesheet's (ADR-0078, ADR-0097).
+    // its own where a group's is its stylesheet's.
     segmented id="theme-bar" bind="app.theme" change="app.pick-theme" {
       option value="dark" "Moria"
       option value="light" "Lórien"
     }
 
     // The list opens in a window of its own, so it is not clipped by this card.
-    // It writes the same `option` nodes the bar above does -- one node by §3, one
-    // record since it had two callers (ADR-0141).
+    // It writes the same `option` nodes the bar above does -- one node by the catalogue, one
+    // record since it had two callers.
     select id="theme-select" bind="app.theme" change="app.pick-theme" \
            placeholder="Choose a light" {
       option value="dark" "Moria — dark"
@@ -148,7 +147,7 @@ property, and not one of them owns it."
              "Counsel not yet taken"
     // The same property as the checkbox at the top of this card, so the two move
     // together -- and the switch reports the state it was dragged *to* rather
-    // than "the other one" (ADR-0075).
+    // than "the other one".
     toggle id="prose-switch" bind="app.prose" change="app.set-prose" \
            "Read the verse (as a switch)"
     toggle id="prose-switch-off" on=#true disabled=#true "Bound by oath"
@@ -164,17 +163,17 @@ property, and not one of them owns it."
       badge class="danger" "Mordor"
     }
     text class="caption" "A badge takes its rank from a class, and the bare one \
-takes the neutral surface -- five hues on one row so that §1.2's rule about \
+takes the neutral surface -- five hues on one row so that the rule about \
 never carrying meaning in colour alone has something to be read against."
   }
 
-  // §3's `chip`, and the card exists to sit next to the one above it: a badge and
+  // `chip`, and the card exists to sit next to the one above it: a badge and
   // a chip look alike on purpose and share their fill tokens, and the difference
-  // is that you can press one of them (ADR-0305).
+  // is that you can press one of them.
   //
   // The tags row is **not** here and is in Java, for the reason the road card is:
   // a × *removes* a chip, which is a different tree rather than a different
-  // value, and §8's markup has no way to describe a list that shortens.
+  // value, and markup has no way to describe a list that shortens.
   card id="chip-card" class="wall-card" {
     text class="card-title" "Chips"
 
@@ -182,9 +181,9 @@ never carrying meaning in colour alone has something to be read against."
     // owns its own state. Pressing one asks; the model answers; `:checked`
     // follows the binding back down. Exactly the loop the radio group two cards
     // up runs, with the difference that any number of these may be on at once,
-    // which is the whole reason a row of chips is not a `segmented` (ADR-0063).
+    // which is the whole reason a row of chips is not a `segmented`.
     //
-    // `outlined`, and the reason is the card rather than the widget: §1.5 makes a
+    // `outlined`, and the reason is the card rather than the widget: the design system makes a
     // `card`'s fill `--gb-surface-2`, and a control at rest takes
     // `--gb-button-bg`, and on the Nord dark theme both of those are `--nord2`.
     // So a *filled* chip at rest is exactly the colour of the card under it --
@@ -216,7 +215,7 @@ at rest would be the colour of the card under it."
 at two resolutions, and asking for each is refused where the chip is built."
   }
 
-  // §3's controls whose value is a *number*, and the two that report one back.
+  // The controls whose value is a *number*, and the two that report one back.
   card id="value-card" class="wall-card" {
     text class="card-title" "Provisions, four ways"
     slider id="gain" min=0 max=100 step=5 ticks=5 format="%.0f%%" \

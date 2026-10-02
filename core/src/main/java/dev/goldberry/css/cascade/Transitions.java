@@ -10,33 +10,37 @@ import org.jspecify.annotations.Nullable;
 import dev.goldberry.css.ComputedStyle;
 import dev.goldberry.motion.Easing;
 
-/// Which of a node's properties move rather than snap, and how —
-/// `docs/design-system.md` §1.7.
+/// Which of a node's properties move rather than snap when their value changes,
+/// and how.
 ///
-/// Part of [ComputedStyle] and therefore resolved by the cascade like everything
-/// else, which is what lets `button:hover` and `button` declare different
-/// transitions and lets an application turn one off by overriding a rule.
+/// ```css
+/// button        { transition: background-color var(--gb-motion-fast) ease-enter }
+/// button:active { transition: background-color 0ms }
+/// ```
 ///
-/// ## The whitelist is the design, not a limitation
+/// Part of [ComputedStyle], so it is resolved by the cascade like every other
+/// property: `button:hover` and `button` can declare different transitions, and
+/// an application turns one off by overriding the rule. The timing that applies
+/// is the one on the style being moved to, so the two rules above make a press
+/// snap and a release fade.
 ///
-/// §1.7: "whitelist = compositor-cheap properties only … **layout properties
-/// never transition**". Animating a width or a padding would run Yoga on every
-/// frame of every transition, which on a CPU renderer is the difference between
-/// a transition and a stutter. The sanctioned movement effects — a tab indicator,
-/// a toast reflowing — are done with transforms instead.
+/// The properties that can transition are a closed whitelist, [Animatable], and
+/// a layout property is never among them. Animating a width or a padding would
+/// run layout on every frame of every transition, which on a CPU renderer is the
+/// difference between a transition and a stutter; a tab indicator or a toast
+/// moves with a transform instead. So a stylesheet writing
+/// `transition: width 200ms` gets a dropped declaration with a warning naming
+/// it, not a rule that silently never fires.
 ///
-/// So [Animatable] is a closed enum rather than a property-name string. A
-/// stylesheet writing `transition: width 200ms` is a **dropped declaration with
-/// a warning naming it**, not a rule that silently never fires: the author asked
-/// for something the system deliberately refuses, and needs to be told.
+/// Read more: [Styling](https://goldberry.dev/docs/guide/styling.html#transition-and-animation).
 public record Transitions(Map<Animatable, Timing> byProperty) {
 
-    /// Nothing moves. What every node starts as, because §1.7's rule 5 is that
-    /// motion is meaning — a toolkit where everything animates by default has
-    /// decided that nothing means anything.
+    /// Nothing moves, which is what every node starts as: motion carries meaning,
+    /// and a toolkit where everything animates by default has decided that nothing
+    /// means anything.
     public static final Transitions NONE = new Transitions(Map.of());
 
-    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    /// Written out so the parameter can say that null, like empty, means no transitions.
     public Transitions(@Nullable Map<Animatable, Timing> byProperty) {
         byProperty = byProperty == null || byProperty.isEmpty() ? Map.of() : Map.copyOf(byProperty);
         this.byProperty = byProperty;
@@ -44,44 +48,38 @@ public record Transitions(Map<Animatable, Timing> byProperty) {
 
     /// The properties a transition may name.
     ///
-    /// Six. The fifth was `transform`, named here as absent for as long as `Box`
-    /// carried no matrix and hit testing could not invert one. Both now exist,
-    /// and the reason it was worth waiting for is that a transform the painter
-    /// applies and hit testing does not would produce a control that looks right
-    /// and does not respond where it looks like it should — a failure with no
-    /// error and no wrong pixel
-    /// (ADR-0068).
-    ///
-    /// The sixth arrived with the shadow itself: `box-shadow` is the property
-    /// §1.7 names for `affix`'s detach — "opacity on the elevation shadow" — and
-    /// the one a `card.interactive` needs to lift under the pointer. It is here
-    /// rather than deferred because a `transition` naming a property the engine
-    /// resolves but cannot animate is exactly the silent-nothing this enum's own
-    /// class note refuses (ADR-0310).
+    /// Six, and none of them changes a layout. `transform` is among them because
+    /// hit testing inverts the same matrix the painter applies, so a moving
+    /// control responds where it is drawn; a transform the painter applied and hit
+    /// testing did not would be a control that looks right and does not respond
+    /// where it looks like it should, a failure with no error and no wrong pixel.
+    /// `box-shadow` is among them because an elevation change is how an `affix`
+    /// detaches and how a `card.interactive` lifts under the pointer, and a
+    /// `transition` naming a property the engine resolves but cannot animate would
+    /// be exactly the silent nothing this type refuses.
     public enum Animatable {
 
         /// Fades. The one every control uses for `:disabled`.
         OPACITY("opacity"),
 
-        /// A control's surface — §3.1's "hover: `background-color` fast".
+        /// A control's surface, which is what a hover changes, fast.
         BACKGROUND_COLOR("background-color"),
 
         /// The border, so a checkbox's glyph outline can follow its hover.
         BORDER_COLOR("border-color"),
 
-        /// The drop shadow — §1.5's elevation, moving. Every component of it
+        /// The drop shadow, which is elevation moving. Every component of it
         /// interpolates, so a card lifting from `--gb-elevation-1` to `-2` grows
         /// its blur and its offset as well as its alpha, which is what an object
-        /// rising off a page actually does.
+        /// rising off a page does.
         BOX_SHADOW("box-shadow"),
 
         /// The foreground: text, icons, and a checkbox's mark.
         COLOR("color"),
 
-        /// Position, scale, rotation and skew — the compositor-cheap way to move
-        /// something, and the reason §1.7 can forbid animating a width without
-        /// forbidding movement. The checkbox tick's specified `scale 0.6→1` is
-        /// this one.
+        /// Position, scale, rotation and skew: the compositor-cheap way to move
+        /// something, and the reason a width can be refused without forbidding
+        /// movement. A checkbox tick's `scale 0.6→1` is this one.
         TRANSFORM("transform");
 
         private final String cssName;
@@ -117,12 +115,12 @@ public record Transitions(Map<Animatable, Timing> byProperty) {
     /// How long one property takes, on what curve, after what wait.
     ///
     /// @param durationMillis how long the move takes; zero means it snaps
-    /// @param easing         the curve — one of §1.7's three keywords
+    /// @param easing         the curve: `ease-enter`, `ease-exit` or `linear`
     /// @param delayMillis    how long to wait before starting
     public record Timing(double durationMillis, Easing easing, double delayMillis) {
 
-        /// A transition that does not move — what `prefers-reduced-motion`
-        /// collapses every one of them to (§1.7's rule 6).
+        /// A transition that does not move, which is what reduced motion collapses
+        /// every one of them to.
         public static final Timing INSTANT = new Timing(0, Easing.LINEAR, 0);
 
         public Timing {
@@ -165,14 +163,12 @@ public record Transitions(Map<Animatable, Timing> byProperty) {
         return new Transitions(next);
     }
 
-    /// Every transition collapsed to instant — §1.7's `prefers-reduced-motion`.
+    /// Every transition collapsed to instant, which is what reduced motion does.
     ///
-    /// The declarations are **kept** rather than dropped, at zero duration. That
-    /// is deliberate: the transition machinery still runs, still ends, and still
-    /// fires whatever depends on it ending, so a reduced-motion user reaches the
-    /// same states by the same route and does not take a different code path
-    /// through the toolkit. §4 calls that out for the high-contrast theme in the
-    /// same words — an alias swap, not a special case.
+    /// The declarations are kept at zero duration rather than dropped: the
+    /// transition machinery still runs, still ends, and still fires whatever
+    /// depends on it ending, so a reduced-motion user reaches the same states by
+    /// the same route and does not take a different code path through the toolkit.
     public Transitions reduced() {
         if (isEmpty()) {
             return this;

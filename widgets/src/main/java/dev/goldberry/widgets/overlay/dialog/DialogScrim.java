@@ -17,10 +17,8 @@ import dev.goldberry.widgets.core.presence.Phase;
 ///
 /// It fills the window — [dev.goldberry.Overlay#filling] —
 /// and it is **opaque to the pointer everywhere**, so nothing behind it can be
-/// clicked. `tour`'s veil discovered that
-/// (ADR-0121):
-/// a filling overlay takes the pointer wherever it draws, which makes a thing
-/// modal without any code saying so. The keyboard has no position and cannot be
+/// clicked. A filling overlay takes the pointer wherever it draws, which makes a
+/// thing modal without any code saying so. The keyboard has no position and cannot be
 /// handled this way, which is what [DialogPanel]'s
 /// [Handles#isModal] is for.
 ///
@@ -30,7 +28,8 @@ import dev.goldberry.widgets.core.presence.Phase;
 /// @param onPress what a press on the veil means
 /// @param phase   the shared opening or closing, so the veil and the panel move
 ///                on one clock rather than two that agree by construction
-/// @param closing whether input has stopped, per §1.7's overlay lifecycle
+/// @param closing whether input has stopped, which it does the instant closing
+///                starts
 /// @param closed  whether the closing animation has run out, after which there
 ///                is nothing left to draw and nothing left to ask frames for
 record DialogScrim(Widget panel, Runnable onPress, Phase phase, boolean closing, boolean closed)
@@ -51,7 +50,7 @@ record DialogScrim(Widget panel, Runnable onPress, Phase phase, boolean closing,
         return closed ? List.of() : List.of(panel);
     }
 
-    /// §1.7: "input is disabled the instant closing starts (no ghost clicks)".
+    /// Input is disabled the instant closing starts, so there are no ghost clicks.
     ///
     /// A dialog fading out is still on the screen and still covers the window, so
     /// without this a press in the last 160ms would answer a question that has
@@ -92,7 +91,7 @@ record DialogScrim(Widget panel, Runnable onPress, Phase phase, boolean closing,
             phase.skip();
             return box;
         }
-        // §3: the veil animates `opacity` and nothing else. It is already the
+        // The veil animates `opacity` and nothing else. It is already the
         // size of the window, and a veil that scaled would show the window's
         // corners through it while it moved.
         var progress = phase.progressAt(context.nowMillis());

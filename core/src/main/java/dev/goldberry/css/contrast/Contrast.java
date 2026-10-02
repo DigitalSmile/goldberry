@@ -1,31 +1,36 @@
 package dev.goldberry.css.contrast;
 
-/// WCAG 2.1's contrast arithmetic, and the two floors `docs/design-system.md`
-/// §1.2 states.
+/// WCAG 2.1's contrast arithmetic, and the two floors the design system states.
 ///
-/// Nine lines of well-known formula, and the reason it is a public class rather
-/// than a private helper is that it was one for a long time. `ContrastTest`
-/// measured the two themes the toolkit ships and nothing measured a third: §10
-/// lets an application swap every alias token, and a theme that paired
-/// `--gb-badge-warning-bg` with an unreadable `--gb-badge-warning-text` was a
-/// legibility bug the toolkit would not notice ([ADR-0241]).
+/// ```java
+/// double ratio = Contrast.ratio(0xFF2E3440, 0xFFECEFF4);
+/// boolean legible = Contrast.meets(bg, text, Contrast.TEXT_FLOOR);
+/// ```
+///
+/// Public rather than a private helper of the audit, because an application may
+/// swap every alias token, and a theme that pairs `--gb-badge-warning-bg` with an
+/// unreadable `--gb-badge-warning-text` is a legibility bug only its author can
+/// check for.
 ///
 /// **Alpha is ignored, and every caller has to know it.** A translucent colour
-/// has no single ratio, because what it composites over decides the answer —
+/// has no single ratio, because what it composites over decides the answer.
 /// `button.ghost` and `--gb-selection` are exactly that case, and measuring them
 /// here would score `transparent` as black and report a pass. [ThemeAudit] skips
-/// what it cannot measure rather than measuring it badly.
+/// what it cannot measure rather than measuring it badly; [#isOpaque] is the
+/// check.
+///
+/// Read more: [The design system](https://goldberry.dev/docs/guide/design-system.html#colour).
 public final class Contrast {
 
-    /// §1.2's floor for text below 20px, which is all the text in the catalog:
+    /// The floor for text below 20px, which is all the text in the catalog:
     /// `caption` is 11px and `body` is 13.
     public static final double TEXT_FLOOR = 4.5;
 
-    /// §1.2's floor for anything that is **not** text — a glyph, a border, an
+    /// The floor for anything that is **not** text — a glyph, a border, an
     /// indicator. Lower because a shape is not read letter by letter, and it is
-    /// still a floor: a warning triangle nobody can see is §1.2's own failure
-    /// mode, since the rule that forbids colour as the only carrier of meaning
-    /// assumes the thing carrying it is visible.
+    /// still a floor: a warning triangle nobody can see defeats the rule that
+    /// forbids colour as the only carrier of meaning, since that rule assumes the
+    /// thing carrying it is visible.
     public static final double NON_TEXT_FLOOR = 3.0;
 
     private Contrast() {}

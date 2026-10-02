@@ -2,7 +2,7 @@
 ///
 /// Two functions out of a library with thousands, bound for one purpose: so that
 /// a message a desktop library raises about itself reaches the application's log
-/// rather than its stderr (ADR-0443).
+/// rather than its stderr.
 ///
 /// This package is unlike every other binding package in the module in three
 /// ways, and all three follow from GLib being the **system's** library rather
@@ -20,7 +20,9 @@
 /// pointer to a string GLib owns for the length of one call, read into a Java
 /// `String` and handed on.
 ///
-/// Marked for NullAway (`docs/testing.md` §2, ADR-0497).
+/// Marked for NullAway, so a parameter that may be null says so on its signature.
+///
+/// Read more: [The native boundary](https://goldberry.dev/docs/overview/architecture.html#the-native-boundary).
 @NullMarked
 package dev.goldberry.natives.glib;
 

@@ -17,6 +17,8 @@ import java.util.Objects;
 /// source rather than assumed, and it is why the surface is destroyed as soon as
 /// the create returns.
 ///
+/// Read more: [The native boundary](https://goldberry.dev/docs/overview/architecture.html#the-native-boundary).
+///
 /// @param pixels a **direct** buffer in BGRA memory order
 /// @param width  in pixels
 /// @param height in pixels

@@ -1,9 +1,13 @@
-/// `docs/core-widgets.md` §10's `calendar`, and §4's `date-picker` popover
-/// content.
+/// The `calendar`: a month grid with single, multiple and range selection,
+/// built from Java and shown by a `date-picker` in its popover.
 ///
-/// `@NullMarked`, which puts this package under NullAway. See
-/// `dev.goldberry.widgets.form.parts` for why every package
-/// opts in one at a time.
+/// [dev.goldberry.widgets.panel.calendar.CalendarView] is the widget and
+/// [dev.goldberry.widgets.panel.calendar.DateSelection] its value; the rest are
+/// parts a stylesheet selects.
+///
+/// Every reference is non-null unless it says `@Nullable`.
+///
+/// Read more: [Fields and forms](https://goldberry.dev/docs/components/forms.html#date-picker).
 @NullMarked
 package dev.goldberry.widgets.panel.calendar;
 

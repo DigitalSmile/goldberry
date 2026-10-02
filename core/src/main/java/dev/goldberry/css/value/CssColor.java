@@ -10,12 +10,17 @@ import dev.goldberry.css.parse.CssTokenizer;
 import dev.goldberry.css.parse.Token;
 import dev.goldberry.css.parse.TokenType;
 
-/// Reads a CSS colour into the `0xAARRGGBB` int the paint layer takes.
+/// Reads a CSS colour into the `0xAARRGGBB` int the paint layer takes, and mixes
+/// two of them.
 ///
-/// That packing is not this class's choice — it is what
-/// [dev.goldberry.paint.Frame] already takes, **not premultiplied**
-/// (ADR-0031). Converting here rather than at the paint call keeps one spelling
-/// of a colour in the toolkit.
+/// ```java
+/// Integer nord0 = CssColor.parse("#2e3440"); // null when the text is not a colour
+/// int half = CssColor.mix(from, to, 0.5);
+/// ```
+///
+/// That packing is not this class's choice: it is what [dev.goldberry.paint.Frame]
+/// already takes, **not premultiplied**. Converting here rather than at the paint
+/// call keeps one spelling of a colour in the toolkit.
 ///
 /// ## What is supported
 ///
@@ -24,9 +29,11 @@ import dev.goldberry.css.parse.TokenType;
 /// colours of CSS Level 1.
 ///
 /// The full 148-name CSS colour list is deliberately not here. Goldberry's
-/// palette comes from Nord through custom properties (§10); a stylesheet reaching
-/// for `papayawhip` is not doing what the theming mechanism is for, and 148 names
-/// is 148 chances for `grey`/`gray` confusion to look like a toolkit bug.
+/// palette comes from Nord through custom properties; a stylesheet reaching for
+/// `papayawhip` is not doing what the theming mechanism is for, and 148 names is
+/// 148 chances for `grey`/`gray` confusion to look like a toolkit bug.
+///
+/// Read more: [Styling](https://goldberry.dev/docs/guide/styling.html#colour).
 public final class CssColor {
 
     private CssColor() {}
@@ -80,9 +87,8 @@ public final class CssColor {
     ///
     /// The space is not an implementation detail: averaging two colours in sRGB
     /// passes through a grey dead zone, so a hover fading between two accent
-    /// tokens goes muddy halfway. `docs/design-system.md` §1.7 specifies OKLCH
-    /// for exactly that reason, and [Oklch] is where the arithmetic and its
-    /// caveats live.
+    /// tokens goes muddy halfway. The design system specifies OKLCH for exactly
+    /// that reason, and [Oklch] is where the arithmetic and its caveats live.
     ///
     /// @param from `0xAARRGGBB`, not premultiplied
     /// @param to   `0xAARRGGBB`, not premultiplied

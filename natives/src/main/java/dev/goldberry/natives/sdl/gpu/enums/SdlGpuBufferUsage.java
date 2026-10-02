@@ -4,8 +4,10 @@ import java.util.Collection;
 
 /// What a buffer may be used for, as SDL's `SDL_GPU_BUFFERUSAGE_*` bits.
 ///
-/// Only the uses a draw has: storage and indirect buffers join with compute
-/// (`docs/gpu-plan.md`, phase 7).
+/// Only the uses a draw has: storage and indirect buffers join when compute does.
+///
+/// Read more: [The GPU canvas](https://goldberry.dev/docs/components/gpu.html#canvas3d) and
+/// [The native boundary](https://goldberry.dev/docs/overview/architecture.html#the-native-boundary).
 public enum SdlGpuBufferUsage {
     /// Vertices, bound to a pipeline's vertex-buffer slot.
     VERTEX(1),

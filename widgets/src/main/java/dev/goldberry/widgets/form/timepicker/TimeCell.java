@@ -17,7 +17,7 @@ import dev.goldberry.widget.style.Styled;
 ///
 /// **Not focusable**, and it says so by saying nothing: `Handles.isFocusable`
 /// already answers false, and an override is what makes a type owe a role it has
-/// no honest answer for. §4 gives a picker one Tab stop, which is its field; the
+/// no honest answer for. A picker is one Tab stop, which is its field; the
 /// popover's keyboard is [TimeColumnsBox]'s.
 ///
 /// `selected` is a class rather than `:checked`, unlike a `calendar-day`. The

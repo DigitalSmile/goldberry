@@ -6,10 +6,10 @@ import org.apache.tools.ant.filters.ReplaceTokens
 plugins {
     id 'goldberry.java-conventions'
     // `audio-player` is a @Markup widget, so this module declares a catalog of
-    // its own and a KDL document finds it through the module path (ADR-0131),
+    // its own and a KDL document finds it through the module path,
     // as :html's `markdown-view` is found.
     id 'goldberry.weave'
-    // Published as goldberry-media, optional in the umbrella (ADR-0495). It
+    // Published as goldberry-media, optional in the umbrella. It
     // arrives together with its natives -- FFmpeg as `ffmpeg-<target>`
     // classifiers, below -- because a goldberry-media with no FFmpeg to load is a
     // jar that fails on every machine that adds it.
@@ -24,7 +24,8 @@ evaluationDependsOn(':natives')
 evaluationDependsOn(':gpu')
 
 // ============================================================================
-// goldberry-media (docs/goldberry-media.md, ADR-0460, ADR-0461)
+// goldberry-media
+// https://goldberry.dev/docs/components/media.html#the-module
 //
 // The second module in the build that binds native code itself, and the only one
 // whose libraries are not libgoldberry. FFmpeg is LGPL-2.1+ and must stay
@@ -37,10 +38,10 @@ evaluationDependsOn(':gpu')
 // none of the toolkit; `…media.view` builds its widgets from :widgets' controls.
 // ============================================================================
 dependencies {
-    // Logging (ADR-0174).
+    // Logging.
     implementation project(':common')
 
-    // SDL's audio stream, exported to this module alone (ADR-0461): the desktop
+    // SDL's audio stream, exported to this module alone: the desktop
     // audio sink. Not `api`: no type of :natives appears in this module's surface.
     implementation project(':natives')
 
@@ -48,13 +49,13 @@ dependencies {
     // a `Widget`, and whoever holds one has to be able to say so.
     api project(':widgets')
 
-    // Video on the GPU (docs/gpu-plan.md, phase 6; ADR-0484): `video-view`
+    // Video on the GPU: `video-view`
     // shows its pictures through :gpu's video layer when :gpu is on the module
     // path, and on the CPU when it is not. `requires static`, so compile-only:
     // an application that ships no GPU module plays video all the same.
     compileOnly project(':gpu')
 
-    // Element trees without a window, and the golden-image helpers (ADR-0050).
+    // Element trees without a window, and the golden-image helpers.
     testImplementation testFixtures(project(':core'))
 
     // The tests see :gpu, as an application that ships it does: the GPU path
@@ -68,10 +69,11 @@ dependencies {
 }
 
 // ============================================================================
-// The media superbuild (docs/goldberry-media.md §2)
+// The media superbuild
+// https://goldberry.dev/docs/components/media.html#bringing-a-codec
 //
 // FFmpeg and dav1d for THIS machine, the local development path -- the same
-// arrangement :natives has for libgoldberry (ADR-0012). It is not part of
+// arrangement :natives has for libgoldberry. It is not part of
 // `./gradlew build`: it needs meson, pkg-config and make on top of CMake and
 // Ninja, and a first run compiles FFmpeg. Run it on purpose:
 //
@@ -86,12 +88,12 @@ def superbuildInstallDir = layout.buildDirectory.dir("ffmpeg/${hostTargetId}/ins
 def catalogFile = rootProject.layout.projectDirectory.file('gradle/libs.versions.toml')
 
 // Outside build/, like :natives' clones, so `clean` does not throw away a
-// FFmpeg checkout (ADR-0038).
+// FFmpeg checkout.
 def depsDir = providers.gradleProperty('goldberry.media.depsDir')
         .map { file(it) }
         .orElse(layout.projectDirectory.dir(".deps/${hostTargetId}").asFile)
 
-// Every tool by absolute path, for the reason :natives gives (ADR-0040): a
+// Every tool by absolute path, for the reason :natives gives: a
 // Gradle daemon started by an IDE carries launchd's PATH forever, and a tool the
 // check can see must be the tool the build runs.
 def toolPath = providers.environmentVariable('PATH')
@@ -133,7 +135,7 @@ def checkMediaToolchain = tasks.register('checkMediaToolchain') {
         if (!missing.isEmpty()) {
             def hint = switch (ToolResolver.familyOf(System.getProperty('os.name', ''))) {
                 case ToolResolver.Family.MACOS -> 'brew install cmake ninja meson pkg-config nasm'
-                case ToolResolver.Family.WINDOWS -> 'see docs/media-plan.md, "Local toolchain"'
+                case ToolResolver.Family.WINDOWS -> 'install cmake, ninja, meson, pkg-config, nasm and make, e.g. through MSYS2 or Chocolatey'
                 default -> 'sudo apt install cmake ninja-build meson pkg-config nasm make    (Debian/Ubuntu)'
             }
             throw new GradleException("""\
@@ -149,7 +151,7 @@ def checkMediaToolchain = tasks.register('checkMediaToolchain') {
     }
 }
 
-// The hardware decoders (phase 5, ADR-0470): on where they need nothing but the
+// The hardware decoders: on where they need nothing but the
 // OS (VideoToolbox, D3D11), off on Linux, where VAAPI would make libavutil need
 // libva. -Pgoldberry.media.hwaccel=true|false overrides either way.
 def hwaccel = providers.gradleProperty('goldberry.media.hwaccel')
@@ -212,7 +214,8 @@ tasks.register('ffmpegBuild', Exec) {
 }
 
 // ============================================================================
-// The natives jar: goldberry-media's `ffmpeg-<classifier>` (goldberry-media.md §2)
+// The natives jar: goldberry-media's `ffmpeg-<classifier>`
+// https://goldberry.dev/docs/contributing/releasing.html#where-things-go
 //
 // What `FfmpegLibraries` unpacks when no -Dgoldberry.media.libdir is set: the
 // five libraries and the layout file under
@@ -269,9 +272,9 @@ mediaTargets.each { target ->
 def hostNativesJar = tasks.named("ffmpegNativesJar${taskSuffix(hostTargetId)}")
 
 // ============================================================================
-// The corresponding source: goldberry-media's `ffmpeg-sources` (ADR-0508)
+// The corresponding source: goldberry-media's `ffmpeg-sources`
 //
-// LGPL-2.1 §4 lets FFmpeg's object code be distributed only with its complete
+// Section 4 of the LGPL-2.1 lets FFmpeg's object code be distributed only with its complete
 // corresponding source, or with equivalent access to it from the same place, and
 // a snapshot on Central is a distribution like a release. So the binaries above
 // never go out without this jar beside them, under the same coordinates:
@@ -284,7 +287,7 @@ def hostNativesJar = tasks.named("ffmpegNativesJar${taskSuffix(hostTargetId)}")
 // shares a version number. It needs git and the network, once; it does not need
 // FFmpeg built, so the Java-only publishing job makes it.
 // ============================================================================
-// The clones outlive `clean`, as the superbuild's do (ADR-0038);
+// The clones outlive `clean`, as the superbuild's do;
 // -Pgoldberry.media.sourcesDir puts them elsewhere.
 def sourcesCloneDir = providers.gradleProperty('goldberry.media.sourcesDir')
         .map { file(it) }
@@ -394,7 +397,7 @@ tasks.register('ffmpegSourcesJar', Jar) {
 // The natives ride the goldberry-media publication as `ffmpeg-<target>`
 // classifiers, as libgoldberry rides goldberry-natives, but only when a run hands
 // over FFmpeg builds with -Pgoldberry.media.artifactsDir: publish.yml, once, with
-// every runner's build in hand (ADR-0334, ADR-0495).
+// every runner's build in hand.
 //
 // A snapshot carries the targets the Media workflow built. A release is
 // permanent, and one missing a target would leave that platform's users with a
@@ -406,7 +409,7 @@ if (mediaArtifactsDir.isPresent()) {
     def missing = mediaTargets - built
     if (!project.version.toString().endsWith('-SNAPSHOT') && !missing.isEmpty()) {
         throw new GradleException("A release of goldberry-media needs FFmpeg for every target; " +
-                "-Pgoldberry.media.artifactsDir has none for ${missing.join(', ')} (ADR-0495).")
+                "-Pgoldberry.media.artifactsDir has none for ${missing.join(', ')}.")
     }
     if (!missing.isEmpty()) {
         logger.warn("goldberry-media: this snapshot carries FFmpeg for ${built.join(', ') ?: 'no target'}, " +
@@ -419,7 +422,7 @@ if (mediaArtifactsDir.isPresent()) {
             }
         }
         // And their source beside them, or `goldberry.publish` refuses the lot
-        // (CorrespondingSource, ADR-0508).
+        // (CorrespondingSource).
         if (!built.isEmpty()) {
             publication.artifact(tasks.named('ffmpegSourcesJar')) {
                 classifier = CorrespondingSource.SOURCES
@@ -429,7 +432,8 @@ if (mediaArtifactsDir.isPresent()) {
 }
 
 // ============================================================================
-// What a native image of this module has to be told (ADR-0339)
+// What a native image of this module has to be told
+// https://goldberry.dev/docs/native.html#two-metadata-directories-traced-and-written
 //
 // Generated from the bindings rather than traced from a run, exactly as
 // `:natives:foreignMetadata` does: every holder is initialised, so every
@@ -470,7 +474,7 @@ tasks.register('cleanMediaDeps', Delete) {
 // vocabulary, the layout table against the committed probe output. What needs the
 // libraries skips without them, and says so; `-Pgoldberry.media.required=true`
 // turns the skip into a failure for a job whose purpose is to verify them, since a
-// verification that skips is a green tick over nothing (ADR-0016).
+// verification that skips is a green tick over nothing.
 // ============================================================================
 def libraryDirectory = providers.systemProperty('goldberry.media.libdir')
         .orElse(providers.gradleProperty('goldberry.media.libdir'))
@@ -509,7 +513,7 @@ tasks.withType(Test).configureEach {
     }
     // `goldberry.platform.required` does for the system decoders what
     // `goldberry.media.required` does for FFmpeg, for a job whose purpose is
-    // them: each system's tests fail on that system only (ADR-0489).
+    // them: each system's tests fail on that system only.
     ['goldberry.media.required', 'goldberry.platform.required'].each { name ->
         var value = providers.systemProperty(name).orElse(providers.gradleProperty(name))
         if (value.present) {
@@ -535,12 +539,13 @@ tasks.named('test') {
 }
 
 // ============================================================================
-// The GPU lane (docs/gpu-plan.md, phase 6; ADR-0484)
+// The GPU lane
+// https://goldberry.dev/docs/contributing/testing.html#the-gpu-tests
 //
 // Video drawn through :gpu's layer on a real device: decoded by FFmpeg,
 // composited and read back, against the CPU's goldens. Tagged `gpu`, and run
 // the way :gpu's and :natives' are, on the JVM's first thread, which macOS's
-// Cocoa needs for a Metal device (ADR-0475). Without a device the tests skip,
+// Cocoa needs for a Metal device. Without a device the tests skip,
 // unless -Pgoldberry.gpu.required=true says the lane has one.
 // ============================================================================
 def gpuTest = tasks.register('gpuTest', JavaExec) {
@@ -577,7 +582,7 @@ def gpuTest = tasks.register('gpuTest', JavaExec) {
 
 tasks.named('check') { dependsOn gpuTest }
 
-// The 4K60 run (docs/gpu-plan.md, phase 6): a minute of 4K60 VP9 on the
+// The 4K60 run: a minute of 4K60 VP9 on the
 // platform's video engine, shown by a video-view in a real, composited window.
 // Needs the clip media/src/test/fixtures/make-4k60.sh makes. Run on purpose and
 // read by a person; not part of `check`.
@@ -592,7 +597,7 @@ dependencies {
 
 tasks.register('videoPresentProbe', JavaExec) {
     group = 'verification'
-    description = 'Plays a minute of 4K60 video in a window and reports dropped pictures and CPU time (docs/gpu-plan.md, phase 6).'
+    description = 'Plays a minute of 4K60 video in a window and reports dropped pictures and CPU time.'
     classpath = sourceSets.test.runtimeClasspath + probeRuntime
     mainClass = 'dev.goldberry.media.view.VideoPresentProbe'
     workingDir = projectDir
@@ -615,7 +620,7 @@ tasks.register('videoPresentProbe', JavaExec) {
 }
 
 // The same tests with no :gpu on the class path, as an application that ships
-// no GPU module runs (ADR-0484): video-view draws on the CPU, and every test
+// no GPU module runs: video-view draws on the CPU, and every test
 // that is not the GPU lane's passes the same. `goldberry.test.gpuModule` tells
 // the one test that looks for :gpu which answer to expect.
 def testWithoutGpu = tasks.register('testWithoutGpu', Test) {
@@ -662,7 +667,8 @@ tasks.named('check') { dependsOn testNativesJar }
 tasks.withType(JacocoReportBase).configureEach { dependsOn testNativesJar, 'testWithoutGpu' }
 
 // ============================================================================
-// Coverage floor (docs/testing.md §3)
+// Coverage floor
+// https://goldberry.dev/docs/contributing/testing.html#advisory-dashboards
 //
 // Measured with FFmpeg loaded on 2026-09-23, after phase 6: 89.5% of lines,
 // 78.9% of branches (phase 3 closed at 88.9% and 77.1%, phase 2 at 85.9% and
@@ -670,10 +676,10 @@ tasks.withType(JacocoReportBase).configureEach { dependsOn testNativesJar, 'test
 // The floor sits just under both, as :html's does. Without FFmpeg every native
 // test skips and the figure falls by a third, a gate no Java-only build could
 // pass, so it applies only where the libraries are there -- `:html`'s condition,
-// for this module's library (ADR-0338). What is left uncovered is mostly the
+// for this module's library. What is left uncovered is mostly the
 // loader's unpack path, which `testNativesJar` covers in a JVM of its own.
 //
-// The system decoders (ADR-0493) are counted where they run. Another system's
+// The system decoders are counted where they run. Another system's
 // package is never reached here, and a floor over it would measure the
 // operating system rather than the tests; this system's is counted only when
 // -Pgoldberry.platform.required=true says the job has its decoders installed,

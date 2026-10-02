@@ -23,6 +23,8 @@ import java.util.Optional;
 /// SDL returns an empty list for both "the user pressed Escape" and "the user
 /// chose nothing" — so an export that was called off leaves no error behind to
 /// show. [Failed] is for a dialog that could not be put up or broke while it was.
+///
+/// Read more: [Windows, popups and the host](https://goldberry.dev/docs/guide/windows.html#the-host).
 public sealed interface FileChoice {
 
     /// The user picked at least one path.

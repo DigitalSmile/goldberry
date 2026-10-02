@@ -1,14 +1,12 @@
-/// `@NullMarked`, which puts this package under NullAway.
+/// The `qr-code` widget: a QR code drawn from a string, at whatever size the
+/// box gives it.
 ///
-/// Inside a marked package every type is non-null unless it says `@Nullable`,
-/// and the build fails on a violation. The annotation is the whole content of
-/// this file: there is nothing package-specific to say about nullness, and a
-/// paragraph pretending otherwise in every package would be padding.
+/// The encoder lives in `dev.goldberry.image.qr`; this package is the widget
+/// that asks it for a module grid and paints the grid as squares, with the
+/// standard's four-module quiet zone around it. Every reference is non-null
+/// unless it says `@Nullable`.
 ///
-/// Packages are marked one at a time on purpose. NullAway runs in
-/// `OnlyNullMarked` mode, so an unmarked package is invisible to it and a marked
-/// one is checked from the moment it opts in — which is the only way a codebase
-/// this size adopts nullness at all (`docs/testing.md` §2).
+/// Read more: [Canvas, images and QR codes](https://goldberry.dev/docs/components/drawing.html#qr-code).
 @NullMarked
 package dev.goldberry.widgets.core.qrcode;
 

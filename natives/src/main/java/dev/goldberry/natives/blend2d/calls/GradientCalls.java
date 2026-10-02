@@ -12,7 +12,7 @@ import java.lang.invoke.MethodHandle;
 
 import dev.goldberry.natives.Downcalls;
 
-/// Blend2D’s `BLGradient` — a fill style that is not a colour (ADR-0207).
+/// Blend2D’s `BLGradient` — a fill style that is not a colour.
 ///
 /// Three functions, which is the whole of it: build one with its geometry, add
 /// each stop, release it. The stops are added rather than handed over as an

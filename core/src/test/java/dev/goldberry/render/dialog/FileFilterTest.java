@@ -16,7 +16,7 @@ import org.junit.jupiter.api.Test;
 /// differently, so the toolkit's vocabulary is the part they agree on — a bare,
 /// lower-cased extension — and anything that looks like one platform's dialect is
 /// rejected here rather than silently shown to a user as a dropdown that lists no
-/// files (ADR-0287).
+/// files.
 class FileFilterTest {
 
     @Test

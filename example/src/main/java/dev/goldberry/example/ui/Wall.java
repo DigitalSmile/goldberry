@@ -18,8 +18,7 @@ import dev.goldberry.widgets.text.Text;
 /// convention is that it was a convention first and four of the screens drifted
 /// off it — one had its heading inside the wall, one had no prose, two disagreed
 /// about whether the caption was `.caption` or `.prose`. A screen that is a
-/// *value* cannot drift
-/// (ADR-0222).
+/// *value* cannot drift.
 ///
 /// ## Why a masonry and not a grid
 ///
@@ -28,18 +27,19 @@ import dev.goldberry.widgets.text.Text;
 /// checkboxes is not the height of one paragraph. Laid out in equal rows every
 /// card is as tall as the tallest in its row, so the short ones sit in acres of
 /// empty surface and the wall reads as badly aligned rather than as varied. That
-/// is the case `masonry` exists for
-/// (ADR-0196).
+/// is the case `masonry` exists for.
 ///
 /// ## How wide the wall is, which is two numbers because it is two modes
 ///
 /// Not a stylesheet's business either way, because `masonry` distributes children
 /// in Java rather than in CSS — the count is a constructor argument for the same
-/// reason the packing is (ADR-0196). But it is a *count* only for the screens
+/// reason the packing is. But it is a *count* only for the screens
 /// that want one: a `min-column-width` is a screen saying how narrow its cards
-/// may get and letting the window decide the rest (ADR-0436), and the two are
+/// may get and letting the window decide the rest, and the two are
 /// exclusive, so a wall carries both numbers and hands them on exactly as the
 /// document wrote them. `Masonry.UNSET` is the one that was not named.
+///
+/// Read more: [Masonry](https://goldberry.dev/docs/layout/masonry.html).
 ///
 /// @param id             the screen's name, which is also its `#screen-<id>` and
 ///                       its `#<id>-wall`
@@ -52,7 +52,7 @@ import dev.goldberry.widgets.text.Text;
 record Wall(String id, String title, String note, int columns, int minColumnWidth, List<Widget> cards)
         implements Widget.Stateless {
 
-    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    /// Written out so that the parameters taking null for a default can say so.
     Wall(String id, String title, String note, int columns, int minColumnWidth, @Nullable List<Widget> cards) {
         cards = List.copyOf(cards == null ? List.of() : cards);
         this.id = id;

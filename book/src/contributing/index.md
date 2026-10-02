@@ -63,6 +63,7 @@ A change that chooses between designs gets an architecture decision record besid
 <a class="gb-card" href="testing.html"><strong>Tests and gates</strong><span>The test kinds, what check runs, blessing goldens, the static analysis tiers and the CI matrix.</span></a>
 <a class="gb-card" href="releasing.html"><strong>Releasing</strong><span>Calendar versions, snapshots on every push, the release checklist, a patch, and the showcase binaries.</span></a>
 <a class="gb-card" href="decisions.html"><strong>Recording a decision</strong><span>When a change needs a record, the template, numbering, status, supersession and the house style.</span></a>
+<a class="gb-card" href="doc-comments.html"><strong>Writing a doc comment</strong><span>What a comment says, how it links this guide, which chapter a package links, and why it never cites a record.</span></a>
 </div>
 
 ## Where to ask

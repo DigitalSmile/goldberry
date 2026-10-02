@@ -212,7 +212,7 @@ class HeadlessBackendTest {
 
     /// A window move is not an event any test can produce on the platform, so the
     /// headless backend fabricates it — which is what makes the whole re-clamping
-    /// path reachable in CI ([ADR-0061], [ADR-0270]).
+    /// path, and a popup placed again when its window moves, reachable in CI.
     @Test
     @DisplayName("a move reports where the window went, and says nothing when it did not")
     void moveReportsThePosition() {
@@ -239,7 +239,7 @@ class HeadlessBackendTest {
         var window = backend.createWindow(SPEC);
 
         // Zero is "nothing was measured" here, exactly as `refreshRate` is: there
-        // is no display under this backend to be a refresh behind ([ADR-0271]).
+        // is no display under this backend to be a refresh behind.
         assertEquals(0L, window.lateFrames());
     }
 

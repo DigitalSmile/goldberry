@@ -27,7 +27,7 @@ import dev.goldberry.widget.style.Corner;
 ///
 /// It also carries **real, scriptable file dialogs**, for the reason its
 /// clipboard is a real one: a card that asks the user for a path is only testable
-/// against a host that can say what the user picked (ADR-0287).
+/// against a host that can say what the user picked.
 record TourTestHost(List<HitTest.Region> regions, Clipboard board, HeadlessFileDialogs dialogs) implements Host {
 
     TourTestHost(List<HitTest.Region> regions) {
@@ -39,7 +39,8 @@ record TourTestHost(List<HitTest.Region> regions, Clipboard board, HeadlessFileD
     }
 
     /// No desktop under a test, so no setting — which is a real answer and the one
-    /// an application must have a default for ([ADR-0322]).
+    /// an application must have a default for: the desktop says light or dark,
+    /// or says nothing.
     @Override
     public Optional<SystemTheme> systemTheme() {
         return Optional.empty();
@@ -173,7 +174,7 @@ record TourTestHost(List<HitTest.Region> regions, Clipboard board, HeadlessFileD
     @Override
     public Clipboard clipboard() {
         // Whatever the test handed over, which for a test about copying and
-        // pasting is a real in-memory one (ADR-0286).
+        // pasting is a real in-memory one.
         return board;
     }
 

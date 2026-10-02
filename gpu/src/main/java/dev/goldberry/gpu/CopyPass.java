@@ -50,7 +50,7 @@ public final class CopyPass {
 
     /// Uploads the damaged `regions` of `frame`, a painted UI frame, into
     /// `destination`, a [TextureFormat#B8G8R8A8_UNORM] texture of the frame's
-    /// size: the composited window's upload (`docs/gpu-plan.md`, phase 3).
+    /// size: the composited window's upload.
     ///
     /// @throws IllegalArgumentException when the texture is not BGRA or not the
     ///                                  frame's size, or a region is outside it

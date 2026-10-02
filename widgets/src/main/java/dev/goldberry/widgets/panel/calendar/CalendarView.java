@@ -15,7 +15,8 @@ import dev.goldberry.widget.Widget;
 import dev.goldberry.widget.attr.Attributed;
 import dev.goldberry.widget.attr.Attributes;
 
-/// A month grid over a date model — `docs/core-widgets.md` §10's `calendar`.
+/// A month grid over a date model: the `calendar` a `date-picker` opens, usable
+/// on its own from Java.
 ///
 /// ```java
 /// CalendarView.of(chosen, this::pick)
@@ -32,40 +33,35 @@ import dev.goldberry.widget.attr.Attributes;
 ///
 /// ## Java only, like `list` and `tree`
 ///
-/// No `@Markup`. Its model is a [Predicate], a [Function] and a [Locale], and §9
-/// has no way to write any of the three: a document can name an *action* and a
-/// *binding*, and a per-day cell renderer is neither. `date-picker` is the
+/// No `@Markup`. Its model is a [Predicate], a [Function] and a [Locale], and
+/// markup has no way to write any of the three: a document can name an *action*
+/// and a *binding*, and a per-day cell renderer is neither. `date-picker` is the
 /// markup-able half of this pair, and it configures a calendar it builds itself.
 ///
-/// ## What §10 asks for, and what is here
+/// ## What it does
 ///
 /// Single, multiple and range selection ([DateSelection]); `min`, `max` and a
 /// disabled predicate; per-day decoration; week starts and names from the
 /// application's `Locale`; and the keyboard in full — arrows a day, `PgUp`/`PgDn`
 /// a month, `Shift+PgUp`/`PgDn` a year, `Home`/`End` the week, with the grid as
-/// one Tab stop and a roving day. The one sentence not built is the second half
-/// of its semantics line: a cell's full date as its name needs a channel
-/// [dev.goldberry.widget.semantics.Semantics] does not have
-/// for any widget (M5).
+/// one Tab stop and a roving day. A cell's full date as its accessible name is
+/// the one thing missing: it needs a channel
+/// [dev.goldberry.widget.semantics.Semantics] does not have for any widget.
 ///
-/// One thing here is **not** in §10 and is written down as an addition:
-/// [CalendarHeader], the month label and the two arrows, because §10 gives this
-/// widget only a keyboard for changing month and a calendar a mouse cannot page
-/// is not one (ADR-0274).
+/// [CalendarHeader], the month label and the two arrows, is there because the
+/// keyboard alone can page a month and a mouse cannot; a calendar a mouse cannot
+/// page is not one.
 ///
 /// ## It is told what day it is, and never asks
 ///
-/// [#month] is **required** and [#today] may be null, which is one decision
-/// rather than two: `DeterminismTest` allows exactly one call to
-/// `ZoneId.systemDefault()` in the whole catalog and it belongs to `TimeAxis`
-/// (ADR-0203). A calendar that read the clock would be a second door, and the
-/// argument against it is the same one — an instant is only a date in some zone,
-/// and only the application knows which. So the month it opens on is an argument,
-/// and a calendar not told what today is simply marks no day as today rather than
-/// guessing at one.
-///
-/// It buys the thing ADR-0203 bought as well: a golden image of a month is the
-/// same image tomorrow, and in Auckland.
+/// [#month] is required and [#today] may be null, which is one decision rather
+/// than two. The toolkit reads the system zone in exactly one place, the chart
+/// time axis, and a calendar that read the clock would be a second door. The
+/// argument against it is the same: an instant is only a date in some zone, and
+/// only the application knows which. So the month it opens on is an argument,
+/// and a calendar not told what today is marks no day as today rather than
+/// guessing at one. A golden image of a month is then the same image tomorrow,
+/// and in Auckland.
 ///
 /// @param selection     what is chosen, and in which of the three models
 /// @param onSelect      told the whole new selection whenever it changes
@@ -78,6 +74,8 @@ import dev.goldberry.widget.attr.Attributes;
 /// @param decoration    what the application draws on a day, or null per day
 /// @param disabled      whether the whole grid refuses focus and every press
 /// @param attributes    the `id`, classes and key the application wrote
+///
+/// Read more: [Fields and forms](https://goldberry.dev/docs/components/forms.html#date-picker).
 public record CalendarView(
         DateSelection selection,
         @Nullable Consumer<DateSelection> onSelect,
@@ -98,7 +96,7 @@ public record CalendarView(
     /// Nothing drawn on any day.
     public static final Function<LocalDate, @Nullable Widget> NO_DECORATION = date -> null;
 
-    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    /// Written out so that the parameters taking null for a default can say so.
     public CalendarView(
             @Nullable DateSelection selection,
             @Nullable Consumer<DateSelection> onSelect,
@@ -200,8 +198,8 @@ public record CalendarView(
                 selection, onSelect, month, today, from, to, disabledDates, locale, decoration, disabled, attributes);
     }
 
-    /// This calendar refusing the dates `refused` accepts — §10's "a `disabled`
-    /// predicate".
+    /// This calendar refusing the dates `refused` accepts: the disabled
+    /// predicate.
     ///
     /// Beside `min` and `max` rather than instead of them, because the two answer
     /// different questions: a bound is a window and a predicate is a rule inside
@@ -240,9 +238,9 @@ public record CalendarView(
 
     /// This calendar drawing whatever `cells` returns under each day's number.
     ///
-    /// §10's "per-day decoration from the application (a dot, a `badge`, a
-    /// background) so an agenda or a heat map is the same widget with a different
-    /// cell renderer". Returning null draws nothing, which is the common case and
+    /// Per-day decoration from the application — a dot, a `badge`, a background —
+    /// so an agenda or a heat map is the same widget with a different cell
+    /// renderer. Returning null draws nothing, which is the common case and
     /// costs a call per visible day rather than a widget.
     public CalendarView decoration(Function<LocalDate, @Nullable Widget> cells) {
         return new CalendarView(
@@ -280,9 +278,8 @@ public record CalendarView(
     /// asked in one place so the field, the grid and the keyboard cannot
     /// disagree.
     ///
-    /// §4 says this out loud for `date-picker`: "`min`, `max` and a `disabled`
-    /// predicate gate both the field and the grid, so an unreachable date cannot
-    /// be typed either."
+    /// For a `date-picker`, `min`, `max` and the disabled predicate gate both the
+    /// field and the grid, so an unreachable date cannot be typed either.
     public boolean allows(LocalDate date) {
         if (min != null && date.isBefore(min)) {
             return false;

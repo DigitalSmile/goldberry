@@ -19,7 +19,7 @@ import dev.goldberry.widget.style.Styled;
 /// deepest-first — and every move asks for that width plus the pointer's travel.
 /// That is `split-pane`'s arithmetic, and the reason the drag is 1:1 rather than
 /// jumping to wherever the press landed. The press, the release and the click are
-/// consumed, so a drag never sorts the column (ADR-0361).
+/// consumed, so a drag never sorts the column.
 ///
 /// It also owns the cursor, the only affordance a strip this thin has.
 ///

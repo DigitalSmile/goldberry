@@ -73,6 +73,7 @@
   - [Tests and gates](contributing/testing.md)
   - [Releasing](contributing/releasing.md)
   - [Recording a decision](contributing/decisions.md)
+  - [Writing a doc comment](contributing/doc-comments.md)
 
 # Reference
 

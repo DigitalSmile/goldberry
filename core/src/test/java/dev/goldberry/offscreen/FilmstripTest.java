@@ -39,7 +39,8 @@ import dev.goldberry.widget.attr.Attributes;
 import dev.goldberry.widget.style.Paints;
 import dev.goldberry.widget.style.Styled;
 
-/// An animation strip — ADR-0424.
+/// An animation strip: one tree, mounted once and photographed at several
+/// points on the virtual clock.
 ///
 /// The claim being tested is not "it renders", which [OffscreenTest] already
 /// covers for the same pipeline. It is that a strip has a **lifetime**: that the
@@ -47,6 +48,9 @@ import dev.goldberry.widget.style.Styled;
 /// picture rather than restarting it, and that two frames never share a buffer.
 /// The last of those is the one that would be invisible until a caller held both
 /// pictures at once.
+///
+/// Read more:
+/// [The virtual clock](https://goldberry.dev/docs/guide/testing.html#the-virtual-clock).
 @DisplayName("a filmstrip")
 class FilmstripTest {
 
@@ -182,8 +186,8 @@ class FilmstripTest {
                 assertNotEquals(start, half, "and the clock moved the picture");
 
                 // Monotonic rather than exact: what a strip has to get right is
-                // that frame n+1 is *further through* the animation than frame n,
-                // and the interpolation itself is ADR-0067's to be tested.
+                // that frame n+1 is *further through* the animation than frame n.
+                // The interpolation itself is the motion engine's, tested there.
                 assertTrue(
                         blue(start) < blue(quarter) && blue(quarter) < blue(half) && blue(half) < blue(most),
                         "blue rises: " + blue(start) + " " + blue(quarter) + " " + blue(half) + " " + blue(most));
@@ -269,8 +273,8 @@ class FilmstripTest {
         void everyFrameGetsItsOwnBuffer() {
             // The defect a reused buffer would cause, and the reason it would have
             // gone unnoticed: an `Image` is a view over the pixels it was rendered
-            // into and never a copy (ADR-0283), so a strip that kept one buffer
-            // would hand out ten references to the tenth picture.
+            // into and never a copy, so a strip that kept one buffer would hand
+            // out ten references to the tenth picture.
             try (var strip = Offscreen.of(16, 16).stylesheets(sheet(FADING)).strip(panel("root"))) {
                 var first = strip.frame();
                 var atStart = pixels(first);
@@ -318,7 +322,7 @@ class FilmstripTest {
         @Test
         @DisplayName("frame zero is drawn against regions that have been fed back")
         void feedsTheRegionsBeforeTheFirstFrame() {
-            // The half of ADR-0284's three-pass argument a strip keeps. A widget
+            // The half of Offscreen's three-pass render a strip keeps. A widget
             // that learns its own width from the frame it was laid out into must
             // not spend frame zero showing a first guess -- so the strip lays the
             // tree out once at mount, with the clock still at zero.

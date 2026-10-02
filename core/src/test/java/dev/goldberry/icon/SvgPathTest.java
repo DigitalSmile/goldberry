@@ -29,7 +29,7 @@ class SvgPathTest {
         "'M0 0Q1 1 2 2',             MQ",
         // `S` and `T` are cubics and quadratics once their control point has
         // been reflected -- a Path has no smooth verb, and this is where that
-        // shows (ADR-0277).
+        // shows.
         "'M0 0C1 1 2 2 3 3S4 4 5 5', MCC",
         "'M0 0Q1 1 2 2T4 4',         MQQ",
         "'M0 0A5 5 0 0 1 1 1',       MA",

@@ -80,7 +80,7 @@ class SdlClipboardTest {
         assertEquals(text, clipboard.text());
     }
 
-    // --- the primary selection (ADR-0504) ------------------------------------
+    // --- the primary selection -----------------------------------------------
 
     @Test
     @DisplayName("round-trips the primary selection, freeing what SDL allocated")
@@ -123,7 +123,7 @@ class SdlClipboardTest {
         assertEquals("", clipboard.primaryText());
     }
 
-    // --- bytes under a MIME type (ADR-0286) ----------------------------------
+    // --- bytes under a MIME type ---------------------------------------------
 
     @Test
     @DisplayName("round-trips bytes through the platform, which runs the upcall")
@@ -212,8 +212,8 @@ class SdlClipboardTest {
         requireVideo();
         var clipboard = SdlClipboard.get();
 
-        // The one MIME type this toolkit puts pictures on a clipboard as
-        // (ADR-0283, ADR-0286). Nothing here decodes it -- `:core` does that --
+        // The one MIME type this toolkit puts pictures on a clipboard as.
+        // Nothing here decodes it -- `:core` does that --
         // and what is being proven is that SDL treats it exactly like the private
         // types above, which is what a paste into another application depends on.
         var png = new byte[] {(byte) 0x89, 'P', 'N', 'G', '\r', '\n', 0x1A, '\n'};

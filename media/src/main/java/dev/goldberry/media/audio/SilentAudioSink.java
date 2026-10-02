@@ -8,8 +8,8 @@ import java.util.function.LongSupplier;
 /// silence at the rate a device would play it, in wall time.
 ///
 /// Where [SdlAudioSink] goes when the machine has no audio output: a headless
-/// box, a container, or a desktop whose SDL has no backend for its sound server
-/// (ADR-0487). A video with an audio track then plays silently, as a browser
+/// box, a container, or a desktop whose SDL has no backend for its sound server.
+/// A video with an audio track then plays silently, as a browser
 /// plays it, instead of failing. The Engine cannot tell the difference. The
 /// audio clock still comes from [#queuedSamples()], so pictures keep their
 /// times, a seek and a rate apply, and a track that is audio only ends when its
@@ -17,6 +17,8 @@ import java.util.function.LongSupplier;
 ///
 /// Like a device, it plays only what it holds: once the queue runs dry it stands
 /// still until the next write, rather than running ahead of what was written.
+///
+/// Read more: [A player](https://goldberry.dev/docs/components/media.html#a-player).
 public final class SilentAudioSink implements AudioSink {
 
     private static final double NANOS_PER_SECOND = 1e9;

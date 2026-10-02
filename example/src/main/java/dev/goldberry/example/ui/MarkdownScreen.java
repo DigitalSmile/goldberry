@@ -14,7 +14,7 @@ import dev.goldberry.widgets.text.Text;
 /// The screen that is about an **optional module**. `goldberry-html` is not a
 /// dependency of the toolkit — an application opts into it, adds its stylesheet
 /// beside `Controls.stylesheets(theme)`, and gets a `markdown-view` node it never
-/// registered (ADR-0190, ADR-0294, ADR-0295).
+/// registered.
 ///
 /// ## Why it is a document *and* a class, like every other screen
 ///
@@ -22,7 +22,7 @@ import dev.goldberry.widgets.text.Text;
 /// writes `md.source` and a `markdown-view` that reads it. Nothing in this
 /// application connects them — the preview's element is subscribed to the property,
 /// a keystroke marks it for rebuild, and the frame after that is the parsed
-/// document. **A live preview is a binding** (ADR-0296).
+/// document. **A live preview is a binding.**
 ///
 /// What is here in Java is the frame round it: the heading and the paragraph under
 /// it, which is what every screen in the gallery has and what a `split-pane` has
@@ -31,10 +31,12 @@ import dev.goldberry.widgets.text.Text;
 /// ## Not scrolled, on purpose
 ///
 /// [Screen] wraps every other screen in a viewport and deliberately not this one:
-/// the preview pane owns a `scroll` of its own and §2.4 bans nested same-axis
-/// scrollers — the same exception the Navigation screen is. A `split-pane` also
+/// the preview pane owns a `scroll` of its own and nested same-axis scrollers are
+/// not allowed — the same exception the Navigation screen is. A `split-pane` also
 /// needs a height to divide, and a viewport gives its content as much as it asks
 /// for.
+///
+/// Read more: [Markdown view](https://goldberry.dev/docs/components/content.html#markdown-view).
 ///
 /// @param panes what `markdown.kdl` built, inflated once by [Screen]
 public record MarkdownScreen(Widget panes) implements Widget.Stateless {

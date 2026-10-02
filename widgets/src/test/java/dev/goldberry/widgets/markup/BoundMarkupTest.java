@@ -30,7 +30,10 @@ import dev.goldberry.widgets.panel.tree.Tree;
 import dev.goldberry.widgets.panel.tree.TreeNode;
 import dev.goldberry.widgets.text.Text;
 
-/// `list`, `table`, `tree` and autocomplete from a document ([ADR-0367]).
+/// `list`, `table`, `tree` and autocomplete from a document: a `bind=` path
+/// hands each of them the application's model, and the widget never copies it.
+///
+/// Read more: [Markup](https://goldberry.dev/docs/guide/markup.html#bind-is-a-path-and-nothing-else).
 class BoundMarkupTest {
 
     private final BindingRegistry bindings = BindingRegistry.strict();

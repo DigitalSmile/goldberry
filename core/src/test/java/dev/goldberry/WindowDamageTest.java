@@ -22,7 +22,7 @@ import dev.goldberry.render.window.WindowSpec;
 
 /// What the frame loop tells the platform changed.
 ///
-/// ADR-0046 established that the damage list is not advisory: SDL uploads the
+/// The damage list is not advisory: SDL uploads the
 /// enclosing span of it and nothing else, which is worth about a millisecond a
 /// frame at 960×640. Nothing asserted on it before, so the frame loop could have
 /// begun sending a wrong -- or an empty -- rectangle and every test would still
@@ -159,8 +159,8 @@ class WindowDamageTest {
     void aPartialRepaintUploadsOnlyTheDamage() {
         // The other half, and the reason the fix above is a clamp rather than
         // "always upload everything": at a steady size the buffer is the same one
-        // and what the painter reports is exactly what should be uploaded. ADR-0046
-        // measured that at about a millisecond a frame.
+        // and what the painter reports is exactly what should be uploaded, which
+        // was measured at about a millisecond a frame.
         var window = Window.open(WindowSpec.of("damage", LogicalSize.of(200f, 100f)));
         var backendWindow = (HeadlessWindow) backend.windows().getFirst();
         var painted = new int[1];

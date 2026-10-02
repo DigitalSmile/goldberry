@@ -13,7 +13,7 @@ import dev.goldberry.widget.style.Paints;
 import dev.goldberry.widget.style.Styled;
 import dev.goldberry.widgets.core.presence.Phase;
 
-/// What a [Collapse] shows when it is open — §5's "region".
+/// What a [Collapse] shows when it is open — the region under the header.
 ///
 /// A node of its own rather than the author's children going straight into the
 /// section, so that a stylesheet can indent the body under the header without
@@ -26,8 +26,9 @@ import dev.goldberry.widgets.core.presence.Phase;
 ///
 /// ## It arrives, and it does not leave
 ///
-/// §5 forbids animating the height and always will: height is not on §1.7's
-/// whitelist, precisely so a transition can never cost a reflow. So the body
+/// The height never animates: the design system lets only `opacity` and
+/// `transform` animate, precisely so a transition can never cost a reflow. So
+/// the body
 /// appears at its **full height** and fades up into it with a small translation —
 /// which is `tab`'s arrival exactly, and for the same reason: a newly built
 /// element has no previous style for the cascade to interpolate from, so this is
@@ -36,16 +37,16 @@ import dev.goldberry.widgets.core.presence.Phase;
 ///
 /// Closing is **instant**, and asymmetric on purpose: the body's absence is this
 /// widget's whole claim, and holding a subtree alive for 160ms after it has been
-/// asked to go away would be exactly the thing §5 says a `collapse` does not do.
+/// asked to go away would be exactly the thing a `collapse` promises not to do.
 /// ## It is handed the [Phase] itself, not a function of the clock
 ///
 /// The first cut took a `DoubleUnaryOperator` and decided at **build** time
 /// whether there was an arrival at all — `showing ? this::visibility : null` —
 /// so `isAnimating` answered "is the section open" rather than "is it still
-/// moving". An open section therefore asked for a frame for ever, and §1.7's
-/// "the frame loop is fully idle when no animation is active" was false for any
-/// window with one on it. Only a rebuild took it back out of the loop, and an
-/// open section is exactly the thing nothing rebuilds ([ADR-0228]).
+/// moving". An open section therefore asked for a frame for ever, and the
+/// promise that the frame loop is idle when no animation is active was false for
+/// any window with one on it. Only a rebuild took it back out of the loop, and
+/// an open section is exactly the thing nothing rebuilds.
 ///
 /// A phase settles itself on the frame that finishes it, so asking it is asking
 /// the only object that knows. `message` was already built this way.
@@ -55,7 +56,7 @@ record CollapseBody(List<Widget> children, Phase phase) implements Widget.Leaf, 
     /// a settle into place, not an entrance.
     private static final double TRAVEL = 6;
 
-    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    /// Written out so that the parameters taking null for a default can say so.
     CollapseBody(@Nullable List<Widget> children, Phase phase) {
         children = List.copyOf(children == null ? List.of() : children);
         this.children = children;

@@ -9,7 +9,7 @@ import dev.goldberry.natives.blend2d.enums.BlendExtendMode;
 import dev.goldberry.natives.blend2d.enums.BlendGradientType;
 import dev.goldberry.natives.blend2d.error.BlendException;
 
-/// Blend2D's gradient calls, behind [BlendGradient] (ADR-0207).
+/// Blend2D's gradient calls, behind [BlendGradient].
 ///
 /// Package-private for [Blend2dPath]'s reason: the wrapper owns the handle and
 /// knows whether the gradient has been released.
@@ -48,7 +48,7 @@ final class Blend2dGradient {
     }
 
     /// Constructs a **radial** gradient over the six doubles in `values` — a
-    /// `BLRadialGradientValues`, and nothing smaller (ADR-0456).
+    /// `BLRadialGradientValues`, and nothing smaller.
     void gradientInitRadial(
             MemorySegment gradient, MemorySegment values, BlendExtendMode extendMode, MemorySegment transform) {
         init(gradient, BlendGradientType.RADIAL, values, extendMode, transform);
@@ -56,7 +56,7 @@ final class Blend2dGradient {
 
     /// Constructs a **conic** gradient over the four doubles in `values` — a
     /// `BLConicGradientValues`, whose four doubles mean something else entirely
-    /// from a linear gradient's (ADR-0456).
+    /// from a linear gradient's.
     void gradientInitConic(
             MemorySegment gradient, MemorySegment values, BlendExtendMode extendMode, MemorySegment transform) {
         init(gradient, BlendGradientType.CONIC, values, extendMode, transform);

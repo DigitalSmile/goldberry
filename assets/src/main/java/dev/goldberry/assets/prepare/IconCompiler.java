@@ -21,10 +21,9 @@ import dev.goldberry.assets.svg.SvgShapes;
 /// Instead every icon is reduced, once at build time, to a single run of SVG path
 /// data — the one thing Blend2D can consume directly.
 ///
-/// The output is a text table, `name<TAB>path` per line. `docs/ARCHITECTURE.md`
-/// §6.3 anticipates a "compact binary path table"; this is the same idea in the
-/// form that can be read, diffed and grepped. Turning it binary is worth doing
-/// when something measures the parse, and today nothing draws an icon at all.
+/// The output is a text table, `name<TAB>path` per line, in the form that can be
+/// read, diffed and grepped. Turning it binary is worth doing when something
+/// measures the parse.
 ///
 /// What makes this a transcription rather than an SVG renderer is Lucide's
 /// uniformity: every icon is a 24×24 viewBox of 2px round strokes with no
@@ -59,8 +58,7 @@ public final class IconCompiler {
     /// fragment continues from wherever the previous one ended, so each one is
     /// put through [SvgPathData#absoluteStart] first: an SVG `<path>` may open
     /// with a *relative* moveto, which its own element reads as absolute and a
-    /// concatenation does not, and 481 of Lucide's 1544 icons do exactly that
-    /// (ADR-0302).
+    /// concatenation does not, and 481 of Lucide's 1544 icons do exactly that.
     ///
     /// The result is then checked rather than assumed. A subpath that still does
     /// not open with an absolute moveto would silently drag the pen from the

@@ -6,6 +6,8 @@ package dev.goldberry.natives.yoga.style;
 /// and the numbering differs: `YGJustifyCenter` is 1 where `YGAlignCenter` is 2.
 /// Sharing one Java enum between the two would put a plausible wrong value on
 /// the wire, so they stay separate.
+///
+/// Read more: [The native boundary](https://goldberry.dev/docs/overview/architecture.html#the-native-boundary).
 public enum Justify implements YogaEnum {
     FLEX_START(0, "YGJustifyFlexStart"),
 

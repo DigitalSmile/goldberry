@@ -14,15 +14,15 @@ import dev.goldberry.widget.style.Styled;
 ///
 /// ## Why a field is two boxes and not four
 ///
-/// §4 wants "consistent label column … control slot, message slot **below**", and
-/// those two words are in tension: a label column is a *row* and a message below
-/// is a *column*, and a field whose children were label, control and message flat
-/// in one box can only have one direction. Laid out as a row — which is what a
-/// label column means — the message goes **beside** the control instead of under
-/// it, which is what the first version did and what looked wrong the moment
-/// somebody put a form on a screen.
+/// A field is a consistent label column, a control slot and a message slot
+/// **below** it, and those two words are in tension: a label column is a *row*
+/// and a message below is a *column*, and a field whose children were label,
+/// control and message flat in one box can only have one direction. Laid out as
+/// a row — which is what a label column means — the message goes **beside** the
+/// control instead of under it, which is what the first version did and what
+/// looked wrong the moment somebody put a form on a screen.
 ///
-/// §8's subset has no grid and no wrapping, so the shape has to come from the
+/// The CSS subset has no grid and no wrapping, so the shape has to come from the
 /// tree: a field is a row of two, and this is the second one, itself a column.
 ///
 /// ```

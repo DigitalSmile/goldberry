@@ -7,7 +7,10 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-/// The words a window's presentation is logged and shown in (ADR-0492).
+/// The words a window's presentation is logged and shown in.
+///
+/// Read more:
+/// [Which way a window presents](https://goldberry.dev/docs/guide/logging.html#which-way-a-window-presents).
 @DisplayName("a window's presentation")
 class PresentationTest {
 

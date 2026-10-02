@@ -43,7 +43,7 @@ class FrameRingTest {
         assertEquals(2.0, ring.paintMillis(), 1e-9);
     }
 
-    /// **A reading is a range** — [ADR-0154].
+    /// **A reading is a range**: a stage reports its minimum, mean and maximum.
     ///
     /// A mean alone hides the shape of the cost, and the shape is usually the
     /// question: two windows both averaging 2 ms are different animals if one
@@ -187,7 +187,7 @@ class FrameRingTest {
     }
 
     /// A gap is banked with **the frame that follows it**, which is the frame
-    /// whose interval contains it ([ADR-0271]). Anything else and it ages out of
+    /// whose interval contains it. Anything else and it ages out of
     /// the window on a different schedule from the frames it sits between.
     @Test
     @DisplayName("late frames are banked with the frame after the gap and summed over the window")
@@ -277,8 +277,7 @@ class FrameRingTest {
         assertEquals(FrameSummary.NONE, new FrameRing().summary());
     }
 
-    /// A composited window's present, banked beside the frame it belongs to
-    /// ([ADR-0479]).
+    /// A composited window's present, banked beside the frame it belongs to.
     @Test
     @DisplayName("a composited present is banked with its frame, over the composited frames alone")
     void presents() {

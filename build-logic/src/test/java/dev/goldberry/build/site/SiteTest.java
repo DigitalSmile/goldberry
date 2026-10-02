@@ -18,7 +18,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * goldberry.dev, held to what ADR-0509 says about it: the landing page at
+ * goldberry.dev, held to its shape: the landing page at
  * {@code /}, the book at {@code /docs/}, both from this repository.
  *
  * <p>Pages builds only on a push that touches {@code site/} or {@code book/}, so a
@@ -108,7 +108,7 @@ class SiteTest {
     class Book {
 
         @Test
-        @DisplayName("lists no record: the log is read on GitHub, not built into the book (ADR-0512)")
+        @DisplayName("lists no record: the log is read on GitHub, not built into the book")
         void theLogIsNotInTheBook() {
             var summary = Repository.read("book/src/SUMMARY.md");
             assertTrue(

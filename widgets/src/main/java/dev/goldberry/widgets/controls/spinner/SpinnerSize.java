@@ -4,7 +4,8 @@ import java.util.Locale;
 
 import org.jspecify.annotations.Nullable;
 
-/// How big a [Spinner] is — `docs/core-widgets.md` §3's `size`.
+/// How big a [Spinner] is — what `size="small"`, `size="medium"` and
+/// `size="large"` name.
 ///
 /// ## Why this is a value and not only a class
 ///
@@ -15,8 +16,8 @@ import org.jspecify.annotations.Nullable;
 /// variants as classes. A spinner's size is not only a skin, for the reason a
 /// `message`'s kind is not: it decides something the stylesheet cannot say.
 ///
-/// A spinner is a **ring**, and a ring has a stroke. §8's CSS subset has no
-/// property for the weight of a mark the painter draws — `Box.Mark` carries it
+/// A spinner is a **ring**, and a ring has a stroke. The stylesheet subset has
+/// no property for the weight of a mark the painter draws — `Box.Mark` carries it
 /// as a number — so a 32px spinner drawn with a 16px spinner's 2px stroke is a
 /// thin hoop, and nothing in a stylesheet could have fixed it.
 ///
@@ -30,18 +31,19 @@ import org.jspecify.annotations.Nullable;
 ///
 /// That is what keeps the two from drifting. A stylesheet that says `48px` gets
 /// a stroke weighted for 48px without this enum being touched.
+///
+/// Read more: [Values and progress](https://goldberry.dev/docs/components/values.html#spinner).
 public enum SpinnerSize {
 
     /// Beside a line of text, or inside a control that is busy. Small enough
-    /// that §1.6's 2px line weight would be half the ring.
+    /// that the icon set's 2px line weight would be half the ring.
     SMALL(12),
 
-    /// The default, and the one every existing `spinner` already is: §3's
-    /// "small indeterminate activity indicator" at 16px.
+    /// The default: the small activity indicator at 16px.
     MEDIUM(16),
 
     /// On its own, standing for a whole region that is not ready — a pane, a
-    /// tab, the box a `web-view`'s page will occupy ([ADR-0445]). At this size
+    /// tab, the box a `web-view`'s page will occupy before it can be seen. At this size
     /// it is the only thing in the box, so it is read as the subject rather than
     /// as a decoration on something else.
     LARGE(32);

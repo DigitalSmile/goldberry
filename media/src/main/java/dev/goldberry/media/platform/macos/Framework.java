@@ -20,10 +20,10 @@ import java.util.Set;
 /// `dlopen` resolves from the dyld shared cache even though no file is on disk
 /// there.
 ///
-/// The binding classes follow `:media`'s idiom (ADR-0173): each function's
-/// unbound handle is a `private static final` constant, linked once, and its
-/// address is a field found in the loaded framework. A constant handle is what
-/// lets a native image compile the call rather than interpret it (ADR-0161).
+/// The binding classes follow `:media`'s idiom: each function's unbound handle
+/// is a `private static final` constant, linked once, and its address is a
+/// field found in the loaded framework. A constant handle is what lets a native
+/// image compile the call rather than interpret it.
 enum Framework {
     CORE_FOUNDATION("CoreFoundation"),
     CORE_MEDIA("CoreMedia"),
@@ -36,7 +36,7 @@ enum Framework {
 
     /// Every descriptor linked so far, in the order linked, for the native-image
     /// metadata `MediaForeignMetadata` writes, as `FfmpegDowncalls` records
-    /// `:media`'s (ADR-0339).
+    /// `:media`'s.
     private static final Set<FunctionDescriptor> LINKED = new LinkedHashSet<>();
 
     private final String name;

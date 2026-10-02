@@ -16,6 +16,8 @@ import dev.goldberry.render.model.*;
 /// One window, as the platform sees it.
 ///
 /// Every method is confined to the UI thread (see [Backend]).
+///
+/// Read more: [Windows, popups and the host](https://goldberry.dev/docs/guide/windows.html#the-low-level-path).
 public interface BackendWindow extends AutoCloseable {
 
     /// The size layout works in.
@@ -44,7 +46,7 @@ public interface BackendWindow extends AutoCloseable {
     /// it is not: SDL's Wayland driver has no window-surface implementation, so
     /// `SDL_GetWindowSurface` falls back to a heap buffer that SDL copies into a
     /// texture on every present. What this buys is one copy instead of two, not
-    /// zero (ADR-0046). A backend that can lend genuinely mapped memory is
+    /// zero. A backend that can lend genuinely mapped memory is
     /// free to, and callers cannot tell the difference.
     ///
     /// The returned buffer is valid until the matching [#present] and must be
@@ -64,8 +66,7 @@ public interface BackendWindow extends AutoCloseable {
     /// Damage tracking can say precisely which region changed; repainting only
     /// that region is correct *only* if everything outside it is still on the
     /// buffer. Against a backend that hands over a fresh or recycled buffer it
-    /// would draw one control on a field of whatever was there before
-    /// (ADR-0072).
+    /// would draw one control on a field of whatever was there before.
     ///
     /// **False by default**, which is the safe answer: a backend that says
     /// nothing gets a full repaint, exactly as every backend did before this
@@ -101,7 +102,7 @@ public interface BackendWindow extends AutoCloseable {
     void present(PixelBuffer frame, List<DamageRect> damage);
 
     /// What the last [#present] cost on the GPU, for a window presenting through
-    /// it (`docs/gpu-plan.md`, phase 3; ADR-0479): the upload, the wait for the
+    /// it: the upload, the wait for the
     /// swapchain, and the submit.
     ///
     /// [PresentTimings#NONE] by default, and for a window presenting through
@@ -110,8 +111,7 @@ public interface BackendWindow extends AutoCloseable {
         return PresentTimings.NONE;
     }
 
-    /// How this window presents now: through the GPU, or on the CPU and why
-    /// (ADR-0492).
+    /// How this window presents now: through the GPU, or on the CPU and why.
     ///
     /// Asked after each [#present], so it answers for the frame just shown.
     /// On the CPU by default, which is every backend without a GPU path under it.
@@ -120,7 +120,7 @@ public interface BackendWindow extends AutoCloseable {
     }
 
     /// How this window shows GPU layers now, or empty when it cannot show them
-    /// at all (`docs/gpu-plan.md`, D5; ADR-0481).
+    /// at all.
     ///
     /// Asked once a frame, after [#acquireFrame], which is where a window
     /// changes how it presents: the answer holds until the frame is presented.
@@ -130,7 +130,7 @@ public interface BackendWindow extends AutoCloseable {
     ///
     /// **No device is made by asking.** A surface makes one, if it has to, the
     /// first time a layer is actually placed, so a window that shows no GPU
-    /// layer never loads a driver for this (`docs/gpu-plan.md`, D2).
+    /// layer never loads a driver for this.
     ///
     /// Empty by default: a backend with no GPU under it, and `goldberry.gpu=off`.
     default Optional<GpuSurface> gpuSurface() {
@@ -143,7 +143,7 @@ public interface BackendWindow extends AutoCloseable {
     /// frame arrives coalesce into one — asking twice does not draw twice.
     void requestFrame();
 
-    /// Sets the shape the pointer takes over this window (§7.3).
+    /// Sets the shape the pointer takes over this window.
     ///
     /// Called from pointer motion, so it is asked the same question for every
     /// pixel of a drag: an implementation must make repeating a shape free rather
@@ -175,9 +175,8 @@ public interface BackendWindow extends AutoCloseable {
     /// The platform's own handle for this window, or empty where there is none
     /// that can be used.
     ///
-    /// **`docs/ARCHITECTURE.md` §12's escape hatch** — *"backends expose raw
-    /// native window handles for apps embedding external renderers"* — promised
-    /// since day one and built when §9's `web-view` needed it ([ADR-0442]).
+    /// The escape hatch for an application that embeds an external renderer,
+    /// and what the `web-view` widget embeds a page through.
     /// Embedding a page means reparenting its window into this one, which means
     /// naming this one in the window system's own terms.
     ///
@@ -198,8 +197,7 @@ public interface BackendWindow extends AutoCloseable {
     ///
     /// The one honest rate a platform can give. SDL has no notion of an achieved
     /// frame rate — `SDL_GetCurrentDisplayMode` reports what the *display* does,
-    /// and what a loop managed can only be counted by the loop
-    /// (ADR-0153).
+    /// and what a loop managed can only be counted by the loop.
     ///
     /// Zero is a legitimate answer rather than a failure: a headless backend has
     /// no display, and SDL documents `refresh_rate` as 0 for a mode it cannot
@@ -212,8 +210,8 @@ public interface BackendWindow extends AutoCloseable {
     /// full bounds less whatever the desktop reserves for a taskbar, a dock or a
     /// panel, in the desktop's logical coordinates.
     ///
-    /// **What flip and shift are computed against** (`docs/core-widgets.md` §7:
-    /// "placement with flip/shift when near edges"). Not the display's size: a
+    /// **What flip and shift are computed against** when a popup is placed near
+    /// an edge. Not the display's size: a
     /// menu placed against the screen's bottom edge opens underneath the taskbar,
     /// and the difference between the two rectangles is exactly that taskbar.
     ///
@@ -235,7 +233,7 @@ public interface BackendWindow extends AutoCloseable {
     /// leaves no record at all — so a loop delivering every other refresh looks
     /// exactly like a loop delivering every one, only slower. The pacer knows the
     /// difference, because it knows both when the request arrived and when the
-    /// display could have taken it ([ADR-0271]).
+    /// display could have taken it.
     ///
     /// Zero on a backend that does not pace — which is the headless one, where
     /// there is no display to be late for.
@@ -264,7 +262,7 @@ public interface BackendWindow extends AutoCloseable {
     default void textInput(boolean active) {}
 
     /// Tells the platform where the text being typed is, so an input method can
-    /// put its candidate window beside it — `docs/gaps.md` G15.
+    /// put its candidate window beside it.
     ///
     /// Without it the list opens wherever the compositor guesses, which on a
     /// large window is routinely over the very text being composed. With it, a
@@ -298,7 +296,7 @@ public interface BackendWindow extends AutoCloseable {
     ///
     /// This is what lets a frame loop be measured under a resize with no hand on
     /// the window: `--resize=WxH` walks the size a pixel a frame, which is what a
-    /// drag produces (ADR-0342). It is also the one way an application can size
+    /// drag produces. It is also the one way an application can size
     /// its own window after opening it.
     ///
     /// Default: does nothing, for a backend with no window manager to ask.
@@ -310,7 +308,7 @@ public interface BackendWindow extends AutoCloseable {
     ///
     /// A constraint on the window manager, not a clamp the toolkit applies after
     /// the fact: the platform stops the drag at the edge, so the window never
-    /// becomes a size the application cannot lay out (ADR-0304). A backend that
+    /// becomes a size the application cannot lay out. A backend that
     /// cannot ask its platform for this does nothing, which is the honest answer
     /// — reporting a size it did not enforce would be worse than the constraint
     /// being absent.
@@ -336,7 +334,7 @@ public interface BackendWindow extends AutoCloseable {
     void setTitle(String title);
 
     /// Sets the picture the taskbar, the dock and the window switcher show for
-    /// this window (`docs/gaps.md` G40, ADR-0351).
+    /// this window.
     ///
     /// Several sizes of one picture, in any order. The backend picks which one
     /// the platform treats as the base, because the rule for that is the
@@ -356,7 +354,7 @@ public interface BackendWindow extends AutoCloseable {
     /// Asks the platform to maximize this window, or to give its ordinary size
     /// back.
     ///
-    /// **A request rather than a setter** (ADR-0252). Every platform routes this
+    /// **A request rather than a setter.** Every platform routes this
     /// through a window manager that may refuse it, so nothing here returns
     /// whether it happened — that arrives as
     /// [BackendEvent.MaximizedChanged].
@@ -367,7 +365,7 @@ public interface BackendWindow extends AutoCloseable {
     default void setMaximized(boolean maximized) {}
 
     /// Asks the platform to make this window fill its display, or to make it a
-    /// window again (ADR-0473).
+    /// window again.
     ///
     /// **A request, on [#setMaximized]'s terms.** On macOS the change is an
     /// animated move to a Space of its own that lands several frames later; a

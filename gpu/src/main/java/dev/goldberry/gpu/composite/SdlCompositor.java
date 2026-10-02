@@ -17,8 +17,7 @@ import dev.goldberry.render.composite.Claim;
 import dev.goldberry.render.composite.Compositor;
 import dev.goldberry.render.composite.ReadbackSurface;
 
-/// `:gpu`'s [Compositor], which the sdl3 backend finds by `ServiceLoader`
-/// (`docs/gpu-plan.md`, phase 3; ADR-0479).
+/// `:gpu`'s [Compositor], which the sdl3 backend finds by `ServiceLoader`.
 ///
 /// Owns the process's one GPU device, made at the first claim, or at the first
 /// GPU layer a read-back surface renders, with the options [DeviceOptions]
@@ -26,16 +25,19 @@ import dev.goldberry.render.composite.ReadbackSurface;
 /// never asked for again: every window stays on the CPU, and every GPU layer
 /// shows its painter's fallback. The staging memory and the composite pass are
 /// the device's and shared by every window claimed on it, and so is the public
-/// [GpuDevice] over it that layers render with (ADR-0481).
+/// [GpuDevice] over it that layers render with.
 ///
 /// Public only because `ServiceLoader` instantiates it; its package is not
 /// exported.
+///
+/// Read more:
+/// [What the module does to a window](https://goldberry.dev/docs/components/gpu.html#what-the-module-does-to-a-window).
 public final class SdlCompositor implements Compositor {
 
     private static final Logger LOG = Logs.of(SdlCompositor.class);
 
     /// How many frames the CPU records ahead of the GPU: SDL's default, stated,
-    /// so it is this class's decision (`docs/gpu-plan.md`, phase 3).
+    /// so it is this class's decision.
     static final int FRAMES_IN_FLIGHT = 2;
 
     /// `goldberry.backend.vsync`, which the sdl3 backend reads for the window
@@ -79,7 +81,7 @@ public final class SdlCompositor implements Compositor {
     }
 
     /// A read-back surface on this compositor's device, which it makes when its
-    /// first layer renders (ADR-0481).
+    /// first layer renders.
     @Override
     public ReadbackSurface readback() {
         return new SdlReadbackSurface(this);

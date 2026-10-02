@@ -1,38 +1,41 @@
 /*
- * What the controls ship with -- the toolkit-base layer (ARCHITECTURE.md §8).
+ * What the controls ship with -- the toolkit-base layer.
+ * https://goldberry.dev/docs/guide/styling.html
  *
  * Bottom of the four fixed layers, so a theme's custom properties and then an
  * application's own rules both win over anything here without either having to
  * fight specificity. Every colour is a `var(--gb-*)`: this file names no palette
  * value, which is what lets switching a theme restyle a button whose rules never
- * mention a colour (§10).
+ * mention a colour: colour lives in the theme layer.
  *
- * Every number here is the design system's (docs/design-system.md §3, "Component
- * metrics"). Nothing in this file is a value someone picked: if a metric is not
+ * Every number here is the design system's component metrics:
+ * https://goldberry.dev/docs/guide/design-system.html
+ * Nothing in this file is a value someone picked: if a metric is not
  * in that table, the table gets extended first (Principle 3, "token or extend").
  *
- * §3.1 is now satisfied for every control in this file. The last gap was the
- * "scale 0.6->1" half of the check/dot row, which needed `transform` (ADR-0068)
+ * The animation table is now satisfied for every control in this file. The
+ * last gap was the "scale 0.6->1" half of the check/dot row, which needed `transform`
  * *and* needed the mark to stop being a mark: a Box.Mark is drawn onto its box,
  * so scaling it scaled the 16px glyph too. `check-mark` and `radio-dot` are
- * nodes for that reason (ADR-0073).
+ * nodes for that reason.
  */
 
 /* --------------------------------------------------------------- density --
  *
- * §1.3's density row, and this `:root` block is its `regular` column. There is
+ * The density row -- control heights 32 / 28, list rows 32 / 26 -- and this
+ * `:root` block is its `regular` column. There is
  * no `density-regular.css` beside `density-compact.css`, because regular is not
  * something an application applies -- it is what the toolkit already is, and
- * writing 32 in two files is how the two stop agreeing (ADR-0074).
+ * writing 32 in two files is how the two stop agreeing.
  *
- * A control's height is the only §3 metric that is a token rather than a
- * literal, and it is one because §1.3 says a density moves it. Padding, gap and
+ * A control's height is the only component metric that is a token rather than
+ * a literal, and it is one because the density rule moves it. Padding, gap and
  * radius stay literal: the density row names control heights and list rows and
  * nothing else, and turning every number into a token "in case" is inventing a
  * scale the design system does not have (Principle 3).
  *
- * `--gb-density` is a marker rather than a mechanism. §1.3 names the property,
- * and a keyword cannot select a number in §8's subset -- there is no
+ * `--gb-density` is a marker rather than a mechanism. The design system names the
+ * property, and a keyword cannot select a number in the CSS subset -- there is no
  * `@container style()` here and there is not going to be one -- so the tokens
  * below are what actually switch and this says which set is in force. Custom
  * properties inherit, so any element can be asked.
@@ -41,7 +44,7 @@
   --gb-density: regular;
   --gb-control-height: 32px;
   --gb-list-row-height: 32px;
-  /* §3's `tooltip` row, which is two numbers and not one: "delay 500ms show /
+  /* The `tooltip` metrics row, which is two numbers and not one: "delay 500ms show /
      100ms move-between". The second is what makes a row of toolbar buttons
      readable — having decided to read one tooltip, a user reading the next
      should not be served the full sentence of hover intent again — and it had
@@ -49,70 +52,69 @@
 
      Durations rather than lengths, which is what `BuildContext.duration` is
      for: a component metric measured in milliseconds is still a component
-     metric, and §3 says those ship as token defaults. The launcher carries the
-     same two numbers as fallbacks, because `:core` must not need the catalog to
-     exist -- `--gb-list-row-height` above has exactly that arrangement
-     (ADR-0262). */
+     metric, and the design system says component metrics ship as token defaults.
+     The launcher carries the same two numbers as fallbacks, because `:core` must not need the catalog to
+     exist -- `--gb-list-row-height` above has exactly that arrangement. */
   --gb-tooltip-delay: 500ms;
   --gb-tooltip-delay-move: 100ms;
   /* How far one wheel line moves a `scroll`. Three of these is the conventional
      notch — around 60px, which is what every other application on the machine
-     does. A token rather than a constant since ADR-0251: it is read through
+     does. A token rather than a constant: it is read through
      `Paints.Context.length` and banked, so a rule setting it on one `scroll`
      makes that viewport scroll in bigger steps and nothing else. (Written
      without a selector because `ButtonTest` reads this file for a literal
      hash and takes one as a hard-coded colour.) */
   --gb-scroll-line: 20px;
-  /* §3's slider thumb 16, and the third metric a widget reads back out of the
+  /* The slider thumb's 16, and the third metric a widget reads back out of the
      cascade rather than holding as a constant (`--gb-scroll-line` and
-     `--gb-caret-width` are the other two, ADR-0251).
+     `--gb-caret-width` are the other two).
 
      A slider needs its own thumb's width to map a pointer, because the thumb's
      *centre* only travels `width - 16`: half a thumb is unreachable at each end,
      and mapping over the full width puts the disc up to 8px from the finger at
      the extremes. `SliderControl` reads this at `render` and banks it for
-     `onPointer` (ADR-0430).
+     `onPointer`.
 
      **`slider-thumb` sizes itself from this token**, so the disc the user drags
      and the arithmetic the pointer goes through are one declaration. Two numbers
      below still have to follow it by hand -- the thumb's `border-radius`, which
      is half of it, and `slider-ticks`' inset, which is also half of it -- because
-     §8's subset has no `calc()`. `SliderTest.theHalvesOfAThumb` is what holds the
+     the CSS subset has no `calc()`. `SliderTest.theHalvesOfAThumb` is what holds the
      three together. */
   --gb-slider-thumb-size: 16px;
   /* How wide a text caret is drawn. One pixel is what every desktop draws; a
      token because a thicker caret is a real low-vision aid and 13 lists that
-     kind of switch. Read through `Paints.Context.length` (ADR-0251), so it
+     kind of switch. Read through `Paints.Context.length`, so it
      resizes the caret rather than moving it -- which is what a `width` in a
      stylesheet would have done, since the field sets the caret's box itself. */
   --gb-caret-width: 1px;
 
-  /* §3's preamble: "metrics ship as component-token defaults
+  /* The design system's rule on metrics: "metrics ship as component-token defaults
      (`--gb-button-height` etc.); app stylesheets may override component tokens,
      never structure". Each defaults to the density's value, so a density moves
      all of them at once and an application can still pin one control without
      writing `button { height: … }` -- which would be overriding structure, the
-     thing that sentence rules out. Two levels rather than one because §1.3 and
-     §3 are each asking for something the other cannot give. */
+     thing that sentence rules out. Two levels rather than one because the density rule
+     and the metrics table are each asking for something the other cannot give. */
   --gb-button-height: var(--gb-control-height);
-  /* §8's rows. Derived from the control height rather than fixed, so a menu
+  /* A menu's rows. Derived from the control height rather than fixed, so a menu
      tightens with the density like everything else does. */
   --gb-menu-item-height: var(--gb-control-height);
   --gb-checkbox-height: var(--gb-control-height);
   --gb-radio-height: var(--gb-control-height);
   --gb-toggle-height: var(--gb-control-height);
   --gb-segmented-height: var(--gb-control-height);
-  /* §3's row gives `text-input` and `select` one height between them, which is
+  /* The metrics table gives `text-input` and `select` one row and one height, which is
      the control height like everything else. The list's rows are
      `--gb-list-row-height`, already declared above for `list` itself: a
      dropdown's rows and a list's rows are the same rows. */
-  /* §3's `table` row: "header height 36 (30)". Taller than a body row and not
+  /* The `table` metrics row: "header height 36 (30)". Taller than a body row and not
      derived from it -- a header is a boundary as well as a label, and the four
      pixels are what make it read as one without a second border. */
   --gb-table-header-height: 36px;
-  /* §2.4's two scrollbar shapes. At rest these are the overlay bar's numbers and
+  /* The design system's two scrollbar shapes. At rest these are the overlay bar's numbers and
      no gutter; `scrollbars-always.css` swaps them for the classic reserved
-     gutter, which is the "always show scroll bars" setting (ADR-0364). */
+     gutter, which is the "always show scroll bars" setting. */
   --gb-scrollbar-gutter: 0px;
   --gb-scrollbar-size: 10px;
   --gb-scrollbar-track: transparent;
@@ -122,11 +124,12 @@
   /* The other half of that row. One token each rather than one shared one, so
      an application can pin a field without moving every dropdown with it. */
   --gb-input-height: var(--gb-control-height);
-  /* §4's "consistent label column". A token because it has to be the same for
-     every field in a form and §8's subset cannot say "as wide as the widest of
-     these" -- so somebody has to choose a number, and this is where. */
+  /* The form specification's "consistent label column". A token because it has
+     to be the same for every field in a form and the CSS subset cannot say "as
+     wide as the widest of these" -- so somebody has to choose a number, and this
+     is where. */
   --gb-field-label-width: 120px;
-  /* §2's `code-input` row: "box 40x48 (36x44)". Two tokens and not derived from
+  /* The `code-input` metrics row: "box 40x48 (36x44)". Two tokens and not derived from
      `--gb-control-height`, because a code box is the one control in the catalog
      that is *taller than it is a control*: it is a character in a frame, sized
      so six of them read as a code rather than as six tiny fields, and 48 is
@@ -134,26 +137,26 @@
      the 32/28 every other row shares. A density still moves both, below. */
   --gb-code-box-width: 40px;
   --gb-code-box-height: 48px;
-  /* §2's `calendar` row: "day cell 32 (28) square". One token for both axes,
+  /* The `calendar` metrics row: "day cell 32 (28) square". One token for both axes,
      because the row says *square* -- a cell that could be told its width and its
      height separately is one an application could make oblong, and a month of
      oblong cells is a month whose weeks read as columns. */
   --gb-calendar-day: 32px;
-  /* Half the cell, which is §2's `full` on a square box -- the spelling every
-     other `full` radius in this file uses, because §8's subset has no `calc()`
+  /* Half the cell, which is the row's `full` radius on a square box -- the spelling every
+     other `full` radius in this file uses, because the CSS subset has no `calc()`
      and no keyword for it. A second token rather than a literal 16, so a density
      moving the cell moves its corner with it; the two are written next to each
      other here and in `density-compact.css` for the same reason
      `--gb-code-box-*` are. */
   --gb-calendar-day-radius: 16px;
-  /* §2's `time-picker` row, added by ADR-0275: a wheel row is a `list` row, which
+  /* The `time-picker` wheels row: a wheel row is a `list` row, which
      is the height a column of numbers reads at and the one number a density
      already moves. The column's width is its own, because two digits in a
      `--gb-list-row-height` box would be a square and three wheels of squares
      reads as a calculator. */
   --gb-time-cell-height: var(--gb-list-row-height);
   --gb-time-column-width: 48px;
-  /* §2's `color-picker` row: "swatch 24, radius 4; plane 200x160; hue/alpha
+  /* The `color-picker` metrics row: "swatch 24, radius 4; plane 200x160; hue/alpha
      sliders `slider` metrics; preset swatch 20, gap 4". The plane is the one
      control in the catalog with two fixed dimensions and no density: a colour
      space is not denser on a small screen, and a compact plane would give a
@@ -166,7 +169,7 @@
 
 /* ------------------------------------------------------------- no shrink --
  *
- * Every number in §3 is a size, not an opening offer -- and until this rule
+ * Every number in the metrics table is a size, not an opening offer -- and until this rule
  * existed every one of them was negotiable, because Yoga runs with CSS's
  * defaults and CSS's default is `flex-shrink: 1`. A `width: 36px` was a
  * *preferred* width that a cramped row was free to take back.
@@ -176,7 +179,7 @@
  * glyph went 16 -> 10; a radio's went with it and drew an ellipse, since
  * `border-radius` follows the box; and in a short column a control's 32px hit
  * target went to 13. Reported as "the knob is out of its container on resize",
- * which is the one symptom of four that is visible at a glance (ADR-0076).
+ * which is the one symptom of four that is visible at a glance.
  *
  * Written once over a type list rather than beside each `width`, because the
  * rule is "a control's metrics are fixed" and a copy is how that stops being
@@ -185,7 +188,7 @@
  *
  * The label is deliberately absent and still shrinks: text is the one thing in
  * a control that *should* give, and a `text` that refused would push the glyph
- * out of the window instead of ellipsing. §3 sizes the glyph and says nothing
+ * out of the window instead of ellipsing. The metrics table sizes the glyph and says nothing
  * about the label.
  */
 button,
@@ -231,8 +234,8 @@ text-input {
 
 /* ---------------------------------------------------------------- motion --
  *
- * §3.1's table, for the controls that exist. Every duration is a token and every
- * curve is one of §1.7's three keywords: a design system where a screen can
+ * The animation table, for the controls that exist. Every duration is a token and
+ * every curve is one of the three motion keywords: a design system where a screen can
  * invent its own curve has no motion language, only motion.
  *
  * Layout properties are absent because they cannot be here -- `transition` only
@@ -242,10 +245,10 @@ text-input {
  * transition and a stutter.
  *
  * `option` is on this list for its **label**: a selected segment's foreground is
- * picked for the fill it sits on rather than for the theme (ADR-0088), so the
+ * picked for the fill it sits on rather than for the theme, so the
  * colour has to move when the selection does. Its background is not on this list
  * because it no longer has one — the fill is `segmented-indicator`, below, and
- * that is what §3.1's row asks to move (ADR-0099).
+ * that is what the animation row asks to move.
  */
 button,
 checkbox,
@@ -257,8 +260,8 @@ toggle {
 }
 
 /* A segment's own motion, and its `color` is deliberately on a different clock
-   from everything above: `--gb-motion-base`, which is the pill's. §3.1 wrote
-   that rule for `toggle` -- "thumb `translate` base; track color base (**same
+   from everything above: `--gb-motion-base`, which is the pill's. The animation table
+   wrote that rule for `toggle` -- "thumb `translate` base; track color base (**same
    clock -- they arrive together**)" -- and it matters more here, because the
    two are not on the same box. A label that darkened in `fast` would be dark on
    the plate for 60 ms while the pill was still on its way, which is the one
@@ -271,7 +274,7 @@ option {
               opacity var(--gb-motion-fast) ease-enter;
 }
 
-/* "Press states apply in 0ms; release fades out in fast" (§1.7 rule 1, §3.1).
+/* Press states apply in 0ms and release fades out in fast: input feedback is instant.
    The pressed rule declares a zero duration and the resting rule declares the
    fade, so entering `:active` snaps and leaving it eases -- because the timing
    that applies is the one on the style being moved *to*. That is CSS's own
@@ -286,8 +289,8 @@ toggle:active {
   transition: background-color 0ms;
 }
 
-/* The glyph's fill on `base` and its border on `fast` -- §3.1's "check/dot:
-   ... base, color fast". One rule for both controls, because §3.1 gives
+/* The glyph's fill on `base` and its border on `fast` -- the animation table's
+   "check/dot: ... base, color fast". One rule for both controls, because it gives
    `checkbox` and `radio` one row. */
 check-indicator,
 radio-indicator {
@@ -296,7 +299,7 @@ radio-indicator {
               color var(--gb-motion-base) ease-enter;
 }
 
-/* §3.1's "check/dot: **scale 0.6->1** + opacity, base" -- the half that could
+/* The animation table's "check/dot: **scale 0.6->1** + opacity, base" -- the half that could
    not be written until the mark became a node of its own.
 
    The mark is drawn *onto* whatever box carries it, so while it lived on the
@@ -307,7 +310,7 @@ radio-indicator {
    They are present in every state and hidden with `opacity`, not built only
    when checked. A node that appears with the value has no previous style to
    move from, and a newly built element deliberately starts no transition
-   (ADR-0067) -- so a mark that came into existence checked would snap. The cost
+   -- so a mark that came into existence checked would snap. The cost
    is one fully transparent box per unchecked control, which is what the
    specified animation costs. */
 check-mark,
@@ -332,11 +335,12 @@ radio-indicator:checked radio-dot {
 
 /* ------------------------------------------------------------ typography --
  *
- * §1.4's scale, as classes, so `text class="heading"` picks a token rather than
+ * The type scale, as classes, so `text class="heading"` picks a token rather than
  * a size. In the base layer because the *mapping* is theme-invariant -- a
  * heading is `heading` in every theme -- while the numbers behind it are the
  * theme's, which is what lets a large-text or high-contrast theme move all of
- * them at once without touching a rule (§10.1, §4).
+ * them at once without touching a rule: the sizes are theme tokens so that a
+ * large-text or high-contrast theme is an alias swap and not a code path.
  *
  * `display`, `title` and `heading` are 600 by the table; `body`, `caption` and
  * `mono` are 400. `body-strong` is `body` at 600, which is why it is spelled as
@@ -389,19 +393,18 @@ radio-indicator:checked radio-dot {
 
 /* ---------------------------------------------------------------- states --
  *
- * The focus ring, once, for every control (§2.2): 2px `--gb-focus` at a 2px
+ * The focus ring, once, for every control: 2px `--gb-focus` at a 2px
  * offset, following whatever radius the control has. Written as one rule over a
  * type list rather than copied per control, because "the ring is the same
  * everywhere" is the actual requirement and a copy is how it stops being true.
  *
  * `:focus-visible` and not `:focus` -- the ring is for keyboard focus, and a
  * control clicked with a mouse gets none. The router keeps the two distinct
- * (ADR-0054) precisely so this rule can.
+ * precisely so this rule can.
  *
  * A composite puts the ring on its *member*: `radio` is here and `radio-group`
  * is not, `option` is here and `segmented` is not. Focus lands on the thing the
- * user is about to pick, which is also what makes a set one Tab stop legible
- * (ADR-0073).
+ * user is about to pick, which is also what makes a set one Tab stop legible.
  */
 button:focus-visible,
 link:focus-visible,
@@ -422,7 +425,7 @@ text-input:focus-visible {
 }
 
 /* Disabled is 45% opacity on the whole control and *never* a colour remap
-   (§2.1). Two reasons it is written this way rather than as a pair of muted
+   by the states rule. Two reasons it is written this way rather than as a pair of muted
    tokens: a remap has to be redefined for every variant and every theme -- four
    variants times two themes is eight tokens that can each be wrong on their own
    -- and it destroys the variant's identity, so a disabled danger button stops
@@ -446,7 +449,7 @@ segmented:disabled {
   cursor: not-allowed;
 }
 
-/* `:disabled` propagates now (ADR-0379): a control inside a disabled container
+/* `:disabled` propagates now: a control inside a disabled container
    matches it, which is what the widget contract has always said and what a
    descendant rule needs in order to say anything about a disabled subtree.
 
@@ -454,7 +457,7 @@ segmented:disabled {
    inside a faded container would be faded twice -- 0.45 of 0.45 is 0.2, which
    reads as broken rather than as unavailable. This says the fade belongs to the
    outermost disabled node, once, and is the *general* form of the
-   `radio-group:disabled radio:disabled` undo ADR-0077 deleted: that one was
+   `radio-group:disabled radio:disabled` undo that was deleted: that one was
    undoing a mechanism, and this one states what the mechanism means. */
 :disabled :disabled {
   opacity: 1;
@@ -462,15 +465,15 @@ segmented:disabled {
 
 /* ---------------------------------------------------------------- button --
  *
- * height 32, padding-x 12, gap 6, radius 8 (§3). The height is §1.3's density
- * token; the rest are literal, because a density moves control heights and
+ * height 32, padding-x 12, gap 6, radius 8: the `button` metrics row. The height
+ * is the density token; the rest are literal, because a density moves control heights and
  * nothing else.
  */
 button {
   height: var(--gb-button-height);
   padding: 0 12px;
   gap: 6px;
-  /* `body-strong` -- §3's typography column for this row. Written out rather
+  /* `body-strong` -- the metrics row's typography column. Written out rather
      than as `class="body-strong"`, because a button is that weight by being a
      button and an author should not have to say so. */
   font-size: var(--gb-font-body);
@@ -485,7 +488,7 @@ button {
   color: var(--gb-button-text);
 }
 
-/* Hover changes the surface by one step and never the text colour (§2.1). */
+/* Hover changes the surface by one step and never the text colour: the states rule. */
 button:hover {
   background: var(--gb-button-bg-hover);
 }
@@ -535,7 +538,7 @@ button.ghost:active {
   background: var(--gb-overlay-active);
 }
 
-/* A button that reads as a link (ADR-0293). Semantically a `button` — it is in
+/* A button that reads as a link. Semantically a `button` — it is in
    the tab order, it has the focus ring, `Space` and `Enter` activate it — and
    visually a piece of running text that does something.
 
@@ -544,10 +547,10 @@ button.ghost:active {
 
    - **`--gb-button-link-text` rather than `--gb-accent`.** The accent is chosen
      as a *fill*, and asking it to be ink on a light surface is the opposite job:
-     on the light theme it is 3.45:1 on `--gb-surface-2` against §1.2's 4.5
-     floor. The token is measured on every surface a window paints, in both
+     on the light theme it is 3.45:1 on `--gb-surface-2` against the 4.5:1
+     text floor. The token is measured on every surface a window paints, in both
      themes, beside its definition.
-   - **`--gb-weight-regular`, where every other button is strong.** §1.4 puts the
+   - **`--gb-weight-regular`, where every other button is strong.** The type scale puts the
      strong weight on buttons and headings because a button is chrome; this one
      is meant to sit in a sentence, and a bold word in a paragraph is emphasis
      rather than a control.
@@ -555,16 +558,16 @@ button.ghost:active {
      label, and there is no fill here — a link indented like a button reads as a
      button somebody forgot to colour in.
 
-   The height stays `--gb-button-height`: §1.3's hit target is a floor whatever
+   The height stays `--gb-button-height`: the 32px hit target is a floor whatever
    the thing looks like.
 
    **There is no underline**, and that is a decision rather than an omission.
-   §2.1's rule is that hover changes the surface and never the text colour, so
+   The states rule is that hover changes the surface and never the text colour, so
    the affordance is the wash `ghost` uses; and this is a standalone control with
    a focus ring rather than a word inside a sentence, which is where WCAG's
    "never by colour alone" bites. The widget that *is* a word inside a sentence
-   is `docs/core-widgets.md` §2's `link`, which is unbuilt and will need
-   `text-decoration` in §8's subset when it lands. */
+   is `link`, which is unbuilt and will need
+   `text-decoration` in the CSS subset when it lands. */
 button.link {
   background: transparent;
   color: var(--gb-button-link-text);
@@ -580,7 +583,7 @@ button.link:active {
   background: var(--gb-overlay-active);
 }
 
-/* §3's shapes and the outline, all classes (ADR-0347).
+/* The metrics table's shapes and the outline, all classes.
 
    `outlined` is a transparent fill with a 1px `--gb-border` and the text ink,
    and it composes with the semantic variants: `button.outlined.danger` is a
@@ -591,14 +594,14 @@ button.link:active {
 
    `float` (the `float=true` attribute) is placement, not appearance: the button is in the window's overlay
    layer at `Overlay.WINDOW_MARGIN` from two edges, and what the class adds is
-   §1.5's elevation 1. The edge is the elevation, as it is on every floating
+   elevation level 1. The edge is the elevation, as it is on every floating
    surface in this sheet; a shadow here would be the first, and it would be the
-   only one. §1.7's way in is `opacity` and `scale` 0.9→1 on `base`, and it is
+   only one. The animation table's way in is `opacity` and `scale` 0.9→1 on `base`, and it is
    an `@starting-style` below: the button enters from the starting rule on its
-   first frame, which is the entering state the overlay layer did not have
-   (ADR-0352). The way out is `button.float.leaving` below, on `fast` with the
+   first frame, which is the entering state the overlay layer did not have.
+  The way out is `button.float.leaving` below, on `fast` with the
    exit curve: the overlay stays up for `--gb-motion-fast` with the class on,
-   and is removed after (ADR-0355). */
+   and is removed after. */
 button.outlined {
   background: none;
   border: 1px solid var(--gb-border);
@@ -641,7 +644,7 @@ button.float {
               transform var(--gb-motion-base) ease-enter;
 }
 
-/* The press still snaps (§1.7 rule 1). The rule above is as specific as
+/* The press still snaps: input feedback is instant. The rule above is as specific as
    `button:active` and later, so without this a floating button's press would
    fade in. */
 button.float:active {
@@ -667,30 +670,30 @@ button.float.leaving {
 
 /* -------------------------------------------------------------- checkbox --
  *
- * glyph 16, hit >= 32, label gap 8 (§3). The control is the whole row: the
- * height is the hit target (§1.3, "hit targets >= 32x32 even when the visual is
+ * glyph 16, hit >= 32, label gap 8: the `checkbox` metrics row. The control is the
+ * whole row: the height is the hit target ("hit targets >= 32x32 even when the visual is
  * smaller"), and the click target includes the label because
- * docs/core-widgets.md §3 asks for it.
+ * the specification asks for it.
  *
  * The glyph stays 16 at either density and only the row around it shrinks, so
- * compact costs 4px of hit target rather than a smaller thing to aim at. §1.3
- * asks for both >= 32 and a 28px compact control, which cannot both hold; see
- * ADR-0074 for which one gives and why.
+ * compact costs 4px of hit target rather than a smaller thing to aim at. The design
+ * system asks for both >= 32 and a 28px compact control, which cannot both hold; the
+ * hit target gives, because a density is a token swap and nothing else.
  */
 checkbox {
   height: var(--gb-checkbox-height);
   gap: 8px;
-  /* `body`, not `body-strong`: §1.4 puts the strong weight on buttons and
-     headings, and a checkbox's label is running text beside a control. */
+  /* `body`, not `body-strong`: the type scale puts the strong weight on buttons
+     and headings, and a checkbox's label is running text beside a control. */
   font-size: var(--gb-font-body);
   line-height: var(--gb-line-body);
   font-weight: var(--gb-weight-regular);
   align-items: center;
   cursor: pointer;
   color: var(--gb-text);
-  /* §1.5's "4 -- inputs, small controls". The control paints no background, so
+  /* The small-control radius, "4 -- inputs, small controls". The control paints no background, so
      this is invisible until it is focused -- and then it is the whole point:
-     §2.2 says the ring follows the control's radius, and a square ring around a
+     the focus rule says the ring follows the control's radius, and a square ring around a
      row sitting beside an 8px button reads as an unfinished one. */
   border-radius: 4px;
 }
@@ -698,18 +701,17 @@ checkbox {
 /* The glyph. A part, not a widget -- see CheckIndicator for why it is
    CSS-selectable and not KDL-constructible.
 
-   `radius 4` is the design system's small-control corner (§1.5), which is the
+   `radius 4` is the design system's small-control corner, which is the
    same one `text-input` and `select` take.
 
    The border makes an unchecked box visible on a surface it would otherwise
    match, and it is **`--gb-checkbox-border` rather than `--gb-border`**. This
    comment used to say the opposite -- that a divider colour "is the token for
-   exactly that and is why this is not an invented colour" -- and the sweep
-   ADR-0239 built measured that claim and refuted it: on `--gb-surface-2` the
+   exactly that and is why this is not an invented colour" -- and the contrast
+   sweep measured that claim and refuted it: on `--gb-surface-2` the
    fill *is* the surface, so the edge was the only thing holding the control up
-   and it was doing so at 1.17:1 against §1.2's floor of 3. The colour is
-   invented now, and the measurement is written beside it in the theme
-   (ADR-0258). */
+   and it was doing so at 1.17:1 against the 3:1 floor for a mark. The colour is
+   invented now, and the measurement is written beside it in the theme. */
 check-indicator {
   width: 16px;
   height: 16px;
@@ -719,7 +721,7 @@ check-indicator {
   color: var(--gb-checkbox-mark);
 }
 
-/* §2.1: hover changes surface by one step, and never the text colour. The glyph
+/* The states rule: hover changes surface by one step, and never the text colour. The glyph
    *is* the control's surface at this size, so the step lands on its background
    and its border together -- a border-only hover is a weaker signal than the
    rule asks for. */
@@ -728,9 +730,9 @@ checkbox:hover check-indicator {
   border-color: var(--gb-checkbox-border-hover);
 }
 
-/* §2.1's "pressed states darken". This is written against `checkbox:active`
+/* The states rule's "pressed states darken". This is written against `checkbox:active`
    rather than `check-indicator:active`, which is what makes it work at all:
-   `:active` reaches the whole ancestor chain (ADR-0073), so pressing the label,
+   `:active` reaches the whole ancestor chain, so pressing the label,
    the glyph or the gap between them all darken the same thing. It did not,
    until that was fixed -- the press landed on whichever part was under the
    pointer. */
@@ -779,7 +781,7 @@ check-indicator:indeterminate {
 
 /* ----------------------------------------------------------- radio-group --
  *
- * A column by default, and `radio-group.inline` for a row. §3 gives no axis for
+ * A column by default, and `radio-group.inline` for a row. The metrics table gives no axis for
  * a radio group, and both readings are common -- two options side by side, six
  * stacked -- so the widget names the semantics and the stylesheet names the
  * axis. That is the opposite of `row` and `column`, which *are* their axis.
@@ -789,7 +791,7 @@ check-indicator:indeterminate {
  */
 radio-group {
   flex-direction: column;
-  /* §1.3's "gap between related controls 8". Options are related controls, and
+  /* The spacing rule's "gap between related controls 8". Options are related controls, and
      stacked ones are unambiguous at 8 -- each occupies its own line. */
   gap: 8px;
   /* Options are as wide as their content, not as wide as the group. A flex
@@ -798,11 +800,11 @@ radio-group {
      space and the click target with it, while `.inline` (a row, whose cross axis
      is height) would keep hugging its label. The same widget would then have two
      different hit targets depending on a class. `checkbox` is content-sized for
-     the same reason, and §3 gives these a hit *height* and no width. */
+     the same reason, and the metrics row gives these a hit *height* and no width. */
   align-items: flex-start;
 }
 
-/* §1.3's "between groups 16", and that is the right half of the ramp rather
+/* The spacing rule's "between groups 16", and that is the right half of the ramp rather
    than a bigger number picked by eye: side by side, each glyph-plus-label is a
    unit, and at 8 the previous option's label sits as close to the next glyph as
    that glyph is to its own label -- so the label reads as belonging to the
@@ -815,12 +817,12 @@ radio-group.inline {
 
 /* ---------------------------------------------------------------- radio --
  *
- * glyph 16, hit >= 32, label gap 8 -- §3's `checkbox / radio` row, which is one
+ * glyph 16, hit >= 32, label gap 8 -- the `checkbox / radio` metrics row, which is one
  * row for both because they are the same metrics with a different glyph. The
- * height is the hit target (§1.3) and the click target includes the label,
- * exactly as on a checkbox -- including the density token, since §3 gives the
+ * height is the 32px hit target and the click target includes the label,
+ * exactly as on a checkbox -- including the density token, since the table gives the
  * two controls one row and a density that moved one and not the other would be
- * the same divergence ADR-0073 spent a section closing.
+ * the same divergence the checkbox once had.
  */
 radio {
   height: var(--gb-radio-height);
@@ -831,7 +833,7 @@ radio {
   align-items: center;
   cursor: pointer;
   color: var(--gb-text);
-  /* §1.5's small-control radius, for the focus ring to follow (§2.2) -- the
+  /* The small-control radius, for the focus ring to follow -- the
      same reason `checkbox` carries one. */
   border-radius: 4px;
 }
@@ -842,22 +844,22 @@ radio {
 
    `border-radius: 8px` on a 16px box is a circle. Nothing in Java draws one:
    the four cubics that round every other corner in the toolkit round this one
-   the whole way (ADR-0064), which is why a theme can square a radio off without
+   the whole way, which is why a theme can square a radio off without
    a code change. */
 radio-indicator {
   width: 16px;
   height: 16px;
   border-radius: 8px;
-  /* `check-indicator`'s edge and its reason (ADR-0258). */
+  /* `check-indicator`'s edge and its reason. */
   border: 1px solid var(--gb-radio-border);
   background: var(--gb-radio-bg);
   color: var(--gb-radio-dot);
 }
 
-/* §2.1's one surface step on hover, and its darkening press. Both are written
+/* The states rule's one surface step on hover, and its darkening press. Both are written
    against the *control* rather than the glyph, so pressing the label does what
    pressing the glyph does -- which only works because `:active` reaches the
-   whole ancestor chain (ADR-0073). */
+   whole ancestor chain. */
 radio:hover radio-indicator {
   background: var(--gb-radio-bg-hover);
   border-color: var(--gb-radio-border-hover);
@@ -894,35 +896,35 @@ radio-indicator:checked {
 
 /* --------------------------------------------------------------- toggle --
  *
- * §3's row: track 36x20, thumb 16, travel 16. Those four numbers are one
+ * The `toggle` metrics row: track 36x20, thumb 16, travel 16. Those four numbers are one
  * arithmetic statement -- 2 + 16 + 2 = 20 vertically, and 2 + 16 + travel 16 +
  * 2 = 36 horizontally -- which is why the padding below is 2 rather than a
  * number chosen to look right. Change the track width and the travel is wrong.
  *
- * The control is the whole row, as on a checkbox: the height is §1.3's hit
- * target and the click target includes the label (docs/core-widgets.md §3).
+ * The control is the whole row, as on a checkbox: the height is the 32px hit
+ * target and the click target includes the label.
  */
 toggle {
   height: var(--gb-toggle-height);
   gap: 8px;
   /* `body`, not `body-strong`: a switch's label is running text beside a
-     control, which is the line §1.4 draws and the one `checkbox` takes. */
+     control, which is the line the type scale draws and the one `checkbox` takes. */
   font-size: var(--gb-font-body);
   line-height: var(--gb-line-body);
   font-weight: var(--gb-weight-regular);
   align-items: center;
   cursor: pointer;
   color: var(--gb-text);
-  /* §1.5's small-control radius, for the focus ring to follow (§2.2). */
+  /* The small-control radius, for the focus ring to follow. */
   border-radius: 4px;
 }
 
 /* The pill. A part -- see ToggleTrack for why it is CSS-selectable and not
    KDL-constructible, which is the third time that argument is made.
 
-   `border-radius: 10px` on a 20px-tall box is §3's `full`: the four cubics that
-   round every other corner in the toolkit round this one the whole way
-   (ADR-0064), so no native symbol and no new drawing code. */
+   `border-radius: 10px` on a 20px-tall box is the row's `full` radius: the four cubics that
+   round every other corner in the toolkit round this one the whole way,
+   so no native symbol and no new drawing code. */
 toggle-track {
   width: 36px;
   height: 20px;
@@ -936,10 +938,9 @@ toggle-track:checked {
   background: var(--gb-toggle-track-bg-checked);
 }
 
-/* §2.1's one surface step on hover and its darkening press, written against the
-   *control* rather than the pill -- so pressing the label does what pressing the
-   pill does, which only works because `:active` reaches the whole ancestor chain
-   (ADR-0073). */
+/* The states rule's one surface step on hover and its darkening press, written
+   against the *control* rather than the pill -- so pressing the label does what pressing the
+   pill does, which only works because `:active` reaches the whole ancestor chain. */
 toggle:hover toggle-track {
   background: var(--gb-toggle-track-bg-hover);
 }
@@ -960,9 +961,9 @@ toggle:active toggle-track:checked {
   background: var(--gb-toggle-track-bg-checked-active);
 }
 
-/* The thumb. §3's travel 16, applied as a transform because §3.1 asks for
-   `translate` and because a transform costs no layout -- animating a margin
-   would run Yoga on every frame of every switch (§1.7's whitelist exists for
+/* The thumb. The row's travel 16, applied as a transform because the animation
+   table asks for `translate` and because a transform costs no layout -- animating
+   a margin would run Yoga on every frame of every switch (the motion whitelist exists for
    exactly this).
 
    Where it travels to is a stylesheet's decision rather than Java's: nothing in
@@ -980,17 +981,17 @@ toggle-track:checked toggle-thumb {
   background: var(--gb-toggle-thumb-bg-checked);
 }
 
-/* §3.1: "thumb `translate` base; track color base (**same clock -- they arrive
+/* The animation table: "thumb `translate` base; track color base (**same clock -- they arrive
    together**)". Both durations are `base` for that reason, and it is the clause
    rather than the two properties that is load-bearing.
 
-   The thumb's *background* is on that clock too, which §3.1 does not list. It
-   has to be: the thumb is a different colour on the two tracks (§1.2 -- no one
+   The thumb's *background* is on that clock too, which the table does not list. It
+   has to be: the thumb is a different colour on the two tracks (the contrast rule -- no one
    colour clears 4.5:1 against both a dark grey pill and a light accent one), so
    a thumb whose colour snapped would arrive before the thumb did and break the
-   one thing the row does say. Listing it is what makes §3.1 self-consistent
-   here; it costs nothing, since `background-color` is already on §1.7's
-   whitelist and already running on this duration (ADR-0075). */
+   one thing the row does say. Listing it is what makes the table self-consistent
+   here; it costs nothing, since `background-color` is already on the motion
+   whitelist and already running on this duration. */
 toggle-track {
   transition: background-color var(--gb-motion-base) ease-enter;
 }
@@ -1007,12 +1008,12 @@ toggle-thumb {
 
 /* --------------------------------------------------------------- slider --
  *
- * §3's row: track 4, thumb 16 (`full` radius), hit >= 32 cross-axis. The control
- * is the whole 32-tall row -- §1.3's hit target -- and the 4px groove sits
+ * The `slider` metrics row: track 4, thumb 16 (`full` radius), hit >= 32 cross-axis.
+ * The control is the whole 32-tall row -- the hit target -- and the 4px groove sits
  * centred inside it, so the thing to aim at is eight times what you can see.
  *
  * `slider` is deliberately **absent from the shared transition rule at the top
- * of this file.** §3.1: "slider/knob/fader -- drag: **1:1, no animation**". A
+ * of this file.** The animation table: "slider/knob/fader -- drag: **1:1, no animation**". A
  * thumb that eased toward the pointer would lag the finger, and lag is the one
  * thing a control being dragged must not have. What may move is the *thumb's*
  * surface under the pointer, which is a hover and not a value.
@@ -1027,7 +1028,7 @@ slider {
 /* The rectangle the **value** is measured along, and the reason it is a box of
    its own rather than the control itself: a value label takes its width off the
    end of the row, and a pointer mapped along the control would then be short by
-   exactly that width (SliderTrack, ADR-0080). `flex-grow: 1` is what makes it
+   exactly that width (SliderTrack). `flex-grow: 1` is what makes it
    "whatever is left after the label", and equals the whole control when there is
    no label -- one rule for both cases rather than a `width: 100%` that would
    overflow the moment something else joined the row.
@@ -1077,8 +1078,8 @@ slider-span {
   background: var(--gb-slider-span-bg);
 }
 
-/* §3's thumb 16 at `full` radius -- `border-radius: 8px` on a 16px box, through
-   the four cubics ADR-0064 already ships, so no native symbol and no new drawing
+/* The row's thumb 16 at `full` radius -- `border-radius: 8px` on a 16px box, through
+   the four cubics the painter already ships, so no native symbol and no new drawing
    code. It carries no transform at all, which is the whole difference from
    `toggle-thumb`: a switch has two positions a stylesheet can name and a slider
    has a continuum it cannot. */
@@ -1090,10 +1091,10 @@ slider-thumb {
   background: var(--gb-slider-thumb-bg);
 }
 
-/* §2.1's one surface step on hover and its darkening press, on the thumb rather
+/* The states rule's one surface step on hover and its darkening press, on the thumb rather
    than the groove -- the thumb is the thing being pointed at. Written against
    the *control*, so hovering anywhere on the 32px row lights it, which is what
-   the hit target means. `:active` reaches the whole ancestor chain (ADR-0073),
+   the hit target means. `:active` reaches the whole ancestor chain,
    so the press works from anywhere on the row too. */
 slider:hover slider-thumb {
   background: var(--gb-slider-thumb-bg-hover);
@@ -1103,14 +1104,14 @@ slider:active slider-thumb {
   background: var(--gb-slider-thumb-bg-active);
 }
 
-/* The thumb's own surface may fade -- that is a hover, not a value, and §3.1's
+/* The thumb's own surface may fade -- that is a hover, not a value, and the table's
    "no animation" is about the drag. Nothing here names `transform` or a layout
    property, so a moving thumb still moves instantly. */
 slider-thumb {
   transition: background-color var(--gb-motion-fast) ease-enter;
 }
 
-/* The scale (§3: "optional tick marks"). §3 pins no metric for a mark, so it
+/* The scale, the row's "optional tick marks". The row pins no metric for a mark, so it
    takes the groove's own 4 and half its 2px radius -- a tick is a groove one
    step long.
 
@@ -1121,12 +1122,12 @@ slider-thumb {
    2 + 16 + 16 + 2 = 36 is one with its travel -- change the thumb and this
    follows.
 
-   It cannot be written as half of the token, because §8's subset has no `calc()`
-   (ADR-0430). So it is the one number here that an author moving the thumb has to
+   It cannot be written as half of the token, because the CSS subset has no `calc()`.
+   So it is the one number here that an author moving the thumb has to
    move too, and `SliderTest.theHalvesOfAThumb` is what makes forgetting it a
    failure rather than a pointer that is eight pixels out. It is also the number
-   the *pointer* now agrees with: the marks were never wrong, and until ADR-0430
-   the finger was. */
+   the *pointer* now agrees with: the marks were never wrong, and until the
+   pointer was mapped over the thumb's travel, the finger was. */
 slider-ticks {
   /* **Zero-height, and that is the load-bearing number.** The track centres its
      column, so anything the scale contributes to that column pushes the groove
@@ -1150,30 +1151,31 @@ slider-tick {
   border-radius: 1px;
   background: var(--gb-slider-tick-bg);
   /* What moves the scale clear of the thumb, and it is a `transform` because a
-     transform costs no layout (ADR-0068): the mark hangs 10px below its line
+     transform costs no layout: the mark hangs 10px below its line
      without the line itself taking up a pixel, which is the whole reason the
      groove above it has not moved. Ten is half the thumb's 16 plus the two the
      mark straddles its own line by. */
   transform: translate(0, 10px);
 }
 
-/* The value label (§3: "optional value label"), in `caption` because it is a
-   readout beside a control rather than running text (§1.4).
+/* The value label, the row's "optional value label", in `caption` because it is a
+   readout beside a control rather than running text, which is the type scale's line.
 
    The **width is fixed and that is the point**: a label that sized itself to its
    content would take three pixels off the track between 9 and 10, which moves
    the value under the finger that is setting it. 40 is `caption` wide enough for
    four digits and a sign, which is what the formats a slider is given produce. */
 /* The readout, at a fixed width so the track does not move as the digits change
-   (ADR-0080) — and **aligned to the trailing edge**, which is what a fixed width
+   — and **aligned to the trailing edge**, which is what a fixed width
    is for. A column of numbers beside a row of faders lines up on its units
    column, and a left-aligned one in a 40px box lines up on nothing: `9` and `10`
    start in the same place and end two pixels apart.
 
-   §8 has listed `text-align` from the start and §8's own note said `Box` could
+   The CSS subset has listed `text-align` from the start and its own note said `Box` could
    not express it. That was true of `Box` and never true of the paragraph, which
    has always known how wide its lines are — so the paint places them and `Box`
-   is untouched (ADR-0256). `end` rather than `right`, for ADR-0247's reason. */
+   is untouched. `end` rather than `right`: `start` and `end` are the CSS words,
+   and `flex-start` is Yoga's. */
 slider-value {
   width: 40px;
   font-size: var(--gb-font-caption);
@@ -1182,7 +1184,7 @@ slider-value {
   text-align: end;
 }
 
-/* `slider.vertical` is §3's `fader`, and it is a class for the reason
+/* `slider.vertical` is the metrics table's `fader`, and it is a class for the reason
    `radio-group.inline` is: the widget names the semantics and the stylesheet
    names the axis. `column-reverse` is what puts the minimum at the bottom, where
    a fader's minimum belongs -- the widget inverts the pointer fraction to match
@@ -1232,8 +1234,9 @@ slider.vertical slider-tick {
 
 /* ------------------------------------------------------------- progress --
  *
- * §3's row: track height 4, radius `full`. The control *is* the track -- there is
- * nothing else to it -- so the two numbers are here and the fill inherits them.
+ * The `progress` metrics row: track height 4, radius `full`. The control *is* the
+ * track -- there is nothing else to it -- so the two numbers are here and the
+ * fill inherits them.
  *
  * `width: 100%` because a progress bar has no length of its own: it is as wide as
  * whatever it was put in, which is what "how far along is this task" means in a
@@ -1248,10 +1251,10 @@ progress {
      without this, a bar a third of the way out of its track is drawn over
      whatever is beside the control, and the instant it wraps from the right-hand
      side back to the left is a visible jump once every 1.2 seconds. Both are
-     hidden by the same rectangle (ADR-0418).
+     hidden by the same rectangle.
 
      Here rather than forced on the box in Java, because `overflow` has been a
-     cascaded property since ADR-0114 and every other number in this rule is the
+     cascaded property and every other number in this rule is the
      theme's. A stylesheet that writes `overflow: visible` has asked for the
      overhang and gets it.
 
@@ -1272,12 +1275,12 @@ progress-fill {
   background: var(--gb-progress-fill-bg);
 }
 
-/* §3.1: "value change: fill **base**". A determinate bar that jumped between
+/* The animation table: "value change: fill **base**". A determinate bar that jumped between
    values would read as a series of unrelated states rather than as progress --
-   and `width` is not on §1.7's whitelist and must not be, so what animates is
+   and `width` is not on the motion whitelist and must not be, so what animates is
    the *fill's own colour and opacity* and the width moves instantly.
 
-   Which is a divergence from §3.1 rather than an implementation of it, and it is
+   Which is a divergence from the table rather than an implementation of it, and it is
    recorded as one: animating a width would run Yoga on every frame of every
    change, which is the cost the whitelist is a closed enum to prevent. A bar
    whose value is set sixty times a second -- which is what a download does --
@@ -1287,28 +1290,28 @@ progress-fill {
               opacity var(--gb-motion-base) ease-enter;
 }
 
-/* §3.1's "reduced-motion: opacity pulse 1.2s" is the one thing here a stylesheet
-   cannot say: §8's subset has no `@keyframes`, so a *pulse* -- a loop between two
+/* The animation table's "reduced-motion: opacity pulse 1.2s" is the one thing here a stylesheet
+   cannot say: the CSS subset has no `@keyframes`, so a *pulse* -- a loop between two
    opacities -- has no spelling. What ships instead is a bar that holds still at
-   a third of the track. Named in ADR-0081 rather than left to be discovered. */
+   a third of the track. Named here rather than left to be discovered. */
 
 /* --------------------------------------------------------------- spinner --
  *
- * §3 pins no metrics for a spinner: it is not in the component table at all. So
- * it takes the 16 that table gives every small indicator (`checkbox` and `radio`
- * glyph 16), and its ring is Lucide's 2px stroke at 24 (§1.6) scaled to it, which
+ * The metrics table pins nothing for a spinner: it has no row at all. So
+ * it takes the 16 the table gives every small indicator (`checkbox` and `radio`
+ * glyph 16), and its ring is Lucide's 2px stroke at 24, the icon grid, scaled to it, which
  * Spinner sets because a mark's thickness is a painter argument rather than a
  * style property.
  *
  * The colour is the accent through `color`, which **inherits** -- so a spinner
  * inside a primary button is that button's label colour without either of them
- * naming the other (ADR-0066).
+ * naming the other.
  */
 /* The bare rule is `medium`, which is what every spinner was before there were
    sizes -- so `spinner.medium` needs no rule of its own and nothing that already
-   existed changed. The stroke is NOT here: §8 has no property for the weight of
+   existed changed. The stroke is NOT here: the CSS subset has no property for the weight of
    a mark the painter draws, so the widget derives it from the width resolved
-   below (ADR-0447). An application that overrides the width gets a stroke to
+   below. An application that overrides the width gets a stroke to
    match it. */
 spinner {
   width: 16px;
@@ -1330,20 +1333,20 @@ spinner.large {
 
 /* ----------------------------------------------------------------- badge --
  *
- * §3 gained a `badge` row for this change rather than the numbers being picked
- * here (Principle 3, "token or extend"): height 20, padding-x 8, radius `full`,
- * `caption`. Every one of them is derived rather than invented -- 20 is on
- * §1.3's ramp and is the height `toggle`'s track already uses, 8 is §1.3's
- * component padding, `caption` is §1.4's "secondary metadata", and §1.5 names
- * badges in the `full` radius group by name.
+ * The metrics table gained a `badge` row for this change rather than the numbers
+ * being picked here (Principle 3, "token or extend"): height 20, padding-x 8,
+ * radius `full`, `caption`. Every one of them is derived rather than invented --
+ * 20 is on the spacing ramp and is the height `toggle`'s track already uses, 8
+ * is the component padding default, `caption` is the type scale's "secondary
+ * metadata", and the shape rule names badges in the `full` radius group by name.
  *
  * `border-radius: 10px` on a 20px box is that `full`, spelled the way
- * `toggle-track` already spells it: §8's subset has no percentage radius and the
- * painter's four cubics want a number (ADR-0064).
+ * `toggle-track` already spells it: the CSS subset has no percentage radius and the
+ * painter's four cubics want a number.
  *
  * The height is pinned and there is no vertical padding, because the two cannot
  * both be right: a chip whose height came from `caption`'s 14px line plus
- * padding would be 18 tall, which is off §1.3's ramp, and its radius would stop
+ * padding would be 18 tall, which is off the spacing ramp, and its radius would stop
  * being half its height the moment either number moved. `align-items: center`
  * is what puts the text in the middle of a height it did not choose, which is
  * why the text is a child box (see Badge.render).
@@ -1354,16 +1357,15 @@ spinner.large {
  * back in a cramped row would ellipse `99` into `9`, which is not a clipped
  * label but a wrong number.
  *
- * **Nothing here animates, deliberately.** §3.1 has no `badge` row and its
+ * **Nothing here animates, deliberately.** The animation table has no `badge` row and its
  * preamble says "anything not listed does not animate", so the absence of a
  * `transition` is the specification being followed rather than an omission.
  */
-/* `select-chip` is here rather than with the rest of `select` because §3 asks a
-   `select multiple` for "**`badge` chips**", and one rule saying so is better
+/* `select-chip` is here rather than with the rest of `select` because the metrics table asks
+   a `select multiple` for "**`badge` chips**", and one rule saying so is better
    than two rules that have to be kept agreeing. The chip is not the `badge`
    *widget* — a badge is a leaf with text and a chip has to hold a × beside its
-   label — but it is a badge to look at, and this is where that is decided
-   (ADR-0182). */
+   label — but it is a badge to look at, and this is where that is decided. */
 badge,
 select-chip {
   height: 20px;
@@ -1381,15 +1383,15 @@ select-chip {
    and what this one was not: `3` came out 23 wide in a 20 tall box, a stadium
    with nothing stadium-shaped about it. `badge-digits.png` was the record of it.
 
-   Two numbers, and §1.3's ramp decides both. `min-width` is the **height** —
+   Two numbers, and the spacing ramp decides both. `min-width` is the **height** —
    equal width and height inside a `full` radius is the definition of the circle,
    so this is not a second metric so much as the first one said twice. And
    padding-x drops from the component default of 8 to **4**, because it has to:
    8 + a caption digit + 8 is 23 whatever the minimum says, so a badge with the
    default padding can never be round. 6 would have been the comfortable answer
-   and is **off the ramp** — §1.3 lists `2, 4, 8, 12, …` and says "no off-ramp
+   and is **off the ramp** — the ramp is `2, 4, 8, 12, …` and the rule says "no off-ramp
    values" — so 4 is the legal one below 8 and it is what a count chip wants
-   anyway (ADR-0259).
+   anyway.
 
    `select-chip` keeps the default: it holds a label and a ×, it is never one
    character wide, and there is nothing round about it. */
@@ -1414,7 +1416,7 @@ select-chip-label {
 
 /* Small, and dimmer than the label until the pointer is on it: the chip says
    what is selected and the × is how to change it, which is the lesser of the two
-   things on a 20px plate. §2.2's hit target is the chip's own height, because
+   things on a 20px plate. The hit target is the chip's own height, because
    the mark is centred in a box as tall as the row. */
 select-chip-remove {
   width: 12px;
@@ -1430,11 +1432,11 @@ select-chip-remove:hover {
   opacity: 1;
 }
 
-/* §3's `autocomplete` option puts a real `text-input` inside the closed control,
+/* `select`'s `autocomplete` option puts a real `text-input` inside the closed control,
    which is what the sentence asks for and would otherwise draw a *second* border
    and a second surface inside the `select`'s own. The editor is the select's
    interior, not a control sitting in it: no edge, no fill, no radius, and it
-   grows to fill the room the chevron leaves (ADR-0183). */
+   grows to fill the room the chevron leaves. */
 select text-input {
   border: none;
   background: none;
@@ -1446,8 +1448,8 @@ select text-input {
 
 /* The focus ring belongs to the whole control rather than to the field inside
    it, for the same reason: what the user focused is a `select`. `:focus-within`
-   is what lets the outer node say so, which is the notification §4's `field`
-   already brought (ADR-0169). */
+   is what lets the outer node say so, which is the notification `field`
+   already brought. */
 select text-input:focus {
   outline: none;
 }
@@ -1468,7 +1470,7 @@ select.multiple {
   align-items: center;
 }
 
-/* The rule §8's subset gained `flex-wrap` for (ADR-0192). Before it the chips
+/* The rule the CSS subset gained `flex-wrap` for. Before it the chips
    shrank -- Yoga's default is one line however much it overflows, and shrinking
    is what a flex item does when there is nowhere else to go -- so a field with
    five values chosen showed five squeezed chips rather than two rows of whole
@@ -1487,15 +1489,15 @@ select-chips {
   align-items: center;
 }
 
-/* §1.2's semantic hues, and each pins its **own** foreground rather than
+/* The semantic hues, and each pins its **own** foreground rather than
    inheriting `--gb-text`.
-   
+
    That is not a style choice: `--gb-text` on `--gb-warning` is the theme's
-   near-white on a pale yellow, which measures 1.35:1 where §1.2 requires 4.5:1.
+   near-white on a pale yellow, which measures 1.35:1 where text requires 4.5:1.
    A filled chip's legible foreground is a property of the fill, and the aurora
    hues are theme-invariant, so these pairings are the same on light and dark --
-   the theme does not get a vote (ADR-0087).
-   
+   the theme does not get a vote.
+
    `danger` and `accent`-on-light are the two fills that carry no legible text at
    *either* end of the palette, so their tokens are a derived, darker hue. See
    the theme files, where the derivation lives beside the palette entry it came
@@ -1527,19 +1529,19 @@ badge.info {
 
 /* ------------------------------------------------------------------ chip --
  *
- * §3 gained a `chip` row for this widget rather than the numbers being picked
+ * The metrics table gained a `chip` row for this widget rather than the numbers being picked
  * here (Principle 3, "token or extend"): height 24, padding-x 8, radius `full`,
  * `body`, dot 6, dismiss 12.
  *
  * **It is a badge you can press, and every number says so.** Four taller than a
- * `badge` because 20 is a plate you read and 24 is a target you hit -- §2.2 asks
- * for 24 as the smallest pointer target in a dense row, and a chip is a control
+ * `badge` because 20 is a plate you read and 24 is a target you hit -- the design system
+ * asks for 24 as the smallest pointer target in a dense row, and a chip is a control
  * where a badge is not. `body` rather than `caption` for the same reason: a
  * filter you choose is content, and a count beside a heading is metadata.
  *
- * `border-radius: 12px` on a 24px box is §1.5's `full`, spelled the way
- * `badge` and `toggle-track` already spell it -- §8's subset has no percentage
- * radius and the painter's four cubics want a number (ADR-0064).
+ * `border-radius: 12px` on a 24px box is the shape rule's `full`, spelled the way
+ * `badge` and `toggle-track` already spell it -- the CSS subset has no percentage
+ * radius and the painter's four cubics want a number.
  *
  * The height is pinned and there is no vertical padding, which is `badge`'s
  * arrangement and its argument: the two cannot both be right, and `align-items:
@@ -1548,7 +1550,7 @@ badge.info {
  * `flex-shrink: 0` -- a row of filters that gave width back would ellipse the
  * words a user is choosing between, and a chip that reads `Unre` is not a
  * shorter chip but a wrong one. A wrapped row is the answer to a narrow one,
- * which is `select`'s chips exactly (ADR-0192).
+ * which is `select`'s chips exactly.
  */
 chip {
   height: 24px;
@@ -1573,12 +1575,12 @@ chip {
 
      The *variants* below still share the badge's hue tokens, which is the
      sharing that was worth having -- one set of five semantic fills rather than
-     two that have to be kept agreeing (ADR-0305). */
+     two that have to be kept agreeing. */
   background: var(--gb-button-bg);
   color: var(--gb-button-text);
 }
 
-/* §2.1: hover moves the **surface** and never the ink, one step each way — the
+/* The states rule: hover moves the **surface** and never the ink, one step each way — the
    button's own two tokens, for the reason above. */
 chip:hover {
   background: var(--gb-button-bg-hover);
@@ -1594,7 +1596,7 @@ chip:active {
    A *filled* accent rather than an outline: a row of chips is scanned rather
    than read, and the one that is on has to be findable without comparing edges.
    `--gb-accent-fill` is the token that exists precisely because `--gb-accent` is
-   chosen as a fill and its companion text token carries the 4.5:1 (§1.2). */
+   chosen as a fill and its companion text token carries the 4.5:1 text floor. */
 chip:checked {
   background: var(--gb-accent-fill);
   color: var(--gb-badge-accent-text);
@@ -1636,7 +1638,7 @@ chip.outlined:checked:hover {
 }
 
 /* `.outlined` last, so a chip carrying both it and a hue is outlined: the hue
-   rules above set a fill, and §8's cascade takes the later rule at equal
+   rules above set a fill, and the cascade takes the later rule at equal
    specificity. Written out rather than relying on source order alone, because
    "it works because of where it is in the file" is how a rule stops working when
    somebody tidies the file. */
@@ -1648,11 +1650,10 @@ chip.outlined.info {
   color: var(--gb-text);
 }
 
-/* The semantic hues, and the same tokens `badge` uses -- §1.2 lets the aurora
+/* The semantic hues, and the same tokens `badge` uses -- the colour rule lets the aurora
    hues appear "only with semantic meaning", and a chip carrying a status is the
    same claim a badge carrying one makes. Shared rather than copied, because two
-   sets of five that have to be kept agreeing is how they stop agreeing
-   (ADR-0087). */
+   sets of five that have to be kept agreeing is how they stop agreeing. */
 chip.danger {
   background: var(--gb-badge-danger-bg);
   color: var(--gb-badge-danger-text);
@@ -1677,8 +1678,8 @@ chip.info {
    does not inherit the label's ink -- which is the whole point: a muted chip with
    a live red dot is the arrangement this exists for (see ChipDot).
 
-   6 is off §1.3's ramp and is the one number here that is not derived. It is
-   half of §1.3's 12 and the smallest circle that reads as deliberate at 100%
+   6 is off the spacing ramp and is the one number here that is not derived. It is
+   half of the ramp's 12 and the smallest circle that reads as deliberate at 100%
    scale; 4 is a speck and 8 is a bullet beside a `body` line. */
 chip-dot {
   width: 6px;
@@ -1695,8 +1696,8 @@ chip-dot {
    var(--gb-success) }` puts a green dot on a green plate, and the first golden
    of it came out with no dot at all.
 
-   So a *filled* variant's dot is that variant's text token -- the one §1.2's
-   4.5:1 was chosen for -- and the `.outlined` forms below, which have no fill,
+   So a *filled* variant's dot is that variant's text token -- the one the
+   4.5:1 text floor was chosen for -- and the `.outlined` forms below, which have no fill,
    take the hue. The useful arrangement is the second: a chip with a quiet
    surface and a live status on it, which is what a dot is for at all. */
 chip.danger chip-dot {
@@ -1747,7 +1748,7 @@ chip-label {
 }
 
 /* The ×, and the same 12 square `tab-close` and `select-chip-remove` are: it is
-   the lesser of the two things on the plate, and §2.2's hit target is the chip's
+   the lesser of the two things on the plate, and the hit target is the chip's
    own 24 because the mark is centred in a box as tall as the row. */
 chip-dismiss {
   width: 12px;
@@ -1764,13 +1765,13 @@ chip-dismiss:hover {
 
 /* ------------------------------------------------------------------ knob --
  *
- * §3's row: "diameters 32 / 48; arc 270 deg; value drag 200px per full range,
+ * The `knob` metrics row: "diameters 32 / 48; arc 270 deg; value drag 200px per full range,
  * x0.1 with fine modifier". The diameters and the arc are here; the drag numbers
  * are the widget's, because they are a gesture and not an appearance.
  *
  * The anatomy, and why the body is not the control's own box
  *
- * Four nodes, nested rather than stacked -- §8's subset has no
+ * Four nodes, nested rather than stacked -- the CSS subset has no
  * `position: absolute` and `stack` is M3's, and a child at `100%` of a parent
  * with no padding is exactly its parent's box, which is stacking for as long as
  * nothing has to overlap in two directions at once:
@@ -1783,10 +1784,10 @@ chip-dismiss:hover {
  * The first drawing gave the dial to `knob` itself and stroked both rings on the
  * same box, so the track ran **across the body**: `--gb-border` on `--gb-knob-bg`
  * is about 1.2:1 and the 270 deg of travel was invisible. Every assertion passed;
- * `knob-travel.png` is what said otherwise (ADR-0089).
+ * `knob-travel.png` is what said otherwise.
  *
- * The 5px inset is not a §3 metric and is not invented either: it is the 2px ring
- * plus §1.3's smallest ramp step, 2, plus the 1px that keeps an antialiased edge
+ * The 5px inset is not a metrics-row number and is not invented either: it is the
+ * 2px ring plus the spacing ramp's smallest step, 2, plus the 1px that keeps an antialiased edge
  * off an antialiased edge. What it has to be is "clear of the ring", and the
  * ramp is where the number comes from.
  */
@@ -1799,9 +1800,9 @@ knob {
   cursor: pointer;
 }
 
-/* §3's second diameter. A class, because §3 gives the two sizes no other name
+/* The row's second diameter. A class, because the row gives the two sizes no other name
    and a `size=` attribute would be a second vocabulary only Java could spell --
-   §11's parity invariant again. */
+   the rule that markup and Java can say the same things, again. */
 knob.large {
   width: 48px;
   height: 48px;
@@ -1810,7 +1811,7 @@ knob.large {
 
 /* The two rings. The colour is `color` rather than `background` on both, because
    an arc is a **stroke** and a stroke takes the node's `color` -- the rule
-   `spinner` already follows (ADR-0066). */
+   `spinner` already follows. */
 knob-track,
 knob-arc {
   width: 100%;
@@ -1823,7 +1824,7 @@ knob-arc {
   padding: 5px;
 }
 
-/* The body. `border-radius: 50%` has no spelling in §8's subset, so it is half
+/* The body. `border-radius: 50%` has no spelling in the CSS subset, so it is half
    the inset side: 32 - 2*5 = 22, and 22 - 2*5 = 38 on the large one. */
 knob-dial {
   width: 100%;
@@ -1831,7 +1832,7 @@ knob-dial {
   border-radius: 11px;
   background: var(--gb-knob-bg);
   /* The pointer is a **stroke**, so it takes `color` like every other mark in
-     the catalog (ADR-0066). Its own token rather than `--gb-text`, because what
+     the catalog. Its own token rather than `--gb-text`, because what
      it has to contrast with is the dial under it and not the window. */
   color: var(--gb-knob-pointer);
 }
@@ -1840,7 +1841,7 @@ knob.large knob-dial {
   border-radius: 19px;
 }
 
-/* §2.1's "hover changes the surface by one step", on the body -- the ring is the
+/* The states rule's "hover changes the surface by one step", on the body -- the ring is the
    value and does not react to the pointer. */
 knob:hover knob-dial {
   background: var(--gb-knob-bg-hover);
@@ -1850,10 +1851,10 @@ knob:active knob-dial {
   background: var(--gb-knob-bg-active);
 }
 
-/* §3.1: "slider / knob / fader -- drag: **1:1, no animation** - keyboard/
+/* The animation table: "slider / knob / fader -- drag: **1:1, no animation** - keyboard/
    programmatic value step: fast". The arc's *geometry* is not a CSS property and
    cannot transition; what moves on `fast` is colour, exactly as `progress-fill`
-   does and for the same recorded reason -- a sweep animated through §1.7's
+   does and for the same recorded reason -- a sweep animated through the motion
    whitelist would have to be a `transform`, and a rotating arc is not the same
    picture as a growing one. */
 knob-dial {
@@ -1867,8 +1868,9 @@ knob-arc {
 
 /* ------------------------------------------------------------- segmented --
  *
- * §3's row: "height 32 (28); segment padding-x 12; radius 8 outer, 0 between;
- * 1px divider in `--gb-border`; `body-strong`", and §3.1's: "selection indicator
+ * The `segmented` metrics row: "height 32 (28); segment padding-x 12; radius 8 outer,
+ * 0 between; 1px divider in `--gb-border`; `body-strong`", and its animation row:
+ * "selection indicator
  * `translate`+width between segments, base".
  *
  * The anatomy those two rows add up to:
@@ -1879,9 +1881,9 @@ knob-arc {
  *       |-- segmented-indicator   absolute, 1/n wide, translated n cells along
  *       `-- option ...            each exactly 1/n, so the grid is regular
  *
- * **"radius 8 outer, 0 between" is what is drawn**, since ADR-0217. ADR-0097
- * deferred it on two grounds and both are gone: `border-radius` resolves four
- * corners now (ADR-0216), and the clipping that was the other objection is not
+ * **"radius 8 outer, 0 between" is what is drawn**. It was
+ * deferred on two grounds and both are gone: `border-radius` resolves four
+ * corners now, and the clipping that was the other objection is not
  * needed once a fill can round its own outer corners to match the bar. The
  * padding is 1 — the border's own width, so the track is exactly the bar's inner
  * box — and the segments and the pill take 7, which is the 8 less that border.
@@ -1890,11 +1892,10 @@ knob-arc {
  * `SegmentedTrack` and `SegmentedIndicator` square the corners that are not at an
  * end, and the radius they square stays here where a theme can change it.
  *
- * **The travelling indicator is drawn now**, which ADR-0097 deferred. What
+ * **The travelling indicator is drawn now**, which was deferred. What
  * unblocked it was not geometry: `flex-basis: 0` makes every segment exactly
  * 1/n of the track, so the distance to segment *k* is `k` times the pill's own
- * width — a percentage in a `transform`, which the painter resolves after Yoga
- * (ADR-0068, ADR-0099).
+ * width — a percentage in a `transform`, which the painter resolves after Yoga.
  */
 segmented {
   height: var(--gb-segmented-height);
@@ -1902,7 +1903,8 @@ segmented {
   /* The border's own width, so the track is the bar's inner box: a segment that
      started at the bar's edge would paint its fill over the 1px the border is
      stroked into, and its rounded end would sit outside the border's arc rather
-     than inside it (ADR-0216's group-box header, one control along). */
+     than inside it (the group-box header has the same arithmetic, one control
+     along). */
   padding: 1px;
   border-radius: 8px;
   border: 1px solid var(--gb-border);
@@ -1914,7 +1916,7 @@ segmented {
    box and an absolute child's against the parent's *padding* box, so a pill
    sized against a padded bar is 4px wider than the segment it covers and every
    cell after the first is off by more. A track with no padding makes the two
-   the same box. `slider` grew a track for the same kind of reason (ADR-0080). */
+   the same box. `slider` grew a track for the same kind of reason. */
 segmented-track {
   flex-grow: 1;
 }
@@ -1922,7 +1924,7 @@ segmented-track {
 /* The pill. Its width and its travel are the two numbers a selector cannot
    write — a stylesheet cannot count the segments — so `SegmentedIndicator`
    writes them through the `inline` seam, which is what makes them animatable
-   rather than merely correct (ADR-0099).
+   rather than merely correct.
 
    Everything here is what a theme *should* be able to change: the colour, the
    radius, and how long the travel takes. */
@@ -1934,7 +1936,7 @@ segmented-indicator {
   border-radius: 7px;
   background: var(--gb-segmented-selected-bg);
   /* No pill until something is selected. Built in every state anyway, because a
-     node that appears cannot transition -- `radio-dot`'s rule (ADR-0065). */
+     node that appears cannot transition -- `radio-dot`'s rule. */
   opacity: 0;
 }
 
@@ -1942,11 +1944,12 @@ segmented-indicator:checked {
   opacity: 1;
 }
 
-/* §3.1: "selection indicator `translate` ... between segments, **base**", which
-   is §1.7's duration for a component transition. The `width` half of that row
-   does not appear and cannot: it is not on §1.7's whitelist, and on a grid it
-   never changes -- every cell is the same size, so there is nothing for a width
-   to animate (ADR-0099).
+/* The animation table: "selection indicator `translate` ... between segments,
+   **base**", which is the motion duration for a component transition. The `width`
+   half of that row does not appear and cannot: it is not on the motion whitelist,
+   and on a grid it never changes -- every cell is the same size, so there is
+   nothing for a width
+   to animate.
 
    The fade is `fast` rather than `base`: a pill appearing because a model
    finally loaded is a state change, not a movement. */
@@ -1958,7 +1961,7 @@ segmented-indicator {
 /* The segment. A widget rather than a part (see `Option`): it is what a document
    writes, it is what takes the focus, and `select` writes the same node.
  *
- * `body-strong` is §3's typography column for this row, written out rather than
+ * `body-strong` is the row's typography column, written out rather than
  * as `class="body-strong"` for the reason `button` gives -- a segment is that
  * weight by being a segment.
  *
@@ -1966,7 +1969,7 @@ segmented-indicator {
  * not. A cell is exactly 1/n of the track, n is the number of segments, and no
  * selector can count them -- so `SegmentedTrack` sizes the cells and this rule
  * says everything else about them. A row of content-sized cells is a row an
- * indicator cannot travel along without measuring each one (ADR-0099).
+ * indicator cannot travel along without measuring each one.
  *
  * A label longer than its cell is **cut with an ellipsis**, which took two
  * properties and three failed attempts to arrive at. `overflow: hidden` alone
@@ -1974,7 +1977,7 @@ segmented-indicator {
  * that does not, and a box with text is a *measured* leaf, so narrowing it
  * measures the paragraph again and wraps it. `white-space: nowrap` is what stops
  * the re-measure and `text-overflow` is what marks the cut — in that order, which
- * is the order ADR-0235 found by trying the other one (ADR-0255). */
+ * is the order found by trying the other one. */
 option {
   padding: 0 12px;
   gap: 6px;
@@ -1998,8 +2001,8 @@ option {
   color: var(--gb-segmented-text);
 }
 
-/* §3's "1px divider in `--gb-border`", as a node. It was one because §8's subset
-   had no per-side border (ADR-0215), and it stays one now that it has (ADR-0505):
+/* The row's "1px divider in `--gb-border`", as a node. It was one because the CSS subset
+   had no per-side border, and it stays one now that it has:
    a divider fades on its own when the pill reaches it, and a segment's
    `border-left` would fade with the segment's hover wash and its label.
  *
@@ -2009,7 +2012,7 @@ option {
  *
  * *Which* two is the widget's, as a class — a selector cannot compare a line's
  * place with the pill's — and what happens to them is this sheet's: a theme that
- * wanted them dimmed rather than gone writes a different number (ADR-0499). */
+ * wanted them dimmed rather than gone writes a different number. */
 segmented-divider {
   width: 1px;
   background: var(--gb-border);
@@ -2020,7 +2023,7 @@ segmented-divider.beside-selection {
   opacity: 0;
 }
 
-/* §2.1's hover and press, as a **wash** rather than as a surface step -- the
+/* The states rule's hover and press, as a **wash** rather than as a surface step -- the
    overlay tokens `button.ghost` uses, and for the same reason it uses them: a
    segment has no surface of its own. It is also the only form that works on
    both sides of this control. An opaque hover fill on a segment would paint
@@ -2040,7 +2043,7 @@ option:active {
    sits on is the indicator's, and the label has to be legible on it. The
    foreground is the fill's rather than the theme's, which is why it is a token
    of its own and why `--gb-segmented-selected-text` is `--nord0` on the dark
-   theme where every other text token is `--nord6` (ADR-0087). */
+   theme where every other text token is `--nord6`. */
 option:checked {
   color: var(--gb-segmented-selected-text);
 }
@@ -2048,12 +2051,12 @@ option:checked {
 /* No `segmented:disabled option { opacity: 1 }` undo, and no `option:disabled`
    colour remap: the 45% in the states block above fades the bar, its pill, its
    segments and their labels together, because the painter multiplies opacity
-   down the subtree (ADR-0077). */
+   down the subtree. */
 
 /* ---------------------------------------------------------------- select --
  *
- * §3's row: "`text-input` / `select` — height 32 (28); padding-x 8; radius 4;
- * `body`", plus §3's `list` row for what is inside the popup — "height 32 (26);
+ * The `text-input` / `select` metrics row: "height 32 (28); padding-x 8; radius 4;
+ * `body`", plus the `list` row for what is inside the popup — "height 32 (26);
  * padding-x 12; selection = `--gb-selection` full-row".
  *
  * The anatomy:
@@ -2066,7 +2069,7 @@ option:checked {
  *   `-- option ...            a row, not a segment: full width, leading-aligned
  *
  * **A field and not a button**, which is the whole of why it carries a border
- * and a 4px radius where `button` carries 8 and none: §3 files it with
+ * and a 4px radius where `button` carries 8 and none: the metrics table files it with
  * `text-input` rather than with the buttons, because what it is offering is a
  * *value* and the affordance for that is a field the value sits in.
  */
@@ -2078,11 +2081,11 @@ select {
   padding: 0 8px;
   border-radius: 4px;
   border: 1px solid var(--gb-border);
-  /* A well, exactly as `text-input` is: §3 gives the two controls one row, and
+  /* A well, exactly as `text-input` is: the metrics table gives the two controls one row, and
      a form where the field you type into and the field you pick from are
      different colours is a form that looks assembled from two toolkits. This was
      `--gb-surface-2` and had `text-input`'s defect for `text-input`'s reason
-     (ADR-0168) -- one rung off the page on the light theme, held together by a
+     -- one rung off the page on the light theme, held together by a
      1px border, which is precisely what `controls-on-surface-*` exists to
      catch. */
   background: var(--gb-surface-sunken);
@@ -2092,13 +2095,13 @@ select {
   line-height: var(--gb-line-body);
 }
 
-/* §2.1's hover, as a step rather than a wash: this control has a surface of its
+/* The states rule's hover, as a step rather than a wash: this control has a surface of its
    own, unlike a segment, so it can take the same treatment `panel` does. */
 select:hover {
   border-color: var(--gb-text-muted);
 }
 
-/* The field while its list is showing. A class and not a pseudo-class -- §8's
+/* The field while its list is showing. A class and not a pseudo-class -- the CSS
    subset has none meaning "expanded" (see `SelectField`) -- and the accent
    border is the same one a focused field would carry, because "this is the
    control the keyboard is in" is exactly what both states mean. */
@@ -2115,7 +2118,7 @@ select.open {
    text is a *measured* leaf, so shrinking it measured the paragraph again and
    **wrapped** it, which in a fixed-height field is worse than overflowing. With
    `nowrap` the paragraph keeps its natural width whatever it is given, the box
-   shrinks around it, and the ellipsis says what happened (ADR-0235, ADR-0255). */
+   shrinks around it, and the ellipsis says what happened. */
 select-value {
   flex-grow: 1;
   flex-shrink: 1;
@@ -2123,7 +2126,7 @@ select-value {
   text-overflow: ellipsis;
 }
 
-/* Nothing chosen reads as `--gb-text-muted`, which is §1.2's rank for text that
+/* Nothing chosen reads as `--gb-text-muted`, which is the colour rule's rank for text that
    is standing in for content rather than being it. A class rather than a
    pseudo-class for `select.open`'s reason. */
 select-value.placeholder {
@@ -2132,15 +2135,16 @@ select-value.placeholder {
 
 /* --------------------------------------------------------- form & field --
  *
- * §4's layout contract. `field` is "consistent label column (or stacked labels
- * via class), required marker, control slot, message slot below", and all of
+ * The form specification's layout contract. `field` is "consistent label column
+ * (or stacked labels via class), required marker, control slot, message slot
+ * below", and all of
  * that is here rather than in the widget: a field's `render` sets nothing but
  * its children, so what a document asks for with a class is what it gets.
  *
  * **Stacked is the default and the column is the class**, which is the opposite
- * of how §4 words it and is the right way round for the toolkit that has to
+ * of how the specification words it and is the right way round for the toolkit that has to
  * ship both. A label column needs a width, that width has to be the same for
- * every field in a form, and §8's subset has no way to say "as wide as the
+ * every field in a form, and the CSS subset has no way to say "as wide as the
  * widest of these" -- so the column form is the one that needs a number from
  * the application, and a default that needed one would be a default that is
  * wrong until it is configured.
@@ -2155,8 +2159,8 @@ field {
   gap: 4px;
 }
 
-/* The control and its message, always a column. §4 asks for a label *column* and
-   a message *below*, which are a row and a column — and §8's subset has no grid
+/* The control and its message, always a column. The specification asks for a label *column* and
+   a message *below*, which are a row and a column — and the CSS subset has no grid
    and no wrapping, so the shape comes from the tree instead: a field is a row of
    two, and this is the second (see `FieldBody`).
 
@@ -2211,9 +2215,9 @@ form.horizontal field field-label {
    own — it is as wide as it is told to be — so in a box beside a fixed label it
    would take nothing at all, which is a field with a label and a sliver.
 
-   Enumerated rather than "everything that is not the label", because §8's subset
+   Enumerated rather than "everything that is not the label", because the CSS subset
    has no `:not()` — the same reason a disabled control is kept from lighting up
-   in the router rather than in a stylesheet (ADR-0064). A control this list
+   in the router rather than in a stylesheet. A control this list
    forgets gets its natural width, which is visible immediately rather than
    subtly wrong. */
 field-body text-input,
@@ -2225,7 +2229,7 @@ field-body text-area {
 /* And the way back, for the one field in a horizontal form that wants the
    stacked shape -- a `text-area`, usually, whose label beside it wastes the
    width the control needs. `field.vertical` is more specific than
-   `form.horizontal field`, so it wins without `!important`, which §8's subset
+   `form.horizontal field`, so it wins without `!important`, which the CSS subset
    does not have. */
 form.horizontal field.vertical {
   flex-direction: column;
@@ -2258,20 +2262,20 @@ field-label {
 }
 
 /* The required marker rides in the label's own text, so what can be coloured is
-   the whole label. §1.2 forbids colour as the only carrier of meaning, which is
+   the whole label. The colour rule forbids colour as the only carrier of meaning, which is
    why the marker is an asterisk first and a colour second -- and why this rule
    does *not* redden the label: a required field is not a wrong one. */
 field-label.required {
   color: var(--gb-text);
 }
 
-/* The message slot. `--gb-danger` is §4's word for it, and the slot is in the
+/* The message slot. `--gb-danger` is the specification's word for it, and the slot is in the
    tree at all times -- an empty one draws nothing and takes no height, so a
    form does not breathe every time a field goes wrong.
 
-   The **`-text` rank**, not the hue and not `-line`: these are words, so §1.2's
-   floor is 4.5:1 rather than the 3:1 a border gets. The bare hue measured 2.46:1
-   on `--gb-surface` in the dark theme (ADR-0229). */
+   The **`-text` rank**, not the hue and not `-line`: these are words, so the
+   contrast floor is 4.5:1 rather than the 3:1 a border gets. The bare hue measured 2.46:1
+   on `--gb-surface` in the dark theme. */
 field-message {
   color: var(--gb-danger-text);
   font-size: var(--gb-font-caption);
@@ -2279,27 +2283,28 @@ field-message {
 }
 
 /* A field whose value its rule refused. `:invalid` is a pseudo-class rather
-   than a class because §4 asks for one by name -- the only addition to §8's
-   pseudo set the specification requests (`core-widgets.md` §1).
+   than a class because the form specification asks for one by name -- the only
+   addition to the CSS subset's pseudo-class set the specification requests.
  *
  * It reddens the **control's border** and nothing else. Not the label, which
- * would say the label is wrong; not the fill, which §2.1 reserves for state and
+ * would say the label is wrong; not the fill, which the states rule reserves for state and
  * which would fight the field's own well; and not the text, which has to stay
  * readable while somebody fixes it. */
 field:invalid text-input,
 field:invalid select {
   /* The **`-line` rank**: this is a stroke on a surface, which is the rank's
-     whole purpose, and the bare hue is 2.46:1 on `--gb-surface` against §1.2's
-     3:1 floor. `message` was the first widget to draw a hue this way and the only
-     one to use the rank until now (ADR-0229). */
+     whole purpose, and the bare hue is 2.46:1 on `--gb-surface` against the
+     3:1 floor for a mark. `message` was the first widget to draw a hue this way and the only
+     one to use the rank until now. */
   border-color: var(--gb-danger-line);
 }
 
 /* ---------------------------------------------------------- text-input --
  *
- * §4's single-line field. It is `select`'s surface with a caret in it, and the
- * two are deliberately the same: §3 gives them one row and one height, and a
- * form where the field you type into and the field you pick from do not match is
+ * The form group's single-line field. It is `select`'s surface with a caret in it,
+ * and the two are deliberately the same: the metrics table gives them one row and
+ * one height, and a form where the field you type into and the field you pick
+ * from do not match is
  * a form that looks assembled from two toolkits.
  *
  * The children are placed by the widget, not by this stylesheet -- a caret's x
@@ -2316,8 +2321,8 @@ text-input {
   border: 1px solid var(--gb-border);
   /* A **well**: content sits in a field rather than on it, and
      `--gb-surface-sunken` is the token that says so in whichever direction the
-     theme's ramp runs (ADR-0168). This was `--gb-surface-2` and that is the same
-     mistake ADR-0166 corrected for `card`: it means "the second surface" and
+     theme's ramp runs. This was `--gb-surface-2` and that is the same
+     mistake `--gb-surface-raised` corrected for `card`: it means "the second surface" and
      promises no direction, so on the light theme a field was one rung off the
      page and read as barely there. */
   background: var(--gb-surface-sunken);
@@ -2326,19 +2331,19 @@ text-input {
   line-height: var(--gb-line-body);
 }
 
-/* §2.1's hover, the step `select` takes rather than a wash. */
+/* The states rule's hover, the step `select` takes rather than a wash. */
 text-input:hover {
   border-color: var(--gb-text-muted);
 }
 
 /* An empty field is standing in for content rather than being it. A class rather
-   than a pseudo-class for `select-value.placeholder`'s reason: §8's subset has
+   than a pseudo-class for `select-value.placeholder`'s reason: the CSS subset has
    none that means this.
 
    `--gb-text-placeholder` and not `--gb-text-muted`, which was the first answer
    and did apply -- it was simply too small a step to see. Muted and text are two
    rungs apart on the Nord ramp, so a placeholder inside a filled field looked
-   exactly like a value somebody had typed (ADR-0168). */
+   exactly like a value somebody had typed. */
 text-value.placeholder {
   color: var(--gb-text-placeholder);
 }
@@ -2353,20 +2358,20 @@ text-caret {
 }
 
 /* The highlight, behind the text rather than over it, so the glyphs keep their
-   own colour and stay readable (§1.2). `--gb-selection` is translucent in both
-   themes for exactly that reason, and is the one token here that was already
+   own colour and stay readable, which the contrast rule needs. `--gb-selection`
+   is translucent in both themes for exactly that reason, and is the one token here that was already
    declared before anything used it. */
 text-selection {
   background: var(--gb-selection);
   border-radius: 2px;
 }
 
-/* The rule under text an input method has not finished with (docs/gaps.md G16).
+/* The rule under text an input method has not finished with.
    `--gb-text` and not the accent, for `text-caret`'s reason: a composition is
    the text it is about to become, and the line says "not yet" rather than
    "chosen". Its *thickness* is the widget's -- a hairline at every size, because
    an underline that grew with the font would read as a highlight by the time the
-   font was large enough to want one (ADR-0292).
+   font was large enough to want one.
 
    The clause an input method is converting is drawn with `text-selection`
    instead, which is free while a composition is open: a composition replaces the
@@ -2377,7 +2382,7 @@ text-composition {
 
 /* ----------------------------------------------------------- text-area --
  *
- * §4's multi-line field. It is `text-input`'s surface with more than one line in
+ * The form group's multi-line field. It is `text-input`'s surface with more than one line in
  * it, and it shares the three parts and every rule about them — the two controls
  * must not look like they were designed by different people, and the surest way
  * to that is one set of rules rather than two that agree today.
@@ -2413,16 +2418,16 @@ text-area:disabled {
   cursor: not-allowed;
 }
 
-/* The line-number column (docs/gaps.md G37). The strip only -- the numbers on it
+/* The line-number column. The strip only -- the numbers on it
    are drawn by the widget, because where a hard line ended up is a fact about the
    wrap and a column of number *nodes* would be a frame behind the text on every
    keystroke that changed the line structure.
-   
+
    So this rule owns the fill, and `--gb-gutter-color` below owns the ink.
-   
+
    A **fill** and not a rule down its edge. It was chosen while `border-right` was
-   not a declaration that existed (ADR-0107) and it is kept now that it is
-   (ADR-0505): one step of surface is what tells the column from the text, which
+   not a declaration that existed and it is kept now that it is
+  : one step of surface is what tells the column from the text, which
    is the same way `table`'s header strip is told from its body. */
 text-area-gutter {
   background: var(--gb-surface);
@@ -2432,7 +2437,7 @@ text-area-gutter {
    widget rather than applied by the cascade (`TextAreaBox.GUTTER_COLOR_TOKEN`
    and `GUTTER_GAP_TOKEN`), which is what `Paints.Context.color` and `.length`
    exist for: a widget drawing something the property set has no declaration for
-   still has to be themeable (ADR-0195, ADR-0251).
+   still has to be themeable.
 
    Muted, and deliberately not `--gb-text`: a line number is a landmark you
    count from rather than something you read, and one in the text's own colour
@@ -2444,12 +2449,12 @@ text-area {
 
 /* ---------------------------------------------------------- color-picker --
  *
- * §4's colour field, and §2's row for it: swatch 24, radius 4; plane 200x160;
+ * The form group's colour field, and its metrics row: swatch 24, radius 4; plane 200x160;
  * hue/alpha sliders `slider` metrics; preset swatch 20, gap 4.
  *
- * The closed control is a **swatch button** rather than a field, which is §4's
+ * The closed control is a **swatch button** rather than a field, which is the specification's
  * word -- so unlike the other two pickers there is no `text-input` out here. The
- * hex field is inside the popover, where §4 puts it.
+ * hex field is inside the popover, where the specification puts it.
  */
 color-picker {
   flex-direction: row;
@@ -2464,7 +2469,8 @@ color-picker:disabled {
 }
 
 /* A block of colour. The colour itself is a `background` the widget writes
-   (ADR-0099's seam), so it can transition rather than jump -- which is the only
+   (the seam the segmented indicator uses), so it can transition rather than
+   jump -- which is the only
    reason this rule does not name one. */
 color-swatch {
   width: var(--gb-color-swatch);
@@ -2480,7 +2486,7 @@ color-swatch:focus-visible {
   outline-offset: 2px;
 }
 
-/* §2's second swatch. Smaller, and the border is lighter because twelve of them
+/* The metrics row's second swatch. Smaller, and the border is lighter because twelve of them
    in a row with a strong edge each reads as a grid rather than as a palette. */
 color-swatch.preset {
   width: var(--gb-color-preset);
@@ -2492,7 +2498,7 @@ color-swatch.preset:hover {
   border-color: var(--gb-text-muted);
 }
 
-/* The popover's contents. A column of the four things §4 lists, in its order. */
+/* The popover's contents. A column of the four things the specification lists, in its order. */
 color-board {
   flex-direction: column;
   align-items: stretch;
@@ -2512,10 +2518,10 @@ color-plane:focus-visible {
   outline-offset: 2px;
 }
 
-/* §2 says *`slider` metrics*, which is the track height -- and not `slider`,
+/* The metrics row says *`slider` metrics*, which is the track height -- and not `slider`,
    because a `slider`'s track is a groove in `--gb-border` and these are a picture
-   of what the value means. The track is painted, since §8's subset has no
-   gradient (ADR-0207). Taller than a `slider`'s 4 because a ramp is something you
+   of what the value means. The track is painted, since the CSS subset has no
+   gradient. Taller than a `slider`'s 4 because a ramp is something you
    read as well as drag. */
 color-ramp {
   height: 12px;
@@ -2523,8 +2529,8 @@ color-ramp {
   flex-shrink: 0;
 }
 
-/* However many fit, which is a question only the width can answer -- §2 sizes the
-   swatch and the gap and says nothing about how many. §8 has `flex-wrap`, so the
+/* However many fit, which is a question only the width can answer -- the metrics row sizes
+   the swatch and the gap and says nothing about how many. The CSS subset has `flex-wrap`, so the
    stylesheet answers it rather than the widget counting. */
 color-presets {
   flex-direction: row;
@@ -2534,13 +2540,13 @@ color-presets {
 
 /* ----------------------------------------------------------- time-picker --
  *
- * §4's typed time field. The control itself is `date-picker`'s -- the same
+ * The form group's typed time field. The control itself is `date-picker`'s -- the same
  * `PickerField`, the same `picker-toggle`, the same `picker-panel` -- so what is
- * here is only the popover's contents: §4's "hour/minute/second column set".
+ * here is only the popover's contents: the specification's "hour/minute/second column set".
  *
- * §2 gives the two pickers one row and it is about the *date* half of it (a day
- * cell), so the wheels' metrics are ADR-0275's addition and `design-system.md` §2
- * gained a row for them in the same change.
+ * The metrics table gives the two pickers one row and it is about the *date* half of it (a day
+ * cell), so the wheels' metrics are the time picker's own addition, and the
+ * design system gained a row for them in the same change.
  */
 time-picker {
   flex-direction: row;
@@ -2612,7 +2618,7 @@ time-cell.roving {
 
 /* ----------------------------------------------------------- date-picker --
  *
- * §4's typed date field, and §2's row for it: "field = `text-input`; popup radius
+ * The form group's typed date field, and its metrics row: "field = `text-input`; popup radius
  * 12, padding 8; day cell 32 square, radius `full`". Three of those four belong
  * to something else -- the field is a real `text-input` and takes `text-input`'s
  * rules unchanged, and the cell is `calendar-day`'s -- so what is left here is
@@ -2669,13 +2675,13 @@ picker-toggle:hover {
 
    `position: absolute` with only a `right`, which places it against the picker's
    **padding** edge and lets `align-items: center` put it on the middle -- the
-   path Yoga has always had right, and now the other one is right too (ADR-0272).
+   path Yoga has always had right, and now the other one is right too.
    A `relative` box with a negative `left` was the first answer and moved the
    chevron to the *far* side of the field: a relative offset moves a box that is
    still in the flow, so the field kept its place and the chevron slid across it.
 
    Scoped to the two pickers that have a field. A `color-picker`'s closed control
-   is a 24-point swatch (§4 calls it "a swatch button"), and an affordance pinned
+   is a 24-point swatch (the specification calls it "a swatch button"), and an affordance pinned
    to the right edge of *that* lands on top of it -- which is what the first
    picture of it showed. It sits beside the swatch instead, which is what
    `color-picker`'s own `gap` is for. */
@@ -2691,11 +2697,11 @@ date-picker:checked picker-toggle {
   color: var(--gb-accent);
 }
 
-/* §2: "popup radius 12, padding 8". A `calendar` draws no surface of its own --
+/* The metrics row: "popup radius 12, padding 8". A `calendar` draws no surface of its own --
    it sits on whatever it was put on, which is `panel`'s rule and `chart`'s -- so
    the surface is this, and it is `select-list`'s shape because a picker's popup
    is the same kind of thing as a combobox's. The 12 is the row's and not
-   `select-list`'s 8: §2 gives this popup its own number. */
+   `select-list`'s 8: the metrics row gives this popup its own number. */
 picker-panel {
   flex-direction: column;
   padding: 8px;
@@ -2707,7 +2713,7 @@ picker-panel {
 
 /* -------------------------------------------------------------- calendar --
  *
- * §10's month grid, and §2's row for it: day cell 32 (28) square; header row
+ * The calendar's month grid, and its metrics row: day cell 32 (28) square; header row
  * `caption` in `--gb-text-muted`; grid gap 0; radius `full` on the selected day,
  * range ends only.
  *
@@ -2736,8 +2742,8 @@ calendar:disabled {
   cursor: not-allowed;
 }
 
-/* The month, and the two arrows. Not in §10 -- see ADR-0274 for why a calendar
-   needs one anyway, and `design-system.md` §2 for the row it gained. */
+/* The month, and the two arrows. Not in the calendar's specification, but it needs one anyway
+   to say which month it shows, and the design system gained a row for it. */
 calendar-header {
   flex-direction: row;
   align-items: center;
@@ -2755,7 +2761,7 @@ calendar-title {
 }
 
 /* A `button.ghost.circle`'s shape without being one: a `button` is a Tab stop and
-   §10 says the grid is one. See `CalendarHeader`. */
+   the specification says the grid is one. See `CalendarHeader`. */
 calendar-nav {
   width: var(--gb-calendar-day);
   height: var(--gb-calendar-day);
@@ -2812,7 +2818,7 @@ calendar-week {
 }
 
 /* One day. The radius is `full` and the fill is what decides whether it shows:
-   §2 asks for the round corner on "the selected day, range ends only", and a
+   the metrics row asks for the round corner on "the selected day, range ends only", and a
    range's middle is `in-range` and not `:checked`, so this one rule covers both
    without an exception. */
 calendar-day {
@@ -2860,7 +2866,7 @@ calendar-day:checked:hover {
   background: var(--gb-accent);
 }
 
-/* The roving day -- §10's "one Tab stop with a roving day". A class and not
+/* The roving day -- the specification's "one Tab stop with a roving day". A class and not
    `:focus-visible`, because the focus is the grid's: forty-two focusable cells
    would be forty-two Tab stops (see `CalendarBox`). It only ever carries the
    class while the grid has the keyboard, so this needs no `:focus` of its own. */
@@ -2880,7 +2886,7 @@ calendar-day:disabled:hover {
 
 /* ------------------------------------------------------------ code-input --
  *
- * §4's one-time-code field, and §2's row for it: box 40x48 (36x44); gap 8;
+ * The form group's one-time-code field, and its metrics row: box 40x48 (36x44); gap 8;
  * radius 4; `title`, centred; group gap 16 at the midpoint when `length` is
  * even.
  *
@@ -2890,9 +2896,9 @@ calendar-day:disabled:hover {
  * that takes the focus and the one a document names.
  *
  * The gap here is the *group* gap, and `code-group` below carries the gap
- * between boxes. §8's subset has no `:nth-child`, so no selector can say "wider
+ * between boxes. The CSS subset has no `:nth-child`, so no selector can say "wider
  * after the third one" -- the widget puts the boxes in groups instead, and this
- * pair of rules is what those groups are for (ADR-0273). An odd length is one
+ * pair of rules is what those groups are for. An odd length is one
  * group, so this gap never applies and the row is flat.
  */
 code-input {
@@ -2902,7 +2908,7 @@ code-input {
   flex-shrink: 0;
 }
 
-/* The ring is on the **active box**, not on the field, which is §2.2's "focus
+/* The ring is on the **active box**, not on the field, which is the focus rule's "focus
    moves between boxes". So the field takes the outline off itself and hands it
    down -- and it is a `:focus-visible` rule for the reason every other control
    gives: the ring is for keyboard focus, and a pointer that has just clicked a
@@ -2928,7 +2934,7 @@ code-group {
   flex-shrink: 0;
 }
 
-/* One character in a frame. `title` and centred on both axes, which is §2's row
+/* One character in a frame. `title` and centred on both axes, which is the metrics row
    -- a code is read a character at a time, and body text in a 40x48 box reads as
    a field somebody left mostly empty. */
 code-box {
@@ -2946,10 +2952,11 @@ code-box {
   transition: border-color var(--gb-motion-fast) ease-enter;
 }
 
-/* A box with something in it. §2 does not ask for this and §1.2 does: a row of
-   six identical frames says nothing about how far through the code somebody is,
+/* A box with something in it. The metrics row does not ask for this and the
+   colour rule does: a row of six identical frames says nothing about how far
+   through the code somebody is,
    and the strong border is the vocabulary `card` already uses for "this edge is
-   the meaningful one". `border-color` is on §1.7's whitelist, so it may
+   the meaningful one". `border-color` is on the motion whitelist, so it may
    transition; nothing else here moves. */
 code-box.filled {
   border-color: var(--gb-border-strong);
@@ -2978,7 +2985,7 @@ select-chevron {
  *
  * The panel, in a popup window of its own -- so like `popover` and `menu` it is
  * the root of its own element tree and inherits nothing: every property it needs
- * is written here, `color` included (ADR-0103).
+ * is written here, `color` included.
  */
 select-list {
   flex-direction: column;
@@ -2992,12 +2999,12 @@ select-list {
 
 /* An `option` in a list is a **row** where an `option` in a bar is a cell, and
    these four declarations are the whole difference: full width, leading-aligned,
-   a list row's height, and §3's `body` rather than `body-strong` -- a bar's
+   a list row's height, and the row's `body` rather than `body-strong` -- a bar's
    labels are emphasised because they are all on screen competing, and a list's
    are not.
  *
  * Scoped by the ancestor, which is what one widget in two surroundings looks
- * like in CSS. It is not the improvisation ADR-0065 warns about: that one is
+ * like in CSS. It is not the improvisation a part's rules warn about: that one is
  * using an ancestor to tell two different *widgets* apart, and this is one
  * widget being told where it is (see `Option`). */
 select-list option {
@@ -3008,7 +3015,7 @@ select-list option {
   color: var(--gb-text);
 }
 
-/* §3's `list` row: "selection = `--gb-selection` full-row". The colour stays
+/* The `list` metrics row: "selection = `--gb-selection` full-row". The colour stays
    `--gb-text` -- `--gb-selection` is a translucent wash rather than a fill, so
    the label under it does not need a foreground of its own the way a segment's
    does on its opaque pill. */
@@ -3017,7 +3024,7 @@ select-list option:checked {
   color: var(--gb-text);
 }
 
-/* No ring in the list, which is ADR-0112's rule for a menu applied here for the
+/* No ring in the list, which is a menu's rule applied here for the
    same reason: a rectangle inside a rectangle on every row in turn reads as
    damage, and the highlight is the affordance every desktop list already uses.
    The row the keyboard is on is also the row that is selected, because arrows
@@ -3034,7 +3041,7 @@ select-list option:focus-visible:checked {
 
 /* ------------------------------------------------------------------- hud --
  *
- * `docs/core-widgets.md` §7's `hud`: what the frame loop is managing, floating
+ * The `hud`: what the frame loop is managing, floating
  * over the window it is managing.
  *
  * It is the one widget in the catalog that is *about* the toolkit rather than
@@ -3048,8 +3055,7 @@ select-list option:focus-visible:checked {
 hud {
   /* **A column, one reading a line.** A row was fine for two numbers and is a
      wall for seven: a reader scanning for the one that has gone wrong is
-     scanning across, which is the direction a line of text already uses
-     (ADR-0150). */
+     scanning across, which is the direction a line of text already uses. */
   flex-direction: column;
   align-items: flex-start;
   gap: 1px;
@@ -3081,7 +3087,7 @@ hud-reading.fps {
 
 /* The four stages a frame is made of, one rank quieter again: `paint` is the
    number a reader is checking against a budget and these are where it went, so
-   they are context for context (ADR-0146). */
+   they are context for context. */
 hud-reading.refresh,
 hud-reading.build,
 hud-reading.style,
@@ -3091,10 +3097,9 @@ hud-reading.raster {
 }
 
 /* **Near its budget, and over it** — the two states worth a colour and the only
-   two. §1.2 admits the aurora hues "only with semantic meaning", and "this
+   two. The colour rule admits the aurora hues "only with semantic meaning", and "this
    number is the problem" is exactly one; a HUD is also the one surface in the
-   toolkit where a warning is the whole point rather than an interruption
-   (ADR-0150).
+   toolkit where a warning is the whole point rather than an interruption.
 
    The classes come from the widget rather than from a pseudo-class, because
    there is no pseudo-class for "over budget" and inventing one for a single
@@ -3106,8 +3111,7 @@ hud-reading.near {
 hud-reading.over {
   /* The HUD's **own** red, not the theme's. Its plate is the same in both themes
      (see `--gb-hud-bg`), so a theme-varying hue is the wrong thing to draw on it
-     — and `--gb-danger` measured 3.95:1 there against §1.2's 4.5:1 for text
-     (ADR-0229). */
+     — and `--gb-danger` measured 3.95:1 there against the 4.5:1 floor for text. */
   color: var(--gb-hud-danger);
   font-weight: 600;
 }
@@ -3124,18 +3128,18 @@ hud-caption {
 
 /* --------------------------------------------------------------- popover --
  *
- * `docs/core-widgets.md` §7's floating panel: the surface a menu, a dropdown or
+ * The floating panel: the surface a menu, a dropdown or
  * a picker is drawn on.
  *
  * It is the **root of its own element tree** — a popup's contents are not
- * descendants of the widget that opened them (ADR-0103) — so nothing inherits
+ * descendants of the widget that opened them — so nothing inherits
  * into it and every property it needs is written here. That includes `color`,
  * which everywhere else in the catalog comes from an ancestor.
  *
  * The elevation is a border rather than a shadow, and the reason has changed
- * without the rule changing. It used to be that §8's subset had no `box-shadow`;
- * it has one now (ADR-0310) and this panel still cannot use it, because **a
- * popup window is created at exactly this panel's measured size** (ADR-0104).
+ * without the rule changing. It used to be that the CSS subset had no `box-shadow`;
+ * it has one now and this panel still cannot use it, because **a
+ * popup window is created at exactly this panel's measured size**.
  * A shadow is drawn outside the box that casts it, so every pixel of one here
  * would fall outside the window and be clipped away — the toolkit would pay for
  * a run of fills and draw nothing at all.
@@ -3165,10 +3169,10 @@ popover button {
 
 /* --------------------------------------------------------------- tooltip --
  *
- * `docs/core-widgets.md` §7's `tooltip`, attached by attribute to any widget and
+ * The `tooltip`, attached by attribute to any widget and
  * opened by the toolkit rather than by a document — so the *type* is declared in
  * `:core` beside the launcher that opens it, and its appearance is here with
- * everything else that has one (ADR-0105).
+ * everything else that has one.
  *
  * A dark plate on both themes, for `hud`'s reason: it lies over the
  * application's own colours, which the toolkit does not know. Smaller and
@@ -3176,37 +3180,38 @@ popover button {
  */
 tooltip {
   padding: 8px 12px;
-  /* **A maximum, and the number is a judgement.** §2's metrics row for `tooltip`
+  /* **A maximum, and the number is a judgement.** The metrics row for `tooltip`
      gives a padding, a radius and two delays and no width at all — so this is
      `Toaster.DEFAULT_MAXIMUM`'s kind of decision rather than a specified one:
      without it a tooltip is one line as wide as its string, and a sentence of
      help text becomes a ribbon across the window that is harder to read than no
      tooltip. 320 because a tooltip is "a label rather than a surface" and should
-     not be able to reach a `dialog`'s minimum width (ADR-0181). */
+     not be able to reach a `dialog`'s minimum width. */
   max-width: 320px;
-  /* §3's row, both numbers, after two hundred ADRs of disagreeing with it
-     (ADR-0380). The stylesheet used to write 8 and `body` with an argument
+  /* The metrics row, both numbers, after a long run of disagreeing with it.
+     The stylesheet used to write 8 and `body` with an argument
      beside each; the argument was good and the design system is the authority,
      and a toolkit whose own sheet quietly departs from its own specification has
-     a specification nobody can read a screen against. §17.1 recorded it as a
-     decision to take; this is it, taken the way the section says to take it. */
+     a specification nobody can read a screen against. It was recorded as a
+     decision to take; this is it, taken the way every such disagreement is
+     taken: the design document wins. */
   border-radius: 4px;
   background: var(--gb-hud-bg);
   border: 1px solid var(--gb-hud-border);
   color: var(--gb-hud-text);
-  /* `caption`, as §3 asks. What the sheet used to say against it: §1.4 gives
+  /* `caption`, as the row asks. What the sheet used to say against it: the type scale gives
      caption to secondary text *under* a control, where the reader has the
      control for context, and a tooltip is the only text on screen at the moment
-     it is read. That reading is now §1.4's to answer rather than this rule's. */
+     it is read. That reading is now the type scale's to answer rather than this rule's. */
   font-size: var(--gb-font-caption);
   line-height: var(--gb-line-caption);
 }
 
 /* ------------------------------------------------------------------ menu --
  *
- * `docs/core-widgets.md` §8. A menu is drawn in a popup window of its own, so —
+ * A menu is drawn in a popup window of its own, so —
  * like `popover` — it is the root of its own element tree and inherits nothing:
- * every property it needs is written here, `color` included (ADR-0103).
+ * every property it needs is written here, `color` included.
  */
 menu {
   flex-direction: column;
@@ -3224,13 +3229,13 @@ menu {
    be a menu the pointer cannot travel down predictably.
 
    `white-space: nowrap` is what makes that height honest. A menu is measured and
-   then placed (ADR-0104), and a menu clamped to the work area is a menu whose
+   then placed, and a menu clamped to the work area is a menu whose
    rows are narrower than their labels — which used to *wrap* a label onto a
    second line inside a row that is one line tall, so the text was centred against
-   the row's top edge and the row after it looked misaligned. ADR-0148 stopped it
+   the row's top edge and the row after it looked misaligned. The first fix stopped it
    with `flex-shrink: 0` on the label and let the text run off the edge instead;
    with `nowrap` the label may shrink again, and `text-overflow: ellipsis` says
-   where it was cut (ADR-0235, ADR-0255). The accelerator keeps its
+   where it was cut. The accelerator keeps its
    `flex-shrink: 0` in `Item.render`, because half a shortcut is not one.
 
    `flex-shrink: 0` here is about the *column*: a menu taller than its window
@@ -3260,7 +3265,7 @@ item:hover {
    `:focus-visible` and **not** `:focus`, which is the difference between a menu
    that looks right and one whose first row is always lit: a menu focuses its
    first item as it opens so that the arrows have somewhere to start, and a
-   pointer user never asked for that row to be picked out (ADR-0112). */
+   pointer user never asked for that row to be picked out. */
 item:focus-visible {
   background: var(--gb-overlay-hover);
 }
@@ -3269,8 +3274,8 @@ item:active {
   background: var(--gb-overlay-active);
 }
 
-/* The row whose submenu is showing. Nothing said which branch was open until
-   ADR-0219: a row is `:focus-visible` when the keyboard is on it and `:hover`
+/* The row whose submenu is showing. Nothing said which branch was open before
+   this rule: a row is `:focus-visible` when the keyboard is on it and `:hover`
    when the pointer is, and neither means "this is the one that is down" — the
    pointer can be three rows away with a submenu still on screen.
 
@@ -3288,7 +3293,7 @@ item:disabled {
 }
 
 /* The leading column: a tick, an icon, or nothing, at one width so the labels
-   line up whichever it is (ADR-0113). 16 rather than 14, because that is the size
+   line up whichever it is. 16 rather than 14, because that is the size
    an icon is built at and the tick has to share the column with it.
 
    Dimmer than the label, like the accelerator: both are context for the command
@@ -3309,13 +3314,13 @@ separator {
 
 /* --------------------------------------------------------------- menubar --
  *
- * `docs/core-widgets.md` §8's in-window bar. Unlike a `menu`, this is drawn in
+ * The in-window bar. Unlike a `menu`, this is drawn in
  * the application's own window and inherits from it — so only what actually
- * differs from the surrounding page is written here (ADR-0163).
+ * differs from the surrounding page is written here.
  *
  * There is **no rule under it**: a bar separated from the page by its own surface
  * colour does not need one. This said as well that `border-bottom` was not a
- * declaration that existed (ADR-0107); it is since ADR-0505, and is what to write
+ * declaration that existed; it is now, and is what to write
  * if a rule ever turns out to be wanted.
  */
 menubar {
@@ -3346,7 +3351,7 @@ menu-title:hover {
 
 /* `:focus-visible` and not `:focus`, for the reason an `item` gives: the bar is
    one tab stop and lands on its first heading, and a pointer user never asked
-   for that heading to be picked out (ADR-0112). */
+   for that heading to be picked out. */
 menu-title:focus-visible {
   background: var(--gb-overlay-hover);
 }
@@ -3378,12 +3383,12 @@ menu-title:disabled {
 
 /* ------------------------------------------------------------------ tabs --
  *
- * `docs/core-widgets.md` §5, top placement: a row of headers over one panel.
+ * Tabs, top placement: a row of headers over one panel.
  *
  * The rule under the headers is `tab-list`'s and not `tabs`'s, because it has to
  * stop where the headers stop — a border on the outer box would run under the
  * panel as well. That is `slider`'s anatomy argument again: two boxes were doing
- * one job (ADR-0107).
+ * one job.
  */
 tabs {
   flex-direction: column;
@@ -3392,8 +3397,8 @@ tabs {
 /* `center` rather than `stretch`, and it is what puts the `+` on the same line
    as the labels: every header has an explicit height, so nothing here stretches
    anyway, and a child shorter than the row would otherwise sit at the top of it.
-   §8's subset has no `align-self` — the per-child companion of this — so the row
-   says it once for everything in it (ADR-0111). */
+   The CSS subset has no `align-self` — the per-child companion of this — so the row
+   says it once for everything in it. */
 tab-list {
   flex-direction: row;
   align-items: center;
@@ -3403,14 +3408,14 @@ tab-list {
      the `+` button's 24 when the last one is closed. So closing every tab made
      the strip shrink by 8px and dropped the `+` to the top of a row that was no
      longer as tall as it, which is the one state where a header row has nothing
-     to take its height from ([ADR-0143](../../../../../../book/src/adr/0143-a-strip-keeps-its-height-and-an-icon-its-centre.md)). */
+     to take its height from. */
   height: var(--gb-control-height);
   flex-shrink: 0;
 }
 
 /* The headers' viewport. The gap moves here with them: the scroll view is now
    the thing that holds the row, and a gap left on `tab-list` would space the
-   rule and the viewport apart rather than the tabs (ADR-0118).
+   rule and the viewport apart rather than the tabs.
 
    Nothing sets `align-items` on the viewport itself. A horizontal one is laid
    out as a row, so `align-items` there is the *vertical* alignment of the
@@ -3434,7 +3439,7 @@ scroll.tab-viewport scroll-thumb.horizontal { height: 4px }
 scroll.tab-viewport:hover scroll-thumb.horizontal { height: 6px }
 
 /* A strip wider than its window has a chevron at each end, `tab-new`'s size and
-   treatment, and `:disabled` at the edge it would page past (ADR-0365). */
+   treatment, and `:disabled` at the edge it would page past. */
 tab-pager {
   width: 24px;
   height: 24px;
@@ -3455,8 +3460,8 @@ tab-pager:disabled {
 }
 
 /* The rule under the headers, as a box. It was one because `border-bottom` was
-   not a declaration that existed (ADR-0107), and it stays one now that it is
-   (ADR-0505): pinned across the bottom of the list, it is under the selected
+   not a declaration that existed, and it stays one now that it is
+  : pinned across the bottom of the list, it is under the selected
    tab's indicator, and a border on the list would be drawn before the tabs and
    the indicator both. */
 tab-rule {
@@ -3495,15 +3500,15 @@ tab:checked {
    it can fade rather than appear -- and `--gb-accent` here rather than the tab's
    `color`, because there is no `currentColor` in the subset either; a tab given
    a colour of its own writes it straight onto this box through `restyle`. */
-/* §3.1 gives `tabs` and `segmented` the same travelling indicator, and this is
-   the `tabs` half (ADR-0377). The underline belongs to the selected tab and is
+/* The animation table gives `tabs` and `segmented` the same travelling indicator, and this is
+   the `tabs` half. The underline belongs to the selected tab and is
    drawn at its own edges; what moves is a `transform` the strip writes — the
    distance back to the tab that *was* selected, and how much wider that one was
    — which then relaxes to nothing on the next frame.
 
    A transform and not a `left` or a `width`, because `transition` takes the
    compositor-cheap set only: either of those would run Yoga on every frame of
-   the travel. `--gb-motion-base` is the clock the pill is on, because §3.1 says
+   the travel. `--gb-motion-base` is the clock the pill is on, because the table says
    the two arrive together. */
 tab-indicator {
   height: 2px;
@@ -3541,8 +3546,8 @@ tab-close:hover {
 /* Square, and it has to be: the `+` is a mark drawn to fill its box, so a box
    28 wide and 20 tall draws a cross with a long arm and a short one. The two
    numbers are one number for that reason. The list's own `gap` is what keeps it
-   off the last tab — §8's subset has no `margin`, which is the third property
-   this widget has reached for and not found (ADR-0107, ADR-0109). */
+   off the last tab — the CSS subset has no `margin`, which is the third property
+   this widget has reached for and not found. */
 tab-new {
   width: 24px;
   height: 24px;
@@ -3569,16 +3574,15 @@ tab-panel {
 }
 
 /* A kept tab's content in a `keep-alive` strip: the panel's column, one level
-   down, so a page lays its content out exactly as the panel would have
-   (ADR-0366). The hidden ones take no box at all. */
+   down, so a page lays its content out exactly as the panel would have.
+  The hidden ones take no box at all. */
 tab-page {
   flex-direction: column;
   flex-grow: 1;
 }
 
 /* The `>` on a row that leads to a submenu — dimmer than the label, like the
-   accelerator, because it is context for the command rather than the command
-   (ADR-0113). */
+   accelerator, because it is context for the command rather than the command. */
 item-chevron {
   width: 12px;
   height: 12px;
@@ -3586,18 +3590,19 @@ item-chevron {
   color: var(--gb-text-muted);
 }
 
-/* --- scroll (§1) ------------------------------------------------------ */
+/* --- scroll ----------------------------------------------------------- */
+/* https://goldberry.dev/docs/layout/scroll.html */
 
 /* A viewport is scenery: no fill, no edge, no padding of its own. What makes
    it a scroll view is the clip and the offset, and both are the widget's --
    `overflow` is applied after the cascade for `row`'s reason, because a
-   `scroll` a stylesheet could un-clip would be a name that lies (ADR-0116).
+   `scroll` a stylesheet could un-clip would be a name that lies.
 
    `flex-grow: 1` is the one thing here that is a real decision. A viewport with
    no height of its own is as tall as its content, which is a scroll view that
    never has anything to scroll -- so the common case of "fill what is left of
    this column" is the default, and an author who wants a fixed height writes
-   one. `min-height` would be the CSS answer and §8's subset has none. */
+   one. `min-height` would be the CSS answer and the CSS subset has none. */
 scroll {
   flex-grow: 1;
   overflow: hidden;
@@ -3609,15 +3614,15 @@ scroll {
 
    The `flex-shrink` is said here so that the sheet reads true, and pinned by
    `ScrollContent.render` so that no later rule can undo it: a content box that
-   shrank to its viewport would leave nothing to scroll (ADR-0499). */
+   shrank to its viewport would leave nothing to scroll. */
 scroll-content {
   flex-shrink: 0;
 }
 
-/* §2.4's overlay scrollbars. Absolutely positioned, so they cost the content no
+/* The design system's overlay scrollbars. Absolutely positioned, so they cost the content no
    width -- that is the difference between an overlay bar and the reserved 12px
    gutter the same section describes for "always show scroll bars", which is not
-   built (ADR-0117).
+   built.
 
    The track is transparent until the pointer is over the viewport, which is what
    "6px thumb -> 10px with visible track on hover" means: at rest there is a thumb
@@ -3630,7 +3635,7 @@ scrollbar {
 
 /* No padding, and that is load-bearing rather than a style choice. The widget
    computes the thumb's length and travel against the **viewport's** length,
-   because that is the only measurement it is given (ADR-0117); a bar that inset
+   because that is the only measurement it is given; a bar that inset
    its track would have a track shorter than the number the arithmetic used, and
    the thumb would overrun the bottom by exactly the padding. The thumb is
    centred across the bar instead, which is what the padding was for. */
@@ -3652,16 +3657,15 @@ scrollbar.horizontal {
   align-items: center;
 }
 
-/* §2.4's numbers: 6px at rest, 10 on hover, `full` radius. The width is the
+/* The scrollbar rule's numbers: 6px at rest, 10 on hover, `full` radius. The width is the
    thumb's; its *length* is the widget's, because how long it is says what
-   proportion of the document is visible and no selector can know that
-   (ADR-0117). */
+   proportion of the document is visible and no selector can know that. */
 scroll-thumb {
   background: var(--gb-text-muted);
   border-radius: 999px;
-  /* Only the colour. §1.7 keeps layout properties off the whitelist and
-     ADR-0067 refuses `transition: width` outright, so the 6->10 widening is a
-     jump rather than a slide -- which is what §1.7 asks for anyway: the
+  /* Only the colour. The motion rules keep layout properties off the whitelist and
+     the motion engine refuses `transition: width` outright, so the 6->10 widening is a
+     jump rather than a slide -- which is what they ask for anyway: the
      alternative is running Yoga per frame to grow a 4px rectangle. */
   transition: background var(--gb-motion-fast);
 }
@@ -3671,13 +3675,13 @@ scroll-thumb.horizontal { height: var(--gb-scroll-thumb-size) }
 
 /* Widened from the viewport's hover rather than the thumb's, and deliberately:
    a 6px target is hard to point at, so the bar has to grow *before* the pointer
-   is on the thumb or it can never be grabbed. §2.4 says "with visible track on
+   is on the thumb or it can never be grabbed. The scrollbar rule says "with visible track on
    hover" for the same reason. */
 scroll:hover scrollbar { background: var(--gb-surface-2) }
 scroll:hover scroll-thumb.vertical { width: var(--gb-scroll-thumb-hover-size) }
 scroll:hover scroll-thumb.horizontal { height: var(--gb-scroll-thumb-hover-size) }
 
-/* A `text-area` scrolls its own text and draws the same bar (ADR-0362), so it
+/* A `text-area` scrolls its own text and draws the same bar, so it
    widens on the same hover -- the control's rather than a viewport's. */
 text-area:hover scrollbar { background: var(--gb-surface-2) }
 text-area:hover scroll-thumb.vertical { width: var(--gb-scroll-thumb-hover-size) }
@@ -3689,7 +3693,7 @@ scroll-thumb.dragging { background: var(--gb-accent) }
 
 /* A menu longer than the screen becomes a menu of the screen's height with its
    items scrolling inside it, rather than a menu clamped to the near edge with
-   its last commands silently dropped (ADR-0118). The height is the opener's,
+   its last commands silently dropped. The height is the opener's,
    because nothing in a stylesheet knows how tall the display is. */
 scroll.menu-viewport { flex-grow: 0 }
 
@@ -3697,18 +3701,18 @@ scroll.menu-viewport { flex-grow: 0 }
    itself at all, so a list of more options than the display is tall lost its
    bottom to the placement clamp. Same rule, because it is the same viewport
    doing the same job -- two classes rather than one so that a stylesheet can
-   tell a menu's from a list's without either inheriting the other's future
-   (ADR-0179). */
+   tell a menu's from a list's without either inheriting the other's future. */
 scroll.select-viewport { flex-grow: 0 }
 
-/* --- list (§10) -------------------------------------------------------- */
+/* --- list ------------------------------------------------------------- */
+/* https://goldberry.dev/docs/components/collections.html */
 
-/* §3's metrics row: "`list` row: height 32 (26); padding-x 12; selection =
+/* The metrics row: "`list` row: height 32 (26); padding-x 12; selection =
    `--gb-selection` full-row". The height is the token the row shares with a
    dropdown's rows and a tree's, which is what makes a `select` opened over a
    list look like the same furniture.
  *
- * The column does not scroll itself. §10's v1 renders every row, and a list
+ * The column does not scroll itself. The specification's v1 renders every row, and a list
    taller than its box is a `scroll`'s to scroll -- so `list` sets no height and
    no overflow, and an application that wants one wraps it, which is the same
    arrangement `tree` has. */
@@ -3735,7 +3739,7 @@ list-row:hover {
   background: var(--gb-overlay-hover);
 }
 
-/* §3: "selection = `--gb-selection` full-row". The colour stays `--gb-text` --
+/* The metrics row: "selection = `--gb-selection` full-row". The colour stays `--gb-text` --
    `--gb-selection` is a translucent wash rather than a fill, so the label under
    it does not need a foreground of its own the way a segment's does on its
    opaque pill. Full-row is what the flat `list` box buys: nothing insets a row,
@@ -3744,8 +3748,8 @@ list-row.selected {
   background: var(--gb-selection);
 }
 
-/* The rows a virtual list is not building, as a height and nothing else
-   (ADR-0213). It draws nothing and must not be given anything to draw: a border
+/* The rows a virtual list is not building, as a height and nothing else.
+  It draws nothing and must not be given anything to draw: a border
    or a background here would be a band of paint where the model says there are
    rows, which is precisely the illusion the spacer exists to maintain. */
 list-spacer {
@@ -3757,18 +3761,19 @@ list-spacer {
    the highlight is always where the keyboard is and a ring would be a second
    marker for one place. Here the arrows move the **focus** and `Enter` chooses,
    so "where the keyboard is" and "what is chosen" are genuinely two rows and
-   need two marks (ADR-0063's split, drawn). */
+   need two marks (data flows down and events flow up, drawn). */
 list-row:focus-visible {
   outline: 2px solid var(--gb-focus);
   outline-offset: -2px;
 }
 
-/* --- table (§10) ------------------------------------------------------- */
+/* --- table ------------------------------------------------------------ */
+/* https://goldberry.dev/docs/components/collections.html */
 
-/* §3's metrics row: "header height 36 (30); row = `list` row metrics; cell
+/* The `table` metrics row: "header height 36 (30); row = `list` row metrics; cell
    padding-x 12; 1px `--gb-border` under the header and none between rows".
  *
- * No rule between the rows is deliberate and is §1's restraint applied to the
+ * No rule between the rows is deliberate and is the catalogue's restraint applied to the
    densest thing in the catalog: a grid of lines is furniture competing with the
    data in it, and the row height plus the hover wash already say where a row
    begins. The one line that stays is under the header, because that is a
@@ -3786,8 +3791,8 @@ table-head {
 }
 
 /* The line under the header: `separator`'s answer, a box a pixel tall. It was a
-   node because §8's subset had no `border-bottom` (ADR-0215), and it stays one now
-   that it has (ADR-0505), because the two are not the same drawing here: a border
+   node because the CSS subset had no `border-bottom`, and it stays one now
+   that it has, because the two are not the same drawing here: a border
    takes no room, so moving the line onto `table-head` would put it inside the
    header's 36 rather than under it and move every row a pixel up, for a picture
    that is already right. */
@@ -3800,8 +3805,8 @@ table-rule {
 /* Muted and strong together, which is the treatment every desktop table's header
    has: the weight says "this is a heading" and the colour says "and it is not the
    data". There are only two weights in the palette -- regular and strong -- so
-   the demotion is carried by the colour, which is §1.2's arrangement and the same
-   one the third text rank was refused for (ADR-0121). */
+   the demotion is carried by the colour, which is the colour rule's arrangement and the same
+   one the third text rank was refused for. */
 table-header {
   flex-direction: row;
   align-items: center;
@@ -3809,7 +3814,7 @@ table-header {
   padding: 0 12px;
   /* No `overflow: hidden` here: it clips at the content box, which would hide
      the half of a resizable column's grip that lies over the padding and make it
-     impossible to press (ADR-0361). The label clips itself below, and the caret
+     impossible to press. The label clips itself below, and the caret
      does not shrink, so nothing escapes. */
   color: var(--gb-text-muted);
   font-weight: var(--gb-weight-strong);
@@ -3839,10 +3844,10 @@ table-header:focus-visible {
    top of the padding rather than beside it, so a resizable header is exactly as
    wide as one that is not. Invisible until it is found -- the cursor is the
    affordance -- and then the accent, which is `split-divider`'s hover for the
-   same gesture (ADR-0361).
+   same gesture.
 
    `right` is minus the header's padding-x: an absolute box here is placed
-   against the content edge, and §3's 12 is what lies between that and the
+   against the content edge, and the row's 12 is what lies between that and the
    header's own edge. */
 table-grip {
   position: absolute;
@@ -3877,7 +3882,7 @@ table-label {
  *
  * Scoped by the ancestor, which is what one widget in two surroundings looks
    like in CSS -- the same arrangement `select-list option` has, and not the
-   improvisation ADR-0065 warns about: it is one widget being told where it is. */
+   improvisation a part's rules warn about: it is one widget being told where it is. */
 table list-row {
   padding: 0;
 }
@@ -3896,13 +3901,14 @@ table-cell {
   overflow: hidden;
 }
 
-/* --- tree (§3) --------------------------------------------------------- */
+/* --- tree ------------------------------------------------------------- */
+/* https://goldberry.dev/docs/components/collections.html */
 
-/* §2: "`tree` row: `list` row metrics; indent 20 per level; chevron 16 in the
+/* The `tree` metrics row: "`list` row metrics; indent 20 per level; chevron 16 in the
    indent gutter". The indent is a sized box the row draws rather than padding on
    the row, so the selection highlight still reaches the left edge -- an indented
    padding would start the highlight 40px in, which reads as a misaligned row
-   rather than a nested one (ADR-0184). */
+   rather than a nested one. */
 tree {
   flex-direction: column;
   align-items: stretch;
@@ -3934,11 +3940,11 @@ tree-chevron {
   color: var(--gb-text-muted);
 }
 
-/* §3's `checkable=`. A hit target around a borrowed `check-indicator`, which is
+/* `tree`'s `checkable=`. A hit target around a borrowed `check-indicator`, which is
    what the box actually is -- the indicator is a 16px square with no handler of
    its own, and a row that merely nested one would have a box you could look at
-   and not tick. 24 square rather than 16 so the target clears §1.3's floor
-   without the glyph growing (ADR-0210). */
+   and not tick. 24 square rather than 16 so the target clears the pointer-target floor
+   without the glyph growing. */
 tree-check {
   width: 24px;
   height: 24px;
@@ -3975,11 +3981,11 @@ tree-row.selected {
    Dimmed rather than disabled, because disabled would say it is inert.
 
    `group` and not `heading`. This rule said `tree-row.heading` and set only the
-   colour, while §1.4's `.heading` rank -- a class selector with no type on it,
+   colour, while the type scale's `.heading` rank -- a class selector with no type on it,
    because a rank applies to anything -- reached the same row and set its
    font-size, line-height and weight. So every branch of a leaf-only tree drew at
    15px/600 in a row whose height is `--gb-list-row-height`. The two namespaces
-   collided and the sheet could not see it (ADR-0414). */
+   collided and the sheet could not see it. */
 tree-row.group {
   color: var(--gb-text-muted);
 }
@@ -3991,7 +3997,8 @@ tree-row:focus-visible {
   outline-offset: -2px;
 }
 
-/* --- affix (§1) ------------------------------------------------------- */
+/* --- affix ------------------------------------------------------------ */
+/* https://goldberry.dev/docs/layout/affix.html */
 
 /* The hole. It has no appearance of its own and must not gain one: whatever the
    author put inside is what shows, and a fill here would paint over the content
@@ -4001,16 +4008,16 @@ affix-content {
   flex-shrink: 0;
 }
 
-/* A pinned child sits above what scrolls under it. §1.5's elevation, applied
+/* A pinned child sits above what scrolls under it. Elevation level 1, applied
    the moment it lifts and not before -- which is the whole reason `:affixed` is
    a pseudo-class rather than something an author writes.
 
-   It is the elevation now and not only a fill. §1.7's motion table has said
+   It is the elevation now and not only a fill. The animation table has said
    "detach/attach: `opacity` on the elevation shadow, fast" since before there
    was a shadow to put an opacity on; `transition: box-shadow` is that line, and
    it animates the alpha along with the blur and the offset -- so the shadow
    arrives as the child lifts rather than appearing under a child that is already
-   pinned (ADR-0312).
+   pinned.
 
    The fill has to come with it. The content scrolling underneath is what a
    transparent pinned child would show through itself, and a shadow cast by a
@@ -4021,7 +4028,8 @@ affix:affixed > affix-content {
   transition: box-shadow var(--gb-motion-fast);
 }
 
-/* --- tour (§5) -------------------------------------------------------- */
+/* --- tour ------------------------------------------------------------- */
+/* https://goldberry.dev/docs/components/overlays.html */
 
 /* The node that fills the window. It paints nothing itself: the veil under it
    does the dimming and the card does the talking. */
@@ -4033,7 +4041,7 @@ tour-veil {
   background: transparent;
 }
 
-/* §1.2's scrim. Dark enough that the lit widget is unmistakably the subject and
+/* The veil scrim. Dark enough that the lit widget is unmistakably the subject and
    light enough that the surrounding layout is still readable -- a tour that
    blacked out its context would be a modal dialog with extra steps. */
 tour-band {
@@ -4042,7 +4050,7 @@ tour-band {
 
 /* The edge around the lit widget. No fill -- the target shows through it
    untouched -- and the accent, because the thing being described is the thing
-   the eye should go to. §1.5's focus ring is 2px and this is the same idea one
+   the eye should go to. The focus ring is 2px and this is the same idea one
    step out, framing a widget rather than marking a focused one. */
 tour-ring {
   background: transparent;
@@ -4050,9 +4058,9 @@ tour-ring {
   border-radius: 6px;
 }
 
-/* §1.5's dialog elevation: the 12 radius and, now that the property exists, the
+/* A dialog's elevation, level 2: the 12 radius and, now that the property exists, the
    shadow that goes with it -- because a tour card is a dialog by any other name
-   and is lit the same way (ADR-0312). It has a veil under it exactly as a dialog
+   and is lit the same way. It has a veil under it exactly as a dialog
    does; what it does not have is a scrim across the whole window, because the
    point of a tour is that you can still see the thing it is pointing at. */
 tour-card {
@@ -4064,13 +4072,13 @@ tour-card {
 }
 
 /* The gap belongs to the column *inside* the card, not to the card: the card
-   has exactly one child, so a gap on it separates nothing. §1.3's 8 between a
+   has exactly one child, so a gap on it separates nothing. The spacing ramp's 8 between a
    heading, its prose and the row of buttons. */
 tour-card > column {
   gap: 8px;
 }
 
-/* The buttons sit under the text with a little more air -- §1.3 again, and the
+/* The buttons sit under the text with a little more air -- the spacing ramp again, and the
    same shape every dialog footer has. */
 tour-card > column > row {
   gap: 8px;
@@ -4081,7 +4089,7 @@ tour-card > column > row {
 /* Qualified by type, not because a class needs it to match but because an
    unqualified one is checked against **every element of every kind**: the
    cascade buckets a rule by the type its rightmost compound names, and a rule
-   that names none goes in the bucket nothing can skip (ADR-0152, ADR-0249).
+   that names none goes in the bucket nothing can skip.
    These seven are the only rules in this file that had a type to give and were
    not giving it. The typography ranks below stay unqualified, and correctly so —
    `.body` is applied to whatever an application puts it on. */
@@ -4102,9 +4110,9 @@ text.tour-body {
    5" being mistaken for part of the sentence above it.
 
    `--gb-text-muted` and not a quieter third rank, which this first asked for and
-   which does not exist: §1.2 defines two text ranks, and the Nord palette has
+   which does not exist: the colour rule defines two text ranks, and the Nord palette has
    nothing between muted and the border colour. A token invented for it resolved
-   to `nord3`, which on `nord1` is a counter nobody can read -- §1.2's contrast
+   to `nord3`, which on `nord1` is a counter nobody can read -- the contrast
    floor applies to metadata too. The size carries the demotion instead. */
 text.tour-count {
   font-size: 11px;
@@ -4119,7 +4127,7 @@ text.tour-count {
    existed to be measured, and had to be remembered by whoever read
    `TourStop.children` later. One `auto` margin absorbs the same free space and
    is a declaration rather than a node — pixel for pixel the same picture, which
-   the tour goldens were used to check (ADR-0311, ADR-0312).
+   the tour goldens were used to check.
 
    On the **trailing** edge of the leading button rather than the leading edge of
    the trailing one, because the trailing group is one button or two depending on
@@ -4153,14 +4161,14 @@ button.tour-next:active {
 
 /* ----------------------------------------------------------------- panel --
  *
- * §5's "plain surface: `--gb-surface`, border, radius tokens. The building block;
- * no elevation."
+ * The panel specification's "plain surface: `--gb-surface`, border, radius
+ * tokens. The building block; no elevation."
  *
  * **This rule did not exist**, and its absence was reported as "I cannot tell a
  * panel from a card": the widget draws nothing at all, so every document that
  * wanted a surface invented one — and the showcase invented one that looked
  * exactly like a card. A building block that draws nothing is not a building
- * block (ADR-0166).
+ * block.
  */
 panel {
   flex-direction: column;
@@ -4171,10 +4179,10 @@ panel {
 
 /* ----------------------------------------------------------------- image --
  *
- * §1's `image`. The box is the picture's natural size until a stylesheet gives
- * it one, so nothing here sets a width or a height (ADR-0358).
+ * The `image` primitive. The box is the picture's natural size until a stylesheet gives
+ * it one, so nothing here sets a width or a height.
  *
- * Loading, it is the skeleton's fill: §1's "placeholder fill until loaded", in
+ * Loading, it is the skeleton's fill: the specification's "placeholder fill until loaded", in
  * the colour every other placeholder in the catalog already uses. A view with
  * no size of its own has nothing to fill until the picture arrives, which is
  * why an image in a list of known shape should be given one. Failed, it keeps
@@ -4209,7 +4217,7 @@ image-alt {
 
 /* --------------------------------------------------------------- qr-code --
  *
- * §1's `qr-code`. A code has no natural size in pixels -- it has a size in
+ * The `qr-code` primitive. A code has no natural size in pixels -- it has a size in
  * *modules*, and how big a module should be is a question about the screen it is
  * on -- so this sheet answers it once and an application overrides it with
  * `width` and `height` like anything else. 160px at 100% is about six device
@@ -4221,7 +4229,7 @@ image-alt {
  * it draws nothing at all.
  *
  * The two colour tokens are in the **theme** rather than here, and are the same
- * in both themes on purpose (ADR-0391).
+ * in both themes on purpose.
  */
 qr-code {
   width: 160px;
@@ -4231,22 +4239,22 @@ qr-code {
 
 /* ------------------------------------------------------------------ card --
  *
- * `docs/core-widgets.md` §5's "elevated surface". §5 says "shadow tokens", and
- * for two hundred records there were none: §10's subset had no `box-shadow` and
+ * The "elevated surface". The specification says "shadow tokens", and
+ * for two hundred records there were none: the CSS subset had no `box-shadow` and
  * nothing in this toolkit painted outside a box's own rectangle, so **elevation
- * was an edge** (ADR-0104, ADR-0164).
+ * was an edge**.
  *
- * **It is an edge and a shadow now** (ADR-0312). The edge did not go away and is
+ * **It is an edge and a shadow now**. The edge did not go away and is
  * not going to: a shadow says "nearer" by darkening what is underneath, and a
  * card sitting on *another card* is sitting on its own colour, where the shadow
  * says almost nothing and the rim says it exactly. The two answer the same
- * question against different backgrounds, which is why §5 asked for both.
+ * question against different backgrounds, which is why the specification asked for both.
  */
 card {
   flex-direction: column;
   gap: 8px;
   padding: 12px;
-  /* **The same fill as a panel, and a stronger edge.** ADR-0164 decided that
+  /* **The same fill as a panel, and a stronger edge.** The first design decided that
      elevation here is an edge, and then hedged by also stepping the fill to
      `--gb-surface-2` -- which is wrong in two ways. Eight levels is not an
      elevation anybody can see on dark, which is how it was first reported; and
@@ -4261,26 +4269,26 @@ card {
      `--gb-surface` and light does not, white being the top. And the edge is an
      alpha over whatever is underneath, so it lightens on dark and darkens on
      light without either theme stating it twice, and a card reads as raised on
-     a page, on a panel, or on another card (ADR-0166). */
+     a page, on a panel, or on another card. */
   background: var(--gb-surface-raised);
   border: 1px solid var(--gb-border-strong);
   border-radius: 8px;
-  /* §1.5's level 1 — "raised: menus, cards, popovers". The token and not the
+  /* Elevation level 1 — "raised: menus, cards, popovers". The token and not the
      numbers: a card is black-over-whatever-is-underneath, so the alpha belongs
-     to the theme (ADR-0310). */
+     to the theme. */
   box-shadow: var(--gb-elevation-1);
 }
 
-/* §5's "hover-elevation optional via class", and it is an elevation now rather
+/* The specification's "hover-elevation optional via class", and it is an elevation now rather
    than an edge standing in for one. Opt-in, because a card that lit up under the
    pointer would promise it does something, and most cards do not.
 
    Both properties move together: the rim brightens to the accent while the card
-   lifts from §1.5's level 1 to its level 2. `transition: box-shadow` animates
+   lifts from elevation level 1 to level 2. `transition: box-shadow` animates
    every component of the shadow, so the blur and the offset grow with the alpha
    — which is what an object actually rising off a page does, and is why this
    reads as a lift rather than as a stain darkening under a card that has not
-   moved (ADR-0310, ADR-0312). */
+   moved. */
 card.interactive {
   transition: border-color var(--gb-motion-base), box-shadow var(--gb-motion-base);
 }
@@ -4292,14 +4300,14 @@ card.interactive:hover {
 
 /* ------------------------------------------------------------- group-box --
  *
- * §5's "titled border group for settings clusters", and the border goes round
+ * The specification's "titled border group for settings clusters", and the border goes round
  * **both** the title and the content — which is what makes it a titled group
  * rather than a heading with a panel under it.
  *
  * The first cut put the title above the frame and was reported as "what is the
  * purpose of group box?", which was the right question to ask of it: a heading
  * floating over a bordered box says nothing about the two belonging together, and
- * an untitled one was indistinguishable from a `card` (ADR-0166).
+ * an untitled one was indistinguishable from a `card`.
  *
  * A `fieldset`'s legend *through* the border is still not available — it needs a
  * notch the subset cannot express — and this needs nothing the subset has not
@@ -4313,12 +4321,12 @@ group-box {
 }
 
 /* The header row. The rule under it is a border on this node rather than a
-   separate box, which works here and did not for `tabs` (ADR-0107): a tab strip's
+   separate box, which works here and did not for `tabs`: a tab strip's
    rule has to stop where the headers stop, and this one runs the full width on
    purpose. It is the border's *bottom* that is wanted, and this comment said so
    for as long as the widget has existed while the rule itself was never written:
-   §8's subset had one `border` and no per-side longhands. It has them since
-   ADR-0505, and `docs/core-widgets.md`'s "ruled off from the body" is drawn. The
+   the CSS subset had one `border` and no per-side longhands. It has them now,
+   and the "ruled off from the body" rule is drawn. The
    line sits inside the header's own padding, so no text moves. */
 group-box-title {
   padding: 8px 12px;
@@ -4339,7 +4347,7 @@ group-box-body {
 
 /* ------------------------------------------------------------- statistic --
  *
- * §5's "labelled number". Three ranks of §1.2's hierarchy in one block: the label
+ * The specification's "labelled number". Three ranks of the text hierarchy in one block: the label
  * is caption, the value is display, the delta is body.
  */
 statistic {
@@ -4375,9 +4383,9 @@ statistic-delta {
   color: var(--gb-text-muted);
 }
 
-/* The `-text` rank on both, because a delta is a number and §1.2's floor for
+/* The `-text` rank on both, because a delta is a number and the contrast floor for
    words is 4.5:1. The bare `--gb-success` is 2.04:1 on the light theme's
-   `--gb-surface`, which is a green nobody can read (ADR-0229). */
+   `--gb-surface`, which is a green nobody can read. */
 statistic-delta.up {
   color: var(--gb-success-text);
 }
@@ -4388,14 +4396,15 @@ statistic-delta.down {
 
 /* -------------------------------------------------------------- skeleton --
  *
- * §5's placeholder. Every size here is a **typography token**, which is the whole
+ * The specification's placeholder. Every size here is a **typography token**, which is the whole
  * point: "sized from the typography token it stands in for so the layout does not
  * jump when the real content arrives". A theme that changes its type scale moves
  * the placeholders with it.
  *
- * The pulse is not here. §1.7 rule 4 makes a shimmer the one loop in the canon,
+ * The pulse is not here. The rule that nothing loops makes a shimmer the one
+ * exception in the canon,
  * and a loop is not a transition — it is a pure function of the frame clock,
- * computed in `Skeleton` the way `spinner`'s rotation is (ADR-0081).
+ * computed in `Skeleton` the way `spinner`'s rotation is.
  */
 skeleton {
   flex-direction: column;
@@ -4441,7 +4450,7 @@ skeleton-bar.shape-text.last {
 
 /* -------------------------------------------------------------- collapse --
  *
- * §5's disclosure. The body is **not here** while it is shut — `CollapseSection`
+ * The specification's disclosure. The body is **not here** while it is shut — `CollapseSection`
  * describes no such node, so there is nothing to hide and nothing alive behind a
  * header nobody has opened.
  */
@@ -4471,9 +4480,9 @@ collapse-header:focus-visible {
   outline-offset: 2px;
 }
 
-/* The marker turns rather than being swapped for a different glyph: §5 asks for a
-   rotation on `base`, and a mark that changed kind would jump. `transform` is on
-   §1.7's whitelist precisely so this costs no layout. */
+/* The marker turns rather than being swapped for a different glyph: the animation table asks
+   for a rotation on `base`, and a mark that changed kind would jump. `transform` is on
+   the motion whitelist precisely so this costs no layout. */
 collapse-chevron {
   width: 16px;
   height: 16px;
@@ -4496,11 +4505,11 @@ collapse-body {
 
 /* ------------------------------------------------------------ split-pane --
  *
- * §5's two children and a draggable divider. The layout is not here: the first
+ * The specification's two children and a draggable divider. The layout is not here: the first
  * pane is given an explicit main-axis size in logical pixels by `SplitPaneView`,
  * because `flex-grow` shares out the space *left over* after content and would
- * therefore ignore the divider's own fraction — and §10's subset has no
- * `flex-basis` to say it with instead (ADR-0165).
+ * therefore ignore the divider's own fraction — and the CSS subset has no
+ * `flex-basis` to say it with instead.
  */
 split-pane {
   align-items: stretch;
@@ -4535,7 +4544,7 @@ split-divider:focus-visible {
 }
 
 /* The ring is *inside* the bar, which is the one place in the catalog it has to
-   be for `tab`'s reason: a ring at §2.2's usual 2px offset would be drawn across
+   be for `tab`'s reason: a ring at the focus rule's usual 2px offset would be drawn across
    both panes. At six points wide there is no room for an inset ring either, so
    the fill is the affordance -- which is what the rule above is. */
 split-divider:focus-visible {
@@ -4551,9 +4560,9 @@ split-divider.collapsed {
 
 /* -------------------------------------------------------------- carousel --
  *
- * §5's one-at-a-time list. The rotation is not here and cannot be: it is a timer,
- * not a transition, and §1.7 rule 4's conditions for stopping it — hover, focus,
- * reduced motion — are decisions rather than declarations (ADR-0165).
+ * The specification's one-at-a-time list. The rotation is not here and cannot be: it
+ * is a timer, not a transition, and the motion rules' conditions for stopping it — hover, focus,
+ * reduced motion — are decisions rather than declarations.
  */
 carousel {
   flex-direction: column;
@@ -4575,7 +4584,7 @@ carousel-controls {
   flex-shrink: 0;
 }
 
-/* A step button. `--gb-control-height` and not a smaller number: §1.3's hit
+/* A step button. `--gb-control-height` and not a smaller number: the 32px hit
    target applies to a carousel's arrows exactly as it does to everything else,
    and these are the two controls somebody will be clicking repeatedly. */
 carousel-step {
@@ -4630,7 +4639,7 @@ carousel-dots {
 /* A dot is 8 across and the radius is half of it, which is how a square becomes a
    circle in a subset with no `border-radius: 50%`. Not focusable — the keyboard
    reaches every slide through the arrows, and nine slides would otherwise be nine
-   tab stops (ADR-0107's close-button argument). */
+   tab stops (the tab strip's close-button argument). */
 carousel-dot {
   width: 8px;
   height: 8px;
@@ -4653,12 +4662,12 @@ carousel-dot:checked {
 
 /* --------------------------------------------------------------- message --
  *
- * §7's inline banner: "part of the layout, persists until the condition does,
- * and is about the thing next to it". Everything here is `design-system.md` §2's
+ * The overlay specification's inline banner: "part of the layout, persists until
+ * the condition does, and is about the thing next to it". Everything here is the design system's
  * row for it -- padding 12/16, radius 8, icon 20 with gap 12, 1px border and a
  * 4% tint of its kind colour -- and nothing here is a number this file invented.
  *
- * **The tint is a token per kind and not a colour function**, because §8's subset
+ * **The tint is a token per kind and not a colour function**, because the CSS subset
  * has none: `--gb-message-danger-bg` is the hue written out at 4% as an eight-digit
  * hex, in the theme, beside the palette entry it came from. That is the same
  * convention `--gb-selection` uses.
@@ -4666,7 +4675,7 @@ carousel-dot:checked {
  * **The glyph and the border are the `-line` rank, not the hue.** `--gb-danger`
  * says it is "what a label, an icon or a border is drawn in" and the first
  * measurement of that claim disproved it: the hue is 2.46:1 on `--gb-surface` in
- * the dark theme and three of the four fail on the light one, against §1.2's 3:1
+ * the dark theme and three of the four fail on the light one, against the 3:1
  * floor for anything that is not text. `--gb-danger-line` is the same hue moved
  * until it clears, per theme, and `ContrastTest` holds it there.
  */
@@ -4696,10 +4705,10 @@ message.danger {
   background: var(--gb-message-danger-bg);
 }
 
-/* 20 per §1.6's icon size, and the size is here because a mark does not size the
+/* 20, one of the three icon sizes, and the size is here because a mark does not size the
    box it is drawn on -- the glyph's geometry is a proportion of this. `flex-shrink`
    because a long line of prose beside it must not squeeze the symbol that says
-   what kind of message this is (§1.2: the colour is not allowed to carry it
+   what kind of message this is (the colour rule: the colour is not allowed to carry it
    alone, so neither is a glyph that has been crushed to nothing). */
 message-icon {
   width: 20px;
@@ -4736,7 +4745,7 @@ message-actions {
   flex-shrink: 0;
 }
 
-/* An action **link**, which is what §7 calls it: its first letter sits under the
+/* An action **link**, which is what the specification calls it: its first letter sits under the
    first letter of the sentence it belongs to. A `button.ghost` brings its own
    horizontal padding, which is right in a toolbar and wrong here -- the padding
    indented the link and it read as a separate block rather than as part of the
@@ -4776,25 +4785,26 @@ message-dismiss:focus-visible {
 
 /* ---------------------------------------------------------------- dialog --
  *
- * §7's modal. Every number here is `design-system.md` §2's row for it — padding
- * 24, action bar gap 8 with 24 above it, min width 320, max 80% of the window —
- * and §1.5's radius 12 for a dialog, which is the widest radius in the system
+ * The overlay specification's modal. Every number here is the design system's
+ * row for it — padding 24, action bar gap 8 with 24 above it, min width 320, max
+ * 80% of the window —
+ * and the shape rule's radius 12 for a dialog, which is the widest radius in the system
  * and the only place it is used.
  *
- * **Elevation 2 is a shadow, an edge and a scrim.** §1.5 asks for `0 8px 32px`
- * under a dialog, and for as long as §8's subset had no `box-shadow` this was an
- * edge and a scrim standing in for one — ADR-0164 met the same wall for `card`
+ * **Elevation 2 is a shadow, an edge and a scrim.** The elevation rule asks for
+ * `0 8px 32px` under a dialog, and for as long as the CSS subset had no `box-shadow` this was an
+ * edge and a scrim standing in for one — `card` met the same wall
  * and answered it the same way. The shadow exists now and the theme owns its
- * alpha (ADR-0310, ADR-0312), so all three are here: the scrim separates the
+ * alpha, so all three are here: the scrim separates the
  * dialog from the window, the shadow lifts it off the scrim, and the edge is
  * what tells it apart from a surface its own colour.
  */
-/* **No padding across, and that is what makes `max-width: 80%` mean what §2
+/* **No padding across, and that is what makes `max-width: 80%` mean what the metrics row
    says.** A percentage resolves against the containing block, and a dialog's is
    this — so 24px of padding here would make the dialog's maximum 80% of *the
    window less 48px*, which in a narrow window squeezes a dialog below the width
-   §2 allows it. The padding was the de-facto maximum before there was a real
-   one; now there is, and the two would be fighting (ADR-0181).
+   the row allows it. The padding was the de-facto maximum before there was a real
+   one; now there is, and the two would be fighting.
 
    Down the page it stays: a tall dialog still has to be kept off the top and
    bottom edges, and no maximum on the height is doing that job. */
@@ -4806,8 +4816,8 @@ dialog-scrim {
   background: var(--gb-scrim);
 }
 
-/* §2: "min width 320, max 80% window". Both are real declarations now
-   (ADR-0181); until the subset had `min-width` and `max-width` the scrim's
+/* The metrics row: "min width 320, max 80% window". Both are real declarations now;
+   until the subset had `min-width` and `max-width` the scrim's
    padding was a de-facto maximum and there was no minimum at all, so a dialog
    with three words in it was three words wide.
 
@@ -4825,14 +4835,14 @@ dialog {
   background: var(--gb-surface-raised);
   border: 1px solid var(--gb-border-strong);
   border-radius: 12px;
-  /* §1.5's level 2, named there for dialogs exactly: "overlay: dialogs — shadow
+  /* Elevation level 2, named for dialogs exactly: "overlay: dialogs — shadow
      0 8px 32px + veil scrim". The scrim has been here since the dialog was
      built and the shadow could not be; both halves of that sentence are true
-     now (ADR-0312). */
+     now. */
   box-shadow: var(--gb-elevation-2);
 }
 
-/* §1.4's `title` rank: a dialog's heading is the largest text in the catalog
+/* The type scale's `title` rank: a dialog's heading is the largest text in the catalog
    outside a `statistic`, because it is the only text on screen that the reader
    has been stopped to look at. */
 dialog-title {
@@ -4848,12 +4858,12 @@ dialog-body {
   color: var(--gb-text);
 }
 
-/* §2: "action bar gap 8, top margin 24". **A margin now**, which is what §2
-   said and what this node could not write: the subset had none, so the number
+/* The metrics row: "action bar gap 8, top margin 24". **A margin now**, which is
+   what the row said and what this node could not write: the subset had none, so the number
    went on as `padding-top` instead, and the comment saying so has been here
-   since (ADR-0311, ADR-0312). A gap on the panel is still the wrong answer and
+   since. A gap on the panel is still the wrong answer and
    was never the alternative — it would apply between the title and the body as
-   well, which §2 puts at 8 and not 24.
+   well, which the row puts at 8 and not 24.
 
    Padding and margin are the same picture here, because this row has no fill of
    its own and nothing to clip: what changes is that the declaration now says
@@ -4862,7 +4872,7 @@ dialog-body {
  * `flex-end` is affirmative-right, which is macOS' and Linux' order and what
  * ships. **A Windows theme flips the bar with one declaration**:
  * `dialog-actions { flex-direction: row-reverse }` — the buttons are written in
- * a canonical order and the direction is the theme's, which is what §7's
+ * a canonical order and the direction is the theme's, which is what the specification's
  * "theme-controlled" has to mean for a widget that describes its children long
  * before anything has asked the platform anything. */
 dialog-actions {
@@ -4876,8 +4886,9 @@ dialog-actions {
 
 /* ----------------------------------------------------------------- toast --
  *
- * §7's non-modal notification, and §2's row for it: width 360, padding 12/16,
- * radius 8. It sits in the window's own overlay layer at a corner, so the
+ * The overlay specification's non-modal notification, and its metrics row: width
+ * 360, padding 12/16, radius 8. It sits in the window's own overlay layer at a
+ * corner, so the
  * `toaster` below is what the overlay holds and the `toast`es are its children.
  */
 toaster {
@@ -4897,8 +4908,8 @@ toaster.top-start, toaster.top-end {
   flex-direction: column-reverse;
 }
 
-/* 360 is §2's, and it stays a **width** rather than becoming a maximum now that
-   the subset has one (ADR-0181). The original note gave two reasons and only the
+/* 360 is the row's, and it stays a **width** rather than becoming a maximum now that
+   the subset has one. The original note gave two reasons and only the
    first has expired: a toast is a line or two of text and a button, and giving
    every one of them the same width is what makes a stack of three read as a
    stack rather than as a ragged pile. A maximum would size each toast to its own
@@ -4914,10 +4925,10 @@ toast {
   border: 1px solid var(--gb-border-strong);
   color: var(--gb-text);
   flex-shrink: 0;
-  /* §1.5's level 2. A toast sits in the window's own overlay layer with the
+  /* Elevation level 2. A toast sits in the window's own overlay layer with the
      application's content directly under it and **no scrim** to separate the
      two, which is the case for the heavier of the two shadowed levels rather
-     than the lighter: a card is on the page and a toast has left it (ADR-0312).
+     than the lighter: a card is on the page and a toast has left it.
      The edge stays, for `card`'s reason — a toast over a surface its own colour
      needs one. */
   box-shadow: var(--gb-elevation-2);
@@ -4939,7 +4950,9 @@ toast button {
   padding-right: 0;
 }
 
-/* --- §11's data widgets ---------------------------------------------------
+/* --- data widgets ----------------------------------------------------------
+   https://goldberry.dev/docs/components/charts.html
+
    A chart is a column: the plot, then the legend. Everything about its
    *appearance* is here and everything about its *shape* is the painter's, which
    is the same split every other canvas-based widget will want.
@@ -4966,8 +4979,8 @@ donut-plot {
   flex-grow: 1;
 }
 
-/* What a chart shows when it has nothing to show -- charts.md §3.1's "a themed
-   message, never an empty grid" (ADR-0200). It takes the plot's `flex-grow`
+/* What a chart shows when it has nothing to show -- the rule is "a themed
+   message, never an empty grid". It takes the plot's `flex-grow`
    because it *is* the plot for as long as it is there, so a loading chart is
    exactly as tall as the chart it is about to be and a panel of them does not
    reflow when the data lands.
@@ -4984,15 +4997,15 @@ chart-message {
 
 /* A failure is the one of the three that is not a neutral absence, so it is the
    one that takes a colour. `--gb-danger` on the text and no border or background:
-   §1.2 draws the aurora hues as a glyph and a border on a surface rather than as
+   The colour rule draws the aurora hues as a glyph and a border on a surface rather than as
    a filled block, and a chart-sized red panel would read as an alarm rather than
    as "this one query did not answer". */
 chart-message.failed {
   color: var(--gb-danger-text);
 }
 
-/* A plot is **focusable**, so a chart can be read without a pointer (charts.md
-   §3.5, §2.2): Tab reaches it and Left/Right walk the crosshair. So it takes the
+/* A plot is **focusable**, so a chart can be read without a pointer:
+   Tab reaches it and Left/Right walk the crosshair. So it takes the
    ring every other focusable control takes -- on `:focus-visible` and not
    `:focus`, which is what keeps a chart clicked with a mouse from growing an
    outline nobody asked for. */
@@ -5003,8 +5016,8 @@ donut-plot:focus-visible {
 }
 
 /* Wrapping, because a legend is the part of a chart most likely to be wider than
-   the chart (ADR-0192). `flex-wrap` exists for exactly this shape. */
-/* One value, because §8's `gap` is a single length -- the two-value row/column
+   the chart. `flex-wrap` exists for exactly this shape. */
+/* One value, because the subset's `gap` is a single length -- the two-value row/column
    form parses as nothing and silently leaves the entries touching, which is what
    the showcase's first chart legend looked like. */
 chart-legend {
@@ -5021,8 +5034,8 @@ chart-legend-entry {
 }
 
 /* A legend entry is a **control** when the chart it belongs to can isolate a
-   series: one click shows that series alone, the next puts them all back
-   (ADR-0198). On a class and not on the type, because whether it is one depends
+   series: one click shows that series alone, the next puts them all back.
+  On a class and not on the type, because whether it is one depends
    on the chart -- `donut-chart`'s entries are a key, and a pointer cursor would
    promise them an affordance they do not have. */
 chart-legend-entry.interactive {
@@ -5047,8 +5060,9 @@ chart-legend-swatch {
   flex-shrink: 0;
 }
 
-/* §3.2's inline data nodes. They are widgets because the KDL inflater builds a
-   document depth-first and hands a factory children that are already widgets --
+/* The chart's inline data nodes, `series` and `point`. They are widgets because
+   the KDL inflater builds a document depth-first and hands a factory children
+   that are already widgets --
    the same reason `option` is one -- and their parent reads them rather than
    laying them out. Zero-sized so a chart that forgot to filter them out of its
    children would still draw correctly. */
@@ -5058,7 +5072,7 @@ point {
   height: 0;
 }
 
-/* --- masonry (ADR-0196) ---------------------------------------------------
+/* --- masonry ---------------------------------------------------
    A row of equal columns. `flex-basis: 0` with `flex-grow: 1` rather than
    `width: 33%`, because the count is the widget's and a percentage would have to
    agree with it -- three columns styled at 33% and set to `columns=4` would be a
@@ -5076,7 +5090,7 @@ masonry {
 /* The width **is** here now: `flex-basis: 0` with `flex-grow: 1` is 1/n of the
    row without counting n, and it is 1/n of what the gaps left rather than of the
    whole row -- which the inline `width: 100/n %` it replaces was not, so three
-   columns and two 12px gaps overflowed their row by 24px (ADR-0373).
+   columns and two 12px gaps overflowed their row by 24px.
    `flex-grow` alone would size a column to its content, and then a card's height
    would depend on which column it landed in -- which is the loop the whole
    layout is built to avoid. */
@@ -5095,15 +5109,15 @@ masonry-cell {
 
 /* ----------------------------------------------------------- breadcrumbs --
  *
- * §3's row: "height 24; `body`; separator = `chevron-right` 16 in
+ * The `breadcrumbs` metrics row: "height 24; `body`; separator = `chevron-right` 16 in
  * `--gb-text-muted`, gap 4; overflow menu after 4 crumbs". Every number below is
  * that row, and the one behaviour it does not mention -- what the current crumb
- * looks like -- is §6's sentence rather than a choice made here.
+ * looks like -- is the navigation specification's sentence rather than a choice made here.
  *
  * The row does not wrap and does not shrink its crumbs. A path that wrapped to
  * two lines would put "where you are" under "where you started", which is the
  * one arrangement a trail must not have; the answer to a narrow window is the
- * overflow menu, which is why there is one (ADR-0306).
+ * overflow menu, which is why there is one.
  */
 breadcrumbs {
   height: 24px;
@@ -5119,7 +5133,7 @@ breadcrumbs {
    last item -- a trail in full-strength ink competes with the heading under it.
 
    Padding-x 4 and a small radius so the hover wash reads as a target rather than
-   as a highlighted word; 4 is §1.3's legal value below the component default,
+   as a highlighted word; 4 is the ramp's legal value below the component default,
    the same one `badge` and `button.link` reach for and for the same reason. */
 crumb {
   height: 20px;
@@ -5140,7 +5154,7 @@ crumb:hover {
 }
 
 /* **Where you are.** Full-strength ink and the strong weight, and deliberately
-   *no fill and no hover*: §6 says the current page "is not a link", and a filled
+   *no fill and no hover*: the specification says the current page "is not a link", and a filled
    current crumb reads as a button -- which would invite exactly the click the
    sentence exists to prevent. `cursor: default` is the other half of saying so,
    because a pointer that stays an arrow is the fastest way a user finds out.
@@ -5159,7 +5173,7 @@ crumb:checked:hover {
   color: var(--gb-text);
 }
 
-/* §3's "separator = chevron-right 16 in --gb-text-muted". Square, and it has to
+/* The row's "separator = chevron-right 16 in --gb-text-muted". Square, and it has to
    be: the chevron is a mark drawn to fill its box, so 16 wide and 24 tall would
    draw a stretched one -- `tab-new`'s lesson, and the two numbers are one
    number for the same reason. */
@@ -5191,12 +5205,12 @@ crumb-overflow:hover {
 
 /* ----------------------------------------------------------------- steps --
  *
- * §3's row: "marker 24 (`full` radius); connector 2px; label `body-strong`,
+ * The `steps` metrics row: "marker 24 (`full` radius); connector 2px; label `body-strong`,
  * description `caption`; gap 12 horizontal / 8 vertical". Every number below is
  * that row. The four states are classes on the step and on its marker
  * (`done`, `current`, `upcoming`, `error`), and the current step is also
  * `:checked` -- so a marker is filled by the class and the step's ink is chosen
- * by the same word (ADR-0344).
+ * by the same word.
  *
  * The list does not wrap: a sequence wrapped to two lines puts step four under
  * step one, which reads as a grid. A vertical list is the answer to a narrow
@@ -5310,9 +5324,9 @@ step-description {
    in a row, and stands 16 tall under the marker's centre in a column -- 11px in
    from the edge, which is half of 24 less half of 2.
 
-   The fill is §3's `scaleX` base: it covers the track, is scaled to nothing
+   The fill is the animation row's `scaleX` base: it covers the track, is scaled to nothing
    about its start edge until the step before it is done, and grows from the
-   step you left towards the one you reached (ADR-0356). A column grows it
+   step you left towards the one you reached. A column grows it
    down, about its top. */
 step-connector {
   flex-grow: 1;
@@ -5355,10 +5369,10 @@ steps.vertical step-connector.done step-connector-fill {
 
 /* ---------------------------------------------------------------- wizard --
  *
- * §3's row: "`steps` on top with 24 below; action bar = `dialog`'s (gap 8, top
+ * The `wizard` metrics row: "`steps` on top with 24 below; action bar = `dialog`'s (gap 8, top
  * margin 24)". A column of three: the indicator, the content, the bar. The
  * content grows, so the bar sits at the bottom of whatever height the wizard
- * was given, which is where a dialog's bar sits too (ADR-0344).
+ * was given, which is where a dialog's bar sits too.
  */
 wizard {
   flex-direction: column;
@@ -5387,8 +5401,8 @@ wizard-actions {
 
 /* -------------------------------------------------------------- timeline --
  *
- * §3's row: "marker 12 (`full`); axis 2px in `--gb-border`; row gap 16;
- * timestamp `caption`". Every number below is that row (ADR-0345).
+ * The `timeline` metrics row: "marker 12 (`full`); axis 2px in `--gb-border`; row gap 16;
+ * timestamp `caption`". Every number below is that row.
  *
  * An entry is a row of a side, the rail and a side; the rail stretches to the
  * entry's height so the line runs from marker to marker whatever is beside
@@ -5450,11 +5464,11 @@ timeline-marker.pending {
   border: 2px solid var(--gb-border-strong);
 }
 
-/* A widget in the `marker` slot -- a `badge` is the one §10 names. The holder
+/* A widget in the `marker` slot -- a `badge` is the one the specification names. The holder
    is as big as the widget and paints nothing, so the badge is drawn as a badge.
    The rail keeps its 20px: a wider marker overhangs it evenly on both sides
    rather than moving the axis for one entry, and a short badge's overhang lands
-   in the body's 8px of left padding (ADR-0356). A timeline whose markers are
+   in the body's 8px of left padding. A timeline whose markers are
    all wide widens `timeline-rail` instead. */
 timeline-marker.widget {
   width: auto;
@@ -5508,7 +5522,7 @@ timeline-content {
 }
 
 /* Alternating: both sides are half the row, so the axis is in the middle of
-   every entry whatever is on either side of it. `flex-basis` is not in §8's
+   every entry whatever is on either side of it. `flex-basis` is not in the CSS
    subset; a percentage width and an equal shrink are the same arithmetic. */
 timeline.alternate timeline-side {
   width: 50%;
@@ -5585,11 +5599,11 @@ timeline.horizontal entry.end {
 
 /* ------------------------------------------------------------------ link --
  *
- * §2's `link`: text that does something. The theme's link ink, `body`, an
+ * The `link` text widget: text that does something. The theme's link ink, `body`, an
  * underline on hover and the standard ring on focus; `visited` is the
  * application's to set, because the toolkit keeps no history, and it takes the
  * muted ink. An external link carries its 12px `external-link` icon after the
- * word, in the same ink (ADR-0346).
+ * word, in the same ink.
  *
  * It is a row rather than a text leaf, so the icon can sit beside the word
  * without joining its text run -- which is also why it is block-level: a link
@@ -5618,7 +5632,7 @@ link.visited {
 }
 
 /* ---------------------------------------------------------------------------
-   `web-view` -- a page inside the window (ADR-0442).
+   `web-view` -- a page inside the window.
 
    These are component defaults rather than something an application writes,
    because without them the widget does not work at all: the page is sized from
@@ -5646,7 +5660,7 @@ canvas.web-surface {
 }
 
 /* The stage: the surface, and whatever is drawn over it while there is no page
-   to hide it (ADR-0445). A `stack`, so the surface stays in flow and keeps
+   to hide it. A `stack`, so the surface stays in flow and keeps
    sizing the box while the spinner floats.
 
    `justify-content: center` and no `align-items`, deliberately. The surface has

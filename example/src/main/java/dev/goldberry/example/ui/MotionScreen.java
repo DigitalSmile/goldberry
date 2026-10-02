@@ -28,7 +28,7 @@ import dev.goldberry.widgets.panel.masonry.Masonry;
 import dev.goldberry.widgets.text.Text;
 
 /// The **Motion** screen: the three ways something on this toolkit moves by
-/// itself, one card each (ADR-0352, ADR-0353, ADR-0354).
+/// itself, one card each.
 ///
 /// 1. **A choreography on a canvas.** A floor of glazed tiles settles as a ripple
 ///    out from one tile and then re-glazes itself, one tile every 1.3 seconds.
@@ -45,6 +45,8 @@ import dev.goldberry.widgets.text.Text;
 /// The screen is photographed at the offscreen renderer's 200 ms: one moment
 /// of three animations, the same on every run because the clock is virtual. The
 /// floor is part way through its ripple, which is the picture worth keeping.
+///
+/// Read more: [Motion](https://goldberry.dev/docs/guide/design-system.html#motion).
 public record MotionScreen() implements Widget.Stateful {
 
     private static final String NOTE =

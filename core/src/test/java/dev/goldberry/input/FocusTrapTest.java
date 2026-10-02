@@ -21,7 +21,7 @@ import dev.goldberry.widget.State;
 import dev.goldberry.widget.Widget;
 import dev.goldberry.widget.style.Styled;
 
-/// `docs/core-widgets.md` §7's focus trap, and
+/// The focus trap a modal overlay puts up, and
 /// [dev.goldberry.Host#focus].
 ///
 /// In `:core` and built from bare widgets rather than from `dialog`, which lives
@@ -32,7 +32,9 @@ import dev.goldberry.widget.style.Styled;
 ///
 /// The invariant under test is one sentence: **while something modal is mounted,
 /// the focused node is inside it.** Every case here is that sentence approached
-/// from a different direction ([ADR-0176]).
+/// from a different direction.
+///
+/// Read more: [Focus](https://goldberry.dev/docs/guide/input.html#focus).
 class FocusTrapTest {
 
     /// A focusable leaf.
@@ -261,7 +263,7 @@ class FocusTrapTest {
     /// A screen that can put its modal up and take it down, which is the only
     /// shape in which "closing a dialog" can be tested: the trap's other cases
     /// are all about a tree that stands still, and this one is entirely about a
-    /// tree that changes under the router ([ADR-0180]).
+    /// tree that changes under the router.
     static final class Screen implements Widget.Stateful {
 
         /// The live state, so a test can close the modal from outside. A `dialog`
@@ -357,7 +359,7 @@ class FocusTrapTest {
                     "the router is holding " + focusedId() + ", which is not in the tree");
         }
 
-        /// §7: each overlay "wraps a `focus-scope` and restores focus on close".
+        /// Each overlay wraps a `focus-scope` and restores focus on close.
         @Test
         @DisplayName("focus goes back to what had it before the modal opened")
         void restoredOnClose() {
@@ -373,7 +375,7 @@ class FocusTrapTest {
             assertEquals("a", focusedId(), "the keyboard landed nowhere in particular");
         }
 
-        /// §7.2 keeps `:focus` and `:focus-visible` distinct, so putting the
+        /// `:focus` and `:focus-visible` are distinct, so putting the
         /// keyboard back has to put the **ring** back with it: a dialog dismissed
         /// with `Escape` should leave things as the user last saw them.
         @Test

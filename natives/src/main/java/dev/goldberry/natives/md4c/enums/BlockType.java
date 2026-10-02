@@ -5,6 +5,8 @@ package dev.goldberry.natives.md4c.enums;
 /// Blocks nest: a [#DOC] holds [#P]s, [#QUOTE]s and lists, a [#LI] holds whatever
 /// a paragraph can. What each one carries beside its type is
 /// [dev.goldberry.natives.md4c.BlockDetail].
+///
+/// Read more: [The native boundary](https://goldberry.dev/docs/overview/architecture.html#the-native-boundary).
 public enum BlockType implements Md4cEnum {
 
     /// The document itself. Exactly one, enclosing everything.

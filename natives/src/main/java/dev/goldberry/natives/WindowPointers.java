@@ -10,10 +10,13 @@ import dev.goldberry.natives.sdl.SdlWindowHandle;
 ///
 /// [SdlWindowHandle] keeps its pointer package-private, because its package is
 /// exported to every application and a public accessor there would put a
-/// `MemorySegment` in reach of all of them (ADR-0280). This package is not
-/// exported at all. The handle registers its accessor here when its class is
-/// initialised, which it has been by the time anyone holds one: the JDK's
-/// `SharedSecrets` arrangement, at the size of one method.
+/// `MemorySegment` in reach of all of them; raw foreign memory never leaves this
+/// module. This package is not exported at all. The handle registers its
+/// accessor here when its class is initialised, which it has been by the time
+/// anyone holds one: the JDK's `SharedSecrets` arrangement, at the size of one
+/// method.
+///
+/// Read more: [The native boundary](https://goldberry.dev/docs/overview/architecture.html#the-native-boundary).
 public final class WindowPointers {
 
     /// Reads a window's pointer.

@@ -19,18 +19,18 @@ import org.junit.jupiter.api.Test;
 ///
 /// The `TODO.md` entry this closes asked for "a rule about which states are
 /// worth a second theme rather than one more image", and the rule is narrow on
-/// purpose. §2.2's ring is the one mark in the system with **no second means of
+/// purpose. The focus ring is the one mark in the system with **no second means of
 /// being seen**: a hover has a wash, a checked control has a fill, a disabled one
 /// has its opacity, and each of those is drawn in colours some other golden
 /// already covers. A ring is only a ring, and `--gb-focus` resolves differently
 /// per theme — so a ring photographed on one theme is a ring nothing is watching
 /// on the other.
 ///
-/// That is not a hypothetical. §2.2's ring sat below §1.2's floor on **every**
-/// light surface, measured at 1.74:1, 2.00:1 and 1.64:1, and the change that
-/// fixed it moved *no golden at all* ([ADR-0240]) — because every focus image in
+/// That is not a hypothetical. The ring sat below the 3:1 non-text floor on
+/// **every** light surface, measured at 1.74:1, 2.00:1 and 1.64:1, and the
+/// change that fixed it moved *no golden at all* — because every focus image in
 /// the catalog was `NORD_DARK`. A colour with no picture is a colour nothing
-/// would notice going wrong again ([ADR-0261]).
+/// would notice going wrong again.
 ///
 /// Doubling the *whole* corpus was the alternative and is not the rule: a hover
 /// wash on a light surface is two tokens other goldens already draw, so a second
@@ -89,7 +89,7 @@ class FocusGoldenPairTest {
         assertEquals(
                 List.of(),
                 List.copyOf(missing),
-                () -> "§2.2's ring is the one mark with no second means of being seen, and"
+                () -> "the focus ring is the one mark with no second means of being seen, and"
                         + " `--gb-focus` differs per theme — so a ring pictured on one theme is a"
                         + " ring nothing watches on the other. Missing: " + missing);
     }

@@ -5,7 +5,7 @@ import java.util.Objects;
 
 /// One subtitle: text shown from `start` until `end`.
 ///
-/// The text is plain, and that is a decision (`docs/goldberry-media.md` §6):
+/// The text is plain, on purpose:
 /// italics, colours, positions and karaoke timing are taken out, and what is
 /// left is drawn by Goldberry's own text stack, in the theme's type. Lines are
 /// separated by `\n`.
@@ -13,6 +13,9 @@ import java.util.Objects;
 /// @param start when it appears, in presentation time
 /// @param end   when it goes, after `start`
 /// @param text  what it says, one or more lines, never blank
+///
+/// Read more:
+/// [Tracks and the network](https://goldberry.dev/docs/components/media.html#tracks-subtitles-and-the-network).
 public record Cue(Duration start, Duration end, String text) {
 
     public Cue {

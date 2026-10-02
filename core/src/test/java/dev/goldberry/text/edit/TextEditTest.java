@@ -9,7 +9,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
-/// `docs/core-widgets.md` §4's editing model, with no widget, no font and no
+/// The editing model a text field is built on, with no widget, no font and no
 /// window.
 ///
 /// Every rule a text field has is in here, which is the point of the model being

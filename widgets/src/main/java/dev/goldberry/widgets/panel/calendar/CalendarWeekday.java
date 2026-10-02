@@ -11,7 +11,7 @@ import dev.goldberry.widget.style.Styled;
 
 /// One column heading — `calendar-weekday`, a **part**.
 ///
-/// §2: "header row `caption` in `--gb-text-muted`". The name is the locale's
+/// Set at the `caption` rank in `--gb-text-muted`. The name is the locale's
 /// narrow form, which is one letter in English and is not in every language —
 /// see [CalendarMonth#weekdayNames].
 ///

@@ -9,6 +9,8 @@ import dev.goldberry.natives.sdl.gpu.enums.SdlGpuTextureFormat;
 /// A graphics pipeline: two shaders, how vertices are assembled and read, one
 /// colour target of one format with one blend, and an optional depth test, all
 /// as its [SdlGpuPipelineDescription] says.
+///
+/// Read more: [The native boundary](https://goldberry.dev/docs/overview/architecture.html#the-native-boundary).
 public final class SdlGpuGraphicsPipeline extends SdlGpuResource {
 
     private final SdlGpuPipelineDescription description;

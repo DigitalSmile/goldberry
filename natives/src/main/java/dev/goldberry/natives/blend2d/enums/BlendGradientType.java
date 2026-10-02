@@ -8,11 +8,13 @@ package dev.goldberry.natives.blend2d.enums;
 /// disagree — four for a linear, six for a radial, four in a different meaning
 /// for a conic. Naming the other two here is what makes
 /// [dev.goldberry.natives.blend2d.BlendGradient]'s refusal to
-/// take them a decision rather than an omission (ADR-0207).
+/// take them a decision rather than an omission.
 ///
 /// Every value is checked against the compiled library, and `LINEAR` at zero is
 /// exactly why: a zero that is right by accident reads the same as a field
 /// nobody wrote.
+///
+/// Read more: [The native boundary](https://goldberry.dev/docs/overview/architecture.html#the-native-boundary).
 public enum BlendGradientType implements BlendEnum {
 
     /// Stops along the segment from `(x0, y0)` to `(x1, y1)`.

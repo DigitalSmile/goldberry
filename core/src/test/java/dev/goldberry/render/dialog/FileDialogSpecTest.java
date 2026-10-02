@@ -17,7 +17,7 @@ import org.junit.jupiter.api.Test;
 /// impossible requests are impossible to *build*, and the two that survive the
 /// type system — a folder dialog with filters, a save dialog for several files —
 /// are refused here rather than quietly dropped by whichever platform is under
-/// them (ADR-0287).
+/// them.
 class FileDialogSpecTest {
 
     @Test

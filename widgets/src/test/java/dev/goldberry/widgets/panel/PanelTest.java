@@ -15,7 +15,7 @@ import dev.goldberry.RendererRequirement;
 import dev.goldberry.widget.attr.Attributes;
 import dev.goldberry.widgets.text.Text;
 
-/// `panel` — §5's plain surface, the one container that owns nothing.
+/// `panel` — the plain surface, the one container that owns nothing.
 ///
 /// `PanelsGoldenTest` carries what it looks like. What is here is the one thing a
 /// record with two components can still get wrong: what it does with a null.

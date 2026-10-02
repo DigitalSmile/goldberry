@@ -38,18 +38,16 @@ import dev.goldberry.widget.WidgetRenderer;
 /// [#paint(Painter)] runs a painter over the whole buffer, and [#render(Widget)]
 /// builds, styles, lays out and paints a **real widget tree** — the same
 /// sequence a window runs, in the same order, with no display, no SDL and no
-/// compositor anywhere near it (ADR-0284). Since ADR-0423 that is not a
-/// resemblance: both run their steps through the same
-/// [dev.goldberry.frame.FrameSequence].
+/// compositor anywhere near it. That is not a resemblance: both run their steps
+/// through the same [dev.goldberry.frame.FrameSequence].
 ///
 /// A third terminal, [#strip(Widget)], mounts the tree and keeps it, so a caller
-/// can drive the clock and take a picture repeatedly (ADR-0424).
+/// can drive the clock and take a picture repeatedly.
 ///
 /// What it is for: a server-rendered preview, an OpenGraph card, an export, a
-/// thumbnail. `docs/gaps.md` G5 asked for it because the pieces all existed and
-/// none of them was an entry point — `PixelBuffer.allocate`, `Frame.over` and the
-/// headless backend are public, and stitching them into the sequence a window
-/// runs was left to whoever needed it. This is that sequence, shipped.
+/// thumbnail, and every golden picture a test compares against. The pieces —
+/// `PixelBuffer.allocate`, `Frame.over` and the headless backend — are public on
+/// their own; this is the sequence a window runs over them, shipped as one call.
 ///
 /// ## Three passes, and a clock that does not tick
 ///
@@ -81,8 +79,7 @@ import dev.goldberry.widget.WidgetRenderer;
 /// A buffer of `width * height * 4` bytes, a full build and cascade of the tree,
 /// a font book opened and closed around the call, and a cascade index and shaping
 /// cache built cold and thrown away. **A server rendering many previews should
-/// hold a [Studio]**, which keeps all four and hands out renders wired to them
-/// (ADR-0425).
+/// hold a [Studio]**, which keeps all four and hands out renders wired to them.
 ///
 /// What is never kept is the tree: each render mounts a fresh one and unmounts it,
 /// so two renders cannot share state through one and a `State`'s `dispose` runs.
@@ -103,13 +100,15 @@ import dev.goldberry.widget.WidgetRenderer;
 /// each confined to the thread that opened them, because the faces underneath them
 /// belong to HarfBuzz and Blend2D and those are confined too. So [#fonts(Fonts)],
 /// [#font(Font)] and [Studio] are per-thread objects, and a pool of four workers
-/// wants four of them. All three now refuse a foreign thread rather than corrupt
-/// themselves quietly, which is the other half of ADR-0425.
+/// wants four of them. All three refuse a foreign thread rather than corrupt
+/// themselves quietly.
 ///
 /// Blend2D's rasterization workers are a process-wide pool shared by every live
 /// context, so concurrent renders contend for it and a render that cannot get
-/// workers paints synchronously instead (ADR-0042). That is slower and it is not
-/// wrong: the pixels are the same, which is what the concurrency test asserts.
+/// workers paints synchronously instead. That is slower and it is not wrong: the
+/// pixels are the same, which is what the concurrency test asserts.
+///
+/// Read more: [Testing an application](https://goldberry.dev/docs/guide/testing.html#pictures).
 public final class Offscreen {
 
     /// The one format the whole toolkit blits.
@@ -147,7 +146,7 @@ public final class Offscreen {
     private @Nullable GpuSurface gpu;
 
     /// A renderer a [Studio] is keeping across renders, or null for the usual case
-    /// of one built for this call and thrown away (ADR-0425).
+    /// of one built for this call and thrown away.
     private @Nullable WidgetRenderer kept;
 
     private Offscreen(PhysicalSize size) {
@@ -234,7 +233,7 @@ public final class Offscreen {
 
     /// The faces an application ships, for the book this call opens —
     /// [dev.goldberry.Application#fonts()]'s list, so a render
-    /// test paints the families the window paints (ADR-0349).
+    /// test paints the families the window paints.
     ///
     /// Clears a book or a font given earlier: a caller naming faces is asking for
     /// the book to be opened here, with them in it.
@@ -289,9 +288,9 @@ public final class Offscreen {
 
     /// Shows GPU layers through `surface`: a [GpuSurface.ReadBack] renders each
     /// one on the GPU and draws its pixels into the picture, which is how a
-    /// render with a `canvas3d` or a video in it has them (`docs/gpu-plan.md`,
-    /// D3; ADR-0481). Without one -- the default -- a GPU layer's painter is
-    /// told there is no GPU and draws what it shows instead.
+    /// render with a `canvas3d` or a video in it has them. Without one -- the
+    /// default -- a GPU layer's painter is told there is no GPU and draws what it
+    /// shows instead.
     ///
     /// The surface is the caller's, and is told what each render placed, as a
     /// window's is after each frame.
@@ -335,8 +334,7 @@ public final class Offscreen {
             }
         } finally {
             // Before a pixel is read: Blend2D may still have work queued, and a
-            // buffer read from a context that has not ended is half-drawn
-            // (ADR-0042).
+            // buffer read from a context that has not ended is half-drawn.
             frame.end();
         }
         placed(frame);
@@ -349,7 +347,7 @@ public final class Offscreen {
     /// update, capture the regions — twice with the clock advanced in between,
     /// and then once more to paint. See the note on this class for why three.
     ///
-    /// Literally the same, since ADR-0423: the steps and their order are
+    /// Literally the same: the steps and their order are
     /// [dev.goldberry.frame.FrameSequence]'s,
     /// which a window runs its frames through too. What is this method's own is
     /// how many passes there are and what happens to the clock between them.
@@ -379,7 +377,7 @@ public final class Offscreen {
                     // first guess.
                     var router = new PointerRouter();
                     // The steps, and their order, are `FrameSequence`'s -- the
-                    // same object a window runs its frames through (ADR-0423).
+                    // same object a window runs its frames through.
                     // What is left here is the *number* of passes and the clock
                     // between them, which is the part that is this class's own.
                     var sequence = FrameSequence.over(tree, render, router);
@@ -405,10 +403,8 @@ public final class Offscreen {
                     // the workers. Releasing any of that before the join is a
                     // read of freed memory inside Blend2D's command processor --
                     // which is a SIGSEGV in a worker thread rather than an
-                    // exception, and is how this was found: the showcase's
-                    // sticky is the first widget whose `State` owns a `Font` and
-                    // closes it in `dispose`, and unmounting before the join
-                    // crashed the JVM (ADR-0284).
+                    // exception. A `State` that owns a `Font` closes it in
+                    // `dispose`, so unmounting before the join crashes the JVM.
                     frame.end();
                     render.close();
                 }
@@ -433,7 +429,7 @@ public final class Offscreen {
     /// so this is where the choice is made once rather than at each use.
     private WidgetRenderer renderer(@Nullable Fonts ownFonts, Clock clock) {
         // A studio's, when this render came from one: the cascade index and the
-        // shaping cache behind it are what a studio exists to keep (ADR-0425).
+        // shaping cache behind it are what a studio exists to keep.
         // Its clock is re-pointed at this render's, which is safe because a studio
         // is confined to one thread and its renders are therefore sequential.
         var studios = kept;
@@ -471,8 +467,8 @@ public final class Offscreen {
     /// once more, and paint it.
     ///
     /// The full paint rather than a damaged one. A window paints only what changed
-    /// because the backend promises last frame's pixels are still there
-    /// (ADR-0072); this buffer has no last frame, so the question does not arise.
+    /// because the backend promises last frame's pixels are still there; this
+    /// buffer has no last frame, so the question does not arise.
     /// That is the one step [FrameSequence] deliberately does not own, and this
     /// line is the whole of this side of it.
     private static void draw(Frame frame, WidgetRenderer renderer, FrameSequence sequence, RenderTree render) {
@@ -494,7 +490,7 @@ public final class Offscreen {
     /// The third terminal, beside [#paint(Painter)] and [#render(Widget)], and the
     /// one with a lifetime: a [Filmstrip] keeps the mounted tree so a caller can
     /// drive the clock between pictures and get frame 3 of a transition rather than
-    /// three first frames (ADR-0424).
+    /// three first frames.
     ///
     /// **[#settle(int)] does not apply**, and setting it is ignored here. A settle
     /// time is how far a still picture jumps to get past the entrance animations,

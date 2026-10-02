@@ -4,9 +4,11 @@
 /// keeps it painted until its exit has played.
 ///
 /// Nine packages share it. It is a lifecycle, not a structural primitive like
-/// `column` or `row`, which is why it left `…widgets.core` (ADR-0496).
+/// `column` or `row`, which is why it has a package of its own.
 ///
-/// Marked for NullAway from its first commit (`docs/testing.md` §2).
+/// Null-marked: every reference is non-null unless annotated otherwise.
+///
+/// Read more: [The design system](https://goldberry.dev/docs/guide/design-system.html#motion).
 @NullMarked
 package dev.goldberry.widgets.core.presence;
 

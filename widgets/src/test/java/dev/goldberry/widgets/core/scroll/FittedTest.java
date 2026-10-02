@@ -14,7 +14,7 @@ import dev.goldberry.widget.Widget;
 import dev.goldberry.widgets.text.Text;
 
 /// [Fitted] — what `menu` and `select` both answer [dev.goldberry.Host.Fit]
-/// with ([ADR-0179]).
+/// with.
 ///
 /// A pure function of a measurement and a rectangle, which is the point of
 /// pulling it out of `Menus`: the decision that used to be an estimate buried in

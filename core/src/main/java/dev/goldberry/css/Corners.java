@@ -2,32 +2,29 @@ package dev.goldberry.css;
 
 /// The four corner radii of a box, in CSS's order.
 ///
-/// ## Why four numbers and not one
+/// ```css
+/// card { border-radius: 8px }
+/// group-box-title { border-radius: 7px 7px 0 0 }
+/// ```
 ///
-/// It was one number until a `group-box` asked for two. Every radius the design
-/// system pins is uniform (§1.5's 4, 8, 12 and `full`), and one number is the
-/// right shape for all of them — until a box has to meet a *rounded parent's*
-/// corner on one edge and its sibling's square one on the other. `group-box-title`
-/// is that box: it fills the top of an 8px-rounded frame, so its top corners are
-/// the frame's less the border and its bottom ones are square, and there is no
-/// arrangement of nodes that fakes it (the trick ADR-0215 used for a rule under a
-/// table header). The stylesheet had said `border-radius: 7px 7px 0 0` since the
-/// widget shipped; the engine dropped the declaration with a warning and drew
-/// four square corners spilling out of the frame.
+/// Four numbers rather than one, because a box sometimes has to meet a *rounded
+/// parent's* corner on one edge and its sibling's square one on the other.
+/// `group-box-title` is that box: it fills the top of an 8px-rounded frame, so
+/// its top corners are the frame's less the border and its bottom ones are
+/// square. Every radius the design system pins is still uniform (4, 8, 12 and
+/// `full`), and [#isUniform()] says when one number would have done.
 ///
-/// ## Circular only
+/// Corners are circular only. CSS's full grammar allows an ellipse per corner
+/// (`border-radius: 10px / 20px`) and this does not: [dev.goldberry.paint.RoundRect]
+/// draws quarter circles, and an elliptical corner is a different curve rather
+/// than a different number. A declaration with a `/` in it is dropped and says
+/// so, which is the same answer the subset gives to `border-radius: 50%`.
 ///
-/// CSS's full grammar allows an ellipse per corner — `border-radius: 10px / 20px`
-/// — and this does not: [dev.goldberry.paint.RoundRect] draws
-/// quarter circles, and an elliptical corner is a different curve rather than a
-/// different number. A declaration with a `/` in it is dropped and says so, which
-/// is the same answer §8 gives to `border-radius: 50%`.
+/// Units are logical pixels, resolved, non-negative (see [Decoration]). Clamped
+/// rather than refused, for its reason: these arrive from a stylesheet, and a
+/// negative corner should not take a window down mid-frame.
 ///
-/// ## Units
-///
-/// Logical pixels, resolved, non-negative — see [Decoration]. Clamped rather than
-/// refused, for its reason: these arrive from a stylesheet, and a negative corner
-/// should not take a window down mid-frame.
+/// Read more: [Styling](https://goldberry.dev/docs/guide/styling.html#border-outline-and-shadow).
 ///
 /// @param topLeft     the top-left radius; 0 is a square corner
 /// @param topRight    the top-right radius
@@ -58,7 +55,8 @@ public record Corners(double topLeft, double topRight, double bottomRight, doubl
         return topLeft == 0 && topRight == 0 && bottomRight == 0 && bottomLeft == 0;
     }
 
-    /// Whether all four corners are the same, which is what §1.5's radii are.
+    /// Whether all four corners are the same, which is what the design system's
+    /// radii are.
     public boolean isUniform() {
         return topLeft == topRight && topRight == bottomRight && bottomRight == bottomLeft;
     }
@@ -97,7 +95,7 @@ public record Corners(double topLeft, double topRight, double bottomRight, doubl
     /// round at its two ends and square where they touch. `segmented` is the
     /// caller — its segments and the pill that travels along them both take it,
     /// and which cell is an end is a fact about a **count**, which no selector can
-    /// write ([ADR-0217]).
+    /// write.
     ///
     /// Both true is a row of one, which keeps every corner; both false is a cell
     /// in the middle, which keeps none.

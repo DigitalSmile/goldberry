@@ -15,7 +15,7 @@ import dev.goldberry.natives.NativeLibraryRequirement;
 import dev.goldberry.natives.blend2d.enums.BlendStrokeCap;
 import dev.goldberry.natives.blend2d.enums.BlendStrokeJoin;
 
-/// What the one new symbol actually puts in the buffer (ADR-0278).
+/// What the miter-limit symbol actually puts in the buffer.
 ///
 /// [BlendGradientTest]'s shape and its reason: a stroke property that is set and
 /// not read produces a frame that renders and looks nearly right, and no error

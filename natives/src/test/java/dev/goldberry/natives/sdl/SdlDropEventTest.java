@@ -13,7 +13,7 @@ import org.junit.jupiter.api.Test;
 import dev.goldberry.natives.layout.Layouts;
 import dev.goldberry.natives.sdl.event.SdlEventType;
 
-/// Reading `SDL_DropEvent` out of the buffer — `docs/gaps.md` G35b, [ADR-0330].
+/// Reading `SDL_DropEvent` out of the buffer.
 ///
 /// [SdlEventBufferTest]'s method, and its argument: the event is fabricated here
 /// because there is no display to drag a file onto, and it still tests what
@@ -33,7 +33,7 @@ import dev.goldberry.natives.sdl.event.SdlEventType;
 /// `assumeTrue(NativeLibrary.isAvailable())` anyway, which skipped the whole
 /// class on a machine with no superbuild and — because it was an assumption
 /// rather than [dev.goldberry.natives.NativeLibraryRequirement]
-/// — skipped it silently in CI too (ADR-0016).
+/// — skipped it silently in CI too.
 class SdlDropEventTest {
 
     private static final long TYPE = Layouts.SDL_COMMON_EVENT.offsetOf("type");
@@ -80,8 +80,7 @@ class SdlDropEventTest {
         try (var arena = Arena.ofConfined();
                 var buffer = new SdlEventBuffer()) {
             // One line, because that is what one SDL_EVENT_DROP_TEXT carries: SDL
-            // tokenises the payload on \r\n and sends one event per token
-            // ([ADR-0408]).
+            // tokenises the payload on \r\n and sends one event per token.
             var text = arena.allocateFrom("https://example.com/x.png");
             buffer.clear();
             var event = buffer.segment();

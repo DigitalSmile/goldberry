@@ -294,7 +294,7 @@ class CssParserTest {
 
         /// Everything the parser refuses rather than drops, in one table: a rule
         /// that silently never matched would be a bad afternoon, so the whole
-        /// sheet is refused instead. Four are outside §8's subset and the rest
+        /// sheet is refused instead. Four are outside the supported subset and the rest
         /// are simply malformed.
         @ParameterizedTest(name = "{0}")
         @CsvSource({

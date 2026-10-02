@@ -7,6 +7,8 @@ import dev.goldberry.natives.yoga.style.YogaEnum;
 /// Mirrors `YGMeasureMode` in `yoga/YGEnums.h`. The ordinals are Yoga's, not
 /// Java's: they are declared explicitly so reordering this enum cannot silently
 /// change what crosses the boundary.
+///
+/// Read more: [The native boundary](https://goldberry.dev/docs/overview/architecture.html#the-native-boundary).
 public enum MeasureMode implements YogaEnum {
 
     /// No constraint. The node may be whatever size it wants.

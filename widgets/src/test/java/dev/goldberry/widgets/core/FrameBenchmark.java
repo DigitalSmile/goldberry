@@ -30,13 +30,17 @@ import dev.goldberry.widgets.text.Text;
 /// What a frame of a real widget tree costs, split by stage.
 ///
 /// [dev.goldberry.text.TextBenchmark] measures the text path
-/// in isolation and ADR-0037 wrote its numbers down. This one measures the thing
+/// in isolation and its numbers are written down. This one measures the thing
 /// an application actually pays: element tree → cascade → boxes → Yoga → Blend2D,
 /// per frame, on a tree the size of the showcase's.
 ///
-/// It exists because ADR-0053 said the case for retained render objects "should
-/// be made with a measurement", and because ADR-0045 exists precisely to stop
-/// this repository optimising against a number it has not taken.
+/// It exists because the case for retained render objects was to be made with
+/// a measurement, and because this repository does not optimise against a
+/// number it has not taken: a benchmark iteration is not a frame, and the
+/// numbers here say which stage a frame spends its budget in.
+///
+/// Read more:
+/// [A benchmark is not a frame](https://goldberry.dev/docs/performance/measuring.html#a-benchmark-is-not-a-frame).
 ///
 /// **Tagged `benchmark`, so `check` never runs it.** Nothing here asserts a
 /// timing. Run with `./gradlew :core:benchmark --tests '*FrameBenchmark*'`.
@@ -169,7 +173,7 @@ class FrameBenchmark {
     }
 
     @Test
-    @DisplayName("retained against throwaway, which is the question ADR-0053 left")
+    @DisplayName("retained against throwaway, which is the question the box tree left open")
     void retainedAgainstThrowaway() {
         var renderer = renderer();
         var tree = new ElementTree(showcaseTree());
@@ -206,8 +210,8 @@ class FrameBenchmark {
         // Rendered up front and cycled rather than rendered inside the loop:
         // putting the cascade in the timed section would make this row measure
         // render+layout while the row above it measures layout, and comparing
-        // the two would be comparing different work. That mistake is what
-        // ADR-0045 is about.
+        // the two would be comparing different work. That mistake is why a
+        // benchmark iteration is not a frame.
         var rebuilt = new Box[8];
         for (var i = 0; i < rebuilt.length; i++) {
             rebuilt[i] = renderer.render(tree);
@@ -320,18 +324,19 @@ class FrameBenchmark {
     @Test
     @DisplayName("what layer promotion buys a fading group")
     void fadingGroup() {
-        // §1.7's claim for layer promotion, as a number. I would not make the
+        // The claim for layer promotion -- a node animating opacity rasterizes
+        // once and is composited per frame -- as a number. I would not make the
         // change without it: a layer costs an allocation and a blit, so reusing
         // its raster has to beat re-rasterizing the subtree by more than that.
         //
         // The subtree is the showcase's, wrapped in a group at 45% -- which is
-        // `:disabled` on a real control (§2.1) and is what actually fades in this
+        // `:disabled` on a real control in the design system and is what actually fades in this
         // toolkit today.
         var renderer = renderer();
         var tree = new ElementTree(showcaseTree());
 
         // Sixteen steps of a fade, rendered up front and cycled, so the cascade
-        // is not inside the timed section (ADR-0045, the second time).
+        // is not inside the timed section, for the same reason as above.
         var frames = new Box[16];
         for (var i = 0; i < frames.length; i++) {
             frames[i] = Box.of().opacity(0.3 + i * 0.04).children(renderer.render(tree));
@@ -375,8 +380,8 @@ class FrameBenchmark {
     @Test
     @DisplayName("inside the cascade, which is now the largest term in a frame")
     void cascadeCost() {
-        // `render` is 135 us of a 148 us frame once layout is retained
-        // (ADR-0069), so this is where the next answer has to come from. Split
+        // `render` is 135 us of a 148 us frame once layout is retained, so
+        // this is where the next answer has to come from. Split
         // three ways, because "the cascade is slow" is not actionable and
         // "selector matching is 80% of it" is.
         var tree = new ElementTree(showcaseTree());
@@ -444,7 +449,7 @@ class FrameBenchmark {
         var renderer = renderer();
         var tree = new ElementTree(showcaseTree());
 
-        // Eight text nodes in the tree above. ADR-0037 measured shaping at 56 us
+        // Eight text nodes in the tree above. `TextBenchmark` measured shaping at 56 us
         // and an upcall stub at 11 us, both per text node per frame -- so this
         // is where the argument for retention has to be won or lost.
         var box = renderer.render(tree);

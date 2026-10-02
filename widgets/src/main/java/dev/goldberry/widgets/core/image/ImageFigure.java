@@ -21,8 +21,8 @@ import dev.goldberry.widget.style.Styled;
 /// The styled node of an [ImageView] that means something — a **part**, CSS
 /// type `image`, announced as a figure named by its alt text.
 ///
-/// [Role#FIGURE] is what `canvas` answers too: §1 gives `image` the semantics
-/// "image with alt text", and the role set has no image of its own.
+/// [Role#FIGURE] is what `canvas` answers too: an `image` is announced as an
+/// image with its alt text, and the role set has no image of its own.
 ///
 /// @param load          where the load stands
 /// @param alt           the alt text, shown in the box when the load failed

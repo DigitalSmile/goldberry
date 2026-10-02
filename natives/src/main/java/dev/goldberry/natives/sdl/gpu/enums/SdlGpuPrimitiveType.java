@@ -1,6 +1,8 @@
 package dev.goldberry.natives.sdl.gpu.enums;
 
 /// How a pipeline assembles vertices, as SDL's `SDL_GPUPrimitiveType`.
+///
+/// Read more: [The native boundary](https://goldberry.dev/docs/overview/architecture.html#the-native-boundary).
 public enum SdlGpuPrimitiveType {
     /// Every three vertices a triangle.
     TRIANGLE_LIST(0, "TRIANGLELIST"),

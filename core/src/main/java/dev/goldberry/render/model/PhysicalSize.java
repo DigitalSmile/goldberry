@@ -4,7 +4,10 @@ package dev.goldberry.render.model;
 ///
 /// Integers, because there is no such thing as two thirds of a pixel in a frame
 /// buffer. See [LogicalSize] for why the two are separate types, and
-/// [DisplayScale] for the only conversion between them.
+/// [DisplayScale] for the only conversion between them. Neither side may be
+/// negative.
+///
+/// Read more: [How layout works](https://goldberry.dev/docs/layout/index.html#logical-pixels).
 public record PhysicalSize(int width, int height) {
 
     public PhysicalSize {

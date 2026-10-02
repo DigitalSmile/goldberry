@@ -19,7 +19,7 @@ import org.junit.jupiter.api.Test;
 
 import dev.goldberry.image.gif.GifDecoder;
 
-/// Every frame of a GIF, and which of them is being shown — [ADR-0382].
+/// Every frame of a GIF, and which of them is being shown.
 ///
 /// Two halves, tested apart because they are apart in the code: the decoder,
 /// which turns a file into frames under GIF's disposal rules, and [Animation],

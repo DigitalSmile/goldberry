@@ -46,9 +46,7 @@ import dev.goldberry.example.ui.sheet.IconsScreen;
 /// `Notifications` were the two halves of a comparison a reader could not make
 /// with a tab between them; `Tabs` and `Scrolling` were both "how do I get around
 /// a window". The screens are *questions* rather than widget families, and all but
-/// two of them are a wall of cards
-/// (ADR-0222,
-/// ADR-0110).
+/// two of them are a wall of cards.
 ///
 /// ## What this widget rebuilds for
 ///
@@ -59,9 +57,11 @@ import dev.goldberry.example.ui.sheet.IconsScreen;
 ///
 /// The gallery's own selection is not among them: the strip reads it through
 /// `bind` like any other control, and the screens are all built either way. That
-/// is the trade §5's lazy content makes — only the selected screen's widgets are
+/// is the trade `tabs`' lazy content makes — only the selected screen's widgets are
 /// built into elements — and it is why switching screens costs a rebuild of one
 /// screen rather than of the window.
+///
+/// Read more: [Views](https://goldberry.dev/docs/applications.html#views).
 ///
 /// @param model    the state every screen reads
 /// @param inflater what turns the seven documents into widgets
@@ -82,7 +82,7 @@ public record Screen(ShowcaseModel model, ShowcaseModel.Actions actions,
     /// off it — and they used to hold a copy each. The copies drifted the moment a
     /// screen was inserted in the middle, so `Ctrl+8` selected the screen beside
     /// the one the eighth tab named. A gallery with two orders in it is a gallery
-    /// that disagrees with itself (ADR-0110).
+    /// that disagrees with itself.
     ///
     /// **Thirteen, and ten of them have a digit** — `Ctrl+0` is the tenth and a
     /// keyboard has no eleventh digit. That was once written here as a *limit* on
@@ -91,7 +91,7 @@ public record Screen(ShowcaseModel model, ShowcaseModel.Actions actions,
     /// there are", and `Showcase.screenShortcuts` has always bound what it can and
     /// stopped. So `icons`, `emoji` and `motion` are reached by the strip, by the
     /// arrow keys inside it, and by Edit ▸ Go to — three ways, none of them a
-    /// digit ([ADR-0307]).
+    /// digit.
     ///
     /// The rule that *is* load-bearing is the one below it: the strip and this
     /// list must name the same screens, because a screen in one and not the other
@@ -234,7 +234,7 @@ public record Screen(ShowcaseModel model, ShowcaseModel.Actions actions,
             // through a binding and needs no rebuild here.
             for (var path : List.of("app.prose", "app.clicks", "app.tabs", "app.hud")) {
                 // Which chapters exist is structure too: a tab added or closed is
-                // a different tree, not a different value (ADR-0109).
+                // a different tree, not a different value.
                 watching.add(Models.observable(widget().model(), path)
                         .subscribe(value -> setState(() -> { })));
             }
@@ -252,12 +252,11 @@ public record Screen(ShowcaseModel model, ShowcaseModel.Actions actions,
         /// One screen, in a viewport that can show more of it than the window is
         /// tall.
         ///
-        /// The gallery is what `scroll` was built for
-        /// (ADR-0116).
+        /// The gallery is what `scroll` was built for.
         ///
         /// Every screen but one, and the exception is the rule rather than a
         /// special case: [Navigation] holds a card that owns a viewport of its
-        /// own, and §2.4 bans nested same-axis scrollers. A viewport over content
+        /// own, and nested same-axis scrollers are not allowed. A viewport over content
         /// that fits draws no thumb and takes no input, so wrapping a short screen
         /// costs one element — and a screen that is short at one window size is
         /// tall at another, which is the case a per-screen decision would get
@@ -289,7 +288,7 @@ public record Screen(ShowcaseModel model, ShowcaseModel.Actions actions,
                             scrolled(new Overlays(overlays))),
                     new Tab("forms", title("forms"), scrolled(new Forms(forms))),
                     // Not `scrolled`: this screen holds a card that owns a viewport
-                    // of its own, and §2.4 bans nested same-axis scrollers -- so
+                    // of its own, and nested same-axis scrollers are not allowed -- so
                     // the screen that demonstrates the rule is where the gallery
                     // has to keep it.
                     new Tab("navigation", title("navigation"),
@@ -300,41 +299,39 @@ public record Screen(ShowcaseModel model, ShowcaseModel.Actions actions,
                     new Tab("charts", title("charts"), scrolled(new Charts())),
                     // The screen about an **optional module**: `goldberry-html`'s
                     // `markdown-view`, which this application opts into and never
-                    // registers (ADR-0294, ADR-0295). Not `scrolled`, for
+                    // registers. Not `scrolled`, for
                     // [Navigation]'s reason and one more: the preview pane owns a
                     // viewport, and a `split-pane` needs a height to divide.
                     new Tab("markdown", title("markdown"), new MarkdownScreen(markdown)),
-                    // The same optional module's other half: `html-view`, which is
-                    // the entry `docs/gaps.md` G17 asked for and which landed
-                    // without the engine that entry assumed (ADR-0298). Not
+                    // The same optional module's other half: `html-view`, which
+                    // renders a page with no browser engine behind it. Not
                     // `scrolled`, for the Markdown screen's two reasons.
                     new Tab("html", title("html"), new HtmlScreen(html)),
-                    // §1's `canvas`, which is the one screen about a *primitive*
+                    // The `canvas`, which is the one screen about a *primitive*
                     // rather than about a family of widgets -- and the only one
-                    // whose cards respond to the pointer by redrawing themselves
-                    // (ADR-0281).
+                    // whose cards respond to the pointer by redrawing themselves.
                     new Tab("canvas", title("canvas"), scrolled(new CanvasScreen())),
                     // The sheet of every bundled icon, and the one screen that is
                     // about an *asset* rather than about a widget. Not `scrolled`:
                     // it is a virtualized `list` and owns a viewport of its own,
-                    // which is [Navigation]'s reason and §2.4's ban on nested
-                    // same-axis scrollers (ADR-0307).
+                    // which is [Navigation]'s reason and the ban on nested
+                    // same-axis scrollers.
                     new Tab("icons", title("icons"), new IconsScreen(model, actions)),
                     // The same sheet with a different asset in it, and the screen
                     // where this application opts into `goldberry-emoji` and
-                    // carries the credit CC BY-SA asks for (ADR-0384, ADR-0386).
+                    // carries the credit CC BY-SA asks for.
                     // Not `scrolled`, for the Icons screen's reason.
                     new Tab("emoji", title("emoji"), new EmojiScreen(model, actions)),
                     // What moves by itself: a canvas choreography, `@keyframes`
                     // and `@starting-style`, one card each. Last, so no digit
-                    // moves (ADR-0354).
+                    // moves.
                     new Tab("motion", title("motion"), scrolled(new MotionScreen())),
-                    // §9's `web-view`, filling the tab: a real child window over
-                    // the widget's box, moved with it (ADR-0442). NOT `scrolled` --
+                    // The `web-view`, filling the tab: a real child window over
+                    // the widget's box, moved with it. NOT `scrolled` --
                     // a page is clipped by the window rather than by an ancestor's
                     // box, so a viewport would scroll the frame out from under a
                     // page that stayed put. Last, after `motion`, so no digit
-                    // moves (ADR-0354); the gallery is longer than ten digits now,
+                    // moves; the gallery is longer than ten digits now,
                     // so this screen has no accelerator.
                     new Tab("web", title("web"), new WebScreen()),
                     new Tab("audio", title("audio"),
@@ -342,7 +339,7 @@ public record Screen(ShowcaseModel model, ShowcaseModel.Actions actions,
                                     MediaScreen.Kind.AUDIO, model.audioPlayer(), model.javaPcmDecoder(), audio))),
                     new Tab("video", title("video"),
                             scrolled(new MediaScreen(MediaScreen.Kind.VIDEO, model.videoPlayer(), null, video))),
-                    // `canvas3d` (docs/gpu-plan.md, phase 5; ADR-0482).
+                    // `canvas3d`, the GPU screen's lit cube.
                     new Tab("gpu", title("gpu"), scrolled(new GpuScreen()))))),
                     Models.observable(model, "app.screen"), actions::pickScreen, null, null,
                     Attributes.NONE)
@@ -352,19 +349,19 @@ public record Screen(ShowcaseModel model, ShowcaseModel.Actions actions,
                     List.of(widget().menu().bar(model.isHudShown()), bar, gallery),
                     Attributes.NONE)
                     .id("root")
-                    // §8's `context-menu=` on any widget: right-clicking anywhere
+                    // `context-menu=` on any widget: right-clicking anywhere
                     // in the window opens the menu the application registered
-                    // under this name (ADR-0108).
+                    // under this name.
                     .contextMenu("content");
         }
 
         private static final String PANELS_NOTE =
-                "§5's containers, and the only wall in this gallery with nothing appended to"
+                "The containers, and the only wall in this gallery with nothing appended to"
                         + " it: not one card here holds a value, so the screen is a document"
                         + " with no Java behind it at all.";
 
         private static final String COLLECTIONS_NOTE =
-                "§10's three widgets that hold many rows. What is worth comparing is how each"
+                "The three widgets that hold many rows. What is worth comparing is how each"
                         + " answers scale: the list virtualizes, the table sorts, the tree"
                         + " fetches — and none of the three does the work itself.";
     }

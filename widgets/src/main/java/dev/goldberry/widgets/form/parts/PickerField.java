@@ -19,30 +19,29 @@ import dev.goldberry.widget.semantics.Semantics;
 import dev.goldberry.widget.style.Paints;
 import dev.goldberry.widget.style.Styled;
 
-/// The styled node of §4's pickers: a field, an affordance, and a popover.
+/// The styled node of the three pickers: a field, an affordance, and a popover.
 ///
-/// All three of them are the same control with different things inside the
-/// popup — §4 writes `date-picker` and `time-picker` in one entry and gives
-/// `color-picker` the next one with the same two sentences in it — so this is one
-/// node rather than three that would have to stay alike by hand.
+/// `date-picker`, `time-picker` and `color-picker` are the same control with
+/// different things inside the popup, so this is one node rather than three
+/// that would have to stay alike by hand.
 ///
 /// ## The CSS type is a field, which is the one unusual thing here
 ///
 /// Everything else in the catalog answers [Styled#cssType] with a literal,
 /// because a widget is one kind of thing. This answers with what it was given,
 /// because the three pickers are one kind of thing that a **stylesheet** has to
-/// be able to tell apart: §2 gives `date-picker`/`time-picker` one row and
-/// `color-picker` another, and a shared `picker` type would make those two rows
-/// unwriteable.
+/// be able to tell apart: the design system gives `date-picker` and
+/// `time-picker` one set of metrics and `color-picker` another, and a shared
+/// `picker` type would make those two rules unwriteable.
 ///
-/// It is not a hole in ADR-0065's rule. A part is styleable and not
+/// It is not a hole in the rule about parts. A part is styleable and not
 /// constructible, and this is neither a part nor constructible by an
 /// application — `…form.parts` is not exported, so the only callers are the three
 /// packages in this module that build one.
 ///
 /// ## `Alt+Down` is taken on the way *down*
 ///
-/// §4 gives these pickers `Alt+Down` to open, and the field underneath would
+/// `Alt+Down` opens a picker, and the field underneath would
 /// otherwise take it: `text-input` reads `Down` as "go to the end of the line"
 /// and does not ask about the modifier, because a single-line field has nowhere
 /// else for `Down` to mean anything. Rather than teach `text-input` about
@@ -51,8 +50,8 @@ import dev.goldberry.widget.style.Styled;
 ///
 /// **`Escape` is taken on the bubble** and only when nothing is open, which is
 /// the other half of the same care: while the popover is showing, `Escape`
-/// belongs to it and the launcher dismisses it before this is reached
-/// (ADR-0233). With nothing open it means §4's "reverts", which is `select`'s
+/// belongs to it and the launcher dismisses it before this is reached.
+/// With nothing open it reverts the field, which is `select`'s
 /// rule — the control holds a value, typing is a way of reaching one, and
 /// abandoning the attempt must not throw away something nobody asked to lose.
 ///
@@ -62,6 +61,8 @@ import dev.goldberry.widget.style.Styled;
 /// on the padding, and including on the affordance — puts the caret in the field.
 /// That is [Handles#delegatesFocus], the mechanism `field`'s click-to-focus is
 /// built on.
+///
+/// Read more: [Fields and forms](https://goldberry.dev/docs/components/forms.html#date-picker).
 ///
 /// @param cssType    what a stylesheet calls this picker
 /// @param field      the `text-input` this is wrapped around
@@ -150,14 +151,13 @@ public record PickerField(
         return Box.of().style(style).children(children.toArray(Box[]::new));
     }
 
-    /// §4: "combobox owning a grid, with the formatted date as its value text",
-    /// and the same sentence for the other two.
+    /// A combobox owning a grid, with the formatted value as its value text —
+    /// the same for all three pickers.
     ///
     /// The role is honest; the value text is the half with nowhere to go, because
     /// [Semantics] carries a role, a name and a liveness and nothing that means
-    /// "what this currently holds". That channel is behind the AccessKit bridge,
-    /// which is **on hold and owned by no milestone** ([ADR-0440]) — so the half
-    /// that is missing is missing for good reasons and not for a while.
+    /// "what this currently holds". That channel is behind the accessibility
+    /// bridge, which is on hold.
     @Override
     public Role role() {
         return Role.COMBO_BOX;
@@ -178,7 +178,8 @@ public record PickerField(
         /// A click on the affordance: open, or close if it is already showing.
         void toggle();
 
-        /// §4's `Esc`. Returns whether there was anything to revert.
+        /// `Esc`: the last value that parsed goes back. Returns whether there was
+        /// anything to revert.
         boolean revert();
 
         /// Where the last frame drew the control, for anchoring the popover.

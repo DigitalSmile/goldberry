@@ -11,7 +11,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
-/// §4's validation model, with no widget, no font and no window.
+/// The validation model, with no widget, no font and no window.
 ///
 /// The rules a `field` applies are all in here, which is the point of a validator
 /// being a value: the field decides *when* to ask and this decides *what the
@@ -144,7 +144,7 @@ class ValidatorTest {
     }
 
     /// The seam `date-picker` opened — a rule over a **parsed** value, as a rule
-    /// over the text it was parsed from (ADR-0274).
+    /// over the text it was parsed from.
     @Nested
     @DisplayName("a rule over a parsed value")
     class Parsing {

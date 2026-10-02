@@ -25,7 +25,7 @@ import dev.goldberry.css.cascade.CascadeLayer;
 /// showcase runs on the module path. JPMS encapsulates resources as well as classes:
 /// a `.css` beside a class in a named module is invisible to the module that reads
 /// it unless the package is **open**, and `exports` governs types rather than bytes
-/// (ADR-0093). On the class path there are no modules and no encapsulation, so the
+/// On the class path there are no modules and no encapsulation, so the
 /// call works and says nothing.
 ///
 /// So the check is on the **descriptor**, read from the compiled `module-info.class`
@@ -58,7 +58,7 @@ class MarkdownStylesTest {
         // unstyled words looks like a document somebody wrote badly.
         //
         // `.md-line` and `.md-lines` rather than `.md-prose`, which carries no
-        // declarations since ADR-0426: a paragraph's geometry moved to the class that
+        // declarations of its own: a paragraph's geometry belongs to the class that
         // means a line of words, and `.md-prose` is the hook the paragraph's box keeps.
         for (var name : new String[] {
             ".markdown", ".md-line", ".md-lines", ".md-h1", ".md-strong", ".md-code-block", ".md-table", "task-mark"
@@ -88,7 +88,7 @@ class MarkdownStylesTest {
     @Test
     @DisplayName("opens nothing but the two packages that keep a stylesheet")
     void nothingElseIsOpen() {
-        // The HTML half brought `html.css` and a second `opens` with it (ADR-0298), and
+        // The HTML half brought `html.css` and a second `opens` with it, and
         // that is the whole of the list: opening a package hands its private types out
         // as well, so a third entry here should be something somebody argued for.
         var allowed = java.util.Set.of(OWN_PACKAGE, "dev.goldberry.html.view");
@@ -106,7 +106,7 @@ class MarkdownStylesTest {
         }
         // `.../build/classes/java/test` -> `.../build/classes/java/main`. Through
         // the URI: `getPath()` keeps the leading slash of `file:/D:/...`, which
-        // `Path.of` refuses on Windows (ADR-0338).
+        // `Path.of` refuses on Windows.
         Path main;
         try {
             main = Path.of(source.getLocation().toURI()).resolveSibling("main");

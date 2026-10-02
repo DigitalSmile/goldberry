@@ -22,7 +22,7 @@ import dev.goldberry.css.value.Shadow;
 
 class ThemeTest {
 
-    /// The semantic tokens §10 says widgets consume. A theme missing one of
+    /// The semantic tokens widgets consume. A theme missing one of
     /// these is a theme that leaves some widget unpainted.
     private static final List<String> SEMANTIC_TOKENS = List.of(
             "--gb-bg",
@@ -39,9 +39,9 @@ class ThemeTest {
             "--gb-info",
             "--gb-selection");
 
-    /// §1.5's three shadowed levels. Not in [#SEMANTIC_TOKENS] because those are
-    /// asserted to resolve to a *colour* and these are whole `box-shadow` values
-    /// — which is the point of them (ADR-0310).
+    /// The design system's three shadowed levels. Not in [#SEMANTIC_TOKENS]
+    /// because those are asserted to resolve to a *colour* and these are whole
+    /// `box-shadow` values — which is the point of them.
     private static final List<String> ELEVATION_TOKENS =
             List.of("--gb-elevation-1", "--gb-elevation-2", "--gb-elevation-3");
 
@@ -85,7 +85,7 @@ class ThemeTest {
     }
 
     /// Which way a surface token *goes*, which is the fact three widgets got
-    /// wrong ([ADR-0245]).
+    /// wrong.
     ///
     /// `card`, `text-input` and `select` each read `--gb-surface-2` meaning
     /// "raised" or "sunken", and each was wrong **on one theme only** — because
@@ -104,7 +104,7 @@ class ThemeTest {
         /// `--gb-surface-sunken` is `rgba(0, 0, 0, …)` in both themes and
         /// deliberately so — an alpha over whatever is underneath is the only way
         /// to say "dimmer than its own surface" in a subset with no colour
-        /// functions (ADR-0166) — so comparing its raw value against anything
+        /// functions — so comparing its raw value against anything
         /// would be comparing a black nobody paints.
         private double luminanceOver(Theme theme, String token, int backdrop) {
             var argb = styleWith(theme, "button { background: var(" + token + ") }")
@@ -129,7 +129,7 @@ class ThemeTest {
         /// thing is never *darker* than what it sits on. Equal is allowed — the
         /// light theme's `--gb-surface-raised` is the same white as
         /// `--gb-surface`, because on a light theme there is nowhere lighter to
-        /// go and the edge carries the elevation instead (ADR-0166).
+        /// go and the edge carries the elevation instead.
         @ParameterizedTest
         @EnumSource(Theme.class)
         @DisplayName("raised is never darker than the surface it sits on")
@@ -186,7 +186,7 @@ class ThemeTest {
         }
     }
 
-    /// §1.5's elevation, as three `box-shadow` tokens per theme (ADR-0310).
+    /// Elevation, as three `box-shadow` tokens per theme.
     ///
     /// The reason these are tokens at all is the reason `--gb-surface-2` cost
     /// three widgets a bug: a shadow is black cast onto whatever is underneath,
@@ -309,7 +309,7 @@ class ThemeTest {
         @Test
         @DisplayName("swapping the theme repaints a widget rule that never mentions a colour")
         void oneSwapChangesEverything() {
-            // The claim §10 makes: switching is one stylesheet swap. The widget
+            // The claim a theme makes: switching is one stylesheet swap. The widget
             // rule below is identical in both cases.
             var widget = "button { background: var(--gb-bg); color: var(--gb-text) }";
 
@@ -358,7 +358,7 @@ class ThemeTest {
 
         @ParameterizedTest
         @EnumSource(Theme.class)
-        @DisplayName("the selection colour is translucent, as §10 specifies")
+        @DisplayName("the selection colour is translucent, so the text under it stays readable")
         void selectionIsTranslucent(Theme theme) {
             var style = styleWith(theme, "button { background: var(--gb-selection) }");
             var alpha = (style.background() >>> 24) & 0xFF;

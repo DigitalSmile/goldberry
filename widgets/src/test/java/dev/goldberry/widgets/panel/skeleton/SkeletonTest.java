@@ -19,8 +19,8 @@ import dev.goldberry.widget.attr.Attributes;
 import dev.goldberry.widgets.Widgets;
 import dev.goldberry.widgets.panel.Described;
 
-/// `skeleton` — §5's placeholder, and the one looping decoration §1.7 allows
-/// ([ADR-0164]).
+/// `skeleton` — the placeholder, and the one looping decoration the motion
+/// rules allow.
 ///
 /// The pulse is the interesting part, and it is tested as arithmetic rather than
 /// as pixels: it has to be **continuous at the wrap**, or every skeleton on the
@@ -85,10 +85,10 @@ class SkeletonTest {
     /// So `skeleton.shape-title` selects from a document that only said
     /// `shape="title"`.
     ///
-    /// **`shape-circle` and not `circle`**, which is the whole family renamed by
-    /// ADR-0414: `title` was one of §1.4's type ranks, `.title` is styled with no
-    /// type on it, and both the `skeleton` and each of its bars were wearing a
-    /// 20px/600 type rank nobody asked them to. §5's `shape="title"` is the
+    /// **`shape-circle` and not `circle`**, which is why the whole family was
+    /// renamed: `title` is one of the type scale's ranks, `.title` is styled with
+    /// no type on it, and both the `skeleton` and each of its bars were wearing a
+    /// 20px/600 type rank nobody asked them to. `shape="title"` is the
     /// published word and is unchanged; the class is the widget's own.
     @Test
     @DisplayName("the shape is a class on the skeleton and on its bars")
@@ -102,10 +102,10 @@ class SkeletonTest {
     /// The rename's other half: what a document writes did **not** move.
     ///
     /// A convention that fixed the collision by changing `shape="title"` would
-    /// have been a breaking change to §5 to tidy up a class name, which is the
-    /// trade ADR-0414 refused.
+    /// have been a breaking change to every document to tidy up a class name,
+    /// which is a trade not worth making.
     @Test
-    @DisplayName("the shape attribute is still spelled the way §5 spells it")
+    @DisplayName("the shape attribute is still spelled the way the guide spells it")
     void theAttributeIsUnchanged() {
         var tree = new ElementTree(Widgets.inflater()
                 .inflate(KdlParser.parse("skeleton shape=\"title\"").getFirst()));
@@ -114,7 +114,7 @@ class SkeletonTest {
     }
 
     /// A skeleton that stopped asking for frames would be a picture of a
-    /// skeleton — `spinner`'s rule (ADR-0081).
+    /// skeleton — `spinner`'s rule.
     @Test
     @DisplayName("a skeleton is always animating")
     void animates() {

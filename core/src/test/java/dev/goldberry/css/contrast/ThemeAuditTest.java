@@ -14,8 +14,8 @@ import dev.goldberry.css.Stylesheet;
 import dev.goldberry.css.Theme;
 import dev.goldberry.css.cascade.CascadeLayer;
 
-/// §1.2's floors, measured against a theme the toolkit has never seen
-/// ([ADR-0241]).
+/// The design system's contrast floors, measured against a theme the toolkit has
+/// never seen — so whoever writes a theme can audit it.
 ///
 /// `ContrastTest` in `:widgets` is the other half and a different question: it
 /// resolves **widgets** through the real cascade and asks what a reader receives.
@@ -44,7 +44,7 @@ class ThemeAuditTest {
     class Shipped {
 
         @Test
-        @DisplayName("every pair either theme declares clears §1.2's floor")
+        @DisplayName("every pair either theme declares clears the contrast floor")
         void bothThemesPass() {
             for (var theme : List.of(Theme.NORD_DARK, Theme.NORD_LIGHT)) {
                 assertEquals(
@@ -52,7 +52,7 @@ class ThemeAuditTest {
                         ThemeAudit.failures(List.of(theme.load())).stream()
                                 .map(ContrastFinding::describe)
                                 .toList(),
-                        () -> theme + " declares a pair below §1.2's floor");
+                        () -> theme + " declares a pair below the contrast floor");
             }
         }
 
@@ -114,8 +114,8 @@ class ThemeAuditTest {
             assertEquals("--gb-badge-warning-bg", bad.background());
             assertEquals("--gb-badge-warning-text", bad.foreground());
             assertFalse(bad.passes());
-            // White on `--nord13`, the pale yellow ADR-0087 named as the hardest
-            // case the system has. The number is asserted rather than a bound,
+            // White on `--nord13`, the pale yellow that is the hardest case the
+            // system has. The number is asserted rather than a bound,
             // because a check that only says "below 4.5" would pass on a pair
             // that had quietly become 4.4.
             assertEquals(1.56, bad.ratio(), 0.01, () -> "ratio was " + bad.ratio());
@@ -213,7 +213,7 @@ class ThemeAuditTest {
                     .toList();
 
             // `--gb-checkbox-bg` carries a *mark*, not text, and the token that
-            // goes on it is `--gb-checkbox-mark`. §1.2 holds it to the non-text
+            // goes on it is `--gb-checkbox-mark`. A mark is held to the non-text
             // floor, which is ContrastTest's sweep and not this one.
             assertFalse(found.contains("--gb-checkbox-bg"), () -> "found " + found);
         }

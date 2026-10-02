@@ -24,10 +24,10 @@ import dev.goldberry.text.font.Font;
 
 /// What painting a frame costs, and what Blend2D's workers do to it.
 ///
-/// ADR-0031 measured paint at ~1.3 ms and present at ~10 ms, and parked
-/// `thread_count` as "only matters if paint ever becomes the bottleneck".
-/// ADR-0037 then measured a frame with text in it: paint 5.10 ms of a 7.86 ms
-/// total, with a 14.18 ms p95 against a 16.67 ms budget. On those numbers it had.
+/// The first measurement put paint at ~1.3 ms and present at ~10 ms, and parked
+/// `thread_count` as "only matters if paint ever becomes the bottleneck". The
+/// next, of a frame with text in it, put paint at 5.10 ms of a 7.86 ms total,
+/// with a 14.18 ms p95 against a 16.67 ms budget. On those numbers it had.
 ///
 /// This is the measurement that decides [PaintThreads]. It paints the showcase's
 /// own scene — a bar, a sidebar and a wrapped paragraph — at several sizes and
@@ -35,10 +35,13 @@ import dev.goldberry.text.font.Font;
 /// small surface loses, and threading a 4K one wins by more than it does here.
 ///
 /// **Tagged `benchmark`, so `check` never runs it.** Nothing here asserts a
-/// timing, for the reason `TextBenchmark` gives: the number is the deliverable
-/// and it belongs in an ADR where it can be argued with.
+/// timing, for the reason `TextBenchmark` gives: the number is the deliverable,
+/// and a timing asserted on shared hardware fails for reasons that are not the
+/// code's.
 ///
 /// Run with `./gradlew :core:benchmark`.
+///
+/// Read more: [The benchmark lane](https://goldberry.dev/docs/performance/measuring.html#the-benchmark-lane).
 @Tag("benchmark")
 class PaintBenchmark {
 
@@ -58,8 +61,8 @@ class PaintBenchmark {
     private static final int ON_ACCENT = 0xFF2E3440;
     private static final int ON_PANEL = 0xFFECEFF4;
 
-    /// The worker counts to sweep. Zero is the behaviour before ADR-0042 and is
-    /// the baseline every other row is read against.
+    /// The worker counts to sweep. Zero is synchronous painting, the behaviour
+    /// before workers, and is the baseline every other row is read against.
     private static final int[] THREAD_COUNTS = {0, 1, 2, 3, 4, 6, 8};
 
     private static final int WARMUP = 60;
@@ -92,7 +95,7 @@ class PaintBenchmark {
     /// measured the same as painting into the platform's. This is the other
     /// candidate — that a tight loop over **one** buffer keeps 2.4 MB of pixels
     /// in L3, where a real frame starts cold because the compositor, the event
-    /// pump and everything else have run in between (ADR-0045).
+    /// pump and everything else have run in between.
     @Test
     @DisplayName("the same frame, painted hot and painted cold")
     void paintCostWhenTheBufferIsNotAlreadyInCache() {
@@ -206,7 +209,8 @@ class PaintBenchmark {
         // warm-up artefact and not a size effect.
         sweep(960, 640, 1.0f, false);
 
-        // 960x640 is the size ADR-0037 measured, so its numbers are comparable.
+        // 960x640 is the size the text-path measurement used, so its numbers are
+        // comparable.
         // The others bracket it: popup- and dialog-sized surfaces where the band
         // scheduler may cost more than it saves, and a 4K one where it has
         // something to divide.
@@ -270,8 +274,9 @@ class PaintBenchmark {
             return;
         }
 
-        // p95 as well as the median, because the tail is what M1's 60 fps claim
-        // turns on: ADR-0037's frame fit the budget on the median and not at p95.
+        // p95 as well as the median, because the tail is what the 60 fps claim
+        // turns on: the measured text frame fit the budget on the median and not
+        // at p95.
         System.out.printf(
                 "    threads %d (got %d)  median %7.3f ms   p95 %7.3f ms   mean %7.3f ms"
                         + "   min %7.3f ms   over 16.67ms: %d/%d%n",

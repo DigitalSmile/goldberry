@@ -2,6 +2,8 @@ package dev.goldberry.natives.sdl.gpu;
 
 /// A rectangle of a texture's first mip level and layer, in pixels.
 ///
+/// Read more: [The native boundary](https://goldberry.dev/docs/overview/architecture.html#the-native-boundary).
+///
 /// @param x      the left edge
 /// @param y      the top edge
 /// @param width  in pixels, at least one

@@ -28,7 +28,7 @@ final class MasonryState extends State<Masonry> implements MasonryBox.Ruler {
 
     /// A hair, in logical pixels. A height that moved by less than this is the
     /// rasterizer rounding rather than the card changing, and reacting to it
-    /// would be a frame loop that never idles (§1.7).
+    /// would be a frame loop that never idles.
     private static final double SETTLED = 0.5;
 
     /// Banked heights, by the card's position in the description.

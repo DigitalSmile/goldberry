@@ -96,7 +96,7 @@ def flow(b):
         [(xs[2] + nw / 2, y + nh + 2), (xs[2] + nw / 2, foot), (xs[0] + nw / 2, foot), (xs[0] + nw / 2, y + nh + 2)],
         label="assign, then notify",
     )
-    b.caption(24, foot + 22, "Data flows down, events flow up (ADR-0063). A value that changed asks the window for a frame; nothing polls.", width=592)
+    b.caption(24, foot + 22, "Data flows down, events flow up. A value that changed asks the window for a frame; nothing polls.", width=592)
 
 
 def scroll_nodes(b):

@@ -12,7 +12,8 @@ import dev.goldberry.widget.attr.Attributes;
 import dev.goldberry.widgets.markup.Markup;
 import dev.goldberry.widgets.markup.Wiring;
 
-/// A modal — `docs/core-widgets.md` §7's `dialog`.
+/// A modal: a panel over a dimmed window, with a title, some content and a row
+/// of actions, that has to be answered before the window can be used again.
 ///
 /// ```kdl
 /// dialog id="unsaved" title="Unsaved changes" {
@@ -28,8 +29,7 @@ import dev.goldberry.widgets.markup.Wiring;
 ///
 /// ## A dialog is a widget, and showing one is not
 ///
-/// ADR-0106's
-/// title, one group later, and the argument is unchanged: a modal needs the
+/// The same split a `menu` makes, for the same reason: a modal needs the
 /// **window** — something has to cover it, take its pointer and hold its
 /// keyboard — and a widget has no window. So this describes a dialog and
 /// [Dialogs#show] puts one on a [dev.goldberry.Host].
@@ -51,12 +51,12 @@ import dev.goldberry.widgets.markup.Wiring;
 /// The **children are the content and the [DialogAction]s together**, as the
 /// document wrote them, and this partitions them — `tabs` and `select` read
 /// their children the same way. An action is a description rather than a button
-/// so that the bar can decide the order, which is §7's "platform button order …
-/// applied by the dialog's action bar automatically".
+/// so that the bar can decide the order: the platform's button order is applied
+/// by the action bar, not by each document.
 ///
 /// ## Two keys, and where they are handled
 ///
-/// §7: "`Esc` = cancel-role button, `Enter` = default-role button". Both are
+/// `Esc` presses the dismissive button and `Enter` the affirmative one. Both are
 /// handled on the **bubble** phase rather than on capture, which is a decision
 /// and not an accident: a control inside a dialog that means something by a key
 /// keeps it by consuming it, so `Enter` in a `text-area` inserts a line and
@@ -68,6 +68,8 @@ import dev.goldberry.widgets.markup.Wiring;
 /// one". A dialog with no dismissive action is not dismissible by either, which
 /// is what a dialog that must be answered wants.
 ///
+/// Read more: [Overlays](https://goldberry.dev/docs/components/overlays.html#dialog).
+///
 /// @param title      the heading, or null for a panel with no title bar
 /// @param children   the content and the actions, as the document wrote them
 /// @param attributes the `id` and classes, which land on the panel
@@ -75,7 +77,7 @@ import dev.goldberry.widgets.markup.Wiring;
 public record Dialog(@Nullable String title, List<Widget> children, Attributes attributes)
         implements Widget.Stateful, Attributed<Dialog> {
 
-    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    /// Written out so that the parameters taking null for a default can say so.
     public Dialog(@Nullable String title, @Nullable List<Widget> children, @Nullable Attributes attributes) {
         children = List.copyOf(children == null ? List.of() : children);
         attributes = attributes == null ? Attributes.NONE : attributes;

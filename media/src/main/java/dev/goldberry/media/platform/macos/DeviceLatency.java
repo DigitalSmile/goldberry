@@ -2,8 +2,8 @@ package dev.goldberry.media.platform.macos;
 
 import java.time.Duration;
 
-/// What an output device's latency is made of, as Core Audio reports it
-/// (ADR-0474): four counts of frames at the device's rate.
+/// What an output device's latency is made of, as Core Audio reports it: four
+/// counts of frames at the device's rate.
 ///
 /// The sum is PortAudio's reading of the same properties for an output
 /// stream's latency: the time from an IO buffer being handed to the HAL to its

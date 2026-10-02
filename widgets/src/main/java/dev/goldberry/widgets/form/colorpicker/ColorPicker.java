@@ -17,8 +17,8 @@ import dev.goldberry.widget.attr.Bindable;
 import dev.goldberry.widgets.markup.Markup;
 import dev.goldberry.widgets.markup.Wiring;
 
-/// A swatch button over a plane, two ramps and a hex field —
-/// `docs/core-widgets.md` §4's `color-picker`.
+/// A swatch button that opens a popover with a saturation/value plane, a hue
+/// ramp, an optional alpha ramp, a hex field and the application's presets.
 ///
 /// ```kdl
 /// field label="Accent" { color-picker bind="theme.accent" change="theme.set-accent" }
@@ -34,7 +34,7 @@ import dev.goldberry.widgets.markup.Wiring;
 /// ```
 /// color-picker           this node. Stateful, styles nothing, holds the hex
 /// └── color-picker       PickerField — the keys, the popover, the affordance
-///     ├── color-swatch   the swatch button §4 opens from
+///     ├── color-swatch   the swatch button the popover opens from
 ///     └── picker-toggle  the chevron beside it
 /// ```
 ///
@@ -52,15 +52,14 @@ import dev.goldberry.widgets.markup.Wiring;
 ///
 /// **`date-picker`'s control with a different popover and a different field.**
 /// The one departure from the other two pickers is what the closed control shows:
-/// §4 says "a swatch button", so it is a swatch rather than a `text-input`, and
-/// the hex field lives *inside* the popover where §4 puts it.
+/// a swatch button rather than a `text-input`, with the hex field *inside* the
+/// popover.
 ///
 /// ## The hex field is the source of truth
 ///
-/// §4 says so in as many words — "the hex field is the source of truth for the
-/// same reason the date field is" — and the reason is `DatePicker`'s: a control
-/// that held a colour and rendered it into the field would have to decide what the
-/// field says while somebody is halfway through typing `#88c`.
+/// For the same reason the date field is `DatePicker`'s: a control that held a
+/// colour and rendered it into the field would have to decide what the field
+/// says while somebody is halfway through typing `#88c`.
 ///
 /// So [ColorPickerState] holds **text**, and the plane and the ramps write into it
 /// exactly as a user would. What they *also* hold, and the text cannot, is the
@@ -70,17 +69,19 @@ import dev.goldberry.widgets.markup.Wiring;
 ///
 /// ## HSV, not OKLCH
 ///
-/// §4 asks for an OKLCH model and this one is HSV, which is a departure with a
-/// reason: a rectangular saturation/value plane over OKLCH has large unreachable
-/// regions, because OKLCH chroma has a gamut boundary that varies with hue and
-/// lightness. [HsvColor] gives the argument in full. `Oklch` keeps the job §1.7
-/// gave it — every colour *transition* still goes through it — and this control
+/// The toolkit's colour transitions run in OKLCH; this control's model is HSV,
+/// for a reason: a rectangular saturation/value plane over OKLCH has large
+/// unreachable regions, because OKLCH chroma has a gamut boundary that varies
+/// with hue and lightness. [HsvColor] gives the argument in full. `Oklch` keeps
+/// its job — every colour *transition* still goes through it — and this control
 /// interpolates nothing.
+///
+/// Read more: [Fields and forms](https://goldberry.dev/docs/components/forms.html#color-picker).
 ///
 /// @param value      the hex the field starts with when nothing is bound
 /// @param source     the `bind=` value, or null — a colour or its text
 /// @param onChange   told the colour as `0xAARRGGBB` whenever one is committed
-/// @param alpha      §4's `alpha=`: whether there is an alpha ramp at all
+/// @param alpha      `alpha=`: whether there is an alpha ramp at all
 /// @param presets    the application's palette, possibly empty
 /// @param disabled   whether it refuses focus and matches `:disabled`
 /// @param attributes the `id`, classes and key the document wrote
@@ -99,7 +100,7 @@ public record ColorPicker(
     /// falls back to.
     public static final int DEFAULT = 0xFF000000;
 
-    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    /// Written out so that the parameters taking null for a default can say so.
     public ColorPicker(
             @Nullable String value,
             @Nullable Observable<?> source,
@@ -142,10 +143,10 @@ public record ColorPicker(
                 Objects.requireNonNull(hex, "hex"), source, onChange, alpha, presets, disabled, attributes);
     }
 
-    /// This picker with §4's alpha slider.
+    /// This picker with an alpha slider.
     ///
-    /// `alpha=#false` is the default and "hides the alpha slider **and refuses
-    /// translucent values**" — the second half matters as much as the first: a
+    /// `alpha=#false` is the default: it hides the alpha slider **and refuses
+    /// translucent values** — the second half matters as much as the first: a
     /// picker with no way to change alpha must not report one, or a `bind=`
     /// carrying `#88c0d080` would leave the control showing a colour it cannot
     /// express and a form holding one nobody chose.
@@ -153,8 +154,7 @@ public record ColorPicker(
         return new ColorPicker(value, source, onChange, translucent, presets, disabled, attributes);
     }
 
-    /// This picker offering `palette` — §4's "application-supplied palette of
-    /// preset swatches".
+    /// This picker offering `palette`, the application's own preset swatches.
     public ColorPicker presets(List<Integer> palette) {
         return new ColorPicker(
                 value, source, onChange, alpha, Objects.requireNonNull(palette, "palette"), disabled, attributes);
@@ -221,8 +221,8 @@ public record ColorPicker(
 
     /// Builds a `color-picker` from markup.
     ///
-    /// `presets=` is deliberately absent: §4 calls the palette
-    /// **application-supplied**, and a list of colours is not something §9's
+    /// `presets=` is deliberately absent: the palette is
+    /// **application-supplied**, and a list of colours is not something markup's
     /// property syntax carries — the same reason `calendar` has no `@Markup` at
     /// all. A document gets the plane, the ramps and the field, which is the whole
     /// control minus a shortcut.
@@ -231,7 +231,7 @@ public record ColorPicker(
         return new ColorPicker(
                 Objects.requireNonNullElse(node.stringProperty("value"), ""),
                 wiring.bound(node),
-                // A document's `change` carries **hex**, because §9's valued
+                // A document's `change` carries **hex**, because markup's valued
                 // actions cross as a `String`. The two other pickers make the same
                 // split for the same reason, and here the text is the value's own
                 // spelling rather than a formatting choice.

@@ -30,7 +30,7 @@ import dev.goldberry.widgets.text.Text;
 
 /// The **Emoji** screen: every character the shipped emoji face has, grouped as
 /// Unicode groups them, a row of chips to choose a group, a field to find one,
-/// and a dialog of any of them at five sizes — [ADR-0386].
+/// and a dialog of any of them at five sizes.
 ///
 /// ## Grouped as Unicode groups them
 ///
@@ -48,20 +48,20 @@ import dev.goldberry.widgets.text.Text;
 /// A [PressableTile], as on the icon sheet: the dialog shows the emoji at five
 /// sizes **and** in a line of ordinary text at five more ([Specimens]) — the
 /// second being the half that shows an emoji routed out of prose and back
-/// ([ADR-0393]), sharp at every size ([ADR-0456]).
+/// to the emoji face, sharp at every size.
 ///
 /// ## Why it is beside the Icons screen and not part of it
 ///
 /// The two sheets look alike and demonstrate different things. An icon is a
 /// **path** the application holds and hands to a box; an emoji is **text**, a
 /// code point drawn through a face the cascade picked with `font-family`. So the
-/// Icons screen is about an asset with an API, and this one is about §6.1's font
+/// Icons screen is about an asset with an API, and this one is about the font
 /// chain: one declaration — `.emoji-glyph { font-family: "Noto Color Emoji" }`
 /// — is the whole of how an application reaches the emoji slot.
 ///
 /// It is also where the showcase *opts into* `goldberry-emoji`. The face is not
-/// in `goldberry-core` ([ADR-0384]); it is Noto Color Emoji, under the SIL OFL,
-/// drawn from its COLRv1 paint graphs ([ADR-0456]). The licence asks for no
+/// in `goldberry-core`; it is Noto Color Emoji, under the SIL OFL,
+/// drawn from its COLRv1 paint graphs. The licence asks for no
 /// credit on screen, and this screen names the face under its title anyway,
 /// which is what an application's About box would do.
 ///
@@ -130,8 +130,7 @@ public record EmojiScreen(ShowcaseModel model, ShowcaseModel.Actions actions) im
         private final List<Entry> all = entries();
 
         /// Whether the face was there at all. A showcase that shipped without
-        /// `goldberry-emoji` should say so rather than draw an empty sheet
-        /// ([ADR-0384]).
+        /// `goldberry-emoji` should say so rather than draw an empty sheet.
         private final boolean available = BundledAssets.hasEmojiFont();
 
         /// [#all], filed under Unicode's groups in Unicode's order.
@@ -161,7 +160,7 @@ public record EmojiScreen(ShowcaseModel model, ShowcaseModel.Actions actions) im
         protected void initState() {
             // Watched rather than bound, for the icon sheet's reason: a different
             // query is a different number of rows, which is a structural change
-            // rather than a value inside one (ADR-0109).
+            // rather than a value inside one.
             watching = Models.observable(widget().model(), "app.emoji-query").subscribe(value -> setState(() -> {}));
         }
 
@@ -184,7 +183,7 @@ public record EmojiScreen(ShowcaseModel model, ShowcaseModel.Actions actions) im
         }
 
         /// One line of ordinary prose with emoji in it, in **no particular
-        /// font** — [ADR-0393]'s half of this screen.
+        /// font** — the itemizer's half of this screen.
         ///
         /// The sheet below is every emoji drawn through
         /// `font-family: "Noto Color Emoji"`,
@@ -205,10 +204,10 @@ public record EmojiScreen(ShowcaseModel model, ShowcaseModel.Actions actions) im
                     ? "Noto Color Emoji's " + all.size() + " emoji, read out of the face's own cmap and"
                             + " drawn in colour from its COLRv1 paint graphs — gradients, transforms and"
                             + " composites, sharp at any scale; press one to see it at five sizes."
-                            + " Noto Color Emoji by Google, SIL Open Font License 1.1 (ADR-0456)."
+                            + " Noto Color Emoji by Google, SIL Open Font License 1.1."
                     : "The emoji face is not on this build's module path. It ships as goldberry-emoji,"
                             + " so an application that never draws an emoji does not carry it — add the"
-                            + " artifact to draw these (ADR-0384).";
+                            + " artifact to draw these.";
             return new Column(
                     List.of(
                             new Text("Every bundled emoji", Attributes.NONE.classes("screen-title")),

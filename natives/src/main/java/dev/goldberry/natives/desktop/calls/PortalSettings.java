@@ -23,8 +23,7 @@ import dev.goldberry.natives.desktop.MotionPreference;
 /// nothing to compile, nothing to ship and nothing added to the superbuild: the
 /// library is `dlopen`ed by name, and a machine without it answers
 /// [MotionPreference#UNKNOWN] like a machine without a portal. That is the same
-/// shape SDL itself uses for D-Bus, and it is why this costs no native build
-/// ([ADR-0383]).
+/// shape SDL itself uses for D-Bus, and it is why this costs no native build.
 ///
 /// ## Why the calls are the ones they are
 ///
@@ -243,7 +242,7 @@ public final class PortalSettings {
         }
     }
 
-    // --- the signatures, one holder per shape (ADR-0173's pattern) -----------
+    // --- the signatures, one holder per shape, as every holder is shaped ------
 
     private record Call2(MethodHandle handle, MemorySegment address) {
 

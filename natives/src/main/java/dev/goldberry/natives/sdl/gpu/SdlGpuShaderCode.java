@@ -12,6 +12,8 @@ import dev.goldberry.natives.sdl.gpu.enums.SdlGpuShaderStage;
 /// the caller's to state; a count that is wrong is a validation error on a debug
 /// device and undefined behaviour on a release one.
 ///
+/// Read more: [The native boundary](https://goldberry.dev/docs/overview/architecture.html#the-native-boundary).
+///
 /// @param stage          the stage it runs in
 /// @param format         the bytecode's format
 /// @param code           the bytecode (for MSL, the source in UTF-8); copied

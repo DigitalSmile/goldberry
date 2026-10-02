@@ -1,7 +1,7 @@
 {
   "comment": [
     "What :media ships that is read as a resource, declared by glob rather than",
-    "traced (ADR-0160, ADR-0453).",
+    "traced.",
     "",
     "`media/view/media.css`, the four widgets' stylesheet, which :core reads out",
     "of the package module-info opens to it. Declared by hand here, beside the",
@@ -10,10 +10,10 @@
     "glob, and two files at one path would collide in the jar.",
     "",
     "The showcase traces a run that opens the Audio and Video tabs, so its image",
-    "had the stylesheet anyway -- the luck ADR-0453 says not to build on.",
+    "had the stylesheet anyway -- luck, which is not to be built on.",
     "",
     "And the one class `GpuVideo` looks up by name to learn whether :gpu is",
-    "here (ADR-0484): unregistered, an image would always answer no, and draw",
+    "here: unregistered, an image would always answer no, and draw",
     "video on the CPU. An image built without :gpu has no such class, and the",
     "lookup fails as it should."
   ],

@@ -14,13 +14,14 @@ import java.util.Set;
 ///
 /// **Exported**, because an application walking a [HtmlDocument] wants them too — a
 /// summary that stops at the first block, a linter that refuses a `div` inside a `p`
-/// — and because a second copy of a table like this drifts (ADR-0010's rule, applied
-/// to a list of tag names rather than to an entity table).
+/// — and because a second copy of a table like this drifts.
 ///
 /// The lists are HTML5's, cut to what a **content** renderer meets: there is nothing
-/// here about `template`, `slot` or the SVG and MathML namespaces, because
-/// `docs/content-widgets.md` §1 is about authored documents and not about
-/// applications written in a browser.
+/// here about `template`, `slot` or the SVG and MathML namespaces, because this
+/// module is about authored documents and not about applications written in a
+/// browser.
+///
+/// Read more: [HTML view](https://goldberry.dev/docs/components/content.html#html-view).
 public final class Tags {
 
     private Tags() {}
@@ -39,7 +40,7 @@ public final class Tags {
     /// A `<` inside a `script` is a less-than sign, so the tokenizer reads to the
     /// matching close tag and hands over the text untouched. `html-view` draws
     /// neither: a stylesheet is not content, and a program is certainly not — there is
-    /// no scripting here and there never will be (`docs/content-widgets.md` §1.5).
+    /// no scripting here and there never will be.
     private static final Set<String> RAW_TEXT = Set.of("script", "style");
 
     /// The elements that flow along a line.

@@ -2,6 +2,8 @@ package dev.goldberry.natives.sdl.gpu.enums;
 
 /// How a depth test compares a fragment with what the target holds, as SDL's
 /// `SDL_GPUCompareOp`. SDL's `INVALID`, 0, is not modelled.
+///
+/// Read more: [The native boundary](https://goldberry.dev/docs/overview/architecture.html#the-native-boundary).
 public enum SdlGpuCompareOp {
     /// Never passes.
     NEVER(1),

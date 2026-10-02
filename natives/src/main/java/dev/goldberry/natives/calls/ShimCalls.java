@@ -10,13 +10,13 @@ import java.lang.invoke.MethodHandle;
 
 import dev.goldberry.natives.Downcalls;
 
-/// The three functions `libgoldberry` exports for itself.
+/// The functions `libgoldberry` exports for itself: the ABI version, the layout
+/// table and the GTK backend hint.
 ///
-/// The smallest example of the shape every `…Calls` record has.
-///
-/// One holder per function: its handle, its address, and a `call` whose
-/// parameters are the C prototype’s. See [Downcalls] for why the handle is a
-/// `static final` constant and why these live in a package of their own.
+/// The smallest example of the shape every `…Calls` record has: one holder per
+/// function, with its handle, its address, and a `call` whose parameters are the
+/// C prototype’s. See [Downcalls] for why the handle is a `static final`
+/// constant and why these live in a package of their own.
 public record ShimCalls(
         AbiVersion abiVersion, LayoutTable layoutTable, LayoutCount layoutCount, PreferGtkBackend preferGtkBackend) {
 
@@ -60,7 +60,7 @@ public record ShimCalls(
     /// The first entry of the layout table.
     ///
     /// The table is how the hand-written struct layouts are checked against the
-    /// library actually compiled for this machine (ADR-0010). The segment is
+    /// library actually compiled for this machine. The segment is
     /// zero-length — a bare pointer carries no extent — so the caller resizes it
     /// against [ShimCalls.LayoutCount].
     ///
@@ -118,8 +118,7 @@ public record ShimCalls(
     ///
     /// A `setenv` with overwrite=0, and it exists because two halves of one
     /// process can otherwise disagree about the window system — see
-    /// [dev.goldberry.natives.GoldberryShim#preferGtkBackend]
-    /// and [ADR-0442].
+    /// [dev.goldberry.natives.GoldberryShim#preferGtkBackend].
     public static final class PreferGtkBackend {
 
         private static final MethodHandle FD_goldberry_prefer_gtk_backend =

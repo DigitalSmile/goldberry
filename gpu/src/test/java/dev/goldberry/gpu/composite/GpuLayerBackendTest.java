@@ -28,9 +28,10 @@ import dev.goldberry.render.model.PixelFormat;
 import dev.goldberry.render.window.GpuSurface;
 import dev.goldberry.render.window.WindowSpec;
 
-/// GPU layers through the backends (ADR-0481): which surface a window gives,
-/// and what it does with the layers a frame placed. `:gpu` is on this module's
-/// path, so both backends find its compositor as an application's would.
+/// GPU layers through the backends: which surface a window gives, and what it
+/// does with the layers a frame placed. `:gpu` is on this module's path, so
+/// both backends find its compositor as an application's would. Read more:
+/// [What the module does to a window](https://goldberry.dev/docs/components/gpu.html#what-the-module-does-to-a-window).
 @Tag(GpuTestLauncher.TAG)
 @DisplayName("GPU layers, through the backends")
 class GpuLayerBackendTest {
@@ -61,7 +62,7 @@ class GpuLayerBackendTest {
         System.clearProperty("goldberry.gpu.composite");
         System.clearProperty(Sdl3Backend.VIDEO_DRIVER_PROPERTY);
         // Skipped before SDL was reached: nothing to give back, and no library to
-        // call. Calling it anyway failed the test, and a build without it (ADR-0495).
+        // call. Calling it anyway failed the test, and a build without it.
         if (!sdlReached) {
             return;
         }

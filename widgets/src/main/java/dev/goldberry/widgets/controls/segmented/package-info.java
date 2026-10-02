@@ -1,11 +1,14 @@
-/// `docs/core-widgets.md` §3's `segmented` — mutually exclusive options drawn as one
-/// joined bar, the toolbar counterpart of a `radio-group`.
+/// The `segmented` control — mutually exclusive options drawn as one joined
+/// bar, the toolbar counterpart of a `radio-group`.
 ///
-/// [dev.goldberry.widgets.controls.segmented.Segmented] shares the
-/// radio group's model and takes `option` children from `…controls.option`. Its
-/// track, indicator and dividers are parts.
+/// [dev.goldberry.widgets.controls.segmented.Segmented] shares the radio
+/// group's model and takes `option` children from `…controls.option`. Its track,
+/// indicator and dividers are parts, styleable as `segmented-track`,
+/// `segmented-indicator` and `segmented-divider`.
 ///
-/// Marked for NullAway (`docs/testing.md` §2, ADR-0497).
+/// Every reference is non-null unless it says `@Nullable`.
+///
+/// Read more: [Choices](https://goldberry.dev/docs/components/choices.html#segmented).
 @NullMarked
 package dev.goldberry.widgets.controls.segmented;
 

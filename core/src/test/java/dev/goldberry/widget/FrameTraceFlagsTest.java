@@ -12,8 +12,9 @@ import org.junit.jupiter.params.provider.ValueSource;
 /// What `-Dgoldberry.trace.frames` means, tested without setting it.
 ///
 /// [FrameTrace#ENABLED] and [FrameTrace#ALL_FRAMES] are read once into `static
-/// final` fields — that is what makes the counters free when tracing is off
-/// (ADR-0101) — so a test cannot set the property and observe them. The reading
+/// final` fields — that is what makes the counters free when tracing is off, so
+/// the diagnostic does not cost what it measures — so a test cannot set the
+/// property and observe them. The reading
 /// is therefore a pure function of the property's value, and this is a test of
 /// that function.
 ///

@@ -6,11 +6,15 @@ import dev.goldberry.render.model.LogicalSize;
 
 /// A window's size, walked a pixel a frame between two corners.
 ///
-/// What a drag actually produces is a resize event per pointer motion, each a
-/// pixel or two from the last — and that is the load a frame loop has to be
-/// measured under, because it is what found the damage-clamp bug
-/// ([ADR-0072]) and what a 60 fps claim is about. A jump from one size to
-/// another is one reallocation and says nothing.
+/// ```java
+/// var walk = new ResizeWalk(LogicalSize.of(960, 640), LogicalSize.of(1280, 800));
+/// window.resize(walk.next(window.size())); // once a frame
+/// ```
+///
+/// A drag produces a resize event per pointer motion, each a pixel or two from
+/// the last, and that is the load a frame loop has to be measured under: it is
+/// what a 60 fps claim is about, and what finds a repaint that trusts a stale
+/// size. A jump from one size to another is one reallocation and says nothing.
 ///
 /// So this walks: from `origin` towards `target`, one pixel on each axis per
 /// step, and back again once it arrives, for as long as it is asked. Both
@@ -19,9 +23,12 @@ import dev.goldberry.render.model.LogicalSize;
 ///
 /// The walk is told the window's **current** size on every step rather than
 /// remembering where it thinks the window is, because a window manager may
-/// clamp, round or lag the size it was asked for — and a walk that stepped
+/// clamp, round or lag the size it was asked for, and a walk that stepped
 /// from where it wanted to be rather than from where it is would drift away
-/// from the window it was meant to be driving ([ADR-0342]).
+/// from the window it was meant to be driving. Not thread-safe: one caller
+/// steps it, on the frame loop.
+///
+/// Read more: [Testing an application](https://goldberry.dev/docs/guide/testing.html#driving-input).
 public final class ResizeWalk {
 
     private final LogicalSize origin;

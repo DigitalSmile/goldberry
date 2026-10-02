@@ -1,14 +1,13 @@
-/// `@NullMarked`, which puts this package under NullAway.
+/// The `donut-chart` — part to whole: three to eight slices of one ring, with a
+/// legend that is always shown.
 ///
-/// Inside a marked package every type is non-null unless it says `@Nullable`,
-/// and the build fails on a violation. The annotation is the whole content of
-/// this file: there is nothing package-specific to say about nullness, and a
-/// paragraph pretending otherwise in every package would be padding.
+/// [dev.goldberry.widgets.data.donutchart.DonutChart] is the widget; the ring
+/// is the `donut-plot` part, which hears the pointer and the keyboard and
+/// writes the hovered slice's share in the hole.
 ///
-/// Packages are marked one at a time on purpose. NullAway runs in
-/// `OnlyNullMarked` mode, so an unmarked package is invisible to it and a marked
-/// one is checked from the moment it opts in — which is the only way a codebase
-/// this size adopts nullness at all (`docs/testing.md` §2).
+/// Every reference is non-null unless it says `@Nullable`.
+///
+/// Read more: [Charts](https://goldberry.dev/docs/components/charts.html#donut-chart).
 @NullMarked
 package dev.goldberry.widgets.data.donutchart;
 

@@ -6,13 +6,15 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
 
-/// One of an image's rasters, and the display scale it was drawn for — §1's
-/// "DPI-aware (picks raster scale by physical pixels)".
+/// One of an image's rasters, and the display scale it was drawn for. An image
+/// is DPI-aware: the raster is picked by the display's physical pixels.
 ///
 /// A `logo@2x.png` beside `logo.png` is two variants of one picture: the second
 /// has twice the pixels and the **same** natural size, so on a 200% display it is
 /// drawn one image pixel per device pixel and on a 100% display the first is.
 /// That is HTML's `srcset` with `x` descriptors, and [#parse] reads that syntax.
+///
+/// Read more: [Canvas, images and QR codes](https://goldberry.dev/docs/components/drawing.html#image).
 ///
 /// @param scale  the display scale this raster is for; positive
 /// @param source where it comes from

@@ -16,7 +16,7 @@ import java.util.Map;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-/// Stripping ICY metadata, and reading `StreamTitle` out of it (S6).
+/// Stripping ICY metadata, and reading `StreamTitle` out of it.
 @DisplayName("IcyStream")
 class IcyStreamTest {
 

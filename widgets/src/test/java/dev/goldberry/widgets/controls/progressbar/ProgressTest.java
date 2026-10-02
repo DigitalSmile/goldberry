@@ -37,7 +37,9 @@ import dev.goldberry.widgets.controls.TestFont;
 import dev.goldberry.widgets.core.Row;
 
 /// The seventh control, and the first that is not a control: it reports and takes
-/// nothing back ([ADR-0081]).
+/// nothing back.
+///
+/// Read more: [Progress](https://goldberry.dev/docs/components/values.html#progress).
 ///
 /// What is new here is **motion that is not a transition**. Everything that has
 /// moved so far moved between two styles the cascade resolved; a sweep has no two
@@ -60,7 +62,7 @@ class ProgressTest {
     }
 
     @Nested
-    @DisplayName("parity (§11)")
+    @DisplayName("markup and Java build the same tree")
     class Parity {
 
         @Test
@@ -121,7 +123,7 @@ class ProgressTest {
 
         /// The fill's **width** is the value, and it is a plain percentage —
         /// which is the thing a slider cannot do, because a slider's fill shares
-        /// its track with a 16px thumb (ADR-0079).
+        /// its track with a 16px thumb.
         @Test
         @DisplayName("the value reaches the box as a width, not as a flex ratio")
         void valueIsAWidth() {
@@ -143,7 +145,8 @@ class ProgressTest {
             assertFalse(new Progress(0.4).isAnimating());
         }
 
-        /// §1.7's idle frame loop, from the renderer's side: a window showing a
+        /// The frame loop is idle when nothing animates, seen from the renderer's
+        /// side: a window showing a
         /// spinner must keep painting, and one showing a finished bar must be
         /// allowed to stop.
         @Test
@@ -171,7 +174,7 @@ class ProgressTest {
             assertEquals(0.5, ProgressFill.phaseAt(1200 * 10_000 + 600), 1e-9);
         }
 
-        /// The claim ADR-0081 rests on: **two bars are in step because neither
+        /// The claim a stateless sweep rests on: **two bars are in step because neither
         /// remembers when it started.** A controller started at mount would put
         /// two bars that appeared a frame apart permanently out of phase, and
         /// nothing would look broken enough to investigate.
@@ -193,7 +196,7 @@ class ProgressTest {
             assertEquals(one, other);
         }
 
-        /// **Off one edge and in at the other** ([ADR-0418]). The bar begins one
+        /// **Off one edge and in at the other.** The bar begins one
         /// whole bar-width before the track and ends one whole track-width after
         /// its own start, so it is outside the clip at both ends of the loop —
         /// which is what makes the wrap between them invisible.
@@ -221,11 +224,16 @@ class ProgressTest {
             assertEquals(-100, translateOf(fillOf(Progress.sweeping(), 0)), 1e-6);
             assertEquals(-100, translateOf(fillOf(Progress.sweeping(), 1200)), 1e-6);
             // And half way is half way, because it is linear the whole way.
-            assertEquals((-100 + 1000.0 / 3) / 2, translateOf(fillOf(Progress.sweeping(), 600)), 1e-6, "linear (§3.1)");
+            assertEquals(
+                    (-100 + 1000.0 / 3) / 2,
+                    translateOf(fillOf(Progress.sweeping(), 600)),
+                    1e-6,
+                    "the sweep is not linear the whole way");
         }
 
-        /// The half of the drawing that was unavailable until ADR-0114, and the
-        /// reason this bar may now leave its track at all: `progress` cuts it off.
+        /// The half of the drawing that was unavailable until the painter carried a
+        /// clip, and the reason this bar may now leave its track at all: `progress`
+        /// cuts it off.
         /// Without the clip, a bar a third of the way out is painted over whatever
         /// is beside the control.
         @Test
@@ -284,7 +292,7 @@ class ProgressTest {
             assertNotEquals(early.transform(), later.transform(), "the transform does");
         }
 
-        /// §3.1: "reduced-motion: opacity pulse". The sweep is what goes away —
+        /// Under reduced motion a loop becomes an opacity pulse. The sweep is what goes away —
         /// and it goes away rather than slowing down, because a slower sweep is
         /// still movement.
         @Test
@@ -317,7 +325,7 @@ class ProgressTest {
     class Style {
 
         @Test
-        @DisplayName("§3's metrics: track 4, radius full")
+        @DisplayName("the progress bar's metrics: a 4px track with fully rounded ends")
         void metrics() {
             var resolver = new StyleResolver(Controls.stylesheets(Theme.NORD_DARK));
             var tree = new ElementTree(new Progress(0.4));

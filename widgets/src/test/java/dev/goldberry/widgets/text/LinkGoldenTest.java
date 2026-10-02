@@ -21,9 +21,11 @@ import dev.goldberry.widgets.Controls;
 import dev.goldberry.widgets.controls.TestFont;
 import dev.goldberry.widgets.core.Column;
 
-/// What a link looks like (§14, [ADR-0050]): the link ink, the muted visited
-/// one, and the external icon after the word — in the same ink, which is the
-/// thing an image checks and an assertion cannot.
+/// What a link looks like: the link ink, the muted visited one, and the
+/// external icon after the word — in the same ink, which is the thing an image
+/// checks and an assertion cannot.
+///
+/// Read more: [Text and links](https://goldberry.dev/docs/components/text.html#link).
 ///
 /// `./gradlew :widgets:test -Dgoldberry.golden.update=true` rewrites them.
 class LinkGoldenTest {

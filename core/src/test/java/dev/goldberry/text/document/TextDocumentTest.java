@@ -18,7 +18,8 @@ import dev.goldberry.text.Paragraph;
 import dev.goldberry.text.font.Font;
 import dev.goldberry.text.font.Fonts;
 
-/// A document shaped a hard line at a time — [ADR-0388], `docs/gaps.md` G44.
+/// A document shaped a hard line at a time, so an edit re-shapes one line and
+/// not the note.
 ///
 /// The whole class is one claim: **the pieces agree with the whole**. A
 /// [TextDocument] must break, measure and address exactly as a [Paragraph] of

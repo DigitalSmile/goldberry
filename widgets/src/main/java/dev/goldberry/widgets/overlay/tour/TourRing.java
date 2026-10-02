@@ -18,8 +18,7 @@ import dev.goldberry.widget.style.Styled;
 /// toolbar, has no boundary of its own for the veil to stop at.
 ///
 /// It draws no fill, so the widget underneath is untouched — and it takes no
-/// pointer, because the whole point of the cut-out is that the target stays live
-/// (ADR-0121).
+/// pointer, because the whole point of the cut-out is that the target stays live.
 record TourRing(LogicalRect target) implements Widget.Leaf, Styled, Paints {
 
     @Override

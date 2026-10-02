@@ -12,14 +12,11 @@ import dev.goldberry.input.hit.Extent;
 /// ## Why this exists, when [Extent] on an event already did
 ///
 /// A scroll view's *clamp* only needs geometry when something asks it to move,
-/// so the extents on a [PointerEvent] were enough
-/// (ADR-0116).
-/// A scroll**bar** is different: it has to be *drawn* in proportion to content
-/// nobody has touched. A thumb whose length says how much of the document is
-/// visible must be right on the first frame, before any input, or the widget
-/// that exists to say "there is more below" says nothing until you have already
-/// found out
-/// (ADR-0117).
+/// so the extents on a [PointerEvent] are enough for it. A scroll**bar** is
+/// different: it has to be *drawn* in proportion to content nobody has touched.
+/// A thumb whose length says how much of the document is visible must be right
+/// on the first frame, before any input, or the widget that exists to say "there
+/// is more below" says nothing until you have already found out.
 ///
 /// So this is the other direction: not "answer a question the input asked", but
 /// "here is what you turned out to be".
@@ -30,12 +27,14 @@ import dev.goldberry.input.hit.Extent;
 ///    what that frame produced. A widget acting on it is one frame behind, which
 ///    is invisible for a thumb and would be wrong for anything load-bearing.
 /// 2. **It fires only on a change.** An unchanging window notifies nothing, so
-///    the idle frame loop stays idle (§1.7).
+///    the idle frame loop stays idle.
 /// 3. **What it triggers must not change what it reports.** A widget that
 ///    resized itself from this would be told a new size, resize again, and never
 ///    settle. The one implementation obeys it by construction: a scrollbar is
 ///    absolutely positioned, so nothing it draws can change the rectangle it was
 ///    measured against.
+///
+/// Read more: [Input and focus](https://goldberry.dev/docs/guide/input.html#what-a-custom-widget-implements).
 public interface Measured extends dev.goldberry.widget.Widget {
 
     /// This widget's own box, and the part it names through

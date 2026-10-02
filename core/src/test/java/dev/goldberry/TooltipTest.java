@@ -38,10 +38,12 @@ import dev.goldberry.widget.style.Styled;
 /// Driven through the real launcher and the real event loop, because the whole
 /// point of it is the seam between three things that are otherwise separate — the
 /// router knows what is hovered, the loop owns the delay, and the launcher owns
-/// the window ([ADR-0105]).
+/// the window.
+///
+/// Read more: [Tooltips](https://goldberry.dev/docs/components/overlays.html#tooltips).
 class TooltipTest {
 
-    /// The same, but in the Tab order — for the keyboard half of §7.
+    /// The same, but in the Tab order — for the keyboard half of the rule.
     ///
     /// A second type rather than a flag on [Target], because `Target` is what
     /// every other test here hovers and making it focusable would put a focus
@@ -110,8 +112,8 @@ class TooltipTest {
     }
 
     /// Two [Target]s side by side, so the pointer can move **between** two
-    /// tooltipped nodes — which is the case §3's second number is about and the
-    /// one a single full-window target cannot produce.
+    /// tooltipped nodes — which is the case the shorter move-between delay is
+    /// about and the one a single full-window target cannot produce.
     private record Pair(Widget left, Widget right) implements Widget.Leaf, Styled, Paints {
 
         @Override
@@ -282,7 +284,7 @@ class TooltipTest {
     }
 
     /// **The bug this file was missing**: click the thing, move the pointer off
-    /// it, and the tooltip stays ([ADR-0308]).
+    /// it, and the tooltip stays.
     ///
     /// A click **focuses** the control. `tooltipTarget` fell back to
     /// `router.focused()` whenever nothing was hovered, so when the pointer left
@@ -325,11 +327,11 @@ class TooltipTest {
         assertTrue(upAfterTheClick[0], "the tooltip never opened, so the rest of this proves nothing");
         assertFalse(
                 stillUpAfterLeaving[0],
-                "the pointer left and the tooltip stayed: §7's keyboard-focus"
+                "the pointer left and the tooltip stayed: the keyboard-focus"
                         + " fallback caught a focus the mouse had put there");
     }
 
-    /// And the half that must **not** regress: §7 asks for a tooltip on keyboard
+    /// And the half that must **not** regress: a tooltip shows on keyboard
     /// focus, and the fix above is one `focusedFromKeyboard()` away from removing
     /// it entirely.
     ///
@@ -349,7 +351,7 @@ class TooltipTest {
                     });
                 })));
 
-        assertTrue(shown[0], "a keyboard user gets the same tooltips a pointer user does (§7)");
+        assertTrue(shown[0], "a keyboard user gets the same tooltips a pointer user does");
     }
 
     /// Runs `action` on the UI thread after `millis`.
@@ -390,7 +392,7 @@ class TooltipTest {
     }
 
     /// A pointer move, posted **after the first frame**: hit testing runs against
-    /// the frame that was painted (ADR-0054), so a pointer event that arrives
+    /// the frame that was painted, so a pointer event that arrives
     /// before there is one lands on nothing at all.
     private void hoverAfterTheFirstFrame(Runnable then) {
         later(150, () -> {
@@ -399,14 +401,15 @@ class TooltipTest {
         });
     }
 
-    /// **A stylesheet can change the delay**, which §3's `tooltip` row has always
-    /// pinned and nothing could read: "delay 500ms show / 100ms move-between".
+    /// **A stylesheet can change the delay**, which the design system's `tooltip`
+    /// row has always pinned and nothing could read: 500ms to show, 100ms moving
+    /// between tooltips.
     ///
     /// The entry that asked for this called it blocked twice over — "nothing
     /// above the cascade can read a resolved custom property", and whether the
     /// design system should carry a duration that is not motion. Both expired:
-    /// `BuildContext.duration` reads one, and §3 had carried the number all
-    /// along ([ADR-0262]).
+    /// `BuildContext.duration` reads one, and the component metrics had carried
+    /// the number all along, so a delay is a token like any other metric.
     ///
     /// Asserted at **60ms against a default of 500**, and read at 250 — a window
     /// where the token's answer is open and the default's is not, so the test
@@ -449,18 +452,17 @@ class TooltipTest {
         assertFalse(shown[0], "a length is not a delay, so the 500ms default should still be waiting");
     }
 
-    /// **§3's second number, which had never been built.** The `tooltip` row says
-    /// "delay 500ms show / **100ms move-between**", and every move scheduled the
+    /// **The second number, which had never been built.** The `tooltip` row says
+    /// 500ms to show and **100ms moving between**, and every move scheduled the
     /// full 500 — so a user reading along a toolbar was served the whole sentence
     /// of hover intent again at every button.
     ///
     /// The window is the assertion: the pointer moves to the second target and
     /// the tooltip is read **250ms** later, which is past the 100ms move delay
-    /// and short of the 500ms first-hover one. It fails against the old code
-    /// ([ADR-0262]).
+    /// and short of the 500ms first-hover one. It fails against the old code.
     @Test
     @Timeout(20)
-    @DisplayName("moving from one tooltip to another waits §3's shorter delay")
+    @DisplayName("moving from one tooltip to another waits the shorter delay")
     void movingBetweenTooltipsIsQuicker() {
         var shown = new boolean[1];
         Goldberry.launch(new TestApp(
@@ -476,7 +478,7 @@ class TooltipTest {
                     });
                 }))));
 
-        assertTrue(shown[0], "250ms is past §3's 100ms move-between and short of its 500ms first hover");
+        assertTrue(shown[0], "250ms is past the 100ms move-between delay and short of the 500ms first hover");
     }
 
     /// And the first of the two still waits the full delay, so the shorter one is

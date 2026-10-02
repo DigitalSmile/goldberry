@@ -12,32 +12,27 @@ import dev.goldberry.widget.attr.Attributed;
 import dev.goldberry.widget.attr.Attributes;
 import dev.goldberry.widget.attr.Bindable;
 
-/// A widget a document places and the application describes — what `list`,
-/// `table` and `tree` inflate to (ADR-0367).
+/// A widget a document places and the application builds — what `list`,
+/// `table` and `tree` inflate to.
 ///
 /// ```kdl
 /// list bind="app.people" id="people" class="sidebar"
 /// ```
 ///
-/// ## Why a document names the widget rather than describing it
-///
-/// A list's rows come from an item-factory, a table's cells from a
-/// cell-factory, and a tree's children from suppliers. Each is a function, and
-/// markup is data (§9): a document that could write one would be code in
-/// another syntax. What a document *can* name is a value that changes, which is
-/// what `bind=` is for, so the model holds the `ListView` it builds and the
-/// document says where it goes and what it is called.
+/// A list's rows come from an item factory, a table's cells from a cell
+/// factory, and a tree's children from suppliers. Each is a function, and a
+/// document is data: it cannot write one. What a document can name is a value
+/// that changes, so the model holds the `ListView` it builds, and the document
+/// says where it goes and what it is called.
 ///
 /// The element subscribes to the binding as it does for every bound widget, so a
 /// model that replaces the value rebuilds this node, and the list under it
-/// reconciles by key and keeps its state.
+/// reconciles by key and keeps its state. The document's `id` wins when it
+/// gives one, and its classes are added to the widget's own. A value that is
+/// not a `type` — nothing bound yet, or a binding to the wrong thing — draws
+/// nothing rather than failing, which is what a document mid-edit needs.
 ///
-/// ## What the document adds
-///
-/// Its `id` wins when it gives one, and its classes are added to the widget's
-/// own. A value that is not a `type` — nothing bound yet, or a binding to the
-/// wrong thing — draws nothing rather than failing, which is the lenient
-/// registry's rule for a document mid-edit.
+/// Read more: [Markup](https://goldberry.dev/docs/guide/markup.html#what-markup-cannot-say).
 ///
 /// @param source     the value `bind=` names, or null
 /// @param type       what that value has to be to be drawn
@@ -45,7 +40,7 @@ import dev.goldberry.widget.attr.Bindable;
 public record Bound(@Nullable Observable<?> source, Class<? extends Widget> type, Attributes attributes)
         implements Widget.Stateless, Attributed<Bound>, Bindable<Bound> {
 
-    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    /// Written out so that the parameters that take null for a default can say so.
     public Bound(@Nullable Observable<?> source, Class<? extends Widget> type, @Nullable Attributes attributes) {
         Objects.requireNonNull(type, "type");
         attributes = attributes == null ? Attributes.NONE : attributes;

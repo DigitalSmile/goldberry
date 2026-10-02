@@ -33,12 +33,14 @@ import dev.goldberry.widgets.Controls;
 import dev.goldberry.widgets.core.Column;
 import dev.goldberry.widgets.text.Text;
 
-/// §8's context menus: `context-menu="…"` on any widget, opened by the secondary
+/// Context menus: `context-menu="…"` on any widget, opened by the secondary
 /// button where the pointer is.
 ///
 /// Driven through the real launcher, because the whole of it is a seam — the
 /// toolkit notices the click and finds the name, and the catalog turns the name
-/// into a menu ([ADR-0108]).
+/// into a menu.
+///
+/// Read more: [Menus and the tray](https://goldberry.dev/docs/components/menus.html#context-menus).
 class ContextMenuTest {
 
     private static final class TestApp implements Application {
@@ -178,7 +180,7 @@ class ContextMenuTest {
         assertEquals(0, count[0]);
     }
 
-    // --- the keyboard's half (ADR-0208) --------------------------------------
+    // --- the keyboard's half ------------------------------------------------
 
     /// SDL's `SDLK_APPLICATION` — the key between `AltGr` and `Ctrl`.
     private static final int MENU_KEY = 0x40000065;
@@ -230,9 +232,9 @@ class ContextMenuTest {
         }));
     }
 
-    /// The keyboard's right-click. §7 names it and it was the half of ADR-0108
-    /// that did not ship: a right-click is a thing only a pointer can do, and
-    /// §2.2 requires everything to be reachable.
+    /// The keyboard's right-click, which the first context menus did not ship:
+    /// a right-click is a thing only a pointer can do, and everything a pointer
+    /// can reach must be reachable from the keyboard.
     @Test
     @Timeout(20)
     @DisplayName("the menu key opens the focused widget's menu, against the widget")
@@ -261,7 +263,7 @@ class ContextMenuTest {
         assertEquals(1, count[0]);
     }
 
-    /// `F10` alone is the menu bar's (ADR-0163) and must not be taken here, or
+    /// `F10` alone is the menu bar's and must not be taken here, or
     /// an application with both would open a context menu where it meant to
     /// activate its menu bar.
     @Test

@@ -10,7 +10,7 @@ import dev.goldberry.widget.style.Paints;
 import dev.goldberry.widget.style.Styled;
 
 /// The surface a picker's popover opens on — `picker-panel`, a **part**, and
-/// §2's "popup radius 12, padding 8".
+/// the popup's radius of 12 and padding of 8.
 ///
 /// A node of its own rather than styling whatever is inside the popup, because
 /// the things that go in one draw no surface: a `calendar` "sits on whatever it
@@ -19,8 +19,8 @@ import dev.goldberry.widget.style.Styled;
 /// over a window, and this is it — `select-list`'s job, in the shape
 /// `select-list` already has.
 ///
-/// Shared by all three of §4's pickers for [PickerToggle]'s reason: §2 gives
-/// `date-picker` and `time-picker` the same popup metrics on the same row, and
+/// Shared by all three pickers for [PickerToggle]'s reason: `date-picker` and
+/// `time-picker` have the same popup metrics, and
 /// three identical rules is how one of them drifts.
 ///
 /// @param content what to put on it

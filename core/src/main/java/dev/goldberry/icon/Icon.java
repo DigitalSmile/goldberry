@@ -8,21 +8,32 @@ import dev.goldberry.paint.Frame;
 import dev.goldberry.paint.Path;
 import dev.goldberry.paint.stroke.Stroke;
 
-/// One bundled icon, parsed once and drawn many times.
+/// One icon from the bundled Lucide set, parsed once at one size and drawn many
+/// times.
+///
+/// ```java
+/// var plus = Icon.bundled("plus", 16);
+/// plus.draw(frame, x, y, 0xFF1F2937);
+/// ```
+///
+/// Markup never builds one: `icon="plus"` on a widget resolves against the
+/// `Icons` registry the application owns, and the application makes the `Icon`.
 ///
 /// Lucide's 1544 icons are **stroked**, not filled: each is a 24×24 box of 2px
-/// round-capped, round-joined strokes with no fill at all (ADR-0033). That is
-/// why an icon carries a [#strokeWidth()] as well as a path, and why drawing one
-/// with `fill` produces a blob rather than a symbol.
+/// round-capped, round-joined strokes with no fill at all. That is why an icon
+/// carries a [#strokeWidth()] as well as a path, and why drawing one with `fill`
+/// produces a blob rather than a symbol.
 ///
 /// **An icon belongs to a size**, the way a [dev.goldberry.text.font.Font]
-/// does and for the same reason (ADR-0034): the path is built scaled, so the
-/// coordinates handed to Blend2D are already the ones it rasterizes, and there
-/// is no transform to get wrong at draw time. Drawing the same symbol at two
-/// sizes is two `Icon`s.
+/// does: the path is built scaled, so the coordinates handed to the rasterizer
+/// are already the ones it draws, and there is no transform to get wrong at draw
+/// time. Drawing the same symbol at two sizes is two `Icon`s.
 ///
-/// Immutable and safe to share since ADR-0277: its geometry is a
-/// [Path] rather than a native allocation, so an icon is a value like any other.
+/// Immutable and safe to share between threads: its geometry is a [Path], a
+/// value, not a native allocation, so there is nothing to release and
+/// [#close()] does nothing.
+///
+/// Read more: [Text, fonts and icons](https://goldberry.dev/docs/guide/text.html#icons).
 public final class Icon implements AutoCloseable {
 
     /// Lucide's stroke ends and corners. Not a choice — it is how the set is
@@ -114,21 +125,19 @@ public final class Icon implements AutoCloseable {
     /// The outline, for anything that wants to draw it differently — filled, at
     /// another weight, or written out as SVG.
     ///
-    /// A [Path] since ADR-0277, and so a **value**: handing one out no longer
-    /// hands out a native resource with a thread and a lifetime, which is what
-    /// this accessor used to do.
+    /// A [Path] is a **value**: handing one out hands out no native resource
+    /// with a thread and a lifetime, so the caller may keep it for as long as it
+    /// likes.
     public Path outline() {
         return path;
     }
 
-    /// Does nothing, and is kept so that existing `try`-with-resources keeps
-    /// compiling.
+    /// Does nothing, and is kept so that a `try`-with-resources over an icon
+    /// keeps compiling.
     ///
-    /// An icon held a `BlendPath` — a confined `Arena` and a native allocation —
-    /// until ADR-0277 made its geometry a value. There is nothing left to
-    /// release: an `Icon` is now two doubles, a name and two Java arrays, and it
-    /// is garbage like anything else. [AutoCloseable] stays for one release so
-    /// that closing one is harmless rather than a compile error.
+    /// An `Icon` is two doubles, a name and a [Path], all plain Java values, and
+    /// it is garbage like anything else. [AutoCloseable] stays so that closing
+    /// one is harmless rather than a compile error.
     @Override
     public void close() {
         // Deliberately empty -- see the javadoc.

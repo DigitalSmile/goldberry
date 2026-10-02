@@ -12,20 +12,22 @@ import java.lang.foreign.MemorySegment;
 /// on a 1.5&times; display means half of them land mid-physical-pixel and the
 /// compositor smears them. Set it to the window's display scale and Yoga rounds
 /// to *physical* pixels instead, so a 1px border is one crisp device pixel wide
-/// at any scale. This is the mechanism behind the fractional-DPI claim ADR-0019
-/// makes; a window that changes displays needs a new factor and a fresh layout
+/// at any scale. This is the mechanism behind the toolkit's fractional-DPI
+/// support; a window that changes displays needs a new factor and a fresh layout
 /// pass.
 ///
 /// **Web defaults** correct Yoga's two deviations from CSS: Yoga defaults
 /// `flex-direction` to `column` where CSS says `row`, and `flex-shrink` to `0`
-/// where CSS says `1`. Goldberry turns them on, because the CSS subset in
-/// `docs/ARCHITECTURE.md` §8 promises a stylesheet behaves the way a stylesheet
+/// where CSS says `1`. Goldberry turns them on, because the toolkit's CSS subset
+/// promises a stylesheet behaves the way a stylesheet
 /// does. [#create()] does this; a caller that wants Yoga's own defaults has to
 /// ask.
 ///
 /// Confined to the thread that created it, and must be closed — after every node
 /// that uses it. Closing it early is refused rather than left to become a
 /// segfault on the next layout pass.
+///
+/// Read more: [The native boundary](https://goldberry.dev/docs/overview/architecture.html#the-native-boundary).
 public final class YogaConfig implements AutoCloseable {
 
     private final Yoga yoga = Yoga.get();

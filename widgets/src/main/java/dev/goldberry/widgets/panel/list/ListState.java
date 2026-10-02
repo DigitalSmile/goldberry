@@ -18,7 +18,8 @@ import dev.goldberry.widget.attr.Attributes;
 
 /// The two things a list remembers, and neither is its value.
 ///
-/// The selection is the application's ([ADR-0063]); what is kept here is the
+/// The selection is the application's: data flows down and events flow up, so
+/// the list never writes the value it shows. What is kept here is the
 /// **anchor** a `Shift` range runs from and the **typeahead** in progress. Both
 /// are facts about what the user did a moment ago rather than about the model,
 /// which is exactly what a widget's state is for.
@@ -30,13 +31,13 @@ import dev.goldberry.widget.attr.Attributes;
 final class ListState<T> extends State<ListView<T>> {
 
     /// The window, for the keyboard moves that land on another row — captured in
-    /// `build`, which is the only place a widget is handed one ([ADR-0140]).
+    /// `build`, which is the only place a widget is handed one.
     private @Nullable Host host;
 
     /// How long a typeahead lasts before the next letter starts a new one.
     ///
     /// A second, which is `select`'s figure and `tree`'s and the interval every
-    /// desktop list uses ([ADR-0141]): long enough to type "no" and reach Norway
+    /// desktop list uses: long enough to type "no" and reach Norway
     /// rather than Oman, short enough that coming back a moment later starts
     /// again.
     private static final long TYPEAHEAD_MILLIS = 1000;
@@ -57,7 +58,7 @@ final class ListState<T> extends State<ListView<T>> {
 
     /// How many rows beyond each edge of the viewport are built anyway.
     ///
-    /// [Located] is **last frame's** (ADR-0119 rule 1), so a wheel that travels
+    /// [Located] reports **last frame's** geometry, so a wheel that travels
     /// half a viewport between two frames would show a band of nothing for one of
     /// them. Four rows is the cheapest insurance against that — 128 logical pixels
     /// at the default height, which is more than a detent moves — and it costs
@@ -88,8 +89,7 @@ final class ListState<T> extends State<ListView<T>> {
     ///
     /// Held rather than read from the widget because
     /// [ListView#rowHeightFromToken()] is an instruction to go and ask rather
-    /// than a height, and `located` runs where there is nothing to ask
-    /// (ADR-0254).
+    /// than a height, and `located` runs where there is nothing to ask.
     private double rowHeight;
 
     @Override
@@ -103,7 +103,7 @@ final class ListState<T> extends State<ListView<T>> {
         var typeahead = list.text() != null;
         var items = list.items();
         // Resolved here and **banked**, because `located` needs the same number
-        // and runs from the router with no context at all (ADR-0254). Build runs
+        // and runs from the router with no context at all. Build runs
         // before `located` in every frame, so the banked value is never older
         // than the geometry it is measured against.
         rowHeight = list.rowHeightFromToken() ? context.token(ROW_HEIGHT_TOKEN, ROW_HEIGHT) : list.rowHeight();
@@ -129,7 +129,7 @@ final class ListState<T> extends State<ListView<T>> {
                     typeahead ? text -> typeahead(id, text) : null,
                     // The pitch the spacers above and below are built from, so
                     // the row can say when its own height is not that number --
-                    // which nothing else is in a position to notice (ADR-0257).
+                    // which nothing else is in a position to notice.
                     //
                     // On the **first** row of the window and zero on the rest.
                     // Every row resolves the same height, so asking all of them
@@ -152,7 +152,7 @@ final class ListState<T> extends State<ListView<T>> {
     ///
     /// `self.top()` is where the list has been **scrolled to** rather than where
     /// it was laid out, so the distance from it down to the clip's top is exactly
-    /// how far into the model the viewport has reached ([ADR-0119]).
+    /// how far into the model the viewport has reached.
     ///
     /// It changes what is *built* and never what this node *measures*, which is
     /// what keeps it from oscillating: the spacers absorb every row the window
@@ -189,8 +189,8 @@ final class ListState<T> extends State<ListView<T>> {
     /// The index the keyboard is on its way to, or -1.
     ///
     /// **The one thing virtualization breaks and has to put back.** `Home`, `End`
-    /// and the typeahead all move the focus by *name* through `host.focus`
-    /// ([ADR-0176]), and a name resolves against the element tree — so a virtual
+    /// and the typeahead all move the focus by *name* through `host.focus`,
+    /// and a name resolves against the element tree — so a virtual
     /// list asked for its last row was asking for a row that does not exist, and
     /// `End` did nothing at all.
     ///
@@ -251,7 +251,7 @@ final class ListState<T> extends State<ListView<T>> {
         });
     }
 
-    /// §10's per-item context menu, as attributes on the row.
+    /// The item's context menu, as attributes on the row.
     ///
     /// [Attributes#NONE] when the item names none, which is also what a list with
     /// no `itemMenu` gives every row — an attributes object that says nothing is
@@ -268,7 +268,7 @@ final class ListState<T> extends State<ListView<T>> {
 
     /// A row's focus name, **scoped to its list**.
     ///
-    /// `host.focus` takes a name that is global to the window ([ADR-0176]), so
+    /// `host.focus` takes a name that is global to the window, so
     /// two lists showing items with the same identity name the same rows.
     /// Prefixing with the list's own `id` tells them apart wherever the
     /// application gave one — which is the case a screen with two lists on it
@@ -276,7 +276,7 @@ final class ListState<T> extends State<ListView<T>> {
     ///
     /// **Two unnamed lists are settled elsewhere**, by the router: a name is
     /// resolved inside the composite the keyboard is in before the window, and a
-    /// `list` is a composite ([ADR-0437]). So the prefix is no longer what keeps
+    /// `list` is a composite. So the prefix is no longer what keeps
     /// `End` in one list out of the other, and it stays for what it was always
     /// also doing — giving a row a name that means something from *outside* any
     /// list, to a stylesheet or to an application that wants to focus one.
@@ -285,7 +285,7 @@ final class ListState<T> extends State<ListView<T>> {
         return (own == null ? "list" : own) + "-" + itemId;
     }
 
-    /// §10's `Home` and `End`: the first and last rows of the model.
+    /// `Home` and `End`: the first and last rows of the model.
     private void moveToEnd(int direction) {
         var items = widget().items();
         if (items.isEmpty() || host == null) {
@@ -297,7 +297,7 @@ final class ListState<T> extends State<ListView<T>> {
         reach(widget().identity().apply(item));
     }
 
-    /// §10's type-to-select, over the rows as they are on screen.
+    /// Type-to-select, over the rows as they are on screen.
     ///
     /// The three cases are `select`'s and `tree`'s, and the middle one is why
     /// this is not a string concatenation: the **same letter again** asks for the
@@ -305,7 +305,7 @@ final class ListState<T> extends State<ListView<T>> {
     /// because the rows are a cycle to a reader pressing one key repeatedly.
     ///
     /// It moves the **focus** and does not select. A list reports what the user
-    /// asked for and selects nothing itself ([ADR-0063]), and typing is a way of
+    /// asked for and selects nothing itself, and typing is a way of
     /// getting somewhere rather than a way of choosing — `Enter` is still what
     /// chooses, which is the same split `select`'s open list draws.
     private void typeahead(String from, String text) {
@@ -365,7 +365,7 @@ final class ListState<T> extends State<ListView<T>> {
     }
 
     /// Asks for a selection. It does **not** select — the value is the
-    /// application's ([ADR-0063]).
+    /// application's, and comes back down as the next `selected`.
     ///
     /// **What goes out is the whole set**, even in single-selection mode where it
     /// always holds one. A `Shift` range is computed over the rows, which only
@@ -434,7 +434,7 @@ final class ListState<T> extends State<ListView<T>> {
     /// this catalog a test cannot drive: asserting that a gap longer than the
     /// window starts a fresh search meant sleeping for it and hoping, so nothing
     /// asserted it. Against a `Clock.virtual()` it is `advance(600)` and a
-    /// keystroke (`docs/testing.md` §0.1).
+    /// keystroke.
     ///
     /// Falls back to the system clock when there is no host, which is a widget
     /// built and driven outside a window. Typeahead still works there; it is

@@ -14,11 +14,13 @@ package dev.goldberry.natives.blend2d;
 /// **The four decoration fields are the newest four**, and they are here because a
 /// rectangle under a line of text is a *type design* decision rather than a layout
 /// one: where the rule sits and how thick it is come from the face, and a painter
-/// that guessed would be wrong at every size and at every family
-/// (`docs/gaps.md` G27, ADR-0321). No new native symbol was needed for them —
+/// that guessed would be wrong at every size and at every family. No new native
+/// symbol was needed for them —
 /// `bl_font_get_metrics` was already filling the whole struct and this end was
 /// reading six of it; both positions are scaled by the font's size on the way
 /// out, like everything else here.
+///
+/// Read more: [The native boundary](https://goldberry.dev/docs/overview/architecture.html#the-native-boundary).
 ///
 /// @param size                    the size the font was created at
 /// @param ascent                  how far above the baseline the font reaches, as

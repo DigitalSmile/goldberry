@@ -1,7 +1,7 @@
 package dev.goldberry.media;
 
 /// Where a [MediaPlayer] reads the passing of time when no audio track is its
-/// clock: the Clock SPI of `docs/goldberry-media.md` §3 ("Master clock").
+/// clock: the clock a test hands in to make a picture at a time reproducible.
 ///
 /// While an audio track plays, the audio clock is the master and this is not
 /// read: what is playing is what the sink has played. A source with no audio, or
@@ -9,12 +9,14 @@ package dev.goldberry.media;
 ///
 /// [#system()] is the monotonic clock, and the default. A test hands the player a
 /// clock of its own and moves it by hand, which is what makes a golden of "the
-/// picture at 0.4 s" the same picture on every run (§7, S5):
+/// picture at 0.4 s" the same picture on every run:
 ///
 /// ```java
 /// var now = new AtomicLong();
 /// var player = MediaPlayer.builder().clock(now::get).build();
 /// ```
+///
+/// Read more: [A player](https://goldberry.dev/docs/components/media.html#a-player).
 @FunctionalInterface
 public interface MediaClock {
 

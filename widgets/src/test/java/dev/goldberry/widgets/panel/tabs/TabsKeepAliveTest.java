@@ -26,8 +26,7 @@ import dev.goldberry.widgets.Widgets;
 import dev.goldberry.widgets.controls.TestFont;
 import dev.goldberry.widgets.text.Text;
 
-/// `keep-alive`: a tab shown once keeps its state while another is selected
-/// ([ADR-0366]).
+/// `keep-alive`: a tab shown once keeps its state while another is selected.
 class TabsKeepAliveTest {
 
     /// A widget whose state is the thing that must survive.
@@ -102,7 +101,7 @@ class TabsKeepAliveTest {
     }
 
     @Test
-    @DisplayName("without it, the content is built again, which is §5's lazy default")
+    @DisplayName("without it, the content is built again, which is the lazy default")
     void lazyByDefault() {
         var seen = new ArrayList<State<?>>();
         roundTrip(false, seen);

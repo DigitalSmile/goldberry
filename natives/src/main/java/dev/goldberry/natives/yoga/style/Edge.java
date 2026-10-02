@@ -11,6 +11,8 @@ package dev.goldberry.natives.yoga.style;
 /// right under [Direction#LTR] and swap under [Direction#RTL], which is the
 /// entire mechanism behind mirrored layouts — a widget that uses them is
 /// bidi-correct without knowing it.
+///
+/// Read more: [The native boundary](https://goldberry.dev/docs/overview/architecture.html#the-native-boundary).
 public enum Edge implements YogaEnum {
     LEFT(0, "YGEdgeLeft"),
 
@@ -59,8 +61,7 @@ public enum Edge implements YogaEnum {
     /// asking Yoga for the padding of [#ALL] is a question with no answer, and
     /// Yoga returns zero rather than saying so.
     /// Public because [dev.goldberry.natives.yoga.YogaNode]
-    /// asks it and an edge is `yoga.style`'s now
-    /// (ADR-0172).
+    /// asks it and an edge is `yoga.style`'s.
     public boolean isPhysicalSide() {
         return switch (this) {
             case LEFT, TOP, RIGHT, BOTTOM -> true;

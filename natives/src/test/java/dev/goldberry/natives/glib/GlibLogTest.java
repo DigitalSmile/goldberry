@@ -12,7 +12,7 @@ import org.junit.jupiter.api.Test;
 import dev.goldberry.log.bridge.NativeLogBridge;
 import dev.goldberry.log.bridge.NativeLogLevel;
 
-/// The GLib side of ADR-0443, checked without a GLib.
+/// The GLib side of the native log bridge, checked without a GLib.
 ///
 /// Everything below runs on a machine with no desktop libraries at all: the
 /// translation from `GLogLevelFlags` to an SLF4J level and from a log domain to

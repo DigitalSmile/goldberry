@@ -2,6 +2,8 @@ package dev.goldberry.natives.sdl.gpu.enums;
 
 /// Which triangles a pipeline discards by their facing, as SDL's
 /// `SDL_GPUCullMode`.
+///
+/// Read more: [The native boundary](https://goldberry.dev/docs/overview/architecture.html#the-native-boundary).
 public enum SdlGpuCullMode {
     /// None: what the toolkit's quads are drawn with.
     NONE(0),

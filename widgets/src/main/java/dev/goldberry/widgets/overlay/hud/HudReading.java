@@ -11,7 +11,7 @@ import dev.goldberry.widget.style.Paints;
 import dev.goldberry.widget.style.Styled;
 
 /// One number in a [Hud] — a **part**, so it is CSS-selectable and not
-/// constructible from a document (ADR-0065).
+/// constructible from a document.
 ///
 /// It reads the frame statistics in [#render] rather than being handed a string,
 /// and that is the only interesting thing about it: a widget's children are
@@ -31,10 +31,9 @@ record HudReading(Reading reading) implements Widget.Leaf, Styled, Paints {
     /// is doing against its budget — `ok`, `near` or `over`.
     ///
     /// **Classes and not a colour written here.** A widget that picked the red
-    /// itself would be a widget that cannot be themed, and §10's whole mechanism
-    /// is that a colour comes from a token. What this node knows is which of the
-    /// three states it is in; what that looks like is `controls.css`'s
-    /// (ADR-0150).
+    /// itself would be a widget that cannot be themed, and in this toolkit a
+    /// colour comes from a token. What this node knows is which of the
+    /// three states it is in; what that looks like is `controls.css`'s.
     ///
     /// **The level cannot be in [#classes()]**, and that is what
     /// [Styled#classes(FrameStats)] exists for:

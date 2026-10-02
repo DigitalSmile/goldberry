@@ -28,8 +28,8 @@ public record ProbeCalls(ProbeMeasure probeMeasure) {
     /// Invokes a Yoga measure callback from C and writes back what it returned.
     ///
     /// The one shim function that exists to be called from a *test*: it is how
-    /// the struct-by-value upcall is proved without running a layout pass
-    /// (ADR-0017). `YGSize` is returned by value across the boundary, which is
+    /// the struct-by-value upcall is proved without running a layout pass.
+    /// `YGSize` is returned by value across the boundary, which is
     /// the part that has to be proved on every target.
     ///
     /// `void goldberry_probe_measure(void*, float, int, float, int, void*, void*)`

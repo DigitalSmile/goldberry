@@ -21,7 +21,8 @@ import dev.goldberry.paint.Box;
 import dev.goldberry.paint.TestFrames;
 import dev.goldberry.render.model.LogicalRect;
 
-/// Where a box with a margin lands — ADR-0311.
+/// Where a box with a margin lands: margin is room outside the border box, and
+/// `auto` takes what is left.
 ///
 /// Against the compiled Yoga rather than against the arithmetic, for
 /// `AbsolutePlacementTest`'s reason: the toolkit's claim is not "the right number
@@ -219,7 +220,7 @@ class MarginTest {
         void onAnAbsoluteChild() {
             // Yoga applies margin to an out-of-flow node as an offset from where
             // the inset put it, which is CSS's rule. Asserted because the inset
-            // path is the one the toolkit already had to correct (ADR-0272), and
+            // path is the one the toolkit already had to correct, and
             // a second offset stacked on a corrected one is worth pinning.
             var placed = laidOut(row(child().position(Position.ABSOLUTE)
                             .inset(new Insets(px(0), Length.UNDEFINED, Length.UNDEFINED, px(0)))

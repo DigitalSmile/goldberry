@@ -10,32 +10,30 @@ import dev.goldberry.render.desktop.SystemTheme;
 import dev.goldberry.render.tray.TraySpec;
 import dev.goldberry.widgets.menu.Menu;
 
-/// An icon this application asks the desktop to show — `docs/core-widgets.md`
-/// §9's `tray-icon`.
-///
-/// **A value, not a widget**, and the second one in the catalog after `toast`
-/// (ADR-0177).
-/// The reason is stronger here than it was there: a toast is at least drawn by
-/// Goldberry, and this is not drawn by Goldberry at all. The shell owns the
-/// pixels, the font, the spacing and the click. There is no box to lay out, no
-/// `ComputedStyle` to compute and no pointer event to route — so the parity
-/// invariant's third clause, *CSS-styleable*, has nothing to attach to, and
-/// pretending otherwise would put a widget in the catalog that no stylesheet
-/// could ever affect.
-///
-/// What it does share with the catalog is its **menu**: the same [Menu] of
-/// `item`s and `separator`s a `menubar` holds, walked into the platform's
-/// vocabulary by [Trays]. An author writes one description and can show it in a
-/// window, in a context menu or in the tray.
+/// An icon in the desktop's notification area, with a tooltip and a menu the
+/// desktop's shell draws when it is clicked.
 ///
 /// ```java
 /// var tray = Trays.show(host, TrayIcon.of("Goldberry", new Menu(List.of(
 ///         new Item("Open", app::open),
 ///         new Separator(),
-///         new Item("Quit", app::quit)))).icons(darkInk, lightInk));
+///         new Item("Quit", app::quit)))).icons(onLightShell, onDarkShell));
 /// // ...
 /// tray.ifPresent(BackendTray::close);
 /// ```
+///
+/// A value, not a widget, and there is no markup node for it: the shell owns
+/// the pixels, the font, the spacing and the click, so there is no box to lay
+/// out, no style to compute and no event to route. What it shares with the
+/// catalogue is its **menu**: the same [Menu] of `item`s and `separator`s a
+/// `menubar` holds, translated into the platform's rows by [Trays]. One
+/// description can be shown in a window, in a context menu or in the tray.
+///
+/// A picture is in physical pixels, 32×32 or 64×64, because the icon sits on
+/// the desktop's panel and inherits no window's scale. With [#icons] the tray
+/// follows the desktop's light-or-dark setting while it is up.
+///
+/// Read more: [Menus and the tray](https://goldberry.dev/docs/components/menus.html#the-tray-icon).
 ///
 /// @param picture what the shell shows, or null for whatever the desktop shows
 ///                for an application that supplied none
@@ -73,17 +71,16 @@ public record TrayIcon(@Nullable Picture picture, @Nullable String tooltip, Menu
         }
     }
 
-    /// Two pictures, each named for the **background** it is drawn to sit on —
-    /// §9's "theme-aware light/dark variants" — and [Trays#show] swaps between
-    /// them as the desktop's setting changes.
+    /// Two pictures, each named for the **background** it is drawn to sit on;
+    /// [Trays#show] swaps between them as the desktop's setting changes.
     ///
     /// Named for the shell rather than for the ink, because "the light icon" is
     /// ambiguous in exactly the way that matters: dark ink for a light panel, or
     /// a light mark for a dark one.
     ///
     /// @param forLightShell shown while the desktop says [SystemTheme#LIGHT], and
-    ///                      while it says nothing — the reading CSS gives "no
-    ///                      preference" too (ADR-0501)
+    ///                      while it says nothing, which is also how CSS reads
+    ///                      "no preference"
     /// @param forDarkShell  shown while the desktop says [SystemTheme#DARK]
     public record ThemePair(PixelBuffer forLightShell, PixelBuffer forDarkShell) implements Picture {
 

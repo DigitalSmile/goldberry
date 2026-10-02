@@ -18,28 +18,28 @@ import dev.goldberry.widget.Widget;
 import dev.goldberry.widget.style.Paints;
 import dev.goldberry.widget.style.Styled;
 
-/// §4's hue slider and its optional alpha slider — `color-ramp`, a **part**.
+/// The hue slider and the optional alpha slider — `color-ramp`, a **part**.
 ///
 /// ## One part for both, because they differ only in their stops
 ///
 /// A hue ramp is six stops round the wheel and an alpha ramp is two over the
 /// chosen colour. Everything else — the geometry, the drag, the thumb, the
-/// metrics — is the same, and §2 gives them one line between them ("hue/alpha
-/// sliders `slider` metrics"). Two records would be two copies of a drag.
+/// metrics — is the same, and the design system gives them one line between
+/// them: a `slider`'s metrics. Two records would be two copies of a drag.
 ///
 /// ## Not a `slider`
 ///
-/// §2 says *`slider` metrics*, not `slider`, and the difference is the track: a
+/// A `slider`'s *metrics*, not a `slider`, and the difference is the track: a
 /// `slider`'s is a groove in `--gb-border` and these are a picture of what the
-/// value means. §8's subset has no gradient — [BlendGradient] is a fill style the
-/// painter has, not something a stylesheet can ask for (ADR-0207) — so the track
-/// is painted rather than styled, which makes this a `canvas` with a drag on it
-/// and a `slider` in nothing but its height.
+/// value means. A stylesheet has no gradient — [BlendGradient] is a fill style
+/// the painter has, not something a stylesheet can ask for — so the track is
+/// painted rather than styled, which makes this a `canvas` with a drag on it and
+/// a `slider` in nothing but its height.
 ///
-/// It is also **not focusable**, and that is §4's doing rather than an omission:
-/// it gives this control one keyboard, "arrows move the plane cursor", and says
-/// nothing about the sliders. A focusable ramp would add two Tab stops inside a
-/// popover whose field is the source of truth.
+/// It is also **not focusable**, and that is a decision rather than an omission:
+/// this control has one keyboard, the arrows on the plane cursor, and the
+/// sliders have none. A focusable ramp would add two Tab stops inside a popover
+/// whose field is the source of truth.
 ///
 /// ## The alpha ramp is drawn over a chequerboard
 ///
@@ -55,7 +55,7 @@ import dev.goldberry.widget.style.Styled;
 record ColorRamp(Kind kind, HsvColor colour, DoubleConsumer onChange, boolean disabled)
         implements Widget.Leaf, Styled, Paints, Handles {
 
-    /// Which of §4's two sliders this is.
+    /// Which of the two sliders this is.
     enum Kind {
 
         /// Six stops round the wheel. Always shown.

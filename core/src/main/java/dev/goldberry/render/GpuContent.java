@@ -1,7 +1,7 @@
 package dev.goldberry.render;
 
 /// Something the GPU draws into a window rather than the CPU rasterizing it: a
-/// 3D view, a video picture (`docs/gpu-plan.md`, D4; ADR-0481).
+/// 3D view, a video picture.
 ///
 /// **Opaque to `:core`.** `:core` cannot name how such content is drawn,
 /// because drawing it takes `:gpu`'s device and frames, and `:gpu` depends on
@@ -16,4 +16,6 @@ package dev.goldberry.render;
 ///
 /// Compared by identity: the same object placed on two frames is the same layer,
 /// and keeps what the compositor holds for it between them.
+///
+/// Read more: [The GPU canvas](https://goldberry.dev/docs/components/gpu.html#what-the-module-does-to-a-window).
 public interface GpuContent {}

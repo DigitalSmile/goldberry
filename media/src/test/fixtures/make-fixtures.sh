@@ -63,8 +63,8 @@ short="testsrc2=s=160x90:r=25:d=0.2"
 $ff -f lavfi -i "$short" -c:v libvpx-vp9 -pix_fmt yuv444p -b:v 200k "$out/clip-vp9-444.webm"
 $ff -f lavfi -i "$short" -c:v libvpx-vp9 -pix_fmt yuv420p10le -b:v 200k "$out/clip-vp9-10bit.webm"
 
-# Three pictures tagged with the colour GPU present has to honour (gpu-plan.md,
-# phase 6; ADR-0484), silent and a fifth of a second each: BT.709, BT.2020 in
+# Three pictures tagged with the colour GPU present has to honour,
+# silent and a fifth of a second each: BT.709, BT.2020 in
 # 10 bits, and BT.601 in full range. The pattern is converted into each matrix
 # and range by the scale filter, and the stream is tagged to match, so the
 # decoder reports what it was encoded with.
@@ -137,7 +137,7 @@ $ff -i "$out/clip-vp9.webm" -i "$work/subs.srt" -i "$work/subs.ass" -map 0:v -ma
 $ff -f lavfi -i "$pattern" -i "$tone" -c:v libx264 -preset ultrafast -c:a aac -b:a 64k -shortest \
     "$out/clip-h264-aac.mp4"
 
-# --- Containers (ADR-0471). AVI is demuxed: an Xvid and AC-3 rip opens and names
+# --- Containers. AVI is demuxed: an Xvid and AC-3 rip opens and names
 # both codecs it cannot decode, and MP3 in AVI plays. MPEG-TS and FLV have no
 # demuxer in this build, and are named from their first bytes.
 tiny="testsrc2=s=160x90:r=25:d=0.2"

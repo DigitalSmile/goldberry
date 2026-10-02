@@ -12,13 +12,19 @@ import dev.goldberry.css.Stylesheet;
 import dev.goldberry.css.Theme;
 import dev.goldberry.css.cascade.CascadeLayer;
 
-/// The catalog: every widget this module ships, and how it is registered and
-/// styled.
+/// The stylesheets that give every widget in this module its default look, in
+/// the order the cascade wants them.
 ///
-/// Two things an application needs and should not have to assemble itself — the
-/// KDL registry and the default appearance — because a control that is registered
-/// but unstyled renders as a transparent rectangle, and one that is styled but
-/// unregistered fails to inflate. They ship together.
+/// ```java
+/// var sheets = Controls.stylesheets(Theme.NORD_DARK, Density.REGULAR);
+/// ```
+///
+/// An application adds its own stylesheets after these. The base rules read
+/// `var(--gb-*)` throughout and name no colour of their own, so a theme, a
+/// density or a scrollbar setting restyles every control by swapping tokens.
+/// The matching half — the markup registry — is [Widgets].
+///
+/// Read more: [Styling](https://goldberry.dev/docs/guide/styling.html#the-cascade-four-layers).
 public final class Controls {
 
     private Controls() {}
@@ -28,9 +34,9 @@ public final class Controls {
     ///
     /// Bottom of the cascade, so a theme's custom properties and then the
     /// application's own rules both win over it without either having to fight
-    /// specificity (§8). It reads `var(--gb-*)` throughout and names no colour of
+    /// specificity. It reads `var(--gb-*)` throughout and names no colour of
     /// its own, which is what lets switching a theme restyle a button that never
-    /// mentions one (§10).
+    /// mentions one.
     public static Stylesheet baseStylesheet() {
         return Stylesheet.parse(CascadeLayer.TOOLKIT_BASE, baseSource());
     }
@@ -69,24 +75,24 @@ public final class Controls {
                 .toList();
     }
 
-    /// The same, with §2.4's scrollbar setting after the density (ADR-0364).
+    /// The same, with the scrollbar setting after the density. Like a density,
+    /// a scrollbar setting is a token sheet the controls already read.
     public static List<Stylesheet> stylesheets(Theme theme, Density density, Scrollbars scrollbars) {
         Objects.requireNonNull(scrollbars, "scrollbars");
         return Stream.concat(stylesheets(theme, density).stream(), scrollbars.stylesheets().stream())
                 .toList();
     }
 
-    /// The toolkit's stylesheets at [Density#REGULAR], which is §1.3's default.
+    /// The toolkit's stylesheets at [Density#REGULAR], the default density.
     public static List<Stylesheet> stylesheets(Theme theme) {
         return stylesheets(theme, Density.REGULAR);
     }
 
-    // The inflater used to be here, as a table of nineteen names. It is now
-    // generated: every `@Markup` widget in this module is collected by the build
-    // into a `WidgetCatalog`, and `Widgets.inflater(icons, model)` gathers the
-    // catalogs of every widget module on the path (ADR-0131). What is left here
-    // is the other half of what this class always shipped -- the stylesheets,
-    // because a control that is registered but unstyled renders as a transparent
+    // The inflater is not here: every `@Markup` widget in this module is
+    // collected by the build into a `WidgetCatalog`, and
+    // `Widgets.inflater(icons, model)` gathers the catalogs of every widget
+    // module on the path. What this class ships is the stylesheets, because a
+    // control that is registered but unstyled renders as a transparent
     // rectangle.
 
     /// The CSS type names this module adds, which is what the parity test checks
@@ -108,8 +114,8 @@ public final class Controls {
     /// `SliderTicks`, `SliderTick`, `SliderValue`, `KnobTrack`, `KnobArc`,
     /// `KnobDial`, `SegmentedTrack` and `SegmentedIndicator` — code spans rather
     /// than links, because a part is
-    /// package-private inside `…widgets.controls` and this class is not in it
-    /// (ADR-0091). A link that cannot resolve is worse than a name).
+    /// package-private inside `…widgets.controls` and this class is not in it.
+    /// A link that cannot resolve is worse than a name).
     public static List<String> controlTypes() {
         return List.of(
                 "button",

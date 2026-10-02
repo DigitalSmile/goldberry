@@ -30,12 +30,12 @@ import dev.goldberry.widget.WidgetRenderer;
 import dev.goldberry.widgets.Controls;
 import dev.goldberry.widgets.controls.TestFont;
 
-/// `docs/gaps.md` G11: a painter that is told what the cascade resolved.
+/// A painter that is told what the cascade resolved.
 ///
 /// The claim being pinned is that the *stylesheet* reaches the drawing — change
 /// `font-size` or `color` and the painter is handed a different answer without
 /// naming either — and that the older two-parameter form still means exactly
-/// what it did (ADR-0288).
+/// what it did.
 class StyledCanvasTest {
 
     @BeforeEach

@@ -36,43 +36,36 @@ import dev.goldberry.text.font.Font;
 /// });
 /// ```
 ///
-/// ## What it is, and what `text-input` is
+/// `text-input` and `text-area` are controls: a box with a border, a placeholder,
+/// a label, a validation state and a focus ring, which take their keys through
+/// the element tree. This is the editor without any of that — a caret, a
+/// selection, an undo stack and a key map over a string — for a sticky on a
+/// board, a label on a shape, a cell in a drawing: things that are not widgets,
+/// because they are drawn into an application's own canvas at its own transform.
 ///
-/// `text-input` and `text-area` are **controls**: a box with a border, a
-/// placeholder, a label, a validation state and a focus ring, which take their
-/// keys through the element tree. This is the editor **without** any of that — a
-/// caret, a selection, an undo stack and a key map over a string — for the case
-/// `docs/gaps.md` G6 named: a sticky on a board, a label on a shape, a cell in a
-/// drawing. Those are not widgets and cannot be, because what they are drawn into
-/// is an application's own canvas at an application's own transform (ADR-0285).
+/// It holds three things: a [TextEdit] (the string, the caret and the anchor), an
+/// [EditHistory] (undo, with a typing run folded into one step), and a
+/// [TextDocument] — the text shaped one hard line at a time, so a keystroke
+/// re-shapes the line it landed on and not the whole text. The key map is
+/// [EditKeys], the one `text-input` and `text-area` read. Everything visual —
+/// where to draw, what colour, whether the caret blinks, whether there is a
+/// border — stays the caller's.
 ///
-/// It holds three things and nothing else: a [TextEdit] (the string, the caret
-/// and the anchor), an [EditHistory] (undo, with a typing run folded into one
-/// step), and a [TextDocument] — the text shaped one **hard line** at a time, so
-/// that a keystroke re-shapes the line it landed on rather than everything
-/// ([ADR-0411]). Everything visual — where to draw it, what colour, whether the
-/// caret blinks, whether there is a border — stays the caller's.
+/// A canvas holding one must ask for the keyboard: override `Input.wantsText()`
+/// to `true`, or nothing will ever be typed into it. The platform produces no
+/// committed text until it is told something is being typed into, so an editor
+/// that has not said so receives every arrow key and no characters at all.
 ///
-/// ## A canvas holding one must ask for the keyboard
-///
-/// `Input.wantsText()` — override it to `true`, or nothing will ever be typed
-/// into this. Committed text is delivered to whatever has the focus, and on a
-/// desktop the platform does not *produce* any until it is told that something is
-/// being typed into: an editor on a canvas that has not said so receives every
-/// arrow key and no characters at all (ADR-0285).
-///
-/// ## Coordinates
-///
-/// Points handed to [#pointerAt] and rectangles handed back are in the **text's**
+/// Points handed to [#pointerAt] and rectangles handed back are in the text's
 /// own space: `(0, 0)` is the top-left of the first line. A caller drawing at an
-/// offset subtracts it first, which is one line at the call site and is why this
-/// class has no notion of padding, scrolling or a canvas transform.
+/// offset subtracts it first, which is why this class has no notion of padding,
+/// scrolling or a canvas transform.
 ///
-/// ## Threads and lifetime
+/// Used on the UI thread, like everything else that touches input. Nothing here
+/// is closed: the [Font] is the caller's, and a shaped paragraph holds no native
+/// memory.
 ///
-/// The UI thread, like everything else that touches input. Nothing here is closed:
-/// the [Font] is the caller's, and a paragraph holds no foreign memory
-/// (ADR-0282).
+/// Read more: [Selection and editing](https://goldberry.dev/docs/guide/text.html#selection-and-editing).
 public final class Editor {
 
     private final Font font;
@@ -87,9 +80,7 @@ public final class Editor {
     ///
     /// Held here rather than passed to [#paint] because it is not only a painting
     /// question: the caret, the hit test and the selection are measured from the
-    /// same edge the glyphs were drawn from, and an editor told one thing by its
-    /// paint and another by its geometry is the drift `docs/gaps.md` G30
-    /// describes (ADR-0318).
+    /// same edge the glyphs were drawn from, or the caret drifts off the glyphs.
     private TextAlign textAlign = TextAlign.START;
 
     private boolean multiline;
@@ -100,14 +91,14 @@ public final class Editor {
 
     private @Nullable PrimarySelection primarySelection;
 
-    /// The shaped text — one [Paragraph] per **hard line**, re-shaped a hard line
-    /// at a time ([ADR-0411]).
+    /// The shaped text — one [Paragraph] per hard line, re-shaped a hard line at a
+    /// time.
     ///
-    /// It is a cache for correctness before it is one for speed: the caret, the
-    /// hit test and the paint must all measure the *same* shaping, and the way to
-    /// guarantee that is for there to be one. What makes it a cache for speed as
-    /// well is that the next one is built **from** this one, so a keystroke into a
-    /// long text re-shapes the line it landed on and nothing else (ADR-0388).
+    /// A cache for correctness before it is one for speed: the caret, the hit test
+    /// and the paint must all measure the same shaping, and the way to guarantee
+    /// that is for there to be one. It is a cache for speed as well because the
+    /// next one is built from this one, so a keystroke into a long text re-shapes
+    /// the line it landed on and nothing else.
     private @Nullable TextDocument document;
 
     /// Whether [#document] describes text this editor no longer holds.
@@ -130,17 +121,15 @@ public final class Editor {
     /// caret did was not vertical.
     private double desiredX = Double.NaN;
 
-    /// What an input method is composing, or `""` when it is not — `docs/gaps.md`
-    /// G15.
+    /// What an input method is composing, or `""` when it is not.
     ///
-    /// **Not part of [#edit], and that is the whole design.** A composition is
-    /// not an edit until the user accepts it: `にほんご` becomes `日本語` and every
-    /// character of what was typed is replaced. An editor that inserted this into
-    /// its text would put characters the user has not chosen into the undo
-    /// history and into whatever is watching the value, and would then take them
-    /// out again (ADR-0289).
+    /// Not part of [#edit]. A composition is not an edit until the user accepts
+    /// it: `にほんご` becomes `日本語` and every character of what was typed is
+    /// replaced. An editor that inserted this into its text would put characters
+    /// the user has not chosen into the undo history and into whatever is
+    /// watching the value, and would then take them out again.
     ///
-    /// It is *displayed* inside the text — spliced at the caret, so the following
+    /// It is displayed inside the text — spliced at the caret, so the following
     /// words move along as they do in every native field — and that splice lives
     /// in [#displayText] and nowhere else.
     private String preedit = "";
@@ -166,40 +155,30 @@ public final class Editor {
     /// A caller inside a frame hands over the renderer's paragraph cache and gets
     /// the sharing the rest of the frame gets; a caller that has no frame — a
     /// test, a headless measurement — leaves it alone. The seam is
-    /// [TextDocument]'s own and this only passes it along, because the class that
-    /// shapes is the class that should not decide who caches (ADR-0388).
+    /// [TextDocument]'s own and this only passes it along: the class that shapes
+    /// does not decide who caches.
     ///
-    /// **Lines already shaped keep the paragraphs they have.** A new shaper is
-    /// asked for the lines that change from here, which is what makes handing one
-    /// over cheap enough to do on the first frame that has a cache to offer.
+    /// Lines already shaped keep the paragraphs they have. A new shaper is asked
+    /// for the lines that change from here, so handing one over on the first
+    /// frame that has a cache to offer is cheap.
     public Editor shaper(TextDocument.Shaper value) {
         this.shaper = Objects.requireNonNull(value, "value");
         return this;
     }
 
     /// How tall the box this editor is drawn into is, in the text's own space —
-    /// what `PageUp` and `PageDown` move by ([ADR-0410]).
+    /// what `PageUp` and `PageDown` move by.
     ///
-    /// A page is a screenful, and until this existed an editor on a canvas had no
-    /// way to know what a screenful was: it moved by ten lines whatever the caller
-    /// had drawn, so `PageDown` in a six-line sticky ran off the end and
-    /// `PageDown` in a forty-line pane moved a quarter of the way down it.
-    ///
-    /// In **logical units and not in lines**, because a height is what a caller
-    /// has — a `Canvas` is handed one of these:
-    ///
-    /// [dev.goldberry.input.hit.Extent]
-    ///
-    /// and a sticky is a rectangle on a board. Dividing by a line's height needs
-    /// the font, this editor has it, and a caller doing that arithmetic itself
-    /// would be doing it with a guess at the leading.
+    /// A page is a screenful, and only the caller knows what a screenful is: a
+    /// `Canvas` is handed its size, and a sticky is a rectangle on a board. It is
+    /// in logical units and not in lines because a height is what a caller has;
+    /// dividing by a line's height needs the font, which this editor holds.
     ///
     /// Leave it unset — or pass `NaN`, `0` or a negative — and a page is ten
-    /// lines, which is what every editor here did before this and is still the
-    /// only defensible answer for a caller that has not said (see [ADR-0410]).
+    /// lines, the only defensible answer for a caller that has not said.
     ///
-    /// **Nothing is invalidated.** How tall the viewport is does not change where
-    /// a line breaks or where a caret goes; it changes what one key means.
+    /// Nothing is invalidated: how tall the viewport is does not change where a
+    /// line breaks or where a caret goes, only what one key means.
     public Editor viewportHeight(double height) {
         this.viewportHeight = height;
         return this;
@@ -226,10 +205,10 @@ public final class Editor {
 
     /// Where each line sits in [#wrapWidth(double)] — `text-align`.
     ///
-    /// [TextAlign#START] by default, which is what every editor did before this
-    /// existed. Set it and the paint, the caret, the hit test, `Up`/`Down` and the
-    /// selection all move together: a board's sticky is centred, and pressing
-    /// exactly where the caret is drawn gives back the offset it was drawn for.
+    /// [TextAlign#START] by default. Set it and the paint, the caret, the hit
+    /// test, `Up`/`Down` and the selection all move together: a board's sticky is
+    /// centred, and pressing exactly where the caret is drawn gives back the
+    /// offset it was drawn for.
     ///
     /// **No layout is invalidated.** Alignment does not change where the lines
     /// break, only where each of them starts — which is the whole reason it can be
@@ -269,13 +248,13 @@ public final class Editor {
     }
 
     /// The primary selection a finished selection is published to and a middle
-    /// click pastes from — X11's, where the host has one ([ADR-0504]).
+    /// click pastes from — X11's, where the host has one.
     ///
-    /// Hand it [dev.goldberry.Host#primarySelection()]'s answer
-    /// when there is one and nothing when there is not: without one,
-    /// [#pointerReleased()] publishes nothing and [#pastePrimaryAt] is a no-op
-    /// that reports `false`, so the caller's middle button can mean something
-    /// else. The editor never asks which platform it is on.
+    /// Hand it `Host.primarySelection()`'s answer when there is one and nothing
+    /// when there is not: without one, [#pointerReleased()] publishes nothing and
+    /// [#pastePrimaryAt] is a no-op that reports `false`, so the caller's middle
+    /// button can mean something else. The editor never asks which platform it
+    /// is on.
     public Editor primarySelection(PrimarySelection value) {
         this.primarySelection = Objects.requireNonNull(value, "primarySelection");
         return this;
@@ -283,6 +262,7 @@ public final class Editor {
 
     // --- the text ------------------------------------------------------------
 
+    /// The text, without any composition an input method has open.
     public String text() {
         return edit.text();
     }
@@ -314,20 +294,25 @@ public final class Editor {
         return this;
     }
 
+    /// Whether there is anything to undo.
     public boolean canUndo() {
         return history.canUndo();
     }
 
+    /// Whether there is anything to redo.
     public boolean canRedo() {
         return history.canRedo();
     }
 
+    /// Takes back the last edit, or the last typing run. Returns whether anything
+    /// changed.
     public boolean undo() {
         var before = edit;
         edit = history.undo(edit);
         return applied(before);
     }
 
+    /// Restores what the last [#undo] took back. Returns whether anything changed.
     public boolean redo() {
         var before = edit;
         edit = history.redo(edit);
@@ -339,9 +324,9 @@ public final class Editor {
     /// Committed text — what the platform decided was typed, after its own
     /// keyboard layout, dead keys and IME.
     ///
-    /// This is [dev.goldberry.input.handler.Handles#onText]'s
-    /// payload and not a key: an editor must never build characters out of key
-    /// codes itself, or it is a US keyboard pretending to be every keyboard.
+    /// This is `Handles.onText`'s payload and not a key: an editor must never
+    /// build characters out of key codes itself, or it is a US keyboard
+    /// pretending to be every keyboard.
     ///
     /// @return whether anything was inserted, which is whether to consume the event
     public boolean onText(String typed) {
@@ -357,12 +342,11 @@ public final class Editor {
         return apply(edit.insert(typed), EditHistory.Kind.TYPING) || wasComposing;
     }
 
-    /// The composition an input method is assembling — `docs/gaps.md` G15.
+    /// The composition an input method is assembling.
     ///
-    /// [dev.goldberry.input.handler.Handles#onPreedit]'s
-    /// payload. Nothing is inserted: what changes is what is *drawn*, and the
-    /// text, the caret offset and the undo history are untouched until a
-    /// [#onText] arrives with the result.
+    /// `Handles.onPreedit`'s payload. Nothing is inserted: what changes is what
+    /// is drawn, and the text, the caret offset and the undo history are
+    /// untouched until a [#onText] arrives with the result.
     ///
     /// An event whose text is empty ends the composition, which is what both
     /// accepting a candidate and abandoning one produce.
@@ -452,10 +436,9 @@ public final class Editor {
 
     /// Obeys a key — movement, deletion, selection, undo and the clipboard.
     ///
-    /// The map itself is [EditKeys], shared with `text-input` and `text-area`,
-    /// because two editors in one toolkit that disagree about what `Ctrl+Shift+Z`
-    /// does is a toolkit with a bug in one of them ([ADR-0376]). What is left
-    /// here is what this editor can do about each command.
+    /// The map itself is [EditKeys], shared with `text-input` and `text-area`, so
+    /// the three editors cannot disagree about what a key does. What is here is
+    /// what this editor does about each command.
     ///
     /// @return whether the key did something, which is whether to consume it. A
     ///         key the map has no meaning for is left alone — `Tab` still moves
@@ -548,7 +531,7 @@ public final class Editor {
     }
 
     /// The pointer came up: a selection the press and drag made is finished, and
-    /// goes on the primary selection if there is one ([ADR-0504]).
+    /// goes on the primary selection if there is one.
     ///
     /// On the release and not on every drag, because every write is an ownership
     /// change the whole desktop is told about.
@@ -560,7 +543,7 @@ public final class Editor {
 
     /// A middle click at a point in the text's own space: the caret goes there
     /// and the primary selection's text goes in at it — X11's paste, as one
-    /// undoable edit ([ADR-0504]).
+    /// undoable edit.
     ///
     /// Nothing happens without a primary selection, in a read-only editor, or
     /// when the selection holds no text — and `false` says so, so the caller's
@@ -602,6 +585,8 @@ public final class Editor {
         return board.text(edit.selectedText());
     }
 
+    /// Copies the selection and removes it. `false` when nothing was copied or
+    /// the editor is read-only, so the key is not consumed.
     public boolean cut() {
         if (readOnly || !copy()) {
             return false;
@@ -609,6 +594,8 @@ public final class Editor {
         return apply(edit.insert(""), EditHistory.Kind.OTHER);
     }
 
+    /// Inserts the clipboard's text in place of the selection. `false` when
+    /// there is no clipboard, it holds no text, or the editor is read-only.
     public boolean paste() {
         var board = clipboard;
         if (readOnly || board == null || !board.hasText()) {
@@ -627,7 +614,7 @@ public final class Editor {
     // --- geometry and painting -----------------------------------------------
 
     /// The shaped text, for a caller that paints it itself — a hard line at a
-    /// time ([ADR-0411]).
+    /// time.
     ///
     /// The same instance the caret and the hit test are measured against, which is
     /// the point of it being handed out rather than rebuilt by the caller.
@@ -636,11 +623,10 @@ public final class Editor {
         if (current == null || stale) {
             // [#displayText], not [#text]: a composition is drawn *inside* the
             // text so that the words after it move along, and the caret, the hit
-            // test and the paint all have to measure the same shaping (ADR-0289).
+            // test and the paint all have to measure the same shaping.
             //
             // The old document goes in as well as coming out: it is what makes a
-            // keystroke re-shape one hard line rather than the whole text
-            // (ADR-0388).
+            // keystroke re-shape one hard line rather than the whole text.
             current = TextDocument.of(font, displayText(), current, shaper);
             document = current;
             stale = false;
@@ -672,12 +658,11 @@ public final class Editor {
     }
 
     /// The visual line the caret is on, in the text's own space — what
-    /// [dev.goldberry.input.handler.Handles#caretArea] wants
-    /// (`docs/gaps.md` G15).
+    /// `Handles.caretArea` wants.
     ///
-    /// The **line** and not the caret, because an input method uses it to keep
-    /// its candidate window clear of the text it would otherwise cover; the
-    /// caret's position within it is [#caret]`.x()`.
+    /// The line and not the caret, because an input method uses it to keep its
+    /// candidate window clear of the text it would otherwise cover; the caret's
+    /// position within it is [#caret]`.x()`.
     ///
     /// In the text's own space, so a caller drawing at `(x, top)` adds both.
     public LogicalRect caretLine() {
@@ -754,12 +739,12 @@ public final class Editor {
     /// repaint, and both are the application's. A caller that is not focused
     /// passes `false`.
     ///
-    /// **A composition draws two more things**, between the selection and the
-    /// caret: the clause an input method is converting, highlighted like a
-    /// selection, and an underline along the whole of what is being composed.
-    /// Both are in [Ink]'s existing colours rather than in new ones, because a
-    /// composition is the same three things a selection is — a highlight, some
-    /// glyphs and a caret — drawn to say "not yet" (ADR-0289).
+    /// A composition draws two more things, between the selection and the caret:
+    /// the clause an input method is converting, highlighted like a selection,
+    /// and an underline along the whole of what is being composed. Both are in
+    /// [Ink]'s existing colours rather than in new ones, because a composition is
+    /// the same three things a selection is — a highlight, some glyphs and a
+    /// caret — drawn to say "not yet".
     ///
     /// @param caretWidth in logical units; one is what every desktop draws
     public void paint(Frame frame, double x, double top, Ink ink, boolean caretVisible, double caretWidth) {
@@ -776,7 +761,7 @@ public final class Editor {
         }
         // The clause an input method is converting, behind the glyphs like a
         // selection -- because that is what it is, in the composition's own
-        // little document (ADR-0289).
+        // little document.
         for (var rect : composingClauseRects()) {
             frame.fillRect(
                     (float) (x + rect.left()),
@@ -808,19 +793,18 @@ public final class Editor {
         paint(frame, x, top, ink, caretVisible, 1);
     }
 
-    /// The glyphs, one **hard line** at a time ([ADR-0411]).
+    /// The glyphs, one hard line at a time.
     ///
     /// One paragraph per hard line, each drawn at the top of its own first visual
-    /// line, which is where the whole text's single paragraph drew it: the wrap is
-    /// per hard line either way ([TextDocument]), and the rows of a wrapped line
-    /// are consecutive, so the y of hard line `k` is the number of visual lines
-    /// above it times the line height.
+    /// line: the wrap is per hard line either way ([TextDocument]), and the rows
+    /// of a wrapped line are consecutive, so the y of hard line `k` is the number
+    /// of visual lines above it times the line height.
     ///
-    /// **Every line is drawn, in the document's order.** ADR-0388's other half —
-    /// drawing a screenful — needs to know which rows are on screen, and that is
-    /// the caller's scroll offset and the caller's transform; an editor asked to
-    /// paint at `(x, top)` knows only where *it* was told to start. A caller with a
-    /// viewport clips, as it already must.
+    /// Every line is drawn, in the document's order. Drawing only a screenful
+    /// needs to know which rows are on screen, and that is the caller's scroll
+    /// offset and the caller's transform; an editor asked to paint at `(x, top)`
+    /// knows only where it was told to start. A caller with a viewport clips, as
+    /// it already must.
     private void paintText(Frame frame, double x, double top, int argb) {
         var shaped = document();
         var rows = lines();
@@ -860,12 +844,10 @@ public final class Editor {
     /// What a page is when the caller has not said how tall its viewport is
     /// ([#viewportHeight(double)]).
     ///
-    /// Ten, which is what this editor did before a viewport could be declared, so
-    /// no caller's `PageDown` changed under it. It is a guess and it stays because
-    /// every alternative is worse: zero makes `PageUp` a key that reports `true`
-    /// and does nothing, one makes it `Up` under a second name, and the whole text
-    /// makes it `Ctrl+End` — which is a key the map already has. Ten lines is
-    /// wrong by a factor and never wrong in kind ([ADR-0410]).
+    /// Ten is a guess, and every alternative is worse: zero makes `PageUp` a key
+    /// that reports `true` and does nothing, one makes it `Up` under a second
+    /// name, and the whole text makes it `Ctrl+End`, which is a key the map
+    /// already has. Ten lines is wrong by a factor and never wrong in kind.
     private static final int DEFAULT_PAGE_LINES = 10;
 
     /// Lines to a page — the whole lines the caller's viewport holds.
@@ -877,7 +859,7 @@ public final class Editor {
     /// Not the viewport less a line, which is what an editor that *scrolls* pages
     /// by so that the last row of the old screen is the first of the new one. This
     /// editor does not scroll — its caller does, at a transform this class never
-    /// sees ([ADR-0285]) — so the overlap is not ours to keep.
+    /// sees — so the overlap is not ours to keep.
     private int pageLines() {
         var lineHeight = font.lineHeight();
         if (Double.isNaN(viewportHeight) || viewportHeight <= 0 || lineHeight <= 0) {

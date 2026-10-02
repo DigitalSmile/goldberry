@@ -30,7 +30,7 @@ import dev.goldberry.widget.style.Paints;
 import dev.goldberry.widget.style.Styled;
 
 /// A modifier tap through the **real** launcher, the real event loop and the
-/// real window ([ADR-0223]).
+/// real window.
 ///
 /// [dev.goldberry.input.tap.ModifierTapsTest] states the rule
 /// against the detector on its own. What only this can say is that the rule is

@@ -25,8 +25,9 @@ import dev.goldberry.widgets.Controls;
 import dev.goldberry.widgets.Icons;
 import dev.goldberry.widgets.Widgets;
 
-/// §1.4's 150% over the whole gallery — the half of `TODO.md`'s typography entry
-/// that was waiting on a decision rather than on a mechanism ([ADR-0435]).
+/// Text at 150% over the whole gallery, checked as a rule and not as a picture.
+///
+/// Read more: [Tests and gates](https://goldberry.dev/docs/contributing/testing.html#goldens).
 ///
 /// [GalleryGoldenTest] photographs these eleven screens and cannot see this: it
 /// builds its renderer with the single-font constructor, whose paint context is
@@ -49,8 +50,8 @@ import dev.goldberry.widgets.Widgets;
 /// A golden of eleven screens at 150% would pin every one of those per-label
 /// decisions at once, in a form nobody reviews, before anybody had taken one —
 /// which is exactly what `TODO.md` warned against. It would also cost eleven more
-/// PNGs swept at every display scale [ADR-0434] adds, which is the third axis
-/// that ADR argues against paying for twice.
+/// PNGs swept at every display scale, which is a third axis not worth paying
+/// for twice.
 class GalleryTextScaleTest {
 
     /// Prints what every screen measured at both scales, passing or not.
@@ -204,7 +205,7 @@ class GalleryTextScaleTest {
         check("forms", 1200, 1500);
     }
 
-    /// One accepted overrun, and it is the clearest §1.4 failure in the showcase.
+    /// One accepted overrun, and it is the clearest text-scale failure in the showcase.
     ///
     /// The navigation wall is a masonry in a column with `overflow: visible` and
     /// no scroller around it, so at 100% it happens to end inside a 900-point
@@ -264,8 +265,8 @@ class GalleryTextScaleTest {
     /// them.** They were five rows of buttons that did not fit 720 points once
     /// their labels were half again as wide — a `row` of unshrinkable children
     /// with nothing telling it what to do when they will not fit — and what
-    /// removed them was `masonry`'s responsive column count
-    /// ([ADR-0436](../../../../../../../book/src/adr/0436-a-column-count-is-a-width-the-window-does.md)).
+    /// removed them was `masonry`'s responsive column count: a column count is
+    /// a width the window does.
     /// At `min-column-width: 560` the narrow Basic screen reflows to **one**
     /// column of 688 points where it used to pack two of 338, and the rows have
     /// room.

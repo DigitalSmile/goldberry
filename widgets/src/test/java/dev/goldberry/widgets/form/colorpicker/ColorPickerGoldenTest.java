@@ -35,7 +35,7 @@ import dev.goldberry.widgets.form.textinput.TextInput;
 /// this one.
 ///
 /// The board is built directly rather than by opening the popover, because a
-/// golden has no window and a popup is a platform window (ADR-0140).
+/// golden has no window and a popup is a platform window.
 ///
 /// `./gradlew :widgets:test -Dgoldberry.golden.update=true` rewrites them.
 class ColorPickerGoldenTest {
@@ -74,7 +74,7 @@ class ColorPickerGoldenTest {
                 argb -> {}));
     }
 
-    /// The closed control: §4's "swatch button", and the chevron beside it.
+    /// The closed control: the swatch button, and the chevron beside it.
     @Test
     @DisplayName("the swatch button, on dark")
     void closedDark() {

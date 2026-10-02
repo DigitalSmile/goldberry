@@ -19,7 +19,8 @@ import dev.goldberry.widget.attr.Attributes;
 import dev.goldberry.widgets.core.Column;
 import dev.goldberry.widgets.text.Text;
 
-/// A drag held at the edge of a viewport ([ADR-0500]).
+/// A drag held at the edge of a viewport carries the viewport on, so a selection
+/// or a drop can reach rows that are out of sight.
 ///
 /// The arithmetic first — the speed, the band and the clamp are functions, and a
 /// function is asserted by its values — then the stepping against a target that

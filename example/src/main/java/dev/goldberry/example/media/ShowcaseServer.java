@@ -16,8 +16,7 @@ import com.sun.net.httpserver.HttpServer;
 import org.jspecify.annotations.Nullable;
 
 /// A small HTTP server inside the showcase, on the loopback address, so the
-/// network samples play offline and still cross a real socket
-/// (`docs/goldberry-media.md` §4).
+/// network samples play offline and still cross a real socket.
 ///
 /// It serves the bundled clips under `/media/<name>`, answers `Range` requests
 /// the way a CDN does (`206 Partial Content`, one range), and sends no faster

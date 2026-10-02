@@ -1,9 +1,9 @@
 /// The vocabulary every chart shares: what a series is, how it is coloured, and
-/// everything about a chart that is not its numbers (`docs/charts.md` §3.1).
+/// everything about a chart that is not its numbers.
 ///
 /// [dev.goldberry.widgets.data.Series] is one named line of values
 /// and [dev.goldberry.widgets.data.SeriesPalette] the theme's
-/// eight slots it is coloured from, assigned in order (ADR-0194).
+/// eight slots it is coloured from, assigned in order.
 /// [dev.goldberry.widgets.data.ChartOptions] gathers the rest:
 /// [dev.goldberry.widgets.data.Bounds],
 /// [dev.goldberry.widgets.data.Curve],
@@ -24,7 +24,9 @@
 /// palette rather than a chart engine; the arithmetic they share is in
 /// `…widgets.data.plot`.
 ///
-/// Marked for NullAway (`docs/testing.md` §2, ADR-0497).
+/// Every reference is non-null unless it says `@Nullable`.
+///
+/// Read more: [Charts](https://goldberry.dev/docs/components/charts.html).
 @NullMarked
 package dev.goldberry.widgets.data;
 

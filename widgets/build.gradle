@@ -1,9 +1,10 @@
 plugins {
     id 'goldberry.java-conventions'
-    // Published to Maven Central as goldberry-widgets (ADR-0334).
+    // Published to Maven Central as goldberry-widgets.
     id 'goldberry.publish'
     // Collects this module's @Markup widgets into a WidgetCatalog and declares
-    // it in the module descriptor (ADR-0131).
+    // it in the module descriptor.
+    // https://goldberry.dev/docs/weaving.html#the-two-halves
     id 'goldberry.weave'
 }
 
@@ -13,11 +14,13 @@ dependencies {
     api project(':core')
 
     // The golden comparator and the rasterizer guard, shared rather than copied:
-    // two tolerances would drift, and the tolerance is the whole argument of
-    // ADR-0050.
+    // two tolerances would drift, and the tolerance is what lets one reference
+    // set serve every platform.
+    // https://goldberry.dev/docs/contributing/testing.html#goldens
     testImplementation testFixtures(project(':core'))
 
-    // ArchUnit, for the boundary rules in docs/testing.md §2.
+    // ArchUnit, for the boundary rules.
+    // https://goldberry.dev/docs/contributing/testing.html#static-analysis
     //
     // Here rather than in :core because this is the module whose test classpath
     // holds the *whole* graph -- common, natives, core and widgets -- and a rule
@@ -26,13 +29,13 @@ dependencies {
     // and is deliberately absent from the rules for the same reason.
     testImplementation libs.archunit.junit6
 
-    // jqwik, for the round-trip properties in docs/testing.md §1.1.
+    // jqwik, for the round-trip properties.
     testImplementation libs.jqwik
 }
 
 // Deliberately no dependency on :gpu. The gallery module this replaced had one,
 // but a published widget library must not drag SDL_GPU into every consumer --
-// the canvas3d showcase belongs in :gpu itself. See ADR-0014.
+// the canvas3d showcase belongs in :gpu itself.
 
 // A control's tests shape text, and shaping is HarfBuzz. Same wiring :core has
 // and for the same reason: the tests must run against the library this build
@@ -82,7 +85,8 @@ if (!skipNative && !externalLibrary) {
 }
 
 // ============================================================================
-// Coverage floor (docs/testing.md §3)
+// Coverage floor
+// https://goldberry.dev/docs/contributing/testing.html#advisory-dashboards
 //
 // Higher than :core's, and it should be: a widget is a value with a `build`
 // method, and the catalog is the part of this project a unit test reaches
@@ -92,7 +96,7 @@ tasks.named('jacocoTestCoverageVerification') {
     // Measured with libgoldberry loaded, so only meaningful with it. Under
     // -Pgoldberry.skipNative every test that shapes, paints or parses skips, and
     // the figure drops to roughly half -- a gate no Java-only build can pass. The
-    // Linux verify job runs it against the real library instead (ADR-0338).
+    // Linux verify job runs it against the real library instead.
     onlyIf('the native library is part of this build') { !skipNative }
     violationRules {
         rule {

@@ -19,8 +19,8 @@ import java.util.stream.Stream;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-/// The showcase's `opens` are held to what actually reads its resources —
-/// [ADR-0395].
+/// The showcase's `opens` are held to what actually reads its resources: a
+/// resource is opened to whoever reads it, and to nobody else.
 ///
 /// ## Why this cannot be an ordinary test
 ///

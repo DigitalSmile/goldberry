@@ -8,13 +8,15 @@ import dev.goldberry.natives.WindowPointers;
 /// An opaque reference to an `SDL_Window`.
 ///
 /// The pointer is package-private on purpose: this class is how a window crosses
-/// out of the `natives` module without a `MemorySegment` going with it
-/// (`docs/ARCHITECTURE.md` §3.1). Code above the boundary holds one of these and
+/// out of the `natives` module without a `MemorySegment` going with it, which is
+/// the module's rule. Code above the boundary holds one of these and
 /// can do nothing with it except hand it back.
 ///
 /// The numeric id is carried alongside because SDL identifies windows by id in
 /// events, and looking a pointer up from an id on every event would be a native
 /// call per event.
+///
+/// Read more: [The native boundary](https://goldberry.dev/docs/overview/architecture.html#the-native-boundary).
 public final class SdlWindowHandle {
 
     // The GPU wrappers claim windows, and are in a package of their own.

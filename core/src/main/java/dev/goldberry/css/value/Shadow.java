@@ -25,9 +25,9 @@ import dev.goldberry.log.Logs;
 /// **one**, and a list is read as its first entry with the rest logged and
 /// dropped. Two reasons, and neither is that a list is hard to draw:
 ///
-/// - Every shadow the design system pins is one shadow (`docs/design-system.md`
-///   §1.5), and every one a theme ships is a single `--gb-elevation-*` token —
-///   so a list has no author in this repository.
+/// - Every shadow the design system pins is one shadow, and every one a theme
+///   ships is a single `--gb-elevation-*` token, so a list has no author in
+///   this repository.
 /// - The list idiom exists mostly to fake a blur profile a real Gaussian gives
 ///   you for free (`0 1px 2px, 0 2px 8px`), and this *is* a ramp already. Two
 ///   ramps stacked is two ramps' worth of fills for a difference nothing here
@@ -36,27 +36,30 @@ import dev.goldberry.log.Logs;
 /// The first entry rather than a refusal for the reason `border: 1px dashed red`
 /// draws a solid line instead of nothing: drawing something is the more useful of
 /// the two wrong answers, and it is logged so "my second shadow is missing" has
-/// an answer (ADR-0310).
+/// an answer.
 ///
 /// ## What is refused
 ///
 /// `inset` — an inner shadow is a different drawing (it is clipped *to* the
 /// border box rather than cast outside it) and no rule in the canon asks for one.
 /// A shadow with **no colour** is refused too: CSS's default is `currentColor`,
-/// which §8's subset does not have, and guessing black would paint a hard black
+/// which the subset does not have, and guessing black would paint a hard black
 /// halo where an author meant a tinted one.
 ///
 /// ## Units and geometry
 ///
 /// Logical pixels, resolved — the same rule [dev.goldberry.css.Decoration]
 /// states. Percentages are refused: a percentage offset means "of this box's
-/// size", and a box has no size until Yoga has run.
+/// size", and a box has no size until layout has run.
 ///
 /// The shape cast is the **border box**, moved by `(offsetX, offsetY)` and grown
 /// on every side by `spread`, with its corner radii grown to match. `blur` is
 /// CSS's blur *radius*: the edge fades from opaque to nothing across it, centred
 /// on the shape's edge, so the shadow reaches `blur / 2` beyond the spread shape
-/// and no further.
+/// and no further. A shadow is drawn as a stack of rounded rectangles whose
+/// alphas ramp across the blur, which is what a rasterizer with no blur can do.
+///
+/// Read more: [Styling](https://goldberry.dev/docs/guide/styling.html#border-outline-and-shadow).
 ///
 /// @param offsetX how far right the shadow is cast; negative is left
 /// @param offsetY how far down the shadow is cast; negative is up
@@ -76,7 +79,7 @@ public record Shadow(double offsetX, double offsetY, double blur, double spread,
         requireFinite(offsetY, "a shadow's y offset");
         requireFinite(spread, "a shadow's spread");
         // Clamped rather than refused, for [Decoration]'s reason: these arrive
-        // from a stylesheet, and §8's rule for a bad declaration is to drop it
+        // from a stylesheet, and the rule for a bad declaration is to drop it
         // and carry on. The parser refuses a negative blur where it is written,
         // which is where an author can be told about it.
         requireFinite(blur, "a shadow's blur radius");
@@ -323,11 +326,10 @@ public record Shadow(double offsetX, double offsetY, double blur, double spread,
     ///
     /// **Not `#%08x` of the packed value.** That prints `#aarrggbb`, and CSS reads
     /// eight hex digits as `#rrggbbaa` — so `Shadow.parse(shadow.toString())`
-    /// came back with the alpha read as red: `0x40000000` printed as
-    /// `#40000000`, which parses to alpha `0x00` and is `Shadow.NONE`. A value
-    /// whose `toString` does not round-trip through its own parser is a value
-    /// that cannot be written into a stylesheet, which is what this one is for
-    /// (found while sweeping the tests, the 2026-09-18 review §11).
+    /// would come back with the alpha read as red: `0x40000000` printed as
+    /// `#40000000` parses to alpha `0x00` and is `Shadow.NONE`. A value whose
+    /// `toString` does not round-trip through its own parser is a value that
+    /// cannot be written into a stylesheet, which is what this one is for.
     private static String hex(int argb) {
         var alpha = (argb >>> 24) & 0xFF;
         var rgb = String.format("#%06x", argb & 0xFFFFFF);

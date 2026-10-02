@@ -17,11 +17,12 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * The guide at goldberry.dev/docs/, held to what {@code docs/book.md} says about
- * it: every chapter is listed and every listed chapter exists, every link lands,
- * and every widget the repository ships has a heading of its own.
+ * The guide at goldberry.dev/docs/, held to its own rules: every chapter is
+ * listed and every listed chapter exists, every link lands, and every widget the
+ * repository ships has a heading of its own.
  *
- * <p>A drift guard in the sense of ADR-0082. mdBook builds a book with a dead
+ * <p>A drift guard: a fact that has to be true in two places gets a test that
+ * reads both. mdBook builds a book with a dead
  * link and a sidebar with a chapter whose page says something else, and the
  * Pages workflow checks only the landing page's links into the book. The
  * decision log is a different document with different rules, and
@@ -207,8 +208,8 @@ class BookTest {
 
         /**
          * The pictures shown in one shade only, and why: each is a state no
-         * sample reaches on its own, taken by a test of its own at one scale
-         * (ADR-0513). Everything else is a light and a dark picture at 2x.
+         * sample reaches on its own, taken by a test of its own at one scale.
+         * Everything else is a light and a dark picture at 2x.
          */
         private static final Set<String> ONE_SHADE = Set.of(
                 "affix-pinned.png", // the showcase after seven lines of wheel

@@ -5,8 +5,8 @@ import dev.goldberry.build.format.KeepDocReferencedImports
 import org.gradle.api.artifacts.VersionCatalogsExtension
 
 plugins {
-    // Group and version (ADR-0333) -- a plugin of its own, because the BOM needs
-    // them and cannot apply `java-library` (ADR-0336).
+    // Group and version -- a plugin of its own, because the BOM needs them too
+    // and, being a `java-platform`, cannot apply `java-library`.
     id 'goldberry.versioning'
     id 'java-library'
     id 'jacoco'
@@ -18,12 +18,12 @@ plugins {
 
 // Precompiled Groovy script plugins do not get the generated `libs` accessors
 // that a module build script has, so the catalog is read through its extension.
-// This is the one place the Groovy DSL costs something real -- see ADR-0013.
+// This is the one place the Groovy DSL costs something real.
 def catalog = extensions.getByType(VersionCatalogsExtension).named('libs')
 def javaVersion = catalog.findVersion('java').get().requiredVersion as int
 
 // Published artifact names are `goldberry-core`, `goldberry-widgets`, ...
-// See docs/ARCHITECTURE.md §15.
+// https://goldberry.dev/docs/contributing/releasing.html#where-things-go
 base {
     archivesName = "goldberry-${project.name}"
 }
@@ -33,9 +33,10 @@ java {
         languageVersion = JavaLanguageVersion.of(javaVersion)
     }
     // Every module ships a module-info. The module graph is what actually
-    // enforces §3.1's "raw MemorySegment never escapes :natives" -- without it
-    // that rule is convention, not a boundary. It is also what makes
+    // enforces the rule that a raw MemorySegment never escapes :natives --
+    // without it that rule is convention, not a boundary. It is also what makes
     // `--enable-native-access=<module>` targetable under JEP 472.
+    // https://goldberry.dev/docs/overview/architecture.html#the-native-boundary
     modularity.inferModulePath = true
     withSourcesJar()
 }
@@ -53,7 +54,8 @@ tasks.withType(JavaCompile).configureEach {
     }
 
     // ------------------------------------------------------------------------
-    // Error Prone and NullAway (docs/testing.md §2)
+    // Error Prone and NullAway
+    // https://goldberry.dev/docs/contributing/testing.html#static-analysis
     //
     // On for `src/main`, off for tests. A test that ignores a return value or
     // compares two boxed integers is usually saying so on purpose, and a checker
@@ -64,8 +66,8 @@ tasks.withType(JavaCompile).configureEach {
     // `@NullMarked`, which is what makes adopting it possible at all: a codebase
     // this size cannot be annotated in one commit, and a checker that shouted
     // about every unannotated file would be switched off within a day. The
-    // annotated set grew a package at a time, and since ADR-0497 it is every
-    // package: `PackageInfoTest` fails on one that is not marked, so a new
+    // annotated set grew a package at a time, and now it is every package:
+    // `PackageInfoTest` fails on one that is not marked, so a new
     // package cannot opt out by forgetting its `package-info.java`.
     // ------------------------------------------------------------------------
     options.errorprone {
@@ -92,8 +94,8 @@ tasks.withType(JavaCompile).configureEach {
         // is the confinement check eighteen files in this project make and is
         // the *correct* comparison every time: a thread's identity is its
         // reference, `Thread` does not override `equals`, and the question is
-        // "is this the same thread" rather than "an equal one" (ADR-0020's one
-        // UI thread, and the arena-per-owner rule under it). Eighteen
+        // "is this the same thread" rather than "an equal one" (the toolkit has
+        // one UI thread, and an arena is owned by one thread). Eighteen
         // suppressions would be eighteen places to explain the same thing; the
         // check has no signal on this codebase, so it is off with the reason
         // written once.
@@ -115,8 +117,8 @@ tasks.withType(JavaCompile).configureEach {
         if (providers.gradleProperty('goldberry.nullaway').orNull == 'warn') {
             warn('NullAway')
             // javac prints at most 100 warnings and then stops, silently, so a
-            // sweep of a module with more saw a truncated list and "fixed" it
-            // (ADR-0497). A sweep wants every finding.
+            // sweep of a module with more saw a truncated list and "fixed" it.
+            // A sweep wants every finding.
             options.compilerArgs.addAll(['-Xmaxwarns', '100000', '-Xmaxerrs', '100000'])
         } else {
             error('NullAway')
@@ -132,10 +134,10 @@ dependencies {
     //
     // No implementation is bound here, by design: choosing one is the
     // application's call, and a library that ships a backend takes that choice
-    // away (ADR-0023).
+    // away.
     api catalog.findLibrary('slf4j-api').get()
 
-    // Error Prone and NullAway (docs/testing.md §2). `errorprone` is the
+    // Error Prone and NullAway. `errorprone` is the
     // compiler plugin; `nullaway` rides on it as a check rather than a plugin of
     // its own; `jspecify` is the annotation set both read -- and `api`, because
     // @Nullable on a return type is part of a signature a consumer compiles
@@ -151,11 +153,13 @@ dependencies {
 
 // Benchmarks are JUnit classes tagged `benchmark`, and they are NOT tests: they
 // print numbers and assert almost nothing, because a timing assertion on shared
-// CI hardware fails for reasons that have nothing to do with the code. ADR-0028
-// and ADR-0031 both took their numbers this way -- measured, written down, and
-// argued about in prose rather than pinned by a threshold nobody can tune.
+// CI hardware fails for reasons that have nothing to do with the code. The
+// start-up timeline and the rasterizer's cost were both settled this way --
+// measured, written down, and argued about in prose rather than pinned by a
+// threshold nobody can tune.
 //
 // So `check` never runs them and `./gradlew benchmark` does.
+// https://goldberry.dev/docs/contributing/testing.html#a-cost-is-guarded-by-a-count
 tasks.withType(Test).configureEach {
     // Guarded by name, because this configures the `benchmark` task below as
     // well: include and exclude accumulate rather than replace, so an
@@ -172,9 +176,9 @@ tasks.withType(Test).configureEach {
         exceptionFormat = 'full'
     }
 
-    // A test that presses Ctrl is the same test on every desktop (ADR-0396).
+    // A test that presses Ctrl is the same test on every desktop.
     // The toolkit's editing accelerators are on the platform primary modifier
-    // (ADR-0378) -- Cmd on macOS, Ctrl elsewhere -- and PrimaryModifier reads
+    // -- Cmd on macOS, Ctrl elsewhere -- and PrimaryModifier reads
     // os.name once, so the suite's `Modifiers.of(Mod.CTRL)` keystrokes stop
     // answering on a macOS runner: Snapshot #15 lost 25 tests to exactly that.
     // The override PrimaryModifier exists "for a test" is set here for every
@@ -185,9 +189,10 @@ tasks.withType(Test).configureEach {
 }
 
 // On a GitHub Actions runner, every failed test and the build's own failure also
-// become annotations on the run (ADR-0338). A job log cannot be read without
+// become annotations on the run. A job log cannot be read without
 // signing in; a check run's annotations can, so this is what makes a red CI run
 // say why to anyone.
+// https://goldberry.dev/docs/contributing/testing.html#the-ci-matrix
 //
 // The build failure is registered from here, once per build, rather than by a
 // plugin on the root project: applying anything from build-logic there puts its
@@ -226,7 +231,8 @@ tasks.register('benchmark', Test) {
 }
 
 // ============================================================================
-// Formatting (docs/testing.md §2)
+// Formatting
+// https://goldberry.dev/docs/contributing/testing.html#static-analysis
 //
 // Spotless with palantir-java-format, over every Java file the formatter can
 // safely read -- which is all but nineteen of them, and the exclusion list below
@@ -235,7 +241,7 @@ tasks.register('benchmark', Test) {
 // **palantir-java-format 2.97.0 corrupts JDK 23+ `///` markdown javadoc.** When a
 // `///` line is too long to fit, it wraps the content onto a new line *without*
 // re-emitting the `///` prefix, so a doc comment becomes a statement and the file
-// stops compiling. This project's doc comments carry ADR links whose URLs are
+// stops compiling. This project's doc comments carry guide links whose URLs are
 // single unbreakable tokens of ninety-odd characters, and running the formatter
 // over the whole tree produced eleven corrupted files and eighty compile errors.
 // `formatJavadoc(false)` does not prevent it -- the step treats `///` as a line
@@ -247,8 +253,8 @@ tasks.register('benchmark', Test) {
 // formatter, and links do not get broken to fit one either.
 //
 // Everything else -- every brace, wrap and blank line in roughly nine hundred
-// files -- is now the formatter's decision rather than an author's, which is what
-// §2 asked for and what ends the arguments it exists to end.
+// files -- is now the formatter's decision rather than an author's, which ends
+// the arguments a formatter exists to end.
 // ============================================================================
 
 /// The files palantir-java-format writes invalid Java for. See the note above.
@@ -327,14 +333,15 @@ spotless {
 }
 
 // ============================================================================
-// PMD (docs/testing.md §2, the "blocking after triage" tier -- triaged)
+// PMD (the "blocking after triage" tier -- triaged)
+// https://goldberry.dev/docs/contributing/testing.html#static-analysis
 //
 // A hand-picked ruleset in `config/pmd/ruleset.xml` rather than PMD's defaults,
 // and the file says why: the defaults are a style guide, and this project's
 // comments are prose and its painters are long because a rasterizer step is
 // long. What is left is the handful of rules that catch a real defect javac and
 // Error Prone both miss -- an unclosed resource above all, this being a toolkit
-// that owns native memory through wrappers closed exactly once (ADR-0043).
+// that owns native memory through wrappers closed exactly once.
 //
 // Main sources only. A test that swallows an exception on purpose is usually
 // saying so.
@@ -379,11 +386,12 @@ tasks.withType(Pmd).configureEach {
 }
 
 // ============================================================================
-// Coverage (docs/testing.md §3)
+// Coverage
+// https://goldberry.dev/docs/contributing/testing.html#what-check-runs
 //
 // Per module, aggregated at the root. The interesting rule is the *merge*: the
 // suite runs twice -- once binding reflectively, which is what a jar does, and
-// once over woven classes, which is what a native image does (ADR-0155) -- and
+// once over woven classes, which is what a native image does -- and
 // a line is uncovered only if NEITHER mode reached it. JaCoCo appends to one
 // exec file across both tasks, so that merge costs nothing and happens by
 // construction.
@@ -392,16 +400,15 @@ tasks.withType(Pmd).configureEach {
 // module by the module that knows what its own floor means: strict on the logic
 // modules, where a line is either exercised or it is not, and absent on the
 // painters, where the goldens carry correctness and line coverage would only
-// prove reachability (testing.md §0.2).
+// prove reachability.
 // ============================================================================
 jacoco {
     toolVersion = catalog.findVersion('jacoco').get().requiredVersion
 }
 
-// Which binding mode this invocation runs in -- the property the weaver reads
-// (ADR-0155). A jar binds `@Bind` reflectively; a native image runs over woven
-// classes. testing.md §0.3 calls both first-class and §3 asks for one report
-// across them.
+// Which binding mode this invocation runs in -- the property the weaver reads.
+// A jar binds `@Bind` reflectively; a native image runs over woven classes.
+// Both modes are first-class, and coverage is one report across them.
 def bindingMode = providers.gradleProperty('goldberry.nativeImage')
         .map { it.isEmpty() || Boolean.parseBoolean(it) }
         .getOrElse(false) ? 'woven' : 'reflective'
@@ -412,7 +419,7 @@ tasks.withType(Test).configureEach {
     jacoco.enabled = name != 'benchmark'
 
     // A file per mode, so the second run does not overwrite the first. This is
-    // the whole mechanism behind §3's "a line is uncovered only if NEITHER mode
+    // the whole mechanism behind "a line is uncovered only if NEITHER mode
     // reached it": two invocations leave two exec files and the report reads
     // both. One invocation leaves one, and the report is still correct -- it
     // simply describes one mode.
@@ -429,8 +436,8 @@ tasks.withType(JacocoReportBase).configureEach {
 }
 
 // The gate runs with `check`, and passes trivially in a module that declares no
-// rules -- which is the design §3 asks for ("no single global number"), so a
-// floor exists only where a module has said what its own means.
+// rules -- there is no single global number, so a floor exists only where a
+// module has said what its own means.
 tasks.named('check') {
     dependsOn tasks.named('jacocoTestCoverageVerification')
 }
@@ -445,7 +452,8 @@ tasks.withType(JacocoReport).configureEach {
 }
 
 // ============================================================================
-// SpotBugs (docs/testing.md §2, the second half of "blocking after triage")
+// SpotBugs (the second half of "blocking after triage")
+// https://goldberry.dev/docs/contributing/testing.html#static-analysis
 //
 // It reads bytecode where PMD reads source, which is why running both is not
 // duplication: SpotBugs sees what the compiler produced -- a null path through a
@@ -463,8 +471,8 @@ spotbugs {
     reportLevel = com.github.spotbugs.snom.Confidence.valueOf('DEFAULT')
     excludeFilter = rootProject.file('config/spotbugs/exclude.xml')
 
-    // **Reports, does not gate.** testing.md §2 puts SpotBugs in the "blocking
-    // after triage" tier, and the triage has not happened: :core alone has 36
+    // **Reports, does not gate.** SpotBugs belongs to the "blocking after
+    // triage" tier, and the triage has not happened: :core alone has 36
     // NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE, which is the same defect class
     // NullAway blocks on in a marked package and simply cannot see in the 60
     // that are not yet marked. Turning it into a gate before anybody has read
@@ -487,7 +495,8 @@ tasks.withType(com.github.spotbugs.snom.SpotBugsTask).configureEach {
 }
 
 // ============================================================================
-// Mutation testing (docs/testing.md §3)
+// Mutation testing
+// https://goldberry.dev/docs/contributing/testing.html#the-ci-matrix
 //
 // PIT answers the question coverage cannot: a line that ran is not a line that
 // was *checked*. It changes the code -- flips a comparison, drops a call,
@@ -505,7 +514,7 @@ tasks.withType(com.github.spotbugs.snom.SpotBugsTask).configureEach {
 // dependency that has to catch up.
 //
 // **Not wired into `check`.** It compiles and runs the suite once per mutant, so
-// it is minutes rather than seconds; §3 puts it on the nightly lane. Run it by
+// it is minutes rather than seconds; it runs on the nightly lane. Run it by
 // name: `./gradlew :core:pitest`.
 //
 // The target classes are the logic packages, and naming them is the point:
@@ -548,9 +557,9 @@ tasks.register('pitest', JavaExec) {
                 'dev.goldberry.text.*',
                 'dev.goldberry.widgets.data.*',
                 // No `weaver.*`: :weaver is a build-time tool on plain `java`
-                // rather than these conventions (ADR-0125), so it has no pitest
-                // task for the entry to reach. testing.md §3 wants it covered and
-                // it is -- by `check`, like everything else; what it does not get
+                // rather than these conventions, so it has no pitest
+                // task for the entry to reach. It is still covered -- by
+                // `check`, like everything else; what it does not get
                 // is mutation testing, which would need this plugin applied to a
                 // module that deliberately avoids it.
             ].join(','),
@@ -590,8 +599,8 @@ tasks.register('pitest', JavaExec) {
                     + tasks.test.systemProperties.collect { k, v -> "-D${k}=${v}" }).join(','),
             '--outputFormats', 'HTML,XML',
             // Reported, not gated. A mutation score is a number to read and argue
-            // about -- the footing ADR-0028 and ADR-0031 put their measurements
-            // on -- and a threshold on a nightly job breaks while nobody looks.
+            // about -- the footing every measurement in this project stands on
+            // -- and a threshold on a nightly job breaks while nobody looks.
             '--failWhenNoMutations', 'false',
             '--timestampedReports', 'false',
             '--threads', String.valueOf(Math.max(1, Runtime.runtime.availableProcessors().intdiv(2))),
@@ -600,7 +609,8 @@ tasks.register('pitest', JavaExec) {
 }
 
 // ============================================================================
-// Blessing the goldens (docs/testing.md §1.3, §5)
+// Blessing the goldens
+// https://goldberry.dev/docs/contributing/testing.html#goldens
 //
 // `GoldenImage` already rewrites its references under a system property; this is
 // the task that says so out loud, because a workflow documented only in a
@@ -626,14 +636,14 @@ tasks.register('blessGoldens', Test) {
     systemProperty 'goldberry.golden.update', 'true'
     // The scale sweep compares a golden against itself at 2x and 1.5x. It has
     // nothing to say while the references are being rewritten, and it is slow
-    // enough to be worth skipping (ADR-0162).
+    // enough to be worth skipping.
     systemProperty 'goldberry.golden.scales', 'false'
 
     // A blessed golden is a *file*, so the answer is never up to date.
     outputs.upToDateWhen { false }
 }
 
-// Apache-2.0 §4(a) and §4(d): a redistributor must receive the licence, and the
+// Apache-2.0 sections 4(a) and 4(d): a redistributor must receive the licence, and the
 // NOTICE file if one exists. Putting both in META-INF means every consumer of a
 // Goldberry jar has them whether or not they ever see the repository.
 tasks.withType(Jar).configureEach {

@@ -26,22 +26,39 @@ import dev.goldberry.log.Logs;
 
 /// Runs the cascade for one element and substitutes `var()`.
 ///
-/// The output is still tokens, not typed values: what `4px 8px` means depends on
-/// the property, and turning it into a `ComputedStyle` is the next step. What is
-/// settled here is *which* declaration wins and what its `var()`s stand for.
+/// ```java
+/// var resolver = new StyleResolver(stylesheets);
+/// Map<String, List<Token>> declared = resolver.resolve(element);
+/// ```
+///
+/// Built once per stylesheet set and kept by the renderer for as long as that set
+/// is in force; a theme swap builds a new one. The output is still tokens, not
+/// typed values: what `4px 8px` means depends on the property, and turning it
+/// into a `ComputedStyle` is the next step. What is settled here is which
+/// declaration wins, by `!important`, then specificity, then [CascadeLayer], then
+/// source order, and what its `var()`s stand for. Custom properties inherit here,
+/// because that is the whole theming mechanism; ordinary inheritance belongs to
+/// `ComputedStyle`.
+///
+/// Rules are bucketed by the type their rightmost compound names, so a rule for
+/// `button` is never tested against a `text`, and a node's custom properties are
+/// cached against the map its parent handed down, so a tree resolves each level
+/// once. A `var()` that resolves to nothing drops its declaration, and is
+/// reported once per property and element type rather than once per frame.
+///
+/// Read more: [Styling](https://goldberry.dev/docs/guide/styling.html#the-cascade-four-layers).
 public final class StyleResolver {
 
     private static final Logger LOG = Logs.of(StyleResolver.class);
 
     /// What has already been reported dropped, so one bad `var()` is a message
-    /// rather than a stream ([ADR-0243]).
+    /// rather than a stream.
     ///
-    /// `ComputedStyle` learned this first (ADR-0216) and for the same reason: a
-    /// stylesheet is **static**, so a declaration that cannot be resolved cannot
-    /// resolve on the next frame either — but a style is resolved per element per
-    /// invalidation, so one missing token reported itself sixty times a second
-    /// for as long as the screen it was on kept moving. That is not a louder
-    /// warning, it is a quieter log.
+    /// A stylesheet is static, so a declaration that cannot be resolved cannot
+    /// resolve on the next frame either; but a style is resolved per element per
+    /// invalidation, so without this one missing token would report itself sixty
+    /// times a second for as long as the screen it was on kept moving. That is
+    /// not a louder warning, it is a quieter log.
     ///
     /// **An instance field, where `ComputedStyle`'s is static**, and that is the
     /// difference worth having. A resolver is built per stylesheet set and lives
@@ -50,7 +67,7 @@ public final class StyleResolver {
     /// the new theme is missing, and a test gets its isolation from constructing
     /// its own rather than from a static `forget` hook.
     ///
-    /// Keyed by property **and** element type: the same property dropped on
+    /// Keyed by property and element type: the same property dropped on
     /// `button` and on `text` is two facts, and which types an unresolvable token
     /// reaches is the blast radius somebody debugging it wants. Bounded either
     /// way, because a stylesheet has finitely many declarations and a tree
@@ -92,18 +109,16 @@ public final class StyleResolver {
     private final java.util.Set<Selector.PseudoClass> untypedAncestorStates =
             java.util.EnumSet.noneOf(Selector.PseudoClass.class);
 
-    /// One rule, with the layer and the sheet it came from — what a bucket holds.
+    /// One rule, with the layer and the sheet it came from: what a bucket holds.
     ///
     /// Both travel with the rule because the buckets flatten the sheets away, and
-    /// the cascade needs them back.
-    ///
-    /// **`sheet` is the second of those, and it was missing.** [StyleRule#order]
-    /// is a rule's position *within its own stylesheet*, so two sheets in one
-    /// layer compared their indices against each other: an earlier sheet's rule
-    /// 12 beat a later sheet's rule 0 at equal specificity, and `controls.css`,
-    /// `MarkdownStyles` and `HtmlStyles` all sit in [CascadeLayer#TOOLKIT_BASE].
-    /// The index the resolver was handed the sheets in restores what source order
-    /// means when there is more than one source.
+    /// the cascade needs them back. [StyleRule#order] is a rule's position within
+    /// its own stylesheet, so two sheets in one layer need the sheet's index as
+    /// well: without it an earlier sheet's rule 12 would beat a later sheet's
+    /// rule 0 at equal specificity, and `controls.css`, `MarkdownStyles` and
+    /// `HtmlStyles` all sit in [CascadeLayer#TOOLKIT_BASE]. The index the
+    /// resolver was handed the sheets in is what source order means when there is
+    /// more than one source.
     ///
     /// @param sheet the sheet's position in the list this resolver was built from
     private record Candidate(StyleRule rule, CascadeLayer layer, int sheet) {}
@@ -112,11 +127,10 @@ public final class StyleResolver {
     ///
     /// A selector's rightmost compound is the one that has to match the element
     /// being styled, so a rule for `button` cannot possibly apply to a `text`.
-    /// Testing it anyway is what made a single style resolve cost 1.7ms in the
+    /// Testing it anyway would cost over a millisecond per style resolve in the
     /// showcase: four stylesheets, some two thousand rules, matched in full
-    /// against every element — and then again against every one of its ancestors,
-    /// because custom properties are collected by walking to the root
-    /// (ADR-0152).
+    /// against every element, and then again against every one of its ancestors,
+    /// because custom properties are collected by walking to the root.
     private final java.util.Map<String, List<Candidate>> byType = new java.util.HashMap<>();
 
     /// Rules whose rightmost compound names no type — `.primary`, `#gain`, `*`.
@@ -128,14 +142,14 @@ public final class StyleResolver {
 
     /// `@starting-style` rules, bucketed the same way and kept **out** of the two
     /// maps above: a starting rule is never part of the style an element has,
-    /// only of the one it transitions from on its first frame (ADR-0352).
+    /// only of the one it transitions from on its first frame.
     private final java.util.Map<String, List<Candidate>> startingByType = new java.util.HashMap<>();
 
     private final List<Candidate> startingUntyped = new java.util.ArrayList<>();
 
     /// Every `@keyframes` block by name. A later sheet's block replaces an
     /// earlier one's whole, and so does a later block in the same sheet, which is
-    /// CSS's rule. Keyframes do not merge (ADR-0353).
+    /// CSS's rule. Keyframes do not merge.
     private final java.util.Map<String, Keyframes> keyframes = new java.util.HashMap<>();
 
     public StyleResolver(List<Stylesheet> stylesheets) {
@@ -181,10 +195,7 @@ public final class StyleResolver {
     ///
     /// **Null is the case this exists for**, not a defensive branch: a
     /// composition node has no CSS type ([StyleElement#type()]), and the rules
-    /// that can match it are exactly the ones naming no type either. The
-    /// parameter was declared non-null until [ADR-0413] annotated the interface,
-    /// which is how three call sites came to pass a nullable expression into a
-    /// signature that forbade it while the body handled it correctly.
+    /// that can match it are exactly the ones naming no type either.
     private List<Candidate> candidatesFor(@Nullable String type) {
         return candidatesFor(type, byType, untyped);
     }
@@ -242,8 +253,7 @@ public final class StyleResolver {
     /// asks before throwing a subtree's styles away. `checkbox:hover
     /// check-indicator` means yes for `:hover` on a `checkbox`; nothing in any
     /// sheet says `column:hover …`, so hovering a `column` — which is what a
-    /// click on empty space does — changes that node and nothing under it
-    /// (ADR-0149).
+    /// click on empty space does — changes that node and nothing under it.
     ///
     /// Conservative in both directions it can be: an untyped ancestor compound
     /// makes its pseudo-class reach everything, and a caller with no type of its
@@ -259,8 +269,8 @@ public final class StyleResolver {
             // either, and every such compound is in the set just checked. So
             // there is no rule left that could reach through this node's state
             // -- which matters because the hover and active chains run to the
-            // root through several of them, and treating those as unknown was
-            // the whole tree re-resolving on every click (ADR-0149).
+            // root through several of them, and treating those as unknown would
+            // be the whole tree re-resolving on every click.
             return false;
         }
         var types = ancestorStates.get(state);
@@ -273,8 +283,8 @@ public final class StyleResolver {
     public Map<String, List<Token>> resolve(StyleElement element) {
         Objects.requireNonNull(element, "element");
         // One cascade, two readers. Custom properties are collected from the same
-        // declarations the cascade produces, so asking for them separately ran it
-        // twice for every element resolved (ADR-0152).
+        // declarations the cascade produces, so asking for them separately would
+        // run it twice for every element resolved.
         var declared = cascade(element);
         return substituted(element, declared, customPropertiesFor(element, declared));
     }
@@ -287,7 +297,7 @@ public final class StyleResolver {
     }
 
     /// The declarations `element` **starts** from on its first frame, or null when
-    /// no `@starting-style` rule matches it (ADR-0352).
+    /// no `@starting-style` rule matches it.
     ///
     /// CSS's "before-change style" for an element with no previous style: the
     /// ordinary cascade with the matching starting rules added in their source
@@ -330,7 +340,7 @@ public final class StyleResolver {
     /// which is dropped here as it would be anywhere else.
     ///
     /// Per element, because `var(--gb-accent)` in a keyframe means the accent of
-    /// the element the animation runs on (ADR-0353).
+    /// the element the animation runs on.
     public Map<String, List<Token>> resolveKeyframe(StyleElement element, Keyframes.Frame frame) {
         Objects.requireNonNull(element, "element");
         Objects.requireNonNull(frame, "frame");
@@ -415,8 +425,7 @@ public final class StyleResolver {
     ///
     /// For the one reader outside the cascade: a widget that needs a value the
     /// cascade has nowhere to put — a chart's eight series colours, which cannot
-    /// be eight properties on one node
-    /// (ADR-0195).
+    /// be eight properties on one node.
     ///
     /// **Substituted, because a custom property may hold another one.**
     /// `--gb-chart-1: var(--gb-warning)` is the natural way to say "this series
@@ -445,22 +454,19 @@ public final class StyleResolver {
         var parent = element.parent();
         var inherited = parent == null ? EMPTY : customPropertiesFor(parent, null);
 
-        // **Cached against what the parent handed down, by identity.** Without
-        // this the recursion above runs a full cascade at every level of the
-        // tree, so one node at depth ten costs eleven of them -- which was the
-        // largest term left in a frame after the rule index (ADR-0152).
+        // Cached against what the parent handed down, by identity. Without this
+        // the recursion above runs a full cascade at every level of the tree, so
+        // one node at depth ten costs eleven of them.
         var cached = element.cachedCustomProperties(this, inherited);
         if (cached != null) {
             return cached;
         }
 
-        // **Only what this node changes**, and the parent's map untouched. The
-        // inherited map is the root's 180-odd `--gb-*` properties, and this
-        // used to copy all of them into a fresh map at every node and compare
-        // the copy back against the original -- to find out, nearly always, that
-        // the node declares none. That was more than half of a first frame's
-        // style resolution, at any depth; the walk above was one percent of it
-        // (ADR-0502).
+        // Only what this node changes, and the parent's map untouched. The
+        // inherited map is the root's 180-odd `--gb-*` properties, and copying
+        // all of them into a fresh map at every node to find out, nearly always,
+        // that the node declares none would be more than half of a first frame's
+        // style resolution, at any depth; the walk above is one percent of it.
         Map<String, List<Token>> own = null;
         for (var entry : (ownCascade == null ? cascade(element) : ownCascade).entrySet()) {
             var name = entry.getKey();
@@ -497,7 +503,7 @@ public final class StyleResolver {
         // Only the rules whose rightmost compound could name this element. The
         // order they come out in does not matter: every match carries its layer,
         // its specificity and the rule's own order, and the sort below is what
-        // decides the winner (ADR-0152).
+        // decides the winner.
         for (var candidate : candidates) {
             var rule = candidate.rule();
             // The most specific *matching* selector in the list is the one
@@ -519,17 +525,14 @@ public final class StyleResolver {
         // Weakest first, so a later put() overwrites a weaker one.
         matches.sort(CASCADE);
 
-        // **Ordered**, and each winner moved to the end as it wins.
+        // Ordered, and each winner moved to the end as it wins.
         //
-        // A `HashMap` here was a silent bug for as long as the engine has had a
-        // shorthand and a longhand over the same value. Nothing between this and
-        // `ComputedStyle.apply` re-orders, so the order properties come out in is
-        // the order they are *applied* in -- and a `padding` applied after a
-        // `padding-left` overwrites the edge the longhand set. Under a hash that
-        // order is whatever the property names' buckets happen to give: `padding`
-        // and `padding-left` came out the right way round, `inset` and `left`
-        // came out the wrong way, and `inset: 8px; left: 20px` quietly lost its
-        // `left` (ADR-0311).
+        // Nothing between this and `ComputedStyle.apply` re-orders, so the order
+        // properties come out in is the order they are *applied* in -- and a
+        // `padding` applied after a `padding-left` overwrites the edge the
+        // longhand set. Under a `HashMap` that order would be whatever the
+        // property names' buckets happen to give, and `inset: 8px; left: 20px`
+        // could quietly lose its `left`.
         //
         // `remove` before `put` because `LinkedHashMap` keeps a re-put key at its
         // **first** position, and the position that matters is the winning
@@ -551,20 +554,18 @@ public final class StyleResolver {
     /// there is no origin for it to invert, so it is simply the top key.
     ///
     /// Then specificity, then layer, then source order. Layer *after* specificity
-    /// is what §8 specifies — "later layer wins at equal specificity" — which
-    /// makes a layer an extension of source order rather than the override
-    /// `@layer` provides. A more specific toolkit rule therefore still beats a
-    /// vaguer application one, exactly as two rules in one stylesheet would.
+    /// is the rule: a later layer wins at equal specificity, which makes a layer
+    /// an extension of source order rather than the override `@layer` provides. A
+    /// more specific toolkit rule therefore still beats a vaguer application one,
+    /// exactly as two rules in one stylesheet would.
     ///
     /// **Source order is two numbers, not one.** [Match#order] is
     /// [StyleRule#order], the rule's index *inside its own stylesheet*, so a layer
-    /// holding more than one sheet had no ordering between them: an earlier
-    /// sheet's rule 12 outranked a later sheet's rule 0 at equal specificity, and
-    /// which sheet a `TOOLKIT_BASE` declaration came from decided it. The sheet
-    /// index goes between layer and rule order, which is exactly where "later
-    /// source wins" belongs — it leaves every layer comparison above it and every
-    /// specificity comparison above that untouched, and it only ever separates two
-    /// rules that were previously separated by the wrong number.
+    /// holding more than one sheet needs an ordering between them, or an earlier
+    /// sheet's rule 12 would outrank a later sheet's rule 0 at equal specificity.
+    /// The sheet index goes between layer and rule order, which is where "later
+    /// source wins" belongs: it leaves every layer comparison above it and every
+    /// specificity comparison above that untouched.
     private static final Comparator<Match> CASCADE = Comparator.<Match, Boolean>comparing(
                     m -> m.declaration().important())
             .thenComparingInt(Match::specificity)
@@ -701,19 +702,18 @@ public final class StyleResolver {
         return reported.size() >= REPORT_LIMIT || reported.add(key);
     }
 
-    /// How many rules landed in [#untyped], and how many there are in all.
+    /// How many rules landed in [#untyped].
     ///
-    /// ADR-0152's saving is that a rule for `button` is never even looked at for
-    /// a `text`, and it is worth exactly as much as the stylesheet lets it be: a
-    /// sheet written entirely in classes puts every rule in the untyped bucket,
-    /// where it is checked against every element of every kind. The toolkit's own
-    /// sheets are type-first and **nothing enforced that they stay so**, which is
-    /// what these expose ([ADR-0249]).
+    /// Bucketing by type saves exactly as much as the stylesheet lets it: a rule
+    /// for `button` is never looked at for a `text`, but a sheet written entirely
+    /// in classes puts every rule in the untyped bucket, where it is checked
+    /// against every element of every kind. The toolkit's own sheets are
+    /// type-first, and this is what a lint reads to hold them to it.
     ///
-    /// Public rather than package-private because the lint that reads them is in
-    /// `:example`, beside the other two that check the toolkit's own stylesheets
-    /// (ADR-0215, ADR-0216) — a sheet's shape is the same kind of fact as a
-    /// dropped declaration, and it belongs in the same place.
+    /// Public rather than package-private because the lint that reads it is in
+    /// `:example`, beside the others that check the toolkit's own stylesheets: a
+    /// sheet's shape is the same kind of fact as a dropped declaration, and it
+    /// belongs in the same place.
     public int untypedRuleCount() {
         return untyped.size();
     }

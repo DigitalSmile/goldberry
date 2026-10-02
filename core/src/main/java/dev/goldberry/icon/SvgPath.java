@@ -5,13 +5,18 @@ import java.util.Objects;
 
 import dev.goldberry.paint.Path;
 
-/// Turns SVG path data into Blend2D path commands.
+/// Reads SVG path data (the `d` attribute) into a [Path].
 ///
-/// The bundled icon table is 1544 lines of SVG `d` attributes (ADR-0033), and
-/// Blend2D has a command for every one of SVG's — including the elliptic arc and
-/// the two "smooth" curves, which is why this is a reader rather than a geometry
-/// library (ADR-0043). What is here is the grammar and nothing else: scan a
-/// command letter, scan its numbers, call the corresponding method.
+/// ```java
+/// var builder = Path.builder();
+/// SvgPath.appendTo(builder, "M3 12h18", 16.0 / 24);
+/// ```
+///
+/// The bundled icon table is 1544 lines of SVG `d` attributes, and a [Path] has
+/// a verb for every one of SVG's commands, including the elliptic arc, so this
+/// is a reader rather than a geometry library. What is here is the grammar and
+/// nothing else: scan a command letter, scan its numbers, call the corresponding
+/// builder method.
 ///
 /// Three things in that grammar are easy to get wrong, and each is a bug that
 /// draws *something* rather than failing:
@@ -27,21 +32,24 @@ import dev.goldberry.paint.Path;
 ///   continue the sub-path as lines; treating them as more move-tos produces an
 ///   outline of disconnected points that strokes as nothing.
 ///
-/// Malformed input is refused rather than half-drawn. The icon set is a pinned,
-/// checksummed archive compiled by `:assets`, so a parse failure means the
-/// compiler emitted something this cannot read — which is a build problem worth
-/// hearing about, not a glyph to skip.
+/// Malformed input is refused with an `IllegalArgumentException` rather than
+/// half-drawn. The icon set is a pinned, checksummed archive compiled by
+/// `:assets`, so a parse failure means the compiler emitted something this
+/// cannot read, which is a build problem worth hearing about, not a glyph to
+/// skip. Stateless and safe to call from any thread.
+///
+/// Read more: [Text, fonts and icons](https://goldberry.dev/docs/guide/text.html#icons).
 public final class SvgPath {
 
     private SvgPath() {}
 
     /// Appends `data` to `path`, scaling every coordinate by `scale`.
     ///
-    /// Scaling here rather than transforming the context is the same decision
-    /// ADR-0034 made for text: an icon is built at the size it is drawn at, and
-    /// the size lives in exactly one place. It also keeps the context's
-    /// transform meaning only the display scale, which is the one thing that
-    /// must not be disturbed mid-frame.
+    /// Scaling here rather than transforming the drawing context is the same
+    /// choice text makes: an icon is built at the size it is drawn at, and the
+    /// size lives in exactly one place. It also keeps the context's transform
+    /// meaning only the display scale, which is the one thing that must not be
+    /// disturbed mid-frame.
     ///
     /// @throws IllegalArgumentException if the data is not valid SVG path data
     public static void appendTo(Path.Builder path, String data, double scale) {
@@ -100,8 +108,8 @@ public final class SvgPath {
         /// verb, deliberately: `S` and `T` mean nothing without the command
         /// before them, and a stateful verb would make every consumer of
         /// [dev.goldberry.paint.Path#segments()] carry this
-        /// bookkeeping instead of one reader doing it once (ADR-0277). So the
-        /// reflection happens here and a plain cubic or quadratic comes out.
+        /// bookkeeping instead of one reader doing it once. So the reflection
+        /// happens here and a plain cubic or quadratic comes out.
         private char controlKind;
 
         private double controlX;

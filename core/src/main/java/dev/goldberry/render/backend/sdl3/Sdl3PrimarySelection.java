@@ -10,7 +10,7 @@ import dev.goldberry.render.clipboard.PrimarySelection;
 /// Made only where the video driver has a primary selection of its own
 /// ([Sdl3Backend#hasPrimarySelection(String)]). SDL would answer these calls on
 /// any driver, from a buffer inside this process, and a selection nobody else
-/// can paste is not what this interface promises (ADR-0504).
+/// can paste is not what this interface promises.
 ///
 /// Confined to the UI thread, like the rest of this backend.
 final class Sdl3PrimarySelection implements PrimarySelection {

@@ -70,7 +70,7 @@ class ParagraphCacheTest {
             var small = cache.paragraph(font, "Goldberry");
             var large = cache.paragraph(larger, "Goldberry");
 
-            // The runs are identical in design units (ADR-0034), so it is
+            // The runs are identical in design units, so it is
             // tempting to share them. They must not be: a Paragraph measures and
             // paints through its font, so one keyed only by text would report
             // the wrong height and draw at the wrong size.
@@ -107,7 +107,7 @@ class ParagraphCacheTest {
         // A `frame()` between each, because eviction is what happens when a cache
         // is too small for the *corpus* and big enough for the frame -- a cache too
         // small for one frame grows instead of evicting what that frame is still
-        // using (ADR-0299), which is a different question and the test below it.
+        // using, which is a different question and the test below it.
         cache.paragraph(font, "first");
         cache.frame();
         cache.paragraph(font, "second");
@@ -136,7 +136,7 @@ class ParagraphCacheTest {
         // per word asks for more distinct strings than the cache holds, LRU then
         // evicts each entry just before the next frame reaches it, and the hit
         // rate is not lower but **zero** — measured at 287 shapes per frame on a
-        // settled tree that had not changed at all (ADR-0299).
+        // settled tree that had not changed at all.
         var cache = ParagraphCache.withCapacity(4);
         for (var word = 0; word < 10; word++) {
             cache.paragraph(font, "word " + word);
@@ -208,7 +208,7 @@ class ParagraphCacheTest {
     void bidiTextIsHeldLikeAnyOther() {
         var cache = ParagraphCache.create();
 
-        // It used to throw here, and nothing is refused any more (ADR-0218): the
+        // It used to throw here, and nothing is refused any more: the
         // paragraph approximates right-to-left text rather than declining it, so
         // there is no string this cache can be asked for and cannot answer.
         var held = cache.paragraph(font, "مرحبا بالعالم");

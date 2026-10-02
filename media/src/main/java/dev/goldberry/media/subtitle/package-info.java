@@ -1,8 +1,12 @@
-/// Text subtitles (`docs/goldberry-media.md` §6): [dev.goldberry.media.subtitle.Cue]s
+/// Text subtitles: [dev.goldberry.media.subtitle.Cue]s
 /// read from an external SubRip or WebVTT file, or from a container's subtitle
 /// packets, as plain lines that Goldberry draws over the picture.
 ///
 /// Read in Java, with no FFmpeg subtitle decoder: the formats are text.
+/// Exported to every module.
+///
+/// Read more:
+/// [Tracks and the network](https://goldberry.dev/docs/components/media.html#tracks-subtitles-and-the-network).
 @NullMarked
 package dev.goldberry.media.subtitle;
 

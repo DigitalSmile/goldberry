@@ -1,7 +1,11 @@
 package dev.goldberry.widgets.data;
 
-/// What a chart does where a series has no value — `charts.md` §3.1's "null
-/// handling: gap / connect / zero, three-way, explicit".
+/// What a chart does where a series has no value: leaves a gap, connects
+/// across it, or draws it as zero.
+///
+/// ```java
+/// chart.nulls(NullPolicy.CONNECT)
+/// ```
 ///
 /// **A missing value is `Double.NaN`**, and a `null` in the list is read as one
 /// ([Series]). It is not zero, and the difference is the whole reason this type
@@ -23,7 +27,9 @@ package dev.goldberry.widgets.data;
 /// One picture, one convention. Two series in one chart treating their holes
 /// differently is a chart a reader cannot interpret without being told which line
 /// is which kind — the same argument that gives a chart one x axis and refuses it
-/// a second y (`charts.md` §3.4).
+/// a second y.
+///
+/// Read more: [Charts](https://goldberry.dev/docs/components/charts.html#line-chart).
 public enum NullPolicy {
 
     /// The line stops and starts again — the **default**.

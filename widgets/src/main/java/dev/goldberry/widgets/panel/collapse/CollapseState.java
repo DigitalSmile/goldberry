@@ -7,8 +7,8 @@ import dev.goldberry.widgets.core.presence.Phase;
 
 /// Whether a [Collapse] is open, when the application is not the one deciding.
 ///
-/// The whole of the state, and it is one boolean — which is why §5 calls it
-/// "retained state" rather than a value: a section that has been opened stays
+/// The whole of the state, and it is one boolean — retained state rather than
+/// a value: a section that has been opened stays
 /// open across a rebuild of everything round it, and nothing in the model has to
 /// know that.
 final class CollapseState extends State<Collapse> {
@@ -21,11 +21,11 @@ final class CollapseState extends State<Collapse> {
     /// while — and always `SETTLED` for a section that started open, because
     /// there was nothing to arrive from.
     ///
-    /// There is **no departure**. §5 says the body is unmounted while closed, and
-    /// keeping it alive for the length of a fade would be building a subtree that
-    /// has just been asked to go away. Closing is therefore instant and opening is
-    /// not, which is asymmetric on purpose: the thing worth animating is content
-    /// appearing where there was none ([Phase], [ADR-0166]).
+    /// There is no departure. The body is unmounted while closed, and keeping it
+    /// alive for the length of a fade would be building a subtree that has just
+    /// been asked to go away. Closing is therefore instant and opening is not,
+    /// which is asymmetric on purpose: the thing worth animating is content
+    /// appearing where there was none ([Phase]).
     private Phase arriving = new Phase(Phase.Kind.SETTLED);
 
     @Override
@@ -53,14 +53,12 @@ final class CollapseState extends State<Collapse> {
                 this::toggle,
                 // The phase itself, not a function of the clock: a phase settles
                 // itself on the frame that finishes it, and a `showing ? … : null`
-                // made `isAnimating` answer "is the section open" instead
-                // ([ADR-0228]).
+                // made `isAnimating` answer "is the section open" instead.
                 arriving,
                 // **The body is not built while it is shut.** Not built and
                 // handed to something that hides it -- the list is empty, so the
                 // element layer never mounts it, its bindings never subscribe,
-                // and there is nothing alive behind a header nobody has opened
-                // (§5, ADR-0004).
+                // and there is nothing alive behind a header nobody has opened.
                 showing ? collapse.children() : java.util.List.of(),
                 collapse.attributes());
     }

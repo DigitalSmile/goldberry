@@ -23,20 +23,23 @@ import dev.goldberry.input.key.Mod;
 import dev.goldberry.input.key.Modifiers;
 import dev.goldberry.widget.ElementTree;
 
-/// Input on a `canvas` — `docs/gaps.md` G3.
+/// Input on a `canvas`, which closed the gap that a painter was handed a frame
+/// and no events.
 ///
 /// ## What is actually new
 ///
 /// Very little of the machinery. `Handles`, `PointerRouter`, implicit capture on
 /// press, the wheel, focus and per-box cursors were all built for the widget
 /// catalogue and all work; what was missing is that a `canvas` implemented none
-/// of it, so a painter was handed a frame and no events (ADR-0281).
+/// of it, so a painter was handed a frame and no events.
 ///
 /// The coordinate space — a canvas painter draws inside the padding, so its input
 /// must arrive there too — is `ContentBoxTest` in `:core`, because that is where
 /// the arithmetic lives. What is checked here is the widget: that it delegates,
 /// that it is a Tab stop only when there is something to deliver a key to, and
 /// that a drag off the edge keeps reporting.
+///
+/// Read more: [Input](https://goldberry.dev/docs/components/drawing.html#input).
 class CanvasInputTest {
 
     private PointerRouter router;
@@ -188,8 +191,8 @@ class CanvasInputTest {
         @DisplayName("a canvas with no input is not a Tab stop")
         void notFocusableWithoutInput() {
             // A chart that took the focus and did nothing with it would be a
-            // keyboard trap with no exit, which is the thing §2.2's "everything
-            // reachable" is least served by.
+            // keyboard trap with no exit, which is the thing "everything is
+            // reachable from the keyboard" is least served by.
             assertFalse(new Canvas(null).isFocusable());
             assertFalse(new Canvas(null, (Input) null).isFocusable());
         }
@@ -217,9 +220,9 @@ class CanvasInputTest {
         @Test
         @DisplayName("the focus reaches the input, so a canvas can draw a caret")
         void focusIsPassedThrough() {
-            // The one thing G3 did not need and G6 does: everything else a canvas
-            // draws looks the same focused or not, and a caret does not
-            // (ADR-0285).
+            // The one thing a canvas that hears the pointer did not need and one
+            // that edits text does: everything else a canvas draws looks the
+            // same focused or not, and a caret does not.
             canvas.onFocusChanged(true, true);
             canvas.onFocusChanged(false, false);
 
@@ -235,7 +238,7 @@ class CanvasInputTest {
         @Test
         @DisplayName("markup still builds a canvas that draws and hears nothing")
         void markupIsUnchanged() {
-            // A `canvas` node names no painter (ADR-0043) and now names no input
+            // A `canvas` node names no painter and now names no input
             // either, for the same reason: both are Java, and the indirection a
             // document would need is filed rather than guessed at.
             assertNull(new Canvas(null, null, canvas.attributes()).input());

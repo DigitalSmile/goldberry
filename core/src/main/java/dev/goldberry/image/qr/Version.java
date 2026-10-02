@@ -12,7 +12,7 @@ import java.util.List;
 ///
 /// ## Two tables and three formulas
 ///
-/// The two tables — [#ECC_CODEWORDS_PER_BLOCK] and [#BLOCKS] — are §7.5.1's, and
+/// The two tables — [#ECC_CODEWORDS_PER_BLOCK] and [#BLOCKS] — are ISO/IEC 18004 §7.5.1's, and
 /// there is no arithmetic that produces them; they are a committee's choice, and
 /// every encoder in the world carries the same 320 numbers. Everything else is a
 /// formula, because it is geometry: how many modules a version has, where its
@@ -24,7 +24,7 @@ final class Version {
 
     static final int MAX = 40;
 
-    /// §7.5.1's error correction codewords per block, indexed
+    /// ISO/IEC 18004 §7.5.1's error correction codewords per block, indexed
     /// `[level.ordinal()][version]`. Index 0 of each row is unused.
     private static final int[][] ECC_CODEWORDS_PER_BLOCK = {
         // L
@@ -49,7 +49,7 @@ final class Version {
         }
     };
 
-    /// §7.5.1's block counts, indexed `[level.ordinal()][version]`.
+    /// ISO/IEC 18004 §7.5.1's block counts, indexed `[level.ordinal()][version]`.
     private static final int[][] BLOCKS = {
         // L
         {
@@ -117,7 +117,7 @@ final class Version {
 
     /// Which row of the two tables a level is, written out rather than taken
     /// from the enum's declaration order: the tables are the standard's and
-    /// their row order is L, M, Q, H, which is a fact about §7.5.1 and not about
+    /// their row order is L, M, Q, H, which is a fact about ISO/IEC 18004 §7.5.1 and not about
     /// this file. Reordering [Level] must not silently reorder the capacities.
     private static int row(Level level) {
         return switch (level) {
@@ -145,7 +145,7 @@ final class Version {
     }
 
     /// The row and column coordinates of the alignment pattern centres —
-    /// §7.3.5's table, as the formula that produces it.
+    /// ISO/IEC 18004 §7.3.5's table, as the formula that produces it.
     ///
     /// Version 1 has none. Every other version has `version / 7 + 2` centres per
     /// axis, the first at 6 and the last at `size - 7`, spaced as evenly as an

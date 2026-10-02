@@ -9,8 +9,7 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * Everything published to Maven Central ({@code docs/ARCHITECTURE.md} §15,
- * ADR-0334, ADR-0336).
+ * Everything published to Maven Central.
  *
  * <p>Written down once rather than inferred from which build scripts apply
  * {@code goldberry.publish}, so that applying it to a build-time tool by mistake
@@ -28,7 +27,7 @@ public final class PublishedModules {
     /**
      * Everything, in dependency order. {@code :assets} and {@code :weaver} are
      * build-time tools and {@code :example} is the showcase, which ships as a
-     * native image on a GitHub Release instead (ADR-0340).
+     * native image on a GitHub Release instead.
      */
     public static final List<PublishedModule> ALL = List.of(
             new Library("common", Inclusion.REQUIRED),
@@ -38,9 +37,9 @@ public final class PublishedModules {
             new Library("html", Inclusion.OPTIONAL),
             new Library("emoji", Inclusion.OPTIONAL),
             new Library("gpu", Inclusion.OPTIONAL),
-            // Audio and video over FFmpeg, and the operating system's decoders
-            // (ADR-0493). FFmpeg itself rides as `ffmpeg-<target>` classifiers,
-            // as libgoldberry rides `goldberry-natives` (ADR-0495).
+            // Audio and video over FFmpeg, and the operating system's decoders.
+            // FFmpeg itself rides as `ffmpeg-<target>` classifiers,
+            // as libgoldberry rides `goldberry-natives`.
             new Library("media", Inclusion.OPTIONAL),
             new Bom(),
             new Umbrella());
@@ -87,7 +86,7 @@ public final class PublishedModules {
     public static PublishedModule require(String project) {
         return find(project).orElseThrow(() -> new IllegalArgumentException(
                 ":" + project + " is not a published module; the published ones are " + projectNames()
-                        + " (PublishedModules, ADR-0334)"));
+                        + " (PublishedModules)"));
     }
 
     /**

@@ -8,15 +8,15 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
-/// §2.4's auto-hiding scrollbars, and — more to the point — **whether they ask
-/// for the frames they need to hide in** ([ADR-0226]).
+/// The design system's auto-hiding scrollbars, and — more to the point —
+/// **whether they ask for the frames they need to hide in**.
 ///
 /// The opacity half is drawable and therefore checkable by a golden. The
 /// `isAnimating` half is not: a golden drives `render` by hand and never asks
 /// whether the frame loop would have come back, so a fade that answered `false`
 /// would paint the bars once at whatever opacity the last frame caught and leave
-/// them there forever — and every image in the corpus would still be right
-/// ([ADR-0176]). Nothing but an assertion on `isAnimating` can see it, and this
+/// them there forever — and every image in the corpus would still be right.
+/// Nothing but an assertion on `isAnimating` can see it, and this
 /// is where they live for this package.
 class ScrollFadeTest {
 
@@ -30,7 +30,7 @@ class ScrollFadeTest {
     class Opacity {
 
         /// A window that opens on a scrollable document shows no bar until the
-        /// user does something. §2.4 calls these *overlay* scrollbars, and an
+        /// user does something. These are *overlay* scrollbars, and an
         /// overlay that greets you is a reserved gutter with extra steps.
         @Test
         @DisplayName("nothing has moved, so there is nothing to see")
@@ -50,7 +50,7 @@ class ScrollFadeTest {
 
             assertEquals(1, fade.opacity());
             fade.stamp(T0 + ScrollFade.IDLE_MILLIS);
-            assertEquals(1, fade.opacity(), "it started fading before §2.4's 800ms were up");
+            assertEquals(1, fade.opacity(), "it started fading before the 800ms idle time was up");
         }
 
         @Test
@@ -67,7 +67,7 @@ class ScrollFadeTest {
             assertEquals(0, fade.opacity());
         }
 
-        /// §2.4 widens the bars on hover, and a bar that faded out from under a
+        /// The bars widen on hover, and a bar that faded out from under a
         /// pointer resting on it would be absurd.
         @Test
         @DisplayName("a pointer on the viewport holds them open however long it has been")
@@ -121,7 +121,8 @@ class ScrollFadeTest {
 
         /// The other end, and the one that matters as much: a fade that never
         /// stopped asking would keep a window awake for ever, which is the
-        /// opposite failure and just as real (§1.7's idle loop).
+        /// opposite failure and just as real: the frame loop must be idle when
+        /// nothing animates.
         @Test
         @DisplayName("it stops once the bars are gone")
         void stopsWhenThereIsNothingLeftToDraw() {
@@ -137,7 +138,7 @@ class ScrollFadeTest {
 
         /// Held bars are **not** animating: they are standing still at full
         /// strength, and asking for frames to redraw an unchanging picture is the
-        /// waste ADR-0081's idle loop exists to avoid.
+        /// waste an idle frame loop exists to avoid.
         @Test
         @DisplayName("bars held open by the pointer are still, not animating")
         void heldIsNotMoving() {

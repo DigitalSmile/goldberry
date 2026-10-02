@@ -22,8 +22,8 @@ import dev.goldberry.widget.semantics.Semantics;
 import dev.goldberry.widget.style.Paints;
 import dev.goldberry.widget.style.Styled;
 
-/// The row of column headers — a **part**, styleable and not constructible
-/// ([ADR-0065]).
+/// The row of column headers — a part, so a stylesheet can select it and a
+/// document cannot write it.
 ///
 /// @param columns what the table is showing
 /// @param sort    what it is sorted by, or null
@@ -59,7 +59,7 @@ record TableHead(
         for (var column : columns) {
             // A resizable header is wrapped in a node that remembers how wide it
             // came out, because a drag is measured from that and nothing else
-            // in a table holds state (ADR-0361).
+            // in a table holds state.
             cells.add(
                     column.resizable()
                             ? new TableHeaderCell(column, sortOf(column), onSort, onResize)
@@ -82,7 +82,7 @@ record TableHead(
 
     /// One column's header.
     ///
-    /// **Focusable only when it sorts.** §2.2 wants everything reachable, and a
+    /// **Focusable only when it sorts.** Everything should be reachable, and a
     /// header that does nothing is a label — a Tab stop on it would be a stop
     /// that answers no key, which is worse for a keyboard user than not being
     /// there. A sortable one is a control and is a stop like any other.
@@ -92,7 +92,7 @@ record TableHead(
     /// A resizable header holds a [TableGrip] at its trailing edge, and answers
     /// the gesture's anchor with the width it last came out as. The router asks
     /// the pressed chain deepest-first, so a press on the grip is anchored here
-    /// and handled there (ADR-0361).
+    /// and handled there.
     ///
     /// @param column     this column
     /// @param sort       the table's sort when it is *this* column's, else null
@@ -230,9 +230,9 @@ record TableHead(
     /// Which way the sorted column is going.
     ///
     /// Two marks rather than one rotated, for the reason a `tree`'s chevron is
-    /// two: §8's subset has no `transform` on a mark ([ADR-0141]). The cost is
-    /// the same one — no animation between them — and it costs less here, because
-    /// §3.1's row says a sort change animates nothing anyway: the rows are
+    /// two: the CSS subset has no `transform` on a mark. The cost is the same
+    /// one — no animation between them — and it costs less here, because a sort
+    /// change animates nothing anyway: the rows are
     /// re-ordered by the application, and a caret that turned while the rows
     /// jumped would be the only thing moving smoothly on the screen.
     /// @param sort the sort when this is the sorted column, and null when it is

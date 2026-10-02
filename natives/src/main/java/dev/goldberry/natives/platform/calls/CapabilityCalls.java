@@ -14,6 +14,8 @@ import dev.goldberry.natives.Downcalls;
 /// A `…calls` package of its own, like every other holder: see [Downcalls] for
 /// why a holder's handle has to be a `static final` constant of a class a
 /// `--initialize-at-build-time` package pattern covers.
+///
+/// Read more: [The native boundary](https://goldberry.dev/docs/overview/architecture.html#the-native-boundary).
 public record CapabilityCalls(PlatformCapabilities platformCapabilities) {
 
     /// Binds the function above.

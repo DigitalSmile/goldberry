@@ -6,18 +6,25 @@ import org.jspecify.annotations.Nullable;
 
 /// A selector: what a rule matches, and how strongly.
 ///
-/// The subset in `ARCHITECTURE.md` §8 — type, `.class`, `#id`, the descendant and
-/// child combinators, and the six pseudo-classes that describe widget state.
-/// Nothing else in v1, and the omissions are load-bearing: no sibling
-/// combinators, no attribute selectors, no `:nth-child`. Each of those needs the
-/// element tree to answer questions about *order*, and the cheapest way to keep
-/// matching a walk up the ancestor chain is to never ask one.
+/// ```css
+/// button.primary:hover { background: var(--gb-accent-hover) }
+/// card > heading { font-weight: 600 }
+/// ```
+///
+/// The subset is type, `.class`, `#id`, the descendant and child combinators, and
+/// the pseudo-classes that describe widget state. Nothing else, and the omissions
+/// are load-bearing: no sibling combinators, no attribute selectors, no
+/// `:nth-child`. Each of those needs the element tree to answer questions about
+/// *order*, and the cheapest way to keep matching a walk up the ancestor chain is
+/// to never ask one.
 ///
 /// A selector is a chain of [Compound]s joined by [Combinator]s, stored
 /// **rightmost first**. That is the order matching reads them in: find the
 /// elements the last compound could apply to, then walk *up* to check the rest.
 /// Matching left to right would mean walking down into every descendant of every
 /// candidate.
+///
+/// Read more: [Styling](https://goldberry.dev/docs/guide/styling.html#selectors).
 ///
 /// @param parts rightmost compound first; never empty
 public record Selector(List<Part> parts) {
@@ -55,7 +62,7 @@ public record Selector(List<Part> parts) {
     public record Compound(
             @Nullable String type, @Nullable String id, List<String> classes, List<PseudoClass> pseudoClasses) {
 
-        /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+        /// Written out so that the parameters taking null for a default can say so.
         public Compound(@Nullable String type, @Nullable String id, @Nullable List<String> classes, @Nullable List<PseudoClass> pseudoClasses) {
             classes = List.copyOf(classes == null ? List.of() : classes);
             pseudoClasses = List.copyOf(pseudoClasses == null ? List.of() : pseudoClasses);
@@ -91,11 +98,11 @@ public record Selector(List<Part> parts) {
     /// tree will actually track, and a typo like `:hovered` should be a
     /// stylesheet error rather than a rule that silently never matches.
     ///
-    /// Six of them are the widget states §8 lists. [#ROOT] is the odd one and is
-    /// here because the theming mechanism needs it: §10 makes a theme "a CSS
-    /// custom-property layer", and the only place to hang custom properties that
-    /// everything inherits is the root element. Without it the engine could not
-    /// express its own themes.
+    /// Most of them are widget states. [#ROOT] is the odd one and is here because
+    /// the theming mechanism needs it: a theme is a layer of CSS custom
+    /// properties, and the only place to hang custom properties that everything
+    /// inherits is the root element. Without it the engine could not express its
+    /// own themes.
     public enum PseudoClass {
         HOVER,
         ACTIVE,
@@ -105,10 +112,9 @@ public record Selector(List<Part> parts) {
         CHECKED,
 
         /// A tri-state control whose value is neither on nor off — CSS's own
-        /// `:indeterminate`, and the eighth of a set `docs/core-widgets.md` lists
-        /// as seven.
+        /// `:indeterminate`.
         ///
-        /// Added with `checkbox`, because a mixed checkbox has to be
+        /// Exists for `checkbox`, because a mixed checkbox has to be
         /// *distinguishable* from a checked one and from an unchecked one, and
         /// two pseudo-classes cannot describe three states. It is deliberately
         /// not "checked plus a modifier": a stylesheet that wrote
@@ -116,31 +122,25 @@ public record Selector(List<Part> parts) {
         /// wrong for the mixed case, silently.
         INDETERMINATE,
 
-        /// A form control whose value its `field` will not accept —
-        /// `docs/core-widgets.md` §4.
+        /// A form control whose value its `field` will not accept.
         ///
-        /// The one pseudo-class the specification *asks* for as an addition: §1's
-        /// list of states says "plus `:invalid` for form controls — an addition
-        /// to the CSS engine's pseudo set". It is here rather than as a `.invalid`
-        /// class — which is what `select.open` settled for — precisely because the
-        /// specification names it, and because it is a **state** in the sense the
-        /// others are: it changes while the element stands still, and it has to
-        /// invalidate a subtree so that a `field`'s label and message can react to
-        /// its control being wrong.
+        /// A pseudo-class rather than a `.invalid` class, because it is a **state**
+        /// in the sense the others are: it changes while the element stands still,
+        /// and it has to invalidate a subtree so that a `field`'s label and message
+        /// can react to its control being wrong.
         ///
         /// It sits on the control *and* on the field, and that is not redundancy:
         /// a stylesheet wants `text-input:invalid` for the red border and
         /// `field:invalid field-message` for the message under it, and no selector
-        /// in §8's subset can walk from a child back up to a parent.
+        /// in the subset can walk from a child back up to a parent.
         INVALID,
 
-        /// An `affix` that has pinned itself — `docs/core-widgets.md` §1's
-        /// `:affixed`.
+        /// An `affix` that has pinned itself.
         ///
         /// A widget's own state rather than the router's, like `:checked`: the
         /// pointer and the keyboard know nothing about it, and what decides it is
-        /// a comparison between two rectangles the widget was told about
-        /// (ADR-0119).
+        /// a comparison between two rectangles the widget was told about after
+        /// layout.
         ///
         /// It exists so a sticky header can gain a shadow **the moment it lifts**,
         /// which is the whole visual point of the widget and is not expressible any
@@ -158,8 +158,8 @@ public record Selector(List<Part> parts) {
             return name().toLowerCase(java.util.Locale.ROOT).replace('_', '-');
         }
 
-        /// Public because the parser that calls it is `css.parse`'s and a
-        /// selector is `css.select`'s (ADR-0172).
+        /// Public because the parser that calls it lives in `css.parse` and a
+        /// selector lives here.
         public static @Nullable PseudoClass parse(String name) {
             for (var candidate : values()) {
                 if (candidate.cssName().equalsIgnoreCase(name)) {

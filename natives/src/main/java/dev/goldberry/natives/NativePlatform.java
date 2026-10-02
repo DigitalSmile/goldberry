@@ -3,17 +3,22 @@ package dev.goldberry.natives;
 import java.util.Locale;
 import java.util.Objects;
 
-/// The platform/architecture pair identifying one row of the distribution matrix.
+/// The operating system and architecture pair that names one published native
+/// artifact.
 ///
-/// The [#classifier()] is the contract between three places that must agree: the
-/// Gradle target ids in `:natives`, the classifier jars published per
-/// `docs/ARCHITECTURE.md` §15, and the resource path [NativeLibrary] searches at
-/// runtime.
+/// [#current()] answers for the running JVM; [#classifier()] is the string that
+/// names the artifact, e.g. `linux-x64`.
+///
+/// The classifier is the contract between three places that must agree: the
+/// Gradle target ids in `:natives`, the classifier jars that are published, and
+/// the resource path [NativeLibrary] searches at run time.
 ///
 /// **Not every pair is a row.** Four are: `linux-x64`, `linux-aarch64`,
 /// `windows-x64` and `macos-aarch64`. Windows on ARM and macOS on Intel are not
 /// built, so constructing them is rejected here rather than deferred to an
-/// `UnsatisfiedLinkError` at load time (ADR-0041).
+/// `UnsatisfiedLinkError` at load time.
+///
+/// Read more: [The native boundary](https://goldberry.dev/docs/overview/architecture.html#the-native-boundary).
 public record NativePlatform(OperatingSystem os, Architecture arch) {
 
     /// The operating systems Goldberry ships a native artifact for.
@@ -37,7 +42,7 @@ public record NativePlatform(OperatingSystem os, Architecture arch) {
             throw new UnsupportedOperationException(
                     "Goldberry publishes no native artifact for " + token(os) + "-" + token(arch)
                             + ". The matrix is linux-x64, linux-aarch64, windows-x64 and"
-                            + " macos-aarch64 (ADR-0041).");
+                            + " macos-aarch64.");
         }
     }
 
@@ -82,10 +87,9 @@ public record NativePlatform(OperatingSystem os, Architecture arch) {
 
     /// The file name a shared library called `stem` has on this platform.
     ///
-    /// `libgoldberry` is not the only one any more: ADR-0441's
-    /// `libgoldberry-webview` is built beside it and linked into nothing, so the
-    /// three spellings of "a shared library" are needed twice and are written
-    /// down once.
+    /// `libgoldberry` is not the only library: `libgoldberry-webview` is built
+    /// beside it and linked into nothing, so the three spellings of "a shared
+    /// library" are needed twice and are written down once.
     ///
     /// @param stem the library's name without prefix or extension
     /// @return `libstem.so`, `libstem.dylib` or `stem.dll`

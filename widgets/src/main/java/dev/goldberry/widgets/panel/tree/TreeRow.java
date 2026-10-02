@@ -19,19 +19,19 @@ import dev.goldberry.widget.semantics.Semantics;
 import dev.goldberry.widget.style.Paints;
 import dev.goldberry.widget.style.Styled;
 
-/// One visible row of a [Tree] — a **part**, so it is styleable and not
-/// constructible ([ADR-0065]).
+/// One visible row of a [Tree] — a part, so a stylesheet can select it and a
+/// document cannot write it.
 ///
 /// ## The indent is a width, not a padding
 ///
-/// §2: "indent 20 per level; chevron 16 in the indent gutter". The row draws a
+/// The indent is 20 per level, with a 16-point chevron in the gutter. The row draws a
 /// gutter of `depth × 20` before its chevron, as a sized box rather than as
 /// padding on the row, for two reasons: a stylesheet cannot compute a depth, and
 /// the row's own background has to reach the left edge — an indented *padding*
 /// would leave the selection highlight starting 40px in, which reads as a
 /// misaligned row rather than a nested one.
 ///
-/// ## The keyboard is the part §3 says has to be right
+/// ## The keyboard is the part that has to be right
 ///
 /// `Right` expands, or moves to the first child when it is already open; `Left`
 /// collapses, or moves to the parent when it is already closed. That pairing is
@@ -43,8 +43,7 @@ import dev.goldberry.widget.style.Styled;
 ///
 /// `Home`, `End` and `*` all need to know about rows this one cannot see — the
 /// first and last of the whole flattened list, and every sibling of this one — so
-/// each is a callback the tree hands down, in the shape [#onOut] already had
-/// (ADR-0209).
+/// each is a callback the tree hands down, in the shape [#onOut] already had.
 ///
 /// Type-to-select is the same, and arrives as [TextEvent] rather than a key for
 /// `select`'s reason: what a typeahead wants is what was *typed*, and one
@@ -54,7 +53,7 @@ import dev.goldberry.widget.style.Styled;
 /// @param depth      how many levels down it sits
 /// @param expanded   whether its children are showing
 /// @param selectable whether it may be chosen — false for a parent in a
-///                   leaf-only tree (§3's `checkable`)
+///                   leaf-only tree
 /// @param selected   whether it is a chosen row
 /// @param check      the state of its checkbox, or null when it has none
 /// @param onToggle   asked to open or close
@@ -63,8 +62,8 @@ import dev.goldberry.widget.style.Styled;
 ///                   tree, and only the tree knows what they resolve to
 /// @param onOut      asked to move to the parent, when there is nothing to close
 /// @param onEnd      asked to move to the first or last visible row
-/// @param onSiblings asked to open every sibling of this row — §3's `*`
-/// @param onType     what was typed, for §3's type-to-select
+/// @param onSiblings asked to open every sibling of this row — the `*` key
+/// @param onType     what was typed, for type-to-select
 /// @param onCheck    asked to tick or untick, when there is a box to tick
 record TreeRow(
         TreeNode node,
@@ -82,7 +81,7 @@ record TreeRow(
         Runnable onCheck)
         implements Widget.Leaf, Styled, Paints, Handles, dev.goldberry.input.handler.Selects, Semantics {
 
-    /// §2's "indent 20 per level".
+    /// The indent per level, in logical pixels.
     static final double INDENT = 20;
 
     @Override
@@ -96,8 +95,8 @@ record TreeRow(
     }
 
     /// Its node's id, so a row keeps its element — and its focus — when the model
-    /// is rebuilt or reordered. §3's rule about expansion, applied to the
-    /// reconciler.
+    /// is rebuilt or reordered — the rule that keeps expansion by id, applied to
+    /// the reconciler.
     @Override
     public Object key() {
         return node.id();
@@ -105,7 +104,7 @@ record TreeRow(
 
     /// A right-click selects the row it is over, and leaves a selection this row
     /// is already part of alone — [dev.goldberry.input.handler.Selects],
-    /// and the same two lines a list's row has ([ADR-0224]).
+    /// and the same two lines a list's row has.
     ///
     /// A tree names its menu on the `tree` rather than per row, so what the walk
     /// finds above this is the tree's own menu — which is exactly the file
@@ -132,19 +131,19 @@ record TreeRow(
             // an answer. A class rather than `:disabled`, which would say it is
             // inert -- it is not, it opens and closes.
             //
-            // **`group` and not `heading`**, which is what this was until
-            // ADR-0414. `heading` is one of §1.4's seven type ranks, and a rank is
-            // styled by a class selector with no type on it -- so `.heading`
-            // reached this row whatever else `tree-row.heading` said, and every
-            // branch of a leaf-only tree drew at 15px/600 inside a row with a
-            // fixed height. Nothing chose that; the two namespaces collided.
+            // **`group` and not `heading`.** `heading` is one of the design
+            // system's type ranks, and a rank is styled by a class selector with
+            // no type on it -- so `.heading` would reach this row whatever else
+            // `tree-row.heading` said, and every branch of a leaf-only tree
+            // would draw at 15px/600 inside a row with a fixed height. The two
+            // namespaces must not collide.
             out.add("group");
         }
         return out;
     }
 
     /// Every row is a Tab stop's worth of the tree's own scope, so the arrows
-    /// rove between them and the tree is one stop from outside (§7.2).
+    /// rove between them and the tree is one stop from outside.
     @Override
     public boolean isFocusable() {
         return true;
@@ -173,7 +172,7 @@ record TreeRow(
     /// **leaf-only** tree a parent is not an answer, so a click on "Europe" had
     /// nothing to do and did nothing — the chevron was the only way in, and the
     /// chevron had no handler either. A tree whose branches cannot be opened with
-    /// a mouse is not a tree ([ADR-0185]).
+    /// a mouse is not a tree.
     ///
     /// So: choose if it is an answer, and otherwise open it. A row that is both —
     /// a parent in an `any` tree — chooses, because that is what the click on its
@@ -188,7 +187,7 @@ record TreeRow(
             // **The modifiers travel with it.** A click is `Ctrl`-clicked or
             // `Shift`-clicked or neither, and which of the three it was decides
             // what the new selection is — a question only the tree can answer,
-            // because a range runs over rows this one cannot see (ADR-0210).
+            // because a range runs over rows this one cannot see.
             onSelect.accept(event.modifiers());
         } else if (node.mayHaveChildren()) {
             onToggle.run();
@@ -196,8 +195,8 @@ record TreeRow(
         event.consume();
     }
 
-    /// §3: "`Right` expands or moves to the first child, `Left` collapses or
-    /// moves to the parent".
+    /// `Right` expands or moves to the first child; `Left` collapses or moves to
+    /// the parent.
     ///
     /// `Enter` chooses, which is `option`'s rule in a list and the same one: a
     /// set where the keyboard commits must not choose before it.
@@ -210,7 +209,7 @@ record TreeRow(
         // one key here that means something different when a modifier is held:
         // `Ctrl+Enter` adds a row to a selection and `Shift+Enter` sweeps to it,
         // which are the keyboard's halves of the same gestures the pointer has
-        // (ADR-0210). `Alt` and the platform key are nobody's here and fall
+        // `Alt` and the platform key are nobody's here and fall
         // through, so an application's `Alt+Enter` accelerator still reaches it.
         if (event.key() == Key.ENTER) {
             if (selectable && !event.modifiers().alt() && !event.modifiers().meta()) {
@@ -248,14 +247,14 @@ record TreeRow(
                 }
                 event.consume();
             }
-            // §3: "`Home`/`End` go to the first and last **visible** rows".
+            // `Home`/`End` go to the first and last **visible** rows.
             //
             // Visible in the tree's sense -- the flattened list -- and not in the
             // viewport's: `End` in a scrolled tree lands on the last row of the
             // model and scrolls to it, which is what every tree does and what
             // `Ctrl+End` means in every document. A tree's own scrolling is a
             // `scroll` ancestor's business, and the focus ring is what asks it to
-            // follow (ADR-0120).
+            // follow.
             case HOME -> {
                 onEnd.accept(-1);
                 event.consume();
@@ -268,12 +267,12 @@ record TreeRow(
         }
     }
 
-    /// §3's `*`: "expands every sibling".
+    /// `*` expands every sibling.
     ///
     /// A [TextEvent] rather than a key, because `*` is a *character* and the key
     /// it takes differs by layout — `Shift+8` on a US keyboard, the numpad's own
     /// key on any, and neither on AZERTY. Asking for the key would be asking for
-    /// the position, which §7.1 says this toolkit does not answer.
+    /// the position, which this toolkit does not answer.
     ///
     /// Everything else typed is the typeahead. Both live here rather than in two
     /// handlers because they arrive through one event, and the split between them
@@ -318,12 +317,11 @@ record TreeRow(
 
     /// The mark saying a row opens, drawn only when it may.
     ///
-    /// ## §2's `rotate` is two marks instead
+    /// ## The chevron is two marks, not a rotation
     ///
-    /// §2 asks for "expand/collapse: chevron `rotate` base" and it is not
-    /// available: §8's subset has no `transform` **on a mark**, which is the wall
+    /// The CSS subset has no `transform` **on a mark**, which is the wall
     /// `select`'s chevron hit and the reason [Box.Mark.Kind#CHEVRON_DOWN] exists
-    /// beside [Box.Mark.Kind#CHEVRON_END] at all ([ADR-0141]). So a closed row
+    /// beside [Box.Mark.Kind#CHEVRON_END] at all. So a closed row
     /// draws `>` and an open one draws `v`, switching rather than turning.
     ///
     /// The cost is the animation, and it is the whole cost: the two marks are the
@@ -370,7 +368,7 @@ record TreeRow(
         }
     }
 
-    /// The box §3's `checkable=` puts on a row, drawn only where there is one.
+    /// The box `checkable=` puts on a row, drawn only where there is one.
     ///
     /// ## It borrows `checkbox`'s indicator rather than drawing its own
     ///
@@ -380,8 +378,7 @@ record TreeRow(
     /// would be a second thing to keep in step with the first, and the first is
     /// where the reasoning about the tri-state lives — that the mixed mark is a
     /// *bar* and not a greyed tick, because "some of these are on" and "all of
-    /// these are on" have to be distinguishable at a glance
-    /// (ADR-0210).
+    /// these are on" have to be distinguishable at a glance.
     ///
     /// What this adds is the hit target and the click. The indicator is a
     /// [Paints] leaf with no handler — it is a square inside a control, and the
@@ -391,13 +388,13 @@ record TreeRow(
     /// ## And it consumes the click
     ///
     /// [TreeChevron]'s rule, and the same mistake it exists to avoid: ticking a
-    /// row must not also select it. They are two values (§3 asks for both), and
+    /// row must not also select it. They are two values, and
     /// a click that did both would make the checkbox unusable in a
     /// single-selection tree — every tick would move the highlight.
     record TreeCheck(dev.goldberry.widgets.controls.checkbox.Checkbox.Value state, Runnable onCheck)
             implements Widget.Leaf, Styled, Paints, Handles {
 
-        /// The mark's stroke, in logical pixels — §1.6's icon stroke, which is
+        /// The mark's stroke, in logical pixels — the icon stroke, which is
         /// what `checkbox` draws its own tick at.
         private static final double MARK_THICKNESS = 2;
 
@@ -415,7 +412,7 @@ record TreeRow(
         public boolean isFocusable() {
             // The row is the Tab stop and `Space` is how the keyboard reaches
             // this, so a focusable box would put a second stop inside a control
-            // that §7.2 says is one.
+            // that is meant to be one.
             return false;
         }
 

@@ -10,15 +10,16 @@ import dev.goldberry.widget.Widget;
 import dev.goldberry.widget.style.Paints;
 import dev.goldberry.widget.style.Styled;
 
-/// The 4px channel a slider's thumb runs along — a **part** of [Slider], and the
-/// eighth.
+/// The 4px channel a slider's thumb runs along — a part of [Slider], styled as
+/// `slider-groove`.
 ///
-/// ADR-0065's argument a fifth time and unchanged: the control is 32 tall because
-/// §1.3 wants a hit target, the groove is 4 because §3 says so, and one
-/// [ComputedStyle] carries one background. It was called `slider-track` until the
-/// value label arrived and the two boxes stopped being the same one — the track
-/// is the rectangle the value is *measured* along, and the groove is the one you
-/// can see ([ADR-0080], [SliderTrack]).
+/// A part because it needs a background of its own: the control is 32 tall so
+/// there is a hit target, the groove is 4, and one [ComputedStyle] carries one
+/// background. It is a different box from [SliderTrack] because the value label
+/// made the two differ — the track is the rectangle the value is *measured*
+/// along, and the groove is the one you can see.
+///
+/// Read more: [Values and progress](https://goldberry.dev/docs/components/values.html#slider).
 ///
 /// ## How the thumb is placed, which is the interesting part
 ///
@@ -29,13 +30,13 @@ import dev.goldberry.widget.style.Styled;
 /// [ fill grow=f ][ thumb 16 ][ rest grow=1-f ]
 /// ```
 ///
-/// Yoga hands free space out in proportion to the grow factors, so the thumb
+/// Layout hands free space out in proportion to the grow factors, so the thumb
 /// lands exactly `f` of the way along whatever width the groove turned out to be —
 /// and **nothing in Java ever learns that width.** That matters because the
 /// obvious implementation is `transform: translate`, and a transform cannot
 /// express it: CSS percentages in `translate` are a proportion of *the moving
 /// box*, so `translate(50%)` moves the thumb by half a thumb, not to the middle
-/// of the groove ([ADR-0079]).
+/// of the groove.
 ///
 /// It also produces the filled portion for free, as a box the cascade can reach.
 ///

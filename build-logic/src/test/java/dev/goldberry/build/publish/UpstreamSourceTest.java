@@ -74,7 +74,7 @@ class UpstreamSourceTest {
     void keepsTheCommittedLineEndings() throws IOException {
         // Git for Windows' default, which turned version.h's LF into CRLF on the
         // Windows runner: `git archive` converts text the way a checkout would,
-        // unless the attributes say not to (ADR-0517).
+        // unless the attributes say not to.
         var clone = temp.resolve("clone");
         git(temp, "init", "--bare", "--quiet", clone.toString());
         git(temp, "--git-dir=" + clone, "config", "core.autocrlf", "true");

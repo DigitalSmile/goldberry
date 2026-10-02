@@ -55,8 +55,7 @@ import dev.goldberry.widgets.core.scroll.ScrollController;
 /// a laid-out and painted frame has: a word reports where it is through
 /// [dev.goldberry.input.handler.Located], which the router
 /// delivers from the hit-test capture after a paint. A test that poked the model
-/// directly would assert arithmetic and prove nothing about a document on a screen
-/// (ADR-0301).
+/// directly would assert arithmetic and prove nothing about a document on a screen.
 ///
 /// So each test below runs the loop the window runs — build, style, lay out, capture,
 /// notify — and then does what a reader does.
@@ -234,7 +233,7 @@ class SelectionTest {
         // "fox" is the end of one paragraph and "jumps" the start of the next, so what
         // comes out has the break in it. A copy that joined them would paste
         // `foxjumps`, which is the whole reason a word carries the separator in front
-        // of it (ADR-0301).
+        // of it.
         assertEquals("x\njum", state().selectedText());
     }
 
@@ -298,7 +297,7 @@ class SelectionTest {
     @Test
     @DisplayName("a hard break inside a paragraph is a newline in what is copied")
     void hardBreakIsANewline() {
-        // The other half of ADR-0426. The picture is two lines, and a copy that joined
+        // The copy side of a hard break. The picture is two lines, and a copy that joined
         // them with a space would be saying the author's line ending was the width of
         // the pane -- which is exactly what a *soft* break means and exactly what this
         // one does not. `Inlines.text` and the HTML writer's `<br>` already agree; the
@@ -393,7 +392,7 @@ class SelectionTest {
     void aRebuildDropsAStaleSelection() {
         // A **bound** view, because that is the case this exists for: a preview
         // re-parses on every keystroke, and a selection measured against the old words
-        // would highlight whatever is now at those indices (ADR-0301).
+        // would highlight whatever is now at those indices.
         var source = dev.goldberry.bind.Property.of(DOCUMENT);
         mount(MarkdownView.following(source).id("note"));
 
@@ -428,7 +427,7 @@ class SelectionTest {
         // `located` reports where a word was **painted**, which inside a viewport is
         // where it has been scrolled to. A selection built from layout positions would
         // pick the word that *used* to be under the pointer -- and would look right
-        // until somebody scrolled (ADR-0119, ADR-0301).
+        // until somebody scrolled.
         //
         // `height(...)` because this viewport is the root of the tree and nothing above
         // it bounds one: a `scroll` as tall as its content has nothing to scroll.
@@ -438,7 +437,7 @@ class SelectionTest {
                         Attributes.NONE.id("pane"))
                 .height(200));
         // A viewport learns how much it overflows from the frame that laid it out
-        // (ADR-0117), so the wheel has to come after one.
+        // so the wheel has to come after one.
         frame();
         frame();
         var before = rectOf(4).top();
@@ -468,7 +467,7 @@ class SelectionTest {
         throw new AssertionError("the viewport is showing no words at all");
     }
 
-    /// A drag held below a pane, for both views ([ADR-0500]).
+    /// A drag held below a pane carries the viewport on, for both views.
     ///
     /// The pane is 200 tall in a window 300 tall, so the pointer can be put below it
     /// and still be in the window — which is where a reader's pointer is when they
@@ -644,8 +643,7 @@ class SelectionTest {
                 });
     }
 
-    /// X11's middle-click buffer, which a document fills and never pastes from
-    /// (ADR-0504).
+    /// X11's middle-click buffer, which a document fills and never pastes from.
     @Nested
     @DisplayName("the primary selection")
     class ThePrimarySelection {

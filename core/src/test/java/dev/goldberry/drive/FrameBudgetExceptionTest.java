@@ -9,8 +9,8 @@ import dev.goldberry.stats.FrameSummary;
 
 class FrameBudgetExceptionTest {
 
-    /// The workflow that reads a failed run greps [FrameSummary#describe()]
-    /// (ADR-0342), and this is the path it arrives by: a budget failure that
+    /// The workflow that reads a failed run greps [FrameSummary#describe()],
+    /// and this is the path it arrives by: a budget failure that
     /// summarised the run in its own words would be invisible to it.
     @Test
     @DisplayName("the message carries the whole summary the workflow greps")

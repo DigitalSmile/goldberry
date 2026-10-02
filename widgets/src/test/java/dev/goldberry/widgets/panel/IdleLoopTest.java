@@ -29,10 +29,10 @@ import dev.goldberry.widgets.panel.carousel.Carousel;
 import dev.goldberry.widgets.panel.collapse.Collapse;
 import dev.goldberry.widgets.text.Text;
 
-/// §1.7: **"the frame loop is fully idle when no animation is active."**
+/// **The frame loop is fully idle when no animation is active.**
 ///
 /// It was false for any window with an open `collapse` or a `carousel` on it, and
-/// it was false in a way no picture could show ([ADR-0228]). Both widgets decided
+/// it was false in a way no picture could show. Both widgets decided
 /// at *build* time whether their part was animating — `showing ? this::visibility
 /// : null` — so `isAnimating` answered "is the section open" rather than "is it
 /// still moving", and only a rebuild took it back out of the loop. An open
@@ -40,7 +40,9 @@ import dev.goldberry.widgets.text.Text;
 ///
 /// The assertion is on the **renderer**, which is the thing the frame loop asks.
 /// Each widget's own test says what its part reports; this says what the window
-/// does, which is the sentence §1.7 actually writes.
+/// does, which is what the rule promises.
+///
+/// Read more: [Motion](https://goldberry.dev/docs/guide/design-system.html#motion).
 class IdleLoopTest {
 
     private Clock.Virtual clock;
@@ -59,7 +61,7 @@ class IdleLoopTest {
                 .clock(clock);
     }
 
-    /// §1.7's `base`, which is how long a `Phase` runs for.
+    /// The `base` motion duration, which is how long a `Phase` runs for.
     private static final long ARRIVAL_MILLIS = 160;
 
     private void frame(ElementTree tree) {
@@ -80,7 +82,7 @@ class IdleLoopTest {
     /// it running.
     ///
     /// **And only one frame after the jump**, which is the second half of
-    /// [ADR-0228]: the renderer asks whether a node animates *after* it has drawn
+    /// the fix: the renderer asks whether a node animates *after* it has drawn
     /// it, so the frame that finishes an arrival is the last one rather than the
     /// second to last.
     private void settle(ElementTree tree) {
@@ -92,7 +94,7 @@ class IdleLoopTest {
     /// The handler for the node a stylesheet calls `cssType`.
     ///
     /// By CSS type rather than by class, because every part in the catalog is
-    /// package-private ([ADR-0065]) and this test is about two of them in two
+    /// package-private and this test is about two of them in two
     /// different packages. The type is the name a stylesheet uses, which is a
     /// better thing for a test to depend on anyway.
     private static Handles handlerFor(ElementTree tree, String cssType) {
@@ -129,7 +131,7 @@ class IdleLoopTest {
 
             assertFalse(
                     renderer.isAnimating(),
-                    "an open section keeps the window awake for ever, which is §1.7's claim inverted");
+                    "an open section keeps the window awake for ever; the loop must be idle once nothing moves");
         }
 
         @Test
@@ -193,7 +195,7 @@ class IdleLoopTest {
             assertFalse(renderer.isAnimating(), "a carousel sitting on one slide is spinning the frame loop");
         }
 
-        /// The other half of [ADR-0228], stated on its own: the **frame that
+        /// The other half of the fix, stated on its own: the **frame that
         /// finishes** an arrival is the last one the loop spends. It used not to
         /// be — whether a node animates was read before it was drawn, and drawing
         /// is what advances a phase, so every arrival in the toolkit cost one

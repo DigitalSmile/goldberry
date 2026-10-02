@@ -31,14 +31,16 @@ import dev.goldberry.widget.Widget;
 import dev.goldberry.widgets.TestHost;
 import dev.goldberry.widgets.Widgets;
 
-/// `menubar` — §8's in-window bar, and the accelerator registration that was
-/// waiting on it ([ADR-0163]).
+/// `menubar` — the in-window bar, and the accelerator registration that was
+/// waiting on it.
 ///
 /// Two claims are worth more than the rest and both are about what happens when
 /// **no menu is on screen**: an accelerator fires, and it stops firing when the
-/// bar goes away. Everything ADR-0106 deferred was deferred because a popup does
-/// not live long enough, so a test that opened a menu first would be testing the
-/// thing that already worked.
+/// bar goes away. A popup menu does not live long enough to own an accelerator,
+/// so a test that opened a menu first would be testing the thing that already
+/// worked.
+///
+/// Read more: [Menus and the tray](https://goldberry.dev/docs/components/menus.html#menubar).
 class MenuBarTest {
 
     @BeforeEach
@@ -105,7 +107,7 @@ class MenuBarTest {
         }
 
         /// A bar is the horizontal scope a menu is not, and that is the whole of
-        /// why `Left` and `Right` walk it (ADR-0078).
+        /// why `Left` and `Right` walk it.
         @Test
         @DisplayName("a bar is a horizontal focus scope where a menu is a vertical one")
         void horizontal() {
@@ -259,7 +261,7 @@ class MenuBarTest {
     }
 
     @Nested
-    @DisplayName("the accelerators, which is what ADR-0106 deferred")
+    @DisplayName("the accelerators, which a popup could never own")
     class Registration {
 
         private final TestHost host = new TestHost();
@@ -317,8 +319,7 @@ class MenuBarTest {
         ///
         /// Two things claiming `Ctrl+O` is a conflict the last registration wins
         /// — that half is unchanged — and this is the same conflict at the other
-        /// end, where the loser used to be able to unbind the winner
-        /// ([ADR-0220]).
+        /// end, where the loser used to be able to unbind the winner.
         @Test
         @DisplayName("unmounting the bar leaves a key the application took after it")
         void unmountLeavesSomebodyElsesBinding() {
@@ -399,7 +400,7 @@ class MenuBarTest {
             assertEquals(2, titles(tree).size() + 1, "and the bar still built");
         }
 
-        /// §8's companion binding, and the only one that survives a compositor
+        /// `F10`, the companion binding, and the only one that survives a compositor
         /// which eats `Alt` for its own window switcher.
         @Test
         @DisplayName("F10 opens the first heading")
@@ -411,9 +412,9 @@ class MenuBarTest {
             assertEquals(1, host.opened.size());
         }
 
-        /// §8's "`Alt`-style keyboard activation" itself. Bound through its own
+        /// The `Alt` tap itself. Bound through its own
         /// registry rather than the accelerators, because a tap is a gesture and
-        /// a `Shortcut` is a value — see [ModifierKey] ([ADR-0223]).
+        /// a `Shortcut` is a value — see [ModifierKey].
         ///
         /// What the *gesture* is, and everything that spoils it, belongs to
         /// [dev.goldberry.input.tap.ModifierTaps] and is
@@ -478,7 +479,7 @@ class MenuBarTest {
     class Markup {
 
         /// There is no new syntax: a nested `item` is a submenu, and a `menubar`
-        /// of them is a bar. That is the whole of what ADR-0163 buys an author.
+        /// of them is a bar. That is the whole of what a menu bar costs an author.
         @Test
         @DisplayName("a menubar of nested items inflates into headings")
         void inflates() {

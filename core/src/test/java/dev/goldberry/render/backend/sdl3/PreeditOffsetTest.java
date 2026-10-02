@@ -7,7 +7,7 @@ import org.junit.jupiter.api.Test;
 
 /// The one arithmetic in the preedit path: SDL reports the clause inside a
 /// composition in **UTF-8 bytes**, and everything above the backend counts in
-/// Java chars (ADR-0289).
+/// Java chars.
 ///
 /// It is done once, here, because a composition is by definition not ASCII — a
 /// Latin keyboard never produces one — so a layer that passed the bytes through

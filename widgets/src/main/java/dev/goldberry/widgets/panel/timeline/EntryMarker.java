@@ -12,8 +12,8 @@ import dev.goldberry.widget.attr.Attributes;
 import dev.goldberry.widgets.markup.Markup;
 import dev.goldberry.widgets.markup.Wiring;
 
-/// The slot an [Entry] takes a widget marker from — §10's "dot, icon or
-/// `badge`", third case.
+/// The slot an [Entry] takes a widget marker from: the third kind of marker,
+/// after a dot and an icon.
 ///
 /// ```kdl
 /// entry "Released" {
@@ -28,15 +28,17 @@ import dev.goldberry.widgets.markup.Wiring;
 /// everything else it was written beside stays the entry's body. A named child
 /// rather than "the first `badge` in the body", because a badge is also
 /// ordinary content and a document that wrote one under an event's words did
-/// not ask for it to leave them (ADR-0356).
+/// not ask for it to leave them.
 ///
 /// @param content    the one widget drawn on the axis
 /// @param attributes `id` and `class`; the marker drawn is `content`, so these
 ///                   land nowhere and are kept only so the document round-trips
+///
+/// Read more: [Panels](https://goldberry.dev/docs/components/panels.html#marker).
 @Markup("marker")
 public record EntryMarker(Widget content, Attributes attributes) implements Widget.Leaf, Attributed<EntryMarker> {
 
-    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    /// Written out so that the parameters taking null for a default can say so.
     public EntryMarker(Widget content, @Nullable Attributes attributes) {
         Objects.requireNonNull(content, "content");
         attributes = attributes == null ? Attributes.NONE : attributes;

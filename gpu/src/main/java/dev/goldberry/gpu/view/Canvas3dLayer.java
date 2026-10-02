@@ -15,7 +15,7 @@ import dev.goldberry.gpu.TextureUsage;
 import dev.goldberry.render.model.PhysicalSize;
 
 /// A `canvas3d`'s GPU layer: its [Canvas3dRenderer], driven through the
-/// renderer's lifecycle, and the depth texture it draws with (ADR-0482).
+/// renderer's lifecycle, and the depth texture it draws with.
 ///
 /// One per mounted canvas and renderer, kept between frames, so the compositor
 /// keeps its texture: a canvas that is not redrawn is shown from it

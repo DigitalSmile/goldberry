@@ -15,8 +15,8 @@ import dev.goldberry.layout.Length;
 import dev.goldberry.paint.Box;
 import dev.goldberry.paint.TestFrames;
 
-/// `Box.elevated` — one bit meaning "draw me last"
-/// (ADR-0123).
+/// `Box.elevated` — one bit meaning "draw me last": a pinned box paints after
+/// its siblings, so what comes later in the tree does not cover it.
 class ElevationTest {
 
     @BeforeAll

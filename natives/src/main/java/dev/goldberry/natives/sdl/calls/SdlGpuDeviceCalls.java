@@ -12,11 +12,15 @@ import java.lang.invoke.MethodHandle;
 import dev.goldberry.natives.Downcalls;
 
 /// SDL's GPU device: the one context `canvas3d`, the composited window and GPU
-/// video present share (`docs/gpu-plan.md`, D2).
+/// video present share. There is one per process, made the first time something
+/// needs it and never at start-up.
 ///
 /// One holder per function: its handle, its address, and a `call` whose
 /// parameters are the C prototype’s. See [Downcalls] for why the handle is a
 /// `static final` constant and why these live in a package of their own.
+///
+/// Read more: [The GPU canvas](https://goldberry.dev/docs/components/gpu.html#what-the-module-does-to-a-window) and
+/// [The native boundary](https://goldberry.dev/docs/overview/architecture.html#the-native-boundary).
 public record SdlGpuDeviceCalls(
         CreateGPUDeviceWithProperties createGPUDeviceWithProperties,
         DestroyGPUDevice destroyGPUDevice,
@@ -44,7 +48,7 @@ public record SdlGpuDeviceCalls(
     ///
     /// Needs the video subsystem, and a video driver that can make a Metal view or
     /// a Vulkan surface: SDL's `dummy` driver can do neither, so there is no device
-    /// under it (`docs/gpu-plan.md`, phase 0).
+    /// under it, while `offscreen` has headless Vulkan and does.
     ///
     /// `void* SDL_CreateGPUDeviceWithProperties(uint32_t)`
     public static final class CreateGPUDeviceWithProperties {

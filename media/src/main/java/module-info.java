@@ -1,45 +1,42 @@
 /// Goldberry's media module: audio and video playback over FFmpeg, driven from
-/// Java (`docs/goldberry-media.md`).
+/// Java.
 ///
-/// An optional content module in `docs/content-widgets.md`'s sense: an
-/// application opts in, and nothing in `:core` or `:widgets` knows this module
-/// exists. The engine is FFmpeg's demuxers and decoders and nothing else of it —
-/// no network layer, no filters, no devices — with the threads, the clock and every
-/// byte of I/O on the Java side
-/// ([ADR-0460](../book/src/adr/0460-media-is-ffmpeg-driven-from-java-not-libvlc.md)).
+/// An optional content module: an application opts in, and nothing in `:core`
+/// or `:widgets` knows this module exists. The engine is FFmpeg's demuxers and
+/// decoders and nothing else of it — no network layer, no filters, no devices —
+/// with the threads, the clock and every byte of I/O on the Java side. There is
+/// no libVLC and no JNI: FFmpeg is called through the Foreign Function and
+/// Memory API.
 ///
 /// **This module binds native code itself**, which only `:natives` otherwise does.
 /// FFmpeg is LGPL-2.1+ and must stay a set of replaceable shared libraries, so it
 /// cannot join `libgoldberry`, and its bindings live beside the engine that is
-/// their only caller
-/// ([ADR-0461](../book/src/adr/0461-a-media-engine-binds-its-own-libraries.md)).
-/// What `:natives`' rule protects still holds here: `…media.ffi` is not exported,
-/// and no FFmpeg type appears in anything that is.
+/// their only caller. What `:natives`' rule protects still holds here:
+/// `…media.ffi` is not exported, and no FFmpeg type appears in anything that is.
 ///
 /// **The operating system's own decoders are here too**, behind the same Decoder
 /// SPI: VideoToolbox and AudioToolbox on macOS, GStreamer on Linux, Media
 /// Foundation on Windows, for the patent-pool codecs the published natives do
-/// not build ([ADR-0472](../book/src/adr/0472-the-platform-decoders-bind-the-system-frameworks.md),
-/// ADR-0489). They were `goldberry-media-platform` until
-/// [ADR-0493](../book/src/adr/0493-the-platform-decoders-are-part-of-media.md):
-/// they bind the system's libraries and ship no native code, so being in this
-/// module costs an application nothing, and each supports nothing on a system
-/// that is not its own.
+/// not build. They bind the system's libraries and ship no native code, so being
+/// in this module costs an application nothing, and each supports nothing on a
+/// system that is not its own.
 ///
 /// Consumers pass `--enable-native-access=dev.goldberry.media`
 /// (JEP 472).
+///
+/// Read more: [Audio and video](https://goldberry.dev/docs/components/media.html#the-module).
 module dev.goldberry.media {
 
-    /// Logging and the start-up timeline (ADR-0174). Not `transitive`: no type of
-    /// it appears in a signature here.
+    /// Logging and the start-up timeline. Not `transitive`: no type of it
+    /// appears in a signature here.
     requires dev.goldberry.common;
 
     /// SDL's audio stream, which `:natives` exports to this module alone: the
-    /// desktop's audio sink (ADR-0461). Not `transitive`, since no type of it
+    /// desktop's audio sink. Not `transitive`, since no type of it
     /// appears in a signature here.
     requires dev.goldberry.natives;
 
-    /// Video on the GPU (`docs/gpu-plan.md`, phase 6; ADR-0484): `video-view`
+    /// Video on the GPU: `video-view`
     /// shows its pictures through `:gpu`'s video layer when `:gpu` is in the
     /// application's module graph, and draws them on the CPU when it is not.
     /// `static`, so an application that ships no GPU module plays video all the
@@ -51,7 +48,7 @@ module dev.goldberry.media {
     requires transitive dev.goldberry.widgets;
 
     /// The JDK's HTTP client, which `HttpIO` fetches `http:` and `https:` sources
-    /// with (`docs/goldberry-media.md` §4). `transitive` because `HttpIO.open`
+    /// with. `transitive` because `HttpIO.open`
     /// takes an `HttpClient`, for an application that brings its own.
     requires transitive java.net.http;
 
@@ -65,7 +62,7 @@ module dev.goldberry.media {
     exports dev.goldberry.media;
 
     /// A decoded picture, in either of the two forms a player hands a view:
-    /// converted to BGRA, or its planes as decoded (ADR-0483, ADR-0496).
+    /// converted to BGRA, or its planes as decoded.
     exports dev.goldberry.media.picture;
 
     /// What a track *is*, in Goldberry's words rather than FFmpeg's: the codec, the
@@ -101,7 +98,7 @@ module dev.goldberry.media {
             dev.goldberry.core;
 
     /// The catalog the weaver generates. The `provides` line is patched into the
-    /// compiled descriptor by the build (ADR-0131).
+    /// compiled descriptor by the build.
     uses dev.goldberry.widgets.markup.WidgetCatalog;
 
     /// A protocol an application brings, found by URI scheme.
@@ -111,7 +108,7 @@ module dev.goldberry.media {
     uses dev.goldberry.media.codec.DecoderProvider;
 
     /// What the operating system says its playback device's latency is, taken
-    /// off the audio clock (ADR-0474). CoreAudio's is below; an application may
+    /// off the audio clock. CoreAudio's is below; an application may
     /// bring another.
     uses dev.goldberry.media.audio.OutputLatency;
 
@@ -127,7 +124,7 @@ module dev.goldberry.media {
             dev.goldberry.media.platform.windows.MediaFoundationVideoProvider,
             dev.goldberry.media.platform.windows.MediaFoundationAudioProvider;
 
-    /// The default output device's latency, taken off the audio clock (ADR-0474).
+    /// The default output device's latency, taken off the audio clock.
     provides dev.goldberry.media.audio.OutputLatency with
             dev.goldberry.media.platform.macos.CoreAudioLatency;
 }

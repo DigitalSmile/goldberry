@@ -5,7 +5,8 @@ import java.util.Map;
 
 import dev.goldberry.stats.FrameStats;
 
-/// What one frame did to the element tree, for when a number on the `hud` needs
+/// What one frame did to the element tree: how many elements were built, resolved
+/// and invalidated, and where the time went. For when a number on the `hud` needs
 /// explaining.
 ///
 /// ```
@@ -13,17 +14,10 @@ import dev.goldberry.stats.FrameStats;
 /// ./gradlew :example:run -Dgoldberry.trace.frames=all    # and the quiet ones
 /// ```
 ///
-/// ## Why this is not logging
-///
-/// The stage timings ([FrameStats]) say *which*
-/// part of a frame is expensive. They cannot say why, and the two times that has
-/// mattered the answer was a count rather than a duration: the style cache
-/// missing on every element
-/// (ADR-0142),
-/// and a click invalidating the whole tree
-/// (ADR-0149).
-/// Both took a purpose-built probe and a counter compiled into the renderer to
-/// find. This is that counter, kept.
+/// The stage timings ([FrameStats]) say *which* part of a frame is expensive.
+/// They cannot say why, and the answer is usually a count rather than a
+/// duration: a style cache missing on every element, or a click invalidating the
+/// whole tree. These are those counts.
 ///
 /// **Off unless asked for**, and free when off: the counters are plain `int`
 /// increments behind one `static final boolean`, which the JIT folds away
@@ -32,6 +26,9 @@ import dev.goldberry.stats.FrameStats;
 /// away.
 ///
 /// Confined to the UI thread, like everything the frame loop touches.
+///
+/// Read more:
+/// [Per-frame timings at TRACE](https://goldberry.dev/docs/performance/measuring.html#per-frame-timings-at-trace).
 public final class FrameTrace {
 
     /// The property both readings come from: unset, `true`, or `all`.
@@ -40,9 +37,7 @@ public final class FrameTrace {
     /// Whether to count anything at all.
     ///
     /// A system property and not a log level: a diagnostic that costs an
-    /// `isTraceEnabled()` per element per frame would be measuring itself, which
-    /// is ADR-0101's
-    /// whole subject.
+    /// `isTraceEnabled()` per element per frame would be measuring itself.
     public static final boolean ENABLED = enabled(System.getProperty(TRACE_PROPERTY));
 
     /// Whether to report frames in which nothing happened.
@@ -54,11 +49,9 @@ public final class FrameTrace {
 
     /// Whether `value` asks for tracing at all.
     ///
-    /// **`all` implies `true`**, which is the whole reason this is a method. It
-    /// used to be `Boolean.getBoolean`, which is false for `all` — so the louder
-    /// of the two settings turned the quieter one off and `=all` printed nothing
-    /// whatsoever. A flag whose stronger form does less than its weaker one is
-    /// the kind of thing only a test catches, so there is one.
+    /// **`all` implies `true`**, which is the whole reason this is a method:
+    /// `Boolean.getBoolean` is false for `all`, and the louder of the two settings
+    /// must not turn the quieter one off.
     ///
     /// @param value the raw property, or null when it is unset
     static boolean enabled(String value) {
@@ -72,7 +65,7 @@ public final class FrameTrace {
         return "all".equalsIgnoreCase(value);
     }
 
-    /// One per element tree, made by it — there is nothing useful to do with a
+    /// One per element tree, made by it; there is nothing useful to do with a
     /// trace that is not attached to a tree.
     FrameTrace() {}
 
@@ -88,30 +81,28 @@ public final class FrameTrace {
     /// Elements walked by the render pass, whether or not they resolved.
     private int walked;
 
-    /// Nanoseconds inside the cascade — `StyleResolver.resolve` and turning its
+    /// Nanoseconds inside the cascade: `StyleResolver.resolve` and turning its
     /// tokens into a [dev.goldberry.css.ComputedStyle].
     private long cascadeNanos;
 
-    /// Nanoseconds spent keeping a style's identity — `restyle` and the value
-    /// comparison that decides whether the children can keep their caches
-    /// (ADR-0142).
+    /// Nanoseconds spent keeping a style's identity: `restyle` and the value
+    /// comparison that decides whether the children can keep their caches.
     private long identityNanos;
 
-    /// Nanoseconds in the transition overlay — observing a target, interpolating
+    /// Nanoseconds in the transition overlay: observing a target, interpolating
     /// what is in flight, and settling what has arrived.
     private long motionNanos;
 
-    /// Nanoseconds inside widgets' own `render` — building boxes, and measuring
+    /// Nanoseconds inside widgets' own `render`: building boxes, and measuring
     /// paragraphs that are not in the cache.
     private long boxNanos;
 
     /// Paragraphs this frame found in the cache, and paragraphs it had to shape.
     ///
-    /// A miss is 56 microseconds of HarfBuzz
-    /// (ADR-0037),
-    /// so a frame with a handful of them has spent more on text than on
-    /// everything else — and a *steady* trickle of them means something is
-    /// building a string per frame rather than reusing one.
+    /// A miss is about 56 microseconds of shaping, so a frame with a handful of
+    /// them has spent more on text than on everything else, and a *steady*
+    /// trickle of them means something is building a string per frame rather
+    /// than reusing one.
     private int textHits;
     private int textMisses;
 
@@ -141,7 +132,7 @@ public final class FrameTrace {
     }
 
     /// What asked for a **subtree** to be thrown away, and how many nodes went
-    /// with it — `column:ACTIVE → 61`.
+    /// with it: `column:ACTIVE → 61`.
     ///
     /// The interesting line. A frame that re-resolves everything says so here,
     /// with the node and the state that did it.

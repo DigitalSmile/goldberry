@@ -28,7 +28,7 @@ import dev.goldberry.widgets.Controls;
 import dev.goldberry.widgets.TestHost;
 import dev.goldberry.widgets.controls.TestFont;
 
-/// §10's month grid, driven the way a user drives it.
+/// The `calendar` month grid, driven the way a user drives it.
 ///
 /// The selection rules are [DateSelectionTest]'s and the grid arithmetic is
 /// [CalendarMonthTest]'s, both with no widget at all. What is here is everything
@@ -38,7 +38,7 @@ import dev.goldberry.widgets.controls.TestFont;
 ///
 /// **September 2026 throughout**, because a calendar that read the clock would be
 /// a test that failed at midnight — and the widget cannot read one anyway, which
-/// is the point of it being told (ADR-0274, ADR-0203).
+/// is the point of it being told.
 class CalendarTest {
 
     private static final YearMonth SEPTEMBER = YearMonth.of(2026, 9);
@@ -308,9 +308,8 @@ class CalendarTest {
             assertFalse(dayOf(tree, LocalDate.of(2026, 9, 7)).disabled());
         }
 
-        /// §4 asks for the bounds to gate "both the field and the grid, so an
-        /// unreachable date cannot be typed either" — `allows` is the one place
-        /// both ask.
+        /// The bounds gate both the field and the grid, so an unreachable date
+        /// cannot be typed either — `allows` is the one place both ask.
         @Test
         @DisplayName("a refused day reports nothing when it is pressed")
         void refusedPressIsSilent() {
@@ -401,7 +400,7 @@ class CalendarTest {
     @DisplayName("the month change")
     class CrossFade {
 
-        /// §3.1: "month change: content `opacity` cross-fade fast". The sweep in
+        /// A month change cross-fades the content's `opacity` on `fast`. The sweep in
         /// `AnimationSweepTest` requires this assertion to exist beside the widget
         /// that declares `isAnimating`, and it is what stops a calendar that
         /// stopped asking for frames from passing every golden unchanged.

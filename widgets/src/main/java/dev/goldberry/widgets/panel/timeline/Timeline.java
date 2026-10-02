@@ -15,8 +15,8 @@ import dev.goldberry.widget.attr.Attributes;
 import dev.goldberry.widgets.markup.Markup;
 import dev.goldberry.widgets.markup.Wiring;
 
-/// An ordered list of events along an axis — `docs/core-widgets.md` §10's
-/// `timeline`.
+/// An ordered list of events along an axis: a line with a marker, a label and
+/// an optional body for each event.
 ///
 /// ```kdl
 /// timeline pending=#true {
@@ -29,17 +29,18 @@ import dev.goldberry.widgets.markup.Wiring;
 ///
 /// ## What tells it from a list with dots
 ///
-/// §10 answers that in one sentence: "`pending=#true` renders a trailing
-/// unfilled marker for 'and then what happens next', which is what
-/// distinguishes a timeline from a list with dots." So the line runs *past*
-/// the last event when the story is not over, and stops at it when it is.
+/// `pending=#true` renders a trailing unfilled marker for "and then what
+/// happens next", which is what distinguishes a timeline from a list with dots.
+/// So the line runs *past* the last event when the story is not over, and stops
+/// at it when it is.
 /// Everything else here — a marker, a label, a timestamp, a body — is what a
 /// list row would carry too; the axis is the widget.
 ///
 /// ## The line is a drawing
 ///
-/// "Semantics: an ordered list — the connecting line is a drawing and is not
-/// announced." Each [Entry] is a row of the list with its label and time as
+/// To assistive technology a timeline is an ordered list; the connecting line
+/// is a drawing and is not announced. Each [Entry] is a row of the list with
+/// its label and time as
 /// its name; the rail beside it carries no semantics at all.
 ///
 /// ## `alternate` is a third column
@@ -52,8 +53,9 @@ import dev.goldberry.widgets.markup.Wiring;
 ///
 /// ## This node styles nothing
 ///
-/// `timeline` as a **CSS type** is [TimelineList], the node this one builds
-/// (ADR-0109).
+/// `timeline` as a **CSS type** is [TimelineList], the node this one builds. A
+/// stateful widget that also carried the type would put two `timeline` nodes in
+/// the cascade, and every rule would apply twice.
 ///
 /// @param children   the entries, as written; anything that is not an [Entry]
 ///                   is drawn in the list and left alone
@@ -61,11 +63,13 @@ import dev.goldberry.widgets.markup.Wiring;
 /// @param align      every entry on the same side of the axis, or alternating
 /// @param pending    whether the story goes on: a trailing unfilled marker
 /// @param attributes `id` and `class`, exactly as on every other widget
+///
+/// Read more: [Panels](https://goldberry.dev/docs/components/panels.html#timeline).
 @Markup("timeline")
 public record Timeline(List<Widget> children, Direction direction, Align align, boolean pending, Attributes attributes)
         implements Widget.Stateless, Attributed<Timeline> {
 
-    /// §10's `direction="vertical|horizontal"`.
+    /// Which way the axis runs: `direction="vertical|horizontal"`.
     public enum Direction {
         VERTICAL,
         HORIZONTAL;
@@ -75,7 +79,7 @@ public record Timeline(List<Widget> children, Direction direction, Align align, 
         }
     }
 
-    /// §10's `align="start|alternate"`.
+    /// Which side of the axis the entries sit on: `align="start|alternate"`.
     public enum Align {
         START,
         ALTERNATE;
@@ -85,7 +89,7 @@ public record Timeline(List<Widget> children, Direction direction, Align align, 
         }
     }
 
-    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    /// Written out so that the parameters taking null for a default can say so.
     public Timeline(
             @Nullable List<Widget> children,
             @Nullable Direction direction,

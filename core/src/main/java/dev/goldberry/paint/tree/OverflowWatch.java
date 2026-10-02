@@ -15,7 +15,7 @@ import dev.goldberry.paint.overflow.Overrun;
 /// line ran past its own edge, and the container that matters is the root: a
 /// control pushed off the edge of a window is the window's line overflowing.
 /// So the frame loop asks the root that one question, and this walk only runs
-/// when the answer is yes ([ADR-0375]).
+/// when the answer is yes.
 ///
 /// On the frames after that the walk runs every time, and it is a tree walk with
 /// one foreign call per node. That is the deliberate trade: a window that is
@@ -35,7 +35,7 @@ import dev.goldberry.paint.overflow.Overrun;
 /// - **Three more, and they are geometric rather than structural**, so they live
 ///   in [dev.goldberry.paint.overflow.Overrun#between]
 ///   where both rectangles are: a container with no size, a child that starts
-///   outside its container, and a pixel or two ([ADR-0394]).
+///   outside its container, and a pixel or two.
 final class OverflowWatch {
 
     private OverflowWatch() {}

@@ -12,7 +12,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 import dev.goldberry.natives.NativeLibraryRequirement;
 import dev.goldberry.natives.sdl.SdlVideo;
 
-/// `SDL_SystemTheme` — `docs/gaps.md` G26, ADR-0322.
+/// `SDL_SystemTheme`, the desktop's light-or-dark setting.
 ///
 /// The ordinals themselves are checked against the compiled SDL by the layout
 /// probe — every `SdlSystemTheme` is a row of `NativeConstants.registry()` — so

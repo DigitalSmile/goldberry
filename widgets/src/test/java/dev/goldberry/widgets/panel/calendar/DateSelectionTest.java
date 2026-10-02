@@ -14,8 +14,8 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
-/// §10's three selection models, with no widget — `TextEdit`'s arrangement and
-/// for its reason.
+/// The calendar's three selection models, with no widget — `TextEdit`'s
+/// arrangement and for its reason.
 ///
 /// Every rule about what pressing a day does is [DateSelection#with], and every
 /// one of them is here.
@@ -123,8 +123,8 @@ class DateSelectionTest {
             assertEquals(List.of(day(20)), next.dates());
         }
 
-        /// §2: "radius `full` on the selected day, range ends only". The ends are
-        /// `contains` and the middle is `covers`, which is what lets the
+        /// The `full` radius goes on the selected day and on a range's ends only.
+        /// The ends are `contains` and the middle is `covers`, which is what lets the
         /// stylesheet round one and leave the other square with no exception.
         @Test
         @DisplayName("the ends are chosen dates and the middle is only covered")

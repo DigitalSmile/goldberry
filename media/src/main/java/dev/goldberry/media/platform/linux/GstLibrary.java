@@ -18,9 +18,10 @@ import java.util.Set;
 /// (`gst_app_src_get_current_level_buffers`), so any maintained distribution has
 /// what they need. Nothing is built or shipped.
 ///
-/// The binding classes follow `:media`'s idiom (ADR-0173), as the macOS ones do:
-/// each function's unbound handle is a `private static final` constant, linked
-/// once, and its address is a field found in the loaded library (ADR-0161).
+/// The binding classes follow `:media`'s idiom, as the macOS ones do: each
+/// function's unbound handle is a `private static final` constant, linked once,
+/// and its address is a field found in the loaded library. A constant handle is
+/// what lets a native image compile the call rather than interpret it.
 enum GstLibrary {
     GLIB("libglib-2.0.so.0"),
     GSTREAMER("libgstreamer-1.0.so.0"),
@@ -30,7 +31,7 @@ enum GstLibrary {
     private static final Linker LINKER = Linker.nativeLinker();
 
     /// Every descriptor linked so far, in the order linked, for the native-image
-    /// metadata `MediaForeignMetadata` writes (ADR-0339).
+    /// metadata `MediaForeignMetadata` writes.
     private static final Set<FunctionDescriptor> LINKED = new LinkedHashSet<>();
 
     private final String soname;

@@ -10,7 +10,7 @@ import dev.goldberry.widgets.panel.masonry.Masonry;
 /// Once and not per build: a document does not change while the window is open,
 /// and re-parsing a file on every rebuild would put a tokenizer on the frame
 /// path. What comes out is an ordinary widget — the element tree cannot tell it
-/// came from markup, which is the whole point of §9.
+/// came from markup, which is the whole point of markup.
 ///
 /// ## What is in markup and what is not
 ///
@@ -19,31 +19,30 @@ import dev.goldberry.widgets.panel.masonry.Masonry;
 /// Java at all, and a designer can move a card or rename a class in them without
 /// a compiler.
 ///
-/// What is **not** here is not missing — each absence is a sentence about §8's
+/// What is **not** here is not missing — each absence is a sentence about
 /// markup being *data*:
 ///
 /// - **The Basic screen's prose card** is in the tree only while a checkbox says
 ///   so, and its road card disables Turn back when the count is zero. Markup has
 ///   no expressions and is not going to grow any: `disabled=#true` is a constant,
 ///   and a document that could evaluate `clicks == 0` would be code in a data
-///   file with no stack trace when it went wrong ([ADR-0062]).
+///   file with no stack trace when it went wrong.
 /// - **The Overlays screen's banners** are a list the application edits — one
-///   arrives when something describes it and goes when the description stops
-///   ([ADR-0175]).
+///   arrives when something describes it and goes when the description stops.
 /// - **The Forms screen's three choosers** each need a channel a document does
 ///   not have: a `multiple` holds a set the application toggles, an
 ///   `autocomplete` renders whatever options it is handed *back*, and a `tree`'s
-///   model is nodes with suppliers under them ([ADR-0182], [ADR-0183],
-///   [ADR-0184]).
+///   model is nodes with suppliers under them.
 /// - **The Navigation and Collections screens** hold lists that change while the
 ///   window is open, and KDL can write three chapters rather than "however many
-///   the model has" ([ADR-0109]).
+///   the model has".
 /// - **The Charts screen** is series data, which is `double[]` and not text.
 ///
 /// So a screen is a document *and* a class rather than one or the other, and the
 /// wall is where they meet: the document supplies the cards it can and Java
-/// appends the rest to the same masonry
-/// (ADR-0222).
+/// appends the rest to the same masonry.
+///
+/// Read more: [Inflating a document](https://goldberry.dev/docs/applications.html#inflating-a-document).
 public final class Panes {
 
     private Panes() {}
@@ -54,13 +53,13 @@ public final class Panes {
         return inflate(inflater, "statusbar.kdl");
     }
 
-    /// The **Basic** screen's cards: §1's type scale, and every §3 control whose
+    /// The **Basic** screen's cards: the type scale, and every control whose
     /// value is a state or a number.
     public static Masonry basic(KdlInflater<Widget> inflater) {
         return wallOf(inflater, "basic.kdl");
     }
 
-    /// The **Panels** screen's cards: §5's containers.
+    /// The **Panels** screen's cards: the containers.
     ///
     /// The only wall in the gallery with nothing appended to it. Nothing on that
     /// screen holds a value — they are all containers — so it needs no `bind=`,
@@ -76,7 +75,7 @@ public final class Panes {
         return wallOf(inflater, "overlays.kdl");
     }
 
-    /// The **Forms** screen's cards: §4's fields, in every state they have.
+    /// The **Forms** screen's cards: the fields, in every state they have.
     public static Masonry forms(KdlInflater<Widget> inflater) {
         return wallOf(inflater, "forms.kdl");
     }

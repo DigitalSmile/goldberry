@@ -18,8 +18,8 @@ import dev.goldberry.widgets.panel.calendar.DateSelection;
 /// What a `date-picker`'s field says and what it makes of what was typed —
 /// with no widget, no font and no frame.
 ///
-/// **ISO throughout**, and deliberately: §4 says the toolkit does not invent a
-/// date syntax, so a test that asserted `01/09/2026` would be asserting a
+/// **ISO throughout**, and deliberately: the toolkit does not invent a date
+/// syntax, so a test that asserted `01/09/2026` would be asserting a
 /// `java.time` locale table rather than anything this class decides. What this
 /// class does decide is the *range* separator and what happens to text that does
 /// not parse, and those are what is here.
@@ -134,7 +134,7 @@ class DateFormatTest {
     @DisplayName("the default")
     class LocaleDefault {
 
-        /// §4: "defaulting to the locale's short form". Asserted against
+        /// The default is the locale's short form. Asserted against
         /// `java.time`'s own answer rather than against a literal, for the reason
         /// in the class note.
         @Test

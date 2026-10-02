@@ -1,10 +1,11 @@
-# macOS CI (ADR-0012)
+# macOS CI
+# https://goldberry.dev/docs/contributing/testing.html#the-ci-matrix
 #
 # One target, `macos-aarch64`, on an Apple Silicon runner. Intel Macs were
-# dropped from the matrix (ADR-0041); Xcode would still cross-target them with
+# dropped from the matrix; Xcode would still cross-target them with
 # CMAKE_OSX_ARCHITECTURES=x86_64 from this same runner if that changes.
 #
-# This is also the leg that made ADR-0011 untenable and ADR-0012 necessary --
+# This is also the leg that ruled out cross-compiling from one runner --
 # SDL3's macOS backend needs the Cocoa, Metal, and CoreText frameworks, whose
 # headers ship only in Apple's SDK, and that SDK's licence restricts it to Apple
 # hardware. On a real macOS runner the question does not arise.
@@ -13,7 +14,7 @@
 # and on a push to master that is the only way this runs. There is no `push`
 # trigger: snapshot.yml calls this workflow on every push and publishes the
 # library it built, so a trigger here would build every native library twice per
-# commit and publish neither (ADR-0334). Pull requests still run it directly.
+# commit and publish neither. Pull requests still run it directly.
 #
 # STATUS: green. The library builds and the layout check passes against the
 # downloaded dylib, so the Mach-O branch of the export machinery
@@ -28,7 +29,7 @@ on:
 
 # Upstream refs are deliberately absent. The superbuild reads them straight out
 # of gradle/libs.versions.toml, which is the only place any of them is written
-# down (ADR-0035). They used to be duplicated here because the manylinux
+# down. They used to be duplicated here because the manylinux
 # container has no JDK -- but reading the catalog never needed a JDK, only
 # something that can parse a text file, and CMake can.
 
@@ -75,7 +76,7 @@ jobs:
     name: Verify layouts (macos-aarch64)
     needs: natives
     # Runs even if the build job failed, so that a missing artifact fails at the
-    # download step below rather than skipping this job silently (ADR-0016).
+    # download step below rather than skipping this job silently.
     if: ${{ !cancelled() }}
     runs-on: macos-14
     steps:
@@ -92,8 +93,8 @@ jobs:
       # No C/C++ toolchain is set up in this job, and none is wanted: passing
       # `goldberry.native.library` tells Gradle to verify the downloaded artifact
       # rather than build a rival one, and `goldberry.native.required` turns a
-      # test that would have skipped for want of a library into a failure
-      # (ADR-0016).
+      # test that would have skipped for want of a library into a failure.
+      # https://goldberry.dev/docs/contributing/testing.html#with-and-without-the-library
       - run: |
           ./gradlew :natives:test --no-daemon \
             -Dgoldberry.native.library="$PWD/native-lib/libgoldberry.dylib" \
@@ -115,8 +116,8 @@ jobs:
             -Dgoldberry.native.library="$PWD/native-lib/libgoldberry.dylib" \
             -Dgoldberry.native.required=true
 
-      # The GPU tests, on Metal if this runner has it (docs/gpu-plan.md, phase 2;
-      # ADR-0475). Not required: whether GitHub's macOS VMs expose Metal is not
+      # The GPU tests, on Metal if this runner has it.
+      # Not required: whether GitHub's macOS VMs expose Metal is not
       # known yet, so a runner without a device skips and says why in the
       # summary. The Linux legs run the same tests on lavapipe, required. When a
       # run here shows a device, this becomes -Dgoldberry.gpu.required=true.

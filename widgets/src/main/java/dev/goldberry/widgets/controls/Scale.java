@@ -4,25 +4,30 @@ import org.jspecify.annotations.Nullable;
 
 /// The curve between a control's **value** and its **position** along its track.
 ///
-/// [dev.goldberry.widgets.controls.slider.Slider] places its thumb at a fraction
-/// of the travel and reads the pointer
-/// back the same way ([ADR-0079]). Both directions go through here, so a control
-/// whose value is not linear in what the ear or the eye does with it can say so
-/// without any other part of the widget changing.
+/// ```kdl
+/// slider scale="db" max=1 bind="audio.gain" change="audio.set-gain"
+/// ```
 ///
-/// `docs/core-widgets.md` §3 asks for exactly one of these — "`fader` = vertical
-/// variant with **optional dB scale mapping**" — and `knob`'s "taper" is the same
-/// thing again, which is why this is an interface rather than a boolean on the
-/// fader (ADR-0080).
+/// In Java, `Slider.of(...).scale(Scale.decibels())`. [#LINEAR] is the default
+/// and needs no saying; [#decibels()] is the mixing-desk fader, with silence at
+/// the bottom of the travel and unity gain at the top.
+///
+/// [dev.goldberry.widgets.controls.slider.Slider] places its thumb at a fraction
+/// of the travel and reads the pointer back the same way, so both directions go
+/// through here. A control whose value is not linear in what the ear or the eye
+/// does with it can say so without any other part of the widget changing, and
+/// the one scale serves a horizontal slider, a vertical fader and anything else
+/// that measures a value along a part.
 ///
 /// ## Why it is a value and not a function
 ///
 /// A [java.util.function.DoubleUnaryOperator] would be the obvious spelling and
-/// is the wrong one: a widget is a **record**, and §11's parity invariant asserts
-/// that the Java-built and KDL-built forms of a control are `equals`. Two lambdas
-/// doing the same arithmetic never are. A sealed interface over records is, so
-/// `scale="db"` in markup and [#decibels()] in Java produce the same value
-/// ([ADR-0059]).
+/// is the wrong one: a widget is a **record**, and the Java-built and KDL-built
+/// forms of a control have to be `equals`. Two lambdas doing the same arithmetic
+/// never are. A sealed interface over records is, so `scale="db"` in markup and
+/// [#decibels()] in Java produce the same value.
+///
+/// Read more: [Values and progress](https://goldberry.dev/docs/components/values.html#slider).
 public sealed interface Scale {
 
     /// Where a value sits along the travel, `0..1`.
@@ -55,16 +60,16 @@ public sealed interface Scale {
     /// cycle from opposite ends deadlock.
     ///
     /// It cannot happen here, and the reason is architectural rather than lucky:
-    /// widgets are built on the UI thread and only the UI thread (ADR-0020), so
-    /// there is never a second thread to enter from. Restructuring into a holder
+    /// widgets are built on the UI thread and only the UI thread, so there is
+    /// never a second thread to enter from. Restructuring into a holder
     /// class would move the constant somewhere no reader looks for it, to fix a
     /// race this toolkit does not permit.
     @SuppressWarnings("ClassInitializationDeadlock")
     Scale LINEAR = new Linear();
 
     /// A fader in **decibels** over a linear gain, with silence at the bottom of
-    /// the travel and unity at the top — `docs/core-widgets.md` §3's "dB scale
-    /// mapping", and [#decibels(double)] with the usual −60 dB floor.
+    /// the travel and unity at the top — what `scale="db"` names in markup, and
+    /// [#decibels(double)] with the usual −60 dB floor.
     static Scale decibels() {
         return new Decibels(-60);
     }
@@ -78,9 +83,9 @@ public sealed interface Scale {
 
     /// The scale a document named, strictly.
     ///
-    /// Strict for the reason every §9 registry is: `scale="dB"` resolving quietly
-    /// to linear would give a fader that works and is wrong, which is the failure
-    /// a typo in markup should never be able to produce ([ADR-0062]).
+    /// Strict for the reason every markup lookup is: `scale="dB"` resolving
+    /// quietly to linear would give a fader that works and is wrong, which is the
+    /// failure a typo in markup should never be able to produce.
     static Scale of(@Nullable String token) {
         if (token == null || token.isEmpty() || token.equals(LINEAR.token())) {
             return LINEAR;
@@ -113,7 +118,7 @@ public sealed interface Scale {
 
     /// Position is **linear in decibels**, value is linear in amplitude.
     ///
-    /// The mapping a mixing desk's fader has, and the reason §3 asks for it: a
+    /// The mapping a mixing desk's fader has, and the reason a fader wants it: a
     /// gain of 0.5 is 6 dB down, which is a small part of the way down a fader
     /// and *half* the way down a linear slider. Placing gain linearly gives a
     /// control whose useful range is the top inch of its travel.

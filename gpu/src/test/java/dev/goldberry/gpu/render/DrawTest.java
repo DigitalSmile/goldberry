@@ -30,8 +30,8 @@ import dev.goldberry.natives.sdl.gpu.enums.SdlGpuTextureFormat;
 import dev.goldberry.natives.sdl.gpu.enums.SdlGpuTextureUsage;
 import dev.goldberry.natives.sdl.gpu.enums.SdlGpuTransferUsage;
 
-/// The toolkit's shaders drawing into a texture that is read back: phase 2's
-/// exit (`docs/gpu-plan.md`). On Metal here, on lavapipe on the GPU lane.
+/// The toolkit's shaders drawing into a texture that is read back. On Metal
+/// here, on lavapipe on the GPU lane.
 ///
 /// The UI quad is the one that matters most: a texture copied 1:1 through
 /// [BuiltInShader#TEXTURE_FRAGMENT] with a nearest sampler must come back byte
@@ -59,7 +59,7 @@ class DrawTest {
     @AfterAll
     static void destroyDevice() {
         // Skipped before SDL was reached: nothing to give back, and no library to
-        // call. Calling it anyway failed the class, and a build without it (ADR-0495).
+        // call. Calling it anyway failed the class, and a build without it.
         if (device == null) {
             return;
         }
@@ -138,7 +138,7 @@ class DrawTest {
             commands.submit();
             var back = readBack(target);
             // B = 255 × (1 − 128/255) = 127, R = 128, A = 128 + 255 × (1 − 128/255) = 255,
-            // within ADR-0050's tolerance of 2 in 256.
+            // within the golden tolerance of 2 in 256.
             assertNear(127, back[0], "blue");
             assertNear(0, back[1], "green");
             assertNear(128, back[2], "red");

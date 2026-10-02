@@ -7,10 +7,13 @@ import java.util.List;
 /// The registry of hand-written struct layouts.
 ///
 /// Every layout declared here is checked against the compiled library by
-/// [LayoutVerifier]. That check is what makes hand-writing bindings defensible
-/// (ADR-0010), so **a layout added to the bindings must be added here, and its C
-/// type must be registered in `goldberry_shim.c`.** A layout in one place and
-/// not the other is a test failure by design.
+/// [LayoutVerifier]. That check is what makes hand-writing bindings defensible,
+/// so **a layout added to the bindings must be added here, and its C type must
+/// be registered in `goldberry_shim.c`.** A layout in one place and not the
+/// other is a test failure by design.
+///
+/// Read more:
+/// [Repository layout](https://goldberry.dev/docs/contributing/repository.html#the-export-list-and-the-layout-probe).
 public final class Layouts {
 
     /// The canary.
@@ -151,7 +154,7 @@ public final class Layouts {
     ///
     /// Read for `x` and `y`, which are **window-relative and already logical** —
     /// SDL reports pointer positions in window coordinates, which is the space
-    /// §7 dispatches in.
+    /// input is dispatched in.
     public static final NativeStructLayout SDL_MOUSE_MOTION_EVENT = new NativeStructLayout(
             "SDL_MouseMotionEvent",
             MemoryLayout.structLayout(
@@ -249,8 +252,8 @@ public final class Layouts {
     /// ```
     ///
     /// `key` is the virtual keycode — what the layout says the key means — and
-    /// `scancode` is the physical position. §7.1 keeps both, because a shortcut
-    /// wants the letter and a game wants the position.
+    /// `scancode` is the physical position. The toolkit keeps both, because a
+    /// shortcut wants the letter and a game wants the position.
     public static final NativeStructLayout SDL_KEYBOARD_EVENT = new NativeStructLayout(
             "SDL_KeyboardEvent",
             MemoryLayout.structLayout(
@@ -286,7 +289,7 @@ public final class Layouts {
                     MemoryLayout.paddingLayout(4),
                     ValueLayout.ADDRESS.withName("text")));
 
-    /// A file or text dropped on a window — `docs/gaps.md` G35b, [ADR-0330].
+    /// A file or text dropped on a window.
     ///
     /// ```c
     /// typedef struct SDL_DropEvent {
@@ -297,7 +300,7 @@ public final class Layouts {
     /// ```
     ///
     /// `data` is the file name for `SDL_EVENT_DROP_FILE`, one line of the text for
-    /// `SDL_EVENT_DROP_TEXT` ([ADR-0408]), and NULL for the begin, position and
+    /// `SDL_EVENT_DROP_TEXT`, and NULL for the begin, position and
     /// complete events. It points into SDL's own memory and is valid only until
     /// the next pump, exactly as `SDL_TextInputEvent.text` is.
     ///
@@ -387,7 +390,7 @@ public final class Layouts {
     ///
     /// Read for one field. `refresh_rate` is what tells the frame loop how often
     /// the display can actually show a frame, and without it the loop paints
-    /// frames that are never scanned out (ADR-0047).
+    /// frames that are never scanned out.
     ///
     /// `refresh_rate` is a float and may be `0.0f` for "unspecified" — which is
     /// not an error, and is why the caller treats it as "do not pace" rather than
@@ -422,7 +425,7 @@ public final class Layouts {
     /// typedef struct SDL_AudioSpec { SDL_AudioFormat format; int channels; int freq; } SDL_AudioSpec;
     /// ```
     ///
-    /// What `goldberry-media`'s audio stream is opened with (ADR-0461).
+    /// What `goldberry-media`'s audio stream is opened with.
     /// `SDL_AudioFormat` is an enum, so an `int`.
     public static final NativeStructLayout SDL_AUDIO_SPEC = new NativeStructLayout(
             "SDL_AudioSpec",
@@ -459,7 +462,7 @@ public final class Layouts {
     /// ```
     ///
     /// Nine 32-bit fields: two enums, a flag word, five counts and a property
-    /// group id (`docs/gpu-plan.md`, phase 1).
+    /// group id.
     public static final NativeStructLayout SDL_GPU_TEXTURE_CREATE_INFO = new NativeStructLayout(
             "SDL_GPUTextureCreateInfo",
             MemoryLayout.structLayout(
@@ -914,8 +917,7 @@ public final class Layouts {
     /// A row of its own rather than a comment, because `BlendPath` allocates by
     /// this size and a path is the first Blend2D object Goldberry builds
     /// *incrementally* — hundreds of `bl_path_*` calls against one segment. An
-    /// undersized allocation would be written past on the first `move_to`
-    /// (ADR-0043).
+    /// undersized allocation would be written past on the first `move_to`.
     public static final NativeStructLayout BL_PATH_CORE = new NativeStructLayout(
             "BLPathCore", MemoryLayout.structLayout(MemoryLayout.sequenceLayout(2, ValueLayout.JAVA_LONG)));
 
@@ -962,7 +964,7 @@ public final class Layouts {
     ///
     /// All zeros means a synchronous context on the calling thread, which is
     /// what Goldberry asks for today. `thread_count` is the knob behind
-    /// Blend2D's banded multithreading (ADR-0002) and is deliberately left at
+    /// Blend2D's banded multithreading and is deliberately left at
     /// zero until there is a frame worth measuring.
     public static final NativeStructLayout BL_CONTEXT_CREATE_INFO = new NativeStructLayout(
             "BLContextCreateInfo",
@@ -1003,9 +1005,7 @@ public final class Layouts {
     /// position in the coordinate space. Half a source pixel is not a thing an
     /// image has.
     ///
-    /// Added for `Frame.drawImage`'s crop (ADR-0283). The C probe reported this
-    /// struct from the beginning — see `goldberry_shim.c` — so the row was
-    /// verified on all four targets before anything in Java named it.
+    /// Used by `Frame.drawImage`'s crop.
     public static final NativeStructLayout BL_RECT_I = new NativeStructLayout(
             "BLRectI",
             MemoryLayout.structLayout(
@@ -1075,7 +1075,7 @@ public final class Layouts {
     /// A row of its own for [#BL_PATH_CORE]'s reason and one more: a gradient is
     /// built incrementally too — `init_as` and then a stop per call — and it is
     /// the first Blend2D object Goldberry constructs *inside a paint pass*
-    /// rather than once at start-up (ADR-0207).
+    /// rather than once at start-up.
     public static final NativeStructLayout BL_GRADIENT_CORE = new NativeStructLayout(
             "BLGradientCore", MemoryLayout.structLayout(MemoryLayout.sequenceLayout(2, ValueLayout.JAVA_LONG)));
 
@@ -1111,7 +1111,7 @@ public final class Layouts {
     /// and `(x1, y1, r1)` is the focal circle where the first one does — SVG's
     /// `cx`/`cy`/`r` and `fx`/`fy`/`fr`. A COLRv1 radial is the same two-circle
     /// gradient with its circles the other way round, so the one place they are
-    /// swapped is the one place a test can see it (ADR-0456).
+    /// swapped is the one place a test can see it.
     public static final NativeStructLayout BL_RADIAL_GRADIENT_VALUES = new NativeStructLayout(
             "BLRadialGradientValues",
             MemoryLayout.structLayout(
@@ -1131,7 +1131,7 @@ public final class Layouts {
     /// Four doubles like [#BL_LINEAR_GRADIENT_VALUES], in a different order and
     /// meaning — which is exactly the mix-up a `const void*` cannot catch.
     /// `repeat` is how many times the ramp goes round in one turn; one, for a
-    /// COLRv1 sweep (ADR-0456).
+    /// COLRv1 sweep.
     public static final NativeStructLayout BL_CONIC_GRADIENT_VALUES = new NativeStructLayout(
             "BLConicGradientValues",
             MemoryLayout.structLayout(
@@ -1193,7 +1193,7 @@ public final class Layouts {
     ///
     /// The units are **font design units**, because Blend2D multiplies these by
     /// the font matrix — see
-    /// [ADR-0034][dev.goldberry.natives.blend2d.BlendFont].
+    /// [BlendFont][dev.goldberry.natives.blend2d.BlendFont].
     public static final NativeStructLayout BL_GLYPH_PLACEMENT = new NativeStructLayout(
             "BLGlyphPlacement",
             MemoryLayout.structLayout(
@@ -1238,8 +1238,8 @@ public final class Layouts {
     /// A build fact rather than a runtime one, exactly like [SdlVersion][
     /// dev.goldberry.natives.sdl.SdlVersion]: the library is
     /// statically linked, so there is no system Blend2D to disagree with. It
-    /// matters more than it used to — the ref is now a commit SHA (ADR-0030),
-    /// and this is how a bug report says which one.
+    /// matters because the ref is a commit SHA, and this is how a bug report
+    /// says which one.
     ///
     /// `compiler_info` is a fixed 32-byte char array, not a pointer.
     public static final NativeStructLayout BL_RUNTIME_BUILD_INFO = new NativeStructLayout(

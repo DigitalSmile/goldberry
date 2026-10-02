@@ -21,18 +21,19 @@ import dev.goldberry.widgets.panel.tree.Tree;
 import dev.goldberry.widgets.panel.tree.TreeNode;
 import dev.goldberry.widgets.text.Text;
 
-/// The **Collections** screen: §10's three widgets that hold many rows — a
+/// The **Collections** screen: the three widgets that hold many rows — a
 /// `list`, a `table` and a `tree`.
 ///
 /// One screen and three cards, because what is worth comparing is how each of
 /// them answers *scale*: a list virtualizes, a table sorts, and a tree fetches.
 /// None of the three does the work itself — the list is handed a row height, the
 /// table is handed an order, and the tree is handed a supplier — which is the
-/// single sentence this screen exists to make ([ADR-0213], [ADR-0214],
-/// [ADR-0212]).
+/// single sentence this screen exists to make.
 ///
 /// Three cards and three states, for [Notifications]'s reason: a masonry places
 /// by column height, and each of these owns a selection the other two never read.
+///
+/// Read more: [Collections](https://goldberry.dev/docs/components/collections.html).
 public final class Collections {
 
     private Collections() {}
@@ -46,7 +47,7 @@ public final class Collections {
         return new Text(text, Attributes.NONE.classes("caption"));
     }
 
-    /// §10's virtualization: ten thousand rows and a viewport that builds the
+    /// A `list`'s virtualization: ten thousand rows and a viewport that builds the
     /// dozen it can see.
     record Leagues() implements Widget.Stateful {
 
@@ -104,7 +105,7 @@ public final class Collections {
         }
     }
 
-    /// §10's table: the same rows with a cell per column, and a sort the
+    /// The `table`: the same rows with a cell per column, and a sort the
     /// application does.
     record Company() implements Widget.Stateful {
 
@@ -149,8 +150,7 @@ public final class Collections {
 
             /// The Name column's width once somebody has dragged it, or NaN while
             /// it still takes its share. Kept here, like the sort, because a
-            /// column's width is the application's to save and put back
-            /// (ADR-0361).
+            /// column's width is the application's to save and put back.
             private double nameWidth = Double.NaN;
 
             private void resize(String column, double width) {
@@ -227,7 +227,7 @@ public final class Collections {
         }
     }
 
-    /// §10's tree, standing on its own rather than inside a `select`'s popup —
+    /// The `tree`, standing on its own rather than inside a `select`'s popup —
     /// and with **boxes** on it, which is the thing a popup tree has no room for.
     record Realms() implements Widget.Stateful {
 

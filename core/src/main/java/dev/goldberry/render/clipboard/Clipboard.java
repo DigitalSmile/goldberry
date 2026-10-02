@@ -5,19 +5,23 @@ import java.util.Map;
 
 import dev.goldberry.render.Backend;
 
-/// The session's clipboard, as the toolkit sees it.
+/// The session's clipboard, as the toolkit sees it: read the text, write the
+/// text, ask whether there is any, and offer or read bytes under a MIME type.
 ///
-/// The facility `docs/ARCHITECTURE.md` §4 listed and [Backend] deliberately left
-/// out until something needed it (ADR-0019). `text-input` needs it, and what it
-/// needs is exactly this: read the text, write the text, ask whether there is
-/// any.
+/// ```java
+/// var clipboard = host.clipboard();
+/// if (clipboard.hasText()) {
+///     field.insert(clipboard.text());
+/// }
+/// clipboard.write("image/png", pngBytes);
+/// ```
 ///
 /// ## Text, and bytes under a MIME type
 ///
 /// Text is a value and the rest of a clipboard is a **transfer negotiation**: the
 /// owning application advertises the types it can produce and is asked to produce
 /// one when somebody pastes. That is why the two halves of this interface do not
-/// look alike — [#text(String)] copies, and [#write(Map)] offers (ADR-0286).
+/// look alike — [#text(String)] copies, and [#write(Map)] offers.
 ///
 /// The byte half is deliberately *not* typed. A clipboard carries an image, a
 /// document's own format, a file list and whatever else two applications have
@@ -30,8 +34,7 @@ import dev.goldberry.render.Backend;
 /// A **file list** goes the same way. `text/uri-list` is bytes under a type like
 /// anything else, and what turns those bytes into names is [UriList] — a value
 /// beside this interface rather than a method on it, because percent-decoding a
-/// URI is not something a backend should have an opinion about either
-/// ([ADR-0406]).
+/// URI is not something a backend should have an opinion about either.
 ///
 /// Every byte method has a **default that does nothing**, so a backend with no
 /// data clipboard — or one written before this existed — is honest rather than
@@ -43,7 +46,7 @@ import dev.goldberry.render.Backend;
 /// and Wayland carries it too. It is not this interface, and not a method on it:
 /// it is [PrimarySelection], which [Backend#primarySelection()] offers only where
 /// the platform has one — so `Ctrl+C` and `Ctrl+V` here mean the same thing on
-/// every platform, and a selection never replaces what was copied ([ADR-0504]).
+/// every platform, and a selection never replaces what was copied.
 ///
 /// ## Not a `Property`, and not watched
 ///
@@ -63,6 +66,8 @@ import dev.goldberry.render.Backend;
 /// what the platform already knows.
 ///
 /// Confined to the UI thread, like everything else in this package.
+///
+/// Read more: [Text, fonts and icons](https://goldberry.dev/docs/guide/text.html#the-clipboard).
 public interface Clipboard {
 
     /// Whether the clipboard holds any text.
@@ -112,7 +117,7 @@ public interface Clipboard {
     /// Cheap, like [#has]. What it is **for** is the failing case: a paste that
     /// found no image needs to be able to say whether there was nothing there at
     /// all or something in a format this toolkit cannot read, and those are the
-    /// same answer from [#has] alone (ADR-0286).
+    /// same answer from [#has] alone.
     ///
     /// Empty when the platform cannot say, which is not the same as an empty
     /// clipboard — some platforms report the text half here and some do not.

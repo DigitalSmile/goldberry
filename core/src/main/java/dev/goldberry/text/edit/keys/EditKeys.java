@@ -7,32 +7,33 @@ import org.jspecify.annotations.Nullable;
 import dev.goldberry.input.event.KeyEvent;
 import dev.goldberry.input.key.PrimaryModifier;
 
-/// The editing key map — the whole of it, in one place.
+/// The editing key map: what a key asks an editor to do.
 ///
-/// ## Why this exists
+/// ```java
+/// @Override
+/// public void onKey(KeyEvent event) {
+///     var command = EditKeys.of(event, EditSurface.FIELD);
+///     if (command != null && perform(command)) {
+///         event.consume();
+///     }
+/// }
+/// ```
 ///
-/// Three editors ship in this toolkit and each had its own copy of this table:
-/// [dev.goldberry.text.edit.Editor], `text-input`'s
-/// `TextField` and `text-area`'s `TextAreaBox`. They agreed key for key because
-/// each was written by reading the last, which is agreement by inheritance
-/// rather than by construction — and a toolkit whose two editors disagree about
-/// what `Ctrl+Shift+Z` does is a toolkit with a bug in one of them
-/// ([ADR-0376]).
+/// One table serves `text-input`, `text-area` and the canvas `Editor`, so the
+/// three cannot disagree about what `Ctrl+Shift+Z` does. The accelerators —
+/// select all, copy, cut, paste, undo and redo — are on the desktop's own
+/// modifier, `Cmd` on macOS and `Ctrl` elsewhere; word movement stays on `Ctrl`
+/// everywhere. Arrows move by character or, with `Ctrl`, by word; `Home` and
+/// `End` are the ends of the visual line, or of the whole text with `Ctrl`;
+/// `Shift` with any movement extends the selection. What `Up`, `Down`, the page
+/// keys and `Enter` mean depends on the [EditSurface].
 ///
-/// Converging the *editors* would mean the controls holding an
-/// [dev.goldberry.text.edit.Editor] instead of their own state
-/// machines, which is a rewrite of two controls with a hundred golden images
-/// behind them. Converging the *keyboard* costs this file, because the keyboard
-/// was the part that was identical.
+/// The map decides only what a key asked for. Whether the editor is read-only,
+/// whether it has a selection, whether the clipboard holds anything, and whether
+/// to consume the key are each editor's own answers; [EditCommand.Simple#isEdit()]
+/// is the one piece of that which is shared.
 ///
-/// ## What it does not decide
-///
-/// Whether the editor is read-only, whether it has a selection, whether the
-/// clipboard has anything in it, or whether the key should be consumed. This
-/// answers one question — what did that key ask for — and every editor answers
-/// the rest for itself. [EditCommand.Simple#isEdit()] is the one piece of that
-/// which is shared, because "which of these change the text" was the other list
-/// being kept in three places.
+/// Read more: [Fields and forms](https://goldberry.dev/docs/components/forms.html#keyboard).
 public final class EditKeys {
 
     private EditKeys() {}
@@ -43,7 +44,7 @@ public final class EditKeys {
     /// Null is the important half of the contract: `Tab` still moves focus,
     /// `Escape` still closes what it closes, and `Enter` in a field still reaches
     /// the form's default button — every one of those is a key an editor must
-    /// *not* take.
+    /// not take. Only a press produces a command; a release never does.
     public static @Nullable EditCommand of(KeyEvent event, EditSurface surface) {
         Objects.requireNonNull(event, "event");
         Objects.requireNonNull(surface, "surface");
@@ -53,10 +54,10 @@ public final class EditKeys {
         var modifiers = event.modifiers();
         var word = modifiers.control();
         var extend = modifiers.shift();
-        // The accelerators are on the **platform's** modifier -- `Cmd+C` on
-        // macOS, `Ctrl+C` elsewhere (ADR-0378). Word movement stays on `Ctrl`,
-        // which is what it is on Linux and Windows; macOS's own `Alt+Left` is a
-        // second map and its own entry.
+        // The accelerators are on the desktop's own modifier -- `Cmd+C` on
+        // macOS, `Ctrl+C` elsewhere. Word movement stays on `Ctrl`, which is
+        // what it is on Linux and Windows; macOS's own `Alt+Left` would be a
+        // second map.
         var accelerator = modifiers.has(PrimaryModifier.current());
 
         // The accelerators first, so `Ctrl+A` is "select all" here rather than

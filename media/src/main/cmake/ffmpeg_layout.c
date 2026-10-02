@@ -1,9 +1,9 @@
 /*
- * The layout probe for goldberry-media (docs/goldberry-media.md §2).
+ * The layout probe for goldberry-media.
  *
  * Prints, as a Java properties file, the size and alignment of every FFmpeg
- * struct the Engine touches and the offset and size of every field in the §2
- * table, plus the library majors and the handful of constants the Java side
+ * struct the Engine touches and the offset and size of every field the Java
+ * side reads, plus the library majors and the handful of constants the Java side
  * hard-codes. The media superbuild compiles and runs it once per platform and
  * packages the output beside the libraries; `FfmpegLayouts` in Java is checked
  * against it by a unit test and again, once, before the Engine touches a struct.
@@ -135,7 +135,7 @@ int main(int argc, char **argv) {
     FIELD(AVCodecContext, pkt_timebase);
     FIELD(AVCodecContext, hw_device_ctx);
 
-    /* Phase 5, hardware decode (ADR-0470): avcodec_get_hw_config hands these
+    /* Hardware decode: avcodec_get_hw_config hands these
      * back, one per way a decoder can use a device, and there is no accessor. */
     STRUCT(AVCodecHWConfig);
     FIELD(AVCodecHWConfig, pix_fmt);

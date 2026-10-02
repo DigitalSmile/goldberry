@@ -2,10 +2,10 @@
 //
 // `audio-player` is `goldberry-media`'s widget, and this document never says
 // where it comes from: the module is on the module path, its catalog declares
-// the node name, and the inflater finds it (ADR-0131), exactly as `markdown-view`
+// the node name, and the inflater finds it, exactly as `markdown-view`
 // is found on the Markdown screen.
 //
-// `player=` names a MediaPlayer the model registered as a **named object**
-// (ADR-0170). It is neither a value nor an action: a player is an object with a
+// `player=` names a MediaPlayer the model registered as a **named object**.
+// It is neither a value nor an action: a player is an object with a
 // life of its own, which the screen's cards drive from Java at the same time.
 audio-player id="audio-player" player="audio.player"

@@ -13,7 +13,7 @@ import dev.goldberry.widget.style.Styled;
 
 /// The affordance that opens a picker's popover — `picker-toggle`, a **part**.
 ///
-/// One type and one CSS rule for §4's three pickers, rather than a
+/// One type and one CSS rule for the three pickers, rather than a
 /// `date-picker-toggle`, a `time-picker-toggle` and a `color-picker-toggle` that
 /// would be the same twenty lines three times and would have to stay alike by
 /// hand. It is here beside [Caret] for that reason and not for filing: this
@@ -21,7 +21,7 @@ import dev.goldberry.widget.style.Styled;
 /// which is what it was made for when `text-input` and `text-area` wanted the
 /// same caret.
 ///
-/// **Not focusable, and not a `button`.** §4 gives each picker one Tab stop —
+/// **Not focusable, and not a `button`.** Each picker is one Tab stop —
 /// the field — and the keyboard's way into the popover is `Alt+Down`.
 /// `select-chevron` is the same shape for the same reason.
 ///

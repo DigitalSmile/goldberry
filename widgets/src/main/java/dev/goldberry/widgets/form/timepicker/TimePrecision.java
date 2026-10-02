@@ -3,15 +3,18 @@ package dev.goldberry.widgets.form.timepicker;
 import java.time.LocalTime;
 import java.time.temporal.ChronoUnit;
 
-/// How far down a [TimePicker] goes — §4's "an hour/minute/second column set".
+/// How far down a [TimePicker] goes: which of the hour, minute and second columns
+/// it has.
 ///
-/// The specification names three columns and every clock in the world shows two,
+/// The column set names three columns and every clock in the world shows two,
 /// so this is which of them a picker has rather than a fixed set. A field that
 /// asks for a meeting time and offers seconds is asking a question nobody meant.
 ///
 /// **Minutes are the default**, which is the reading of "hour/minute/second" that
 /// leaves the common case right: the sentence lists what the column set is made
 /// of, not what every picker must show.
+///
+/// Read more: [Fields and forms](https://goldberry.dev/docs/components/forms.html#time-picker).
 public enum TimePrecision {
 
     /// Hours only, on the hour. A booking slot.

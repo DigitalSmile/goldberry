@@ -18,9 +18,20 @@ import dev.goldberry.log.Startup;
 /// Locates and loads `libgoldberry`, and hands out the symbol lookup every
 /// binding is built from.
 ///
-/// One shared library holds every native dependency (`docs/ARCHITECTURE.md` §3.2),
-/// so this is the only place Goldberry touches the filesystem to find native
-/// code, and the only `SymbolLookup` in the toolkit.
+/// `NativeLibrary.get()` loads the library on first call and keeps it for the
+/// life of the JVM; [#isAvailable()] answers whether it could be loaded without
+/// loading it, which is what a test uses to skip on a machine with no library.
+///
+/// One shared library holds every native dependency, so this is the only place
+/// Goldberry touches the filesystem to find native code, and the only
+/// `SymbolLookup` in the toolkit. The library is found at the path in the
+/// `goldberry.native.library` system property, or else unpacked from the
+/// classifier jar for the current platform into a temporary directory that is
+/// deleted on exit. It is mapped with the global arena, because unloading it
+/// would invalidate every downcall handle in the toolkit.
+///
+/// Read more:
+/// [Native image](https://goldberry.dev/docs/native.html#why-the-library-is-carried-rather-than-linked).
 public final class NativeLibrary {
 
     /// Overrides discovery with an explicit path — used by the build to test
@@ -67,12 +78,8 @@ public final class NativeLibrary {
     /// module itself. The system class loader is what finds an ordinary
     /// `goldberry-natives-<classifier>` jar beside it.
     ///
-    /// The second lookup was missing, and the gap was invisible: every
-    /// module-path run in this repository points at a locally built library with
-    /// `-Dgoldberry.native.library`, so nothing ever took this branch on the
-    /// module path. A native image does — it carries the classifier jar's
-    /// resource and has no file to point at — which is where it surfaced
-    /// (ADR-0159).
+    /// A native image takes the second branch: it carries the classifier jar's
+    /// resource and has no file to point at.
     ///
     /// @param resource an absolute resource name, leading slash and all
     /// @return the open stream, or null when neither lookup finds it

@@ -20,9 +20,12 @@ import dev.goldberry.widget.attr.Attributes;
 import dev.goldberry.widgets.Controls;
 import dev.goldberry.widgets.controls.TestFont;
 
-/// `design-system.md` §1.7's `button[float]`: in with `opacity` and `scale`
-/// 0.9→1, on `base`, and out on `fast` — the entrance ADR-0347 could not build and `@starting-style`
-/// can ([ADR-0352]).
+/// The design system's entrance for `button[float]`: in with `opacity` and
+/// `scale` 0.9→1, on `base`, and out on `fast`. A first frame starts no
+/// transition, so the float shipped without its entrance until `@starting-style`
+/// gave it a style to arrive from; this holds that the arrival still runs.
+///
+/// Read more: [Motion](https://goldberry.dev/docs/guide/design-system.html#motion).
 class FloatEntranceTest {
 
     private Clock.Virtual clock;

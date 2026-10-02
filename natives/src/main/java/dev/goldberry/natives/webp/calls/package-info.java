@@ -1,10 +1,12 @@
 /// The downcall holders for libwebp's own functions, bound directly with no C glue:
-/// the decoder, and the encoder and animation reader that followed it (ADR-0329,
-/// ADR-0385).
+/// the decoder, the encoder and the animation reader.
 ///
-/// **Not exported** (ADR-0173). The decoder in `…natives.webp` is the one caller.
+/// **Not exported**, like every `…calls` package. The decoder in `…natives.webp` is
+/// the one caller.
 ///
-/// Marked for NullAway (`docs/testing.md` §2, ADR-0497).
+/// Marked for NullAway, so a parameter that may be null says so on its signature.
+///
+/// Read more: [The native boundary](https://goldberry.dev/docs/overview/architecture.html#the-native-boundary).
 @NullMarked
 package dev.goldberry.natives.webp.calls;
 

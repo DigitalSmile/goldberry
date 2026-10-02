@@ -26,10 +26,11 @@ import dev.goldberry.widget.attr.Attributes;
 import dev.goldberry.widget.style.Paints;
 import dev.goldberry.widget.style.Styled;
 
-/// The invalidation-driven cascade — ADR-0070.
+/// The invalidation-driven cascade: a node's resolved style is cached on its
+/// element and re-resolved only when something that decides it has changed.
 ///
-/// `docs/ARCHITECTURE.md` §5 has always said "style resolution (invalidated
-/// nodes)"; until this existed every node was resolved every frame. The risk in
+/// The architecture always said "style resolution (invalidated nodes)"; until
+/// this existed every node was resolved every frame. The risk in
 /// caching is not that it is slow, it is that a node keeps a style after
 /// something that decides it has changed — and the failure is silent, because a
 /// stale style is a perfectly valid style.
@@ -38,6 +39,9 @@ import dev.goldberry.widget.style.Styled;
 /// it has to be dropped. This lives in the `widget` package so it can read
 /// [Element#cachedStyle] directly — asserting on the mechanism rather than
 /// inferring it from a colour.
+///
+/// Read more:
+/// [Restyle versus repaint](https://goldberry.dev/docs/guide/styling.html#restyle-versus-repaint).
 class StyleCacheTest {
 
     /// A styled container, defined here rather than taken from the catalog.
@@ -45,7 +49,7 @@ class StyleCacheTest {
     /// This test is about the **cascade cache** — when a resolved style may be
     /// reused and when it must be thrown away — and it needs a node with a type,
     /// classes and children to be wrong about. `panel` used to be that node, and
-    /// `:core` has no widgets since [ADR-0092]. A local one is also the more
+    /// `:core` has no widgets any more. A local one is also the more
     /// honest fixture: nothing here is a fact about `panel`.
     private record Group(List<Widget> children, Attributes attributes) implements Widget.Leaf, Styled, Paints {
 
@@ -158,7 +162,7 @@ class StyleCacheTest {
     }
 
     /// **A rebuild is not a restyle**, which is the other half of "the cache is
-    /// used" and the half that was missing until [ADR-0315].
+    /// used" and the half that was missing for a long time.
     ///
     /// `Element.update` threw a node's whole subtree away on every
     /// re-description, on the grounds that "a rebuild is already the expensive
@@ -230,9 +234,9 @@ class StyleCacheTest {
         }
     }
 
-    /// A widget whose style is its own rather than the stylesheet's — §8's
+    /// A widget whose style is its own rather than the stylesheet's — the
     /// `restyle` seam, and the one thing a rebuild can change while matching the
-    /// same rules (ADR-0099).
+    /// same rules.
     private record Tinted(int argb) implements Widget.Leaf, Styled, Paints {
 
         @Override
@@ -335,7 +339,7 @@ class StyleCacheTest {
         @Test
         @DisplayName("an inherited property changing on a parent reaches the child")
         void inheritedChange() {
-            // `color` inherits (ADR-0066), so the child's style depends on the
+            // `color` inherits, so the child's style depends on the
             // parent's even though no rule names the child.
             var renderer = renderer("""
                     group.outer { color: #ff0000 }

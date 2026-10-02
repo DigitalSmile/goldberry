@@ -1,4 +1,4 @@
-/// `docs/core-widgets.md` §5's `collapse` — a header and a body that folds away.
+/// The `collapse`: a header and a body that folds away.
 ///
 /// [dev.goldberry.widgets.panel.collapse.Collapse] unmounts its
 /// body while closed rather than hiding it, so a closed section keeps no
@@ -6,7 +6,9 @@
 /// application; several in an accordion column become exclusive. The header, the
 /// chevron and the body are parts.
 ///
-/// Marked for NullAway (`docs/testing.md` §2, ADR-0497).
+/// Every reference is non-null unless it says `@Nullable`.
+///
+/// Read more: [Panels](https://goldberry.dev/docs/components/panels.html#collapse).
 @NullMarked
 package dev.goldberry.widgets.panel.collapse;
 

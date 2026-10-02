@@ -8,11 +8,10 @@ import org.jspecify.annotations.Nullable;
 import dev.goldberry.Host;
 import dev.goldberry.Overlay;
 
-/// Starting a tour — the half of §5's `tour` that needs a [Host].
+/// Starting a tour — the half of a tour that needs a [Host].
 ///
 /// A tour is declared as a list of [Stop]s and *started* by a call, exactly as a
-/// `menu` is declared and opened by one
-/// (ADR-0106):
+/// `menu` is declared and opened by one:
 /// both need to resolve a target id against the painted frame and to put
 /// something on the window, and neither is a thing a widget tree can do to
 /// itself.
@@ -22,6 +21,8 @@ import dev.goldberry.Overlay;
 ///         new Stop("save-button", "Saving", "Everything is written here."),
 ///         new Stop("theme-picker", "Themes", "And the whole window follows.")));
 /// ```
+///
+/// Read more: [Overlays](https://goldberry.dev/docs/components/overlays.html#tours).
 public final class Tours {
 
     private Tours() {}

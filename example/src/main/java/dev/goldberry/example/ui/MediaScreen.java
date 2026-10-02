@@ -63,13 +63,15 @@ import dev.goldberry.widgets.text.Text;
 /// application wrote itself. The Video screen adds subtitles, from the source's
 /// tracks or from a file, and hardware decoding with its switch.
 ///
-/// Both show what phase 6 and 7 added: a speed, the audio and video track menus
-/// (a source with two voices, and one with two angles), a picture at a time, and
-/// a sample fetched over HTTP from a throttled server inside the application,
+/// Both show the rest of what a player can do: a speed, the audio and video track
+/// menus (a source with two voices, and one with two angles), a picture at a time,
+/// and a sample fetched over HTTP from a throttled server inside the application,
 /// whose buffered stretch the seek bar shades.
 ///
-/// FFmpeg may be absent: the natives are a separate build (`docs/media-plan.md`).
+/// FFmpeg may be absent: the natives are a separate build.
 /// Then the Capabilities card says why, and picking a source says the same.
+///
+/// Read more: [Audio and video](https://goldberry.dev/docs/components/media.html).
 ///
 /// @param kind        which of the two screens this is
 /// @param player      the screen's own player

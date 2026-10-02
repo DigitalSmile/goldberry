@@ -169,7 +169,7 @@ class TransformPaintTest {
     /// composition. Getting the order wrong, or applying the display scale to a
     /// translation that has already been through it, moves the box by the scale
     /// factor — and every assertion above is at 1x, where a factor of one hides
-    /// it completely (ADR-0157).
+    /// it completely.
     ///
     /// A rotation and a scale go with it because they are the two that pick up a
     /// wrong `transform-origin`: an origin computed in physical pixels swings

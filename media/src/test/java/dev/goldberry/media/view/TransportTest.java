@@ -43,10 +43,9 @@ import dev.goldberry.widgets.controls.select.Select;
 import dev.goldberry.widgets.controls.slider.Slider;
 
 /// What the transport controls make of a network source's status: the seek
-/// bar's spans, and whether the widget keeps looking while the fetch goes on
-/// (`docs/goldberry-media.md` §4, S3).
+/// bar's spans, and whether the widget keeps looking while the fetch goes on.
 /// Under [HeadlessRuntime] for the one test that mounts an `audio-player`: it
-/// posts the player's status changes to the UI thread (ADR-0517).
+/// posts the player's status changes to the UI thread.
 @DisplayName("the transport's buffered stretches")
 @ExtendWith(HeadlessRuntime.class)
 class TransportTest {

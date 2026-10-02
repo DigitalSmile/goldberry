@@ -17,8 +17,9 @@ import dev.goldberry.widget.style.Styled;
 
 /// What a [Steps] draws: the row, or the column.
 ///
-/// `steps` as a **CSS type** is this node and not the composition above it
-/// (ADR-0109). A vertical list carries the class `vertical`, which is the whole
+/// `steps` as a **CSS type** is this node and not the composition above it, so
+/// a stylesheet's rules apply once rather than to two nested `steps` nodes.
+/// A vertical list carries the class `vertical`, which is the whole
 /// of how the stylesheet turns it — the same spelling `slider.vertical` uses.
 ///
 /// The attributes are the list's own, carried down so that `#progress` and
@@ -30,7 +31,7 @@ import dev.goldberry.widget.style.Styled;
 record StepList(List<Widget> children, Steps.Direction direction, Attributes attributes)
         implements Widget.Leaf, Styled, Paints, Semantics {
 
-    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    /// Written out so that the parameters taking null for a default can say so.
     StepList(@Nullable List<Widget> children, Steps.Direction direction, @Nullable Attributes attributes) {
         children = List.copyOf(children == null ? List.of() : children);
         attributes = attributes == null ? Attributes.NONE : attributes;
@@ -69,10 +70,10 @@ record StepList(List<Widget> children, Steps.Direction direction, Attributes att
         return Box.of().style(style).children(boxes.toArray(Box[]::new));
     }
 
-    /// [Role#GROUP] — §6 asks for "a list with the current item marked", and
+    /// [Role#GROUP] — a list with the current item marked is what this is, and
     /// [Role] has no list. The items answer [Role#ROW] and the current one is
     /// `:checked`, so a bridge that reads the tree reads the list; the word for
-    /// the container waits for the AccessKit bridge, as `breadcrumbs`' does.
+    /// the container waits for an accessibility bridge, as `breadcrumbs`' does.
     @Override
     public Role role() {
         return Role.GROUP;

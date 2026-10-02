@@ -8,7 +8,7 @@ import org.junit.jupiter.api.Test;
 
 import dev.goldberry.natives.NativeLibraryRequirement;
 
-/// `SDL_OpenURL` — what §2's `link` opens an `href` through ([ADR-0346]).
+/// `SDL_OpenURL` — what a `link` opens an `href` through.
 ///
 /// A URL cannot be opened on a CI runner without a desktop, and a test that
 /// tried would leave a browser behind. What **can** be checked is the binding's

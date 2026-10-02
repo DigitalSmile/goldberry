@@ -25,8 +25,10 @@ import dev.goldberry.widget.WidgetRenderer;
 import dev.goldberry.widgets.Controls;
 import dev.goldberry.widgets.controls.TestFont;
 
-/// `stack` — §1's "z-order layering; children positioned by alignment or
-/// absolute insets" ([ADR-0250]).
+/// `stack` — z-order layering, with children positioned by alignment or by
+/// absolute insets.
+///
+/// Read more: [Stack](https://goldberry.dev/docs/layout/stack.html).
 ///
 /// Asserted against **Yoga's own output**, because every claim a stack makes is a
 /// claim about where boxes ended up. Nothing here reads the widget back.
@@ -120,7 +122,8 @@ class StackTest {
         assertEquals(0, over.top(), 1e-6);
     }
 
-    /// §1's "positioned by **alignment**", and the half [ADR-0244] unblocked: an
+    /// Positioned by **alignment**, and the half that a child saying where it
+    /// sits unblocked: an
     /// absolute child with no inset is placed by the container's alignment and by
     /// its own `align-self`, which is what `ComputedStyle.INITIAL`'s undefined
     /// insets have been describing all along.
@@ -156,7 +159,8 @@ class StackTest {
         assertEquals(0, over.top(), 1e-6, "align-self should have taken it back to the top");
     }
 
-    /// §1's other half: "or absolute **insets**".
+    /// The other half of the contract: a child is placed by alignment or by
+    /// absolute **insets**.
     @Test
     @DisplayName("an overlay with an inset goes exactly where it says")
     void insetsPlaceIt() {
@@ -188,7 +192,7 @@ class StackTest {
         assertEquals(1, layouts(new Stack(), "").size(), "an empty stack should still be one box");
     }
 
-    /// The markup half: `stack` is in §1's `core` list, so a document has to be
+    /// The markup half: `stack` is a core primitive, so a document has to be
     /// able to write one. Inflated through the real catalog rather than
     /// constructed, because what is under test is the registration.
     @Test

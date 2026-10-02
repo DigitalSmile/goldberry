@@ -13,8 +13,7 @@ import java.util.function.Consumer;
 import java.util.regex.Pattern;
 
 /// An ICY ("SHOUTcast") response body with its metadata taken out: what an
-/// internet radio station sends when asked with `Icy-MetaData: 1`
-/// (`docs/goldberry-media.md` §4, S6).
+/// internet radio station sends when asked with `Icy-MetaData: 1`.
 ///
 /// The server says in `icy-metaint: N` how many bytes of audio come between two
 /// metadata blocks. After every `N` bytes comes one length byte `L`, then `16 × L`

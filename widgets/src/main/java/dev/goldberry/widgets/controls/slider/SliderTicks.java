@@ -14,8 +14,8 @@ import dev.goldberry.widget.Widget;
 import dev.goldberry.widget.style.Paints;
 import dev.goldberry.widget.style.Styled;
 
-/// The row of marks under a slider's groove — a **part** of [Slider], and the
-/// eleventh. `docs/core-widgets.md` §3's "optional tick marks".
+/// The row of marks under a slider's groove — what `ticks=` draws, a part of
+/// [Slider] styled as `slider-ticks`.
 ///
 /// The marks are spread by `justify-content: space-between`, so the stylesheet
 /// owns the spacing exactly as it owns everything else about them. What Java
@@ -28,15 +28,15 @@ import dev.goldberry.widget.style.Styled;
 /// is a pixel right of the start, the last a pixel left of the end, and each of
 /// them a pixel away from the thumb centre it is supposed to name. A cell of zero
 /// width takes no part in that arithmetic, so the marks sit exactly where the
-/// ratio says and the mark's own size is free to be whatever the theme wants
-/// (ADR-0080).
+/// ratio says and the mark's own size is free to be whatever the theme wants.
 ///
 /// The cell is zero on **both** axes rather than on the main one, which is what
 /// keeps this widget from having to know which axis it is on: a fader flips the
 /// row to a column in the stylesheet (`slider.vertical`), and a 0×0 cell is
 /// already right in either. The widget names the semantics and the stylesheet
-/// names the axis — ADR-0079's rule, applied to the part that would otherwise
-/// have needed a `vertical` flag of its own.
+/// names the axis, so this part needs no `vertical` flag of its own.
+///
+/// Read more: [Values and progress](https://goldberry.dev/docs/components/values.html#slider).
 ///
 /// @param count    how many marks, both ends included; at least two
 /// @param disabled inherited from the slider, so a part is selectable without a
@@ -78,8 +78,7 @@ record SliderTicks(int count, boolean disabled) implements Widget.Leaf, Styled, 
         // The cells are boxes and not widgets: they carry no style, match no
         // selector and mean nothing to an author, so an element apiece would be
         // a node in three trees for a number this method already knows. A part
-        // is what an author can restyle (ADR-0065), and there is nothing here to
-        // restyle.
+        // is what an author can restyle, and there is nothing here to restyle.
         var cells = new ArrayList<Box>(children.size());
         for (var mark : children) {
             cells.add(Box.of()

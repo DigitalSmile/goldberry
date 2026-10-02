@@ -17,10 +17,9 @@ import dev.goldberry.paint.stroke.Dash;
 /// missing feature to present itself.
 ///
 /// So dashing happens here, before the path reaches the rasterizer: a dashed
-/// stroke is a **solid stroke of a different path**. Which means it costs
-/// nothing on the native surface — ADR-0278 went from six new exported symbols
-/// to one — and behaves identically on every target, because it is the same Java
-/// on all four.
+/// stroke is a **solid stroke of a different path**. Which means it adds nothing
+/// to the native surface and behaves identically on every target, because it is
+/// the same Java on all four.
 ///
 /// ## What comes back
 ///
@@ -39,6 +38,8 @@ import dev.goldberry.paint.stroke.Dash;
 ///   with gaps between them; there is nothing left to close. The join at the
 ///   start point is lost with it, which is why a dashed rectangle's corner is
 ///   drawn by the cap and not by the join — the same thing SVG does.
+///
+/// Read more: [Canvas, images and QR codes](https://goldberry.dev/docs/components/drawing.html#the-painter).
 public final class Dasher {
 
     /// Lengths below this are treated as zero, in logical pixels.
@@ -188,8 +189,7 @@ public final class Dasher {
         /// sub-path, so a round cap on nothing is nothing and a `0 n` pattern
         /// inks no pixels at all — measured in `DashRenderingTest`. The geometry
         /// here is SVG's; the ink is the backend's, and for a dotted line the
-        /// answer is a short dash such as `Dash.of(1, 7)` rather than a zero one
-        /// (ADR-0278).
+        /// answer is a short dash such as `Dash.of(1, 7)` rather than a zero one.
         ///
         /// Progress is guaranteed without a loop: the index moves on every call,
         /// and [Dash#isSolid()] has already ruled out a pattern that is zeros all

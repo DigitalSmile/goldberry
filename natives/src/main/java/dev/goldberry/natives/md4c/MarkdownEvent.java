@@ -9,7 +9,7 @@ import dev.goldberry.natives.md4c.enums.TextType;
 /// One thing md4c said about a document.
 ///
 /// A parse is a **list** of these rather than a callback per event, because the
-/// events are encoded natively and read once (ADR-0294) — so by the time Java sees
+/// events are encoded natively and read once — so by the time Java sees
 /// a document the parse is already over, and what it has is a value it can walk
 /// twice, keep, or hand to a test.
 ///
@@ -17,6 +17,8 @@ import dev.goldberry.natives.md4c.enums.TextType;
 /// every [EnterSpan] a [LeaveSpan], with the document's own [BlockType#DOC] pair
 /// around the lot. Nothing here builds a tree; that is `:html`'s job, and the
 /// reason this list is flat is that md4c's own interface is.
+///
+/// Read more: [The native boundary](https://goldberry.dev/docs/overview/architecture.html#the-native-boundary).
 public sealed interface MarkdownEvent {
 
     /// A block begins.

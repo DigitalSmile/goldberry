@@ -42,7 +42,7 @@ import dev.goldberry.widgets.markup.Wiring;
 /// does not end anywhere.
 ///
 /// A current crumb is not focusable and does not run its handler. Both follow
-/// from §6's "the last is the current page and is **not** a link", and both are
+/// from the rule that the last crumb is the current page and is **not** a link, and both are
 /// enforced here rather than by the trail declining to pass the handler down, so
 /// that a `Crumb` built by hand in a test behaves the way one built by a trail
 /// does.
@@ -52,8 +52,10 @@ import dev.goldberry.widgets.markup.Wiring;
 /// The same pseudo-class a `tab`, a `radio` and an `option` use, because it is the
 /// same fact: one of a set is the one. `crumb:checked` is the whole of styling
 /// where-you-are, and `controls.css` spends it on weight and ink rather than on a
-/// fill — a filled current crumb reads as a button, which is precisely what §6
-/// says it must not.
+/// fill — a filled current crumb reads as a button, which is precisely what it
+/// must not.
+///
+/// Read more: [Navigation](https://goldberry.dev/docs/components/navigation.html#crumb).
 ///
 /// @param label      the step's name
 /// @param icon       an optional icon before it — in practice only the first
@@ -67,7 +69,7 @@ public record Crumb(
         String label, @Nullable Icon icon, @Nullable Runnable onPress, boolean current, Attributes attributes)
         implements Widget.Leaf, Styled, Paints, Handles, Attributed<Crumb>, Semantics {
 
-    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    /// Written out so that the parameters taking null for a default can say so.
     public Crumb(
             String label,
             @Nullable Icon icon,
@@ -78,7 +80,7 @@ public record Crumb(
         if (label.isEmpty()) {
             throw new IllegalArgumentException(
                     "a crumb needs a label: a trail is read as a sentence, and a step with no word"
-                            + " in it is a gap between two chevrons (§13)");
+                            + " in it is a gap between two chevrons");
         }
         attributes = attributes == null ? Attributes.NONE : attributes;
         this.label = label;
@@ -99,8 +101,8 @@ public record Crumb(
         this(label, null, null, false, Attributes.NONE);
     }
 
-    /// This step with an icon before its label. The icon is **borrowed**
-    /// (ADR-0043).
+    /// This step with an icon before its label. The icon is **borrowed**: the
+    /// caller owns it and closes it, and the crumb only draws it.
     public Crumb withIcon(Icon value) {
         return new Crumb(label, Objects.requireNonNull(value, "icon"), onPress, current, attributes);
     }
@@ -142,7 +144,7 @@ public record Crumb(
 
     /// Focusable when it leads somewhere and is not where you already are.
     ///
-    /// The second half is §6's rule and the first is the one that keeps a trail
+    /// The second half is the current-page rule and the first is the one that keeps a trail
     /// from being a row of Tab stops that do nothing: a crumb with no handler is
     /// a word, and a word does not take the keyboard.
     @Override
@@ -160,7 +162,7 @@ public record Crumb(
         }
     }
 
-    /// `Space` and `Enter`, which is §3's rule for everything you press.
+    /// `Space` and `Enter`, which is the rule for everything you press.
     @Override
     public void onKey(KeyEvent event) {
         if (event.kind() != KeyEvent.Kind.PRESSED
@@ -190,15 +192,14 @@ public record Crumb(
         return Box.of().style(style).children(content.toArray(Box[]::new));
     }
 
-    /// [Role#BUTTON], and §6 asked for a link.
+    /// [Role#BUTTON], where a link would be the better word.
     ///
     /// There is no `LINK` in [Role] and this is not the place to add one: a role
     /// nothing can consume is a value written down for a bridge that does not
     /// exist yet, and `BUTTON` — "something you press to make it happen" — is
     /// true of a crumb in every way that matters to somebody listening. The
-    /// landmark half of §6's sentence ("navigation landmark containing links")
-    /// has nowhere to go at all until the AccessKit bridge, and is recorded in
-    /// `book/src/TODO.md` rather than approximated here.
+    /// navigation landmark a trail would also carry has nowhere to go until
+    /// there is an accessibility bridge, and is not approximated here.
     @Override
     public Role role() {
         return Role.BUTTON;

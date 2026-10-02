@@ -1,15 +1,14 @@
-/// The structural primitives of `docs/core-widgets.md` §1 — `row`, `column`, `stack`
-/// and `spacer` — that every layout is built from and that paint nothing of their
-/// own.
+/// The structural widgets every layout is built from — `row`, `column`, `stack`
+/// and `spacer` — which paint nothing of their own.
 ///
-/// They lived in `:core` until ADR-0092 moved them here as ordinary widgets.
-/// [dev.goldberry.widgets.core.Primitives] lists the structural
-/// node names a document may write, kept apart from the control catalog so that an
-/// application wanting a layout and no controls can register these alone. The
-/// subpackages hold the other §1 primitives, one per package: `affix`, `canvas`,
-/// `image`, `qr-code`, `scroll` and the embedded `web-view`.
+/// [dev.goldberry.widgets.core.Primitives] lists the structural node names a
+/// document may write. The subpackages hold the other structural widgets, one
+/// per package: `affix`, `canvas`, `image`, `qr-code`, `scroll` and the embedded
+/// `web-view`. Annotated `@NullMarked`: every type here is non-null unless it
+/// says `@Nullable`.
 ///
-/// Marked for NullAway (`docs/testing.md` §2, ADR-0497).
+/// Read more: [How layout works](https://goldberry.dev/docs/layout/index.html#the-layout-widgets)
+/// and [The catalogue](https://goldberry.dev/docs/components/index.html#the-catalogue).
 @NullMarked
 package dev.goldberry.widgets.core;
 

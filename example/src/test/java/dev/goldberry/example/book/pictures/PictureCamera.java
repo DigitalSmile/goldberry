@@ -26,7 +26,7 @@ import dev.goldberry.widgets.Widgets;
 ///
 /// **Through the shipped `Offscreen`**, with the real font book and every
 /// stylesheet the showcase loads, so the picture is what an application draws
-/// rather than what a test fixture approximates (ADR-0284, ADR-0513). A `press=`
+/// rather than what a test fixture approximates. A `press=`
 /// resolves to no action, as in `BookMarkupTest`; a `bind=` resolves to the
 /// value [PreviewValues] gives the path, so a slider is drawn at a number and a
 /// list with rows in it.
@@ -95,7 +95,7 @@ public final class PictureCamera implements AutoCloseable {
 
     /// The toolkit's rules for the shade's theme, then the content modules' —
     /// the same list `Showcase.stylesheets()` loads, so a `markdown-view` in a
-    /// sample is drawn with its rules (ADR-0295, ADR-0298) — and then the page's
+    /// sample is drawn with its rules — and then the page's
     /// own, `pictures.css`, which is what an application's stylesheet would add.
     static List<Stylesheet> stylesheets(Shade shade) {
         var sheets = new ArrayList<>(Controls.stylesheets(shade.theme(), Density.REGULAR));

@@ -3,7 +3,7 @@ package dev.goldberry.media.platform.windows;
 import dev.goldberry.media.codec.Frame;
 
 /// When each decoded audio sample plays: timed by counting samples from an
-/// anchor, as the macOS audio decoder times them (ADR-0472).
+/// anchor, as the macOS audio decoder times them.
 ///
 /// The first packet after an open or a flush anchors the clock, and each chunk
 /// after it is timed by the samples before it. Timing by sample count is exact,

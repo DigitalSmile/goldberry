@@ -21,20 +21,20 @@ import dev.goldberry.image.Image;
 ///
 /// A `src` in a document is a **string**, and what it means is the application's:
 /// a path relative to something only it knows, a key in a content-addressed store,
-/// a URL nothing here may fetch. ADR-0190 put fetching outside the toolkit, ADR-0291
-/// put URL handling outside it, and this is the same line drawn at the same place
-/// (ADR-0300). Nothing in `:html` opens a file or a socket.
+/// a URL nothing here may fetch. The toolkit fetches nothing and follows no URL;
+/// those are the application's decisions, and this interface is where it gives its
+/// answer. Nothing in `:html` opens a file or a socket.
 ///
 /// It is also what makes the [Image] **lifetime** clear: the application owns the
-/// image and decides what is cached. An `Image` is a value that owns no native handle
-/// (ADR-0283), so it can be held in a map for as long as the application likes and
-/// handed to a widget that is rebuilt every frame.
+/// image and decides what is cached. An `Image` is a value that owns no native handle,
+/// so it can be held in a map for as long as the application likes and handed to a
+/// widget that is rebuilt every frame.
 ///
 /// ## Hold one, rather than minting one inside `build`
 ///
 /// A view remembers which source it drew a block with, because what a source answers
 /// is what the block *is*: a picture it found is kept for as long as the block is, so
-/// a **different** source has to rebuild it (ADR-0389). A new lambda every frame is
+/// a **different** source has to rebuild it. A new lambda every frame is
 /// therefore a new document every frame, and a note that re-parses on every keystroke
 /// gives up its block reuse. The field in the example above is the shape to copy —
 /// which is what an application would write anyway, since the cache lives there.
@@ -45,6 +45,9 @@ import dev.goldberry.image.Image;
 /// text — which is what a document with a broken link should show and what every
 /// view did before this existed. There is no exception and no placeholder: a
 /// renderer that drew a broken-image icon would be inventing content.
+///
+/// Read more:
+/// [Links, images and tasks](https://goldberry.dev/docs/components/content.html#links-images-and-tasks).
 @FunctionalInterface
 public interface ImageSource {
 
@@ -53,7 +56,7 @@ public interface ImageSource {
     /// Called during a **build**, so it must not block: a source that fetches over a
     /// network returns null the first time, starts its own work, and sets a property
     /// the view is bound to — which makes the image arrive on a later frame the same
-    /// way every other value does (ADR-0062).
+    /// way every other value does.
     ///
     /// @param src the `src` or the link destination, exactly as the document wrote it
     @Nullable

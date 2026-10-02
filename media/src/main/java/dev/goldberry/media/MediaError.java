@@ -6,8 +6,8 @@ import java.util.Objects;
 /// Why media could not be opened or played.
 ///
 /// Sealed, so the error state of a player widget, and an application's own
-/// message, is a `switch` the compiler checks is complete. This is also the
-/// `error` property `docs/goldberry-media.md` §3 lists on the Engine.
+/// message, is a `switch` the compiler checks is complete. A [MediaPlayer]
+/// reports it in its status, and a player widget shows it over the picture.
 ///
 /// ```java
 /// String explain(MediaError error) {
@@ -18,6 +18,8 @@ import java.util.Objects;
 ///     };
 /// }
 /// ```
+///
+/// Read more: [A player](https://goldberry.dev/docs/components/media.html#a-player).
 public sealed interface MediaError {
 
     /// A sentence for a log or a developer, and not for an end user.
@@ -54,8 +56,7 @@ public sealed interface MediaError {
     }
 
     /// The tracks that would be played have no decoder: a patent-pool codec the
-    /// published natives do not build, and no DecoderProvider claims it
-    /// (`docs/goldberry-media.md` S7).
+    /// published natives do not build, and no DecoderProvider claims it.
     ///
     /// @param codecs FFmpeg's names for the codecs, such as `h264` or `aac`
     record UnsupportedCodec(List<String> codecs) implements MediaError {
@@ -73,7 +74,7 @@ public sealed interface MediaError {
     }
 
     /// The source is a container this build has no demuxer for, recognised by its
-    /// first bytes: MPEG-TS, FLV, ASF and the like (ADR-0471). A container the
+    /// first bytes: MPEG-TS, FLV, ASF and the like. A container the
     /// build reads that is damaged is [InvalidData] instead.
     ///
     /// @param format what the container is, such as `MPEG-TS`

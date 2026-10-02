@@ -26,11 +26,14 @@ import dev.goldberry.widget.ElementTree;
 import dev.goldberry.widgets.data.barchart.BarChart;
 import dev.goldberry.widgets.data.linechart.LineChart;
 
-/// What a time axis draws — `content-widgets.md` §3.1's `java.time`-driven axis.
+/// What a time axis draws: an axis driven by `java.time`, whose ticks step
+/// across second, minute, hour, day, month and year boundaries.
 ///
 /// `TimeTicksTest` has the ladder, which is where the calendar arithmetic lives.
 /// This is the half that only a picture can answer: **does the chart actually
 /// place its points in time**, or has it merely relabelled the indices?
+///
+/// Read more: [Line chart](https://goldberry.dev/docs/components/charts.html#line-chart).
 class TimeAxisTest {
 
     /// Every test here reads a fixed zone, for the reason every label in this

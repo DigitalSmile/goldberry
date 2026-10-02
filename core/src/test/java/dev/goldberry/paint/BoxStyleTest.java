@@ -24,13 +24,13 @@ import dev.goldberry.layout.Length;
 
 /// Where the CSS engine meets the box tree.
 ///
-/// The seam §8 calls a design invariant: layout properties land on the fields
-/// Yoga reads, paint properties on the ones Blend2D reads, and nothing in
-/// between is a string.
+/// The seam is a design invariant: layout properties land on the fields Yoga
+/// reads, paint properties on the ones Blend2D reads, and nothing in between is
+/// a string.
 class BoxStyleTest {
 
-    /// A one-node stand-in for the element tree (ADR-0004), so the whole
-    /// stylesheet-to-box path can be exercised without one.
+    /// A one-node stand-in for the element tree, so the whole stylesheet-to-box
+    /// path can be exercised without one.
     private record Node(String type, Set<String> classes) implements dev.goldberry.css.StyleElement {
         @Override
         public String id() {

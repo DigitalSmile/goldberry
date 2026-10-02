@@ -78,7 +78,11 @@ import org.jspecify.annotations.Nullable;
 /// and setuid/setgid — never the thread. So SDL believes GTK is usable, takes the
 /// direct path, and the plugin fails anyway.
 ///
-/// See ADR-0084.
+/// The verdict is a warning and nothing more: the window opens, paints and
+/// takes input correctly, so the toolkit neither refuses to start nor changes
+/// the video driver underneath the application. It names the package to install.
+///
+/// Read more: [Windows, popups and the host](https://goldberry.dev/docs/guide/windows.html#capabilities).
 final class WaylandDecorations {
 
     private WaylandDecorations() {}
@@ -132,11 +136,10 @@ final class WaylandDecorations {
     /// The same question with the driver already settled — *if* this process ends
     /// up on Wayland, will its windows be decorated?
     ///
-    /// Split out when the answer was needed **before** `SDL_Init`, to choose the
-    /// video driver on the strength of it (ADR-0085). ADR-0086 replaced that with
-    /// an unconditional X11 preference, so nothing asks it that early any more —
-    /// it stays as the driver-independent core of [#verdict], and as the shape to
-    /// return to if the conditional fallback comes back.
+    /// Nothing asks it before `SDL_Init` any more, now that X11 is preferred
+    /// unconditionally on Linux; it stays as the driver-independent core of
+    /// [#verdict], and as the shape to return to if a conditional fallback to X11
+    /// ever comes back.
     ///
     /// @param pluginFiles     the file names in libdecor's plugin directory, or
     ///                        empty if no such directory could be found
@@ -223,7 +226,7 @@ final class WaylandDecorations {
             // on any other. Read as path elements rather than split on '/': the
             // link's target is a relative path, and a Path prints it with the
             // platform's separator -- which on Windows, where the unit test
-            // makes one in a temp directory, is a backslash (ADR-0338).
+            // makes one in a temp directory, is a backslash.
             var target = Files.readSymbolicLink(threadSelf);
             if (target.getNameCount() < 3 || !target.getName(1).toString().equals("task")) {
                 return Optional.empty();

@@ -17,17 +17,25 @@ import dev.goldberry.widget.style.Styled;
 import dev.goldberry.widgets.markup.Markup;
 import dev.goldberry.widgets.markup.Wiring;
 
-/// Children laid out along the cross axis — `docs/core-widgets.md` §1's `column`.
+/// Children laid out top to bottom.
 ///
 /// ```kdl
-/// column gap=8 { text "Name"; text-input }
+/// column id="confirm" { text "Delete this file?"; row { spacer; button press="delete" "Delete" } }
 /// ```
 ///
-/// Everything about it except its direction is the stylesheet's: it sets no
-/// colour, no padding and no gap. **The direction is the widget's**, and that is
-/// the one thing a rule cannot take — a `column` a stylesheet could turn into a
-/// row would be a name that lies, and `flex-direction` is therefore applied
-/// after the style rather than read from it.
+/// `new Column(Widget...)` takes the children; `new Column(List<Widget>, Attributes)`
+/// takes them with an id and classes.
+///
+/// Everything about a column except its direction is the stylesheet's: it sets
+/// no colour, no padding and no gap. The direction is the widget's, and the one
+/// thing a rule cannot take: `flex-direction: column` is applied after the
+/// computed style, because a `column` a stylesheet could turn into a row would
+/// be a name that lies.
+///
+/// `accordion=#true` in markup builds an accordion instead: one `collapse`
+/// child open at a time, reporting `column` as its CSS type.
+///
+/// Read more: [Row and column](https://goldberry.dev/docs/layout/row-and-column.html#column).
 @Markup("column")
 public record Column(List<Widget> children, Attributes attributes)
         implements Widget.Leaf, Styled, Paints, Attributed<Column> {
@@ -36,7 +44,7 @@ public record Column(List<Widget> children, Attributes attributes)
         this(List.of(kids), Attributes.NONE);
     }
 
-    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    /// Written out so that the parameters that take null for a default can say so.
     public Column(@Nullable List<Widget> children, Attributes attributes) {
         children = List.copyOf(children == null ? List.of() : children);
         this.children = children;
@@ -75,18 +83,13 @@ public record Column(List<Widget> children, Attributes attributes)
 
     /// Builds a `column` from markup.
     ///
-    /// **`accordion=#true` builds something else.** §5 puts that flag here and is
-    /// right to — "one section open at a time" is a rule about *siblings*, which
-    /// no section can enforce about the others — but honouring it needs state, and
-    /// a `column` is the most-used container in the toolkit. Making this record
-    /// stateful would give every column in every document a `State` object it
-    /// never uses.
-    ///
-    /// So the flag inflates to an
-    /// [dev.goldberry.widgets.panel.accordion.Accordion], which
-    /// reports `column` as its own CSS type and adds an `accordion` class. A
-    /// document writes what §5 says, a stylesheet still sees a column, and an
-    /// ordinary column pays nothing ([ADR-0166]).
+    /// `accordion=#true` builds an
+    /// [dev.goldberry.widgets.panel.accordion.Accordion] instead. "One section
+    /// open at a time" is a rule about siblings that needs state to enforce, and
+    /// a column is the most-used container in the toolkit, so the state lives on
+    /// the accordion rather than on every column. The accordion reports `column`
+    /// as its CSS type and adds an `accordion` class, so a stylesheet still sees
+    /// a column.
     public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
         if (node.booleanProperty("accordion")) {
             return new dev.goldberry.widgets.panel.accordion.Accordion(

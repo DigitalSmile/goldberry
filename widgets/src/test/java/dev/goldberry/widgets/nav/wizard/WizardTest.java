@@ -29,7 +29,10 @@ import dev.goldberry.widgets.nav.steps.StepState;
 import dev.goldberry.widgets.panel.Described;
 import dev.goldberry.widgets.text.Text;
 
-/// §6's `wizard` — `steps`, a page, a bar, and no policy ([ADR-0344]).
+/// `wizard` — `steps`, a page, a bar, and no policy of its own: the
+/// application decides when a page may be left.
+///
+/// Read more: [Navigation](https://goldberry.dev/docs/components/navigation.html#wizard).
 class WizardTest {
 
     private final List<String> log = new ArrayList<>();

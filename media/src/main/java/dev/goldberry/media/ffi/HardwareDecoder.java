@@ -15,9 +15,8 @@ import org.slf4j.Logger;
 
 import dev.goldberry.log.Logs;
 
-/// The hardware half of one [FfmpegDecoder] (`docs/goldberry-media.md` §3,
-/// "Video decode"; ADR-0470): the device, the `get_format` upcall that asks for
-/// it, and copy-back.
+/// The hardware half of one [FfmpegDecoder]: the device, the `get_format` upcall
+/// that asks for it, and copy-back.
 ///
 /// ## Choosing
 ///

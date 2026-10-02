@@ -16,7 +16,7 @@ import dev.goldberry.natives.NativeLibraryRequirement;
 import dev.goldberry.natives.blend2d.enums.BlendCompOp;
 import dev.goldberry.natives.blend2d.enums.BlendExtendMode;
 
-/// The rasterizer primitives a COLRv1 colour glyph is drawn with (ADR-0456):
+/// The rasterizer primitives a COLRv1 colour glyph is drawn with:
 /// the radial and conic gradients, a gradient with a matrix of its own, and a
 /// composite operator other than the two a frame uses.
 ///

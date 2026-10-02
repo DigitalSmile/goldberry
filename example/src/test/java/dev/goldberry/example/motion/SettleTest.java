@@ -8,7 +8,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-/// One tile's settle, as arithmetic over a time ([ADR-0354]).
+/// One tile's settle, as arithmetic over a time: a choreography is a function
+/// of time.
 class SettleTest {
 
     private final Settle settle = Settle.TILES;

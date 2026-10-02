@@ -2,12 +2,12 @@ package dev.goldberry.input;
 
 import org.jspecify.annotations.Nullable;
 
-/// Which arrow keys rove inside a composite — `docs/design-system.md` §7.2.
+/// Which arrow keys move focus inside a composite widget.
 ///
-/// A composite is **one Tab stop** with the arrow keys moving focus between its
-/// items (ADR-0073).
-/// This says which pair of arrows does that, and therefore which pair is left for
-/// the widget to mean something else by.
+/// A composite (a menu, a tab list, a radio group) is **one Tab stop** with the
+/// arrow keys moving focus between its items. This says which pair of arrows
+/// does that, and therefore which pair is left for the widget to mean something
+/// else by. A widget declares its scope; an application rarely names one.
 ///
 /// ## Why the axis is not always "both"
 ///
@@ -16,7 +16,7 @@ import org.jspecify.annotations.Nullable;
 /// know which pair a user is looking at, and answering only one would be wrong
 /// half the time. That is [#BOTH], and it is ARIA's rule for a radio group.
 ///
-/// Every other composite in `docs/core-widgets.md` **does** have one, and the
+/// Every other composite in the catalogue **does** have one, and the
 /// difference only shows on the path where the widget *declines* the key. A
 /// vertical menu's `Right` opens a submenu; on an item that has none, the item
 /// declines it — and a [#BOTH] scope would then quietly move focus to the next
@@ -29,6 +29,8 @@ import org.jspecify.annotations.Nullable;
 ///
 /// `Home` and `End` reach the ends of **any** scope regardless of axis, because
 /// they name a position in the set rather than a direction on screen.
+///
+/// Read more: [Input and focus](https://goldberry.dev/docs/guide/input.html#a-composite-is-one-tab-stop).
 public enum FocusScope {
 
     /// Not a composite. Every focusable descendant is its own Tab stop, which is

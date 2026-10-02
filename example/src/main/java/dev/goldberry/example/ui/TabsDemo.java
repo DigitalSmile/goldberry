@@ -22,16 +22,15 @@ import dev.goldberry.widgets.text.Text;
 ///
 /// **In Java, and the reason is the one KDL cannot argue with**: the list changes
 /// while the window is open, and markup is data — it can write two chapters, not
-/// "however many the model has"
-/// (ADR-0110).
+/// "however many the model has".
 ///
 /// Every one of the strip's three events reports and decides nothing: `change`
 /// asks to show a chapter, `close` asks for one to go, `new` asks for one to
 /// arrive, and the model answers all three. A strip whose handlers did nothing
 /// would sit there unmoved, which is the visible form of "the model did not
-/// change"
-/// (ADR-0063,
-/// ADR-0107).
+/// change".
+///
+/// Read more: [Tabs](https://goldberry.dev/docs/components/panels.html#tabs).
 ///
 /// @param model what it reads and what its strip asks of
 public record TabsDemo(ShowcaseModel model, ShowcaseModel.Actions actions) implements Widget.Stateless {
@@ -41,9 +40,9 @@ public record TabsDemo(ShowcaseModel model, ShowcaseModel.Actions actions) imple
             Neither can be a CSS transition: an arriving tab's element did not exist last \
             frame, and a departing one has already been dropped from the list above — so the \
             strip keeps it for the length of its departure and animates both from the frame \
-            clock (ADR-0109). The strip keeps every chapter it has shown alive, so a note typed \
-            under one is still there when you come back to it (ADR-0366). Drag a chapter along the \
-            row to move it (ADR-0372).""";
+            clock. The strip keeps every chapter it has shown alive, so a note typed \
+            under one is still there when you come back to it. Drag a chapter along the \
+            row to move it.""";
 
     /// What each chapter's panel says. A sentence per stage rather than one
     /// sentence with the name substituted into it, because a strip of identical
@@ -71,7 +70,7 @@ public record TabsDemo(ShowcaseModel model, ShowcaseModel.Actions actions) imple
                             new TextInput().placeholder("A note on " + name))
                     .closable(true)
                     // A colour a stylesheet cannot know: it is a fact about the
-                    // chapter's name rather than about its state (ADR-0107).
+                    // chapter's name rather than about its state.
                     .colour("Moria".equals(name) ? 0xFFBF616A : 0));
         }
 

@@ -17,7 +17,7 @@ import org.junit.jupiter.api.Test;
 import dev.goldberry.natives.NativeLibrary;
 import dev.goldberry.natives.NativePlatform;
 
-/// A process that has shown a page ends cleanly (ADR-0507).
+/// A process that has shown a page ends cleanly.
 ///
 /// In a child JVM, because the defect is in the end of a process and nothing
 /// inside one can watch its own exit handlers: WebKit dropped its default
@@ -55,7 +55,11 @@ class WebviewExitTest {
 
         assertTrue(finished, "the probe did not finish:\n" + output);
         assumeFalse(process.exitValue() == WebviewExitProbe.NO_PAGE, "no web view on this machine");
-        assertEquals(0, process.exitValue(), "134 is the abort ADR-0507 fixed:\n" + output);
+        assertEquals(
+                0,
+                process.exitValue(),
+                "134 is WebKit aborting in an exit handler; the launcher must end the process on"
+                        + " WebKit's thread:\n" + output);
         assertFalse(output.contains("WebKit encountered an internal error"), output);
     }
 }

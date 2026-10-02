@@ -62,7 +62,7 @@ class ShowcaseTypographyTest {
         var resolver = resolver();
         // The real widget, not a `text.screen-title`: a screen's heading is a
         // `section-header` element now, which is what lets a stylesheet select it
-        // as a *kind* rather than as a class any node can wear (ADR-0222).
+        // as a *kind* rather than as a class any node can wear.
         var tree = new ElementTree(
                 new Column(new SectionHeader("A title"), new Text("Some prose").id("prose")).id("screen-text"));
         tree.flush();
@@ -88,7 +88,7 @@ class ShowcaseTypographyTest {
 
         var prose = styleOf(resolver, tree.root().children().getFirst());
 
-        // §1.4's `body` is 13/18 and is right for a label beside a control. A
+        // The scale's `body` is 13/18 and is right for a label beside a control. A
         // paragraph set at it across this window is technically correct and hard
         // to read; `heading`'s 15/20 is the largest thing in the scale that is
         // still body copy.
@@ -104,7 +104,7 @@ class ShowcaseTypographyTest {
         tree.flush();
 
         // The other half of the finding, and the reason nothing in the toolkit
-        // was changed for this: 13px is exactly what §1.4 specifies and it was
+        // was changed for this: 13px is exactly what the scale specifies and it was
         // being applied correctly all along. What was missing was the showcase
         // choosing between the sizes it had.
         assertEquals(

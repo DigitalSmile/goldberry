@@ -15,7 +15,10 @@ import dev.goldberry.input.event.PointerEvent;
 import dev.goldberry.kdl.KdlParser;
 import dev.goldberry.widgets.Widgets;
 
-/// §3's "circular-drag optional" ([ADR-0369]).
+/// A knob's optional circular drag, `drag="circular"`: the pointer goes round the
+/// dial and the value follows the angle, instead of the up-and-down default.
+///
+/// Read more: [Knob](https://goldberry.dev/docs/components/values.html#knob).
 class KnobCircularTest {
 
     /// The angle a fraction of the travel points at.

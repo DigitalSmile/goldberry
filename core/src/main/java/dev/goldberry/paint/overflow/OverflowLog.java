@@ -16,12 +16,14 @@ import dev.goldberry.log.Logs;
 /// narrow overflows on every frame it is looked at — sixty identical lines a
 /// second, which is not a louder warning but a quieter one. The same argument
 /// `ComputedStyle` makes about a dropped declaration, and the same answer: a
-/// bounded set of what has already been said ([ADR-0375]).
+/// bounded set of what has already been said.
 ///
 /// The key is the *shape* of the overrun and not its size, so a window being
 /// dragged narrower reports the first pixel it overflowed by and then stops.
 /// Resizing it back and forth says nothing new, which is the point: the answer
 /// to "what is off the edge" does not change with the distance.
+///
+/// Read more: [How layout works](https://goldberry.dev/docs/layout/index.html#the-box-model).
 public final class OverflowLog {
 
     private static final Logger LOG = Logs.of(OverflowLog.class);

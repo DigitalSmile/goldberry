@@ -58,32 +58,30 @@ import dev.goldberry.widgets.text.Text;
 /// — and not on the `canvas` widget, so a wall of them demonstrates the drawing
 /// primitive and says nothing about `canvas` itself. What `canvas` adds is the
 /// thing an application reaches for when the catalogue has no widget for what it
-/// wants: a surface it draws on *and* one it hears (ADR-0281).
+/// wants: a surface it draws on *and* one it hears.
 ///
-/// Four cards, each pinning one claim:
+/// Five cards, each pinning one claim:
 ///
 /// 1. **The paint values are the toolkit's.** Nothing on this screen names a
-///    `:natives` type, which was not true of any drawing in this repository
-///    before ADR-0277 — the five widgets that drew curves all imported
-///    `BlendPath`.
+///    `:natives` type: a path, a stroke, a gradient and an image are all plain
+///    values from `dev.goldberry.paint` and `dev.goldberry.image`.
 /// 2. **A dash is Goldberry's own arithmetic.** Blend2D stores a dash array and
 ///    never strokes with it, so the dashed ring here is a solid stroke of a path
-///    that was cut up first (ADR-0278). The dotted rings are a **short** dash
-///    rather than SVG's zero-length one, because this screen is where we found
-///    out that Blend2D will not ink a zero-length sub-path.
+///    that was cut up first. The dotted rings are a **short** dash
+///    rather than SVG's zero-length one, because Blend2D will not ink a
+///    zero-length sub-path.
 /// 3. **Input lands where the ink is.** The pointer card has padding, and the
 ///    crosshair follows the pointer exactly — which it would not if it read
 ///    `local()` instead of `content()`.
 /// 4. **An image is a value.** The image card draws one decoded PNG four ways
 ///    from a single static field: nothing is closed, nothing is borrowed, and
-///    the same image is drawn twice in the same frame (ADR-0283). Its natural
+///    the same image is drawn twice in the same frame. Its natural
 ///    size is one image pixel per *device* pixel, so it is crisp at 200% rather
 ///    than twice as big.
 /// 5. **The format comes from the bytes.** The codecs card draws the same 96×64
 ///    picture decoded from PNG, QOI, WebP, GIF and JPEG, labelled with what
 ///    `ImageFormat` read out of each file's first twelve bytes — never its name.
-///    Two of the five did not decode at all before ADR-0329, and which decoder
-///    each goes to is invisible from here, which is the point.
+///    Which decoder each goes to is invisible from here, which is the point.
 ///
 /// ## The data is a constant, and the pointer starts nowhere
 ///
@@ -91,10 +89,12 @@ import dev.goldberry.widgets.text.Text;
 /// written down, and the two interactive cards draw **nothing extra** until a
 /// pointer touches them — so the picture at rest is the same one every time,
 /// on every machine.
+///
+/// Read more: [Canvas, images and QR codes](https://goldberry.dev/docs/components/drawing.html).
 public record CanvasScreen() implements Widget.Stateful {
 
     private static final String NOTE =
-            "§1's `canvas` — the one widget an application writes its own drawing into. Everything"
+            "The `canvas` — the one widget an application writes its own drawing into. Everything"
                     + " here is `paint.Path`, `Stroke`, `Gradient` and `image.Image` — five formats"
                     + " of it: no drawing on"
                     + " this screen names a type from the native layer, and none of it could have"
@@ -152,8 +152,7 @@ public record CanvasScreen() implements Widget.Stateful {
         }
     }
 
-    /// The same 96x64 picture, written five ways — `docs/gaps.md` G35a,
-    /// [ADR-0329].
+    /// The same 96x64 picture, written five ways.
     ///
     /// One entry per format [Image#decode(byte[])] reads. The point of the card
     /// they feed is that **the format comes from the bytes**: the name under each
@@ -161,10 +160,9 @@ public record CanvasScreen() implements Widget.Stateful {
     /// extension, and the picture above it is what the codec that name chose
     /// produced.
     ///
-    /// Two of the five did not decode at all before ADR-0329, and they are
-    /// answered differently: WebP is VP8 and goes to libwebp, GIF is nine pages
-    /// and goes to a decoder this toolkit wrote. Neither is visible from here,
-    /// which is the whole idea.
+    /// Two of the five are answered differently from the rest: WebP is VP8 and
+    /// goes to libwebp, GIF is nine pages and goes to a decoder this toolkit
+    /// wrote. Neither is visible from here, which is the whole idea.
     ///
     /// A holder class for [Sample]'s reason — decoded on first paint rather than
     /// when a screen is built, so the shape tests can inflate this document with
@@ -215,13 +213,13 @@ public record CanvasScreen() implements Widget.Stateful {
     /// @param bytes  the file's size, which is the only thing that differs
     ///               visibly between the three lossless entries
     /// @param image  the decoded picture — a value, so it is a field here with
-    ///               nothing to close (ADR-0283)
+    ///               nothing to close
     private record Coded(ImageFormat format, int bytes, Image image) {}
 
     /// A widget tree rendered with no window, decoded back from the PNG it was
     /// encoded to.
     ///
-    /// **The whole of `Offscreen` in five lines** (ADR-0284): stylesheets, a
+    /// **The whole of `Offscreen` in five lines**: stylesheets, a
     /// tree, a size, a picture. What comes back is an ordinary
     /// [Image][dev.goldberry.image.Image], so the canvas draws
     /// it with the same call the card above uses for a file on disk.
@@ -276,7 +274,7 @@ public record CanvasScreen() implements Widget.Stateful {
         /// caret is, and a widget is a value that is rebuilt every frame. Built on
         /// first use rather than in the constructor, because a `Font` needs the
         /// rasterizer and the tests that only read this screen's *shape* have
-        /// none (ADR-0285).
+        /// none.
         private @Nullable Font stickyFont;
 
         private @Nullable Editor sticky;
@@ -302,7 +300,7 @@ public record CanvasScreen() implements Widget.Stateful {
                                 + " and draws what it says.");
                 if (host != null) {
                     current.clipboard(host.clipboard());
-                    // Only where there is one: X11 and Wayland (ADR-0504). The
+                    // Only where there is one: X11 and Wayland. The
                     // editor never learns which, and neither does this card.
                     host.primarySelection().ifPresent(current::primarySelection);
                 }
@@ -328,7 +326,7 @@ public record CanvasScreen() implements Widget.Stateful {
         /// **A demo whose success looks the same as its failure is a bad demo.**
         /// Ctrl+C changes nothing visible and Ctrl+V with an empty clipboard
         /// changes nothing either, so without this the card cannot be told from a
-        /// broken one — which is how it was reported (ADR-0286).
+        /// broken one.
         private String note = "";
 
         /// An image pasted onto the image card, and where it was dropped.
@@ -404,7 +402,7 @@ public record CanvasScreen() implements Widget.Stateful {
 
             // A filled shape with a gradient through it -- `Gradient.fade`, which
             // repeats the RGB at the transparent end so the ramp thins out rather
-            // than going through grey (ADR-0207).
+            // than going through grey.
             var hill = Path.builder()
                     .moveTo(0, height)
                     .lineTo(0, height * 0.55f)
@@ -426,7 +424,7 @@ public record CanvasScreen() implements Widget.Stateful {
 
             // A dashed baseline. Blend2D would have drawn this solid: it keeps a
             // dash array and its stroker never reads one, so the dashes are cut
-            // into the path before it is stroked (ADR-0278).
+            // into the path before it is stroked.
             frame.strokePath(
                     Path.line(0, height * 0.82f, width, height * 0.82f),
                     Stroke.of(1).dashed(4, 4),
@@ -434,8 +432,7 @@ public record CanvasScreen() implements Widget.Stateful {
 
             // A ring, and a dotted ring around it. The dots are a **short** dash
             // and not a zero-length one: `Dasher` emits the zero-length sub-path
-            // SVG asks for, and Blend2D declines to ink it -- which this screen is
-            // how we found out (ADR-0278).
+            // SVG asks for, and Blend2D declines to ink it.
             frame.strokePath(Path.circle(width * 0.16f, height * 0.28f, 14), Stroke.round(2), ACCENT);
             frame.strokePath(
                     Path.circle(width * 0.16f, height * 0.28f, 22),
@@ -458,8 +455,7 @@ public record CanvasScreen() implements Widget.Stateful {
         /// and they are drawn from **one** decoded image that is decoded once for
         /// the life of the application. That is the practical difference an
         /// `Image` being a value rather than a handle makes: it is a static field
-        /// here, with no lifetime travelling alongside it and nothing to close
-        /// (ADR-0283).
+        /// here, with no lifetime travelling alongside it and nothing to close.
         private void paintImages(Frame frame, LogicalSize size, CanvasStyle style) {
             var image = Sample.IMAGE;
             var width = size.width();
@@ -483,7 +479,7 @@ public record CanvasScreen() implements Widget.Stateful {
             // What was pasted, where it was dropped, scaled down to fit the card
             // if it is a screenshot rather than an icon. Drawn **over** the demo
             // rather than instead of it, because that is what a paste onto a board
-            // is (ADR-0286).
+            // is.
             if (pasted != null) {
                 var fit = Math.min(1, Math.min(220f / pasted.width(), 110f / pasted.height()));
                 var wide = pasted.width() * fit;
@@ -495,12 +491,11 @@ public record CanvasScreen() implements Widget.Stateful {
             // What the last clipboard key did. Empty until one is pressed, so the
             // golden image is still of a card nobody has touched.
             if (!note.isEmpty()) {
-                // `style.font()` rather than `Font.bundled(BundledFont.UI, 12)`,
-                // which is what this line used to be and what G11 was about: the
-                // card's own `font-family` and `font-size` reach the drawing, so
-                // a theme switch moves this text with the rest of the screen —
+                // `style.font()` rather than `Font.bundled(BundledFont.UI, 12)`:
+                // the card's own `font-family` and `font-size` reach the drawing,
+                // so a theme switch moves this text with the rest of the screen —
                 // and the face is the renderer's book rather than a fresh parse
-                // of the file every frame (ADR-0288).
+                // of the file every frame.
                 Paragraph.of(style.font(), note).paint(frame, 8, size.height() - 22, width - 16, ACCENT);
             }
 
@@ -515,7 +510,7 @@ public record CanvasScreen() implements Widget.Stateful {
 
         /// The same picture, decoded from five different formats.
         ///
-        /// `docs/gaps.md` G35a's card, and it is deliberately boring to look at:
+        /// The codecs card, and it is deliberately boring to look at:
         /// five tiles that are meant to be **identical**, with the name the
         /// toolkit read out of each file's first twelve bytes under them.
         /// PNG, QOI and WebP are lossless and are pixel-for-pixel the same
@@ -561,7 +556,7 @@ public record CanvasScreen() implements Widget.Stateful {
         /// "There is no image" and "there is an image in a format this toolkit
         /// cannot read" are the same answer from `has(mime)` and completely
         /// different answers to somebody who has just pressed Ctrl+V, so the card
-        /// says what the clipboard is offering (ADR-0286).
+        /// says what the clipboard is offering.
         private static String describe(dev.goldberry.render.clipboard.Clipboard board) {
             var types = board.types();
             if (types.isEmpty()) {
@@ -606,7 +601,7 @@ public record CanvasScreen() implements Widget.Stateful {
         ///
         /// Everything here is the editor's: the selection rectangles, the shaped
         /// text and the caret all come out of one shaping, which is what keeps a
-        /// click landing where the glyph was drawn (ADR-0285). What the card owns
+        /// click landing where the glyph was drawn. What the card owns
         /// is the paper it is written on.
         private void paintSticky(Frame frame, LogicalSize size) {
             var left = 8f;
@@ -636,8 +631,7 @@ public record CanvasScreen() implements Widget.Stateful {
         ///
         /// The card has padding, so this is the drawing that would be visibly
         /// wrong if input were reported from the border box instead of the
-        /// content box — the crosshair would trail the pointer by the padding
-        /// (ADR-0281).
+        /// content box — the crosshair would trail the pointer by the padding.
         private void paintPointer(Frame frame, LogicalSize size) {
             var width = size.width();
             var height = size.height();
@@ -694,7 +688,7 @@ public record CanvasScreen() implements Widget.Stateful {
             // Kept rather than used: the editor is built on first use, so the
             // clipboard is handed over there. A `State` is the only thing that is
             // handed a `Host`, and without one the sticky's Ctrl+C would be a key
-            // that did nothing rather than a key nobody took (ADR-0285).
+            // that did nothing rather than a key nobody took.
             host = context.host().orElse(null);
             return new Wall(
                     "canvas",
@@ -723,7 +717,7 @@ public record CanvasScreen() implements Widget.Stateful {
                                                     // `content()` and not
                                                     // `local()`, so it is the
                                                     // rectangle the painter draws
-                                                    // in (ADR-0281).
+                                                    // in.
                                                     var at = event.content();
                                                     setState(() -> {
                                                         pointerX = at.x();
@@ -859,7 +853,7 @@ public record CanvasScreen() implements Widget.Stateful {
                                                         case PRESSED -> {
                                                             // The middle button is X11's paste, and
                                                             // a no-op where there is no primary
-                                                            // selection (ADR-0504).
+                                                            // selection.
                                                             stickyPasting =
                                                                     event.button() == PointerEvent.Button.MIDDLE;
                                                             if (stickyPasting) {
@@ -875,7 +869,7 @@ public record CanvasScreen() implements Widget.Stateful {
                                                         }
                                                         // A drag extends the selection, which
                                                         // needs no capture of its own: the
-                                                        // router captures on press (ADR-0281).
+                                                        // router captures on press.
                                                         case MOVED -> {
                                                             if (!stickyPasting && !Float.isNaN(event.pressX())) {
                                                                 setState(() -> sticky().pointerAt(x, y, true, 1));
@@ -926,7 +920,7 @@ public record CanvasScreen() implements Widget.Stateful {
                                                 // something says it is typed into
                                                 // -- so without this the sticky
                                                 // takes every arrow key and never
-                                                // a character (ADR-0285).
+                                                // a character.
                                                 @Override
                                                 public boolean wantsText() {
                                                     return true;

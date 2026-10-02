@@ -1,7 +1,7 @@
 package dev.goldberry.widgets.form;
 
-/// What a text caret is drawn as, for the two controls that draw one
-/// ([ADR-0253]).
+/// What a text caret is drawn as, for the two controls that draw one: as wide
+/// as the theme says, through `--gb-caret-width`.
 ///
 /// `text-input` and `text-area` are in packages of their own and each had its own
 /// copy of the number, the second carrying a comment saying it was the first's.
@@ -10,19 +10,21 @@ package dev.goldberry.widgets.form;
 ///
 /// ## Why it is not a `width` in a stylesheet
 ///
-/// §8's subset gives a node its width through `width`, and a caret's box is set
+/// A stylesheet gives a node its width through `width`, and a caret's box is set
 /// by the field **after** the cascade — it is positioned and sized in the same
 /// `render` that measures the text it sits in. A `caret { width: 3px }` would be
 /// overwritten rather than honoured, which is worse than not being able to say
-/// it. Read as a custom property ([ADR-0251]) it resizes the caret, which is what
-/// an author writing one meant.
+/// it. Read as a custom property it resizes the caret, which is what an author
+/// writing one meant.
 ///
 /// ## Why it is a token at all
 ///
 /// One pixel is what every desktop draws, and a thicker caret is a real
-/// low-vision aid — §13 lists that kind of switch. A number somebody has to fork
-/// the toolkit to change is not a design system's default; it is a hard-coded
-/// decision wearing one's clothes.
+/// low-vision aid of the kind the accessibility baseline asks for. A number
+/// somebody has to fork the toolkit to change is not a design system's default;
+/// it is a hard-coded decision wearing one's clothes.
+///
+/// Read more: [Fields and forms](https://goldberry.dev/docs/components/forms.html#text-input).
 public final class Carets {
 
     /// The token an application overrides [#WIDTH] with.

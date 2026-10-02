@@ -11,9 +11,9 @@ import dev.goldberry.gpu.TextureSpec;
 import dev.goldberry.gpu.composite.CompositeHarness;
 import dev.goldberry.render.model.PhysicalRect;
 
-/// D8's second half (`docs/gpu-plan.md`, phase 6; ADR-0484): what a
-/// [VideoLayer] costs the UI thread to show a new 4K picture every frame, as
-/// `video-view` shows one, through the public API's staged upload.
+/// What a [VideoLayer] costs the UI thread to show a new 4K picture every
+/// frame, as `video-view` shows one through a GPU layer when the GPU is
+/// present, through the public API's staged upload.
 ///
 /// Each frame shows a new [VideoImage] -- a new picture to the layer, over one
 /// of two buffers, as the frame queue's slots are reused -- renders the layer

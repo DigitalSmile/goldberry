@@ -16,13 +16,16 @@ import dev.goldberry.paint.Clip;
 /// Painting a box that lands entirely outside the clip in force costs a native
 /// call, a path transformation and, for text, a glyph run — and produces nothing.
 /// A window with a long viewport in it is mostly that: the icon sheet is 1544
-/// tiles of which forty are on screen, and before this every one of the other
-/// 1504 was submitted to Blend2D to be clipped away (ADR-0313).
+/// tiles of which forty are on screen, and without culling every one of the other
+/// 1504 would be submitted to Blend2D to be clipped away.
 ///
 /// The **subtree's** extent and not the node's own, because a child may be drawn
 /// outside its parent — flexbox allows a box to overflow, a `transform` moves one
 /// out from under its parent, and a focus ring is drawn outside the border box by
 /// design. Culling on the parent's own rectangle would take those with it.
+///
+/// Read more:
+/// [Keeping frames cheap](https://goldberry.dev/docs/performance/frames.html#what-the-toolkit-does-for-you).
 ///
 /// @param left   the leftmost logical pixel drawn
 /// @param top    the topmost

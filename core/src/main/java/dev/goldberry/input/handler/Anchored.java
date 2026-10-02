@@ -27,7 +27,8 @@ import dev.goldberry.widget.Widget;
 /// inserted *above* the viewport. [Measured] reports that the content got
 /// taller, and a widget that acted on that alone would also shift when a message
 /// arrived at the **bottom**, which adds the same number of pixels and must move
-/// nothing (`docs/gaps.md` G48).
+/// nothing. That is the rule a timeline keeps: opened at its end, it stays put
+/// when rows are added above.
 ///
 /// Telling the two apart needs one fact nothing in the toolkit had: **where a
 /// node that was already on screen has ended up inside its container**. That is

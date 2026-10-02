@@ -7,7 +7,7 @@ import dev.goldberry.render.event.BackendEvent;
 
 /// The keys a toolkit has to name.
 ///
-/// Deliberately **not** every key on a keyboard. §7.1 splits keys from text:
+/// Deliberately **not** every key on a keyboard. Keys are kept apart from text:
 /// anything that produces a character arrives as
 /// [BackendEvent.TextInput], already
 /// translated through the platform's own layout, compose and IME handling. What
@@ -25,7 +25,9 @@ import dev.goldberry.render.event.BackendEvent;
 /// keyboard's positions: SDL's default `latin_letters` translation means the key
 /// where `A` sits on a Cyrillic or Thai keyboard still arrives as `A`, so
 /// `Ctrl+S` is `Ctrl+S` everywhere, while on AZERTY it stays where the user's own
-/// layout puts it (ADR-0055).
+/// layout puts it.
+///
+/// Read more: [Input and focus](https://goldberry.dev/docs/guide/input.html#keys-and-text-are-different-events).
 public enum Key {
     UNKNOWN(0),
 
@@ -53,9 +55,8 @@ public enum Key {
     ///
     /// SDL calls it `SDLK_APPLICATION` and its scancode comment calls it
     /// "windows contextual menu, compose", which is the whole of its story: it
-    /// is the keyboard's way of asking the question a right-click asks, and
-    /// `docs/core-widgets.md` §7 names it as the other half of a context menu
-    /// (ADR-0208).
+    /// is the keyboard's way of asking the question a right-click asks, and the
+    /// other half of a context menu.
     ///
     /// A Mac keyboard does not have one, which is why `Shift+F10` is bound
     /// beside it rather than instead of it — that is the companion binding on

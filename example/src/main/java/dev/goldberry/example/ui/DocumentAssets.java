@@ -11,7 +11,7 @@ import dev.goldberry.content.ImageSource;
 import dev.goldberry.image.Image;
 
 /// Where the two document screens' pictures come from — the **application's**
-/// answer, which is the whole point of [ImageSource] (ADR-0300).
+/// answer, which is the whole point of [ImageSource].
 ///
 /// The showcase's answer is the smallest honest one: it ships one picture, beside
 /// the documents that name it, and it hands that over for the `src` those documents
@@ -21,15 +21,18 @@ import dev.goldberry.image.Image;
 /// What a real application would put here is the interesting part, and none of it is
 /// the toolkit's: a path resolved against the note's own folder, a key in a
 /// content-addressed store, an `HttpClient` under its own policy. Nothing in `:html`
-/// opens a file or a socket (ADR-0190).
+/// opens a file or a socket.
 ///
 /// ## Decoded once, held for ever
 ///
-/// An [Image] is a **value** (ADR-0283) — it owns no native handle and needs no
+/// An [Image] is a **value** — it owns no native handle and needs no
 /// closing — so an application may cache one in a map and hand it to a widget that is
 /// rebuilt every frame. That is what makes this class four lines rather than a
 /// lifetime to explain, and it is why the view takes a source rather than an image:
 /// the cache is the application's.
+///
+/// Read more:
+/// [Links, images and tasks](https://goldberry.dev/docs/components/content.html#links-images-and-tasks).
 public final class DocumentAssets implements ImageSource {
 
     /// The one picture this application has, under the name both samples write.

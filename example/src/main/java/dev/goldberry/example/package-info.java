@@ -3,10 +3,12 @@
 ///
 /// Not exported; the module is an application. Opened to `:core`, which reads
 /// `showcase.css` from it and binds the model's fields and actions reflectively at
-/// run time rather than through the weaver (ADR-0093, ADR-0155). The screens are in
+/// run time rather than through the weaver. The screens are in
 /// `…example.ui`.
 ///
-/// Marked for NullAway (`docs/testing.md` §2, ADR-0497).
+/// Marked for NullAway, as every package in the repository is.
+///
+/// Read more: [Building an application](https://goldberry.dev/docs/applications.html).
 @NullMarked
 package dev.goldberry.example;
 

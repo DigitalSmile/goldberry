@@ -11,6 +11,8 @@ package dev.goldberry.natives.yoga;
 /// fractional scale that snapping is the whole point: it is what keeps a
 /// 1.5&times;-scaled border from landing on a half-physical-pixel and blurring.
 ///
+/// Read more: [The native boundary](https://goldberry.dev/docs/overview/architecture.html#the-native-boundary).
+///
 /// @param left   offset from the parent's content box, along its main cross axis
 /// @param top    offset from the parent's content box, vertically
 /// @param width  the node's outer width

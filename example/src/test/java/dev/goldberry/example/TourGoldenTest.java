@@ -34,8 +34,8 @@ import dev.goldberry.widgets.overlay.tour.Tour;
 /// left edge of the window and one pixel from the top, because `Insets` is in CSS
 /// order — top, right, bottom, left — and the call passed left and top. Anchoring
 /// a box by its top *and its bottom* stretches it, and every test that asked the
-/// tree what it contained passed while this was true
-/// (ADR-0121).
+/// tree what it contained passed while this was true. A tour is a veil and a
+/// sequence, and only a picture shows the veil.
 class TourGoldenTest {
 
     @Test
@@ -58,11 +58,11 @@ class TourGoldenTest {
         sheets.add(Stylesheet.resource(CascadeLayer.APPLICATION, Showcase.class, "showcase.css"));
 
         try (var fonts = Fonts.bundled()) {
-            // A **virtual** clock, and the tour's arrival is why: §1.7's overlay
+            // A **virtual** clock, and the tour's arrival is why: the overlay
             // curve fades the card in over `Phase.DURATION_MILLIS`, and the five
             // warm frames below happen in microseconds on a system clock — so
             // the image would be of a card at whatever opacity the loop caught,
-            // which is a different number on every machine (ADR-0269).
+            // which is a different number on every machine.
             //
             // `GalleryGoldenTest` reaches for the same answer for the same
             // reason, and 200ms is past the duration there too: everything that

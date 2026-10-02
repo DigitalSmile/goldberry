@@ -1,14 +1,15 @@
-/// `@NullMarked`, which puts this package under NullAway.
+/// The value types the backend SPI measures in: logical and physical sizes,
+/// points and rectangles, the scale between them, and the one pixel format a
+/// frame is presented in.
 ///
-/// Inside a marked package every type is non-null unless it says `@Nullable`,
-/// and the build fails on a violation. The annotation is the whole content of
-/// this file: there is nothing package-specific to say about nullness, and a
-/// paragraph pretending otherwise in every package would be padding.
+/// Logical pixels are what layout, styling and application code work in;
+/// physical pixels are what a raster is made of; `DisplayScale` is the only
+/// conversion between them. Exported to every module, because a window's size
+/// and a popup's position are stated in these.
 ///
-/// Packages are marked one at a time on purpose. NullAway runs in
-/// `OnlyNullMarked` mode, so an unmarked package is invisible to it and a marked
-/// one is checked from the moment it opts in — which is the only way a codebase
-/// this size adopts nullness at all (`docs/testing.md` §2).
+/// Null-marked: a parameter or return is non-null unless it says `@Nullable`.
+///
+/// Read more: [How layout works](https://goldberry.dev/docs/layout/index.html#logical-pixels).
 @NullMarked
 package dev.goldberry.render.model;
 

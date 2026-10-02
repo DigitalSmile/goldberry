@@ -11,14 +11,18 @@ import dev.goldberry.image.Image;
 
 /// An [Image] as PNG bytes.
 ///
+/// ```java
+/// byte[] png = PngEncoder.encode(image);     // the same as image.encodePng()
+/// ```
+///
 /// ## Why this is Java's and the decoder is not
 ///
 /// Decoding needs a JPEG decoder, which is thousands of lines nobody should write
-/// twice, so it is Blend2D's. *Encoding* a PNG is a `Deflater` — which is in
-/// `java.base` — wrapped in four chunks and a CRC, so it is this file, and the
-/// export list stays three symbols shorter than it would otherwise be. That is
-/// ADR-0278's reasoning applied a second time: work the rasterizer does not have
-/// to do for us is work that should not cross the boundary (ADR-0283).
+/// twice, so it is the rasterizer's. *Encoding* a PNG is a `Deflater`, which is
+/// in `java.base`, wrapped in four chunks and a CRC, so it is this file, and the
+/// native export list stays three symbols shorter than it would otherwise be:
+/// work the rasterizer does not have to do for us is work that should not cross
+/// the native boundary.
 ///
 /// It also means a headless server can turn a rendered frame into a PNG with no
 /// native library involved in the encode at all, which is what the offscreen
@@ -36,6 +40,10 @@ import dev.goldberry.image.Image;
 /// written *and* read by the code under test proves nothing about either half. Its
 /// reader is the independent check on this writer, and the round-trip test between
 /// them is what says the two agree.
+///
+/// Stateless and safe to call from any thread.
+///
+/// Read more: [Text, fonts and icons](https://goldberry.dev/docs/guide/text.html#images).
 public final class PngEncoder {
 
     private static final byte[] SIGNATURE = {(byte) 0x89, 'P', 'N', 'G', '\r', '\n', 0x1A, '\n'};

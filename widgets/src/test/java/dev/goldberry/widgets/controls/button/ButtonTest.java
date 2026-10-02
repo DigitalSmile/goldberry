@@ -47,11 +47,14 @@ import dev.goldberry.widgets.Icons;
 import dev.goldberry.widgets.Widgets;
 import dev.goldberry.widgets.controls.TestFont;
 
-/// The first control, checked the three ways §11 says a widget has to exist.
+/// The first control, checked the three ways a widget has to exist: as a Java
+/// record, as a markup node, and as a type a stylesheet can select.
+///
+/// Read more: [Button](https://goldberry.dev/docs/components/buttons.html#button).
 class ButtonTest {
 
     @Nested
-    @DisplayName("parity (§11)")
+    @DisplayName("markup and Java build the same tree")
     class Parity {
 
         @Test
@@ -213,7 +216,7 @@ class ButtonTest {
         void metrics() {
             var style = style(null);
 
-            // docs/design-system.md §3: height 32, padding-x 12, gap 6, radius 8.
+            // The button's metrics: height 32, padding-x 12, gap 6, radius 8.
             assertEquals(Length.points(32), style.height());
             assertEquals(
                     new Insets(Length.points(0), Length.points(12), Length.points(0), Length.points(12)),
@@ -221,7 +224,7 @@ class ButtonTest {
             assertEquals(Length.points(6), style.gap());
             assertEquals(Corners.all(8), style.decoration().corners());
 
-            // And no border, because §3's button row does not have one. The
+            // And no border, because the button's metrics do not give it one. The
             // machinery exists -- the checkbox's glyph uses it -- and using it
             // here anyway would be improvising a metric the system has not
             // agreed to (Principle 3).
@@ -229,19 +232,20 @@ class ButtonTest {
         }
 
         @Test
-        @DisplayName("the label is `body-strong`, which is §3's typography column")
+        @DisplayName("the label is `body-strong`, which is the button's type token")
         void bodyStrong() {
             var typography = style(null).typography();
 
-            // §1.4: body-strong is Inter 600 at 13/18. The last of the four
-            // things `controls.css` used to say it could not express.
+            // The design system's body-strong is Inter 600 at 13/18. The last of
+            // the four things `controls.css` used to say it could not express.
             assertEquals("Inter", typography.family());
             assertEquals(13, typography.size(), 1e-9);
             assertEquals(18, typography.resolvedLineHeight(), 1e-9);
             assertEquals(dev.goldberry.assets.BundledFont.Weight.SEMI_BOLD, typography.weight());
 
             // And it is a real second face rather than a synthetic smear: the
-            // weight picks a different file, which is the whole of ADR-0066.
+            // weight picks a different file: a weight is a face here, never a
+            // synthetic bold.
             assertEquals(dev.goldberry.assets.BundledFont.UI_STRONG, typography.face());
         }
 
@@ -252,9 +256,9 @@ class ButtonTest {
             var element = new ElementTree(new Button("Save")).root();
             var resolver = new StyleResolver(sheets);
 
-            // §2.2: ":focus is not :focus-visible" -- a button clicked with a
-            // mouse is focused and gets no ring. The router keeps the two apart
-            // (ADR-0054) exactly so this rule can.
+            // The design system's rule: `:focus` is not `:focus-visible`, so a
+            // button clicked with a mouse is focused and gets no ring. The router
+            // keeps the two apart exactly so this rule can.
             element.setPseudoClass(Selector.PseudoClass.FOCUS, true);
             var clicked = ComputedStyle.of(resolver.resolve(element), CssLength.Context.DEFAULT);
             assertTrue(!clicked.decoration().hasOutline(), "a mouse focus draws no ring");
@@ -275,7 +279,8 @@ class ButtonTest {
             var dark = style(null);
 
             // --gb-button-bg is nord2 in the dark theme. The base rule says
-            // `var(--gb-button-bg)` and never learns which theme answered (§10).
+            // `var(--gb-button-bg)` and never learns which theme answered: colours
+            // live in the theme layer, metrics in the toolkit base.
             assertEquals(0xFF434C5E, dark.background());
             assertTrue(!Controls.baseSource().contains("#"), "the base stylesheet must name no colour of its own");
         }
@@ -290,8 +295,8 @@ class ButtonTest {
         @Test
         @DisplayName("an application overrides a component token without touching a rule")
         void tokenOverride() {
-            // What design-system.md §3 means by "app stylesheets may override
-            // component tokens, never structure".
+            // An application stylesheet may override a component token, never a
+            // control's structure.
             var style = style(":root { --gb-button-bg: #ff0000 }");
 
             assertEquals(0xFFFF0000, style.background());
@@ -342,7 +347,7 @@ class ButtonTest {
     }
 
     @Nested
-    @DisplayName("actions (§9)")
+    @DisplayName("an action name is bound against a controller")
     class ActionBinding {
 
         @Test
@@ -413,9 +418,8 @@ class ButtonTest {
         @Test
         @DisplayName("an icon is a box beside the label, not a decoration over it")
         void iconIsABox() {
-            // The answer to what ADR-0043 left open. An icon is built at a size
-            // and that size is its intrinsic one, so it needs no measure
-            // function and no callback into C.
+            // An icon is built at a size and that size is its intrinsic one, so
+            // it needs no measure function and no callback into C.
             var box = new Button("Save").withIcon(icon).render(ComputedStyle.INITIAL, List.of(), TestFont.context());
 
             assertEquals(2, box.children().size());
@@ -431,16 +435,17 @@ class ButtonTest {
                     .render(ComputedStyle.INITIAL, List.of(), TestFont.context());
             assertEquals(1, box.children().size());
 
-            // Nothing to click on and nothing to read out (§13).
+            // Nothing to click on and nothing to read out: a control without a
+            // name is a failure, not a blank.
             assertThrows(IllegalArgumentException.class, () -> new Button("", null, null, false, Attributes.NONE));
         }
 
-        /// The other half of "an icon-only button is legal", and the half §13
-        /// cares about: its label is the empty string by construction, so a name
+        /// The other half of "an icon-only button is legal", and the half the
+        /// semantics tree cares about: its label is the empty string by construction, so a name
         /// derived from what is showing is a name that is not there.
         ///
         /// `name=` is on `Attributes` rather than on `Button`, so every widget
-        /// has it and none of them had to remember to ([ADR-0260]).
+        /// has it and none of them had to remember to.
         @Test
         @DisplayName("an icon-only button is named by `name=`, because its label cannot name it")
         void iconOnlyIsNamed() {
@@ -462,7 +467,7 @@ class ButtonTest {
         }
 
         @Test
-        @DisplayName("markup carries it, which is where §3 asks for it")
+        @DisplayName("markup carries it, because an icon-only button requires an accessible name")
         void nameFromMarkup() {
             var icons = Icons.strict().bind("plus", icon);
 
@@ -555,8 +560,10 @@ class ButtonTest {
                     new StyleResolver(sheets).resolve(new ElementTree(new Button("Save").styled("danger")).root()),
                     CssLength.Context.DEFAULT);
 
-            // docs/design-system.md §2.1: "disabled is 45% opacity on the whole
-            // control, never color-remapped". The variant survives, which is the
+            // The design system's rule: disabled is 45% opacity on the whole
+            // control, never colour-remapped
+            // (https://goldberry.dev/docs/guide/design-system.html#states).
+            // The variant survives, which is the
             // point -- a disabled danger button still reads as dangerous, and a
             // remap to one grey surface would have made every disabled button
             // look alike whatever it does.
@@ -564,7 +571,7 @@ class ButtonTest {
             // Compared against the *enabled* button rather than against a pinned
             // hex: what this test claims is that the two are the same colour, and
             // a literal made it also claim which colour, so a legitimate change to
-            // the danger ramp failed it for a reason it was not about (ADR-0088).
+            // the danger ramp failed it for a reason it was not about.
             assertEquals(0.45, style.opacity(), 1e-9);
             assertEquals(
                     enabled.background(), style.background(), "still the danger colour, faded rather than remapped");

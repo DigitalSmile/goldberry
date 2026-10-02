@@ -21,6 +21,8 @@ import dev.goldberry.natives.sdl.gpu.enums.SdlGpuTransferUsage;
 /// SDL's pointer, scoped to an arena of its own that [#unmap] closes. A buffer
 /// kept past `unmap` throws `IllegalStateException` on its next access, where a
 /// raw pointer would read freed memory or crash the process.
+///
+/// Read more: [The native boundary](https://goldberry.dev/docs/overview/architecture.html#the-native-boundary).
 public final class SdlGpuTransferBuffer extends SdlGpuResource {
 
     private final SdlGpuTransferUsage usage;

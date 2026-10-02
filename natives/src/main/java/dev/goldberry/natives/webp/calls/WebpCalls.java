@@ -11,11 +11,11 @@ import java.lang.invoke.MethodHandle;
 
 import dev.goldberry.natives.Downcalls;
 
-/// The functions `libgoldberry` exports for WebP — `docs/gaps.md` G35a,
-/// [ADR-0329], and the encoder and animation reader [ADR-0385] added.
+/// The functions `libgoldberry` exports for WebP: the decoder, the encoder and
+/// the animation reader.
 ///
-/// libwebp's own, bound directly with no C glue in between, which is §3.1's rule
-/// and what the whole export list exists for.
+/// libwebp's own, bound directly with no C glue in between, which is what the
+/// whole export list exists for.
 ///
 /// **`…Internal` is not a private symbol.** `WebPAnimDecoderOptionsInit` and
 /// `WebPAnimDecoderNew` are static inlines in `demux.h` that forward to these
@@ -199,7 +199,7 @@ public record WebpCalls(
     ///
     /// `int WebPAnimDecoderGetNext(WebPAnimDecoder*, uint8_t** buf, int* timestamp)`
     ///
-    /// The disposal and blending model animated GIF needed in Java (ADR-0382) is
+    /// The disposal and blending model animated GIF needed in Java is
     /// upstream's here. The buffer belongs to the decoder and is valid only until
     /// the next call, which is why the caller copies before asking again.
     public static final class AnimGetNext {

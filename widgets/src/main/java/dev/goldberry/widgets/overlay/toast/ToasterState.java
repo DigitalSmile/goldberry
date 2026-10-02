@@ -20,10 +20,9 @@ import dev.goldberry.widgets.core.presence.Phase;
 /// A [Toast] is a value with no lifetime in it. Everything that happens to one
 /// happens here — it arrives, it counts down, it stops counting down while the
 /// pointer is on it, it fades, and the one behind it comes forward. None of that
-/// is describable, and none of it is the application's: §7 asks for "queued,
-/// timeout with hover-pause" and an application that had to implement those
-/// would be writing a toast stack rather than using one
-/// (ADR-0177).
+/// is describable, and none of it is the application's: the queue, the timeout
+/// and the hover-pause are the stack's job, and an application that had to
+/// implement them would be writing a toast stack rather than using one.
 ///
 /// ## Every duration here is a frame-clock reading
 ///
@@ -34,13 +33,14 @@ import dev.goldberry.widgets.core.presence.Phase;
 /// reads the motion preference the same way and for the same reason.
 final class ToasterState extends State<Toaster> {
 
-    /// §3: "in: slide 16px from edge + `opacity`, **overlay**" — 240ms.
+    /// The arrival — a 16px slide from the edge, with `opacity` — takes the
+    /// **overlay** duration: 240ms.
     static final double ENTER_MILLIS = 240;
 
-    /// §3: "out: `opacity` **base**" — 160ms.
+    /// The exit — `opacity` alone — takes the **base** duration: 160ms.
     static final double EXIT_MILLIS = 160;
 
-    /// §3: "siblings reflow via `translate` **base**" — the same 160ms, and the
+    /// The sibling reflow on `translate` takes **base** too — the same 160ms, and the
     /// same number [Phase] already calls base.
     static final double REFLOW_MILLIS = Phase.DURATION_MILLIS;
 
@@ -61,14 +61,12 @@ final class ToasterState extends State<Toaster> {
         /// The timer that takes it out of the stack once the exit has run, or
         /// null until it starts leaving.
         ///
-        /// **Held, which it was not.** The stay above was cancelled on unmount
-        /// and this one was not held at all, so a window closed inside the
-        /// 160ms of a dismissal fired `setState` on a state that had been
-        /// disposed — an `IllegalStateException` out of the event loop, from a
-        /// toast nobody could still see. The timer it was missing is the one
-        /// [dev.goldberry.widgets.core.presence.Departure]
+        /// **Held**, so that unmounting can cancel it: a window closed inside
+        /// the 160ms of a dismissal would otherwise fire `setState` on a state
+        /// that has been disposed, from a toast nobody could still see. It is
+        /// the timer [dev.goldberry.widgets.core.presence.Departure]
         /// holds for `dialog` and `message`; a stack departs once *per entry*
-        /// rather than once, so the field lives here ([ADR-0234]).
+        /// rather than once, so the field lives here.
         EventLoop.@Nullable Timer exit;
 
         /// How much of its stay is left, in milliseconds. Counted down rather
@@ -80,7 +78,7 @@ final class ToasterState extends State<Toaster> {
         /// it is not running.
         double startedAt = Double.NaN;
 
-        /// Whether the pointer is on it — §7's "hover-pause".
+        /// Whether the pointer is on it, which pauses its stay.
         boolean hovered;
 
         /// How tall it came out on the last frame that painted it, in logical
@@ -108,7 +106,7 @@ final class ToasterState extends State<Toaster> {
 
     private final List<Entry> entries = new ArrayList<>();
 
-    /// Waiting to be shown, oldest first — §7's "queued".
+    /// Waiting to be shown, oldest first: the queue.
     private final List<Toast> waiting = new ArrayList<>();
 
     /// Never reused, so no element ever inherits a departing toast's key.
@@ -185,9 +183,9 @@ final class ToasterState extends State<Toaster> {
 
     void show(Toast toast) {
         if (showingCount() >= widget().maximum()) {
-            // Queued rather than dropped and rather than shown: §7 says "queued",
-            // and a burst of six notifications is exactly the case the word is
-            // there for. They arrive as room appears, in the order they happened.
+            // Queued rather than dropped and rather than shown: a burst of six
+            // notifications is exactly what the queue is for. They arrive as
+            // room appears, in the order they happened.
             waiting.add(toast);
             return;
         }
@@ -257,7 +255,7 @@ final class ToasterState extends State<Toaster> {
         }
     }
 
-    /// §7's hover-pause. The clock stops while the pointer is on a toast and
+    /// The hover-pause. The clock stops while the pointer is on a toast and
     /// **resumes** rather than restarting: a toast you glanced at should not owe
     /// you another five seconds.
     private void hover(Entry entry, boolean over) {
@@ -286,7 +284,8 @@ final class ToasterState extends State<Toaster> {
         }
     }
 
-    /// A click on the plate — §7's missing way out, see [ToastBox#onPointer].
+    /// A click on the plate — the way out a toast has instead of a ×, see
+    /// [ToastBox#onPointer].
     ///
     /// No handler to run and nothing to report: dismissing a notification is not
     /// an answer to it, which is exactly what tells it apart from the action
@@ -331,7 +330,7 @@ final class ToasterState extends State<Toaster> {
         promote();
     }
 
-    /// §3's **sibling reflow**: the toasts left behind travel to where the stack
+    /// The **sibling reflow**: the toasts left behind travel to where the stack
     /// now puts them rather than jumping there.
     ///
     /// ## Only the older ones move
@@ -355,7 +354,7 @@ final class ToasterState extends State<Toaster> {
     private void closeTheGap(int index, double height) {
         if (!(height > 0)) {
             // Nothing to close. A toast dismissed before a frame ever painted it
-            // has no height — `Measured` is last frame's ([ADR-0117]) — and a
+            // has no height — `Measured` is last frame's — and a
             // stack that guessed one would move its survivors somewhere no toast
             // had ever been. The check is on the **height** and not on the total,
             // because the gap alone is a real number and would send the whole
@@ -380,11 +379,9 @@ final class ToasterState extends State<Toaster> {
     /// it is what [#clear] looks like, and what a burst timing out one after
     /// another looks like.
     ///
-    /// This is the one thing §1.7's `AnimationController` was still owed for
-    /// (`book/src/TODO.md`), and it is four lines: read what is left, add the new
-    /// distance, start again. A controller for a single consumer would be a
-    /// mechanism where an arithmetic is
-    /// (ADR-0178).
+    /// It is four lines: read what is left, add the new distance, start again.
+    /// An animation controller for a single consumer would be a mechanism where
+    /// an arithmetic is.
     private ToastBox.Reflow travel(Entry entry, double distance) {
         var left = entry.reflow == null
                 ? 0

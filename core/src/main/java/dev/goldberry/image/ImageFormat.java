@@ -3,8 +3,11 @@ package dev.goldberry.image;
 import java.nio.ByteBuffer;
 import java.util.Objects;
 
-/// What a run of bytes is, decided by looking at them — `docs/gaps.md` G35a,
-/// [ADR-0329].
+/// What a run of bytes is, decided by looking at them.
+///
+/// ```java
+/// if (ImageFormat.of(ByteBuffer.wrap(bytes)) == ImageFormat.GIF) { ... }
+/// ```
 ///
 /// ## Why the toolkit sniffs at all
 ///
@@ -27,8 +30,10 @@ import java.util.Objects;
 ///
 /// It means "none of the signatures matched", which for a format this enum does
 /// not list is the same answer. The bytes still go to the rasterizer, which has
-/// the final word — the sniff decides *routing*, not validity, and a format added
+/// the final word: the sniff decides *routing*, not validity, and a format added
 /// to the rasterizer later needs no entry here.
+///
+/// Read more: [Text, fonts and icons](https://goldberry.dev/docs/guide/text.html#images).
 public enum ImageFormat {
 
     /// `89 50 4E 47 0D 0A 1A 0A` — the signature designed to survive a

@@ -20,7 +20,7 @@ import dev.goldberry.text.flow.TextDecoration;
 import dev.goldberry.text.flow.TextFlow;
 import dev.goldberry.text.font.Font;
 
-/// `text-decoration`, drawn — `docs/gaps.md` G27, ADR-0321.
+/// `text-decoration`, drawn where the face says its rules go.
 ///
 /// The half that has to be measured in **ink**, like [ParagraphFlowTest]: a rule
 /// one pixel out of place renders perfectly and is wrong. What a rule is, in

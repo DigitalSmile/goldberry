@@ -11,34 +11,35 @@ import dev.goldberry.render.model.LogicalRect;
 import dev.goldberry.widget.ElementTree;
 import dev.goldberry.widget.WidgetRenderer;
 
-/// The steps a frame runs, in the one order that is right, in one place.
+/// The steps a frame runs before anything is drawn, in the one order that is
+/// right, in one place.
 ///
-/// Two things in this toolkit turn a widget tree into pixels — `Launcher`, for a
+/// Two things in this toolkit turn a widget tree into pixels: `Launcher`, for a
 /// window, and
 /// [dev.goldberry.offscreen.Offscreen],
-/// for a buffer — and they ran the same list of steps in the same order from two
-/// copies of it. Every one of those steps is there because leaving it out
-/// produced a picture that was wrong in a way nobody noticed for weeks
-/// (ADR-0284), and a second copy is a second place for one to go missing: the
-/// golden harness's own copy was missing [ElementTree#flush], and the nine images
-/// it committed showed an arrangement no window ever drew.
+/// for a buffer. Both run the same steps in the same order, and both run them
+/// through this class, so a step cannot go missing from one of them. Every step
+/// is there because leaving it out produces a picture that is wrong in a way
+/// that is easy to miss: a harness that skipped [ElementTree#flush] drew an
+/// arrangement no window ever showed.
 ///
-/// So the order lives here, and what differs between a window and a buffer stays
-/// outside: damage, frame statistics, the HUD's stage timings and the model sweep
-/// are the launcher's, and nothing in this class knows they exist (ADR-0423).
+/// What differs between a window and a buffer stays outside: damage, frame
+/// statistics, the HUD's stage timings and the model sweep are the launcher's,
+/// and nothing in this class knows they exist.
 ///
 /// Not part of the published API. This is a seam between two callers inside
 /// `:core`, and an application that wants a picture wants `Offscreen`.
 ///
 /// ## What it does not own
 ///
-/// The rasterization. A window paints the damaged rectangles because the backend
-/// promises last frame's pixels are still there (ADR-0072) and a buffer has no
-/// last frame to promise anything about, so the two callers paint differently on
-/// purpose — and a full paint is one call with no ordering constraint around it,
-/// which is nothing for a shared owner to protect. Extraction buys safety exactly
-/// where order is load-bearing, and it is load-bearing in [#layOut] and in
-/// [#captureRegions].
+/// The rasterization. A window paints only the damaged rectangles, because its
+/// backend promises last frame's pixels are still there, and a buffer has no
+/// last frame, so the two callers paint differently on purpose. A full paint is
+/// one call with no ordering constraint around it, which is nothing for a shared
+/// owner to protect. Order is load-bearing in [#layOut] and in
+/// [#captureRegions], and that is what this class holds.
+///
+/// Read more: [What a frame costs](https://goldberry.dev/docs/performance/index.html#the-frame-loop).
 public final class FrameSequence {
 
     private final ElementTree tree;
@@ -59,9 +60,9 @@ public final class FrameSequence {
     /// The sequence over one window's or one render's three objects.
     ///
     /// All three outlive a frame: the element tree holds state, the render tree is
-    /// retained across frames (ADR-0069), and the router remembers what it last
-    /// told each self-measuring widget. A sequence is therefore built once beside
-    /// them rather than per frame.
+    /// retained across frames, and the router remembers what it last told each
+    /// self-measuring widget. A sequence is therefore built once beside them
+    /// rather than per frame.
     public static FrameSequence over(ElementTree tree, RenderTree render, PointerRouter router) {
         Objects.requireNonNull(tree, "tree");
         Objects.requireNonNull(render, "render");
@@ -72,23 +73,22 @@ public final class FrameSequence {
     /// Prepare, flush, render, lay out — the four steps before anything is drawn,
     /// and the whole reason this class exists.
     ///
-    /// Each step is in front of the next one for a reason that is not taste:
+    /// Each step is in front of the next one for a reason:
     ///
     /// 1. **prepare** hands the tree this renderer's cascade *before* it is built,
     ///    because a build may ask about a custom property and a resolver handed
-    ///    over afterwards would be a frame late (ADR-0254).
+    ///    over afterwards would be a frame late.
     /// 2. **flush** settles every `setState` since the last frame, once, however
-    ///    many of them there were (ADR-0052). This is the call the golden harness
-    ///    did not have.
-    /// 3. **render** cascades the element tree into a box tree — the term ADR-0070
-    ///    measured as the largest in a frame.
+    ///    many of them there were.
+    /// 3. **render** cascades the element tree into a box tree, which is the
+    ///    largest term in a frame.
     /// 4. **update** reconciles the retained render tree against that description
     ///    and lays it out. One layout pass, and both the paint and the hit-test
-    ///    snapshot read that one result (ADR-0069).
+    ///    snapshot read that one result.
     ///
     /// @param renderer the renderer for this frame. Passed in rather than held,
-    ///                 because a theme swap builds a new one (ADR-0067) and a
-    ///                 sequence that cached it would paint the old colours
+    ///                 because a theme swap builds a new one and a sequence that
+    ///                 cached it would paint the old colours
     /// @return when each step finished, for a caller that reports it
     public Stages layOut(Frame frame, WidgetRenderer renderer) {
         return layOut(frame, renderer, System.nanoTime());
@@ -122,9 +122,9 @@ public final class FrameSequence {
 
     /// Captures the laid-out rectangles and gives them to the router.
     ///
-    /// Order again, and this one is [ADR-0119]: the window's own bounds go in
-    /// *before* the regions, because a `Located` widget is told what clips it and
-    /// "nothing clips me" has to resolve to a real rectangle.
+    /// Order matters here too: the window's own bounds go in *before* the
+    /// regions, because a `Located` widget is told what clips it and "nothing
+    /// clips me" has to resolve to a real rectangle.
     ///
     /// The router is not here for input. It is what delivers `Measured` to a widget
     /// that sizes itself from the region it was laid out into, so a caller that
@@ -134,7 +134,7 @@ public final class FrameSequence {
     ///
     /// @return the capture, for a caller that keeps it. A menu opens under where
     ///         its button *was drawn* rather than where a fresh layout would put
-    ///         it, and that is this list (ADR-0054)
+    ///         it, and that is this list
     /// @throws IllegalStateException if nothing has been laid out yet: a capture of
     ///         a tree with no layout in it is a list of rectangles at the origin,
     ///         which is not an error anywhere further down
@@ -163,7 +163,7 @@ public final class FrameSequence {
     /// Measured on every frame rather than behind a flag, because the stages are
     /// what a `hud` shows: a number on screen from a frame that happened to be
     /// traced would be a different frame's. Four `nanoTime` calls against a frame
-    /// costing hundreds of microseconds is not a cost worth a branch (ADR-0146).
+    /// costing hundreds of microseconds is not a cost worth a branch.
     ///
     /// @param beganAt   when the caller says the frame started
     /// @param builtAt   after prepare and flush

@@ -30,10 +30,8 @@ import dev.goldberry.widgets.Density;
 import dev.goldberry.widgets.core.Column;
 import dev.goldberry.widgets.core.image.Fit;
 
-/// The 4K60 run `docs/gpu-plan.md` phase 6 closes on, and `media-plan.md`
-/// phase 5's exit with it: a minute of 4K60 VP9 decoded on the platform's video
-/// engine and shown by a `video-view` in a real window, through the GPU
-/// (ADR-0483, ADR-0484).
+/// The 4K60 run: a minute of 4K60 VP9 decoded on the platform's video engine
+/// and shown by a `video-view` in a real window, through the GPU.
 ///
 /// Plays the clip `media/src/test/fixtures/make-4k60.sh` makes to its end, then
 /// prints what happened to its pictures ([VideoStatistics]), which decoder and

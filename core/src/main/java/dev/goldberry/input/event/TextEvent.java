@@ -6,9 +6,20 @@ import dev.goldberry.widget.Element;
 
 /// Text the platform has finished translating, delivered to whatever has focus.
 ///
-/// The other half of §7.1's split. By the time this arrives the layout, any dead
-/// key, any compose sequence and any IME conversion have all been applied — so a
-/// text input appends [#text()] and never reasons about keys at all.
+/// ```java
+/// @Override public void onTextInput(TextEvent event) {
+///     editor.insert(event.text());
+///     event.consume();
+/// }
+/// ```
+///
+/// The other half of the split between keys and text. By the time this arrives
+/// the layout, any dead key, any compose sequence and any IME conversion have all
+/// been applied, so a text input appends [#text()] and never reasons about keys
+/// at all. A container sees it before its focused child (capture), then the child
+/// does, and [#consume()] stops it going further.
+///
+/// Read more: [Input and focus](https://goldberry.dev/docs/guide/input.html#keys-and-text-are-different-events).
 public final class TextEvent {
 
     private final String text;

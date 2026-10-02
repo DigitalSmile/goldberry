@@ -2,10 +2,12 @@
 ///
 /// Shared by both content halves and exported to neither: Markdown and HTML spell
 /// `&amp;` the same way, and md4c's 2125-name table is the one copy of it either of
-/// them needs (ADR-0294, ADR-0298).
+/// them needs.
 ///
 /// `@NullMarked` puts the package under NullAway: every type is non-null unless it
-/// says `@Nullable`, and the build fails on a violation (`docs/testing.md` §2).
+/// says `@Nullable`, and the build fails on a violation.
+///
+/// Read more: [Markdown, HTML and the web](https://goldberry.dev/docs/components/content.html).
 @NullMarked
 package dev.goldberry.content.entity;
 

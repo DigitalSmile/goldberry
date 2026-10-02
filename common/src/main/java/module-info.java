@@ -3,23 +3,25 @@
 /// The lowest module in the graph. `:natives` requires it, `:core` requires it,
 /// and nothing here requires either of them — which is the whole reason it
 /// exists: logging is used by the FFM bindings and by the widget catalog alike,
-/// and `:natives` is the lower of those two, so before this module the shared
-/// code had to live *inside* the native layer and be exported from it
-/// (ADR-0174).
+/// and `:natives` is the lower of those two, so without this module the shared
+/// code would have to live *inside* the native layer and be exported from it.
 ///
 /// The bar for adding something here is that **both** halves need it and neither
 /// owns it. A type that needs `:natives` belongs in `:natives`; one that only the
 /// toolkit above the SPI needs belongs in `:core`. `NativePlatform` looks like a
 /// candidate and is not one: `classifier()` and `libraryFileName()` exist to pick
 /// a native artifact.
+///
+/// Read more: [Logging and diagnostics](https://goldberry.dev/docs/guide/logging.html).
 module dev.goldberry.common {
 
     /// `transitive`, because a consumer that reads Goldberry's logs configures
-    /// SLF4J itself -- the toolkit binds no implementation, by design (ADR-0023).
+    /// SLF4J itself -- the toolkit binds no implementation, because binding a
+    /// provider is an application's decision and never a library's.
     requires transitive org.slf4j;
 
     /// JSpecify's nullness annotations, for the packages that have opted into
-    /// NullAway (`docs/testing.md` §2).
+    /// NullAway.
     ///
     /// **`static`**, because they are compile-time only: a consumer's runtime
     /// module path does not need them. **`transitive`**, because `@Nullable`

@@ -97,7 +97,7 @@ class TooltipGoldenTest {
                 frame -> BoxPainter.paint(frame, renderer.render(new ElementTree(scene))));
     }
 
-    /// The maximum §2 never gave it ([ADR-0181]). Without one a tooltip is a
+    /// A maximum width. Without one a tooltip is a
     /// single line as wide as its string, so a sentence of help text becomes a
     /// ribbon across the window that is harder to read than no tooltip at all.
     ///

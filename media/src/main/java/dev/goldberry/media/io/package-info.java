@@ -1,4 +1,4 @@
-/// Where the bytes come from (`docs/goldberry-media.md` §4).
+/// Where the bytes come from.
 ///
 /// FFmpeg is built with no network layer and no protocols. Every byte it demuxes
 /// is read through a [dev.goldberry.media.io.MediaIO]. A
@@ -9,7 +9,10 @@
 /// seeks, a read-ahead cache, reconnects, ICY radio metadata). Applications add
 /// protocols as [dev.goldberry.media.io.MediaIOProvider]s.
 ///
-/// Marked for NullAway from its first commit (`docs/testing.md` §2).
+/// Exported to every module. Null-marked.
+///
+/// Read more:
+/// [Tracks and the network](https://goldberry.dev/docs/components/media.html#tracks-subtitles-and-the-network).
 @NullMarked
 package dev.goldberry.media.io;
 

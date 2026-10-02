@@ -15,11 +15,11 @@ import dev.goldberry.widget.semantics.Semantics;
 import dev.goldberry.widget.style.Paints;
 import dev.goldberry.widget.style.Styled;
 
-/// The × on a closable [Tab] — a **part**, so it is styleable and not
-/// constructible (ADR-0065).
+/// The × on a closable [Tab] — a part, so a stylesheet can select it and a
+/// document cannot write it.
 ///
 /// **Not focusable**, which is the decision worth writing down: a tab strip is
-/// *one* Tab stop with the arrows roving inside it (§7.2), and a focusable close
+/// *one* Tab stop with the arrows roving inside it, and a focusable close
 /// affordance would make it two per tab — nine tabs would be nineteen stops
 /// between the strip and the content. The keyboard's way to close a tab is
 /// `Delete` on the tab itself, which [Tab] handles.

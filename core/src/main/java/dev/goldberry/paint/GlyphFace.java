@@ -10,19 +10,20 @@ import dev.goldberry.text.font.sfnt.ColorPaints;
 import dev.goldberry.text.font.sfnt.GlyphOutlines;
 import dev.goldberry.text.font.sfnt.OutlineSink;
 
-/// A typeface, as the **rasterizer** sees it — `docs/gaps.md` G14.
+/// A typeface, as the **rasterizer** sees it.
 ///
 /// The other half of a typeface is the shaper's, and
 /// [dev.goldberry.text.font.FontFace] is what owns one of
 /// each. They are built from the same bytes and know nothing about each other,
-/// which `docs/ARCHITECTURE.md` §6 asks for and ADR-0034 explains the cost of.
+/// which keeps the shaper and the rasterizer apart at the cost of reading the
+/// bytes twice.
 ///
 /// ## Why it is here
 ///
-/// Because drawing a glyph is `paint`'s, and the handle that draws one was
-/// `text.font`'s. That split is what left `Frame.drawGlyphs` public with two
-/// `:natives` types in its signature — the last of the module boundary's leaks,
-/// and the reason `:core` could not drop `requires transitive` (ADR-0290).
+/// Because drawing a glyph is `paint`'s job, and keeping the handle that draws
+/// one in this package is what keeps every `:natives` type out of a public
+/// signature: `Frame.drawGlyphs` is package-private and [GlyphPen] is its only
+/// caller.
 ///
 /// **Nothing about this type is native.** It is made from a `byte[]`, it answers
 /// an `int`, and it closes. The `BlendFontFace` inside it never leaves this
@@ -33,6 +34,8 @@ import dev.goldberry.text.font.sfnt.OutlineSink;
 /// One face, many sizes, one copy of the bytes: a [GlyphPen] over this face does
 /// **not** close it, and this must outlive every pen made from it. Confined to
 /// the thread that created it.
+///
+/// Read more: [Text, fonts and icons](https://goldberry.dev/docs/guide/text.html#faces-fonts-and-the-book).
 public final class GlyphFace implements AutoCloseable {
 
     private final String name;
@@ -42,13 +45,13 @@ public final class GlyphFace implements AutoCloseable {
     /// was given.
     ///
     /// Here and not in a pen, because it is a property of the **typeface**: one
-    /// face serves every size, and parsing 57,000 layer records per size would be
-    /// the thing ADR-0044 split this type out to stop.
+    /// face serves every size, and parsing 57,000 layer records per size is the
+    /// cost this type exists to avoid.
     private final ColorLayers layers;
 
     /// The face's `COLR` version 1 paint graphs — Noto Color Emoji's pictures —
     /// indexed once per typeface for [#layers]'s reason, and each graph parsed
-    /// on first use (ADR-0456).
+    /// on first use.
     private final ColorPaints paints;
 
     /// The face's outlines, read in Java — but only for a face with paint graphs

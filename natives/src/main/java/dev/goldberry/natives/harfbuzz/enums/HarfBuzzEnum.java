@@ -12,6 +12,8 @@ import java.util.stream.Stream;
 ///
 /// [#all()] feeds every constant to the layout verifier. The interface is sealed
 /// so the permitted list and [#all()] sit together.
+///
+/// Read more: [The native boundary](https://goldberry.dev/docs/overview/architecture.html#the-native-boundary).
 public sealed interface HarfBuzzEnum permits MemoryMode, TextDirection {
 
     /// The value HarfBuzz's header gives this constant.

@@ -14,8 +14,8 @@ import dev.goldberry.paint.Path;
 ///
 /// The assertions are mostly **distance from the true curve**, sampled densely,
 /// rather than point sequences: how many segments a cubic becomes is an
-/// implementation's business and how far they stray from it is the contract
-/// (ADR-0278). The one thing pinned exactly is that straight input comes back
+/// implementation's business and how far they stray from it is the contract.
+/// The one thing pinned exactly is that straight input comes back
 /// untouched, because that is what says flattening is not quietly rewriting
 /// every path in the toolkit.
 class FlattenerTest {

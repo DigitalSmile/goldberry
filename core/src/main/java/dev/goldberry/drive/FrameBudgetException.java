@@ -4,11 +4,13 @@ import dev.goldberry.stats.FrameSummary;
 
 /// A run missed more refreshes than `--late-budget=N` allowed.
 ///
-/// Thrown out of the launcher **after** the window has closed and the backend
-/// has been released, so a run over budget is a process that exits non-zero
-/// with its summary in the message and nothing left open behind it. That is
-/// what turns "N of 300 frames were late while resizing" from a line in a log
-/// into a red job ([ADR-0342]).
+/// The launcher throws it **after** the window has closed and the backend has
+/// been released, so a run over budget is a process that exits non-zero with
+/// its summary in the message and nothing left open behind it. That turns
+/// "N of 300 frames were late while resizing" from a line in a log into a red
+/// job.
+///
+/// Read more: [Testing an application](https://goldberry.dev/docs/guide/testing.html#driving-input).
 public final class FrameBudgetException extends RuntimeException {
 
     private final transient FrameSummary summary;

@@ -15,7 +15,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
-/// The capability word — `docs/gaps.md` G32, ADR-0325.
+/// The capability word: the bits a build of the platform layer reports about itself.
 ///
 /// The bit *values* are checked against the compiled library by the layout probe,
 /// which is where a wrong one would actually be caught. What is left for this is

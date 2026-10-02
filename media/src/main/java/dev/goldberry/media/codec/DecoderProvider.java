@@ -1,7 +1,7 @@
 package dev.goldberry.media.codec;
 
 /// Decoders an application brings: the one supported way to play a codec the
-/// published natives do not build (`docs/goldberry-media.md` §5).
+/// published natives do not build.
 ///
 /// Found by [java.util.ServiceLoader] and consulted **before** the built-in
 /// FFmpeg decoders, highest [#priority()] first. A module declares
@@ -19,6 +19,8 @@ package dev.goldberry.media.codec;
 ///     public Decoder open(DecoderRequest request) { return new MediaFoundationDecoder(request); }
 /// }
 /// ```
+///
+/// Read more: [Bringing a codec](https://goldberry.dev/docs/components/media.html#bringing-a-codec).
 public interface DecoderProvider {
 
     /// A short name, for diagnostics and [dev.goldberry.media.MediaCapabilities].

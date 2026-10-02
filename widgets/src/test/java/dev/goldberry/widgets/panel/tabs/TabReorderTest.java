@@ -27,7 +27,7 @@ import dev.goldberry.widget.attr.Attributes;
 import dev.goldberry.widgets.Controls;
 import dev.goldberry.widgets.controls.TestFont;
 
-/// Dragging a tab to a new place asks the application to move it ([ADR-0372]).
+/// Dragging a tab to a new place asks the application to move it.
 class TabReorderTest {
 
     private TestFrames.Target target;

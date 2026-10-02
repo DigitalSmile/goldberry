@@ -28,7 +28,7 @@ import dev.goldberry.widget.WidgetRenderer;
 import dev.goldberry.widget.style.Styled;
 import dev.goldberry.widgets.Controls;
 
-/// The Motion screen through the showcase's real stylesheets ([ADR-0354]): the
+/// The Motion screen through the showcase's real stylesheets: the
 /// keyframes it names exist, and the screen keeps the loop awake only for what
 /// moves.
 class MotionScreenTest {

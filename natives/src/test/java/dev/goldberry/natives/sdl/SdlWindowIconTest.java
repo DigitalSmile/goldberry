@@ -12,8 +12,8 @@ import org.junit.jupiter.api.Test;
 import dev.goldberry.natives.NativeLibraryRequirement;
 import dev.goldberry.natives.sdl.window.SdlIconImage;
 
-/// `SDL_SetWindowIcon` and `SDL_AddSurfaceAlternateImage`, which is what
-/// `docs/gaps.md` G40 is ([ADR-0351]).
+/// `SDL_SetWindowIcon` and `SDL_AddSurfaceAlternateImage`, which together are
+/// how a window gets its icon.
 ///
 /// A taskbar cannot be looked at from a test. What can be checked is the binding:
 /// both symbols are on the export list and link, so a library built from this

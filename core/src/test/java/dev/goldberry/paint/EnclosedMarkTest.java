@@ -150,7 +150,7 @@ class EnclosedMarkTest {
     @Test
     @DisplayName("a triangle is empty where a circle is not, which is the point of it")
     void theTriangleIsNotACircle() {
-        // §1.2 forbids colour as the only carrier of meaning, and warning and
+        // The design system forbids colour as the only carrier of meaning, and warning and
         // danger are the two kinds nobody may confuse. What tells them apart with
         // the hue removed is the *shape*, so this measures the difference rather
         // than trusting it: a triangle's top corners are empty and a circle's are

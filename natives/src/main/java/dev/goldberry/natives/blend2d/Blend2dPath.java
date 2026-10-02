@@ -7,7 +7,7 @@ import dev.goldberry.natives.NativeLibrary;
 import dev.goldberry.natives.blend2d.calls.PathCalls;
 import dev.goldberry.natives.blend2d.error.BlendException;
 
-/// Blend2D's path calls, behind [BlendPath] (ADR-0043).
+/// Blend2D's path calls, behind [BlendPath].
 ///
 /// Every command is `(BLPathCore*, doubles...)` returning `BLResult`, which is
 /// what makes this a long list of near-identical methods rather than a design.

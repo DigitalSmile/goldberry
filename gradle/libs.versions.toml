@@ -1,26 +1,28 @@
 [versions]
 # Java 25 LTS is the floor: FFM is final, and the blur path needs the Vector API.
-# See docs/ARCHITECTURE.md §3.2.
+# https://goldberry.dev/docs/contributing/building.html#the-jdk
 java = "25"
 junit = "6.1.3"
 
-# --- The test tool-chain (docs/testing.md) -----------------------------------
-# ArchUnit asserts the module graph in ARCHITECTURE.md §2 and the boundary in
-# §3.1 -- rules that were prose until something enforced them (testing.md §2).
+# --- The test tool-chain ------------------------------------------------------
+# https://goldberry.dev/docs/contributing/testing.html#the-test-kinds
+# ArchUnit asserts the module graph and the native boundary -- rules that were
+# prose until something enforced them.
 archunit = "1.5.0"
-# jqwik covers the round-trips in testing.md §1.1. It is a second JUnit engine
+# jqwik covers the round-trip properties. It is a second JUnit engine
 # rather than a library, which is why the platform launcher matters below.
 jqwik = "1.9.3"
-# JaCoCo for testing.md §3. Pinned to a version that reads JDK 25 class files --
+# JaCoCo for coverage. Pinned to a version that reads JDK 25 class files --
 # an older one fails with "Unsupported class file major version".
 jacoco = "0.8.15"
 
-# --- Publishing (ADR-0334) ----------------------------------------------------
+# --- Publishing ---------------------------------------------------------------
 # Central Portal uploads, snapshots and in-memory signing. Resolved from Maven
 # Central rather than the plugin portal, whose marker stopped at 0.13.
 mavenPublishPlugin = "0.37.0"
 
-# --- Static analysis (docs/testing.md §2) ------------------------------------
+# --- Static analysis ----------------------------------------------------------
+# https://goldberry.dev/docs/contributing/testing.html#static-analysis
 spotless = "8.10.2"
 palantirFormat = "2.98.0"
 errorprone = "5.1.1"
@@ -43,22 +45,23 @@ jmhPlugin = "0.7.3"
 jmh = "1.37"
 
 # SLF4J is the only compile-time logging dependency the toolkit has: a facade, so
-# applications choose the implementation. Goldberry binds no backend of its own
-# (ADR-0023). Logback is the showcase's choice, and reaches nothing else.
+# applications choose the implementation. Goldberry binds no backend of its own.
+# Logback is the showcase's choice, and reaches nothing else.
 slf4j = "2.0.19"
 logback = "1.6.3"
 
-# --- Native dependencies (docs/ARCHITECTURE.md §3) ---------------------------
+# --- Native dependencies ------------------------------------------------------
+# https://goldberry.dev/docs/contributing/building.html#the-native-superbuild
 # Git refs consumed by the CMake superbuild. These are pins, not ranges: a
 # floating ref would make the artifact irreproducible.
 #
 # Blend2D and AsmJit have no release tags at all, so they are pinned by **commit
-# SHA** rather than by branch (ADR-0030). A SHA is not a worse pin than a tag
+# SHA** rather than by branch. A SHA is not a worse pin than a tag
 # here -- it is a better one, since a tag can be moved and a SHA cannot. The cost
 # is that moving either forward is a deliberate edit, which is the point.
 #
 # Whoever moves them: update this file and nothing else -- CMakeLists.txt reads
-# it directly and the CI workflows pass no refs (ADR-0035) -- then rebuild from a
+# it directly and the CI workflows pass no refs -- then rebuild from a
 # clean _deps (`./gradlew :natives:cleanNativeDeps`). `./gradlew
 # :natives:checkPinnedRefs` fails if a second copy of any ref reappears.
 #
@@ -78,7 +81,7 @@ asmjit = "6a6cca88d6dccef4c5c1d258b9e12d8699dff842"
 yoga = "v3.2.1"
 harfbuzz = "14.5.0"
 sdl3 = "release-3.4.16"
-# md4c is the Markdown parser behind `goldberry-html`'s markdown half (ADR-0294).
+# md4c is the Markdown parser behind `goldberry-html`'s markdown half.
 # One C file, MIT, CommonMark plus the four extensions GitHub's dialect adds, and
 # it is compiled straight into libgoldberry rather than into a native of its own.
 #
@@ -88,19 +91,19 @@ sdl3 = "release-3.4.16"
 md4c = "v0.6.0"
 # libwebp is the reference WebP decoder, and it is here because the toolkit's
 # rasterizer ships PNG, JPEG and QOI and nothing else -- so a screenshot, which in
-# 2026 is what most tools write, does not decode (`docs/gaps.md` G35a, ADR-0329).
+# 2026 is what most tools write, does not decode.
 # Only `webpdecoder` is built and linked: the encoder, the muxer, the demuxer, the
 # animation support and every command-line tool are off, because Goldberry reads
 # one still frame and writes PNG.
 libwebp = "v1.6.0"
-# webview/webview is §9's `web-view` (ADR-0441). MIT, and one 4500-line header
+# webview/webview is the engine behind `web-view`. MIT, and one 4500-line header
 # with the implementation in it -- it brings no engine of its own, driving the
 # desktop's: WebKitGTK, WebView2 or WKWebView. It is the one upstream here that is
 # NOT compiled into libgoldberry: it goes into `libgoldberry-webview` beside it,
 # linked into nothing and opened on demand, because GTK and WebKit must not become
 # load-time dependencies of every application that ever used the toolkit.
 webview = "0.12.0"
-# The Microsoft WebView2 SDK -- Windows only, and headers only (ADR-0450).
+# The Microsoft WebView2 SDK -- Windows only, and headers only.
 #
 # WebView2 is two things with one name. The *runtime* is Edge and ships with
 # Windows; the *SDK header* `WebView2.h`, which `webview.h` includes by name,
@@ -110,22 +113,23 @@ webview = "0.12.0"
 # This is the version webview 0.12.0 pins and therefore tests against, which is
 # why it is a 2022 date rather than the newest available.
 webview2 = "1.0.1150.38"
-# FFmpeg and dav1d are `goldberry-media`'s engine (docs/goldberry-media.md,
-# ADR-0460). Built by the media superbuild in media/src/main/cmake, NOT by the
+# FFmpeg and dav1d are `goldberry-media`'s engine,
+# https://goldberry.dev/docs/components/media.html#the-module.
+# Built by the media superbuild in media/src/main/cmake, NOT by the
 # libgoldberry one: shared libraries rather than static, LGPL-2.1+ rather than
 # permissive, and shipped in a natives jar of their own. The FFmpeg tag fixes the
 # five library majors `FfmpegVersions` checks at start-up (avformat 62, avcodec
 # 62, avutil 60, swresample 6, swscale 9), so moving it means re-reading the
-# struct table in goldberry-media.md §2 as well; the layout probe fails first if
-# that is forgotten. dav1d is the software AV1 decoder, linked statically into
+# struct layouts `FfmpegStructs` declares as well; the layout probe fails first
+# if that is forgotten. dav1d is the software AV1 decoder, linked statically into
 # avcodec.
 ffmpeg = "n8.1.3"
 dav1d = "1.5.4"
 # The commits those two tags name, for the reason Blend2D is pinned by one: a tag
 # can be moved. The superbuild refuses a checkout that is not at them, and so
-# does `:media:ffmpegSourcesJar`, the `ffmpeg-sources` classifier LGPL-2.1 §4
-# requires beside the binaries -- so the source published is the source built
-# (ADR-0508). Moving a tag above means moving its commit here too.
+# does `:media:ffmpegSourcesJar`, the `ffmpeg-sources` classifier section 4 of the LGPL-2.1
+# requires beside the binaries -- so the source published is the source built.
+# Moving a tag above means moving its commit here too.
 ffmpegCommit = "1041abdc962f4cc4f394aa8de9dc5236c0c3b9e7"
 dav1dCommit = "54706fc6bc0cdecab7e9593974a4039cc038fca7"
 

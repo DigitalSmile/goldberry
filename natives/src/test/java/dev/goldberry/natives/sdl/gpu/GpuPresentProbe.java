@@ -17,7 +17,7 @@ import dev.goldberry.natives.sdl.gpu.enums.SdlGpuTextureUsage;
 import dev.goldberry.natives.sdl.gpu.enums.SdlGpuTransferUsage;
 import dev.goldberry.natives.sdl.window.SdlWindowFlag;
 
-/// Phase 0's present measurements (`docs/gpu-plan.md`): what a frame costs on
+/// The present measurements the GPU work began with: what a frame costs on
 /// today's window surface, what switching a window to a swapchain and back costs,
 /// and what a composited frame costs, stage by stage.
 ///

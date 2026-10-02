@@ -3,7 +3,7 @@ package dev.goldberry.gpu;
 /// What a render pass draws into.
 ///
 /// A texture made with [TextureUsage#COLOR_TARGET] today. A composited window's
-/// swapchain joins it with `docs/gpu-plan.md`'s phase 3, which is why this is an
+/// swapchain is the other kind, which is why this is an
 /// interface: code that draws into a target need not know which it is.
 public sealed interface RenderTarget permits GpuTexture {
 

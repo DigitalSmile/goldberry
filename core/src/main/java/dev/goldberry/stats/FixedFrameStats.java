@@ -1,6 +1,7 @@
 package dev.goldberry.stats;
 
-/// [FrameStats] that never change — [FrameStats#of].
+/// [FrameStats] whose numbers never change: what [FrameStats#of] returns, for a
+/// test or a preview that wants a HUD to draw numbers somebody chose.
 record FixedFrameStats(
         double fps,
         double frameMillis,
@@ -14,9 +15,8 @@ record FixedFrameStats(
         long lateFrames)
         implements FrameStats {
 
-    /// Zero, because these numbers came from nowhere and are an average of no
-    /// frames. A caller reading this to mean "a window of no frames" is reading
-    /// it right.
+    /// Zero: these numbers are fixed, not averaged over frames, so there is no
+    /// window to have a size.
     @Override
     public int capacity() {
         return 0;

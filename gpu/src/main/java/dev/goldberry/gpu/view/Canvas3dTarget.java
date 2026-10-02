@@ -9,7 +9,13 @@ import dev.goldberry.gpu.DepthTarget;
 import dev.goldberry.gpu.GpuTexture;
 import dev.goldberry.render.model.PhysicalSize;
 
-/// What a [Canvas3dRenderer] draws one frame into (ADR-0482).
+/// What a [Canvas3dRenderer] draws one frame into.
+///
+/// `aspect()` is what a projection is made with, `seconds()` is what an
+/// animation is a function of, and `clearDepth()` is the depth target cleared
+/// to the far plane.
+///
+/// Read more: [The renderer](https://goldberry.dev/docs/components/gpu.html#the-renderer).
 ///
 /// @param colour a colour target at the canvas's size in physical pixels, in
 ///               [dev.goldberry.gpu.TextureFormat#B8G8R8A8_UNORM];

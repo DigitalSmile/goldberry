@@ -1,6 +1,8 @@
 package dev.goldberry.natives.sdl.gpu.enums;
 
 /// Which winding makes a triangle front-facing, as SDL's `SDL_GPUFrontFace`.
+///
+/// Read more: [The native boundary](https://goldberry.dev/docs/overview/architecture.html#the-native-boundary).
 public enum SdlGpuFrontFace {
     /// Counter-clockwise, as seen in normalised device coordinates.
     COUNTER_CLOCKWISE(0),

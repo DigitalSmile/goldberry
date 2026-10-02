@@ -107,6 +107,6 @@ class BuildVersionTest {
         properties.load(new StringReader(Repository.read("gradle.properties")));
         var declared = properties.getProperty("goldberryVersion");
         assertDoesNotThrow(() -> BuildVersion.resolve(declared, false, null),
-                "goldberryVersion=" + declared + " must be a bare calendar version (ADR-0333)");
+                "goldberryVersion=" + declared + " must be a bare calendar version, with no -SNAPSHOT");
     }
 }

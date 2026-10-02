@@ -14,7 +14,7 @@ import dev.goldberry.widgets.data.plot.Lttb;
 import dev.goldberry.widgets.data.plot.Scale;
 import dev.goldberry.widgets.data.plot.Ticks;
 
-/// `docs/testing.md` §1.1's property-based half, over the three pieces of the
+/// The property-based half of the unit tests, over the three pieces of the
 /// chart stack that have invariants rather than answers.
 ///
 /// ## Why these three and not the painters
@@ -36,8 +36,11 @@ import dev.goldberry.widgets.data.plot.Ticks;
 /// ## Seeded, like everything else here
 ///
 /// jqwik reports the seed of a failing run and replays it. That is the same
-/// bargain §0.1 strikes everywhere else in this suite — randomness is allowed
-/// when it is reproducible, and nowhere else.
+/// bargain the suite strikes everywhere else — determinism is a feature under
+/// test, so randomness is allowed when it is seeded and reproducible, and
+/// nowhere else.
+///
+/// Read more: [The test kinds](https://goldberry.dev/docs/contributing/testing.html#the-test-kinds).
 class SeriesPropertyTest {
 
     private static final double EPSILON = 1e-9;
@@ -46,7 +49,7 @@ class SeriesPropertyTest {
 
     /// The round-trip. `at` maps a value to a coordinate and `from` maps it back,
     /// and a scale that lost anything in between would put a crosshair somewhere
-    /// its own line is not (ADR-0206).
+    /// its own line is not.
     @Property
     void linearScaleRoundTrips(
             @ForAll @DoubleRange(min = -1e6, max = 1e6) double value, @ForAll("domains") Scale scale) {
@@ -113,8 +116,8 @@ class SeriesPropertyTest {
     /// Every point it keeps is a point it was given.
     ///
     /// The invariant that separates picking from averaging: an aggregation that
-    /// returned a *mean* would draw a line through readings nobody took, which is
-    /// the objection ADR-0201 raises about holes and the same one applies here.
+    /// returned a *mean* would draw a line through readings nobody took — the
+    /// same objection that keeps a hole in a series from being drawn as a zero.
     @Property
     void downsampleKeepsOnlyRealReadings(
             @ForAll("series") List<Double> values, @ForAll @IntRange(min = 0, max = 200) int threshold) {

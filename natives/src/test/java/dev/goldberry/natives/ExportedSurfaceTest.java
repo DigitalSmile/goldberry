@@ -22,22 +22,20 @@ import org.junit.jupiter.api.Test;
 
 /// The rule this module exists to enforce, checked rather than asserted in prose.
 ///
-/// `docs/ARCHITECTURE.md` §3.1 says a raw `MemorySegment` never leaves this
-/// module, and the module descriptor is what enforces it: the binding classes
-/// live in packages that are not exported, and the wrapper packages that *are*
-/// exported traffic in Java types. Until
-/// ADR-0172
-/// each library was one package, so the rule was mostly kept by a binding class
-/// being package-private. Splitting each library into the wrappers that hold a
-/// handle and the enums that hold nothing moved several types across an export
-/// boundary, and "several types" is exactly the size of mistake a compiler does
-/// not catch — `Blend2D` stayed package-private, but nothing would have
-/// complained if a wrapper carrying a `MemorySegment` had been carried out with
-/// the enums.
+/// A raw `MemorySegment` never leaves this module, and the module descriptor is
+/// what enforces it: the binding classes live in packages that are not exported,
+/// and the wrapper packages that *are* exported traffic in Java types. Each
+/// library is split into the wrappers that hold a handle and the enums that hold
+/// nothing, and a split like that moves types across an export boundary, which
+/// is exactly the size of mistake a compiler does not catch: nothing would
+/// complain if a wrapper carrying a `MemorySegment` were carried out with the
+/// enums.
 ///
-/// So the boundary is a test now. It reads this module's own descriptor and its
-/// own class files: no list of package names is written here, which means a
-/// package added tomorrow is checked tomorrow.
+/// So the boundary is a test. It reads this module's own descriptor and its own
+/// class files: no list of package names is written here, which means a package
+/// added tomorrow is checked tomorrow.
+///
+/// Read more: [The native boundary](https://goldberry.dev/docs/overview/architecture.html#the-native-boundary).
 @DisplayName("the exported native surface")
 class ExportedSurfaceTest {
 
@@ -121,7 +119,7 @@ class ExportedSurfaceTest {
         assertTrue(
                 leaks.isEmpty(),
                 "these are reachable from outside :natives and traffic in raw foreign memory, "
-                        + "which is the one thing §3.1 says cannot happen: " + leaks);
+                        + "which is the one thing the native boundary forbids: " + leaks);
     }
 
     /// A member an application could actually call: `public` or `protected`, on a
@@ -178,18 +176,13 @@ class ExportedSurfaceTest {
         assertTrue(
                 leaked.isEmpty(),
                 "a holder's `call` takes and returns raw addresses, and its package is what "
-                        + "--initialize-at-build-time names (ADR-0173). Exporting one puts the "
+                        + "--initialize-at-build-time names. Exporting one puts the "
                         + "foreign boundary in an application's reach: " + leaked);
     }
 
     @Test
     @DisplayName("exports every wrapped library to :core and to nobody else")
     void wrappedLibrariesAreSealed() {
-        // ADR-0280 said this and could only do two thirds of it: Blend2D stayed
-        // open because `Frame.drawGlyphs` was public and took a `BlendFont`.
-        // `paint.GlyphPen` owns that handle now, the method is package-private,
-        // and this is the assertion that the door is shut (ADR-0290).
-        //
         // An application module that names a `BlendPath`, a `StyleLength` or a
         // `hb_buffer` does not compile. Only `:core` can, and `:core` is where
         // the foreign boundary is supposed to end.
@@ -205,18 +198,18 @@ class ExportedSurfaceTest {
 
         // md4c is sealed the same way and to a different module: Markdown is
         // `goldberry-html`'s dependency rather than the toolkit's, so neither an
-        // application nor `:core` can name a `MarkdownEvent` (ADR-0294).
+        // application nor `:core` can name a `MarkdownEvent`.
         var sealedTo = new LinkedHashMap<String, Set<String>>();
         for (var name : mustBeQualified) {
             sealedTo.put(name, Set.of("dev.goldberry.core"));
         }
         sealedTo.put("dev.goldberry.natives.md4c", Set.of("dev.goldberry.html"));
         sealedTo.put("dev.goldberry.natives.md4c.enums", Set.of("dev.goldberry.html"));
-        // SDL's audio streams, for goldberry-media's sink alone (ADR-0461).
+        // SDL's audio streams, for goldberry-media's sink alone.
         sealedTo.put("dev.goldberry.natives.sdl.audio", Set.of("dev.goldberry.media"));
-        // SDL_GPU, to the two modules M4 builds on it and no third
-        // (`docs/gpu-plan.md`, D6): `:core` claims windows and presents, `:gpu`
-        // is the public API. An application reaches it only through `:gpu`.
+        // SDL_GPU, to the two modules built on it and no third: `:core` claims
+        // windows and presents, `:gpu` is the public API. An application reaches
+        // it only through `:gpu`.
         sealedTo.put("dev.goldberry.natives.sdl.gpu", Set.of("dev.goldberry.core", "dev.goldberry.gpu"));
 
         var descriptor = descriptor(classesRoot());

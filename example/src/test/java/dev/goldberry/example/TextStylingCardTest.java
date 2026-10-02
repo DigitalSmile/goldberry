@@ -42,7 +42,7 @@ import dev.goldberry.widgets.text.Text;
 /// thing the card exists for: that changing an option **restyles the field**
 /// rather than replacing it, so the text, the caret and the undo history a reader
 /// has built up survive every toggle — and that the pair of rules is one class,
-/// because `text-decoration` is one property holding a set (ADR-0321, ADR-0324).
+/// because `text-decoration` is one property holding a set.
 ///
 /// The widget-level proof that a caret follows the alignment is in `:widgets`,
 /// where the control lives; this is the application's half.
@@ -68,7 +68,7 @@ class TextStylingCardTest {
     ///
     /// It was created in `render()` and never released: a suite that renders a
     /// card in every test opened one set of faces per test and closed none of
-    /// them (the 2026-09-18 review, §6).
+    /// them.
     @AfterEach
     void tearDown() {
         if (fonts != null) {
@@ -235,8 +235,8 @@ class TextStylingCardTest {
     /// The assertion the card is really about: toggling an option **restyles** the
     /// field. A control that was replaced would have a new state — and a new caret,
     /// an empty undo history and whatever text it was constructed with — so a
-    /// reader who had typed into it would lose their work on the next click
-    /// (ADR-0315's reconciliation, from the application's side).
+    /// reader who had typed into it would lose their work on the next click. A
+    /// rebuild is not a restyle, seen from the application's side.
     @Test
     @DisplayName("changing an option keeps the same field, so what a reader typed survives")
     void theFieldIsRestyledAndNotReplaced() {
@@ -289,7 +289,7 @@ class TextStylingCardTest {
 
         // Reduced motion, so the picture is of the text and not of a segmented
         // indicator caught mid-flight: the bars this test presses animate their
-        // selection over §1.7's fast duration, and where that has got to by the
+        // selection over the design system's fast duration, and where that has got to by the
         // time the frame is painted is a wall-clock fact. The transitions still
         // run and still end — they simply end at once.
         var renderer = new WidgetRenderer(sheets, fonts).reducedMotion(true);
@@ -301,8 +301,9 @@ class TextStylingCardTest {
         check("styled-struck");
 
         // A router and two warm frames, because a `text-area` wraps at the width
-        // the **last frame** measured it at ([ADR-0116]'s rule, which the control
-        // states in as many words). Without one the field is unmeasured, reports
+        // the **last frame** measured it at (a scroll view is a clip, an offset
+        // and two extents, as the control says in as many words). Without one the
+        // field is unmeasured, reports
         // "do not wrap", and the picture would be of a state no window ever shows.
         var router = new PointerRouter();
         router.focusRoot(tree.root());

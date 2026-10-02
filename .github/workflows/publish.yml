@@ -1,4 +1,5 @@
-# Publishing to Maven Central (ADR-0334)
+# Publishing to Maven Central
+# https://goldberry.dev/docs/contributing/releasing.html#snapshots
 #
 # The one workflow that uploads to Central. snapshot.yml calls it on every push to
 # master and release.yml on every `v*` tag; nothing else may, and
@@ -13,15 +14,16 @@
 # would leave Central's metadata naming whichever platform finished last, and a
 # consumer asking for `goldberry-natives:<v>:linux-x64` would resolve nothing.
 #
-# The version is Gradle's decision, not this file's (ADR-0333): a snapshot of
+# The version is Gradle's decision, not this file's: a snapshot of
 # `goldberryVersion`, or -- with `release: true` -- the version itself, checked
 # against the tag the run was triggered by.
 #
 # STATUS: the snapshot leg has run against Central (run 17, 2026-09-19) and failed
 # partway through the upload -- seven of nine modules went out before
 # `:widgets:javadoc` refused a broken [link]. `check` generates javadoc now, so
-# that class of failure cannot reach this workflow again (ADR-0405). The release
-# leg has still never run; docs/releasing.md is the checklist.
+# that class of failure cannot reach this workflow again. The release
+# leg has still never run.
+# https://goldberry.dev/docs/contributing/releasing.html#cutting-a-release
 
 name: Publish
 
@@ -52,7 +54,7 @@ jobs:
     uses: ./.github/workflows/macos.yml
 
   # FFmpeg for goldberry-media's `ffmpeg-<target>` classifiers, built and tested
-  # by the Media workflow on every target it has a runner for (ADR-0495). Each
+  # by the Media workflow on every target it has a runner for. Each
   # uploads its install as `ffmpeg-<target>`.
   media:
     uses: ./.github/workflows/media.yml
@@ -134,10 +136,11 @@ jobs:
 
       # `<target>/`, which :media's `ffmpegNativesJar*` tasks read. A snapshot
       # carries the targets the Media workflow built; a release refuses to
-      # publish without all four (media/build.gradle, ADR-0495). Either way the
+      # publish without all four (media/build.gradle). Either way the
       # binaries go with the `ffmpeg-sources` classifier, FFmpeg's and dav1d's
       # source, which Gradle fetches from git on this runner -- and refuses to
-      # publish them without (ADR-0508).
+      # publish them without, because the LGPL asks for the source beside the
+      # object code.
       - name: Flatten into the layout :media expects
         run: |
           mkdir -p ffmpeg-artifacts
@@ -150,7 +153,7 @@ jobs:
 
       # Every licence file must carry its verbatim upstream text before a release
       # is published. A snapshot warns instead: it is a build of work in progress,
-      # and the check exists to stop the permanent thing (ADR-0015).
+      # and the check exists to stop the permanent thing.
       - name: Verify licence disclosure
         env:
           RELEASE: ${{ inputs.release }}
@@ -158,7 +161,7 @@ jobs:
 
       # `-Pgoldberry.skipNative=true`: the libraries were built and verified by the
       # per-OS jobs, and are handed over with -Pgoldberry.artifactsDir. This runner
-      # has no toolchain and must not grow a rival library (ADR-0016).
+      # has no toolchain and must not grow a rival library.
       - name: Publish to Maven Central
         if: steps.gate.outputs.upload == 'true'
         env:

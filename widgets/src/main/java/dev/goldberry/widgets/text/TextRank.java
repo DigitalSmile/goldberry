@@ -2,16 +2,15 @@ package dev.goldberry.widgets.text;
 
 import java.util.Locale;
 
-/// One rank of §1.4's type scale, as a value.
+/// One rank of the type scale, as a value: what `text style="title"` and
+/// `text class="title"` both mean.
 ///
-/// `docs/core-widgets.md` §2 gives `text` a `style=` attribute for the token
-/// styles — `text style="title"` — and what shipped was `class="title"`: the
-/// same thing, spelled the way CSS already spells it. Both spellings exist now
-/// and this is what they both mean ([ADR-0381]).
+/// In Java, `new Text("…").style(TextRank.TITLE)`. The rank is **not** a size.
+/// What `heading` is worth is the theme's, in `controls.css`, which is what
+/// lets a large-text theme move every rank at once without a widget hearing
+/// about it.
 ///
-/// The rank is **not** a size. What `heading` is worth is the theme's, in
-/// `controls.css`, which is what lets a large-text theme move every rank at once
-/// without a widget hearing about it.
+/// Read more: [Text and links](https://goldberry.dev/docs/components/text.html#the-type-scale).
 public enum TextRank {
     DISPLAY,
 
@@ -21,8 +20,7 @@ public enum TextRank {
 
     BODY,
 
-    /// `body` at 600. A class beside `body` rather than a seventh size, which is
-    /// how §1.4 writes it too.
+    /// `body` at weight 600: a class beside `body` rather than a seventh size.
     BODY_STRONG,
 
     CAPTION,
@@ -38,7 +36,7 @@ public enum TextRank {
     /// The rank `name` is, in either spelling — `body-strong` and `BODY_STRONG`
     /// are the same rank.
     ///
-    /// @throws IllegalArgumentException if it is not one of the six, which is a
+    /// @throws IllegalArgumentException if it is not one of the ranks, which is a
     ///         typo in a document and is worth saying so rather than resolving
     ///         to a class no rule matches
     public static TextRank of(String name) {
@@ -49,8 +47,7 @@ public enum TextRank {
             for (var rank : values()) {
                 known.append(known.isEmpty() ? "" : ", ").append(rank.cssClass());
             }
-            throw new IllegalArgumentException(
-                    "\"" + name + "\" is not one of §1.4's type ranks. They are: " + known + ".", e);
+            throw new IllegalArgumentException("\"" + name + "\" is not a type rank. The ranks are: " + known + ".", e);
         }
     }
 }

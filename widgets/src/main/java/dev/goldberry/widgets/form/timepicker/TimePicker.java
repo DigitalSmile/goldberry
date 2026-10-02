@@ -22,8 +22,7 @@ import dev.goldberry.widget.attr.Bindable;
 import dev.goldberry.widgets.markup.Markup;
 import dev.goldberry.widgets.markup.Wiring;
 
-/// A typed time field with hour/minute/second wheels under it —
-/// `docs/core-widgets.md` §4's `time-picker`.
+/// A typed time field with hour/minute/second wheels under it.
 ///
 /// ```kdl
 /// field label="Starts at" {
@@ -47,26 +46,28 @@ import dev.goldberry.widgets.markup.Wiring;
 ///
 /// **`date-picker`'s widget, with a different popover.** The field, the
 /// affordance, `Alt+Down`, `Esc`, the delegated focus and the `:checked`
-/// affordance are all the same node — `PickerField` — because §4 writes the two
-/// pickers in one entry and they differ in exactly one thing: what is inside the
-/// popup. This one's is [TimeColumns].
+/// affordance are all the same node — `PickerField` — because the two pickers
+/// differ in exactly one thing: what is inside the popup. This one's is
+/// [TimeColumns].
 ///
 /// ## The typed field is the source of truth
 ///
-/// §4's sentence covers both pickers and this one obeys it identically: the
+/// The rule covers both pickers and this one obeys it identically: the
 /// **text** is what this holds, the wheels write into it, and a value only leaves
 /// through [TimeFormat#parse]. See `DatePicker` for the argument.
 ///
 /// ## What it will not let you reach
 ///
 /// `min`, `max` and a disabled predicate, asked in one place — [#allows] — by the
-/// field that parsed a time and by the wheels before they turn onto one. §4's
-/// "an unreachable date cannot be typed either", for times.
+/// field that parsed a time and by the wheels before they turn onto one. An
+/// unreachable time cannot be typed either.
 ///
 /// **`min` and `max` are inclusive and do not wrap.** A shift that runs from 22:00
 /// to 06:00 is two ranges rather than one, and a picker that let a bound wrap
 /// would have no way to say which of the two a time at 03:00 was in. An
 /// application with a night shift supplies a predicate, which can say it.
+///
+/// Read more: [Fields and forms](https://goldberry.dev/docs/components/forms.html#time-picker).
 ///
 /// @param value      the text the field starts with when nothing is bound
 /// @param source     the `bind=` value, or null — a `LocalTime` or its text
@@ -105,12 +106,12 @@ public record TimePicker(
     /// Where the wheels start when nothing is chosen and nobody said otherwise.
     ///
     /// Midnight, and **not** the current time: nothing in the catalog may read the
-    /// machine's time zone (ADR-0203), and a picker that opened on "now" would be
+    /// machine's time zone, and a picker that opened on "now" would be
     /// deciding what time it is. An application that wants a sensible starting
     /// point passes one, which is the same shape `CalendarView` gives a month.
     public static final LocalTime DEFAULT_FALLBACK = LocalTime.MIDNIGHT;
 
-    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    /// Written out so that the parameters taking null for a default can say so.
     public TimePicker(
             @Nullable String value,
             @Nullable Observable<?> source,
@@ -178,8 +179,8 @@ public record TimePicker(
     /// This picker holding `text` when nothing is bound.
     ///
     /// The *text*, not a `LocalTime`, because that is what this control holds —
-    /// §4's "the typed field is the source of truth", and the reason a picker can
-    /// be built showing something half typed.
+    /// the typed field is the source of truth, and that is the reason a picker
+    /// can be built showing something half typed.
     public TimePicker value(String text) {
         return new TimePicker(
                 Objects.requireNonNull(text, "text"),
@@ -425,9 +426,9 @@ public record TimePicker(
     /// Builds a `time-picker` from markup.
     ///
     /// `min=`, `max=` and `fallback=` are **ISO** — `09:00`, `17:30:15` — for
-    /// `date-picker`'s stated reason: §4's "the toolkit does not invent a date
-    /// syntax" is about what a *user* types, and a bound written into a document
-    /// is written by a programmer.
+    /// `date-picker`'s stated reason: the toolkit does not invent a syntax for
+    /// what a *user* types, and a bound written into a document is written by a
+    /// programmer.
     public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
         var precision = precisionOf(node);
         // Resolved here only to format what `change` reports; the widget is given
@@ -437,7 +438,7 @@ public record TimePicker(
         return new TimePicker(
                 Objects.requireNonNullElse(node.stringProperty("value"), ""),
                 wiring.bound(node),
-                // A document's `change` carries **text**, because §9's valued
+                // A document's `change` carries **text**, because markup's valued
                 // actions cross as a `String` and nothing else. `date-picker`
                 // makes the same split for the same reason.
                 reported == null ? null : time -> reported.accept(format.format(time)),

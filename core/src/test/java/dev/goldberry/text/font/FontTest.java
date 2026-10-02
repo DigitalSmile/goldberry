@@ -14,8 +14,8 @@ import dev.goldberry.assets.BundledFont;
 
 /// The join between the shaper and the rasterizer, measured rather than drawn.
 ///
-/// The invariant under test is the one in ADR-0034: shaping happens in font
-/// design units and the size lives on the Blend2D font alone. Everything here is
+/// The invariant under test: shaping happens in font design units and the size
+/// lives on the Blend2D font alone. Everything here is
 /// a consequence of that, and each of these assertions fails loudly for a bug
 /// that would otherwise render — wrongly, but without an error.
 class FontTest {
@@ -113,8 +113,8 @@ class FontTest {
         }
     }
 
-    /// The four numbers a rule under a line of text is made of — `docs/gaps.md`
-    /// G27, ADR-0321.
+    /// The four numbers a rule under a line of text is made of, which belong to
+    /// the face.
     ///
     /// Relational rather than absolute, like everything else here: the exact
     /// position is Inter's and is not a fact about this class. What *is* a fact is

@@ -7,6 +7,8 @@ import java.util.Objects;
 ///
 /// Read in C for [BlockDetail]'s reason. A span with nothing to say — emphasis,
 /// strong, code, strikethrough — carries [#NONE].
+///
+/// Read more: [The native boundary](https://goldberry.dev/docs/overview/architecture.html#the-native-boundary).
 public sealed interface SpanDetail {
 
     /// The detail of a span that has none.

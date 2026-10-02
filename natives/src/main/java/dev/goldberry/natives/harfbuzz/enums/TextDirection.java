@@ -8,6 +8,8 @@ import dev.goldberry.natives.harfbuzz.ShapingBuffer;
 /// arranges the values so that the low bit distinguishes forward from backward
 /// and the next bit horizontal from vertical. Assuming they counted from zero
 /// would silently shape right-to-left text left-to-right.
+///
+/// Read more: [The native boundary](https://goldberry.dev/docs/overview/architecture.html#the-native-boundary).
 public enum TextDirection implements HarfBuzzEnum {
 
     /// Not set. What a buffer reports before anything has decided, and what

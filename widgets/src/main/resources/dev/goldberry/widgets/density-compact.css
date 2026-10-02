@@ -1,31 +1,32 @@
 /*
- * The compact density (design-system.md §1.3).
+ * The compact density.
+ * https://goldberry.dev/docs/guide/design-system.html#density
  *
  * A custom-property stylesheet and nothing else, in the THEME layer -- the same
  * shape and the same slot as nord-light and nord-dark, because that layer is
  * defined by what it holds rather than by what it is called: custom properties
  * that the toolkit-base rules read. Density is a user preference applied
  * app-wide, expressed as tokens, which is what a theme is. A fifth cascade layer
- * for it would differ from the fourth in nothing but its name (ADR-0074).
+ * for it would differ from the fourth in nothing but its name.
  *
  * There is no `density-compact` rule anywhere and there is no `.compact` class:
- * that is the point of §1.3's "token-conformant apps adapt with zero code". A
+ * that is the point of the density rule's "token-conformant apps adapt with zero code". A
  * control that reads `var(--gb-control-height)` is already compact-aware, and
  * one that hard-codes 32 cannot be made so by anything written here.
  *
- * The regular column lives in controls.css, where every other §3 metric does.
+ * The regular column lives in controls.css, where every other component metric does.
  * It is not restated here, and there is deliberately no `density-regular.css`:
  * regular is the toolkit's own value, so applying it is applying nothing.
  */
 
 :root {
-  /* §1.3 names the property, so it is declared; nothing in the toolkit reads
+  /* The design system names the property, so it is declared; nothing in the toolkit reads
      it. It is what an application asks when it wants to know which density is
      in force -- custom properties inherit, so any element answers. */
   --gb-density: compact;
 
   /* "control heights 32 / 28". This is the one number that makes a control
-     compact; everything else about it is unchanged, because §1.3's density row
+     compact; everything else about it is unchanged, because the density row
      moves heights and nothing else. */
   --gb-control-height: 28px;
 
@@ -34,19 +35,19 @@
      would have to honour was decided here rather than there. */
   --gb-list-row-height: 26px;
 
-  /* §3's `table` row: "header height 36 (30)". Its own token rather than the
+  /* The `table` metrics row: "header height 36 (30)". Its own token rather than the
      row height plus four, because a header is a boundary as well as a label and
      a density that closed the gap would take that away. */
   --gb-table-header-height: 30px;
 
-  /* §2's `code-input` row: "box 40x48 (36x44)". The one control whose density
+  /* The `code-input` metrics row: "box 40x48 (36x44)". The one control whose density
      is two numbers rather than a height, because a code box is a character in a
      frame and its width is as much a metric as its height -- six boxes that
      narrowed without shortening would be a code drawn on graph paper. */
   --gb-code-box-width: 36px;
   --gb-code-box-height: 44px;
 
-  /* §2's `calendar` row: "day cell 32 (28) square". One token, because the row
+  /* The `calendar` metrics row: "day cell 32 (28) square". One token, because the row
      says square. */
   --gb-calendar-day: 28px;
   --gb-calendar-day-radius: 14px;

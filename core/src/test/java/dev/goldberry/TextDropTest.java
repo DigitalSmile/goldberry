@@ -18,7 +18,8 @@ import dev.goldberry.input.drop.TextDrop;
 import dev.goldberry.render.backend.headless.HeadlessBackend;
 import dev.goldberry.render.model.LogicalPoint;
 
-/// Text dropped on a window — [ADR-0408].
+/// Text dropped on a window: a dropped line of text is a dropped file in every
+/// way but the payload.
 ///
 /// `FileDropTest`'s method and its argument, because the gesture is the same one:
 /// the run of events is assembled in [Window] and is therefore testable without a
@@ -27,7 +28,10 @@ import dev.goldberry.render.model.LogicalPoint;
 ///
 /// What is **not** provable here is the number: `SDL_EVENT_DROP_TEXT` is 0x1001 in
 /// the header and the probe compares that against the compiled library, which has
-/// to be rebuilt before it can answer. See the ADR.
+/// to be rebuilt on every platform before it can answer.
+///
+/// Read more:
+/// [Dropped files and text](https://goldberry.dev/docs/guide/input.html#dropped-files-and-text).
 class TextDropTest {
 
     private final List<TextDrop> drops = new ArrayList<>();

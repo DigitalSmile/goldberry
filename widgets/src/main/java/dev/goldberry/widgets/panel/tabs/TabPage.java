@@ -14,7 +14,7 @@ import dev.goldberry.widget.style.Styled;
 /// Keyed by the tab's value, so the reconciler matches a page to the same
 /// elements whichever tab is selected, and **hidden** rather than absent while
 /// another tab is showing: its elements, and every state under them, stay
-/// mounted and take no layout, paint, input or focus (ADR-0366).
+/// mounted and take no layout, paint, input or focus.
 ///
 /// @param value    the tab this is the content of
 /// @param content  that content

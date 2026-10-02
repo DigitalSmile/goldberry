@@ -16,8 +16,8 @@ import java.util.TreeMap;
 /// read once.
 ///
 /// Compiled by `:assets`' `PrepareCatalogs` from Lucide's per-icon metadata and
-/// Unicode's `emoji-test.txt`, into this module's own `catalog` package
-/// ([ADR-0387]). Read lazily and kept, through a holder per table: a showcase
+/// Unicode's `emoji-test.txt`, into this module's own `catalog` package.
+/// Read lazily and kept, through a holder per table: a showcase
 /// that never opens either sheet never parses either file.
 ///
 /// A table that is missing is an **empty** table and not an exception: the

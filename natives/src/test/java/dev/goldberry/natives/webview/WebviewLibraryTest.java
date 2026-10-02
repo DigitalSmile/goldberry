@@ -17,7 +17,7 @@ import org.junit.jupiter.api.io.TempDir;
 import dev.goldberry.natives.NativeLibrary;
 import dev.goldberry.natives.NativePlatform;
 
-/// Finding the optional second library — ADR-0441.
+/// Finding the optional second library, `libgoldberry-webview`.
 ///
 /// The interesting part is the **sibling** lookup, and it is here because it was
 /// wrong first: a run pointed at a locally built `libgoldberry` reported no web

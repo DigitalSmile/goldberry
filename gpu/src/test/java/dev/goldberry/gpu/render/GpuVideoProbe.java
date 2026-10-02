@@ -24,8 +24,8 @@ import dev.goldberry.natives.sdl.gpu.enums.SdlGpuTextureUsage;
 import dev.goldberry.natives.sdl.gpu.enums.SdlGpuTransferUsage;
 import dev.goldberry.natives.sdl.window.SdlWindowFlag;
 
-/// Phase 0's other half (`docs/gpu-plan.md`, D1 and D8): a composited frame with
-/// a 4K video layer under the UI, stage by stage, on a real window.
+/// What a composited frame with a 4K video layer under the UI costs, stage by
+/// stage, on a real window.
 ///
 /// Each frame uploads a new 3840×2160 picture's planes, converts it with the
 /// Y'CbCr shader into a letterboxed quad, uploads a caret's worth of UI damage,

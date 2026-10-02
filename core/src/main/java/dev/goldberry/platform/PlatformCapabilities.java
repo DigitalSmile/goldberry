@@ -15,11 +15,14 @@ import dev.goldberry.render.web.WebViewEngine;
 ///
 /// [dev.goldberry.Goldberry#capabilities()] is the door; this
 /// is where the answer comes from, and the one place the toolkit translates
-/// `:natives`' word for it into its own ([ADR-0174]).
+/// the native module's word for it into its own.
 ///
 /// Asked once and kept. The answer is a compile-time constant on the other side
 /// of the boundary — a build either has the platform integration or it does not,
 /// and nothing that happens afterwards changes which.
+///
+/// Read more:
+/// [Logging and diagnostics](https://goldberry.dev/docs/guide/logging.html#what-this-build-can-do).
 public final class PlatformCapabilities {
 
     private static final Logger LOG = Logs.of(PlatformCapabilities.class);

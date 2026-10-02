@@ -7,6 +7,8 @@ import dev.goldberry.render.Backend;
 /// Called on the UI thread, from inside [Backend#pumpEvents], one event at a
 /// time and in the order the platform reported them. Order matters: a resize
 /// followed by a frame is a different frame from a frame followed by a resize.
+///
+/// Read more: [Windows, popups and the host](https://goldberry.dev/docs/guide/windows.html#threads).
 @FunctionalInterface
 public interface EventSink {
 

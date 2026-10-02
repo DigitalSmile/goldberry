@@ -7,8 +7,8 @@ import dev.goldberry.media.platform.linux.GLib.GError;
 /// GStreamer refused something: a pipeline that would not build or start, or an
 /// error an element posted while decoding.
 ///
-/// Thrown from a decoder, it is what makes the Engine walk its fallback ladder
-/// (`docs/goldberry-media.md` §3), as `OsStatus.Failure` is on macOS.
+/// Thrown from a decoder, it is what makes the Engine walk its fallback ladder,
+/// as `OsStatus.Failure` is on macOS.
 final class GstException extends RuntimeException {
 
     @Serial

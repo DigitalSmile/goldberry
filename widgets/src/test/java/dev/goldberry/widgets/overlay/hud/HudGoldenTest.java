@@ -29,8 +29,7 @@ import dev.goldberry.widgets.core.Row;
 import dev.goldberry.widgets.panel.Panel;
 import dev.goldberry.widgets.text.Text;
 
-/// What a HUD looks like, and — the image that matters — **where it lands**
-/// (§14, [ADR-0050]).
+/// What a HUD looks like, and — the image that matters — **where it lands**.
 ///
 /// [HudTest] asserts the strings. The placement cannot be asserted the same way:
 /// an overlay's position is Yoga's answer to an absolute box with two of its four
@@ -74,7 +73,7 @@ class HudGoldenTest {
     }
 
     /// The same, with a height — a HUD is a column now, so the two-reading
-    /// default and the seven-reading breakdown are not the same shape (ADR-0150).
+    /// default and the seven-reading breakdown are not the same shape.
     private void paint(String name, Theme theme, FrameStats stats, int width, int height, Widget hud) {
         var tree = new ElementTree(new Row(List.of(hud), id("scene")));
         GoldenImage.assertMatches(
@@ -85,21 +84,21 @@ class HudGoldenTest {
                 frame -> BoxPainter.paint(frame, renderer(theme, stats).render(tree)));
     }
 
-    /// The breakdown — [ADR-0146], and the only thing that can say whether six
-    /// numbers on one plate read as a diagnostic or as a wall.
+    /// The breakdown — the only thing that can say whether six numbers on one
+    /// plate read as a diagnostic or as a wall.
     ///
     /// The rate is bright, the total is dim, the four stages are dimmer and one
     /// size down. Three ranks on one line is the kind of thing that resolves to
     /// the same numbers whether it works or not.
     /// A `FrameStats` with a **spread**, because a flat one would draw the same
-    /// number three times and prove nothing about the layout (ADR-0154).
+    /// number three times and prove nothing about the layout.
     private static FrameStats spread(
             double fps, double paint, double build, double style, double layout, double raster) {
         return spread(fps, paint, build, style, layout, raster, 0);
     }
 
     /// The same, with frames that never reached the screen — the one reading here
-    /// that is not a measurement of a frame that happened ([ADR-0271]).
+    /// that is not a measurement of a frame that happened.
     private static FrameStats spread(
             double fps, double paint, double build, double style, double layout, double raster, long late) {
         return new FrameStats() {
@@ -171,8 +170,8 @@ class HudGoldenTest {
         paint("hud-stages", Theme.NORD_DARK, spread(60, 2.1, 0.05, 0.29, 0.11, 1.34), 360, 210, Hud.stages());
     }
 
-    /// **A frame in trouble** — [ADR-0150], and the only thing that can say
-    /// whether three colours on one plate read as a diagnostic or as a mess.
+    /// **A frame in trouble** — the only thing that can say whether three
+    /// colours on one plate read as a diagnostic or as a mess.
     ///
     /// 22 fps, a 45 ms frame, an 11 ms paint and a style that has run away: the
     /// rate and the frame and the paint and the style are over, the raster is
@@ -183,7 +182,7 @@ class HudGoldenTest {
     void overBudget() {
         // **Seven frames of the last sixty never reached the screen**, which is
         // what 22 fps on a 60 Hz display means and what no other reading here can
-        // say ([ADR-0271]). A loop over its paint budget is exactly the loop that
+        // say. A loop over its paint budget is exactly the loop that
         // drops them, so this is the picture where the two belong together.
         paint("hud-over-budget", Theme.NORD_DARK, spread(22, 11.0, 0.04, 9.6, 0.2, 3.4, 7), 360, 210, Hud.stages());
     }

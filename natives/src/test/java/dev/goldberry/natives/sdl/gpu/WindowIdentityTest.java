@@ -18,7 +18,7 @@ import dev.goldberry.natives.sdl.window.NativeWindowHandle;
 import dev.goldberry.natives.sdl.window.SdlWindowFlag;
 
 /// An X11 window keeps its id when a swapchain is given back and the window
-/// surface is asked for again (ADR-0491).
+/// surface is asked for again.
 ///
 /// SDL's default window surface on X11 is its OpenGL renderer, and building
 /// that on a window a Vulkan swapchain was released from destroys the X window
@@ -48,7 +48,7 @@ class WindowIdentityTest {
     @AfterAll
     static void destroyDevice() {
         // Skipped before SDL was reached: nothing to give back, and no library to
-        // call. Calling it anyway failed the class, and a build without it (ADR-0495).
+        // call. Calling it anyway failed the class, and a build without it.
         if (device == null) {
             return;
         }

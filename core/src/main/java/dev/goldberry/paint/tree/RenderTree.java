@@ -22,7 +22,8 @@ import dev.goldberry.render.model.LogicalRect;
 import dev.goldberry.render.model.LogicalSize;
 import dev.goldberry.render.model.PhysicalSize;
 
-/// The retained render tree — ADR-0004's third tree, kept between frames.
+/// The retained render tree — the third of the toolkit's three trees, kept
+/// between frames.
 ///
 /// Hold one per window for the life of the window, hand it each frame's [Box]
 /// tree, and paint it:
@@ -38,17 +39,12 @@ import dev.goldberry.render.model.PhysicalSize;
 ///
 /// ## What it is for
 ///
-/// [BoxPainter] built a Yoga tree, read it and freed it, every frame. That is
-/// what ADR-0053
-/// chose deliberately and said would need replacing, "and it should be made with
-/// a measurement". The measurement is in
-/// ADR-0069.
-///
-/// Two things were being thrown away and rebuilt:
+/// A Yoga tree that is built, read and freed every frame — which is what
+/// [BoxPainter#paint] does for a one-shot picture — throws two things away:
 ///
 /// - **The measure callbacks.** An upcall stub is a confined `Arena` and a
 ///   `MethodHandle` bound into native code — 11 µs each, against 0.3 µs to call
-///   through one, paid per text node per frame (ADR-0037).
+///   through one, paid per text node per frame.
 /// - **Yoga's layout cache.** A tree that is freed has no cache; and a tree that
 ///   is kept but has every style re-set on it every frame has one that never
 ///   hits, because Yoga dirties a node when a style is *set*, not when it
@@ -65,6 +61,8 @@ import dev.goldberry.render.model.PhysicalSize;
 ///
 /// Confined to the UI thread and must be closed: it owns Yoga nodes and the
 /// native memory behind their measure callbacks.
+///
+/// Read more: [Architecture](https://goldberry.dev/docs/overview/architecture.html#the-three-trees).
 public final class RenderTree implements AutoCloseable {
 
     private final YogaConfig config = YogaConfig.create();
@@ -107,12 +105,11 @@ public final class RenderTree implements AutoCloseable {
         root.node().calculateLayout(size.width(), size.height());
         // Where Yoga put everything, and what each subtree draws -- read once,
         // here, rather than in each of the walks that follow. A frame painted
-        // twice (a damage pass and a full one) settles once ([ADR-0313]).
+        // twice (a damage pass and a full one) settles once.
         root.settle();
         // One question per frame: did the root's own line run past the window?
         // Only then is it worth walking the tree to find out what is off the
-        // edge, and only the first overrun of each shape is ever said out loud
-        // ([ADR-0375]).
+        // edge, and only the first overrun of each shape is ever said out loud.
         if (root.node().hadOverflow()) {
             OverflowWatch.check(root);
         }
@@ -203,8 +200,7 @@ public final class RenderTree implements AutoCloseable {
     /// **Only correct where the buffer kept last frame's pixels**, which is a
     /// promise the backend makes and this class cannot check — ask
     /// [dev.goldberry.Window#canRepaintPartially()] and fall
-    /// back to [#paint(Frame)] when it says no
-    /// (ADR-0072).
+    /// back to [#paint(Frame)] when it says no.
     ///
     /// An **empty** list means nothing changed and nothing is drawn at all, which
     /// is the same meaning it has for `present` and is the best case rather than
@@ -241,9 +237,9 @@ public final class RenderTree implements AutoCloseable {
         // The damage is the *base* of the clip stack, not merely the first
         // clip: a scroll view inside the damaged region narrows it further and
         // must widen back to the damage when its subtree ends, rather than to
-        // the whole frame (ADR-0114). `repaintOnly` is what keeps it there, and
-        // what keeps it out of the scissor of a GPU layer the damage cuts
-        // across, which still shows whole (ADR-0481). It puts the clip back
+        // the whole frame. `repaintOnly` is what keeps it there, and what keeps
+        // it out of the scissor of a GPU layer the damage cuts across, which
+        // still shows whole. It puts the clip back
         // when the walk is done: the next thing drawn on this frame did not ask
         // to be clipped.
         frame.repaintOnly(clip.left(), clip.top(), clip.width(), clip.height(), () -> paint(frame, clip));
@@ -262,9 +258,9 @@ public final class RenderTree implements AutoCloseable {
             throw new IllegalStateException("this render tree has never been updated, so there is nothing to paint;"
                     + " call update(frame, box) first");
         }
-        // The rasterizer path this used to pool is the frame's since ADR-0277:
-        // a `BlendPath` is a native allocation and an `Arena`, and `Frame` now
-        // lends one to every drawing call rather than each caller remembering to.
+        // The rasterizer path is the frame's: a `BlendPath` is a native
+        // allocation and an `Arena`, and `Frame` lends one to every drawing
+        // call rather than each caller pooling its own.
         layersRepainted = 0;
         layersComposited = 0;
         boxesPainted = 0;
@@ -295,10 +291,9 @@ public final class RenderTree implements AutoCloseable {
         /// for a full repaint. What the walk culls against, and nothing else:
         /// the frame holds it as [Frame#repaintOnly]'s region, so a reset of
         /// the clip goes back to it rather than to the whole surface, and a
-        /// subtree that finished cannot widen the damage it was painted inside
-        /// (ADR-0114). Kept out of the clips below, which are the tree's own,
-        /// so a GPU layer the damage cuts across is still scissored by the tree
-        /// alone (ADR-0481).
+        /// subtree that finished cannot widen the damage it was painted inside.
+        /// Kept out of the clips below, which are the tree's own, so a GPU
+        /// layer the damage cuts across is still scissored by the tree alone.
         private final Clip base;
 
         /// What the tree currently clips the context to, the region aside.
@@ -384,7 +379,7 @@ public final class RenderTree implements AutoCloseable {
         var transform = compose(parentTransform, box.transform(), left, top, layout.width(), layout.height());
 
         // **Nothing under here can land inside the clip**, so none of it is
-        // drawn and none of it is walked ([ADR-0313]). The test is against the
+        // drawn and none of it is walked. The test is against the
         // subtree's ink rather than this box's rectangle, because a child may be
         // drawn outside its parent -- and it is skipped outright when nothing
         // clips, which is every box in a window with no viewport in it and the
@@ -400,7 +395,7 @@ public final class RenderTree implements AutoCloseable {
         // and composited with one blit, and that blit is the only thing an
         // enclosing scroll view can confine -- so a promoted node inside a
         // viewport that had not set the clip yet would blit its whole raster
-        // straight over the viewport's edge (ADR-0114).
+        // straight over the viewport's edge.
         state.clipTo(parentClip);
 
         if (object.isPromoted()) {
@@ -427,13 +422,13 @@ public final class RenderTree implements AutoCloseable {
             // Scrolled entirely out of sight, or out of the damage. Nothing
             // under here can produce a pixel, so the walk stops -- which is the
             // one place a clip saves the *traversal* as well as the
-            // rasterization (ADR-0114).
+            // rasterization.
             return;
         }
         // Document order, then whatever asked to be drawn last. Two passes and no
         // sort: the flag is rare, the lists are short, and a comparator would put
-        // an ordering *among* elevated siblings that ADR-0123 deliberately does
-        // not define.
+        // an ordering *among* elevated siblings that is deliberately left
+        // undefined.
         for (var child : object.children()) {
             if (!child.appliedBox().elevated()) {
                 paint(child, left, top, alpha, transform, clip, state);
@@ -631,11 +626,11 @@ public final class RenderTree implements AutoCloseable {
         // sides would repaint a band nothing drew in on three of them and, worse,
         // the day a shadow is offset further than it is blurred, *miss* one --
         // which leaves a smear that survives until something else repaints over
-        // it (ADR-0310).
+        // it.
         // One rule about what a box draws outside itself, in [BoxInk], because
         // the culler asks the same question for the opposite reason: too small a
         // rectangle here clips a focus ring off a promoted node, and too small a
-        // one there drops a row that was on screen ([ADR-0313]).
+        // one there drops a row that was on screen.
         var own = BoxInk.of(box, layout.width(), layout.height()).shiftedBy(left, top);
         var l = own.left();
         var t = own.top();
@@ -691,7 +686,7 @@ public final class RenderTree implements AutoCloseable {
     /// above it, so nothing downstream has to know that `opacity` inherits its
     /// effect. The transform accumulates the same way and for the same reason —
     /// a transformed box takes its subtree with it — but cannot be folded into the
-    /// box, so it travels beside it (ADR-0068).
+    /// box, so it travels beside it.
     ///
     /// **The positions are the untransformed ones, all the way down.** A child's
     /// place comes from Yoga, which never saw a transform; the matrix is applied
@@ -720,15 +715,14 @@ public final class RenderTree implements AutoCloseable {
         // same order. Two walks that have to agree is how a pointer starts
         // landing where the ink is not -- the argument HitTest already makes
         // about the transform's inverse -- so the arithmetic is shared rather
-        // than repeated (ADR-0114).
+        // than repeated.
         var clip = clipFor(box, transform, parentClip, left, top, computed);
         if (clip.isEmpty()) {
             return;
         }
         // The same two passes the painter makes, and it must be the same two: this
         // walk is what the hit test is built from, and a box drawn on top that was
-        // not *clicked* first would be a header you can see and point through
-        // (ADR-0123).
+        // not *clicked* first would be a header you can see and point through.
         //
         // The *unfaded* box is what the children were built from, so the
         // accumulated alpha travels as a number rather than being applied twice on
@@ -783,11 +777,9 @@ public final class RenderTree implements AutoCloseable {
     /// handful the bookkeeping costs more than the upload it saves.
     ///
     /// **What this is and is not.** These rectangles say what an upload has to
-    /// carry; the frame is still *painted* in full. Painting less needs the
-    /// rasterizer clipped to the damage — another export — and a promise from the
-    /// backend SPI that the buffer it lends back holds last frame's pixels, which
-    /// it does not currently make
-    /// (ADR-0071).
+    /// carry; [#paint(Frame)] still paints the frame in full. Painting less is
+    /// the partial repaint's job, and that is only correct where the backend
+    /// promises that the buffer it lends back holds last frame's pixels.
     public java.util.List<DamageRect> damage(Frame frame) {
         Objects.requireNonNull(frame, "frame");
         requireUsable();
@@ -952,7 +944,7 @@ public final class RenderTree implements AutoCloseable {
     /// as opposed to blitted from the raster they already had.
     ///
     /// The outcome rather than the flag behind it, which is what makes it worth
-    /// exposing: §1.7's whole claim for layer promotion is that a frame of an
+    /// exposing: the whole claim for layer promotion is that a frame of an
     /// opacity or transform animation costs a composite and not a repaint, and
     /// this is that claim as a number. A test asserting on pixels would pass
     /// whether the raster was reused or redrawn, because both produce the same
@@ -973,8 +965,7 @@ public final class RenderTree implements AutoCloseable {
     /// argument applied to a second optimization: a frame that culls correctly and
     /// a frame that culls nothing produce **the same image**, so no assertion on
     /// pixels can tell them apart — and a culler that quietly stopped working
-    /// would cost 4× on the screen it was written for and fail no test at all
-    /// ([ADR-0313]).
+    /// would cost 4× on the screen it was written for and fail no test at all.
     public int boxesPainted() {
         return boxesPainted;
     }

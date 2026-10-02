@@ -37,7 +37,7 @@ And one is embedded in goldberry-emoji, which is an OPTIONAL artifact:
   Noto Color Emoji     SIL Open Font License 1.1   https://github.com/googlefonts/noto-emoji
 
 Noto Color Emoji is in an artifact of its own because it is five megabytes an
-application that never draws an emoji should not carry (ADR-0384, ADR-0456).
+application that never draws an emoji should not carry.
 The face shipped is Google's COLRv1 build, release v2.051, unmodified. The
 Apache-2.0 licence of Goldberry's own code is unaffected — the font is an
 embedded asset, not linked code.

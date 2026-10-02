@@ -29,8 +29,10 @@ import dev.goldberry.widgets.markup.Wiring;
 /// `goldberry.weave`, so by the time this test runs the build has collected every
 /// `@Markup` class in the module into a `GoldberryCatalog` and declared it in the
 /// module descriptor. Nothing here builds a catalog by hand — that would test a
-/// fixture rather than the thing that ships
-/// (ADR-0131).
+/// fixture rather than the thing that ships.
+///
+/// Read more:
+/// [Model weaving](https://goldberry.dev/docs/weaving.html).
 @DisplayName("a widget module announces itself")
 class WidgetCatalogTest {
 

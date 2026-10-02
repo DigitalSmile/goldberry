@@ -1,11 +1,11 @@
-/// The flexbox vocabulary, owned by the toolkit.
+/// The flexbox vocabulary, owned by the toolkit: lengths, insets, limits,
+/// directions, alignments and the measure callback a text leaf answers.
 ///
-/// `docs/ARCHITECTURE.md` §3.1 says raw foreign memory never leaves `:natives`.
-/// The rule this package exists for is the other half of that: **no `:natives`
-/// type appears in an application-facing signature**. `paint.Box` and
-/// `css.ComputedStyle` carried thirteen of the layout engine's own types each,
-/// and a `Box` is what every custom widget returns — so writing a widget meant
-/// reading the bindings (ADR-0279).
+/// Raw foreign memory never leaves `:natives`, and this package is the other
+/// half of that rule: **no `:natives` type appears in an application-facing
+/// signature**. A `Box` is what every custom widget returns, so the values it is
+/// built from are these rather than the layout engine's own — writing a widget
+/// must not mean reading the bindings. Exported to applications.
 ///
 /// Everything here is a plain value: a number and a unit, or a name. None of it
 /// touches foreign memory, and none of it carries a wire format — the C
@@ -13,9 +13,9 @@
 /// layout probe, and the translation between the two vocabularies happens in one
 /// package-private file beside the node that needs it.
 ///
-/// `@NullMarked`, which puts this package under NullAway: inside a marked package
-/// every type is non-null unless it says `@Nullable`, and the build fails on a
-/// violation (`docs/testing.md` §2).
+/// `@NullMarked`, which puts this package under NullAway.
+///
+/// Read more: [How layout works](https://goldberry.dev/docs/layout/index.html).
 @NullMarked
 package dev.goldberry.layout;
 

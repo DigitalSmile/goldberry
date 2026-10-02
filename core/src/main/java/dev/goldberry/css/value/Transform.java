@@ -11,14 +11,18 @@ import org.jspecify.annotations.Nullable;
 
 /// CSS's `transform` and `transform-origin`, as the cascade resolves them.
 ///
-/// ## Why this is a list of functions and not a matrix
+/// ```css
+/// checkbox-mark { transform: scale(0.6); transform-origin: 50% 50% }
+/// checkbox:checked checkbox-mark { transform: scale(1) }
+/// ```
 ///
-/// The obvious computed value for `transform` is the [Affine] the functions
-/// multiply out to, and it is the wrong one, for two independent reasons.
+/// This is a list of functions and not a matrix. The obvious computed value for
+/// `transform` is the [Affine] the functions multiply out to, and it is the wrong
+/// one, for two independent reasons.
 ///
 /// **Percentages need a box.** `translate(50%, 0)` and the `transform-origin`
 /// default of `50% 50%` are both proportions of the element's own border box, and
-/// a box does not know its size until Yoga has run — long after the cascade. A
+/// a box does not know its size until layout has run — long after the cascade. A
 /// matrix resolved at cascade time would have to guess, and the guess would be
 /// wrong for every element that is not the size it guessed. So the functions are
 /// carried and [#matrix(double, double)] resolves them when the rectangle is
@@ -35,15 +39,15 @@ import org.jspecify.annotations.Nullable;
 /// `Decoration` is finished when the cascade produces it and a `Transform` is
 /// not.
 ///
-/// ## The subset
+/// The subset is `translate`, `translateX`, `translateY`, `scale`, `scaleX`,
+/// `scaleY`, `rotate`, `skew`, `skewX`, `skewY` and `matrix`: the 2D functions.
+/// The design system allows `transform` to animate and names exactly one use for
+/// it, the check mark's `scale 0.6→1`, so this is the 2D set and no more. The 3D
+/// functions would need a projection the painter has no concept of, and
+/// `perspective` on a CPU rasterizer is a different feature wearing this one's
+/// name.
 ///
-/// `translate`, `translateX`, `translateY`, `scale`, `scaleX`, `scaleY`,
-/// `rotate`, `skew`, `skewX`, `skewY` and `matrix` — the 2D functions.
-/// `docs/design-system.md` §1.7 whitelists `transform` for animation and names
-/// exactly one use for it, the check mark's `scale 0.6→1`, so this is the 2D set
-/// and no more. The 3D functions would need a projection the painter has no
-/// concept of, and `perspective` on a CPU rasterizer is a different feature
-/// wearing this one's name.
+/// Read more: [Styling](https://goldberry.dev/docs/guide/styling.html#transform).
 ///
 /// @param functions in the order they were written, which is the **reverse** of
 ///                  the order they apply — CSS's `transform: a b c` runs `c`
@@ -215,10 +219,7 @@ public record Transform(List<Function> functions, Origin origin) {
         public static final Origin TOP_LEFT = new Origin(Length.ZERO, Length.ZERO);
 
         public Origin {
-            // Both required. `y` carried `@Nullable` beside a `requireNonNull`
-            // for it in the same record, which is two statements that cannot both
-            // be true -- and the nullable half was the one nothing relied on (the
-            // 2026-09-18 review, §7).
+            // Both required.
             Objects.requireNonNull(x, "x");
             Objects.requireNonNull(y, "y");
         }
@@ -413,11 +414,11 @@ public record Transform(List<Function> functions, Origin origin) {
 
     /// Parses a `transform` value, or returns null if it is not one.
     ///
-    /// Null rather than an exception, because §8's rule for a declaration that
+    /// Null rather than an exception, because the rule for a declaration that
     /// does not parse is to drop it and carry on. A transform that half-parsed
     /// would be worse than none: the box would move somewhere nobody wrote.
-    /// Public because the computed style that calls it is the `css` package's
-    /// and a value type is `css.value`'s (ADR-0172).
+    /// Public because the computed style that calls it lives in `css` and a value
+    /// type lives here.
     public static @Nullable Transform parse(List<Token> value, Origin origin, CssLength.Context context) {
         var tokens = value.stream().filter(t -> !t.is(TokenType.WHITESPACE)).toList();
         if (tokens.isEmpty()) {
@@ -608,9 +609,7 @@ public record Transform(List<Function> functions, Origin origin) {
             case "px" -> Length.px(token.numeric());
             // Against the node's own computed font-size, which the caller hands
             // in: `translate(1em)` on a 13px label is 13 and on a 28px heading is
-            // 28. It used to be `CssLength.Context.DEFAULT`'s constant 16 for
-            // every node, which is the gap ADR-0066 recorded and
-            // [ADR-0242] closed.
+            // 28, because `em` is the element's own size.
             case "em" -> Length.px(token.numeric() * context.fontSize());
             case "rem" -> Length.px(token.numeric() * context.rootFontSize());
             default -> null;

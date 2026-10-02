@@ -14,9 +14,9 @@ import org.junit.jupiter.api.Test;
 
 /// The manifest an asset is declared in, and what it refuses.
 ///
-/// `:assets` had no test naming [Asset]'s compact constructor at all (the
-/// 2026-09-18 review, §6), which is the one place a typo in the manifest is
-/// catchable *before* a build spends ninety megabytes finding out. Every
+/// [Asset]'s compact constructor is the one place a typo in the manifest is
+/// catchable *before* a build spends ninety megabytes finding out, and for a
+/// long time no test named it. Every
 /// assertion here is about a mistake somebody could make editing the table in
 /// `Asset` — a truncated checksum, a licence URL with nowhere to put it — rather
 /// than about the values themselves, which are what `checkLicenses` and the

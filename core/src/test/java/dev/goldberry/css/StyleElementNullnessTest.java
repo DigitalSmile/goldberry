@@ -18,14 +18,14 @@ import dev.goldberry.css.cascade.CascadeLayer;
 import dev.goldberry.css.cascade.StyleResolver;
 import dev.goldberry.css.select.Selector;
 
-/// [StyleElement]'s three nullable members, and that they say so
-/// ([ADR-0413]).
+/// [StyleElement]'s three nullable members, and that they say so: a signature
+/// that lies turns the checker off.
 ///
 /// Two kinds of assertion, and both are needed.
 ///
 /// The **annotation** assertions are unusual and deliberate: nothing else in this
 /// repository tests for the presence of an annotation. They are here because the
-/// thing that was wrong for three hundred ADRs was not a behaviour — every caller
+/// thing that was wrong for a long time was not a behaviour — every caller
 /// already handled the null — but a *signature*, and a signature that lies is
 /// invisible to every test that exercises the code. `css.lint` was left unmarked
 /// to accommodate this one, which is a checker switched off to keep a comment and

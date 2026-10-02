@@ -5,8 +5,8 @@ import java.util.List;
 import dev.goldberry.gpu.TextureFormat;
 import dev.goldberry.gpu.render.YuvLayout;
 
-/// How a picture's Y'CbCr planes are laid out: the four 4:2:0 layouts of the
-/// media engine's frame contract (`docs/goldberry-media.md` §5).
+/// How a picture's Y'CbCr planes are laid out: the four 4:2:0 layouts the
+/// media engine hands over.
 public enum PlaneLayout {
     /// 8-bit luma, then Cb and Cr interleaved at half size.
     NV12(YuvLayout.NV12),

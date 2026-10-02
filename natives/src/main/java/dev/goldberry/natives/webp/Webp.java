@@ -15,8 +15,7 @@ import dev.goldberry.natives.NativeLibrary;
 import dev.goldberry.natives.layout.Layouts;
 import dev.goldberry.natives.webp.calls.WebpCalls;
 
-/// The WebP decoder, as one call that hands back pixels Java owns —
-/// `docs/gaps.md` G35a, [ADR-0329].
+/// The WebP decoder, as one call that hands back pixels Java owns.
 ///
 /// ## Why it exists
 ///
@@ -33,8 +32,8 @@ import dev.goldberry.natives.webp.calls.WebpCalls;
 /// [dev.goldberry.natives.blend2d.BlendDecodedImage] makes,
 /// paid for the same reason: only the decoder knows how big the image is.
 ///
-/// The `MemorySegment` never leaves this class, which is §3.1's rule and the
-/// narrower one this keeps — it never leaves the call.
+/// The `MemorySegment` never leaves this class, which is the module's rule, and
+/// the narrower one this keeps — it never leaves the call.
 ///
 /// ## The pixels
 ///
@@ -42,6 +41,8 @@ import dev.goldberry.natives.webp.calls.WebpCalls;
 /// toolkit is written in, and the premultiplication a buffer needs is
 /// `dev.goldberry.image.Image`'s to do once. libwebp hands
 /// back straight RGBA bytes, so the repacking here is a shift and an or.
+///
+/// Read more: [The native boundary](https://goldberry.dev/docs/overview/architecture.html#the-native-boundary).
 public final class Webp {
 
     private static final class Holder {
@@ -165,7 +166,7 @@ public final class Webp {
         }
     }
 
-    /// Encodes `0xAARRGGBB` pixels as a WebP — [ADR-0385].
+    /// Encodes `0xAARRGGBB` pixels as a WebP.
     ///
     /// ## Lossless is not the same trade as lossy
     ///
@@ -229,10 +230,9 @@ public final class Webp {
         }
     }
 
-    /// Every frame of an animated WebP, each a **fully composited canvas** —
-    /// [ADR-0385].
+    /// Every frame of an animated WebP, each a **fully composited canvas**.
     ///
-    /// Where animated GIF needed a disposal model written in Java (ADR-0382),
+    /// Where animated GIF needed a disposal model written in Java,
     /// this one is upstream's: `WebPAnimDecoderGetNext` hands back the whole
     /// canvas as it looks at that moment. What is left here is copying each one
     /// out before asking for the next, because the buffer belongs to the decoder

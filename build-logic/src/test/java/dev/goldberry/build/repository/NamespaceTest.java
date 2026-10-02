@@ -20,8 +20,7 @@ import org.junit.jupiter.api.Test;
 
 /**
  * Everything Goldberry names is under {@code dev.goldberry}: the Maven group, every
- * package, every JPMS module and every native-image metadata directory
- * (ADR-0510, which supersedes ADR-0009).
+ * package, every JPMS module and every native-image metadata directory.
  *
  * <p>The rename to {@code dev.goldberry} was a search and replace over 2,500
  * files. A file pasted in from an older branch, or a downstream snippet, would

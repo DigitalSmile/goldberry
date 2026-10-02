@@ -5,9 +5,10 @@ package dev.goldberry.example.webpump;
 /// ## Why three clocks and not one
 ///
 /// "The page animates badly" has three separable causes that no single number
-/// distinguishes, and they belong to three different people — see
-/// `docs/web-pump-probe.md` for the table and [FpsLog.Verdict] for the
-/// judgement drawn from it.
+/// distinguishes, and they belong to three different people: the embedder that
+/// drains the engine's main context, the engine's compositor, and the engine's
+/// scripted animation controller. [FpsLog.Verdict] is the judgement drawn from
+/// the three counters.
 ///
 /// The one worth explaining here is `timeline`. It counts how often
 /// `document.timeline` advances, which is one tick per *rendering update*, and

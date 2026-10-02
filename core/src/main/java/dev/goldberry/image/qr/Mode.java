@@ -11,18 +11,21 @@ package dev.goldberry.image.qr;
 /// Kanji mode is **not** here. It is Shift-JIS, which means carrying a
 /// transcoding table for a payload this toolkit has no way to be handed — the
 /// API takes a `String` and encodes its UTF-8, and UTF-8 Japanese is bytes.
+/// [QrEncoder] picks the mode from the payload; a caller never chooses one.
+///
+/// Read more: [Canvas, images and QR codes](https://goldberry.dev/docs/components/drawing.html#qr-code).
 public enum Mode {
 
     /// Digits only, three at a time in ten bits.
     NUMERIC(0b0001, 10, 12, 14),
 
-    /// The 45 characters of §7.4.4's table, two at a time in eleven bits.
+    /// The 45 characters of ISO/IEC 18004 §7.4.4's table, two at a time in eleven bits.
     ALPHANUMERIC(0b0010, 9, 11, 13),
 
     /// Anything, eight bits at a time. What a UTF-8 payload is.
     BYTE(0b0100, 8, 16, 16);
 
-    /// §7.4.4's alphanumeric table, in value order: the index of a character in
+    /// ISO/IEC 18004 §7.4.4's alphanumeric table, in value order: the index of a character in
     /// this string is the value the standard gives it.
     static final String ALPHANUMERIC_TABLE = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ $%*+-./:";
 
@@ -43,7 +46,7 @@ public enum Mode {
         return indicator;
     }
 
-    /// How many bits the character count takes at `version` — §7.4.1's table.
+    /// How many bits the character count takes at `version` — ISO/IEC 18004 §7.4.1's table.
     ///
     /// Three widths for three version bands, because the count field has to be
     /// wide enough for the largest code in its band and no wider. This is the

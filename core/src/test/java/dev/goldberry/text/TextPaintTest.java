@@ -36,7 +36,7 @@ class TextPaintTest {
     @Test
     @DisplayName("the ink is as wide as the shaped run says it is")
     void inkMatchesTheMeasuredWidth() {
-        // The assertion the whole of ADR-0034 exists for. Blend2D multiplies
+        // The assertion the design-unit crossing exists for. Blend2D multiplies
         // placements by size/units-per-em; Java computes the same product in
         // widthOf. If either side is wrong the two disagree by that factor --
         // 128x for Inter at 16pt -- and the text is either a single illegible

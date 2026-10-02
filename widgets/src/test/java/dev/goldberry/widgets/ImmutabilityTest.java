@@ -28,16 +28,19 @@ import dev.goldberry.widgets.text.Text;
 
 /// A widget is a **value**, and this is what says so.
 ///
-/// ADR-0004 rests on it: a widget is cheap to build, cheap to throw away, holds
-/// no state, and is rebuilt constantly — the element tree is what persists. All
+/// The three-tree model rests on it: a widget is cheap to build, cheap to throw
+/// away, holds no state, and is rebuilt constantly — the element tree is what
+/// persists. All
 /// of that is false the moment one of them can be changed after construction, and
 /// the failure would not look like a mutation bug. It would look like a stale
 /// frame, or a control that stopped matching its element across a rebuild.
 ///
 /// Records give the *shallow* half for free. What this checks is the half they do
 /// not: that a collection handed to a constructor is copied rather than kept, so
-/// a caller holding the original cannot reach in afterwards
-/// (ADR-0095).
+/// a caller holding the original cannot reach in afterwards.
+///
+/// Read more:
+/// [Architecture: the three trees](https://goldberry.dev/docs/overview/architecture.html#the-three-trees).
 class ImmutabilityTest {
 
     /// Every widget the catalog registers, built the way markup builds it.
@@ -67,7 +70,7 @@ class ImmutabilityTest {
     }
 
     /// Records enforce `final` on their components. Any *other* field is state on
-    /// a value, which is exactly what ADR-0004 rules out — and a lazily computed
+    /// a value, which is exactly what the model rules out — and a lazily computed
     /// cache would be the plausible way it happens.
     @Test
     @DisplayName("no widget has a mutable field")
@@ -160,7 +163,7 @@ class ImmutabilityTest {
     ///
     /// A binding is an [Observable] and a handler is a lambda: both are
     /// references to something that changes, and that is the point — data flows
-    /// down and events flow up (ADR-0063). What matters is that the widget cannot
+    /// down and events flow up. What matters is that the widget cannot
     /// *write* through them: it is handed the read-only half of a property, and
     /// there is no `set` to call.
     @Test
@@ -186,9 +189,9 @@ class ImmutabilityTest {
 
     /// A handler is deliberately excluded from that: two lambdas are never equal,
     /// so a widget carrying one is never equal to another. Recorded rather than
-    /// asserted as a bug — §11's parity test compares widgets built *without*
+    /// asserted as a bug — the parity test compares widgets built *without*
     /// handlers for exactly this reason, and `Slider.format` is a pattern rather
-    /// than a function because of it (ADR-0080).
+    /// than a function because of it.
     @Test
     @DisplayName("two widgets carrying handlers are not equal, and that is known")
     void handlersDefeatEquality() {

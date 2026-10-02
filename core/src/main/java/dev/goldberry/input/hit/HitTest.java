@@ -25,6 +25,11 @@ import dev.goldberry.render.model.LogicalRect;
 /// is the last frame that was painted. Laying out again to answer would test
 /// against a frame that does not exist yet, and every drag would be one frame
 /// ahead of the thing it is dragging.
+///
+/// [#capture] records every box's rectangle while a frame is painted; [#at] and
+/// [#cursorAt] read the result for the pointer router, topmost box first.
+///
+/// Read more: [Input and focus](https://goldberry.dev/docs/guide/input.html#how-an-event-travels).
 public final class HitTest {
 
     private HitTest() {}
@@ -47,15 +52,14 @@ public final class HitTest {
     /// inputs by different code: two inversions that have to agree exactly is how
     /// a pointer starts landing where the ink is not, and the failure is silent —
     /// the control looks right and simply does not respond where it looks like it
-    /// should
-    /// (ADR-0068).
+    /// should.
     ///
     /// Null for an untransformed box, which is almost all of them, and the test
     /// then costs the four comparisons it always did.
     ///
     /// @param owner   what the renderer tagged the box with — an `Element` in the
     ///                widget stack, or null for a box nobody claimed
-    /// @param cursor  the shape the pointer takes over this rectangle (§7.3),
+    /// @param cursor  the shape the pointer takes over this rectangle,
     ///                recorded here rather than looked up later because the style
     ///                that decided it is gone by the next frame
     /// @param inverse undoes the transform this box was painted with, or null if
@@ -63,9 +67,9 @@ public final class HitTest {
     /// @param clip    what an `overflow` above this box confines it to, in the
     ///                frame's coordinates, or [Clip#NONE] when nothing does
     /// @param content the rectangle **inside the padding** — where a `canvas`
-    ///                painter's own origin is, and where its input has to land
-    ///                (ADR-0281). The same as the box's own rectangle for a box
-    ///                with no padding, which is most of them
+    ///                painter's own origin is, and where its input has to land.
+    ///                The same as the box's own rectangle for a box with no
+    ///                padding, which is most of them
     public record Region(
             @Nullable Object owner,
             Cursor cursor,
@@ -77,7 +81,7 @@ public final class HitTest {
             Clip clip,
             LogicalRect content) {
 
-        /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+        /// Written out so that the parameters taking null for a default can say so.
         public Region(
                 @Nullable Object owner,
                 Cursor cursor,
@@ -143,16 +147,15 @@ public final class HitTest {
         ///
         /// [#bounds()] is the layout rectangle. Anything reasoning about what the
         /// user can *see* wants this one instead: a row inside a scrolled list is
-        /// laid out where it always was and drawn a long way from there
-        /// (ADR-0123).
+        /// laid out where it always was and drawn a long way from there.
         ///
-        /// **A popup anchors to this one too**, which it did not always: a menu
-        /// belongs under where its button was drawn, and the flow rectangle only
-        /// agreed with that until something scrolled ([ADR-0270]).
+        /// **A popup anchors to this one too**: a menu belongs under where its
+        /// button was drawn, and the flow rectangle only agrees with that until
+        /// something scrolls.
         ///
         /// A region stores the **inverse** of its matrix, because undoing a
         /// transform is what hit testing needs and inverting once while painting
-        /// is what stops two inversions disagreeing (ADR-0068). Going forwards
+        /// is what stops two inversions disagreeing. Going forwards
         /// means inverting it back, which is exact for the translations this is
         /// ever asked about.
         public LogicalRect painted() {
@@ -176,9 +179,8 @@ public final class HitTest {
         /// it is the question a popup has to keep asking about the anchor it is
         /// following. A row scrolled past the top of its viewport is still laid
         /// out where it always was and still reported here — the walk only stops
-        /// at a subtree whose *own* clip went empty, and a row is not one
-        /// ([ADR-0114]) — so a menu hanging off it would go on pointing at a
-        /// widget nobody can see ([ADR-0433]).
+        /// at a subtree whose *own* clip went empty, and a row is not one — so a
+        /// menu hanging off it would go on pointing at a widget nobody can see.
         ///
         /// **The clip, and not the window.** [Clip#NONE] is what a box with no
         /// clipping ancestor is painted under, and it admits everything: this
@@ -199,7 +201,7 @@ public final class HitTest {
         /// The rectangle **layout** produced, without the owner, the cursor or
         /// the transform. Not what a popup anchors to: see [#painted()], which
         /// is the same rectangle for every box nothing transformed and the right
-        /// one for the boxes something did ([ADR-0270]).
+        /// one for the boxes something did.
         public LogicalRect bounds() {
             return LogicalRect.of(left, top, width, height);
         }
@@ -210,9 +212,7 @@ public final class HitTest {
             // it always was -- Yoga never saw the scroll, which is a transform
             // on the content -- so its own rectangle happily contains a pointer
             // that is nowhere near it on screen. Testing the clip is what makes
-            // "not visible" and "not clickable" the same thing, which is
-            // ARCHITECTURE §11's promise and was not true of anything before
-            // this (ADR-0114).
+            // "not visible" and "not clickable" the same thing.
             if (!clip.isNone() && !clip.contains(x, y)) {
                 return false;
             }
@@ -250,7 +250,7 @@ public final class HitTest {
     /// lays the tree out again to answer, so a window using it pays for two full
     /// layout passes per frame — one to paint and one to know where it painted.
     /// A [RenderTree] has already done the pass, and both questions read the same
-    /// answer (ADR-0069).
+    /// answer.
     ///
     /// @throws IllegalStateException if the tree has never been updated
     public static List<Region> capture(RenderTree tree) {
@@ -271,7 +271,7 @@ public final class HitTest {
         }
         // The content box, resolved exactly as `BoxPainter.paintCanvas` resolves
         // it -- through `Length.resolve`, which is where that arithmetic lives so
-        // that the painter and this cannot drift (ADR-0281).
+        // that the painter and this cannot drift.
         var padding = placed.box().padding();
         var left = Length.resolve(padding.left(), layout.width());
         var top = Length.resolve(padding.top(), layout.height());
@@ -317,7 +317,7 @@ public final class HitTest {
     /// button applies to the label inside it without the label having to repeat
     /// it. That is inheritance in the sense a user means it, arrived at by
     /// walking the stack of rectangles rather than the element tree, which is the
-    /// only structure input has at this point (ADR-0054).
+    /// only structure input has at this point.
     ///
     /// A box with no owner still counts. Scenery is not clickable, but it is
     /// visible, and a decorative overlay that says `cursor: wait` means it.

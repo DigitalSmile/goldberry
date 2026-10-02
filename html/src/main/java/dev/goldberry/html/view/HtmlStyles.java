@@ -15,13 +15,13 @@ import dev.goldberry.css.cascade.CascadeLayer;
 /// sheets.add(HtmlStyles.stylesheet());
 /// ```
 ///
-/// **This is litehtml's master stylesheet, written in Goldberry's own CSS instead.**
-/// `docs/content-widgets.md` §1.4 says an embedder has to supply the default styling
-/// of `h1`, `p`, `a`, `code` and `table`, generated from the active theme so that a
-/// page is Nord-native in either mode. That is exactly what `html.css` is — except
-/// that it is a file rather than a generator, because the rules are written in `var(
-/// --gb-*)` and the cascade resolves them against whichever theme is on. There is
-/// nothing to regenerate on a theme switch (ADR-0298).
+/// **This is what a browser's default stylesheet is, written in Goldberry's own
+/// CSS.** A renderer with no engine still has to supply the default styling of `h1`,
+/// `p`, `a`, `code` and `table`, and it has to follow the active theme so that a page
+/// is Nord-native in either mode. That is exactly what `html.css` is — a file rather
+/// than a generator, because the rules are written in `var(--gb-*)` and the cascade
+/// resolves them against whichever theme is on. There is nothing to regenerate on a
+/// theme switch.
 ///
 /// Separate from [dev.goldberry.markdown.view.MarkdownStyles] and
 /// not folded into it: an application that renders notes and never a page should
@@ -31,6 +31,8 @@ import dev.goldberry.css.cascade.CascadeLayer;
 /// [CascadeLayer#TOOLKIT_BASE], the layer `controls.css` is in, so that an
 /// application's own sheet overrides a page's appearance without `!important` — which
 /// is what a layer is for.
+///
+/// Read more: [HTML view](https://goldberry.dev/docs/components/content.html#html-view).
 public final class HtmlStyles {
 
     /// Where the rules live, beside this class.
@@ -47,7 +49,7 @@ public final class HtmlStyles {
     /// **The package holding this file is `opens`-ed to `:core`**, and it has to be:
     /// JPMS encapsulates resources as well as classes, so on the module path a `.css`
     /// beside a class is invisible to the module that reads it unless the package is
-    /// open (ADR-0093). A class-path test cannot show that — there are no modules
+    /// open. A class-path test cannot show that — there are no modules
     /// there — which is why `HtmlStylesTest` asserts it against the compiled
     /// descriptor instead.
     public static Stylesheet stylesheet() {

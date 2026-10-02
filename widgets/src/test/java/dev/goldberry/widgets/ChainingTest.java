@@ -23,13 +23,15 @@ import dev.goldberry.widgets.controls.slider.Slider;
 import dev.goldberry.widgets.core.Row;
 import dev.goldberry.widgets.text.Text;
 
-/// Every widget is chainable, and the chain keeps its type
-/// (ADR-0093).
+/// Every widget is chainable, and the chain keeps its type.
 ///
-/// The parity invariant of §11 covers the *shapes* — a widget is a record, a KDL
-/// node and a CSS type. This covers the third form of building one: a
-/// constructor with the arguments that matter followed by named steps for the
-/// ones that are usually defaults, which is what an application actually writes.
+/// The parity rule covers the *shapes* — a widget is a record, a KDL node and a
+/// CSS type. This covers the third form of building one: a constructor with the
+/// arguments that matter followed by named steps for the ones that are usually
+/// defaults, which is what an application actually writes.
+///
+/// Read more:
+/// [Three ways to say one widget](https://goldberry.dev/docs/components/index.html#three-ways-to-say-one-widget).
 class ChainingTest {
 
     /// The claim that makes the interface worth having, and the one a raw
@@ -69,7 +71,7 @@ class ChainingTest {
     }
 
     /// Replaced and not accumulated, because that is what a `class=` attribute
-    /// does in markup and §11 says the two forms must agree.
+    /// does in markup and the two forms must agree.
     @Test
     @DisplayName("styled replaces the classes rather than adding to them")
     void styledReplaces() {

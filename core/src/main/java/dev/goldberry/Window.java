@@ -41,9 +41,9 @@ import dev.goldberry.stats.PresentationTally;
 
 /// A window on the screen.
 ///
-/// This is the front door. Opening one starts the backend and the event loop if
-/// they are not already running, so an application never names a backend, builds
-/// an event loop, or writes a `switch` over backend events:
+/// Opening one starts the backend and the event loop if they are not already
+/// running, so an application never names a backend, builds an event loop, or
+/// writes a `switch` over backend events:
 ///
 /// ```java
 /// var window = Window.open("Hello", 960, 640);
@@ -51,13 +51,21 @@ import dev.goldberry.stats.PresentationTally;
 /// Goldberry.run();
 /// ```
 ///
-/// Everything below is still there — [dev.goldberry.render]
-/// is exported, and an application that wants to drive the SPI directly can. This
-/// is the path for the ones that do not.
+/// An application launched through [Goldberry#launch] has its window opened for
+/// it and reaches it through [Host#window()], for the close hook, the cursor,
+/// dropped files and text, and resize and scale notifications. Everything below
+/// is still there — [dev.goldberry.render] is exported, and an application that
+/// wants to drive the SPI directly can. This is the path for the ones that do
+/// not.
 ///
-/// Confined to the UI thread, which is the thread that opened the first window.
-/// Work that is not instant belongs on [Goldberry#async]; its result comes back
-/// here automatically.
+/// Painting takes logical coordinates and the frame is the platform's own buffer
+/// wherever it lends one. The handlers are called on the UI thread, which is the
+/// thread that opened the first window, and everything here is confined to it;
+/// work that is not instant belongs on [Goldberry#async], and its result comes
+/// back here automatically. [#close()] closes the window, and the event loop ends
+/// when the last window has closed.
+///
+/// Read more: [The low-level path](https://goldberry.dev/docs/guide/windows.html#the-low-level-path).
 public final class Window implements AutoCloseable {
 
     private static final Logger LOG = Logs.of(Window.class);
@@ -81,12 +89,10 @@ public final class Window implements AutoCloseable {
     /// The launcher's own resize and move hooks, beside the application's rather
     /// than in its slot.
     ///
-    /// There is one public handler per window and the application owns it. The
-    /// launcher used to take the same slot after `Application.start`, which
-    /// meant an application's `onResize` was replaced without a word — the
-    /// showcase's "resized to" line never once fired. These run first, and the
-    /// application's handler runs after, whichever of the two was set last
-    /// (ADR-0342).
+    /// There is one public handler per window and the application owns it, so a
+    /// handler set in `Application.start` must not be replaced by the launcher
+    /// taking the same slot afterwards. These run first, and the application's
+    /// handler runs after, whichever of the two was set last.
     private Consumer<LogicalSize> launcherResize = size -> {};
 
     private Consumer<LogicalPoint> launcherMove = position -> {};
@@ -94,12 +100,11 @@ public final class Window implements AutoCloseable {
     /// Everything listening for a file drop — a list rather than a single
     /// handler, because a window is one place and a drop concerns whatever is
     /// under the pointer: a board and a settings panel in the same window both
-    /// have a use for one, and neither should overwrite the other's
-    /// ([ADR-0330]).
+    /// have a use for one, and neither should overwrite the other's.
     private final List<Consumer<FileDrop>> dropListeners = new ArrayList<>();
 
     /// Everything listening for dropped text, a list for [#dropListeners]'
-    /// reason ([ADR-0408]).
+    /// reason.
     private final List<Consumer<TextDrop>> textDropListeners = new ArrayList<>();
 
     /// The paths of the gesture currently in progress, in the order they
@@ -110,7 +115,7 @@ public final class Window implements AutoCloseable {
     /// The lines of text of the gesture currently in progress. A second buffer
     /// rather than a shared one, because one gesture is a file drop **or** a text
     /// drop on every platform SDL supports and nothing should break if one ever
-    /// sends both ([ADR-0408]).
+    /// sends both.
     private final List<String> droppingText = new ArrayList<>();
 
     /// Where the last event of the gesture said the pointer was.
@@ -121,7 +126,7 @@ public final class Window implements AutoCloseable {
 
     /// [BackendWindow#lateFrames()] as of the last frame, so the difference is
     /// what belongs to *this* one — the backend's counter is monotonic and this
-    /// ring is a window over sixty frames ([ADR-0271]).
+    /// ring is a window over sixty frames.
     private long backendLateFrames;
 
     /// Frames painted and then refused by the platform, waiting for the next
@@ -138,9 +143,9 @@ public final class Window implements AutoCloseable {
     /// something the backend copies out immediately.
     private @Nullable PixelBuffer cached;
 
-    /// What this window's frame loop has been managing lately (§1.7's frame
-    /// budget, made visible). Written once per painted frame and read by whatever
-    /// is watching — a `hud`, or a test.
+    /// What this window's frame loop has been managing lately — the frame budget,
+    /// made visible. Written once per painted frame and read by whatever is
+    /// watching: a `hud`, or a test.
     private final FrameRing frames = new FrameRing();
 
     private Window(GoldberryRuntime runtime, BackendWindow window) {
@@ -167,7 +172,7 @@ public final class Window implements AutoCloseable {
     /// Everything above the SPI is the same for a popup as for a window: it is
     /// painted, it presents, its events arrive through the same pump and its
     /// pointer goes through a router. This is where that sameness is taken
-    /// advantage of rather than reimplemented ([ADR-0102]).
+    /// advantage of rather than reimplemented.
     static Window over(BackendWindow backendWindow) {
         Objects.requireNonNull(backendWindow, "backendWindow");
         var runtime = GoldberryRuntime.get();
@@ -229,7 +234,7 @@ public final class Window implements AutoCloseable {
     /// [#onResize].** Nothing inside the window moved, so its last frame is
     /// still correct; what moved is the window's own coordinate space relative
     /// to the screen's edges, which is a question only something placing another
-    /// window against them has to ask ([ADR-0270]).
+    /// window against them has to ask.
     public Window onMove(Consumer<LogicalPoint> handler) {
         this.moveHandler = Objects.requireNonNull(handler, "handler");
         return this;
@@ -257,10 +262,12 @@ public final class Window implements AutoCloseable {
     }
 
     /// How this window's frames reach the screen: through the GPU, or on the CPU
-    /// and why (ADR-0492).
+    /// and why.
     ///
     /// As of the last frame presented, and [Presentation.Cpu#UNDECIDED] before the
-    /// first, since a window chooses at its first frame.
+    /// first, since a window chooses at its first frame. Each change is logged as
+    /// one INFO line too; see
+    /// [Which way a window presents](https://goldberry.dev/docs/guide/logging.html#which-way-a-window-presents).
     public Presentation presentation() {
         return presentation;
     }
@@ -286,13 +293,14 @@ public final class Window implements AutoCloseable {
     /// The session's answer rather than this window's — there is one desktop — and
     /// it is here because a window is what an application without a [Host] holds.
     /// See [Host#systemTheme()], which is the same answer through the ordinary
-    /// route (`docs/gaps.md` G26, [ADR-0322]).
+    /// route. Empty is a different answer from light: the first is a default, the
+    /// second a theme, and the toolkit chooses nothing with either.
     public java.util.Optional<SystemTheme> systemTheme() {
         return runtime.backend().systemTheme();
     }
 
-    /// Whether the desktop asks for less movement — §13's reduce-motion switch,
-    /// read rather than set.
+    /// Whether the desktop asks for less movement — its reduce-motion switch, read
+    /// rather than set.
     ///
     /// **The toolkit acts on this one**, unlike the theme: a renderer built by
     /// [Goldberry#launch] starts with `reducedMotion` set from it, because
@@ -301,8 +309,7 @@ public final class Window implements AutoCloseable {
     /// renderer.
     ///
     /// Empty where the desktop does not say, and no event follows a change — see
-    /// [dev.goldberry.render.Backend#reducedMotion()]
-    /// ([ADR-0383]).
+    /// [dev.goldberry.render.Backend#reducedMotion()].
     public java.util.Optional<Boolean> reducedMotion() {
         return runtime.backend().reducedMotion();
     }
@@ -321,13 +328,12 @@ public final class Window implements AutoCloseable {
         return this;
     }
 
-    /// Called when files are dropped on this window — `docs/gaps.md` G35b.
+    /// Called when files are dropped on this window.
     ///
     /// **Once per gesture**, with every file that was dropped and the point in
     /// the window they landed on. A desktop reports a drop as a beginning, a
     /// moving position, one event per file and an end; reassembling that is done
-    /// here so that every application does not do it slightly differently
-    /// ([ADR-0330]).
+    /// here so that every application does not do it slightly differently.
     ///
     /// A [Subscription] rather than a setter, unlike the handlers above it, and
     /// the difference is real: the others answer a question about the *window* —
@@ -345,13 +351,15 @@ public final class Window implements AutoCloseable {
     /// ```java
     /// window.onFileDrop(drop -> board.place(drop.first(), drop.at()));
     /// ```
+    ///
+    /// Read more: [Dropped files and text](https://goldberry.dev/docs/guide/input.html#dropped-files-and-text).
     public Subscription onFileDrop(Consumer<FileDrop> listener) {
         Objects.requireNonNull(listener, "listener");
         dropListeners.add(listener);
         return () -> dropListeners.remove(listener);
     }
 
-    /// Called when text is dropped on this window — [ADR-0408].
+    /// Called when text is dropped on this window.
     ///
     /// [#onFileDrop]'s twin, down to the `Subscription`, because the platform
     /// reports the two gestures identically: a beginning, a moving position, one
@@ -372,6 +380,8 @@ public final class Window implements AutoCloseable {
     /// ```java
     /// window.onTextDrop(drop -> field.insert(drop.text()));
     /// ```
+    ///
+    /// Read more: [Dropped files and text](https://goldberry.dev/docs/guide/input.html#dropped-files-and-text).
     public Subscription onTextDrop(Consumer<TextDrop> listener) {
         Objects.requireNonNull(listener, "listener");
         textDropListeners.add(listener);
@@ -416,7 +426,7 @@ public final class Window implements AutoCloseable {
     /// The window manager enforces it: the pointer stops at the edge, so the
     /// window is never a size the layout cannot take. That is the whole reason
     /// this is not a check in a resize handler — by the time a handler sees the
-    /// size, the frame is already wrong (ADR-0304).
+    /// size, the frame is already wrong.
     ///
     /// **This does not grow a window that is already smaller.** A floor is about
     /// what the user may do next, and resizing a window out from under whoever is
@@ -440,8 +450,7 @@ public final class Window implements AutoCloseable {
     /// there is nothing left to size.
     ///
     /// The launcher's `--resize=WxH` is this, one pixel a frame, which is what a
-    /// drag produces and what a frame loop has to be measured under
-    /// (ADR-0342).
+    /// drag produces and what a frame loop has to be measured under.
     ///
     /// @param size the size asked for; both sides positive
     public void resize(LogicalSize size) {
@@ -468,8 +477,7 @@ public final class Window implements AutoCloseable {
     }
 
     /// Sets the picture the taskbar, the dock and the window switcher show for
-    /// this window, from several sizes of one image (`docs/gaps.md` G40,
-    /// ADR-0351).
+    /// this window, from several sizes of one image.
     ///
     /// **Several sizes, not one scaled.** Windows wants 16 and 32, a dock wants 48
     /// or more, and scaling one PNG down is the blur a hand-drawn icon set exists
@@ -547,7 +555,7 @@ public final class Window implements AutoCloseable {
     /// build on, the painter was expected to draw everything, and uploading a
     /// subset of it would leave the rest of the window showing whatever the
     /// platform had there. So the whole frame goes up and what is reported here
-    /// is not consulted (ADR-0158). A painter therefore reports what *changed*
+    /// is not consulted. A painter therefore reports what *changed*
     /// and never has to reason about what the surface underneath it still holds.
     public Window damaged(List<DamageRect> regions) {
         this.damage = List.copyOf(Objects.requireNonNull(regions, "regions"));
@@ -566,7 +574,7 @@ public final class Window implements AutoCloseable {
     private boolean partialRepaint;
 
     /// The GPU layers the window showed after its last frame, in paint order:
-    /// what that frame placed, and what a partial repaint kept (ADR-0481).
+    /// what that frame placed, and what a partial repaint kept.
     private List<GpuPlacement> gpuLayers = List.of();
 
     /// Whether only the damaged region of this frame needs repainting.
@@ -593,8 +601,7 @@ public final class Window implements AutoCloseable {
     /// ```
     ///
     /// `damaged` is called the same way either way: what is reported is what
-    /// changed, and a frame this returned false for is uploaded whole regardless
-    /// (ADR-0158).
+    /// changed, and a frame this returned false for is uploaded whole regardless.
     public boolean canRepaintPartially() {
         return partialRepaint;
     }
@@ -616,7 +623,7 @@ public final class Window implements AutoCloseable {
     ///
     /// Package-private, because [#frames] is the reading half and everything
     /// outside this package is a reader — the one writer is the launcher's
-    /// painter, which times the stages a `hud` shows (ADR-0146).
+    /// painter, which times the stages a `hud` shows.
     FrameRing frameRing() {
         return frames;
     }
@@ -672,7 +679,7 @@ public final class Window implements AutoCloseable {
         // is always true by the time it is read: the borrowed branch above
         // *reassigns* `size` to the buffer's own, and the cached branch allocates
         // a new buffer whenever the sizes disagree. A condition that cannot be
-        // false says nothing about the frame (the 2026-09-18 review, §7).
+        // false says nothing about the frame.
         partialRepaint = (borrowed.isEmpty() || window.retainsFrameContents()) && target == lastTarget;
         lastTarget = target;
 
@@ -684,7 +691,7 @@ public final class Window implements AutoCloseable {
         // what keeps a painter that throws from leaving the context attached to
         // the platform's surface.
         // Asked after `acquireFrame`, which is where a window changes how it
-        // presents: the answer holds until this frame is presented (ADR-0481).
+        // presents: the answer holds until this frame is presented.
         var gpu = window.gpuSurface();
         var frame =
                 gpu.isPresent() ? Frame.over(target, window.scale(), gpu.get()) : Frame.over(target, window.scale());
@@ -710,7 +717,7 @@ public final class Window implements AutoCloseable {
         // What went missing between the last frame and this one, from the two
         // things that can tell: the backend's pacer, whose counter is monotonic
         // and so is read as a difference, and the refusals this window caught
-        // itself ([ADR-0271]). Before `record`, which is what banks it.
+        // itself. Before `record`, which is what banks it.
         var lateNow = window.lateFrames();
         frames.late(Math.max(0L, lateNow - backendLateFrames) + refusedFrames);
         backendLateFrames = lateNow;
@@ -722,7 +729,7 @@ public final class Window implements AutoCloseable {
         frames.record(started, painted);
         // Asked of the backend on every frame and cached there: it changes only
         // when the window moves monitors, and a `hud` needs it to know what a
-        // frame's budget actually is (ADR-0153).
+        // frame's budget actually is.
         frames.displayHertz(window.refreshRate());
 
         var frameSize = size;
@@ -738,8 +745,7 @@ public final class Window implements AutoCloseable {
             // rotated buffer -- the surface holds nothing, the painter was told to
             // repaint everything and did, and uploading only what changed leaves
             // the rest of the window showing whatever the compositor had there.
-            // Which is black, and during a live resize it is black that flickers
-            // (ADR-0158).
+            // Which is black, and during a live resize it is black that flickers.
             //
             // Here rather than at the call site, because a painter reporting what
             // changed is right and there is nothing for it to do differently --
@@ -748,7 +754,7 @@ public final class Window implements AutoCloseable {
             window.present(target, damage == null || !partialRepaint ? List.of(DamageRect.all(frameSize)) : damage);
             // After the present, into the slot `record` just filled: what the
             // GPU path cost, or nothing for a window presenting through its
-            // surface (ADR-0479).
+            // surface.
             frames.presented(window.lastPresent());
             presentedThrough(window.presentation());
             damage = null;
@@ -763,8 +769,7 @@ public final class Window implements AutoCloseable {
                 // between "the toolkit is slow" and "the platform is".
                 // Paint is split three ways because the split is what said where
                 // a frame's time actually goes: attaching the context, the
-                // painter's own work, and `end` waiting for Blend2D's workers
-                // (ADR-0042, ADR-0045).
+                // painter's own work, and `end` waiting for Blend2D's workers.
                 LOG.trace(
                         "frame {} in {}us: buffer {}, paint {} (begin {}, draw {}, end {})," + " present {}",
                         frameSize,
@@ -787,8 +792,8 @@ public final class Window implements AutoCloseable {
             if (!current.equals(frameSize)) {
                 LOG.trace("dropped a {} frame: the window became {} while it was painted", frameSize, current);
                 // A frame nobody saw. Banked by the next one, which is the frame
-                // whose interval contains the gap this left ([ADR-0271]) — and
-                // it is asked for on the line below, so there will be one.
+                // whose interval contains the gap this left — and it is asked
+                // for on the line below, so there will be one.
                 refusedFrames++;
                 repaint();
                 return;
@@ -844,7 +849,7 @@ public final class Window implements AutoCloseable {
         /// The button and the position, because the two things watching this want
         /// different halves: light dismissal only needs to know *that* a press
         /// happened, and a context menu needs to know it was the secondary button
-        /// and where it landed ([ADR-0108]).
+        /// and where it landed.
         ///
         /// @return true when the press has been dealt with — a context menu
         ///         opening takes it, so the press does not also travel to whatever
@@ -858,7 +863,7 @@ public final class Window implements AutoCloseable {
         /// platform having moved focus into it — arrows and `Enter` reach the
         /// popup's router rather than moving the selection in the window
         /// underneath, which is what they would otherwise do while a menu is
-        /// open ([ADR-0104]).
+        /// open.
         ///
         /// @return true when the key has been dealt with
         boolean keyPressed(
@@ -869,8 +874,7 @@ public final class Window implements AutoCloseable {
         /// Returning `true` swallows it, and there is one caller and one reason:
         /// **opening a window over the pointer makes X11 report that the pointer
         /// left the window underneath**, which it did not. Delivered, that clears
-        /// the hover and the cursor of the very widget a tooltip is describing
-        /// ([ADR-0111]).
+        /// the hover and the cursor of the very widget a tooltip is describing.
         ///
         /// @return true when the exit is the toolkit's own doing
         default boolean exited() {
@@ -881,7 +885,7 @@ public final class Window implements AutoCloseable {
     /// See [#modifierTaps()].
     private final ModifierTaps modifierTaps = new ModifierTaps();
 
-    /// The taps of a bare modifier key this window recognises (ADR-0223).
+    /// The taps of a bare modifier key this window recognises.
     ///
     /// Here rather than on the router because the rule is written in **platform
     /// keycodes**: `Key` names no modifier, so `Alt` reaches the router as
@@ -910,16 +914,16 @@ public final class Window implements AutoCloseable {
     public Window pointerRouter(dev.goldberry.input.PointerRouter router) {
         this.router = router;
         // The router decides the shape and knows nothing about the platform;
-        // this is the one wire between the two (§7.3).
+        // this is the one wire between the two.
         router.onCursorChange(window::setCursor);
         // And the other platform effect focus has: an input method is on while
-        // something typed-into has the keyboard, and off otherwise (ADR-0285).
+        // something typed-into has the keyboard, and off otherwise.
         router.onTextInputChange(window::textInput);
         router.onCaretAreaChange(window::textInputArea);
         return this;
     }
 
-    /// Sets the shape of the pointer over this window (§7.3).
+    /// Sets the shape of the pointer over this window.
     ///
     /// For an application that decides for itself. A window with a
     /// [#pointerRouter] has this set from the widget under the pointer on every
@@ -959,7 +963,7 @@ public final class Window implements AutoCloseable {
 
     void handlePointerPressed(float x, float y, int button, int clickCount, int modifiers) {
         // A press ends whatever keyboard gesture was in progress: `Alt` down,
-        // click, `Alt` up is a modified click and not a tap (ADR-0223).
+        // click, `Alt` up is a modified click and not a tap.
         modifierTaps.interrupted();
         // Before the router, and unconditionally: light dismissal needs to know a
         // press happened *anywhere* in this window, and the router cannot say so
@@ -1003,7 +1007,7 @@ public final class Window implements AutoCloseable {
     ///
     /// A fact about the platform rather than about the widget tree: the element
     /// the *router* has focused is a different question, and a window that is not
-    /// focused still has one (ADR-0144).
+    /// focused still has one.
     public boolean isFocused() {
         return focused;
     }
@@ -1011,7 +1015,7 @@ public final class Window implements AutoCloseable {
     /// Whether the window is maximized **as the platform last reported it**.
     ///
     /// Not "whether [#maximize] was called", and that is the decision rather than
-    /// an implementation detail ([ADR-0252]). Maximizing is a request a window
+    /// an implementation detail. Maximizing is a request a window
     /// manager may refuse, delay or grant in part — a tiling compositor has its
     /// own idea — so a flag set on the way out would be a lie the moment one did.
     /// This answers what `SDL_EVENT_WINDOW_MAXIMIZED` and `…_RESTORED` last said,
@@ -1057,8 +1061,7 @@ public final class Window implements AutoCloseable {
     /// a video player and the application's own toolbar can both care.
     private final List<Consumer<Boolean>> fullscreenListeners = new ArrayList<>();
 
-    /// Whether the window fills its display **as the platform last reported it**
-    /// ([ADR-0473]).
+    /// Whether the window fills its display **as the platform last reported it**.
     ///
     /// [#isMaximized]'s rule, for the same reason: going fullscreen is a request
     /// a window manager may refuse, and on macOS it is an animated move to a
@@ -1125,7 +1128,7 @@ public final class Window implements AutoCloseable {
     }
 
     /// Told by the runtime that the desktop's setting changed. One per window,
-    /// because the backend sends one per window ([ADR-0322]).
+    /// because the backend sends one per window.
     private java.util.function.@Nullable Consumer<SystemTheme> systemThemeHandler;
 
     /// One file of a drop landed. Collected; nothing is raised until the gesture
@@ -1145,7 +1148,7 @@ public final class Window implements AutoCloseable {
     }
 
     /// One line of dropped text landed. Collected like a file, and for the same
-    /// reason: SDL sends one of these per line — see [#onTextDrop] ([ADR-0408]).
+    /// reason: SDL sends one of these per line — see [#onTextDrop].
     void handleTextDropped(String text, float x, float y) {
         dropX = x;
         dropY = y;
@@ -1163,8 +1166,7 @@ public final class Window implements AutoCloseable {
     /// and clears the gesture either way.
     ///
     /// One completion for both kinds, because the platform has one: SDL's
-    /// `SDL_EVENT_DROP_COMPLETE` ends the gesture whatever it carried
-    /// ([ADR-0408]).
+    /// `SDL_EVENT_DROP_COMPLETE` ends the gesture whatever it carried.
     void handleDropCompleted(float x, float y) {
         if (dropping.isEmpty() && droppingText.isEmpty()) {
             // A drag that crossed the window and left, or a drop of something
@@ -1206,7 +1208,7 @@ public final class Window implements AutoCloseable {
         focused = value;
         // The `Alt` that reached the compositor's window switcher comes back as a
         // release this window never saw the press of. Firing on it would open a
-        // menu on the way *back* from another application (ADR-0223).
+        // menu on the way *back* from another application.
         modifierTaps.interrupted();
     }
 
@@ -1234,7 +1236,7 @@ public final class Window implements AutoCloseable {
     void handleKeyPressed(int keycode, int modifiers, boolean repeat) {
         // Before the watcher and before the router, and told the **raw** keycode:
         // what arms a tap is a modifier going down, and what disarms one is any
-        // other key doing so — including the keys a popup swallows (ADR-0223).
+        // other key doing so — including the keys a popup swallows.
         modifierTaps.keyPressed(keycode, repeat);
         if (inputWatcher != null
                 && inputWatcher.keyPressed(
@@ -1269,11 +1271,11 @@ public final class Window implements AutoCloseable {
         }
     }
 
-    /// The composition an input method is assembling — `docs/gaps.md` G15.
+    /// The composition an input method is assembling.
     ///
     /// Routed to the focused node exactly as committed text is, and separately
     /// from it: a preedit is not an edit, and the widget that draws it is the one
-    /// that has the caret (ADR-0289).
+    /// that has the caret.
     void handlePreedit(String text, int start, int length) {
         if (router != null) {
             router.preedit(text, start, length);

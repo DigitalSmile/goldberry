@@ -23,7 +23,7 @@ import dev.goldberry.widgets.panel.masonry.Masonry;
 import dev.goldberry.widgets.panel.statistic.Statistic;
 import dev.goldberry.widgets.text.Text;
 
-/// The **Charts** screen: `docs/core-widgets.md` §11's five data widgets, in the
+/// The **Charts** screen: the five data widgets, in the
 /// wall of cards a dashboard is actually made of.
 ///
 /// ## The data is a constant, and that is deliberate
@@ -31,59 +31,52 @@ import dev.goldberry.widgets.text.Text;
 /// Every number here is written down rather than generated. A showcase screen is
 /// also a golden image: data from a clock or a random source would make a picture
 /// that cannot be compared with the one from yesterday, which is the same rule
-/// `hud` follows by never asking for a frame it did not already deserve
-/// (ADR-0101).
+/// `hud` follows by never asking for a frame it did not already deserve.
 ///
 /// It is a journal of one march because a chart of `Series 1` and `Series 2`
 /// cannot show whether a legend, a crosshair or a shared palette is *readable* —
-/// only whether it draws ([ADR-0222]).
+/// only whether it draws.
 ///
 /// ## What the screen shows that a single chart cannot
 ///
 /// - **The palette is assigned by position and shared across widgets.** `Marched`
 ///   is the same green in the area chart and in the donut, because both take slot
-///   1 — which is what makes a wall of charts about one journey readable
-///   (ADR-0194).
+///   1 — which is what makes a wall of charts about one journey readable.
 /// - **One rule recolours a chart.** The `#watch-card` card overrides
 ///   `--gb-chart-1`, and the line and its legend swatch both follow, because a
-///   custom property inherits
-///   (ADR-0195).
+///   custom property inherits.
 /// - **A sparkline inherits `color`**, so the one inside a `statistic` is drawn
 ///   in the delta's hue without being told.
 /// - **One crosshair over two charts.** `Leagues per day` and `Provisions` are
 ///   the same seven days and share a [CrosshairGroup]: pointing at the fourth day
 ///   on either puts the crosshair on it in both, and only the one under the
-///   pointer says what the numbers are
-///   (ADR-0206).
+///   pointer says what the numbers are.
 /// - **A monotone curve.** The `Provisions` stack is drawn with [Curve#SMOOTH],
 ///   which cannot overshoot: a spline that swung past its own readings would put
-///   a band below zero on a chart of a sack of food
-///   (ADR-0204).
+///   a band below zero on a chart of a sack of food.
 /// - **A `java.time` axis.** The `Watch kept` card's x is *when* rather than
 ///   *which*: its ninth reading is three hours after its eighth, and the axis is
-///   three hours wide there rather than one step like every other
-///   (ADR-0203).
+///   three hours wide there rather than one step like every other.
 /// - **A limit is not a series.** The same card carries a threshold band in the
 ///   semantic warning hue, which is the one colour on this screen that is *not*
 ///   from the palette — a limit is a statement about the data rather than one of
-///   the things being compared
-///   (ADR-0202).
+///   the things being compared.
 /// - **A fill is a hint, not the reading.** The same card fades from its line
 ///   down toward the axis, which is what a fill under a *line* is for — the
-///   position is still the data, and the area says how much of it there is
-///   (ADR-0207).
+///   position is still the data, and the area says how much of it there is.
 /// - **A hole is not a zero**, which is the last card: the same twelve readings
 ///   drawn twice, under the two [NullPolicy] settings that disagree about what a
-///   missing one means
-///   (ADR-0201).
+///   missing one means.
 ///   **One card and not two**, because the wrong picture is only obviously wrong
 ///   *beside* the right one — on its own a line diving to the baseline looks like
 ///   data — and a masonry places by column height, so two cards could not be
 ///   promised to stay together.
+///
+/// Read more: [Charts](https://goldberry.dev/docs/components/charts.html).
 public record Charts() implements Widget.Stateful {
 
     private static final String NOTE =
-            "§11's five, on the canvas primitive — a journal of one march, because a chart of"
+            "The five charts, on the canvas primitive — a journal of one march, because a chart of"
                     + " Series 1 and Series 2 shows whether a legend draws and not whether it"
                     + " reads. Each card goes under whichever column is shortest, read from the"
                     + " frame before.";
@@ -101,7 +94,7 @@ public record Charts() implements Widget.Stateful {
         /// what travels is the point **index**, so the charts in one have to be
         /// sampled together. Pointing at the fourth day on either puts the
         /// crosshair on it in both, which is how a reader asks what the provisions
-        /// were doing when the marching slowed (ADR-0206).
+        /// were doing when the marching slowed.
         ///
         /// A field on the state rather than a constant, because it is mutable and
         /// belongs to this window — the shape a `ToastController` has.
@@ -194,7 +187,7 @@ public record Charts() implements Widget.Stateful {
                                             // Both edges of both bands, so the stack still
                                             // nests exactly -- a curved top over a straight
                                             // underside would be a band thicker than its
-                                            // own numbers (ADR-0204).
+                                            // own numbers.
                                             .curve(Curve.SMOOTH)
                                             .crosshair(week),
                                     id("provisions-card")),
@@ -213,25 +206,23 @@ public record Charts() implements Widget.Stateful {
                             card(
                                     "Watch kept, in minutes",
                                     new LineChart(List.of(new Series("Watch", WATCH)), List.of(), id("watch"))
-                                            // §3.1's `java.time` axis. The ninth reading is
+                                            // A `java.time` axis. The ninth reading is
                                             // three hours after the eighth, and the axis
                                             // shows that as three hours rather than as one
-                                            // more step (ADR-0203).
+                                            // more step.
                                             .times(NIGHTS, java.time.ZoneOffset.UTC)
                                             // A band rather than a line, because what
                                             // matters is the *region* the series went into.
                                             // In a semantic hue, never a series slot: a
                                             // limit is a statement about the data rather
-                                            // than one of the things being compared
-                                            // (ADR-0202).
+                                            // than one of the things being compared.
                                             .threshold(Threshold.above(145, Threshold.Level.WARNING)
                                                     .labelled("Too long alone"))
                                             // A fade rather than a wash, so the line stays
                                             // the reading and the area is a hint at
                                             // magnitude -- and it thins out before it
                                             // reaches the band, so the limit is still read
-                                            // against the data rather than through it
-                                            // (ADR-0207).
+                                            // against the data rather than through it.
                                             .fill(Fill.GRADIENT),
                                     id("watch-card")),
                             plain(
@@ -245,9 +236,9 @@ public record Charts() implements Widget.Stateful {
                                             Attributes.NONE),
                                     id("remaining-card")),
 
-                            // The card that makes §3.1's sentence visible: the same twelve
+                            // The card that makes "a hole is not a zero" visible: the same twelve
                             // readings, three of them missing, drawn under the two policies
-                            // that disagree about what that means (ADR-0201).
+                            // that disagree about what that means.
                             captioned(
                                     "Beacons answered",
                                     id("dropouts-card"),

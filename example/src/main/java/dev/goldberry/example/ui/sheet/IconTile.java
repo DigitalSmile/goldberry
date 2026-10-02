@@ -34,19 +34,18 @@ import dev.goldberry.widget.style.Styled;
 ///
 /// Handed in rather than looked up, exactly as a `button`'s is: a widget is a
 /// value rebuilt every frame and thrown away, and building 1544 of them per frame
-/// would parse 221 KiB of path data per frame. [IconsScreen] keeps the cache
-/// (ADR-0043).
+/// would parse 221 KiB of path data per frame. [IconsScreen] keeps the cache.
 ///
 /// ## Pressing it opens the icon's sizes
 ///
 /// A [PressableTile]: a click, `Space` or `Enter` runs `onOpen`, which the
 /// screen answers with a dialog of this icon at five sizes. The tile does not
 /// open the dialog itself — a dialog needs the window, and the tile is a value
-/// with no window in it (ADR-0106).
+/// with no window in it.
 ///
 /// @param name   what a document would write in `icon="…"` — the caption, and
 ///               the thing a reader is actually here for
-/// @param icon   the glyph, already at the size it is drawn at (ADR-0034)
+/// @param icon   the glyph, already at the size it is drawn at
 /// @param onOpen what pressing the tile does
 record IconTile(String name, Icon icon, Runnable onOpen, Attributes attributes)
         implements Widget.Leaf, Styled, Paints, PressableTile {

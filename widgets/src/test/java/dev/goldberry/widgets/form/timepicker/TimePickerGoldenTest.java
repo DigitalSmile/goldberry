@@ -34,7 +34,7 @@ import dev.goldberry.widgets.form.parts.PickerPanel;
 /// rather than as a list, and `58 59 00 01 02` is what says it wraps.
 ///
 /// Built directly rather than by opening the popover, because a golden has no
-/// window and a popup is a platform window (ADR-0140).
+/// window and a popup is a platform window.
 ///
 /// `./gradlew :widgets:test -Dgoldberry.golden.update=true` rewrites them.
 class TimePickerGoldenTest {

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Move Java types between packages, rewriting every reference in the repo.
 
-Written for the package refactor in ADR-0172. A package move is four edits and
+Written for the package-per-role refactor. A package move is four edits and
 it is the *fourth* that is easy to forget: the file that used the type without
 an import because it shared a package with it, and now does not.
 
@@ -11,8 +11,8 @@ an import because it shared a package with it, and now does not.
   4. every file *left behind* in the old package gains an import, and every
      file that *moved* gains imports for what it left behind
 
-It also fixes the `../` depth of the relative markdown links this codebase's
-javadoc uses to point at ADRs, because a file that moved a package deeper is
+It also fixes the `../` depth of any relative markdown link a javadoc comment
+carries into `book/`, because a file that moved a package deeper is
 one `../` further from `book/`.
 
 Usage:

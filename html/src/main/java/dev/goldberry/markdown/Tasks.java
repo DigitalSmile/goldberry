@@ -14,15 +14,14 @@ import dev.goldberry.natives.md4c.Md4c;
 /// edit the model, write it back out — and it is wrong for this job in a way worth
 /// writing down: a re-serialisation returns *a* document with the same meaning rather
 /// than **the author's file**, so it would silently reflow their tables, renumber
-/// their lists and normalise their line endings, all because somebody ticked a box
-/// (ADR-0300).
+/// their lists and normalise their line endings, all because somebody ticked a box.
 ///
 /// So this asks the parser where the box is and changes that one character.
 /// Everything else in the file comes back byte for byte.
 ///
 /// ## Why it asks md4c rather than matching a pattern
 ///
-/// The two halves of ADR-0300 have to count the same tasks: the ordinal a pressed box
+/// The two halves of a toggle have to count the same tasks: the ordinal a pressed box
 /// reports is md4c's, counted by walking the model, and the marker this rewrites has
 /// to be the one that ordinal names. A scanner cannot agree with the parser about
 /// that, because whether `- [ ]` on a line is a task box at all depends on what a

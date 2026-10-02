@@ -13,8 +13,7 @@ import dev.goldberry.input.key.Shortcut;
 import dev.goldberry.widget.Widget;
 import dev.goldberry.widgets.TestHost;
 
-/// What [Accelerators#unbind] gives back, with an owner and without one
-/// (ADR-0220, ADR-0497).
+/// What [Accelerators#unbind] gives back, with an owner and without one.
 ///
 /// The two-argument form is documented as "whoever holds those keys now". It
 /// passed a null owner down to the host, which a host reads as "only the keys

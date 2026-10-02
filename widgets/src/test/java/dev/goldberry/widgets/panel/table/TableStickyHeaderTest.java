@@ -31,7 +31,7 @@ import dev.goldberry.widgets.core.scroll.ScrollAxis;
 import dev.goldberry.widgets.text.Text;
 
 /// A table on a page that scrolls keeps its column names in view while it is
-/// there, and lets them go with it ([ADR-0360]).
+/// there, and lets them go with it.
 class TableStickyHeaderTest {
 
     private static final int WIDTH = 320;

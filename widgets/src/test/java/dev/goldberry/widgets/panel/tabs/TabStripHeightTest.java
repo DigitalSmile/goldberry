@@ -21,7 +21,7 @@ import dev.goldberry.widget.attr.Attributes;
 import dev.goldberry.widgets.Controls;
 import dev.goldberry.widgets.controls.TestFont;
 
-/// A tab strip is one control height, whatever is in it — [ADR-0143].
+/// A tab strip is one control height, whatever is in it.
 ///
 /// The header row used to take its height from the tallest thing in it, which is
 /// a `tab` while there are tabs and the `+` button when the last one is closed.

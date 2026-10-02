@@ -5,24 +5,30 @@ import java.util.Arrays;
 
 import dev.goldberry.text.TextLine;
 
-/// A [TextDocument] broken into visual lines at one width.
+/// A [TextDocument] broken into visual lines at one width: which visual line an
+/// offset is on, where each hard line's rows begin, and how many rows there are.
 ///
-/// A `List<TextLine>` so that everything written against
-/// [dev.goldberry.text.Paragraph#layout]'s lines keeps
-/// working — and a **computed** one rather than a built one, because a document
-/// of ten thousand lines would otherwise allocate ten thousand records per
-/// frame to answer two questions about three of them.
+/// ```java
+/// DocumentLines lines = document.lines(240);   // the wrap at 240 logical units
+/// int row = lines.indexOf(caret);              // the visual line the caret is on
+/// TextLine line = lines.get(row);              // its start and end in the whole text
+/// ```
 ///
-/// ## The offsets are the document's, the glyphs are a line's
+/// It is a `List<TextLine>`, so anything written against a `Paragraph` layout's
+/// lines works over a document too. It is a computed list and not a built one,
+/// because a document of ten thousand lines would otherwise allocate ten
+/// thousand records per frame to answer two questions about three of them; each
+/// `get` reads one hard line's own wrap.
 ///
 /// [TextLine#start] and [TextLine#end] index the whole text, which is what every
-/// caret, selection and hit test here is expressed in. The glyph range does
-/// **not**: it indexes the hard line's own paragraph, because that is the run
-/// the glyphs are in and there is no document-wide run to index.
+/// caret, selection and hit test is expressed in. The glyph range does not: it
+/// indexes the hard line's own paragraph, because that is the run the glyphs are
+/// in and there is no document-wide run. So this answers *where* and never *what
+/// to draw*; a caller that wants glyphs takes [TextDocument#paragraphOf] for the
+/// hard lines in view and paints those, which is what `text-area` does with the
+/// rows on screen.
 ///
-/// So this answers *where* and never *what to draw*. A caller that wants glyphs
-/// takes the slice of the text between two line starts and shapes that, which is
-/// what `text-area` does with the rows on screen ([ADR-0388]).
+/// Read more: [Selection and editing](https://goldberry.dev/docs/guide/text.html#selection-and-editing).
 public final class DocumentLines extends AbstractList<TextLine> {
 
     private final TextDocument document;

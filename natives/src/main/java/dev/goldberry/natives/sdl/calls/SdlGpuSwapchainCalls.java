@@ -12,11 +12,15 @@ import java.lang.invoke.MethodHandle;
 import dev.goldberry.natives.Downcalls;
 
 /// A window claimed by a GPU device: its swapchain, how it presents, and the
-/// texture each frame renders into (`docs/gpu-plan.md`, D3).
+/// texture each frame renders into. A claimed window has no window surface, so
+/// composition is per window: entered by a claim and left by a release.
 ///
 /// One holder per function: its handle, its address, and a `call` whose
 /// parameters are the C prototype’s. See [Downcalls] for why the handle is a
 /// `static final` constant and why these live in a package of their own.
+///
+/// Read more: [The GPU canvas](https://goldberry.dev/docs/components/gpu.html#what-the-module-does-to-a-window) and
+/// [The native boundary](https://goldberry.dev/docs/overview/architecture.html#the-native-boundary).
 public record SdlGpuSwapchainCalls(
         ClaimWindowForGPUDevice claimWindowForGPUDevice,
         ReleaseWindowFromGPUDevice releaseWindowFromGPUDevice,

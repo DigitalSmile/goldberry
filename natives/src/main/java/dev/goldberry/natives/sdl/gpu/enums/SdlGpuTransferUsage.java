@@ -2,6 +2,8 @@ package dev.goldberry.natives.sdl.gpu.enums;
 
 /// Which way a transfer buffer carries pixels, as SDL's
 /// `SDL_GPUTransferBufferUsage`.
+///
+/// Read more: [The native boundary](https://goldberry.dev/docs/overview/architecture.html#the-native-boundary).
 public enum SdlGpuTransferUsage {
     /// CPU to GPU: written while mapped, then uploaded in a copy pass.
     UPLOAD(0),

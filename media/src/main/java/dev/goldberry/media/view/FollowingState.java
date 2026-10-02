@@ -36,8 +36,7 @@ import dev.goldberry.widget.Widget;
 /// never prepares a form this state cannot draw. With `:gpu` on the module path
 /// it holds a [VideoPresenter] for its surface to show the pictures through,
 /// and asks for planes while that places them on the GPU; otherwise, and
-/// wherever the GPU cannot show them, it asks for converted pictures
-/// (ADR-0484).
+/// wherever the GPU cannot show them, it asks for converted pictures.
 ///
 /// @param <W> the widget
 abstract class FollowingState<W extends Widget> extends State<W> {

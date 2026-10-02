@@ -41,6 +41,9 @@ import org.junit.jupiter.api.TestInstance;
 /// symbol to be present, and cannot see a name at all until something calls it.
 /// The guard is [#theScanFoundTheBindings()]: a regex that stops matching finds
 /// nothing rather than finding a discrepancy, and finding nothing fails.
+///
+/// Read more:
+/// [Repository layout](https://goldberry.dev/docs/contributing/repository.html#the-export-list-and-the-layout-probe).
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @DisplayName("the export list")
 class ExportListTest {
@@ -91,8 +94,8 @@ class ExportListTest {
 
     /// The package whose bindings are **not** against `libgoldberry`.
     ///
-    /// `exports/goldberry.symbols` is the export list of one library, and since
-    /// ADR-0441 this module binds two. `libgoldberry-webview` is a separate shared
+    /// `exports/goldberry.symbols` is the export list of one library, and this
+    /// module binds two. `libgoldberry-webview` is a separate shared
     /// object — built only where WebKit's headers were present, linked into
     /// nothing, opened on demand — so its nine `goldberry_webview_*` symbols are
     /// exported by *it*, from the visibility attribute in `goldberry_webview.cc`,
@@ -106,7 +109,7 @@ class ExportListTest {
 
     /// The package whose bindings are against a library **nobody here builds**.
     ///
-    /// GLib is the system's. ADR-0443 binds two of its functions so that a
+    /// GLib is the system's. Two of its functions are bound so that a
     /// message from libayatana-appindicator or from GTK reaches the
     /// application's log rather than its stderr, and they are found by `dlopen`
     /// on `libglib-2.0.so.0` — there is no GLib archive in the superbuild, so
@@ -191,7 +194,7 @@ class ExportListTest {
         }
     }
 
-    /// The same two obligations for the **second** library — ADR-0441.
+    /// The same two obligations for the **second** library, `libgoldberry-webview`.
     ///
     /// `libgoldberry-webview` has no export list to check against, because it
     /// needs none: its nine functions are the shim's own and carry the visibility
@@ -264,7 +267,7 @@ class ExportListTest {
     }
 
     /// The MSVC force-link directives are not on the link line, and this is the
-    /// arithmetic that says why (ADR-0454).
+    /// arithmetic that says why.
     ///
     /// Each exported symbol needs a `/INCLUDE:` so the static archives
     /// contribute it. Written inline they were 7.7 KB of an 8.5 KB command
@@ -294,17 +297,17 @@ class ExportListTest {
                 () -> assertFalse(
                         cmake.contains("target_link_options(goldberry PRIVATE \"/INCLUDE:${_symbol}\")"),
                         () -> "the " + exported().size() + " /INCLUDE: flags are on the command line again, which is "
-                                + inlineBytes + " bytes of it; cmd.exe stops at 8191. See ADR-0454."),
+                                + inlineBytes + " bytes of it; cmd.exe stops at 8191. Generate them as pragmas."),
                 () -> assertFalse(
                         cmake.contains("target_link_options(goldberry PRIVATE \"@${_force_file}\")"),
                         "a response file does not nest inside MSBuild's -- link.exe reads @file as a filename"
-                                + " and answers LNK1104. See ADR-0454."),
+                                + " and answers LNK1104. Generate the directives as pragmas instead."),
                 () -> assertTrue(
                         cmake.contains("#pragma comment(linker, \\\"/INCLUDE:${_symbol}\\\")"),
-                        "the directives must be generated as pragmas -- see ADR-0454"),
+                        "the directives must be generated as #pragma comment(linker) lines in a source file"),
                 () -> assertTrue(
                         cmake.contains("target_sources(goldberry PRIVATE \"${_force_source}\")"),
-                        "the generated source must be compiled into the library -- see ADR-0454"));
+                        "the generated source must be compiled into the library, or the pragmas do nothing"));
     }
 
     private static String read(Path path) {

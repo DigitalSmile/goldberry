@@ -6,11 +6,13 @@ package dev.goldberry.natives.sdl.event;
 /// rest would be a hundred more chances to mistype a hex literal for no benefit,
 /// and an event with no handler is skipped by number anyway.
 ///
-/// Every value here is checked against the compiled SDL by the layout probe
-/// (ADR-0010): the shim reports what the C preprocessor computed, and a
+/// Every value here is checked against the compiled SDL by the layout probe:
+/// the shim reports what the C preprocessor computed, and a
 /// disagreement fails the build. That matters more than it looks. A wrong struct
 /// offset usually crashes; a wrong event number does nothing at all — the window
 /// simply never closes, and there is no error anywhere to notice.
+///
+/// Read more: [The native boundary](https://goldberry.dev/docs/overview/architecture.html#the-native-boundary).
 public enum SdlEventType {
 
     /// The application was asked to quit — the last window closed, or the session
@@ -23,8 +25,7 @@ public enum SdlEventType {
     /// The window's top-left corner moved on the desktop.
     ///
     /// Sent liberally, and during a drag continuously — the same way
-    /// [#WINDOW_RESIZED] is. What consumes it deduplicates it
-    /// ([ADR-0270]).
+    /// [#WINDOW_RESIZED] is. What consumes it deduplicates it.
     WINDOW_MOVED(0x205),
 
     /// The window's logical size changed.
@@ -50,7 +51,7 @@ public enum SdlEventType {
     ///
     /// **The event is the only truth about the state.** Asking to maximize is a
     /// request a window manager may refuse, delay or grant in part, so a window
-    /// is maximized when SDL says it is and not when we asked (ADR-0252).
+    /// is maximized when SDL says it is and not when we asked.
     WINDOW_MAXIMIZED(0x20A),
 
     /// The window went back to its ordinary size — SDL's `RESTORED`, which is
@@ -93,14 +94,14 @@ public enum SdlEventType {
 
     /// Committed text, already translated by the platform. `SDL_TextInputEvent`.
     ///
-    /// Separate from [#KEY_DOWN] on purpose (§7.1): a key is a key and text is
+    /// Separate from [#KEY_DOWN] on purpose: a key is a key and text is
     /// text, and on a compose or IME sequence several keys produce one character.
     TEXT_INPUT(0x303),
 
     /// The composition string an input method is assembling — `SDL_TextEditingEvent`.
     ///
-    /// Not an edit, and that is the whole of why it is a separate event
-    /// (ADR-0289): a Japanese, Chinese or Korean user sees an underlined string
+    /// Not an edit, and that is the whole of why it is a separate event:
+    /// a Japanese, Chinese or Korean user sees an underlined string
     /// being built and chooses among candidates, and only what they accept
     /// arrives as [#TEXT_INPUT]. A toolkit that inserted this into the document
     /// would be inserting text the user has not chosen, and then deleting it.
@@ -115,19 +116,17 @@ public enum SdlEventType {
     /// **Not a window event**, though SDL delivers it through the same queue: it
     /// concerns the session, so it carries no window id and whoever translates it
     /// tells every window there is. It arrives while the application is running,
-    /// which on every desktop with a sunset schedule is once a day
-    /// (`docs/gaps.md` G26, [ADR-0322]).
+    /// which on every desktop with a sunset schedule is once a day.
     SYSTEM_THEME_CHANGED(0x108),
 
     /// One file of a drag-and-drop gesture was dropped on a window —
-    /// `SDL_EVENT_DROP_FILE` (`docs/gaps.md` G35b, [ADR-0330]).
+    /// `SDL_EVENT_DROP_FILE`.
     ///
     /// `SDL_DropEvent.data` is the file's name and dies at the next pump, like
     /// every other string SDL hands over in an event.
     DROP_FILE(0x1000),
 
-    /// One **line** of dropped text arrived — `SDL_EVENT_DROP_TEXT`
-    /// ([ADR-0408]).
+    /// One **line** of dropped text arrived — `SDL_EVENT_DROP_TEXT`.
     ///
     /// `SDL_DropEvent.data` is the text, with the same lifetime as
     /// [#DROP_FILE]'s name: it dies at the next pump.

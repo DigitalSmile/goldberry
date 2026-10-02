@@ -24,13 +24,15 @@ import dev.goldberry.widgets.Controls;
 import dev.goldberry.widgets.TestHost;
 import dev.goldberry.widgets.controls.TestFont;
 
-/// `onEdit` and `edit(TextEdit)` — `docs/gaps.md` G38, [ADR-0332].
+/// `onEdit` and `edit(TextEdit)`: the caret-carrying seam that sits beside `change=`.
 ///
 /// The seam an editor needs and a form does not: `change=` reports a `String`,
 /// and `Ctrl+B` around a selection needs to know where the selection **is**. The
 /// last test is the whole argument — three of the four things a shortcut cares
 /// about change no text at all, so the caret cannot be inferred from two versions
 /// of a string.
+///
+/// Read more: [`text-area`](https://goldberry.dev/docs/components/forms.html#text-area).
 class TextAreaEditSeamTest {
 
     private final TestHost host = new TestHost();

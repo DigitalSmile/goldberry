@@ -13,12 +13,12 @@ import java.lang.invoke.MethodHandles;
 
 import dev.goldberry.media.io.MediaIO;
 
-/// A custom `AVIOContext` over a [MediaIO]: how every byte reaches FFmpeg
-/// (`docs/goldberry-media.md` §3, "Demux").
+/// A custom `AVIOContext` over a [MediaIO]: how every byte reaches FFmpeg.
 ///
 /// Two upcall stubs per context, `read_packet` and, for a seekable source,
-/// `seek`, both bound to this context's [IoCallbacks]. That is ADR-0017's rule for
-/// Yoga's measure functions applied here. A callback already belongs to exactly
+/// `seek`, both bound to this context's [IoCallbacks]. That is the rule the
+/// toolkit's Yoga measure functions follow, applied here: a stub is bound to
+/// the object it serves. A callback already belongs to exactly
 /// one stream, and dispatching one shared stub on the `opaque` pointer would mean
 /// a table from pointers to Java objects, plus the leak when an entry is
 /// forgotten. `opaque` is null.

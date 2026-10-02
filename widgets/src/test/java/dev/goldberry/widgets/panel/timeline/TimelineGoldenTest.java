@@ -26,9 +26,9 @@ import dev.goldberry.widgets.core.Column;
 import dev.goldberry.widgets.core.Row;
 import dev.goldberry.widgets.text.Text;
 
-/// What a timeline looks like (§14, [ADR-0050]): a vertical one with a body
+/// What a timeline looks like: a vertical one with a body
 /// and a pending marker, an alternating one, and a horizontal one under both —
-/// and a release log whose markers are badges ([ADR-0356]).
+/// and a release log whose markers are badges.
 ///
 /// `./gradlew :widgets:test -Dgoldberry.golden.update=true` rewrites them.
 class TimelineGoldenTest {

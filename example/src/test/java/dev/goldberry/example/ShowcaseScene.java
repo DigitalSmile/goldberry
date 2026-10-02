@@ -25,7 +25,7 @@ import dev.goldberry.widgets.Widgets;
 ///
 /// Two tests take pictures of it — [GalleryGoldenTest], one golden per screen,
 /// and `ScreenPicturesTest`, the guide's screens in both themes at twice the
-/// detail (ADR-0513) — and they must agree on what a screen is. This is where
+/// detail — and they must agree on what a screen is. This is where
 /// they agree. Confined to the thread that opened it: the icons and the font
 /// are faces.
 ///
@@ -81,11 +81,9 @@ public final class ShowcaseScene implements AutoCloseable {
         var sheets = new ArrayList<Stylesheet>(Controls.stylesheets(theme, model.density()));
         // The optional module's rules, exactly as `Showcase.stylesheets()` adds
         // them: the Panels wall holds a `markdown-view`, and a golden taken without
-        // these would be a picture of a document the application never draws
-        // (ADR-0295).
+        // these would be a picture of a document the application never draws.
         sheets.add(MarkdownStyles.stylesheet());
-        // And the module's other half, which the HTML screen is entirely made of
-        // (ADR-0298).
+        // And the module's other half, which the HTML screen is entirely made of.
         sheets.add(HtmlStyles.stylesheet());
         sheets.add(MediaStyles.stylesheet());
         sheets.add(Stylesheet.resource(CascadeLayer.APPLICATION, Showcase.class, "showcase.css"));

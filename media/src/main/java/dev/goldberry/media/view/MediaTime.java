@@ -7,6 +7,8 @@ import java.time.Duration;
 /// Minutes are not padded and hours appear only when needed, which is what every
 /// desktop player does. A time is truncated to the second rather than rounded, so
 /// the elapsed label never shows a second that has not finished yet.
+///
+/// Read more: [Audio and video](https://goldberry.dev/docs/components/media.html).
 public final class MediaTime {
 
     private MediaTime() {}

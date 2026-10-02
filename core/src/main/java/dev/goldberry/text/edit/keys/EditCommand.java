@@ -1,17 +1,30 @@
 package dev.goldberry.text.edit.keys;
 
-/// What a key press means to an editor, before anything knows which editor.
+/// What a key press asks an editor to do, before anything knows which editor.
 ///
-/// The three editors in the toolkit — [dev.goldberry.text.edit.Editor]
-/// on a canvas, and the states behind `text-input` and `text-area` — hold their
-/// text in three different shapes and agreed about the keyboard only because
-/// each was written from the last. This is the agreement made into a value:
-/// [EditKeys] turns a key into one of these, and each editor turns one of these
-/// into its own call ([ADR-0376]).
+/// ```java
+/// EditCommand command = EditKeys.of(event, EditSurface.DOCUMENT);
+/// if (command == null) {
+///     return;                                   // not an editing key; let it go on
+/// }
+/// switch (command) {
+///     case EditCommand.Move(var motion, var byWord, var extend) -> …
+///     case EditCommand.MoveLine(var lines, var byPage, var extend) -> …
+///     case EditCommand.Delete(var before, var byWord) -> …
+///     case EditCommand.Type(var text) -> …
+///     case EditCommand.Simple simple -> …
+/// }
+/// ```
+///
+/// The toolkit's three editors — the canvas `Editor`, and the states behind
+/// `text-input` and `text-area` — hold their text in three different shapes.
+/// This is the keyboard they agree on, made into a value: [EditKeys] turns a key
+/// into one of these, and each editor turns one of these into its own call.
 ///
 /// Sealed, so an editor's `switch` over it is exhaustive and a command added
-/// tomorrow fails to compile in the three places that have to answer it — which
-/// is the whole point of writing the map down.
+/// later fails to compile in every editor that has to answer it.
+///
+/// Read more: [Input and focus](https://goldberry.dev/docs/guide/input.html#keys-and-text-are-different-events).
 public sealed interface EditCommand {
 
     /// The caret moves within its line, or to an end of the text.
@@ -63,16 +76,14 @@ public sealed interface EditCommand {
         /// `Ctrl+Z`.
         UNDO,
 
-        /// `Ctrl+Shift+Z` and `Ctrl+Y`, which are the two spellings desktops use
-        /// and both of which every editor here has always taken.
+        /// `Ctrl+Shift+Z` and `Ctrl+Y`, the two spellings desktops use.
         REDO;
 
         /// Whether obeying this would change the text, and therefore whether a
         /// read-only editor must refuse it.
         ///
-        /// Here rather than at each of the three call sites, because "which of
-        /// these are edits" is exactly the kind of list that was being kept in
-        /// three places (ADR-0376).
+        /// Here rather than at each editor, so there is one list of which
+        /// commands are edits.
         public boolean isEdit() {
             return this == CUT || this == PASTE || this == UNDO || this == REDO;
         }

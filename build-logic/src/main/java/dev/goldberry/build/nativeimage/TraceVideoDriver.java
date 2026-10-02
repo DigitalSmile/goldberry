@@ -2,7 +2,7 @@ package dev.goldberry.build.nativeimage;
 
 /**
  * Which SDL video driver {@code :example:nativeImageMetadata} runs the showcase
- * under while GraalVM's agent watches it (ADR-0337, ADR-0338).
+ * under while GraalVM's agent watches it.
  *
  * <p>{@link #DEFAULT} is {@code dummy}: headless, so a trace can be recorded on
  * a build machine with no display, which is how the checked-in Linux trace was

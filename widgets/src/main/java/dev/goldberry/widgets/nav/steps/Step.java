@@ -52,6 +52,8 @@ import dev.goldberry.widgets.markup.Wiring;
 /// `step.done`, `step.current`, `step.upcoming`, `step.error` — because a
 /// stylesheet wants to colour all four and `:checked` names one.
 ///
+/// Read more: [Navigation](https://goldberry.dev/docs/components/navigation.html#step).
+///
 /// @param label       the step's name
 /// @param description an optional second line, in `caption`
 /// @param error       whether the application says this step failed
@@ -74,7 +76,7 @@ public record Step(
         Attributes attributes)
         implements Widget.Leaf, Styled, Paints, Handles, Attributed<Step>, Semantics {
 
-    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    /// Written out so that the parameters taking null for a default can say so.
     public Step(
             String label,
             @Nullable String description,
@@ -89,7 +91,7 @@ public record Step(
         if (label.isEmpty()) {
             throw new IllegalArgumentException(
                     "a step needs a label: a list of steps is read as a sequence, and a step with no"
-                            + " word in it is a numbered circle nobody can name (§13)");
+                            + " word in it is a numbered circle nobody can name");
         }
         state = state == null ? StepState.UPCOMING : state;
         attributes = attributes == null ? Attributes.NONE : attributes;
@@ -182,7 +184,7 @@ public record Step(
         }
     }
 
-    /// `Space` and `Enter`, which is §3's rule for everything you press.
+    /// `Space` and `Enter`, which is the rule for everything you press.
     @Override
     public void onKey(KeyEvent event) {
         if (event.kind() != KeyEvent.Kind.PRESSED
@@ -202,16 +204,15 @@ public record Step(
         return Box.of().style(style).children(children.toArray(Box[]::new));
     }
 
-    /// [Role#ROW] — one item of a list. §6 asks for exactly that, and a step
-    /// that can be pressed is still an item first: what the press does is go
-    /// *to* it.
+    /// [Role#ROW] — one item of a list. A step that can be pressed is still an
+    /// item first: what the press does is go *to* it.
     @Override
     public Role role() {
         return Role.ROW;
     }
 
-    /// §6: "states are in each item's accessible name, since colour alone
-    /// cannot carry `error`". So the name is `Payment, step 2 of 4, current`.
+    /// The state is in each item's accessible name, since colour alone cannot
+    /// carry `error`. So the name is `Payment, step 2 of 4, current`.
     @Override
     public String accessibleName() {
         return label + ", step " + (index + 1) + " of " + count + ", " + state.word();

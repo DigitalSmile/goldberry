@@ -5,7 +5,7 @@ import java.util.Objects;
 /// Y'CbCr to R'G'B' for one picture's tags: the arithmetic
 /// [BuiltInShader#YUV2_FRAGMENT] and [BuiltInShader#YUV3_FRAGMENT] do, as the
 /// uniform block they read, and again in Java as the reference the tests hold
-/// them to (`docs/gpu-plan.md`, phase 6).
+/// them to.
 ///
 /// A code value `c` of a `b`-bit channel, normalised `n = c / (2^b - 1)`:
 ///
@@ -18,9 +18,9 @@ import java.util.Objects;
 /// Chroma is sited as CPU present's swscale conversion sites it, by default
 /// ([Siting#CENTRED]): a chroma sample midway between its two luma columns and
 /// its two rows, which is where a texel's centre already is, so the sampler
-/// reads it with no offset. Measured against swscale's own pictures
-/// (ADR-0484), which corrected ADR-0477's assumption that swscale sites chroma
-/// left. [Siting#LEFT], MPEG-2's, is a quarter of a chroma texel to the left.
+/// reads it with no offset. That was measured against swscale's own pictures,
+/// which showed it does not site chroma left as was first assumed.
+/// [Siting#LEFT], MPEG-2's, is a quarter of a chroma texel to the left.
 ///
 /// @param layout    how the planes are stored
 /// @param matrix    the picture's matrix

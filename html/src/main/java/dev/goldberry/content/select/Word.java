@@ -28,9 +28,9 @@ import dev.goldberry.widget.style.Styled;
 ///
 /// Neither is something `text` could be asked for. A callback per instance is not a
 /// thing a shared catalog widget carries, and wrapping every word in a reporting node
-/// would double the element count of a document — which is the cost ADR-0299 had just
-/// finished paying down. So a document's words are this instead, and the *cost of the
-/// change is nothing*: one widget per word either way (ADR-0301).
+/// would double the element count of a document — which is the cost a rendered
+/// document was only just brought down to. So a document's words are this instead,
+/// and the *cost of the change is nothing*: one widget per word either way.
 ///
 /// ## It can also carry something that is not text
 ///
@@ -45,6 +45,8 @@ import dev.goldberry.widget.style.Styled;
 /// Where a caret inside one falls is then a proportion of the box it landed in, which
 /// the geometry works out for itself — the ends of it are exact either way, and those
 /// are what a double-click and a drag across a link are made of.
+///
+/// Read more: [Selection](https://goldberry.dev/docs/components/content.html#selection).
 ///
 /// @param text what it says — the label of the child, when there is one
 /// @param attributes the classes the fold put on it, which is what `markdown.css` and
@@ -80,7 +82,7 @@ public record Word(
     @Override
     public Object key() {
         // **Keyed by the entry it reports to**, which is the identity that survives a
-        // word appearing above it: the entries belong to the block (ADR-0389), so a
+        // word appearing above it: the entries belong to the block, so a
         // paragraph that did not change keeps the same ones however far down the page
         // it has moved. Keyed by position in the document, as it was until then, a
         // space typed into the first paragraph renumbered every word in the note and
@@ -108,7 +110,7 @@ public record Word(
             return Box.of().style(style).children(children.toArray(Box[]::new));
         }
         // The same measured leaf `text` builds, and through the same cache -- so a
-        // word costs a lookup rather than 56 µs of shaping (ADR-0037, ADR-0299).
+        // word costs a lookup rather than 56 µs of shaping.
         var paragraph = context.paragraph(style, text);
         WordGeometry.shaped(entry, paragraph);
         return Box.text(paragraph, style.color()).style(style);

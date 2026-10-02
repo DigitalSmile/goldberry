@@ -21,8 +21,8 @@ import dev.goldberry.widget.style.Styled;
 /// The `…` that stands for the crumbs a trail is not showing — a **part**, and
 /// the one that opens a menu.
 ///
-/// §6 asks for exactly this rather than an elided label: "a truncated folder name
-/// is worse than a hidden one, because it looks like a name". So nothing is
+/// A hidden crumb rather than an elided label, because a truncated folder name
+/// is worse than a hidden one: it looks like a name. So nothing is
 /// shortened — some crumbs are simply not on the row, and this is how you get at
 /// them.
 ///
@@ -33,8 +33,8 @@ import dev.goldberry.widget.style.Styled;
 /// This one has none: the crumbs behind it are **not in the tree**, so there is
 /// no node for the keyboard to reach and no key on the trail that could stand for
 /// "the fourth of the hidden ones". A `…` that only a pointer could open would
-/// make part of a navigation path unreachable without a mouse, which §13 does not
-/// allow.
+/// make part of a navigation path unreachable without a mouse, and everything
+/// in this toolkit can be reached from the keyboard.
 ///
 /// [Role#MENU_BUTTON] says so to anything listening — "the heading of a menu",
 /// which is what this is.
@@ -45,7 +45,7 @@ import dev.goldberry.widget.style.Styled;
 /// [BreadcrumbsState], which is what [dev.goldberry.widgets.menu.Menus]
 /// needs to place a popup. A position rather than an id, so two trails in one
 /// window need no ids to tell their overflows apart — and the rectangle is the
-/// **painted** one, which is where the user is looking (ADR-0270).
+/// **painted** one, which is where the user is looking.
 ///
 /// @param onOpen  what to ask when it is pressed
 /// @param located told where this node ended up, once a frame and only when it

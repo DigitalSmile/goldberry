@@ -18,59 +18,55 @@ import dev.goldberry.assets.Face;
 import dev.goldberry.css.Typography;
 import dev.goldberry.log.Logs;
 
-/// Every face and size a window draws with, opened once and kept.
-///
-/// The cascade resolves a [Typography] per node and the painter needs a [Font];
-/// this is what joins them. Without it, `font-size: 20px` on one heading would
-/// mean parsing Inter again — 681 µs and a second copy of a megabyte and a half
-/// — on **every frame**, because a widget tree is rebuilt and rendered from
-/// scratch each time.
-///
-/// ## Why this is owned and not global
-///
-/// A `Font` and a `FontFace` are thread-confined and hold native memory that has
-/// to be released. A process-wide cache would therefore have to be per-thread,
-/// and a per-thread cache of native memory has no hook that would ever free it
-/// (ADR-0044). So
-/// this is an ordinary object an application opens and closes, normally for the
-/// life of the window that renders through it:
+/// Every face and size a window draws with, opened once and kept: the book the
+/// cascade's resolved typography is looked up in.
 ///
 /// ```java
 /// try (var fonts = Fonts.bundled()) {
+///     Font body = fonts.of(BundledFont.UI, 13);
 ///     var renderer = new WidgetRenderer(stylesheets, fonts);
 ///     // ...
 /// }
 /// ```
 ///
-/// Closing it closes every font and face it opened, in that order — which is the
-/// ordering `FontFace` documents and nothing else enforces.
+/// The cascade resolves a [Typography] per node and the painter needs a [Font];
+/// this is what joins them. Without it, `font-size: 20px` on one heading would
+/// mean parsing Inter again, and a second copy of a megabyte and a half, on
+/// every frame, because a widget tree is rebuilt and rendered from scratch each
+/// time. A running application does not usually open a book of its own: the
+/// launcher opens one and hands it to the renderer.
 ///
-/// ## Faces an application ships
+/// The book caches at two levels: faces by [Face] (a [BundledFont] or a
+/// [FontSource]), and fonts by face and size. A face is size-independent
+/// because the shaper is never scaled, so a second size over an open face costs
+/// microseconds and no second copy of the file. Nothing is opened until
+/// something asks for it, so an application that never draws code text never
+/// parses JetBrains Mono. The size is rounded to a thousandth of a pixel before
+/// it is used as a key: two `13.000000000000002`s from different `em` chains
+/// are the same font to any reader, and a cache that disagreed would open one
+/// font per frame and look exactly like a leak.
 ///
-/// [#bundled(List)] adds [FontSource]s to the families a `font-family` can name,
-/// **after** the bundled ones: a family is looked up among the toolkit's faces
-/// first, so an application that ships a file it calls `Inter` has not replaced
-/// the face every metric in the design system was drawn against (`docs/gaps.md`
-/// G39, ADR-0349). A shipped face is opened lazily like a bundled one, and one
-/// whose bytes cannot be read or parsed is reported once and drawn in the UI
-/// face from then on.
+/// [#bundled(List)] adds [FontSource]s to the families a `font-family` can
+/// name, after the bundled ones: a family is looked up among the toolkit's
+/// faces first, so an application that ships a file it calls `Inter` has not
+/// replaced the face every metric in the design system was drawn against. A
+/// shipped face is opened lazily like a bundled one, and one whose bytes cannot
+/// be read or parsed is reported once and drawn in the UI face from then on.
+/// When the emoji artifact is on the module path, every font the book opens is
+/// joined to the emoji face at the same size, so a paragraph's emoji have a
+/// face to be shaped in.
 ///
-/// ## What it caches
+/// A book is an ordinary object an application opens and closes, normally for
+/// the life of the window that renders through it, rather than a global cache:
+/// a `Font` and a `FontFace` hold native memory that has to be released and are
+/// confined to one thread, and a process-wide cache of such objects would have
+/// no hook that could ever free it. Closing the book closes every font and then
+/// every face it opened. The book is confined to the thread that opened it, and
+/// both rules are enforced: a book used or closed from another thread throws
+/// rather than corrupting its own maps.
 ///
-/// Faces by [Face] (a [BundledFont] or a [FontSource]), and fonts by (face, size). Those are the two levels
-/// ADR-0044
-/// established: a face is size-independent because Goldberry never scales the
-/// shaper, so a second size costs 4.4 µs rather than 681 and no second copy of
-/// the file.
-///
-/// The size is rounded to a thousandth of a pixel before it is used as a key. Two
-/// `13.000000000000002`s from different `em` chains are the same font to any
-/// reader, and a cache that disagreed would open one face per frame and look
-/// exactly like a leak.
-///
-/// Confined to the thread that created it, and must be closed. **Both are
-/// enforced**: a book used or closed from another thread throws rather than
-/// corrupting its own maps, which is what it did until ADR-0425.
+/// Read more:
+/// [Faces, fonts and the book](https://goldberry.dev/docs/guide/text.html#faces-fonts-and-the-book).
 public final class Fonts implements AutoCloseable {
 
     /// Key precision: a thousandth of a logical pixel, which is far below what
@@ -85,7 +81,7 @@ public final class Fonts implements AutoCloseable {
     /// What the application ships, searched after the bundled faces.
     private final List<FontSource> shipped;
 
-    /// Shipped faces that could not be opened — asked for once, reported once,
+    /// Shipped faces that could not be opened: asked for once, reported once,
     /// and answered with the UI face after that rather than read again every
     /// frame.
     private final Set<FontSource> unusable = new HashSet<>();
@@ -102,14 +98,12 @@ public final class Fonts implements AutoCloseable {
     ///
     /// Opens nothing yet: a face is parsed the first time something asks for it,
     /// so an application that never draws code text never pays for JetBrains
-    /// Mono. That matters on the start-up path §1's "starts in milliseconds"
-    /// claim is measured against
-    /// (ADR-0028).
+    /// Mono, and the start-up path stays short.
     public static Fonts bundled() {
         return new Fonts(List.of());
     }
 
-    /// A book over the bundled faces **and** the ones an application ships.
+    /// A book over the bundled faces and the ones an application ships.
     ///
     /// Opens nothing, like [#bundled()]; the sources are only described here.
     /// A source whose family is also a bundled family can never be reached,
@@ -119,7 +113,7 @@ public final class Fonts implements AutoCloseable {
     ///
     /// @param shipped the application's faces, in no particular order
     /// @throws IllegalArgumentException if two sources claim the same family,
-    ///         weight and style — one of them would never be drawn, and nothing
+    ///         weight and style; one of them would never be drawn, and nothing
     ///         could say which
     public static Fonts bundled(List<FontSource> shipped) {
         Objects.requireNonNull(shipped, "shipped");
@@ -150,12 +144,12 @@ public final class Fonts implements AutoCloseable {
 
     /// The font a resolved style asks for.
     ///
-    /// Falls back to the UI face when the family names nothing bundled. §6.1 has
-    /// no fallback *cascade* — a missing glyph is `.notdef` on purpose — but a
-    /// missing **family** is a stylesheet naming a font that was never shipped,
-    /// and drawing that in Inter is better than a window with no text in it. It
-    /// is logged by the cascade when the name fails to parse and silent here when
-    /// it merely does not match, which is the same distinction `var()` draws.
+    /// Falls back to the UI face when the family names nothing bundled or shipped.
+    /// There is no fallback cascade for glyphs, since a missing glyph is `.notdef`
+    /// on purpose, but a missing family is a stylesheet naming a font that was
+    /// never shipped, and drawing that in Inter is better than a window with no
+    /// text in it. The cascade logs a name that fails to parse; a name that
+    /// merely does not match is silent here.
     public Font of(Typography typography) {
         Objects.requireNonNull(typography, "typography");
         Face face = typography.face();
@@ -170,7 +164,7 @@ public final class Fonts implements AutoCloseable {
         return fontOf(face, size);
     }
 
-    /// The font for one shipped face at one size — the UI face at that size when
+    /// The font for one shipped face at one size, or the UI face at that size when
     /// the source's bytes cannot be read or parsed.
     ///
     /// @throws IllegalArgumentException if this book was not given `face`
@@ -208,12 +202,11 @@ public final class Fonts implements AutoCloseable {
 
     /// The emoji face at one size, or null when nobody brought it.
     ///
-    /// **This is where the emoji slot is joined up** — the one place in the
-    /// toolkit that decides a paragraph's pictures have a face to be shaped in
-    /// (ADR-0393). Silent when the artifact is absent: an application that never
-    /// types an emoji should not be told about a font it did not ask for, and
-    /// [dev.goldberry.assets.BundledAssets#hasEmojiFont()] is
-    /// how one that cares asks.
+    /// This is where the emoji slot is joined up: the one place in the toolkit
+    /// that decides a paragraph's pictures have a face to be shaped in. Silent
+    /// when the artifact is absent, because an application that never types an
+    /// emoji should not be told about a font it did not ask for;
+    /// [BundledAssets#hasEmojiFont()] is how one that cares asks.
     ///
     /// The emoji font is an ordinary entry in the same map, so it is opened once
     /// per size however it was first asked for, and closed with every other font
@@ -242,7 +235,7 @@ public final class Fonts implements AutoCloseable {
     private FontFace faceFor(Face face) {
         if (face == BundledFont.EMOJI && !BundledAssets.hasEmojiFont()) {
             // The emoji face ships as `goldberry-emoji` and this application did
-            // not add it (ADR-0384). Caught here for the reason `opens` below
+            // not add it. Caught here for the reason `opens` below
             // catches its own failure: this runs inside a render pass, and a
             // stylesheet that writes `font-family: "Noto Color Emoji"` must not be able to
             // turn a window into no text at all. Said once, because a cascade
@@ -250,7 +243,7 @@ public final class Fonts implements AutoCloseable {
             if (emojiReported.compareAndSet(false, true)) {
                 LOG.warn(
                         "the emoji face is not on the module path, so text asking for it is drawn in {}."
-                                + " Add dev.goldberry:goldberry-emoji to draw emoji (ADR-0384, ADR-0456)",
+                                + " Add dev.goldberry:goldberry-emoji to draw emoji",
                         BundledFont.UI.family());
             }
             return faceFor(BundledFont.UI);
@@ -262,15 +255,14 @@ public final class Fonts implements AutoCloseable {
         });
     }
 
-    /// Whether the missing emoji face has been mentioned. One line **per
-    /// `Fonts`**, not one per element per frame — an application with two of
-    /// these says it twice, which is the honest reading of an instance field and
-    /// not the "once per process" this comment used to claim.
+    /// Whether the missing emoji face has been mentioned: one line per `Fonts`,
+    /// not one per element per frame. An application with two books says it
+    /// twice.
     private final AtomicBoolean emojiReported = new AtomicBoolean();
 
     /// Whether a shipped face opens, trying it the first time it is asked about.
     ///
-    /// The failure is caught **here** rather than where the face is drawn: this
+    /// The failure is caught here rather than where the face is drawn: this
     /// runs inside a render pass, and a missing resource in an application's jar
     /// must not become a window with no text in it.
     private boolean opens(FontSource source) {
@@ -291,7 +283,7 @@ public final class Fonts implements AutoCloseable {
         }
     }
 
-    /// How many distinct fonts are open — diagnostics, and what a test asserts
+    /// How many distinct fonts are open: diagnostics, and what a test asserts
     /// when it wants to know a frame did not open a new one.
     public int openFonts() {
         return fonts.size();
@@ -311,8 +303,8 @@ public final class Fonts implements AutoCloseable {
     /// In that order, and not the other way round: Blend2D and HarfBuzz both keep
     /// references from a font into its face, and closing the face first leaves
     /// them reading unmapped memory. A failure closing one does not stop the
-    /// rest — a leaked handle is better than a leaked handle *and* an
-    /// unrecoverable window.
+    /// rest: a leaked handle is better than a leaked handle and an unrecoverable
+    /// window.
     @Override
     public void close() {
         if (closed) {
@@ -365,28 +357,19 @@ public final class Fonts implements AutoCloseable {
         requireOwner();
     }
 
-    /// The thread this book was opened on — see the confinement note on the class.
+    /// The thread this book was opened on; see the confinement note on the class.
     private final Thread owner = Thread.currentThread();
 
     /// Refuses a book used from a thread that did not open it.
     ///
-    /// **Enforced rather than documented, since ADR-0425.** The class comment has
-    /// said "confined to the thread that created it" since ADR-0044 and nothing
-    /// checked it, which made the one unsafe way to render off the UI thread the
-    /// one this toolkit's own javadoc recommended: a server told to "hand over one
-    /// `Fonts` and keep it" would hand the same book to every worker in a pool.
-    ///
-    /// What that bought was not an exception. [#faces] and [#fonts] are plain
-    /// `LinkedHashMap`s, so two threads in [#fontOf] are an unsynchronized map
-    /// mutation — a lost entry, a duplicated native face, or a corrupted table —
-    /// and the `Font` it vends is itself confined, so the *eventual* failure was a
-    /// `requireOwner` from inside HarfBuzz's wrapper on some later frame, naming a
-    /// font rather than the book that leaked it.
-    ///
-    /// Every other confined object on the render path already checks this:
-    /// `ParagraphCache`, `RenderTree`, `YogaConfig`, `YogaNode`, `BlendContext`,
-    /// `ShapedFont`, `BlendFont`. This was the one gap, and it was the one an
-    /// application could reach.
+    /// Enforced rather than documented, because the failure of a shared book is
+    /// not an exception: [#faces] and [#fonts] are plain `LinkedHashMap`s, so two
+    /// threads in [#fontOf] are an unsynchronized map mutation, a lost entry, a
+    /// duplicated native face or a corrupted table, and the `Font` it vends is
+    /// itself confined, so the eventual failure would surface from inside the
+    /// shaper on some later frame, naming a font rather than the book that
+    /// leaked it. A server that handed one book to every worker in a pool meets
+    /// this exception instead, on the first call.
     private void requireOwner() {
         var current = Thread.currentThread();
         if (current != owner) {

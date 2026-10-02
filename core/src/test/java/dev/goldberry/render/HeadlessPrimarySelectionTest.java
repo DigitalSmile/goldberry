@@ -12,7 +12,7 @@ import org.junit.jupiter.api.Test;
 import dev.goldberry.render.backend.headless.HeadlessBackend;
 
 /// The headless backend's primary selection — present, separate from the
-/// clipboard, and able to be switched off ([ADR-0504]).
+/// clipboard, and able to be switched off.
 ///
 /// The switch is the part worth a test of its own: every widget test of "no
 /// primary selection, so a middle click is not a paste" stands on it.

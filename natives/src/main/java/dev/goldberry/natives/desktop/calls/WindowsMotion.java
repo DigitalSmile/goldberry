@@ -12,7 +12,7 @@ import dev.goldberry.natives.desktop.MotionPreference;
 /// The setting is **Show animations in Windows** under Ease of Access, and the
 /// call is the one every framework reads it with — WinUI, Chromium and Qt all
 /// ask this. `user32.dll` is loaded in every process that has a window, so the
-/// lookup costs nothing new ([ADR-0383]).
+/// lookup costs nothing new.
 ///
 /// The boolean is the *opposite* way round from every other name here: `TRUE`
 /// means animations are on, so `FALSE` is what asks for less movement.
@@ -26,7 +26,7 @@ public final class WindowsMotion {
     /// `BOOL SystemParametersInfoW(UINT, UINT, PVOID, UINT)`.
     ///
     /// Declared here rather than inside [#read()] so that it is recorded whether
-    /// or not this machine is a Windows one (ADR-0451): `read()` runs on Windows
+    /// or not this machine is a Windows one: `read()` runs on Windows
     /// alone, an image is built wherever it is built, and the metadata has to
     /// name every shape it might cross.
     private static final FunctionDescriptor FD = Bindings.describe(FunctionDescriptor.of(

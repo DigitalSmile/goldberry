@@ -44,16 +44,19 @@ import dev.goldberry.widget.attr.Attributes;
 import dev.goldberry.widget.style.Paints;
 import dev.goldberry.widget.style.Styled;
 
-/// The steps a frame runs, and the order they run in — ADR-0423.
+/// The steps a frame runs, and the order they run in: one sequence shared by the
+/// window and the offscreen buffer.
 ///
 /// `Launcher` and `Offscreen` ran this list from two copies of it, and the tests
 /// that existed were about what each *caller* produced: a window's goldens and an
 /// offscreen render's pixels. Neither asserted on the order itself, which is how
 /// the golden harness went for months missing [ElementTree#flush] and committing
-/// nine pictures no window ever drew (ADR-0284).
+/// nine pictures no window ever drew.
 ///
 /// So these are about the order, directly. Each one names the step that would go
 /// missing and the symptom of it going missing.
+///
+/// Read more: [The frame loop](https://goldberry.dev/docs/overview/architecture.html#the-frame-loop).
 @DisplayName("the frame sequence")
 class FrameSequenceTest {
 
@@ -86,10 +89,10 @@ class FrameSequenceTest {
         // fields was ever assigned. An unguarded teardown then fails the test with
         // a `NullPointerException` instead of skipping it, which is how this class
         // went red on all three platforms while passing on every developer
-        // machine. The rest of the suite has used this shape since ADR-0016;
+        // machine. The rest of the suite uses this shape;
         // `ParagraphTest.closeFont` is the one to copy.
         //
-        // The order is ADR-0284's: the frame joins Blend2D's workers, and they are
+        // The order matters: the frame joins Blend2D's workers, and they are
         // still holding what the tree lent them.
         if (frame != null) {
             frame.end();
@@ -126,7 +129,7 @@ class FrameSequenceTest {
     @Test
     @DisplayName("flushes what a first build dirtied, which is the step the goldens lost")
     void flushesBeforeItStyles() {
-        // ADR-0284's exact bug, as a unit test rather than as nine pictures. A
+        // The golden harness's exact bug, as a unit test rather than as nine pictures. A
         // `setState` during the first build leaves the tree dirty the moment it is
         // constructed; a sequence that styled without flushing would render the
         // pre-setState description.
@@ -166,7 +169,7 @@ class FrameSequenceTest {
     @Test
     @DisplayName("hands the tree the cascade before it builds, not after")
     void preparesBeforeItBuilds() {
-        // ADR-0254. A build that asks about a custom property must find a resolver
+        // A build that asks about a custom property must find a resolver
         // already there -- a virtualized `list` deciding how many rows to make is
         // the real case, and a resolver handed over after the flush makes it build
         // at its default and correct itself one frame later.
@@ -241,7 +244,7 @@ class FrameSequenceTest {
     @Test
     @DisplayName("sets the window bounds with the regions, so nothing clips to a zero rectangle")
     void setsTheWindowBoundsWithTheRegions() {
-        // ADR-0119: "nothing clips me" has to resolve to a real rectangle, and it
+        // "Nothing clips me" has to resolve to a real rectangle, and it
         // is the frame's. The router starts at a 0x0 rectangle, so a sequence that
         // captured without setting them would pin every `affix` against nothing.
         var clip = new AtomicReference<LogicalRect>();
@@ -309,7 +312,7 @@ class FrameSequenceTest {
     @DisplayName("a second frame over the same tree re-lays out rather than rebuilding")
     void keepsTheRetainedTree() {
         // What makes the sequence safe to hold beside a window rather than build
-        // per frame (ADR-0069): the render tree is retained, so a frame where
+        // per frame: the render tree is retained, so a frame where
         // nothing changed re-lays out nothing.
         var builds = new AtomicInteger();
         record Counting(AtomicInteger builds) implements Widget.Stateful {
@@ -359,7 +362,7 @@ class FrameSequenceTest {
         var regions = sequence.captureRegions(frame);
 
         // The launcher keeps this list so `anchor(id)` answers from the frame that
-        // was painted rather than from a fresh layout (ADR-0054). If the return
+        // was painted rather than from a fresh layout. If the return
         // value and the router's copy ever differed, a menu would open somewhere
         // nothing was drawn.
         assertTrue(HitTest.at(regions, 5, 5).isPresent(), "the painted rectangle is in the capture");

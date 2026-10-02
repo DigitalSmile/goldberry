@@ -4,7 +4,7 @@
 /// here rather than in `:natives`: GLib's handler and SDL's output function are
 /// FFM bindings and belong to the native layer, but the *destination* they route
 /// to is the toolkit's ordinary logging, and `:natives` is below `:core` rather
-/// than above it (ADR-0174).
+/// than above it.
 ///
 /// A package of its own beside
 /// [dev.goldberry.log.Logs]
@@ -15,6 +15,9 @@
 ///
 /// **`@NullMarked`**, like its parent — see that package's note for why this is
 /// done one package at a time.
+///
+/// Read more:
+/// [The platform's own libraries](https://goldberry.dev/docs/guide/logging.html#the-platforms-own-libraries).
 @NullMarked
 package dev.goldberry.log.bridge;
 

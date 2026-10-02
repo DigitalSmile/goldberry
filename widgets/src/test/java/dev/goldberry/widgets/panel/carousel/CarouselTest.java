@@ -30,11 +30,11 @@ import dev.goldberry.widgets.Widgets;
 import dev.goldberry.widgets.panel.Described;
 import dev.goldberry.widgets.text.Text;
 
-/// `carousel` — §5's one-at-a-time list, and the only widget in the group that is
-/// a controller ([ADR-0165]).
+/// `carousel` — the one-at-a-time list, and the only widget in the group that is
+/// a controller.
 ///
-/// The rotation is what the tests are for. §1.7 rule 4 makes "nothing advances on
-/// its own unless `interval` is set" and the three conditions for stopping it as
+/// The rotation is what the tests are for. The motion rules make "nothing
+/// advances on its own unless `interval` is set" and the three conditions for stopping it as
 /// much a part of the widget as the slides are — so most of what is below is
 /// about a timer that must **not** have been scheduled.
 class CarouselTest {
@@ -166,7 +166,7 @@ class CarouselTest {
             assertTrue(Described.of(tree, CarouselView.CarouselDot.class).isEmpty());
         }
 
-        /// §5: "slides are one Tab stop and their content is reachable inside".
+        /// The slides are one Tab stop, and their content is reachable inside.
         @Test
         @DisplayName("the strip is one tab stop, and its arrows run along it")
         void oneTabStop() {
@@ -252,7 +252,7 @@ class CarouselTest {
         }
 
         /// Nine slides would otherwise be nine tab stops on top of the two
-        /// buttons — `tab`'s close-button argument (ADR-0107).
+        /// buttons — `tab`'s close-button argument.
         @Test
         @DisplayName("a dot is not focusable")
         void dotsAreNotTabStops() {
@@ -288,8 +288,8 @@ class CarouselTest {
             return new ElementTree(carousel(0, loop, Duration.ofSeconds(5), slides), host);
         }
 
-        /// §5: "**Nothing advances on its own unless `interval` is set**". The
-        /// assertion is that no timer was asked for at all.
+        /// **Nothing advances on its own unless `interval` is set.** The assertion
+        /// is that no timer was asked for at all.
         @Test
         @DisplayName("with no interval, nothing is ever scheduled")
         void noIntervalNoTimer() {
@@ -369,8 +369,9 @@ class CarouselTest {
             assertTrue(host.pending());
         }
 
-        /// **Reason three**, and the one §1.7 rule 4 is really about: a carousel
-        /// that moves while being read is the canonical violation.
+        /// **Reason three**, and the one the no-loops rule is really about: nothing
+        /// loops except explicit continuous indicators, and a carousel that moves
+        /// while being read is the canonical violation.
         @Test
         @DisplayName("reduced motion stops it entirely")
         void reducedMotionStopsIt() {
@@ -498,7 +499,7 @@ class CarouselTest {
             // The claim in the sentence above, as an assertion. It used to be
             // false: the viewport was handed a function of the clock that was
             // never null, so `isAnimating` answered true for ever and a window
-            // with a carousel on it never went idle ([ADR-0228]).
+            // with a carousel on it never went idle.
             assertFalse(viewport.isAnimating(), "a settled carousel is still asking for frames");
         }
 
@@ -561,17 +562,17 @@ class CarouselTest {
                     "and first to last is still backwards");
         }
 
-        /// §1.7 asks for movement to be *removed* rather than shortened, so
-        /// there is no animation at all — the slide is simply there.
+        /// Reduced motion *removes* movement rather than shortening it, so there
+        /// is no animation at all — the slide is simply there.
         @Test
         @DisplayName("a viewport animates while a slide is arriving, and not before")
         void animating() {
             var tree = new ElementTree(carousel(0, false, null, 3));
 
             // This used to assert the opposite, and the opposite was the bug: a
-            // carousel nobody had touched reported an animation, so §1.7's "the
-            // frame loop is fully idle when no animation is active" was false for
-            // any window with one on it ([ADR-0228]).
+            // carousel nobody had touched reported an animation, so the rule that
+            // the frame loop is fully idle when no animation is active was false
+            // for any window with one on it.
             assertFalse(
                     Described.first(tree, CarouselView.CarouselViewport.class).isAnimating(),
                     "nothing has moved and it is asking for frames");

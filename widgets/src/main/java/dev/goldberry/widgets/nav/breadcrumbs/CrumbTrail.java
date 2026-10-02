@@ -19,7 +19,7 @@ import dev.goldberry.widget.style.Styled;
 /// `breadcrumbs` as a **CSS type** is this node and not the stateful one above
 /// it, which is [dev.goldberry.widgets.panel.tabs.TabStrip]'s
 /// arrangement and its reason — two `breadcrumbs` nodes nested in the cascade
-/// would take every rule twice (ADR-0109).
+/// would take every rule twice.
 ///
 /// The attributes are the trail's own, carried down so that `#path` and
 /// `.compact` land on the node a stylesheet can see. The id in particular has to
@@ -30,7 +30,7 @@ import dev.goldberry.widget.style.Styled;
 /// @param attributes the trail's, verbatim
 record CrumbTrail(List<Widget> children, Attributes attributes) implements Widget.Leaf, Styled, Paints, Semantics {
 
-    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    /// Written out so that the parameters taking null for a default can say so.
     CrumbTrail(@Nullable List<Widget> children, @Nullable Attributes attributes) {
         children = List.copyOf(children == null ? List.of() : children);
         attributes = attributes == null ? Attributes.NONE : attributes;
@@ -65,10 +65,10 @@ record CrumbTrail(List<Widget> children, Attributes attributes) implements Widge
 
     /// [Role#GROUP] — "a region with a boundary and no better word".
     ///
-    /// §6 asks for a *navigation landmark*, and [Role] has none. `GROUP` is the
+    /// A trail is a *navigation landmark*, and [Role] has none. `GROUP` is the
     /// honest approximation rather than a new constant nothing consumes: the
-    /// landmark half of that sentence needs the AccessKit bridge, and inventing
-    /// the role now would make a gap look closed. `book/src/TODO.md` carries it.
+    /// landmark needs an accessibility bridge to mean anything, and inventing
+    /// the role now would make a gap look closed.
     @Override
     public Role role() {
         return Role.GROUP;

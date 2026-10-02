@@ -16,9 +16,11 @@ import java.util.stream.Stream;
 ///
 /// So every constant carries md4c's own value, [#all()] hands the lot to the
 /// layout verifier, and `goldberry_shim.c` reports what the C compiler computed
-/// for the library actually loaded (ADR-0294).
+/// for the library actually loaded.
 ///
 /// The interface is sealed so that the permitted list and [#all()] sit together.
+///
+/// Read more: [The native boundary](https://goldberry.dev/docs/overview/architecture.html#the-native-boundary).
 public sealed interface Md4cEnum permits BlockType, SpanType, TextType, CellAlign, MarkdownFlag {
 
     /// The value md4c's header gives this constant.

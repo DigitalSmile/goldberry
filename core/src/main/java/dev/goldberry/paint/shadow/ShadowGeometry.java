@@ -11,7 +11,7 @@ import dev.goldberry.paint.Path;
 /// The other half of [ShadowRamp]: that one says how opaque a band is, this one
 /// says where it is. Separated because the alpha solution is subtle arithmetic
 /// worth testing on its own, and the geometry is subtle in a different way and
-/// worth testing on its own too (ADR-0310).
+/// worth testing on its own too.
 ///
 /// ## What a band's shape is
 ///
@@ -33,13 +33,13 @@ import dev.goldberry.paint.Path;
 ///
 /// CSS paints an outer shadow only outside the border box, so a translucent
 /// background does not have its own shadow showing through from underneath.
-/// Until ADR-0427 this did not: it filled the whole shape and relied on the box
-/// being drawn on top, because the rasterizer binding had no way to cut a hole —
-/// and a reversed sub-path under Blend2D's default non-zero winding *fills* the
+/// Filling the whole shape and relying on the box being drawn on top would get
+/// that wrong under any translucent box, and a reversed sub-path under Blend2D's
+/// default non-zero winding is not the way to cut the hole either: it *fills* the
 /// parts of itself the outer shape does not cover, which is worse than the thing
 /// it would fix.
 ///
-/// The fix is not a different shape; it is a different **rule**.
+/// The hole is not a different shape; it is a different **rule**.
 /// [#borderBox] is added to the band as a second sub-path and the pair is filled
 /// even-odd, so a point inside both is crossed twice and left alone — whichever
 /// direction either sub-path happens to be wound in. The band's own geometry
@@ -49,6 +49,8 @@ import dev.goldberry.paint.Path;
 /// by it: a band whose `grow` puts it entirely inside the border box now paints
 /// **nothing**, whatever its alpha says. That is why [ShadowRamp] drops those
 /// bands unconditionally rather than only under an opaque box.
+///
+/// Read more: [Styling](https://goldberry.dev/docs/guide/styling.html#border-outline-and-shadow).
 public final class ShadowGeometry {
 
     private ShadowGeometry() {}
@@ -115,10 +117,9 @@ public final class ShadowGeometry {
     /// this test is followed only by bands that also fail it — the painter stops
     /// rather than filtering.
     ///
-    /// **This is not an optimisation that assumes an opaque background.** Before
-    /// ADR-0427 it was exactly that, and it was wrong under a translucent box in
-    /// the same way the missing hole was wrong. Now the band really does paint
-    /// nothing, whatever is drawn over it.
+    /// **This is not an optimisation that assumes an opaque background.** Once
+    /// the hole is cut, the band really does paint nothing, whatever is drawn over
+    /// it — a translucent box and an opaque one get the same answer.
     public static double coveredAt(Shadow shadow) {
         Objects.requireNonNull(shadow, "shadow");
         // `0.0 - x` rather than `-x`, so an unoffset shadow answers positive

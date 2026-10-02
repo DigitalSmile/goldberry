@@ -30,9 +30,8 @@ import dev.goldberry.media.picture.VideoPlanes;
 import dev.goldberry.media.subtitle.Cue;
 import dev.goldberry.media.subtitle.Subtitles;
 
-/// Plays audio and video: the non-visual Engine of `docs/goldberry-media.md` §3,
-/// with no widget attached. `audio-player`, `video-view`, `media-controls` and
-/// `media-player` are built over one.
+/// Plays audio and video: the engine, with no widget attached. `audio-player`,
+/// `video-view`, `media-controls` and `media-player` are built over one.
 ///
 /// ```java
 /// var player = MediaPlayer.builder().build(); // plays on the default device
@@ -58,6 +57,8 @@ import dev.goldberry.media.subtitle.Subtitles;
 /// while every view attached asks for them; a player with no view attached, or
 /// with one that draws on the CPU, converts them ([#pictureForm()]). A view that
 /// asks for planes draws what [#shownPicture()] hands out, in either form.
+///
+/// Read more: [A player](https://goldberry.dev/docs/components/media.html#a-player).
 public final class MediaPlayer implements AutoCloseable {
 
     private static final Logger LOG = Logs.of(MediaPlayer.class);
@@ -260,8 +261,8 @@ public final class MediaPlayer implements AutoCloseable {
         applyGain();
     }
 
-    /// Plays `rate` times as fast, pitch and all (`docs/goldberry-media.md` §3,
-    /// "Rate"): 0.5 is half speed an octave down, 2 twice the speed an octave up.
+    /// Plays `rate` times as fast, pitch and all: 0.5 is half speed an octave
+    /// down, 2 twice the speed an octave up.
     /// Kept for the next source opened, as the volume is.
     ///
     /// @throws IllegalArgumentException outside 0.25 to 4
@@ -283,9 +284,9 @@ public final class MediaPlayer implements AutoCloseable {
     /// latency, and less than a correction that would be a different problem.
     public static final Duration MAX_AUDIO_DELAY = Duration.ofSeconds(2);
 
-    /// Corrects how late the sound is heard, for keeping pictures with it
-    /// (`docs/goldberry-media.md` §3, "Master clock", ADR-0474). Kept for the
-    /// next source opened, as the rate is.
+    /// Corrects how late the sound is heard, for keeping pictures with it: the
+    /// audio clock is what is heard, not what was written. Kept for the next
+    /// source opened, as the rate is.
     ///
     /// The audio clock already takes off what the sink reports
     /// ([#audioLatency()]): SDL's buffers everywhere, and the device's own
@@ -328,7 +329,7 @@ public final class MediaPlayer implements AutoCloseable {
     }
 
     /// Decodes video on the platform's video engine, or not, **from the next
-    /// source opened** (ADR-0470): the decoder of the source playing now is
+    /// source opened**: the decoder of the source playing now is
     /// already chosen. To apply it at once, open the same source again and seek
     /// to where it was.
     public void setHardwareDecoding(HardwareDecoding mode) {
@@ -336,8 +337,8 @@ public final class MediaPlayer implements AutoCloseable {
     }
 
     /// Plays `track`, one of the source's audio or video tracks, in place of the
-    /// one of its kind playing, from where playback is: a track menu's choice
-    /// (`docs/goldberry-media.md` §6). Returns at once; the switch happens on the
+    /// one of its kind playing, from where playback is: a track menu's choice.
+    /// Returns at once; the switch happens on the
     /// Engine's threads, and [PlayerStatus#audioTrack()] or
     /// [PlayerStatus#videoTrack()] says when it has. A track with no decoder is
     /// refused there, and the playing one plays on. A new video track comes in on
@@ -389,7 +390,7 @@ public final class MediaPlayer implements AutoCloseable {
     }
 
     /// Moves `count` pictures on, or back for a negative count, and pauses there:
-    /// the `.` and `,` of a player (`docs/goldberry-media.md` §6). The step is the
+    /// the `.` and `,` of a player. The step is the
     /// picture length the video has shown, so a step lands on the next picture's
     /// first instant, and the picture covering it is shown.
     ///
@@ -587,15 +588,15 @@ public final class MediaPlayer implements AutoCloseable {
         }
 
         /// What a source with no audio is timed against: [MediaClock#system()]
-        /// unless a test hands in a clock it moves itself (§7, S5).
+        /// unless a test hands in a clock it moves itself.
         public Builder clock(MediaClock clock) {
             this.clock = Objects.requireNonNull(clock, "clock");
             return this;
         }
 
         /// How far ahead every track is demuxed before playback starts, and
-        /// before it plays on after a network stall (`docs/goldberry-media.md`
-        /// §4, the high water mark). One second unless set. A local file reaches
+        /// before it plays on after a network stall: the high water mark. One
+        /// second unless set. A local file reaches
         /// it at once; for a stream it is the cushion against the next stall, paid
         /// for in start-up time. Zero starts as soon as there is anything to play.
         public Builder highWaterMark(Duration highWaterMark) {
@@ -615,7 +616,7 @@ public final class MediaPlayer implements AutoCloseable {
         }
 
         /// Whether the built-in decoder may decode video on the platform's video
-        /// engine (§3, "Fallback ladder"; ADR-0470). [HardwareDecoding#AUTO]
+        /// engine. [HardwareDecoding#AUTO]
         /// unless set: every failure on the device falls back to software without
         /// the application seeing it. [HardwareDecoding#OFF] is for tests that
         /// compare pictures byte for byte.

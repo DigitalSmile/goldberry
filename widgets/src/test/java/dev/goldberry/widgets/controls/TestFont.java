@@ -22,8 +22,8 @@ public final class TestFont {
     /// The bundled faces, opened lazily and kept for the run.
     ///
     /// Held rather than built per test: a `FontFace` owns native memory from two
-    /// libraries and parsing one costs about 700 microseconds (ADR-0044). Never
-    /// closed, which is right for a value that lives as long as the JVM.
+    /// libraries and parsing one costs about 700 microseconds. Never closed,
+    /// which is right for a value that lives as long as the JVM.
     ///
     /// A book rather than one `Font`, because the cascade now resolves
     /// `font-family`, `font-size` and `font-weight` per node — a golden image
@@ -39,7 +39,7 @@ public final class TestFont {
                 // Kept only once that parse worked. Assigned before it, the first
                 // caller skipped and every later one was handed a book that could
                 // not open a face -- ~280 failures instead of skips in CI's Java
-                // job, which builds no library (ADR-0338).
+                // job, which builds no library.
                 fonts = book;
             } catch (UnsatisfiedLinkError | NoClassDefFoundError | ExceptionInInitializerError e) {
                 Assumptions.abort(
@@ -61,7 +61,7 @@ public final class TestFont {
     /// rather than shaping directly, because the cache is what makes a paragraph
     /// the *same instance* across calls — and a test that skipped it would not
     /// exercise the identity the retained render tree reads to keep a measure
-    /// callback (ADR-0069).
+    /// callback.
     public static dev.goldberry.widget.style.Paints.Context context() {
         var cache = dev.goldberry.text.ParagraphCache.create();
         return new dev.goldberry.widget.style.Paints.Context() {
@@ -97,7 +97,7 @@ public final class TestFont {
             /// that needs a moving one drives a [WidgetRenderer] with
             /// [dev.goldberry.motion.Clock#virtual()] instead
             /// — which is also the only way to see a widget's own loop, since
-            /// the renderer is what reads the clock once per frame (ADR-0081).
+            /// the renderer is what reads the clock once per frame.
             @Override
             public double nowMillis() {
                 return 0;

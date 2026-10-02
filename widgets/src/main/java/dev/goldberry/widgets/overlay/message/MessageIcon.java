@@ -10,8 +10,7 @@ import dev.goldberry.widget.style.Paints;
 import dev.goldberry.widget.style.Styled;
 
 /// The glyph at the head of a [Message] — a **part**, so it is styleable and not
-/// constructible
-/// (ADR-0065).
+/// constructible.
 ///
 /// It draws the kind's [Box.Mark], not an icon, and the difference is lifetime:
 /// an `Icon` owns native memory that has to be closed exactly once, and a banner
@@ -19,7 +18,7 @@ import dev.goldberry.widget.style.Styled;
 /// same reason.
 ///
 /// **Its size is the stylesheet's** — a mark does not size the box it is on — so
-/// `docs/design-system.md` §2's "icon 20 with gap 12" is two declarations in
+/// the 20px glyph and the 12px gap after it are two declarations in
 /// `controls.css` rather than two numbers here. A theme that wants a bigger glyph
 /// changes one of them and the drawing follows, because every mark's geometry is
 /// a proportion of its box.

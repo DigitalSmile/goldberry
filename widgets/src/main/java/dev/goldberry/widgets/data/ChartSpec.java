@@ -47,11 +47,14 @@ import dev.goldberry.widget.attr.Attributes;
 /// slice of a part-to-whole chart leaves a chart that no longer shows a whole;
 /// it is a different widget rather than a fourth mode.
 ///
+/// Read more: [Charts](https://goldberry.dev/docs/components/charts.html#what-the-five-share).
+///
 /// @param <C> the implementing chart's own type, so a chain of withers keeps it —
 ///        `new LineChart(…).logY().threshold(warn)` is a `LineChart`
 public interface ChartSpec<C extends ChartSpec<C>> extends Widget {
 
-    /// The series, in order — which is also their colour order (ADR-0194).
+    /// The series, in order — which is also their colour order: slot 1 is the
+    /// first series.
     List<Series> series();
 
     /// A label per point, or empty for no x labels.
@@ -138,7 +141,7 @@ public interface ChartSpec<C extends ChartSpec<C>> extends Widget {
     ///
     /// **It costs the zeroes.** `log10(0)` is negative infinity, so a
     /// non-positive reading has no position and becomes a hole — the line breaks
-    /// there rather than sliding off the bottom (ADR-0205).
+    /// there rather than sliding off the bottom.
     ///
     /// **`line-chart` only.** A bar and a band are lengths from zero, and zero is
     /// not on the axis at all — it is infinitely far down — so a chart that drew

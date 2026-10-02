@@ -14,7 +14,8 @@ import dev.goldberry.render.GpuPlacement;
 import dev.goldberry.render.model.PhysicalRect;
 
 /// Which GPU layers a window shows after a frame that repainted only part of
-/// itself (ADR-0481).
+/// itself: layers are placed in paint order, and a layer outside the damage keeps
+/// last frame's placement rather than disappearing.
 @DisplayName("the GPU layers on screen after a frame")
 class GpuLayersTest {
 

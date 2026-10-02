@@ -14,6 +14,8 @@ import dev.goldberry.css.parse.TokenType;
 /// element the declaration landed on. Both of those are later; keeping the tokens
 /// is what lets them happen later.
 ///
+/// Read more: [Styling](https://goldberry.dev/docs/guide/styling.html#properties).
+///
 /// @param property  the property name, lowercased unless it is a custom property
 /// @param value     the value's tokens, with leading and trailing whitespace
 ///                  removed and no `!important` on the end
@@ -31,7 +33,7 @@ public record Declaration(String property, List<Token> value, boolean important,
     ///
     /// Custom properties cascade like any other declaration but resolve
     /// differently: their value is kept as written and substituted into `var()`
-    /// rather than interpreted (§8).
+    /// rather than interpreted.
     public boolean isCustomProperty() {
         return property.startsWith("--");
     }

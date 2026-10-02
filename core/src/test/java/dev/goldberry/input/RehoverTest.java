@@ -26,7 +26,7 @@ import dev.goldberry.widget.Widget;
 import dev.goldberry.widget.style.Styled;
 
 /// What the router does when the element under a **still** pointer leaves the
-/// tree — [ADR-0303].
+/// tree: it lets go of what the pointer was over.
 ///
 /// [FocusTrapTest] is the same test for the keyboard, and this file exists
 /// because the pointer had the identical hole with a different symptom: a
@@ -46,7 +46,7 @@ class RehoverTest {
     /// `onExit` when it is told the pointer left.
     ///
     /// The action is what makes this more than a log: the widget that found
-    /// [ADR-0317]'s remaining hole reacts to `EXITED` by calling `setState`, and
+    /// the remaining hole reacts to `EXITED` by calling `setState`, and
     /// nothing under it can be tested without one that does.
     private static final class Item implements Widget.Leaf, Styled, Handles {
         private final String name;
@@ -119,7 +119,7 @@ class RehoverTest {
     ///
     /// Static, and read when it runs rather than when the widget is built, for
     /// [#LOG]'s reason: the widgets come from a `State` a test cannot reach into.
-    /// The default is the sequence [ADR-0303] said could not arise — a handler
+    /// The default is the sequence that was once said could not arise — a handler
     /// that calls `setState` on the state that is going away.
     private static Consumer<DoomedState> onDoomedExit = DoomedState::bump;
 
@@ -250,7 +250,7 @@ class RehoverTest {
 
         removeThePanel();
 
-        // Rule one of ADR-0180, now for the pointer as well: the router never
+        // The keyboard's first rule, now for the pointer as well: the router never
         // holds an element that is not in the tree.
         assertFalse(doomed.isMounted());
         assertTrue(router.hovered() == null || router.hovered().isMounted());
@@ -318,7 +318,7 @@ class RehoverTest {
         assertEquals(List.of(), LOG);
     }
 
-    /// The crash [ADR-0303] ruled out, and the reason its "safe by construction"
+    /// The crash that was ruled out, and the reason its "safe by construction"
     /// had to be withdrawn: `markNeedsBuild` is indeed a no-op on an unmounted
     /// element, but `State.setState` throws one line before it, so a widget that
     /// reacts to `EXITED` the way any ordinary one does took the frame down.
@@ -337,7 +337,7 @@ class RehoverTest {
         // Not "it was told and survived": there is nobody left to tell. An
         // unmounted element has been disposed -- its state's `dispose` has run
         // and its bindings are closed -- so the notification has no audience and
-        // no effect it could have had ([ADR-0317]).
+        // no effect it could have had.
         assertEquals(List.of(), LOG);
     }
 

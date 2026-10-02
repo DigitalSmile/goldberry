@@ -1,10 +1,13 @@
-/// `docs/core-widgets.md` §3's `knob` — a rotary control for a value in a range,
-/// dragged at a rate rather than to a position, with optional magnetic detents.
+/// The `knob` — a rotary control for a value in a range, dragged at a rate
+/// rather than to a position, with optional magnetic detents.
 ///
-/// [dev.goldberry.widgets.controls.knob.Knob] is the widget; its
-/// track, arc and dial are parts.
+/// [dev.goldberry.widgets.controls.knob.Knob] is the widget; its track, arc and
+/// dial are parts, styleable as `knob-track`, `knob-arc` and `knob-dial` and
+/// not constructible from outside the package.
 ///
-/// Marked for NullAway (`docs/testing.md` §2, ADR-0497).
+/// Every reference is non-null unless it says `@Nullable`.
+///
+/// Read more: [Values and progress](https://goldberry.dev/docs/components/values.html#knob).
 @NullMarked
 package dev.goldberry.widgets.controls.knob;
 

@@ -111,7 +111,7 @@ class ForeignSurfaceTest {
                                         .isPresent()),
                         "the measure callback returns YGSize by value"),
                 () -> assertTrue(upcalls.contains(FunctionDescriptor.ofVoid(ADDRESS, ADDRESS)), "the tray's"),
-                // The three ADR-0443 added. Named rather than counted, because a
+                // The three log hooks. Named rather than counted, because a
                 // count that moved is the least informative failure there is:
                 // these are the shapes GLib's two log hooks and SDL's one have,
                 // and a native image that has not been told about them meets an
@@ -125,7 +125,7 @@ class ForeignSurfaceTest {
                 () -> assertTrue(
                         upcalls.contains(FunctionDescriptor.ofVoid(ADDRESS, JAVA_INT, JAVA_INT, ADDRESS)),
                         "SDL's SDL_LogOutputFunction"),
-                // A page calling back into the application (ADR-0448): the id,
+                // A page calling back into the application: the id,
                 // the arguments as JSON, and the number the binding was made
                 // with.
                 () -> assertTrue(
@@ -137,8 +137,8 @@ class ForeignSurfaceTest {
     /// [#everyHandleIsCovered] cannot see: they keep no `FD_…` handle, because
     /// the library may be absent and the handle is linked only where it is not.
     ///
-    /// This is the shape that took the showcase's Linux native image down
-    /// (ADR-0451). `PortalSettings` binds `dbus_bus_get` and built its
+    /// This is the shape that took the showcase's Linux native image down.
+    /// `PortalSettings` binds `dbus_bus_get` and built its
     /// descriptor inside the constructor, so nothing recorded it on a build
     /// machine without libdbus — and the image met it unregistered the first
     /// time a window asked the desktop about reduced motion.
@@ -200,8 +200,7 @@ class ForeignSurfaceTest {
                 new TreeSet<String>(),
                 inline,
                 "these descriptors are built where they are linked, so a machine without the library"
-                        + " never records them — declare each as a constant through Bindings.describe."
-                        + " See ADR-0451.");
+                        + " never records them — declare each as a constant through Bindings.describe.");
     }
 
     /// `Bindings.link(` and everything up to its matching close, which for these
@@ -225,7 +224,7 @@ class ForeignSurfaceTest {
     /// `Linker.downcallHandle` is called in exactly two places — [Downcalls],
     /// which records, and `Bindings`, whose callers declare their shapes as
     /// constants and are held to it by [#systemLibraryShapesAreConstants()]. A
-    /// third would be a binding nothing records, which is ADR-0451 again.
+    /// third would be a binding nothing records, which is the same hole again.
     @Test
     @DisplayName("links a downcall in two places, and both of them record")
     void downcallsHaveTwoChokePoints() throws IOException {
@@ -241,7 +240,8 @@ class ForeignSurfaceTest {
         assertEquals(
                 new TreeSet<>(List.of("Bindings.java", "Downcalls.java")),
                 callers,
-                "a downcall linked anywhere else is a shape no metadata knows about — see ADR-0451");
+                "a downcall linked anywhere else is a shape no metadata knows about — link it through"
+                        + " Downcalls or Bindings so the native image is told about it");
     }
 
     private static Path mainSources() {

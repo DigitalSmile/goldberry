@@ -43,8 +43,7 @@ public record SdlSurfaceCalls(
     /// SDL’s memory, not a copy: it stops being valid when the window is resized
     /// or presented. On a driver with no surface support — Wayland is one — SDL
     /// builds a hidden renderer behind this, which is what makes
-    /// `SDL_RENDER_VSYNC` matter to a toolkit that creates no renderer
-    /// (ADR-0046).
+    /// `SDL_RENDER_VSYNC` matter to a toolkit that creates no renderer.
     ///
     /// `void* SDL_GetWindowSurface(void*)`
     public static final class GetWindowSurface {
@@ -74,7 +73,7 @@ public record SdlSurfaceCalls(
     /// Presents the parts of the surface that changed.
     ///
     /// The damage path: a frame painted only inside its damage is presented only
-    /// inside it too (ADR-0072).
+    /// inside it too.
     ///
     /// `_Bool SDL_UpdateWindowSurfaceRects(void*, void*, int)`
     public static final class UpdateWindowSurfaceRects {
@@ -199,7 +198,7 @@ public record SdlSurfaceCalls(
     /// the first one was not drawn for.
     ///
     /// SDL takes its own reference to `image`, so the caller destroys its handle
-    /// straight after, as with any surface (ADR-0351).
+    /// straight after, as with any surface.
     ///
     /// `_Bool SDL_AddSurfaceAlternateImage(void*, void*)`
     public static final class AddSurfaceAlternateImage {
@@ -211,7 +210,7 @@ public record SdlSurfaceCalls(
 
         AddSurfaceAlternateImage(SymbolLookup lookup) {
             // Optional, like `SDL_OpenURL`: a library built before the window icon
-            // must keep opening windows, and an icon is decoration (ADR-0351).
+            // must keep opening windows, and an icon is decoration.
             this.address = Downcalls.optionalSymbol(lookup, "SDL_AddSurfaceAlternateImage");
         }
 

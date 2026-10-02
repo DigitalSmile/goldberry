@@ -10,21 +10,17 @@ import org.jspecify.annotations.Nullable;
 ///   y' = b·x + d·y + f
 /// ```
 ///
-/// ## Why this type exists rather than a call into Blend2D
+/// The painter composes one onto its ancestors and hands the six numbers to the
+/// rasterizer; hit testing inverts the same matrix to map a pointer back into the
+/// box it is over.
 ///
-/// Blend2D has a matrix type and the arithmetic to go with it — `BLMatrix2D`,
-/// `bl_matrix2d_apply_op`, `bl_matrix2d_invert`. None of it is on the export
-/// list, and putting it there would add symbols to a boundary that has caught the
-/// same class of local-symbol bug three times
-/// (ADR-0064).
-/// It would also be the wrong place for the arithmetic to live: **hit testing
-/// needs the inverse**, and hit testing runs against a snapshot of the last
-/// painted frame, on the input path, with no rendering context anywhere near it
-/// (ADR-0054).
-/// A matrix that could only be inverted by a context would have to be inverted
-/// during paint and carried, or inverted by a second implementation — and two
-/// implementations of an inverse that must agree exactly is how a pointer starts
-/// landing somewhere the ink is not.
+/// A Java type rather than a call into Blend2D's own matrix, because **hit
+/// testing needs the inverse**, and hit testing runs against a snapshot of the
+/// last painted frame, on the input path, with no rendering context anywhere
+/// near it. A matrix that could only be inverted by a context would have to be
+/// inverted during paint and carried, or inverted by a second implementation,
+/// and two implementations of an inverse that must agree exactly is how a
+/// pointer starts landing somewhere the ink is not.
 ///
 /// So: one matrix type, in Java, used by the painter and by hit testing. The
 /// painter hands its six numbers to Blend2D through the *already exported*
@@ -39,6 +35,8 @@ import org.jspecify.annotations.Nullable;
 /// computed for the library actually loaded.
 ///
 /// Immutable, like every value in the cascade.
+///
+/// Read more: [Styling](https://goldberry.dev/docs/guide/styling.html#transform).
 ///
 /// @param a horizontal scale
 /// @param b vertical skew

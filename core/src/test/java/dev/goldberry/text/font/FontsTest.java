@@ -49,7 +49,7 @@ class FontsTest {
         @DisplayName("nothing is opened until something is asked for")
         void lazy() {
             // An application that never draws code text never pays for JetBrains
-            // Mono, which matters on the start-up path §1 makes claims about.
+            // Mono, which matters on the start-up path.
             assertEquals(0, fonts.openFaces());
             assertEquals(0, fonts.openFonts());
         }
@@ -64,7 +64,7 @@ class FontsTest {
         @Test
         @DisplayName("two sizes share one face")
         void sharedFace() {
-            // ADR-0044's whole point: a face is size-independent because the
+            // The whole point of one face for many sizes: a face is size-independent because the
             // shaper is never scaled, so a second size costs 4.4 microseconds
             // rather than 681 and no second copy of the file.
             fonts.of(BundledFont.UI, 13);
@@ -114,7 +114,7 @@ class FontsTest {
             var body = fonts.of(Typography.INITIAL);
             var strong = fonts.of(Typography.INITIAL.weight(BundledFont.Weight.SEMI_BOLD));
 
-            assertEquals(13, body.size(), 1e-9, "§1.4's body size");
+            assertEquals(13, body.size(), 1e-9, "the design system's body size");
             assertNotSame(body, strong, "600 is a different face, so a different font");
             assertEquals(2, fonts.openFaces());
         }
@@ -122,7 +122,7 @@ class FontsTest {
         @Test
         @DisplayName("a family nobody bundled falls back to the UI face")
         void unknownFamily() {
-            // §6.1 has no fallback *cascade* -- a missing glyph is .notdef on
+            // There is no fallback *cascade* -- a missing glyph is .notdef on
             // purpose -- but a missing *family* is a stylesheet naming a font
             // that was never shipped, and drawing that in Inter beats a window
             // with no text in it.

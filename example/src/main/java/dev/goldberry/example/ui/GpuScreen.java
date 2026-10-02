@@ -19,13 +19,13 @@ import dev.goldberry.widgets.panel.masonry.Masonry;
 import dev.goldberry.widgets.text.Text;
 
 /// The **GPU** screen: `canvas3d`, drawn by the showcase's own renderer and
-/// shaders (`docs/gpu-plan.md`, phase 5; ADR-0482).
+/// shaders.
 ///
 /// Three cards:
 ///
 /// - **Every frame.** A cube spinning in a `continuous` canvas, with a chip
 ///   painted over it: UI over 3D, which is what composing a GPU layer in paint
-///   order is for (ADR-0481).
+///   order is for.
 /// - **On demand.** The same cube in a canvas drawn only when its revision
 ///   changes, which the slider does. Between moves nothing is rendered and the
 ///   last picture is shown.
@@ -36,6 +36,8 @@ import dev.goldberry.widgets.text.Text;
 /// How the window shows the canvases is its launch's choice:
 /// `-Pgoldberry.gpu.composite=never` reads them back, and
 /// `-Pgoldberry.gpu=off` shows what a canvas shows without a GPU.
+///
+/// Read more: [The GPU canvas](https://goldberry.dev/docs/components/gpu.html).
 public record GpuScreen() implements Widget.Stateful {
 
     static final String NOTE = "canvas3d is a box the GPU draws into, with an application's renderer: here, a cube"

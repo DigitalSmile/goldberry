@@ -2,17 +2,19 @@ package dev.goldberry.text.font.sfnt;
 
 import org.jspecify.annotations.Nullable;
 
-/// How a `PaintComposite` blends its source onto its backdrop — the `COLR`
+/// How a `PaintComposite` blends its source onto its backdrop: the `COLR`
 /// version 1 `CompositeMode` enumeration, in the table's own order.
 ///
 /// The Porter-Duff operators first, then the separable blend modes, then the four
-/// non-separable ones that work in hue, saturation and luminosity. The order *is*
+/// non-separable ones that work in hue, saturation and luminosity. The order is
 /// the encoding: [#of] indexes this enum by the byte the font writes, so a
 /// constant moved here reads every font wrong.
 ///
 /// The painter maps each to the rasterizer's own operator. The four HSL modes
-/// have none there, and fall back to plain source-over — a smaller wrong than
-/// drawing nothing, and one the shipped face never asks for ([ADR-0456]).
+/// have none there and fall back to plain source-over, a smaller wrong than
+/// drawing nothing, and one the shipped emoji face never asks for.
+///
+/// Read more: [Emoji](https://goldberry.dev/docs/guide/text.html#emoji).
 public enum CompositeMode {
 
     /// Nothing survives.
@@ -24,7 +26,7 @@ public enum CompositeMode {
     /// The backdrop alone.
     DEST,
 
-    /// The source over the backdrop — ordinary drawing.
+    /// The source over the backdrop: ordinary drawing.
     SRC_OVER,
 
     /// The backdrop over the source.
@@ -75,7 +77,7 @@ public enum CompositeMode {
     /// Hard light.
     HARD_LIGHT,
 
-    /// Soft light — what shades Noto's waving flags.
+    /// Soft light, which is what shades Noto's waving flags.
     SOFT_LIGHT,
 
     /// The difference, per channel.

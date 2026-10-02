@@ -27,15 +27,15 @@ import dev.goldberry.widgets.controls.selectlist.SelectList;
 import dev.goldberry.widgets.core.Column;
 import dev.goldberry.widgets.core.Row;
 
-/// What a `select` actually looks like, closed and open (§14, [ADR-0050]).
+/// What a `select` actually looks like, closed and open, held as golden images.
 ///
 /// [SelectTest] pins the tree and the keyboard; these are the images that say the
 /// two halves are one control. Three things here are not reachable by any
 /// assertion:
 ///
 /// - **The field reads as a field.** It is one step off the surface behind it
-///   with a 1px edge and a 4px radius, which is §3 filing this control with
-///   `text-input` rather than with the buttons — and it is exactly what
+///   with a 1px edge and a 4px radius, which are a field's metrics: this control
+///   is filed with `text-input` rather than with the buttons — and it is exactly what
 ///   disappears when a token stops resolving, with no length changing.
 /// - **The chevron points down.** `CHEVRON_END` turned a quarter is what a mark
 ///   with a transform would have been, and this is the image that says the mark
@@ -43,7 +43,7 @@ import dev.goldberry.widgets.core.Row;
 /// - **The list's selected row and its highlighted row are different things.**
 ///   `--gb-selection` is a translucent wash and `--gb-overlay-hover` is another;
 ///   an arrow moves the second over the first, and two washes that came out the
-///   same colour would be a control whose keyboard is invisible ([ADR-0141]).
+///   same colour would be a control whose keyboard is invisible.
 ///
 /// `./gradlew :widgets:test -Dgoldberry.golden.update=true` rewrites them.
 class SelectGoldenTest {
@@ -85,15 +85,15 @@ class SelectGoldenTest {
                 id("theme"));
     }
 
-    /// §3's `multiple=#true`: "renders the selection as `badge` chips inside the
-    /// closed control, each with a remove affordance" ([ADR-0182]).
+    /// The catalogue's `multiple=#true`: the selection is rendered as `badge`
+    /// chips inside the closed control, each with a remove affordance.
     ///
     /// The picture is what the sentence cannot carry: three chips, each whole,
     /// with the chevron still at the far edge. Three fit in a 220px field —
     /// [#multipleWraps] is the one where they do not.
-    /// The row that wrapping was added for (ADR-0192).
+    /// The row that wrapping was added for.
     ///
-    /// Five values in the same 220px field: before §8's subset had `flex-wrap`
+    /// Five values in the same 220px field: before the CSS subset had `flex-wrap`
     /// the chips shrank, so a field with more values than it could show showed
     /// all of them squeezed and none of them whole. Now they fall onto a second
     /// line and the control grows, which `height: auto` was always written for.
@@ -175,17 +175,17 @@ class SelectGoldenTest {
 
     /// Nothing chosen, and the placeholder one rank down.
     ///
-    /// The image is the check: §1.2's contrast floor applies to a placeholder as
+    /// The image is the check: the contrast floor applies to a placeholder as
     /// much as to prose, and "quieter" that turns out to be unreadable is the
-    /// mistake ADR-0121 made with `--gb-text-subtle` and took back out.
+    /// mistake once made with `--gb-text-subtle` and taken back out.
     @Test
     @DisplayName("nothing chosen reads as a placeholder, not as a value")
     void placeholder() {
         paint("select-placeholder", Theme.NORD_DARK, 220, 56, new Row(List.of(themes(null)), id("row")));
     }
 
-    /// A field that refuses, at §2.1's 45% — over the border and the mark as well
-    /// as the label, because opacity multiplies down the subtree ([ADR-0077]).
+    /// A field that refuses, at the design system's 45% — over the border and
+    /// the mark as well as the label, because opacity multiplies down the subtree.
     @Test
     @DisplayName("a disabled select fades whole")
     void disabled() {

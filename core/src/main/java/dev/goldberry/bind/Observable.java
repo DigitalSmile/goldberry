@@ -9,8 +9,7 @@ import org.jspecify.annotations.Nullable;
 /// This is what a widget gets. [Property] is the same value with `set` on it, and
 /// it is what the application keeps: data flows down into the tree and events
 /// flow back up, so a control reports what the user did and the application
-/// decides what that means
-/// (ADR-0063).
+/// decides what that means.
 ///
 /// The split is types rather than discipline. `BindingRegistry.resolve` hands back one of
 /// these, so a widget built from markup **cannot** write to the model even by
@@ -24,6 +23,8 @@ import org.jspecify.annotations.Nullable;
 /// **The value may be null.** A model field that is not loaded yet holds null,
 /// and so does a property made with nothing in it; the type parameter says so,
 /// so a reader of a bound value is told to expect it.
+///
+/// Read more: [Values](https://goldberry.dev/docs/applications.html#values).
 ///
 /// @param <T> the value type, null included
 public interface Observable<T extends @Nullable Object> {

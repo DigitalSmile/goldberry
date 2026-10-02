@@ -1,22 +1,24 @@
 package dev.goldberry.widgets.data;
 
-/// What is under a band or a line — `charts.md` §3.1's "fill opacity, gradient
-/// fill", which was the last row of that table left unbuilt.
+/// What is under a band or a line: nothing, a flat wash, or a fade toward the
+/// axis.
 ///
-/// The opacity half shipped with the area chart: a band is drawn at 85%, which is
-/// nearly opaque because a *stack's* bands do not overlap and translucency there
-/// only mixes each band with the gridlines behind it. What was deferred is the
-/// ramp, and it was deferred for a reason that had nothing to do with charts —
-/// Blend2D has gradients and the export list did not, so the first commit of this
-/// was a widening of the native surface
-/// (ADR-0207).
+/// ```java
+/// new LineChart(series).fill(Fill.GRADIENT)
+/// ```
+///
+/// A band is drawn at 85% opacity, which is nearly opaque because a *stack's*
+/// bands do not overlap and translucency there only mixes each band with the
+/// gridlines behind it. The ramp is a real gradient in the painter, fading the
+/// series colour to the same colour at zero alpha.
 ///
 /// **This is three values and not a number**, unlike [Bounds] beside it. An
 /// opacity is a number a caller could reasonably want any value of; a fill is a
 /// choice between conventions, and the two that matter — a flat wash and a fade
 /// toward the axis — are the two a dashboard is drawn with. A caller who wants a
-/// third writes a `canvas`, which is the escape hatch `charts.md` §4 names for
-/// exactly this.
+/// third draws it on a `canvas`.
+///
+/// Read more: [Charts](https://goldberry.dev/docs/components/charts.html#line-chart).
 public enum Fill {
 
     /// A flat wash at the band's own opacity — what an area chart drew before
@@ -40,11 +42,9 @@ public enum Fill {
     /// **The fade keeps the hue.** Fading to transparent black would take a green
     /// band through grey on its way out, which is the classic wrong gradient;
     /// the far stop is the same colour at zero alpha, so what thins out is the
-    /// colour rather than the light. The `OKLCH` in the deferred entry's wording
-    /// turns out not to be a choice at all — a ramp between two alphas of one
-    /// hue is the same curve in every perceptual space, and what makes it
-    /// correct is premultiplied interpolation rather than the space it is stated
-    /// in.
+    /// colour rather than the light. A ramp between two alphas of one hue is the
+    /// same curve in every perceptual space, and what makes it correct is
+    /// premultiplied interpolation rather than the space it is stated in.
     GRADIENT,
 
     /// No fill at all: the line, and nothing under it — the **default**.

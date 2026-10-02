@@ -4,19 +4,21 @@ import dev.goldberry.widget.BuildContext;
 import dev.goldberry.widget.Widget;
 import dev.goldberry.widgets.panel.masonry.Masonry;
 
-/// The **Forms** screen: §4's fields in every state they have, and §3's three
+/// The **Forms** screen: the fields in every state they have, and the three
 /// choosers that hold more than a name.
 ///
 /// The two halves belong on one screen because they answer one question — how a
 /// value gets *into* an application — and because the difference between them is
 /// the interesting part: a `text-input` holds its own text, caret and undo stack
 /// and needs no wiring at all, while a `multiple`, an `autocomplete` and a `tree`
-/// each need a channel only Java has ([ADR-0222]).
+/// each need a channel only Java has.
+///
+/// Read more: [Fields and forms](https://goldberry.dev/docs/components/forms.html).
 ///
 /// @param cards what `forms.kdl` built, inflated once by [Screen]
 public record Forms(Masonry cards) implements Widget.Stateless {
 
-    private static final String NOTE = "§4's fields and §3's choosers. Ten of these cards are forms.kdl — a field"
+    private static final String NOTE = "The fields and the choosers. Ten of these cards are forms.kdl — a field"
             + " holds its own text, caret and undo stack, so a wall of them needs no"
             + " wiring. The last four cannot be: a set is toggled, a filter is applied,"
             + " a branch is fetched and a class set is computed, and all four are the"

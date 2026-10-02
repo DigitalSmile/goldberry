@@ -10,7 +10,7 @@ import org.junit.jupiter.api.Test;
 
 import dev.goldberry.render.model.PhysicalRect;
 
-/// Where a GPU layer was placed (ADR-0481).
+/// Where a GPU layer was placed: a target rectangle and the scissor inside it.
 @DisplayName("a GPU layer's placement")
 class GpuPlacementTest {
 

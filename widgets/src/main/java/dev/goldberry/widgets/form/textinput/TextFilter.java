@@ -2,8 +2,8 @@ package dev.goldberry.widgets.form.textinput;
 
 import org.jspecify.annotations.Nullable;
 
-/// What a field will accept — `docs/core-widgets.md` §4's "input filters
-/// (numeric etc.)".
+/// What a field will accept — an input filter such as `digits`, judged on the
+/// whole value an edit would produce.
 ///
 /// ## It filters the text, not the keystroke
 ///
@@ -25,8 +25,10 @@ import org.jspecify.annotations.Nullable;
 ///
 /// Formatting — grouping separators, a currency symbol, a date's slashes — is a
 /// different job and belongs to whatever owns the value. A `date-picker` parses
-/// and formats with a `java.time` formatter the application supplies (§4); it
+/// and formats with a `java.time` formatter the application supplies; it
 /// does not do it with one of these.
+///
+/// Read more: [Fields and forms](https://goldberry.dev/docs/components/forms.html#text-input).
 @FunctionalInterface
 public interface TextFilter {
 
@@ -85,7 +87,7 @@ public interface TextFilter {
     /// filter this toolkit does not have is a typo already visible in the markup,
     /// and a field that refuses every keystroke is a worse way to learn about it
     /// than a field that accepts them. The caller logs it — the same treatment
-    /// an unparseable accelerator gets (ADR-0163).
+    /// an unparseable accelerator gets.
     ///
     /// @return the named filter, or null if there is no such name
     static @Nullable TextFilter named(String name) {

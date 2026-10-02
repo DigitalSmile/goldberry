@@ -13,10 +13,13 @@ import org.junit.jupiter.api.Assumptions;
 /// In CI they must not. A verification job whose tests all skipped is a green
 /// tick over an artifact nothing loaded, which is worse than a red one: it
 /// reports a check that never happened. `-Dgoldberry.native.required=true` is how
-/// the build says the library is not optional here. See ADR-0016.
+/// the build says the library is not optional here.
 ///
 /// The decision is [#decide] — a pure function of the two inputs, so it is unit
 /// tested directly rather than by contorting system properties.
+///
+/// Read more:
+/// [With and without the library](https://goldberry.dev/docs/contributing/testing.html#with-and-without-the-library).
 public sealed interface NativeLibraryRequirement {
 
     /// Set by the `test` task from `-Dgoldberry.native.required` or
@@ -45,8 +48,8 @@ public sealed interface NativeLibraryRequirement {
         var where = path == null || path.isBlank() ? "no path was configured" : "looked for it at " + path;
         return required
                 ? new Fail("libgoldberry is required for this run but is not loadable — " + where
-                        + ". The layout check is what the hand-written bindings rest on"
-                        + " (ADR-0010), so skipping it here would report a check that never ran.")
+                        + ". The layout check is what the hand-written bindings rest on,"
+                        + " so skipping it here would report a check that never ran.")
                 : new Skip("libgoldberry is not built for this platform — " + where
                         + ". Run :natives:cmakeBuild, or pass -D" + NativeLibrary.LIBRARY_PATH_PROPERTY
                         + "=<path> to verify one built elsewhere.");

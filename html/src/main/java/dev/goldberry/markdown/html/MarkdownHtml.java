@@ -53,7 +53,7 @@ import dev.goldberry.markdown.model.WikiLink;
 /// entity resolution, the same decision about what a soft break means — and two
 /// renderers, one in C and one over the model, is how they stop agreeing. So HTML is
 /// a fold over the same tree `markdown-view` renders, and the compiler is what keeps
-/// the pair honest: a node added to the model is a missing case in both (ADR-0295).
+/// the pair honest: a node added to the model is a missing case in both.
 ///
 /// ## What it writes
 ///

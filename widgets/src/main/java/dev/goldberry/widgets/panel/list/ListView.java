@@ -19,12 +19,21 @@ import dev.goldberry.widgets.markup.Markup;
 import dev.goldberry.widgets.markup.Wiring;
 import dev.goldberry.widgets.text.Text;
 
-/// A vertical list over an item model — `docs/core-widgets.md` §10's `list`.
+/// A vertical list over an item model: any widget as a row, a selection model,
+/// type-to-select and the full keyboard.
 ///
 /// ```java
 /// ListView.of(List.of("Norway", "Sweden", "Finland"))
 ///         .selected(chosen, this::pick)
 /// ```
+///
+/// ```kdl
+/// list bind="app.countries" id="countries"
+/// ```
+///
+/// A document can only place a list and name the model value that holds one,
+/// because a row factory is code: the `ListView` comes from the application,
+/// through `bind=`.
 ///
 /// ## Why it is not called `List`
 ///
@@ -36,8 +45,8 @@ import dev.goldberry.widgets.text.Text;
 ///
 /// ## Any widget as a row
 ///
-/// §10 asks for "an item-factory (any widget as row)", so an item is whatever
-/// the application has and [#factory] turns one into a row. Three functions
+/// An item is whatever the application has and [#factory] turns one into a
+/// row. Three functions
 /// rather than an interface to implement, because the common case is three
 /// lambdas and the rare one is a method reference each:
 ///
@@ -45,20 +54,20 @@ import dev.goldberry.widgets.text.Text;
 ///   reconciler's key all run through it, so two items with one identity are one
 ///   row as far as this widget is concerned.
 /// - [#factory] — what the item *looks* like.
-/// - [#text] — what the item *reads* as, for §10's "type-to-select when items
-///   expose text". Optional: a list of colour swatches exposes no text and gets
+/// - [#text] — what the item *reads* as, for type-to-select. Optional: a list
+///   of colour swatches exposes no text and gets
 ///   no typeahead, which is the honest answer rather than a typeahead that
 ///   matches nothing.
 ///
 /// The factory is called during `build` and its widget becomes the row's child,
-/// which is what makes the recycling §10 promises for v1.x a performance change
-/// rather than an API break: a recycler calls the same function with a different
-/// item.
+/// which is what makes row recycling a performance change rather than an API
+/// break: a recycler calls the same function with a different item.
 ///
 /// ## Controlled, like every other value in this toolkit
 ///
 /// It **reads** which rows are selected and reports what the user asked for; it
-/// selects nothing itself ([ADR-0063]). What goes out is the whole set even in
+/// selects nothing itself, because data flows down and events flow up. What goes
+/// out is the whole set even in
 /// single-selection mode, for [Selection#MULTIPLE]'s reason — a `Shift` range is
 /// computed over rows only this widget can see. The [#selected(String, Consumer)]
 /// pair unwraps it again for a caller that holds one value.
@@ -82,14 +91,12 @@ import dev.goldberry.widgets.text.Text;
 ///
 /// ## Every row, unless it is told a row height
 ///
-/// §10's v1 "renders instantiated rows — fine into the low thousands", and that
-/// is what a list does by default. [#virtualized(double)] is §10's committed
-/// follow-up: told how tall a row is, the list builds **only the rows the
-/// viewport can see** and stands the rest off with two spacers
-/// (ADR-0213).
+/// By default every row is built, which is fine into the low thousands. Told
+/// how tall a row is through [#virtualized(double)], the list builds **only the
+/// rows the viewport can see** and stands the rest off with two spacers.
 ///
 /// Opt-in, and it takes a number rather than a flag, because the number is the
-/// one thing the widget cannot find out: §8's subset resolves
+/// one thing the widget cannot find out: the cascade resolves
 /// `--gb-list-row-height` for the cascade and no widget can read a resolved
 /// custom property. A caller that styles its rows to a different height passes
 /// that height here, and one that does not virtualize passes nothing.
@@ -97,23 +104,23 @@ import dev.goldberry.widgets.text.Text;
 /// Either way a list taller than its box is a
 /// [dev.goldberry.widgets.core.scroll.Scroll]'s to scroll,
 /// exactly as a tree is. `Home` and `End` go to the ends of the **model** rather
-/// than of the viewport, and the focus ring is what asks an ancestor to follow
-/// ([ADR-0120]).
+/// than of the viewport, and the focus ring is what asks an ancestor to follow.
 ///
 /// @param <T>         the item type — anything, including a record or a `String`
 /// @param items       the model, in the order it is drawn
 /// @param identity    an item's id: its key, its focus name and how a selection
 ///                    names it
-/// @param factory     §10's item-factory — any widget as a row
+/// @param factory     the item-factory — any widget as a row
 /// @param text        what an item reads as, for type-to-select; null for none
-/// @param itemMenu    the name of a context menu for an item, or null — §10's
-///                    "item context menus"
+/// @param itemMenu    the name of a context menu for an item, or null
 /// @param selected    the ids of the chosen items; empty for none
 /// @param onSelect    the selection the user asked for, whole
 /// @param selection   how many rows may be chosen at once
 /// @param rowHeight   how tall a row is, in logical pixels — the number that
 ///                    turns virtualization on; zero builds every row
 /// @param attributes  `id` and `class`, exactly as on the primitives
+///
+/// Read more: [Collections](https://goldberry.dev/docs/components/collections.html#list).
 @Markup("list")
 public record ListView<T>(
         List<T> items,
@@ -129,7 +136,7 @@ public record ListView<T>(
         Attributes attributes)
         implements Widget.Stateful, Attributed<ListView<T>> {
 
-    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    /// Written out so that the parameters taking null for a default can say so.
     public ListView(
             @Nullable List<T> items,
             Function<T, String> identity,
@@ -174,7 +181,7 @@ public record ListView<T>(
 
     /// A list over `items`, with no selection callback yet.
     ///
-    /// The two functions §10 cannot supply a default for: what an item *is* and
+    /// The two functions nothing can supply a default for: what an item *is* and
     /// what it looks like. Everything else has one.
     public ListView(List<T> items, Function<T, String> identity, Function<T, Widget> factory) {
         this(items, identity, factory, null, null, Set.of(), null, Selection.SINGLE, 0, false, Attributes.NONE);
@@ -215,8 +222,8 @@ public record ListView<T>(
     /// for.
     ///
     /// The two together, because a row nobody is listening to cannot change and a
-    /// listener with no value has nothing to draw — ADR-0063's loop needs both
-    /// ends or neither.
+    /// listener with no value has nothing to draw — the loop of value down and
+    /// event up needs both ends or neither.
     public ListView<T> selected(Set<String> values, @Nullable Consumer<Set<String>> onSelect) {
         return new ListView<>(
                 items,
@@ -249,7 +256,7 @@ public record ListView<T>(
                                 chosen.isEmpty() ? null : chosen.iterator().next()));
     }
 
-    /// This list with a different selection model — §10's "none / single / multi".
+    /// This list with a different selection model: none, single or multiple.
     public ListView<T> selection(Selection value) {
         return new ListView<>(
                 items,
@@ -265,8 +272,8 @@ public record ListView<T>(
                 attributes);
     }
 
-    /// This list with items that expose text, which is what §10 makes
-    /// type-to-select conditional on.
+    /// This list with items that expose text, which is what turns type-to-select
+    /// on.
     public ListView<T> text(Function<T, String> value) {
         return new ListView<>(
                 items,
@@ -282,8 +289,8 @@ public record ListView<T>(
                 attributes);
     }
 
-    /// This list building **only the rows its viewport can see** — §10's
-    /// committed virtualization, turned on by saying how tall a row is.
+    /// This list building **only the rows its viewport can see** — virtualized,
+    /// turned on by saying how tall a row is.
     ///
     /// ```java
     /// ListView.of(names).virtualized(32)      // --gb-list-row-height's default
@@ -298,9 +305,8 @@ public record ListView<T>(
     /// row 4,000 begins without building the 3,999 above it.
     ///
     /// Everything else is unchanged: the same item-factory is called with the
-    /// same items, which is what §10 means by "a performance upgrade, not an API
-    /// break". `Home`, `End` and the typeahead still reach rows that are not
-    /// built (ADR-0213).
+    /// same items, so it is a performance upgrade and not an API break. `Home`,
+    /// `End` and the typeahead still reach rows that are not built.
     ///
     /// @param height a row's height in logical pixels, or zero to build them all
     public ListView<T> virtualized(double height) {
@@ -309,7 +315,7 @@ public record ListView<T>(
     }
 
     /// This list virtualized at **the height the stylesheet says** —
-    /// `--gb-list-row-height`, read when the list is built ([ADR-0254]).
+    /// `--gb-list-row-height`, read from the cascade when the list is built.
     ///
     /// ```java
     /// ListView.of(names).virtualized()
@@ -330,7 +336,7 @@ public record ListView<T>(
                 items, identity, factory, text, itemMenu, selected, onSelect, selection, 0, true, attributes);
     }
 
-    /// This list with a context menu per item — §10's "item context menus".
+    /// This list with a context menu per item.
     ///
     /// A function rather than one name, because the point of a per-item menu is
     /// that a folder and a file do not offer the same commands. Returning null
@@ -339,7 +345,7 @@ public record ListView<T>(
     /// It is named on the **row** rather than on whatever the factory returned,
     /// so that both ways in find it: a right-click walks up from what is under
     /// the pointer, and the menu key walks up from what has the focus, which is
-    /// the row itself ([ADR-0208]).
+    /// the row itself.
     public ListView<T> itemMenu(Function<T, @Nullable String> value) {
         return new ListView<>(
                 items,
@@ -382,8 +388,7 @@ public record ListView<T>(
     }
 
     /// Builds a `list` from markup: a [Bound] over the `ListView` a model's
-    /// `bind=` value holds, since a row factory is code a document cannot write
-    /// (ADR-0367).
+    /// `bind=` value holds, since a row factory is code a document cannot write.
     public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
         return new Bound(wiring.bound(node), ListView.class, Attributes.of(node));
     }

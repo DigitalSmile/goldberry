@@ -23,6 +23,8 @@ import dev.goldberry.natives.md4c.enums.TextType;
 ///
 /// [#plain()] is for the callers that genuinely do not care.
 ///
+/// Read more: [The native boundary](https://goldberry.dev/docs/overview/architecture.html#the-native-boundary).
+///
 /// @param parts the runs, in order; never empty for an attribute that is present
 ///        at all, because an absent one produces no attribute rather than an empty
 ///        one

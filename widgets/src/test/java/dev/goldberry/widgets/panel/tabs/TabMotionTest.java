@@ -25,8 +25,8 @@ import dev.goldberry.widgets.controls.TestFont;
 
 /// A tab arriving and a tab leaving, on a clock a test drives.
 ///
-/// The whole lifecycle is a function of the frame clock rather than a transition
-/// ([ADR-0109]), which is what makes it testable at all: `clock.advance(80)` is
+/// The whole lifecycle is a function of the frame clock rather than a transition,
+/// which is what makes it testable at all: `clock.advance(80)` is
 /// the frame at exactly half of a 160ms arrival, on every machine.
 class TabMotionTest {
 
@@ -52,7 +52,7 @@ class TabMotionTest {
     /// The change is driven through `setState` rather than by replacing the
     /// strip's widget directly, because that is what an application does — a tab
     /// added or closed is a **structural** change, and the toolkit rebuilds a
-    /// subtree when something it watches changes (ADR-0109).
+    /// subtree when something it watches changes.
     private record Harness(List<String> initial) implements dev.goldberry.widget.Widget.Stateful {
 
         @Override
@@ -114,8 +114,8 @@ class TabMotionTest {
         var index = order.indexOf(value);
         // list → rule, then the headers.
         // tab-list -> [tab-rule, scroll] -> scroll-content -> the headers. The
-        // viewport arrived with ADR-0118 so that a strip wider than its window
-        // scrolls; it paints nothing and moves no header.
+        // viewport is there so that a strip wider than its window scrolls; it
+        // paints nothing and moves no header.
         return box.children()
                 .getFirst() // tab-list
                 .children()
@@ -170,7 +170,7 @@ class TabMotionTest {
         // used to be: whether a node animates was read *before* it was drawn, and
         // drawing is what advances a phase — so the finishing frame still
         // reported itself as animating and the loop spent one more. Asked after
-        // the draw, it costs nothing ([ADR-0228]).
+        // the draw, it costs nothing.
         assertFalse(renderer.isAnimating(), "the loop is spending a frame on an animation that has finished");
     }
 
@@ -208,7 +208,7 @@ class TabMotionTest {
         assertFalse(renderer.isAnimating(), "with nothing left asking for frames");
     }
 
-    /// §1.7 asks for movement to be removed rather than shortened, so a tab under
+    /// Reduced motion removes movement rather than shortening it, so a tab under
     /// reduced motion is simply there — and the loop never wakes for it.
     @Test
     @DisplayName("reduced motion removes the animation rather than shortening it")

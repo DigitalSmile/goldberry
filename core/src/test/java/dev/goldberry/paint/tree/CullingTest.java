@@ -20,12 +20,16 @@ import dev.goldberry.layout.Overflow;
 import dev.goldberry.paint.Box;
 import dev.goldberry.paint.TestFrames;
 
-/// What the painter is allowed to skip, and what it is not — [ADR-0313].
+/// What the painter is allowed to skip, and what it is not: a subtree whose ink
+/// cannot touch the clip is neither drawn nor walked.
 ///
 /// Two kinds of assertion here and both are needed. The **counts** say the walk
 /// actually stopped, which no image can: a culler that quietly stopped working
 /// draws the same frame four times as slowly. The **pixels** say it stopped in
 /// the right place, which no count can.
+///
+/// Read more:
+/// [What the toolkit does for you](https://goldberry.dev/docs/performance/frames.html#what-the-toolkit-does-for-you).
 @DisplayName("culling a subtree that cannot be seen")
 class CullingTest {
 
@@ -117,8 +121,7 @@ class CullingTest {
         }
 
         /// The property the icon sheet needed: what a viewport costs to paint
-        /// follows how much of it is **on screen**, not how much there is
-        /// ([ADR-0313]).
+        /// follows how much of it is **on screen**, not how much there is.
         @Test
         @DisplayName("ten times the rows in the same viewport costs the same to paint")
         void costFollowsWhatIsVisible() {
@@ -204,7 +207,7 @@ class CullingTest {
         }
 
         /// The same argument for the other thing drawn outside a box, and the one
-        /// that reaches furthest: a shadow's blur (ADR-0310).
+        /// that reaches furthest: a shadow's blur.
         @Test
         @DisplayName("a drop shadow reaching into the viewport keeps its box alive")
         void aShadowReachingIn() {
@@ -235,7 +238,7 @@ class CullingTest {
         /// nothing in a subtree changed and its rectangle held. This is the case
         /// that found the hole in the first version: a parent that starts
         /// wrapping moves every child without changing one field of any child's
-        /// box ([ADR-0313]).
+        /// box.
         @Test
         @DisplayName("a row that starts wrapping re-measures the children it moved")
         void wrappingInvalidatesTheCache() {

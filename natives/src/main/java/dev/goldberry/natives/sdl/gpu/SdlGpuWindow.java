@@ -11,11 +11,14 @@ import dev.goldberry.natives.sdl.gpu.enums.SdlGpuPresentMode;
 import dev.goldberry.natives.sdl.gpu.enums.SdlGpuTextureFormat;
 
 /// A window claimed by a [SdlGpuDevice]: it presents through a swapchain, and has
-/// no window surface while it is claimed (`docs/gpu-plan.md`, D3).
+/// no window surface while it is claimed, which is what a composited window is.
 ///
 /// Closing it gives the window back, and the window surface can be asked for
 /// again. It is claimed and released on the window's own thread, as SDL
 /// requires. A device that closes releases the windows it still holds.
+///
+/// Read more: [The GPU canvas](https://goldberry.dev/docs/components/gpu.html#what-the-module-does-to-a-window) and
+/// [The native boundary](https://goldberry.dev/docs/overview/architecture.html#the-native-boundary).
 public final class SdlGpuWindow extends SdlGpuResource {
 
     private final SdlWindowHandle window;

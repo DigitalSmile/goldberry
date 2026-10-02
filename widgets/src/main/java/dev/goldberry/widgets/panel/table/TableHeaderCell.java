@@ -14,7 +14,7 @@ import dev.goldberry.widget.Widget;
 /// A table is a stateless leaf and a column's width is the application's, so
 /// the one number a drag needs — how wide the header is *now*, which for a
 /// weighted column only the layout knows — has nowhere else to live. It is read
-/// once, on the press, as the gesture's anchor (ADR-0361).
+/// once, on the press, as the gesture's anchor.
 ///
 /// @param column   the column
 /// @param sort     the table's sort when it is this column's, else null

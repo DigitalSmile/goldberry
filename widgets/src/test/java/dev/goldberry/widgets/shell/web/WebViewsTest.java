@@ -13,7 +13,7 @@ import dev.goldberry.render.web.BackendWebView;
 import dev.goldberry.render.web.WebSize;
 import dev.goldberry.widgets.TestHost;
 
-/// Opening a page — §9's `web-view`, ADR-0441.
+/// Opening a page in a `web-view`.
 ///
 /// What a test can assert here is deliberately narrow, and the narrowness is the
 /// design rather than a gap in the suite. Every pixel of a page belongs to
@@ -24,6 +24,8 @@ import dev.goldberry.widgets.TestHost;
 ///
 /// A real page is never opened. Doing so would put a WebKit window on the desktop
 /// of whoever ran the suite.
+///
+/// Read more: [The web view](https://goldberry.dev/docs/components/content.html#the-web-view).
 @DisplayName("opening a web page")
 class WebViewsTest {
 
@@ -137,9 +139,9 @@ class WebViewsTest {
     @Test
     @DisplayName("a page is not a widget, and there is no markup node for one")
     void aPageIsNotAWidget() {
-        // The claim ADR-0441 turns on, asserted rather than left to the prose: if
-        // `WebPage` ever became a Widget, it would have acquired a box the toolkit
-        // cannot lay out and a cascade that cannot reach WebKit.
+        // The claim the design turns on, asserted rather than left to the prose:
+        // if `WebPage` ever became a Widget, it would have acquired a box the
+        // toolkit cannot lay out and a cascade that cannot reach WebKit.
         assertFalse(dev.goldberry.widget.Widget.class.isAssignableFrom(WebPage.class));
         assertFalse(BackendWebView.class.isAssignableFrom(WebPage.class));
     }

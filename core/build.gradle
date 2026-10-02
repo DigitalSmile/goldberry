@@ -1,15 +1,18 @@
 plugins {
     id 'goldberry.java-conventions'
-    // Published to Maven Central as goldberry-core (ADR-0334).
+    // Published to Maven Central as goldberry-core.
     id 'goldberry.publish'
-    // docs/testing.md §1.5. On :core only for now: this is where the hot seams
-    // are -- shaping, the paragraph cache, the cascade -- and a benchmark source
-    // set in every module would be five empty ones.
+    // JMH, on :core only for now: this is where the hot seams are -- shaping,
+    // the paragraph cache, the cascade -- and a benchmark source set in every
+    // module would be five empty ones.
+    // https://goldberry.dev/docs/performance/measuring.html#jmh-on-core
     alias(libs.plugins.jmh)
     // GoldenImage, TestFrames and RendererRequirement are shared with :widgets,
     // which needs the same rasterizer guard and the same golden comparison.
     // Fixtures rather than a copy: two golden comparators would drift on the
-    // tolerance, and the tolerance is the whole argument of ADR-0050.
+    // tolerance, and the tolerance is what lets one reference set serve every
+    // platform.
+    // https://goldberry.dev/docs/contributing/testing.html#goldens
     id 'java-test-fixtures'
 }
 
@@ -40,24 +43,26 @@ sourceSets {
 
 // :core requires :natives for the sdl3 backend. The module graph is what keeps
 // that honest: :natives exports only its wrapper packages, so nothing here can
-// reach a MemorySegment even by accident (ADR-0007, §3.1).
+// reach a MemorySegment even by accident.
+// https://goldberry.dev/docs/overview/architecture.html#the-native-boundary
 dependencies {
     api project(':natives')
 
     // Named here rather than taken through :natives. Logging is not the native
     // layer's to lend, and the build should say so as plainly as module-info
-    // does (ADR-0174).
+    // does.
     api project(':common')
 }
 
 // ============================================================================
-// Bundled assets (§6.1, §6.2, §6.3, ADR-0033)
+// Bundled assets
+// https://goldberry.dev/docs/guide/text.html
 //
 // Inter and JetBrains Mono are the embedded UI and code faces, and Lucide is the
 // icon set. The emoji face is **not** here: Noto Color Emoji ships as
 // `goldberry-emoji`, because an application that never draws an emoji should not
-// carry five megabytes of them (ADR-0384, ADR-0456). The work is done by :assets — an
-// ordinary Java tool with its own tests — and only invoked here.
+// carry five megabytes of them. The work is done by :assets — an ordinary Java
+// tool with its own tests — and only invoked here.
 //
 // The archives are cached under ~/.gradle rather than in the project's build
 // directory: they total 90 MB, they are pinned by checksum so they cannot go
@@ -85,8 +90,7 @@ def prepareAssets = tasks.register('prepareAssets', JavaExec) {
 
     classpath = configurations.assetTool
     mainClass = 'dev.goldberry.assets.prepare.PrepareAssets'
-    // Everything but the emoji face, which ships as `goldberry-emoji`
-    // (ADR-0384, ADR-0456).
+    // Everything but the emoji face, which ships as `goldberry-emoji`.
     args assetCache.asFile.absolutePath,
             assetResources.get().asFile.absolutePath,
             '--only=inter,jetbrains-mono,lucide'
@@ -100,7 +104,7 @@ def prepareAssets = tasks.register('prepareAssets', JavaExec) {
     // The directory is emptied first, so a file this build no longer prepares
     // does not survive in it. OpenMoji moving to `:emoji` is exactly that case:
     // without this, an incremental build kept shipping the face `:core` had
-    // stopped fetching (ADR-0384).
+    // stopped fetching.
     doFirst {
         delete assetResources
     }
@@ -112,8 +116,8 @@ sourceSets.main.resources.srcDir(prepareAssets.map { assetResources.get() })
 
 /// Vendors the verbatim upstream licence texts into licenses/.
 ///
-/// Run by hand and committed, not wired into `build`: ADR-0015 wants those texts
-/// in the repository so it is self-describing, and a generated file inside a
+/// Run by hand and committed, not wired into `build`: the licence texts live in
+/// the repository so it is self-describing, and a generated file inside a
 /// tracked directory that nobody committed is worse than no file at all.
 tasks.register('vendorLicences', JavaExec) {
     group = 'assets'
@@ -127,7 +131,7 @@ tasks.register('vendorLicences', JavaExec) {
             '--only=inter,jetbrains-mono,lucide'
 }
 
-// Frame rasterizes through Blend2D (ADR-0031), so the tests that paint need a
+// Frame rasterizes through Blend2D, so the tests that paint need a
 // real libgoldberry. They abort cleanly without one, the same way :natives' do
 // — a Java-only contributor should not need a C++ toolchain to run them.
 //
@@ -135,7 +139,8 @@ tasks.register('vendorLicences', JavaExec) {
 // than re-derived here: the host-target detection lives in one place, so adding
 // a target cannot leave :core testing a different library than the one that was
 // just built. An explicitly supplied path still wins, which is how CI verifies a
-// downloaded artifact (ADR-0016).
+// downloaded artifact.
+// https://goldberry.dev/docs/contributing/testing.html#with-and-without-the-library
 // The fixtures are JUnit-facing: RendererRequirement aborts a test and
 // GoldenImage raises an AssertionFailedError, so they need the same JUnit the
 // tests do.
@@ -199,15 +204,16 @@ if (!skipNative && !externalLibrary) {
 }
 
 // ============================================================================
-// Coverage floor (docs/testing.md §3)
+// Coverage floor
+// https://goldberry.dev/docs/contributing/testing.html#advisory-dashboards
 //
 // A ratchet, not a target. Each number is a little under what the suite reaches
 // today, so the gate catches a change that *drops* coverage and never blocks one
 // that merely fails to raise it. Raising a floor is a deliberate edit.
 //
 // The module figure is deliberately modest, because more than half of :core is
-// painters and §0.2 is explicit that line coverage proves reachability there
-// rather than correctness -- the goldens carry that. The packages below are the
+// painters, and line coverage proves reachability there rather than
+// correctness -- the goldens carry that. The packages below are the
 // other kind: a cascade either resolves a declaration or it does not, and there
 // is no picture to fall back on.
 // ============================================================================
@@ -215,7 +221,7 @@ tasks.named('jacocoTestCoverageVerification') {
     // Measured with libgoldberry loaded, so only meaningful with it. Under
     // -Pgoldberry.skipNative every test that shapes, paints or parses skips, and
     // the figure drops to roughly half -- a gate no Java-only build can pass. The
-    // Linux verify job runs it against the real library instead (ADR-0338).
+    // Linux verify job runs it against the real library instead.
     onlyIf('the native library is part of this build') { !skipNative }
     violationRules {
         rule {

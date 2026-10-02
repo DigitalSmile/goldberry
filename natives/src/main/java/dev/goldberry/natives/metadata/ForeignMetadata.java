@@ -15,8 +15,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 /// Writes the `foreign` section of a `reachability-metadata.json` from
-/// [ForeignSurface], in the spelling GraalVM's own tracing agent uses
-/// (ADR-0339).
+/// [ForeignSurface], in the spelling GraalVM's own tracing agent uses.
 ///
 /// Run by `:natives:foreignMetadata` before the jar is built, and the file
 /// travels inside the jar under `META-INF/native-image/`, where `native-image`
@@ -28,6 +27,9 @@ import java.util.stream.Collectors;
 /// The type names are the agent's — `jint` and not `int`, `void*` for every
 /// pointer, `struct(jfloat,jfloat)` for a struct by value — so what this writes
 /// and what the agent wrote can be compared line for line, and a test does.
+///
+/// Read more:
+/// [Two metadata directories](https://goldberry.dev/docs/native.html#two-metadata-directories-traced-and-written).
 public final class ForeignMetadata {
 
     private ForeignMetadata() {}

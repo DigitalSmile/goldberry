@@ -17,8 +17,7 @@ import org.junit.jupiter.api.Test;
 
 import dev.goldberry.text.font.sfnt.SyntheticFont.RecordingSink;
 
-/// The `glyf` reader — the shapes a COLRv1 graph clips its fills to
-/// ([ADR-0456]).
+/// The `glyf` reader — the shapes a COLRv1 graph clips its fills to.
 ///
 /// Every expectation is a list of path commands a reader can check against the
 /// points by hand. The one rule that makes TrueType outlines tricky — an

@@ -135,7 +135,7 @@ final class Blend2dFont {
                     metrics.get(ValueLayout.JAVA_FLOAT, METRICS_CAP_HEIGHT),
                     // Straight across, with Blend2D's own sign: both positions are
                     // y-down offsets from the baseline to the top of the rule, which
-                    // is the form a painter adds to a baseline ([ADR-0321]).
+                    // is the form a painter adds to a baseline.
                     metrics.get(ValueLayout.JAVA_FLOAT, METRICS_UNDERLINE_POSITION),
                     metrics.get(ValueLayout.JAVA_FLOAT, METRICS_UNDERLINE_THICKNESS),
                     metrics.get(ValueLayout.JAVA_FLOAT, METRICS_STRIKETHROUGH_POSITION),

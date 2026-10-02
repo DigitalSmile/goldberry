@@ -45,7 +45,7 @@ import dev.goldberry.render.window.GpuSurface;
 /// reaches the rasterizer intact and is antialiased across the physical pixels
 /// it actually covers. A rectangle at logical `x = 10.5` on a 1.5&times; display
 /// lands at physical 15.75 and looks like it; snapping it to 15 or 16 would move
-/// it by a third of a logical pixel (ADR-0031).
+/// it by a third of a logical pixel.
 ///
 /// Colours are `0xAARRGGBB` — the packing everyone already knows from CSS and
 /// Java 2D — and are **not** premultiplied. The buffer underneath is, and
@@ -66,7 +66,9 @@ import dev.goldberry.render.window.GpuSurface;
 /// it is above it, and what was painted before it and under it is hidden, as it
 /// would be under an opaque box. Over a composited window the layer's box
 /// becomes a hole the compositor fills; otherwise the layer is rendered, read
-/// back and drawn here (`docs/gpu-plan.md`, D3 and D4; ADR-0481).
+/// back and drawn here.
+///
+/// Read more: [Canvas, images and QR codes](https://goldberry.dev/docs/components/drawing.html#the-painter).
 public final class Frame {
 
     private final PixelBuffer buffer;
@@ -77,11 +79,9 @@ public final class Frame {
     /// Rasterizer paths lent out by [#borrowPath()], never more than a few.
     ///
     /// A `BlendPath` is a confined `Arena` and a `bl_path_init`, so one per shape
-    /// per frame is an allocation the frame can trivially avoid -- and used to
-    /// avoid only where somebody remembered to. `BoxPainter` pooled one and
-    /// threaded it through its own public signature; `:widgets` pooled none and
-    /// opened four arenas per chart per frame. The pool is here now, in the one
-    /// place that can see every drawing call (ADR-0277).
+    /// per frame is an allocation the frame can trivially avoid. The pool is
+    /// here, in the one place that can see every drawing call, rather than in
+    /// each painter that remembers to keep one.
     ///
     /// A free list rather than a single scratch, because the borrows nest: a
     /// `canvas` painter filling a [Path] runs inside `BoxPainter`, which is
@@ -95,7 +95,7 @@ public final class Frame {
     /// for something the painter already knows. Every change to this frame's
     /// matrix goes through [#transform] or [#resetTransform()], so mirroring it
     /// here costs six doubles and is what lets [#concat] compose with what a
-    /// caller cannot see (ADR-0068, ADR-0390).
+    /// caller cannot see.
     private Affine matrix = Affine.IDENTITY;
 
     /// The transforms and clips [#save()] pushed, popped by [#restore()].
@@ -110,7 +110,7 @@ public final class Frame {
 
     /// The clip in force, in **physical** pixels, kept in Java for the reason
     /// [#matrix] is: Blend2D will not hand it back, and a GPU layer's scissor is
-    /// the part of it the clip lets through (ADR-0481).
+    /// the part of it the clip lets through.
     ///
     /// A clip under a transform that is not a scale and a translation is its
     /// bounding box, which is what Blend2D clips to as well. The region
@@ -142,9 +142,8 @@ public final class Frame {
     /// [PaintThreads] chooses for its size.
     ///
     /// The caller keeps the buffer and must [#end()] the frame before reading it.
-    /// Public because [Window] is in another package now: a frame is the paint
-    /// package's surface and the shell is what lends it a buffer
-    /// (ADR-0172).
+    /// Public because [Window] is in another package: a frame is the paint
+    /// package's surface and the shell is what lends it a buffer.
     public static Frame over(PixelBuffer buffer, DisplayScale scale) {
         return new Frame(buffer, scale);
     }
@@ -157,7 +156,7 @@ public final class Frame {
 
     /// A frame over a buffer someone else owns, whose GPU layers `gpu` shows:
     /// what [Window] paints a window's frames with, with the surface
-    /// [BackendWindow#gpuSurface()] gave it (ADR-0481).
+    /// [BackendWindow#gpuSurface()] gave it.
     ///
     /// The caller keeps the buffer and must [#end()] the frame before reading it,
     /// and then hands [#gpuPlacements()] back to `gpu`.
@@ -239,12 +238,9 @@ public final class Frame {
 
     /// Draws staged glyphs with `(x, baseline)` on the baseline.
     ///
-    /// **Package-private, and that is the end of `docs/gaps.md` G14.** This was
-    /// the last method in the toolkit's public surface with a `:natives` type in
-    /// its signature, and the reason `:core` could not drop `requires transitive`
-    /// (ADR-0290). [GlyphPen] is in this package now and is its only caller;
-    /// [Font][dev.goldberry.text.font.Font] is the public way
-    /// to draw text and always was.
+    /// **Package-private**, because a `:natives` type is in its signature and
+    /// this package is as far as one goes. [GlyphPen] is its only caller;
+    /// [Font][dev.goldberry.text.font.Font] is the public way to draw text.
     ///
     /// The primitive, not the text API. It takes a font and a buffer of
     /// positioned glyphs because that is what a rasterizer draws; deciding
@@ -256,7 +252,7 @@ public final class Frame {
     /// The glyph buffer's offsets and advances are in the font's **design
     /// units**, not in the logical coordinates everything else here uses. That
     /// asymmetry is Blend2D's: the font's own matrix converts them, which is
-    /// what lets one shaping result be drawn at any size (ADR-0034).
+    /// what lets one shaping result be drawn at any size.
     ///
     /// @param argb a colour as `0xAARRGGBB`, not premultiplied
     void drawGlyphs(double x, double baseline, BlendFont font, BlendGlyphBuffer glyphs, int argb) {
@@ -269,7 +265,7 @@ public final class Frame {
     /// The one fill an application writes. [Path] is a value in logical
     /// coordinates; turning it into something the rasterizer can draw is this
     /// frame's business and happens against a pooled path, so building a shape
-    /// costs two Java arrays and no native memory at all (ADR-0277).
+    /// costs two Java arrays and no native memory at all.
     ///
     /// @param argb a colour as `0xAARRGGBB`, not premultiplied
     public void fillPath(Path path, int argb) {
@@ -303,7 +299,7 @@ public final class Frame {
     /// The ramp is placed in **this frame's** coordinates and not the path's, so
     /// one gradient fills a run of figures at the strength each one sits at —
     /// which is what a chart's bands need and what makes [Gradient] a value
-    /// rather than something attached to a shape (ADR-0207).
+    /// rather than something attached to a shape.
     public void fillPath(Path path, Gradient gradient) {
         fillPath(0, 0, path, gradient);
     }
@@ -313,7 +309,7 @@ public final class Frame {
     /// **The origin moves the path and not the ramp.** A gradient is a statement
     /// about a region of the surface rather than about a shape, so drawing the
     /// same path at two origins samples two parts of one ramp rather than
-    /// repeating the first (ADR-0207).
+    /// repeating the first.
     public void fillPath(double x, double y, Path path, Gradient gradient) {
         requireOpen();
         Objects.requireNonNull(path, "path");
@@ -343,7 +339,7 @@ public final class Frame {
     ///
     /// **A dashed stroke is a solid stroke of a different path.** Blend2D stores
     /// a dash array and never strokes with it, so the cutting happens here,
-    /// through [Dasher] — see ADR-0278. A solid stroke pays nothing for that:
+    /// through [Dasher]. A solid stroke pays nothing for that:
     /// the dasher hands back the very path it was given.
     ///
     /// @param argb a colour as `0xAARRGGBB`, not premultiplied
@@ -382,7 +378,7 @@ public final class Frame {
 
     /// Fills `path`, with the path's own origin placed at logical `(x, y)`.
     ///
-    /// Package-private since ADR-0277: `BlendPath` is a `:natives` type and this
+    /// Package-private: `BlendPath` is a `:natives` type and this
     /// package is as far as it goes. `:core`'s own painters keep it because they
     /// build into a pooled path and reset it between shapes, which is cheaper
     /// than a value they would throw away on the next box.
@@ -401,7 +397,7 @@ public final class Frame {
     /// value would mean every path in the toolkit carries an answer to a
     /// question only one drawing asks, and adding it to the public
     /// [#fillPath(double, double, Path, int)] would be API surface nothing has
-    /// requested (ADR-0427).
+    /// requested.
     ///
     /// That one drawing is a drop shadow with the box's own rectangle cut out of
     /// it. When something else needs a hole, this is what it grows out of.
@@ -419,8 +415,7 @@ public final class Frame {
     /// about a *region of the surface* rather than about a shape: one placed
     /// from the top of a plot to its baseline is the same ramp for every band
     /// filled through it, which is what lets a chart build one gradient and draw
-    /// several figures in it
-    /// (ADR-0207).
+    /// several figures in it.
     ///
     /// Its coordinates are logical, like everything else here.
     ///
@@ -437,7 +432,7 @@ public final class Frame {
     /// radial and conic as well as linear, extend by repeating and reflecting as
     /// well as padding, and carry a matrix of their own — none of which the
     /// public [Gradient] value says, nor needs to for anything an application
-    /// draws (ADR-0456).
+    /// draws.
     void fillPath(Path path, BlendGradient gradient) {
         requireOpen();
         Objects.requireNonNull(path, "path");
@@ -459,8 +454,8 @@ public final class Frame {
     ///
     /// Package-private, for [ColourGlyphPainter]'s `PaintComposite`: a waving
     /// flag is its stripes with a shading layer soft-lit onto them, and that is
-    /// one layer blitted onto another with an operator the font names
-    /// (ADR-0456). The operator is context state and goes back to source-over
+    /// one layer blitted onto another with an operator the font names. The
+    /// operator is context state and goes back to source-over
     /// before this returns, whatever the blit did.
     void drawLayer(double x, double y, Layer layer, BlendCompOp compOp) {
         requireOpen();
@@ -530,8 +525,8 @@ public final class Frame {
     /// a caller drawing a transformed subtree accumulates the stack itself and
     /// sets an absolute matrix per node. That is not a limitation worked around —
     /// it is what lets hit testing invert the same matrix the painter used,
-    /// rather than a second one built from the same inputs by different code
-    /// (ADR-0068). A painter that does not know what it is drawing under — which
+    /// rather than a second one built from the same inputs by different code.
+    /// A painter that does not know what it is drawing under — which
     /// is every `canvas` painter — wants [#concat] instead.
     ///
     /// The display scale is **not** the caller's to apply: it is already on the
@@ -560,7 +555,7 @@ public final class Frame {
     /// That is the difference from [#transform], which replaces: inside a
     /// `canvas` the matrix already carries the translation that puts the canvas
     /// on screen, the painter cannot read it back, and replacing it draws at the
-    /// window's corner (ADR-0390, `docs/gaps.md` G46).
+    /// window's corner.
     ///
     /// **This does not push anything.** [#save()] and [#restore()] are the
     /// state stack, here as they are for the clip, and a painter that composed
@@ -574,7 +569,7 @@ public final class Frame {
     /// constants the layout verifier checks against the compiled library, and
     /// adding it would mean changing the native build for arithmetic that is six
     /// multiplies — arithmetic which must agree exactly with what hit testing
-    /// inverts, and therefore has one implementation (ADR-0068).
+    /// inverts, and therefore has one implementation.
     public void concat(double a, double b, double c, double d, double e, double f) {
         requireOpen();
         var composed = new Affine(a, b, c, d, e, f).then(matrix);
@@ -596,7 +591,7 @@ public final class Frame {
     /// strength; fading happens once, here, to the finished raster. Fading each
     /// shape as it was drawn gives a different answer wherever two of them
     /// overlap — the lower one shows through the upper — and CSS specifies this
-    /// one (ADR-0071).
+    /// one.
     ///
     /// The layer's pixels are its own; this reads them and copies. Nothing here
     /// takes ownership, so the same layer can be composited into several frames
@@ -614,8 +609,7 @@ public final class Frame {
         // The raster is in PHYSICAL pixels and this context is in LOGICAL ones,
         // so the blit has to say how big the raster is in the context's units or
         // it is drawn one raster pixel per logical unit -- which is right at 1x
-        // and twice the size at 2x
-        // (ADR-0157).
+        // and twice the size at 2x.
         //
         // Derived from the raster rather than from the bounds the caller laid
         // out: `Layer.of` rounds the physical size *up*, so at a fractional scale
@@ -656,8 +650,8 @@ public final class Frame {
     /// **Natural size means one image pixel per device pixel**, not per logical
     /// unit: a 64&times;64 icon covers 64 logical pixels at 100% and 32 at 200%,
     /// and is crisp on both. The alternative — 64 logical units everywhere —
-    /// would double its physical size on a retina display and smear it, which is
-    /// the bug ADR-0157 found in layers and is the same arithmetic here.
+    /// would double its physical size on a retina display and smear it. A layer
+    /// blit makes the same correction, with the same arithmetic.
     ///
     /// An image that is meant to *scale* with the interface rather than stay
     /// pixel-exact is one whose size the caller states, which is the overload
@@ -697,8 +691,7 @@ public final class Frame {
     /// the destination is in logical units, which is where they go. They are
     /// deliberately not related: a caller drawing a 200&times;200 region into a
     /// 100&times;100 box is asking for it to be scaled down, and one drawing it
-    /// into a 200&times;200 box at 200% is asking for it to stay pixel-exact
-    /// (ADR-0283).
+    /// into a 200&times;200 box at 200% is asking for it to stay pixel-exact.
     ///
     /// @param source the region of the image to draw, which must lie inside it
     /// @param alpha 0 to 1
@@ -762,8 +755,7 @@ public final class Frame {
     /// that changed rasterizes only that region, and the rest of the buffer keeps
     /// the pixels the last frame left there. That last clause is the whole
     /// correctness condition, and it is not this class's to promise — see
-    /// [BackendWindow#retainsFrameContents()]
-    /// (ADR-0072).
+    /// [BackendWindow#retainsFrameContents()].
     ///
     /// Intersected with any clip already in force. [#resetClip()] undoes it.
     public void clipTo(double x, double y, double width, double height) {
@@ -791,8 +783,7 @@ public final class Frame {
     /// established, and may leave anything at all behind. [#resetClip()] cannot
     /// undo that — it goes back to the *whole frame*, so a canvas inside a
     /// `scroll` would paint over the viewport's edge — which is why this exists
-    /// and why the export list grew a state stack for it
-    /// (ADR-0193).
+    /// and why the export list grew a state stack for it.
     ///
     /// Must be paired with [#restore()], and the pair is the caller's to balance.
     public void save() {
@@ -814,7 +805,7 @@ public final class Frame {
 
     /// Runs `body` with everything it draws confined to `(x, y, width, height)`,
     /// in logical coordinates: the part of the frame being **repainted**, when
-    /// the rest still holds the last frame's pixels (ADR-0072).
+    /// the rest still holds the last frame's pixels.
     ///
     /// A clip, as far as the pixels go, with two differences that matter to a
     /// partial repaint:
@@ -827,7 +818,7 @@ public final class Frame {
     ///   with the part of it the other clips let through, whether or not that
     ///   lies inside the region: which part of the frame is repainted is not
     ///   which part of a video can be seen, and a layer only half inside the
-    ///   damage still shows whole (ADR-0481).
+    ///   damage still shows whole.
     ///
     /// Scoped, like a pass on the GPU, so the region cannot be left in force:
     /// clip and transform are back to what they were when `body` returns or
@@ -874,8 +865,7 @@ public final class Frame {
     }
 
     /// Places `content`, which the GPU draws, in the logical rectangle
-    /// `(x, y, width, height)` and in paint order (`docs/gpu-plan.md`, D4;
-    /// ADR-0481).
+    /// `(x, y, width, height)` and in paint order.
     ///
     /// ```java
     /// Box.of().painting((frame, size) -> {
@@ -1066,11 +1056,9 @@ public final class Frame {
     ///
     /// Ending a frame is the caller-of-[#over]'s job -- [Window]'s, in the
     /// toolkit -- and an application that ends the frame it was handed to paint
-    /// invalidates its own canvas halfway through. That used to be enforced by
-    /// this being package-private, and is now enforced by the frame itself:
-    /// ending twice is a no-op and painting afterwards throws, so the mistake is
-    /// loud rather than a half-drawn window
-    /// (ADR-0172).
+    /// invalidates its own canvas halfway through. The frame enforces that
+    /// itself: ending twice is a no-op and painting afterwards throws, so the
+    /// mistake is loud rather than a half-drawn window.
     public void end() {
         if (ended) {
             return;
@@ -1147,8 +1135,8 @@ public final class Frame {
     /// A toolkit [Join] as the rasterizer's own.
     ///
     /// [Join#MITER] is Blend2D's `MITER_CLIP`, which is the variant that cuts the
-    /// spike off at the limit — SVG's `miter` with `stroke-miterlimit`, and the
-    /// reason the limit had to be bound before this could be honest (ADR-0278).
+    /// spike off at the limit — SVG's `miter` with `stroke-miterlimit`, which is
+    /// why the limit is bound alongside the join.
     private static BlendStrokeJoin toBlend(Join join) {
         return switch (join) {
             case MITER -> BlendStrokeJoin.MITER_CLIP;

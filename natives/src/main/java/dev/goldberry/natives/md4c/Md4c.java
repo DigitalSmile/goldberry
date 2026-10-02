@@ -18,9 +18,8 @@ import dev.goldberry.natives.md4c.enums.MarkdownFlag;
 /// md4c is a SAX parser — five callbacks, invoked thousands of times for a document
 /// of any size — and this is deliberately **not** that shape. The events are encoded
 /// natively into one buffer and read once, so nothing crosses the FFM boundary per
-/// block and no detail struct is modelled in Java at all
-/// (ADR-0294).
-/// What a caller gets is a value:
+/// block and no detail struct is modelled in Java at all. What a caller gets is
+/// a value:
 ///
 /// ```java
 /// for (var event : Md4c.get().parse("# Hello\n", Set.of(MarkdownFlag.TABLES))) {
@@ -34,14 +33,14 @@ import dev.goldberry.natives.md4c.enums.MarkdownFlag;
 ///
 /// ## Why this is in `:natives` and reaches exactly one module
 ///
-/// The wrapper traffics in Java types — a `String` in, records out — so it obeys
-/// §3.1 like every other wrapper here. But md4c is not part of the toolkit's own
-/// surface: it is `goldberry-html`'s dependency, and the module descriptor exports
-/// this package to that module and to nobody else, the way Blend2D and Yoga are
-/// exported to `:core` alone
-/// (ADR-0280).
-/// An application that wants Markdown asks `:html` for a document, not this for
-/// events.
+/// The wrapper traffics in Java types — a `String` in, records out — so no foreign
+/// memory leaves the module, like every other wrapper here. But md4c is not part
+/// of the toolkit's own surface: it is `goldberry-html`'s dependency, and the
+/// module descriptor exports this package to that module and to nobody else, the
+/// way Blend2D and Yoga are exported to `:core` alone. An application that wants
+/// Markdown asks `:html` for a document, not this for events.
+///
+/// Read more: [The native boundary](https://goldberry.dev/docs/overview/architecture.html#the-native-boundary).
 public final class Md4c {
 
     private static final class Holder {

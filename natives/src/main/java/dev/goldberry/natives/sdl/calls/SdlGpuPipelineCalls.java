@@ -9,12 +9,14 @@ import java.lang.invoke.MethodHandle;
 
 import dev.goldberry.natives.Downcalls;
 
-/// What a draw is made with: shaders, samplers and graphics pipelines
-/// (`docs/gpu-plan.md`, phase 2).
+/// What a draw is made with: shaders, samplers and graphics pipelines.
 ///
 /// One holder per function: its handle, its address, and a `call` whose
 /// parameters are the C prototype’s. See [Downcalls] for why the handle is a
 /// `static final` constant and why these live in a package of their own.
+///
+/// Read more: [The GPU canvas](https://goldberry.dev/docs/components/gpu.html#the-renderer) and
+/// [The native boundary](https://goldberry.dev/docs/overview/architecture.html#the-native-boundary).
 public record SdlGpuPipelineCalls(
         CreateGPUShader createGPUShader,
         ReleaseGPUShader releaseGPUShader,
@@ -176,8 +178,8 @@ public record SdlGpuPipelineCalls(
         }
     }
 
-    /// Creates a graphics pipeline: two shaders, how vertices arrive, how they are\nrasterised, and the target format
-    /// and blending they draw with.
+    /// Creates a graphics pipeline: two shaders, how vertices arrive, how they are
+    /// rasterised, and the target format and blending they draw with.
     ///
     /// `void* SDL_CreateGPUGraphicsPipeline(void*, void*)`
     public static final class CreateGPUGraphicsPipeline {

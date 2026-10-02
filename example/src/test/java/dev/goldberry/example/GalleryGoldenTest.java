@@ -21,16 +21,17 @@ import dev.goldberry.render.window.GpuSurface;
 import dev.goldberry.render.window.WindowSpec;
 import dev.goldberry.text.font.Fonts;
 
-/// The gallery, one image per screen (§14: "golden-image CI runs the gallery
-/// matrix").
+/// The gallery, one image per screen: the golden images CI runs over the gallery
+/// matrix.
 ///
 /// [ShowcaseDocumentsTest] asserts the *shape* of the documents — that every
 /// control is there and every `bind=` reaches the model — and could not tell you
 /// whether a screen renders at all. These can: an empty screen, a strip that
-/// forgot its rule, or a heading in the wrong colour is a picture that changed
-/// ([ADR-0110]).
+/// forgot its rule, or a heading in the wrong colour is a picture that changed.
 ///
 /// `./gradlew :example:test -Dgoldberry.golden.update=true` rewrites them.
+///
+/// Read more: [Goldens](https://goldberry.dev/docs/contributing/testing.html#goldens).
 class GalleryGoldenTest {
 
     private ShowcaseScene scene;
@@ -79,7 +80,7 @@ class GalleryGoldenTest {
 
     /// The same, choosing how the text is drawn: with the one-font renderer these
     /// goldens were taken with, or with a **book**, which is what a screen about
-    /// `font-family` needs ([ADR-0386]).
+    /// `font-family` needs.
     private void paint(String name, String screen, Theme theme, int width, int height, boolean book) {
         paint(name, screen, theme, width, height, book, Sweep.EVERY_SCALE);
     }
@@ -90,7 +91,7 @@ class GalleryGoldenTest {
     }
 
     /// The same, showing GPU layers through `gpu` when there is one: the GPU
-    /// screen on the GPU lane (ADR-0482).
+    /// screen on the GPU lane.
     private void paint(
             String name,
             String screen,
@@ -103,7 +104,7 @@ class GalleryGoldenTest {
         var root = scene.root(screen);
         var sheets = scene.stylesheets(theme);
 
-        // **Through the shipped `Offscreen`** (ADR-0284), which is the same
+        // **Through the shipped `Offscreen`**, which is the same
         // sequence this method used to spell out for itself: mount, lay out, feed
         // the regions back, advance a frozen clock, and paint the second frame.
         //
@@ -121,7 +122,7 @@ class GalleryGoldenTest {
 
         // The size and the scale are the harness's rather than captured here,
         // because a golden that matches is then re-rendered at 2x, 1.5x and 1.25x
-        // and checked for describing the same picture (ADR-0162, ADR-0434). The
+        // and checked for describing the same picture. The
         // whole screen goes through that sweep now, which it always did — the
         // difference is that the render it sweeps is one an application could have
         // written. The one exception is `canvas`, and the note on that test says
@@ -130,8 +131,8 @@ class GalleryGoldenTest {
             // A **font book** rather than the one-font renderer, for the one
             // screen whose subject is `font-family`: the emoji sheet draws every
             // glyph through the face the cascade picks, and a renderer that
-            // ignores the property would photograph a wall of `.notdef`
-            // ([ADR-0386]). Opened and closed per picture, because a book owns
+            // ignores the property would photograph a wall of `.notdef`.
+            // Opened and closed per picture, because a book owns
             // the faces it opened.
             try (var fonts = Fonts.bundled()) {
                 assertGolden(
@@ -174,8 +175,7 @@ class GalleryGoldenTest {
 
     /// 1720 tall rather than 900, for the Forms screen's reason: the shapes card
     /// and the links card sit below the fold at 900, and a golden that stopped
-    /// there would not photograph the two things it exists to show (ADR-0346,
-    /// ADR-0347).
+    /// there would not photograph the two things it exists to show.
     @Test
     @DisplayName("the Basic screen")
     void basic() {
@@ -189,7 +189,7 @@ class GalleryGoldenTest {
     }
 
     /// The screen an **optional module** draws, and the only golden in the gallery
-    /// that needs a stylesheet the toolkit does not ship (ADR-0295).
+    /// that needs a stylesheet the toolkit does not ship.
     ///
     /// Taller than the walls: this screen is a `split-pane` rather than a masonry, so
     /// what it shows is bounded by the window rather than by how many cards fit —
@@ -200,8 +200,7 @@ class GalleryGoldenTest {
         paint("gallery-markdown", "markdown", Theme.NORD_DARK, 1200, 1000);
     }
 
-    /// The other half of the same optional module, and the screen `docs/gaps.md` G17
-    /// asked for.
+    /// The other half of the same optional module.
     ///
     /// Taller than the walls for the Markdown screen's reason — it is a `split-pane`
     /// rather than a masonry, so what it shows is bounded by the window — and worth its
@@ -224,7 +223,7 @@ class GalleryGoldenTest {
     @DisplayName("the Forms screen")
     void forms() {
         // **Taller than the window**, which is what the four-argument form is for.
-        // The gutter card (`docs/gaps.md` G37, ADR-0331) sits in the second half of
+        // The gutter card sits in the second half of
         // the wall, and its whole claim is visible only in the picture: the long
         // paragraph takes **one** number and three lines' height, so the numbers
         // below it are where the wrap put them rather than where a column beside
@@ -241,7 +240,7 @@ class GalleryGoldenTest {
 
     /// 1040 tall: the timeline card ends below the fold at 900, and Rivendell's
     /// `badge` marker — the one widget marker in the showcase — sat on the last
-    /// row, cut in half (ADR-0356).
+    /// row, cut in half.
     @Test
     @DisplayName("the Collections screen")
     void collections() {
@@ -259,7 +258,7 @@ class GalleryGoldenTest {
     /// Every other golden in this file photographs the thing its screen is about.
     /// This one cannot and never will: a page is a window WebKit draws, with no
     /// offscreen surface and no way to stand where a widget is on Wayland
-    /// (ADR-0441). So the screen itself is the subject — the prose, the disabled
+    /// So the screen itself is the subject — the prose, the disabled
     /// button and the banner that says why.
     ///
     /// **The capability is pinned off by the build, not by the harness.** Having
@@ -300,8 +299,7 @@ class GalleryGoldenTest {
     }
 
     /// **The one golden in the repository with no scale sweep behind it**, and the
-    /// reason is what is on the screen rather than anything about the check
-    /// ([ADR-0434]).
+    /// reason is what is on the screen rather than anything about the check.
     ///
     /// This wall holds three QR codes and four decoded bitmaps. A QR module is a
     /// hard-edged square in a dense grid and a decoded PNG drawn at its natural
@@ -334,22 +332,23 @@ class GalleryGoldenTest {
     @Test
     @DisplayName("the canvas screen")
     void canvas() {
-        // §1's `canvas`, and the one screen whose cards respond to the pointer.
+        // The `canvas` screen, and the one screen whose cards respond to the pointer.
         // The picture is taken **at rest**: neither interactive card draws
         // anything extra until something touches it, which is what makes a
-        // surface an application controls photographable at all (ADR-0281).
+        // surface an application controls photographable at all.
         paint("gallery-canvas", "canvas", Theme.NORD_DARK, 1200, 900, false, Sweep.ONE_SCALE);
     }
 
     /// The same screen at the size a small window gives it, and **the one picture
     /// in the gallery whose subject is the window rather than a widget**.
     ///
-    /// It was worth a picture for the opposite reason until ADR-0436. A masonry's
+    /// It was worth a picture for the opposite reason until a column count became
+    /// a width the window does. A masonry's
     /// columns were a *count* and not a media query, so two columns of cards at
     /// 1200 were two columns at 720 as well — half as wide and twice as tall —
     /// and what this asserted was that they still fit: a card whose contents had
-    /// a minimum width would overflow rather than wrap, because §10's `wrap` is
-    /// not built (ADR-0196). It was a picture of a layout surviving a window it
+    /// a minimum width would overflow rather than wrap, because a masonry reads
+    /// last frame and `wrap` is not built. It was a picture of a layout surviving a window it
     /// was not designed for.
     ///
     /// `basic.kdl` says `min-column-width=560` now, so this is a picture of the
@@ -371,7 +370,7 @@ class GalleryGoldenTest {
 
     /// The eleventh screen, and the only golden in the gallery of a **virtualized**
     /// tree: what is in the picture is the rows the viewport asked for, not the
-    /// 193 the sheet holds ([ADR-0307]).
+    /// 193 the sheet holds.
     ///
     /// It is worth a picture for a reason the others are not — the row height in
     /// `IconsScreen` and the tile height in `showcase.css` are two numbers that
@@ -385,10 +384,10 @@ class GalleryGoldenTest {
     }
 
     /// The Emoji sheet, drawn through a **font book** — the one golden in this
-    /// file that is not taken with the one-font renderer ([ADR-0386]).
+    /// file that is not taken with the one-font renderer.
     ///
     /// It has to be. The screen's whole subject is `font-family: "Noto Color
-    /// Emoji"` reaching §6.1's emoji slot, and a renderer that ignores the
+    /// Emoji"` reaching the emoji slot, and a renderer that ignores the
     /// property would photograph a sheet of `.notdef` and call it a picture of an emoji
     /// sheet. So this one opens a book, which is also what proves the face is on
     /// the module path: without `goldberry-emoji` the glyphs would fall back to
@@ -401,14 +400,14 @@ class GalleryGoldenTest {
 
     /// The twelfth screen, 200 ms in on the virtual clock: the tile floor part way
     /// through its ripple, the swatches part way through a breath and the mark
-    /// part way round ([ADR-0354], [ADR-0355]).
+    /// part way round.
     ///
     /// Deterministic, which is the whole reason it can be a golden: every one of
     /// the three is a function of the frame time, and the offscreen renderer's
     /// time is not the wall's. Its floor starts on the first render rather than
     /// the first paint, or this picture would have no tiles in it.
     /// The GPU screen with no GPU, which is every leg's picture of it: each
-    /// `canvas3d` shows `--gb-canvas3d-unavailable` (ADR-0482). At one scale, for
+    /// `canvas3d` shows `--gb-canvas3d-unavailable`. At one scale, for
     /// the drawn picture's reason below.
     @Test
     @DisplayName("the GPU screen, with no GPU")
@@ -419,7 +418,7 @@ class GalleryGoldenTest {
     /// The GPU screen drawn on a real device, read back: the showcase's cubes in
     /// its own shaders, as a headless window's read-back surface draws them. On
     /// the GPU lane, `:example:gpuTest`. At one scale: a 3D view is rendered at
-    /// its physical size, which a scale sweep does not describe (ADR-0434).
+    /// its physical size, which a scale sweep does not describe.
     @Test
     @Tag(GpuTestLauncher.TAG)
     @DisplayName("the GPU screen, drawn on the GPU and read back")
@@ -443,7 +442,7 @@ class GalleryGoldenTest {
     }
 
     /// The same sheet in a narrow window, which is the **only** thing that can
-    /// show the reflow ([ADR-0309]).
+    /// show the reflow.
     ///
     /// The column count is `floor((width + gap) / (tile + gap))` over a width no
     /// assertion can know, because it is what Yoga made of the viewport after the

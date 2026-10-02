@@ -33,13 +33,12 @@ import dev.goldberry.widgets.core.Column;
 import dev.goldberry.widgets.core.Row;
 import dev.goldberry.widgets.panel.Panel;
 
-/// What a segmented control actually looks like (§14, [ADR-0050]).
+/// What a segmented control actually looks like, held as golden images.
 ///
 /// [SegmentedTest] pins the two radii and the inset as numbers. These are the
 /// images that say the numbers add up to a control: **the selected segment sits
-/// *inside* the bar's rounded corners**, which is the whole of
-/// ADR-0097's
-/// drawing decision, and it is the kind of thing no assertion reaches — a fill
+/// *inside* the bar's rounded corners**, which is the whole of the drawing
+/// decision, and it is the kind of thing no assertion reaches — a fill
 /// painted over the bar's curve resolves to exactly the same numbers and looks
 /// like a corner that lost its radius.
 ///
@@ -73,7 +72,7 @@ class SegmentedGoldenTest {
     private record PseudoState(int segment, Selector.PseudoClass pseudoClass) {
         /// Through the track, and found **by type**: the track's children are its
         /// parts first — one hairline per boundary, then the pill, both painted
-        /// under the labels ([ADR-0099], [ADR-0217]) — so counting past them is a
+        /// under the labels — so counting past them is a
         /// number that changes with the anatomy and a type is not.
         void applyTo(Element bar) {
             bar.children().getFirst().children().stream()
@@ -86,8 +85,8 @@ class SegmentedGoldenTest {
 
     /// The scene is the bar inside a row, on `--gb-bg`.
     ///
-    /// Sizes are content plus padding and nothing spare: a control does not shrink
-    /// (ADR-0076), so a frame a few pixels short clips a segment rather than
+    /// Sizes are content plus padding and nothing spare: a control does not
+    /// shrink, so a frame a few pixels short clips a segment rather than
     /// squashing the bar, and an image is not evidence of what it cut off.
     private void paint(String name, Theme theme, int width, Widget bar, PseudoState... states) {
         var content = new Row(List.of(bar), id("row"));
@@ -119,7 +118,7 @@ class SegmentedGoldenTest {
 
     /// The image this control exists to be checked by: three labels, one plate,
     /// and the middle segment filled — meeting its neighbours rather than sitting
-    /// inside them, which is §3's "radius 8 outer, 0 between" ([ADR-0217]).
+    /// inside them, which is the catalogue's "radius 8 outer, 0 between".
     @Test
     @DisplayName("three segments with the middle one selected, on dark")
     void selectedDark() {
@@ -130,9 +129,9 @@ class SegmentedGoldenTest {
     /// not loaded, or holding a value no segment carries.
     ///
     /// It is also the **only** state in which every hairline shows, and so the
-    /// image that says §3's divider is drawn at all: the two beside the selection
+    /// image that says the divider is drawn at all: the two beside the selection
     /// are faded out, and with three segments and the middle one on, that is both
-    /// of them ([ADR-0217]).
+    /// of them.
     @Test
     @DisplayName("nothing selected: no pill, and every hairline showing")
     void nothingSelected() {
@@ -141,7 +140,7 @@ class SegmentedGoldenTest {
 
     /// The same bar on light, where every colour in it is a different token and
     /// the selected fill is the one that had to be taken *down* rather than up to
-    /// carry its label (ADR-0088).
+    /// carry its label.
     @Test
     @DisplayName("the same bar on the light theme")
     void selectedLight() {
@@ -165,11 +164,12 @@ class SegmentedGoldenTest {
                 new PseudoState(1, Selector.PseudoClass.HOVER));
     }
 
-    /// The focus ring goes round the **segment**, at §2.2's 2px offset. In the
+    /// The focus ring goes round the **segment**, at the design system's 2px
+    /// offset. In the
     /// joined drawing a segment reaches the bar's inner edge, so the ring sits
     /// just outside the bar rather than on it — and it takes the segment's own
-    /// corners, which are round at the ends of the row and square between
-    /// ([ADR-0217]). This is the image that says a ring on a middle segment is
+    /// corners, which are round at the ends of the row and square between.
+    /// This is the image that says a ring on a middle segment is
     /// still legible where it crosses the bar's edge.
     @Test
     @DisplayName("the ring is on the segment and not on the bar")
@@ -185,12 +185,11 @@ class SegmentedGoldenTest {
     /// The same ring on the **light** theme, and it is here because it was not.
     ///
     /// Every focus golden in the catalog was `NORD_DARK` — this one,
-    /// `menu-focus` and `menubar-focus` — so §2.2's ring had no picture of it on
-    /// the theme where it was **below §1.2's floor on every surface**
-    /// ([ADR-0239] measured it at 1.74:1, 2.00:1 and 1.64:1). Changing
-    /// `--gb-focus` to fix that moved no golden at all, which is the gap saying
-    /// so out loud: a colour with no image is a colour nothing would notice
-    /// going wrong again ([ADR-0240]).
+    /// `menu-focus` and `menubar-focus` — so the ring had no picture of it on
+    /// the theme where it was **below the contrast floor on every surface** (it
+    /// measured 1.74:1, 2.00:1 and 1.64:1). Changing `--gb-focus` to fix that
+    /// moved no golden at all, which is the gap saying so out loud: a colour with
+    /// no image is a colour nothing would notice going wrong again.
     @Test
     @DisplayName("and the same ring on the light theme, where it had no picture at all")
     void focusRingOnLight() {
@@ -204,14 +203,15 @@ class SegmentedGoldenTest {
 
     /// A disabled bar fades as one thing — the plate, the edge, the labels and the
     /// selected fill — because opacity multiplies down a subtree and the flag
-    /// stays on the node that declared it (ADR-0077).
+    /// stays on the node that declared it.
     @Test
     @DisplayName("a disabled bar fades once, not twice")
     void disabled() {
         paint("segmented-disabled", Theme.NORD_DARK, 220, bar("grid").disabled(true));
     }
 
-    /// An icon before a label, and an icon-only segment beside it. §3 allows both;
+    /// An icon before a label, and an icon-only segment beside it. A segment may
+    /// be either;
     /// what the image is for is the gap between the two and the fact that an
     /// icon-only segment is still 12px padded rather than collapsing to its glyph.
     @Test
@@ -268,8 +268,8 @@ class SegmentedGoldenTest {
     /// that its transform is a percentage of its own width. What only this can
     /// show is that the thing in between is a *travelling pill* rather than one
     /// fill dimming while another brightens — the two are identical at both ends
-    /// and completely different in the middle, which is the whole of what §3.1
-    /// asks for (ADR-0099).
+    /// and completely different in the middle, which is the whole of what the
+    /// design system asks for.
     @Test
     @DisplayName("the pill caught between two segments")
     void travel() {
@@ -324,7 +324,7 @@ class SegmentedGoldenTest {
         assertFalse(renderer.isAnimating(), "the frame loop goes idle once the pill lands");
     }
 
-    /// §1.7 rule 6: "all transitions collapse to 0ms". The pill still ends up on
+    /// Under reduced motion every transition collapses to 0ms. The pill still ends up on
     /// the right segment — reduced motion changes how it gets there and never
     /// where it goes.
     @Test
@@ -350,7 +350,7 @@ class SegmentedGoldenTest {
     }
 
     /// On a panel rather than on the window, which is the gap
-    /// `controls-on-surface-*` exists to close ([ADR-0073]). A bar paints its own
+    /// `controls-on-surface-*` exists to close. A bar paints its own
     /// plate, so it cannot vanish — but the plate is one step from `--gb-surface`
     /// on the dark theme, and one step is exactly the distance worth having an
     /// image of.

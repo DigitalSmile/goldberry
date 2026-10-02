@@ -4,8 +4,8 @@ import org.jspecify.annotations.Nullable;
 
 import dev.goldberry.render.model.LogicalRect;
 
-/// A handle on a [Scroll] that something outside it can hold —
-/// `docs/core-widgets.md` §1's `scrollIntoView(widget)` API.
+/// A handle on a [Scroll] that something outside it can hold, to scroll it by a
+/// distance or bring a widget into view.
 ///
 /// ```java
 /// private final ScrollController list = new ScrollController();
@@ -19,19 +19,15 @@ import dev.goldberry.render.model.LogicalRect;
 /// which reads well and was wrong: a wrapper is a **box**, and a box in a flex
 /// row changes how everything in that row is sized. It broke two tab goldens and
 /// two motion tests the moment it was put around a tab header — the widget did
-/// what it promised and the layout underneath it was no longer the same layout
-/// (ADR-0120).
-///
-/// §1 words this as an API rather than as markup, and that turns out to be the
-/// load-bearing part of the wording: an API adds no node.
+/// what it promised and the layout underneath it was no longer the same layout.
+/// An API adds no node.
 ///
 /// ## What it can and cannot do
 ///
 /// It can move a viewport by a distance, and it can work out what distance would
 /// bring a rectangle into view. It **cannot find anything**: a controller has no
 /// idea where any widget is, because nothing in the toolkit can answer that
-/// except the router, and the router answers it to the widget itself
-/// (ADR-0119).
+/// except the router, and the router answers it to the widget itself.
 ///
 /// So the shape is: a widget that wants to be seen implements
 /// [dev.goldberry.input.handler.Located], is told its own rectangle and
@@ -40,7 +36,7 @@ import dev.goldberry.render.model.LogicalRect;
 ///
 /// **A caller holding the target rather than the viewport wants [ScrollScope]**,
 /// which walks up from the target to whatever viewport encloses it and needs no
-/// controller to have been wired at all ([ADR-0439]). This type stays what an
+/// controller to have been wired at all. This type stays what an
 /// owner holds — a handle created above a viewport and handed down to it.
 ///
 /// ## Lifetime
@@ -49,6 +45,8 @@ import dev.goldberry.render.model.LogicalRect;
 /// no viewport attached is inert rather than an error: it is perfectly ordinary
 /// for a controller to exist for a frame before the `Scroll` that answers to it
 /// is built, and throwing there would make the order of construction load-bearing.
+///
+/// Read more: [Scroll](https://goldberry.dev/docs/layout/scroll.html#scrolling-from-java).
 public final class ScrollController {
 
     /// A controller with nothing attached yet, which is every controller for at
@@ -69,7 +67,7 @@ public final class ScrollController {
     }
 
     /// Where a viewport is, and how far it could go — the answer to "is it at an
-    /// edge", which a tab strip's page buttons need (ADR-0365).
+    /// edge", which a tab strip's page buttons need.
     ///
     /// @param offsetX   how far it is scrolled right, towards where a glide ends
     /// @param offsetY   how far down
@@ -151,7 +149,7 @@ public final class ScrollController {
     /// a person would: a wide table asked to show a cell slides sideways as well
     /// as down. A caller that only means "bring this row into view" says
     /// [ScrollAxis#VERTICAL] and the horizontal position is left where the user
-    /// put it (ADR-0370).
+    /// put it.
     public void reveal(LogicalRect self, LogicalRect clip, ScrollAxis axes) {
         if (attached != null) {
             attached.reveal(self, clip, axes);

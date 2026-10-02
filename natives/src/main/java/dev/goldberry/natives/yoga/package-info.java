@@ -4,10 +4,12 @@
 ///
 /// Exported to `:core` alone. A node's `YGNodeRef` never leaves this package, and
 /// the binding class behind the wrappers is package-private. The measure callback is
-/// the struct-by-value upcall ADR-0017 is about, and the measure probe is how it is
-/// proven correct from C.
+/// a struct-by-value upcall, the hardest crossing in the module, and the measure
+/// probe is how it is proven correct from C.
 ///
-/// Marked for NullAway (`docs/testing.md` §2, ADR-0497).
+/// Marked for NullAway, so a parameter that may be null says so on its signature.
+///
+/// Read more: [The native boundary](https://goldberry.dev/docs/overview/architecture.html#the-native-boundary).
 @NullMarked
 package dev.goldberry.natives.yoga;
 

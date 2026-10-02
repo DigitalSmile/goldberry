@@ -24,12 +24,14 @@ import dev.goldberry.widgets.data.areachart.AreaChart;
 import dev.goldberry.widgets.data.barchart.BarChart;
 import dev.goldberry.widgets.data.linechart.LineChart;
 
-/// A logarithmic value axis — `charts.md` §3.1's "log axis, with correct log tick
-/// labelling".
+/// A logarithmic value axis, with ticks labelled by decade rather than by
+/// linear step.
 ///
 /// `LogTicksTest` has the arithmetic. What only a picture answers is whether the
 /// chart is *using* it, and what it does with the readings a logarithm has no
 /// place for.
+///
+/// Read more: [Line chart](https://goldberry.dev/docs/components/charts.html#line-chart).
 class ChartLogTest {
 
     @BeforeEach

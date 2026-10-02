@@ -15,7 +15,7 @@ import dev.goldberry.layout.Position;
 /// construction, which is why placing against one and clipping to the other is a
 /// disagreement rather than a pair of choices.
 ///
-/// Yoga contradicts itself here, and it is one path of two (ADR-0265).
+/// Yoga contradicts itself here, and takes one path of two.
 /// Given **no insets** it places the child at the padding edge, which is right.
 /// Given an inset it measures that inset from the **border** box, which is
 /// wrong by exactly the containing block's padding. `YogaLayoutTest` records
@@ -47,6 +47,8 @@ import dev.goldberry.layout.Position;
 ///
 /// A **relative** box is not corrected either. Its inset offsets it from where
 /// flow put it, and flow already placed it inside the padding.
+///
+/// Read more: [How layout works](https://goldberry.dev/docs/layout/index.html#flexbox-from-yoga).
 public final class ContainingBlock {
 
     private ContainingBlock() {}

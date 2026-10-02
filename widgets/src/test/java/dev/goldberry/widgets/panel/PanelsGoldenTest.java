@@ -35,13 +35,13 @@ import dev.goldberry.widgets.panel.split.SplitPane;
 import dev.goldberry.widgets.panel.statistic.Statistic;
 import dev.goldberry.widgets.text.Text;
 
-/// What §5's containers look like ([ADR-0164]).
+/// What the panel containers look like.
 ///
 /// The behaviour is in each widget's own package; these are the images, and each
 /// of the five is here for something an assertion cannot reach:
 ///
 ///   - a **card** has to read as raised with no shadow to raise it with, which is
-///     the whole question ADR-0164 answers;
+///     the whole question a card's styling answers;
 ///   - a **group box**'s title has to look attached to the frame under it rather
 ///     than like a stray heading;
 ///   - a **statistic**'s three ranks have to be three ranks;
@@ -112,7 +112,7 @@ class PanelsGoldenTest {
 
     // --- card ---------------------------------------------------------------
 
-    /// The question ADR-0164 exists to answer: a card is raised by contrast,
+    /// The question a card's styling exists to answer: a card is raised by contrast,
     /// because there is no shadow to raise it with. If this reads flat against
     /// the page behind it, the decision was wrong.
     @Test
@@ -127,8 +127,8 @@ class PanelsGoldenTest {
         paint("card-light", Theme.NORD_LIGHT, 300, 110, new Card(new Text("Disk usage"), new Text("72% of 500 GB")));
     }
 
-    /// Two cards side by side, one under the pointer: §5's optional
-    /// hover-elevation, which is opt-in because most cards do not do anything.
+    /// Two cards side by side, one under the pointer: a card's hover-elevation is
+    /// optional, and opt-in because most cards do not do anything.
     @Test
     @DisplayName("only an interactive card answers the pointer")
     void cardHover() {
@@ -152,8 +152,8 @@ class PanelsGoldenTest {
 
     // --- group-box ----------------------------------------------------------
 
-    /// The title above the frame rather than through it, which is the other half
-    /// of ADR-0164. It has to read as a heading *for* the box under it.
+    /// The title above the frame rather than through it, which is the group
+    /// box's shape. It has to read as a heading *for* the box under it.
     @Test
     @DisplayName("a titled settings cluster")
     void groupBox() {
@@ -175,7 +175,7 @@ class PanelsGoldenTest {
 
     // --- statistic ----------------------------------------------------------
 
-    /// Three ranks of §1.2's hierarchy in one block, and a delta in each of the
+    /// Three ranks of the type scale in one block, and a delta in each of the
     /// two directions — the whole widget in one image.
     @Test
     @DisplayName("statistics with a unit and a delta in each direction")
@@ -216,9 +216,9 @@ class PanelsGoldenTest {
 
     // --- skeleton -----------------------------------------------------------
 
-    /// The claim §5 makes for a skeleton is that it is the *shape* of what is
-    /// coming. So: a title bar over three text bars with a short last line, which
-    /// is what a heading and a paragraph look like.
+    /// A skeleton is the *shape* of what is coming, so the layout does not jump
+    /// when the real content lands. So: a title bar over three text bars with a
+    /// short last line, which is what a heading and a paragraph look like.
     @Test
     @DisplayName("a title and a paragraph, in placeholder")
     void skeletonText() {

@@ -1,27 +1,25 @@
 package dev.goldberry.widget.semantics;
 
-/// What a widget *is*, to something that cannot see it.
+/// What a widget *is*, to something that cannot see it: the closed set of roles a
+/// widget's [Semantics#role()] answers with.
+///
+/// ```java
+/// @Override public Role role() { return Role.STATUS; }
+/// ```
 ///
 /// The vocabulary is deliberately small and deliberately not ARIA's: these are
-/// the roles this toolkit's own catalog has, and a role nothing implements is a
+/// the roles this toolkit's own catalogue has, and a role nothing implements is a
 /// promise to an assistive technology that nothing keeps. It grows when a widget
 /// arrives that is genuinely none of these.
 ///
-/// ## Why this exists with no bridge above it
+/// Nothing reads the tree yet: no platform API is touched and nothing is exported
+/// to a screen reader. The data is here so that a sweep over the catalogue can
+/// fail on a focusable widget with no role and no name, which is the defect an
+/// accessibility pass otherwise finds late, and so that a bridge to the platform,
+/// when one comes, is an adapter over a role, a name and a set of states.
 ///
-/// Because `docs/testing.md` §1.7 asks for a sweep — "walking the gallery asserts
-/// every interactive node exposes role + name" — and that assertion needs
-/// somewhere for the answer to live. No platform API is touched here, nothing is
-/// exported to a screen reader, and `SemanticsSweepTest` is the only consumer.
-/// What it buys is that the catalog cannot grow a focusable widget that has no
-/// name, which is the defect an accessibility pass finds late and expensively.
-///
-/// **And there is no bridge coming.** The AccessKit bridge is on hold and owned
-/// by no milestone ([ADR-0440]), so this is not a value waiting for a consumer to
-/// arrive — it is the value the sweep consumes, and it earns its place on that
-/// alone. It stays in the shape a bridge would need anyway, since AccessKit's
-/// node is a role, a name and a set of states, which is what keeps that door open
-/// at no running cost.
+/// Read more:
+/// [Semantics: a role and a name](https://goldberry.dev/docs/guide/writing-a-widget.html#semantics-a-role-and-a-name).
 public enum Role {
 
     /// Something you press to make it happen.
@@ -33,9 +31,9 @@ public enum Role {
     /// One of a set where exactly one is chosen.
     RADIO,
 
-    /// The set itself — a `radio-group` or a `segmented`, which are one Tab stop
-    /// with arrow keys inside (ADR-0073). The group is what the keyboard reaches,
-    /// so the group is what has to have a role.
+    /// The set itself: a `radio-group` or a `segmented`, which are one Tab stop
+    /// with arrow keys inside. The group is what the keyboard reaches, so the
+    /// group is what has to have a role.
     RADIO_GROUP,
 
     /// A two-state switch, which differs from a checkbox in that it takes effect
@@ -45,7 +43,7 @@ public enum Role {
     /// A single-line or multi-line editable text field.
     TEXT_FIELD,
 
-    /// A control that picks one value from a range — a slider, a knob.
+    /// A control that picks one value from a range: a slider, a knob.
     SLIDER,
 
     /// A collapsed list of choices.
@@ -78,32 +76,29 @@ public enum Role {
     /// A picture of data, which a reader reaches with the keyboard.
     FIGURE,
 
-    /// A region with a boundary and no better word — a carousel's viewport.
+    /// A region with a boundary and no better word: a carousel's viewport.
     GROUP,
 
-    /// A two-dimensional set of cells addressed by row and column — a
+    /// A two-dimensional set of cells addressed by row and column: a
     /// `calendar`'s month.
     ///
     /// Distinct from [#GROUP], and the distinction is the arrows: a group is a
     /// boundary with content in it and says nothing about how the content is
     /// reached, where a grid promises that all four arrow keys mean something and
-    /// that a cell has a position in two axes. `docs/core-widgets.md` §10 asks a
-    /// calendar for exactly that — "grid with each cell's full date as its name"
-    /// — and the second half of that sentence has nowhere to go, because
-    /// [Semantics] has no per-cell channel (ADR-0274) and the AccessKit bridge
-    /// that would have brought one is on hold ([ADR-0440]).
+    /// that a cell has a position in two axes. [Semantics] has no per-cell
+    /// channel, so a cell's own name is not carried yet.
     GRID,
 
     /// A window-like layer over the rest: a dialog, a tour stop.
     DIALOG,
 
-    /// A region that reports **what just happened** rather than what is true —
-    /// a `toast`.
+    /// A region that reports **what just happened** rather than what is true: a
+    /// `toast`.
     ///
     /// Distinct from [#GROUP] and from [#DIALOG], and neither of those would do:
     /// a group is a boundary with content in it, a dialog is something the user
     /// is in until they leave it, and a notification is neither. It is a sentence
     /// that appears, is read, and goes. Paired with [Live#POLITE], which is the
-    /// half that says an appearance is worth speaking (ADR-0225).
+    /// half that says an appearance is worth speaking.
     STATUS,
 }

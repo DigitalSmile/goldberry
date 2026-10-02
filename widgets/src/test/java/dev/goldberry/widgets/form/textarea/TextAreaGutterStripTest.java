@@ -21,8 +21,9 @@ import dev.goldberry.offscreen.Offscreen;
 import dev.goldberry.widgets.Controls;
 import dev.goldberry.widgets.core.Column;
 
-/// `docs/gaps.md` G43: the gutter strip reaches the border, and the text wraps in
-/// the room it actually has ([ADR-0350]).
+/// The gutter strip reaches the border, and the text wraps in the room it
+/// actually has: the strip sits outside the field's clipping layer, beside it,
+/// and the wrap subtracts each padding edge once.
 ///
 /// Asserted on **pixels**, because both defects were invisible in the box tree.
 /// The strip's insets were right and a clip cut it, and the wrap width was a

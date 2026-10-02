@@ -28,6 +28,8 @@ import dev.goldberry.render.window.WindowSpec;
 /// Presented frames are kept instead of shown, and every rule the SPI states is
 /// checked here rather than assumed — which is the point: a real backend that
 /// breaks one of them fails the same tests.
+///
+/// Read more: [Windows, popups and the host](https://goldberry.dev/docs/guide/windows.html).
 public sealed class HeadlessWindow implements BackendWindow permits HeadlessPopup {
 
     private final HeadlessBackend backend;
@@ -55,7 +57,7 @@ public sealed class HeadlessWindow implements BackendWindow permits HeadlessPopu
     private int presentCount;
 
     /// The compositor's read-back surface for this window, made the first time
-    /// one is asked for, and closed with the window (ADR-0481).
+    /// one is asked for, and closed with the window.
     private @Nullable ReadbackSurface readback;
     private Cursor cursor = Cursor.DEFAULT;
     private int cursorChanges;
@@ -159,7 +161,7 @@ public sealed class HeadlessWindow implements BackendWindow permits HeadlessPopu
     /// would send and the half nothing else here can fabricate: a window move is
     /// not an event any test can produce on the platform, and it is the one
     /// thing that changes where the screen's edges are without changing anything
-    /// inside the window ([ADR-0061], [ADR-0270]).
+    /// inside the window.
     ///
     /// Silent when the window is already there, exactly as
     /// [dev.goldberry.render.backend.sdl3.Sdl3Window] is:
@@ -346,8 +348,8 @@ public sealed class HeadlessWindow implements BackendWindow permits HeadlessPopu
 
     /// A read-back surface, when `:gpu` is on the module path: a headless
     /// window has nothing to composite into, so its GPU layers are rendered on
-    /// the GPU and drawn into its frames as pixels (`docs/gpu-plan.md`, D5;
-    /// ADR-0481). Its device is made by the first layer, and needs a video
+    /// the GPU and drawn into its frames as pixels. Its device is made by the
+    /// first layer, and needs a video
     /// driver the GPU can use (`offscreen` under lavapipe, `cocoa` on macOS),
     /// which is what the GPU lane runs; without one the layers' painters draw
     /// what they show without a GPU.
@@ -393,7 +395,7 @@ public sealed class HeadlessWindow implements BackendWindow permits HeadlessPopu
 
     /// Makes this window say it presents `value` from the next frame on, so a
     /// test can see what an application does when a window moves to the GPU or
-    /// back to the CPU (ADR-0492). Nothing about how it presents changes.
+    /// back to the CPU. Nothing about how it presents changes.
     public void presentAs(Presentation value) {
         backend.requireUiThread();
         this.presentation = Objects.requireNonNull(value, "value");
@@ -430,7 +432,7 @@ public sealed class HeadlessWindow implements BackendWindow permits HeadlessPopu
     /// does: the drag stops at the floor rather than being refused, so a test
     /// that asks for 100x100 against a 400x300 minimum gets a `Resized` for
     /// 400x300 and not a resize that did not happen. Per axis, so a zero on one
-    /// of them constrains only the other (ADR-0304).
+    /// of them constrains only the other.
     public void resizeTo(LogicalSize newSize) {
         backend.requireUiThread();
         requireOpen();
@@ -473,13 +475,8 @@ public sealed class HeadlessWindow implements BackendWindow permits HeadlessPopu
         backend.post(new BackendEvent.CloseRequested(this));
     }
 
-    /// Queues a pointer move, as the platform would.
-    ///
-    /// The headless backend exists so the SPI's rules can be tested without a
-    /// display (ADR-0019); pointer events are no different, and a test that had
-    /// to open a window to check a hover would not run in CI.
     /// Agrees to the ask and reports it, which is what a window manager that
-    /// says yes does ([ADR-0252]).
+    /// says yes does.
     ///
     /// A real one may refuse, and the headless backend has no way to model
     /// *which* — so it models the agreeable case and [#reportMaximized] is how a
@@ -503,7 +500,7 @@ public sealed class HeadlessWindow implements BackendWindow permits HeadlessPopu
         backend.post(new BackendEvent.MaximizedChanged(this, maximized));
     }
 
-    /// Agrees to the ask and reports it, as [#setMaximized] does (ADR-0473).
+    /// Agrees to the ask and reports it, as [#setMaximized] does.
     ///
     /// The size is left alone. A real platform follows the event with a resize
     /// to the display's size, and a test that wants that sends it with
@@ -524,12 +521,17 @@ public sealed class HeadlessWindow implements BackendWindow permits HeadlessPopu
         backend.post(new BackendEvent.FullscreenChanged(this, fullscreen));
     }
 
+    /// Queues a pointer move, as the platform would.
+    ///
+    /// The headless backend exists so the SPI's rules can be tested without a
+    /// display; pointer events are no different, and a test that had to open a
+    /// window to check a hover would not run in CI.
     public void movePointer(float x, float y) {
         movePointer(x, y, 0);
     }
 
     /// The same, with the platform's modifier bitmask — what a test driving a
-    /// knob's fine-adjustment drag needs (ADR-0089).
+    /// knob's fine-adjustment drag needs.
     public void movePointer(float x, float y, int modifiers) {
         backend.requireUiThread();
         requireOpen();
@@ -575,7 +577,7 @@ public sealed class HeadlessWindow implements BackendWindow permits HeadlessPopu
     ///
     /// What a test needs to reach the case the pair exists for: a trackpad
     /// reporting fractions too small to truncate to anything, one of which
-    /// carries the click they added up to ([ADR-0115]).
+    /// carries the click they added up to.
     public void scrollPointer(float x, float y, float deltaX, float deltaY, int ticksX, int ticksY, int modifiers) {
         backend.requireUiThread();
         requireOpen();
@@ -603,7 +605,7 @@ public sealed class HeadlessWindow implements BackendWindow permits HeadlessPopu
         backend.post(new BackendEvent.KeyReleased(this, keycode, modifiers));
     }
 
-    /// Queues the composition an input method is assembling — `docs/gaps.md` G15.
+    /// Queues the composition an input method is assembling.
     ///
     /// What a test of a Japanese, Chinese or Korean user does: several of these
     /// as the string grows, then an [#inputText] with the accepted candidate and

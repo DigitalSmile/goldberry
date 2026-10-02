@@ -15,13 +15,13 @@ import dev.goldberry.widget.Widget;
 ///
 /// The icon is why this is stateful at all. An `Icon` is a value the toolkit
 /// builds from path data and holds until it is closed; a widget is rebuilt
-/// every frame and must not own one (ADR-0043). A state outlives its rebuilds
-/// and has a `dispose`, which is exactly the lifetime an icon needs.
+/// every frame and must not own one. A state outlives its rebuilds and has a
+/// `dispose`, which is exactly the lifetime an icon needs.
 final class LinkState extends State<Link> {
 
     private static final Logger LOG = Logs.of(LinkState.class);
 
-    /// §2's "trailing 12px `external-link` icon".
+    /// The trailing icon an external link draws after its word.
     static final String EXTERNAL_ICON = "external-link";
 
     static final double EXTERNAL_ICON_SIZE = 12;

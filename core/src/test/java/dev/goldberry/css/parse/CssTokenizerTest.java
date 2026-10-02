@@ -62,7 +62,7 @@ class CssTokenizerTest {
         @Test
         @DisplayName("a custom property is an ident, two hyphens and all")
         void customPropertiesAreIdents() {
-            // The whole theming mechanism (ARCHITECTURE.md §8) rests on this
+            // The whole theming mechanism rests on this
             // being a normal identifier rather than a special case.
             var token = only("--gb-bg-subtle");
             assertTrue(token.is(TokenType.IDENT));

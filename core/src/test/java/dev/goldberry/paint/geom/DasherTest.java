@@ -17,7 +17,7 @@ import dev.goldberry.paint.stroke.Dash;
 /// The arithmetic that cuts a path into dashes, with no rasterizer under it.
 ///
 /// This is the whole of dashing: Blend2D stores a dash array and never strokes
-/// with it, so what comes out of here is what a dashed stroke *is* (ADR-0278).
+/// with it, so what comes out of here is what a dashed stroke *is*.
 /// Every length below is countable by hand, which is the only way a walk over
 /// arc length can be checked at all.
 class DasherTest {

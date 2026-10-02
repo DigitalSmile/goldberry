@@ -22,7 +22,10 @@ import org.jspecify.annotations.Nullable;
 /// [#M] is the default everywhere in this toolkit, because it is the level every
 /// other QR encoder defaults to and the one a phone camera reads off a screen
 /// without complaint. The argument for going higher is a code that will be
-/// printed, folded and photographed; a code on a display is not that.
+/// printed, folded and photographed; a code on a display is not that. In markup
+/// it is `level="M"` on a `qr-code`.
+///
+/// Read more: [Canvas, images and QR codes](https://goldberry.dev/docs/components/drawing.html#qr-code).
 public enum Level {
 
     /// About 7% recovery — the most payload in the smallest code.
@@ -45,7 +48,7 @@ public enum Level {
 
     /// The two bits this level is spelled as in the format information.
     ///
-    /// `01`, `00`, `11`, `10` — deliberately not the enum order. §7.9's table
+    /// `01`, `00`, `11`, `10` — deliberately not the enum order. ISO/IEC 18004 §7.9's table
     /// assigns them so that the four values differ in more than one bit, which
     /// is what lets a decoder that misread one of them still recover the level.
     public int bits() {

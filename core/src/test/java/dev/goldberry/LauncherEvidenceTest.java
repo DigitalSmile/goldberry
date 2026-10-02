@@ -25,13 +25,15 @@ import dev.goldberry.widget.style.Paints;
 import dev.goldberry.widget.style.Styled;
 
 /// The launcher under `--resize=WxH` and `--late-budget=N` — the two flags a
-/// frame-evidence run is made of ([ADR-0342]).
+/// frame-evidence run is made of.
 ///
 /// Headless, so the window manager is the backend's: every request is
 /// honoured on the spot and no refresh is ever missed. What is under test is
 /// the launcher's side — that the walk is driven from the painted frame, from
 /// the window's own size, and that a run that was not over budget exits the
 /// way it always did.
+///
+/// Read more: [The flags](https://goldberry.dev/docs/performance/measuring.html#the-flags).
 class LauncherEvidenceTest {
 
     private record Plate(Attributes attributes) implements Widget.Leaf, Styled, Paints {

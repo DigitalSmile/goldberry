@@ -7,21 +7,26 @@ import java.util.Objects;
 import dev.goldberry.render.model.PhysicalSize;
 import dev.goldberry.render.model.PixelFormat;
 
-/// A rasterized frame, ready to hand to a backend.
+/// A rasterized frame, ready to hand to a backend: its size in physical pixels,
+/// its format, its row stride in bytes and the pixels themselves.
 ///
-/// This is the CPU presentation path (`docs/ARCHITECTURE.md` §5): Blend2D
-/// rasterizes into memory and the backend uploads it. The GPU path bypasses this
-/// entirely and is not in this cut of the SPI.
+/// This is the CPU presentation path: Blend2D rasterizes into memory and the
+/// backend uploads it. A window that presents through the GPU still paints into
+/// one, and the compositor uploads its damage.
 ///
-/// The pixels cross as a [ByteBuffer] rather than a `MemorySegment`. §3.1 forbids
-/// a raw segment escaping the `natives` module, and a `ByteBuffer` is what
+/// The pixels cross as a [ByteBuffer] rather than a `MemorySegment`: a raw
+/// segment never escapes the `natives` module, and a `ByteBuffer` is what
 /// `MemorySegment.asByteBuffer()` produces without copying — so Blend2D's own
-/// memory reaches the backend directly, and `:core` never sees a segment.
+/// memory reaches the backend directly, and `:core` never sees a segment. The
+/// view is always little-endian, so a `0xAARRGGBB` int written through it lands
+/// as B, G, R, A in memory.
 ///
 /// The buffer is **borrowed**, not owned. It is valid for the duration of the
 /// `present()` call that carries it and may be reused for the next frame
 /// immediately afterwards; a backend that needs to keep the pixels must copy
 /// them.
+///
+/// Read more: [Architecture](https://goldberry.dev/docs/overview/architecture.html#the-backend-spi).
 public record PixelBuffer(PhysicalSize size, PixelFormat format, int stride, ByteBuffer pixels) {
 
     public PixelBuffer {

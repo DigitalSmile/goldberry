@@ -14,7 +14,7 @@ import dev.goldberry.html.model.HtmlAttributes;
 /// `<li>` inside an open `<li>` and has to decide it is a sibling. Written as one
 /// loop those two kinds of recovery share state, and the bug that produces — a stray
 /// `>` swallowing the next tag — is invisible in the output. Written apart, each is a
-/// table of cases with a test each (ADR-0298).
+/// table of cases with a test each.
 sealed interface Token {
 
     /// The words between two tags, with entities already resolved — except inside a

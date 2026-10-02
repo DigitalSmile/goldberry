@@ -19,7 +19,9 @@ import org.jspecify.annotations.Nullable;
 /// decade is that authors invent elements. So the *node kinds* are sealed and the
 /// *tags* are open: a renderer that meets a tag it has no rule for lays it out as
 /// whatever [Tags] says it is, block or inline, and styles it by name. Nothing is
-/// dropped for being unknown (ADR-0298).
+/// dropped for being unknown.
+///
+/// Read more: [HTML view](https://goldberry.dev/docs/components/content.html#html-view).
 ///
 /// @param tag the tag name, lower-cased by the parser so that `<DIV>` and `<div>`
 ///        are one element to match on
@@ -28,7 +30,7 @@ import org.jspecify.annotations.Nullable;
 ///        and empty for a tag the author closed straight away
 public record Element(String tag, HtmlAttributes attributes, List<HtmlNode> children) implements HtmlNode {
 
-    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    /// Written out so that the parameters taking null for a default can say so.
     public Element(String tag, @Nullable HtmlAttributes attributes, List<HtmlNode> children) {
         Objects.requireNonNull(tag, "tag");
         if (tag.isBlank()) {

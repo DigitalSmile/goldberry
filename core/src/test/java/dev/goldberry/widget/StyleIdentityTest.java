@@ -28,7 +28,7 @@ import dev.goldberry.widget.style.Paints;
 import dev.goldberry.widget.style.Styled;
 
 /// The style a node hands its children keeps its identity while it keeps its
-/// value — [ADR-0142].
+/// value.
 ///
 /// This is not a micro-optimisation with a test bolted on: the cache below it is
 /// keyed on that identity, so without this **the cache does not work at all** for
@@ -79,8 +79,7 @@ class StyleIdentityTest {
     ///
     /// The transform is the property that made the narrowing worth doing: nothing
     /// inherits it, and comparing whole records meant every node inside a
-    /// scrolling viewport re-resolved for a change no child could see
-    /// ([ADR-0248]).
+    /// scrolling viewport re-resolved for a change no child could see.
     private record Scroller(List<Widget> children, List<ComputedStyle> painted, double[] offset)
             implements Widget.Leaf, Styled, Paints {
 
@@ -204,7 +203,7 @@ class StyleIdentityTest {
                         + " handing down a new instance is what disabled the cache");
     }
 
-    /// **A state invalidates what a rule can reach, and no more** — [ADR-0149].
+    /// **A state invalidates what a rule can reach, and no more.**
     ///
     /// The hover and active chains run from the deepest node to the root, so a
     /// click on empty space marks every ancestor. Each of those used to throw its
@@ -305,8 +304,7 @@ class StyleIdentityTest {
         assertTrue(seen.get(0).color() != seen.get(1).color(), "and it is a different colour");
     }
 
-    /// [ADR-0248]: the comparison is on the **inherited half**, not the whole
-    /// record.
+    /// The comparison is on the **inherited half**, not the whole record.
     ///
     /// A `scroll` moves a transform on every frame of a gesture, and nothing
     /// inherits a transform — so under `equals` every node inside the viewport

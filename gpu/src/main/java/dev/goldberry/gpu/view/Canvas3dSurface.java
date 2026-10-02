@@ -18,7 +18,7 @@ import dev.goldberry.widget.style.Paints;
 import dev.goldberry.widget.style.Styled;
 
 /// The box a [Canvas3d] is: styled as `canvas3d`, and painted by placing its
-/// layer (ADR-0482).
+/// layer.
 ///
 /// What it paints is a [Canvas3dPainter], a record, because the render tree
 /// compares painters by equality to decide what was damaged: the painter is

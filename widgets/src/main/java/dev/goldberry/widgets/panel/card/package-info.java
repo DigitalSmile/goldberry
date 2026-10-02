@@ -1,14 +1,13 @@
-/// `@NullMarked`, which puts this package under NullAway.
+/// The `card`: a raised surface, with a shadow and an edge, that groups what is
+/// inside it.
 ///
-/// Inside a marked package every type is non-null unless it says `@Nullable`,
-/// and the build fails on a violation. The annotation is the whole content of
-/// this file: there is nothing package-specific to say about nullness, and a
-/// paragraph pretending otherwise in every package would be padding.
+/// [dev.goldberry.widgets.panel.card.Card] is the whole package. It is a
+/// `panel` whose stylesheet says "raised"; `class="interactive"` lifts it
+/// further under the pointer.
 ///
-/// Packages are marked one at a time on purpose. NullAway runs in
-/// `OnlyNullMarked` mode, so an unmarked package is invisible to it and a marked
-/// one is checked from the moment it opts in — which is the only way a codebase
-/// this size adopts nullness at all (`docs/testing.md` §2).
+/// Every reference is non-null unless it says `@Nullable`.
+///
+/// Read more: [Panels](https://goldberry.dev/docs/components/panels.html#card).
 @NullMarked
 package dev.goldberry.widgets.panel.card;
 

@@ -8,7 +8,7 @@ import dev.goldberry.bind.Subscription;
 import dev.goldberry.bind.registry.ActionRegistry;
 import dev.goldberry.bind.registry.BindingRegistry;
 
-/// The two registries a [Model] publishes — §9's `bind` and `action` halves.
+/// The two registries a [Model] publishes: its `bind=` paths and its action names.
 ///
 /// ```java
 /// var model = new Settings();
@@ -25,7 +25,7 @@ import dev.goldberry.bind.registry.BindingRegistry;
 /// ## Two ways in, and an application cannot tell which it got
 ///
 /// There are two implementations of [BoundModel] and this is what picks between
-/// them (ADR-0155):
+/// them:
 ///
 /// - the model's **own class**, if the weaver rewrote it. Nothing is reflected,
 ///   nothing is looked up, and a change notifies from inside the assignment that
@@ -39,6 +39,9 @@ import dev.goldberry.bind.registry.BindingRegistry;
 /// *when* a change is noticed: the woven form notices the write, and the runtime
 /// one notices at the next sweep — after the action that did it, at the top of the
 /// next frame, or wherever [#refresh] is called.
+///
+/// Read more: [Values](https://goldberry.dev/docs/applications.html#values) and
+/// [Model weaving](https://goldberry.dev/docs/weaving.html#you-probably-do-not-need-to-run-any-of-this).
 public final class Models {
 
     private Models() {}
@@ -68,13 +71,10 @@ public final class Models {
     /// What a widget built in Java uses, and deliberately the same lookup a
     /// document does — `bind="app.tab"` in KDL and `observable(model, "app.tab")`
     /// in Java resolve the same path against the same registry, so there is one
-    /// way a value is named rather than two
-    /// (ADR-0129).
+    /// way a value is named rather than two.
     ///
-    /// This replaces the per-path accessor a model used to carry — nine
-    /// `public Observable<String> tab() { … }` methods that existed only because
-    /// the view had no other way in. A model publishes paths; it should not also
-    /// publish a Java API that says the same thing again.
+    /// A model publishes paths; it does not also need a `tab()` accessor per path
+    /// that says the same thing again in Java.
     ///
     /// A map lookup on a registry built once, so calling it while building a
     /// widget costs what reading a field costs.
@@ -105,12 +105,10 @@ public final class Models {
 
     /// Calls `listener` after a `@Bind` field that asks for a frame changes.
     ///
-    /// The frame request, and the reason an action is now just an assignment.
-    /// Every action used to end in a `changed()` that asked the window to
-    /// repaint — a line with no meaning of its own, present in every method,
-    /// and wrong only by being absent. A model changing is *already* the signal;
-    /// this is where a window subscribes to it
-    /// (ADR-0128).
+    /// The frame request, and the reason an action is just an assignment: no
+    /// action has to end in a call that asks the window to repaint, a line that
+    /// would be wrong only by being absent. A model changing is *already* the
+    /// signal; this is where a window subscribes to it.
     ///
     /// ```java
     /// Models.onRepaint(model, host::repaint);
@@ -119,7 +117,7 @@ public final class Models {
     /// Fired once per change and not once per write, so a model that assigns the
     /// value already there asks for no frame. A single action that moves three
     /// fields asks for three, which the frame scheduler coalesces the same way it
-    /// coalesces three `setState` calls (ADR-0122).
+    /// coalesces three `setState` calls.
     ///
     /// @return a subscription that stops the notifications
     /// @throws IllegalStateException if `model` publishes nothing
@@ -130,8 +128,7 @@ public final class Models {
     /// Calls `listener` after a `@Bind(restyle = true)` field on `model` changes.
     ///
     /// Wired by whatever installed the model, so an application declares
-    /// `@Bind(value = "app.theme", restyle = true)` and says nothing else
-    /// (ADR-0133).
+    /// `@Bind(value = "app.theme", restyle = true)` and says nothing else.
     ///
     /// @return a subscription that stops the notifications
     /// @throws IllegalStateException if `model` publishes nothing
@@ -179,7 +176,7 @@ public final class Models {
     /// The two forms answer every other method here the same way, so this is a
     /// **diagnostic** rather than a branch to write: what it tells you is which
     /// build produced the class, not what the class can do. A native image says
-    /// true; a plain jar says false and works (ADR-0155).
+    /// true; a plain jar says false and works.
     public static boolean isWoven(Object model) {
         Objects.requireNonNull(model, "model");
         return model instanceof BoundModel;

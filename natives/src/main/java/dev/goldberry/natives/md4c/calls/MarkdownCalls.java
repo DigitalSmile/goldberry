@@ -14,8 +14,8 @@ import dev.goldberry.natives.Downcalls;
 ///
 /// None of them is md4c's own. `md_parse` is a SAX parser and binding it directly
 /// would mean five upcall stubs and a detail struct per block; what crosses here is
-/// one encoded buffer per document (ADR-0294), which is the rule every content
-/// module shares — the hot path does not cross FFM (ADR-0190).
+/// one encoded buffer per document, which is the rule every content module
+/// shares — the hot path does not cross FFM.
 ///
 /// See [Downcalls] for why each handle is a `static final` constant and why these
 /// live in a package of their own.

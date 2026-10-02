@@ -139,7 +139,7 @@ class SdlAudioSinkTest {
         assertEquals(1, SdlAudioSink.pullsAhead("Windows 11"));
     }
 
-    /// ADR-0474: SDL's buffers, counted in pulls of the size the device takes,
+    /// The latency is SDL's buffers, counted in pulls of the size the device takes,
     /// plus what the system says, asked once on open and then at most once a
     /// [SdlAudioSink#REFRESH] however often the Engine writes.
     @Test

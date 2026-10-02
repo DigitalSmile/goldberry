@@ -25,14 +25,13 @@ import dev.goldberry.widget.style.Styled;
 /// the worst of both. [Box.Mark] is the toolkit's own tick, and it is the same one
 /// `checkbox` draws.
 ///
-/// A part, so it is a CSS type selector and not a widget an application builds
-/// (ADR-0065).
+/// A part, so it is a CSS type selector and not a widget an application builds.
 ///
 /// ## It ticks now, when the application says what that means
 ///
 /// This used to say a check box in a rendered document "is **not** interactive",
 /// because ticking one means editing the Markdown behind it and the model carries no
-/// source offset to edit at. ADR-0300 answers it with an **ordinal** instead: the
+/// source offset to edit at. The answer is an **ordinal** instead: the
 /// view hands over the index of the task in document order, and
 /// [dev.goldberry.markdown.Markdown#toggleTask] flips the nth
 /// marker in the source. The application still owns the text — nothing here writes to
@@ -74,7 +73,7 @@ record TaskMark(boolean done, @Nullable Runnable onToggle) implements Widget.Lea
         return done ? Set.of("done", "interactive") : Set.of("interactive");
     }
 
-    /// Focusable exactly when it does something, for `canvas`'s reason (ADR-0281): a
+    /// Focusable exactly when it does something, for `canvas`'s reason: a
     /// Tab stop that responds to nothing is a keyboard trap with extra steps.
     @Override
     public boolean isFocusable() {

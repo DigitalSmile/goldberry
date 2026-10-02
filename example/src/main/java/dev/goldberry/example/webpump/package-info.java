@@ -6,7 +6,9 @@
 /// and this is how the constants of that pump are measured rather than guessed. Run
 /// by `:example:webPumpProbe`.
 ///
-/// Marked for NullAway (`docs/testing.md` §2, ADR-0497).
+/// Marked for NullAway, as every package in the repository is.
+///
+/// Read more: [The web view](https://goldberry.dev/docs/components/content.html#the-web-view).
 @NullMarked
 package dev.goldberry.example.webpump;
 

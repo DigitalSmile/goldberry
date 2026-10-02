@@ -21,8 +21,9 @@ import dev.goldberry.widgets.controls.TestFont;
 /// The whole stack in one image: KDL → widgets → element tree → cascade → boxes
 /// → Blend2D. If any of the six breaks, this changes.
 ///
-/// It lived in `:core`'s `GoldenImageTest` until [ADR-0092], which is where it
-/// stopped being able to: that file tests the golden *harness* — the PNG compare,
+/// It lived in `:core`'s `GoldenImageTest` until the primitives moved out of
+/// `:core`, which is where it stopped being able to: that file tests the golden
+/// *harness* — the PNG compare,
 /// the tolerance, the update mode — and this one method was the only thing in it
 /// that needed a widget. `:core` has none now, so the harness test stays there
 /// and its one widget-shaped case is here, with the image it asserts against.

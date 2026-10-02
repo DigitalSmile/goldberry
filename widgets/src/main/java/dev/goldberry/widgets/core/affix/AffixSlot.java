@@ -22,7 +22,7 @@ import dev.goldberry.widget.style.Styled;
 /// so that nothing below jumps when the child detaches, and it gives the router a
 /// rectangle whose position depends on the layout alone. The child slides inside
 /// [AffixContent], one level down, which is what stops a widget that reacts to its
-/// own position from chasing itself ([ADR-0119]).
+/// own position from chasing itself.
 record AffixSlot(
         List<Widget> children, double shiftX, double shiftY, boolean affixed, Located3 onLocated, Attributes attributes)
         implements Widget.Leaf, Styled, Paints, Located {
@@ -42,8 +42,8 @@ record AffixSlot(
         return attributes.classes();
     }
 
-    /// §1: "`:affixed` is a pseudo-class, so a sticky header can gain a shadow the
-    /// moment it lifts."
+    /// Whether the content has lifted, for `:affixed`: a pseudo-class, so a sticky
+    /// header can gain a shadow the moment it lifts.
     @Override
     public boolean isAffixed() {
         return affixed;
@@ -77,11 +77,10 @@ record AffixSlot(
                 .style(style)
                 .direction(FlexDirection.COLUMN)
                 // While pinned, this paints after its siblings — and only while
-                // pinned. Document order is paint order (ADR-0053), so a header
-                // sitting where the layout put it has the rows *below* it drawn
-                // afterwards, straight over the top of it. Which is a sticky
-                // header you can read the list through
-                // (ADR-0123).
+                // pinned. Document order is paint order, so a header sitting
+                // where the layout put it would have the rows below it drawn
+                // afterwards, straight over the top of it: a sticky header you
+                // can read the list through.
                 .elevated(affixed);
     }
 }

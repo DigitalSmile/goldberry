@@ -14,9 +14,8 @@ import dev.goldberry.render.model.LogicalRect;
 
 /// Lays a [Box] tree out with Yoga and paints it with Blend2D.
 ///
-/// This is where the two engines meet. Everything either of them needed was
-/// bound separately — Yoga's node API in ADR-0029, Blend2D's context in
-/// ADR-0031 — and this is the first code that makes one feed the other:
+/// This is where the two engines meet, and the walk is the same whether a tree
+/// is painted once or retained for the life of a window:
 ///
 /// 1. Build a Yoga tree mirroring the boxes.
 /// 2. Set the config's point scale factor from the frame's display scale, so
@@ -29,12 +28,14 @@ import dev.goldberry.render.model.LogicalRect;
 /// window lands on a whole *logical* pixel — which is one and a half physical
 /// ones, so half the edges fall mid-pixel and the compositor smears them.
 /// Setting it to the display scale is what makes a 1px border one crisp device
-/// pixel at any scale, and it is the piece that had no consumer until now.
+/// pixel at any scale.
 ///
-/// Nothing here is retained. A layout pass builds a tree, reads it, and frees
-/// it — which is the wrong shape for a real toolkit and the right shape for a
-/// join that exists to be exercised. Retaining it is the render tree's job, and
-/// the render tree is blocked on ADR-0004.
+/// [#paint] retains nothing: it builds a [RenderTree], uses it once and frees
+/// it, which is right for a golden image and wrong for a window. A window holds
+/// one `RenderTree` for its whole life, and the tree paints each retained box
+/// through [#paintOne(Frame, Box, LogicalRect)].
+///
+/// Read more: [Architecture](https://goldberry.dev/docs/overview/architecture.html#the-three-trees).
 public final class BoxPainter {
 
     private BoxPainter() {}
@@ -46,12 +47,11 @@ public final class BoxPainter {
     /// single time, and wrong for a window — an application that paints sixty
     /// times a second wants one `RenderTree` held for the life of the window, so
     /// that Yoga's nodes, its layout cache and the measure callbacks survive
-    /// between frames
-    /// (ADR-0069).
+    /// between frames.
     ///
     /// There is one implementation and two lifetimes, rather than two
-    /// implementations — which is what ADR-0053 rejected and what would otherwise
-    /// leave the goldens testing a path applications do not take.
+    /// implementations, which would leave the goldens testing a path
+    /// applications do not take.
     public static void paint(Frame frame, Box root) {
         Objects.requireNonNull(frame, "frame");
         Objects.requireNonNull(root, "root");
@@ -102,16 +102,14 @@ public final class BoxPainter {
     ///
     /// The shadow is first because it is *cast* by the box: it is the one thing
     /// drawn outside the border box that belongs **under** it, which is what
-    /// tells it apart from the ring (ADR-0310).
+    /// tells it apart from the ring.
     ///
     /// The ring is last because it is drawn *outside* the border box and must
     /// survive whatever the box itself drew — and it is drawn per box rather than
-    /// once at the end because a box tree has no z-order yet, so "last" and "on
-    /// top" are the same thing only within a box (ADR-0053).
-    /// Public because [dev.goldberry.paint.tree.RenderTree] is
-    /// in a package of its own now: the render tree paints one retained box at a
-    /// time and this is the single-box painter it calls. See
-    /// ADR-0172.
+    /// once at the end because a box tree has no z-order, so "last" and "on top"
+    /// are the same thing only within a box. Public because [RenderTree] is in a
+    /// package of its own: the render tree paints one retained box at a time and
+    /// this is the single-box painter it calls.
     ///
     /// For a box drawn where it was laid out. A box under a `transform` — every
     /// box inside a `scroll`, whose content is translated rather than moved —
@@ -122,11 +120,9 @@ public final class BoxPainter {
 
     /// [#paintOne(Frame, Box, LogicalRect)] with the ambient matrix.
     ///
-    /// The rasterizer path this used to take as a parameter is the frame's now
-    /// (ADR-0277). It was there to be pooled — one native allocation per paint
-    /// walk rather than one per rounded corner — and pooling it in `Frame` does
-    /// the same job without a `:natives` type in a signature an application can
-    /// see.
+    /// The rasterizer path is borrowed from the frame, which pools it — one
+    /// native allocation per paint walk rather than one per rounded corner —
+    /// without a `:natives` type in a signature an application can see.
     public static void paintOne(Frame frame, Box box, LogicalRect layout, Affine ambient) {
         var path = frame.borrowPath();
         try {
@@ -142,9 +138,8 @@ public final class BoxPainter {
     /// matrix is already applied to all of them and none of them needs to know
     /// it — with one exception. A `canvas` sets a transform of its own, to move
     /// the origin to its content corner, and
-    /// [Frame#transform] *assigns* rather than composes
-    /// (ADR-0068):
-    /// the six numbers replace whatever was there. So a canvas that spelled its
+    /// [Frame#transform] *assigns* rather than composes: the six numbers replace
+    /// whatever was there. So a canvas that spelled its
     /// own translation alone would **discard its ancestors'** — and a chart
     /// inside a `scroll` would stay where it was laid out while the panel moved
     /// under it, correctly clipped to a viewport it was no longer drawn in.
@@ -160,8 +155,8 @@ public final class BoxPainter {
         if (decoration.hasShadow()) {
             // The painter cuts the border box out of every band, so the bands
             // that would land under it are not built at all -- which is half of
-            // them for a shadow with any offset, and no longer conditional on
-            // the background being opaque the way it was before ADR-0427.
+            // them for a shadow with any offset, whether or not the background
+            // is opaque.
             ShadowPainter.paint(frame, path, decoration.shadow(), x, y, width, height, decoration.corners());
         }
 
@@ -187,7 +182,7 @@ public final class BoxPainter {
             //
             // The uniform case, which is every border the design system pins,
             // keeps exactly this drawing: four sides that are one line are one
-            // stroke (ADR-0505).
+            // stroke.
             var line = border.top();
             var inset = line.width() / 2;
             path.reset();
@@ -201,7 +196,7 @@ public final class BoxPainter {
             frame.strokePath(x, y, path, line.width(), BlendStrokeCap.BUTT, BlendStrokeJoin.MITER_CLIP, line.argb());
         } else if (decoration.hasBorder()) {
             // Sides that differ are filled one region each, mitred where they
-            // meet — a stroke has one width (ADR-0505).
+            // meet — a stroke has one width.
             BorderPainter.paint(frame, path, border, x, y, width, height, decoration.corners());
         }
 
@@ -210,10 +205,7 @@ public final class BoxPainter {
             // content *plus* its padding, so a box with `padding: 4px 8px` around
             // text is 16px wider than its text -- and painting at the box's own
             // origin puts every one of those pixels on the right and the bottom,
-            // with the text hanging off the top-left corner. A tooltip was the
-            // first widget in the catalog to put padding on a text box rather
-            // than on a container around one, and it looked exactly like that
-            // (ADR-0111).
+            // with the text hanging off the top-left corner.
             //
             // Wrapped at the width the layout pass settled on, less the padding:
             // the same width the measure function was last asked about, so the
@@ -233,8 +225,7 @@ public final class BoxPainter {
                             // What the cascade said about breaking and marking.
                             // Under `nowrap` this width stops being a wrap point
                             // and becomes a *truncation* point, which is the only
-                            // thing the painter has to know about either property
-                            // (ADR-0255).
+                            // thing the painter has to know about either property.
                             box.text().flow());
         }
 
@@ -244,12 +235,11 @@ public final class BoxPainter {
             // so the two are usually the same rectangle and this offset is zero.
             // Where a stylesheet said otherwise -- `item-lead` is 16 square,
             // because a menu's leading column has to be one width whether it
-            // holds a tick or an icon (ADR-0113) -- the icon is whatever size the
+            // holds a tick or an icon -- the icon is whatever size the
             // application built it, and drawing it at the corner put a 20px glyph
             // 4px above and left of the tick it lines up with. An icon parked in
             // the corner of its slot is the report "the row with the icon looks
-            // wrong"; centring is what a slot means
-            // (ADR-0143).
+            // wrong"; centring is what a slot means.
             var glyph = box.icon().icon().size();
             box.icon()
                     .icon()
@@ -304,7 +294,7 @@ public final class BoxPainter {
     /// The proportions are of the box rather than absolute, so the same three
     /// shapes are right at the design system's 16px glyph and at whatever size an
     /// application's stylesheet asks for. They were chosen against the 24×24
-    /// Lucide grid the rest of the toolkit's iconography sits on (§1.6), so a
+    /// Lucide grid the rest of the toolkit's iconography sits on, so a
     /// tick beside a Lucide icon reads as the same drawing.
     private static void paintMark(
             Frame frame, BlendPath path, Box.Mark mark, double x, double y, double width, double height) {
@@ -371,8 +361,8 @@ public final class BoxPainter {
                 //
                 // The angles are the mark's rather than this method's, because
                 // this is the one shape that has to show a value: a knob's arc
-                // indicator is the same ring as a spinner's, cut to a fraction
-                // (ADR-0089). A zero sweep draws nothing, which is what a knob at
+                // indicator is the same ring as a spinner's, cut to a fraction.
+                // A zero sweep draws nothing, which is what a knob at
                 // its minimum wants and is `Arc.addTo`'s own early return.
                 Arc.addTo(
                         path,
@@ -385,8 +375,7 @@ public final class BoxPainter {
             case POINTER -> {
                 // A line out from the middle at the mark's angle -- which way the
                 // knob is turned. The angles are the mark's for the same reason
-                // an arc's are: this is a shape whose geometry *is* a value
-                // (ADR-0089).
+                // an arc's are: this is a shape whose geometry *is* a value.
                 var radius = Math.min(width, height) / 2;
                 var cos = Math.cos(mark.start());
                 var sin = Math.sin(mark.start());
@@ -504,13 +493,13 @@ public final class BoxPainter {
     /// caller passes the right base rather than this guessing. Anything that is
     /// not a number is nothing: `auto` padding does not exist and `undefined`
     /// means none.
-    /// Delegates to [Length#resolve], which is where this arithmetic moved when
-    /// the hit-test snapshot needed the same answer (ADR-0281).
+    /// Delegates to [Length#resolve], so the hit-test snapshot gets the same
+    /// answer.
     private static double resolve(Length length, double base) {
         return Length.resolve(length, (float) base);
     }
 
-    /// Hands the frame to an application's own painter — §1's `canvas`.
+    /// Hands the frame to an application's own painter — a `canvas`.
     ///
     /// Three things happen around the call and each is load-bearing.
     ///
@@ -518,8 +507,7 @@ public final class BoxPainter {
     /// that is not trusted to unset what it set. `resetClip` would not do: it
     /// goes back to the whole frame rather than to the clip in force before, so a
     /// canvas inside a `scroll` would paint over the viewport's edge — which is
-    /// the whole reason `bl_context_save` is on the export list
-    /// (ADR-0193).
+    /// the whole reason `bl_context_save` is on the export list.
     ///
     /// **Clipped to the content box**, so a painter's arithmetic mistake is a
     /// picture that is wrong inside its own rectangle rather than one that has
@@ -529,7 +517,7 @@ public final class BoxPainter {
     /// and never has to know where the layout put it. That is what makes the same
     /// painter usable in a `row`, in a `scroll` and in a golden test.
     ///
-    /// Inside the padding, for [ADR-0111]'s reason: a box with `padding: 8px`
+    /// Inside the padding, as text is: a box with `padding: 8px`
     /// around a canvas means eight pixels of surface, and painting at the box's
     /// own origin would put all of them on the right and the bottom.
     private static void paintCanvas(

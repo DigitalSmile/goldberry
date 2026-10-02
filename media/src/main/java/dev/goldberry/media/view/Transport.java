@@ -32,14 +32,14 @@ import dev.goldberry.widgets.controls.select.Select;
 import dev.goldberry.widgets.controls.slider.Slider;
 import dev.goldberry.widgets.text.Text;
 
-/// The transport controls every media widget shows, and the keys they answer
-/// (`docs/goldberry-media.md` §6): one object per mounted widget, owned by its
+/// The transport controls every media widget shows, and the keys they answer:
+/// one object per mounted widget, owned by its
 /// state, so `audio-player`, `media-controls` and `media-player` cannot drift
 /// apart.
 ///
 /// ## The seek bar scrubs, and settles on release
 ///
-/// §3's "Seeking": while the bar is **dragged**, each step is a
+/// While the bar is **dragged**, each step is a
 /// [SeekMode#KEYFRAME] seek, which shows the nearest keyframe fast, and a playing
 /// player is paused for the drag. On **release** ([Slider#onCommit]) one
 /// [SeekMode#ACCURATE] seek lands on the exact position, and a player that was
@@ -207,7 +207,7 @@ final class Transport {
     }
 
     /// What a network source has fetched, as the seek bar's spans, in seconds:
-    /// the stretches a seek lands in without a request (§4, S3). None for a local
+    /// the stretches a seek lands in without a request. None for a local
     /// file.
     static List<Slider.Span> buffered(PlayerStatus status) {
         return status.bufferedRanges().stream()
@@ -329,7 +329,7 @@ final class Transport {
         return name.isBlank() ? tag : name;
     }
 
-    /// The stream's title as a line of its own, when it announces one (S6).
+    /// The stream's title as a line of its own, when it announces one.
     static Optional<Widget> nowPlaying(PlayerStatus status) {
         return status.nowPlaying().map(title -> new Text(title, Attributes.NONE.classes("media-now-playing")));
     }

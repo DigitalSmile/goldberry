@@ -1,6 +1,8 @@
 package dev.goldberry.media.codec;
 
 /// What kind of stream a track is.
+///
+/// Read more: [Bringing a codec](https://goldberry.dev/docs/components/media.html#bringing-a-codec).
 public enum MediaType {
     /// Pictures: a film, or a cover image embedded in an audio file.
     VIDEO,

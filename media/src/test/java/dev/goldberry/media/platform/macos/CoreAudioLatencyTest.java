@@ -17,7 +17,7 @@ import org.junit.jupiter.api.Test;
 
 import dev.goldberry.media.audio.OutputLatency;
 
-/// The default output device's latency from Core Audio (ADR-0474): the sum,
+/// The default output device's latency from Core Audio: the sum,
 /// read on this Mac, and found by `ServiceLoader`.
 @DisplayName("CoreAudioLatency")
 class CoreAudioLatencyTest {

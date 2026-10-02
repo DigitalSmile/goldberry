@@ -252,7 +252,7 @@ class ParagraphTest {
         assertThrows(IllegalArgumentException.class, () -> paragraph.layout(Double.NaN));
     }
 
-    /// It threw until ADR-0218, and what that cost was a window: a field a user
+    /// It used to throw, and what that cost was a window: a field a user
     /// pasted Arabic into took the whole window down on the next frame, because
     /// nothing between the paste and the paint was going to catch it.
     @Test

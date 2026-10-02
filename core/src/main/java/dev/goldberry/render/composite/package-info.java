@@ -1,5 +1,5 @@
-/// The seam between the sdl3 backend and `:gpu`'s compositor
-/// (`docs/gpu-plan.md`, phase 3, and ADR-0479).
+/// The seam between the sdl3 backend and `:gpu`'s compositor, through which a
+/// window presents through the GPU.
 ///
 /// `:core` cannot depend on `:gpu`, which depends on it, and a composited
 /// window needs both: the window, its frame loop and its pacing are `:core`'s,
@@ -11,5 +11,7 @@
 /// **Exported to `:gpu` alone.** The signatures name `:natives`' window handle,
 /// which an application has no business holding here, and nothing in this
 /// package is for applications: the public GPU API is `:gpu`'s.
+///
+/// Read more: [Logging and diagnostics](https://goldberry.dev/docs/guide/logging.html#which-way-a-window-presents).
 @org.jspecify.annotations.NullMarked
 package dev.goldberry.render.composite;

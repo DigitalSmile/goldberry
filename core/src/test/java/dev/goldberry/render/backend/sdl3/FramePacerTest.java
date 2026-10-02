@@ -106,8 +106,8 @@ class FramePacerTest {
             assertEquals(2, pacer.missedRefreshes(1_000L, 3 * SIXTY_HZ));
         }
 
-        /// **The case that makes this number honest.** §1.7 makes the loop idle
-        /// when nothing asks for a frame, so a window nobody touched for a second
+        /// **The case that makes this number honest.** The loop idles when
+        /// nothing asks for a frame, so a window nobody touched for a second
         /// has sixty refreshes' worth of gap since its last frame and has dropped
         /// nothing at all: it drew every frame it was asked for.
         @Test

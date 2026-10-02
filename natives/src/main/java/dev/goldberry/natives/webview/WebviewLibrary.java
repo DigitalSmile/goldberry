@@ -22,18 +22,20 @@ import dev.goldberry.natives.NativePlatform;
 /// ## Why it is not in `libgoldberry`
 ///
 /// Everything else the toolkit binds is statically linked into one shared
-/// library (`docs/ARCHITECTURE.md` §3.2), and a web view cannot join it. The
+/// library, and a web view cannot join it. The
 /// engine behind [Webview] is the desktop's own — WebKitGTK, WebView2,
 /// WKWebView — and linking it into `libgoldberry` would make GTK and WebKit a
 /// **load-time** dependency of every Goldberry application on Linux, including
 /// the overwhelming majority that never open a page. An application on a machine
 /// without them would then fail to load the toolkit at all, rather than fail to
-/// open a web view ([ADR-0441]).
+/// open a web view.
 ///
 /// So this is a second library, linked into nothing, opened the first time a page
 /// is asked for and never otherwise. Its absence is an ordinary state with an
 /// ordinary answer: [#isAvailable()] is false,
 /// `Capability.WEB_VIEW` is not reported, and `WebViews.open` hands back empty.
+///
+/// Read more: [The native boundary](https://goldberry.dev/docs/overview/architecture.html#the-native-boundary).
 public final class WebviewLibrary {
 
     /// Overrides discovery with an explicit path, the way

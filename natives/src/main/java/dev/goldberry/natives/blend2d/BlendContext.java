@@ -45,7 +45,7 @@ import dev.goldberry.natives.layout.Layouts;
 /// draw calls are recorded and workers execute them over horizontal bands. The
 /// pixels are not complete until [#close()] returns, which is the same rule that
 /// already applied — a synchronous context may have work in flight too — but it
-/// is the rule this makes load-bearing. See ADR-0042.
+/// is the rule this makes load-bearing.
 ///
 /// Asking for threads is a request, not a demand: if Blend2D cannot acquire any,
 /// the context is begun synchronously instead and [#threadCount()] reports zero.
@@ -53,6 +53,8 @@ import dev.goldberry.natives.layout.Layouts;
 /// was busy.
 ///
 /// Confined to the thread that created it, and must be closed.
+///
+/// Read more: [The native boundary](https://goldberry.dev/docs/overview/architecture.html#the-native-boundary).
 public final class BlendContext implements AutoCloseable {
 
     private static final Logger LOG = Logs.of(BlendContext.class);
@@ -107,7 +109,7 @@ public final class BlendContext implements AutoCloseable {
             this.rect = arena.allocate(Layouts.BL_RECT.layout());
             // And one BLRectI beside it, for the source rectangle of a cropped
             // blit -- four ints rather than four doubles, because it addresses an
-            // image's own pixels (ADR-0283). Allocated with the rest whether or
+            // image's own pixels. Allocated with the rest whether or
             // not this context ever blits a crop: it is sixteen bytes in an arena
             // that is being set up anyway, and a lazily-allocated one would be a
             // second lifetime to reason about.
@@ -196,7 +198,7 @@ public final class BlendContext implements AutoCloseable {
     ///
     /// Nothing here decides *how many*. That is a policy question about the
     /// surface being painted and the machine painting it, and `:natives` is the
-    /// mechanism — `:core` picks the number (ADR-0042).
+    /// mechanism — `:core` picks the number.
     ///
     /// @throws IllegalArgumentException if the scale is not a positive, finite
     ///         number, or the thread count is negative
@@ -296,7 +298,7 @@ public final class BlendContext implements AutoCloseable {
     /// Coordinates are the context's own — logical when the context was scaled —
     /// and so is the font's size. What is *not* in those units is the glyph
     /// buffer: its offsets and advances are in font design units, and the font's
-    /// matrix is what reconciles the two (ADR-0034).
+    /// matrix is what reconciles the two.
     ///
     /// An empty buffer draws nothing rather than failing: a blank line is
     /// ordinary, and shaping empty text produces exactly this.
@@ -334,12 +336,12 @@ public final class BlendContext implements AutoCloseable {
     /// transform*: `bl_context_save` and `bl_context_restore` are bound —
     /// [#save()] and [#restore()] are right below — but they save the whole
     /// context state and are what an application's own painter runs inside
-    /// (ADR-0193), not a transform stack. So every call here states the whole
+    /// — not a transform stack. So every call here states the whole
     /// transform, and [#resetTransform()] is what a caller
     /// uses to get back to plain scaled user space. The scale is folded in here
     /// rather than left to the caller so that a transform set through this method
     /// is in the same logical coordinates as every other drawing call on the
-    /// context (ADR-0068).
+    /// context.
     public void transform(double a, double b, double c, double d, double e, double f) {
         requireUsable();
         if (!Double.isFinite(a)
@@ -368,14 +370,14 @@ public final class BlendContext implements AutoCloseable {
     ///
     /// The whole image, composited with the current [#globalAlpha(double)] and
     /// the current transform. This is how a subtree rendered into its own image
-    /// gets back onto the frame (ADR-0071).
+    /// gets back onto the frame.
     ///
     /// **The size is not optional and this is the reason there are two blits.**
     /// A layer's raster is allocated in *physical* pixels while this context is
     /// in *logical* ones, so [#blit] -- which draws one raster pixel per logical
     /// unit -- is right only where the two coincide. They coincide at 1x, which
     /// is why nothing noticed until a 2x display drew every faded subtree at
-    /// twice its size (ADR-0157).
+    /// twice its size.
     ///
     /// @throws IllegalArgumentException if the origin is not drawable, or the
     ///         size is not positive
@@ -399,7 +401,7 @@ public final class BlendContext implements AutoCloseable {
     ///
     /// What a crop is: an application that carries a sub-rectangle of an image
     /// draws that rectangle, rather than drawing the whole thing and clipping it
-    /// to what should show (ADR-0283). The two spaces in play are the image's
+    /// to what should show. The two spaces in play are the image's
     /// pixels, which the source rectangle is in, and the context's logical units,
     /// which the destination is in; nothing here relates them, because the caller
     /// asking for a crop is the only one that knows whether it wants the part
@@ -470,9 +472,7 @@ public final class BlendContext implements AutoCloseable {
     /// **This is what makes a layer a group.** A subtree is rasterized into its
     /// own image at full strength, and then the whole result is faded once by
     /// this — which is what CSS `opacity` means, and differs from fading each
-    /// shape separately exactly where two of them overlap
-    /// (ADR-0064
-    /// stated that difference as an open question; ADR-0071 is the answer).
+    /// shape separately exactly where two of them overlap.
     ///
     /// Context state, not a per-call argument, because Blend2D's is — so a caller
     /// that sets it must set it back, and [BlendContext] does not do that for
@@ -496,7 +496,7 @@ public final class BlendContext implements AutoCloseable {
     ///
     /// The one caller outside this class is a COLRv1 colour glyph's
     /// `PaintComposite`, which blits one offscreen layer onto another with the
-    /// operator the font names (ADR-0456).
+    /// operator the font names.
     public void compOp(BlendCompOp compOp) {
         requireUsable();
         java.util.Objects.requireNonNull(compOp, "compOp");
@@ -533,7 +533,7 @@ public final class BlendContext implements AutoCloseable {
     /// What `canvas` needs and the frame path does not: an application's painter
     /// runs inside whatever clip and transform the tree already has, and
     /// [#resetClip()] goes back to the *whole surface* rather than to the region
-    /// in force before it (ADR-0193). Must be paired with [#restore()].
+    /// in force before it. Must be paired with [#restore()].
     public void save() {
         requireUsable();
         calls.contextSave(context);
@@ -558,7 +558,7 @@ public final class BlendContext implements AutoCloseable {
     /// For drawing that has to land on whole pixels exactly, which a logical
     /// coordinate divided by the scale and multiplied back does not promise: a
     /// GPU layer's hole and its read-back pixels, which must cover the pixels
-    /// the compositor's quad covers and no fraction of one more (ADR-0481). Set
+    /// the compositor's quad covers and no fraction of one more. Set
     /// as the identity itself rather than as `transform(1 / scale, …)`, whose
     /// product with the scale need not be exactly one. [#save()] before and
     /// [#restore()] after is how a caller gets its user space back.
@@ -577,7 +577,7 @@ public final class BlendContext implements AutoCloseable {
     ///
     /// The offset is Blend2D's, not a transform: the context's user space is
     /// untouched, so one path built once can be drawn at many places in a frame
-    /// without a save/restore around each (ADR-0043).
+    /// without a save/restore around each.
     ///
     /// @param argb a colour as `0xAARRGGBB`, not premultiplied
     public void fillPath(double x, double y, BlendPath path, int argb) {
@@ -597,7 +597,7 @@ public final class BlendContext implements AutoCloseable {
     /// caller that set it and did not put it back would hand the rule to
     /// whatever drew next, and the symptom is a hole in an unrelated shape three
     /// boxes later. Set, fill, and restored in a `finally`, so the leak is not
-    /// something anyone has to remember (ADR-0427).
+    /// something anyone has to remember.
     ///
     /// The restore is to [BlendFillRule#NON_ZERO] and not to whatever was there
     /// before, which is the same claim [#fillPath] makes about style and this
@@ -626,8 +626,7 @@ public final class BlendContext implements AutoCloseable {
     /// shape drawn somewhere, and a gradient is a statement about a region of
     /// the surface — one placed from the top of a plot to its baseline is the
     /// same ramp for every band drawn through it, which is what lets a chart
-    /// build one and fill several
-    /// (ADR-0207).
+    /// build one and fill several.
     ///
     /// The fill style is **put back to opaque black** afterwards. Blend2D's fill
     /// style is context state and every other call on this class states its own
@@ -702,7 +701,7 @@ public final class BlendContext implements AutoCloseable {
     /// is cut off, as a multiple of the stroke width.
     ///
     /// Blend2D's default is 4, which is SVG's and CSS's, so this is only ever
-    /// called to depart from it (ADR-0278).
+    /// called to depart from it.
     ///
     /// @throws IllegalArgumentException if the limit is not a finite number of at
     ///         least 1. Below 1 a miter is shorter than the bevel it falls back

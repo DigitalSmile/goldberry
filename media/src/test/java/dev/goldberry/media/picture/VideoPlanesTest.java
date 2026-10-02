@@ -16,7 +16,7 @@ import org.junit.jupiter.api.Test;
 import dev.goldberry.media.codec.PixelFormat;
 import dev.goldberry.media.codec.VideoFrame;
 
-/// [VideoPlanes], the planes form of a [Picture] (`docs/gpu-plan.md`, D8): what
+/// [VideoPlanes], the planes form of a [Picture]: what
 /// it accepts, and what it hands back. No FFmpeg.
 @DisplayName("VideoPlanes")
 class VideoPlanesTest {

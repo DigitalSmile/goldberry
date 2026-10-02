@@ -22,7 +22,8 @@ import dev.goldberry.layout.Insets;
 import dev.goldberry.layout.Length;
 import dev.goldberry.layout.Overflow;
 
-/// `overflow` and the clip it puts on the painter — ADR-0114.
+/// `overflow` and the clip it puts on the painter: a rectangle the painter
+/// carries down the tree and takes off again when the subtree ends.
 ///
 /// The interesting failures here are not "the clip is off by a pixel". They are
 /// the two that a rectangle-per-box painter invites: a clip that does not come
@@ -52,7 +53,7 @@ class ClipTest {
     /// anything to clip: Yoga's default `flex-shrink: 1` squashes a 200-tall
     /// child into a 50-tall parent, so a scroll view built without it lays out
     /// perfectly, clips nothing, and has no content to scroll. The `scroll`
-    /// widget sets it on its content for the same reason (ADR-0114, ADR-0076).
+    /// widget sets it on its content for the same reason.
     private static Box filled(int argb, double width, double height) {
         return Box.of().background(argb).shrink(0).size(Length.points((float) width), Length.points((float) height));
     }
@@ -239,9 +240,9 @@ class ClipTest {
     @DisplayName("hit testing")
     class Hits {
 
-        /// ARCHITECTURE §11 has promised since it was written that hit testing
-        /// "respects clips and transforms". The transform half was true; this half
-        /// had nothing to be true about until now.
+        /// Hit testing respects clips as well as transforms. The transform half
+        /// was true from the start; this half had nothing to be true about until
+        /// `overflow` put a clip on the painter.
         @Test
         @DisplayName("a box clipped away is not clickable")
         void clippedAwayIsNotHit() {
@@ -281,7 +282,8 @@ class ClipTest {
 
     /// A clip is a rectangle in logical coordinates handed to a context that
     /// works in them, and Blend2D is told about it in physical ones. That is one
-    /// more crossing of the boundary ADR-0157 found a bug on, and nothing in
+    /// more crossing of the logical-to-physical boundary a layer blitted at the
+    /// wrong size once hid a bug on, and nothing in
     /// this class would have seen it: every assertion above is at 1x, where a
     /// clip scaled once and a clip scaled twice are the same rectangle.
     @Nested

@@ -26,7 +26,7 @@ import dev.goldberry.widgets.controls.button.Button;
 import dev.goldberry.widgets.form.form.Form;
 import dev.goldberry.widgets.form.textinput.TextInput;
 
-/// What a `field` actually looks like, in both of §4's layouts and with something
+/// What a `field` actually looks like, in both of its layouts and with something
 /// wrong with it.
 ///
 /// These images exist because of two reports, and neither was reachable by any
@@ -34,8 +34,8 @@ import dev.goldberry.widgets.form.textinput.TextInput;
 ///
 /// - **"validation text appeared after the text input"** — in a label column a
 ///   field is a *row*, so a message that was a flat third child landed **beside**
-///   the control instead of under it. §4 asks for a label column and a message
-///   below in the same sentence, and they are a row and a column.
+///   the control instead of under it. A field has a label column and a message
+///   below, and those are a row and a column.
 /// - **"the save button is not aligned with the labels"** — an action row beside
 ///   the form starts at the form's left edge, under the labels, where every form
 ///   ever designed puts it under the *controls*.

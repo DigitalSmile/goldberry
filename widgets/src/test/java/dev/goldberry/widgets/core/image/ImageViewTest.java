@@ -25,8 +25,10 @@ import dev.goldberry.widget.semantics.Role;
 import dev.goldberry.widget.semantics.Semantics;
 import dev.goldberry.widgets.Widgets;
 
-/// §1's `image` as a tree: what it builds while loading, loaded and failed, and
-/// what a document may write ([ADR-0358]).
+/// `image` as a tree: what it builds while loading, loaded and failed, and what
+/// a document may write.
+///
+/// Read more: [Image](https://goldberry.dev/docs/components/drawing.html#image).
 class ImageViewTest {
 
     private static final Image PIXEL = Image.ofArgb(4, 2, new int[8]);
@@ -119,7 +121,7 @@ class ImageViewTest {
         void oneFailureIsSaidOnce(@TempDir Path directory) {
             // The Canvas screen draws one sample at four `fit` values, so a
             // source that cannot be read produced four identical lines about one
-            // file ([ADR-0395]).
+            // file.
             ImageState.forgetReported();
             var source = ImageSource.file(directory.resolve("nothing.png"));
 

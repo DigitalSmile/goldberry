@@ -23,8 +23,8 @@ import dev.goldberry.text.font.Font;
 /// Text taking part in layout, rather than being drawn over the top of it.
 ///
 /// This is the M1 slice end to end: Yoga proposes a width from inside C, the
-/// paragraph wraps at it and reports a height through the `YGSize` upcall
-/// (ADR-0017), the flexbox algorithm sizes the box around that answer, and
+/// paragraph wraps at it and reports a height through the `YGSize` upcall, the
+/// flexbox algorithm sizes the box around that answer, and
 /// Blend2D draws the lines that were measured. Each of those had been proven
 /// alone; these are the assertions that they agree.
 class BoxTextTest {

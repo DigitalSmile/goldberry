@@ -9,18 +9,19 @@ import dev.goldberry.widget.Widget;
 import dev.goldberry.widget.style.Paints;
 import dev.goldberry.widget.style.Styled;
 
-/// The `v` at the end of a closed [Select] — a **part**, so it is CSS-selectable
-/// and not constructible
-/// (ADR-0065).
+/// The `v` at the end of a closed [Select] — a part, styleable as
+/// `select-chevron` and not constructible from outside the package.
 ///
 /// It is the only thing that says a field is a dropdown rather than a label with
 /// a border, which is the same job the chevron on a menu row does — and it is a
 /// painter mark for the same reason: an icon owns native memory that must be
-/// closed exactly once (ADR-0043), and a widget is rebuilt every frame.
+/// closed exactly once, and a widget is rebuilt every frame.
 ///
-/// [Box.Mark.Kind#CHEVRON_DOWN] and not
-/// `CHEVRON_END` turned: §8's subset has no transform on a mark, and the two
-/// point at different places anyway — one says *beside*, the other says *below*.
+/// [Box.Mark.Kind#CHEVRON_DOWN] and not `CHEVRON_END` turned: the stylesheet
+/// subset has no transform on a mark, and the two point at different places
+/// anyway — one says *beside*, the other says *below*.
+///
+/// Read more: [Choices](https://goldberry.dev/docs/components/choices.html#select).
 record SelectChevron() implements Widget.Leaf, Styled, Paints {
 
     @Override

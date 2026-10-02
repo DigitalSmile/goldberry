@@ -19,7 +19,7 @@ import dev.goldberry.paint.shadow.ShadowRamp;
 /// rasterizer's own path, which is reset between bands, so a forty-eight band
 /// shadow costs one native path and no native allocation at all — the same trade
 /// [RoundRect] makes for a border. `paint.shadow` has no business knowing what a
-/// `BlendPath` is, and does not (ADR-0310).
+/// `BlendPath` is, and does not.
 final class ShadowPainter {
 
     private ShadowPainter() {}
@@ -39,7 +39,7 @@ final class ShadowPainter {
     /// and not the winding that does this: a reversed inner sub-path under
     /// Blend2D's default non-zero rule fills the parts of itself the outer shape
     /// does not cover, which paints a dark ring exactly where a blur was
-    /// supposed to be erased (ADR-0427).
+    /// supposed to be erased.
     ///
     /// The hole costs one more sub-path per band and no extra fill. It is
     /// unconditional, which it has to be to mean anything: it is invisible under

@@ -8,6 +8,9 @@ package dev.goldberry.media.io;
 ///
 /// @param start the first byte's offset
 /// @param end   the offset just past the last byte, not before `start`
+///
+/// Read more:
+/// [Tracks and the network](https://goldberry.dev/docs/components/media.html#tracks-subtitles-and-the-network).
 public record ByteRange(long start, long end) {
 
     public ByteRange {

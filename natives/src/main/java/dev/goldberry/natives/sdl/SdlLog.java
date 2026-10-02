@@ -23,7 +23,7 @@ import dev.goldberry.natives.sdl.log.SdlLogPriority;
 ///
 /// The companion of
 /// [dev.goldberry.natives.glib.GlibLog]
-/// and the simpler half of ADR-0443: SDL has one hook, it is documented as
+/// and the simpler of the two: SDL has one hook, it is documented as
 /// replaceable, and replacing it cannot abort anything.
 ///
 /// Messages land on `native.sdl.<category>` — `native.sdl.video`,
@@ -55,6 +55,8 @@ import dev.goldberry.natives.sdl.log.SdlLogPriority;
 /// worth having most.
 ///
 /// **Must not throw**, like every upcall — see [#output].
+///
+/// Read more: [The native boundary](https://goldberry.dev/docs/overview/architecture.html#the-native-boundary).
 public final class SdlLog {
 
     /// The `source` segment of every logger name this bridge writes to.

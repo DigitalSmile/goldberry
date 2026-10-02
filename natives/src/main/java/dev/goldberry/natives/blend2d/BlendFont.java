@@ -17,9 +17,9 @@ import dev.goldberry.natives.layout.Layouts;
 ///
 /// **This is not the shaper's font.** `ShapedFont` decides *which* glyphs to
 /// draw and where; this one draws them. Both are built over the same bytes and
-/// neither knows about the other, which `docs/ARCHITECTURE.md` §6 asks for and
-/// ADR-0034 explains the cost of: the two agree on nothing automatically, so the
-/// units they exchange have to be stated rather than assumed.
+/// neither knows about the other, and that independence has a cost: the two
+/// agree on nothing automatically, so the units they exchange have to be stated
+/// rather than assumed.
 ///
 /// ## The size, and what it means for a glyph run
 ///
@@ -43,6 +43,8 @@ import dev.goldberry.natives.layout.Layouts;
 /// collector will leave alone.
 ///
 /// Confined to the thread that created it, and must be closed.
+///
+/// Read more: [The native boundary](https://goldberry.dev/docs/overview/architecture.html#the-native-boundary).
 public final class BlendFont implements AutoCloseable {
 
     private final Blend2dFont calls = Blend2dFont.get();
@@ -88,7 +90,7 @@ public final class BlendFont implements AutoCloseable {
     /// A font at `size` over a face somebody else owns.
     ///
     /// **The face must outlive this font.** That is the whole point — one face,
-    /// many sizes, one copy of the bytes (ADR-0044) — and it is also the way to
+    /// many sizes, one copy of the bytes — and it is also the way to
     /// get it wrong: closing the face first leaves this reading unmapped memory.
     /// Closing *this* leaves the face untouched.
     ///

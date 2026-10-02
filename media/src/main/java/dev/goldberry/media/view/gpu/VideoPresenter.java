@@ -4,8 +4,7 @@ import dev.goldberry.media.picture.Picture;
 import dev.goldberry.paint.Frame;
 import dev.goldberry.widgets.core.image.Fit;
 
-/// Shows a view's pictures through the GPU: `video-view`'s GPU present
-/// (`docs/gpu-plan.md`, phase 6; ADR-0484).
+/// Shows a view's pictures through the GPU: `video-view`'s GPU present.
 ///
 /// Written in this module's types alone, so that a view can hold one without
 /// `:gpu` on the module path. [GpuVideo] makes the one implementation, which is
@@ -17,7 +16,7 @@ import dev.goldberry.widgets.core.image.Fit;
 ///
 /// Public because the views that hold one are in `…media.view`, the package
 /// this was split from so that everything touching the optional `:gpu` sits in
-/// one place (ADR-0496). The package is not exported, so no application sees it.
+/// one place. The package is not exported, so no application sees it.
 public interface VideoPresenter extends AutoCloseable {
 
     /// Places `picture` as a GPU layer over `placement`'s rectangle in `frame`,

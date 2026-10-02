@@ -7,7 +7,10 @@ package dev.goldberry.render.model;
 /// scale and different everywhere else, and mixing them up is the classic HiDPI
 /// bug: it looks correct on the developer's machine and is wrong by 50% on a
 /// user's. Making them different types means the compiler catches it, and
-/// [DisplayScale] is the only bridge.
+/// [DisplayScale] is the only bridge. Width and height must be finite and not
+/// negative; zero is allowed and [#isEmpty()] reports it.
+///
+/// Read more: [How layout works](https://goldberry.dev/docs/layout/index.html#logical-pixels).
 public record LogicalSize(float width, float height) {
 
     public LogicalSize {

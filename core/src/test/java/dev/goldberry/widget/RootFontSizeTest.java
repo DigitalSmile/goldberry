@@ -23,9 +23,9 @@ import dev.goldberry.text.font.Font;
 import dev.goldberry.widget.style.Paints;
 import dev.goldberry.widget.style.Styled;
 
-/// `rem` is the **root element's** computed `font-size` ([ADR-0416]).
+/// `rem` is the **root element's** computed `font-size`.
 ///
-/// ADR-0242 resolved `em` against the element's own size and left this: `rem`
+/// When `em` was made the element's own size, `rem` was left as it was: it
 /// read `CssLength.Context.rootFontSize()`, which is a number an application
 /// configured rather than anything the root computed. The two agree until a root
 /// declares a size, and the entry that stayed open says as much — "nothing in the
@@ -38,8 +38,8 @@ import dev.goldberry.widget.style.Styled;
 ///
 /// Because the missing half is not arithmetic, it is reach. A node is handed its
 /// *parent's* style and never the root's, so nothing inside `ComputedStyle.of`
-/// can recover the root's size for a descendant — which is exactly what ADR-0242
-/// said and why it left the entry open. The thing that walks the tree is the only
+/// can recover the root's size for a descendant — which is exactly why the `em`
+/// change left the entry open. The thing that walks the tree is the only
 /// thing that ever holds the root's style and the descendant's declarations at
 /// once, so the fix lives in [WidgetRenderer] and so does the test.
 class RootFontSizeTest {
@@ -109,7 +109,7 @@ class RootFontSizeTest {
         return new Captured[] {root, child};
     }
 
-    /// **The case the entry named**, and the one that fails against ADR-0242's
+    /// **The case the entry named**, and the one that fails against the old
     /// code: a root that declares `font-size` and a descendant that uses `rem`.
     ///
     /// 20 × 2 = 40. The old answer was 32 — the configured root size, which no
@@ -145,8 +145,8 @@ class RootFontSizeTest {
     /// and it is deliberate. The alternative is `rem` meaning the configured
     /// number when a root is silent and the root's size when it is not, which is
     /// one unit with two meanings depending on a declaration somewhere else.
-    /// ADR-0242 already narrowed `Context.fontSize` to "what the *root's* `em`
-    /// resolves against" for the same reason; this is the other field taking the
+    /// The `em` change already narrowed `Context.fontSize` to "what the *root's*
+    /// `em` resolves against" for the same reason; this is the other field taking the
     /// same step.
     @Test
     @DisplayName("a silent root computes the initial size, and rem follows it rather than the configuration")
@@ -176,8 +176,8 @@ class RootFontSizeTest {
     /// the question "is it ever stale" is the one thing a reviewer will ask about
     /// this shape. It is reset at the top of every frame and set once at the root;
     /// below that, a root whose style changed hands its children a different
-    /// instance and they re-resolve because of it — the cache invalidating itself
-    /// (ADR-0070), which is what keeps the two in step without anything telling
+    /// instance and they re-resolve because of it — the cache invalidating itself,
+    /// which is what keeps the two in step without anything telling
     /// them to.
     @Test
     @DisplayName("rendering twice gives the same answer")

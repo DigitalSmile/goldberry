@@ -6,10 +6,10 @@ import org.jspecify.annotations.Nullable;
 
 /// Whether a chart has its data, is waiting for it, or could not get it.
 ///
-/// `charts.md` §3.1: "a chart with no data draws a themed message, never an empty
-/// grid". The three states are one type because they are one question with one
-/// answer, and because a chart in any of them draws the same shape — a sentence
-/// in the middle of the box the chart would have filled.
+/// A chart with no data draws a themed message, never an empty grid. The three
+/// states are one type because they are one question with one answer, and
+/// because a chart in any of them draws the same shape — a sentence in the
+/// middle of the box the chart would have filled.
 ///
 /// ## Why the chart owns this and not the application
 ///
@@ -26,6 +26,8 @@ import org.jspecify.annotations.Nullable;
 /// application answered the question and the answer was "nothing" — and the
 /// widget notices for itself. Making the application say it twice would be a
 /// state that can disagree with the data beside it.
+///
+/// Read more: [Charts](https://goldberry.dev/docs/components/charts.html#what-the-five-share).
 ///
 /// @param kind    which of the three
 /// @param message what to say, or null for the default

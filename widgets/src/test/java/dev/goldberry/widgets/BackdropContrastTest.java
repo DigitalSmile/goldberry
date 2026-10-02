@@ -40,8 +40,9 @@ import dev.goldberry.widgets.controls.button.Button;
 import dev.goldberry.widgets.core.Column;
 import dev.goldberry.widgets.text.Text;
 
-/// §1.2, measured on the **painted frame** rather than on the cascade — the
-/// check [ContrastTest] says it cannot be ([ADR-0431]).
+/// The text contrast floor, measured on the **painted frame** rather than on the
+/// cascade — the check [ContrastTest] says it cannot be, because a translucent
+/// fill has a ratio only once something has been composited under it.
 ///
 /// ## What the cascade cannot answer
 ///
@@ -80,8 +81,7 @@ import dev.goldberry.widgets.text.Text;
 /// That list is pinned rather than counted, and [#theSurfacesAreTheOnesTheThemesDeclare]
 /// is what keeps it honest: a theme that declares a sixth surface token fails
 /// that test until the sweep covers it. An application's own backdrop is the
-/// application's own business, and `Contrast.ratio` is public for exactly that
-/// ([ADR-0241]).
+/// application's own business, and `Contrast.ratio` is public for exactly that.
 ///
 /// Each backdrop is a **stack** and not a token, which is the second thing the
 /// cascade could not do: `--gb-surface-sunken` is `rgba(0, 0, 0, 0.22)` on the
@@ -125,7 +125,7 @@ class BackdropContrastTest {
     ///
     /// Three pixels in from the leading edge at the vertical centre: inside the
     /// rounded corner at the box's widest point, and well before the label, which
-    /// starts after §3's 12px of padding. A corner sample would land on the
+    /// starts after the button's 12px of padding. A corner sample would land on the
     /// antialiasing of the radius and measure a colour nothing is drawn in.
     private static final int INSET = 3;
 
@@ -174,7 +174,7 @@ class BackdropContrastTest {
                 new Probe("button.ghost", ghost, ""),
                 new Probe("button.ghost:hover", ghost, "#probe { background: var(--gb-overlay-hover) }"),
                 new Probe("button.ghost:active", ghost, "#probe { background: var(--gb-overlay-active) }"),
-                // §3's "selection = `--gb-selection` full-row", which `list-row`,
+                // A selection is `--gb-selection` across the full row, which `list-row`,
                 // `tree-row` and a chosen `option` all paint and which keeps
                 // `--gb-text` on top of it in every one of them. A plain box
                 // wearing the same two declarations is the pair those three rows
@@ -182,8 +182,8 @@ class BackdropContrastTest {
                 new Probe(
                         "--gb-selection",
                         new Column(List.of(new Text("Aa")), id("probe")),
-                        // §3's `list` row: "height 32 (26); padding-x 12". The
-                        // padding is the row's own metric and it is also what
+                        // A `list` row is 32 high (26 compact) with 12px of padding
+                        // each side. The padding is the row's own metric and it is also what
                         // keeps `INSET` off the glyphs -- see `sampleOf`.
                         "#probe { background: var(--gb-selection); color: var(--gb-text);"
                                 + " height: 32px; padding: 0 12px; justify-content: center }"));
@@ -303,7 +303,7 @@ class BackdropContrastTest {
     /// Forty measurements: five surfaces × four probes × two themes, and every one
     /// of them is a pair no check in the repo could previously express.
     @Test
-    @DisplayName("every translucent fill leaves its label above §1.2's 4.5:1, on every surface the toolkit paints")
+    @DisplayName("every translucent fill leaves its label above 4.5:1, on every surface the toolkit paints")
     void everyLabelIsLegibleOverWhatIsBehindIt() {
         var failures = new ArrayList<String>();
         var report = new StringBuilder();
@@ -345,9 +345,9 @@ class BackdropContrastTest {
     /// reported that, because the declaration would have been present and correct
     /// on both.
     ///
-    /// **No floor beyond "it moved".** §2.1 asks hover for "one surface step" and
-    /// designs it to be subtle; §1.2's 3:1 is about telling a *component* from its
-    /// background, not about telling a hover from a rest. Asserting 3:1 here would
+    /// **No floor beyond "it moved".** The design system asks hover for one
+    /// surface step and designs it to be subtle; the 3:1 floor is about telling a
+    /// *component* from its background, not about telling a hover from a rest. Asserting 3:1 here would
     /// be inventing a rule the design system does not hold itself to and failing
     /// every state in the catalog on the strength of it. What is asserted is the
     /// claim the design system does make — that the surface steps — and the exact
@@ -406,8 +406,8 @@ class BackdropContrastTest {
     ///
     /// `--gb-surface-2` and the two directions are all here. They are different
     /// colours in different places — `-2` is a step down on the light theme and a
-    /// step up on the dark one, which is a trap with an ADR of its own
-    /// ([ADR-0168]) — and measuring a composite over each separately is precisely
+    /// step up on the dark one, which has caught a field's well before — and
+    /// measuring a composite over each separately is precisely
     /// how a wash that works on one theme and vanishes on the other gets caught.
     @Test
     @DisplayName("the surfaces swept are the surfaces the themes declare")

@@ -9,7 +9,7 @@ import java.lang.invoke.MethodHandle;
 
 import dev.goldberry.natives.Downcalls;
 
-/// SDL's one question about the desktop's appearance — `docs/gaps.md` G26.
+/// SDL's one question about the desktop's appearance: light or dark.
 ///
 /// A record of its own rather than a method on [SdlDisplayCalls], because it is
 /// not a display query: the answer is the same on every monitor and changes when
@@ -40,7 +40,7 @@ public record SdlThemeCalls(GetSystemTheme getSystemTheme) {
         GetSystemTheme(SymbolLookup lookup) {
             // Optional, like the display-mode pair: a `libgoldberry` built before
             // this export existed must keep opening windows, and "the desktop does
-            // not say" is an answer this question already has (ADR-0322).
+            // not say" is an answer this question already has.
             this.address = Downcalls.optionalSymbol(lookup, "SDL_GetSystemTheme");
         }
 

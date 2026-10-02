@@ -3,42 +3,48 @@ package dev.goldberry.text.font.sfnt;
 import java.util.List;
 import java.util.Objects;
 
-/// One node of a `COLR` version 1 **paint graph** — what a colour glyph is in
-/// that format ([ADR-0456]).
+/// One node of a `COLR` version 1 paint graph, which is what a colour glyph is
+/// in that format.
 ///
-/// ## What changed from version 0
+/// ```java
+/// ColorPaint graph = ColorPaints.read(bytes).paint(glyphId);
+/// switch (graph) {
+///     case ColorPaint.Solid solid -> fill(solid.colour().resolve(textArgb));
+///     case ColorPaint.Glyph glyph -> clipTo(glyph.glyphId(), glyph.paint());
+///     // ...
+/// }
+/// ```
 ///
 /// A version 0 colour glyph is a list of outlines, each filled with one flat
 /// colour ([ColorLayers]). Version 1 keeps the outlines and replaces the list
-/// with a **tree**: a node either *paints* — a colour, a gradient — or *shapes*
-/// what is painted beneath it — a glyph outline that clips it, a transform that
-/// moves it, a composite that blends two subtrees. Noto Color Emoji is drawn
+/// with a tree: a node either paints, as a colour or a gradient, or shapes what
+/// is painted beneath it, as a glyph outline that clips it, a transform that
+/// moves it, or a composite that blends two subtrees. Noto Color Emoji is drawn
 /// this way: a face is a radial gradient clipped to a circle, a flag is its
 /// stripes composited under a soft-light wave.
 ///
-/// ## Why a sealed interface of records
+/// It is a sealed interface of records because the renderer is a `switch` over
+/// it, and a `switch` over a sealed type is exhaustive: a node added here stops
+/// the painter compiling until it is drawn, rather than falling through a
+/// default branch that draws nothing and reports nothing. The records are
+/// values in the font's own design units, y up, exactly as the table writes
+/// them; turning them into pixels is the painter's business and nothing here
+/// knows a pixel exists.
 ///
-/// Because the renderer is a `switch` over it, and a `switch` over a sealed type
-/// is **exhaustive**: a node added here stops the painter compiling until it is
-/// drawn, rather than falling through a default branch that draws nothing and
-/// reports nothing. The records are values in the font's own design units, y
-/// up, exactly as the table writes them; turning them into pixels is `paint`'s
-/// business and nothing here knows a pixel exists.
+/// Three things are folded at read time. Eleven transform formats become one:
+/// translate, scale, rotate and skew, each with and without a centre, are all
+/// an affine matrix, so [Transform] is that matrix and the painter has one case
+/// and not twelve. Variable formats are read as their defaults: every
+/// `PaintVar…` is its static twin plus a variation index, and a face drawn at
+/// its default instance, the only instance this toolkit asks for, uses the
+/// static values unchanged. Palette indices become colours ([Colour]), keeping
+/// the one index that means "whatever colour the text is" as a flag rather than
+/// a number.
 ///
-/// ## What is folded at read time
-///
-/// - **Eleven transform formats become one.** Translate, scale, rotate and skew,
-///   each with and without a centre, are all an affine matrix; [Transform] is
-///   that matrix, so the painter has one case and not twelve.
-/// - **Variable formats are read as their defaults.** Every `PaintVar…` is its
-///   static twin plus a variation index, and a face drawn at its default
-///   instance — the only instance this toolkit asks for — uses the static
-///   values unchanged.
-/// - **Palette indices become colours** ([Colour]), keeping the one index that
-///   means "whatever colour the text is" as a flag rather than a number.
+/// Read more: [Emoji](https://goldberry.dev/docs/guide/text.html#emoji).
 public sealed interface ColorPaint {
 
-    /// Several paints drawn one over the next — `PaintColrLayers`.
+    /// Several paints drawn one over the next: `PaintColrLayers`.
     ///
     /// @param layers bottom first
     record Layers(List<ColorPaint> layers) implements ColorPaint {
@@ -48,7 +54,7 @@ public sealed interface ColorPaint {
         }
     }
 
-    /// One colour, everywhere it is allowed to reach — `PaintSolid`.
+    /// One colour, everywhere it is allowed to reach: `PaintSolid`.
     record Solid(Colour colour) implements ColorPaint {
 
         public Solid {
@@ -56,9 +62,9 @@ public sealed interface ColorPaint {
         }
     }
 
-    /// A ramp along a line — `PaintLinearGradient`.
+    /// A ramp along a line: `PaintLinearGradient`.
     ///
-    /// **Three points, not two.** The ramp runs from `p0` towards `p1`, but its
+    /// Three points, not two. The ramp runs from `p0` towards `p1`, but its
     /// lines of equal colour are parallel to `p0 → p2` rather than
     /// perpendicular to `p0 → p1`. That is what lets a font skew a gradient
     /// without a transform; [#normal()] is the two-point gradient a rasterizer
@@ -95,7 +101,7 @@ public sealed interface ColorPaint {
         }
     }
 
-    /// A ramp between two circles — `PaintRadialGradient`.
+    /// A ramp between two circles: `PaintRadialGradient`.
     ///
     /// The first stop sits on circle 0 and the last on circle 1; the circles
     /// between are interpolated, centre and radius both. That is the
@@ -109,7 +115,7 @@ public sealed interface ColorPaint {
         }
     }
 
-    /// A ramp around a centre — `PaintSweepGradient`.
+    /// A ramp around a centre: `PaintSweepGradient`.
     ///
     /// @param startAngle where the first stop sits, in degrees counter-clockwise
     ///        from the positive x axis, y up
@@ -122,10 +128,10 @@ public sealed interface ColorPaint {
         }
     }
 
-    /// `paint`, clipped to one glyph's outline — `PaintGlyph`.
+    /// `paint`, clipped to one glyph's outline: `PaintGlyph`.
     ///
     /// The outline is an ordinary glyph in the same face, as in version 0. What
-    /// is new is that the fill inside it may be anything — usually a gradient,
+    /// is new is that the fill inside it may be anything, usually a gradient,
     /// sometimes under a transform of its own.
     record Glyph(int glyphId, ColorPaint paint) implements ColorPaint {
 
@@ -134,7 +140,7 @@ public sealed interface ColorPaint {
         }
     }
 
-    /// Another colour glyph's whole paint graph, reused — `PaintColrGlyph`.
+    /// Another colour glyph's whole paint graph, reused: `PaintColrGlyph`.
     ///
     /// Left as a reference rather than inlined, because a graph may reach
     /// itself through one: inlining at read time would loop, and a painter that
@@ -142,7 +148,7 @@ public sealed interface ColorPaint {
     /// stops on one that is not.
     record ColrGlyph(int glyphId) implements ColorPaint {}
 
-    /// `paint`, drawn through an affine matrix — every transform format folded
+    /// `paint`, drawn through an affine matrix: every transform format folded
     /// into one.
     ///
     /// ```
@@ -160,7 +166,7 @@ public sealed interface ColorPaint {
         }
 
         /// Whether the matrix can be undone. A singular one collapses its child
-        /// onto a line, which draws nothing — and a gradient placed through it
+        /// onto a line, which draws nothing, and a gradient placed through it
         /// has no inverse to be evaluated with.
         public boolean isInvertible() {
             var determinant = xx * yy - xy * yx;
@@ -168,7 +174,7 @@ public sealed interface ColorPaint {
         }
     }
 
-    /// `source` blended onto `backdrop` with `mode` — `PaintComposite`.
+    /// `source` blended onto `backdrop` with `mode`: `PaintComposite`.
     ///
     /// The one node that cannot be drawn straight onto the surface: both sides
     /// have to exist as pictures before one is blended onto the other, so the
@@ -186,7 +192,7 @@ public sealed interface ColorPaint {
     ///
     /// @param argb        the palette colour as `0xAARRGGBB`, not premultiplied;
     ///                    ignored when `followsText`
-    /// @param followsText whether this is palette index `0xFFFF` — the colour
+    /// @param followsText whether this is palette index `0xFFFF`, the colour
     ///                    of the text being drawn
     /// @param alpha       multiplied into whichever colour it turns out to be,
     ///                    from 0 to 1
@@ -214,7 +220,7 @@ public sealed interface ColorPaint {
         }
     }
 
-    /// A gradient's stops and what happens beyond them — `ColorLine`.
+    /// A gradient's stops and what happens beyond them: `ColorLine`.
     ///
     /// @param stops in ascending offset order, never empty
     record ColorLine(Extend extend, List<ColorStop> stops) {

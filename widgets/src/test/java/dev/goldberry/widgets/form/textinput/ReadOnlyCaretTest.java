@@ -18,7 +18,7 @@ import dev.goldberry.widgets.Controls;
 import dev.goldberry.widgets.TestHost;
 import dev.goldberry.widgets.controls.TestFont;
 
-/// Where a read-only field's caret starts — `docs/gaps.md` G34, [ADR-0326].
+/// Where a read-only field's caret starts.
 ///
 /// The value under test is a peer invite: 120 characters that exist to be
 /// selected and copied onto another machine, in a box a fraction as wide. A
@@ -71,7 +71,7 @@ class ReadOnlyCaretTest {
     /// Half of that survives and is still checked here: the caret *is* at the end,
     /// because that is where typing goes and four other controls lean on it. What
     /// went is the scroll that chased it before anybody had asked to type — see
-    /// [FieldOpeningTest] and [ADR-0412].
+    /// [FieldOpeningTest].
     @Test
     @DisplayName("an editable field keeps its caret at the end and still shows the head")
     void editableKeepsItsCaretAtTheTail() {

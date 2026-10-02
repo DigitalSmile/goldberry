@@ -12,7 +12,7 @@ import dev.goldberry.widgets.panel.masonry.Masonry;
 /// the layout alone and go away again. A `message` does not: it is part of the
 /// column, it moves what is under it, and it stays until the application stops
 /// describing it. Putting them a tab apart made that a comparison nobody could
-/// make ([ADR-0222]).
+/// make.
 ///
 /// ## What is markup and what is not
 ///
@@ -20,13 +20,15 @@ import dev.goldberry.widgets.panel.masonry.Masonry;
 /// of them a `press=` naming an action the window registered, which is exactly
 /// what a document says well. [Notifications] has the three that are a *list the
 /// application edits*: a banner arrives when something describes one and goes
-/// when the description stops, and §8's markup is data ([ADR-0175]).
+/// when the description stops, and markup is data.
+///
+/// Read more: [Overlays](https://goldberry.dev/docs/components/overlays.html).
 ///
 /// @param cards what `overlays.kdl` built, inflated once by [Screen]
 public record Overlays(Masonry cards) implements Widget.Stateless {
 
     private static final String NOTE =
-            "§7's four layers. A menu opens a platform window of its own, a HUD floats in this"
+            "The four layers. A menu opens a platform window of its own, a HUD floats in this"
                     + " window's layer, a dialog covers it and traps the keyboard, and a toast"
                     + " stacks in a corner and leaves. A message does none of that: it is part"
                     + " of the column, and it stays.";

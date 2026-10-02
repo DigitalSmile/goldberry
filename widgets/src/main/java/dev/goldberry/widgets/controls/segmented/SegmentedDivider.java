@@ -12,24 +12,21 @@ import dev.goldberry.widget.Widget;
 import dev.goldberry.widget.style.Paints;
 import dev.goldberry.widget.style.Styled;
 
-/// One of the hairlines between a [Segmented]'s segments — §3's "1px divider in
-/// `--gb-border`", and a **part**.
+/// One of the hairlines between a [Segmented]'s segments — a 1 px line in the
+/// border colour, styled as `segmented-divider`.
 ///
 /// ## Why it is a node and not an edge
 ///
-/// §8's subset has one `border` and no per-edge longhands, so "a line on the left
-/// of every segment but the first" is not a declaration anything can write. A box
-/// one pixel wide with a background is
-/// ADR-0215's
-/// answer to exactly that question, one widget later — the same shape as
-/// `table-rule` and `separator`.
+/// The stylesheet subset has one `border` and no per-edge longhands, so "a line
+/// on the left of every segment but the first" is not a declaration anything can
+/// write. A box one pixel wide with a background is the answer to exactly that
+/// question — the same shape as `table-rule` and `separator`.
 ///
 /// ## Why it is out of flow
 ///
 /// A divider in flow would take a pixel of the row, and the row is a **grid**:
 /// every segment is exactly `1/n` of the track, which is what lets the indicator
-/// travel by a percentage of its own width and never measure anything
-/// (ADR-0099).
+/// travel by a percentage of its own width and never measure anything.
 /// Three dividers between four segments would make each cell `(100% - 3px) / 4`,
 /// which no percentage names. Absolute, at a percentage of the track, costs the
 /// grid nothing.
@@ -42,15 +39,16 @@ import dev.goldberry.widget.style.Styled;
 /// one on its right, and hiding only what is covered would make the control
 /// asymmetric for no reason a reader could see.
 ///
-/// They **fade** rather than vanish, on §1.7's `fast`, because the pill takes
-/// `base` to travel: a hairline that blinked out the instant a segment was
-/// clicked would beat the movement that explains it.
+/// They **fade** rather than vanish, on the design system's `fast` duration,
+/// because the pill takes `base` to travel: a hairline that blinked out the
+/// instant a segment was clicked would beat the movement that explains it.
 ///
 /// Which two is a fact only this widget has, and it says so as a class,
-/// `beside-selection`; the `opacity: 0` is `controls.css`'s. It used to be written
-/// through [#restyle] with the place, and it was the one value there a stylesheet
-/// could have written once it was told which lines — so it moved, and a theme can
-/// dim them instead (ADR-0499).
+/// `beside-selection`; the `opacity: 0` is `controls.css`'s, because once the
+/// stylesheet is told which lines it can write that value itself, and a theme
+/// can dim them instead.
+///
+/// Read more: [Choices](https://goldberry.dev/docs/components/choices.html#segmented).
 ///
 /// @param boundary which gap this is — 1 is between the first two segments, and
 ///                 there are `count - 1` of them

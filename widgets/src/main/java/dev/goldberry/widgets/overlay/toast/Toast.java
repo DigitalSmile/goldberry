@@ -5,7 +5,8 @@ import java.util.Objects;
 
 import org.jspecify.annotations.Nullable;
 
-/// One notification — `docs/core-widgets.md` §7's `toast`, as a **value**.
+/// One notification, as a **value**: what it says, an optional action button,
+/// and how long it stays.
 ///
 /// ```java
 /// toasts.show(new Toast("Draft saved"));
@@ -14,36 +15,37 @@ import org.jspecify.annotations.Nullable;
 ///
 /// ## Not a widget, where `message` is one
 ///
-/// The two look alike and are the opposite kind of thing, which §7 spends a
-/// sentence on: a message is **part of the layout** and is about the thing next
+/// The two look alike and are the opposite kind of thing, and the line between
+/// them is where they live: a message is **part of the layout** and is about the thing next
 /// to it, so an author writes one where it goes; a toast is **transient**,
 /// floats over the window and is about something that just happened, so nobody
 /// writes one anywhere — an application *raises* it and the stack decides where
 /// it goes and how long it stays.
 ///
 /// So this is a value handed to [ToastController#show], and a widget only ever
-/// exists for as long as the stack is drawing one
-/// (ADR-0177).
+/// exists for as long as the stack is drawing one.
 /// A `Toast` cannot be put in a document for the same reason: a document is a
 /// description of a screen, and a toast is a thing that happened.
 ///
 /// ## No kind
 ///
-/// §7 gives `message` four kinds and gives a toast none, and the omission reads
+/// A `message` has four kinds and a toast has none, and the omission is
 /// deliberate: a message says *what is true of this region* and has to be told
 /// apart from three other things it might be saying, where a toast says *what
-/// just happened* and there is only one of those on the screen at a time. Adding
-/// a red toast would be inventing vocabulary the specification declined to.
+/// just happened* and there is only one of those on the screen at a time. A red
+/// toast would be vocabulary with nothing to tell apart.
+///
+/// Read more: [Overlays](https://goldberry.dev/docs/components/overlays.html#toasts).
 ///
 /// @param text    what it says
 /// @param label   the action button's label, or null for a toast with no button
 /// @param onPress what the action button does, or null
 /// @param timeout how long it stays once it has arrived — the clock stops while
-///                the pointer is over it (§7's "hover-pause")
+///                the pointer is over it
 public record Toast(
         String text, @Nullable String label, @Nullable Runnable onPress, Duration timeout) {
 
-    /// §2: "timeout 5s default".
+    /// Five seconds: how long a toast stays unless told otherwise.
     public static final Duration DEFAULT_TIMEOUT = Duration.ofSeconds(5);
 
     /// A toast that goes on its own after [#DEFAULT_TIMEOUT].
@@ -52,7 +54,7 @@ public record Toast(
     }
 
     /// The canonical constructor, written out because `timeout` takes null for
-    /// [#DEFAULT_TIMEOUT] while the component never holds it (ADR-0497).
+    /// [#DEFAULT_TIMEOUT] while the component never holds it.
     public Toast(String text, @Nullable String label, @Nullable Runnable onPress, @Nullable Duration timeout) {
         Objects.requireNonNull(text, "text");
         timeout = timeout == null ? DEFAULT_TIMEOUT : timeout;
@@ -72,7 +74,7 @@ public record Toast(
         this.timeout = timeout;
     }
 
-    /// This toast with a button after its words — §7's "optional action button".
+    /// This toast with a button after its words.
     public Toast action(String label, Runnable onPress) {
         return new Toast(
                 text, Objects.requireNonNull(label, "label"), Objects.requireNonNull(onPress, "onPress"), timeout);

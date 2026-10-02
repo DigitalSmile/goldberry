@@ -9,10 +9,10 @@ import org.jspecify.annotations.Nullable;
 
 /// Reads [KDL 2.0][spec] markup into [KdlNode]s.
 ///
-/// Hand-written, for the reason [ADR-0010] gives about the FFM bindings: KDL 2.0
-/// has no mature Java parser, and the language is small enough that owning one is
-/// cheaper than depending on one — and this one has to produce the source
-/// positions §9 requires, which a general-purpose parser typically discards.
+/// Hand-written: KDL 2.0 has no mature Java parser, and the language is small
+/// enough that owning one is cheaper than depending on one — and this one has to
+/// produce the source positions an error message needs, which a general-purpose
+/// parser typically discards.
 ///
 /// ## What is supported
 ///
@@ -28,8 +28,8 @@ import org.jspecify.annotations.Nullable;
 /// ## What is refused, and why
 ///
 /// - **Type annotations** — `(u8)123`. Parsed far enough to be recognised and
-///   then refused by name. They exist for schema-typed KDL; the widget schema of
-///   §9 has no use for one, and accepting-then-discarding is how a document that
+///   then refused by name. They exist for schema-typed KDL; the widget schema
+///   has no use for one, and accepting-then-discarding is how a document that
 ///   says something the toolkit ignores looks like it worked.
 /// - **Multi-line quoted strings** — `"""…"""`. Their dedent rules are subtle and
 ///   no widget attribute has asked for one. Refused with a message naming the
@@ -37,6 +37,8 @@ import org.jspecify.annotations.Nullable;
 ///
 /// Both follow the rule the CSS engine set: a documented subset that says so
 /// loudly beats a permissive parser that drops what it does not understand.
+///
+/// Read more: [Markup](https://goldberry.dev/docs/guide/markup.html#the-syntax-as-goldberry-reads-it).
 ///
 /// [spec]: https://github.com/kdl-org/kdl/blob/main/SPEC.md
 public final class KdlParser {
@@ -69,8 +71,7 @@ public final class KdlParser {
     /// The markup half of [dev.goldberry.css.Stylesheet#resource],
     /// and it exists for the same reason: a `.kdl` file next to the class that
     /// inflates it is a document a designer can edit and a text block in Java is
-    /// not — which is most of the point of having markup at all
-    /// (ADR-0093).
+    /// not — which is most of the point of having markup at all.
     ///
     /// UTF-8, and a missing resource is an error rather than an empty document:
     /// a window that inflates nothing renders nothing, with no clue why.

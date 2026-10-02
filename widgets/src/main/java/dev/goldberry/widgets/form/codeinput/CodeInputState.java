@@ -11,9 +11,9 @@ import dev.goldberry.widget.Widget;
 ///
 /// Shorter than `text-input`'s state by everything a caret needs. There is no
 /// blink timer, because there is no caret to blink — the focus ring on the active
-/// box is what says where the next character goes, and §2.2 asks for it to be
+/// box is what says where the next character goes, and a focus ring is
 /// instant. So a window with a focused code field asks for no frames at all,
-/// which is §1.7's idle loop holding for one more control.
+/// which is the idle frame loop holding for one more control.
 ///
 /// ## Text input follows this field's focus
 ///
@@ -73,7 +73,7 @@ final class CodeInputState extends State<CodeInput> implements CodeEditor {
     ///
     /// In `build` rather than in `didUpdateWidget`, because a `bind=` value
     /// changing does not replace the widget: the property fires, the element is
-    /// marked for build, and the widget is the same object it was ([ADR-0062]).
+    /// marked for build, and the widget is the same object it was.
     ///
     /// The offered value goes through [CodeEdit#withValue], so a `bind=` carrying
     /// a letter into a `digits` field leaves the boxes empty rather than drawing

@@ -10,6 +10,9 @@ import java.util.SequencedSet;
 ///
 /// The name is what ties the Java declaration to the row the compiled library
 /// reports in its layout table, so [LayoutVerifier] can prove the two agree.
+///
+/// Read more:
+/// [Repository layout](https://goldberry.dev/docs/contributing/repository.html#the-export-list-and-the-layout-probe).
 public record NativeStructLayout(String name, StructLayout layout) {
 
     public NativeStructLayout {

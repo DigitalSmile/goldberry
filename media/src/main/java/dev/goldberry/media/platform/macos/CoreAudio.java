@@ -15,7 +15,7 @@ import java.util.OptionalDouble;
 import java.util.OptionalInt;
 
 /// Core Audio's hardware properties: the default output device, and the four
-/// numbers its latency is made of (ADR-0474).
+/// numbers its latency is made of.
 ///
 /// One function, `AudioObjectGetPropertyData`, asked for one property at a time
 /// by its address: a selector, a scope and an element, three `UInt32`s with no

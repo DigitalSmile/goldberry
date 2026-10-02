@@ -40,8 +40,9 @@ import dev.goldberry.media.platform.windows.MediaFoundationAudioProvider;
 import dev.goldberry.media.platform.windows.MediaFoundationVideoProvider;
 
 /// A `MediaPlayer` playing H.264 and AAC through the platform providers, end to
-/// end: `docs/goldberry-media.md` §7's S8 with the operating system's decoders
-/// rather than a fake, and S7 turned around. On whichever system it runs:
+/// end: bring-your-own-codec with the operating system's decoders rather than
+/// a fake, and the unsupported-codec case turned around. On whichever system it
+/// runs:
 /// VideoToolbox and AudioToolbox on macOS, GStreamer on Linux, Media
 /// Foundation on Windows.
 @DisplayName("MediaPlayer with the platform decoders")
@@ -159,7 +160,7 @@ class PlatformPlaybackTest {
     }
 
     @Test
-    @DisplayName("without the providers the same file is UNSUPPORTED_CODEC, naming both codecs (S7)")
+    @DisplayName("without the providers the same file is UNSUPPORTED_CODEC, naming both codecs")
     void withoutTheProviders() {
         play("clip-h264-high.mp4", MediaPlayer.builder().decoderProviders(List.<DecoderProvider>of()));
         var failed = await(status -> status.state() == PlaybackState.ERROR);

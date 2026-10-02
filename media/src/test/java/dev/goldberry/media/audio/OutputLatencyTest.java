@@ -12,7 +12,8 @@ import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-/// How the output latency providers are asked (ADR-0474).
+/// How the output latency providers are asked: the audio clock is what is heard,
+/// so a provider's answer is what the engine takes off it.
 @DisplayName("OutputLatency")
 class OutputLatencyTest {
 
@@ -62,7 +63,7 @@ class OutputLatencyTest {
     @Test
     @DisplayName("off macOS the installed provider answers nothing")
     void installedHere() {
-        // CoreAudio's provider is this module's own since ADR-0493, so the scan
+        // CoreAudio's provider is this module's own, so the scan
         // finds it everywhere; on any other system it has no device to read.
         assumeFalse(System.getProperty("os.name", "").toLowerCase(Locale.ROOT).startsWith("mac"));
         assertEquals(Optional.empty(), OutputLatency.installed().defaultOutput());

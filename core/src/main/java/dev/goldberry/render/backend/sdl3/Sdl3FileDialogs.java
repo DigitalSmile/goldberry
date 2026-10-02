@@ -45,8 +45,7 @@ import dev.goldberry.render.window.BackendWindow;
 ///
 /// [FileFilter]'s extensions are the toolkit's vocabulary; `png;jpg` is SDL's.
 /// The translation is here rather than in the record, because it is one
-/// platform's dialect and the next backend's would be another
-/// (ADR-0287).
+/// platform's dialect and the next backend's would be another.
 ///
 /// Confined to the UI thread, apart from the queue, which is why the queue is
 /// concurrent.

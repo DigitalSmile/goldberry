@@ -19,7 +19,7 @@ import dev.goldberry.media.picture.PictureForm;
 
 /// What the video thread pays to prepare one 4K picture in each [PictureForm]:
 /// the plane copy the planes form makes, against the swscale pass to BGRA the
-/// converted form makes (`docs/gpu-plan.md`, D8).
+/// converted form makes.
 ///
 /// Each of the frame contract's four layouts at 3840×2160, prepared into a
 /// [FrameQueue.Slot] as [VideoWorker] prepares it: once with the decoder's rows

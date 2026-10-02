@@ -9,10 +9,12 @@ import org.junit.jupiter.api.Test;
 /// That a smooth line cannot draw a value the data never had.
 ///
 /// Every test here **samples the curve** rather than inspecting its tangents. The
-/// property `charts.md` §3.1 asks for — "monotone-cubic, which cannot overshoot
-/// into impossible values" — is about the shape on screen, and it is one missing
+/// property a smooth curve owes — monotone cubic, which cannot overshoot into
+/// impossible values — is about the shape on screen, and it is one missing
 /// `if` away from being false in a way no assertion about coefficients would
 /// catch.
+///
+/// Read more: [What the five share](https://goldberry.dev/docs/components/charts.html#what-the-five-share).
 class CurvesTest {
 
     /// The smallest and largest y the curve actually reaches, sampled densely.

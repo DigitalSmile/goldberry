@@ -21,7 +21,7 @@ import org.junit.jupiter.api.Test;
 /// would pass an arithmetic test and fail every scanner.
 class FormatInformationTest {
 
-    /// §7.9's Table 25, by level and then by mask, as fifteen bits each.
+    /// ISO/IEC 18004 §7.9's Table 25, by level and then by mask, as fifteen bits each.
     private static final String[][] FORMAT = {
         {
             "111011111000100", "111001011110011", "111110110101010", "111100010011101",
@@ -41,7 +41,7 @@ class FormatInformationTest {
         }
     };
 
-    /// §7.10's Table 26, versions 7 to 40, as eighteen bits each.
+    /// ISO/IEC 18004 §7.10's Table 26, versions 7 to 40, as eighteen bits each.
     private static final String[] VERSION = {
         "000111110010010100", "001000010110111100", "001001101010011001", "001010010011010011",
         "001011101111110110", "001100011101100010", "001101100001000111", "001110011000001101",
@@ -55,7 +55,7 @@ class FormatInformationTest {
     };
 
     /// The fifteen format modules beside the top-left finder, most significant
-    /// bit first — the copy §7.9.1 describes first.
+    /// bit first — the copy ISO/IEC 18004 §7.9.1 describes first.
     private static String formatBitsNear(Grid grid) {
         var bits = new StringBuilder(15);
         for (var i = 14; i >= 0; i--) {
@@ -148,7 +148,7 @@ class FormatInformationTest {
         }
     }
 
-    /// §7.3.5's Table E.1 — where the alignment pattern centres go, version by
+    /// ISO/IEC 18004 §7.3.5's Table E.1 — where the alignment pattern centres go, version by
     /// version. The one geometric table the standard prints rather than derives,
     /// and version 32 is the row that no formula reproduces.
     private static final int[][] ALIGNMENT = {

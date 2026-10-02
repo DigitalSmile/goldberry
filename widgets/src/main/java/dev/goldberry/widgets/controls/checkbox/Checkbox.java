@@ -26,50 +26,46 @@ import dev.goldberry.widgets.markup.Wiring;
 import dev.goldberry.widgets.markup.Markup;
 import org.jspecify.annotations.Nullable;
 
-/// A checkbox — binary or tri-state (§11, `docs/core-widgets.md` §3).
-///
-/// The second control, and the first one whose *value* comes from outside it. A
-/// button's description is what it does; a checkbox's description is what it does
-/// **and what it currently is**, and those two arrive by different routes:
+/// A tick with a label, in two states or three.
 ///
 /// ```kdl
-/// checkbox bind="prefs.frost" change="toggleFrost" "Frosted sidebar"
+/// checkbox bind="prefs.frost" change="prefs.toggle-frost" "Frosted sidebar"
+/// checkbox checked=#true disabled=#true "Sworn to the Fellowship"
+/// checkbox indeterminate=#true "Some of them"
 /// ```
 ///
+/// In Java, `Checkbox.of("Frosted sidebar", source, actions::toggleFrost)` for
+/// a bound one, or `new Checkbox("Some of them", Checkbox.Value.MIXED)`.
+///
 /// `bind` is where the value is read from and `change` is what the user's click
-/// runs. They are two attributes because data flows down and events flow up
-/// ([ADR-0063]): this widget is handed the read-only [Observable] half of a
-/// property and has no method with which to write to it, so the tick moves when
-/// the application moves it and at no other time. A checkbox whose `change`
-/// handler does nothing does not move — which looks like a bug and *is* one, in
-/// the application, exactly where it should be.
+/// runs. They are two attributes because data flows down and events flow up:
+/// this widget is handed the read-only [Observable] half of a property and has
+/// no method with which to write to it, so the tick moves when the application
+/// moves it and at no other time. A checkbox whose `change` handler does
+/// nothing does not move — which looks like a bug and *is* one, in the
+/// application, exactly where it should be. The bound value may be a `Boolean`
+/// or a [Value]; anything else leaves the written state standing.
 ///
-/// ## Three states, and the two that are not the third
+/// [Value#MIXED] is a real state: a "select all" over a partial selection is
+/// neither on nor off, so it matches `:indeterminate` rather than `:checked`.
+/// Toggling never produces it — clicking a mixed checkbox asks for "all of
+/// them", which is [Value#CHECKED] — so only the application can put a box
+/// there.
 ///
-/// [Value#MIXED] is a real state and not a decoration: a "select all" over a
-/// partial selection is neither on nor off, and drawing it as either is a lie
-/// about the data. It matches `:indeterminate` rather than `:checked` so a
-/// stylesheet that says `checkbox:checked` means the tick and nothing else.
+/// The label is part of the control: the widget is one 32px-tall row holding a
+/// [CheckIndicator] and the text, and clicking anywhere in it toggles. `Space`
+/// toggles too; `Enter` does not, because it belongs to a dialog's default
+/// action.
 ///
-/// **Toggling never produces MIXED.** Mixed is a state the application can
-/// describe and the user cannot reach: clicking a mixed checkbox is a request for
-/// "all of them", which is [Value#CHECKED]. Every desktop toolkit agrees on this
-/// and the alternative is a control that cycles through a state nobody wants.
-///
-/// ## The label is part of the control
-///
-/// `docs/core-widgets.md` §3 asks for a click target that includes the label, so
-/// this widget is one 32px-tall row — the design system's hit-target floor (§1.3)
-/// — holding a [CheckIndicator] and the text. Clicking anywhere in it toggles,
-/// which matters more than it sounds: a 16px square is a small target, and the
-/// label is usually five times as wide.
+/// Read more: [Choices](https://goldberry.dev/docs/components/choices.html#checkbox).
 ///
 /// @param label      the text beside the glyph; may be empty for a checkbox in a
 ///                   table cell, which is the one case with nothing to say
 /// @param state      the value shown when nothing is bound
-/// @param source     §9's `bind` — where the value is read from, when it is bound
-/// @param onChange   §9's `change` — what a toggle asks the application to do;
-///                   may be null for a checkbox that is not wired yet
+/// @param source     `bind` — where the value is read from, or null when it is
+///                   not bound
+/// @param onChange   `change` — what a toggle asks the application to do; may
+///                   be null for a checkbox that is not wired yet
 /// @param disabled   whether it refuses to toggle and matches `:disabled`
 /// @param attributes `id` and `class`, exactly as on the primitives
 @Markup("checkbox")
@@ -107,14 +103,13 @@ public record Checkbox(
 
     /// The stroke width of the tick, in logical pixels.
     ///
-    /// 2px, which is the design system's icon stroke (§1.6) — the tick is drawn
-    /// on the same 24×24 grid as every Lucide icon beside it, so it reads as the
-    /// same hand. Not a CSS property because nothing in §8 spells one, and
-    /// inventing `mark-thickness` to hold a constant nobody changes would be
-    /// improvising a token (Principle 3).
+    /// 2px, which is the design system's icon stroke — the tick is drawn on the
+    /// same 24×24 grid as every Lucide icon beside it, so it reads as the same
+    /// hand. Not a CSS property, because inventing `mark-thickness` to hold a
+    /// constant nobody changes would be improvising a token.
     private static final double MARK_THICKNESS = 2;
 
-    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    /// Written out so that the parameters taking null for a default can say so.
     public Checkbox(String label, @Nullable Value state, @Nullable Observable<?> source, @Nullable Runnable onChange, boolean disabled, @Nullable Attributes attributes) {
         Objects.requireNonNull(label, "label");
         state = state == null ? Value.UNCHECKED : state;
@@ -143,7 +138,7 @@ public record Checkbox(
     /// A checkbox that follows a property. The Java spelling of `bind=`.
     ///
     /// @param source read-only by construction, so this control cannot write to
-    ///               the model even by accident ([ADR-0063])
+    ///               the model even by accident
     public static Checkbox of(String label, Observable<?> source, Runnable onChange) {
         return new Checkbox(label, Value.UNCHECKED,
                 Objects.requireNonNull(source, "source"), onChange, false,
@@ -254,7 +249,7 @@ public record Checkbox(
     /// A click rather than a release, exactly as
     /// [dev.goldberry.widgets.controls.button.Button]: a press dragged off the
     /// control and let go is a cancelled click, and the router is what knows the
-    /// difference ([ADR-0058]).
+    /// difference, because the press captured the pointer until the release.
     @Override
     public void onPointer(PointerEvent event) {
         if (event.kind() == PointerEvent.Kind.CLICKED) {
@@ -266,7 +261,7 @@ public record Checkbox(
     /// `Space` toggles — and `Enter` deliberately does not.
     ///
     /// A button takes both because activating it is the only thing it does. Enter
-    /// belongs to a dialog's default action (`docs/design-system.md` §2.3), and a
+    /// belongs to a dialog's default action, and a
     /// checkbox that swallowed it would leave a form with no way to submit from
     /// the keyboard once focus was on one. Every desktop platform draws the line
     /// in the same place.
@@ -288,8 +283,9 @@ public record Checkbox(
 
     /// Asks the application to change the value. It does **not** change it here.
     ///
-    /// The whole of ADR-0063 in one method: what the user did travels up as an
-    /// event, the application decides, and the new value arrives back down through
+    /// Data flows down and events flow up, in one method: what the user did
+    /// travels up as an event, the application decides, and the new value
+    /// arrives back down through
     /// the binding. Nothing here reads [#resolved()], because nothing here needs
     /// to know the current value to report that the user asked for the other one —
     /// [Value#toggled()] is what an application applies, on the property it owns.

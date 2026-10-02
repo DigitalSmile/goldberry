@@ -3,7 +3,7 @@ package dev.goldberry.widget.attr;
 import dev.goldberry.bind.Observable;
 import dev.goldberry.widget.Widget;
 
-/// A widget whose value can come from a property — §9's `bind=`, chainable.
+/// A widget whose value can come from a property: the chainable form of `bind=`.
 ///
 /// ```java
 /// new RadioGroup(null, this::pickTheme,
@@ -17,12 +17,13 @@ import dev.goldberry.widget.Widget;
 /// a range, a handler, a disabled flag *and* a binding has a constructor with six
 /// positional arguments, four of which are usually defaults. Every widget that
 /// has a `source` component implements this, so the binding is one named step in
-/// a chain rather than the fourth `null` in a row
-/// (ADR-0093).
+/// a chain rather than the fourth `null` in a row.
 ///
 /// An [Observable] and never a `Property`: data flows down and events flow up, so
-/// a widget reads and watches and cannot write
-/// (ADR-0063).
+/// a widget reads and watches and cannot write.
+///
+/// Read more:
+/// [Attributes and binding](https://goldberry.dev/docs/guide/writing-a-widget.html#attributes-and-binding).
 ///
 /// @param <W> the implementing widget's own type
 public interface Bindable<W extends Widget> extends Widget {

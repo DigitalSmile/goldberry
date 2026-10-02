@@ -11,8 +11,7 @@ import dev.goldberry.media.ffi.FfmpegCapabilities;
 import dev.goldberry.media.ffi.FfmpegLibraries;
 
 /// What this installation can play: the codecs the loaded FFmpeg decodes, the
-/// containers it demuxes, and the decoder providers on the class path
-/// (`docs/goldberry-media.md` §3, "Codec resolution").
+/// containers it demuxes, and the decoder providers on the class path.
 ///
 /// Read from the libraries themselves, so it describes the build that is loaded
 /// and not the one the documentation describes. An application uses it to grey
@@ -28,6 +27,8 @@ import dev.goldberry.media.ffi.FfmpegLibraries;
 ///                  (`matroska`, `webm`, `mp4`)
 /// @param providers the [DecoderProvider]s found, by name, in the order they
 ///                  are asked
+///
+/// Read more: [The module](https://goldberry.dev/docs/components/media.html#the-module).
 public record MediaCapabilities(Set<String> decoders, Set<String> demuxers, List<String> providers) {
 
     public MediaCapabilities {

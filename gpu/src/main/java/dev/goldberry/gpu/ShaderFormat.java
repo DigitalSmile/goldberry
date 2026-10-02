@@ -10,8 +10,10 @@ import dev.goldberry.natives.sdl.gpu.enums.SdlGpuShaderFormat;
 /// [ShaderCode] that carries one per family runs everywhere.
 ///
 /// The toolkit's own shaders are HLSL compiled into [#SPIRV], [#DXIL] and
-/// [#MSL] (`docs/gpu-plan.md`, D7); an application's can be made the same way,
+/// [#MSL]; an application's can be made the same way,
 /// and the file extensions here are the ones that build writes.
+///
+/// Read more: [Shaders](https://goldberry.dev/docs/components/gpu.html#shaders).
 public enum ShaderFormat {
     /// SPIR-V, for Vulkan.
     SPIRV(".spv", "main"),

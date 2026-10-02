@@ -21,7 +21,8 @@ import dev.goldberry.render.clipboard.PrimarySelection;
 import dev.goldberry.text.flow.TextAlign;
 import dev.goldberry.text.font.Font;
 
-/// A text editor with no widget around it — ADR-0285.
+/// A text editor with no widget around it: the caret, the keys and the undo
+/// history belong to the text stack, not to a control.
 ///
 /// [TextEditTest] covers what an edit *is* and [TextGeometryTest] covers where a
 /// caret lands. What is left, and what this is about, is the **wiring**: which key
@@ -353,7 +354,7 @@ class EditorTest {
     }
 
     /// X11's primary selection, which the editor fills and pastes from without
-    /// knowing it is X11's (ADR-0504).
+    /// knowing it is X11's.
     @Nested
     @DisplayName("the primary selection")
     class ThePrimarySelection {
@@ -500,7 +501,7 @@ class EditorTest {
 
         /// `text-align`, end to end through one editor: the paint, the caret and
         /// the hit test are the three that have to agree, and an editor is where
-        /// they meet (`docs/gaps.md` G30, ADR-0318).
+        /// they meet.
         @Test
         @DisplayName("a centred editor puts its caret where it draws the glyphs")
         void alignmentMovesTheCaretWithTheText() {

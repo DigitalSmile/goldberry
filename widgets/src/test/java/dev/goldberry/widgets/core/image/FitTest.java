@@ -10,9 +10,11 @@ import org.junit.jupiter.api.Test;
 
 import dev.goldberry.render.model.PhysicalRect;
 
-/// §1's four fit modes, as arithmetic ([ADR-0358]).
+/// The four fit modes, as arithmetic.
 ///
 /// A 200×100 image at natural size 200×100, placed in boxes of other shapes.
+///
+/// Read more: [Fit modes](https://goldberry.dev/docs/components/drawing.html#fit-modes).
 class FitTest {
 
     private static final PhysicalRect WHOLE = new PhysicalRect(0, 0, 200, 100);

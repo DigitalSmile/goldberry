@@ -13,7 +13,9 @@ import java.util.Objects;
 /// half of an email — and inventing two wrapper elements round it would make every
 /// fold walk past them. A full page with `<html>` and `<body>` in it keeps those
 /// elements, because they are in the source; nothing is inserted and nothing is
-/// hoisted (ADR-0298).
+/// hoisted.
+///
+/// Read more: [HTML view](https://goldberry.dev/docs/components/content.html#html-view).
 ///
 /// @param children the top-level nodes, in order
 public record HtmlDocument(List<HtmlNode> children) implements HtmlNode {
@@ -39,7 +41,7 @@ public record HtmlDocument(List<HtmlNode> children) implements HtmlNode {
     /// What makes the model worth exporting rather than hiding behind the widget: a
     /// table of contents is `find("h2")`, a link check is `find("a")`, an image
     /// prefetch is `find("img")`, and none of them needs a visitor or a second parse
-    /// (ADR-0295's argument for the Markdown tree, which this is the other half of).
+    /// — the same argument the Markdown tree makes, and this is the other half of it.
     public List<Element> find(String tag) {
         return Walk.find(this, tag);
     }

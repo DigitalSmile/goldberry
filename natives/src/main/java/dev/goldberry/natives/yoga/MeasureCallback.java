@@ -17,7 +17,7 @@ import dev.goldberry.natives.yoga.measure.MeasureMode;
 
 /// A [MeasureFunction] as a native function pointer Yoga can call.
 ///
-/// This is the upcall ADR-0017 is about, and the hardest thing Goldberry asks of
+/// This is the hardest thing Goldberry asks of
 /// FFM: `YGMeasureFunc` returns `YGSize` **by value**, in registers that differ
 /// per target. Everything below exists to make that crossing correct and cheap,
 /// because it happens once per measured node per layout pass.
@@ -38,6 +38,8 @@ import dev.goldberry.natives.yoga.measure.MeasureMode;
 /// Each instance owns a confined [Arena], so it is bound to the thread that
 /// created it and must be [#close()]d. Closing invalidates the stub: a Yoga node
 /// still holding it will call freed memory.
+///
+/// Read more: [The native boundary](https://goldberry.dev/docs/overview/architecture.html#the-native-boundary).
 public final class MeasureCallback implements AutoCloseable {
 
     private static final Linker LINKER = Linker.nativeLinker();
@@ -138,7 +140,7 @@ public final class MeasureCallback implements AutoCloseable {
     }
 
     /// The `YGMeasureFunc` pointer. Package-private: a native address is exactly
-    /// what `docs/ARCHITECTURE.md` §3.1 keeps inside this module.
+    /// what this module keeps inside itself.
     MemorySegment pointer() {
         return stub;
     }
@@ -164,8 +166,8 @@ public final class MeasureCallback implements AutoCloseable {
     }
 
     // Restricted: building an upcall stub is what this class is for. The
-    // descriptor must match YGMeasureFunc exactly -- the obligation ADR-0010
-    // accepts, and the one ADR-0017's round-trip test discharges.
+    // descriptor must match YGMeasureFunc exactly -- the obligation a hand-written
+    // binding accepts, and the one the measure probe's round-trip test discharges.
     @SuppressWarnings("restricted")
     private static MemorySegment upcallStub(MethodHandle target, Arena arena) {
         return LINKER.upcallStub(target, DESCRIPTOR, arena);

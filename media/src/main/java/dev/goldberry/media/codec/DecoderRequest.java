@@ -15,6 +15,8 @@ import java.util.Objects;
 ///                  none, and valid only during [DecoderProvider#open]: a decoder
 ///                  that needs it later copies it
 /// @param timeBase  the unit of the track's packet timestamps
+///
+/// Read more: [Bringing a codec](https://goldberry.dev/docs/components/media.html#bringing-a-codec).
 public record DecoderRequest(
         CodecId codec, String codecName, TrackParams params, MemorySegment extradata, Rational timeBase) {
 

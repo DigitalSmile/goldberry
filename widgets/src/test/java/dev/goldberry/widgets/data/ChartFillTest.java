@@ -24,8 +24,8 @@ import dev.goldberry.widgets.data.areachart.AreaChart;
 import dev.goldberry.widgets.data.barchart.BarChart;
 import dev.goldberry.widgets.data.linechart.LineChart;
 
-/// What each [Fill] draws — `charts.md` §3.1's "fill opacity, gradient fill",
-/// which was the last row of that table left unbuilt (ADR-0207).
+/// What each [Fill] draws — the fill opacity and the gradient fill, which were
+/// the last of the charts' shared features left unbuilt.
 ///
 /// [dev.goldberry.natives.blend2d.BlendGradientTest] proves
 /// what the six new symbols put in a buffer. This is the half only a chart can

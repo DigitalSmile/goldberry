@@ -8,62 +8,53 @@ import dev.goldberry.text.font.Font;
 
 /// Shaped paragraphs, kept so the same text is not shaped twice.
 ///
-/// ## Why this and not something else
+/// ```java
+/// var cache = ParagraphCache.create();
+/// Paragraph prose = cache.paragraph(font, "The same text, every frame.");
+/// // ... at the end of each frame:
+/// cache.frame();
+/// ```
 ///
-/// Measured on linux-x64, Inter at 14 points, a paragraph of about seventy
-/// words (ADR-0037):
+/// A widget rarely holds one: the renderer keeps a cache and
+/// `Paints.Context.paragraph(style, text)` reads through it, so the same text
+/// gets the same [Paragraph] instance each frame. Shaping is the one part of the
+/// text path expensive enough to cache, an order of magnitude dearer than a
+/// wrap; wrapping is memoised inside each [Paragraph] and needs nothing here.
 ///
-/// | | median |
-/// |---|---|
-/// | wrapping, memo hit | 0.02 µs |
-/// | the `YGSize` upcall crossing | 0.28 µs |
-/// | wrapping, memo miss | 4.8 µs |
-/// | **shaping — what this avoids** | **56 µs** |
+/// The key is `(font, text)`. A [Font] is a face at a size, which is the whole
+/// of the resolved text style, and the width is not part of the key because
+/// shaping does not depend on it. The font is compared by identity, not
+/// equality: two `Font`s over the same face at the same size are separate native
+/// objects, and sharing a shaping between them would stop being right the first
+/// time a feature or a variation axis was set on one of them.
 ///
-/// Shaping is twelve times a wrap and two hundred times the crossing, so it is
-/// the only part of the text path worth a cache at all. Wrapping is memoised
-/// inside each [Paragraph] and needs nothing here; the crossing cannot be cached
-/// and does not need to be.
+/// Eviction is least-recently-used, and the cache grows to fit a frame. A cache
+/// smaller than the number of distinct paragraphs one frame asks for would miss
+/// every one of them on the next frame, so the capacity rises, up to
+/// [#MAX_CAPACITY], when a frame asks for more than it holds; [#frame] marks the
+/// frame boundary. It never shrinks.
 ///
-/// This matters once something rebuilds its tree. Nothing does yet — the widget
-/// model is still open (ADR-0004) — and when it does, a paragraph rebuilt per
-/// frame would otherwise pay 56 µs to arrive at a `GlyphRun` identical to the
-/// last one's.
+/// Confined to the thread that created it, like the fonts it holds. The
+/// paragraphs need no closing; [#clear] forgets them.
 ///
-/// ## The key
-///
-/// `(font, text)`. `docs/ARCHITECTURE.md` §6 specifies (text, resolved text
-/// style, width bucket); today a [Font] *is* the resolved text style — a face at
-/// a size — and the width bucket belongs to [Paragraph]'s own memo rather than
-/// here, because shaping does not depend on width. When the CSS engine arrives
-/// with real text styles, this key grows and the rest of the class does not.
-///
-/// The font is compared by **identity**, not equality: two `Font`s over the same
-/// face at the same size are separate native objects, and a `GlyphRun` shaped by
-/// one is drawn by the other's Blend2D font. They agree today, and relying on
-/// that is the kind of assumption that stops being true when variations or
-/// features are set on one of them.
-///
-/// Confined to the thread that created it, like the fonts it holds.
+/// Read more: [Text, fonts and icons](https://goldberry.dev/docs/guide/text.html#paragraphs).
 public final class ParagraphCache {
 
-    /// What a cache starts at if nobody says otherwise.
+    /// What a cache starts at if nobody says otherwise: a screenful of distinct
+    /// strings, roughly.
     ///
-    /// A screenful of distinct strings, roughly. Small on purpose: the entries
-    /// hold `GlyphRun`s, which are six `int[]`s the length of the text, and an
-    /// unbounded cache of those is a leak that looks like a feature.
-    ///
-    /// **A starting point rather than a ceiling since ADR-0299** — see
-    /// [#frame()].
+    /// Small on purpose, because each entry holds a [ShapedRun] the length of
+    /// its text and an unbounded cache of those is a leak that looks like a
+    /// feature. A starting point rather than a ceiling; see [#frame()].
     public static final int DEFAULT_CAPACITY = 256;
 
     /// As large as a self-tuned cache will grow itself.
     ///
-    /// Eight thousand entries is a document of eight thousand distinct words —
-    /// call it thirty pages of prose — and at roughly 200 bytes an entry that is
-    /// under two megabytes. A frame whose working set is larger than this thrashes
-    /// exactly as every frame used to, which is the honest failure mode: the
-    /// alternative is a cache that grows until something else runs out.
+    /// Eight thousand entries is a document of eight thousand distinct words,
+    /// call it thirty pages of prose, and at roughly 200 bytes an entry that is
+    /// under two megabytes. A frame whose working set is larger than this
+    /// thrashes, which is the honest failure mode: the alternative is a cache
+    /// that grows until something else runs out.
     public static final int MAX_CAPACITY = 8192;
 
     private record Key(Font font, String text) {
@@ -93,21 +84,16 @@ public final class ParagraphCache {
 
     /// How many characters have been through the shaper, over every miss.
     ///
-    /// [#misses] counts *paragraphs*, and a paragraph is a word in one control
-    /// and half a megabyte in another. Between those two a keystroke into a long
-    /// note misses the cache exactly once either way, so the miss count says
-    /// nothing at all about what the frame cost — which is how `docs/gaps.md`
-    /// G44 stayed invisible to every counter this class had ([ADR-0388]).
-    ///
-    /// This is the number that moves when a control re-shapes something it did
-    /// not need to, and it is a **count**: a test can assert on it, where it
-    /// could not assert on the milliseconds behind it.
+    /// [#misses] counts paragraphs, and a paragraph is a word in one control
+    /// and half a megabyte in another. A keystroke into a long note misses the
+    /// cache exactly once either way, so the miss count says nothing about what
+    /// the frame cost; this is the number that moves when a control re-shapes
+    /// something it did not need to. It is a count, so a test can assert on it
+    /// where it could not assert on the milliseconds behind it.
     private long shapedCharacters;
 
-    /// How many paragraphs this cache will hold before evicting.
-    ///
-    /// Mutable since ADR-0299, and read by the eviction hook below on every put —
-    /// which is why it is a field rather than the constructor parameter it was.
+    /// How many paragraphs this cache will hold before evicting. Mutable, and
+    /// read by the eviction hook below on every put.
     private int capacity;
 
     /// Lookups since the last [#frame()], which is what a frame's working set is
@@ -132,15 +118,14 @@ public final class ParagraphCache {
                 if (super.size() <= ParagraphCache.this.capacity) {
                     return false;
                 }
-                // **Grow rather than evict something this frame is still using.**
+                // Grow rather than evict something this frame is still using.
                 // Access order means the eldest entry is the least recently used,
                 // and if this frame has already asked for as many paragraphs as
                 // the cache holds then the least recently used one is by
-                // definition one *this* frame touched -- so evicting it is
+                // definition one this frame touched -- so evicting it is
                 // throwing away work that is about to be asked for again. Growing
                 // here rather than in `frame()` is what makes the very first frame
-                // of a long document cheap instead of the one after it
-                // (ADR-0299).
+                // of a long document cheap instead of the one after it.
                 if (requestsThisFrame >= ParagraphCache.this.capacity && ParagraphCache.this.capacity < MAX_CAPACITY) {
                     ParagraphCache.this.capacity = Math.min(MAX_CAPACITY, ParagraphCache.this.capacity * 2);
                     return super.size() > ParagraphCache.this.capacity;
@@ -165,13 +150,13 @@ public final class ParagraphCache {
 
     /// The paragraph for `text` in `font`, shaping it only if it is not held.
     ///
-    /// The returned paragraph is **shared**. It is safe to wrap at different
-    /// widths — that is what its memo is for — and it must not be held past the
-    /// life of its font, which is true of any paragraph.
+    /// The returned paragraph is shared. It is safe to wrap at different widths,
+    /// which is what its memo is for, and it must not be held past the life of
+    /// its font, which is true of any paragraph.
     ///
     /// Text that needs bidi is held like any other: [Paragraph#of] approximates
-    /// it rather than refusing it (ADR-0218), so there is no longer a string this
-    /// cache can be asked for and cannot answer.
+    /// it rather than refusing it, so there is no string this cache can be asked
+    /// for and cannot answer.
     public Paragraph paragraph(Font font, String text) {
         requireOwner();
         Objects.requireNonNull(font, "font");
@@ -198,31 +183,24 @@ public final class ParagraphCache {
     /// Marks the end of a frame, and grows the cache to fit what that frame
     /// asked for.
     ///
-    /// ## A cache smaller than one frame is worse than no cache
+    /// A cache smaller than one frame is worse than no cache, and the rule is
+    /// arithmetic rather than a heuristic. If a frame asks for N distinct
+    /// paragraphs and the cache holds fewer, least-recently-used eviction
+    /// guarantees that the next frame, asking for the same N in the same order,
+    /// misses every one of them: each lookup evicts the entry the walk is about
+    /// to reach. The hit rate is zero, and the cache pays for the eviction on
+    /// top of the shaping. A `markdown-view` builds one `text` widget per word,
+    /// so a page of six hundred words against a cache of 256 is exactly that.
     ///
-    /// The rule this enforces is arithmetic rather than a heuristic. If a frame
-    /// asks for **N** distinct paragraphs and the cache holds **C < N**, then
-    /// least-recently-used eviction guarantees that the next frame — asking for
-    /// the same N in the same order — misses every one of them: each lookup
-    /// evicts the entry the walk is about to reach. The hit rate is not "lower",
-    /// it is **zero**, and the cache pays for the eviction on top of the shaping.
+    /// So the cache grows in two places, for two different moments: eviction
+    /// grows it during a frame rather than discard what that frame is still
+    /// walking, and this grows it at the end to a quarter more than the frame
+    /// asked for, so a document that gains a word does not re-tune. Neither goes
+    /// past [#MAX_CAPACITY].
     ///
-    /// That is not hypothetical. `markdown-view` and `html-view` build one `text`
-    /// widget per word (ADR-0295, ADR-0298), so a page of six hundred words asks
-    /// for six hundred paragraphs a frame against a cache of 256 — measured at
-    /// **287 shapes per frame on a settled tree that had not changed at all**,
-    /// which is 4 ms of HarfBuzz per frame to arrive at the glyphs it already had
-    /// (ADR-0299).
-    ///
-    /// So the cache grows in two places, and they answer two different moments:
-    /// eviction grows it **during** a frame rather than discard what that frame is
-    /// still walking (see the constructor), and this grows it at the end to a
-    /// quarter more than the frame asked for, so a document that gains a word does
-    /// not re-tune. Neither goes past [#MAX_CAPACITY].
-    ///
-    /// **It does not shrink.** A window that showed a long document once can show
-    /// it again; releasing the memory would cost the next visit the same 4 ms, and
-    /// the whole entry is thrown away with the renderer anyway.
+    /// It does not shrink. A window that showed a long document once can show it
+    /// again, releasing the memory would cost the next visit the same shaping,
+    /// and the whole cache is thrown away with the renderer anyway.
     public void frame() {
         requireOwner();
         highWaterMark = Math.max(highWaterMark, requestsThisFrame);
@@ -232,16 +210,15 @@ public final class ParagraphCache {
         requestsThisFrame = 0;
     }
 
-    /// What this cache will hold before it evicts — [#DEFAULT_CAPACITY] until a
+    /// What this cache will hold before it evicts: [#DEFAULT_CAPACITY] until a
     /// frame has asked for more.
     public int capacity() {
         return capacity;
     }
 
-    /// The most paragraphs any one frame has asked this cache for.
-    ///
-    /// What a diagnostic reads to say "this window's text working set is 620" —
-    /// and what a test asserts against to show the cache was sized to fit it.
+    /// The most paragraphs any one frame has asked this cache for: the window's
+    /// text working set, and what a test asserts against to show the cache was
+    /// sized to fit it.
     public int highWaterMark() {
         return highWaterMark;
     }
@@ -263,7 +240,9 @@ public final class ParagraphCache {
         return misses;
     }
 
-    /// How many characters those misses shaped. See the field's note.
+    /// How many characters those misses shaped. A keystroke into a long note
+    /// misses once whatever its length, so this, not [#misses], is what says
+    /// whether a control re-shaped more than it needed to.
     public long shapedCharacters() {
         return shapedCharacters;
     }

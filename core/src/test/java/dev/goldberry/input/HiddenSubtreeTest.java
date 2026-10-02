@@ -18,7 +18,8 @@ import dev.goldberry.widget.ElementTree;
 import dev.goldberry.widget.Widget;
 import dev.goldberry.widget.style.Styled;
 
-/// [Styled#isHidden()] — kept, and not used ([ADR-0366]).
+/// [Styled#isHidden()] — kept, and not used: a kept tab is hidden, not removed,
+/// so the router must not reach into it.
 class HiddenSubtreeTest {
 
     private record Item(String name) implements Widget.Leaf, Styled, Handles {

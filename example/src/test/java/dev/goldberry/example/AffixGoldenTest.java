@@ -28,8 +28,8 @@ import dev.goldberry.widgets.Density;
 /// `AffixTest` proves the header stops at the viewport's edge, which is a fact
 /// about *positions* and was true throughout the whole time the header was being
 /// painted underneath the rows sliding past it. Whether you can read it is a fact
-/// about pixels and paint order, and only an image says so
-/// (ADR-0123).
+/// about pixels and paint order, and only an image says so: a pinned box paints
+/// after its siblings.
 class AffixGoldenTest {
 
     /// What one turn of the wheel is worth, mirroring
@@ -61,8 +61,8 @@ class AffixGoldenTest {
                     router.updateRegions(HitTest.capture(render));
                 }
                 // **Seven lines**, which is the distance this picture is of.
-                // A wheel event counts *notches* and a notch is three lines
-                // ([ADR-0314]), so seven lines is seven thirds of one — a
+                // A wheel event counts *notches* and a notch is three lines,
+                // so seven lines is seven thirds of one — a
                 // fraction, which is exactly what a trackpad sends and the only
                 // way an event that counts detents can say "this far".
                 router.pointerWheel(200, 350, 0, 7f / LINES_PER_NOTCH, Modifiers.NONE);

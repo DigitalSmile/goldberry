@@ -1,6 +1,6 @@
 package dev.goldberry.media.codec;
 
-/// A decoder for one track: packets in, frames out (`docs/goldberry-media.md` §5).
+/// A decoder for one track: packets in, frames out.
 ///
 /// The same send/receive shape as FFmpeg's, because it is the one that fits every
 /// codec: one packet may give no frame, one frame or several, and a codec with
@@ -19,7 +19,9 @@ package dev.goldberry.media.codec;
 ///
 /// One thread uses a decoder at a time, the track's decode thread. A decoder that
 /// throws from any method is dropped, and the Engine tries the next provider for
-/// the track (the fallback ladder of §3).
+/// the track: the fallback ladder.
+///
+/// Read more: [Bringing a codec](https://goldberry.dev/docs/components/media.html#bringing-a-codec).
 public interface Decoder extends AutoCloseable {
 
     /// Feeds one packet.

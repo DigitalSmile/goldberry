@@ -13,8 +13,15 @@ import dev.goldberry.widget.Element;
 /// A pointer event as a widget sees it.
 ///
 /// Positions are **logical**, like everything an application touches: the window
-/// scale is applied when the frame is rasterized (ADR-0031), not here, so a
-/// coordinate means the same thing on a 150% display as on a 100% one.
+/// scale is applied when the frame is rasterized, not here, so a coordinate means
+/// the same thing on a 150% display as on a 100% one.
+///
+/// A handler reads [#kind()] first and then what that kind carries: a button and
+/// a click count for a press, a delta in lines for the wheel, and, for every
+/// event delivered while a button is held, where the press landed and how far the
+/// pointer has travelled since. [#consume()] stops the event travelling further.
+///
+/// Read more: [Input and focus](https://goldberry.dev/docs/guide/input.html#kinds).
 public final class PointerEvent {
 
     /// What happened.
@@ -26,7 +33,7 @@ public final class PointerEvent {
         /// A button came up.
         RELEASED,
         /// The pointer entered this node's bounds. Synthetic, derived from
-        /// pointer flow rather than sent by the platform (§7.1).
+        /// pointer flow rather than sent by the platform.
         ENTERED,
         /// The pointer left. Synthetic.
         EXITED,
@@ -36,7 +43,7 @@ public final class PointerEvent {
         /// Not the same as a release: a press that is dragged away and let go
         /// elsewhere still releases — the captor is told, so it can stop looking
         /// pressed — but it was not a click, and the user cancelling a click by
-        /// dragging off is a gesture people rely on (§7.1).
+        /// dragging off is a gesture people rely on.
         CLICKED,
         /// The wheel turned, or a touchpad scrolled — see [#deltaX] and
         /// [#deltaY].
@@ -142,7 +149,7 @@ public final class PointerEvent {
     /// [Handles#localPart()] has deliberately pointed `local()` at something
     /// *other* than itself, and this is the half that was previously
     /// unreachable. A scroll view needs both at once, because what it scrolls by
-    /// is the difference ([ADR-0116]).
+    /// is the difference.
     public Extent bounds() {
         return bounds;
     }
@@ -166,11 +173,11 @@ public final class PointerEvent {
     ///
     /// The same as [#local()] for a widget with no padding, which is most of
     /// them. It exists because a `canvas` painter is handed a frame whose origin
-    /// is the content corner and is clipped to it (ADR-0193), so a canvas that
+    /// is the content corner and is clipped to it, so a canvas that
     /// read `local()` would have its input offset from its ink by exactly the
     /// padding — and `canvas { padding: 8px }` is documented as a framed drawing
     /// surface rather than a surprise. This is the half that makes that true of
-    /// input as well as of paint (ADR-0281).
+    /// input as well as of paint.
     public Local content() {
         return content;
     }
@@ -314,14 +321,12 @@ public final class PointerEvent {
 
     /// Which modifier keys were held when this happened.
     ///
-    /// On the pointer and not only on the keyboard, because
-    /// `docs/design-system.md` §3 asks a knob for a "modifier for fine
-    /// adjustment" — and §2.3's `Ctrl+click` and `Shift+click` want the same
-    /// thing. Read from the platform at the moment the event was translated
+    /// On the pointer and not only on the keyboard, because a knob wants a
+    /// modifier for fine adjustment, and `Ctrl+click` and `Shift+click` want the
+    /// same thing. Read from the platform at the moment the event was translated
     /// rather than latched from the last key event: a window that loses focus
     /// while Shift is held never sees the key release, and a latched flag would
-    /// stay stuck down
-    /// (ADR-0089).
+    /// stay stuck down.
     public Modifiers modifiers() {
         return modifiers;
     }
@@ -332,16 +337,16 @@ public final class PointerEvent {
     /// [#dragX()] answers "how far has the pointer moved since the press"; this
     /// answers "and what was the value then". A control whose drag is a **rate**
     /// rather than a position needs both — a knob maps 200 logical pixels of
-    /// vertical travel onto its whole range (§3), so where it ends up depends
+    /// vertical travel onto its whole range, so where it ends up depends
     /// entirely on where it started, and a widget is a value rebuilt every frame
     /// with nowhere to keep that.
     ///
     /// The router owns it for exactly the reason it owns [#pressX()]: its
-    /// implicit capture already spans the gesture ([ADR-0058]), so it is both the
-    /// only thing that can know and the thing whose lifetime already matches
-    /// ([ADR-0075], [ADR-0089]). What the number *means* is the widget's own
-    /// business — the router asks [Handles#gestureAnchor()] on the press and
-    /// hands the answer back unexamined.
+    /// implicit capture already spans the gesture, so it is both the only thing
+    /// that can know and the thing whose lifetime already matches. What the
+    /// number *means* is the widget's own business — the router asks
+    /// [Handles#gestureAnchor()] on the press and hands the answer back
+    /// unexamined.
     ///
     /// `NaN` rather than zero, the same convention [#dragX()] uses: arithmetic on
     /// it produces `NaN` and a comparison against it is `false`, so "there is no
@@ -361,12 +366,11 @@ public final class PointerEvent {
     /// [#modifiers()], which is what is held now.
     ///
     /// A gesture's meaning is decided when it starts. `Shift`-dragging a knob is
-    /// a fine adjustment (§3), and reading the live modifier instead would make
+    /// a fine adjustment, and reading the live modifier instead would make
     /// pressing Shift halfway through a drag **rescale the travel already
     /// covered** — at 100 px down with the sensitivity going from 1 to 0.1, the
     /// value jumps from half a range below where it started to a twentieth of
-    /// one. Drawn perfectly, reported nowhere, and it looks like the knob slipped
-    /// ([ADR-0089]).
+    /// one. Drawn perfectly, reported nowhere, and it looks like the knob slipped.
     ///
     /// [Modifiers#NONE] when no button is held, which is the same "there is no
     /// gesture" the `NaN`s report.
@@ -398,8 +402,8 @@ public final class PointerEvent {
     /// **Reading it on a kind that has none is reported, once.** Null is the
     /// honest answer and it is also a quiet one: `button() == PRIMARY` at the top
     /// of an `onPointer` is a guard on *every* kind, and a `MOVED` carries no
-    /// button — so `text-input` wrote exactly that and silently lost every drag
-    /// ([ADR-0168], [ADR-0266]).
+    /// button — so a field whose handler opens that way silently loses every
+    /// drag.
     ///
     /// It stays null rather than throwing. An input handler that threw would turn
     /// a lost drag into a window that falls over, and this is a mistake an
@@ -422,8 +426,8 @@ public final class PointerEvent {
     /// Which `(kind, type)` pairs have already been told.
     ///
     /// A pointer event is read per event per handler, so an unguarded warning
-    /// here would be the log [ADR-0243] has just finished quietening — a few
-    /// thousand lines a second on a trackpad. Keyed by the pair so that two
+    /// here would flood the log — a few thousand lines a second on a trackpad.
+    /// Keyed by the pair so that two
     /// widgets making the mistake are two reports and one widget is one, however
     /// long the pointer is over it.
     private static final java.util.Set<String> REPORTED_BUTTON_READS =
@@ -473,11 +477,11 @@ public final class PointerEvent {
 
     /// How far this scrolled vertically, in lines. Positive is **down**.
     ///
-    /// Lines rather than pixels, and that is settled rather than pending: SDL
-    /// reports no pixel axis, and ADR-0115 declines to go around it for one.
-    /// What §2.4 wanted from "pixel-precise" is smoothness, and the fraction is
-    /// where the smoothness is — this is a `float` and routinely not a whole
-    /// number, because a touchpad reports parts of a detent. **Multiply by a line
+    /// Lines rather than pixels, and that is settled: SDL reports no pixel axis,
+    /// and the toolkit does not go around it to the platform for one. What a
+    /// pixel-precise wheel is wanted for is smoothness, and the fraction is where
+    /// the smoothness is — this is a `float` and routinely not a whole number,
+    /// because a touchpad reports parts of a detent. **Multiply by a line
     /// height**; a scroll view uses `--gb-scroll-line`.
     ///
     /// Round this and a slow trackpad scrolls in jerks or not at all. When whole
@@ -499,7 +503,7 @@ public final class PointerEvent {
     /// fractions, each of which truncates to nothing, and one of them arrives
     /// carrying the click those fractions added up to. Truncating per event
     /// gives a control that never moves; this is a discrete counter that works
-    /// on a trackpad ([ADR-0115]).
+    /// on a trackpad.
     ///
     /// A mouse wheel reports ±1 here and ±1.0 in [#deltaY()], so a control
     /// reading detents behaves the way it always has.
@@ -522,11 +526,10 @@ public final class PointerEvent {
     ///
     /// A gesture is a sequence of events and a widget is a value rebuilt every
     /// frame, so a widget cannot remember where a drag started. The router can:
-    /// it already takes an implicit capture on the press
-    /// (ADR-0058),
-    /// which is the same span this is defined over, and it is the only thing in
-    /// the toolkit that sees both ends. The argument is the one already written
-    /// on Tab and on arrow keys: the router owns what the widget cannot see.
+    /// it already takes an implicit capture on the press, which is the same span
+    /// this is defined over, and it is the only thing in the toolkit that sees
+    /// both ends. The argument is the one already written on Tab and on arrow
+    /// keys: the router owns what the widget cannot see.
     ///
     /// `NaN` rather than zero for "no press", because zero is a real answer —
     /// it is what a press with no movement gives — and a widget comparing
@@ -553,7 +556,7 @@ public final class PointerEvent {
 
     /// Stops this event travelling any further.
     ///
-    /// §7.1: `consume()` stops propagation. It does not undo the phases already
+    /// Consuming stops propagation. It does not undo the phases already
     /// delivered — an ancestor that consumed during capture has already stopped
     /// the target from ever seeing it, which is the point of capture.
     public void consume() {

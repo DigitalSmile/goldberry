@@ -22,18 +22,20 @@ import dev.goldberry.css.select.Selector;
 
 /// The cascade, measured properly.
 ///
-/// `docs/testing.md` §1.5 asks for JMH on the hot seams, and this is the first:
+/// JMH belongs on the hot seams, and this is the first:
 /// resolving a style is on the frame path, it runs once per element per restyle,
 /// and it is the one part of that path made of pure logic — no native call, no
 /// font, no window. That makes it the seam where a microbenchmark says something
 /// a wall-clock frame measurement cannot.
 ///
 /// **This does not replace the `benchmark` task.** That one measures whole
-/// operations against a real rasterizer and prints numbers to argue about
-/// (ADR-0028, ADR-0031); a threshold on shared CI hardware fails for reasons
+/// operations against a real rasterizer and prints numbers to argue about;
+/// a threshold on shared CI hardware fails for reasons
 /// that have nothing to do with the code, and neither of these asserts anything.
 /// What JMH adds is the discipline: forks, warm-up, and a blackhole, so the
 /// number is not an artifact of the JIT having specialised the loop away.
+///
+/// Read more: [JMH on core](https://goldberry.dev/docs/performance/measuring.html#jmh-on-core).
 @BenchmarkMode(Mode.AverageTime)
 @OutputTimeUnit(TimeUnit.MICROSECONDS)
 @Warmup(iterations = 3, time = 1)

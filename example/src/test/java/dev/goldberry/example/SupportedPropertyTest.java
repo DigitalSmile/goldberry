@@ -23,27 +23,27 @@ import dev.goldberry.widgets.Density;
 ///
 /// ## Why this exists
 ///
-/// §8's subset is deliberately small and **an unsupported declaration is not an
-/// error**: a stylesheet naming `backdrop-filter` before it is implemented should
-/// not stop a window opening. (The example was `box-shadow` until ADR-0310 built
-/// it; that and `letter-spacing` are what is left of §8's unimplemented list.) So the engine drops it and carries on,
+/// The CSS subset is deliberately small and **an unsupported declaration is not
+/// an error**: a stylesheet naming `backdrop-filter` before it is implemented
+/// should not stop a window opening. So the engine drops it and carries on,
 /// which is the
 /// right behaviour for an *application's* stylesheet and the wrong signal for the
 /// toolkit's own — `border-bottom` shipped in `table-head`, drew nothing, and the
 /// only trace was one debug line among thousands.
 ///
-/// It began (ADR-0215) as a check on the property name alone, and half a year of
+/// It began as a check on the property name alone, and half a year of
 /// stylesheets later two rules were found doing nothing for the *other* reason:
 /// `group-box-title` wrote `border-radius: 7px 7px 0 0` and `select text-input`
 /// wrote `background: none`, both properties the engine implements and neither a
-/// value it took (ADR-0216).
+/// value it took. A lint reads values too.
 ///
 /// ## What changed, and what did not
 ///
 /// The **machinery moved into `:core`** and is
 /// [StyleLint](dev.goldberry.css.lint.StyleLint) now, because
 /// an application writing its own stylesheet needed the same answer and had no
-/// way to ask for it (ADR-0257). What is left here is the *policy*: the toolkit's
+/// way to ask for it: a diagnostic is asked for, not logged. What is left here
+/// is the *policy*: the toolkit's
 /// sheets and the showcase's are held to zero findings, and an application's are
 /// its own business.
 ///
@@ -55,8 +55,8 @@ import dev.goldberry.widgets.Density;
 /// the guards are `StyleLintTest`'s and are assertions about behaviour rather
 /// than about strings.
 ///
-/// It stays in `:example` rather than moving to `:widgets` because §14 makes the
-/// gallery the visual regression corpus, which is where a declaration that draws
+/// It stays in `:example` rather than moving to `:widgets` because the gallery
+/// is the visual regression corpus, which is where a declaration that draws
 /// nothing is a screen photographed wrong — and because the showcase's own sheet
 /// is here.
 ///
@@ -69,8 +69,7 @@ class SupportedPropertyTest {
     ///
     /// [Finding.Kind#UNTYPED_RULE] is deliberately not here: that is
     /// `RuleBucketTest`'s subject, it is a cost rather than a defect, and the
-    /// toolkit ships eight of them on purpose with a reason written beside each
-    /// (ADR-0249).
+    /// toolkit ships eight of them on purpose with a reason written beside each.
     private static List<String> dead(List<Stylesheet> inForce, List<Stylesheet> linted) {
         return new StyleLint(inForce)
                 .check(linted).stream()
@@ -121,7 +120,7 @@ class SupportedPropertyTest {
     @Test
     @DisplayName("and the showcase's own stylesheet does not either")
     void theShowcaseWritesOnlySupportedProperties() {
-        // The gallery is the visual regression corpus (§14), so a dead
+        // The gallery is the visual regression corpus, so a dead
         // declaration in it is a screen that has been photographed wrong.
         var sheet = Stylesheet.resource(CascadeLayer.APPLICATION, Showcase.class, "showcase.css");
         // Under the toolkit's sheets, which is where the showcase runs: its own
@@ -137,8 +136,8 @@ class SupportedPropertyTest {
     @Test
     @DisplayName("nor do the two content modules' stylesheets, which this application also loads")
     void theContentStylesheetsWriteOnlySupportedProperties() {
-        // `markdown.css` and `html.css` were outside this sweep until ADR-0301 added
-        // rules to both — and the sweep is exactly what says whether a rule in them
+        // `markdown.css` and `html.css` were outside this sweep until selection
+        // geometry added rules to both — and the sweep is exactly what says whether a rule in them
         // does anything. A dropped declaration in a document's stylesheet is invisible
         // in a way a control's is not: nobody has a second document to compare it
         // against.

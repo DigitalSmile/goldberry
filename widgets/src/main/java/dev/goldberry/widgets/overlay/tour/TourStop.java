@@ -40,12 +40,11 @@ import dev.goldberry.widgets.text.Text;
 /// That is `Placement`'s flip-and-shift, done here in six lines rather than
 /// reused, because `Placement` positions a **window** against a display's work
 /// area and this positions a box inside another box — the same idea, different
-/// coordinate space, and sharing it would mean teaching it about both
-/// (ADR-0121).
+/// coordinate space, and sharing it would mean teaching it about both.
 ///
 /// ## Keyboard
 ///
-/// §5: "`Esc` skips the whole tour, not one stop." Left and Right move between
+/// `Esc` skips the whole tour, not one stop. Left and Right move between
 /// stops, which is what the arrows mean in every wizard.
 record TourStop(
         Stop stop,
@@ -76,11 +75,11 @@ record TourStop(
     /// to decide whether the card fits below its target **on the first frame**,
     /// before the card has been laid out and had anything to report.
     ///
-    /// It used to be the number for every frame, and being wrong put a card above
-    /// its target when it would have fitted below. [#cardHeight] is what the card
-    /// actually came out as, banked by [TourState] from the frame before — the
-    /// same last-frame read this widget already does for the window's own
-    /// rectangle, one node further in ([ADR-0268]).
+    /// On every later frame [#cardHeight] is what the card actually came out as,
+    /// banked by [TourState] from the frame before — the same last-frame read
+    /// this widget already does for the window's own rectangle, one node further
+    /// in. A guess used on every frame would put a card above its target when it
+    /// would have fitted below.
     private static final float ESTIMATED_HEIGHT = 132;
 
     /// How far the ring sits outside the target, so it frames the widget rather
@@ -107,8 +106,7 @@ record TourStop(
     /// This node is inset on all four sides of a filling overlay, so its own
     /// rectangle **is** the window — and there is no other way to learn it. The
     /// cascade cannot say: a box sized by absolute insets has no `width` in its
-    /// style, so reading the resolved style gives nothing
-    /// (ADR-0121).
+    /// style, so reading the resolved style gives nothing.
     ///
     /// Safe against [dev.goldberry.input.handler.Located]'s rule: what
     /// this reports is fixed by the overlay's insets, so nothing drawn inside it
@@ -122,10 +120,8 @@ record TourStop(
     public List<Widget> children() {
         var buttons = new ArrayList<Widget>(4);
         // Skip leads and the rest go to the far end, which `controls.css` does
-        // with `margin-right: auto` on this button. It was a `Spacer` here: a
-        // widget in the tree that drew nothing and existed to be measured. The
-        // swap is pixel-identical, which the tour goldens were used to check
-        // (ADR-0311, ADR-0312).
+        // with `margin-right: auto` on this button rather than with a `Spacer`
+        // in the tree -- a widget that draws nothing and exists to be measured.
         buttons.add(new Button("Skip", onSkip).withAttributes(Attributes.NONE.classes("tour-skip")));
         if (onBack != null) {
             buttons.add(new Button("Back", onBack).withAttributes(Attributes.NONE.classes("tour-back")));
@@ -176,7 +172,7 @@ record TourStop(
     }
 
     /// Where the cut-out is **right now**: between the stop it is leaving and the
-    /// one it is arriving at, on §3.1's `base`.
+    /// one it is arriving at, over the base duration.
     ///
     /// [Lit] does the arithmetic, and [TourVeil] asks it the same question for the
     /// hole — which is what keeps the ring, the card and the hole agreeing with each
@@ -187,11 +183,11 @@ record TourStop(
         return Objects.requireNonNullElse(Lit.rectAt(cameFrom, target, travel, now), target);
     }
 
-    /// §1.7's overlay curve on the card: `opacity` 0→1 with a 4px rise.
+    /// The overlay curve on the card: `opacity` 0→1 with a 4px rise.
     ///
-    /// §3.1 says a tour's card animates "as `popover`", and that row is
-    /// "`opacity` 0→1, `translateY` −4→0, `scale` 0.98→1 from anchor origin,
-    /// base". Two of the three are here; the **scale** is not, and deliberately —
+    /// A tour's card animates as a `popover` does: `opacity` 0→1, `translateY`
+    /// −4→0 and `scale` 0.98→1 from the anchor origin, over the base duration.
+    /// Two of the three are here; the **scale** is not, and deliberately —
     /// `transform-origin` is resolved against a box the painter measures, and a
     /// card that scaled from its own centre rather than from its anchor would
     /// read as a pop rather than as an arrival. `popover` itself has the same gap
@@ -210,7 +206,7 @@ record TourStop(
                         Transform.Length.px(0), Transform.Length.px((1 - progress) * -RISE))));
     }
 
-    /// How far the card rises as it arrives — §3.1's `translateY` −4→0.
+    /// How far the card rises as it arrives: `translateY` −4→0.
     private static final float RISE = 4;
 
     /// Frames are owed while either phase is running — the arrival that fades the
@@ -218,7 +214,7 @@ record TourStop(
     ///
     /// Without this the first frame of each would be the only one: nothing else
     /// in a tour changes, so the loop would go idle mid-animation and leave a
-    /// half-faded card on screen ([ADR-0269]).
+    /// half-faded card on screen.
     @Override
     public boolean isAnimating() {
         return arrival.isRunning() || (travel != null && travel.isRunning());
@@ -235,9 +231,8 @@ record TourStop(
         var ring = children.get(1);
         var card = children.get(2);
         // Where the cut-out is on this frame. The ring and the card follow it
-        // rather than the destination, so the three move together -- §3.1's
-        // "veil cut-out `translate`+size base" is one rectangle travelling and
-        // not three things arriving separately (ADR-0269).
+        // rather than the destination, so the three move together: the cut-out
+        // is one rectangle travelling and not three things arriving separately.
         var lit = litRectAt(context.nowMillis());
         var below = lit.top() + lit.size().height() + GAP;
         // What the card measured last frame, or the estimate on the first —

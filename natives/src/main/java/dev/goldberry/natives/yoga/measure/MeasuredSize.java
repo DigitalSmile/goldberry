@@ -8,6 +8,8 @@ package dev.goldberry.natives.yoga.measure;
 /// fact and lays out around it; a NaN entering here does not fail, it spreads —
 /// every arithmetic result downstream is NaN too, and the first visible symptom
 /// is a blank window several layers away from the text that produced it.
+///
+/// Read more: [The native boundary](https://goldberry.dev/docs/overview/architecture.html#the-native-boundary).
 public record MeasuredSize(float width, float height) {
 
     public MeasuredSize {

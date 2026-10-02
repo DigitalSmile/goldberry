@@ -1,19 +1,22 @@
 package dev.goldberry.render.model;
 
-/// A display's scale factor, and the only sanctioned way to convert between
-/// logical and physical pixels.
+/// A display's scale factor, and the one place logical pixels are converted to
+/// physical pixels and back.
 ///
-/// Fractional scales are the normal case, not an edge case: 125% and 150% are
-/// what Windows laptops and most Linux desktops ship with. `docs/ARCHITECTURE.md`
-/// §4 requires them to be day-1 correct rather than retrofitted, which in
-/// practice means one rounding rule, applied in one place, that everything else
-/// is forbidden from reimplementing.
+/// ```java
+/// var scale = new DisplayScale(1.5f);
+/// int pixels = scale.toPhysical(24f);   // 36
+/// ```
 ///
-/// The rule: **physical = round(logical × factor)**, half away from zero. Sizes
-/// and positions both. Rounding at the boundary rather than accumulating
-/// fractions is what keeps a 1-pixel border 1 physical pixel wide at 150% instead
-/// of a 1.5-pixel blur, and what stops two adjacent widgets from disagreeing
-/// about where they meet.
+/// Fractional scales are the normal case: 125% and 150% are what Windows laptops
+/// and most Linux desktops ship with, so there is one rounding rule, applied here,
+/// that nothing else reimplements: **physical = round(logical × factor)**, half
+/// away from zero, for sizes and positions alike. Rounding at the boundary rather
+/// than accumulating fractions keeps a 1-pixel border one physical pixel wide at
+/// 150% instead of a 1.5-pixel blur, and stops two adjacent widgets from
+/// disagreeing about where they meet. The factor must be finite and positive.
+///
+/// Read more: [How layout works](https://goldberry.dev/docs/layout/index.html#logical-pixels).
 public record DisplayScale(float factor) {
 
     /// The unscaled case — one logical pixel is one physical pixel.

@@ -43,13 +43,15 @@ import dev.goldberry.widgets.text.Text;
 
 /// The second control, and the first whose *value* comes from outside it.
 ///
-/// [ButtonTest] proves the shape a control has; this proves the half ADR-0063
-/// describes and nothing had yet exercised — data down through `bind`, events up
+/// [ButtonTest] proves the shape a control has; this proves the half of the
+/// binding rule nothing had yet exercised — data down through `bind`, events up
 /// through `change`, and a control that cannot write to its own model.
+///
+/// Read more: [Checkbox](https://goldberry.dev/docs/components/choices.html#checkbox).
 class CheckboxTest {
 
     @Nested
-    @DisplayName("parity (§11)")
+    @DisplayName("markup and Java build the same tree")
     class Parity {
 
         @Test
@@ -129,7 +131,7 @@ class CheckboxTest {
     }
 
     @Nested
-    @DisplayName("data down, events up (ADR-0063)")
+    @DisplayName("data flows down and events flow up")
     class Binding {
 
         @Test
@@ -146,7 +148,7 @@ class CheckboxTest {
         @Test
         @DisplayName("a click does not move a control whose handler does nothing")
         void controlledMeansControlled() {
-            // The whole of ADR-0063 in one assertion. A checkbox is controlled in
+            // The whole of the binding rule in one assertion. A checkbox is controlled in
             // the React sense: the tick moves when the application sets the
             // property, not when the pointer lands. A control that will not move
             // means the state did not change -- which is a bug in the
@@ -273,7 +275,7 @@ class CheckboxTest {
             checkbox.onKey(new KeyEvent(KeyEvent.Kind.PRESSED, Key.ENTER, Modifiers.NONE, false, element));
             assertTrue(
                     fired.isEmpty(),
-                    "Enter belongs to a dialog's default action (§2.3); a checkbox that"
+                    "Enter belongs to a dialog's default action; a checkbox that"
                             + " swallowed it would leave a form unsubmittable from the keyboard");
 
             checkbox.onKey(new KeyEvent(KeyEvent.Kind.PRESSED, Key.SPACE, Modifiers.NONE, false, element));
@@ -325,9 +327,9 @@ class CheckboxTest {
         @Test
         @DisplayName("the control is the hit target and the glyph is 16")
         void metrics() {
-            // docs/design-system.md §3: glyph 16, hit >= 32, label gap 8. §1.3:
-            // "hit targets >= 32x32 even when the visual is smaller (checkbox
-            // glyph 16px, hit area 32)" -- which is exactly this pair of numbers.
+            // The checkbox's metrics: glyph 16, hit >= 32, label gap 8. A hit
+            // target is at least 32x32 even when the visual is smaller -- the
+            // checkbox is the design system's own example of that pair of numbers.
             var control = style("checkbox");
             assertEquals(Length.points(32), control.height());
             assertEquals(Length.points(8), control.gap());
@@ -335,7 +337,7 @@ class CheckboxTest {
             var glyph = style("check-indicator");
             assertEquals(Length.points(16), glyph.width());
             assertEquals(Length.points(16), glyph.height());
-            assertEquals(Corners.all(4), glyph.decoration().corners(), "§1.5's small-control corner");
+            assertEquals(Corners.all(4), glyph.decoration().corners(), "the small-control corner radius");
             assertTrue(
                     glyph.decoration().hasBorder(),
                     "an unchecked box has to be visible on a surface it would otherwise match");
@@ -348,7 +350,7 @@ class CheckboxTest {
             var checked = style("check-indicator", Selector.PseudoClass.CHECKED);
 
             assertEquals(0xFF88C0D0, checked.background(), "nord8, --gb-accent on the dark theme");
-            assertEquals(0xFF2E3440, checked.color(), "nord0: a light fill needs a dark tick (§1.2)");
+            assertEquals(0xFF2E3440, checked.color(), "nord0: a light fill needs a dark tick to meet 4.5:1");
             assertEquals(0x00000000, resting.color(), "and an unchecked box draws no mark");
         }
 
@@ -406,8 +408,8 @@ class CheckboxTest {
         void marks() {
             // Unchecked draws a tick too, at zero opacity. A node that came into
             // existence checked would have no previous style to transition from
-            // and would snap, so §3.1's "scale 0.6->1 + opacity" needs the mark
-            // present throughout and hidden by the stylesheet (ADR-0073).
+            // and would snap, so the design system's "scale 0.6->1 + opacity"
+            // needs the mark present throughout and hidden by the stylesheet.
             assertEquals(Box.Mark.Kind.CHECK, mark(Checkbox.Value.UNCHECKED).kind());
             assertEquals(Box.Mark.Kind.CHECK, mark(Checkbox.Value.CHECKED).kind());
             assertEquals(Box.Mark.Kind.DASH, mark(Checkbox.Value.MIXED).kind());
@@ -425,7 +427,7 @@ class CheckboxTest {
                             .render(ComputedStyle.INITIAL, List.of(), TestFont.context())
                             .mark(),
                     "the glyph carries no mark itself: scaling this box would scale the"
-                            + " 16px square with it, which is not the animation §3.1 asks for");
+                            + " 16px square with it, and only the mark scales 0.6 to 1");
         }
 
         private Box.Mark mark(Checkbox.Value value) {

@@ -16,7 +16,7 @@ import dev.goldberry.widgets.panel.Panel;
 import dev.goldberry.widgets.text.Text;
 
 /// A viewport that opens at its **end** — the log, the console and the chat
-/// timeline, which are one shape (`docs/gaps.md` G48, ADR-0392).
+/// timeline, which are one shape.
 ///
 /// [Scrolling]'s card is the other half of the same primitive and is deliberately
 /// beside it: one shows a reader being taken somewhere, this one shows a reader
@@ -39,6 +39,8 @@ import dev.goldberry.widgets.text.Text;
 /// by position has no such line — element 0 would simply describe a different
 /// message. The counter is the identity, which is what a real timeline's message
 /// id is.
+///
+/// Read more: [Scroll](https://goldberry.dev/docs/layout/scroll.html).
 public record Console() implements Widget.Stateful {
 
     /// How many lines the log starts with. Enough to overflow the frame several

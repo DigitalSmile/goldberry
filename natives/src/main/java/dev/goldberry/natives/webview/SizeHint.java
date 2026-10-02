@@ -5,6 +5,8 @@ package dev.goldberry.natives.webview;
 /// `webview/webview`'s four constants, named rather than numbered. The values are
 /// the upstream header's and are checked against it by the shim rather than
 /// trusted here.
+///
+/// Read more: [The native boundary](https://goldberry.dev/docs/overview/architecture.html#the-native-boundary).
 public enum SizeHint {
 
     /// The size to open at, which the user may then change. The ordinary case.

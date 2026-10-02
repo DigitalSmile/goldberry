@@ -8,6 +8,8 @@ package dev.goldberry.media.codec;
 /// next one. A caller that wants to keep a frame copies it.
 ///
 /// Sealed, so a consumer switches over the two kinds and the compiler checks it.
+///
+/// Read more: [Bringing a codec](https://goldberry.dev/docs/components/media.html#bringing-a-codec).
 public sealed interface Frame permits AudioFrame, VideoFrame {
 
     /// Marks a frame with no presentation time.

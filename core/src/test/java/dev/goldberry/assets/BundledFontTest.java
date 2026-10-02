@@ -10,7 +10,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 
-/// Which file a family, a weight and a style resolve to — ADR-0066 and ADR-0323.
+/// Which file a family, a weight and a style resolve to: a weight is a face, and
+/// so is an italic.
 ///
 /// The matching is four lines of loop and it decides what every piece of text in
 /// the toolkit is drawn with, so the cases worth naming are the ones where the

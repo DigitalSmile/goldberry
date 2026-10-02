@@ -20,11 +20,13 @@ import dev.goldberry.render.model.DisplayScale;
 import dev.goldberry.render.model.LogicalSize;
 import dev.goldberry.render.window.WindowSpec;
 
-/// A window's fullscreen state, in both directions ([ADR-0473]).
+/// A window's fullscreen state, in both directions.
 ///
-/// Maximizing's rules ([ADR-0252]) applied to the other window state a platform
-/// owns: the ask is a request, the event is the truth, the user's own button is
-/// heard, and the listeners that follow it are told of changes only.
+/// Maximizing's rules applied to the other window state a platform owns: the ask
+/// is a request, the event is the truth, the user's own button is heard, and the
+/// listeners that follow it are told of changes only.
+///
+/// Read more: [Fullscreen](https://goldberry.dev/docs/guide/windows.html#fullscreen).
 class FullscreenStateTest {
 
     private HeadlessBackend backend;

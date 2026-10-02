@@ -9,9 +9,9 @@ import dev.goldberry.render.model.LogicalRect;
 /// What a selection does when it is dragged to the bottom of a pane: the pane keeps
 /// scrolling for as long as the button is down and the pointer stays there, faster
 /// the further past the edge it is, and whatever is selecting follows the content
-/// that arrives under the pointer. Both content views and `text-area` want it, and
-/// neither had it — a drag stopped selecting at the edge, because nothing moves the
-/// viewport while a pointer that is held still sends no events ([ADR-0500]).
+/// that arrives under the pointer. Content views and `text-area` both use it:
+/// without it a drag stops selecting at the edge, because nothing moves the
+/// viewport while a pointer that is held still sends no events.
 ///
 /// ```java
 /// // on the press
@@ -28,7 +28,7 @@ import dev.goldberry.render.model.LogicalRect;
 /// ## A timer plus a clamp, and the timer is the frame clock
 ///
 /// The timer is not a timer. A widget is handed the clock in `render` and keeps the
-/// frames coming by answering `isAnimating()` (ADR-0081), which is how a glide and a
+/// frames coming by answering `isAnimating()`, which is how a glide and a
 /// fading bar already move ([ScrollGlide], [ScrollFade]) — so the distance a frame
 /// moves is **speed × the time since the last frame**, and a 144 Hz panel scrolls
 /// exactly as far per second as a 60 Hz one. Only while there is somewhere to go:
@@ -60,6 +60,8 @@ import dev.goldberry.render.model.LogicalRect;
 ///   dead, and saving the fractions up for a whole pixel would move it in jerks. An
 ///   offset is a `double` already, and the painter places a fractional translation
 ///   like any other.
+///
+/// Read more: [Scroll](https://goldberry.dev/docs/layout/scroll.html#scrolling-from-java).
 public final class EdgeScroll {
 
     /// How far inside the viewport the edge begins, in logical pixels.
@@ -209,7 +211,7 @@ public final class EdgeScroll {
         }
         if (Double.isNaN(last)) {
             // The first frame of a run says when it began and moves nothing -- the
-            // way a glide is stamped (ADR-0363). The distance is a rate times a time,
+            // way a glide is stamped. The distance is a rate times a time,
             // and until two frames have happened there is no time.
             last = nowMillis;
             return false;

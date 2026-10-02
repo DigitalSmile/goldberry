@@ -23,27 +23,26 @@ import java.util.Objects;
 ///
 /// ## Two halves, and they are wanted at different times
 ///
-/// The weaver does two unrelated jobs to the same tree, and since
-/// ADR-0155
-/// a build asks for them separately:
+/// The weaver does two unrelated jobs to the same tree, and a build asks for
+/// them separately:
 ///
 /// - `--models` rewires `@Bind` fields and writes the `@Action` call sites. Only
 ///   a **native image** needs it: an ordinary jar binds the same annotations at
-///   run time, so running this over a jar buys speed and costs a build step
-///   (ADR-0125, ADR-0127).
+///   run time, so running this over a jar buys speed and costs a build step.
 /// - `--catalog` writes the module's `WidgetCatalog` from its `@Markup` widgets
 ///   and declares it. **Every** build needs it, image or not: there is no runtime
 ///   equivalent — finding annotated classes at run time would mean scanning the
-///   path, which is the thing a `provides` exists to avoid (ADR-0131).
+///   path, which is the thing a `provides` exists to avoid.
 ///
-/// Neither flag means both, which is what a build that wants the lot writes and
-/// what every pre-0155 integration already wrote.
+/// Neither flag means both, which is what a build that wants the lot writes.
 ///
 /// ## It rewrites in place, and says what it touched
 ///
 /// A class the requested halves have nothing to do to is not rewritten at all —
 /// not re-serialised, not touched — so the task is incremental in the only way
 /// that matters and a build that changes nothing changes no timestamps.
+///
+/// Read more: [Model weaving](https://goldberry.dev/docs/weaving.html#adding-it-to-a-project).
 public final class WeaverMain {
 
     private WeaverMain() {
@@ -114,7 +113,7 @@ public final class WeaverMain {
     /// The same, doing only the halves asked for.
     ///
     /// @param models whether to rewire `@Bind` fields and write `@Action` call
-    ///        sites — what a native image needs and a jar does not (ADR-0155)
+    ///        sites — what a native image needs and a jar does not
     /// @param catalog whether to write the module's `WidgetCatalog` — what every
     ///        build needs, because nothing finds `@Markup` widgets at run time
     /// @throws WeaveException if any `@Model` below it is one the toolkit refuses
@@ -151,7 +150,7 @@ public final class WeaverMain {
                 // Every package but the one a *previous* weave put a catalog in. The
                 // weaver rewrites in place, so counting its own output would keep the
                 // first answer alive for ever -- including the one this rule exists to
-                // stop, a catalog in a package `:core` owns (ADR-0298).
+                // stop, a catalog in a package `:core` owns.
                 owned.add(java.lang.classfile.ClassFile.of().parse(bytes).thisClass().asSymbol().packageName());
             }
             var node = catalog ? CatalogWeaver.markupName(bytes) : null;
@@ -167,7 +166,7 @@ public final class WeaverMain {
         }
         // Which models are written to from outside their own nest, so their
         // setters -- and only theirs -- have to open up to the package. A model
-        // whose actions are a nested class keeps everything private (ADR-0137).
+        // whose actions are a nested class keeps everything private.
         var open = new java.util.HashSet<String>();
         if (models) {
             for (var file : classes) {

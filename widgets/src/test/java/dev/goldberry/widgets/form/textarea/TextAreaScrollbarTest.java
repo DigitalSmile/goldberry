@@ -25,7 +25,15 @@ import dev.goldberry.widgets.TestHost;
 import dev.goldberry.widgets.controls.TestFont;
 import dev.goldberry.widgets.core.scroll.ScrollBar;
 
-/// §4's "scrollbar beyond" the maximum rows ([ADR-0362]).
+/// Past `max-rows`, a `text-area` draws a scrollbar over its own offset.
+///
+/// The bar exists only while the text is taller than what the area shows, its
+/// thumb is sized to the proportion in view, and it moves with the text whether
+/// the wheel, a drag on the thumb or the caret did the scrolling. The caret case
+/// takes one rebuild to catch up, because the bar is built before the render
+/// that moves the text.
+///
+/// Read more: [`text-area`](https://goldberry.dev/docs/components/forms.html#text-area).
 class TextAreaScrollbarTest {
 
     private final TestHost host = new TestHost();

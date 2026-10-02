@@ -16,9 +16,8 @@ import dev.goldberry.render.model.PixelFormat;
 ///
 /// [#await] is **the one call in this API that blocks**: it waits for the GPU
 /// to finish the frame. It is how headless rendering, `Offscreen`, the goldens
-/// and a window that cannot be claimed show GPU content
-/// (`docs/gpu-plan.md`, D3). A frame that is drawing to the screen should not
-/// wait on one.
+/// and a window that cannot be claimed show GPU content. A frame that is
+/// drawing to the screen should not wait on one.
 ///
 /// Closing one that was never awaited gives its memory back without waiting.
 public final class Readback implements AutoCloseable {

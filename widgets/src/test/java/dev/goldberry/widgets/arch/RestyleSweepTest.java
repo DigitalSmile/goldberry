@@ -18,10 +18,10 @@ import org.junit.jupiter.api.Test;
 import dev.goldberry.css.ComputedStyle;
 import dev.goldberry.widget.style.Styled;
 
-/// **Every way through `Styled.restyle` is on a list, with its reason** ([ADR-0499]).
+/// **Every way through `Styled.restyle` is on a list, with its reason.**
 ///
 /// `restyle` is the widget's last word on its own style, applied after the
-/// cascade, so what it writes is unthemeable and unoverridable (ADR-0099). The
+/// cascade, so what it writes is unthemeable and unoverridable. The
 /// rule that keeps it honest is one sentence — *only what a stylesheet could not
 /// have written* — and a sentence is not a check. It had one caller when it was
 /// written and nine by the time anyone read them against it again, and one of the
@@ -39,8 +39,11 @@ import dev.goldberry.widget.style.Styled;
 /// Because `:core` implements `Styled` too, and the sweep should see every module
 /// `:widgets` can see — `BoundaryTest`'s import, for `BoundaryTest`'s reason. The
 /// modules downstream of this one (`:html`, `:media`, `:example`) are out of its
-/// reach; none of them overrides `restyle`, and ADR-0499 says what to do if one
-/// does.
+/// reach; none of them overrides `restyle`, and the message of
+/// [#everyOverrideIsDecided] says what to do if one does.
+///
+/// Read more:
+/// [Writing a widget: styled](https://goldberry.dev/docs/guide/writing-a-widget.html#styled-a-name-for-the-cascade).
 class RestyleSweepTest {
 
     /// What makes a number one a stylesheet could not have written — the kinds
@@ -64,7 +67,7 @@ class RestyleSweepTest {
         INPUT,
 
         /// **Arithmetic** over the cascade's own values — a padding plus a gutter —
-        /// which §8 cannot write because it defers `calc()`.
+        /// which a stylesheet cannot write because the toolkit's CSS defers `calc()`.
         ARITHMETIC
     }
 
@@ -83,7 +86,7 @@ class RestyleSweepTest {
         }
     }
 
-    /// The overrides ADR-0499 read against the rule and kept.
+    /// The overrides that were read against the rule and kept.
     private static final List<Allowed> ALLOWED = List.of(
             new Allowed(
                     "widgets.form.colorpicker.ColorSwatch",
@@ -94,7 +97,7 @@ class RestyleSweepTest {
                     "widgets.controls.segmented.SegmentedDivider",
                     Set.of(Because.COUNT),
                     "inset: the line's place, boundary / count of the track. Whether it shows is a class"
-                            + " and the stylesheet's, since ADR-0499"),
+                            + " and the stylesheet's"),
             new Allowed(
                     "widgets.controls.segmented.SegmentedIndicator",
                     Set.of(Because.COUNT),
@@ -113,7 +116,7 @@ class RestyleSweepTest {
                     "widgets.core.scroll.ScrollContent",
                     Set.of(Because.INPUT, Because.ARITHMETIC),
                     "transform: the scroll offset; padding: the author's padding plus the always-shown"
-                            + " bar's gutter. Its flex-shrink pin moved to render in ADR-0499"),
+                            + " bar's gutter. Its flex-shrink pin lives in render, not here"),
             new Allowed(
                     "widgets.core.scroll.ScrollThumb",
                     Set.of(Because.MEASUREMENT),
@@ -181,7 +184,7 @@ class RestyleSweepTest {
         // is BoundaryTest's lesson about importing jars.
         assertTrue(
                 overrides().contains("widgets.controls.segmented.SegmentedIndicator"),
-                () -> "the sweep found no restyle in SegmentedIndicator, which is ADR-0099's own;"
+                () -> "the sweep found no restyle in SegmentedIndicator, which has always had one;"
                         + " it is looking at the wrong classes: " + overrides());
     }
 
@@ -196,7 +199,7 @@ class RestyleSweepTest {
                 () -> "these override Styled.restyle and are not on RestyleSweepTest's list: " + unlisted
                         + ". What restyle writes runs after the cascade, so no theme can change it and no"
                         + " rule can override it; the rule is \"only what a stylesheet could not have"
-                        + " written\" (ADR-0099, ADR-0499). If a stylesheet could have written it once"
+                        + " written\". If a stylesheet could have written it once"
                         + " told a fact, give the widget a class and write the rule in the sheet; if it"
                         + " is a pin against the stylesheet, put it in render after .style(style)."
                         + " Otherwise add an entry here saying which kind of number it is and why, and"

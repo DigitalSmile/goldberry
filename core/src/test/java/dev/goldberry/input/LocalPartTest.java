@@ -16,8 +16,7 @@ import dev.goldberry.widget.ElementTree;
 import dev.goldberry.widget.Widget;
 import dev.goldberry.widget.style.Styled;
 
-/// Measuring the pointer against a **part** rather than against the control
-/// (ADR-0080).
+/// Measuring the pointer against a **part** rather than against the control.
 ///
 /// A control's hit target and the thing it is pointed *along* are the same box
 /// until something else joins the row. `slider` is where that stopped being true

@@ -17,14 +17,14 @@ import dev.goldberry.natives.webview.calls.WebviewCalls;
 /// One web page, in a window the engine owns.
 ///
 /// The owning wrapper around `webview/webview`: it holds the handle, it traffics
-/// in Java types, and no `MemorySegment` reaches a caller — §3.1's rule, the same
-/// one every wrapper in this module keeps.
+/// in Java types, and no `MemorySegment` reaches a caller — the rule every
+/// wrapper in this module keeps.
 ///
 /// ## The window is not the toolkit's
 ///
 /// What this opens is a top-level window belonging to WebKitGTK, WebView2 or
 /// WKWebView. It is not a Goldberry window, it has no `BackendWindow`, and it is
-/// not in any element tree. That is the whole of [ADR-0441]: a page cannot be a
+/// not in any element tree. That is the whole of the design: a page cannot be a
 /// box, because Wayland permits neither reparenting a foreign surface nor placing
 /// a window where a widget is.
 ///
@@ -33,6 +33,8 @@ import dev.goldberry.natives.webview.calls.WebviewCalls;
 /// UI-thread confined, like every other platform handle here. The page is created
 /// on that thread and `webview_run` is deliberately **never** called — see
 /// [#pump()], which is what services it instead.
+///
+/// Read more: [The native boundary](https://goldberry.dev/docs/overview/architecture.html#the-native-boundary).
 public final class Webview implements AutoCloseable {
 
     /// The contract this binding is written against.
@@ -114,7 +116,7 @@ public final class Webview implements AutoCloseable {
     /// ```
     ///
     /// Declared here rather than beside the stub, so that a native image is told
-    /// this shape before any page exists (ADR-0339).
+    /// this shape before any page exists.
     private static final FunctionDescriptor CALLBACK_DESCRIPTOR =
             Upcalls.describe(FunctionDescriptor.ofVoid(ValueLayout.ADDRESS, ValueLayout.ADDRESS, ValueLayout.ADDRESS));
 
@@ -182,7 +184,7 @@ public final class Webview implements AutoCloseable {
                         + " usually the system tray — SDL's is libayatana-appindicator, which links"
                         + " GTK 3 — against a web view library built for GTK 4. Build the natives"
                         + " against webkit2gtk-4.1 (libwebkit2gtk-4.1-dev), which is the GTK 3"
-                        + " pairing, or do not show a tray icon. See ADR-0441");
+                        + " pairing, or do not show a tray icon");
             } else {
                 LOG.warn("the web view engine would not start; no page was opened");
             }
@@ -195,20 +197,20 @@ public final class Webview implements AutoCloseable {
     /// Opens a page **inside** `parent`, at `x,y` and `width x height` in that
     /// window's own pixels.
     ///
-    /// The embedded half of §9's `web-view`: the page keeps its own platform
+    /// The embedded half of the `web-view` widget: the page keeps its own platform
     /// window and that window becomes a child of the application's, so it takes
     /// part in the layout instead of floating beside it.
     ///
     /// **X11, Cocoa and Win32.** On X11 the engine's GTK window is reparented into
     /// `parent`; on macOS the engine's `WKWebView` is added as a subview of the
     /// window's content view, because a view rather than a window is the unit
-    /// of composition there ([ADR-0458]); on Win32 the engine makes its own
-    /// `WS_CHILD` window inside `parent` ([ADR-0459]).
+    /// of composition there; on Win32 the engine makes its own
+    /// `WS_CHILD` window inside `parent`.
     ///
     /// Wayland is a permanent no: it allows no cross-client surface embedding —
     /// `xdg-foreign` is toplevel *parenting* and errors on anything else — so a
     /// caller on Wayland never gets this far, and is expected to say so rather
-    /// than to open a loose window ([ADR-0442]).
+    /// than to open a loose window.
     ///
     /// @param parent the platform's handle for the window to go inside
     /// @param kind   which window system that handle belongs to
@@ -228,8 +230,9 @@ public final class Webview implements AutoCloseable {
         var handle = bound.createEmbedded().call(debug ? 1 : 0, parent, kind.ordinal(), x, y, width, height);
         if (MemorySegment.NULL.equals(handle)) {
             if (bound.gtkConflict().call() != 0) {
-                LOG.warn("no page was opened: this process already holds a different major version of GTK"
-                        + " — see ADR-0441 and ADR-0442");
+                LOG.warn("no page was opened: this process already holds a different major version of GTK;"
+                        + " build the natives against the GTK 3 pairing (webkit2gtk-4.1), or do not show a"
+                        + " tray icon");
             } else {
                 LOG.info("no page could be opened inside the window: {}", embeddingRefused(kind));
             }
@@ -293,7 +296,7 @@ public final class Webview implements AutoCloseable {
     /// Asked once per key event of the parent window, so it is one downcall and
     /// a pointer comparison or two on the other side. True only where the
     /// window system hands the application a copy of what the page is typed —
-    /// macOS; X11 and Windows answer false because they never do ([ADR-0459]).
+    /// macOS; X11 and Windows answer false because they never do.
     ///
     /// @throws IllegalStateException if the page has been closed
     public boolean hasFocus() {

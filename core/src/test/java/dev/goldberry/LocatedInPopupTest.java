@@ -28,7 +28,8 @@ import dev.goldberry.widget.Widget;
 import dev.goldberry.widget.style.Paints;
 import dev.goldberry.widget.style.Styled;
 
-/// A [Located] widget **inside a popup** — `docs/gaps.md` G28, ADR-0320.
+/// A [Located] widget **inside a popup** is told where it is in the window that
+/// owns the popup.
 ///
 /// A popup has a pointer router of its own, so the rectangle it reported was in
 /// the popup's own space: a swatch eight points from a floating bar's left edge

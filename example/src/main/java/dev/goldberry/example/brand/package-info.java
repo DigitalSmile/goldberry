@@ -1,7 +1,8 @@
-/// The showcase's brand: its window icon, computed rather than shipped as PNGs
-/// (`docs/gaps.md` G40, ADR-0351).
+/// The showcase's brand: its window icon, computed rather than shipped as PNGs.
 ///
-/// Marked for NullAway (`docs/testing.md` §2, ADR-0497).
+/// Marked for NullAway, as every package in the repository is.
+///
+/// Read more: [The application](https://goldberry.dev/docs/applications.html#the-application).
 @NullMarked
 package dev.goldberry.example.brand;
 

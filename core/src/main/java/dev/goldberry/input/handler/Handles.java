@@ -12,11 +12,19 @@ import dev.goldberry.input.event.TextEvent;
 import dev.goldberry.render.model.LogicalRect;
 import dev.goldberry.widget.Widget;
 
-/// A widget that reacts to the pointer.
+/// A widget that reacts to the pointer and the keyboard.
 ///
 /// Opt-in, like [dev.goldberry.widget.style.Paints]. A widget that
 /// does not implement this is not asked, which keeps dispatch proportional to the
 /// number of interested nodes rather than to the depth of the tree.
+///
+/// Every method has a default that does nothing, so a widget implements only the
+/// ones it needs: [#onPointer] for a press or a drag, [#onKey] and [#onText] for
+/// the keyboard, [#isFocusable] to be a Tab stop, and the rest for the rarer
+/// questions the router asks — which part a position is measured along, whether
+/// the subtree is one Tab stop, whether it traps focus.
+///
+/// Read more: [Input and focus](https://goldberry.dev/docs/guide/input.html#what-a-custom-widget-implements).
 public interface Handles extends Widget {
 
     /// Called during the capture phase, root-first, before the target sees the
@@ -40,11 +48,10 @@ public interface Handles extends Widget {
     /// the first: `[ track ──────── ] 40` is one control, and the value is a
     /// position along the **track** — measuring it along the whole control would
     /// make the far end of the track read as 88% rather than 100%, silently, by
-    /// exactly the width of the label
-    /// (ADR-0080).
+    /// exactly the width of the label.
     ///
-    /// Named as a **CSS type**, which is the vocabulary a part already has
-    /// ([ADR-0065]): the first descendant whose
+    /// Named as a **CSS type**, which is the vocabulary a part already has: the
+    /// first descendant whose
     /// [dev.goldberry.widget.style.Styled#cssType()] matches,
     /// in document order. The router resolves it, because it is the one that holds
     /// the painted rectangles and the widget cannot see its own elements — the
@@ -70,22 +77,21 @@ public interface Handles extends Widget {
     ///
     /// A control whose drag is a **rate** cannot compute anything from the
     /// current value alone. A knob maps 200 logical pixels of vertical travel
-    /// onto its whole range (`docs/design-system.md` §3), so the value under the
+    /// onto its whole range, so the value under the
     /// pointer is `where it started + how far you have dragged` — and by the
     /// second frame of the drag "where it started" is gone, because the value has
     /// already moved and a widget is an immutable value rebuilt from it.
     ///
     /// A slider needs none of this: its value is a *position*, read fresh from
-    /// the pointer against the track on every event, with no history at all
-    /// ([ADR-0079]). That difference is the whole of why this exists.
+    /// the pointer against the track on every event, with no history at all.
+    /// That difference is the whole of why this exists.
     ///
-    /// It is the router's for the reason [PointerEvent#pressX()] is
-    /// ([ADR-0075]): the implicit capture already spans exactly one gesture
-    /// ([ADR-0058]), so the router is both the only thing that can know and the
-    /// thing whose lifetime already matches. A `double` and not an `Object`
-    /// because the router must not start holding application values it cannot
-    /// reason about, and every gesture that has wanted one so far has wanted a
-    /// number ([ADR-0089]).
+    /// It is the router's for the reason [PointerEvent#pressX()] is: the
+    /// implicit capture already spans exactly one gesture, so the router is both
+    /// the only thing that can know and the thing whose lifetime already matches.
+    /// A `double` and not an `Object` because the router must not start holding
+    /// application values it cannot reason about, and every gesture that has
+    /// wanted one so far has wanted a number.
     default double gestureAnchor() {
         return Double.NaN;
     }
@@ -98,10 +104,10 @@ public interface Handles extends Widget {
     /// A key went down or came up, on the focused node and then its ancestors.
     default void onKey(KeyEvent event) {}
 
-    /// Committed text, on the way **down** to the focused node ([ADR-0246]).
+    /// Committed text, on the way **down** to the focused node.
     ///
     /// The mirror of [#onKeyCapture], and it exists for one reason: a `select`
-    /// whose list is open has an `option` focused inside a popup, so §3's
+    /// whose list is open has an `option` focused inside a popup, so its
     /// typeahead had nothing to intercept the text in — the letters went to a row
     /// that does not know what typing means and stopped there.
     ///
@@ -113,11 +119,11 @@ public interface Handles extends Widget {
     /// Committed text reached the focused node.
     ///
     /// A widget that wants what the user typed wants this, not [#onKey]: one
-    /// character can take several keys (§7.1).
+    /// character can take several keys.
     default void onText(TextEvent event) {}
 
     /// The composition an input method is assembling, before the user has
-    /// accepted it — `docs/gaps.md` G15.
+    /// accepted it.
     ///
     /// Offered to the focused node and its ancestors, like [#onText], and with
     /// **no capture phase**: nothing above the field can usefully act on
@@ -127,7 +133,7 @@ public interface Handles extends Widget {
     /// committed text still arrives through [#onText], which is what a Latin
     /// keyboard produces and all an input method's *result* ever was. What it
     /// loses is the underlined string a CJK user watches while choosing, and
-    /// without it they type blind until they commit (ADR-0289).
+    /// without it they type blind until they commit.
     ///
     /// **Do not insert it.** See [PreeditEvent]: it is drawn beside the document,
     /// not in it.
@@ -138,7 +144,7 @@ public interface Handles extends Widget {
     ///
     /// The toolkit passes it to the platform so an input method can put its
     /// candidate window beside the text rather than wherever the compositor
-    /// guesses (`docs/gaps.md` G15). Asked after every event that could have
+    /// guesses. Asked after every event that could have
     /// moved a caret, and cheap: a widget that returns an equal rectangle costs
     /// one comparison.
     ///
@@ -174,11 +180,11 @@ public interface Handles extends Widget {
     /// anybody asked. What this turns on is `SDL_StartTextInput` — the input
     /// method, the dead keys, the on-screen keyboard on the platforms that have
     /// one — and leaving it on for a board that only wants arrow keys pops a
-    /// keyboard over the board (ADR-0285).
+    /// keyboard over the board.
     ///
     /// False by default, so a widget that is not typed into costs nothing. The
     /// router asks the focused widget on every focus change and tells the window,
-    /// which is the same one-wire arrangement the cursor has (§7.3): the router
+    /// which is the same one-wire arrangement the cursor has: the router
     /// knows nothing about the platform and the widget knows nothing about the
     /// window.
     default boolean wantsTextInput() {
@@ -197,17 +203,15 @@ public interface Handles extends Widget {
     /// focus inside — a radio group, a tab list, a menu, a toolbar — and if so,
     /// **which arrows** move between them.
     ///
-    /// `docs/design-system.md` §7.2: "composites are one Tab stop with roving
-    /// arrow-key focus inside". A group of six radios that took six Tab presses
-    /// to cross is the thing this prevents, and it is a property of the *group*
-    /// rather than of any radio in it — which is why it is asked here and
-    /// answered by the router, exactly as Tab is
-    /// (ADR-0073).
+    /// A composite is one Tab stop with roving arrow-key focus inside. A group
+    /// of six radios that took six Tab presses to cross is the thing this
+    /// prevents, and it is a property of the *group* rather than of any radio in
+    /// it — which is why it is asked here and answered by the router, exactly as
+    /// Tab is.
     ///
     /// The axis is the widget's because only it knows what it means by the other
     /// pair: a vertical menu's `Right` opens a submenu, and a scope that roved on
-    /// it would move focus down the list whenever an item had none
-    /// (ADR-0078).
+    /// it would move focus down the list whenever an item had none.
     /// `radio-group` answers [FocusScope#BOTH], because its direction is its
     /// stylesheet's rather than its own.
     ///
@@ -224,7 +228,7 @@ public interface Handles extends Widget {
     /// What "selection follows focus" is spelled with: a radio raises its change
     /// when an arrow key brings focus to it, so the arrow does not move the tick
     /// directly — the application sets the value and the tick follows it back
-    /// down ([ADR-0063]).
+    /// down.
     ///
     /// @param focused      whether this widget now has focus
     /// @param fromKeyboard whether the move came from the keyboard, which is the
@@ -287,8 +291,8 @@ public interface Handles extends Widget {
         return false;
     }
 
-    /// Whether the keyboard is **trapped inside** this widget — `docs/core-widgets.md`
-    /// §7's "focus trap", which a `dialog` is the first thing to need.
+    /// Whether the keyboard is **trapped inside** this widget — a focus trap,
+    /// which a `dialog` is the first thing to need.
     ///
     /// A modal widget answers two questions at once and they are the same
     /// question: Tab enumerates its subtree instead of the window's, and focus
@@ -296,17 +300,16 @@ public interface Handles extends Widget {
     /// bookkeeping to keep in step — the invariant is simply that while a modal
     /// is mounted, the focused node is inside it.
     ///
-    /// **The pointer obeys it too**, and used not to. This said "the pointer is
-    /// not this flag's business" and left it to geometry: a dialog is unreachable
-    /// by mouse because its scrim covers the window, which is what a filling
-    /// [dev.goldberry.Overlay] already does for `tour`'s veil.
-    /// That is a rule a reviewer has to remember, and a widget that declared
-    /// itself modal without one trapped the keyboard and let every click through.
+    /// **The pointer obeys it too.** Leaving the pointer to geometry — a dialog
+    /// is unreachable by mouse because its scrim covers the window, as a filling
+    /// [dev.goldberry.Overlay] does for `tour`'s veil — is a rule a
+    /// reviewer has to remember, and a widget that declared itself modal without
+    /// a scrim would trap the keyboard and let every click through.
     ///
     /// So it is one flag: while a modal is mounted, the pointer reaches its
     /// **subtree** and its **ancestors**, and nothing else. The ancestors are the
     /// point rather than a loophole — a dialog's scrim is the panel's *parent*,
-    /// and a click on it is what closes the dialog ([ADR-0232]).
+    /// and a click on it is what closes the dialog.
     ///
     /// The **deepest** modal wins, so a dialog opened from a dialog traps inside
     /// the second one and gives the first back when it closes.

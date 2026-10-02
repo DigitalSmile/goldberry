@@ -13,7 +13,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 import dev.goldberry.render.window.IconImage;
 
-/// Which size of a window icon SDL is handed as its base ([ADR-0351]).
+/// Which size of a window icon SDL is handed as its base.
 ///
 /// SDL treats the base as the 100% size and hangs the others off it, and X11's
 /// path reads the base **alone**, so the choice is visible on a desktop and is

@@ -27,7 +27,7 @@ import dev.goldberry.widget.attr.Attributes;
 import dev.goldberry.widget.style.Paints;
 import dev.goldberry.widget.style.Styled;
 
-/// [Application#icon()] reaching the window — `docs/gaps.md` G40 ([ADR-0351]).
+/// [Application#icon()] reaching the window, in every size it was given.
 ///
 /// Headless, so there is no taskbar: the backend records what it was handed. The
 /// ordering SDL is given is `WindowIconOrderTest`, and the binding is

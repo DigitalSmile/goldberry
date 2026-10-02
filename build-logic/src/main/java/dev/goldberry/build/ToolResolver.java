@@ -63,8 +63,8 @@ import java.util.Optional;
  * where its installer puts it is found even from a daemon whose {@code PATH} was
  * inherited from launchd and never had it.
  *
- * <p>The reasoning, the bisection that pinned it down, and the alternatives are
- * in ADR-0040, {@code book/src/adr/0040-find-the-native-tools-by-absolute-path.md}.
+ * <p>Read more: <a href="https://goldberry.dev/docs/contributing/building.html#the-native-superbuild">The
+ * native superbuild</a>.
  */
 public final class ToolResolver {
 

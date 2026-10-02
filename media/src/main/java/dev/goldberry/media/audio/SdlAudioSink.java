@@ -16,8 +16,8 @@ import dev.goldberry.natives.sdl.audio.SdlAudioStream;
 
 /// The desktop's [AudioSink]: an SDL audio stream on the default playback device.
 ///
-/// SDL is already inside `libgoldberry`, so this costs no second audio library
-/// (`docs/goldberry-media.md` §3, "Audio decode"). The stream is fed interleaved
+/// SDL is already inside `libgoldberry`, so this costs no second audio library.
+/// The stream is fed interleaved
 /// f32 at the rate and channel count the Engine asked for, and SDL converts to
 /// whatever the device runs at. The format the Engine converts to is therefore
 /// always the one it asked for, and the OS mixer, which runs at 48 kHz on every
@@ -37,15 +37,15 @@ import dev.goldberry.natives.sdl.audio.SdlAudioStream;
 /// corrects its audio clock by the callback time for the same reason. The pulls
 /// themselves come unevenly, so the drain is a [DrainEstimate]: a line at the
 /// stream's rate steered toward where the pulls say the device is, which never
-/// jumps, since a clock that jumps by a pull passes over a picture at 60 fps
-/// (ADR-0485). Paused, the estimate stands still, and a clear starts it over. At
+/// jumps, since a clock that jumps by a pull passes over a picture at 60 fps.
+/// Paused, the estimate stands still, and a clear starts it over. At
 /// a [#setRate] other than 1 the device takes samples that much faster, and the
 /// estimate drains that much faster with it.
 ///
 /// ## Latency
 ///
-/// [#latencyNanos()] is how far behind that estimate the sound actually is
-/// (ADR-0474), in two parts:
+/// [#latencyNanos()] is how far behind that estimate the sound actually is, in
+/// two parts:
 ///
 /// - **SDL's own buffers**, counted in pulls ([#pullsAhead]). The estimate above
 ///   drains the pull *after* the last one, so it runs one pull ahead of what SDL
@@ -62,11 +62,13 @@ import dev.goldberry.natives.sdl.audio.SdlAudioStream;
 /// ## No device
 ///
 /// When SDL has no device to open, the sink plays into a [SilentAudioSink]
-/// instead, and says so in the log (ADR-0487). This happens on a headless
+/// instead, and says so in the log. This happens on a headless
 /// machine, or with an SDL built without a backend for the sound server. The
 /// source plays on without sound, rather than failing as media it could not
 /// play. Each [#open] tries the device again, so the next source opened after a
 /// device appears is heard.
+///
+/// Read more: [A player](https://goldberry.dev/docs/components/media.html#a-player).
 public final class SdlAudioSink implements AudioSink {
 
     private static final Logger LOG = Logs.of(SdlAudioSink.class);

@@ -22,10 +22,10 @@ import dev.goldberry.widgets.core.Column;
 import dev.goldberry.widgets.core.Row;
 import dev.goldberry.widgets.text.Text;
 
-/// §1.4's text scale, end to end: **the text grows and the boxes with fixed
-/// metrics do not**, which is the condition §1.4 asks every component to survive
-/// and the one an image of the gallery at 150% would be looking for
-/// ([ADR-0267]).
+/// The text scale, end to end: **the text grows and the boxes with fixed
+/// metrics do not**, which is the condition the design system asks every
+/// component to survive and the one an image of the gallery at 150% would be
+/// looking for. A text scale scales the text, not the layout.
 ///
 /// The unit half is `TextScaleTest`. This is the half that says the factor
 /// reaches a laid-out frame at all — a scale applied to a `Typography` nothing
@@ -115,8 +115,8 @@ class TextScaleLayoutTest {
         assertEquals(implicitly.getFirst()[1], explicitly.getFirst()[1], 1e-6);
     }
 
-    /// **The box does not grow with it**, which is the whole of what §1.4 is
-    /// asking components to survive: a `button` is `height: 32px` whatever its
+    /// **The box does not grow with it**, which is the whole of what the text
+    /// scale asks components to survive: a `button` is `height: 32px` whatever its
     /// label says, so at 150% the text has to fit in a box that did not move.
     ///
     /// Asserted rather than assumed, because the *other* design — scaling inside
@@ -144,6 +144,6 @@ class TextScaleLayoutTest {
         }
 
         assertEquals(2, heights.size(), "one button per scale");
-        assertEquals(heights.get(0), heights.get(1), 0.01f, "§3 pins a button at 32 and a text scale is not a zoom");
+        assertEquals(heights.get(0), heights.get(1), 0.01f, "a button is 32 high and a text scale is not a zoom");
     }
 }

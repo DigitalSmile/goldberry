@@ -13,9 +13,10 @@ import dev.goldberry.css.Theme;
 import dev.goldberry.css.cascade.StyleResolver;
 import dev.goldberry.widgets.Controls;
 
-/// The toolkit's own stylesheets stay **type-first** ([ADR-0249]).
+/// The toolkit's own stylesheets stay **type-first**: a rule that can name a
+/// type does.
 ///
-/// ADR-0152's saving is that a rule for `button` is never even looked at for a
+/// The cascade's saving is that a rule for `button` is never even looked at for a
 /// `text`: the cascade buckets each rule by the type its rightmost compound
 /// names, and only the rules that name none are checked against every element of
 /// every kind. That saving is worth exactly as much as the stylesheet lets it be
@@ -24,8 +25,7 @@ import dev.goldberry.widgets.Controls;
 ///
 /// It is a lint in `:example` for [SupportedPropertyTest]'s reason: it reads the
 /// toolkit's own sheets through the machinery that consumes them, and a sheet's
-/// *shape* is the same kind of fact as a dropped declaration (ADR-0215,
-/// ADR-0216).
+/// *shape* is the same kind of fact as a dropped declaration.
 class RuleBucketTest {
 
     /// The rules that name no type, and the whole list of them.
@@ -38,7 +38,7 @@ class RuleBucketTest {
     ///
     /// All eight are unqualifiable by nature:
     ///
-    /// - **The typography scale** (§1.4). `.display`, `.title`, `.heading`,
+    /// - **The typography scale**. `.display`, `.title`, `.heading`,
     ///   `.body`, `.body-strong`, `.caption` and `.mono` are ranks an application
     ///   puts on whatever it likes, so there is no type to name — that is what
     ///   makes them a scale rather than a widget's parts.
@@ -54,8 +54,7 @@ class RuleBucketTest {
             ".title",
             // A disabled control inside a disabled container does not fade
             // twice, and neither half of that names a kind: it is true of every
-            // control in the catalog and of every container that can hold one
-            // ([ADR-0379]).
+            // control in the catalog and of every container that can hold one.
             ":disabled :disabled",
             ":root");
 
@@ -70,7 +69,7 @@ class RuleBucketTest {
                 UNTYPED_BY_NATURE,
                 toolkit().untypedSelectors(),
                 "a rule in the toolkit's own stylesheets names no type, so the cascade has to"
-                        + " check it against every element of every kind (ADR-0152). Qualify it"
+                        + " check it against every element of every kind. Qualify it"
                         + " — `text.tour-title` rather than `.tour-title` — or add it here with"
                         + " the reason it cannot be.");
     }

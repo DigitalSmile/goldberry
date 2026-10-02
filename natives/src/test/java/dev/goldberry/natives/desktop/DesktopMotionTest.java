@@ -11,7 +11,7 @@ import org.junit.jupiter.api.Test;
 
 import dev.goldberry.natives.desktop.calls.PortalSettings;
 
-/// Asking the desktop whether to move less — [ADR-0383].
+/// Asking the desktop whether to move less.
 ///
 /// What can be asserted anywhere is the shape: the question is answered, the
 /// answer is one of three, the override decides it, and nothing here throws on a

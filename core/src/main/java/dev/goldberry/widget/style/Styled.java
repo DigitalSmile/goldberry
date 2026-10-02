@@ -11,14 +11,31 @@ import dev.goldberry.widget.WidgetRenderer;
 
 /// A widget that a stylesheet can name.
 ///
-/// §9 says `class` / `id` / `style` behave as in HTML, and §11's parity invariant
-/// says every built-in widget is CSS-styleable. This is the interface that makes
-/// both true: an element asks its widget for these, so the same widget value
-/// answers a Java caller, a KDL attribute and a CSS selector.
+/// `class`, `id` and `style` behave as in HTML, and every built-in widget can
+/// be styled from a stylesheet. This is the interface that makes both true: an
+/// element asks its widget for these, so the same widget value answers a Java
+/// caller, a KDL attribute and a CSS selector.
+///
+/// ```java
+/// record Badge(String label) implements Widget.Leaf, Styled, Paints {
+///     public String cssType() { return "badge"; }              // `badge { … }`
+///     public Set<String> classes() { return Set.of("pill"); }  // `.pill`
+///     …
+/// }
+/// ```
 ///
 /// Not every widget implements it. A composition-only widget — one that exists to
 /// return other widgets — has nothing to style, and giving it a type name would
 /// put a node in the cascade that no author knows about.
+///
+/// The pseudo-classes a widget owns — `:disabled`, `:checked`,
+/// `:indeterminate`, `:invalid` and `:affixed` — are read from here and
+/// mirrored onto the element before the cascade runs, so a stylesheet, a hit
+/// test and the semantics never disagree about them. [#restyle] is the widget's
+/// last word after the cascade, for a number no selector could express.
+///
+/// Read more:
+/// [A name for the cascade](https://goldberry.dev/docs/guide/writing-a-widget.html#styled-a-name-for-the-cascade).
 public interface Styled extends Widget {
 
     /// The type name a CSS type selector matches: `button`, `text-input`.
@@ -55,9 +72,9 @@ public interface Styled extends Widget {
     /// The widget's last word on its own style — the cascade's answer, with
     /// whatever only the widget can know written into it.
     ///
-    /// §8's cascade layers end with `inline`: "a `style=` on a single node. Last,
-    /// because it is the most specific statement anyone can make about one
-    /// element." This is that layer, typed. A stylesheet cannot say where the
+    /// The cascade's layers end with `inline`, a `style=` on a single node —
+    /// last, because it is the most specific statement anyone can make about one
+    /// element. This is that layer, typed. A stylesheet cannot say where the
     /// **third of five** segments is, because it cannot count the segments; the
     /// widget can, and this is where it says so.
     ///
@@ -69,8 +86,7 @@ public interface Styled extends Widget {
     /// it declared. Applied here, a widget-computed value is part of what the
     /// animation observes, so it moves under `transition` like any other
     /// property: a segmented control's indicator translates between segments
-    /// because this method puts the translation where the transition can see it
-    /// (ADR-0099).
+    /// because this method puts the translation where the transition can see it.
     ///
     /// ## What it is not
     ///
@@ -84,14 +100,14 @@ public interface Styled extends Widget {
     /// derived from a **count** (the fifth of five segments), the application's
     /// own **data** (a swatch's colour, a tab's), a **measurement** (a thumb's
     /// length, an underline's journey), **input** (a scroll offset, a drag), and
-    /// **arithmetic** over the cascade's own values that §8 has no `calc()` for
+    /// **arithmetic** over the cascade's own values, since there is no `calc()`
     /// (a padding plus a gutter). A fact a selector could match on is not one of
     /// them — it is a class, and
     /// the stylesheet decides what it means. Nor is a property a widget must pin
     /// against the stylesheet: that is `render`'s, after the style is applied,
     /// because a pin is not a number a stylesheet could not have written. The
     /// catalog's overrides are held to a list with a reason each, in `:widgets`'
-    /// `RestyleSweepTest`, so that the next one is added on purpose (ADR-0499).
+    /// `RestyleSweepTest`, so that the next one is added on purpose.
     ///
     /// The style is also what this node's children inherit, so a widget that
     /// changed `color` here would change theirs. That is CSS's rule for an
@@ -108,8 +124,7 @@ public interface Styled extends Widget {
     ///
     /// Empty for every widget but one, and the one is the point: a `hud` reading
     /// carries `over` or `near` depending on how the number it is about to draw
-    /// compares with its budget, and a stylesheet has to be able to colour that
-    /// (ADR-0150).
+    /// compares with its budget, and a stylesheet has to be able to colour that.
     ///
     /// **Why it cannot be [#classes()]**: the cascade reads a node's classes
     /// before that node's `render` runs, and the frame statistics only arrive in
@@ -156,7 +171,7 @@ public interface Styled extends Widget {
     /// mounted, with its elements and their state intact, and not rendered, laid
     /// out, painted, hit-tested, or reachable by the keyboard.
     ///
-    /// What a background tab is when its `tabs` keeps its content alive (ADR-0366):
+    /// What a background tab is when its `tabs` keeps its content alive:
     /// the scroll position, the caret and the half-typed form survive, and nothing
     /// in it answers a key or a click. Not `display: none` — no stylesheet can say
     /// it, because what is kept is a widget's decision about its own children.
@@ -191,8 +206,7 @@ public interface Styled extends Widget {
         return false;
     }
 
-    /// Whether this node's value has failed validation, for `:invalid`
-    /// (`docs/core-widgets.md` §4).
+    /// Whether this node's value has failed validation, for `:invalid`.
     ///
     /// A **widget's** state and not the router's, like `:checked` and unlike
     /// `:hover`: what decides it is a `Validator` the application supplied, run
@@ -201,7 +215,7 @@ public interface Styled extends Widget {
     ///
     /// Reported by the `field` *and* by the control inside it, and both are
     /// wanted: a stylesheet asks for `text-input:invalid` to redden the border
-    /// and for `field:invalid field-message` to show the reason, and §8's subset
+    /// and for `field:invalid field-message` to show the reason, and a selector
     /// has no way to walk from a child back up to its parent.
     default boolean isInvalid() {
         return false;

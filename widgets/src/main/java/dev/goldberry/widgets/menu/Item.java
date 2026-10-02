@@ -24,9 +24,8 @@ import dev.goldberry.widget.style.Styled;
 import dev.goldberry.widgets.markup.Markup;
 import dev.goldberry.widgets.markup.Wiring;
 
-/// One command in a [Menu] — `docs/core-widgets.md` §8's `item`: "label, optional
-/// icon, accelerator (displayed right-aligned …), checkable items, disabled
-/// state, nested submenus".
+/// One row of a [Menu]: a label, an optional icon, an accelerator to show, a
+/// tick, and either a command or a submenu.
 ///
 /// ```kdl
 /// item press="app.save" icon="save" accelerator="Ctrl+S" "Save"
@@ -34,32 +33,36 @@ import dev.goldberry.widgets.markup.Wiring;
 /// item "Recent" { item press="app.recent-1" "notes.txt" }
 /// ```
 ///
-/// ## What an item does not do
+/// In Java, `new Item("Save", actions::save).icon(save).accelerator("Ctrl+S")`;
+/// `submenu(Widget...)`, `checked(boolean)`, `checkable()` and
+/// `disabled(boolean)` set the rest.
 ///
-/// **It does not open its own submenu.** Opening anything is [Menus]'s, because
-/// it needs a `Host` and a widget does not have one — so an item with children
-/// carries them and is handed a [MenuSignals] by whoever opened the menu it is
-/// in, exactly as a `radio` is handed `selected` and `onSelect` by its group
-/// (ADR-0106).
+/// A nested `item` is a submenu, and that is the only thing an item can
+/// contain: there is no `submenu` node. A row cannot be both a command and a
+/// heading. `checked` has three states: `#true` shows a tick, `#false` is a
+/// checkable row that is off, and no attribute at all is a row that is not
+/// checkable, which is what decides whether its menu reserves room for a tick.
+/// A row with neither a label nor an icon is refused, because nothing could
+/// read it out.
 ///
-/// **It does not register its accelerator.** §8 says an accelerator is "displayed
-/// right-aligned *and* auto-registered in the window's shortcut map"; this is the
-/// display half. The registration needs the window and a lifetime — a menu is
-/// built and thrown away every time it opens, and a shortcut must outlive that —
-/// so it is the application's `host.shortcut(…)` until something owns menus for
-/// longer than one opening.
+/// An item does not open its own submenu or close the menu it is in: that
+/// needs a `Host`, and a widget is a value. [Menus] hands each row a
+/// [MenuSignals] when it opens the menu, and the row reports what happened to
+/// it. Nor does an item register its accelerator; the text is shown
+/// right-aligned, and a `menubar` binds it while the bar is mounted.
+///
+/// Read more: [Menus and the tray](https://goldberry.dev/docs/components/menus.html#item).
 ///
 /// @param label       the command's name
 /// @param icon        an optional icon before it
 /// @param accelerator the shortcut to *show*, right-aligned, or null
 /// @param onPress     what it does. Null for an item that opens a submenu and
 ///                    nothing else
-/// @param checked     `TRUE` or `FALSE` for a **checkable** row — §8's "checkable
-///                    items" — and `null` for one that is not checkable at all.
-///                    Three states rather than two, because "unchecked" and "not
-///                    a checkbox" are different things and only the second means
-///                    "reserve no room for a tick"
-///                    (ADR-0113)
+/// @param checked     `TRUE` or `FALSE` for a **checkable** row, and `null` for
+///                    one that is not checkable at all. Three states rather than
+///                    two, because "unchecked" and "not a checkbox" are different
+///                    things and only the second means "reserve no room for a
+///                    tick"
 /// @param reservesLead whether this row leaves room for the leading column — the
 ///                    tick, or the icon, or nothing. Supplied by [Menus] and the
 ///                    same for every row in one menu: a column that appeared only
@@ -70,13 +73,7 @@ import dev.goldberry.widgets.markup.Wiring;
 /// @param signals     how it tells the menu what happened to it — the pointer
 ///                    arriving, a keyboard `Right`, a `Left`. Supplied by
 ///                    [Menus], never by an author, and never null: an unwired
-///                    item holds [MenuSignals#NONE]. It was a single "the pointer
-///                    arrived" callback, and the four keyboard gaps that closed
-///                    when it stopped being one are in
-///
-/// ADR-0219
-///
-/// (ADR-0112)
+///                    item holds [MenuSignals#NONE]
 /// @param attributes  `id` and `class`, exactly as on the primitives
 @Markup("item")
 public record Item(
@@ -93,7 +90,7 @@ public record Item(
         implements Widget.Leaf, Styled, Paints, Handles, Attributed<Item>, Semantics {
 
     /// The canonical constructor, written out because `submenu`, `signals` and `attributes` take null
-    /// for a default (ADR-0497).
+    /// for a default.
     public Item(
             String label,
             @Nullable Icon icon,
@@ -109,8 +106,7 @@ public record Item(
         submenu = List.copyOf(submenu == null ? List.of() : submenu);
         signals = signals == null ? MenuSignals.NONE : signals;
         if (label.isEmpty() && icon == null) {
-            throw new IllegalArgumentException(
-                    "a menu item with neither a label nor an icon has nothing to read out (§13)");
+            throw new IllegalArgumentException("a menu item with neither a label nor an icon has nothing to read out");
         }
         attributes = attributes == null ? Attributes.NONE : attributes;
         this.label = label;
@@ -141,8 +137,8 @@ public record Item(
                 label, value, accelerator, onPress, checked, disabled, submenu, reservesLead, signals, attributes);
     }
 
-    /// This item showing `text` as its accelerator — the display half of §8's
-    /// accelerator, right-aligned. See the class note for the other half.
+    /// This item showing `text` as its accelerator, right-aligned. Showing is all
+    /// an item does with it; a `menubar` binds the key while it holds the row.
     public Item accelerator(String text) {
         return new Item(label, icon, text, onPress, checked, disabled, submenu, reservesLead, signals, attributes);
     }
@@ -250,9 +246,8 @@ public record Item(
     /// A click activates; a **hover opens a submenu**, which is what makes a menu
     /// bar feel like one.
     ///
-    /// The hover-intent delay §8 asks for is [Menus]'s: the timer belongs to the
-    /// event loop and a widget has no way to reach it
-    /// (ADR-0105).
+    /// The hover-intent delay before a submenu opens is [Menus]'s: the timer
+    /// belongs to the event loop and a widget has no way to reach it.
     @Override
     public void onPointer(PointerEvent event) {
         if (disabled) {
@@ -265,7 +260,7 @@ public record Item(
             // **Every** row, not only the ones with children. A submenu closes
             // when the pointer moves to a sibling, and the menu is the only thing
             // that can close it — so every row says "I am the one now" and the
-            // menu decides what that means (ADR-0112).
+            // menu decides what that means.
             signals.hovered();
         }
     }
@@ -276,8 +271,7 @@ public record Item(
     ///
     /// **None of it happens here.** Each key becomes a [MenuSignals] call, and
     /// what "back" means — close this submenu, or move along the bar — is the
-    /// menu's to decide: only it knows whether there is a menu to the left of it
-    /// (ADR-0219).
+    /// menu's to decide: only it knows whether there is a menu to the left of it.
     @Override
     public void onKey(KeyEvent event) {
         if (disabled
@@ -313,8 +307,8 @@ public record Item(
     /// Opening a submenu when there is one, running the command when there is
     /// not.
     ///
-    /// An item cannot be both: §8 gives no meaning to a command that is also a
-    /// heading, and every desktop menu agrees.
+    /// An item cannot be both: a command that is also a heading has no meaning,
+    /// and every desktop menu agrees.
     private void activate() {
         if (hasSubmenu()) {
             // Now, not after the pointer's hover-intent delay: `Enter` on a row
@@ -325,24 +319,13 @@ public record Item(
         }
     }
 
-    /// A row: the tick's column, an optional icon, the label, a spacer, and the
-    /// accelerator.
+    /// The row's parts: the leading column, when the menu this row is in has
+    /// anything to put in one — a tick or an icon — and the chevron, when the
+    /// row leads to a submenu.
     ///
-    /// The spacer is what right-aligns the accelerator, and it stays one now that
-    /// §8's subset has `text-align` (ADR-0256): the two are not alternatives.
-    /// `text-align` places a line inside **one** box, and what this needs is the
-    /// room shared out between **five** of them — the tick column, the label, the
-    /// gap, the accelerator and the chevron. A growing box is flexbox's own
-    /// answer to that and the only one that keeps the chevron after the
-    /// accelerator rather than under it.
-    ///
-    /// The leading column, when the menu this row is in has anything to put in
-    /// one — a tick or an icon. See [#children()] and [ItemLead].
-    ///
-    /// **Per menu, not per row.** Every row in one menu agrees, so labels line up
-    /// — and a menu with nothing checkable and no icons has no column at all,
-    /// where before every label in the toolkit was indented for a tick nobody
-    /// could ever have (ADR-0113).
+    /// The column is reserved **per menu, not per row**. Every row in one menu
+    /// agrees, so labels line up, and a menu with nothing checkable and no icons
+    /// has no column at all. See [ItemLead].
     ///
     /// A submenu's own items are **not** children of this node: they are a
     /// separate widget tree in a separate window, built by [Menus] when the
@@ -351,14 +334,13 @@ public record Item(
     public List<Widget> children() {
         var parts = new ArrayList<Widget>(2);
         if (reservesLead) {
-            // One column, holding a tick *or* an icon — never both, which is what
-            // made a row with an icon sit further in than the rows above it
-            // (ADR-0113).
+            // One column, holding a tick *or* an icon — never both, so a row with
+            // an icon does not sit further in than the rows above it.
             parts.add(new ItemLead(isChecked(), icon));
         }
         if (hasSubmenu()) {
             // The only thing that tells a row which opens something from a row
-            // which does something (ADR-0113).
+            // which does something.
             parts.add(new ItemChevron());
         }
         return List.copyOf(parts);
@@ -373,39 +355,28 @@ public record Item(
             content.add(children.getFirst());
         }
         if (!label.isEmpty()) {
-            // **It shrinks, and it is cut rather than wrapped.**
-            //
-            // A box with text is a measured leaf, so a row squeezed narrower than
-            // its content used to have no third option: it *wrapped*, and a
-            // two-line label in a fixed-height row is centred to the row's top
-            // edge. That is what "the item after the iconed one is aligned to the
-            // top" turned out to be -- the widest row wraps first, and the widest
-            // row is rarely the one with the icon (ADR-0148). The answer then was
-            // `flex-shrink: 0`: a box that never narrows is a paragraph that
-            // never re-wraps, and the label runs off the edge of the menu.
-            //
-            // `white-space: nowrap` is the property that was missing, and the
-            // stylesheet writes it on `item` now: the paragraph reports its
-            // natural width whatever width Yoga offers, so the row may shrink
+            // The label shrinks, and it is cut rather than wrapped: the stylesheet
+            // writes `white-space: nowrap` on `item`, so the paragraph reports its
+            // natural width whatever width Yoga offers, the row may shrink
             // without the label wrapping, and `text-overflow: ellipsis` marks
-            // where it was cut. Clipping alone was tried first and could not
-            // work, for the reason ADR-0235 records in full.
+            // where it was cut. A wrapped two-line label in a fixed-height row
+            // would sit against the row's top edge.
             //
             // The flow comes off the *row's* style because the label is an
             // anonymous box: `render` applies the style to the box it returns,
             // and nothing applies it to a child. `white-space` inherits in the
-            // cascade and this is the same inheritance one level lower down
-            // (ADR-0255).
+            // cascade and this is the same inheritance one level lower down.
             content.add(Box.text(context.paragraph(style, label), style.color(), style.textFlow()));
         }
-        // Grows, so everything after it is pushed to the far edge.
+        // Grows, so everything after it is pushed to the far edge. A growing box
+        // rather than `text-align`, because the room is shared out between five
+        // boxes -- the lead, the label, the gap, the accelerator and the chevron.
         content.add(Box.of().grow(1));
         if (accelerator != null && !accelerator.isEmpty()) {
-            // **This one still does not shrink**, and now for a reason rather
-            // than for want of an alternative: `Ctrl+Shift+K` with its tail cut
-            // off is not an accelerator anybody can read, so a cramped row spends
-            // its missing pixels on the label -- which has an ellipsis to say so
-            // -- and never on the shortcut.
+            // This one does not shrink: `Ctrl+Shift+K` with its tail cut off is
+            // not an accelerator anybody can read, so a cramped row spends its
+            // missing pixels on the label -- which has an ellipsis to say so --
+            // and never on the shortcut.
             content.add(Box.text(context.paragraph(style, accelerator), style.color(), style.textFlow())
                     .shrink(0));
         }
@@ -430,7 +401,7 @@ public record Item(
                 // Three states: `checked=#true` is on, `checked=#false` is a
                 // checkable row that is off, and no attribute at all is a row
                 // that is not checkable -- which is what decides whether its menu
-                // reserves a tick column (ADR-0113).
+                // reserves a tick column.
                 node.property("checked").isPresent() ? node.booleanProperty("checked") : null,
                 Wiring.disabled(node),
                 children,

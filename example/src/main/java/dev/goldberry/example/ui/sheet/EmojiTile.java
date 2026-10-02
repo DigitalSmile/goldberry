@@ -24,9 +24,9 @@ import dev.goldberry.widget.style.Styled;
 /// what this tile carries is a `String` rather than an object with a lifetime.
 ///
 /// That difference is the demonstration. `.emoji-glyph { font-family: "Noto Color Emoji" }`
-/// is the whole of how an application reaches the emoji slot in §6.1's font
+/// is the whole of how an application reaches the emoji slot in the font
 /// chain — no API, no registry, one declaration — and the face behind it is
-/// `goldberry-emoji`, which this application opts into ([ADR-0384]).
+/// `goldberry-emoji`, which this application opts into.
 ///
 /// Pressing it opens the emoji at five sizes, and in a line of text at five
 /// more — [PressableTile], for [IconTile]'s reason.

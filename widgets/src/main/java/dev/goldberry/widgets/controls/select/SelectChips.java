@@ -10,25 +10,23 @@ import dev.goldberry.widget.Widget;
 import dev.goldberry.widget.style.Paints;
 import dev.goldberry.widget.style.Styled;
 
-/// The chips a `select multiple` is holding — a **part**, so it is CSS-selectable
-/// and not constructible
-/// (ADR-0065).
+/// The chips a `select multiple` is holding — a part, styleable as
+/// `select-chips` and not constructible from outside the package.
 ///
-/// It exists because of *where* the wrapping goes. §8's subset gained
-/// `flex-wrap` for this control, and putting it on the field was the obvious
-/// thing and the wrong one: a field is a row of the chips **and the chevron**, so
-/// a row that wraps drops the chevron onto a second line under the chips rather
-/// than keeping it at the edge. Which is a worse picture than the shrinking it
-/// was meant to fix, and it took a golden image to see it
-/// (ADR-0192).
+/// It exists because of *where* the wrapping goes. The chips wrap with
+/// `flex-wrap`, and putting that on the field would be the obvious thing and the
+/// wrong one: a field is a row of the chips **and the chevron**, so a row that
+/// wraps drops the chevron onto a second line under the chips rather than
+/// keeping it at the edge.
 ///
 /// So the chips get a box of their own that wraps and grows, and the field stays
-/// the one-line row it always was: chips, then the mark. It also takes over the
-/// spacer the field used to put between them — a box that grows is what pushes
-/// the chevron to the edge, and there is now one that does.
+/// a one-line row: chips, then the mark. A box that grows is also what pushes
+/// the chevron to the edge, so the field needs no spacer between them.
+///
+/// Read more: [Choices](https://goldberry.dev/docs/components/choices.html#select).
 record SelectChips(List<Widget> children) implements Widget.Leaf, Styled, Paints {
 
-    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    /// The canonical constructor, written out so that the parameters taking null for a default can say so.
     SelectChips(@Nullable List<Widget> children) {
         children = List.copyOf(children == null ? List.of() : children);
         this.children = children;

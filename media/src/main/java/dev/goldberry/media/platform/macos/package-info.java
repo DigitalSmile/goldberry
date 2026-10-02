@@ -1,5 +1,5 @@
 /// VideoToolbox and AudioToolbox behind the Decoder SPI: macOS's H.264, HEVC,
-/// AAC, AC-3 and E-AC-3 decoders (ADR-0472).
+/// AAC, AC-3 and E-AC-3 decoders.
 ///
 /// Not exported. Three layers:
 ///
@@ -14,7 +14,9 @@
 ///   parameter-set reader that gives the reorder depth, the reorder buffer, the
 ///   AAC cookie and the channel order.
 ///
-/// Marked for NullAway from its first commit (`docs/testing.md` §2).
+/// Null-marked.
+///
+/// Read more: [Bringing a codec](https://goldberry.dev/docs/components/media.html#bringing-a-codec).
 @NullMarked
 package dev.goldberry.media.platform.macos;
 

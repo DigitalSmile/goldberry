@@ -9,7 +9,7 @@ import dev.goldberry.widget.attr.Attributes;
 ///
 /// The fold's half of the selection machinery, and the only part of it either view
 /// has to know about: instead of building a `text` widget per word, a fold asks this
-/// for one and gets a [Word] that reports where it lands (ADR-0301).
+/// for one and gets a [Word] that reports where it lands.
 ///
 /// It also carries the two things only the **fold** knows and the geometry cannot
 /// work out afterwards:

@@ -20,7 +20,7 @@ import dev.goldberry.widgets.text.Text;
 ///
 /// Not a toast. A toast floats over the window, stacks in a corner and goes on
 /// its own; a banner sits in the flow, moves what is under it, and goes when the
-/// application stops describing it ([ADR-0175]).
+/// application stops describing it.
 ///
 /// ## Three cards and not one widget
 ///
@@ -29,8 +29,9 @@ import dev.goldberry.widgets.text.Text;
 /// cards can go under three different columns where one tall widget can only go
 /// under one. It also puts each piece of state with the card that owns it — the
 /// hidden set only ever affects the resident banners, and the spawned list only
-/// ever affects the stack — so neither card rebuilds when the other changes
-/// (ADR-0222).
+/// ever affects the stack — so neither card rebuilds when the other changes.
+///
+/// Read more: [Message](https://goldberry.dev/docs/components/overlays.html#message).
 public final class Notifications {
 
     private Notifications() {}
@@ -52,7 +53,7 @@ public final class Notifications {
         return new Text(text, Attributes.NONE.classes("caption"));
     }
 
-    /// §1.2's rule, drawn: each kind sets a **glyph** as well as a colour, so
+    /// The design system's rule, drawn: each kind sets a **glyph** as well as a colour, so
     /// with the hues removed these are still four different pictures.
     ///
     /// Stateful only because the danger banner can be dismissed, which is the
@@ -114,7 +115,7 @@ public final class Notifications {
         }
     }
 
-    /// §4's sentence, drawn: failures "register in the form's error summary".
+    /// A form's failures register in its error summary, and this is that drawn.
     ///
     /// `Message.summary(errors)` **is** that summary — one banner with a line per
     /// failure, and an empty `Optional` when nothing is wrong, which is what keeps
@@ -176,7 +177,7 @@ public final class Notifications {
                             .withAttributes(Attributes.NONE.id("spawn-" + kind.cssClass())));
                 }
                 // `#clear-notices { margin-left: auto }` is what pushes Reset
-                // to the far end now, where a `Spacer` used to (ADR-0312).
+                // to the far end.
                 buttons.add(new Button("Reset", this::clear)
                         .withAttributes(Attributes.NONE.id("clear-notices").classes("ghost")));
                 return new Row(buttons.toArray(Widget[]::new))

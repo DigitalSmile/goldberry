@@ -7,13 +7,18 @@ import dev.goldberry.image.Image;
 
 /// A picture with more than one frame, and how long each of them is shown.
 ///
+/// ```java
+/// Animation clip = Image.decodeAnimation(bytes);
+/// frame.drawImage(clip.imageAt(elapsedMillis), x, y);
+/// ```
+///
 /// ## What it is not
 ///
 /// It is not a player. There is no thread here, no timer and no clock: the only
 /// question it answers is [#at], "how does this look `n` milliseconds in", and
-/// the `n` belongs to whoever is drawing — a `canvas` painter reading the frame
+/// the `n` belongs to whoever is drawing: a `canvas` painter reading the frame
 /// clock, an offscreen render stepping a virtual one, a test asking for exactly
-/// 240ms ([ADR-0382]).
+/// 240ms.
 ///
 /// That is the same division the rest of the toolkit's motion is built on: a
 /// transition is a function of a clock a caller injects, so a golden image of a
@@ -25,6 +30,11 @@ import dev.goldberry.image.Image;
 /// asks for the animation of a PNG gets something it can draw with the same two
 /// lines. That keeps the branch out of the calling code, which is where it would
 /// otherwise be written once per caller.
+///
+/// Immutable: the frame list is copied, and each frame is a record over an
+/// [Image], which is itself a value.
+///
+/// Read more: [Text, fonts and icons](https://goldberry.dev/docs/guide/text.html#images).
 ///
 /// @param frames    the frames, in order — at least one
 /// @param loopCount how many times to play, or **0 for ever**. A GIF's own

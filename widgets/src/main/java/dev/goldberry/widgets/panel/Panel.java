@@ -16,17 +16,25 @@ import dev.goldberry.widget.style.Styled;
 import dev.goldberry.widgets.markup.Markup;
 import dev.goldberry.widgets.markup.Wiring;
 
-/// A surface — `docs/core-widgets.md` §5's `panel`, "plain surface:
-/// `--gb-surface`, border, radius tokens. The building block; no elevation."
+/// A plain surface: a container that takes its background, border and radius
+/// from the stylesheet and nothing else.
 ///
 /// ```kdl
 /// panel class="sidebar" { text "Settings" }
 /// ```
 ///
-/// A container whose **whole** appearance is the stylesheet's: it sets nothing at
-/// all, not even a background. That is what separates it from `card`, which will
-/// carry elevation, and from `row`/`column`, which own their axis — a panel owns
-/// nothing, and is therefore the one container a theme can restyle completely.
+/// ```java
+/// new Panel(new Text("Settings"));
+/// ```
+///
+/// A panel sets nothing itself, not even a background: its whole appearance is
+/// the stylesheet's, through `--gb-surface` and the border and radius tokens.
+/// That is what separates it from `card`, which carries elevation, and from
+/// `row` and `column`, which own their axis. A panel owns nothing, so it is the
+/// one container a theme can restyle completely. Its children are laid out by
+/// the stylesheet's `flex-direction`, as in any box.
+///
+/// Read more: [Panels](https://goldberry.dev/docs/components/panels.html#panel).
 @Markup("panel")
 public record Panel(List<Widget> children, Attributes attributes)
         implements Widget.Leaf, Styled, Paints, Attributed<Panel> {
@@ -35,7 +43,7 @@ public record Panel(List<Widget> children, Attributes attributes)
         this(List.of(kids), Attributes.NONE);
     }
 
-    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    /// Written out so that the parameters taking null for a default can say so.
     public Panel(@Nullable List<Widget> children, @Nullable Attributes attributes) {
         children = List.copyOf(children == null ? List.of() : children);
         // As `card` and `group-box` already did. Without it `new Panel(children,

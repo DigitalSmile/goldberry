@@ -12,6 +12,8 @@ import java.util.Objects;
 ///
 /// Whose coordinates is the caller's to know, exactly as for [LogicalPoint].
 ///
+/// Read more: [How layout works](https://goldberry.dev/docs/layout/index.html#logical-pixels).
+///
 /// @param origin the top-left corner
 /// @param size   the extent from there
 public record LogicalRect(LogicalPoint origin, LogicalSize size) {

@@ -19,7 +19,7 @@ import dev.goldberry.widget.WidgetRenderer;
 import dev.goldberry.widgets.controls.TestFont;
 
 /// Runs a widget tree until its geometry stops changing, and says how long it
-/// took — [ADR-0420].
+/// took.
 ///
 /// ## Why this is a harness and not an assertion
 ///
@@ -46,7 +46,8 @@ import dev.goldberry.widgets.controls.TestFont;
 /// A consumer that never reaches a frame here is not covered. `Measured` is
 /// delivered by the **router**, from the regions a laid-out frame produced, so a
 /// widget that needs a `Host` — a popup, a tour — has no window in a widget test
-/// and is fed by hand or not at all. [ADR-0420] lists which.
+/// and is fed by hand or not at all. `toast`, `tour`, `image` and the icon sheet
+/// are the consumers this harness does not reach.
 public final class Settled implements AutoCloseable {
 
     /// How many frames a settling tree is allowed before this gives up.
@@ -81,8 +82,8 @@ public final class Settled implements AutoCloseable {
     }
 
     /// The same, for a widget that will not build without somewhere to put a
-    /// popup — `toast` holds a controller and asks its host for the overlay layer
-    /// (ADR-0177), and a tree built without one never reaches a frame.
+    /// popup — `toast` holds a controller and asks its host for the overlay layer,
+    /// and a tree built without one never reaches a frame.
     public static Settled of(Widget root, List<Stylesheet> sheets, int width, int height, Host host) {
         return new Settled(root, sheets, width, height, host);
     }
@@ -153,13 +154,15 @@ public final class Settled implements AutoCloseable {
             if (earlier >= 0) {
                 throw new AssertionError("the layout oscillates with a period of " + (seen.size() - earlier)
                         + " frames: frame " + seen.size() + " is frame " + earlier + " again."
-                        + " Something read geometry to decide a size (ADR-0117 rule 3, ADR-0420)."
+                        + " Some widget read its own geometry to decide its size, which a `Measured`"
+                        + " widget must never do: measurement then never settles."
                         + differences(seen.getLast(), geometry));
             }
             seen.add(geometry);
         }
         throw new AssertionError("the layout had not settled after " + LIMIT + " frames and is not cycling either,"
-                + " so it is drifting rather than oscillating (ADR-0420)."
+                + " so it is drifting rather than oscillating. Look for a widget whose size depends on"
+                + " a measurement it changes."
                 + differences(seen.get(LIMIT - 2), seen.getLast()));
     }
 

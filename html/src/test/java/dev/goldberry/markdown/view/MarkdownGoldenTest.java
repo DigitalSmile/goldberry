@@ -23,7 +23,8 @@ import dev.goldberry.widget.Widget;
 import dev.goldberry.widget.WidgetRenderer;
 import dev.goldberry.widgets.Controls;
 
-/// What a document actually looks like (§14, [ADR-0050]).
+/// What a document actually looks like, as a golden image compared within a
+/// tolerance.
 ///
 /// [MarkdownViewTest] checks which widgets are built and which classes they carry, and
 /// no assertion about a class can say whether the result **reads as a document**: that
@@ -36,7 +37,8 @@ import dev.goldberry.widgets.Controls;
 /// `border-left` on a quote and between cells, `transform: skewX` on a word — and a rule that the parser
 /// dropped silently would be invisible everywhere else.
 ///
-/// `./gradlew :html:test -Dgoldberry.golden.update=true` rewrites them.
+/// `./gradlew :html:test -Dgoldberry.golden.update=true` rewrites them. Read more:
+/// [Goldens](https://goldberry.dev/docs/contributing/testing.html#goldens).
 class MarkdownGoldenTest {
 
     /// One of everything the renderer can draw, in the order a reader meets them.
@@ -86,8 +88,8 @@ class MarkdownGoldenTest {
                         // was cleared to.
                         Stylesheet.parse(CascadeLayer.APPLICATION, """
                                 /* On `selection-host`, which is the node a selectable
-                                   document is rooted at (ADR-0301): a background on the
-                                   column inside it stops where the words do. */
+                                   document is rooted at: a background on the column
+                                   inside it stops where the words do. */
                                 selection-host { padding: 12px; background: var(--gb-bg); flex-grow: 1 }
                                 """)),
                 TestFonts.get());
@@ -117,7 +119,7 @@ class MarkdownGoldenTest {
     /// `SelectionTest` proves what a drag selects, which is a fact about strings and
     /// was true throughout the whole time the highlight was being painted at the wrong
     /// origin or over the top of the text it highlights. Paint order and coordinate
-    /// spaces are pixels (ADR-0301).
+    /// spaces are pixels.
     ///
     /// The drag goes through the **router**, because that is what tells each word where
     /// it is: the geometry this draws from is the hit-test capture of a painted frame.

@@ -28,7 +28,7 @@ import dev.goldberry.widgets.controls.TestFont;
 /// cannot be run against a widget in isolation: they need a render tree, a
 /// router holding the regions it produced, and a virtual clock, because a
 /// programmatic scroll glides and a test that did not advance one would assert
-/// on the frame before it arrived ([ADR-0363]).
+/// on the frame before it arrived.
 ///
 /// Shared by [ScrollControllerTest] and [ScrollScopeTest], which ask the same
 /// question — did the viewport move — through the two different handles on it,
@@ -95,7 +95,7 @@ public final class ScrollHarness implements AutoCloseable {
     }
 
     /// A frame, and another once a programmatic scroll's glide has had time to
-    /// arrive (ADR-0363).
+    /// arrive.
     public void settle() {
         frame();
         clock.advance(ScrollGlide.DURATION_MILLIS + 16);

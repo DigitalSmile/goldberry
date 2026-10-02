@@ -6,7 +6,11 @@ import java.util.Objects;
 
 import dev.goldberry.render.model.LogicalPoint;
 
-/// Files dropped on a window, and where — `docs/gaps.md` G35b, [ADR-0330].
+/// Files dropped on a window, and where.
+///
+/// ```java
+/// host.onFileDrop(drop -> board.add(Image.decode(drop.first()), drop.at()));
+/// ```
 ///
 /// ## One event per gesture, and the position is half of it
 ///
@@ -34,7 +38,9 @@ import dev.goldberry.render.model.LogicalPoint;
 /// Always at least one, in the order the platform reported them. They are
 /// [Path]s and nothing has been read: a drop is a *name*, and whether the file
 /// exists, can be opened, or is what it claims to be are all questions for
-/// whoever decided to accept it.
+/// whoever decided to accept it. Immutable: the list is copied.
+///
+/// Read more: [Input and focus](https://goldberry.dev/docs/guide/input.html#dropped-files-and-text).
 ///
 /// @param paths the files, in the order they arrived; never empty
 /// @param at    where in the window the drop landed, in logical pixels

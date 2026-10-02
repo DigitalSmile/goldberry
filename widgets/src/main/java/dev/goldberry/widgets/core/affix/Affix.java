@@ -14,67 +14,49 @@ import dev.goldberry.widgets.markup.Markup;
 import dev.goldberry.widgets.markup.Wiring;
 
 /// A child pinned to an edge of the nearest `scroll` once it would have scrolled
-/// past it — `docs/core-widgets.md` §1's `affix`.
+/// past, such as a section header that stays while its rows slide under it.
 ///
 /// ```kdl
 /// scroll {
-///     affix edge="top" { panel class="section-header" { text "Controls" } }
-///     column { /* … */ }
+///     column {
+///         affix edge="top" { panel class="section-header" { text "Hobbiton" } }
+///         text "Hobbiton, line 1"
+///     }
 /// }
 /// ```
 ///
-/// ## It leaves a hole
+/// `new Affix(Widget...)` pins to the top with no offset;
+/// `new Affix(children, edge, offset, attributes)` is the usual form, and
+/// [#alsoPinnedTo(Edge)] adds an edge on the other axis.
 ///
-/// §1: "The child keeps its place in layout — `affix` leaves a same-sized hole
-/// behind, so nothing below it jumps when it detaches." That is the difference
-/// between this and `position: fixed`, and it is why the widget is two nodes: an
-/// outer `affix` that stays exactly where the layout put it, and an inner
-/// `affix-content` that slides.
+/// `edge=` is `top` (the default), `bottom`, `left` or `right`; two words, one
+/// per axis, pin on both (`edge="top left"`), and an unknown word is `top`.
+/// `offset=` is how far from that edge to sit, in logical pixels.
 ///
-/// The split is not only about the hole. It is what stops the widget oscillating:
-/// it is told where it is once a frame, and a node that moved *itself* in response
-/// would be told a new position and move again, forever. The outer node's position
-/// is a function of the layout alone, so the inner one sliding under it changes
-/// nothing that is reported
-/// (ADR-0119).
+/// The widget is two nodes. The outer `affix` stays exactly where the layout put
+/// it and leaves a same-sized hole, so nothing below it jumps when the child
+/// detaches; the inner `affix-content` slides by a translate. The outer node's
+/// position is a function of the layout alone, which is what stops the widget
+/// from being told a new position and moving again, forever. The content never
+/// travels past the far side of its container, so a section's header leaves with
+/// its section and the next one takes over. The `:affixed` pseudo-class matches
+/// the moment the content lifts, so a header can gain a shadow exactly then.
 ///
-/// ## Not `position: sticky`
-///
-/// §1 says why, and it is worth repeating here: §8's CSS subset has no `position`
-/// at all, and this is a widget "precisely so the subset does not have to grow
-/// one". A sticky position would be a layout mode the cascade has to understand;
-/// this is two boxes and a translate.
-///
-/// ## `:affixed`
-///
-/// The pseudo-class comes on the moment it lifts, so a header can gain a shadow
-/// exactly then. No selector can express "this node is currently over another
-/// one", which is why it is a pseudo-class rather than something a stylesheet
-/// could have written itself.
-///
-/// ## Revealing one
-///
-/// An `affix` is the wrong thing to point `scrollIntoView` at from the outside,
-/// and the reason is the whole point of the widget: once pinned, its **content**
-/// sits at the viewport's edge, so anything measuring it concludes it is already
-/// in view and scrolls nowhere. What travels with the document is the *hole*, and
-/// only this widget can hand that out
-/// (ADR-0124).
-///
-/// So [#onReveal] is a door rather than a policy: give it a callback and it is
-/// handed the hole's rectangle and the viewport's, once a frame, which is exactly
-/// the pair [dev.goldberry.widgets.core.scroll.ScrollController#reveal]
-/// takes. What to do with them — whether a section wants showing at all — stays
-/// with the caller.
+/// Pointing `scrollIntoView` at a pinned affix from outside scrolls nowhere,
+/// because its content already sits at the viewport's edge. What travels with
+/// the document is the hole, and [#revealedBy] hands a callback the hole's
+/// rectangle and the viewport's once a frame, which is the pair
+/// `ScrollController.reveal` takes.
 ///
 /// @param children   what to pin. Several are stacked, as in a `column`
 /// @param edge       which side of the viewport to pin to
 /// @param offset     how far from that edge to sit, in logical pixels
-/// @param cross      an edge on the other axis to pin to as well, or null —
-///                   `edge="top left"` in markup (ADR-0371)
-/// @param onReveal   told where the **hole** is and what clips it, or null for
+/// @param cross      an edge on the other axis to pin to as well, or null
+/// @param onReveal   told where the hole is and what clips it, or null for
 ///                   the ordinary case where nobody is asking
 /// @param attributes `id` and `class`, exactly as on the primitives
+///
+/// Read more: [Affix](https://goldberry.dev/docs/layout/affix.html#affix).
 @Markup("affix")
 public record Affix(
         List<Widget> children,
@@ -85,7 +67,7 @@ public record Affix(
         Attributes attributes)
         implements Widget.Stateful, Attributed<Affix> {
 
-    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    /// Written out so that the parameters that take null for a default can say so.
     public Affix(
             @Nullable List<Widget> children,
             @Nullable Edge edge,
@@ -122,9 +104,8 @@ public record Affix(
     }
 
     /// This affix also pinned to an edge on the other axis — a header sticky at
-    /// the top and held against the left of a table that scrolls sideways
-    /// (ADR-0371). Each axis is its own subtraction, so there is nothing for one
-    /// to win over the other.
+    /// the top and held against the left of a table that scrolls sideways. Each
+    /// axis is its own subtraction, so neither wins over the other.
     ///
     /// @throws IllegalArgumentException if `other` is on the same axis as the edge
     public Affix alsoPinnedTo(Edge other) {
@@ -135,7 +116,8 @@ public record Affix(
         this(List.of(kids), Edge.TOP, 0, Attributes.NONE);
     }
 
-    /// This affix, telling `listener` where its hole is — see the class note.
+    /// This affix, telling `listener` where its hole is and what clips it, once
+    /// a frame.
     public Affix revealedBy(java.util.function.BiConsumer<LogicalRect, LogicalRect> listener) {
         return new Affix(children, edge, offset, listener, cross, attributes);
     }

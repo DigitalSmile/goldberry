@@ -14,7 +14,8 @@ import dev.goldberry.widget.attr.Attributes;
 import dev.goldberry.widgets.markup.Markup;
 import dev.goldberry.widgets.markup.Wiring;
 
-/// One child at a time out of a list — `docs/core-widgets.md` §5's `carousel`.
+/// One child at a time out of a list, with a previous and a next control, a row
+/// of dots, and an optional rotation.
 ///
 /// ```kdl
 /// carousel loop=#true interval=5000 {
@@ -28,43 +29,37 @@ import dev.goldberry.widgets.markup.Wiring;
 /// new Carousel(index, this::setIndex, first, second)    // controlled
 /// ```
 ///
-/// ## The one widget in §5 that is a controller
+/// ## The one panel that is a controller
 ///
-/// Everything else in the group is a description: a `card` is a surface, a
-/// `collapse` is a header and a body. A carousel with `interval` set has a
-/// **rotation**, which is a thing that happens over time whether or not anybody
-/// asks — and §1.7 rule 4 says nothing loops except explicit continuous
-/// indicators. §5 names the exception and its conditions in one sentence:
+/// Every other panel is a description: a `card` is a surface, a `collapse` is a
+/// header and a body. A carousel with `interval` set has a rotation, which is a
+/// thing that happens over time whether or not anybody asks, and the design
+/// system's rule is that nothing loops except an explicit continuous indicator.
+/// So nothing advances on its own unless `interval` is set, and when it is, the
+/// rotation pauses on hover, on focus anywhere inside, and entirely under
+/// reduced motion: a carousel that moves while being read is the thing the rule
+/// forbids.
 ///
-/// > **Nothing advances on its own unless `interval` is set**, and when it is,
-/// > the rotation pauses on hover, on focus anywhere inside, and entirely under
-/// > reduced motion — §1.7 rule 4 says nothing loops except explicit continuous
-/// > indicators, and a carousel that moves while being read is the canonical
-/// > violation.
-///
-/// So `interval` defaults to **off**, and when it is on there are three separate
-/// reasons to stop — a pointer over it, focus in it, and a reader who has asked
-/// for less motion. All three are complete. Focus **inside a slide** pauses the
-/// rotation like focus on the strip does: `Handles#onFocusWithin` tells a widget
-/// that focus landed in its subtree, and
+/// `interval` therefore defaults to off, and when it is on there are three
+/// separate brakes — a pointer over it, focus in it, and a reader who has asked
+/// for less motion. Focus inside a slide pauses the rotation like focus on the
+/// strip does: `Handles#onFocusWithin` tells a widget that focus landed in its
+/// subtree, and
 /// [dev.goldberry.widgets.panel.carousel.CarouselView#onFocusWithin]
-/// is the whole of it ([ADR-0165]). This paragraph said the opposite until the
-/// 2026-09-18 review read it against the handler.
+/// is the whole of it.
 ///
 /// ## `loop` is off by default
 ///
-/// §5 again, and it is the right default for the same reason `interval` is: at
-/// the last slide, `Next` being disabled says "that is all of them", where
-/// wrapping silently to the first says nothing at all and can be mistaken for a
-/// list that never ends.
+/// For the same reason `interval` is: at the last slide, `Next` being disabled
+/// says "that is all of them", where wrapping silently to the first says nothing
+/// at all and can be mistaken for a list that never ends.
 ///
 /// ## Only the current slide is built
 ///
-/// `tabs`'s bargain, for `tabs`'s reason
-/// (ADR-0107):
-/// a slide nobody can see should not hold subscriptions, images or a scroll
-/// position. The cost is the same too — moving away from a slide and back
-/// rebuilds it, and anything that has to survive belongs in the model.
+/// The same bargain `tabs` makes, for the same reason: a slide nobody can see
+/// should not hold subscriptions, images or a scroll position. The cost is the
+/// same too — moving away from a slide and back rebuilds it, and anything that
+/// has to survive belongs in the model.
 ///
 /// @param index      which slide is showing; with [#onChange] this is which one
 ///                   *is* showing, and without it which one starts
@@ -75,6 +70,8 @@ import dev.goldberry.widgets.markup.Wiring;
 ///                   `Duration.ZERO` for a carousel that never advances itself
 /// @param children   the slides
 /// @param attributes the `id` and classes, which land on the `carousel` node
+///
+/// Read more: [Panels](https://goldberry.dev/docs/components/panels.html#carousel).
 @Markup("carousel")
 public record Carousel(
         int index,
@@ -93,7 +90,7 @@ public record Carousel(
         this(index, onChange, false, null, List.of(slides), Attributes.NONE);
     }
 
-    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    /// Written out so that the parameters taking null for a default can say so.
     public Carousel(
             int index,
             @Nullable IntConsumer onChange,
@@ -121,8 +118,8 @@ public record Carousel(
         return onChange != null;
     }
 
-    /// Whether this carousel advances on its own — §5's "nothing advances on its
-    /// own unless `interval` is set".
+    /// Whether this carousel advances on its own: nothing advances unless
+    /// `interval` is set and there is more than one slide.
     public boolean rotates() {
         return interval != null && children.size() > 1;
     }

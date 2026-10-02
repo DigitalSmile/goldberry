@@ -25,8 +25,8 @@ import dev.goldberry.widget.Widget;
 import dev.goldberry.widget.semantics.Role;
 import dev.goldberry.widgets.Widgets;
 
-/// §6's `breadcrumbs` — the path to here, and the first widget of the `nav`
-/// package ([ADR-0306]).
+/// `breadcrumbs` — the path to here, and the first widget of the `nav`
+/// package.
 ///
 /// The trail is stateful, so most of what is asserted here is read off the
 /// **built** tree rather than off the value: a `Breadcrumbs` is a list of crumbs
@@ -136,7 +136,7 @@ class BreadcrumbsTest {
             here.onKey(new KeyEvent(
                     KeyEvent.Kind.PRESSED, Key.ENTER, Modifiers.NONE, false, new ElementTree(here).root()));
 
-            assertEquals(List.of(), log, "§6: the last crumb is the current page and is not a link");
+            assertEquals(List.of(), log, "the last crumb is the current page and must not act as a link");
             assertFalse(here.isFocusable(), "and it is not a Tab stop either");
         }
 
@@ -207,8 +207,8 @@ class BreadcrumbsTest {
         @Test
         @DisplayName("nothing is elided inside a label")
         void labelsAreNeverTruncated() {
-            // §6: "a truncated folder name is worse than a hidden one, because it
-            // looks like a name".
+            // A truncated folder name is worse than a hidden one, because it
+            // looks like a name.
             for (var label : labels(row(trail(20)))) {
                 assertFalse(
                         label.startsWith("step-") && label.endsWith("…"),
@@ -280,7 +280,7 @@ class BreadcrumbsTest {
     class Markup {
 
         @Test
-        @DisplayName("a document writes what §6 spells")
+        @DisplayName("a document writes the attributes the chapter spells")
         void inflates() {
             var actions = ActionRegistry.strict().bind("go-home", () -> log.add("home"));
 

@@ -1,14 +1,17 @@
-/// `@NullMarked`, which puts this package under NullAway.
+/// The front door of the widget catalogue: what an application wires a window
+/// up with before it names a single widget.
 ///
-/// Inside a marked package every type is non-null unless it says `@Nullable`,
-/// and the build fails on a violation. The annotation is the whole content of
-/// this file: there is nothing package-specific to say about nullness, and a
-/// paragraph pretending otherwise in every package would be padding.
+/// [dev.goldberry.widgets.Widgets] turns markup into widgets with every widget
+/// module on the path already registered; [dev.goldberry.widgets.Controls]
+/// supplies the stylesheets that give the widgets their look;
+/// [dev.goldberry.widgets.Icons] is what an `icon=` attribute resolves against;
+/// [dev.goldberry.widgets.Density] and [dev.goldberry.widgets.Scrollbars] are
+/// the two preferences an application passes along with its theme. The widgets
+/// themselves are in the sub-packages, one package per control.
 ///
-/// Packages are marked one at a time on purpose. NullAway runs in
-/// `OnlyNullMarked` mode, so an unmarked package is invisible to it and a marked
-/// one is checked from the moment it opts in — which is the only way a codebase
-/// this size adopts nullness at all (`docs/testing.md` §2).
+/// Every reference is non-null unless it says `@Nullable`.
+///
+/// Read more: [The catalogue](https://goldberry.dev/docs/components/index.html).
 @NullMarked
 package dev.goldberry.widgets;
 

@@ -15,8 +15,10 @@ package dev.goldberry.natives.blend2d.enums;
 /// Pick the wrong one and nothing fails: a run in design units read as user
 /// units is drawn at roughly `units-per-em / size` times its proper spacing —
 /// around 128&times; for a 16-point Inter — and a run in user units read as
-/// design units collapses into a single illegible pile. Both render. See
-/// ADR-0034.
+/// design units collapses into a single illegible pile. Both render, so the
+/// choice is checked by a test rather than by the eye.
+///
+/// Read more: [The native boundary](https://goldberry.dev/docs/overview/architecture.html#the-native-boundary).
 public enum BlendGlyphPlacementType implements BlendEnum {
 
     /// No placement at all: every glyph is drawn at the origin, on top of the

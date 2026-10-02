@@ -15,7 +15,7 @@ import dev.goldberry.widget.attr.Attributes;
 import dev.goldberry.widgets.Widgets;
 import dev.goldberry.widgets.text.Text;
 
-/// An affix pinned to a vertical and a horizontal edge at once ([ADR-0371]).
+/// An affix pinned to a vertical and a horizontal edge at once.
 class AffixTwoAxesTest {
 
     private static final LogicalRect VIEWPORT = LogicalRect.of(0, 0, 200, 100);

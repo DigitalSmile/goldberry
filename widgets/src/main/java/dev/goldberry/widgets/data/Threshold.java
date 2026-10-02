@@ -6,8 +6,8 @@ import org.jspecify.annotations.Nullable;
 
 import dev.goldberry.widget.style.Paints;
 
-/// A limit drawn across a chart — `charts.md` §3.1's "thresholds: lines and
-/// shaded regions, drawn in the *semantic* hues, never a series slot".
+/// A limit drawn across a chart: a line or a shaded region, in one of the four
+/// semantic hues and never a series slot.
 ///
 /// ```java
 /// chart.threshold(Threshold.above(90, Threshold.Level.DANGER).labelled("SLO"));
@@ -16,16 +16,16 @@ import dev.goldberry.widget.style.Paints;
 /// ## Why it must not take a series colour
 ///
 /// A series slot means "this is one of the things being compared"; the palette's
-/// whole job is to keep those apart (ADR-0194). A limit is not one of them — it is
-/// a statement *about* them — and a threshold drawn in slot 4 would both look like
+/// whole job is to keep those apart. A limit is not one of them — it is a
+/// statement *about* them — and a threshold drawn in slot 4 would both look like
 /// a fourth series and steal the hue of the real one. So a threshold takes a
 /// **semantic** hue, which is the vocabulary the rest of the toolkit already uses
 /// for "this is fine" and "this is not".
 ///
 /// Specifically `--gb-<level>-line`, which is the rank that exists for a stroke
 /// drawn on the page rather than for a label or a fill — the same token
-/// `message` draws its border in, measured against §1.2's 3:1 floor for non-text
-/// (ADR-0088).
+/// `message` draws its border in, which meets the 3:1 contrast floor for
+/// non-text against the surface.
 ///
 /// ## A line or a band
 ///
@@ -42,6 +42,8 @@ import dev.goldberry.widget.style.Paints;
 /// the one that matters most: "we are a long way from the limit" is a reading,
 /// and a threshold that only appeared once it had been breached would be a
 /// warning light that comes on after the fire.
+///
+/// Read more: [Charts](https://goldberry.dev/docs/components/charts.html#line-chart).
 ///
 /// @param from  the lower edge of the region, or the value itself for a line;
 ///              may be [Double#NEGATIVE_INFINITY]
@@ -154,7 +156,7 @@ public record Threshold(
     ///
     /// Through the cascade rather than from a table, for the reason a series
     /// colour is: a theme owns its hues, and `#slo { --gb-danger-line: … }` is an
-    /// ordinary rule (ADR-0195).
+    /// ordinary rule.
     public int colour(Paints.Context context) {
         return context.color(level.token(), level.fallback());
     }

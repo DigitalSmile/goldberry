@@ -7,8 +7,8 @@ import dev.goldberry.widget.Widget;
 
 /// How far an [Affix] has lifted, and whether it has lifted at all.
 ///
-/// One number and one flag, both derived from the two rectangles the router hands
-/// over once a frame ([ADR-0119]).
+/// One number per axis and one flag, all derived from the rectangles the router
+/// hands over once a frame.
 final class AffixState extends State<Affix> {
 
     /// How far the content is translated from where it was laid out, along the
@@ -48,8 +48,7 @@ final class AffixState extends State<Affix> {
             // The hole's rectangle, which is what `self` is — this is the outer
             // node and it never moves itself. A caller measuring the *content*
             // would be measuring something pinned to the viewport's edge, which
-            // reads as already visible however far away its section is
-            // ([ADR-0124]).
+            // reads as already visible however far away its section is.
             affix.onReveal().accept(self, clip);
         }
         var along = shiftFor(affix.edge(), affix.offset(), self, clip, container);
@@ -70,7 +69,7 @@ final class AffixState extends State<Affix> {
     /// gone, limited to the room left in its container.
     ///
     /// One subtraction per edge, and independent per axis, which is what lets an
-    /// affix pin to a vertical and a horizontal edge at once (ADR-0371).
+    /// affix pin to a vertical and a horizontal edge at once.
     static double shiftFor(Edge edge, double offset, LogicalRect self, LogicalRect clip, LogicalRect container) {
         // How far past the edge the affix has gone. Positive means it has
         // scrolled out of view and must be pulled back; zero or less means the
@@ -95,7 +94,7 @@ final class AffixState extends State<Affix> {
         // CSS's sticky rule: the content never leaves its container. How far it
         // may travel is the room between the hole's far side and the
         // container's, so a section header is carried out by its own section
-        // when the next one arrives rather than sitting over it (ADR-0360).
+        // when the next one arrives rather than sitting over it.
         var room =
                 switch (edge) {
                     case TOP ->

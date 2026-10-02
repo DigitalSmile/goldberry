@@ -145,11 +145,11 @@ class PointerRouterTest {
         @Test
         @DisplayName("a disabled node never lights up, and its ancestors still do")
         void disabledNeverHovers() {
-            // docs/design-system.md §2.1 gives :disabled one appearance. A
+            // The design system gives :disabled one appearance. A
             // control that still lightened under the pointer would be saying it
             // can be used. Enforced in the router rather than per variant per
             // state in a stylesheet -- CSS would write `:not(:disabled):hover`,
-            // and `:not()` is not in §8's subset.
+            // and `:not()` is not in the supported subset.
             innerWidget.disabled = true;
             router.pointerMoved(30, 30);
 
@@ -169,7 +169,7 @@ class PointerRouterTest {
             // a button disables itself in its own press handler while the user
             // is still over it. `updateHover` returns early when the element
             // under the pointer has not changed, so the frame is what re-asks
-            // ([ADR-0237]) -- and this test used to take the pointer out of the
+            // -- and this test used to take the pointer out of the
             // window and bring it back, which is the one case that was never in
             // doubt.
             router.pointerMoved(30, 30);
@@ -326,7 +326,7 @@ class PointerRouterTest {
             // very nearly dead rules: the press landed on whichever part was
             // under the pointer -- the 16px glyph, or the label -- so the
             // control itself matched only in the sliver of padding between them.
-            // §2.1 requires every control to render a pressed state, and one
+            // Every control renders a pressed state, and one
             // that depends on which of its own parts you hit does not have one.
             router.pointerPressed(30, 30, PointerEvent.Button.PRIMARY, 1);
 
@@ -397,7 +397,7 @@ class PointerRouterTest {
         void focusVisible() {
             router.pointerPressed(30, 30, PointerEvent.Button.PRIMARY, 1);
 
-            // §7.2: the focus ring renders only for keyboard focus.
+            // The focus ring renders only for keyboard focus.
             assertTrue(inner.hasState(PseudoClass.FOCUS));
             assertFalse(inner.hasState(PseudoClass.FOCUS_VISIBLE));
 
@@ -434,7 +434,7 @@ class PointerRouterTest {
         /// The bug the list fixes, and it is the one a slot always has: the
         /// second registration silently replaced the first, so a second consumer
         /// of "the hover moved" would have turned the tooltip off and nothing
-        /// would have said so ([ADR-0230]).
+        /// would have said so.
         @Test
         @DisplayName("two listeners are both told")
         void bothAreTold() {
@@ -511,8 +511,8 @@ class PointerRouterTest {
             assertEquals(List.of("once", "after", "after"), told);
         }
 
-        /// Focus counts as pointing moving — §7 shows a tooltip "on hover *and on
-        /// keyboard focus*", so both have to reach the same listeners.
+        /// Focus counts as pointing moving — a tooltip shows on hover *and on
+        /// keyboard focus*, so both have to reach the same listeners.
         @Test
         @DisplayName("focus moving tells them too, not only the pointer")
         void focusCounts() {

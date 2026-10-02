@@ -28,8 +28,8 @@ import dev.goldberry.render.PixelBuffer;
 import dev.goldberry.render.model.PhysicalRect;
 import dev.goldberry.render.model.PhysicalSize;
 
-/// What a GPU layer renders into, and what reading one back gives (ADR-0481),
-/// on a real device.
+/// What a GPU layer renders into, and what reading one back gives, on a real
+/// device: a layer is shown through a hole in the UI or read back into it.
 @Tag(GpuTestLauncher.TAG)
 @DisplayName("GPU layers' textures and read-back")
 class LayerTexturesTest {
@@ -48,7 +48,7 @@ class LayerTexturesTest {
     @AfterAll
     static void destroyDevice() {
         // Skipped before SDL was reached: nothing to give back, and no library to
-        // call. Calling it anyway failed the class, and a build without it (ADR-0495).
+        // call. Calling it anyway failed the class, and a build without it.
         if (required == null) {
             return;
         }

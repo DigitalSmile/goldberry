@@ -16,7 +16,7 @@ import dev.goldberry.widget.style.Styled;
 /// A box *holding* the text rather than the text itself, so the stylesheet can
 /// give the label the marker's height and centre the words in it: a step's
 /// label sits on the disc's centre whatever the line-height token is, which is
-/// what keeps it aligned at every density (ADR-0344).
+/// what keeps it aligned at every density.
 ///
 /// @param text what it says
 /// @param type its CSS type

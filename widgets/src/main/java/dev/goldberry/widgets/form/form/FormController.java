@@ -71,7 +71,7 @@ public final class FormController {
     }
 
     /// What the fields are complaining about, in the order they registered —
-    /// §4's error summary. Empty for a controller with no form.
+    /// the form's error summary. Empty for a controller with no form.
     public List<String> errors() {
         return attached == null ? List.of() : attached.errors();
     }

@@ -1,6 +1,8 @@
 package dev.goldberry.natives.sdl.gpu;
 
 /// What a render pass does with its target before it draws.
+///
+/// Read more: [The native boundary](https://goldberry.dev/docs/overview/architecture.html#the-native-boundary).
 public sealed interface SdlGpuLoad {
 
     /// Keeps what the target holds: drawing over it.

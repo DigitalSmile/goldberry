@@ -26,18 +26,18 @@ import dev.goldberry.widget.semantics.Semantics;
 import dev.goldberry.widget.style.Paints;
 import dev.goldberry.widget.style.Styled;
 
-/// One row of a [ListView] — a **part**, so it is styleable and not
-/// constructible ([ADR-0065]).
+/// One row of a [ListView] — a part, so a stylesheet can select it and a
+/// document cannot write it.
 ///
 /// ## It carries attributes, which no other part in the catalog does
 ///
-/// §10 asks for "item context menus", and a menu is a **name on a widget**
-/// ([ADR-0108]) that the launcher finds by walking up from an element and asking
-/// whether its widget is [Attributed]. Naming it on whatever the item-factory
-/// returned would work for a right-click and not for the keyboard: the menu key
-/// walks up from the **focused** element ([ADR-0208]), and the focused element is
-/// this row rather than anything inside it. So the row is where the name has to
-/// live, and carrying an [Attributes] is how a widget says one.
+/// A list's items have context menus, and a menu is a name on a widget that the
+/// launcher finds by walking up from an element and asking whether its widget
+/// is [Attributed]. Naming it on whatever the item-factory returned would work
+/// for a right-click and not for the keyboard: the menu key walks up from the
+/// **focused** element, and the focused element is this row rather than
+/// anything inside it. So the row is where the name has to live, and carrying
+/// an [Attributes] is how a widget says one.
 ///
 /// Its `id` and classes are *not* the attributes', because both are computed —
 /// the id is the focus name [ListState] moves the keyboard by, and `selected` is
@@ -49,27 +49,25 @@ import dev.goldberry.widget.style.Styled;
 /// `Up` and `Down` are the scope's ([ListBox]). `Enter` chooses, which is
 /// `option`'s rule in a list and the same one: a set where the keyboard commits
 /// must not choose before it. `Home`, `End` and type-to-select all need rows this
-/// one cannot see, so each is a callback the list hands down — the shape
-/// `TreeRow` established ([ADR-0209]).
+/// one cannot see, so each is a callback the list hands down, the same shape
+/// `TreeRow` has.
 ///
 /// @param id         this row's focus name, already scoped to its list
 /// @param selectable whether it may be chosen — false when the list selects
 ///                   nothing
 /// @param selected   whether it is a chosen row
 /// @param content    what the item-factory returned
-/// @param attributes what the row *says*: §10's per-item context menu
+/// @param attributes what the row *says*: its context menu
 /// @param onSelect   asked to be chosen, **with the modifiers that were held** —
 ///                   `Ctrl` and `Shift` mean different things in a multi-select
 ///                   list, and only the list knows what they resolve to
 /// @param onEnd      asked to move to the first or last row
-/// @param onType     what was typed, for §10's type-to-select
+/// @param onType     what was typed, for type-to-select
 /// @param checkedPitch the pitch the list is spacing rows at, or 0 — set on
 ///                   **one** row of the window and zero on the rest, because the
 ///                   answer is the same for all of them and a check that ran per
 ///                   row would fire twenty times per frame and could not tell a
-///                   frame from a sibling. The first built row carries it, which
-///                   is where `book/src/TODO.md` said the assertion belonged
-///                   ([ADR-0257])
+///                   frame from a sibling. The first built row carries it
 record ListRow(
         String id,
         boolean selectable,
@@ -97,8 +95,8 @@ record ListRow(
     }
 
     /// Its item's identity, so a row keeps its element — and its focus — when the
-    /// model is rebuilt or reordered. The rule §10 states for `list` keys and §3
-    /// restates for a tree's expansion.
+    /// model is rebuilt or reordered — the same rule a tree's expansion keeps by
+    /// node id.
     @Override
     public Object key() {
         return id;
@@ -110,9 +108,9 @@ record ListRow(
     }
 
     /// Every row is a stop within the list's own scope, so the arrows rove
-    /// between them and the list is one Tab stop from outside (§7.2).
+    /// between them and the list is one Tab stop from outside.
     ///
-    /// **A row is focusable even when nothing is selectable.** §10's `none` is a
+    /// **A row is focusable even when nothing is selectable.** `NONE` is a
     /// statement about what may be *chosen*, not about what may be read: a list
     /// nobody can select from is still one a keyboard user must be able to walk,
     /// or its rows are unreachable content.
@@ -150,7 +148,7 @@ record ListRow(
     }
 
     /// A right-click selects the row it is over, which is what every file manager
-    /// does before it opens a menu ([ADR-0224]).
+    /// does before it opens a menu.
     ///
     /// **Unless the row is already in the selection.** Right-clicking one of five
     /// chosen files opens a menu about the five; collapsing them to one would
@@ -190,11 +188,10 @@ record ListRow(
             return;
         }
         switch (event.key()) {
-            // §10's `Home`/`End`. To the ends of the **model** rather than of the
+            // `Home`/`End`. To the ends of the **model** rather than of the
             // viewport, which is what every list means by it and what `Ctrl+End`
             // means in every document -- a list's own scrolling is a `scroll`
-            // ancestor's business, and the focus ring is what asks it to follow
-            // ([ADR-0120]).
+            // ancestor's business, and the focus ring is what asks it to follow.
             case HOME -> {
                 onEnd.accept(-1);
                 event.consume();
@@ -207,7 +204,7 @@ record ListRow(
         }
     }
 
-    /// §10's "type-to-select when items expose text".
+    /// Type-to-select, for a list whose items expose text.
     ///
     /// A [TextEvent] rather than a key for `select`'s reason: what a typeahead
     /// wants is what was *typed*, and one character can take several keys.
@@ -236,8 +233,8 @@ record ListRow(
     /// The first frame of a list that reads its pitch from a token is measured
     /// before there is a cascade to read it from: a `Stateful` widget builds once
     /// inside the `ElementTree` constructor, so that build answers the token's
-    /// *default* and the second build is the first that can see the stylesheet
-    /// ([ADR-0254]). Under `--gb-list-row-height: 26px` that is one frame of a
+    /// *default* and the second build is the first that can see the stylesheet.
+    /// Under `--gb-list-row-height: 26px` that is one frame of a
     /// 32px pitch against 26px rows — a real disagreement, for one frame, that
     /// nobody sees and that settles by construction.
     ///
@@ -249,8 +246,8 @@ record ListRow(
     /// Which mismatches have been reported, as `pitch/height`.
     ///
     /// `render` runs per row per paint, so an unguarded warning would be one
-    /// line per visible row per frame — the log [ADR-0243] has just finished
-    /// quietening, multiplied by twenty. Keyed by the **pair** so that two lists
+    /// line per visible row per frame, a stream where the log wants one message.
+    /// Keyed by the **pair** so that two lists
     /// virtualizing on two wrong pitches are two reports, and one list is one
     /// however many rows it has.
     private static final java.util.Set<String> REPORTED_PITCH = java.util.concurrent.ConcurrentHashMap.newKeySet();
@@ -280,7 +277,7 @@ record ListRow(
     /// spacers are `index × pitch` tall and the rows between them are whatever
     /// the stylesheet says, so a one-pixel disagreement is twenty pixels at row
     /// twenty and two hundred at row two hundred. Nothing else would ever have
-    /// said so ([ADR-0257]).
+    /// said so.
     ///
     /// Read off the **cascade** rather than off a measurement, which is what
     /// makes it exact and free: `list-row` declares `height:

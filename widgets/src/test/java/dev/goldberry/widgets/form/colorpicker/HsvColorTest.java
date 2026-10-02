@@ -10,8 +10,8 @@ import org.junit.jupiter.api.Test;
 /// The colour model, with no widget, no font and no frame.
 ///
 /// The two things worth asserting here are the ones a picture cannot show: that a
-/// colour survives the round trip through HSV **without drift**, which is §4's
-/// word, and that a hue is kept when the colour it came from has none — which is
+/// colour survives the round trip through HSV **without drift**, which is the
+/// rule's own word, and that a hue is kept when the colour it came from has none — which is
 /// the whole reason this model exists beside the hex the field holds.
 class HsvColorTest {
 
@@ -19,7 +19,7 @@ class HsvColorTest {
     @DisplayName("the round trip")
     class RoundTrip {
 
-        /// §4: "round-trips to hex without drift". Every one of the 24-bit
+        /// A colour round-trips to hex without drift. Every one of the 24-bit
         /// corners and a spread of ordinary colours, because a conversion that
         /// drifts usually drifts at the extremes.
         @Test
@@ -107,8 +107,8 @@ class HsvColorTest {
             assertEquals("#88c0d080", HsvColor.hex(0x8088C0D0));
         }
 
-        /// `CssColor.parse`'s answer, which is every spelling §8's subset accepts
-        /// — not a syntax this widget invented.
+        /// `CssColor.parse`'s answer, which is every spelling the CSS subset
+        /// accepts — not a syntax this widget invented.
         @Test
         @DisplayName("reads back every spelling the engine accepts, with or without the hash")
         void parses() {

@@ -9,8 +9,8 @@ import org.slf4j.helpers.LegacyAbstractLogger;
 
 /// An SLF4J logger that keeps what it was told, for the tests below it.
 ///
-/// Goldberry binds no logging implementation anywhere, tests included
-/// (ADR-0023), so `LoggerFactory.getLogger` in a test hands back a NOP logger
+/// Goldberry binds no logging implementation anywhere, tests included,
+/// so `LoggerFactory.getLogger` in a test hands back a NOP logger
 /// that records nothing and answers `false` to every `isEnabled`. There is
 /// therefore no appender to attach and nothing to assert on — which is why
 /// [NativeLogBridge#log(org.slf4j.Logger, NativeLogLevel, String)]

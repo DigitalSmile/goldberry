@@ -20,7 +20,7 @@ import org.junit.jupiter.api.Test;
 import dev.goldberry.example.gpu.Cube;
 
 /// The GPU screen's committed shader bytecode is the bytecode of its committed
-/// HLSL, in all three formats (`docs/gpu-plan.md`, D7): the check `:gpu` makes of
+/// HLSL, in all three formats: the check `:gpu` makes of
 /// its own, made of an application's. Needs no device and no DXC.
 @DisplayName("the showcase's shaders")
 class ShowcaseShadersTest {

@@ -11,22 +11,20 @@ import dev.goldberry.natives.Downcalls;
 /// The crossing, for the libraries that are **not** `libgoldberry`.
 ///
 /// [dev.goldberry.natives.Downcalls] is the toolkit's own
-/// binding machinery, and it is right about `libgoldberry` in ways that are
-/// wrong here: its "symbol is missing" failure names the export list, and every
-/// descriptor it links is recorded for the native image's metadata. Neither
-/// applies to a system library that is `dlopen`ed by name and may not be there
-/// at all ([ADR-0383]).
+/// binding machinery, and its failure policy is right about `libgoldberry` and
+/// wrong here: its "symbol is missing" failure names the export list, which has
+/// nothing to say about a system library that is `dlopen`ed by name and may not
+/// be there at all.
 ///
 /// So this is the same three lines with the opposite failure policy: **a missing
 /// symbol is a missing feature**, and a crossing that throws is caught by the
 /// caller and answered as "the desktop does not say".
 ///
-/// **One half of that was wrong, and [ADR-0451] is the correction.** The failure
-/// policy is this package's own and stays. Not recording the descriptors was a
-/// mistake: an image still has to be told a shape it may cross, and whether the
-/// library is present on the machine that *builds* it has nothing to do with
-/// whether it is present on the machine that *runs* it. The shapes are declared
-/// through [#describe] on a constant now, and linked here.
+/// What it keeps from `Downcalls` is the metadata: an image still has to be told
+/// every shape it may cross, and whether the library is present on the machine
+/// that *builds* it has nothing to do with whether it is present on the machine
+/// that *runs* it. The shapes are declared through [#describe] on a constant,
+/// so they are recorded wherever the image is built, and linked here.
 final class Bindings {
 
     private static final Linker LINKER = Linker.nativeLinker();
@@ -38,7 +36,7 @@ final class Bindings {
     ///
     /// Called from a `static final` on the holder rather than from the binding
     /// that uses it: the binding runs only where the library is, and the whole
-    /// point is to record the shape where it cannot be missed ([ADR-0451]).
+    /// point is to record the shape where it cannot be missed.
     static FunctionDescriptor describe(FunctionDescriptor descriptor) {
         return Downcalls.describe(descriptor);
     }

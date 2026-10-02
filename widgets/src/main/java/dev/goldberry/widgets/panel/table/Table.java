@@ -26,7 +26,8 @@ import dev.goldberry.widgets.markup.Wiring;
 import dev.goldberry.widgets.panel.list.ListView;
 import dev.goldberry.widgets.panel.list.Selection;
 
-/// A list with columns — `docs/core-widgets.md` §10's `table`.
+/// A list with columns: one row per item, a header per column, and a sort and
+/// a selection the application holds.
 ///
 /// ```java
 /// new Table<>(people, Person::id, List.of(
@@ -36,15 +37,21 @@ import dev.goldberry.widgets.panel.list.Selection;
 ///     .selected(chosen, this::pick)
 /// ```
 ///
+/// ```kdl
+/// table bind="app.people" id="people"
+/// ```
+///
+/// A document can only place a table and name the model value that holds one,
+/// because a cell factory is code: the `Table` comes from the application,
+/// through `bind=`.
+///
 /// ## It is a `list`, composed rather than reimplemented
 ///
-/// §10 says a table "awaits the virtualization work", and what it was waiting for
-/// was `list`: a table's rows *are* a list's rows with more than one thing in
-/// them. So this builds a [ListView] whose item-factory returns a row of cells,
-/// and the selection models, the typeahead, `Home`/`End`, the item context menus
-/// and the ten-thousand-row window are **inherited rather than written twice** —
-/// a bug fixed in one is fixed in both
-/// (ADR-0214).
+/// A table's rows *are* a list's rows with more than one thing in them. So this
+/// builds a [ListView] whose item-factory returns a row of cells, and the
+/// selection models, the typeahead, `Home`/`End`, the item context menus and the
+/// ten-thousand-row window are **inherited rather than written twice** — a bug
+/// fixed in one is fixed in both.
 ///
 /// ## Sorting is the application's
 ///
@@ -86,6 +93,8 @@ import dev.goldberry.widgets.panel.list.Selection;
 /// @param onResize   asked for a column's new width in pixels when a resizable
 ///                   column's grip is dragged, or null
 /// @param attributes `id` and `class`, exactly as on the primitives
+///
+/// Read more: [Collections](https://goldberry.dev/docs/components/collections.html#table).
 @Markup("table")
 public record Table<T>(
         List<T> items,
@@ -101,7 +110,7 @@ public record Table<T>(
         Attributes attributes)
         implements Widget.Leaf, Styled, Paints, Attributed<Table<T>> {
 
-    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    /// Written out so that the parameters taking null for a default can say so.
     public Table(
             @Nullable List<T> items,
             Function<T, String> identity,
@@ -166,7 +175,7 @@ public record Table<T>(
     }
 
     /// This table's resizable columns asking `listener` for a new width, in
-    /// pixels, as their grips are dragged (ADR-0361).
+    /// pixels, as their grips are dragged.
     public Table<T> resized(BiConsumer<String, Double> listener) {
         return new Table<>(
                 items, identity, columns, sort, onSort, selected, onSelect, selection, rowHeight, listener, attributes);
@@ -208,7 +217,7 @@ public record Table<T>(
         var parts = new ArrayList<Widget>(2);
         // The header and its rule in an affix, so a table on a page that scrolls
         // keeps its column names in view -- and, because an affix stays inside the
-        // box it is in, gives them up when the table itself has gone (ADR-0360).
+        // box it is in, gives them up when the table itself has gone.
         // At rest the affix is where the header was, so nothing moves.
         parts.add(new Affix(
                 List.of(new TableHead(columns, sort, this::askForSort, this::askForWidth), new TableRule()),
@@ -234,19 +243,13 @@ public record Table<T>(
         return List.copyOf(parts);
     }
 
-    /// The line under the header — a **node**, because §8's subset had one
-    /// `border` and no per-edge longhands.
+    /// The line under the header — a **node**, the same answer `separator`
+    /// gives: a box one pixel tall with a background.
     ///
-    /// `border-bottom` was not a declaration that existed, and writing it got
-    /// exactly what the subset promises: silence and a debug line. `menubar` hit
-    /// the same wall and answered it by not having a rule at all (ADR-0107);
-    /// §3's metrics row for a table asks for one, so this is `separator`'s
-    /// answer instead — a box one pixel tall with a background.
-    ///
-    /// It stays a node now that `border-bottom` exists (ADR-0505), because the
-    /// two are different drawings: a border takes no room, so on `table-head` it
-    /// would sit inside the header's 36 rather than under it, and every row would
-    /// move a pixel for a picture that is already right.
+    /// It is a node rather than a `border-bottom` on `table-head` because the
+    /// two are different drawings: a border takes no room, so it would sit
+    /// inside the header's 36 rather than under it, and every row would move a
+    /// pixel for a picture that is already right.
     record TableRule() implements Widget.Leaf, Styled, Paints {
 
         @Override
@@ -295,8 +298,7 @@ public record Table<T>(
     }
 
     /// Builds a `table` from markup: a [Bound] over the `Table` a model's `bind=`
-    /// value holds, since a cell factory is code a document cannot write
-    /// (ADR-0367).
+    /// value holds, since a cell factory is code a document cannot write.
     public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
         return new Bound(wiring.bound(node), Table.class, Attributes.of(node));
     }

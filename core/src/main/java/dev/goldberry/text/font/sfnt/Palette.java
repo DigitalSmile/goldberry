@@ -21,8 +21,8 @@ final class Palette {
 
     /// Palette zero, as `0xAARRGGBB`, or null when the table says nothing usable.
     ///
-    /// The first palette and not a chosen one: `CPAL` allows several — a light
-    /// set and a dark set — and choosing between them is a question about a
+    /// The first palette and not a chosen one: `CPAL` allows several, such as a
+    /// light set and a dark set, and choosing between them is a question about a
     /// theme that nothing has asked yet. When it is asked, this is where it goes.
     static int @Nullable [] first(ByteBuffer cpal) {
         var entries = Short.toUnsignedInt(cpal.getShort(2));

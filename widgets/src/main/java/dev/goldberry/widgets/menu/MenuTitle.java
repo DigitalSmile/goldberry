@@ -24,11 +24,10 @@ import dev.goldberry.widget.style.Styled;
 ///
 /// A part, not a node anybody writes: a document declares a bar of `item`s and
 /// the bar turns each into one of these, the way `radio-group` turns its
-/// children into wired `radio`s
-/// (ADR-0073).
-/// It is a separate widget from [Item] rather than a flag on it because the two
-/// answer the keyboard differently, and that difference is the whole of what
-/// makes a bar a bar:
+/// children into wired `radio`s. The CSS type is `menu-title`, and it carries
+/// the class `open` while its menu is down. It is a separate widget from
+/// [Item] rather than a flag on it because the two answer the keyboard
+/// differently, and that difference is the whole of what makes a bar a bar:
 ///
 /// | Key | In a menu ([Item]) | In a bar (here) |
 /// |---|---|---|
@@ -37,12 +36,9 @@ import dev.goldberry.widget.style.Styled;
 /// | `Left` | nothing | move to the previous heading |
 ///
 /// `Right` and `Left` are the scope's, not this widget's: a bar is a
-/// **horizontal** focus scope where a menu is a vertical one
-/// (ADR-0078),
-/// so traversal comes free and the two arrows the bar does not spend on it are
-/// `Up` and `Down`.
-///
-/// ## The pointer, and why hovering is conditional
+/// **horizontal** focus scope where a menu is a vertical one, so traversal
+/// comes free and the two arrows the bar does not spend on it are `Up` and
+/// `Down`.
 ///
 /// A heading opens on a **click**, and once a menu is showing every other
 /// heading opens on hover — which is what every desktop menu bar does and the
@@ -145,10 +141,9 @@ record MenuTitle(
             content.add(Box.icon(icon, style.color()).shrink(0));
         }
         if (!label.isEmpty()) {
-            // Does not shrink, for the reason a menu row does not
-            // (ADR-0148):
-            // a heading squeezed narrower than its label would wrap it, and a
-            // two-line `File` in a one-line bar is worse than a bar too wide.
+            // Does not shrink: a heading squeezed narrower than its label would
+            // wrap it, and a two-line `File` in a one-line bar is worse than a
+            // bar too wide.
             content.add(Box.text(context.paragraph(style, label), style.color()).shrink(0));
         }
         return Box.of().style(style).children(content.toArray(Box[]::new));

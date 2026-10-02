@@ -22,6 +22,8 @@ import dev.goldberry.natives.yoga.YogaNode;
 /// Not every property accepts every kind. Yoga simply does not export
 /// `YGNodeStyleSetMaxWidthAuto`, so [#AUTO] on a maximum is not a value Yoga
 /// could be told; [YogaNode] rejects it by name rather than dropping it.
+///
+/// Read more: [The native boundary](https://goldberry.dev/docs/overview/architecture.html#the-native-boundary).
 public sealed interface StyleLength {
 
     /// Size to the content, or — for a margin — absorb the free space. The

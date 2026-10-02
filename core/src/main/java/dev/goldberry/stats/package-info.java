@@ -1,14 +1,18 @@
-/// `@NullMarked`, which puts this package under NullAway.
+/// What a window's frame loop has been costing: a window of recent frames for a
+/// HUD, and the totals a run reports at exit.
 ///
-/// Inside a marked package every type is non-null unless it says `@Nullable`,
-/// and the build fails on a violation. The annotation is the whole content of
-/// this file: there is nothing package-specific to say about nullness, and a
-/// paragraph pretending otherwise in every package would be padding.
+/// [dev.goldberry.stats.FrameStats] is what a widget or a test reads, through
+/// `Host.frames()`. [dev.goldberry.stats.FrameRing] is the window's own
+/// implementation of it, and [dev.goldberry.stats.FrameSummary] and
+/// [dev.goldberry.stats.PresentSummary] are what the launcher logs when the run
+/// ends. Everything here is confined to the UI thread, like the frame loop that
+/// feeds it.
 ///
-/// Packages are marked one at a time on purpose. NullAway runs in
-/// `OnlyNullMarked` mode, so an unmarked package is invisible to it and a marked
-/// one is checked from the moment it opts in — which is the only way a codebase
-/// this size adopts nullness at all (`docs/testing.md` §2).
+/// The package is null-marked: a parameter or return is non-null unless
+/// annotated `@Nullable`.
+///
+/// Read more: [What a frame costs](https://goldberry.dev/docs/performance/index.html)
+/// and [Measuring](https://goldberry.dev/docs/performance/measuring.html#per-frame-timings-at-trace).
 @NullMarked
 package dev.goldberry.stats;
 

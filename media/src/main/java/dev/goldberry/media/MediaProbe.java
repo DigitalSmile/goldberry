@@ -27,6 +27,8 @@ import dev.goldberry.media.io.UnsupportedSchemeException;
 /// `UNSUPPORTED_CODEC` names what it could not play.
 ///
 /// Blocking. Call it off the UI thread.
+///
+/// Read more: [A player](https://goldberry.dev/docs/components/media.html#a-player).
 public final class MediaProbe {
 
     private MediaProbe() {}

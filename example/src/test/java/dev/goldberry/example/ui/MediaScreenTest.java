@@ -39,7 +39,7 @@ import dev.goldberry.widgets.text.Text;
 /// exist, so every machine sees the same screens. What that state must still do
 /// is say why, and keep everything that needs no decoding working.
 /// Under [HeadlessRuntime]: the screen and the players on it post every status
-/// change to the UI thread, which needs a runtime to post to (ADR-0517).
+/// change to the UI thread, which needs a runtime to post to.
 @DisplayName("Audio and Video screens")
 @ExtendWith(HeadlessRuntime.class)
 class MediaScreenTest {

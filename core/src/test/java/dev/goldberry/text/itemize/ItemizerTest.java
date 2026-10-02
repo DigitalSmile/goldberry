@@ -14,7 +14,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
-/// Which face draws what — [ADR-0393]'s half that needs no font at all.
+/// Which face draws what — the half of emoji routing that needs no font at all.
 ///
 /// Every case here is a string somebody actually types. The rules are Unicode's
 /// and the JDK carries them; what is tested is that they are applied to the
@@ -43,7 +43,7 @@ class ItemizerTest {
                 // emoji presentation whatever its base has. Without that rule the
                 // base stayed in the text run and the swatch after it started a
                 // picture run of its own: a bare skin tone drawn beside a pointing
-                // finger (the 2026-09-18 review, C13).
+                // finger.
                 arguments(
                         "a skin tone belongs to its base even when the base is drawn as a glyph",
                         "\u261D\uD83C\uDFFB",
@@ -69,7 +69,7 @@ class ItemizerTest {
 
     /// The counterweight to the modifier rows above: a modifier only joins a base
     /// that *can* take one, so this is two clusters rather than one run and
-    /// cannot sit in the table (the 2026-09-18 review, C13).
+    /// cannot sit in the table.
     @Test
     @DisplayName("a skin tone after something that cannot take one is still its own run")
     void aModifierWithNoBaseStandsAlone() {
@@ -91,7 +91,7 @@ class ItemizerTest {
     @Test
     @DisplayName("an emoji inside a sentence is its own run, and the words around it are not disturbed")
     void anEmojiSplitsASentence() {
-        // The string from `docs/gaps.md` G49, which is how the gap was reported.
+        // The string the gap was reported with.
         var text = "Rolling to eu-2 🎉 at 14:00";
         var runs = Itemizer.runs(text);
 

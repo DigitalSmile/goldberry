@@ -8,22 +8,26 @@ import dev.goldberry.css.parse.Token;
 import dev.goldberry.css.parse.TokenType;
 import dev.goldberry.layout.Length;
 
-/// Reads a CSS length into the [Length] Yoga takes.
+/// Reads a CSS length into the [Length] the layout engine takes.
 ///
-/// ## Units
+/// ```java
+/// Length width = CssLength.parse(tokens, CssLength.Context.DEFAULT);
+/// ```
 ///
-/// `px`, `%`, `em`, `rem` and the keyword `auto`, per §8. `px` is a **logical**
-/// pixel — the window's scale is applied by the paint context, not here
-/// (ADR-0031), so a length in a stylesheet means the same thing on a 150%
-/// display as on a 100% one.
+/// The units are `px`, `%`, `em`, `rem` and the keyword `auto`. `px` is a
+/// **logical** pixel: the window's scale is applied by the paint context, not
+/// here, so a length in a stylesheet means the same thing on a 150% display as
+/// on a 100% one.
 ///
 /// `em` and `rem` are resolved at parse time against a font size rather than
 /// carried as units into Yoga, because Yoga has no concept of a font size.
 /// That makes them relative to the font size *in force where the declaration
 /// lands*, which is what CSS says and what a caller must supply.
 ///
-/// `calc()` is deferred (§8) — it needs an expression tree and a resolution pass
+/// `calc()` is not supported: it needs an expression tree and a resolution pass
 /// that knows the containing block, and no stylesheet here has asked for one.
+///
+/// Read more: [Styling](https://goldberry.dev/docs/guide/styling.html#box-and-layout).
 public final class CssLength {
 
     private CssLength() {}
@@ -32,10 +36,9 @@ public final class CssLength {
     ///
     /// Both fields are what the **root** resolves against, and each stops meaning
     /// that one step down: `em` becomes the element's own computed size inside
-    /// [dev.goldberry.css.ComputedStyle#of]
-    /// ([ADR-0242]), and `rem` becomes the root element's computed size, which the
-    /// renderer puts here with [#withRootFontSize] once the root has resolved
-    /// ([ADR-0416]).
+    /// [dev.goldberry.css.ComputedStyle#of], and `rem` becomes the root element's
+    /// computed size, which the renderer puts here with [#withRootFontSize] once
+    /// the root has resolved.
     ///
     /// @param fontSize     the font size the root's own `em` resolves against
     /// @param rootFontSize the root element's computed font size, for `rem` —
@@ -43,8 +46,8 @@ public final class CssLength {
     ///                     its own `font-size` declaration resolves `rem` against
     public record Context(float fontSize, float rootFontSize) {
 
-        /// The default before typography tokens land (§10.1): 16 logical pixels,
-        /// which is what every browser and every design system starts from.
+        /// The default before the root has resolved: 16 logical pixels, which is
+        /// what every browser and every design system starts from.
         public static final Context DEFAULT = new Context(16, 16);
 
         /// This context with `rem` meaning `size`.

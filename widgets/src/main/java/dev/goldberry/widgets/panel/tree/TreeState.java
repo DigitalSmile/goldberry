@@ -17,7 +17,7 @@ import dev.goldberry.widgets.panel.list.Selection;
 
 /// What is open, and what a lazy node turned out to hold.
 ///
-/// ## Both are keyed by node id, and §3 says why
+/// ## Both are keyed by node id
 ///
 /// "Expansion state is retained across rebuilds by node **id**, not by index — a
 /// tree that collapsed itself when its model reordered would be the same defect
@@ -27,7 +27,7 @@ import dev.goldberry.widgets.panel.list.Selection;
 /// open.
 ///
 /// The fetched children are keyed the same way and for the same reason, with one
-/// more: §3 asks for them to be fetched "when it first expands", and *first* is a
+/// more: children are fetched when a node *first* expands, and *first* is a
 /// promise this map is what keeps. A node closed and reopened does not go back to
 /// the supplier.
 final class TreeState extends State<Tree> {
@@ -39,13 +39,13 @@ final class TreeState extends State<Tree> {
     private final Map<String, List<TreeNode>> fetched = new LinkedHashMap<>();
 
     /// The window, for `Left`'s move to the parent — captured in `build`, which
-    /// is the only place a widget is handed one ([ADR-0140]).
+    /// is the only place a widget is handed one.
     private dev.goldberry.@Nullable Host host;
 
     /// How long a typeahead lasts before the next letter starts a new one.
     ///
     /// A second, which is `select`'s figure and the interval every desktop list
-    /// uses ([ADR-0141]): long enough to type "no" and reach Norway rather than
+    /// uses: long enough to type "no" and reach Norway rather than
     /// Oman, short enough that coming back a moment later starts again.
     private static final long TYPEAHEAD_MILLIS = 1000;
 
@@ -58,7 +58,7 @@ final class TreeState extends State<Tree> {
     /// **Read only by the handlers**, never by a build, which is what makes it
     /// safe to be a field: `Home`, `End` and the typeahead all need to know about
     /// rows the focused one cannot see, and by the time one of them runs this is
-    /// the list that is on screen ([ADR-0209]).
+    /// the list that is on screen.
     private final List<TreeNode> visible = new ArrayList<>();
 
     /// The parent of each visible node, by id — for `*`, which needs the
@@ -117,7 +117,7 @@ final class TreeState extends State<Tree> {
         }
     }
 
-    /// §3's `Home` and `End`: the first and last **visible** rows.
+    /// `Home` and `End`: the first and last **visible** rows.
     ///
     /// Visible in the tree's sense — the flattened list — rather than the
     /// viewport's, which is what every tree means by it and what `Ctrl+End` means
@@ -129,7 +129,7 @@ final class TreeState extends State<Tree> {
         focusRow(direction < 0 ? visible.getFirst() : visible.getLast());
     }
 
-    /// §3's `*`: "expands every sibling".
+    /// `*` expands every sibling of the focused row.
     ///
     /// **Every sibling and not every descendant**, which is the reading that
     /// makes it useful on a big tree: `*` on a folder opens that whole level so
@@ -173,7 +173,7 @@ final class TreeState extends State<Tree> {
         return List.of();
     }
 
-    /// §3's type-to-select: "matches across **visible rows only**".
+    /// Type-to-select, matching across **visible rows only**.
     ///
     /// Which is the rule that makes it cheap and the rule that makes it honest —
     /// a search that opened branches to find a match would be a search, and a
@@ -185,7 +185,7 @@ final class TreeState extends State<Tree> {
     /// rows are a cycle to a reader pressing one key repeatedly.
     ///
     /// It moves the **focus** and does not select. A tree reports what the user
-    /// asked for and selects nothing itself ([ADR-0063]), and typing is a way of
+    /// asked for and selects nothing itself, and typing is a way of
     /// getting somewhere rather than a way of choosing — `Enter` is still what
     /// chooses, which is the same split `select`'s open list draws.
     private void typeahead(TreeNode from, String text) {
@@ -202,7 +202,7 @@ final class TreeState extends State<Tree> {
         }
 
         // **By id, not by `indexOf`.** A `TreeNode` is a record, so equality is
-        // over every component — and the id is the whole model here (ADR-0184),
+        // over every component — and the id is the whole model here,
         // which is what the rest of this class already keys on.
         var here = indexOf(from.id());
         // A repeated single letter steps on from where the focus is; a longer
@@ -245,14 +245,14 @@ final class TreeState extends State<Tree> {
     ///
     /// Through the host's focus-by-name for [#moveOut]'s reason: a row cannot
     /// reach another row's element, and an id is the one handle both ends agree
-    /// on ([ADR-0176]).
+    /// on.
     ///
     /// **Unprefixed, and two trees no longer collide anyway.** A `list` prefixes
     /// its rows with its own id and a tree never did, so two trees sharing a node
     /// id answered each other's keys whether or not either was named. The router
     /// resolves a name inside the composite the keyboard is in before the window,
     /// and a tree is a composite — which settles the named case and the unnamed
-    /// one together, and is why nothing here had to change ([ADR-0437]).
+    /// one together.
     private void focusRow(TreeNode node) {
         if (host != null) {
             host.focus("tree-" + node.id(), true);
@@ -300,12 +300,12 @@ final class TreeState extends State<Tree> {
     private @Nullable String anchor;
 
     /// Asks for a selection. It does **not** select — the value is the
-    /// application's ([ADR-0063]).
+    /// application's, and comes back down as the next `selected`.
     ///
     /// **What goes out is the whole set**, even in single-selection mode where it
     /// always holds one. A `Shift` range is computed over the flattened rows,
     /// which only this class can see, so an id on its own would be an answer the
-    /// application could not turn back into a selection (ADR-0210). The
+    /// application could not turn back into a selection. The
     /// three-argument [Tree] constructor unwraps it again for the callers that
     /// have one value.
     private void select(TreeNode node, dev.goldberry.input.key.Modifiers modifiers) {
@@ -369,11 +369,11 @@ final class TreeState extends State<Tree> {
         return out;
     }
 
-    /// §3's `Left` on a closed row: "moves to the parent".
+    /// `Left` on a closed row moves to the parent.
     ///
     /// By **id**, through the host's focus-by-name, because a row cannot reach
     /// another row's element — the same door `dialog` opened and the same reason
-    /// ([ADR-0176]). A root row has no parent and the key does nothing, which is
+    /// A root row has no parent and the key does nothing, which is
     /// what every tree does at the top level.
     private void moveOut(@Nullable String parent) {
         if (parent == null || host == null) {
@@ -387,13 +387,13 @@ final class TreeState extends State<Tree> {
         return expanded.contains(id);
     }
 
-    // --- §3's `checkable` ---------------------------------------------------
+    // --- `checkable` --------------------------------------------------------
 
     /// The state of `node`'s checkbox, or null when this tree gives it none.
     ///
     /// Null and not `UNCHECKED`: "there is no box here" and "the box is empty"
-    /// are different rows, and a row that drew an empty box where §3 asked for
-    /// none would put a control on every heading in a `LEAF` tree.
+    /// are different rows, and a row that drew an empty box where there should
+    /// be none would put a control on every heading in a `LEAF` tree.
     private dev.goldberry.widgets.controls.checkbox.Checkbox.@Nullable Value checkStateOf(TreeNode node) {
 
         return switch (widget().checkable()) {
@@ -411,7 +411,7 @@ final class TreeState extends State<Tree> {
                 widget().checked().contains(node.id()));
     }
 
-    /// §3's "propagates down and shows `indeterminate` upward".
+    /// A check propagates down and shows `indeterminate` upward.
     ///
     /// **Derived rather than stored.** A parent's box is a statement about what is
     /// under it, so computing it from the children is the only way it cannot drift
@@ -462,7 +462,7 @@ final class TreeState extends State<Tree> {
     }
 
     /// Asks for a different set of ticks. It does **not** tick — the set is the
-    /// application's, exactly as the selection is ([ADR-0063]).
+    /// application's, exactly as the selection is.
     ///
     /// The mixed state goes to **checked**, not to unchecked: a reader clicking a
     /// partially ticked folder is asking for all of it, which is the only reading
@@ -509,7 +509,7 @@ final class TreeState extends State<Tree> {
     /// this catalog a test cannot drive: asserting that a gap longer than the
     /// window starts a fresh search meant sleeping for it and hoping, so nothing
     /// asserted it. Against a `Clock.virtual()` it is `advance(600)` and a
-    /// keystroke (`docs/testing.md` §0.1).
+    /// keystroke.
     ///
     /// Falls back to the system clock when there is no host, which is a widget
     /// built and driven outside a window. Typeahead still works there; it is

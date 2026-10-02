@@ -9,6 +9,8 @@ import java.io.Serial;
 /// next failing call on the same thread. [Sdl] turns the pair into this exception
 /// at the boundary, so a failure cannot be dropped by forgetting to check a
 /// return value, and the message is captured while it is still the right one.
+///
+/// Read more: [The native boundary](https://goldberry.dev/docs/overview/architecture.html#the-native-boundary).
 public final class SdlException extends RuntimeException {
 
     @Serial
@@ -18,8 +20,7 @@ public final class SdlException extends RuntimeException {
     private final String sdlError;
 
     /// Public because the watch and the desktop wrappers that throw it are
-    /// packages of their own now
-    /// (ADR-0172).
+    /// packages of their own.
     public SdlException(String operation, String sdlError) {
         super(message(operation, sdlError));
         this.operation = operation;

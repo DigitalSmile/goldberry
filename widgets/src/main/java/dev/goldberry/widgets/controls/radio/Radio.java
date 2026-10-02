@@ -24,16 +24,18 @@ import dev.goldberry.widgets.markup.Wiring;
 import dev.goldberry.widgets.markup.Markup;
 import org.jspecify.annotations.Nullable;
 
-/// One option of a [RadioGroup] (§11, `docs/core-widgets.md` §3).
+/// One option in a [RadioGroup]: a value and a label, with the group deciding
+/// whether it is on.
 ///
 /// ```kdl
-/// radio-group bind="prefs.theme" change="pickTheme" {
+/// radio-group bind="prefs.theme" change="prefs.pick-theme" {
 ///     radio value="light" "Light"
 ///     radio value="dark"  "Dark"
+///     radio value="system" disabled=#true "Follow the system"
 /// }
 /// ```
 ///
-/// ## What it knows and what it is told
+/// In Java, `new Radio("dark", "Dark")`, handed to the group's constructor.
 ///
 /// A radio owns its [#value()] and its label, and **nothing else**. Whether it is
 /// selected, what happens when it is picked, and whether it is disabled are all
@@ -49,17 +51,17 @@ import org.jspecify.annotations.Nullable;
 /// `press=` — a control being styled before
 /// it is wired is a normal stage of building a screen, not a mistake.
 ///
-/// ## Selection follows focus
+/// Selection follows focus. Arrow keys inside a group move focus, and a radio
+/// raises its change the moment keyboard focus lands on it, because in a
+/// composite the selection is the roving position. It does **not** move its
+/// own tick: the value goes up as an event, the application sets the property,
+/// and the tick comes back down through the group's binding. So an arrow key on
+/// a group whose handler does nothing moves the focus ring and leaves the
+/// selection where it was, which is the visible form of "the state did not
+/// change". A *mouse* focus deliberately does not select, or a click would
+/// select twice: once when the press moved focus and once for the click itself.
 ///
-/// Arrow keys inside a group move focus, and a radio raises its change the moment
-/// keyboard focus lands on it ([ADR-0073]). It does **not** move its own tick:
-/// the value goes up as an event, the application sets the property, and the tick
-/// comes back down through the group's binding ([ADR-0063]). So an arrow key on a
-/// group whose handler does nothing moves the focus ring and leaves the selection
-/// where it was, which is the visible form of "the state did not change".
-///
-/// A *mouse* focus deliberately does not select, or a click would select twice:
-/// once when the press moved focus and once for the click itself.
+/// Read more: [Choices](https://goldberry.dev/docs/components/choices.html#radio).
 ///
 /// @param value      what this option means, reported to the group's `change`
 ///                   handler — the string the document wrote, uninterpreted
@@ -75,7 +77,7 @@ public record Radio(
         Attributes attributes)
         implements Widget.Leaf, Styled, Paints, Handles, Attributed<Radio> , Semantics {
 
-    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    /// Written out so that the parameters taking null for a default can say so.
     public Radio(String value, String label, boolean selected, @Nullable Runnable onSelect, boolean disabled, @Nullable Attributes attributes) {
         Objects.requireNonNull(value, "value");
         Objects.requireNonNull(label, "label");
@@ -117,12 +119,11 @@ public record Radio(
     /// application set `selected` itself is how a group ends up with two.
     ///
     /// @param alsoDisabled a further reason this option cannot be picked, or false.
-    ///        **Not the group's own flag**, though the parameter used to be called
-    ///        `groupDisabled` and say so: [RadioGroup] deliberately passes the
+    ///        **Not the group's own flag**: [RadioGroup] deliberately passes the
     ///        option's *own* `disabled` here, because a disabled group already
-    ///        reaches its options through the router walking the ancestors
-    ///        (ADR-0077) and pushing it down as well would match `:disabled` twice
-    ///        and land the 45% at 20%. What a caller puts here is whatever
+    ///        reaches its options for input through the router walking the
+    ///        ancestors, and pushing it down as well would match `:disabled`
+    ///        twice and land the 45% at 20%. What a caller puts here is whatever
     ///        disabling it has that the option does not know about — which for a
     ///        combobox's list is the field's, and for a group is nothing.
     Radio within(boolean isSelected, @Nullable Runnable select, boolean alsoDisabled) {
@@ -191,8 +192,7 @@ public record Radio(
     ///
     /// Arrow keys are absent from this method on purpose. Which option is *next*
     /// is a fact about the group, and a radio cannot see its siblings; the router
-    /// moves the focus and this widget hears about it in [#onFocusChanged]
-    /// ([ADR-0073]).
+    /// moves the focus and this widget hears about it in [#onFocusChanged].
     @Override
     public void onKey(KeyEvent event) {
         if (event.kind() != KeyEvent.Kind.PRESSED || event.isRepeat() || !event.modifiers().none()) {

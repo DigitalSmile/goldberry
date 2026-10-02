@@ -1,12 +1,16 @@
-/// What a widget is and what it is called, to something that cannot see it — roles,
-/// names, and the live regions of `docs/core-widgets.md` §7.
+/// What a widget is and what it is called, to something that cannot see it: roles,
+/// names and live regions.
 ///
-/// The role vocabulary is the catalog's own rather than ARIA's: a role nothing
-/// implements is a promise nobody keeps. Every focusable widget in the catalog
-/// implements it. Exported because a second catalog would have to as well, and
+/// The role vocabulary is the catalogue's own rather than ARIA's: a role nothing
+/// implements is a promise nobody keeps. Every focusable widget in the catalogue
+/// implements it. Exported because a second catalogue would have to as well, and
 /// because an accessibility bridge would read it from outside `:core`.
 ///
-/// Marked for NullAway (`docs/testing.md` §2, ADR-0497).
+/// The package is null-marked: a parameter or return is non-null unless annotated
+/// `@Nullable`.
+///
+/// Read more:
+/// [Semantics: a role and a name](https://goldberry.dev/docs/guide/writing-a-widget.html#semantics-a-role-and-a-name).
 @NullMarked
 package dev.goldberry.widget.semantics;
 

@@ -12,7 +12,7 @@ import dev.goldberry.widget.Widget;
 ///
 /// ## Two moments, and the second one is the interesting one
 ///
-/// §4 says "run on blur and on submit". Blur is the first: the field is told by
+/// Validators run on blur and on submit. Blur is the first: the field is told by
 /// [dev.goldberry.input.handler.Handles#onFocusWithin] when the
 /// keyboard leaves its subtree, which happens once however many controls are in
 /// it.
@@ -142,7 +142,7 @@ final class FieldState extends State<Field> implements Validated {
 
     /// The value the control holds, as text.
     ///
-    /// A `String` because that is what §4's validators are over: what a user
+    /// A `String` because that is what a field's validators are over: what a user
     /// typed is text until something parses it, and parsing is what a validator
     /// decides is possible. A control bound to a number reports its `toString`,
     /// which is what `select` and `text` already do with a binding.

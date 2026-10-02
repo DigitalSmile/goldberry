@@ -12,83 +12,62 @@ import dev.goldberry.widget.attr.Attributes;
 import dev.goldberry.widgets.markup.Markup;
 import dev.goldberry.widgets.markup.Wiring;
 
-/// A viewport that shows part of something taller than itself —
-/// `docs/core-widgets.md` §1's `scroll`.
+/// A viewport that shows part of something taller than itself, with overlay
+/// scrollbars, a wheel, a keyboard and a position that survives rebuilds.
 ///
 /// ```kdl
-/// scroll axis="vertical" {
-///     column gap=8 { text "…"; text "…" }
+/// scroll id="chapters" axis="vertical" {
+///     column { text "Hobbiton"; text "Bree"; text "Rivendell" }
 /// }
 /// ```
 ///
-/// ## The one widget three separate pieces of work were waiting on
+/// `new Scroll(Widget...)` is vertical; `new Scroll(List<Widget>, ScrollAxis,
+/// Attributes)` chooses the axis. Several children are wrapped in one moving
+/// box, so they stack as they would in a `column`.
 ///
-/// A menu taller than the work area is clamped and loses its bottom; a tab strip
-/// wider than its window overflows it; `select` over a realistic option list
-/// cannot be written at all. All three are this, and it is the reason `scroll`
-/// came before the rest of §5
-/// (ADR-0116).
+/// `axis=` is `vertical` (the default), `horizontal` or `both`. `anchor=` is
+/// `start` (the default) or `end`, which opens at the end and stays there while
+/// the viewport is already there. `preserve-on-prepend=` says whether content
+/// inserted above the viewport moves the offset by the height added so what is
+/// on screen stays still; unset, it is on for `end` and off for `start`. Three
+/// things are Java only: [#height(double)] caps the viewport in logical pixels,
+/// [#controlledBy(ScrollController)] hands it a handle the application keeps,
+/// and [#anchor(ScrollAnchor)] and [#preserveOnPrepend(boolean)] are the two
+/// attributes as methods.
 ///
-/// ## What it is made of
+/// The viewport is three nodes: `scroll`, which clips and takes the wheel and
+/// the keys; `scroll-content`, the box that moves; and whatever was written
+/// inside. The offset lives on this widget's state, so a rebuild keeps it with
+/// no key. This record styles nothing; the CSS type `scroll` is the viewport
+/// node it builds, so a document's `id` and `class` land there. Scrollbars are
+/// drawn over the content, or in a reserved gutter when the application's
+/// `Scrollbars` setting asks for one, and a click on the track pages by a whole
+/// viewport. A wheel or a key is consumed only when it moved something, so at
+/// the edge a further turn bubbles to the viewport around it. A `scroll` has
+/// `flex-grow: 1` from the stylesheet and fills what is left of a column; in a
+/// box that sizes to its content it needs a height from the stylesheet.
 ///
-/// Three nodes, and each of them is one idea:
-///
-/// ```
-/// scroll           the viewport. Clips, takes the wheel and the keys, holds nothing
-/// └── scroll-content   the moving box. Translated by the offset, sized by its content
-///     └── …            whatever was written inside
-/// ```
-///
-/// The offset lives **here**, on this node's state, because §1 says "scroll
-/// position is retained state surviving rebuilds" and the element tree is what
-/// makes that true without anybody writing a key: a rebuild re-describes the
-/// widget and the element keeps the state
-/// (ADR-0052).
-///
-/// **This node styles nothing.** `scroll` as a CSS type is [ScrollViewport], the
-/// node this builds — for [dev.goldberry.widgets.panel.tabs.Tabs]'
-/// reason exactly: a stateful widget that was also styled would put two `scroll`
-/// nodes in the cascade, one inside the other, and every rule would apply twice.
-///
-/// ## What grew around it
-///
-/// The viewport shipped on its own, and the four things §2.4 asks of a scroller
-/// have since been built on top of it — none of them on this record, which is
-/// why the list is worth having in one place:
-///
-/// - **Scrollbars** are [ScrollBar], drawn over the content or in a reserved
-///   gutter as the application's `Scrollbars` setting says
-///   (ADR-0117, ADR-0364).
-/// - **A click on the track pages**, by a whole viewport, towards the side of
-///   the thumb the click landed on — [ScrollBar] again.
-/// - **`scrollIntoView`** is [ScrollController], and an API rather than a node
-///   on purpose: a wrapper widget is a box, and a box in a flex row changes how
-///   everything in that row is sized
-///   (ADR-0120).
-/// - **It chains at its edge.** A wheel is consumed only when it actually moved
-///   something, so a further scroll at the top of a list bubbles and an ancestor
-///   takes it — got from the router's ordinary bubble path rather than from
-///   anything here knowing an ancestor exists ([ScrollViewport]).
-///
-/// ## A timeline opens at its end
-///
-/// [#anchor(ScrollAnchor)] and [#preserveOnPrepend(boolean)] are the three
-/// things a chat, a log or a console wants and a `scrollBy` cannot give: open on
-/// the newest line, stay on it while you are already there, and keep the
-/// reader's line still when older lines are paged in *above*. All three are
-/// layout facts, and the offset is the only thing here that knows them
-/// (ADR-0392).
+/// Anchoring at the end and preserving on prepend are what a chat, a log or a
+/// console wants: open on the newest line, stay there while the reader is
+/// there, and keep the reader's line still when older lines are paged in above.
+/// Preserving the offset needs keyed children, because it means recognising a
+/// row that was on screen a frame ago.
 ///
 /// @param children          what to show. Wrapped in one `scroll-content`, so
 ///                          several children stack the way they would in a
 ///                          `column`
 /// @param axis              which way it moves
+/// @param height            a height in logical pixels, or `NaN` for the
+///                          stylesheet's
+/// @param controller        the handle an application scrolls it with, or null
 /// @param anchor            where it opens and where it stays
 /// @param preserveOnPrepend whether content inserted above it moves the offset
 ///                          rather than the reader; null for "whatever the
 ///                          anchor says", which is the state an unset attribute
 ///                          is in
 /// @param attributes        `id` and `class`, exactly as on the primitives
+///
+/// Read more: [Scroll](https://goldberry.dev/docs/layout/scroll.html#scroll).
 @Markup("scroll")
 public record Scroll(
         List<Widget> children,
@@ -100,7 +79,7 @@ public record Scroll(
         Attributes attributes)
         implements Widget.Stateful, Attributed<Scroll> {
 
-    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    /// Written out so that the parameters that take null for a default can say so.
     public Scroll(
             @Nullable List<Widget> children,
             @Nullable ScrollAxis axis,
@@ -169,23 +148,22 @@ public record Scroll(
         return preserveOnPrepend == null ? anchor.preservesOnPrepend() : preserveOnPrepend;
     }
 
-    /// This viewport answering to `value` — §1's `scrollIntoView` API.
+    /// This viewport answering to `value`, the handle an application scrolls it
+    /// with.
     ///
-    /// A controller is a handle something *outside* the viewport holds, so it
+    /// A controller is a handle something outside the viewport holds, so it
     /// cannot be created by the viewport's own state: whoever needs to scroll it
     /// is by definition somewhere else, and a controller made here would have a
-    /// new identity on every rebuild ([ADR-0120]).
+    /// new identity on every rebuild.
     public Scroll controlledBy(ScrollController value) {
         return new Scroll(children, axis, height, value, anchor, preserveOnPrepend, attributes);
     }
 
     /// This viewport with a height of `value` logical pixels.
     ///
-    /// **For the caller that has a number a stylesheet cannot have.** A menu
-    /// capped at the screen's height is the case it was added for: nothing in
-    /// `controls.css` can know how tall the display is, and §8's subset has no
-    /// `max-height` to express "no taller than" with
-    /// (ADR-0118).
+    /// For the caller that has a number a stylesheet cannot have. A menu capped
+    /// at the screen's height is the case: nothing in a stylesheet can know how
+    /// tall the display is, and the CSS subset has no `max-height`.
     ///
     /// An ordinary `scroll` leaves this alone and takes its height from the
     /// stylesheet, which is `flex-grow: 1` — fill what is left of the column.

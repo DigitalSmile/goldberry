@@ -10,13 +10,15 @@ import dev.goldberry.widgets.data.linechart.ChartLegend;
 import dev.goldberry.widgets.data.linechart.ChartPlot;
 import dev.goldberry.widgets.data.linechart.ChartSeries;
 
-/// What every chart in §11 is made of: a plot, and a legend when there is more
-/// than one series.
+/// What every chart is made of: a plot, and a legend when there is more than
+/// one series.
 ///
 /// Four widgets asking the same two questions — *what are my children* and *how
-/// do I read §3.2's inline data* — and four copies of the answers would be four
-/// chances for one chart to grow a legend rule the others do not have. The rule
-/// is the same for all of them and lives here.
+/// do I read the inline `series` data a document wrote* — and four copies of the
+/// answers would be four chances for one chart to grow a legend rule the others
+/// do not have. The rule is the same for all of them and lives here.
+///
+/// Read more: [Charts](https://goldberry.dev/docs/components/charts.html#what-the-five-share).
 public final class ChartParts {
 
     /// Which shape the plot draws. A re-export of [ChartPlot]'s own, so a chart
@@ -75,8 +77,7 @@ public final class ChartParts {
     ///
     /// **A sentence instead of a picture, and nothing else**, when there is
     /// nothing to draw: no legend, no plot — a legend keying series nobody can
-    /// see is noise, and a grid over no data asserts a scale nobody supplied
-    /// (`charts.md` §3.1, ADR-0200).
+    /// see is noise, and a grid over no data asserts a scale nobody supplied.
     public static List<Widget> of(
             List<Series> series,
             List<String> categories,
@@ -106,7 +107,7 @@ public final class ChartParts {
         return List.copyOf(parts);
     }
 
-    /// §3.2's inline data, read out of the `series` nodes the inflater built.
+    /// A document's inline data, read out of the `series` nodes the inflater built.
     ///
     /// The categories come from the **first** series' point names, because they
     /// are the x axis and a chart has one: a second series naming its points

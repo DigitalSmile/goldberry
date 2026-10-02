@@ -9,23 +9,22 @@ import java.util.Optional;
 
 /// Turns markup into objects, through a registry of node name to factory.
 ///
-/// §9's inflater: "a runtime registry `widget name → factory`. Built-ins and app
-/// widgets register identically; unknown nodes are hard errors with source
-/// positions."
+/// A runtime registry of node name to factory. Built-ins and application widgets
+/// register identically; an unknown node is a hard error with a source position.
 ///
-/// Generic in what it builds. The widget tree does not exist yet
-/// (ADR-0004),
-/// and the inflater does not need it to: a factory takes a [KdlNode] and its
-/// already-inflated children and returns whatever the application is building.
-/// The showcase inflates to a `Box`; a widget tree will inflate to widgets;
-/// neither requires this class to change.
+/// Generic in what it builds. The inflater knows nothing about widgets: a factory
+/// takes a [KdlNode] and its already-inflated children and returns whatever the
+/// application is building. The widget tree inflates to widgets and a test can
+/// inflate to anything else; neither requires this class to change.
 ///
 /// ## Wiring
 ///
-/// `id` lookup is here. Binding `action` names to a controller is **not** —
-/// §9 is explicit that it happens through an explicit `bind(controller)` call
-/// and never through reflective handler lookup, and that belongs with the widget
-/// tree that has actions to bind.
+/// `id` lookup is here. Binding `action` names to a controller is **not** — that
+/// happens through an explicit `bind(controller)` call and never through
+/// reflective handler lookup, and it belongs with the widget tree that has
+/// actions to bind.
+///
+/// Read more: [Markup](https://goldberry.dev/docs/guide/markup.html#parsing-and-inflating).
 ///
 /// @param <T> what nodes inflate into
 public final class KdlInflater<T> {
@@ -49,8 +48,8 @@ public final class KdlInflater<T> {
 
     /// Registers a factory for `name`.
     ///
-    /// Registering the same name twice is refused. §9 says built-ins and
-    /// application widgets register identically, which means an application
+    /// Registering the same name twice is refused. Built-ins and application
+    /// widgets register identically, which means an application
     /// *can* shadow a built-in — but silently, at whichever point its
     /// registration happened to run, is not a good way to find that out.
     ///
@@ -114,7 +113,7 @@ public final class KdlInflater<T> {
 
     /// Finds a node by its `id` property, anywhere in the document.
     ///
-    /// The lookup half of §9's wiring, and it works on the *markup* rather than
+    /// The lookup half of the wiring, and it works on the *markup* rather than
     /// on what was built: an id identifies a node in the document, and what that
     /// node became is the caller's business.
     ///

@@ -34,11 +34,10 @@ import dev.goldberry.media.io.Source;
 import dev.goldberry.media.io.TestHttpServer;
 
 /// The Engine over sources that stall, drop and never end: the water marks,
-/// §7's S3 (progressive HTTP over a flaky link) and S6 (a live radio stream),
-/// against FFmpeg.
+/// progressive HTTP over a flaky link, and a live radio stream, against FFmpeg.
 ///
 /// The water marks are checked against a fake `MediaIO` that stalls where it is
-/// told, so the moment of the stall is exact; S3 and S6 against a local HTTP
+/// told, so the moment of the stall is exact; the link and the stream against a local HTTP
 /// server. The audio is a WAV at the sink's own rate, so every sample that
 /// reaches the sink can be checked, and "played through a drop" means "not one
 /// sample lost or repeated".
@@ -211,7 +210,7 @@ class NetworkPlaybackTest {
     private static final double PAST_THE_PROBE = 6;
 
     @Test
-    @DisplayName("starts only at the high water mark, and a stall goes back to BUFFERING with the sink paused (S3)")
+    @DisplayName("starts only at the high water mark, and a stall goes back to BUFFERING with the sink paused")
     void stallRebuffers() {
         var frames = RATE * 10;
         var io = new MemoryIO(Wav.sine(RATE, 2, frames, 440, 12_000));
@@ -269,7 +268,7 @@ class NetworkPlaybackTest {
     }
 
     @Test
-    @DisplayName("plays through dropped connections and a stalled one, every sample in order (S3)")
+    @DisplayName("plays through dropped connections and a stalled one, every sample in order")
     void flakyLink() throws IOException {
         var frames = RATE * 3;
         var wav = Wav.sine(RATE, 2, frames, 440, 12_000);
@@ -292,7 +291,7 @@ class NetworkPlaybackTest {
     }
 
     @Test
-    @DisplayName("seeks over HTTP, sample-exact, and shows what it has fetched (S3)")
+    @DisplayName("seeks over HTTP, sample-exact, and shows what it has fetched")
     void seeksOverHttp() throws IOException {
         var frames = RATE * 3;
         server = new TestHttpServer(Wav.sine(RATE, 2, frames, 440, 12_000));
@@ -309,7 +308,7 @@ class NetworkPlaybackTest {
     }
 
     @Test
-    @DisplayName("a live radio stream: LIVE, unseekable, and what is playing from its ICY titles (S6)")
+    @DisplayName("a live radio stream: LIVE, unseekable, and what is playing from its ICY titles")
     void radio() throws IOException {
         server = new TestHttpServer(CodecFixturesTest.fixture("tone.mp3"));
         server.icy = 8_192;

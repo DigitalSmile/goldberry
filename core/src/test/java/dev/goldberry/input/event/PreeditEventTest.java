@@ -7,11 +7,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-/// The event a composition arrives in — `docs/gaps.md` G15.
+/// The event a composition arrives in.
 ///
 /// Almost all of it is [#caret()], which exists because the platform reports a
 /// *selection* and a painter wants a *caret*, and because "the platform reports
-/// none" is the common answer rather than the exceptional one (ADR-0289).
+/// none" is the common answer rather than the exceptional one.
 class PreeditEventTest {
 
     private static PreeditEvent preedit(String text, int start, int length) {

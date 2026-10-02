@@ -9,6 +9,8 @@ import org.jspecify.annotations.Nullable;
 ///
 /// Unchecked, like the toolkit's other failures. What an application does with it
 /// is read [#error()] and switch on it, and [#error()] is where the information is.
+///
+/// Read more: [A player](https://goldberry.dev/docs/components/media.html#a-player).
 public final class MediaException extends RuntimeException {
 
     @Serial

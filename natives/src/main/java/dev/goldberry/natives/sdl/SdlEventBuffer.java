@@ -22,6 +22,8 @@ import dev.goldberry.natives.sdl.event.SdlWheelDirection;
 ///
 /// Confined to the thread that created it, like everything else in the event
 /// loop.
+///
+/// Read more: [The native boundary](https://goldberry.dev/docs/overview/architecture.html#the-native-boundary).
 public final class SdlEventBuffer implements AutoCloseable {
 
     private static final long TYPE_OFFSET = Layouts.SDL_COMMON_EVENT.offsetOf("type");
@@ -167,8 +169,7 @@ public final class SdlEventBuffer implements AutoCloseable {
     /// reports a long run of zeroes here and then a single 1 — where rounding
     /// each fractional event separately would report nothing at all, forever.
     /// That is the difference between a detent counter that works on a trackpad
-    /// and one that does not
-    /// (ADR-0115).
+    /// and one that does not.
     ///
     /// Un-flipped like the floats, and for the same reason.
     public int wheelTicksX() {
@@ -223,7 +224,7 @@ public final class SdlEventBuffer implements AutoCloseable {
     ///
     /// Copied out here rather than handed on as a pointer, for
     /// [#committedText]'s reason: SDL owns the string and frees it at the next
-    /// pump (`docs/gaps.md` G35b, [ADR-0330]).
+    /// pump.
     ///
     /// Empty for `DROP_BEGIN`, `DROP_POSITION` and `DROP_COMPLETE`, which carry
     /// a NULL there and say so in SDL's own header.
@@ -232,7 +233,7 @@ public final class SdlEventBuffer implements AutoCloseable {
     }
 
     /// One line of the dropped **text**, or `""` — the same
-    /// `SDL_DropEvent.data`, read for `DROP_TEXT` ([ADR-0408]).
+    /// `SDL_DropEvent.data`, read for `DROP_TEXT`.
     ///
     /// A second name for one field rather than a second field: SDL's header says
     /// `data` is "the text for `SDL_EVENT_DROP_TEXT` and the file name for
@@ -327,7 +328,7 @@ public final class SdlEventBuffer implements AutoCloseable {
     /// way to reach a code path a test cannot otherwise run: nothing in a test
     /// suite can turn a wheel. Pushed with [SdlVideo#push], the event comes back
     /// out of the ordinary pump and takes the ordinary route, so what runs is the
-    /// shipping translation rather than a copy of it (ADR-0061).
+    /// shipping translation rather than a copy of it.
     ///
     /// `direction` is SDL's own, un-inverted: the point of pushing a flipped event
     /// is to check that [#wheelY()] un-flips it.
@@ -349,8 +350,7 @@ public final class SdlEventBuffer implements AutoCloseable {
     ///
     /// What a test needs to reach the case the `integer_*` pair exists for: a
     /// touchpad reporting a long run of fractions and SDL emitting a whole click
-    /// part-way through, which no function of one event's floats can produce
-    /// (ADR-0115).
+    /// part-way through, which no function of one event's floats can produce.
     public void writeWheel(
             int windowId,
             float x,
@@ -377,8 +377,7 @@ public final class SdlEventBuffer implements AutoCloseable {
     /// Fills this buffer with a mouse-motion event.
     ///
     /// [#writeWheel]'s reason, for a different unreachable case: a test cannot
-    /// move a pointer, and the coordinates a motion arrives with are the subject
-    /// of ADR-0211
+    /// move a pointer, and the coordinates a motion arrives with are the point
     /// — a window and a coordinate that disagree about which space they are in.
     /// Pushing one is the only way to state that disagreement on purpose.
     ///
@@ -395,7 +394,7 @@ public final class SdlEventBuffer implements AutoCloseable {
     ///
     /// The pair that reproduces the macOS popup case: a press whose coordinates
     /// are in the popup's space and a release whose coordinates are in the
-    /// owner's, both carrying the popup's id (ADR-0211).
+    /// owner's, both carrying the popup's id.
     ///
     /// @param type   [SdlEventType#MOUSE_BUTTON_DOWN] or [SdlEventType#MOUSE_BUTTON_UP]
     /// @param button SDL's index, numbered from 1 with left first

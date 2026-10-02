@@ -13,10 +13,12 @@ import dev.goldberry.natives.md4c.enums.CellAlign;
 /// them from Java would put all seven in the layout table, and a wrong offset in
 /// one of them is a heading at level 218. The shim reads them instead — with the
 /// compiler that built the library — and puts what it found into three integers of
-/// an event record (ADR-0294). What arrives here has no layout to get wrong.
+/// an event record. What arrives here has no layout to get wrong.
 ///
 /// A block with nothing to say — a paragraph, a table row, the document — carries
 /// [#NONE].
+///
+/// Read more: [The native boundary](https://goldberry.dev/docs/overview/architecture.html#the-native-boundary).
 public sealed interface BlockDetail {
 
     /// The detail of a block that has none.

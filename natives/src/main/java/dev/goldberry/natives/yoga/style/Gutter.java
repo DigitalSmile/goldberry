@@ -5,6 +5,8 @@ package dev.goldberry.natives.yoga.style;
 /// CSS's `row-gap`, `column-gap` and the `gap` shorthand. The names are CSS's
 /// and read backwards at first: [#ROW] is the gap *between rows*, so it is
 /// vertical space, and [#COLUMN] is horizontal.
+///
+/// Read more: [The native boundary](https://goldberry.dev/docs/overview/architecture.html#the-native-boundary).
 public enum Gutter implements YogaEnum {
 
     /// The gap between columns — horizontal space. CSS's `column-gap`.

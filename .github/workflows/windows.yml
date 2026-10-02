@@ -1,14 +1,15 @@
-# Windows CI (ADR-0012)
+# Windows CI
+# https://goldberry.dev/docs/contributing/testing.html#the-ci-matrix
 #
-# One target, `windows-x64`. Windows on ARM was dropped from the matrix
-# (ADR-0041); MSVC would cross-target it with `-A ARM64` from this same runner if
+# One target, `windows-x64`. Windows on ARM was dropped from the matrix;
+# MSVC would cross-target it with `-A ARM64` from this same runner if
 # it ever comes back.
 #
 # `workflow_call` is what lets publish.yml reuse this without duplicating it --
 # and on a push to master that is the only way this runs. There is no `push`
 # trigger: snapshot.yml calls this workflow on every push and publishes the
 # library it built, so a trigger here would build every native library twice per
-# commit and publish neither (ADR-0334). Pull requests still run it directly.
+# commit and publish neither. Pull requests still run it directly.
 #
 # Every `run` here is bash, set once below rather than per step. The default on a
 # Windows runner is PowerShell, which parses native command arguments itself:
@@ -30,7 +31,7 @@ defaults:
 
 # Upstream refs are deliberately absent. The superbuild reads them straight out
 # of gradle/libs.versions.toml, which is the only place any of them is written
-# down (ADR-0035). They used to be duplicated here because the manylinux
+# down. They used to be duplicated here because the manylinux
 # container has no JDK -- but reading the catalog never needed a JDK, only
 # something that can parse a text file, and CMake can.
 
@@ -78,7 +79,7 @@ jobs:
     name: Verify layouts (windows-x64)
     needs: natives
     # Runs even if the build job failed, so that a missing artifact fails at the
-    # download step below rather than skipping this job silently (ADR-0016).
+    # download step below rather than skipping this job silently.
     if: ${{ !cancelled() }}
     runs-on: windows-2022
     steps:
@@ -95,8 +96,8 @@ jobs:
       # No C/C++ toolchain is set up in this job, and none is wanted: passing
       # `goldberry.native.library` tells Gradle to verify the downloaded artifact
       # rather than build a rival one, and `goldberry.native.required` turns a
-      # test that would have skipped for want of a library into a failure
-      # (ADR-0016).
+      # test that would have skipped for want of a library into a failure.
+      # https://goldberry.dev/docs/contributing/testing.html#with-and-without-the-library
       - run: |
           ./gradlew :natives:test --no-daemon \
             -Dgoldberry.native.library="$PWD/native-lib/goldberry.dll" \

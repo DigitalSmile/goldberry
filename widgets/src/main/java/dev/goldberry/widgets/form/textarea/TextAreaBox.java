@@ -69,11 +69,11 @@ import dev.goldberry.widgets.form.parts.Value;
 /// A paragraph is shaped and measured whole, which is right for a label and
 /// wrong for a document. A `text-area` is the one control in this catalog whose
 /// text can be half a megabyte, and every keystroke makes a different string —
-/// so a note held in one paragraph was re-shaped from the beginning on every
-/// keystroke. That is `docs/gaps.md` G44.
+/// so a note held in one paragraph would be re-shaped from the beginning on
+/// every keystroke.
 ///
-/// Two things changed, and between them everything here is bounded by the
-/// window rather than by the note ([ADR-0388]):
+/// Two things keep everything here bounded by the window rather than by the
+/// note:
 ///
 /// - **The geometry** — where the lines break, where the caret is, what a click
 ///   hits, how tall the content is — comes from a [TextDocument], which shapes
@@ -100,17 +100,17 @@ import dev.goldberry.widgets.form.parts.Value;
 /// described before anything is laid out, and where a hard line ended up is a
 /// fact about the wrap — so a column of number nodes would be a frame behind the
 /// text on every keystroke that changed the line structure, which is exactly the
-/// "looks like it works" failure `docs/gaps.md` G37 is about.
+/// kind of failure that looks like it works.
 ///
 /// Drawn as **one** paragraph, with a blank line for every line a hard line
 /// wrapped into: `"1\n2\n\n\n3"` is lines one, two — which wrapped into three —
 /// and three. One paragraph in the control's own font at the control's own line
 /// height, scrolled by the control's own offset, so the numbers cannot drift from
-/// the text by construction rather than by agreement ([ADR-0331]).
+/// the text by construction rather than by agreement.
 ///
 /// Their ink is `--gb-gutter-color`, which is [Context#color]'s job: a widget
 /// that draws something the cascade has no property for reads a custom property
-/// for it (ADR-0195). The strip behind them is an ordinary node with ordinary
+/// for it. The strip behind them is an ordinary node with ordinary
 /// rules.
 ///
 /// The same three parts `text-input` has, and it reuses their stylesheet rules
@@ -121,12 +121,11 @@ import dev.goldberry.widgets.form.parts.Value;
 /// costs here: a selection covering three lines is three rectangles, because a
 /// run of text that wraps is not a rectangle. Each is one line's slice of the
 /// range, which is why `Paragraph`'s two measurements take a *line's* range
-/// rather than an offset — they were written for this
-/// (ADR-0167).
+/// rather than an offset — they were written for this.
 ///
 /// ## It sizes itself
 ///
-/// §4 asks for "optional auto-grow between min/max rows, scrollbar beyond". The
+/// It grows between `rows` and `max-rows`, and shows a scrollbar beyond. The
 /// height is set **here** rather than by the cascade, because it is a function of
 /// how many lines the text wrapped into, which no selector can ask. A stylesheet
 /// still owns the padding, the border, the fill and the line height; what it
@@ -178,8 +177,7 @@ record TextAreaBox(
     /// **It was declared and never used.** The wheel handler below multiplied by
     /// nothing and negated, so a notch over a `text-area` moved the document one
     /// pixel backwards — which in the Markdown screen puts an editor and a
-    /// preview side by side scrolling opposite ways at wildly different speeds
-    /// ([ADR-0314]).
+    /// preview side by side scrolling opposite ways at wildly different speeds.
     static final int WHEEL_LINES = 3;
 
     /// How much room there is on each side of a line number, in logical pixels.
@@ -190,8 +188,7 @@ record TextAreaBox(
     /// before the text starts and begin a gap in from the border.
     ///
     /// A **token** first, like every other metric a widget has to know in Java:
-    /// `--gb-gutter-gap` moves it, and this is what it falls back to
-    /// (`docs/gaps.md` G37, [ADR-0331]).
+    /// `--gb-gutter-gap` moves it, and this is what it falls back to.
     static final String GUTTER_GAP_TOKEN = "--gb-gutter-gap";
 
     static final double GUTTER_GAP = 8;
@@ -207,7 +204,7 @@ record TextAreaBox(
     ///
     /// A custom property because the cascade has no declaration for "the ink of
     /// something this widget draws itself", which is precisely what
-    /// [Context#color] exists for (ADR-0195).
+    /// [Context#color] exists for.
     static final String GUTTER_COLOR_TOKEN = "--gb-gutter-color";
 
     @Override
@@ -266,7 +263,7 @@ record TextAreaBox(
         switch (event.kind()) {
             case PRESSED -> {
                 // A paste where the platform has a primary selection, and
-                // nothing here where it has not (ADR-0504).
+                // nothing here where it has not.
                 if (event.button() == PointerEvent.Button.MIDDLE) {
                     if (editor.pastePrimaryAt(event.local().x(), event.local().y())) {
                         event.consume();
@@ -282,9 +279,8 @@ record TextAreaBox(
             }
             case MOVED -> {
                 // A drag, not a hover: `dragX()` is NaN when no button is down,
-                // which is how the router says "no gesture" (ADR-0075). The
-                // button is deliberately not tested here — a motion carries none
-                // ([ADR-0168]).
+                // which is how the router says "no gesture". The
+                // button is deliberately not tested here — a motion carries none.
                 if (!Double.isNaN(event.dragX())) {
                     editor.dragTo(event.local().x(), event.local().y());
                     event.consume();
@@ -294,8 +290,8 @@ record TextAreaBox(
             case WHEEL -> {
                 // Only when there is somewhere to go. A control that swallowed
                 // every wheel would trap the page's scroll the moment the pointer
-                // crossed it, which is §2.4's complaint about nested scrollers
-                // arriving through the back door.
+                // crossed it, which is the nested-scroller problem arriving
+                // through the back door.
                 //
                 // **Not negated.** `deltaY` is positive down the document and so
                 // is the editor's offset, which is `scroll`'s convention and the
@@ -303,7 +299,7 @@ record TextAreaBox(
                 //
                 // Mid-drag too: a wheel is a wheel whether or not a button is
                 // down, and a drag held at the edge takes its speed from the
-                // pointer and never from this ([ADR-0500]).
+                // pointer and never from this.
                 if (editor.scrollByLines(event.deltaY() * WHEEL_LINES)) {
                     event.consume();
                 }
@@ -314,7 +310,7 @@ record TextAreaBox(
 
     // --- the keyboard ---------------------------------------------------------
 
-    /// §4's editing keys, through the map all three editors read ([ADR-0376]).
+    /// The editing keys, through the one key map all three editors read.
     ///
     /// A `text-area` is [EditSurface#DOCUMENT]: `Up` and `Down` are lines, a page
     /// is this control's own `rows`, and **`Enter` is taken here** — a multi-line
@@ -383,8 +379,8 @@ record TextAreaBox(
         }
     }
 
-    /// The composition an input method is assembling — `docs/gaps.md` G16, and
-    /// `text-input`'s handler exactly. Not an edit: see [AreaEditor#compose].
+    /// The composition an input method is assembling — `text-input`'s handler
+    /// exactly. Not an edit: see [AreaEditor#compose].
     @Override
     public void onPreedit(PreeditEvent event) {
         if (disabled || readOnly) {
@@ -396,7 +392,7 @@ record TextAreaBox(
     }
 
     /// Where this control's caret is, so the platform can place a candidate
-    /// window beside it (ADR-0289).
+    /// window beside it.
     @Override
     public Optional<LogicalRect> caretArea() {
         return editor.caretArea();
@@ -425,14 +421,14 @@ record TextAreaBox(
         var parts = new ArrayList<Widget>(2 * maxRows + 2);
         // While a composition is open the highlights draw its converting clause:
         // there is no selection to draw, because a composition replaces one when
-        // it commits (ADR-0292).
+        // it commits.
         var wash = focused && (composing.hasClause() || (!composing.isActive() && edit.hasSelection()));
         for (var i = 0; i < maxRows; i++) {
             parts.add(new Highlight(wash));
         }
         // A carrier rather than the text: this node draws the visible lines
         // itself, and what it needs from `text-value` is the ink the cascade
-        // resolved there ([ADR-0388]).
+        // resolved there.
         parts.add(Value.carrier(placeholder));
         parts.add(new Caret(focused && caretShown && !edit.hasSelection()));
         // And [#maxRows] underlines after them, for the highlights' reason: a
@@ -447,13 +443,13 @@ record TextAreaBox(
         // draws a fill and its rule, while the numbers themselves are a
         // paragraph this class paints, because where a hard line ended up is a
         // fact about the wrap and a column of number nodes would be a frame
-        // behind the text on every keystroke ([ADR-0331]).
+        // behind the text on every keystroke.
         if (gutter) {
             parts.add(new TextAreaGutter());
         }
-        // §4's "scrollbar beyond": `scroll`'s own bar, only while the text is
-        // taller than the control, and last so it paints over the text it sits on
-        // (ADR-0362).
+        // The scrollbar beyond `max-rows`: `scroll`'s own bar, only while the
+        // text is taller than the control, and last so it paints over the text
+        // it sits on.
         if (scrollbar != null) {
             parts.add(scrollbar);
         }
@@ -491,7 +487,7 @@ record TextAreaBox(
     /// document, and the placeholder is not one.
     ///
     /// The document counted them when it split itself, so this is a field read
-    /// rather than the scan over the whole text it used to be ([ADR-0388]).
+    /// rather than a scan over the whole text.
     private int hardLines(TextDocument document) {
         return placeholder ? 1 : document.hardLineCount();
     }
@@ -505,13 +501,13 @@ record TextAreaBox(
     /// every number beside the line it belongs to — by construction, rather than
     /// by two pieces of arithmetic that have to be kept agreeing.
     ///
-    /// This is the whole of `docs/gaps.md` G37: a column of numbers built outside
-    /// the control is right until the first line that wraps and wrong for every
-    /// line below it, because nothing outside knows where the wrap fell.
+    /// A column of numbers built outside the control is right until the first
+    /// line that wraps and wrong for every line below it, because nothing
+    /// outside knows where the wrap fell.
     ///
-    /// **Only the rows in view**, which is the one thing ADR-0388 changed here:
-    /// numbering a ten-thousand-line note built a fifty-kilobyte string and
-    /// shaped it again whenever the line count moved, to draw forty numbers. The
+    /// **Only the rows in view**: numbering a ten-thousand-line note whole would
+    /// build a fifty-kilobyte string and shape it again whenever the line count
+    /// moved, to draw forty numbers. The
     /// paragraph starts at the first visible row rather than at the top of the
     /// document, at the same origin the text does, so it still scrolls with the
     /// text by construction.
@@ -541,19 +537,18 @@ record TextAreaBox(
     @Override
     public Box render(ComputedStyle style, List<Box> children, Context context) {
         // A drag held at the edge steps here, before the layout below reads the
-        // offset -- so the step is drawn in the frame that took it ([ADR-0500]).
+        // offset -- so the step is drawn in the frame that took it.
         editor.frame(context.nowMillis());
         var padding = AreaPadding.of(style);
         var font = context.font(style);
         // One paragraph per hard line, re-using last frame's for every line the
         // edit did not touch. The shaper is the renderer's cache, so a line this
         // control has drawn before is not shaped again even when the document
-        // around it was rebuilt ([ADR-0388]).
+        // around it was rebuilt.
         var document = editor.shaped(display, font, line -> context.paragraph(style, line));
         // The gutter's width is decided before the text is laid out, because the
         // text wraps at what is left over — which is why it is computed from the
-        // document's line count rather than from the layout it is about to cause
-        // ([ADR-0331]).
+        // document's line count rather than from the layout it is about to cause.
         var gutterWidth = gutterWidth(style, context, hardLines(document));
         var offset = editor.laidOut(document, padding, gutterWidth, style.textAlign());
 
@@ -574,11 +569,11 @@ record TextAreaBox(
         var boxes = new ArrayList<Box>(children.size());
         // In the padding box's coordinates, not the border box's: `ContainingBlock`
         // shifts every absolutely positioned child by its containing block's
-        // padding on the way to Yoga (ADR-0272), so a rectangle that added the
+        // padding on the way to Yoga, so a rectangle that added the
         // padding itself — which is what these three did until that landed —
         // would now be a padding's width too far in and a line too far down.
         // The selection, or the clause an input method is converting -- never
-        // both, because there is never both (ADR-0292).
+        // both, because there is never both.
         var washStart = composing.hasClause() ? composing.clauseStart() : edit.start();
         var washEnd = composing.hasClause() ? composing.clauseEnd() : edit.end();
         var drawWash = composing.hasClause() || (!composing.isActive() && edit.hasSelection());
@@ -600,7 +595,7 @@ record TextAreaBox(
 
         // The text: the rows on screen, as one paragraph — a slice of the
         // document between two line starts, which re-wraps to exactly the rows
-        // the document said it would ([ADR-0388]). `text-value` resolved the ink
+        // the document said it would. `text-value` resolved the ink
         // and the flow and drew nothing, which is what [Value#carrier] is for.
         var value = children.get(maxRows).text();
         var ink = value == null ? style.color() : value.argb();
@@ -670,8 +665,8 @@ record TextAreaBox(
             }
         }
 
-        // **Two layers, and the clip is on the inner one** (`docs/gaps.md` G43,
-        // ADR-0350). Everything that scrolls -- the text, the washes, the caret,
+        // **Two layers, and the clip is on the inner one.**
+        // Everything that scrolls -- the text, the washes, the caret,
         // the numbers -- has to stop at the content box, which is where a box's
         // own `overflow: hidden` clips. The strip has to reach the border, which
         // is outside that clip by exactly the padding. On one box those two ask
@@ -702,7 +697,7 @@ record TextAreaBox(
         // **A filling area takes what its parent gives it.** `flex-grow` rather than
         // a height, because the height is the layout's answer and not this widget's:
         // what it then does with it -- how many lines are on screen, how far the text
-        // may scroll -- comes back through the measurement (ADR-0296).
+        // may scroll -- comes back through the measurement.
         box = fill
                 ? box.grow(1).shrink(1).size(Length.UNDEFINED, Length.UNDEFINED)
                 : box.size(Length.UNDEFINED, Length.points((float) height(lines.size(), lineHeight, padding)));
@@ -727,7 +722,7 @@ record TextAreaBox(
     /// control's padding to every inset it is given, so `-padding + border` is
     /// where it lands: the border's inner edge.
     private static Box strip(Box part, ComputedStyle style, AreaPadding padding, double gutterWidth) {
-        // Per side since a border's sides can differ (ADR-0505); the field's own
+        // Per side since a border's sides can differ; the field's own
         // rule is uniform, and a theme that gave it a heavier left edge should
         // still see the strip start inside it.
         var border = style.decoration().border();
@@ -763,7 +758,7 @@ record TextAreaBox(
     /// The control's height: as many lines as the text has, between [#rows] and
     /// [#maxRows], plus the padding.
     ///
-    /// §4's auto-grow. Set here and not in the stylesheet because it is a
+    /// Auto-grow. Set here and not in the stylesheet because it is a
     /// function of how many lines the text wrapped into, which no selector can
     /// ask — a `height` a stylesheet set would be a control that stopped growing
     /// the moment somebody themed it.
@@ -781,8 +776,7 @@ record TextAreaBox(
     /// measurements take a **line's** range rather than an offset.
     /// Walked from the line the span **starts** on rather than from the top of
     /// the document, and stopped at the line it ends on: a selection near the
-    /// end of a long note used to cost a walk over every line above it
-    /// ([ADR-0388]).
+    /// end of a long note would otherwise cost a walk over every line above it.
     private List<Rect> spanRects(
             TextDocument document,
             DocumentLines lines,
@@ -834,12 +828,12 @@ record TextAreaBox(
 
         var at = Math.clamp(edit.caret(), 0, display.length());
         // Asked of the document rather than walked for, which is the same answer
-        // and does not read a line the caret is nowhere near ([ADR-0388]).
+        // and does not read a line the caret is nowhere near.
         var index = lines.indexOf(at);
         var line = lines.isEmpty() ? null : lines.get(index);
         // The line's own indent, because the paint gave each line its own share of
         // the slack — a caret measured from the paragraph's origin drifts by half of
-        // it under `center` and by all of it under `end` ([ADR-0324]).
+        // it under `center` and by all of it under `end`.
         var x = line == null
                 ? align.indentOf(0, width)
                 : align.indentOf(line.width(), width) + document.widthBetween(line.start(), Math.max(at, line.start()));

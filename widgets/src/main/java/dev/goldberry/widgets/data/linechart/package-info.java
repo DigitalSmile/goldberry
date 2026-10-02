@@ -1,5 +1,5 @@
-/// `docs/charts.md` §3.1's `line-chart` — a trend with axes, one line per series, and
-/// the parts every axis chart is drawn with.
+/// The `line-chart` — a trend with axes, one line per series — and the parts
+/// every axis chart is drawn with.
 ///
 /// [dev.goldberry.widgets.data.linechart.LineChart] is the widget.
 /// [dev.goldberry.widgets.data.linechart.ChartSeries] and
@@ -11,7 +11,9 @@
 /// two series and absent for one, are shared with the other charts through
 /// [dev.goldberry.widgets.data.ChartParts].
 ///
-/// Marked for NullAway (`docs/testing.md` §2, ADR-0497).
+/// Every reference is non-null unless it says `@Nullable`.
+///
+/// Read more: [Charts](https://goldberry.dev/docs/components/charts.html#line-chart).
 @NullMarked
 package dev.goldberry.widgets.data.linechart;
 

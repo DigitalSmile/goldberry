@@ -6,15 +6,18 @@ import java.util.SequencedSet;
 
 import dev.goldberry.render.window.Presentation;
 
-/// How many of a window's frames went through the GPU and how many on the CPU,
-/// for the line the launcher logs at exit (ADR-0492).
+/// How many of a window's frames were presented through the GPU and how many on
+/// the CPU, for the line the launcher logs at exit.
 ///
-/// Every presented frame, including one with nothing new to upload, because the
-/// question is where the window was, not what the GPU was asked to do: a still
-/// window on the GPU is on the GPU. [PresentSummary] is the other half, the cost
-/// of the presents that carried new pixels.
+/// A window keeps one and counts every presented frame into it, including a
+/// frame with nothing new to upload: the question is which path the window was
+/// on, not what the GPU was asked to do, so a still window on the GPU is on the
+/// GPU. [PresentSummary] is the other half, the cost of the GPU presents that
+/// carried new pixels.
 ///
 /// Confined to the UI thread, like the frame loop that feeds it.
+///
+/// Read more: [Logging and diagnostics](https://goldberry.dev/docs/guide/logging.html#which-way-a-window-presents).
 public final class PresentationTally {
 
     private long gpuFrames;
@@ -24,7 +27,7 @@ public final class PresentationTally {
     /// An empty tally. A window keeps one; a test can make its own.
     public PresentationTally() {}
 
-    /// Counts one presented frame.
+    /// Counts one presented frame under the path it took.
     public void count(Presentation presentation) {
         Objects.requireNonNull(presentation, "presentation");
         switch (presentation) {
@@ -46,6 +49,7 @@ public final class PresentationTally {
         return cpuFrames;
     }
 
+    /// The line the launcher logs, in the shape
     /// `400 frame(s) through the GPU (vulkan), 0 on the CPU`.
     public String describe() {
         var through = drivers.isEmpty() ? "" : " (" + String.join(", ", drivers) + ")";

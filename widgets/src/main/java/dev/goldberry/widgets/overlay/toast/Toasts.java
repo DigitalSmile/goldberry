@@ -10,7 +10,7 @@ import dev.goldberry.Overlay;
 import dev.goldberry.widget.BuildContext;
 import dev.goldberry.widget.style.Corner;
 
-/// Putting a toast stack on a window — the half of §7's `toast` that is not a
+/// Putting a toast stack on a window — the half of a toast that is not a
 /// widget.
 ///
 /// `Menus.open` and `Dialogs.show` are the other two of these, and the split is
@@ -33,23 +33,24 @@ import dev.goldberry.widget.style.Corner;
 /// ## Finding the stack from inside the tree
 ///
 /// That last sentence is true of an *application*, which holds the controller in
-/// a field. It was not true of a **widget**: a control deep in the tree that
-/// wanted to say "Saved" had to be handed a callback by whoever built it, and
-/// every layer in between had to carry one.
+/// a field. A **widget** has no field to hold one: a control deep in the tree
+/// that wants to say "Saved" would otherwise have to be handed a callback by
+/// whoever built it, with every layer in between carrying one.
 ///
-/// [#of(BuildContext)] is the door — `Overlay.of(context)`'s shape, which is what
-/// `TODO.md` asked for by name. `BuildContext.host()` gives the window
-/// ([ADR-0140]) and [#at] is the one place that knows which stack is on it, so
-/// the lookup is a map from the one to the other kept **here** rather than on
-/// `Host`: `:core` must not learn what a toast is, which is the whole reason
-/// `Toasts`, `Menus` and `Dialogs` are three classes in `:widgets` and not three
-/// methods on the window ([ADR-0264]).
+/// [#of(BuildContext)] is the door, in `Overlay.of(context)`'s shape.
+/// `BuildContext.host()` gives the window and [#at] is the one place that knows
+/// which stack is on it, so the lookup is a map from the one to the other kept
+/// **here** rather than on `Host`: `:core` must not learn what a toast is, which
+/// is the whole reason `Toasts`, `Menus` and `Dialogs` are three classes in
+/// `:widgets` and not three methods on the window.
 ///
 /// ```java
 /// Toasts.of(context).ifPresent(toasts -> toasts.show("Saved"));
 /// ```
 ///
 /// Confined to the UI thread, like everything that touches a [Host].
+///
+/// Read more: [Overlays](https://goldberry.dev/docs/components/overlays.html#toasts).
 public final class Toasts {
 
     private Toasts() {}
@@ -59,8 +60,8 @@ public final class Toasts {
     /// A **corner** overlay rather than a filling one, which is the difference
     /// between this and a dialog in one word: a toast is non-modal, so it must
     /// cover as little as possible and take no press that is not its own. The
-    /// overlay layer has done exactly this since `hud` was its first occupant
-    /// (ADR-0100).
+    /// overlay layer is built for exactly this: an overlay takes no space from
+    /// the application and is painted after it.
     ///
     /// @return the handle that takes the whole stack away again — for a window
     ///         that changes where its toasts appear, and for a test

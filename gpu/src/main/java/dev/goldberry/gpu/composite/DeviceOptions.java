@@ -4,7 +4,7 @@ import org.jspecify.annotations.Nullable;
 
 import dev.goldberry.natives.sdl.gpu.SdlGpuDevice;
 
-/// How the process's GPU device is asked for (`docs/gpu-plan.md`, D2): every
+/// How the process's GPU device is asked for: every
 /// shader format the toolkit ships, the low-power GPU, and SDL's choice of
 /// driver, unless two system properties say otherwise.
 ///

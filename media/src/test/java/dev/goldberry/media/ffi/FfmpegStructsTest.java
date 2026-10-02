@@ -7,8 +7,8 @@ import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-/// The hand-written layouts against the probe's output: `docs/goldberry-media.md`
-/// §2's layout test, runnable anywhere.
+/// The hand-written layouts against the probe's output: the layout test,
+/// runnable anywhere.
 @DisplayName("FfmpegStructs")
 class FfmpegStructsTest {
 

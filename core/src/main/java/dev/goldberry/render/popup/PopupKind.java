@@ -7,19 +7,21 @@ package dev.goldberry.render.popup;
 /// tooltip must never, or the caret leaves the field the tooltip is describing.
 /// Platforms also differ in what they will do to each — animate it, shadow it,
 /// keep it out of the window list, dismiss it when the pointer leaves.
+///
+/// Read more: [Windows, popups and the host](https://goldberry.dev/docs/guide/windows.html#in-a-window-of-its-own).
 public enum PopupKind {
 
     /// A menu, a dropdown, a `select`'s list, a `popover` — anything the user is
     /// meant to act on. May take input focus.
     MENU,
 
-    /// A panel that hangs off something the user is **still using** — §4's
-    /// suggestion list, and a combobox's dropdown.
+    /// A panel that hangs off something the user is **still using** — a text
+    /// field's suggestion list, and a combobox's dropdown.
     ///
     /// A menu window in every respect the window manager cares about — it takes
     /// the pointer, it is placed and shadowed like a menu, it is in no window
     /// list — and **not focusable**, so the keyboard stays on the field it hangs
-    /// off (ADR-0187).
+    /// off.
     ///
     /// It is not [#TOOLTIP], and the difference is the whole reason it exists: a
     /// tooltip is "never interacted with", so platforms give it no input at all.
@@ -29,8 +31,7 @@ public enum PopupKind {
 
     /// A tooltip: shown, read and never interacted with. Never takes focus.
     ///
-    /// `docs/core-widgets.md` §7 says a tooltip is "never focusable itself" and
-    /// shows "on hover *and on keyboard focus*" — which only works if showing it
-    /// does not move the focus that summoned it.
+    /// A tooltip shows on hover and on keyboard focus alike, which only works if
+    /// showing it does not move the focus that summoned it.
     TOOLTIP
 }

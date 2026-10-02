@@ -20,13 +20,15 @@ import dev.goldberry.widgets.Widgets;
 import dev.goldberry.widgets.markup.Wiring;
 import dev.goldberry.widgets.text.Text;
 
-/// `bind=` from **markup** to a widget (§9,
-/// ADR-0062).
+/// `bind=` from **markup** to a widget: a path into the model and nothing else.
 ///
 /// The other half — what an element does with a binding once it holds one, and
 /// when it lets go — is `:core`'s `BindingLifecycleTest`, because it is about the
-/// element tree rather than about `text`. The two were one file until [ADR-0092]
-/// moved the primitives out of `:core` and the seam became a module boundary.
+/// element tree rather than about `text`. The two were one file until the
+/// primitives moved out of `:core` and the seam became a module boundary.
+///
+/// Read more:
+/// [Bind is a path and nothing else](https://goldberry.dev/docs/guide/markup.html#bind-is-a-path-and-nothing-else).
 class BindingTest {
 
     private static Widget inflate(String markup, BindingRegistry bindings) {
@@ -47,7 +49,7 @@ class BindingTest {
             var fromMarkup = inflate("text id=\"who\" bind=\"user.name\"", bindings);
             var fromJava = new Text("", name, new Attributes("who", java.util.Set.of(), "who"));
 
-            // The parity invariant of §11, extended to the attribute: markup and
+            // The parity invariant, extended to the attribute: markup and
             // Java produce the same widget, and the property is the same object
             // rather than a copy of its value.
             assertEquals(fromJava, fromMarkup);
@@ -68,7 +70,7 @@ class BindingTest {
         @DisplayName("an unbound path leaves the argument as what is drawn")
         void lenientFallsBackToTheLiteral() {
             // Markup-first: the screen is laid out before the model exists, and a
-            // designer needs to see something (ADR-0051).
+            // designer needs to see something.
             var text = (Text) inflate("text bind=\"user.name\" \"Name here\"", BindingRegistry.lenient());
 
             assertEquals("Name here", text.resolved());

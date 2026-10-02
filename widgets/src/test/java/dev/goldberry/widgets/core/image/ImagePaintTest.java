@@ -10,7 +10,7 @@ import dev.goldberry.css.ComputedStyle;
 import dev.goldberry.layout.Length;
 import dev.goldberry.layout.Limits;
 
-/// How big an image's box is ([ADR-0358]): the picture's, until a stylesheet
+/// How big an image's box is: the picture's, until a stylesheet
 /// says otherwise. A 400×200 natural size throughout.
 class ImagePaintTest {
 

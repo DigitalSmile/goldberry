@@ -15,7 +15,10 @@ import dev.goldberry.render.window.NativeHandle;
 /// has with `NativeCapability`.
 ///
 /// A backend calls [#open] from `createWebView`, and the frame loop calls
-/// [#pump()]. Nothing else here should name this class.
+/// [#pump()]. Nothing else here should name this class. Everything in it runs on
+/// the UI thread.
+///
+/// Read more: [Markdown, HTML and the web](https://goldberry.dev/docs/components/content.html#the-web-view).
 public final class WebViewEngine {
 
     private WebViewEngine() {}
@@ -57,7 +60,7 @@ public final class WebViewEngine {
 
     /// Opens a page **inside** `parent`, at `bounds` in that window's own pixels.
     ///
-    /// The embedded half of §9's `web-view` ([ADR-0442]). The page keeps its own
+    /// The embedded half of the `web-view` widget. The page keeps its own
     /// platform window and that window becomes a child of the application's, so
     /// it takes part in the layout rather than floating beside it.
     ///
@@ -123,8 +126,7 @@ public final class WebViewEngine {
     ///
     /// **Before the content**, which is the whole of the ordering that matters:
     /// the engine injects each binding's glue at document start, so a name bound
-    /// after a page has loaded is not there for the script that already ran
-    /// ([ADR-0448]).
+    /// after a page has loaded is not there for the script that already ran.
     ///
     /// A handler that cannot be bound is **logged and skipped** rather than
     /// thrown: the only documented failure is a duplicate name, the page is

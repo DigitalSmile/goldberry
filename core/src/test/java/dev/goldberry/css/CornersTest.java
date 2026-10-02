@@ -25,8 +25,8 @@ class CornersTest {
         @Test
         @DisplayName("a negative corner is clamped, not fatal")
         void negativeIsClamped() {
-            // [Decoration]'s rule: these arrive from a stylesheet, and §8 drops a
-            // bad declaration rather than taking a window down mid-frame.
+            // [Decoration]'s rule: these arrive from a stylesheet, and the cascade
+            // drops a bad declaration rather than taking a window down mid-frame.
             assertEquals(Corners.SQUARE, Corners.all(-4));
             assertEquals(new Corners(0, 2, 0, 0), new Corners(-1, 2, -3, -4));
         }

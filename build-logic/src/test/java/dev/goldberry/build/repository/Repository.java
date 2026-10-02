@@ -8,7 +8,7 @@ import java.nio.file.Path;
 /**
  * The repository build-logic builds, read as text by the drift guards -- the
  * tests that hold a table in Java and a workflow or build script to the same
- * statement (ADR-0082).
+ * statement.
  */
 public final class Repository {
 
@@ -64,7 +64,7 @@ public final class Repository {
      * {@code showcase.yml} on {@code "\n\n"} found no such thing, and failed with
      * a {@code StringIndexOutOfBoundsException} instead of a message. The guards
      * are about content, not about line endings, so the endings are taken out
-     * here, once, rather than in each of them (ADR-0338).
+     * here, once, rather than in each of them.
      */
     static String lineFeeds(String text) {
         return text.replace("\r\n", "\n").replace('\r', '\n');

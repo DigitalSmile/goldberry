@@ -17,11 +17,11 @@ import dev.goldberry.widget.style.Styled;
 /// a ring with nothing in it for the pending one (`timeline-marker.pending`),
 /// and — when the entry wrote a `marker` slot — a bare holder for that widget
 /// (`timeline-marker.widget`), which takes the widget's size and paints nothing
-/// of its own (ADR-0356).
+/// of its own.
 ///
 /// The colour is the entry's when it gave one and the stylesheet's otherwise
 /// — a dot is data when a timeline colours its kinds, which is `chip`'s rule
-/// for the same dot (ADR-0328).
+/// for the same dot.
 ///
 /// @param icon    the icon, or null
 /// @param colour  the fill, or 0 for the stylesheet's; ignored for a widget

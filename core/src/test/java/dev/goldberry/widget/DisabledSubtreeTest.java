@@ -24,10 +24,11 @@ import dev.goldberry.widget.attr.Attributes;
 import dev.goldberry.widget.style.Paints;
 import dev.goldberry.widget.style.Styled;
 
-/// A disabled container disables what is inside it — [ADR-0379].
+/// A disabled container disables what is inside it, for the cascade as well as
+/// for input.
 ///
-/// `core-widgets.md`'s widget contract has always said so, and the router has
-/// enforced the *input* half since ADR-0077: a button inside a disabled `form`
+/// The widget contract has always said so, and the router has enforced the
+/// *input* half from the start: a button inside a disabled `form`
 /// takes no click, whatever it says about itself. What it did not reach was the
 /// cascade, so the same button was drawn as though it were available — and a
 /// stylesheet could say nothing about a disabled subtree, because nothing in one

@@ -23,11 +23,14 @@ import dev.goldberry.widget.ElementTree;
 import dev.goldberry.widget.Widget;
 import dev.goldberry.widget.style.Styled;
 
-/// §7.2's "composites are one Tab stop with roving arrow-key focus inside".
+/// A composite is one Tab stop, with roving arrow-key focus inside.
 ///
 /// [KeyboardTest] covers traversal over a flat tree; this covers the case that
 /// tree cannot express — a group whose members are focusable individually and
-/// collectively count as one stop ([ADR-0073]).
+/// collectively count as one stop.
+///
+/// Read more:
+/// [A composite is one Tab stop](https://goldberry.dev/docs/guide/input.html#a-composite-is-one-tab-stop).
 ///
 /// Deliberately in `:core` and built from bare widgets rather than from `radio`,
 /// which lives in `:widgets`: the mechanism is the router's and has to hold for
@@ -136,8 +139,7 @@ class FocusScopeTest {
     /// Focus and the *highlight* are two things, and a menu is what made the
     /// difference visible: it focuses its first row as it opens so that an arrow
     /// key has somewhere to start, and a row picked out before the user has
-    /// touched the keyboard reads as a menu that has already chosen
-    /// (ADR-0112).
+    /// touched the keyboard reads as a menu that has already chosen.
     @Nested
     @DisplayName("moving focus says whether the keyboard asked")
     class FocusVisible {
@@ -402,7 +404,7 @@ class FocusScopeTest {
     }
 
     @Nested
-    @DisplayName("a scope has an axis (ADR-0078)")
+    @DisplayName("a scope has an axis")
     class Axis {
 
         /// Builds `before | group(one two three) | after` with a scope of `scope`,

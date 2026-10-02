@@ -10,15 +10,14 @@ import dev.goldberry.widget.Widget;
 /// Two numbers, and they are different kinds of thing. The **position** is a
 /// fraction the widget may or may not own — a controlled split reads it from its
 /// widget every build. The **length** is a measurement, which no widget can own
-/// at all: it arrives from the frame that was laid out
-/// (ADR-0117).
+/// at all: it arrives from the frame that was laid out.
 final class SplitPaneState extends State<SplitPane> {
 
     /// What a key press moves the divider by, in logical pixels.
     ///
     /// Pixels rather than a fraction of the pane, so a key press feels the same
-    /// on a narrow split and a wide one — which is the same argument
-    /// `docs/design-system.md` §2.4 makes for a scroll line.
+    /// on a narrow split and a wide one — the same argument the design system
+    /// makes for a scroll line.
     private static final double KEY_STEP = 16;
 
     /// The larger step, for `PageUp` and `PageDown`.
@@ -39,8 +38,9 @@ final class SplitPaneState extends State<SplitPane> {
     /// `position=0.5` put the divider wherever the two children's content widths
     /// happened to land, and a drag was the only thing that ever corrected it.
     ///
-    /// ADR-0119's warning about rebuilding for ever is still the rule this obeys
-    /// rather than an argument against reacting at all. What is measured here is
+    /// A widget that rebuilds from its own measurement risks rebuilding for
+    /// ever, and that warning is the rule this obeys rather than an argument
+    /// against reacting at all. What is measured here is
     /// the **split pane's own** length, and what the rebuild changes is its
     /// *children's* — so the value cannot feed itself, and the second frame is a
     /// fixed point. The one arrangement where that is not true is a split pane

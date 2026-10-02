@@ -35,10 +35,10 @@ import dev.goldberry.widgets.text.Text;
 /// every node under it.
 ///
 /// The measurement taken before touching `customPropertiesFor`, and kept so
-/// the next person can take it again (ADR-0502). That method walks to the root
+/// the next person can take it again. That method walks to the root
 /// at every node, so its cost is a product of depth and something — and
 /// whether the something is a cascade per ancestor, as TODO.md feared, or a
-/// cache probe per ancestor, as ADR-0152 left it, is the difference between a
+/// cache probe per ancestor, as the cascade was left, is the difference between a
 /// first frame that grows with the square of the nesting and one that does
 /// not. It was the probe; what the measurement found instead was a copy of the
 /// root's custom properties at every node, which had nothing to do with depth.

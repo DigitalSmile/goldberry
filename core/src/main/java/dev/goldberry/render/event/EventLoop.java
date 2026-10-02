@@ -21,6 +21,11 @@ import dev.goldberry.render.web.WebViewEngine;
 
 /// Drives a backend: drains queued UI work, pumps platform events, repeats.
 ///
+/// The launcher makes one per backend and calls [#run] on the UI thread; it
+/// returns when [#stop()] is called or the last window closes. An application
+/// meets it through `Goldberry.async`, `Goldberry.ui()` and `host.after`, which
+/// are [#supplyAsync], [#ui()] and [#after] behind a shorter name.
+///
 /// ## The threading rule
 ///
 /// One thread runs the UI and nothing else runs on it. That thread is only ever
@@ -41,8 +46,10 @@ import dev.goldberry.render.web.WebViewEngine;
 /// ## What still blocks
 ///
 /// Rasterization does not happen here. Blend2D rasterizes on its own worker
-/// threads (§5) and the UI thread hands over a finished buffer, so a slow frame
-/// costs a frame rather than the event loop.
+/// threads and the UI thread hands over a finished buffer, so a slow frame costs
+/// a frame rather than the event loop.
+///
+/// Read more: [Windows, popups and the host](https://goldberry.dev/docs/guide/windows.html#threads).
 public final class EventLoop implements AutoCloseable {
 
     private static final Logger LOG = Logs.of(EventLoop.class);
@@ -78,12 +85,11 @@ public final class EventLoop implements AutoCloseable {
     /// **A seam, and it exists for the suite.** Every delay in the toolkit that a
     /// widget can see goes through [#after]: a tooltip's dwell, a hover-hold, a
     /// menu's safe triangle, a toast's stay. A test that wants to know what
-    /// happens after one of them had no way to ask but to *sleep* — and about
-    /// thirty of them did, adding seconds of real time to `check` and proving
-    /// absence by waiting (the 2026-09-18 review, §6). With a clock to move, a
-    /// test moves it and calls [Backend#wakeup()]: the pump returns, the timers
-    /// come due, and the answer arrives in a millisecond of wall time rather than
-    /// the second the widget asked for.
+    /// happens after one of them would otherwise have to *sleep*, proving
+    /// absence by waiting. With a clock to move, a test moves it and calls
+    /// [Backend#wakeup()]: the pump returns, the timers come due, and the answer
+    /// arrives in a millisecond of wall time rather than the second the widget
+    /// asked for.
     ///
     /// `nanoTime` in production, and the field is read nowhere else — `Duration`s
     /// are still `Duration`s and nothing in this class does arithmetic on a wall
@@ -145,7 +151,7 @@ public final class EventLoop implements AutoCloseable {
 
                 // A web page's engine has an event loop of its own that nothing
                 // else drives — see WebViewEngine#pump. Free and library-free
-                // when no page is open, which is nearly always (ADR-0441).
+                // when no page is open, which is nearly always.
                 WebViewEngine.pump();
 
                 fireDueTimers();
@@ -172,9 +178,8 @@ public final class EventLoop implements AutoCloseable {
     /// on time and then wait up to [#IDLE_TIMEOUT] for the pump to come back and
     /// notice. This shortens the pump instead.
     ///
-    /// Two consumers, both named in `docs/core-widgets.md`: a `tooltip` "shows on
-    /// hover *and on keyboard focus* **after delay**", and a submenu opens on
-    /// "hover-intent timing". A toast's timeout is the third.
+    /// A `tooltip` shows after a delay, a submenu opens on hover-intent timing,
+    /// and a toast stays for a while: all three wait here.
     ///
     /// UI thread only. Work that arrives from elsewhere goes through [#ui()],
     /// which is the one door in.
@@ -238,8 +243,7 @@ public final class EventLoop implements AutoCloseable {
     ///
     /// The honest fix is a wakeup from GLib's side, which means a file descriptor
     /// from `g_main_context_get_poll_func` handed to SDL — and SDL has no API for
-    /// waiting on somebody else's descriptor. Recorded on ADR-0441 rather than
-    /// left here.
+    /// waiting on somebody else's descriptor.
     private Duration webViewCapped(Duration timeout) {
         if (!WebViewEngine.hasOpenPages()) {
             return timeout;
@@ -257,7 +261,7 @@ public final class EventLoop implements AutoCloseable {
     /// a pump that overslept — a loaded macOS runner did, by more than the gap
     /// between a 5 ms and a 30 ms timer — hands this method both at once. Firing
     /// them in list order then fires the later one first, which is the one
-    /// ordering a caller can never have meant (ADR-0338).
+    /// ordering a caller can never have meant.
     private void fireDueTimers() {
         if (timers.isEmpty()) {
             return;
@@ -297,11 +301,10 @@ public final class EventLoop implements AutoCloseable {
 
         /// Pending, and then one of the two ways of being over.
         ///
-        /// A `boolean cancelled` stood here, and [#isPending()] was `!cancelled`
-        /// — so a timer that had *fired* answered "still going to fire", for ever
-        /// (the 2026-09-18 review, C14). `fireDueTimers` removes it from the list
-        /// without telling it anything, which is why the timer has to know for
-        /// itself.
+        /// Three states rather than a `cancelled` flag, so a timer that has
+        /// *fired* does not answer "still going to fire": `fireDueTimers` removes
+        /// it from the list without telling it anything, which is why the timer
+        /// has to know for itself.
         private enum State {
             PENDING,
             FIRED,

@@ -21,8 +21,8 @@ import dev.goldberry.render.model.PhysicalRect;
 import dev.goldberry.render.window.GpuSurface;
 
 /// A picture with GPU layers in it, taken both ways a window shows them, on a
-/// real device (ADR-0481): composited, as a composited window's swapchain
-/// would show it, and read back, as a window on the CPU would.
+/// real device: composited, as a composited window's swapchain would show it,
+/// and read back, as a window on the CPU would.
 ///
 /// A picture is taken by a function from a surface to an image -- usually
 /// `Offscreen.of(size).gpu(surface).paint(…)` or `.render(…)` -- so a painter
@@ -30,7 +30,8 @@ import dev.goldberry.render.window.GpuSurface;
 /// production passes: [LayerTextures#renderAll] and [UiComposite] composited,
 /// [SdlReadbackSurface] read back.
 ///
-/// Public for the tests in `…gpu.view`, which draw `canvas3d` with it.
+/// Public for the tests in `…gpu.view`, which draw `canvas3d` with it. Read more:
+/// [The GPU tests](https://goldberry.dev/docs/contributing/testing.html#the-gpu-tests).
 public final class CompositeHarness implements AutoCloseable {
 
     private final SdlGpuDevice required;

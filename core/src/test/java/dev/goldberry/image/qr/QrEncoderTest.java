@@ -22,7 +22,7 @@ import org.junit.jupiter.api.Test;
 class QrEncoderTest {
 
     /// `01234567` at 1-M, from the standard's worked example. Mode indicator
-    /// `0001`, count 8, three groups of digits, terminator, then §7.4.10's pad
+    /// `0001`, count 8, three groups of digits, terminator, then ISO/IEC 18004 §7.4.10's pad
     /// codewords.
     private static final int[] NUMERIC_DATA = {16, 32, 12, 86, 97, 128, 236, 17, 236, 17, 236, 17, 236, 17, 236, 17};
 

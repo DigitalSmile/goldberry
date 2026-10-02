@@ -6,18 +6,17 @@ import dev.goldberry.natives.desktop.calls.MacMotion;
 import dev.goldberry.natives.desktop.calls.PortalSettings;
 import dev.goldberry.natives.desktop.calls.WindowsMotion;
 
-/// Whether the desktop asks for less movement — §13's reduce-motion switch,
+/// Whether the desktop asks for less movement — the reduce-motion switch,
 /// **detected** rather than set.
 ///
 /// ## Why this is not an SDL call
 ///
 /// It would be one if SDL had one. `SDL_GetSystemTheme` answers the other
-/// preference with a single call on all three platforms, which is exactly why
-/// ADR-0322 bound it and did not go to the platform; there is no
-/// `SDL_GetReducedMotion` and no request open for one. So this is the three
-/// platform integrations that decision was glad to avoid, taken now because the
-/// alternative is a switch every application has to find for itself
-/// ([ADR-0383]).
+/// preference with a single call on all three platforms, which is why the theme
+/// query is bound through SDL and does not go to the platform; there is no
+/// `SDL_GetReducedMotion` and no request open for one. So this is three
+/// platform integrations instead, because the alternative is a switch every
+/// application has to find for itself.
 ///
 /// Each of them is a **read-only query through FFM against a library the process
 /// already has**: no new native code, nothing added to the superbuild, nothing
@@ -38,6 +37,8 @@ import dev.goldberry.natives.desktop.calls.WindowsMotion;
 /// application restarts, which is written down rather than hidden — the portal
 /// has a `SettingChanged` signal and taking it means a D-Bus main loop, which is
 /// a much larger thing than one blocking read.
+///
+/// Read more: [The native boundary](https://goldberry.dev/docs/overview/architecture.html#the-native-boundary).
 public final class DesktopMotion {
 
     /// Overrides the query: `reduce`, `full`, or anything else for "do not ask".

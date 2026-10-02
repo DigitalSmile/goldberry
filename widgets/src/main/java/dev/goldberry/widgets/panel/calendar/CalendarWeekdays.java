@@ -10,8 +10,8 @@ import dev.goldberry.widget.Widget;
 import dev.goldberry.widget.style.Paints;
 import dev.goldberry.widget.style.Styled;
 
-/// The column headings — `calendar-weekdays`, a **part**, and §2's "header row
-/// `caption` in `--gb-text-muted`".
+/// The column headings — `calendar-weekdays`, a **part**: a header row at the
+/// `caption` rank in `--gb-text-muted`.
 ///
 /// Outside [CalendarGrid] rather than inside it, which is what stops the day
 /// names cross-fading with the month: they are the same seven letters in January

@@ -11,13 +11,13 @@ import org.junit.jupiter.api.Test;
 
 /// The module graph, asserted rather than described.
 ///
-/// `docs/ARCHITECTURE.md` §2 draws an arrow per module and §3.1 says a raw
-/// `MemorySegment` never escapes `:natives`. Both were prose, and prose is not a
-/// boundary: the module graph enforces *visibility* — `:widgets` cannot see a
-/// package `:core` does not export — but it says nothing about a `:core` class
-/// reaching into `render.backend.sdl3`, because `:core` exports that package to
-/// everyone. This is the half `module-info` cannot state
-/// (`docs/testing.md` §2).
+/// The architecture draws an arrow per module and says a raw `MemorySegment`
+/// never escapes `:natives`. Both were prose, and prose is not a boundary: the
+/// module graph enforces *visibility* — `:widgets` cannot see a package `:core`
+/// does not export — but it says nothing about a `:core` class reaching into
+/// `render.backend.sdl3`, because `:core` exports that package to everyone. This
+/// is the half `module-info` cannot state, and the architecture tests are the
+/// gate that states it.
 ///
 /// ## Why this lives in `:widgets`
 ///
@@ -28,9 +28,13 @@ import org.junit.jupiter.api.Test;
 /// refused to let you write.
 ///
 /// `:gpu` is absent, deliberately, and so is any rule about it: `:widgets` has no
-/// dependency on it (ADR-0014, so that a published widget library does not drag
-/// SDL_GPU into every consumer), and inventing one here to satisfy a test would
-/// be the test breaking the architecture it exists to protect.
+/// dependency on it, so that a published widget library does not drag SDL_GPU
+/// into every consumer, and inventing one here to satisfy a test would be the
+/// test breaking the architecture it exists to protect.
+///
+/// Read more:
+/// [Architecture: the modules](https://goldberry.dev/docs/overview/architecture.html#the-modules),
+/// [Tests and gates](https://goldberry.dev/docs/contributing/testing.html#the-test-kinds).
 class BoundaryTest {
 
     /// Every Goldberry class on the test classpath, tests excluded.
@@ -54,7 +58,7 @@ class BoundaryTest {
                 .importPackages("dev.goldberry");
     }
 
-    // --- the boundary ARCHITECTURE §3.1 draws --------------------------------
+    // --- the native boundary -------------------------------------------------
 
     @Test
     @DisplayName("a raw MemorySegment never escapes :natives")
@@ -65,7 +69,7 @@ class BoundaryTest {
                 .should()
                 .dependOnClassesThat()
                 .haveFullyQualifiedName("java.lang.foreign.MemorySegment")
-                .because("§3.1: the FFM boundary is the point of :natives existing."
+                .because("the FFM boundary is the point of :natives existing."
                         + " Pixels cross as a ByteBuffer, which is what"
                         + " MemorySegment.asByteBuffer() produces without copying")
                 .check(classes);
@@ -81,11 +85,11 @@ class BoundaryTest {
                 .dependOnClassesThat()
                 .resideInAPackage("java.lang.foreign..")
                 .because("an arena outside :natives is native memory with no owner:"
-                        + " §3.1 puts every lifetime behind a wrapper that closes it")
+                        + " every native lifetime sits behind a wrapper that closes it")
                 .check(classes);
     }
 
-    // --- the arrows ARCHITECTURE §2 draws ------------------------------------
+    // --- the arrows between modules ------------------------------------------
 
     @Test
     @DisplayName(":natives depends on nothing of Goldberry's but :common")
@@ -102,7 +106,7 @@ class BoundaryTest {
                         "..goldberry.paint..",
                         "..goldberry.render..",
                         "..goldberry.input..")
-                .because("§2: :natives is bindings and a superbuild. It requires"
+                .because(":natives is bindings and a superbuild. It requires"
                         + " :common and slf4j and nothing else, which is what lets"
                         + " :core and a binding generator both use it")
                 .check(classes);
@@ -123,7 +127,7 @@ class BoundaryTest {
                         "..goldberry.widgets..",
                         "..goldberry.paint..",
                         "..goldberry.render..")
-                .because("ADR-0174: :common is what both halves need and neither owns."
+                .because(":common is what both halves need and neither owns."
                         + " It requires nothing of Goldberry's, which is the only"
                         + " reason :natives and :core can both use it")
                 .check(classes);
@@ -144,12 +148,12 @@ class BoundaryTest {
                 .should()
                 .dependOnClassesThat()
                 .resideInAPackage("..goldberry.widgets..")
-                .because("§2: the catalog is built on :core and :core knows nothing"
+                .because("the catalog is built on :core and :core knows nothing"
                         + " of it — which is what makes a second catalog possible")
                 .check(classes);
     }
 
-    // --- the seam testing.md §2 names ----------------------------------------
+    // --- the seam between a widget and a backend -----------------------------
 
     @Test
     @DisplayName("a widget never imports a backend")
@@ -160,7 +164,7 @@ class BoundaryTest {
                 .should()
                 .dependOnClassesThat()
                 .resideInAPackage("..goldberry.render.backend..")
-                .because("testing.md §2: a widget is a value. Reaching sdl3 or headless"
+                .because("a widget is a value. Reaching sdl3 or headless"
                         + " from one would make the catalog untestable without a"
                         + " backend and unusable on a second")
                 .check(classes);
@@ -178,7 +182,7 @@ class BoundaryTest {
                 .orShould()
                 .dependOnClassesThat()
                 .haveSimpleName("Launcher")
-                .because("ADR-0121: starting a tour, opening a menu and floating a HUD"
+                .because("starting a tour, opening a menu and floating a HUD"
                         + " all need a Host, and a widget has none. That seam is why"
                         + " Menus.open and Tours.start take one")
                 .check(classes);

@@ -35,8 +35,8 @@ import dev.goldberry.widget.Widget;
 import dev.goldberry.widgets.Controls;
 import dev.goldberry.widgets.core.Column;
 
-/// [Menus] — the half of §8 that is a window rather than a tree, driven through
-/// the real launcher and the real frame loop.
+/// [Menus] — the half of a menu that is a window rather than a tree, driven
+/// through the real launcher and the real frame loop.
 ///
 /// Clicks are posted at coordinates inside the popup's own window, so what is
 /// being tested is the shipping path: the router hit-tests the frame the popup
@@ -104,7 +104,7 @@ class MenusTest {
     private static final LogicalRect ANCHOR = LogicalRect.of(10, 10, 80, 24);
 
     /// Measure, fit, open — end to end, and the only place the second
-    /// measurement really happens ([ADR-0179]).
+    /// measurement really happens.
     ///
     /// `Menus` used to decide this from an **estimate**: rows times an assumed
     /// 34px, because nothing reported what a menu measured. The estimate rounded
@@ -257,7 +257,7 @@ class MenusTest {
     /// The one a pointer user notices immediately: a submenu that will not go
     /// away. Moving to a sibling closes it, and most siblings have no submenu of
     /// their own — which is why *every* row reports the pointer arriving on it and
-    /// not only the ones with children ([ADR-0112]).
+    /// not only the ones with children.
     @Test
     @Timeout(20)
     @DisplayName("moving to a row without a submenu closes the one that is open")
@@ -296,7 +296,7 @@ class MenusTest {
     }
 
     /// The window the popups belong to — where keys are posted, because the owner
-    /// forwards them to whatever popup is open ([ADR-0104]).
+    /// forwards them to whatever popup is open.
     private HeadlessWindow ownerWindow() {
         return backend.windows().stream()
                 .filter(window -> !(window instanceof HeadlessPopup))
@@ -313,8 +313,7 @@ class MenusTest {
     ///
     /// Posted as two backend events rather than driven through a detector,
     /// because the whole claim is that the shipping path recognises them —
-    /// `Window` reads the raw keycode, arms, and fires on the release
-    /// ([ADR-0223]).
+    /// `Window` reads the raw keycode, arms, and fires on the release.
     private void tap(dev.goldberry.input.tap.ModifierKey modifier) {
         backend.post(new BackendEvent.KeyPressed(
                 ownerWindow(), modifier.leftKeycode(), modifier.modifier().bit(), false));
@@ -332,12 +331,12 @@ class MenusTest {
         return frame.pixels().getInt(y * frame.stride() + x * 4);
     }
 
-    /// §8's hover-intent delay is for a **pointer** travelling past three rows on
+    /// The hover-intent delay is for a **pointer** travelling past three rows on
     /// its way somewhere. A keypress has travelled past nothing, and waiting the
     /// same 150 ms made `Right` feel broken.
     ///
     /// The assertion is the timing: 100 ms after the key, which is inside the
-    /// delay the old code would still have been waiting out ([ADR-0219]).
+    /// delay the old code would still have been waiting out.
     @Test
     @Timeout(20)
     @DisplayName("a keyboard Right opens a submenu at once, not after the pointer's delay")
@@ -423,7 +422,7 @@ class MenusTest {
     ///
     /// Measured in pixels, at a point on the row where no label is drawn, before
     /// and after — with the pointer moved out of this window in between, so the
-    /// only thing that can have changed the row is the mark ([ADR-0219]).
+    /// only thing that can have changed the row is the mark.
     @Test
     @Timeout(20)
     @DisplayName("the row whose submenu is showing is marked, once the pointer has left it")
@@ -457,7 +456,7 @@ class MenusTest {
                 before[0], after[0], "the row whose submenu is showing looks exactly like the rows that are not");
     }
 
-    /// §8's bar: with a menu down, `Right` from a row that leads nowhere goes to
+    /// The bar: with a menu down, `Right` from a row that leads nowhere goes to
     /// the next menu, exactly as running along the bar with the pointer does.
     ///
     /// Which menu is showing is read from the popup's **height**: `File` has three
@@ -481,7 +480,7 @@ class MenusTest {
         Goldberry.launch(new TestApp(
                 bar,
                 host -> later(400, () -> {
-                    // F10 is the keyboard's way into the bar (ADR-0163), and it opens the
+                    // F10 is the keyboard's way into the bar, and it opens the
                     // first heading that can open.
                     press(Key.F10);
                     later(400, () -> {
@@ -513,9 +512,9 @@ class MenusTest {
                 .orElseThrow();
     }
 
-    /// §8's "`Alt`-style keyboard activation", through the real window, the real
+    /// The `Alt` tap that activates the bar, through the real window, the real
     /// keycodes and the real popup — the half a widget test cannot reach, because
-    /// what recognises a tap lives below the widget tree entirely ([ADR-0223]).
+    /// what recognises a tap lives below the widget tree entirely.
     ///
     /// The second tap **closes**, which is what every desktop bar does with the
     /// same key and what makes the gesture safe to bind: a user who tapped `Alt`
@@ -565,8 +564,7 @@ class MenusTest {
         assertEquals(0, afterShortcut[0], "Alt+F is a shortcut and must not be read as a tap of Alt");
     }
 
-    /// `Escape` steps **out of one menu**, not out of the whole chain
-    /// ([ADR-0233]).
+    /// `Escape` steps **out of one menu**, not out of the whole chain.
     ///
     /// The launcher's light dismissal closes every popup at once, which is right
     /// for the press that lands somewhere else — the user pointed at something
@@ -586,7 +584,7 @@ class MenusTest {
 
             later(300, () -> {
                 // Onto the row that leads somewhere, which is what opens it —
-                // §8's hover-opens-a-submenu, and the shortest way to a chain.
+                // hover opens a submenu, and that is the shortest way to a chain.
                 backend.post(new BackendEvent.PointerMoved(
                         (HeadlessWindow) popups(backend).getFirst(), 40, 52, 0));
                 later(400, () -> {

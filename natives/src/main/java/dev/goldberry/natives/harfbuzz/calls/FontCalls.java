@@ -187,8 +187,8 @@ public record FontCalls(
     /// The face’s units per em — the grid its outlines are designed on.
     ///
     /// Also the scale HarfBuzz reports advances in when nothing has set one,
-    /// which is what makes it the number the Blend2D side has to agree with
-    /// (ADR-0034). Commonly 1000 for a PostScript-flavoured face and 2048 for a
+    /// which is what makes it the number the Blend2D side has to agree with.
+    /// Commonly 1000 for a PostScript-flavoured face and 2048 for a
     /// TrueType one, and free to be anything.
     ///
     /// `int hb_face_get_upem(void*)`

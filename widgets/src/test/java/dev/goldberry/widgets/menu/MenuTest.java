@@ -26,7 +26,7 @@ import dev.goldberry.widgets.Controls;
 import dev.goldberry.widgets.Widgets;
 import dev.goldberry.widgets.controls.TestFont;
 
-/// `menu`, `item` and `separator` as widgets — the half of §8 that is a tree.
+/// `menu`, `item` and `separator` as widgets — the half of a menu that is a tree.
 ///
 /// [dev.goldberry.widgets.menu.MenusTest] drives the other
 /// half, which is a window.
@@ -74,13 +74,13 @@ class MenuTest {
                 List.of("Save", "Ctrl+S"),
                 textIn(box),
                 "the accelerator is a second run, pushed to the far edge by a growing gap —"
-                        + " §8's CSS subset has no text-align");
+                        + " the CSS subset has no text-align");
     }
 
     /// The tick column is a **menu's** decision, not a row's: every row in a menu
     /// with anything checkable in it reserves one so the labels line up, and a
     /// menu with nothing checkable has no column at all — which is most menus, and
-    /// fourteen pixels of unexplained indent when it was per row (ADR-0113).
+    /// fourteen pixels of unexplained indent when it was per row.
     @Test
     @DisplayName("a row reserves a tick column only when its menu has one")
     void tickColumnIsTheMenusDecision() {

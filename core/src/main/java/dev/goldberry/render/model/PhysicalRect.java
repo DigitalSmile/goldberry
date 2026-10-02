@@ -8,13 +8,15 @@ package dev.goldberry.render.model;
 /// interchangeable — a logical rectangle is where something goes, and this is
 /// which pixels it is made of.
 ///
-/// What asks for one today is the crop of a drawn image (ADR-0283): the part of
-/// an image to draw, addressed in the image's own pixels, which is a different
-/// space from the logical rectangle it is drawn into.
+/// Its main use is the crop of a drawn image: the part of an image to draw,
+/// addressed in the image's own pixels, which is a different space from the
+/// logical rectangle it is drawn into.
 ///
 /// Half-open, like every pixel rectangle here: [#right()] and [#bottom()] are the
 /// first column and row *outside*, so two rectangles that touch do not both claim
 /// the seam.
+///
+/// Read more: [How layout works](https://goldberry.dev/docs/layout/index.html#logical-pixels).
 ///
 /// @param x left edge
 /// @param y top edge

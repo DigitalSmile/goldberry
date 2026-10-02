@@ -12,6 +12,8 @@ import java.util.Objects;
 ///     case Received.Ended _ -> finished();
 /// }
 /// ```
+///
+/// Read more: [Bringing a codec](https://goldberry.dev/docs/components/media.html#bringing-a-codec).
 public sealed interface Received {
 
     /// The one [NeedsInput].

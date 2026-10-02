@@ -32,8 +32,8 @@ import dev.goldberry.natives.webview.WebviewLibrary;
 /// `md4c.calls` and `webp.calls` were added to the module and never added here,
 /// and there was no way to notice — an image builds, links and runs perfectly
 /// well with a holder initialised at run time. It is simply a third of the speed
-/// on every call through that holder, which is the 450x ADR-0161 measured and
-/// `Downcalls` describes.
+/// on every call through that holder, which is the 450x slowdown `Downcalls`
+/// describes.
 ///
 /// This is the test that notices. It reads the shipped resource rather than the
 /// source file, so a build that fails to package it fails here too.
@@ -111,7 +111,7 @@ class NativeImagePropertiesTest {
                     new TreeSet<>(valuesOf(BUILD_TIME)),
                     "a holder package missing from native-image.properties is not a broken image, it is a "
                             + "slow one: every handle in it links at run time and every call through it runs "
-                            + "interpreted (ADR-0161, ADR-0173). An entry here that is not a holder package "
+                            + "interpreted. An entry here that is not a holder package "
                             + "is initialisation the image does not need and may not survive.");
         }
 
@@ -143,7 +143,7 @@ class NativeImagePropertiesTest {
     @Test
     @DisplayName("keeps every library loader out of the builder, because they dlopen")
     void nativeLibraryIsInitialisedAtRunTime() {
-        // Two since ADR-0441, and the second one matters more than the first.
+        // Two loaders, and the second one matters more than the first.
         // `NativeLibrary` at build time is a wrong *address* baked into the image,
         // which fails loudly. `WebviewLibrary` at build time is a wrong *answer*:
         // the image would carry whether the BUILD machine had WebKit, so one built
@@ -151,7 +151,7 @@ class NativeImagePropertiesTest {
         // with no WebKit at all, and one built in a bare CI container would deny
         // it for ever on machines that do. Both are silent.
         //
-        // Three since ADR-0443, and `GlibLibrary` is the second kind again: it
+        // Three with GLib, and `GlibLibrary` is the second kind again: it
         // answers whether this machine has a GLib, and a builder's answer baked
         // into the image is a log bridge that is silently never installed on
         // every desktop that would have wanted it.

@@ -19,7 +19,7 @@ import dev.goldberry.html.model.Tags;
 /// exactly the corpus it exists to read: help pages, changelogs and the HTML half of
 /// an email, all of it written by hand and some of it by a templating language having
 /// a bad day. So every case below **recovers**, and what it recovers to is written
-/// down beside it (ADR-0298).
+/// down beside it.
 ///
 /// ## What it is not
 ///
@@ -29,7 +29,7 @@ import dev.goldberry.html.model.Tags;
 /// byte-compatible across implementations. This reads the constructs an authored
 /// document contains, and the differences are listed in `Html`'s own documentation
 /// rather than left for somebody to discover: a reader who needs the other thing
-/// needs a browser engine, and that is what `docs/content-widgets.md` §1 parks.
+/// needs a browser engine, which this module does not set out to be.
 final class HtmlTokenizer {
 
     private final String source;

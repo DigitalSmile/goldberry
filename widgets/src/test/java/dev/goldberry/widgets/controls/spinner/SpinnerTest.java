@@ -27,8 +27,9 @@ import dev.goldberry.widgets.Widgets;
 import dev.goldberry.widgets.controls.TestFont;
 import dev.goldberry.widgets.core.Row;
 
-/// The eighth control and the smallest: a ring, turning, with nothing else to it
-/// ([ADR-0081]).
+/// The eighth control and the smallest: a ring, turning, with nothing else to it.
+///
+/// Read more: [Spinner](https://goldberry.dev/docs/components/values.html#spinner).
 class SpinnerTest {
 
     private static Box paint(Widget widget, double now, boolean reduced) {
@@ -60,7 +61,7 @@ class SpinnerTest {
         assertEquals(new Spinner(attributes), fromKdl);
     }
 
-    /// §3.1: "rotation 900ms `linear` loop". Linear, so the angle is the phase —
+    /// A spinner is a 900ms `linear` rotation loop. Linear, so the angle is the phase —
     /// a spinner that eased would speed up and slow down once a turn, which reads
     /// as a stutter rather than as motion.
     @Test
@@ -74,7 +75,7 @@ class SpinnerTest {
         assertEquals(0.5, turnsAt(900 * 10_000 + 450), 1e-9);
     }
 
-    /// The whole of ADR-0081 in one assertion: two spinners are in step because
+    /// The whole of a stateless loop in one assertion: two spinners are in step because
     /// neither of them remembers anything. A controller started at mount would
     /// put two that appeared a frame apart permanently out of phase.
     @Test
@@ -102,7 +103,7 @@ class SpinnerTest {
         assertTrue(renderer.isAnimating());
     }
 
-    /// §3.1: "reduced-motion: opacity pulse". The rotation stops entirely rather
+    /// Under reduced motion the loop becomes an opacity pulse. The rotation stops entirely rather
     /// than slowing — a slow rotation is still a rotation.
     @Test
     @DisplayName("reduced motion stops it turning")
@@ -114,7 +115,7 @@ class SpinnerTest {
     /// A `Box.Mark`, like a tick and a dot — not an
     /// [dev.goldberry.icon.Icon], which owns native memory a
     /// widget must not hold, and not a new native symbol, because the arc is
-    /// cubics through the one already exported (ADR-0064).
+    /// cubics through the one already exported.
     @Test
     @DisplayName("the ring is a mark the painter draws, and takes the node's colour")
     void ringIsAMark() {
@@ -128,7 +129,7 @@ class SpinnerTest {
                 style.color(),
                 box.mark().argb(),
                 "`color` inherits, so a spinner in a primary button is that label's colour");
-        assertEquals(Length.points(16), style.width(), "§3's small-indicator 16");
+        assertEquals(Length.points(16), style.width(), "a small indicator is 16");
         assertEquals(Length.points(16), style.height());
     }
 }

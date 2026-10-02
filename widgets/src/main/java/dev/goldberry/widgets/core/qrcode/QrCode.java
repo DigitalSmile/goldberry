@@ -21,7 +21,7 @@ import dev.goldberry.widget.style.Styled;
 import dev.goldberry.widgets.markup.Markup;
 import dev.goldberry.widgets.markup.Wiring;
 
-/// A QR code for `payload` — `docs/core-widgets.md` §1's `qr-code`.
+/// A QR code for `payload`, drawn as modules of whole device pixels.
 ///
 /// ```kdl
 /// qr-code value="tg://login?token=…" level="M" quiet-zone=4 \
@@ -81,16 +81,18 @@ import dev.goldberry.widgets.markup.Wiring;
 /// rebuild with the same payload costs a map lookup — and a rebuild with a new
 /// one, which is what happens when the token is renewed, encodes exactly once.
 ///
+/// Read more: [Canvas, images and QR codes](https://goldberry.dev/docs/components/drawing.html#qr-code).
+///
 /// @param payload   what a scanner will read, encoded as its UTF-8
 /// @param level     how much of the code may be destroyed and still read
-/// @param quietZone the light margin around the code, in modules; §6.3 says four
+/// @param quietZone the light margin around the code, in modules; the standard says four
 /// @param attributes `id`, `class` and the `name=` a reader is given
 @Markup("qr-code")
 public record QrCode(String payload, Level level, int quietZone, Attributes attributes)
         implements Widget.Leaf, Styled, Paints, Semantics, Attributed<QrCode> {
 
-    /// §6.3's quiet zone: "a region four modules wide which shall be free of all
-    /// other markings". The default, and the smallest value anybody should use.
+    /// The quiet zone the QR standard asks for: a region four modules wide, free
+    /// of all other markings. The default, and the smallest value anybody should use.
     public static final int STANDARD_QUIET_ZONE = 4;
 
     /// The ink when no theme says otherwise — near-black rather than black,
@@ -107,7 +109,7 @@ public record QrCode(String payload, Level level, int quietZone, Attributes attr
     /// The token for the light modules and the quiet zone.
     private static final String PAPER_TOKEN = "--gb-qr-paper";
 
-    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    /// Written out so that the parameters taking null for a default can say so.
     public QrCode(String payload, @Nullable Level level, int quietZone, @Nullable Attributes attributes) {
         Objects.requireNonNull(payload, "payload");
         level = level == null ? Level.M : level;
@@ -126,7 +128,7 @@ public record QrCode(String payload, Level level, int quietZone, Attributes attr
         this.attributes = attributes;
     }
 
-    /// A code for `payload` at level M with §6.3's four-module quiet zone.
+    /// A code for `payload` at level M with the standard four-module quiet zone.
     public QrCode(String payload) {
         this(payload, Level.M, STANDARD_QUIET_ZONE, Attributes.NONE);
     }
@@ -208,7 +210,7 @@ public record QrCode(String payload, Level level, int quietZone, Attributes attr
 
     /// Builds a `qr-code` from markup.
     ///
-    /// `value=` is the payload, as it is on every other valued node in §9.
+    /// `value=` is the payload, as it is on every other valued node.
     /// `level=` is one of `L`, `M`, `Q`, `H` and falls back to `M` when it is
     /// something else — a document is reloaded on every keystroke while it is
     /// being written, and a half-typed level should not take the window down.

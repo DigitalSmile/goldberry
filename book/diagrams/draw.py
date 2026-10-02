@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Draws the guide's diagrams as pictures, in both themes (ADR-0515).
+"""Draws the guide's diagrams as pictures, in both themes.
 
 Each diagram is a few sticky notes, frames and arrows on a dotted board, the
 way a whiteboard tool draws them, described in `diagrams.py` and rendered here

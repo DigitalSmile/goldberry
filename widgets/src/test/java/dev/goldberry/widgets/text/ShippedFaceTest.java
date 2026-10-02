@@ -23,12 +23,15 @@ import dev.goldberry.widget.WidgetRenderer;
 import dev.goldberry.widget.attr.Attributes;
 import dev.goldberry.widgets.Controls;
 
-/// `docs/gaps.md` G39 through a real `text`: a stylesheet naming a shipped family
-/// reaches the paragraph a label is laid out and drawn with ([ADR-0349]).
+/// A shipped face through a real `text`: a stylesheet naming a shipped family
+/// reaches the paragraph a label is laid out and drawn with.
 ///
-/// The unit half is `ShippedFontsTest` in `:core`. This is the claim the gap was
-/// written about, which is that a title set in a shipped face selects, wraps and
-/// follows `font-size` like every other label, because it *is* every other label.
+/// The unit half is `ShippedFontsTest` in `:core`. This is the claim that
+/// matters to a user, which is that a title set in a shipped face selects,
+/// wraps and follows `font-size` like every other label, because it *is* every
+/// other label.
+///
+/// Read more: [Text, fonts and icons](https://goldberry.dev/docs/guide/text.html#shipping-a-face).
 class ShippedFaceTest {
 
     @BeforeEach

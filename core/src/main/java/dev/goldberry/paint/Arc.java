@@ -4,10 +4,10 @@ import dev.goldberry.natives.blend2d.BlendPath;
 
 /// A circular arc, appended to a Blend2D path.
 ///
-/// [RoundRect]'s sibling and what is left of it for the same reason: the cubics
-/// and the quarter-at-a-time sweep moved to [Path#arc] with ADR-0277, and this is
-/// the adapter that gets one into the pooled `BlendPath` `:core`'s painters build
-/// into. An application wanting an arc wants [Path#arc].
+/// [RoundRect]'s sibling, for the same reason: the cubics and the
+/// quarter-at-a-time sweep live in [Path#arc], and this is the adapter that gets
+/// one into the pooled `BlendPath` `:core`'s painters build into. An application
+/// wanting an arc wants [Path#arc].
 final class Arc {
 
     private Arc() {}

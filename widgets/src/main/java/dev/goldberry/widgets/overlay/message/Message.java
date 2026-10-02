@@ -18,8 +18,8 @@ import dev.goldberry.widget.attr.Bindable;
 import dev.goldberry.widgets.markup.Markup;
 import dev.goldberry.widgets.markup.Wiring;
 
-/// An inline banner about the region it sits in — `docs/core-widgets.md` §7's
-/// `message`.
+/// An inline banner about the region it sits in: a kind, its glyph, some words,
+/// optional action links and an optional way out.
 ///
 /// ```kdl
 /// message kind="warning" "Your session ends in five minutes." {
@@ -30,11 +30,11 @@ import dev.goldberry.widgets.markup.Wiring;
 ///
 /// ## It is not a `toast`, and that is why both exist
 ///
-/// §7 draws the line and this widget is the half that stays put: a toast is
+/// The line between them is where they live, and this widget is the half that stays put: a toast is
 /// transient, floats over the window and is about something that just happened; a
 /// message is **part of the layout**, persists until the condition does, and is
 /// about the thing next to it. "Saved" is a toast. A form's error summary is a
-/// message — see [#summary(List)], which is the one §4 asked for by name.
+/// message — see [#summary(List)].
 ///
 /// Nothing about that is a style: a toast is on the window's overlay layer
 /// ([dev.goldberry.Overlay]) and a message is a child in
@@ -46,19 +46,19 @@ import dev.goldberry.widgets.markup.Wiring;
 /// [dev.goldberry.widgets.controls.badge.Badge] spells its
 /// variants as classes and says why: a variant that is only a skin should not be
 /// a second vocabulary that only Java can write. A message's [Kind] is not a
-/// skin. It picks the **glyph** as well as the hue, because §1.2 forbids colour
-/// as the only carrier of meaning, and it is what M5's semantics will read to
+/// skin. It picks the **glyph** as well as the hue, because colour is never the
+/// only carrier of meaning here, and it is what a semantics bridge reads to
 /// decide `status` from `alert` — which is the difference between a banner that
 /// interrupts a screen reader and one that does not.
 ///
-/// So it is a value the widget reads, `kind=` is what §7 names it, and the class
+/// So it is a value the widget reads, `kind=` is its name in markup, and the class
 /// goes on the node anyway — `message.danger` selects without anybody writing it.
 ///
 /// ## The parts
 ///
 /// ```
 /// message                  a row: glyph, words, and the way out
-/// ├── message-icon         the kind's glyph, 20px per §1.6
+/// ├── message-icon         the kind's glyph, 20px
 /// ├── message-body         a column, and the only part that grows
 /// │   ├── (text)           the words, as a child box so they wrap
 /// │   └── message-actions  the author's links, absent when there are none
@@ -66,24 +66,20 @@ import dev.goldberry.widgets.markup.Wiring;
 /// ```
 ///
 /// The actions are the author's own widgets rather than a node this widget
-/// invents: §7 says "optional action links", and `button class="ghost"` already
+/// invents: a banner's actions are links, and `button class="ghost"` already
 /// is one. A `message-action` element would have been a second button that had to
 /// be kept looking like the first.
 ///
 /// ## A bound banner with nothing to say says nothing
 ///
-/// `bind=` was the last thing this widget was missing, and it was missing for a
-/// reason rather than an oversight: a banner bound to an empty string would have
-/// been *present and empty* — a bordered box with 12px of padding saying nothing
-/// — and §8's subset has no `display`, so no widget could take itself out of a
-/// layout. The way round it was to describe the banner away from outside, which
-/// is why [#summary(List)] returns an `Optional`.
-///
-/// The element tree has the word now: a build may answer
+/// A banner bound to an empty string is not *present and empty* — a bordered
+/// box with 12px of padding saying nothing. The CSS subset has no `display`, so
+/// a widget cannot hide itself that way; instead a build may answer
 /// [Widget#nothing()], and a node that describes nothing has no box and takes no
-/// gap ([ADR-0227]). So a bound `message` whose value is null or blank is simply
+/// gap. So a bound `message` whose value is null or blank is simply
 /// not there, and comes back when the value does — the same element, the same
-/// subscription, the same arrival.
+/// subscription, the same arrival. [#summary(List)] returns an `Optional` for
+/// the same reason: a summary of no errors is no banner.
 ///
 /// ```kdl
 /// message kind="danger" bind="form.error"
@@ -94,10 +90,12 @@ import dev.goldberry.widgets.markup.Wiring;
 /// document that wrote words *and* a binding meant the words to show until the
 /// value arrives.
 ///
-/// @param kind       which of §7's four this is — the glyph and the hue
+/// Read more: [Overlays](https://goldberry.dev/docs/components/overlays.html#message).
+///
+/// @param kind       which of the four kinds this is — the glyph and the hue
 /// @param text       what it says; hard newlines break lines, which is what makes
 ///                   [#summary(List)] one banner rather than a column of them
-/// @param source     §9's `bind=`, or null — when it resolves to nothing, so does
+/// @param source     the `bind=` value, or null — when it resolves to nothing, so does
 ///                   the banner
 /// @param actions    the author's links, in the order they were written
 /// @param onDismiss  what to tell when the × is clicked, or null for a banner
@@ -114,9 +112,9 @@ public record Message(
         Attributes attributes)
         implements Widget.Stateful, Attributed<Message>, Bindable<Message> {
 
-    /// §7's `kind="info|success|warning|danger"`.
+    /// The four kinds: `kind="info|success|warning|danger"`.
     ///
-    /// Each one names a glyph as well as a colour, which is §1.2's rule rather
+    /// Each one names a glyph as well as a colour, which is a rule rather
     /// than a decoration: a banner that said "danger" only in red would say
     /// nothing at all to a reader who cannot see red, and there are two of these
     /// four in every palette that are a hue apart.
@@ -173,7 +171,7 @@ public record Message(
         }
     }
 
-    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    /// Written out so that the parameters taking null for a default can say so.
     public Message(
             @Nullable Kind kind,
             String text,
@@ -241,12 +239,11 @@ public record Message(
         return value == null ? "" : String.valueOf(value);
     }
 
-    /// §4's error summary: what is wrong with a form, as one `danger` banner.
+    /// A form's error summary: what is wrong with a form, as one `danger` banner.
     ///
-    /// The entry `docs/core-widgets.md` §4 asks for by name — "failures register
-    /// in the form's error summary" — with
+    /// Failures register in the form's error summary, and
     /// [dev.goldberry.widgets.form.form.FormController#errors()]
-    /// as the register. It is a **factory rather than something `form` draws**,
+    /// is the register. It is a **factory rather than something `form` draws**,
     /// because a form does not know where its summary belongs: above the fields
     /// is the convention, below them is what a long form wants, and in a dialog's
     /// header is what a dialog wants. Whoever placed the form places this.

@@ -1,6 +1,6 @@
 plugins {
     id 'goldberry.java-conventions'
-    // Published to Maven Central as goldberry-common (ADR-0334).
+    // Published to Maven Central as goldberry-common.
     id 'goldberry.publish'
 }
 

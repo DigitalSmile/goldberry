@@ -14,16 +14,16 @@ import dev.goldberry.text.Paragraph;
 import dev.goldberry.text.flow.TextAlign;
 import dev.goldberry.text.font.Font;
 
-/// What one keystroke into an [Editor] costs, at three sizes — [ADR-0411].
+/// What one keystroke into an [Editor] costs, at three sizes.
 ///
 /// Nothing here asserts a timing. [EditorDocumentTest] is the guard, in counts;
-/// this is the number that goes into an ADR where it can be argued with, which is
-/// the habit ADR-0031 established and `TextAreaFrameBenchmark` follows one layer
-/// up.
+/// this is the number to read and argue with, the way `TextAreaFrameBenchmark`
+/// is one layer up.
 ///
 /// ## The three rows
 ///
-/// **`paragraph`** is what an `Editor` did before ADR-0411: shape the whole text,
+/// **`paragraph`** is what an `Editor` did before it shaped a line at a time:
+/// shape the whole text,
 /// lay it out at the wrap width, ask where the caret is. It is written out here
 /// rather than measured on the old checkout so that both rows can be read off one
 /// run of one machine, and it is the old code's work rather than an imitation of
@@ -35,6 +35,8 @@ import dev.goldberry.text.font.Font;
 /// glyphs are held, and is the cost this change does not remove.
 ///
 /// Run with `./gradlew :core:benchmark`.
+///
+/// Read more: [The benchmark lane](https://goldberry.dev/docs/performance/measuring.html#the-benchmark-lane).
 @Tag("benchmark")
 class EditorKeystrokeBenchmark {
 

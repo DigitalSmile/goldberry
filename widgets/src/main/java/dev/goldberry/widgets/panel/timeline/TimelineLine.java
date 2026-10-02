@@ -9,8 +9,8 @@ import dev.goldberry.widget.Widget;
 import dev.goldberry.widget.style.Paints;
 import dev.goldberry.widget.style.Styled;
 
-/// The line from one marker to the next — a **part**, and a drawing: §10 says
-/// it is not announced, and it carries no semantics.
+/// The line from one marker to the next — a **part**, and a drawing: it is not
+/// announced, and it carries no semantics.
 record TimelineLine() implements Widget.Leaf, Styled, Paints {
 
     @Override

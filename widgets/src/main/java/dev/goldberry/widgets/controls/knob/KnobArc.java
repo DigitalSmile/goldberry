@@ -9,20 +9,23 @@ import dev.goldberry.widget.Widget;
 import dev.goldberry.widget.style.Paints;
 import dev.goldberry.widget.style.Styled;
 
-/// §3's "arc indicator" — the filled part of [KnobTrack], and the sixteenth part.
+/// The filled part of a knob's arc — the part of [KnobTrack] the value has
+/// covered, styled as `knob-arc`.
 ///
-/// The first mark in the toolkit whose **geometry is the value**. A checkbox's
-/// tick and a radio's dot are the same drawing every time and only appear or not;
-/// a spinner's ring is a fixed three quarters that a `transform` turns. This one
-/// is a sweep of `fraction × 270°`, which is why [Box.Mark] gained angles at all
-/// ([ADR-0089]).
+/// A mark whose **geometry is the value**. A checkbox's tick and a radio's dot
+/// are the same drawing every time and only appear or not; a spinner's ring is a
+/// fixed three quarters that a `transform` turns. This one is a sweep of
+/// `fraction × 270°`, which is why [Box.Mark] carries angles.
 ///
 /// A fraction of zero sweeps zero, and `Arc.addTo` draws nothing for a zero
 /// sweep — so a knob at its minimum has no arc rather than a one-pixel stub,
 /// without anything here testing for it.
 ///
+/// Read more: [Values and progress](https://goldberry.dev/docs/components/values.html#knob).
+///
 /// @param fraction how far round the travel the value is, `0..1`
-/// @param disabled inherited from the knob ([ADR-0077])
+/// @param disabled inherited from the knob, so the part is selectable without a
+///                 descendant combinator
 record KnobArc(double fraction, boolean disabled) implements Widget.Leaf, Styled, Paints {
 
     @Override

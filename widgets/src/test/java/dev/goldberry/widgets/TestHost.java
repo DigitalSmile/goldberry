@@ -40,15 +40,17 @@ import dev.goldberry.widget.style.Corner;
 ///
 /// **Opening nothing is not a crippled host.** `Backend.createPopup` returns an
 /// `Optional` and empty is one of the two real answers — SDL's `dummy` driver,
-/// which every headless test here runs under, has no popup windows
-/// (ADR-0102).
-/// A control that misbehaves against this misbehaves on a real machine whose
-/// driver refuses, which is the branch CI exercises on every platform.
+/// which every headless test here runs under, has no popup windows. A control
+/// that misbehaves against this misbehaves on a real machine whose driver
+/// refuses, which is the branch CI exercises on every platform.
 ///
 /// Subclass and override the one or two methods a test actually cares about.
 /// Everything is either recorded here or answered with the harmless thing;
 /// [#frames], [#fonts], [#window] and [#after] throw instead, because a test that
 /// reaches them wants a real window and should say so rather than get a fake.
+///
+/// Read more:
+/// [A host for a test](https://goldberry.dev/docs/guide/testing.html#a-host-for-a-test).
 public class TestHost implements Host {
 
     /// The clock every widget under this host reads.
@@ -56,7 +58,8 @@ public class TestHost implements Host {
     /// Virtual, and that is the whole reason it is here: a `typeahead` measured
     /// against the real clock can only be tested by sleeping, so nothing tested
     /// it. `host.clock.advance(600)` and a keystroke is what asserting a timeout
-    /// looks like instead (`docs/testing.md` §0.1).
+    /// looks like instead; see
+    /// [the virtual clock](https://goldberry.dev/docs/guide/testing.html#the-virtual-clock).
     ///
     /// Public and mutable, like the other fields on this host: it is a test
     /// double, and a getter would be ceremony over a field every test writes to.
@@ -96,7 +99,7 @@ public class TestHost implements Host {
     /// which is all most tests need and is not all of them: a region also carries
     /// the element it was painted for and the clip that confines it, and a widget
     /// that walks from one or reasons about the other — a `tour` finding the
-    /// viewport its target is in ([ADR-0439]) — cannot be tested against a
+    /// viewport its target is in by walking up from the target — cannot be tested against a
     /// rectangle with a null owner and no clip. Hand it one a real frame
     /// produced.
     public TestHost anchoring(String id, HitTest.Region region) {
@@ -155,7 +158,7 @@ public class TestHost implements Host {
     }
 
     /// What this host says the desktop is set to — nothing, until a test says
-    /// otherwise ([ADR-0322]).
+    /// otherwise, because a real desktop may say light, dark, or nothing at all.
     private SystemTheme systemTheme;
 
     private final List<Consumer<SystemTheme>> systemThemeListeners = new ArrayList<>();
@@ -255,7 +258,7 @@ public class TestHost implements Host {
     /// all** — so a test that does not care what fits sees exactly what it saw
     /// before this existed. A test that does care states a size and gets the
     /// widget the caller decided to open, which is the only observable a `Fit`
-    /// has ([ADR-0179]).
+    /// has.
     public TestHost measuring(float width, float height) {
         this.measured = new LogicalSize(width, height);
         return this;
@@ -273,7 +276,7 @@ public class TestHost implements Host {
     ///
     /// The observable that says a caller inherited the following: a popup placed
     /// against a rectangle cannot follow anything, and the only difference
-    /// visible from outside is which overload it went through ([ADR-0432]).
+    /// visible from outside is which overload it went through.
     public List<String> anchoredBy() {
         return List.copyOf(anchored);
     }
@@ -321,8 +324,9 @@ public class TestHost implements Host {
         shortcut(accelerator, action, null);
     }
 
-    /// The router's ownership, mirrored: what is bound, and who bound it
-    /// (ADR-0220). Kept beside the actions rather than in them so that
+    /// The router's ownership, mirrored: what is bound, and who bound it, because
+    /// only whoever took an accelerator may give it back. Kept beside the actions
+    /// rather than in them so that
     /// [#shortcuts()] can stay the map a test wants to read.
     @Override
     public void shortcut(Shortcut accelerator, Runnable action, Object owner) {
@@ -359,8 +363,7 @@ public class TestHost implements Host {
         tapOwners.put(modifier, owner);
     }
 
-    /// Ownership, mirrored from the real registry: only the binder takes it back
-    /// (ADR-0220's rule, ADR-0223's registry).
+    /// Ownership, mirrored from the real registry: only the binder takes it back.
     @Override
     public void removeModifierTap(ModifierKey modifier, Object owner) {
         if (tapOwners.get(modifier) == owner) {
@@ -533,8 +536,7 @@ public class TestHost implements Host {
 
     /// An in-memory primary selection, **present** unless a test turns it off —
     /// the headless backend's arrangement, for its reason: the publishing and
-    /// the middle-click paste are only testable against one that exists
-    /// (ADR-0504).
+    /// the middle-click paste are only testable against one that exists.
     private final StringBuilder primaryText = new StringBuilder();
 
     private int primaryWrites;
@@ -624,7 +626,7 @@ public class TestHost implements Host {
         // `andThen(this::repaint)` is the launcher's, and it is here because a
         // test host that skipped it would pass the one thing the real one got
         // wrong: a tray row arrives with no event behind it, so nothing asks for
-        // a frame unless the row does (ADR-0191).
+        // a frame unless the row does.
         return trayBackend.createTray(spec.andThen(this::repaint));
     }
 
@@ -645,7 +647,7 @@ public class TestHost implements Host {
     ///
     /// False by default, which is what most machines really answer: a build
     /// without WebKit's development headers produces no `libgoldberry-webview`
-    /// and `Capability.WEB_VIEW` is absent ([ADR-0441]). A test that wants the
+    /// and `Capability.WEB_VIEW` is absent. A test that wants the
     /// other branch sets this and reads [#lastWebView] — what it gets back is
     /// still a fake, because the alternative is a browser window appearing on the
     /// desktop of whoever ran the suite.

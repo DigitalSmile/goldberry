@@ -12,8 +12,12 @@ import dev.goldberry.css.select.Selector;
 
 /// Turns [Token]s into [StyleRule]s.
 ///
-/// Parses the subset in `ARCHITECTURE.md` §8 and refuses everything else, rather
-/// than following the CSS spec's rule of discarding what it does not understand.
+/// ```java
+/// CssParser.Parsed parsed = CssParser.parseSheet(css);
+/// ```
+///
+/// Parses the supported subset and refuses everything else, rather than
+/// following the CSS spec's rule of discarding what it does not understand.
 /// A browser must render a page written for browsers it has never heard of; a
 /// toolkit is reading a stylesheet its own application shipped, and a silently
 /// dropped rule there is a widget that is the wrong colour with nothing in the
@@ -25,8 +29,10 @@ import dev.goldberry.css.select.Selector;
 /// colour scheme, which is the next piece.
 ///
 /// Two at-rules **are** applied. `@starting-style` marks the rules inside it as the
-/// style an element transitions *from* on its first frame (ADR-0352).
-/// `@keyframes` names a sequence `animation-name` can run (ADR-0353).
+/// style an element transitions *from* on its first frame. `@keyframes` names a
+/// sequence `animation-name` can run.
+///
+/// Read more: [Styling](https://goldberry.dev/docs/guide/styling.html#the-cascade-four-layers).
 public final class CssParser {
 
     /// What a stylesheet's text parsed into: its rules, and its named keyframes.
@@ -131,7 +137,7 @@ public final class CssParser {
     ///
     /// The rules inside are ordinary rules marked as starting styles. They keep
     /// their place in the source order, so a starting rule written after a normal
-    /// one of equal specificity wins against it, as CSS says (ADR-0352).
+    /// one of equal specificity wins against it, as CSS says.
     private List<StyleRule> startingStyle(Token at) {
         skipWhitespace();
         if (!peek().is(TokenType.OPEN_BRACE)) {

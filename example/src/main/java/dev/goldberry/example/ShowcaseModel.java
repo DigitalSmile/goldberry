@@ -26,16 +26,14 @@ import dev.goldberry.widgets.controls.checkbox.Checkbox;
 ///
 /// The state half of a view model. What changes these is [Actions], nested below
 /// — the build rewrites a write to a `@Bind` field wherever it appears, so an
-/// assignment in one class notifies exactly as one in the other would
-/// (ADR-0134).
+/// assignment in one class notifies exactly as one in the other would.
 ///
 /// ## Why the content is Middle-earth
 ///
 /// Because a gallery whose every label reads "Item 1" is a gallery you cannot
 /// read. Real prose wraps at awkward places, real names are of wildly different
 /// lengths, and a table of six companions with a `Kindred` column shows a
-/// sortable header doing something a column of `Row 1`… cannot
-/// (ADR-0222).
+/// sortable header doing something a column of `Row 1`… cannot.
 ///
 /// ## Why a class and not a record
 ///
@@ -47,8 +45,7 @@ import dev.goldberry.widgets.controls.checkbox.Checkbox;
 ///
 /// So these fields can stay `private`. A nestmate reaches a private field and a
 /// private method, so nesting the actions costs nothing in encapsulation — where
-/// a sibling top-level class would have forced every field open to the package
-/// (ADR-0137).
+/// a sibling top-level class would have forced every field open to the package.
 ///
 /// Nesting is **scoping, not coupling**: this class holds no reference to
 /// [Actions], mentions it in no signature, and would compile with it deleted. The
@@ -58,14 +55,16 @@ import dev.goldberry.widgets.controls.checkbox.Checkbox;
 ///
 /// [dev.goldberry.widget.State] is for what the *UI* remembers
 /// — a scroll offset, a caret, which tab is open — and it is right that those die
-/// with the widget that owns them (ADR-0052). This is the other kind: the leagues
+/// with the widget that owns them. This is the other kind: the leagues
 /// walked and the provisions left are what the application is *about*, they
 /// outlive any particular screen, and a second screen showing the same number
 /// would read this object rather than a copy of it.
+///
+/// Read more: [Values](https://goldberry.dev/docs/applications.html#values).
 @Model
 // Every field below is read, and none of them is read *here*: a `@Bind` field is
 // reached by path through the generated registry, or through a woven call site
-// in a native image (ADR-0125, ADR-0155). Error Prone sees a private field with
+// in a native image. Error Prone sees a private field with
 // no reader in this compilation unit and is right about what it can see; the
 // reader is generated. This is the one annotation in the project that means
 // "assume the build wired it up".
@@ -91,8 +90,7 @@ public final class ShowcaseModel {
     private Number gain = 40;
 
     /// A restyle rather than a repaint: every resolved style depends on the
-    /// theme, so changing it invalidates the stylesheets and not just the pixels
-    /// (ADR-0133).
+    /// theme, so changing it invalidates the stylesheets and not just the pixels.
     @Bind(value = "app.theme", restyle = true)
     private String themeName = "dark";
 
@@ -140,7 +138,7 @@ public final class ShowcaseModel {
 
     /// The departure date, and what the picker made of it.
     ///
-    /// A **`LocalDate`**, which is what §4 gives this control and what a model
+    /// A **`LocalDate`**, which is what the date picker reports and what a model
     /// that has parsed its values holds. The picker formats it into the field
     /// rather than stringifying it, so the screen shows the application's own
     /// spelling of a date it owns.
@@ -152,7 +150,7 @@ public final class ShowcaseModel {
 
     /// When the departure leaves, and what the wheels made of it.
     ///
-    /// A **`LocalTime`**, for `trip.date`'s reason: §4 gives the control a typed
+    /// A **`LocalTime`**, for `trip.date`'s reason: the control reports a typed
     /// value and a model that has parsed its own is what a picker formats from.
     @Bind("trip.time")
     private @Nullable LocalTime tripTime = LocalTime.of(9, 30);
@@ -160,7 +158,7 @@ public final class ShowcaseModel {
     @Bind("trip.time-status")
     private String tripTimeStatus = "Type it, or turn the wheels";
 
-    /// A colour, held as one — §4 gives `color-picker` a `CssColor` value, which
+    /// A colour, held as one — `color-picker` reports a `CssColor` value, which
     /// is an `0xAARRGGBB` int, and a model that keeps colours as colours is what
     /// the picker formats its hex from.
     @Bind("paint.colour")
@@ -171,7 +169,7 @@ public final class ShowcaseModel {
 
     /// The one-time code, and what happened to it.
     ///
-    /// Two values rather than one, because `code-input` is the one field in §4
+    /// Two values rather than one, because `code-input` is the one field
     /// that raises **two** events: `change` on every box, and `complete` once,
     /// when the last one fills. The status line is what the second writes, and it
     /// is the only way a screenshot can show the difference between them.
@@ -188,14 +186,14 @@ public final class ShowcaseModel {
     private String bio = "We came down out of the pass at dusk and found the road still "
             + "under snow.\n\nPress Enter for a new line.";
 
-    /// The gutter card's document — `docs/gaps.md` G37's control, with something
+    /// The gutter card's document — a `text-area` with line numbers, and something
     /// in it worth numbering.
     ///
     /// Written so that **one hard line wraps**, which is the whole of what the
     /// gutter is about: the numbers count lines somebody typed and sit at the y
     /// the wrap put them at, so the second paragraph takes one number and more
     /// than one line's height. A document of short lines would show a column of
-    /// numbers and prove nothing ([ADR-0331]).
+    /// numbers and prove nothing.
     @Bind("app.notes")
     private String notes = "# Fellowship\n"
             + "\n"
@@ -212,7 +210,7 @@ public final class ShowcaseModel {
     /// That is the whole of "live". Nothing in this application watches the editor,
     /// diffs the text or schedules a re-render — the element holding the
     /// `markdown-view` is subscribed to this property, a keystroke marks it for
-    /// rebuild, and the next frame is the parsed document (ADR-0296).
+    /// rebuild, and the next frame is the parsed document.
     ///
     /// Loaded from `markdown-sample.md` beside the screens' documents rather than
     /// written as a text block here: it is prose with backslashes, backticks and
@@ -223,7 +221,7 @@ public final class ShowcaseModel {
 
     /// The HTML screen's page, which is the same arrangement one tab along: the
     /// editor writes it, `html-view` reads it, and nothing in this application
-    /// connects the two (ADR-0296, ADR-0298).
+    /// connects the two.
     ///
     /// Loaded from `html-sample.html` for the same reason the Markdown one is loaded
     /// from a file, and one more: it is markup, so it is quotation marks all the way
@@ -234,7 +232,8 @@ public final class ShowcaseModel {
     /// What the Markdown screen's last pressed link or ticked box reported.
     ///
     /// The same line the HTML screen has, and it is the honest demonstration of
-    /// ADR-0300: the toolkit hands over a destination or an ordinal and stops.
+    /// how a document view works: the toolkit hands over a destination or an
+    /// ordinal and stops.
     @Bind("md.followed")
     private String markdownFollowed = "Press a link, or tick a box — both are edits this application makes.";
 
@@ -243,8 +242,8 @@ public final class ShowcaseModel {
     /// The showcase's whole answer to "what does following a link do", and it is
     /// deliberately the smallest honest one: the toolkit hands over an `href` and
     /// stops, because whether a link may be followed, what a relative path is relative
-    /// to and what opening one costs are the application's (ADR-0291's division,
-    /// ADR-0298's restatement). This application prints it.
+    /// to and what opening one costs are the application's. This application
+    /// prints it.
     @Bind("html.followed")
     private String htmlFollowed = "Press a link in the page — nothing here opens a browser.";
 
@@ -261,8 +260,7 @@ public final class ShowcaseModel {
 
     /// How the window's frames reach the screen, as the bar prints it:
     /// `GPU · vulkan`, or `CPU ·` and why. Set by the window when it changes,
-    /// which is at its first frame and whenever it moves between the two
-    /// (ADR-0492).
+    /// which is at its first frame and whenever it moves between the two.
     @Bind("app.presentation")
     private String presentation = "…";
 
@@ -273,18 +271,17 @@ public final class ShowcaseModel {
     /// `checked` is a constant resolved when the bar is built. A window that kept
     /// this to itself would give a bar that had to be told to rebuild by whoever
     /// toggled the HUD, which is exactly the arrangement bound values exist to
-    /// replace (ADR-0063, ADR-0135).
+    /// replace.
     @Bind("app.hud")
     private boolean hud;
 
     /// The chapters open in the Navigation screen's strip, and which of them is
     /// showing. The strip reports what the user asked for and changes nothing
-    /// itself — closing a chapter removes it from here or it does not close
-    /// (ADR-0107).
+    /// itself — closing a chapter removes it from here or it does not close.
     ///
     /// **Assignment is what is observed**, which is why this is a `List` that
     /// gets replaced rather than one that gets edited. A list mutated in place
-    /// changes nothing anybody can see (ADR-0109) — the same rule the weaver
+    /// changes nothing anybody can see — the same rule the weaver
     /// enforces by refusing to bind an array at all.
     @Bind("app.tabs")
     private List<String> tabs = List.of("Rivendell", "Moria");
@@ -292,16 +289,15 @@ public final class ShowcaseModel {
     @Bind("app.tab")
     private @Nullable String tab = "Rivendell";
 
-    // --- the chips (ADR-0305) ------------------------------------------------
+    // --- the chips -----------------------------------------------------------
 
     /// The three filters the Basic screen's chip row offers.
     ///
     /// Three booleans rather than a `Set<String>`, because a chip's `bind=` reads
-    /// **one** value and §9's binding has no way to say "is this string in that
+    /// **one** value and a binding has no way to say "is this string in that
     /// set". That is the shape of the widget rather than a shortcut: a chip is a
     /// control with a state, exactly like the `checkbox` three cards above it,
-    /// and a set would need a second kind of binding for no new behaviour
-    /// (ADR-0063).
+    /// and a set would need a second kind of binding for no new behaviour.
     ///
     /// Independent, and that is the argument for chips over `segmented`: none,
     /// some or all of them may be on, and nothing about the row makes that wrong.
@@ -319,15 +315,14 @@ public final class ShowcaseModel {
     /// A list because a × **removes** one, which is a structural change: the row
     /// is a different tree afterwards rather than the same tree with a different
     /// value, and the widget cannot make it happen itself — a chip asks and this
-    /// list is what answers (ADR-0063).
+    /// list is what answers.
     ///
     /// Assignment is what is observed, which is why it is replaced rather than
-    /// edited: a list mutated in place changes nothing anybody can see
-    /// (ADR-0109).
+    /// edited: a list mutated in place changes nothing anybody can see.
     @Bind("app.tags")
     private List<String> tags = List.of("java", "kdl", "blend2d", "harfbuzz", "yoga");
 
-    // --- the trail (ADR-0306) ------------------------------------------------
+    // --- the trail -----------------------------------------------------------
 
     /// Where the Navigation screen's breadcrumbs say you are.
     ///
@@ -350,14 +345,13 @@ public final class ShowcaseModel {
             "Chapter One",
             "A Long-expected Party");
 
-    // --- the icon sheet (ADR-0307) -------------------------------------------
+    // --- the icon sheet ------------------------------------------------------
 
     /// What the Icons screen's search field holds.
     ///
     /// Bound so the field reads it and **watched** by the screen, which are two
     /// different things: the field shows the value, and the sheet is a different
-    /// number of rows per query — a value for one and a structure for the other
-    /// (ADR-0109).
+    /// number of rows per query — a value for one and a structure for the other.
     @Bind("app.icon-query")
     private String iconQuery = "";
 
@@ -367,20 +361,20 @@ public final class ShowcaseModel {
     @Bind("app.emoji-query")
     private String emojiQuery = "";
 
-    /// Which gallery screen is showing — the tab strip under the bar (ADR-0110).
+    /// Which gallery screen is showing — the tab strip under the bar.
     /// `Ctrl+1`, a menu item and the strip itself are three ways to set one value
     /// rather than three copies of a selection.
     @Bind("app.screen")
     private String screen = "basic";
 
-    /// §1.3's density preference. It moves every control's height, which is what
-    /// "token-conformant apps adapt with zero code" means (ADR-0074) — and which
-    /// is why it restyles rather than repaints.
+    /// The density preference. It moves every control's height through the
+    /// design tokens alone, with no code in the application — and that is why
+    /// it restyles rather than repaints.
     @Bind(value = "app.density", restyle = true)
     private Density density = Density.REGULAR;
 
-    /// §2.4's "always show scroll bars", which is density's shape: a token
-    /// stylesheet, so it restyles (ADR-0364).
+    /// Whether scroll bars are always shown, which is density's shape: a token
+    /// stylesheet, so it restyles.
     @Bind(value = "app.scrollbars", restyle = true)
     private Scrollbars scrollbars = Scrollbars.OVERLAY;
 
@@ -389,7 +383,7 @@ public final class ShowcaseModel {
     ///
     /// Bound, and declared `repaint = false`: it is genuinely part of what this
     /// model knows, and nothing on screen shows it, so a change to it has no
-    /// frame to ask for (ADR-0135). It is also why [Actions] can be a record —
+    /// frame to ask for. It is also why [Actions] can be a record —
     /// this counter is state, and it lives with the rest of the state rather than
     /// in the thing that increments it.
     @Bind(value = "app.tabs-added", repaint = false)
@@ -478,7 +472,7 @@ public final class ShowcaseModel {
     ///
     /// Each method assigns to a field of the model, and that assignment notifies:
     /// the build rewrites a write to a `@Bind` field wherever it appears, not
-    /// only inside the class that declares it (ADR-0134). So `clicks++` reads
+    /// only inside the class that declares it. So `clicks++` reads
     /// here exactly as it read when it lived beside the field.
     ///
     /// **A record**, because it holds one thing and holds it immutably: one
@@ -487,8 +481,9 @@ public final class ShowcaseModel {
     /// type has none.
     ///
     /// **Nested**, because a nestmate reaches a private field. A sibling
-    /// top-level class would have forced every value above open to the package
-    /// (ADR-0137).
+    /// top-level class would have forced every value above open to the package.
+    ///
+    /// Read more: [Actions](https://goldberry.dev/docs/applications.html#actions).
     @dev.goldberry.bind.runtime.Actions
     public record Actions(ShowcaseModel values) {
 
@@ -506,7 +501,7 @@ public final class ShowcaseModel {
         /// value.
         ///
         /// A valued `change=` would be the other shape — one action taking the
-        /// chip's name — and it is deliberately not what §3 gives a chip: a chip
+        /// chip's name — and it is deliberately not what a chip does: a chip
         /// reports **that it was chosen** and not *what* was chosen, because the
         /// value is the widget itself. A row of three that shared one handler
         /// would be a `segmented` with rounder corners.
@@ -530,7 +525,7 @@ public final class ShowcaseModel {
         /// The chip removes nothing itself: it asks, and this is the only thing
         /// that can shorten the list. A `dismiss` handler that did nothing would
         /// leave the chip where it was, which is the visible form of "the model
-        /// did not change" (ADR-0063).
+        /// did not change".
         public void dropTag(String tag) {
             var remaining = new java.util.ArrayList<>(values.tags);
             remaining.remove(tag);
@@ -600,7 +595,7 @@ public final class ShowcaseModel {
 
         // --- the controls ----------------------------------------------------
 
-        /// The other half of ADR-0063's loop: the checkbox is handed the read-only
+        /// The other half of the loop: the checkbox is handed the read-only
         /// half of `showProse` and cannot write it, so the tick moves only when this
         /// moves it. Delete this method and the control stops working — which is the
         /// behaviour, not a bug.
@@ -612,7 +607,7 @@ public final class ShowcaseModel {
         /// What the *switch* asks for, and the reason it is not [#toggleProse()]. A
         /// drag is a request for a **particular** state rather than for the other one
         /// — dragging right on a switch already on asks for on — so the value comes up
-        /// with the event and this sets exactly it (ADR-0075).
+        /// with the event and this sets exactly it.
         @Action("app.set-prose")
         void setProse(boolean value) {
             values.showProse = value;
@@ -627,7 +622,7 @@ public final class ShowcaseModel {
         }
 
         /// Already snapped and clamped by whichever control asked. The application
-        /// does no arithmetic at all, which is the point (ADR-0079).
+        /// does no arithmetic at all, which is the point.
         @Action("app.set-gain")
         void setGain(double value) {
             values.gain = value;
@@ -660,7 +655,7 @@ public final class ShowcaseModel {
         /// Every keystroke in the Markdown editor.
         ///
         /// The preview is not mentioned here and does not need to be: it is bound to
-        /// the field this writes, so the assignment *is* the notification (ADR-0296).
+        /// the field this writes, so the assignment *is* the notification.
         @Action("md.set-source")
         public void setMarkdownSource(String value) {
             values.markdownSource = value;
@@ -674,7 +669,7 @@ public final class ShowcaseModel {
 
         /// A `[[wiki link]]`, pressed — a **target** rather than an href, which is why
         /// it is a second action: what `[[Meeting]]` names is this application's
-        /// business and not a URL (ADR-0295).
+        /// business and not a URL.
         @Action("md.open-wiki")
         public void openWikiLink(String target) {
             values.markdownFollowed = "Wiki link: " + target;
@@ -682,7 +677,7 @@ public final class ShowcaseModel {
 
         /// A task box, ticked.
         ///
-        /// **The round trip in three lines**, and it is the whole of ADR-0300: the
+        /// **The round trip in three lines**, and it is the whole of the loop: the
         /// view reports *which* box — the nth task in the document — `toggleTask`
         /// rewrites that one character of the source, and the preview re-parses
         /// because it is bound to the property this assigns. The editor on the left
@@ -709,7 +704,7 @@ public final class ShowcaseModel {
 
         /// What an anchor in the page hands over when it is pressed.
         ///
-        /// A **valued** action, because §9's valued shape is how a control reports
+        /// A **valued** action, because a valued action is how a control reports
         /// *what* it should become and a link reports where it points. This is the
         /// application deciding what following a link means; deciding to print it is a
         /// showcase's answer, and a real one would navigate, open the desktop's browser
@@ -720,14 +715,13 @@ public final class ShowcaseModel {
         }
 
         /// What the picker committed — either from the grid or from the field,
-        /// which is the point: §4 makes the typed field the source of truth and
+        /// which is the point: the typed field is the source of truth and
         /// the grid writes into it, so there is one handler and not two.
         ///
-        /// A **`String`**, and it has to be: §9's valued actions cross as text,
+        /// A **`String`**, and it has to be: valued actions cross as text,
         /// so a document is handed the *formatted* date and Java is handed the
-        /// `DateSelection`. Parsing it back here is the application doing what §4
-        /// says it does — "the toolkit does not invent a date syntax", so the
-        /// application that chose the format is the one that can read it.
+        /// `DateSelection`. The toolkit invents no date syntax, so the
+        /// application that chose the format is the one that reads it back.
         @Action("trip.set-date")
         void setTripDate(String value) {
             if (value.isBlank()) {
@@ -741,7 +735,7 @@ public final class ShowcaseModel {
         }
 
         /// What the wheels or the field committed. A `String` for
-        /// `trip.set-date`'s reason: §9's valued actions cross as text, so the
+        /// `trip.set-date`'s reason: valued actions cross as text, so the
         /// application that chose the format is the one that reads it back.
         @Action("trip.set-time")
         void setTripTime(String value) {
@@ -756,10 +750,10 @@ public final class ShowcaseModel {
         }
 
         /// What the plane, the ramps, a preset or the hex field committed — one
-        /// handler, because §4 makes the hex field the source of truth and every
+        /// handler, because the hex field is the source of truth and every
         /// other part writes into it.
         ///
-        /// A `String` for `trip.set-date`'s reason: §9's valued actions cross as
+        /// A `String` for `trip.set-date`'s reason: valued actions cross as
         /// text. Here the text is the value's own spelling rather than a
         /// formatting choice, so parsing it back is exact.
         @Action("paint.set-colour")
@@ -779,8 +773,8 @@ public final class ShowcaseModel {
             values.codeStatus = value.isEmpty() ? "Type or paste six digits" : value.length() + " of 6";
         }
 
-        /// And the second event, once, on the box that filled the code — §4's
-        /// "what lets a form submit without a button". Nothing here presses
+        /// And the second event, once, on the box that filled the code — what
+        /// lets a form submit without a button. Nothing here presses
         /// anything, because a showcase that verified a code would have to invent
         /// one that was right.
         @Action("app.code-complete")
@@ -803,8 +797,7 @@ public final class ShowcaseModel {
         ///
         /// The submit event carries **nothing**, which is right — `bind=` reads
         /// *from* this model, so the values are already here and an event
-        /// carrying them would hand the application its own data back
-        /// (ADR-0169).
+        /// carrying them would hand the application its own data back.
         @Action("app.submit-signup")
         void submitSignup() {
             if (values.signup.submit()) {
@@ -843,7 +836,7 @@ public final class ShowcaseModel {
 
         /// What the **switch** in the bar asks for, and the reason it is not
         /// [#toggleTheme()]: a switch reports the state it was dragged to rather
-        /// than "the other one", exactly as `app.set-prose` does (ADR-0075).
+        /// than "the other one", exactly as `app.set-prose` does.
         @Action("app.set-light")
         public void setLight(boolean value) {
             pickTheme(value ? "light" : "dark");
@@ -898,8 +891,8 @@ public final class ShowcaseModel {
             }
         }
 
-        /// Moves a chapter to a new place in the strip — what a drag asks for
-        /// (ADR-0372). The index is among the other chapters, so it is where the
+        /// Moves a chapter to a new place in the strip — what a drag asks for.
+        /// The index is among the other chapters, so it is where the
         /// moved one lands once it has been taken out.
         public void moveTab(String value, int index) {
             var current = new ArrayList<>(values.tabs);
@@ -936,7 +929,7 @@ public final class ShowcaseModel {
     /// Not `@Bind` fields, and the binding machinery is what settled that — it
     /// refuses a `final` one with "a value that cannot change is not something to
     /// subscribe to", which is exactly what a controller and a validator are. They
-    /// go in a `Named` registry instead (ADR-0170).
+    /// go in a `Named` registry instead.
     private final dev.goldberry.widgets.form.form.FormController signup =
             new dev.goldberry.widgets.form.form.FormController();
 
@@ -966,7 +959,7 @@ public final class ShowcaseModel {
                 // Where both document screens' pictures come from. A **named object**
                 // rather than an action or a binding, because an image source is
                 // neither a method nor a value that changes -- which is the third
-                // registry's whole job (ADR-0130, ADR-0300).
+                // registry's whole job.
                 .bind("app.assets", assets)
                 // The media screens' players, which `audio.kdl` and `video.kdl`
                 // name and each screen's cards drive from Java at the same time.

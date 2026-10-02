@@ -8,7 +8,9 @@ package dev.goldberry.natives.blend2d.enums;
 /// constant that means something different from what its name says.
 ///
 /// Round is 4, not 2, and the default is 0: [#MITER_CLIP] is what a context
-/// starts with, so an icon that wants round corners has to say so (ADR-0043).
+/// starts with, so an icon that wants round corners has to say so.
+///
+/// Read more: [The native boundary](https://goldberry.dev/docs/overview/architecture.html#the-native-boundary).
 public enum BlendStrokeJoin implements BlendEnum {
 
     /// Extend both edges to their intersection, clipped at the miter limit.

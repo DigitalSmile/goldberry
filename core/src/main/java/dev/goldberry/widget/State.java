@@ -4,12 +4,12 @@ import java.util.Objects;
 
 import org.jspecify.annotations.Nullable;
 
-/// The mutable half of a [Widget.Stateful], living on its element.
+/// The mutable half of a [Widget.Stateful]: what a widget remembers across
+/// rebuilds, living on its element.
 ///
-/// This is the API ADR-0004 called "the largest gap in the current design", and
-/// [ADR-0052] is where the shape of it is argued. The short version: state is a
-/// plain mutable object, changes go through [#setState], and `setState` marks the
-/// element dirty rather than rebuilding on the spot.
+/// A state is a plain mutable object. Changes go through [#setState], which runs
+/// the change now and marks the element dirty, and the tree rebuilds the element
+/// once per frame, however many changes arrived.
 ///
 /// ```java
 /// record Counter(String label) implements Widget.Stateful {
@@ -20,14 +20,18 @@ import org.jspecify.annotations.Nullable;
 ///     private int clicks;
 ///
 ///     public Widget build(BuildContext context) {
-///         return new Label(widget().label() + ": " + clicks);
-///     }
-///
-///     void onClick() {
-///         setState(() -> clicks++);
+///         return new Button(widget().label() + ": " + clicks, () -> setState(() -> clicks++));
 ///     }
 /// }
 /// ```
+///
+/// The state is created once, when the element is first mounted, and lives
+/// until the element leaves the tree. [#initState] is where a subscription goes
+/// and [#dispose] is where it is cancelled. Everything here runs on the UI
+/// thread.
+///
+/// Read more:
+/// [Writing a widget](https://goldberry.dev/docs/guide/writing-a-widget.html#the-three-shapes).
 ///
 /// @param <W> the widget type this state belongs to
 public abstract class State<W extends Widget> {
@@ -43,8 +47,8 @@ public abstract class State<W extends Widget> {
     /// The widget this state is currently attached to.
     ///
     /// **Re-read it on every build.** A rebuild can hand the same state a new
-    /// widget value — that is what happens when a parent rebuilds with different
-    /// arguments — so a field captured in the constructor goes stale.
+    /// widget value, which is what happens when a parent rebuilds with different
+    /// arguments, so a field captured in the constructor goes stale.
     protected final W widget() {
         if (widget == null) {
             throw new IllegalStateException("this state is not mounted yet");
@@ -60,16 +64,15 @@ public abstract class State<W extends Widget> {
 
     /// Runs `mutation` and marks this element as needing a rebuild.
     ///
-    /// The mutation runs **immediately**; only the rebuild is deferred. That
-    /// ordering is deliberate: code after `setState` sees the new value, which is
-    /// what everyone expects, while the rebuild is coalesced with every other
-    /// change in the same frame.
+    /// The mutation runs **immediately**; only the rebuild is deferred. Code
+    /// after `setState` sees the new value, which is what everyone expects, while
+    /// the rebuild is coalesced with every other change in the same frame.
     ///
     /// Safe to call more than once before a frame; the element is dirty or it is
     /// not.
     ///
     /// @throws IllegalStateException if called before the state is mounted or
-    ///         after it is disposed — both mean a callback outlived the widget
+    ///         after it is disposed; both mean a callback outlived the widget
     ///         that registered it, which is a leak worth hearing about
     protected final void setState(Runnable mutation) {
         Objects.requireNonNull(mutation, "mutation");
@@ -89,8 +92,8 @@ public abstract class State<W extends Widget> {
     /// Called when the element is rebuilt with a new widget of the same type.
     ///
     /// `previous` is the widget that was in force. The default does nothing;
-    /// override to react to a changed argument — restarting an animation when a
-    /// target value changes, say.
+    /// override to react to a changed argument, such as restarting an animation
+    /// when a target value changes.
     protected void didUpdateWidget(W previous) {}
 
     /// Called once when the element leaves the tree for good.

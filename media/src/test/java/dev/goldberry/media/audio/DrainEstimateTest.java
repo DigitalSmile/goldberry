@@ -7,7 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-/// [DrainEstimate] with the time in the test's hands (ADR-0485): a device that
+/// [DrainEstimate] with the time in the test's hands: a device that
 /// pulls 1024 samples at 48 kHz, every 21.33 ms when it is punctual, and early,
 /// late, twice at once or not at all when it is not. The estimate follows it
 /// without a step.

@@ -3,7 +3,7 @@ package dev.goldberry.gpu.render;
 import dev.goldberry.natives.sdl.gpu.enums.SdlGpuShaderStage;
 
 /// The toolkit's shaders: one per file in `src/main/shaders`, compiled by
-/// `:gpu:compileShaders` into SPIR-V, DXIL and MSL (`docs/gpu-plan.md`, D7).
+/// `:gpu:compileShaders` into SPIR-V, DXIL and MSL.
 ///
 /// SDL cannot read what a shader declares out of its bytecode, so it is stated
 /// here, beside the name, and a wrong count is a validation error on a debug

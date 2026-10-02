@@ -7,6 +7,7 @@ import java.util.Objects;
 /// A row with no [#fieldName()] describes a struct; a row with one describes a
 /// field of that struct. Rows whose struct name is [#SCALAR] carry the width of
 /// a primitive C type rather than a struct member.
+///
 /// ## The size column of a constant row is a bit pattern
 ///
 /// The table's three numeric columns are `uint32_t`, and for a struct or a scalar
@@ -16,6 +17,9 @@ import java.util.Objects;
 /// reads back as a negative Java `int`. That is not a corrupt table; it is an
 /// unsigned value in a signed box, and [#value()] is where it is read as what it
 /// is.
+///
+/// Read more:
+/// [Repository layout](https://goldberry.dev/docs/contributing/repository.html#the-export-list-and-the-layout-probe).
 public record LayoutEntry(String structName, String fieldName, int size, int offset, int alignment) {
 
     /// Struct name used by rows describing primitive C types.

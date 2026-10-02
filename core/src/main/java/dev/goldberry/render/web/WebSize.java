@@ -7,7 +7,10 @@ package dev.goldberry.render.web;
 /// [dev.goldberry.platform.Capability] has with
 /// `NativeCapability`, and for its reason: the two are deliberately separate
 /// types, and the compiler is what notices when a constant is added to one and
-/// not the other.
+/// not the other. The numbers it qualifies are the desktop's own pixels, not
+/// logical ones.
+///
+/// Read more: [Markdown, HTML and the web](https://goldberry.dev/docs/components/content.html#the-web-view).
 public enum WebSize {
 
     /// The size to open at, which the user may then change. The ordinary case.

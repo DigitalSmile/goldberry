@@ -29,10 +29,10 @@ import dev.goldberry.widget.style.Styled;
 /// `BoxPainter` hands a `canvas` painter a frame whose origin is the **content**
 /// corner — inside the padding — and clips it there, so that
 /// `canvas { padding: 8px }` is a framed drawing surface rather than a surprise
-/// (ADR-0193). The hit-test snapshot recorded only the border box, so a canvas
+/// The hit-test snapshot recorded only the border box, so a canvas
 /// reading `local()` had every event offset from its own ink by exactly the
 /// padding: a press eight pixels from where it was drawn, silently, on the one
-/// widget whose whole job is to be drawn on (ADR-0281).
+/// widget whose whole job is to be drawn on.
 ///
 /// `PointerEvent.content()` is the other half. These assertions are the
 /// arithmetic; `CanvasInputTest` in `:widgets` is the widget that reads it.

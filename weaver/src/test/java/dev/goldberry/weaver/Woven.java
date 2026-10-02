@@ -55,7 +55,7 @@ final class Woven {
     /// than one class because the interesting rule needs more than one — a write
     /// to a `@Bind` field from an actions class beside it is a `putfield` in a
     /// *different* class file, and nothing in either alone says it should be
-    /// rewritten (ADR-0134).
+    /// rewritten.
     ///
     /// One loader for the group, so the woven `Actions` calls the woven `Values`
     /// rather than the raw one still sitting on the test classpath.

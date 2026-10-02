@@ -20,12 +20,12 @@ import dev.goldberry.widgets.TestHost;
 import dev.goldberry.widgets.controls.TestFont;
 import dev.goldberry.widgets.form.parts.Underline;
 
-/// `docs/gaps.md` G16, in the control with a second dimension.
+/// An input method's composition, in the control with a second dimension.
 ///
 /// `TextInputPreeditTest` pins the rules; what is different here is the shape of
 /// them — a composition can **wrap**, so it is underlined once per visual line,
 /// which is the same thing a selection already is and the reason both are bounded
-/// runs of parts (ADR-0292).
+/// runs of parts.
 ///
 /// There is no masked `text-area`, so the one refusal `text-input` has does not
 /// arise.

@@ -32,7 +32,8 @@ import dev.goldberry.widget.attr.Attributes;
 import dev.goldberry.widget.style.Paints;
 import dev.goldberry.widget.style.Styled;
 
-/// Rendering with no window — ADR-0284.
+/// Rendering with no window: `Offscreen` runs the window's own sequence into a
+/// pixel buffer, with no backend under it.
 ///
 /// The pieces this composes were all public and all tested; what was not tested
 /// is the **sequence**, because the sequence only existed inside `Launcher` and
@@ -41,6 +42,8 @@ import dev.goldberry.widget.style.Styled;
 /// before it is styled, that it is laid out before it is painted, that the
 /// regions are fed back so a self-measuring widget hears them, and that nothing
 /// is left mounted afterwards.
+///
+/// Read more: [Pictures](https://goldberry.dev/docs/guide/testing.html#pictures).
 class OffscreenTest {
 
     private static final int RED = 0xFFFF0000;

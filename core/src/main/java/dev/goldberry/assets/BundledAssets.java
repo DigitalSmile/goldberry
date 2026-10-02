@@ -9,18 +9,25 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 
-/// The fonts and icons that ship inside `goldberry-core`.
+/// The fonts and icons that ship inside `goldberry-core`: the bytes of each
+/// [BundledFont], and the path data of every Lucide icon.
 ///
-/// Embedding them is a deliberate trade (`docs/ARCHITECTURE.md` §6.1): three
-/// megabytes of jar in exchange for a toolkit that renders identically on every
-/// machine, whatever fonts happen to be installed. The design system's metrics
-/// are authored against these faces, so a system font is an opt-in that
-/// explicitly gives up pixel-exactness.
+/// ```java
+/// byte[] inter = BundledAssets.font(BundledFont.UI);
+/// Optional<String> path = BundledAssets.icon("check");
+/// ```
 ///
-/// The bytes are prepared at build time by `:assets`, which fetches each
-/// upstream release by version **and** SHA-256 (ADR-0033) — so what is in the
-/// jar is provably the release that was pinned, not merely something that
-/// downloaded successfully.
+/// Embedding them is a deliberate trade: three megabytes of jar in exchange for a
+/// toolkit that renders identically on every machine, whatever fonts happen to be
+/// installed. The design system's metrics are authored against these faces, so a
+/// system font is an opt-in that explicitly gives up pixel-exactness.
+///
+/// The bytes are prepared at build time, which fetches each upstream release by
+/// version **and** SHA-256, so what is in the jar is provably the release that
+/// was pinned, not merely something that downloaded successfully. The emoji face
+/// is the exception: it is not in this jar and arrives through [EmojiFont].
+///
+/// Read more: [Text, fonts and icons](https://goldberry.dev/docs/guide/text.html#the-bundled-faces).
 public final class BundledAssets {
 
     private static final String ROOT = "/dev/goldberry/assets/";
@@ -28,9 +35,9 @@ public final class BundledAssets {
     /// The icon table, parsed on first use and kept.
     ///
     /// 1544 icons and roughly 220 KiB of path data. Parsing it eagerly at class
-    /// load would put that on the start-up path this toolkit makes claims about
-    /// (ADR-0028); parsing it per icon would re-read the whole table for every
-    /// checkbox. Once, lazily, is the middle.
+    /// load would put that on the start-up path this toolkit makes claims about;
+    /// parsing it per icon would re-read the whole table for every checkbox. Once,
+    /// lazily, is the middle.
     private static final class Icons {
         private static final Map<String, String> TABLE = loadIcons();
     }
@@ -49,7 +56,7 @@ public final class BundledAssets {
         Objects.requireNonNull(font, "font");
         if (font == BundledFont.EMOJI) {
             // Not in this jar. The emoji face ships as `goldberry-emoji` and
-            // reaches this through a service (ADR-0384, ADR-0456).
+            // reaches this through a service.
             var provider = EmojiFont.provider();
             if (provider == null) {
                 throw new MissingEmojiFontException();

@@ -8,8 +8,9 @@ description = 'Goldberry asset preparation: fetches the pinned fonts and icon se
 //
 // This is a build-time tool, not a module of the toolkit: it never ships, it has
 // no module-info because nothing consumes it as a module, and it targets the
-// same JDK as everything else only because there is no reason not to. §15's
-// artifact list is unchanged by it (ADR-0033).
+// same JDK as everything else only because there is no reason not to. The
+// published artifact list is unchanged by it.
+// https://goldberry.dev/docs/contributing/repository.html#the-modules
 group = 'dev.goldberry'
 version = providers.gradleProperty('goldberryVersion').get()
 

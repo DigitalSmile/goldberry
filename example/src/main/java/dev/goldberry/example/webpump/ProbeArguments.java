@@ -7,9 +7,9 @@ import org.jspecify.annotations.Nullable;
 /// The four numbers [ProbeDocument] sends, read out of the JSON array the engine
 /// hands over.
 ///
-/// Deliberately **not** a JSON parser. The toolkit ships no reader and binding
-/// one for the sake of a probe would be the dependency [ADR-0448] declined to
-/// take on. What this handles is the one shape this document sends — four
+/// Deliberately **not** a JSON parser. The toolkit ships no JSON reader, and
+/// taking a dependency on one for the sake of a probe would be out of
+/// proportion. What this handles is the one shape this document sends — four
 /// numbers in an array — and anything else is refused rather than guessed at.
 ///
 /// @param rafFps      `requestAnimationFrame` callbacks per second

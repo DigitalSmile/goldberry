@@ -38,7 +38,7 @@ import dev.goldberry.widgets.controls.TestFont;
 import dev.goldberry.widgets.form.parts.PickerField;
 import dev.goldberry.widgets.panel.calendar.DateSelection;
 
-/// §4's typed date field, driven the way a user drives it.
+/// The typed date field, driven the way a user drives it.
 ///
 /// The parsing is [DateFormatTest]'s and the grid is `CalendarTest`'s, both with
 /// no widget. What is here is the seam between them: that the **field is the
@@ -47,8 +47,10 @@ import dev.goldberry.widgets.panel.calendar.DateSelection;
 /// do.
 ///
 /// **ISO dates and a fixed month**, because a picker cannot read a clock
-/// (ADR-0274) and asserting a locale's short form would be asserting a
+/// and asserting a locale's short form would be asserting a
 /// `java.time` table.
+///
+/// Read more: [`date-picker`](https://goldberry.dev/docs/components/forms.html#date-picker).
 class DatePickerTest {
 
     private static final YearMonth SEPTEMBER = YearMonth.of(2026, 9);
@@ -85,7 +87,7 @@ class DatePickerTest {
     /// The `text-input` node inside, found by the name a **stylesheet** would use
     /// rather than by its class.
     ///
-    /// `TextField` is package-private, which is ADR-0065's rule working: a part is
+    /// `TextField` is package-private, which is the ownership rule working: a part is
     /// styleable and not constructible, and that goes for a neighbouring widget's
     /// test as much as for an application. What is reachable from here is what is
     /// reachable from anywhere — the CSS type and the handler interfaces — and
@@ -112,7 +114,7 @@ class DatePickerTest {
         return null;
     }
 
-    /// The picker's own state, which is what holds the text — §4's source of
+    /// The picker's own state, which is what holds the text — the source of
     /// truth, asked directly.
     private DatePickerState state(ElementTree tree) {
         return (DatePickerState) tree.root().state().orElseThrow();
@@ -179,7 +181,7 @@ class DatePickerTest {
             assertEquals("2026-09", shown(tree));
         }
 
-        /// §4: "an unreachable date cannot be typed either". The text stays,
+        /// An unreachable date cannot be typed either. The text stays,
         /// because deleting what somebody typed is how a field loses a keystroke
         /// they were halfway through.
         @Test
@@ -233,7 +235,7 @@ class DatePickerTest {
     @DisplayName("Esc reverts")
     class Reverting {
 
-        /// §4's word, and `select`'s rule: the control holds a value, typing is a
+        /// `Esc` reverts, which is `select`'s rule: the control holds a value, typing is a
         /// way of reaching one, and abandoning the attempt must not throw away
         /// something nobody asked to lose.
         @Test
@@ -270,7 +272,7 @@ class DatePickerTest {
 
         /// A `TestHost` has no popup windows, which is the same answer a golden
         /// image and a layout preview get: the control stays closed rather than
-        /// throwing (ADR-0140).
+        /// throwing.
         @Test
         @DisplayName("cannot open without a window, and says so by staying closed")
         void noHost() {
@@ -283,7 +285,7 @@ class DatePickerTest {
         }
 
         /// The bug this asserts against: the first version passed the **field's**
-        /// width as a minimum, which is `select`'s rule (ADR-0145) and is wrong
+        /// width as a minimum, which is `select`'s rule and is wrong
         /// here. A dropdown's rows stretch to fill whatever they are given; a
         /// month grid is seven cells of `--gb-calendar-day` and cannot be any
         /// other width, so a floor produced a panel as wide as the field with the
@@ -324,7 +326,7 @@ class DatePickerTest {
     @DisplayName("a bound value")
     class Binding {
 
-        /// §4 gives this control a `LocalDate` value, and a model that holds one
+        /// The control's value is a `LocalDate`, and a model that holds one
         /// is the common case. It is *formatted* rather than stringified, so the
         /// field shows the application's own spelling.
         @Test
@@ -406,7 +408,7 @@ class DatePickerTest {
             assertEquals(SEPTEMBER, inflated("date-picker min=\"2026-09-01\"").month());
         }
 
-        /// §4 puts the formatter on the application and a `DateTimeFormatter` is
+        /// The formatter is the application's, and a `DateTimeFormatter` is
         /// not something KDL can carry, so a document gets the documented default
         /// rather than a gap.
         ///

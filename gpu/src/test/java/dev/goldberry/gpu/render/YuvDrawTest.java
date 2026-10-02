@@ -35,8 +35,7 @@ import dev.goldberry.natives.sdl.gpu.enums.SdlGpuTextureUsage;
 import dev.goldberry.natives.sdl.gpu.enums.SdlGpuTransferUsage;
 
 /// The Y'CbCr shaders against [YuvConversion], for every layout, matrix and
-/// range the frame contract can carry: media phase 4's colour half
-/// (`docs/gpu-plan.md`, phase 6).
+/// range the frame contract can carry: the colour half of video on the GPU.
 ///
 /// A picture of one colour, drawn 1:1, must come back as the reference's bytes
 /// within one step; a picture whose chroma differs left and right must keep
@@ -85,7 +84,7 @@ class YuvDrawTest {
     @AfterAll
     static void destroyDevice() {
         // Skipped before SDL was reached: nothing to give back, and no library to
-        // call. Calling it anyway failed the class, and a build without it (ADR-0495).
+        // call. Calling it anyway failed the class, and a build without it.
         if (device == null) {
             return;
         }

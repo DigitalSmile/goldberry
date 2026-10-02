@@ -7,7 +7,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-/// What each golden tolerance admits (ADR-0503).
+/// What each golden tolerance admits.
+///
+/// Read more:
+/// [Comparing with a tolerance](https://goldberry.dev/docs/guide/testing.html#comparing-with-a-tolerance).
 @DisplayName("Golden tolerances")
 class ToleranceTest {
 

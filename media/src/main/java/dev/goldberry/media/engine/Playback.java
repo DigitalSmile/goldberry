@@ -52,7 +52,7 @@ import dev.goldberry.media.subtitle.Cue;
 import dev.goldberry.media.subtitle.Subtitles;
 
 /// One source, open and playing: the demux thread, a decode thread per track, and
-/// the state they share (`docs/goldberry-media.md` §3).
+/// the state they share.
 ///
 /// ## The threads
 ///
@@ -73,7 +73,7 @@ import dev.goldberry.media.subtitle.Subtitles;
 /// The master clock is the audio clock while there is audio: the presentation
 /// time just past the last sample written, less what the sink still holds, less
 /// how long a sample takes from there to the ear ([AudioSink#latencyNanos()] and
-/// [#setAudioDelay], ADR-0474). A
+/// [#setAudioDelay]): the clock is what is heard, not what was written. A
 /// source with no audio runs on a free-running clock over the [MediaClock], and
 /// a video whose audio ends first hands over to one at the audio's last position
 /// ([MasterClock]).
@@ -85,7 +85,7 @@ import dev.goldberry.media.subtitle.Subtitles;
 /// [#START_THRESHOLD_NANOS] of audio, and the first picture is queued. So the
 /// first picture and the first sample leave together.
 ///
-/// It also waits for the **high water mark** (§4): until every track has been
+/// It also waits for the **high water mark**: until every track has been
 /// demuxed that far past the clock ([#bufferedAheadNanos()]), or the source has
 /// ended, or the queues are full and the demux thread could not read more if it
 /// tried. For a local file that takes milliseconds; for a network source it is
@@ -94,7 +94,7 @@ import dev.goldberry.media.subtitle.Subtitles;
 /// The **low water mark is empty.** A track stalls when its decoder runs out of
 /// packets with the source not at its end, and only then does playback go back to
 /// [PlaybackState#BUFFERING]: the sink is paused and the free-running clock held,
-/// until the high water mark is reached again (S3). Pausing earlier, with media
+/// until the high water mark is reached again. Pausing earlier, with media
 /// still in hand, would trade one long silence for a later one.
 ///
 /// ## Switching tracks
@@ -102,9 +102,9 @@ import dev.goldberry.media.subtitle.Subtitles;
 /// A track menu's choice ([#select]) is the demux thread's to carry out, between
 /// two packets. An audio or video track is switched by **retiring** the decode
 /// thread playing the old one and starting one on the new, then seeking to where
-/// playback is: the seek is the whole of the synchronisation (ADR-0467 for audio,
-/// ADR-0469 for video). A video switch keeps the [FrameQueue], so the picture on
-/// screen stays up until the new track's first picture replaces it.
+/// playback is: the seek is the whole of the synchronisation. A video switch
+/// keeps the [FrameQueue], so the picture on screen stays up until the new
+/// track's first picture replaces it.
 ///
 /// ## Stopping
 ///
@@ -118,7 +118,7 @@ public final class Playback implements AutoCloseable {
     /// shorter a wall-clock time for the next write ([#sinkTargetNanos()]).
     static final long SINK_TARGET_NANOS = 200_000_000L;
 
-    /// The slowest and fastest a player plays (§3, "Rate"): a quarter and four
+    /// The slowest and fastest a player plays: a quarter and four
     /// times the speed.
     public static final float MIN_RATE = 0.25f;
 
@@ -247,7 +247,7 @@ public final class Playback implements AutoCloseable {
     /// first samples travel to the ear.
     private volatile long audioFloorSample;
     /// The application's correction to the device's latency, in wall-clock
-    /// nanoseconds (ADR-0474): positive when the sound is heard later than the
+    /// nanoseconds: positive when the sound is heard later than the
     /// device says.
     private volatile long audioDelayNanos;
     /// The time since the queue emptied at the end of the track, which the
@@ -269,7 +269,7 @@ public final class Playback implements AutoCloseable {
     /// @param ioProviders    the protocols, or null for the ones `ServiceLoader`
     ///                       finds
     /// @param hardware       whether the built-in decoder tries a device for
-    ///                       video (ADR-0470)
+    ///                       video
     /// @param time           what a source with no audio is timed against
     /// @param highWaterNanos how far ahead to demux before playing, and before
     ///                       playing on after a stall
@@ -435,7 +435,7 @@ public final class Playback implements AutoCloseable {
     }
 
     /// Plays `track` in place of the track of its kind playing, from where
-    /// playback is (§6, track menus).
+    /// playback is: a track menu's choice.
     ///
     /// - An **audio** or **video** track: the demux thread retires the decode
     ///   thread of that kind, starts one on `track`, and makes an accurate seek
@@ -478,7 +478,7 @@ public final class Playback implements AutoCloseable {
     }
 
     /// Plays `requested` times as fast, pitch and all, from now on: the sink
-    /// resamples, and the free-running clock counts faster (§3, "Rate").
+    /// resamples, and the free-running clock counts faster.
     ///
     /// @return the rate playback runs at now: `requested`, or the old one when the
     ///         sink cannot play at it
@@ -501,7 +501,7 @@ public final class Playback implements AutoCloseable {
 
     /// Moves `count` pictures on, or back for a negative count, and pauses there:
     /// an accurate seek to the shown picture's time plus `count` picture lengths,
-    /// which lands on the picture that starts there (§6, `,` and `.`).
+    /// which lands on the picture that starts there: a player's `,` and `.`.
     ///
     /// @return false when there is no picture to step from: no video, or none
     ///         shown yet
@@ -554,8 +554,8 @@ public final class Playback implements AutoCloseable {
         return pictureForm;
     }
 
-    /// Prepares the pictures decoded from now on as `form` (`docs/gpu-plan.md`,
-    /// D8). The video thread reads it for each picture.
+    /// Prepares the pictures decoded from now on as `form`. The video thread
+    /// reads it for each picture.
     ///
     /// **To planes**, nothing else changes: the converted pictures queued play
     /// out, since a view that draws planes draws a [VideoPicture] too.
@@ -563,7 +563,7 @@ public final class Playback implements AutoCloseable {
     /// **Back to converted**, the planes queued are of no use to a view that
     /// draws on the CPU, so an accurate seek to where playback is flushes them,
     /// and the picture covering the position comes back converted. It is the
-    /// seek a track switch makes (ADR-0469): the picture shown stays up until
+    /// seek a track switch makes: the picture shown stays up until
     /// that one replaces it, the sound is flushed with the pictures, and a
     /// playback at its end plays its last picture's time again.
     public void setPictureForm(PictureForm form) {
@@ -628,7 +628,7 @@ public final class Playback implements AutoCloseable {
 
     /// Seeks to `positionNanos`: the demux thread moves to the keyframe before
     /// it; with `accurate`, the decode threads discard up to it, so the first
-    /// sample heard and the first picture shown are the target's (§3). Coalesced:
+    /// sample heard and the first picture shown are the target's. Coalesced:
     /// while one seek runs, only the latest request waits.
     public void seek(long positionNanos, boolean accurate) {
         var target = Math.max(positionNanos, 0);
@@ -727,7 +727,7 @@ public final class Playback implements AutoCloseable {
     }
 
     /// Every track about to be played has a decoder, or the source fails naming
-    /// every codec that has none (§7, S7).
+    /// every codec that has none.
     private void requireDecoders(Demuxer opened, Optional<Track> audio, Optional<Track> video) {
         var unsupported = new ArrayList<String>(2);
         for (var track : List.of(video, audio)) {
@@ -941,7 +941,7 @@ public final class Playback implements AutoCloseable {
     /// thread, starts one on `track` over the same [FrameQueue], and seeks to
     /// where playback is. The picture on screen stays up until the new track's
     /// first picture, the one covering the position, replaces it, so the switch
-    /// is a cut and not a frame of black (ADR-0469).
+    /// is a cut and not a frame of black.
     private void switchVideo(Demuxer opened, Track track) {
         var current = videoTrack;
         var pictures = frames;
@@ -1187,7 +1187,7 @@ public final class Playback implements AutoCloseable {
         return seeking != Frame.NO_PTS ? seeking : clock.nanos();
     }
 
-    /// The audio clock: what is heard now (ADR-0474). What has left the sink's
+    /// The audio clock: what is heard now. What has left the sink's
     /// queue, less how long it takes to reach the ear: the sink's latency and
     /// the application's delay, which are wall-clock time and so count
     /// [#rate()] times as much stream time. Once the queue has emptied at the
@@ -1242,8 +1242,7 @@ public final class Playback implements AutoCloseable {
     /// end it moves to, together, under the lock [#audioClockNanos] reads both
     /// under. Apart, a reading between the two finds the queue grown by a packet
     /// and the end not yet moved, and the clock a packet behind for an instant,
-    /// which a view waking for its next picture sleeps a picture too long on
-    /// (ADR-0485).
+    /// which a view waking for its next picture sleeps a picture too long on.
     void writeAudio(MemorySegment data, int samples, long endSample) {
         synchronized (audioWrite) {
             sink.write(data, samples);

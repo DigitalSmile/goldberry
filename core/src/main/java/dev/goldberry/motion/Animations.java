@@ -13,15 +13,15 @@ import dev.goldberry.css.ComputedStyle;
 import dev.goldberry.css.cascade.Transitions;
 import dev.goldberry.css.cascade.Transitions.Animatable;
 
-/// One node's running transitions — `docs/design-system.md` §1.7.
+/// One node's running transitions.
 ///
 /// ## The overlay, and why it is never written back
 ///
-/// §1.7: "animated values live in a per-node **animation overlay** applied at
-/// paint time, never written back into computed style, so style recomputation and
-/// animation can't fight."
+/// Animated values live in a per-node **animation overlay** applied at paint
+/// time, never written back into computed style, so style recomputation and
+/// animation cannot fight.
 ///
-/// That sentence is the whole design. The cascade resolves a node's *target*
+/// That rule is the whole design. The cascade resolves a node's *target*
 /// style every frame from the stylesheets and the node's current pseudo-classes;
 /// this holds where each animating property has actually got to. [#apply] returns
 /// a style with the in-flight values substituted, and the target is what the next
@@ -32,8 +32,8 @@ import dev.goldberry.css.cascade.Transitions.Animatable;
 ///
 /// ## Retargeting starts from the current value
 ///
-/// §1.7: "retargeting mid-flight starts from the *current animated value* —
-/// values never jump." A pointer that leaves a button 40 ms into a 100 ms hover
+/// Retargeting mid-flight starts from the *current animated value*, so values
+/// never jump. A pointer that leaves a button 40 ms into a 100 ms hover
 /// fade must return from where the colour actually is, not from the full hover
 /// colour it never reached. So a new transition for a property already in flight
 /// takes the interpolated value as its start.
@@ -41,12 +41,13 @@ import dev.goldberry.css.cascade.Transitions.Animatable;
 /// ## Lifetime
 ///
 /// One of these per element, living on the element, so it survives the rebuilds
-/// that replace the widget describing it
-/// (ADR-0052).
-/// A transition that outlived its element would animate something nobody can see;
-/// one that died with a *widget* would restart on every `setState`.
+/// that replace the widget describing it. A transition that outlived its element
+/// would animate something nobody can see; one that died with a *widget* would
+/// restart on every `setState`.
 ///
 /// Confined to the UI thread, like everything else in the frame path.
+///
+/// Read more: [The design system](https://goldberry.dev/docs/guide/design-system.html#motion).
 public final class Animations {
 
     /// One property, in flight.
@@ -93,7 +94,7 @@ public final class Animations {
     private final Map<Animatable, Running> running = new EnumMap<>(Animatable.class);
 
     /// What resolves a `@keyframes` block for the node these animations belong
-    /// to — the renderer, which has the cascade (ADR-0353).
+    /// to — the renderer, which has the cascade.
     @FunctionalInterface
     public interface KeyframeSource {
 
@@ -135,7 +136,7 @@ public final class Animations {
     ///
     /// The first frame starts nothing: there is no previous style, so nothing
     /// changed. That is what stops a window fading every control in from black
-    /// when it opens — a control appearing is not a control changing, and §1.7's
+    /// when it opens — a control appearing is not a control changing, and
     /// enter/exit animations belong to overlays, which announce themselves.
     ///
     /// @param target the style the cascade just produced
@@ -206,8 +207,7 @@ public final class Animations {
         return styled;
     }
 
-    /// `base` with every keyframe animation `target` names applied at `now`
-    /// (ADR-0353).
+    /// `base` with every keyframe animation `target` names applied at `now`.
     ///
     /// Beneath transitions, which is CSS's order: a transition's in-flight value
     /// is applied over this result by [#apply], so a control whose hover colour

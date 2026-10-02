@@ -18,8 +18,9 @@ import dev.goldberry.motion.Animations;
 import dev.goldberry.stats.FrameStats;
 import dev.goldberry.widget.style.Styled;
 
-/// The persistent instantiation of a [Widget] — the second of ADR-0004's three
-/// trees.
+/// The persistent node a [Widget] is turned into: the second of the toolkit's
+/// three trees, between the widgets an application describes and the boxes the
+/// renderer paints.
 ///
 /// A widget is thrown away and rebuilt constantly. An element is not: it is
 /// created when a widget first appears at a position, updated when a compatible
@@ -27,10 +28,19 @@ import dev.goldberry.widget.style.Styled;
 /// persistence is what gives a node identity for state, focus, semantics and
 /// animation to hang off.
 ///
+/// An application rarely holds one directly. It meets the element as the
+/// [BuildContext] handed to `build`, and asks it for an ancestor widget or
+/// state, a design token, or the host.
+///
 /// It is also what makes CSS work. `Element` implements [StyleElement]: the
 /// cascade asks it for its type, classes and ancestors, and gets answers that
 /// survive a rebuild — so `:hover` on a node does not evaporate because its
-/// parent re-described it.
+/// parent re-described it. The style the cascade resolves is cached here too,
+/// keyed by identity on the resolver and on the parent's style, so a frame in
+/// which nothing changed resolves nothing.
+///
+/// Read more:
+/// [The three shapes](https://goldberry.dev/docs/guide/writing-a-widget.html#the-three-shapes).
 public final class Element implements BuildContext, StyleElement {
 
     private final ElementTree tree;
@@ -55,7 +65,7 @@ public final class Element implements BuildContext, StyleElement {
     /// it survives every rebuild that keeps this element and dies with the
     /// element itself — which is exactly the lifetime an animation should have,
     /// because one that outlived its node would be animating something nobody can
-    /// see (ADR-0067).
+    /// see.
     ///
     /// Lazily created: most nodes never animate, and an `Animations` per element
     /// per frame for a static tree is an allocation for nothing.
@@ -63,12 +73,12 @@ public final class Element implements BuildContext, StyleElement {
 
     // --- the style cache ---------------------------------------------------
     //
-    // `docs/ARCHITECTURE.md` §5's frame loop says "style resolution (invalidated
-    // nodes)", and until this existed it resolved *every* node every frame:
-    // selector matching, right-to-left with backtracking, against every rule in
-    // every stylesheet, plus a walk to the root per node to collect custom
-    // properties. Once layout was retained (ADR-0069) that was 135 us of a 148 us
-    // frame -- the largest single term by a wide margin (ADR-0070).
+    // The frame loop resolves styles for invalidated nodes only. Without this
+    // cache it would resolve *every* node every frame: selector matching,
+    // right-to-left with backtracking, against every rule in every stylesheet,
+    // plus a walk to the root per node to collect custom properties. With layout
+    // retained, that was 135 us of a 148 us frame -- the largest single term by
+    // a wide margin.
 
     /// What the cascade last resolved for this node, or null if it must be asked
     /// again.
@@ -103,7 +113,7 @@ public final class Element implements BuildContext, StyleElement {
     // map by identity and an unchanged parent keeps every entry below it valid.
     // Without it, resolving one node ran a full cascade at every level between it
     // and the root -- eleven of them at the showcase's depth, and the largest
-    // term left in a frame (ADR-0152).
+    // term left in a frame.
 
     private java.util.@Nullable Map<String, java.util.List<dev.goldberry.css.parse.Token>> customProperties;
 
@@ -145,22 +155,20 @@ public final class Element implements BuildContext, StyleElement {
     /// hands down is not the one it cached: [Styled#restyle] runs afterwards, and
     /// a widget that writes an inline value returns a fresh `ComputedStyle` on
     /// every frame whether or not anything in it moved. `ScrollContent` does
-    /// exactly that — `resolved.flexShrink(0)`, unconditionally — so every node
-    /// inside a `scroll` re-resolved on every frame, and in the showcase that is
-    /// every node on the screen: 56 of 72 elements missing, and 10ms of cascade
-    /// in a frame that should have cost nothing
-    /// (ADR-0142).
+    /// exactly that — `resolved.flexShrink(0)`, unconditionally — so without this
+    /// every node inside a `scroll` would re-resolve on every frame, and in the
+    /// showcase that is every node on the screen.
     ///
     /// A value comparison against one instance, which is a flat record `equals`
     /// — against a re-resolve that costs two orders of magnitude more.
-    /// **Compared on the inherited half only**, which is the narrowing ADR-0142
-    /// left ([ADR-0248]). What this returns is a *cache key for children* and
-    /// nothing else — the node paints with the style it actually resolved — so
-    /// two candidates that agree on `color` and `typography` are
-    /// indistinguishable to everything that reads it. `equals` compared the whole
-    /// record including the **transform**, which nothing inherits and which a
-    /// `scroll` moves on every frame of a gesture: every node inside a scrolling
-    /// viewport re-resolved for a change no child could see.
+    /// **Compared on the inherited half only.** What this returns is a *cache
+    /// key for children* and nothing else — the node paints with the style it
+    /// actually resolved — so two candidates that agree on `color` and
+    /// `typography` are indistinguishable to everything that reads it. A
+    /// whole-record `equals` would also compare the **transform**, which nothing
+    /// inherits and which a `scroll` moves on every frame of a gesture: every
+    /// node inside a scrolling viewport would re-resolve for a change no child
+    /// could see.
     ComputedStyle stableStyle(ComputedStyle candidate) {
         if (handedDown != null && handedDown.inheritsSameAs(candidate)) {
             return handedDown;
@@ -169,18 +177,6 @@ public final class Element implements BuildContext, StyleElement {
         return candidate;
     }
 
-    /// Throws away this node's cached style **and its whole subtree's**.
-    ///
-    /// The subtree, not just this node, and that is the load-bearing part. A
-    /// descendant combinator means a node's own match depends on an ancestor's
-    /// state: `checkbox:hover check-indicator { border-color: … }` restyles the
-    /// *indicator* when the checkbox is hovered, and the checkbox's own resolved
-    /// style may not change at all — so the inherited-identity check above would
-    /// not catch it and the indicator would keep a stale style forever.
-    ///
-    /// Conservative on purpose. Working out which descendants a rule could reach
-    /// is real machinery, and this walk is pointer-chasing against a cascade pass
-    /// that costs hundreds of times more.
     /// The tree this element belongs to — for the frame trace, which counts on
     /// the tree because a count is about the frame and not about a node.
     ElementTree tree() {
@@ -197,10 +193,6 @@ public final class Element implements BuildContext, StyleElement {
         return total;
     }
 
-    /// Throws away **this node's** cached style and nothing else.
-    ///
-    /// The narrow half of [#invalidateStyle], for the caller that has asked
-    /// whether the subtree can be affected and been told no (ADR-0149).
     /// The classes this node's widget computed from the frame — see
     /// [Styled#classes(FrameStats)].
     private Set<String> frameClasses = Set.of();
@@ -211,7 +203,7 @@ public final class Element implements BuildContext, StyleElement {
     /// node's: a class the widget computed from the frame is on this element, and
     /// a rule reading it through a descendant combinator would be a stylesheet
     /// colouring one node by another's frame timings, which is not a thing
-    /// anybody should be able to write (ADR-0150).
+    /// anybody should be able to write.
     void frameClasses(Set<String> classes) {
         if (!frameClasses.equals(classes)) {
             frameClasses = Set.copyOf(classes);
@@ -219,6 +211,10 @@ public final class Element implements BuildContext, StyleElement {
         }
     }
 
+    /// Throws away **this node's** cached style and nothing else.
+    ///
+    /// The narrow half of [#invalidateStyle], for the caller that has asked
+    /// whether the subtree can be affected and been told no.
     private void invalidateOwnStyle() {
         if (FrameTrace.ENABLED && style != null) {
             tree.trace().countInvalidation();
@@ -228,12 +224,24 @@ public final class Element implements BuildContext, StyleElement {
         styleInherited = null;
         // The custom properties go with it: what invalidates a style is a change
         // in what matches this node, and a `--gb-*` declaration is matched by the
-        // same rules as everything else (ADR-0152).
+        // same rules as everything else.
         customProperties = null;
         customPropertiesResolver = null;
         customPropertiesInherited = null;
     }
 
+    /// Throws away this node's cached style **and its whole subtree's**.
+    ///
+    /// The subtree, not just this node, and that is the load-bearing part. A
+    /// descendant combinator means a node's own match depends on an ancestor's
+    /// state: `checkbox:hover check-indicator { border-color: … }` restyles the
+    /// *indicator* when the checkbox is hovered, and the checkbox's own resolved
+    /// style may not change at all — so the inherited-identity check above would
+    /// not catch it and the indicator would keep a stale style forever.
+    ///
+    /// Conservative on purpose. Working out which descendants a rule could reach
+    /// is real machinery, and this walk is pointer-chasing against a cascade pass
+    /// that costs hundreds of times more.
     void invalidateStyle() {
         if (FrameTrace.ENABLED && style != null) {
             tree.trace().countInvalidation();
@@ -294,8 +302,7 @@ public final class Element implements BuildContext, StyleElement {
     /// Marks this element as needing a rebuild.
     ///
     /// Does **not** rebuild. The tree collects dirty elements and rebuilds them
-    /// once per frame, so ten `setState` calls in one handler cost one build
-    /// ([ADR-0052]).
+    /// once per frame, so ten `setState` calls in one handler cost one build.
     public void markNeedsBuild() {
         if (!mounted || needsBuild) {
             return;
@@ -309,7 +316,7 @@ public final class Element implements BuildContext, StyleElement {
     /// Whether `next` can update this element in place, or whether the element
     /// has to be replaced.
     ///
-    /// Type and key, which is the whole of ADR-0004's "diffed by type and key".
+    /// Type and key, and nothing else: that is what the reconciler diffs on.
     /// A different type means a different kind of node; a different key means the
     /// author said these are different things even though they look alike.
     boolean canUpdateTo(Widget next) {
@@ -318,15 +325,15 @@ public final class Element implements BuildContext, StyleElement {
 
     /// Replaces this element's widget, if it can, and rebuilds.
     ///
-    /// ## The three guards, and why a scrolling viewport needed them
+    /// ## The three guards
     ///
     /// This is the path every rebuild cascades down, so what it does *per node*
     /// is multiplied by the size of the subtree. A `scroll` moving by one notch
     /// re-describes exactly two nodes — the viewport and the content box, whose
-    /// offset changed — and on the showcase's icon sheet that cost **66 ms of
-    /// cascade**, because the guards below were missing and 4709 elements were
-    /// invalidated and re-resolved for a transform none of them can see
-    /// ([ADR-0315]).
+    /// offset changed — and without the guards below every element under them
+    /// would be invalidated and re-resolved for a transform none of them can see:
+    /// on a sheet of a few thousand icons, tens of milliseconds of cascade per
+    /// notch.
     void update(Widget next) {
         var previous = widget;
         if (next == previous) {
@@ -357,10 +364,9 @@ public final class Element implements BuildContext, StyleElement {
         // and `parent` cannot change here. So a re-description that leaves all
         // three alone cannot change what matches anything below, and the subtree
         // keeps its styles; what it *can* change is this node's own resolved
-        // style, because `Styled.restyle` reads the widget. This is exactly the
-        // seam ADR-0149 opened for "the caller that has asked whether the subtree
-        // can be affected and been told no", arriving at the caller that needed
-        // it most ([ADR-0315]).
+        // style, because `Styled.restyle` reads the widget. That is what
+        // `invalidateOwnStyle` is for: this caller has asked whether the subtree
+        // can be affected and been told no.
         //
         // The inherited half needs nothing here: a child's cache is keyed on what
         // its parent handed down, so a node whose own style really did change
@@ -380,8 +386,7 @@ public final class Element implements BuildContext, StyleElement {
         // list re-describes its whole window every time that window moves by a
         // row, and two of the three widgets in a row are a plain `Styled` that
         // computes nothing: a cascade at ~35 µs a node, over 295 nodes, is 10 ms
-        // of frame spent re-deriving styles that could not have moved
-        // ([ADR-0316]).
+        // of frame spent re-deriving styles that could not have moved.
 
         subscribeToBinding(previous);
         if (state != null) {
@@ -396,7 +401,7 @@ public final class Element implements BuildContext, StyleElement {
     /// A [ClassValue] because the answer is a fact about the *class* and the
     /// question is asked once per re-described node per frame: reflection once
     /// per class, then a field read. Two widgets in the whole catalog override
-    /// it, both to write a number no selector can express (ADR-0099) — so for
+    /// it, both to write a number no selector can express — so for
     /// almost every node the answer is `false` and the style survives the
     /// rebuild.
     ///
@@ -432,7 +437,7 @@ public final class Element implements BuildContext, StyleElement {
     /// from the widget. [Element#classes()] merges [#frameClasses] on top of
     /// these, and those are the element's rather than the widget's: they change
     /// through [#frameClasses(Set)], which invalidates on its own and
-    /// deliberately does not recurse (ADR-0150).
+    /// deliberately does not recurse.
     ///
     /// Conservative in the safe direction — a widget whose `cssType` varied by
     /// instance, or whose `classes` returned an equal-but-unordered set, is
@@ -451,11 +456,11 @@ public final class Element implements BuildContext, StyleElement {
                 || !before.classes().equals(after.classes());
     }
 
-    /// Follows the widget's [Widget#binding] — §9's `bind`.
+    /// Follows the widget's [Widget#binding] — what `bind=` in markup sets up.
     ///
     /// The subscription belongs to the element rather than to the widget, because
     /// the widget is a value that is thrown away and rebuilt while the element is
-    /// what persists ([ADR-0004]). An element that re-subscribed on every rebuild
+    /// what persists. An element that re-subscribed on every rebuild
     /// would accumulate one listener per frame; one that never re-subscribed would
     /// keep listening to the property a *previous* widget named.
     ///
@@ -726,7 +731,7 @@ public final class Element implements BuildContext, StyleElement {
 
     /// Whether this element has been styled by a render yet — the question
     /// `@starting-style` asks, since its rules apply to an element's **first**
-    /// style and to no later one (ADR-0352).
+    /// style and to no later one.
     private boolean styled;
 
     /// Notes that this element has been styled, and says whether this was the
@@ -776,11 +781,11 @@ public final class Element implements BuildContext, StyleElement {
             //
             // **The subtree only when a rule can reach it.** A descendant
             // combinator means a node's match can depend on an ancestor's state
-            // -- `checkbox:hover check-indicator` -- and until ADR-0149 that
-            // possibility was assumed for every state on every node. It is asked
-            // now: nothing in any sheet says `column:hover …`, so a click on
-            // empty space re-resolves one node instead of the screen, which was
-            // 12ms a click.
+            // -- `checkbox:hover check-indicator` -- and assuming that for every
+            // state on every node would re-resolve the screen on every click. So
+            // the resolver is asked: nothing in any sheet says `column:hover …`,
+            // so a click on empty space re-resolves one node instead of the
+            // screen.
             var resolver = tree.styleResolver();
             invalidateOwnStyle();
             if (resolver == null || resolver.reachesDescendants(pseudoClass, type())) {

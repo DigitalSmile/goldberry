@@ -20,11 +20,11 @@ import dev.goldberry.widget.style.Styled;
 /// ## Focusable, where `tab-close` is not
 ///
 /// The two look alike and answer opposite questions. A `tab-close` sits inside a
-/// tab strip, which is **one** Tab stop with the arrows roving inside it (§7.2),
+/// tab strip, which is **one** Tab stop with the arrows roving inside it,
 /// and the keyboard's way to close a tab is `Delete` on the tab itself. A message
 /// is not a focus scope and owns no keyboard map: if this were not focusable
-/// there would be no way to dismiss a banner without a pointer, and §7 asks for
-/// the dismiss without saying it is for the mouse only.
+/// there would be no way to dismiss a banner without a pointer, and a dismiss
+/// is for every reader, not for the mouse only.
 ///
 /// So it takes `Space` and `Enter` the way a `button` does, and it is a Tab stop
 /// — one per dismissable banner, which is the honest cost of the affordance.

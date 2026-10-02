@@ -13,21 +13,21 @@ import dev.goldberry.widget.attr.Attributes;
 import dev.goldberry.widget.style.Paints;
 import dev.goldberry.widget.style.Styled;
 
-/// **This is the `column` a stylesheet selects.**
+/// The `column` a stylesheet selects when a document writes an accordion.
 ///
-/// An accordion *is* a column — the flag §5 puts on `column` says something about
-/// how its children behave, not about what it is — so this reports `column` as
-/// its CSS type and adds an `accordion` class beside whatever the document wrote.
-/// A rule written for `column` therefore still applies, which is the point: an
-/// author who turns a column into an accordion has not changed its appearance and
-/// should not have to restate its padding ([ADR-0166]).
+/// An accordion *is* a column: the `accordion` flag says how its children
+/// behave, not what the container is. So this reports `column` as its CSS type
+/// and adds an `accordion` class beside whatever the document wrote. A rule
+/// written for `column` still applies, which is the point: an author who turns
+/// a column into an accordion has not changed its appearance and should not
+/// have to restate its padding.
 ///
 /// The direction is applied after the style for
 /// [dev.goldberry.widgets.core.Column]'s reason: a `column` a
 /// stylesheet could turn into a row would be a name that lies.
 record AccordionColumn(List<Widget> children, Attributes attributes) implements Widget.Leaf, Styled, Paints {
 
-    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    /// Written out so that the parameters taking null for a default can say so.
     AccordionColumn(@Nullable List<Widget> children, @Nullable Attributes attributes) {
         children = List.copyOf(children == null ? List.of() : children);
         attributes = attributes == null ? Attributes.NONE : attributes;

@@ -24,8 +24,9 @@ final class FloatedState extends State<Floated> {
     /// exit has played.
     private @Nullable Host attachedTo;
 
-    /// How long the way out takes: `--gb-motion-fast`, §3.1's "out: reverse,
-    /// fast", read at each build so a theme's value is the one used.
+    /// How long the way out takes: `--gb-motion-fast`, because an exit plays
+    /// the entrance in reverse at the fast duration. Read at each build so a
+    /// theme's value is the one used.
     private double exitMillis = EXIT_FALLBACK_MILLIS;
 
     /// What the exit takes when no stylesheet says: `fast`'s specified value.
@@ -87,8 +88,8 @@ final class FloatedState extends State<Floated> {
     }
 
     /// The press, forwarded to the latest description's handler — and ignored
-    /// once the button is leaving, which is §1.7's "input is disabled the instant
-    /// closing starts": a press on a button that is fading out is a ghost click.
+    /// once the button is leaving — input is disabled the instant closing starts,
+    /// because a press on a button that is fading out is a ghost click.
     private void press(Property<Boolean> leaving) {
         if (Boolean.TRUE.equals(leaving.get())) {
             return;
@@ -103,7 +104,7 @@ final class FloatedState extends State<Floated> {
     ///
     /// The overlay stays up for the length of the exit, with `leaving` on the
     /// button so the stylesheet's rule plays it, and is removed by a timer on the
-    /// host after that (ADR-0355). This state forgets it at once: a rebuild that
+    /// host after that. This state forgets it at once: a rebuild that
     /// attaches a new button while the old one leaves shows both for a moment,
     /// crossing, which is what a toast queue does too. Without a host to time the
     /// exit on, the overlay goes at once.

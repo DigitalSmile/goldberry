@@ -9,19 +9,25 @@ import java.util.Locale;
 import dev.goldberry.css.cascade.CascadeLayer;
 import dev.goldberry.css.parse.CssSyntaxException;
 
-/// The themes that ship with the toolkit.
+/// The two themes that ship with the toolkit, Nord light and Nord dark.
 ///
-/// Each is a stylesheet of custom properties and nothing else (§10), which is why
+/// ```java
+/// List.of(Theme.NORD_DARK.load(), Stylesheet.resource(CascadeLayer.APPLICATION, MyApp.class, "app.css"))
+/// ```
+///
+/// Each is a stylesheet of custom properties and nothing else, which is why
 /// switching one is a single swap in the [CascadeLayer#THEME] slot rather than a
 /// restyle of every rule: widget rules read `var(--gb-bg)` and never learn which
 /// theme answered.
 ///
 /// Parsed on demand and not cached here. A theme is loaded when a window is built
 /// or when the user switches, neither of which is a hot path, and caching a
-/// mutable-looking static would fight hot reload (§8) for no measurable gain.
+/// mutable-looking static would fight hot reload for no measurable gain.
+///
+/// Read more: [Styling](https://goldberry.dev/docs/guide/styling.html#themes-density-and-scrollbars).
 public enum Theme {
 
-    /// Nord light — the default (§10).
+    /// Nord light — the default.
     NORD_LIGHT,
 
     /// Nord dark.

@@ -29,12 +29,14 @@ import dev.goldberry.text.Paragraph;
 import dev.goldberry.text.ParagraphCache;
 import dev.goldberry.text.font.Font;
 
-/// The retained render tree, and the reconciliation that keeps it correct —
-/// ADR-0069.
+/// The retained render tree, and the reconciliation that keeps it correct.
 ///
 /// The risk in retention is not that it is slow; it is that a node reused when it
 /// should have been rebuilt lays out against a style nobody set, or measures with
 /// a callback closed over the wrong paragraph. Every test here is one of those.
+///
+/// Read more:
+/// [The three trees](https://goldberry.dev/docs/overview/architecture.html#the-three-trees).
 class RenderTreeTest {
 
     private TestFrames.Target target;
@@ -140,7 +142,7 @@ class RenderTreeTest {
         @Test
         @DisplayName("a row that wraps puts the overflowing child on a second line")
         void flexWrap() {
-            // §8's subset gained `flex-wrap` for `select multiple`'s chips, which
+            // The CSS subset gained `flex-wrap` for `select multiple`'s chips, which
             // shrank instead of wrapping. Three 80px children in a 200px row: two
             // fit, and the third is either squeezed onto the first line or is on
             // a second one, which is the whole difference.
@@ -174,8 +176,8 @@ class RenderTreeTest {
         @Test
         @DisplayName("`align-content` decides where a second line sits")
         void alignContent() {
-            // The property `flex-wrap` made meaningful and nothing resolved
-            // until ADR-0374: with one line it says nothing, and with two it is
+            // The property `flex-wrap` made meaningful and nothing resolved until
+            // wrapped lines shared a cross axis: with one line it says nothing, and with two it is
             // the only thing that decides where the spare cross-axis room goes.
             // The test above asserts the stretched default at 100; these are the
             // same three children with the other two answers.
@@ -206,8 +208,8 @@ class RenderTreeTest {
         @DisplayName("`flex-basis` is where the main axis starts from, not where it ends")
         void flexBasis() {
             // A row of equal columns is what this buys, and it is the case a
-            // percentage width cannot express without counting the columns
-            // (ADR-0373): three children of very different content widths in a
+            // percentage width cannot express without counting the columns:
+            // three children of very different content widths in a
             // 300pt row, each starting from nothing and growing equally.
             try (var tree = RenderTree.create()) {
                 var row = Box.of()
@@ -469,9 +471,9 @@ class RenderTreeTest {
         }
     }
 
-    /// §8's `min-width` / `max-width` / `min-height` / `max-height`, applied to
+    /// `min-width` / `max-width` / `min-height` / `max-height`, applied to
     /// the Yoga node — which is where a style nothing reads would be caught, and
-    /// where a unit test on `ComputedStyle` cannot look ([ADR-0181]).
+    /// where a unit test on `ComputedStyle` cannot look.
     @Nested
     @DisplayName("how small and how large")
     class Limits {
@@ -486,8 +488,8 @@ class RenderTreeTest {
             return out.getFirst();
         }
 
-        /// The one §2 asks a `dialog` for and that was "genuinely missing": a
-        /// dialog with three words in it used to be three words wide.
+        /// The one a `dialog` needs, and the one that was missing: a dialog with
+        /// three words in it used to be three words wide.
         @Test
         @DisplayName("a minimum widens a box that asked to be smaller")
         void minimumWidens() {

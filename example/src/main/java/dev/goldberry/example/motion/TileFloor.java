@@ -14,7 +14,7 @@ import dev.goldberry.paint.Path;
 import dev.goldberry.render.model.LogicalSize;
 
 /// A floor of glazed tiles that settles into place and then slowly re-glazes
-/// itself, drawn on a `canvas` (`docs/gaps.md` G41, ADR-0354).
+/// itself, drawn on a `canvas`.
 ///
 /// ## The choreography
 ///
@@ -167,7 +167,7 @@ public final class TileFloor {
     /// the first paint is what makes the floor photographable: an offscreen
     /// render renders twice to measure and paints once, so a floor started by its
     /// paint would be photographed at its first instant, with every tile still
-    /// above its place and invisible (ADR-0355).
+    /// above its place and invisible.
     ///
     /// @return this floor, so the predicate can ask its question in one line
     public TileFloor at(double now) {
@@ -244,7 +244,7 @@ public final class TileFloor {
             var y = GAP + row * (height + GAP);
             // Turned about its own middle and then dropped into place, as one
             // matrix over the path's points. A tile at rest is the identity and
-            // `transformed` hands the path straight back (ADR-0390).
+            // `transformed` hands the path straight back.
             var settling = Affine.rotate(pose.radians())
                     .about(x + width / 2, y + height / 2)
                     .then(Affine.translate(0, pose.offsetY()));

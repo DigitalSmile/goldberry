@@ -13,27 +13,24 @@ import dev.goldberry.widget.Widget;
 import dev.goldberry.widget.style.Paints;
 import dev.goldberry.widget.style.Styled;
 
-/// The filled pill that marks the selected segment — a **part** of [Segmented],
-/// and the thing that moves.
+/// The filled pill that marks the selected segment — the part of a [Segmented]
+/// that moves, styled as `segmented-indicator`.
 ///
 /// ## Why the fill is one box that travels rather than one per segment
 ///
-/// `docs/design-system.md` §3.1 asks for a "selection indicator `translate` +
-/// width between segments". A fill per segment, faded in and out, is the same
-/// picture at rest and a different thing entirely in motion: two segments dim
-/// and brighten in place, and nothing moves. One box that translates is what the
-/// row describes, and it is only expressible because the segments are a **grid**
-/// — every one of them exactly `1/n` of the track, so the distance to segment
-/// *k* is `k` times this box's own width and needs no measurement at all
-/// (ADR-0099).
+/// The selection indicator moves between segments by a `translate`. A fill per
+/// segment, faded in and out, is the same picture at rest and a different thing
+/// entirely in motion: two segments dim and brighten in place, and nothing
+/// moves. One box that translates is what a user sees as a selection moving,
+/// and it is only expressible because the segments are a **grid** — every one
+/// of them exactly `1/n` of the track, so the distance to segment *k* is `k`
+/// times this box's own width and needs no measurement at all.
 ///
-/// ADR-0097
-/// deferred this on the grounds that a `translate` "would have to name the
-/// distance from the segment being left to the one being arrived at — a fact
-/// about two boxes' laid-out geometry". On a grid it is not: a percentage in a
-/// `transform` is a proportion of the box's *own* border box, which the painter
-/// resolves after Yoga has run ([ADR-0068]). What was missing was never the
-/// geometry.
+/// A `translate` between two arbitrary boxes would have to name the distance
+/// from the segment being left to the one being arrived at — a fact about two
+/// boxes' laid-out geometry. On a grid it is not: a percentage in a `transform`
+/// is a proportion of the box's *own* border box, which the painter resolves
+/// after layout has run.
 ///
 /// ## Both of its numbers come from a count, so both come from Java
 ///
@@ -42,6 +39,8 @@ import dev.goldberry.widget.style.Styled;
 /// `render`: a value written here is part of what the animation observes, so the
 /// translation moves under the `transition` `controls.css` declares. The same
 /// value written in `render` would arrive after the observation and snap.
+///
+/// Read more: [Choices](https://goldberry.dev/docs/components/choices.html#segmented).
 ///
 /// @param index the selected segment, or **-1** when the bar's value matches
 ///              none — which is a real state (a model that has not loaded) and
@@ -76,7 +75,7 @@ record SegmentedIndicator(int index, int count) implements Widget.Leaf, Styled, 
     ///
     /// It is **always built**, in every state, for `radio-dot`'s reason: a node
     /// that only exists while something is selected cannot transition, and the
-    /// first frame of a newly built element starts nothing ([ADR-0065]).
+    /// first frame of a newly built element starts nothing.
     @Override
     public boolean isChecked() {
         return index >= 0;
@@ -94,10 +93,10 @@ record SegmentedIndicator(int index, int count) implements Widget.Leaf, Styled, 
     public ComputedStyle restyle(ComputedStyle resolved) {
         var cell = Math.max(index, 0);
         return resolved.width(Length.percent((float) (100.0 / count)))
-                // §3's "radius 8 outer, 0 between", on the fill: the pill is round
-                // only at the ends of the bar, and square everywhere between --
-                // which is a third thing a selector cannot say, because it depends
-                // on which cell of how many this one is (ADR-0217). The radius
+                // Radius 8 on the outer corners and 0 between, on the fill: the
+                // pill is round only at the ends of the bar, and square everywhere
+                // between -- which is a third thing a selector cannot say, because
+                // it depends on which cell of how many this one is. The radius
                 // itself is the stylesheet's; only the choice of corners is here.
                 .decoration(resolved.decoration()
                         .corners(resolved.decoration().corners().inRow(cell == 0, cell == count - 1)))

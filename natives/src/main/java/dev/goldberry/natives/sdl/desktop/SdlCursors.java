@@ -28,6 +28,8 @@ import dev.goldberry.natives.sdl.calls.SdlCursorCalls;
 /// at a time. The backend calls this for the window the pointer is in.
 ///
 /// Confined to the UI thread, like everything else in [SdlVideo].
+///
+/// Read more: [The native boundary](https://goldberry.dev/docs/overview/architecture.html#the-native-boundary).
 public final class SdlCursors implements AutoCloseable {
 
     private static final Logger LOG = Logs.of(SdlCursors.class);

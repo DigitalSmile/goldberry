@@ -26,8 +26,8 @@ import dev.goldberry.widget.Widget;
 /// ## What is still written by hand, and why that is different
 ///
 /// The **markup**, below. A dozen widgets refuse to exist without an argument —
-/// §13's rule that a control nobody can read out is a failure rather than a blank
-/// — so a bare node will not build them. That is a table of *arguments*, not a
+/// a control nobody can read out is a failure rather than a blank — so a bare
+/// node will not build them. That is a table of *arguments*, not a
 /// table of names: leaving a widget out of it does not hide the widget from the
 /// sweeps, it fails them with "a crumb needs a label", which is a message naming
 /// exactly what to add.
@@ -47,8 +47,8 @@ public final class CatalogMarkup {
     /// @param attributes extra KDL properties, starting with a space, or empty
     public static String markup(String type, String attributes) {
         return switch (type) {
-            // §13: a control with nothing to read out is a failure rather than a
-            // blank, so these are handed a word.
+            // A control with nothing to read out is a failure rather than a blank,
+            // so these are handed a word.
             case "button", "chip", "crumb", "entry", "item", "link", "page", "step", "text" ->
                 type + attributes + " \"Word\"";
             // The three that report by value: their group matches on it.

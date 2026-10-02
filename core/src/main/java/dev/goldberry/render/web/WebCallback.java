@@ -4,8 +4,15 @@ package dev.goldberry.render.web;
 /// the toolkit's word for
 /// `dev.goldberry.natives.webview.WebviewCallback`.
 ///
-/// A separate type for [WebSize]'s reason ([ADR-0280]): no type of `:natives`
-/// appears in a signature an application can read.
+/// A separate type for [WebSize]'s reason: no type of `:natives` appears in a
+/// signature an application can read.
+///
+/// ```java
+/// var spec = WebViewSpec.ofHtml(page).on("save", arguments -> {
+///     notes.save(arguments);
+///     return "true";
+/// });
+/// ```
 ///
 /// ## What crosses
 ///
@@ -17,8 +24,7 @@ package dev.goldberry.render.web;
 /// It is **not parsed**. Goldberry ships no JSON reader and binding one for the
 /// sake of a callback would put a dependency in the toolkit that every
 /// application pays for and few would use. A page that wants to send one value
-/// sends one value; a page that wants structure brings a reader
-/// ([ADR-0448]).
+/// sends one value; a page that wants structure brings a reader.
 ///
 /// ## The page is waiting on the answer
 ///
@@ -38,6 +44,8 @@ package dev.goldberry.render.web;
 /// runs on the thread that paints — the rule every widget callback follows. It
 /// may read and write application state and call `setState`. It must not block:
 /// the page's promise and the next frame are both waiting on it.
+///
+/// Read more: [Markdown, HTML and the web](https://goldberry.dev/docs/components/content.html#the-web-view).
 @FunctionalInterface
 public interface WebCallback {
 

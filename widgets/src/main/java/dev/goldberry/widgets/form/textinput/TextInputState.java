@@ -30,12 +30,12 @@ import dev.goldberry.widgets.form.parts.Preedit;
 /// asks for a frame every frame — right for something that moves continuously,
 /// and badly wrong for a caret. A caret changes **twice a second**, so animating
 /// it would run the frame loop at the display's rate for the whole time a field
-/// has focus, which is most of the time a form is open. §1.7's "the frame loop is
-/// fully idle when no animation is active" would then be false for every window
+/// has focus, which is most of the time a form is open. The frame loop is fully
+/// idle when no animation is active, and that would be false for every window
 /// with a focused field in it.
 ///
 /// So the blink is a one-shot timer, rescheduled — the arrangement `carousel`
-/// uses ([ADR-0165]) — and it produces two frames a second instead of a hundred
+/// uses — and it produces two frames a second instead of a hundred
 /// and twenty.
 ///
 /// **It restarts on every edit and every caret move.** A caret that blinked out
@@ -52,8 +52,8 @@ final class TextInputState extends State<TextInput> implements TextEditor {
     /// How long each half of the blink lasts.
     ///
     /// 530 ms, which is the Windows default and within a few tens of a
-    /// millisecond of every other platform's. Not a token: §8's subset has no
-    /// property for it, and §1.7's motion durations are about things moving from
+    /// millisecond of every other platform's. Not a token: a stylesheet has no
+    /// property for it, and the motion durations are about things moving from
     /// one place to another, which a caret does not do.
     private static final Duration BLINK = Duration.ofMillis(530);
 
@@ -64,19 +64,18 @@ final class TextInputState extends State<TextInput> implements TextEditor {
     /// what [BuildContext#host()] allows.
     private @Nullable Host host;
 
-    /// §4's autocomplete: the popover of suggestions under the field, or null.
+    /// Autocomplete: the popover of suggestions under the field, or null.
     ///
     /// The same panel a `select` opens and the same keyboard — `Option.inAList()`
     /// makes the arrows move the focus and `Enter` commit, which is exactly what
-    /// "the field's text is never rewritten without the user choosing" needs
-    /// ([ADR-0182]).
+    /// "the field's text is never rewritten without the user choosing" needs.
     private dev.goldberry.@Nullable Popup suggestions;
 
     /// Where the last frame painted this field, for anchoring the popover.
     private dev.goldberry.render.model.@Nullable LogicalRect fieldBounds;
 
     /// A list taller than the screen scrolls rather than losing its bottom, which
-    /// is `menu`'s and `select`'s answer from the same helper (ADR-0179).
+    /// is `menu`'s and `select`'s answer from the same helper.
     private static final dev.goldberry.widgets.core.scroll.Fitted VIEWPORT =
             new dev.goldberry.widgets.core.scroll.Fitted("select-viewport");
 
@@ -88,7 +87,7 @@ final class TextInputState extends State<TextInput> implements TextEditor {
     ///
     /// Not `setState`: it is computed during `render` from the caret's position
     /// and applied in the same frame, so marking the element dirty for it would
-    /// be asking for a frame in order to draw the frame being drawn (ADR-0119).
+    /// be asking for a frame in order to draw the frame being drawn.
     private double scrollOffset;
 
     /// Whether the caret is worth chasing yet.
@@ -99,7 +98,7 @@ final class TextInputState extends State<TextInput> implements TextEditor {
     /// [#laidOut] scrolls to keep the caret in view, so a field holding a long
     /// value opened showing its **last** characters. What a reader wants first is
     /// the beginning of the value, which is what every text box on the web shows
-    /// and what a `text-area` has shown since [ADR-0297] ([ADR-0412]).
+    /// and what a `text-area` shows.
     ///
     /// A press, a key, an edit, a composition or the focus arriving sets it — the
     /// moment the caret stops being an implementation detail of "where typing
@@ -108,7 +107,7 @@ final class TextInputState extends State<TextInput> implements TextEditor {
     /// selecting or arrowing changes.
     ///
     /// A read-only field never needs it: [#opening] puts that caret at the head
-    /// instead, because there is no typing to come back to ([ADR-0326]).
+    /// instead, because there is no typing to come back to.
     private boolean caretMatters;
 
     /// The last frame's size, from [dev.goldberry.input.handler.Measured].
@@ -122,14 +121,13 @@ final class TextInputState extends State<TextInput> implements TextEditor {
     private double leftPadding;
     private double rightPadding;
 
-    /// What an input method is composing, or `""` when it is not —
-    /// `docs/gaps.md` G16.
+    /// What an input method is composing, or `""` when it is not.
     ///
     /// **Beside [#edit], never in it.** A composition is a proposal: `にほんご`
     /// becomes `日本語` and every character of what was typed is replaced when the
     /// user picks a candidate. A field that inserted this would fire
     /// [TextInput#report] for keystrokes the user never chose, fill the undo
-    /// history with them, and take them out again (ADR-0292).
+    /// history with them, and take them out again.
     ///
     /// It is *displayed* inside the text — spliced at the caret in [#build], so
     /// the characters after it move along as they do in every native field — and
@@ -153,8 +151,7 @@ final class TextInputState extends State<TextInput> implements TextEditor {
     /// caret in view, so a value wider than the box shows whichever end the caret
     /// is at — and for a read-only field that is backwards. There is no "where I
     /// left off" to preserve in a field that refuses every edit, and the first
-    /// thing a reader wants is the beginning of the value (`docs/gaps.md` G34,
-    /// [ADR-0326]).
+    /// thing a reader wants is the beginning of the value.
     ///
     /// Read-only rather than a `caret(int)` a caller has to remember: the
     /// proposal offered both, and a call site that has to say where the caret
@@ -177,8 +174,8 @@ final class TextInputState extends State<TextInput> implements TextEditor {
     ///
     /// In `build` rather than in `didUpdateWidget`, because a `bind=` value
     /// changing does not replace the widget: the property fires, the element is
-    /// marked for build, and the widget is the same object it was
-    /// ([ADR-0062]). `didUpdateWidget` would therefore miss the case this exists
+    /// marked for build, and the widget is the same object it was.
+    /// `didUpdateWidget` would therefore miss the case this exists
     /// for entirely.
     ///
     /// Two tests, and both are needed. The value must have *changed* since the
@@ -271,14 +268,14 @@ final class TextInputState extends State<TextInput> implements TextEditor {
         }
         var list = new SelectList(rows(wanted));
         if (suggestions != null && suggestions.isOpen()) {
-            // Narrowed rather than reopened: §4 says the popup "stays open and
-            // narrows", and closing and opening a platform window per keystroke
-            // flickers and loses the keyboard's place (ADR-0182).
+            // Narrowed rather than reopened: the popup stays open and narrows,
+            // because closing and opening a platform window per keystroke
+            // flickers and loses the keyboard's place.
             suggestions.content(list);
             return;
         }
         // At least as wide as the field, for `select`'s reason: a panel narrower
-        // than the control it hangs off reads as a mistake (ADR-0145).
+        // than the control it hangs off reads as a mistake.
         dev.goldberry.log.Logs.of(TextInputState.class).debug("suggestions anchored to {}", fieldBounds);
         host.attachedPopup(
                         list,
@@ -303,10 +300,10 @@ final class TextInputState extends State<TextInput> implements TextEditor {
 
     /// A suggestion was chosen: report it and put the list away.
     ///
-    /// Reported rather than applied. §4: "the field's text is never rewritten
-    /// without the user choosing" — and this *is* the user choosing, so what
+    /// Reported rather than applied. The field's text is never rewritten
+    /// without the user choosing — and this *is* the user choosing, so what
     /// happens next is still the application's to decide, exactly as it is for a
-    /// keystroke (ADR-0063). A handler that ignores it leaves the field as typed.
+    /// keystroke. A handler that ignores it leaves the field as typed.
     private void chooseSuggestion(String value) {
         closeSuggestions();
         var onChange = widget().onChange();
@@ -331,7 +328,7 @@ final class TextInputState extends State<TextInput> implements TextEditor {
         closeSuggestions();
         stopBlinking();
         // The platform's text input is **not** turned off here any more. It is
-        // the router's now (ADR-0285), and the router is the one that knows what
+        // the router's now, and the router is the one that knows what
         // has the focus *after* this field has gone: a field that turned it off
         // on the way out left the router believing it was still on, so the next
         // field focused agreed with the stale answer and was never told. The
@@ -427,7 +424,7 @@ final class TextInputState extends State<TextInput> implements TextEditor {
         // The composition is over the moment its result arrives, and the empty
         // TEXT_EDITING that says so is not ordered against this one on every
         // platform -- so clearing it here is what keeps an accepted candidate
-        // from drawing twice, once underlined and once committed (ADR-0289).
+        // from drawing twice, once underlined and once committed.
         var wasComposing = clearPreedit();
         var room = room();
         var insertion = room < 0 ? typed : MaxLength.clip(typed, room);
@@ -557,7 +554,7 @@ final class TextInputState extends State<TextInput> implements TextEditor {
     }
 
     /// Puts a finished, non-empty selection on the primary selection, where the
-    /// platform has one ([ADR-0504]).
+    /// platform has one.
     ///
     /// **Never from a `password`**, for [#copy()]'s reason and more strongly: a
     /// primary selection is readable by every application on the desktop with no
@@ -577,7 +574,7 @@ final class TextInputState extends State<TextInput> implements TextEditor {
         }
         // Into the content's own coordinates: past the padding, and back by
         // however far the field has been shifted — the scroll, less the indent an
-        // alignment gave a line that fits ([ADR-0324]).
+        // alignment gave a line that fits.
         var contentX = x - leftPadding + shift();
         var displayOffset = paragraph.offsetAt(0, mask.display().length(), contentX);
         var offset = mask.real(displayOffset);
@@ -640,7 +637,7 @@ final class TextInputState extends State<TextInput> implements TextEditor {
         // on a change. Without it a field focused with suggestions already in
         // hand would offer nothing until some unrelated frame rebuilt it: the
         // rectangle arrives after the paint, and nothing else was going to ask
-        // for another one (§1.7's idle loop).
+        // for another one (the frame loop is idle).
         //
         // It settles in one frame rather than driving the loop, which is what
         // [Located]'s "must not move itself" rule is really asking for: the
@@ -661,8 +658,7 @@ final class TextInputState extends State<TextInput> implements TextEditor {
     ///
     /// Zero whenever the text overflows, because [TextAlign#indentOf] clamps the
     /// slack at zero, and that is the invariant this control rests on: the indent
-    /// and the scroll can never both be non-zero, so one number carries both
-    /// ([ADR-0324]).
+    /// and the scroll can never both be non-zero, so one number carries both.
     private double indent;
 
     /// Where the content is drawn relative to the content box's leading edge —
@@ -675,7 +671,7 @@ final class TextInputState extends State<TextInput> implements TextEditor {
     ///
     /// For the tests, as [dev.goldberry.widgets.form.textarea.TextAreaState]'s
     /// `scrolledBy` is: "a read-only field opens showing the head of its value" is
-    /// a number rather than a picture (`docs/gaps.md` G34). Package-private — how
+    /// a number rather than a picture. Package-private — how
     /// far a control has scrolled is nobody else's business.
     double scrolledBy() {
         return scrollOffset;
@@ -720,8 +716,7 @@ final class TextInputState extends State<TextInput> implements TextEditor {
             // Move as little as possible: only when the caret has left the window.
             // A caret at the very end needs **its own width** of room, or the
             // field scrolls short of showing it -- which was hard-coded to one
-            // pixel and is now whatever `--gb-caret-width` resolved to
-            // (ADR-0253).
+            // pixel and is now whatever `--gb-caret-width` resolved to.
             offset = Math.max(offset, caretAt - room + caretWidth);
             offset = Math.min(offset, caretAt);
         }
@@ -735,7 +730,7 @@ final class TextInputState extends State<TextInput> implements TextEditor {
     @Override
     public boolean copy() {
         if (!edit.hasSelection() || widget().password() || host == null) {
-            // §4: a password field has no clipboard-out. The selection is still
+            // A password field has no clipboard-out. The selection is still
             // real -- it can be replaced or deleted -- it just cannot leave.
             return false;
         }

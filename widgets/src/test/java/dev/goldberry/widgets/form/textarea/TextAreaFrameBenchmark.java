@@ -25,7 +25,7 @@ import dev.goldberry.widgets.controls.TestFont;
 
 /// What a keystroke into a long `text-area` costs, stage by stage.
 ///
-/// `docs/gaps.md` G44 arrived as a table from a downstream note editor: one
+/// The defect arrived as a table from a downstream note editor: one
 /// `text-area` in edit mode, gutter on, one character typed per frame, and a
 /// style span that grew with the note rather than with the tree. The tree is the
 /// same size in every row here too — one control — so anything that grows is
@@ -242,10 +242,12 @@ class TextAreaFrameBenchmark {
 
     /// What one keystroke shapes, counted rather than timed.
     ///
-    /// **Characters, not paragraphs**, and the difference is the whole entry: a
+    /// **Characters, not paragraphs**, and the difference is the whole point: a
     /// keystroke into a 500 kB note has always missed the paragraph cache
-    /// exactly once, and before ADR-0388 that one miss was half a megabyte.
-    /// [TextAreaKeystrokeCostTest] is the assertion; this prints the numbers.
+    /// exactly once, and while the note was shaped as one paragraph that one
+    /// miss was half a megabyte. The text is shaped a hard line at a time now,
+    /// so the miss is one line. [TextAreaKeystrokeCostTest] is the assertion;
+    /// this prints the numbers.
     @Test
     @DisplayName("what one keystroke shapes, per note size")
     void shapedPerKeystroke() {

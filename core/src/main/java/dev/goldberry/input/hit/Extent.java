@@ -7,22 +7,21 @@ import dev.goldberry.input.handler.Handles;
 ///
 /// The answer to the one question a widget cannot ask itself. `build` and
 /// `render` both run **before** Yoga, so a widget describing itself has no idea
-/// what size it came out as — which is
-/// ADR-0080's
-/// finding, and the reason a slider reads its position off the router rather
-/// than computing one.
+/// what size it came out as — which is the reason a slider reads its position
+/// off the router rather than computing one.
 ///
 /// A scroll view is the first widget that needs this **outside** a pointer
 /// event. Its whole job is the difference between two rectangles — how much
 /// taller its content is than its viewport — and `PageDown` has to know that
-/// difference just as much as the wheel does, while carrying no position at all
-/// (ADR-0116).
+/// difference just as much as the wheel does, while carrying no position at all.
 /// So this is a size and nothing else: [PointerEvent.Local] is where a
 /// *position* within a rectangle lives, and a key event has none.
 ///
 /// Both events carry two of these — the node's own box, and the part it names
 /// through [Handles#localPart()]. A widget that names no part gets the same
 /// rectangle twice.
+///
+/// Read more: [Input and focus](https://goldberry.dev/docs/guide/input.html#what-a-custom-widget-implements).
 ///
 /// @param width  the border box's width, or 0 if it has never been painted
 /// @param height its height

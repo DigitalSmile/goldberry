@@ -10,12 +10,13 @@ package dev.goldberry.natives.blend2d.enums;
 /// [#NON_ZERO] is what a context starts with and what every other fill in the
 /// toolkit wants — a shape is its outline and its inside, and a caller who put
 /// two rings in one path meant two rings. [#EVEN_ODD] is asked for by exactly
-/// one drawing: a drop shadow with the box's own rectangle cut out of it
-/// (ADR-0427).
+/// one drawing: a drop shadow with the box's own rectangle cut out of it.
 ///
 /// **It is context state**, like the stroke options and unlike a colour. A fill
 /// that sets it must put it back, or the next thing drawn inherits a rule it
 /// did not ask for — and the symptom is a hole in an unrelated shape.
+///
+/// Read more: [The native boundary](https://goldberry.dev/docs/overview/architecture.html#the-native-boundary).
 public enum BlendFillRule implements BlendEnum {
 
     /// Count the windings, signed; non-zero is inside. Blend2D's default, and a

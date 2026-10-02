@@ -16,15 +16,20 @@ import dev.goldberry.widget.style.Styled;
 import dev.goldberry.widgets.markup.Markup;
 import dev.goldberry.widgets.markup.Wiring;
 
-/// A rule between groups of menu items — `docs/core-widgets.md` §8's
-/// `separator`.
+/// A rule between groups of menu rows.
+///
+/// ```kdl
+/// separator
+/// ```
+///
+/// In Java, `new Separator()`. It takes only `id` and `class`.
 ///
 /// A line and nothing else: not focusable, not activatable, and skipped by the
-/// arrow keys for free, because focus traversal collects focusable nodes and this
-/// is not one.
+/// arrow keys for free, because focus traversal collects focusable nodes and
+/// this is not one. Its whole appearance is the stylesheet's, a 1px line in
+/// `--gb-border`; the widget contributes a box with no content.
 ///
-/// Its whole appearance is `controls.css`'s. The widget contributes a box with no
-/// content, which is what a 1px rule is.
+/// Read more: [Menus and the tray](https://goldberry.dev/docs/components/menus.html#separator).
 @Markup("separator")
 public record Separator(Attributes attributes) implements Widget.Leaf, Styled, Paints, Attributed<Separator> {
 
@@ -32,7 +37,7 @@ public record Separator(Attributes attributes) implements Widget.Leaf, Styled, P
         this(Attributes.NONE);
     }
 
-    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    /// Written out so that the parameters taking null for a default can say so.
     public Separator(@Nullable Attributes attributes) {
         attributes = attributes == null ? Attributes.NONE : attributes;
         this.attributes = attributes;

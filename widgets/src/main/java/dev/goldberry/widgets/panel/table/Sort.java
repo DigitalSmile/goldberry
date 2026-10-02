@@ -4,12 +4,12 @@ import java.util.Objects;
 
 import org.jspecify.annotations.Nullable;
 
-/// Which column a [Table] is sorted by, and which way — §10's "sorting is the
-/// application's".
+/// Which column a [Table] is sorted by, and which way.
 ///
 /// A value the application holds and hands down, exactly as it holds the
 /// selection: the table draws the caret for whatever it is given and reports what
-/// a click on a header would mean. It sorts nothing itself ([ADR-0063]).
+/// a click on a header would mean. It sorts nothing itself, because data flows
+/// down and events flow up.
 ///
 /// **Null is a real answer** and means "in the order the model is in", which is
 /// not the same as sorted ascending by anything — a table showing rows in the
@@ -18,6 +18,8 @@ import org.jspecify.annotations.Nullable;
 ///
 /// @param column     the [Column#key] the rows are ordered by
 /// @param descending which way
+///
+/// Read more: [Collections](https://goldberry.dev/docs/components/collections.html#table).
 public record Sort(String column, boolean descending) {
 
     public Sort {

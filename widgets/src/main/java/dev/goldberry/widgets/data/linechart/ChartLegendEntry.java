@@ -14,21 +14,22 @@ import dev.goldberry.widgets.text.Text;
 
 /// One row of a [ChartLegend]: a swatch in the series' colour, and its name.
 ///
-/// The **swatch** reads the palette and the **label** does not, which is §14's
-/// rule about text: a colour beside a word carries the identity, and the word
-/// itself stays in the ordinary ink. A legend whose text was drawn in the series
-/// colour would be a legend that fails a contrast check the moment somebody picks
-/// a pale slot — and it reads as decoration rather than as a key.
+/// The **swatch** reads the palette and the **label** does not, which is the
+/// design system's rule about text: a colour beside a word carries the
+/// identity, and the word itself stays in the ordinary ink. A legend whose text
+/// was drawn in the series colour would be a legend that fails a contrast check
+/// the moment somebody picks a pale slot — and it reads as decoration rather
+/// than as a key.
 ///
 /// The slot is read here rather than passed in, so the token resolves against
 /// **this node**. Custom properties inherit, so `#revenue { --gb-chart-1: … }` on
-/// the chart reaches the swatch and the line alike — one rule, both halves
-/// (ADR-0195).
+/// the chart reaches the swatch and the line alike — one rule, both halves.
+///
 /// ## Clicking it isolates its series
 ///
 /// `CLICKED` and not `PRESSED`, which is the rule every control in the catalog
 /// follows: a press dragged away and released elsewhere is a click the user
-/// cancelled, and people rely on being able to do that (§7.1).
+/// cancelled, and people rely on being able to do that.
 ///
 /// The **muted** state is a class rather than a colour set here, so the
 /// stylesheet decides what "not currently shown" looks like — and so a theme can

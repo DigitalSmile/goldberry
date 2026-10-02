@@ -18,30 +18,21 @@ import dev.goldberry.widget.style.Styled;
 /// The underline on a selected [Tab] — a **part**, and a box rather than a
 /// border.
 ///
-/// §8's CSS subset has one `border` and no per-edge longhands, which
-/// ADR-0097
-/// recorded when `segmented` wanted per-corner radii. A `border-bottom` is
-/// therefore not a thing that can be written, and the first version of this
-/// widget wrote one anyway: the declaration was dropped, and the golden image is
-/// what said so — every number in the layout was correct and the underline was
-/// simply not there.
-///
-/// So it is a 2px box pinned across the bottom of the header, out of flow, which
-/// is `segmented-indicator`'s shape for the same reason. The subset has
-/// `border-bottom` since ADR-0505 and this is still a box: it travels between
-/// tabs by a `transform` (ADR-0377), and a border cannot leave the tab it is on.
+/// It is a 2px box pinned across the bottom of the header, out of flow, which
+/// is `segmented-indicator`'s shape. A `border-bottom` would not do, even though
+/// the CSS subset has one: the underline travels between tabs by a `transform`,
+/// and a border cannot leave the tab it is on.
 ///
 /// **Always built**, selected or not: a node that only exists while a tab is
 /// selected cannot transition, because the first frame of a newly built element
-/// starts nothing (ADR-0065).
+/// starts nothing.
 ///
 /// ## How it travels
 ///
-/// §3.1 gives `tabs` and `segmented` the same effect, and `segmented`'s pill
-/// moves between cells while this used to fade in and out in place. ADR-0097
-/// deferred the travelling version for want of "a fact about two boxes'
-/// laid-out geometry"; that fact arrives now, because every header reports where
-/// it was painted ([ADR-0372]) and the strip keeps the rectangles.
+/// `tabs` and `segmented` share one effect: `segmented`'s pill moves between
+/// cells, and this slides between headers. Sliding needs a fact about two boxes'
+/// laid-out geometry, and the strip has it, because every header reports where
+/// it was painted and the strip keeps the rectangles.
 ///
 /// What the strip hands over is not a position but a **difference**: where the
 /// underline *was*, relative to where it is now. So this box is drawn at the
@@ -50,7 +41,7 @@ import dev.goldberry.widget.style.Styled;
 /// Nothing here needs to know where either header is on the screen, which is why
 /// a strip painted with no geometry behind it (a plain `BoxPainter.paint` of a
 /// tree, which is what half the golden images are) still draws exactly what it
-/// drew before ([ADR-0377]).
+/// drew before.
 ///
 /// Both halves of the displacement are in one `transform` — a `translateX` for
 /// the distance and a `scaleX` for the difference in width, about the top-left
@@ -81,7 +72,7 @@ record TabIndicator(boolean selected, int colour, Tab.@Nullable Travel from) imp
     }
 
     /// The journey's number, so that a displacement arrives on a **new** element
-    /// — whose first frame starts nothing (ADR-0065) — and the frame that takes
+    /// — whose first frame starts nothing — and the frame that takes
     /// the displacement away is a change to the *same* element, and therefore a
     /// transition.
     ///
@@ -109,7 +100,7 @@ record TabIndicator(boolean selected, int colour, Tab.@Nullable Travel from) imp
     /// Both in `restyle` rather than in `render`: a value written here is part of
     /// what the animation observes, so it moves under the `transition`
     /// `controls.css` declares. The same value written in `render` would arrive
-    /// after the observation and snap (ADR-0099's seam).
+    /// after the observation and snap.
     @Override
     public ComputedStyle restyle(ComputedStyle resolved) {
         var styled = colour == 0 || !selected ? resolved : resolved.background(colour);
@@ -127,7 +118,7 @@ record TabIndicator(boolean selected, int colour, Tab.@Nullable Travel from) imp
         // Drawn once displaced, and then asked to be let go of. Here rather than
         // in the build, because this is the moment the frame the displacement is
         // drawn on actually exists: the strip marks itself for a rebuild and the
-        // next frame is where the underline starts moving (ADR-0052's deferred
+        // next frame is where the underline starts moving (a deferred
         // rebuild, which is how a tab's departure ends too).
         if (from != null && from.isDisplaced() && from.arrived() != null) {
             from.arrived().run();

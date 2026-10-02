@@ -6,7 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-/// §7.8.3's four penalty rules, each one on a grid built to trip exactly it.
+/// ISO/IEC 18004 §7.8.3's four penalty rules, each one on a grid built to trip exactly it.
 ///
 /// A mask is chosen by comparing eight of these numbers, so a rule that is
 /// nearly right produces a code that is legal, scannable and quietly worse than

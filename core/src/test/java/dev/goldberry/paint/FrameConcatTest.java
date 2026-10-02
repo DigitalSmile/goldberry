@@ -11,8 +11,8 @@ import org.junit.jupiter.api.Test;
 
 import dev.goldberry.RendererRequirement;
 
-/// A transform that composes with the one the frame is already under
-/// (ADR-0390, `docs/gaps.md` G46).
+/// A transform that composes with the one the frame is already under, so a
+/// turned shape inside a scaled or translated subtree lands where both say.
 ///
 /// Pixels rather than matrices, for [TransformPaintTest]'s reason: the matrix
 /// crosses into C as a `void*`, and a composition done in the wrong order is a
@@ -64,8 +64,8 @@ class FrameConcatTest {
     @DisplayName("a transform replaces what a concat would have composed with")
     void replaces() {
         // The two calls side by side, because the difference between them is the
-        // whole of G46: a canvas painter that sets a matrix throws away the one
-        // that put the canvas on screen.
+        // whole point of concat: a canvas painter that sets a matrix throws away
+        // the one that put the canvas on screen.
         var target = paint(1.0f, frame -> {
             frame.transform(1, 0, 0, 1, 100, 0);
             frame.transform(1, 0, 0, 1, 0, 50);

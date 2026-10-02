@@ -16,8 +16,7 @@ import dev.goldberry.media.ffi.FfmpegLibrary;
 /// custom `AVIOContext`, reading packets, seeking, and listing demuxers.
 ///
 /// No function that opens a URL itself is bound, and none could work: the library
-/// is built with `--disable-network` and no protocols (`docs/goldberry-media.md`
-/// §2).
+/// is built with `--disable-network` and no protocols.
 ///
 /// See [FfmpegDowncalls] for why each handle is a `static final` constant.
 public record AvFormatCalls(

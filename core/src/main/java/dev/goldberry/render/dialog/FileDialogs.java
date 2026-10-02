@@ -10,9 +10,13 @@ import dev.goldberry.render.window.BackendWindow;
 
 /// The platform's own file dialogs, as the toolkit sees them.
 ///
-/// The second facility on [Backend] that is a *conversation* rather than a
-/// value, after the clipboard — and the first that takes as long as a person
-/// takes. Everything about this interface follows from that.
+/// ```java
+/// host.fileDialog(FileDialogSpec.openFile(), choice -> open(choice.paths()));
+/// ```
+///
+/// A facility on [Backend] that is a *conversation* rather than a value, and one
+/// that takes as long as a person takes. Everything about this interface follows
+/// from that.
 ///
 /// ## Asynchronous, and there is no synchronous version
 ///
@@ -43,6 +47,8 @@ import dev.goldberry.render.window.BackendWindow;
 /// "will this succeed" — a desktop can have dialogs and still refuse one.
 ///
 /// Confined to the UI thread, like everything else in this package.
+///
+/// Read more: [Windows, popups and the host](https://goldberry.dev/docs/guide/windows.html#the-host).
 public interface FileDialogs {
 
     /// Whether this platform has file dialogs at all.

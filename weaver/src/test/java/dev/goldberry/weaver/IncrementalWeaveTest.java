@@ -156,7 +156,7 @@ class IncrementalWeaveTest {
         assertFalse(assignsDirectly(tree.read(DetachedTools.class), MODEL, "count"));
         assertTrue(callsSetter(tree.read(DetachedTools.class), MODEL, "count"));
         // Not nestmates, so a private setter would be an IllegalAccessError at
-        // the first click (ADR-0137).
+        // the first click.
         assertEquals(0, setterFlags(tree.read(Detached.class), "count") & ClassFile.ACC_PRIVATE);
     }
 

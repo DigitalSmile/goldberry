@@ -27,9 +27,9 @@ import dev.goldberry.widget.style.Styled;
 /// subscriptions back when the window is gone.
 ///
 /// The models are the application's, not the window's, and one can outlive a
-/// launch. Found by Qodana's `AutoCloseableResource` in the 2026-09-30 triage
-/// (`docs/static-analysis-plan.md`, Q4): the two subscriptions per model were
-/// dropped on the floor, so a closed window went on being asked for frames.
+/// launch. Found by Qodana's `AutoCloseableResource` inspection: the two
+/// subscriptions per model were dropped on the floor, so a closed window went on
+/// being asked for frames.
 class LauncherModelSubscriptionsTest {
 
     @Model

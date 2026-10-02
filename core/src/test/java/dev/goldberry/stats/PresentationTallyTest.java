@@ -7,7 +7,11 @@ import org.junit.jupiter.api.Test;
 
 import dev.goldberry.render.window.Presentation;
 
-/// The exit line that says where a window's frames went (ADR-0492).
+/// The exit line that says where a window's frames went: how many presented
+/// through the GPU, through which drivers, and how many on the CPU.
+///
+/// Read more:
+/// [Which way a window presents](https://goldberry.dev/docs/guide/logging.html#which-way-a-window-presents).
 @DisplayName("a window's frames, by the path they took")
 class PresentationTallyTest {
 

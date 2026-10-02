@@ -14,7 +14,7 @@ import dev.goldberry.natives.Downcalls;
 /// One function. SDL logs for itself — a driver it could not load, a hint it did
 /// not understand, a surface format it fell back from — and writes it to stderr
 /// or, on Windows, to the debugger. This is the call that redirects it into
-/// SLF4J (ADR-0443).
+/// SLF4J.
 public record SdlLogCalls(SetLogOutputFunction setLogOutputFunction) {
 
     /// Binds the function, which may be absent from a `libgoldberry` built

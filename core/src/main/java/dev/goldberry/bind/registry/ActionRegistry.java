@@ -8,7 +8,8 @@ import java.util.function.Consumer;
 
 import org.jspecify.annotations.Nullable;
 
-/// What a name in markup means (§9's `action` half).
+/// What an action name in markup means: the handlers a `press=` or `change=` may
+/// call.
 ///
 /// KDL is data. `button press="save"` can say *which* action, and cannot say what
 /// the action does — a markup file that could name a Java method would be code
@@ -18,10 +19,12 @@ import org.jspecify.annotations.Nullable;
 /// The indirection is what makes markup reloadable: a document reloaded at
 /// runtime re-resolves every name against the same registry, so the new tree's
 /// buttons are wired to the same handlers the old one had, without the
-/// application being asked to rebuild anything
-/// (ADR-0051).
+/// application being asked to rebuild anything.
 ///
 /// Confined to the UI thread, like everything a handler will touch.
+///
+/// Read more:
+/// [The four registries](https://goldberry.dev/docs/guide/markup.html#the-four-registries).
 public final class ActionRegistry {
 
     private final Map<String, Runnable> byName = new LinkedHashMap<>();
@@ -53,7 +56,7 @@ public final class ActionRegistry {
     /// A registry that resolves an unknown name to nothing.
     ///
     /// For a preview, a golden image, or a document being edited: reload is
-    /// deliberately forgiving (ADR-0051), and refusing to inflate a window
+    /// deliberately forgiving, and refusing to inflate a window
     /// because one handler is not wired yet would make markup-first development
     /// impossible.
     public static ActionRegistry lenient() {
@@ -84,11 +87,9 @@ public final class ActionRegistry {
     /// was**.
     ///
     /// A name is bound once across both maps, which is what `bind` enforces, so
-    /// rebinding has to clear the other one. Removing only from `byName` left a
-    /// valued binding of the same name in place, and [#resolveValued(String)]
-    /// looks there first: the registry went on answering the consumer this call
-    /// had just replaced. The `Consumer` overload below had always removed its
-    /// counterpart; this one had not (the 2026-09-18 review, C6).
+    /// rebinding has to clear the other one: a valued binding of the same name
+    /// left in place would be found first by [#resolveValued(String)], and the
+    /// registry would go on answering the consumer this call had just replaced.
     public ActionRegistry rebind(String name, Runnable action) {
         Objects.requireNonNull(name, "name");
         Objects.requireNonNull(action, "action");
@@ -103,8 +104,7 @@ public final class ActionRegistry {
     /// button is it. `radio-group change="pickTheme"` is the first case where
     /// there is not — the handler has to know whether the user picked `light` or
     /// `dark`, and a registry of six separate actions, one per option, would make
-    /// adding an option an edit in Java as well as in markup
-    /// (ADR-0073).
+    /// adding an option an edit in Java as well as in markup.
     ///
     /// The argument is a `String` and stays one: it is the `value` attribute the
     /// document already wrote down, so it crosses no type boundary and needs no

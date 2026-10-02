@@ -6,7 +6,7 @@ import dev.goldberry.media.codec.DecoderRequest;
 import dev.goldberry.media.codec.TrackParams;
 
 /// AAC, AC-3 and E-AC-3, decoded by the GStreamer decoders the Linux system has
-/// installed (`docs/goldberry-media.md` §5, ADR-0489).
+/// installed.
 ///
 /// Supports an audio track when this is Linux with GStreamer, the codec is one
 /// of the three, and the system has the codec's parser and a decoder for it. It

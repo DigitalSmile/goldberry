@@ -53,7 +53,7 @@ class ComputedStyleTest {
 
     /// The same pipeline, with the **parent actually resolved and handed down**
     /// — which is what `WidgetRenderer` does and what an inherited font size
-    /// needs ([ADR-0242]). `compute` above passes no parent, so every element it
+    /// needs. `compute` above passes no parent, so every element it
     /// builds is a root.
     private static ComputedStyle computeChild(String css) {
         var sheet = Stylesheet.parse(CascadeLayer.APPLICATION, css);
@@ -101,7 +101,7 @@ class ComputedStyleTest {
         /// through a custom property, which is how `--gb-border-strong` reaches
         /// the shorthand in the real stylesheet: an alpha over whatever is
         /// underneath is the only way to say "lighter than its own surface" in a
-        /// subset with no colour functions ([ADR-0166]).
+        /// subset with no colour functions.
         @ParameterizedTest(name = "{0}")
         @MethodSource("spellings")
         @DisplayName("the spaces inside the function's own parentheses survive, however it is written")
@@ -146,7 +146,7 @@ class ComputedStyleTest {
             assertEquals(Align.CENTER, style.alignItems());
         }
 
-        /// [ADR-0247]: `align-items: start` is valid CSS — Box Alignment Level 3
+        /// `align-items: start` is valid CSS — Box Alignment Level 3
         /// — and Yoga has only `flex-start`, so the toolkit was dropping a
         /// declaration the specification allows. This is the typo that filled the
         /// Panels screen's console and needed deduplicating before it was fixed.
@@ -179,7 +179,7 @@ class ComputedStyleTest {
 
         /// `left` and `right` are deliberately not aliases. They are
         /// `justify-content` only, they are **not** the same as `start`/`end`
-        /// under RTL, and §2.4's bidi support means the toolkit cannot promise
+        /// under RTL, and the planned bidi support means the toolkit cannot promise
         /// they would stay equivalent — so they are dropped like any other
         /// keyword it has not got.
         @Test
@@ -195,7 +195,7 @@ class ComputedStyleTest {
         void alignContent() {
             // `SPACE_BETWEEN`, `SPACE_AROUND` and `SPACE_EVENLY` were on [Align]
             // from the start and no property accepted them, because the one they
-            // belong to was not resolved (ADR-0374).
+            // belong to was not resolved.
             assertEquals(
                     Align.SPACE_BETWEEN,
                     compute("button { align-content: space-between }").alignContent());
@@ -226,7 +226,7 @@ class ComputedStyleTest {
             assertEquals(
                     Length.percent(50), compute("button { flex-basis: 50% }").flexBasis());
             // The keyword that is a value rather than a missing one: it undoes a
-            // more general rule, exactly as `align-self: auto` does (ADR-0373).
+            // more general rule, exactly as `align-self: auto` does.
             assertEquals(Length.AUTO, compute("button { flex-basis: auto }").flexBasis());
         }
 
@@ -266,7 +266,7 @@ class ComputedStyleTest {
                     "a keyword CSS has not got is dropped like any other");
         }
 
-        /// [ADR-0244]: §8 has listed `align-items/self/content` from the
+        /// The subset has listed `align-items/self/content` from the
         /// beginning and only the first was built.
         @Test
         @DisplayName("align-self is a keyword like align-items, and independent of it")
@@ -318,7 +318,7 @@ class ComputedStyleTest {
     @DisplayName("relative units")
     class RelativeUnits {
 
-        /// [ADR-0242]: `em` is the element's **own** computed font size, which
+        /// `em` is the element's **own** computed font size, which
         /// this used to assert was whatever number the caller put in the
         /// [CssLength.Context] — 20 here, on an element whose computed size was
         /// `Typography.INITIAL`'s 13.
@@ -366,11 +366,12 @@ class ComputedStyleTest {
             assertEquals(Insets.all(Length.points(40)), child.padding());
         }
 
-        /// **Rewritten by [ADR-0416], and it changed meaning rather than moving.**
+        /// **Rewritten when `rem` became the root element's size, and it changed
+        /// meaning rather than moving.**
         ///
         /// It asserted `2rem` was 32 on an element built with no parent and
         /// `Context(20, 16)` — the configured root size times two. That was
-        /// ADR-0242's semantics, and it is wrong for the element it was asserted
+        /// the older semantics, and it is wrong for the element it was asserted
         /// on: a node with no parent *is* the root, and CSS says `rem` is the root
         /// element's **computed** `font-size`. This element declares none, so its
         /// computed size is `Typography.INITIAL`'s 13, and `2rem` is 26.
@@ -392,9 +393,9 @@ class ComputedStyleTest {
             assertEquals(Insets.all(Length.points(26)), style.padding());
         }
 
-        /// The root's *own* half of ADR-0416, which needs no renderer: once the
+        /// The root's *own* half of the `rem` rule, which needs no renderer: once the
         /// root has computed a size, its remaining declarations resolve `rem`
-        /// against it. Exactly the second pass ADR-0242 built for `em`, reused.
+        /// against it. Exactly the second pass built for `em`, reused.
         @Test
         @DisplayName("a root that declares a size resolves its own rem against it")
         void remAgainstTheRootsDeclaredSize() {
@@ -458,8 +459,8 @@ class ComputedStyleTest {
         void backgroundNone() {
             // `select text-input` writes it, beside the `border: none` that says
             // the same thing about the edge: an editor inside a control is that
-            // control's interior and has no fill of its own (ADR-0183). It was
-            // dropped with a warning until ADR-0216, so the field kept the well
+            // control's interior and has no fill of its own. It was
+            // dropped with a warning for a long time, so the field kept the well
             // colour `text-input` gives it.
             assertEquals(
                     CssColor.TRANSPARENT,
@@ -508,10 +509,10 @@ class ComputedStyleTest {
         @Test
         @DisplayName("an unknown property is ignored rather than fatal")
         void unknownProperty() {
-            // §8's property list is longer than this record; a stylesheet naming
+            // The subset's property list is longer than this record; a stylesheet naming
             // a property the engine has not grown yet must not stop a window
-            // opening. This was `box-shadow` for two hundred ADRs and is
-            // `backdrop-filter` now (ADR-0310) -- what is left of that list is
+            // opening. This was `box-shadow` for a long time and is
+            // `backdrop-filter` now -- what is left of that list is
             // that and `letter-spacing`.
             var style = compute("button { backdrop-filter: blur(24px); color: red }");
             assertEquals(0xFFFF0000, style.color());
@@ -524,7 +525,7 @@ class ComputedStyleTest {
         ///
         /// A shorthand is dropped **whole**: half of one is harder to see than
         /// none of it, because two edges move and two do not, which reads as a
-        /// layout bug rather than a typo ([ADR-0216] for the corner half).
+        /// layout bug rather than a typo.
         static Stream<Arguments> unreadable() {
             return Stream.of(
                     arguments("a keyword that is not in the enum", "flex-direction: sideways", direction()),
@@ -646,9 +647,9 @@ class ComputedStyleTest {
     }
 
     /// CSS's 1-4 corner shorthand, which `group-box-title` needs and which was
-    /// dropped with a warning until ADR-0216.
+    /// dropped with a warning for a long time.
     @Nested
-    @DisplayName("border-radius (§1.5)")
+    @DisplayName("border-radius")
     class BorderRadius {
 
         private Corners corners(String value) {
@@ -678,7 +679,7 @@ class ComputedStyleTest {
         @DisplayName("a percentage is refused, because the box has no size yet")
         void percentage() {
             // The cascade runs before Yoga, so "half of this box" is a number
-            // nobody has. ADR-0216 kept the answer the single radius gave.
+            // nobody has. The shorthand kept the answer the single radius gave.
             assertEquals(Corners.SQUARE, corners("50%"));
         }
 
@@ -690,7 +691,7 @@ class ComputedStyleTest {
     }
 
     @Nested
-    @DisplayName("typography (§1.4)")
+    @DisplayName("typography")
     class Typography {
 
         @Test
@@ -726,8 +727,7 @@ class ComputedStyleTest {
         }
 
         /// `font-style`, which is a **face** rather than a decoration: the italic
-        /// is drawn, so the cascade's job is to name a file — `docs/gaps.md` G27,
-        /// ADR-0323.
+        /// is drawn, so the cascade's job is to name a file.
         @Test
         @DisplayName("font-style resolves, and picks the face out of the matrix")
         void fontStyle() {
@@ -777,7 +777,7 @@ class ComputedStyleTest {
         @Test
         @DisplayName("only the first family of a list is taken")
         void noFallbackChain() {
-            // §6.1 is explicit that there is no fallback cascade in v1: a
+            // There is no fallback cascade: a
             // character outside the bundled faces is .notdef on purpose.
             // Honouring the rest of the list would pretend to a mechanism that
             // does not exist.
@@ -807,7 +807,7 @@ class ComputedStyleTest {
         }
 
         @Test
-        @DisplayName("the default is §1.4's body: Inter 400 at 13/18")
+        @DisplayName("the default is the design system's body: Inter 400 at 13/18")
         void initial() {
             // Deliberately the specified default rather than something neutral:
             // a window with no stylesheet should read as the design system.
@@ -834,7 +834,7 @@ class ComputedStyleTest {
     }
 
     @Nested
-    @DisplayName("transitions (§1.7)")
+    @DisplayName("transitions")
     class TransitionParsing {
 
         @Test
@@ -892,7 +892,7 @@ class ComputedStyleTest {
         @Test
         @DisplayName("a layout property is refused, not ignored")
         void layoutPropertyRefused() {
-            // §1.7: "layout properties never transition". Animating a width would
+            // Layout properties never transition. Animating a width would
             // run Yoga every frame of every transition. An author who asked for
             // one is asking for something the system deliberately will not do,
             // and needs to be told rather than left with a rule that never fires.
@@ -1030,7 +1030,7 @@ class ComputedStyleTest {
         @Test
         @DisplayName("`opacity` does not inherit, because its effect already does")
         void opacityDoesNot() {
-            // The painter accumulates opacity down the box tree (ADR-0064).
+            // The painter accumulates opacity down the box tree.
             // Inheriting the value here as well would apply it once per level:
             // a label under a control at 45% would be drawn at 20%.
             assertEquals(1.0, child("panel { opacity: 0.45 }").opacity(), 1e-9);
@@ -1039,7 +1039,7 @@ class ComputedStyleTest {
         @Test
         @DisplayName("`cursor` does not inherit here, because it inherits elsewhere")
         void cursorDoesNot() {
-            // ADR-0057: the cursor rides on the painted box and hit testing reads
+            // The cursor rides on the painted box and hit testing reads
             // it off whichever rectangle the pointer is over. A second mechanism
             // would disagree with the first the moment a box had no element.
             assertEquals(
@@ -1079,7 +1079,7 @@ class ComputedStyleTest {
         /// differently on the second frame.
         /// The example used to be `align-items: start`, which is the typo that
         /// produced the console flood this group exists for — and which is
-        /// **accepted** now, because it is valid CSS ([ADR-0247]). A keyword
+        /// **accepted** now, because it is valid CSS. A keyword
         /// nothing has is what this needs, so it asks for one nothing has.
         @Test
         @DisplayName("the declaration is dropped every time, however often it is reported")
@@ -1096,9 +1096,9 @@ class ComputedStyleTest {
         }
     }
 
-    /// §8 has listed `min-width` / `max-width` from the start and nothing had
+    /// The subset has listed `min-width` / `max-width` from the start and nothing had
     /// needed them, so three widgets wrote a **width** where they meant a maximum
-    /// and one had no minimum at all ([ADR-0181]).
+    /// and one had no minimum at all.
     @Nested
     @DisplayName("how small and how large")
     class Limits {
@@ -1119,7 +1119,7 @@ class ComputedStyleTest {
             assertEquals(Length.points(80), style.limits().maxHeight());
         }
 
-        /// The form `dialog` needs: §2 asks for "max 80% window", and a
+        /// The form `dialog` needs: a dialog is at most 80% of the window, and a
         /// percentage is the only way to say that without measuring a window.
         @Test
         @DisplayName("a percentage stays a percentage, for the containing block to resolve")
@@ -1183,7 +1183,7 @@ class ComputedStyleTest {
         }
 
         @Test
-        @DisplayName("text-align is read, and `left` / `right` are refused for ADR-0247's reason")
+        @DisplayName("text-align is read, and `left` / `right` are refused because they are not `start` under RTL")
         void alignmentKeywords() {
             assertEquals(TextAlign.END, compute("button { text-align: end }").textAlign());
             assertEquals(
@@ -1240,8 +1240,8 @@ class ComputedStyleTest {
         }
     }
 
-    /// `text-decoration`, the fourth property on the same value — `docs/gaps.md`
-    /// G27, ADR-0321.
+    /// `text-decoration`, the fourth property on the same value: a rule under
+    /// text belongs to the face.
     @Nested
     @DisplayName("text-decoration")
     class Decorations {

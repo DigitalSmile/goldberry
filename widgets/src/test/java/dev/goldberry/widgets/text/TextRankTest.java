@@ -14,13 +14,15 @@ import dev.goldberry.kdl.KdlParser;
 import dev.goldberry.widget.attr.Attributes;
 import dev.goldberry.widgets.Widgets;
 
-/// `text style="body"` — [ADR-0381], and `docs/ARCHITECTURE.md` §17.1's last
-/// spelling disagreement.
+/// `text style="body"`: the type scale's ranks, reachable by `style=` as well
+/// as by `class=`.
 ///
-/// §2 asks for a `style=` attribute over §1.4's ranks; what shipped was
-/// `class=`, which is the same thing spelled as CSS spells it. Both work now,
-/// and what these assert is that they are one mechanism rather than two: a rule
-/// written `text.title` matches either.
+/// The design asked for a `style=` attribute naming a rank of the type scale;
+/// what shipped was `class=`, which is the same thing spelled as CSS spells it.
+/// Both work now, and what these assert is that they are one mechanism rather
+/// than two: a rule written `text.title` matches either.
+///
+/// Read more: [Text and links](https://goldberry.dev/docs/components/text.html#the-type-scale).
 class TextRankTest {
 
     private static Text inflate(String kdl) {
@@ -62,9 +64,8 @@ class TextRankTest {
             // an open vocabulary and a rank is a closed one, so a typo in a rank
             // is a mistake rather than a rule that has not been written yet.
             // The type is named. `Exception.class` stood here, which would have
-            // passed on a NullPointerException from the inflater's own scaffolding
-            // (the 2026-09-18 review, §6); 52 sibling sites in this module name
-            // the type they mean.
+            // passed on a NullPointerException from the inflater's own scaffolding;
+            // the sibling sites in this module name the type they mean.
             var thrown =
                     assertThrows(IllegalArgumentException.class, () -> inflate("text style=\"subtitle\" \"Hello\""));
             assertTrue(
@@ -122,7 +123,7 @@ class TextRankTest {
         }
 
         @Test
-        @DisplayName("the six are §1.4's six")
+        @DisplayName("the six ranks are the type scale's six")
         void theScale() {
             // If a seventh is added here it has to be added to `controls.css`
             // too, or `style=` would name a rank with no rule behind it.

@@ -31,8 +31,8 @@ import dev.goldberry.media.picture.VideoPlanes;
 /// The frame queue's rules with no FFmpeg: a full queue makes [FrameQueue#obtain]
 /// wait, and the three ways to end that wait. Only [FrameQueue#releaseWaiters()]
 /// leaves the queue working, which is what lets a video track switch hand it from
-/// one video thread to the next. And its slots' two forms (`docs/gpu-plan.md`,
-/// D8): converted BGRA, and planes copied as a decoder lent them.
+/// one video thread to the next. And its slots' two forms: converted BGRA, and
+/// planes copied as a decoder lent them.
 @DisplayName("FrameQueue")
 class FrameQueueTest {
 

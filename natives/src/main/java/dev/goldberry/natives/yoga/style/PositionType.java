@@ -2,10 +2,12 @@ package dev.goldberry.natives.yoga.style;
 
 /// How a node is positioned — `YGPositionType`, CSS's `position`.
 ///
-/// The CSS subset admits `relative` and `absolute` (§8). [#STATIC] is bound
+/// The CSS subset admits `relative` and `absolute`. [#STATIC] is bound
 /// anyway because it is what makes [#ABSOLUTE] useful: an absolutely positioned
 /// node is placed against its nearest non-static ancestor, so `static` is how a
 /// container declines to be that ancestor.
+///
+/// Read more: [The native boundary](https://goldberry.dev/docs/overview/architecture.html#the-native-boundary).
 public enum PositionType implements YogaEnum {
 
     /// Laid out in flow, and not a containing block for absolute descendants.

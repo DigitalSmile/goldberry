@@ -25,10 +25,12 @@ import dev.goldberry.widgets.TestHost;
 import dev.goldberry.widgets.Widgets;
 import dev.goldberry.widgets.markup.Wiring;
 
-/// §3's four remaining button options: `outlined`, `square`, `circle` and
-/// `float` ([ADR-0347]). Three are classes and need an image; what a test can
-/// check is the one rule with logic in it — an icon-only button is a circle
-/// unless told `square` — and the placement one.
+/// The four button options with a shape in them: `outlined`, `square`, `circle`
+/// and `float`. Three are classes and need an image; what a test can check is
+/// the one rule with logic in it — an icon-only button is a circle unless told
+/// `square` — and the placement one.
+///
+/// Read more: [Button](https://goldberry.dev/docs/components/buttons.html#button).
 class ButtonShapeTest {
 
     private Icon plus;

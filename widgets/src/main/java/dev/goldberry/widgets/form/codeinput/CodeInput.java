@@ -18,7 +18,8 @@ import dev.goldberry.widget.attr.Bindable;
 import dev.goldberry.widgets.markup.Markup;
 import dev.goldberry.widgets.markup.Wiring;
 
-/// The one-time-code field — `docs/core-widgets.md` §4's `code-input`.
+/// The one-time-code field: a row of boxes that fill one character at a time
+/// and fire `complete` when the last one does.
 ///
 /// ```kdl
 /// field label="Verification code" {
@@ -45,9 +46,9 @@ import dev.goldberry.widgets.markup.Wiring;
 ///
 /// ## Its own widget, because its editing model is
 ///
-/// §4 says so in as many words, and [CodeEdit] is what that sentence turns out to
-/// mean: no selection, no caret to place, no undo stack, and no holes. Four
-/// sentences of specification fall out of two operations on a string.
+/// [CodeEdit] is that model: no selection, no caret to place, no undo stack, and
+/// no holes. Everything the field promises falls out of two operations on a
+/// string.
 ///
 /// **It does reuse the parts with rules in them**, which is what
 /// `TextEditor`'s javadoc predicted: the `field` contract around it, and
@@ -55,22 +56,25 @@ import dev.goldberry.widgets.markup.Wiring;
 ///
 /// ## The field holds the code, and the model is told
 ///
-/// `text-input`'s split, unchanged ([ADR-0063]): the field owns the edit and
+/// `text-input`'s split, unchanged — data flows down and events flow up: the
+/// field owns the edit and
 /// reports each value through `change`, and a `bind=` value is the initial code
 /// and an override rather than the thing being edited. A value that differs from
 /// what the field holds is somebody else's and takes the field; one that matches
 /// is the echo of the user's own keystroke and is ignored.
 ///
-/// `complete` is the second event and the one §4 gives this widget by name — "it
-/// fires when the last box fills, which is what lets a form submit without a
-/// button". It fires **on the edit that filled the last box**, not on every
-/// rebuild of a full field, so a handler that submits does not submit twice.
+/// `complete` is the second event and the one this widget exists for: it fires
+/// when the last box fills, which is what lets a form submit without a button.
+/// It fires **on the edit that filled the last box**, not on every rebuild of a
+/// full field, so a handler that submits does not submit twice.
+///
+/// Read more: [Fields and forms](https://goldberry.dev/docs/components/forms.html#code-input).
 ///
 /// @param value      the code when nothing is bound
 /// @param source     the `bind=` value, or null
 /// @param onChange   told the code after every change the user makes
 /// @param onComplete told once, when the last box fills
-/// @param length     how many boxes — §4's `length=6`
+/// @param length     how many boxes — `length=6`
 /// @param type       what the boxes accept
 /// @param mask       whether it draws bullets, authenticator-style
 /// @param disabled   whether it refuses focus and matches `:disabled`
@@ -90,7 +94,7 @@ public record CodeInput(
 
     private static final Logger LOG = Logs.of(CodeInput.class);
 
-    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    /// Written out so that the parameters taking null for a default can say so.
     public CodeInput(
             @Nullable String value,
             @Nullable Observable<?> source,
@@ -131,7 +135,7 @@ public record CodeInput(
     /// A field following a property. The Java spelling of `bind=`.
     ///
     /// @param source read-only by construction, so the field cannot write to the
-    ///               model even by accident ([ADR-0063])
+    ///               model even by accident
     public static CodeInput of(Observable<?> source, @Nullable Consumer<String> onChange) {
         return new CodeInput(
                 "",
@@ -211,7 +215,7 @@ public record CodeInput(
     ///
     /// Both actions take the code, which is the valued form `text-input` and
     /// `select` already use: a handler for a field is useless without what was
-    /// typed (ADR-0073).
+    /// typed.
     public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
         return new CodeInput(
                 Objects.requireNonNullElse(node.stringProperty("value"), ""),
@@ -228,7 +232,7 @@ public record CodeInput(
     private static int boxes(KdlNode node) {
         var declared = (int) node.numberProperty("length", CodeEdit.DEFAULT_LENGTH);
         // A document that wrote a length of zero wrote a typo, and a field with
-        // no boxes is not a reading that leaves it working. §4's six is what a
+        // no boxes is not a reading that leaves it working. Six is what a
         // `code-input` with no `length=` means anyway.
         return declared < 1 ? CodeEdit.DEFAULT_LENGTH : declared;
     }

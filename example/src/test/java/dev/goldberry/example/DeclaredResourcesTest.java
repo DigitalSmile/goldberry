@@ -17,8 +17,9 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 /// A native image carries only the resources it was told about, and the
-/// showcase's are told about by hand, in `goldberry-example-manual`
-/// (ADR-0160). The trace cannot do it: it records what a 120-frame run
+/// showcase's are told about by hand, in `goldberry-example-manual`: a module's
+/// own resources are declared, not traced. The trace cannot do it: it records
+/// what a 120-frame run
 /// touched, and the canvas screen's five sample images were touched by nobody
 /// until a user clicked the tab in a Windows image and got
 /// `canvas-sample.qoi is not on the classpath beside CanvasScreen`.

@@ -5,7 +5,7 @@ import java.util.Objects;
 import dev.goldberry.media.MediaClock;
 
 /// The last samples of a track on their way to the ear, after the sink's queue
-/// has emptied (ADR-0474).
+/// has emptied.
 ///
 /// The audio clock is what has left the queue less the device's latency. Once
 /// the queue is empty nothing leaves it any more, so on its own the clock would

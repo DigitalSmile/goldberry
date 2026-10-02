@@ -23,7 +23,7 @@ import dev.goldberry.render.model.LogicalSize;
 import dev.goldberry.render.window.WindowSpec;
 
 /// [Window#resize] — a window resized from outside, which is what a frame loop
-/// is measured under ([ADR-0342]).
+/// is measured under.
 ///
 /// The headless backend plays the window manager: it clamps the request to the
 /// floor and delivers a `Resized`, exactly as it does for a test that drags.

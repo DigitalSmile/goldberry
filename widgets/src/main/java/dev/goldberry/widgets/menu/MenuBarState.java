@@ -20,8 +20,7 @@ import dev.goldberry.widget.attr.Attributes;
 /// to.
 ///
 /// Everything here is the half of a bar that cannot be a value: a platform
-/// window, and a set of registrations in somebody else's map
-/// (ADR-0163).
+/// window, and a set of registrations in somebody else's map.
 final class MenuBarState extends State<MenuBar> {
 
     /// A prefix for the generated heading ids, which is how a menu is anchored
@@ -175,13 +174,12 @@ final class MenuBarState extends State<MenuBar> {
         // What `Left` and `Right` mean at the **root** of this menu, which is the
         // one thing about it that is the bar's business rather than the menu's:
         // with a menu down, running along the bar swaps menus, and the arrows do
-        // what the pointer does (ADR-0219). A submenu gets no siblings — `Left`
-        // in one goes back to the menu it came from.
+        // what the pointer does. A submenu gets no siblings — `Left` in one goes
+        // back to the menu it came from.
         var opened = Menus.open(
                 host, id, menu, UNDER_THE_BAR, new Menus.Siblings(() -> step(index, -1), () -> step(index, +1)));
-        // Empty is normal — a driver with no popup windows (ADR-0102) — and it
-        // must not leave the heading marked open, because nothing would ever
-        // unmark it.
+        // Empty is normal — a driver with no popup windows — and it must not
+        // leave the heading marked open, because nothing would ever unmark it.
         opened.ifPresent(popup -> {
             open = popup;
             openIndex = index;
@@ -238,7 +236,7 @@ final class MenuBarState extends State<MenuBar> {
         }
         // Bound **on this state's behalf**, so unbinding gives back only what is
         // still ours: an application that binds `Ctrl+O` after this bar did keeps
-        // it when the bar goes away (ADR-0220).
+        // it when the bar goes away.
         bound = Accelerators.bind(host, widget().children(), this);
         boundOn = host;
         // F10 is the keyboard's way in. Registered with the accelerators so it
@@ -249,10 +247,9 @@ final class MenuBarState extends State<MenuBar> {
             var all = new java.util.LinkedHashSet<>(bound);
             all.add(focusBar);
             bound = Set.copyOf(all);
-            // And a bare `Alt`, which is what §8 asked for and what F10 was
-            // standing in for. Not an accelerator — see [ModifierKey] — so it is
-            // bound through its own registry and given back beside the rest
-            // (ADR-0223).
+            // And a bare `Alt`. A tap is not an accelerator — see [ModifierKey] —
+            // so it is bound through its own registry and given back beside the
+            // rest.
             host.modifierTap(ModifierKey.ALT, this::activateFromKeyboard, this);
             tapped = true;
         }
@@ -286,8 +283,7 @@ final class MenuBarState extends State<MenuBar> {
     ///
     /// **Closing on a second press** is what every desktop bar does with the same
     /// key, and it is what makes the gesture safe to reach for: a user who tapped
-    /// `Alt` by accident taps it again rather than hunting for `Escape`
-    /// (ADR-0223).
+    /// `Alt` by accident taps it again rather than hunting for `Escape`.
     private void activateFromKeyboard() {
         if (isOpen()) {
             setState(this::close);

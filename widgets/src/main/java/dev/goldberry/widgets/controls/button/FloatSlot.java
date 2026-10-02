@@ -9,14 +9,14 @@ import dev.goldberry.widget.BuildContext;
 import dev.goldberry.widget.Widget;
 
 /// What a [Floated] puts in the overlay layer: its button, and a switch that
-/// sends the button out (ADR-0355).
+/// sends the button out.
 ///
 /// An overlay's widget is fixed when the overlay is made, so the button cannot
 /// be swapped for a leaving one. What can change is a property the slot is
 /// bound to. Setting it rebuilds the slot with `leaving` on the button, and the
-/// stylesheet's `button.float.leaving` rule is the exit: §3.1's "out: reverse,
-/// fast". The overlay itself is removed once the exit has had its time, by
-/// [FloatedState].
+/// stylesheet's `button.float.leaving` rule is the exit — the entrance in
+/// reverse, at the fast duration. The overlay itself is removed once the exit
+/// has had its time, by [FloatedState].
 ///
 /// @param button  the floating button, `float` class and all
 /// @param leaving whether it is on its way out
@@ -30,7 +30,7 @@ record FloatSlot(Button button, Property<Boolean> leaving) implements Widget.Sta
         Objects.requireNonNull(leaving, "leaving");
     }
 
-    /// The switch, so flipping it rebuilds this slot (ADR-0062).
+    /// The switch, so flipping it rebuilds this slot.
     @Override
     public Observable<?> binding() {
         return leaving;

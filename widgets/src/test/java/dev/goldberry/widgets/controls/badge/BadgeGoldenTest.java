@@ -22,18 +22,19 @@ import dev.goldberry.widgets.controls.TestFont;
 import dev.goldberry.widgets.core.Row;
 import dev.goldberry.widgets.panel.Panel;
 
-/// What a badge looks like (§14, [ADR-0050]).
+/// What a badge looks like, held as golden images.
 ///
 /// Two things here can only be seen in an image. **The pill is a pill** —
-/// `border-radius: 10px` on a 20px box is §1.5's `full`, and a chip whose height
+/// `border-radius: 10px` on a 20px box is the design system's `full` radius, and a chip whose height
 /// drifted off 20 would draw a rounded rectangle that is not obviously wrong at
 /// any single value assertion. And **the text is centred in a height it did not
 /// choose**: the chip pins 20px with no vertical padding, so the label sits where
 /// `align-items: center` puts it, and the failure mode — text hard against the
-/// top with 6px of fill below — is a layout that reports no error at all
-/// ([ADR-0087]).
+/// top with 6px of fill below — is a layout that reports no error at all.
 ///
 /// `./gradlew :widgets:test -Dgoldberry.golden.update=true` rewrites them.
+///
+/// Read more: [Goldens](https://goldberry.dev/docs/contributing/testing.html#goldens).
 class BadgeGoldenTest {
 
     @BeforeEach
@@ -87,7 +88,7 @@ class BadgeGoldenTest {
     }
 
     /// On `--gb-surface` rather than `--gb-bg`, which is the gap
-    /// `controls-on-surface-*` exists to close ([ADR-0073]). A badge paints its
+    /// `controls-on-surface-*` exists to close. A badge paints its
     /// own opaque fill in every variant, so it cannot disappear against a panel —
     /// but the *default* chip is filled with `--gb-surface-2`, which is one step
     /// from the panel it sits on, and one step is exactly the distance worth
@@ -108,10 +109,10 @@ class BadgeGoldenTest {
     /// means.
     ///
     /// **`3` is a circle now.** This image used to be the record of it not being
-    /// one — "§8's subset has no `min-width` at all" — and both halves of that
-    /// expired: ADR-0181 shipped the four bounds, and ADR-0259 spent the last one
-    /// here. `min-width` is the *height*, so one digit is round and two are a
-    /// stadium, which is the difference this picture exists to show.
+    /// one, back when the CSS subset had no `min-width` at all. The subset gained
+    /// its four size bounds and the badge spends one of them here: `min-width` is
+    /// the *height*, so one digit is round and two are a stadium, which is the
+    /// difference this picture exists to show.
     @Test
     @DisplayName("it grows sideways and never taller")
     void digits() {

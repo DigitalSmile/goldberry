@@ -17,7 +17,7 @@ import dev.goldberry.widget.style.Paints;
 import dev.goldberry.widgets.core.presence.Phase;
 
 /// **A widget that is moving has to say so**, and the golden corpus cannot check
-/// it ([ADR-0226]).
+/// it.
 ///
 /// A golden drives `render` by hand: it builds a frame, rasterizes it, and
 /// compares pixels. It never asks whether the frame loop *would have* asked for
@@ -27,7 +27,7 @@ import dev.goldberry.widgets.core.presence.Phase;
 /// passes.
 ///
 /// `dialog` shipped with exactly that defect and it was found by running the
-/// application ([ADR-0176]). The lesson had nowhere to live but a `TODO.md`
+/// application. The lesson had nowhere to live but a `TODO.md`
 /// entry, which is a note rather than a check. This is the check.
 ///
 /// ## Two rules, and neither is about pixels

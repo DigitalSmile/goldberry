@@ -12,11 +12,14 @@ import java.lang.invoke.MethodHandle;
 import dev.goldberry.natives.Downcalls;
 
 /// GPU buffers: vertices and indices, how they get there, and the draws that
-/// read them (`docs/gpu-plan.md`, phase 2, for `canvas3d`).
+/// read them — what a `canvas3d` renderer draws with.
 ///
 /// One holder per function: its handle, its address, and a `call` whose
 /// parameters are the C prototype’s. See [Downcalls] for why the handle is a
 /// `static final` constant and why these live in a package of their own.
+///
+/// Read more: [The GPU canvas](https://goldberry.dev/docs/components/gpu.html#canvas3d) and
+/// [The native boundary](https://goldberry.dev/docs/overview/architecture.html#the-native-boundary).
 public record SdlGpuBufferCalls(
         CreateGPUBuffer createGPUBuffer,
         ReleaseGPUBuffer releaseGPUBuffer,

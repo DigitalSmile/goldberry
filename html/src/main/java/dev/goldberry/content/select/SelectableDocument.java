@@ -35,7 +35,7 @@ import dev.goldberry.widgets.core.scroll.ScrollScope;
 /// stateful thing in either of them. The state is the selection and the geometry: two
 /// things that must survive a rebuild, because a preview re-parses on every keystroke
 /// and a reader's selection should not vanish because the frame after it was a
-/// different object (ADR-0301).
+/// different object.
 ///
 /// ```
 /// selection-host          this: hears the pointer and the keyboard
@@ -50,14 +50,14 @@ import dev.goldberry.widgets.core.scroll.ScrollScope;
 ///   a paragraph, a heading, a cell, a line of a fence.
 /// - A drag **held at the edge** of the `scroll` around the document carries it on,
 ///   faster the further past the edge the pointer is, and the selection follows the
-///   words that arrive ([EdgeScroll], [ADR-0500]). A wheel turned mid-drag scrolls
+///   words that arrive ([EdgeScroll]). A wheel turned mid-drag scrolls
 ///   as a wheel does, and the selection follows that too.
 /// - **`Ctrl+C`** copies what is selected, with the separators the document implies:
 ///   a space between words, a newline between blocks. **`Ctrl+A`** takes the lot and
 ///   **`Escape`** lets it go.
 /// - A selection is **published to the primary selection** when it is finished — the
 ///   button comes up, or `Ctrl+A` lands — where the platform has one, which is X11
-///   and Wayland: a middle click in another application pastes it ([ADR-0504]).
+///   and Wayland: a middle click in another application pastes it.
 /// - A link and an image are **part of the selection** — their boxes are washed and a
 ///   link's label is in what is copied — because a selection that skipped them would
 ///   copy "Read first." out of "Read the help first." An image contributes no text,
@@ -81,6 +81,8 @@ import dev.goldberry.widgets.core.scroll.ScrollScope;
 /// the ones the selection was measured against, which is the question asked in
 /// `build` below and the only one an offset into a flat list can be answered by.
 ///
+/// Read more: [Selection](https://goldberry.dev/docs/components/content.html#selection).
+///
 /// @param fold what turns the minter, the memo and the overlay into the document's
 ///        widgets — the view's own, because only it knows whether this is Markdown or
 ///        HTML
@@ -88,8 +90,9 @@ public record SelectableDocument(Fold fold) implements Widget.Stateful {
 
     /// What a view does with the three things this state owns.
     ///
-    /// A named interface rather than a `BiFunction` since [ADR-0389] put a third thing
-    /// in it: the memo, which is what a view hands its unchanged blocks back from.
+    /// A named interface rather than a `BiFunction` because there are three things in
+    /// it: the third is the memo, which is what a view hands its unchanged blocks back
+    /// from.
     @FunctionalInterface
     public interface Fold {
 
@@ -115,7 +118,7 @@ public record SelectableDocument(Fold fold) implements Widget.Stateful {
         private final WordGeometry geometry = new WordGeometry();
 
         /// What the last build made, so this one can hand back the blocks nobody
-        /// touched ([ADR-0389]). Beside the geometry because the two are one thing:
+        /// touched. Beside the geometry because the two are one thing:
         /// a memoized block's words report into entries this geometry owns.
         private final BlockMemo memo = new BlockMemo();
 
@@ -126,12 +129,12 @@ public record SelectableDocument(Fold fold) implements Widget.Stateful {
 
         /// Whether the gesture in progress began with a press here — a drag, a
         /// double or a triple click — so its release is a selection finished and
-        /// worth publishing ([ADR-0504]).
+        /// worth publishing.
         private boolean selecting;
 
         /// The viewport this document is in, carried on while a drag is held at its
         /// edge — and the clamp that keeps a pointer past the edge asking about the
-        /// words at it rather than about nothing ([ADR-0500]).
+        /// words at it rather than about nothing.
         private final EdgeScroll edge = new EdgeScroll();
 
         @Override
@@ -183,7 +186,7 @@ public record SelectableDocument(Fold fold) implements Widget.Stateful {
                         // The viewport is found from the element that heard the
                         // press, which is the one route from a widget to the tree
                         // around it -- no controller wired, nothing the view was
-                        // handed ([ADR-0439]).
+                        // handed.
                         var scope = ScrollScope.enclosing(event.target()).orElse(null);
                         edge.hold(scope == null ? null : scope::nudge, scope == null ? ScrollAxis.BOTH : scope.axis());
                         edge.pointer(event.x(), event.y());
@@ -304,7 +307,7 @@ public record SelectableDocument(Fold fold) implements Widget.Stateful {
         }
 
         /// Puts a finished selection on the primary selection — X11's middle-click
-        /// buffer — where the window this document is in has one ([ADR-0504]).
+        /// buffer — where the window this document is in has one.
         ///
         /// Found through the element, for [#copy]'s reason. A document is never a
         /// paste target, so this is the only half of the primary selection it has.
@@ -384,8 +387,7 @@ public record SelectableDocument(Fold fold) implements Widget.Stateful {
     ///
     /// It is also the node that is told where the viewport around the document is,
     /// and whose `render` steps a drag held at the viewport's edge — it is the one
-    /// node every document has whatever it says, so one clock serves the whole of it
-    /// ([ADR-0500]).
+    /// node every document has whatever it says, so one clock serves the whole of it.
     record SelectionHost(Widget content, DocumentState state)
             implements Widget.Leaf, Styled, Paints, Handles, Located, Semantics {
 

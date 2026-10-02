@@ -46,11 +46,11 @@ import dev.goldberry.widget.Widget;
 import dev.goldberry.widget.attr.Attributes;
 import dev.goldberry.widgets.controls.button.Button;
 
-/// `media-player`'s fullscreen (ADR-0473): the button and keys, the copy laid
+/// `media-player`'s fullscreen: the button and keys, the copy laid
 /// over the window, and the window asked and given back, against a host that
 /// records what it was asked and reports what a platform would.
 /// Under [HeadlessRuntime]: the player posts its status changes to the UI thread,
-/// which needs a runtime to post to (ADR-0517).
+/// which needs a runtime to post to.
 @DisplayName("media-player fullscreen")
 @ExtendWith(HeadlessRuntime.class)
 class MediaPlayerFullscreenTest {

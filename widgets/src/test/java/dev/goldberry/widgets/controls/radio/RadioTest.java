@@ -50,7 +50,9 @@ import dev.goldberry.widgets.text.Text;
 /// [CheckboxTest] proved a control whose value comes from outside it. This proves
 /// the thing a single control cannot have: an invariant over a *set*, one Tab
 /// stop for several focusable nodes, and a selection that is also the roving
-/// position ([ADR-0073]).
+/// position.
+///
+/// Read more: [Radio group](https://goldberry.dev/docs/components/choices.html#radio-group).
 class RadioTest {
 
     private static List<Widget> inflate(String markup) {
@@ -67,7 +69,7 @@ class RadioTest {
     }
 
     @Nested
-    @DisplayName("parity (§11)")
+    @DisplayName("markup and Java build the same tree")
     class Parity {
 
         @Test
@@ -221,7 +223,7 @@ class RadioTest {
     }
 
     @Nested
-    @DisplayName("data down, events up (ADR-0063)")
+    @DisplayName("data flows down and events flow up")
     class Binding {
 
         @Test
@@ -354,7 +356,7 @@ class RadioTest {
     }
 
     @Nested
-    @DisplayName("one Tab stop, arrows inside (§7.2)")
+    @DisplayName("a composite is one Tab stop, and the arrows rove inside it")
     class Traversal {
 
         private final List<String> picked = new ArrayList<>();
@@ -414,7 +416,7 @@ class RadioTest {
         @Test
         @DisplayName("an arrow key asks for the next option, and does not select it")
         void selectionFollowsFocusThroughTheApplication() {
-            // The whole of ADR-0063 applied to a composite: the arrow moves the
+            // The whole of the binding rule applied to a composite: the arrow moves the
             // ring, the change goes up with the value, and the tick moves only
             // when the application sets the property.
             var tree = tree("light");
@@ -477,7 +479,7 @@ class RadioTest {
             var element = new ElementTree(dark).root();
 
             dark.onKey(new KeyEvent(KeyEvent.Kind.PRESSED, Key.ENTER, Modifiers.NONE, false, element));
-            assertTrue(picked.isEmpty(), "Enter belongs to a dialog's default action (§2.3)");
+            assertTrue(picked.isEmpty(), "Enter belongs to a dialog's default action");
 
             dark.onKey(new KeyEvent(KeyEvent.Kind.PRESSED, Key.SPACE, Modifiers.NONE, false, element));
             assertEquals(List.of("dark"), picked);
@@ -541,7 +543,7 @@ class RadioTest {
             // lands at 20% -- which is why this used to need an `opacity: 1` undo
             // rule in controls.css. Unavailability propagates through the router
             // instead, and the fade propagates by itself because opacity
-            // multiplies down a subtree (ADR-0077).
+            // multiplies down a subtree.
             assertTrue(
                     options(group).stream().noneMatch(Radio::disabled),
                     "a group's disabled is the group's, not each option's");
@@ -575,7 +577,7 @@ class RadioTest {
     }
 
     @Nested
-    @DisplayName("the glyph is a part (ADR-0065)")
+    @DisplayName("the glyph is a part, styleable and not constructible")
     class Part {
 
         @Test
@@ -623,7 +625,7 @@ class RadioTest {
         @Test
         @DisplayName("the dot is a node of its own, so it can scale without the ring")
         void dotIsANode() {
-            // §3.1's "check/dot: scale 0.6->1 + opacity". A Box.Mark is drawn
+            // A radio's dot scales 0.6->1 and fades in. A Box.Mark is drawn
             // onto the box that carries it, so while the dot lived on the
             // indicator, scaling it grew the 16px ring too.
             var indicator = new RadioIndicator(true, false);
@@ -642,7 +644,7 @@ class RadioTest {
         void dotAlwaysBuilt() {
             // A node that appears with the value has no previous style to move
             // from, and a newly built element deliberately starts no transition
-            // (ADR-0067) -- so it would snap. The stylesheet fades it instead.
+            // -- so it would snap. The stylesheet fades it instead.
             for (var selected : List.of(true, false)) {
                 var dot = (RadioDot)
                         new RadioIndicator(selected, false).children().getFirst();
@@ -672,7 +674,7 @@ class RadioTest {
             var resolved = ComputedStyle.of(style.resolve(dot), CssLength.Context.DEFAULT, null);
             assertFalse(
                     resolved.transitions().isEmpty(),
-                    "§3.1 gives the dot a transition, and it is declared in CSS so that"
+                    "the dot's scale and fade are a transition, declared in CSS so that"
                             + " reduced motion and a theme can both reach it");
         }
 
@@ -709,7 +711,7 @@ class RadioTest {
             // BOTH rather than an axis, and it is the one composite in the
             // catalog for which that is right: a group's direction is its
             // stylesheet's, and `.inline` flips it, so input cannot know which
-            // pair the user is looking at (ADR-0078).
+            // pair the user is looking at.
             assertEquals(FocusScope.BOTH, group.focusScope());
             assertFalse(group.isFocusable(), "the ring belongs on the option the user is about to pick");
             assertNotNull(group.children());

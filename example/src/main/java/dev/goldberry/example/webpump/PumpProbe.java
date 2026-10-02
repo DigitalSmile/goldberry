@@ -46,6 +46,8 @@ import dev.goldberry.widgets.text.Text;
 /// native handle and so is X11-only, while the pump is process-wide and
 /// identical either way. Measuring the window form removes a variable that has
 /// nothing to do with the question.
+///
+/// Read more: [The web view](https://goldberry.dev/docs/components/content.html#the-web-view).
 public final class PumpProbe implements Application {
 
     private static final Logger LOG = LoggerFactory.getLogger(PumpProbe.class);

@@ -3,9 +3,12 @@
 ///
 /// One so far. [dev.goldberry.junit.HeadlessRuntime] gives a test the running
 /// runtime a widget expects to find, on the `headless` backend, with no window
-/// and no native library (ADR-0517).
+/// and no native library, so a lane without `libgoldberry` stays green.
 ///
-/// Marked for NullAway (`docs/testing.md` §2, ADR-0497).
+/// Null-marked, as every package is.
+///
+/// Read more: [Running the launcher
+/// without a display](https://goldberry.dev/docs/guide/testing.html#running-the-launcher-without-a-display).
 @NullMarked
 package dev.goldberry.junit;
 

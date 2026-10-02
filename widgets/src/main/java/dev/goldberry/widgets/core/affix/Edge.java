@@ -5,7 +5,12 @@ import java.util.regex.Pattern;
 
 import org.jspecify.annotations.Nullable;
 
-/// Which side of the viewport an [Affix] pins itself to — §1's `edge=`.
+/// Which side of the viewport an [Affix] pins itself to: the `edge=` attribute.
+///
+/// `edge="top left"` names one edge per axis; [#parse] reads the first word and
+/// [#parseCross] the second.
+///
+/// Read more: [Affix](https://goldberry.dev/docs/layout/affix.html#two-axes).
 public enum Edge {
     TOP,
     BOTTOM,
@@ -43,7 +48,7 @@ public enum Edge {
     }
 
     /// The second edge `name` spells — `left` in `"top left"` — or null when it
-    /// names one, or a second on the same axis as the first (ADR-0371).
+    /// names only one, or a second on the same axis as the first.
     @SuppressWarnings("StringSplitter") // trimmed first, so there is no empty leading word
     public static @Nullable Edge parseCross(@Nullable String name) {
         if (name == null) {

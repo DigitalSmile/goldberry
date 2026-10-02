@@ -15,9 +15,10 @@ import dev.goldberry.widget.style.Styled;
 /// measured leaf and Yoga never lays a measured node's children out — so a field
 /// that held its own text could hold neither the caret nor the wash behind it.
 ///
-/// It carries whether it is showing the **placeholder**, as a class, because §8's
-/// subset has no pseudo-class meaning "standing in for a value" and §3 wants
-/// `--gb-text-placeholder` here against `--gb-text` for a real one.
+/// It carries whether it is showing the **placeholder**, as a class, because the
+/// stylesheet's subset has no pseudo-class meaning "standing in for a value" and
+/// the design system wants `--gb-text-placeholder` here against `--gb-text` for
+/// a real one.
 ///
 /// A `password` hands this the bullets and never the characters — not tidiness:
 /// what a widget passes to `Paints.Context.paragraph` is shaped, cached **by its
@@ -28,7 +29,7 @@ import dev.goldberry.widget.style.Styled;
 ///
 /// A `text-area` holding a document does **not** hand its text here: it draws
 /// one box per visible hard line itself, because a document is shaped a line at
-/// a time and only the lines on screen are drawn ([ADR-0388]). It still needs
+/// a time and only the lines on screen are drawn. It still needs
 /// the `text-value` node, because that is where the cascade resolves the
 /// colour, the `white-space` and the `.placeholder` rule — so it builds one with
 /// [#carrier], which shapes nothing and reports what the cascade said.
@@ -85,8 +86,7 @@ public record Value(String text, boolean placeholder, boolean carrier) implement
         // `text-decoration` marks it. Both are the *cascade's* answer for this node
         // — `text-align` and `text-decoration` inherit, so a rule on the field
         // reaches this label — and the controls place their carets from the same
-        // alignment, which is what keeps the caret on the glyphs (`docs/gaps.md`
-        // G30, [ADR-0324]).
+        // alignment, which is what keeps the caret on the glyphs.
         //
         // `white-space` and `text-overflow` ride along and mean what they say. No
         // shipped rule sets either on a field: a wrapped `text-area` is the

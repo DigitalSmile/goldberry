@@ -15,7 +15,7 @@ import dev.goldberry.widgets.controls.spinner.Spinner;
 import dev.goldberry.widgets.core.canvas.Canvas;
 import dev.goldberry.widgets.core.web.WebView.WebViewState;
 
-/// Where a page goes when it must not be seen — [ADR-0444] and [ADR-0445].
+/// Where a page goes when it must not be seen.
 ///
 /// A page is a platform window above the frame, so nothing can be composited
 /// over it: not a `dialog`, and not a "still loading" indicator either. The only
@@ -170,7 +170,7 @@ class WebViewParkingTest {
         }
     }
 
-    /// The spinner the page is held off *for* — [ADR-0445].
+    /// The spinner the page is held off *for*.
     ///
     /// The half of that decision that is a widget rather than a platform fact,
     /// and therefore the half a test can hold. The other half is that the flag

@@ -24,9 +24,8 @@ import dev.goldberry.widget.style.Styled;
 /// What a [Link] draws and answers to: the word, the icon after it when it
 /// opens outside, and the press.
 ///
-/// `link` as a **CSS type** is this node (ADR-0109). `visited` and `external`
-/// are classes; the underline on hover is the stylesheet's, through §8's
-/// `text-decoration` (ADR-0321).
+/// The CSS type `link` is this node. `visited` and `external` are classes; the
+/// underline on hover is the stylesheet's, through `text-decoration`.
 ///
 /// @param label      the word
 /// @param onPress    what a press does, or null for a word that only looks
@@ -71,8 +70,8 @@ record LinkText(
         return attributes.key();
     }
 
-    /// "Focusable and in the Tab order (unlike `text`)" — when it goes
-    /// somewhere. A word with nothing behind it is not a Tab stop.
+    /// Focusable and in the Tab order, unlike `text`, when it goes somewhere.
+    /// A word with nothing behind it is not a Tab stop.
     @Override
     public boolean isFocusable() {
         return onPress != null;
@@ -86,8 +85,8 @@ record LinkText(
         }
     }
 
-    /// `Enter` activates, which is §2's word for a link; `Space` scrolls a
-    /// page in every browser and does the same here.
+    /// `Enter` activates a link; `Space` scrolls a page in every browser and
+    /// does the same here.
     @Override
     public void onKey(KeyEvent event) {
         if (event.kind() != KeyEvent.Kind.PRESSED
@@ -112,18 +111,16 @@ record LinkText(
         return Box.of().style(style).children(content.toArray(Box[]::new));
     }
 
-    /// [Role#BUTTON] — §2 asks for `link`, and [Role] has none: a role nothing
-    /// can consume is a value written for a bridge that does not exist, and
-    /// "something you press to make it happen" is true of a link in every way
-    /// that matters to somebody listening. `crumb` answers the same, for the
-    /// same reason; the word waits for the AccessKit bridge.
+    /// [Role#BUTTON]: [Role] has no `link`, and "something you press to make
+    /// it happen" is true of a link in every way that matters to somebody
+    /// listening. `crumb` answers the same.
     @Override
     public Role role() {
         return Role.BUTTON;
     }
 
-    /// The word — and, outside the window, that it opens there, "because
-    /// 'opens outside this window' is not something a colour can convey".
+    /// The word and, for an external link, that it opens outside the window,
+    /// because a colour cannot say that.
     @Override
     public String accessibleName() {
         return external ? label + ", opens outside this window" : label;

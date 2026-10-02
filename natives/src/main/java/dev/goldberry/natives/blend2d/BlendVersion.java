@@ -5,9 +5,11 @@ package dev.goldberry.natives.blend2d;
 /// A build fact rather than a runtime one: Blend2D is statically linked, so
 /// there is no system copy to disagree with. That makes this less useful than
 /// SDL's version for diagnosing a mismatch and more useful for the opposite
-/// question — Blend2D publishes no release tags and is pinned by commit SHA
-/// (ADR-0030), so a bug report saying "0.11.0, built by GCC 13.2" is how the
+/// question — Blend2D publishes no release tags and is pinned by commit SHA,
+/// so a bug report saying "0.11.0, built by GCC 13.2" is how the
 /// version in a jar gets tied back to a commit.
+///
+/// Read more: [The native boundary](https://goldberry.dev/docs/overview/architecture.html#the-native-boundary).
 ///
 /// @param major    major version
 /// @param minor    minor version

@@ -10,6 +10,9 @@ import java.net.URI;
 /// An [IOException], because to the caller it is one more way a source fails to
 /// open. It has its own type so that an application can tell "not found" from
 /// "not allowed" by [#status()] rather than by parsing a message.
+///
+/// Read more:
+/// [Tracks and the network](https://goldberry.dev/docs/components/media.html#tracks-subtitles-and-the-network).
 public final class HttpStatusException extends IOException {
 
     @Serial

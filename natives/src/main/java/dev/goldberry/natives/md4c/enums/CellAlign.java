@@ -1,6 +1,8 @@
 package dev.goldberry.natives.md4c.enums;
 
 /// How a table cell's content is aligned — `MD_ALIGN`, set by the `:---:` row.
+///
+/// Read more: [The native boundary](https://goldberry.dev/docs/overview/architecture.html#the-native-boundary).
 public enum CellAlign implements Md4cEnum {
 
     /// No colon on either side: the renderer's own default.

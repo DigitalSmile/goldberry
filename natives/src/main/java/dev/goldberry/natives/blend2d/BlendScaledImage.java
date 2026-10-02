@@ -16,10 +16,10 @@ import dev.goldberry.natives.layout.Layouts;
 /// resample's size is the caller's own argument. What makes it allocate anyway
 /// is that `bl_image_scale` takes a destination `BLImageCore` and resizes it
 /// itself — there is no form of the call that writes into a buffer somebody
-/// else owns (ADR-0428).
+/// else owns.
 ///
-/// So the discipline ADR-0283 set for the decoder is the one that applies here,
-/// word for word: the allocation is meant to be short-lived, and the intended
+/// So the discipline the decoder follows is the one that applies here, word
+/// for word: the allocation is meant to be short-lived, and the intended
 /// use is the whole of it:
 ///
 /// ```java
@@ -45,6 +45,8 @@ import dev.goldberry.natives.layout.Layouts;
 /// such a pixel back clamps it; nothing here pretends it did not happen.
 ///
 /// Confined to the thread that created it, and must be closed.
+///
+/// Read more: [The native boundary](https://goldberry.dev/docs/overview/architecture.html#the-native-boundary).
 public final class BlendScaledImage implements AutoCloseable {
 
     private final Blend2dImage calls = Blend2dImage.get();

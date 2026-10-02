@@ -18,10 +18,9 @@ import dev.goldberry.widget.semantics.Semantics;
 import dev.goldberry.widget.style.Paints;
 import dev.goldberry.widget.style.Styled;
 
-/// A block of colour — `color-swatch`, a **part**, and both of the two §2 gives
-/// metrics for.
-///
-/// > `color-picker` | swatch 24, radius 4; … preset swatch 20, gap 4
+/// A block of colour — `color-swatch`, a **part**, and both of the two the
+/// design system gives metrics for: the value swatch at 24 points with a radius
+/// of 4, and a preset swatch at 20 points with a gap of 4.
 ///
 /// The two differ in size, in what they are for, and in whether the keyboard can
 /// reach them, so [Kind] is a class on one type rather than two records that
@@ -29,26 +28,26 @@ import dev.goldberry.widget.style.Styled;
 ///
 /// ## Only the value swatch takes the focus
 ///
-/// §4 calls the closed control "a swatch **button**", so it is one: focusable,
+/// The closed control is a swatch **button**: focusable,
 /// `Role.BUTTON`, and `Space` or `Enter` opens the popover. The presets are not,
 /// and that is a decision rather than an omission — a palette of twelve colours
-/// would be twelve Tab stops inside a popover, and §4 gives them no roving
-/// mechanism to be one stop with. The keyboard's route to any colour is the hex
+/// would be twelve Tab stops inside a popover, with no roving mechanism to be
+/// one stop with. The keyboard's route to any colour is the hex
 /// field, which is the source of truth anyway; the presets are a pointer's
 /// shortcut past it.
 ///
 /// The colour is a **`background`** written by [#restyle] rather than a fill this
-/// draws, which is ADR-0099's seam: a value a stylesheet cannot know, written
-/// where a transition can still see it. It is what lets the closed control's
-/// swatch fade between colours rather than jump.
+/// draws — the seam `restyle` exists for: a value a stylesheet cannot know,
+/// written where a transition can still see it. It is what lets the closed
+/// control's swatch fade between colours rather than jump.
 ///
-/// @param kind    which of §2's two swatches this is
+/// @param kind    which of the two swatches this is
 /// @param argb    what to show
 /// @param onPress told `argb` when it is chosen, or null when it does nothing
 record ColorSwatch(Kind kind, int argb, @Nullable IntConsumer onPress)
         implements Widget.Leaf, Styled, Paints, Handles, Semantics {
 
-    /// Which of §2's two swatches — see the class note.
+    /// Which of the two swatches — see the class note.
     enum Kind {
 
         /// The closed control: 24 points, focusable, and what opens the popover.
@@ -114,8 +113,8 @@ record ColorSwatch(Kind kind, int argb, @Nullable IntConsumer onPress)
         return Role.BUTTON;
     }
 
-    /// The hex, which is §4's "the hex as its value text" — the one half of that
-    /// sentence there is anywhere to put, since [Semantics] has no value channel.
+    /// The hex: the one half of "a swatch with the hex as its value text" there
+    /// is anywhere to put, since [Semantics] has no value channel.
     /// A swatch's *name* is what it is, and a colour has no other one the toolkit
     /// could honestly produce.
     @Override

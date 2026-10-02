@@ -1,11 +1,12 @@
-/// The operating system's own decoders, as Decoder SPI providers
-/// (`docs/goldberry-media.md` §5).
+/// The operating system's own decoders, as Decoder SPI providers.
 ///
 /// [dev.goldberry.media.platform.PlatformDecoders] lists them
 /// for an application that builds its player's providers itself; one that does
 /// not gets them from `ServiceLoader`.
 ///
-/// Marked for NullAway from its first commit (`docs/testing.md` §2).
+/// Exported to every module. Null-marked.
+///
+/// Read more: [Bringing a codec](https://goldberry.dev/docs/components/media.html#bringing-a-codec).
 @NullMarked
 package dev.goldberry.media.platform;
 

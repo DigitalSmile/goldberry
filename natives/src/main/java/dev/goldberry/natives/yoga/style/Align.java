@@ -7,6 +7,8 @@ package dev.goldberry.natives.yoga.style;
 /// `AUTO` only means anything for `align-self`, and the `SPACE_*` values only
 /// for `align-content` — and Yoga does not reject the combinations it ignores.
 /// The CSS layer is what refuses them; this enum is the full C surface.
+///
+/// Read more: [The native boundary](https://goldberry.dev/docs/overview/architecture.html#the-native-boundary).
 public enum Align implements YogaEnum {
 
     /// Defer to the parent's `align-items`. Only meaningful as `align-self`.

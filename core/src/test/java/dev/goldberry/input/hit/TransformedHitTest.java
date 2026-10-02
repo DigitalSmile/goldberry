@@ -17,14 +17,14 @@ import dev.goldberry.paint.Box;
 import dev.goldberry.paint.TestFrames;
 import dev.goldberry.render.Cursor;
 
-/// A pointer routed through a transform — the correctness trap ADR-0067 named
-/// and ADR-0068 closed.
+/// A pointer routed through a transform — the correctness trap motion opened
+/// and the Java-side transform stack closed.
 ///
 /// Every assertion here is one that a transform applied by the painter and
 /// ignored by hit testing would fail. That failure has no error and no wrong
 /// pixel: the control is drawn exactly where the stylesheet asked, and simply
 /// does not respond where it looks like it should. It is the reason `transform`
-/// waited for its own change rather than arriving inside ADR-0067's.
+/// waited for its own change rather than arriving inside motion's.
 class TransformedHitTest {
 
     @BeforeEach
@@ -173,7 +173,7 @@ class TransformedHitTest {
     @DisplayName("the cursor follows the transform too")
     void cursor() {
         // `cursor` inherits through the stack of painted rectangles rather than
-        // the element tree (ADR-0057), so it is answered by the same `contains`
+        // the element tree, so it is answered by the same `contains`
         // and would go wrong in exactly the same way.
         var regions = capture(Box.filled(0xFF000000)
                 .size(Length.points(200), Length.points(200))

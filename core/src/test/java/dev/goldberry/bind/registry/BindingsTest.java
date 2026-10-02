@@ -14,7 +14,10 @@ import org.junit.jupiter.params.provider.ValueSource;
 import dev.goldberry.bind.Observable;
 import dev.goldberry.bind.Property;
 
-/// What a `bind=` path resolves to (ADR-0062).
+/// What a `bind=` path resolves to.
+///
+/// Read more:
+/// [bind is a path and nothing else](https://goldberry.dev/docs/guide/markup.html#bind-is-a-path-and-nothing-else).
 class BindingsTest {
 
     @Test
@@ -51,7 +54,7 @@ class BindingsTest {
     @DisplayName("a lenient registry resolves an unknown path to nothing")
     void lenientAllowsUnknown() {
         // Markup-first development: the screen is laid out before the model
-        // exists, and reload is deliberately forgiving (ADR-0051).
+        // exists, and reload is deliberately forgiving.
         assertNull(BindingRegistry.lenient().resolve("prefs.frost"));
         assertNull(BindingRegistry.none().resolve("anything"));
     }
@@ -104,7 +107,7 @@ class BindingsTest {
             })
     @DisplayName("anything that is not a path is refused, rather than resolving to nothing")
     void expressionsAreRefused(String path) {
-        // The decision in ADR-0062 is that `bind` is a path and nothing else.
+        // The rule is that `bind` is a path and nothing else.
         // Enforcing it here is what makes that a contract rather than a wish:
         // `bind="!prefs.frost"` fails at inflation with the text quoted, instead
         // of producing a control that silently never updates.
@@ -117,7 +120,8 @@ class BindingsTest {
     @Test
     @DisplayName("what markup resolves has no way to write, and that is a type not a promise")
     void resolvingHandsOutTheReadOnlyHalf() throws ReflectiveOperationException {
-        // One-way binding is enforced by the signature (ADR-0063). Widening any
+        // One-way binding is enforced by the signature: data flows down and
+        // events flow up. Widening any
         // of these back to Property is what this test exists to fail on: a
         // control could then write to the application's model from a `bind=`
         // attribute, and "who changed this value?" would stop having an answer.

@@ -20,8 +20,8 @@ import dev.goldberry.widgets.data.SeriesPalette;
 import dev.goldberry.widgets.markup.Markup;
 import dev.goldberry.widgets.markup.Wiring;
 
-/// Part to whole — `docs/core-widgets.md` §11's `donut-chart`, and the last of
-/// the five.
+/// Part to whole: three to eight slices of one ring, with a legend that is
+/// always shown.
 ///
 /// ```kdl
 /// donut-chart {
@@ -30,6 +30,12 @@ import dev.goldberry.widgets.markup.Wiring;
 ///     series name="miss" { point "Miss" 14 }
 /// }
 /// ```
+///
+/// In Java, `new DonutChart(List.of(Series.of("cache", 62), …))`. One number
+/// per slice: the first value of each series. [#loading] and [#failed] are its
+/// only knobs — a donut has no axes, no crosshair and no isolation. Hovering a
+/// slice, or walking the ring with `Left` and `Right`, shows its share in the
+/// hole.
 ///
 /// ## It refuses two slices and it refuses nine
 ///
@@ -45,15 +51,16 @@ import dev.goldberry.widgets.markup.Wiring;
 ///
 /// **Nine slices is a `bar-chart`.** Past about eight, arcs get too narrow to
 /// compare and the palette has run out of hues that stay distinguishable under
-/// colour-vision deficiency
-/// (ADR-0194).
-/// A bar chart answers the same question and keeps answering it at forty
-/// categories.
+/// colour-vision deficiency. A bar chart answers the same question and keeps
+/// answering it at forty categories.
 ///
 /// So the legitimate range is three to eight, and inside it a donut does one
 /// thing well: showing that a few parts make a whole.
 ///
+/// Read more: [Charts](https://goldberry.dev/docs/components/charts.html#donut-chart).
+///
 /// @param slices     the parts, in order — which is also their colour order
+/// @param status     whether the chart has its data, is waiting, or gave up
 /// @param attributes `id` and `class`, exactly as on the primitives
 @Markup("donut-chart")
 public record DonutChart(List<Series> slices, dev.goldberry.widgets.data.ChartStatus status, Attributes attributes)
@@ -66,7 +73,7 @@ public record DonutChart(List<Series> slices, dev.goldberry.widgets.data.ChartSt
     /// The most that stay distinguishable — the palette's ceiling.
     public static final int MAX_SLICES = SeriesPalette.SLOTS;
 
-    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    /// The canonical constructor, written out so that the parameters taking null for a default can say so.
     public DonutChart(
             @Nullable List<Series> slices,
             dev.goldberry.widgets.data.@Nullable ChartStatus status,
@@ -148,8 +155,7 @@ public record DonutChart(List<Series> slices, dev.goldberry.widgets.data.ChartSt
     public List<Widget> children() {
         // A ring of nothing is the same problem as a grid over nothing: an arc
         // asserts a share, and there is none. The one difference is what counts
-        // as empty here -- a donut of three zeroes has no whole to be part of
-        // (charts.md §3.1, ADR-0200).
+        // as empty here -- a donut of three zeroes has no whole to be part of.
         var message = ChartParts.messageFor(status, hasWhole());
         if (message != null) {
             return List.of(message);
@@ -186,8 +192,8 @@ public record DonutChart(List<Series> slices, dev.goldberry.widgets.data.ChartSt
                 > 0;
     }
 
-    /// Builds a `donut-chart` from markup — §3.2's inline form, one point per
-    /// series.
+    /// Builds a `donut-chart` from markup, reading its inline `series` children
+    /// — one point per series.
     public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
         return new DonutChart(ChartParts.read(children).series(), Attributes.of(node));
     }

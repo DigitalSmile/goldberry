@@ -12,26 +12,22 @@ import dev.goldberry.Host;
 import dev.goldberry.input.key.Shortcut;
 import dev.goldberry.widget.Widget;
 
-/// Every accelerator a menu description names — `docs/core-widgets.md` §8's
-/// "displayed right-aligned **and** auto-registered in the window's shortcut
-/// map", second half.
+/// The accelerators a menu description names, collected and bound on the
+/// window so that they work while the menu is shut.
 ///
-/// ## Why this can exist now
+/// ```java
+/// Set<Shortcut> bound = Accelerators.bind(host, menu.children());
+/// Accelerators.unbind(host, bound);
+/// ```
 ///
-/// ADR-0106
-/// left the registration undone with a reason: "a shortcut has to work while the
-/// menu is shut, and a menu is built when it opens and thrown away when it
-/// closes". That is true of the *popup*. It was never true of the [Menu] — a
-/// widget is a value, and a value handed to a `menubar` is held for as long as
-/// the bar is
-/// (ADR-0163).
-/// So the model that has to outlive one opening is the one the author already
-/// wrote, and this walks it.
+/// A `menubar` does this itself on mount and unmount. A menu that is only ever
+/// opened, such as a context menu, shows its accelerators and registers none,
+/// so an application binds those with this class or with `host.shortcut(…)`.
+/// The walk is over the [Menu] value, which outlives any one opening of its
+/// popup, so the bound keys stay right for as long as the description does.
 ///
-/// ## What is registrable and what is skipped
-///
-/// A binding needs three things and an item that is missing one is passed over
-/// in silence, because each absence is an ordinary thing to write:
+/// A binding needs three things, and an item missing one is passed over in
+/// silence, because each absence is an ordinary thing to write:
 ///
 ///   - **an accelerator**, which most rows have not got;
 ///   - **a command** — a row with a submenu leads somewhere rather than doing
@@ -44,6 +40,8 @@ import dev.goldberry.widget.Widget;
 /// already being drawn beside the row where the user can see it, and taking the
 /// window down over it would be a stylesheet error crashing an application. It
 /// is logged and skipped.
+///
+/// Read more: [Menus and the tray](https://goldberry.dev/docs/components/menus.html#accelerators).
 public final class Accelerators {
 
     private static final org.slf4j.Logger LOG = org.slf4j.LoggerFactory.getLogger(Accelerators.class);
@@ -136,8 +134,7 @@ public final class Accelerators {
     ///
     /// A `menubar` passes its own state object. Nothing else in the toolkit binds
     /// accelerators, and an application binding its own does not need an owner:
-    /// unbinding by key is what it means to give up a key you took
-    /// (ADR-0220).
+    /// unbinding by key is what it means to give up a key you took.
     public static Set<Shortcut> bind(Host host, List<Widget> widgets, @Nullable Object owner) {
         Objects.requireNonNull(host, "host");
         var bound = new LinkedHashSet<Shortcut>();
@@ -168,14 +165,12 @@ public final class Accelerators {
 
     /// Unbinds what `owner` bound, and **only** what it still holds.
     ///
-    /// The map remembers who bound what now, which it did not when this class was
-    /// written: removing by key alone took a shortcut some other part of the
-    /// application had bound to the *same* key afterwards, so a bar being
-    /// unmounted could silently unbind an application's own `Ctrl+O`. The
-    /// collision at bind time is unchanged — two commands on one key is an
-    /// authoring mistake and the later one wins — but the loser can no longer
-    /// take the winner away with it
-    /// (ADR-0220).
+    /// The window's map remembers who bound what, so a bar being unmounted gives
+    /// back the keys it took and no others: a shortcut some other part of the
+    /// application bound to the same key afterwards stays bound. The collision at
+    /// bind time is unchanged — two commands on one key is an authoring mistake
+    /// and the later one wins — but the loser cannot take the winner away with
+    /// it.
     public static void unbind(Host host, Set<Shortcut> bound, @Nullable Object owner) {
         Objects.requireNonNull(host, "host");
         Objects.requireNonNull(bound, "bound");

@@ -10,7 +10,7 @@ import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-/// §1's "DPI-aware (picks raster scale by physical pixels)" ([ADR-0358]).
+/// An image is DPI-aware: it picks the raster variant by physical pixels.
 class VariantTest {
 
     private static final ClassLoader LOADER = VariantTest.class.getClassLoader();

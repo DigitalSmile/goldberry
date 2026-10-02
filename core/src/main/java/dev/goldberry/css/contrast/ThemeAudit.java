@@ -11,19 +11,23 @@ import dev.goldberry.css.Stylesheet;
 import dev.goldberry.css.cascade.StyleResolver;
 import dev.goldberry.css.value.CssColor;
 
-/// §1.2's contrast floors, measured against **any** theme — including one the
-/// application wrote ([ADR-0241]).
+/// The design system's contrast floors, measured against **any** theme,
+/// including one the application wrote.
 ///
-/// `ContrastTest` has checked the two themes the toolkit ships since ADR-0087,
-/// and §10 lets an application replace every alias token, so the guarantee
-/// stopped exactly where a third-party theme began. This is the same arithmetic
-/// with the pairs discovered rather than listed, so it holds for tokens nobody
-/// here has seen.
+/// ```java
+/// for (var finding : ThemeAudit.failures(app.stylesheets())) {
+///     System.err.println(finding.describe());
+/// }
+/// ```
 ///
-/// ## The pairs are found by convention, not by a list
+/// The toolkit's own tests check the two themes it ships, and an application may
+/// replace every alias token, so that guarantee stops exactly where a third-party
+/// theme begins. This is the same arithmetic with the pairs discovered rather
+/// than listed, so it holds for tokens nobody here has seen.
 ///
-/// A hard-coded list of the toolkit's own pairs would check a custom theme's
-/// *overrides* and miss everything it added. The design system already names its
+/// The pairs are found by convention, not by a list. A hard-coded list of the
+/// toolkit's own pairs would check a custom theme's *overrides* and miss
+/// everything it added. The design system already names its
 /// pairs consistently — `--gb-badge-warning-bg` carries
 /// `--gb-badge-warning-text`, `--gb-button-primary-bg` carries
 /// `--gb-button-primary-text` — so **every `--gb-<name>-bg` with a matching
@@ -34,23 +38,23 @@ import dev.goldberry.css.value.CssColor;
 /// the one relationship the convention cannot express: neither token is named for
 /// the other.
 ///
-/// ## What it will not measure
-///
 /// A translucent colour has no single ratio — what it composites over decides the
 /// answer — so a pair with alpha on either side is **skipped rather than
 /// measured**. `--gb-selection` and `button.ghost`'s wash are that case, and
 /// scoring them here would read `transparent` as black and report a comfortable
 /// pass. [#audit] therefore returns fewer findings than there are tokens, and
 /// that is the honest number rather than a gap.
+///
+/// Read more: [The design system](https://goldberry.dev/docs/guide/design-system.html#colour).
 public final class ThemeAudit {
 
     /// The surfaces a window paints, worst-case first is not meaningful here —
     /// every one has to clear the floor.
     private static final List<String> SURFACES = List.of("--gb-bg", "--gb-surface", "--gb-surface-2");
 
-    /// What sits on a surface as words. Muted text is held to the same floor:
-    /// §1.2 has no rank for "less important text", and a hint nobody can read is
-    /// a hint that was not written.
+    /// What sits on a surface as words. Muted text is held to the same floor: the
+    /// design system has no rank for "less important text", and a hint nobody can
+    /// read is a hint that was not written.
     private static final List<String> ON_SURFACE = List.of("--gb-text", "--gb-text-muted");
 
     private ThemeAudit() {}
@@ -73,8 +77,8 @@ public final class ThemeAudit {
         // pair the surface list states outright. Both are right; reporting it
         // twice is not.
         var seen = new java.util.HashSet<String>();
-        // The surface pairs first, because they are the ones §1.2 names first and
-        // a report reads better with them at the top.
+        // The surface pairs first, because they are the ones the design system
+        // names first and a report reads better with them at the top.
         for (var surface : SURFACES) {
             for (var ink : ON_SURFACE) {
                 if (seen.add(surface + " " + ink)) {

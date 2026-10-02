@@ -2,8 +2,7 @@
 ///
 /// The machinery both content views share, and none of it is exported: what an
 /// application sees is a document it can drag across and copy from, plus
-/// `selection-layer` and `word` as CSS types a stylesheet may restyle (ADR-0065,
-/// ADR-0301).
+/// `selection-layer` and `word` as CSS types a stylesheet may restyle.
 ///
 /// The shape, because it is not obvious from the class names:
 ///
@@ -23,11 +22,13 @@
 /// a six-hundred-word page costs one frame's paint rather than one frame's build.
 ///
 /// The second one is that a word's entry belongs to its **block** rather than to the
-/// document ([ADR-0389]). That is what makes a block matchable across builds, and
-/// therefore what makes a keystroke in a long note cost the paragraph it landed in.
+/// document. That is what makes a block matchable across builds, and therefore what
+/// makes a keystroke in a long note cost the paragraph it landed in.
 ///
 /// `@NullMarked` puts the package under NullAway: every type is non-null unless it
-/// says `@Nullable`, and the build fails on a violation (`docs/testing.md` §2).
+/// says `@Nullable`, and the build fails on a violation.
+///
+/// Read more: [Selection](https://goldberry.dev/docs/components/content.html#selection).
 @NullMarked
 package dev.goldberry.content.select;
 

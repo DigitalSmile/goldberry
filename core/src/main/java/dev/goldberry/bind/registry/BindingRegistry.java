@@ -12,7 +12,8 @@ import dev.goldberry.bind.Model;
 import dev.goldberry.bind.Observable;
 import dev.goldberry.bind.Property;
 
-/// What a path in markup means (§9's `bind` half).
+/// What a `bind=` path in markup means: the values a document may read and
+/// watch.
 ///
 /// The counterpart of [ActionRegistry], beside it, and deliberately the same shape:
 /// markup names, and this resolves. `checkbox bind="prefs.frost"` says *which*
@@ -23,14 +24,12 @@ import dev.goldberry.bind.Property;
 /// The indirection is what makes markup reloadable: a document reloaded at
 /// runtime re-resolves every path against the same registry, so the new tree's
 /// controls are bound to the same properties the old one had, and the values
-/// survive the reload
-/// (ADR-0051).
+/// survive the reload.
 ///
 /// ## Dotted paths, and nothing else
 ///
 /// A path is `identifier(.identifier)*` — `frost`, `prefs.frost`,
-/// `prefs.window.opacity` — and that is the entire grammar
-/// (ADR-0062).
+/// `prefs.window.opacity` — and that is the entire grammar.
 /// `!prefs.frost`, `prefs.frost == true` and `prefs.frost ? "on" : "off"` are
 /// **refused at inflation**, with the path quoted in the message, rather than
 /// resolving to nothing and leaving a control that never updates.
@@ -42,6 +41,9 @@ import dev.goldberry.bind.Property;
 /// against.
 ///
 /// Confined to the UI thread, like the properties it holds.
+///
+/// Read more:
+/// [`bind=` is a path and nothing else](https://goldberry.dev/docs/guide/markup.html#bind-is-a-path-and-nothing-else).
 public final class BindingRegistry {
 
     /// `identifier(.identifier)*`, and an identifier is what Java and CSS would
@@ -68,7 +70,7 @@ public final class BindingRegistry {
     /// A registry that resolves an unknown path to nothing.
     ///
     /// For a preview, a golden image, or a document being edited: reload is
-    /// deliberately forgiving (ADR-0051), and refusing to inflate a window because
+    /// deliberately forgiving, and refusing to inflate a window because
     /// one property is not wired yet would make markup-first development
     /// impossible.
     public static BindingRegistry lenient() {
@@ -125,7 +127,7 @@ public final class BindingRegistry {
     ///
     /// An [Observable] rather than the [Property] behind it, and that is the
     /// whole of one-way binding: what markup names, it can read and watch and
-    /// cannot write (ADR-0063). A control that needs to change a value says so
+    /// cannot write. A control that needs to change a value says so
     /// through its action instead, and the application decides what that means.
     ///
     /// A null path is not an error — a node with no `bind=` is an ordinary node,
@@ -180,7 +182,7 @@ public final class BindingRegistry {
     /// There is deliberately **no** way to get a writable value back out of a
     /// path. The registry is how a value is published to markup; it is not a
     /// service locator for the application's own state, and one that could be
-    /// would make "who wrote this value?" unanswerable (ADR-0063). Keep the
+    /// would make "who wrote this value?" unanswerable. Keep the
     /// property where the state lives.
     public Map<String, Observable<?>> bound() {
         // A copy that keeps the order, and not `Map.copyOf`, which does not --
@@ -195,7 +197,7 @@ public final class BindingRegistry {
         if (!PATH.matcher(path).matches()) {
             throw new IllegalArgumentException("\"" + path + "\" is not a binding path. A path is a name, or names"
                     + " joined by dots — `frost`, `prefs.frost`. Expressions are not"
-                    + " part of the markup contract (ADR-0062).");
+                    + " part of the markup contract.");
         }
     }
 }

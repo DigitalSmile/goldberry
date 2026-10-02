@@ -20,8 +20,7 @@ import dev.goldberry.widgets.Controls;
 import dev.goldberry.widgets.Widgets;
 import dev.goldberry.widgets.controls.TestFont;
 
-/// A `chip`'s dot in a colour the document supplied — `docs/gaps.md` G36,
-/// [ADR-0328].
+/// A `chip`'s dot in a colour the document supplied.
 ///
 /// A Project's hue is a row in a database, so there is no class a stylesheet
 /// rule could name: the colour has to travel as data and arrive at the dot.

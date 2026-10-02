@@ -1,6 +1,7 @@
 package dev.goldberry.css.value;
 
-/// Colour interpolation in OKLCH — `docs/design-system.md` §1.7.
+/// Colour interpolation in OKLCH, the space the design system's colour
+/// transitions run in.
 ///
 /// ## Why not sRGB
 ///
@@ -25,8 +26,9 @@ package dev.goldberry.css.value;
 ///
 /// The two differ only when the hues differ, and then they differ a lot: OKLab's
 /// straight line between two hues passes *through* low chroma, while OKLCH's arc
-/// keeps chroma up and sweeps the hue. §1.7 says OKLCH, and a hover from blue to
-/// teal going via grey is exactly the artefact it is there to prevent.
+/// keeps chroma up and sweeps the hue. The design system says OKLCH, and a hover
+/// from blue to teal going via grey is exactly the artefact it is there to
+/// prevent.
 ///
 /// ## The powerless hue
 ///

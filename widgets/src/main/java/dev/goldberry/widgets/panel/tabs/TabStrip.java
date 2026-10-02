@@ -14,9 +14,8 @@ import dev.goldberry.widget.style.Styled;
 
 /// What a [Tabs] actually draws: a [TabList] and a [TabPanel].
 ///
-/// [Tabs] became stateful when arrivals and departures needed remembering
-/// (ADR-0109),
-/// and a stateful widget builds other widgets rather than a box. This is the box
+/// [Tabs] is stateful, because arrivals and departures need remembering, and a
+/// stateful widget builds other widgets rather than a box. This is the box
 /// half, split off unchanged — which is why it keeps `tabs` as its CSS type: the
 /// split is an implementation detail of where state lives, and a stylesheet
 /// should not have to hear about it.
@@ -32,7 +31,7 @@ record TabStrip(
         Attributes attributes)
         implements Widget.Leaf, Styled, Paints, dev.goldberry.input.handler.Handles {
 
-    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    /// Written out so that the parameters taking null for a default can say so.
     TabStrip(
             @Nullable List<Widget> headers,
             @Nullable List<Widget> content,
@@ -64,9 +63,9 @@ record TabStrip(
         return attributes.classes();
     }
 
-    /// One Tab stop with the arrows roving inside it (§7.2), and the axis is the
+    /// One Tab stop with the arrows roving inside it, and the axis is the
     /// strip's own: a top-placed strip is a row, so `Up` and `Down` belong to
-    /// whatever is above it (ADR-0078).
+    /// whatever is above it.
     ///
     /// Here rather than on [Tabs] because the scope has to be the node the headers
     /// are *inside*, and that is this one.

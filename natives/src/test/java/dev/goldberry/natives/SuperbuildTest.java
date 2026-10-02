@@ -16,15 +16,18 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 
-/// Guards the two properties ADR-0038 rests on: the superbuild's download says
-/// what it is doing, and it is not thrown away by `clean`.
+/// The superbuild's download says what it is doing, is not thrown away by
+/// `clean`, and takes every version from the Gradle catalog.
 ///
-/// Both live in build files rather than in Java, so this test reads them as text
-/// -- the same trick [NativeLibraryTest] uses to pin the classifier-jar layout
-/// from the Java side. It is a cheap guard against a slow, invisible regression:
-/// a sixth upstream added without `GIT_PROGRESS` reintroduces exactly the silent
-/// three-minute stall that ADR-0038 exists to remove, and nothing else in the
-/// build would notice.
+/// All of that lives in build files rather than in Java, so this test reads them
+/// as text -- the same trick [NativeLibraryTest] uses to pin the classifier-jar
+/// layout from the Java side. It is a cheap guard against a slow, invisible
+/// regression: an upstream added without `GIT_PROGRESS` clones in silence for
+/// three minutes and the build looks hung, a version written into the CMake
+/// instead of the catalog builds fine with the one list of what the project
+/// fetches wrong, and nothing else in the build would notice either.
+///
+/// Read more: [Tests as drift guards](https://goldberry.dev/docs/contributing/repository.html#tests-as-drift-guards).
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class SuperbuildTest {
 
@@ -43,7 +46,7 @@ class SuperbuildTest {
         }
 
         /// A download by archive rather than by clone — the WebView2 SDK, which
-        /// is a NuGet package and has no repository (ADR-0450).
+        /// is a NuGet package and has no repository.
         boolean fetchesFromUrl() {
             return !fetchesFromGit() && body.contains("URL ");
         }
@@ -157,11 +160,11 @@ class SuperbuildTest {
                 .toList();
 
         // Without --progress, git writes nothing at all into a pipe -- and under
-        // Gradle's Exec it is always a pipe. That is the silence ADR-0038 is about.
+        // Gradle's Exec it is always a pipe. That is the silence this test is about.
         assertTrue(silent.isEmpty(), () -> """
                 These upstreams clone without GIT_PROGRESS TRUE, so they download \
                 in silence and the build looks hung: %s
-                See ADR-0038.""".formatted(silent));
+                Add GIT_PROGRESS TRUE to each declaration.""".formatted(silent));
     }
 
     @Test
@@ -171,7 +174,7 @@ class SuperbuildTest {
         // output even when git itself is willing to report.
         assertTrue(
                 cmakeLists.contains("set(FETCHCONTENT_QUIET FALSE)"),
-                "FETCHCONTENT_QUIET must be set FALSE or the download is silent -- see ADR-0038");
+                "FETCHCONTENT_QUIET must be set FALSE or the download is silent and the build looks hung");
     }
 
     @Test
@@ -183,11 +186,10 @@ class SuperbuildTest {
 
         // `layout.buildDirectory` is what would put the 330 MB back inside build/,
         // where `clean` deletes it and the next build re-downloads it.
-        // Bounded by the blank line that ends the statement, rather than by the
-        // declaration that used to follow it: `upstreamRefs` was removed by
-        // ADR-0035, and naming a neighbour made this read on past the end of
-        // what it meant to check -- as far as artifactsDir, which resolves under
-        // build/ for perfectly good reasons of its own.
+        // Bounded by the blank line that ends the statement rather than by a
+        // neighbouring declaration, which can be removed and let this read on
+        // past the end of what it meant to check -- as far as artifactsDir, which
+        // resolves under build/ for perfectly good reasons of its own.
         var depsDeclaration = buildGradle
                 .lines()
                 .dropWhile(line -> !line.contains("def depsDir ="))
@@ -197,27 +199,21 @@ class SuperbuildTest {
         assertFalse(depsDeclaration.isEmpty(), "no depsDir declaration found in build.gradle");
         assertTrue(
                 depsDeclaration.stream().noneMatch(line -> line.contains("layout.buildDirectory")),
-                () -> "depsDir must not resolve under build/ -- see ADR-0038:\n" + String.join("\n", depsDeclaration));
+                () -> "depsDir must not resolve under build/, or clean discards the clones:\n"
+                        + String.join("\n", depsDeclaration));
     }
 
     @Test
     @DisplayName("a bumped ref re-configures, because the catalog is a task input")
     void bumpingARefReconfigures() {
-        // The property this guards has not changed and the mechanism has. The
-        // refs used to reach CMake as -D arguments while being declared as
-        // inputs nowhere, so a version bump left cmakeConfigure up to date and
-        // the build quietly kept the old revision; the fix was to mirror them
-        // into an inputs.property each.
-        //
-        // ADR-0035 then removed the -D arguments altogether -- CMake reads
-        // gradle/libs.versions.toml itself -- so there is nothing left to
-        // mirror. Declaring the catalog as an input is what carries the
-        // guarantee now, and it carries it for a ref this build file has never
-        // heard of, which the per-ref properties could not.
+        // CMake reads gradle/libs.versions.toml itself, so the catalog is the one
+        // input a version bump changes. Declaring it as an input of cmakeConfigure
+        // is what makes a bump re-configure, and it does so for a ref this build
+        // file has never heard of.
         assertTrue(
                 buildGradle.contains("inputs.file catalogFile"),
                 "the version catalog must be a cmakeConfigure input, or a bumped ref"
-                        + " leaves the configuration stale -- see ADR-0035 and ADR-0038");
+                        + " leaves the configuration stale");
     }
 
     @Test
@@ -225,18 +221,18 @@ class SuperbuildTest {
     void theSuperbuildReadsTheCatalog() {
         assertTrue(
                 cmakeLists.contains("GOLDBERRY_VERSION_CATALOG"),
-                "CMake must read gradle/libs.versions.toml itself -- see ADR-0035");
-        // The other half of ADR-0035: a pin, not a range. This is the check that
-        // would have caught example.yml pinning Blend2D to a floating `master`.
+                "CMake must read gradle/libs.versions.toml itself; the catalog is the only place a ref lives");
+        // The other half: a pin, not a range. This is the check that would have
+        // caught a workflow pinning Blend2D to a floating `master`.
         assertTrue(
                 cmakeLists.contains("master|main|HEAD|latest|trunk"),
-                "a floating ref must be refused at configure time -- see ADR-0030");
+                "a floating ref must be refused at configure time; a build is reproducible only from a pin");
     }
 
     @Test
     @DisplayName("a SHA-pinned upstream is not cloned shallow")
     void shaPinnedUpstreamsAreNotShallow() {
-        // Blend2D and AsmJit are pinned by commit SHA (ADR-0030), and CMake's own
+        // Blend2D and AsmJit are pinned by commit SHA, and CMake's own
         // documentation says GIT_SHALLOW "works only with branch names and tags.
         // A commit hash is not allowed."
         //
@@ -254,7 +250,8 @@ class SuperbuildTest {
             var declaration = withoutComments(declarationOf(name).body());
             assertFalse(
                     declaration.contains("GIT_SHALLOW"),
-                    () -> name + " is pinned by commit SHA, so GIT_SHALLOW is not allowed" + " -- see ADR-0030");
+                    () -> name + " is pinned by commit SHA, so GIT_SHALLOW is not allowed:"
+                            + " a shallow clone finds a SHA only while it is a branch tip");
         }
     }
 
@@ -287,20 +284,20 @@ class SuperbuildTest {
                 continue;
             }
             for (var ref : refs) {
-                // A version written into the CMake instead of the catalog is the
-                // failure ADR-0035 exists about, and it is invisible: the build
-                // works, and the one list of what this project fetches is wrong.
+                // A version written into the CMake instead of the catalog is an
+                // invisible failure: the build works, and the one list of what this
+                // project fetches is wrong.
                 assertTrue(
                         pinned.containsKey(ref),
                         () -> declaration.name() + " interpolates " + ref
-                                + ", which no goldberry_pin() sets -- see ADR-0035");
+                                + ", which no goldberry_pin() sets; every ref comes from the catalog");
                 var key = pinned.get(ref);
                 assertTrue(
                         Pattern.compile("(?m)^[ \t]*" + Pattern.quote(key) + "[ \t]*=[ \t]*\"")
                                 .matcher(versionCatalog)
                                 .find(),
                         () -> "gradle/libs.versions.toml has no `" + key + " = \"...\"`, so configuring "
-                                + declaration.name() + " fails -- see ADR-0035");
+                                + declaration.name() + " fails");
             }
         }
     }
@@ -315,28 +312,28 @@ class SuperbuildTest {
             // The WebView2 package's URL ends in a bare version -- no `.zip`, no
             // `.tar.gz` -- and CMake will not extract an archive whose name tells
             // it no format. It does not fail either: it copies the file and the
-            // include directory below it is simply never there (ADR-0450).
+            // include directory below it is simply never there.
             assertTrue(
                     withoutComments(declaration.body()).contains("DOWNLOAD_NAME"),
                     () -> declaration.name() + " is fetched by URL without DOWNLOAD_NAME, so CMake may not"
-                            + " recognise the archive and will not extract it -- see ADR-0450");
+                            + " recognise the archive and will not extract it");
         }
     }
 
     @Test
     @DisplayName("the Windows web view SDK is fetched, not assumed to be installed")
     void theWindowsWebViewSdkIsFetched() {
-        // The regression ADR-0450 is about. WebView2's *runtime* ships with
-        // Windows; `WebView2.h` ships only in a NuGet package, and the CMake used
-        // to conclude from the first fact that there was nothing to probe for --
-        // so `master` broke with C1083 on the one file that includes it.
+        // WebView2's *runtime* ships with Windows; `WebView2.h` ships only in a
+        // NuGet package. A CMake that concluded from the first fact that there
+        // was nothing to probe for broke the build with C1083 on the one file
+        // that includes it.
         var cmake = withoutComments(cmakeLists);
         assertTrue(
                 cmake.contains("Microsoft.Web.WebView2"),
-                "the Windows leg must fetch the WebView2 SDK headers -- see ADR-0450");
+                "the Windows leg must fetch the WebView2 SDK headers; the runtime ships with Windows, they do not");
         assertTrue(
                 cmake.contains("find_path(GOLDBERRY_WEBVIEW2_INCLUDE_DIR WebView2.h"),
-                "the Windows leg must probe for WebView2.h rather than assume it -- see ADR-0450");
+                "the Windows leg must probe for WebView2.h rather than assume it");
 
         // Headers only, and this is the assertion that says so: the package also
         // carries import libraries, and linking one would put a load-time
@@ -344,10 +341,10 @@ class SuperbuildTest {
         assertTrue(
                 cmake.contains("target_include_directories(goldberry-webview PRIVATE"
                         + " \"${GOLDBERRY_WEBVIEW2_INCLUDE_DIR}\")"),
-                "the SDK must reach the shim as an include directory -- see ADR-0450");
+                "the SDK must reach the shim as an include directory");
         assertFalse(
                 cmake.contains("WebView2Loader"),
-                "WebView2Loader.dll is opened by name at run time and must not be linked -- see ADR-0450");
+                "WebView2Loader.dll is opened by name at run time and must not be linked");
     }
 
     @Test
@@ -358,7 +355,7 @@ class SuperbuildTest {
         var cmake = withoutComments(cmakeLists);
         assertTrue(
                 cmake.contains("GOLDBERRY_WEBVIEW_UNAVAILABLE_REASON"),
-                "the `web view: OFF` line must carry the reason for this platform -- see ADR-0450");
+                "the `web view: OFF` line must carry the reason for this platform");
     }
 
     /// The declaration block for one upstream, for the assertions that care about

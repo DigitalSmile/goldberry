@@ -12,12 +12,12 @@ import dev.goldberry.widget.Widget;
 import dev.goldberry.widget.style.Paints;
 import dev.goldberry.widget.style.Styled;
 
-/// One axis's scrollbar — §2.4's overlay bar, its track and the thumb in it.
+/// One axis's scrollbar — the overlay bar, its track and the thumb in it.
 ///
 /// ## The arithmetic, in one place
 ///
 /// A bar is three numbers and they all come from the two extents the viewport was
-/// measured at (ADR-0117):
+/// measured at:
 ///
 /// ```
 /// track      = the viewport's length along this axis
@@ -33,23 +33,23 @@ import dev.goldberry.widget.style.Styled;
 /// ## Dragging is a rate, and the rate is not 1:1
 ///
 /// A thumb dragged one pixel moves the content by `overflow / (track − thumb)`
-/// pixels, which is more than one. That is not a violation of §1.7's "drags track
-/// the pointer 1:1" — the *thumb* tracks the pointer exactly, and the content is
-/// what it is pointing at.
+/// pixels, which is more than one. That does not break the rule that a drag
+/// tracks the pointer one to one — the *thumb* tracks the pointer exactly, and
+/// the content is what it is pointing at.
 ///
 /// What the thumb tracks is the pointer's **travel**, so the offset the press
 /// began at is this bar's [Handles#gestureAnchor()] and every move adds the
-/// distance dragged since (ADR-0089). A slider needs none of that, because its
+/// distance dragged since. A slider needs none of that, because its
 /// value is where the pointer is along the track and a slider's thumb has no
-/// length worth speaking of (ADR-0079) — a scrollbar's has, and reading the
+/// length worth speaking of — a scrollbar's has, and reading the
 /// position here instead gives the same answer wherever on the thumb the grab
 /// landed. That answer is "the thumb's middle is under the pointer", so a thumb
 /// grabbed near its edge jumps by up to half its length on the first move.
 ///
 /// ## A click on the track pages
 ///
-/// §2.4: "track-click pages". Which way is decided by whether the click landed
-/// before or after the thumb, which is the only thing that could be meant.
+/// A click on the track moves by a whole viewport. Which way is decided by
+/// whether the click landed before or after the thumb.
 ///
 /// @param vertical  whether this bar runs down the viewport's right edge
 /// @param viewport  how long the viewport is along this axis
@@ -64,8 +64,10 @@ import dev.goldberry.widget.style.Styled;
 ///
 /// Public so that a control that scrolls its own content — `text-area`, which
 /// cannot sit in a `scroll` because the two would both decide its height — draws
-/// §2.4's bar rather than a second implementation of it (ADR-0362). It is still a
+/// the same bar rather than a second implementation of it. It is still a
 /// **part**: nothing in markup names one.
+///
+/// Read more: [Scroll](https://goldberry.dev/docs/layout/scroll.html#scrollbars).
 public record ScrollBar(
         boolean vertical,
         double viewport,
@@ -78,10 +80,10 @@ public record ScrollBar(
 
     /// The shortest a thumb may get, in logical pixels.
     ///
-    /// Below this it is not a target any pointer can reliably hit, and §13's
-    /// "hit targets ≥ 32" is about the *hit* area rather than the paint — a 6px
-    /// bar is already below it and is the design system's own number, so what is
-    /// defended here is the length rather than the width.
+    /// Below this it is not a target any pointer can reliably hit. The design
+    /// system's 32-pixel minimum is about the *hit* area rather than the paint — a
+    /// 6px bar is already below it and is the design system's own number, so what
+    /// is defended here is the length rather than the width.
     static final double MIN_LENGTH = 24;
 
     @Override
@@ -143,7 +145,7 @@ public record ScrollBar(
                     // that grabs it does not also jump it under the finger.
                     onDrag.accept(true);
                 } else {
-                    // §2.4's track-click paging. A whole viewport, not a page
+                    // Track-click paging. A whole viewport, not a page
                     // less an overlap: the user pointed at a place rather than
                     // asking to read on, so the intent is "go roughly there".
                     onScroll.accept(along < thumbStart ? offset - viewport : offset + viewport);
@@ -157,7 +159,7 @@ public record ScrollBar(
                 }
                 // **How far the pointer has come since the grab**, mapped through
                 // the travel rather than through the whole bar -- the same
-                // correction ADR-0080 made for a slider's track. A *position*
+                // correction a slider's track makes. A *position*
                 // read off the track cannot say where on the thumb the grab
                 // landed, so it recentres the thumb under the pointer and throws
                 // a thumb grabbed near its edge by half its length.

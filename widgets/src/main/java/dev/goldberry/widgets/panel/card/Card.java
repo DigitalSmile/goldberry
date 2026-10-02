@@ -16,8 +16,7 @@ import dev.goldberry.widget.style.Styled;
 import dev.goldberry.widgets.markup.Markup;
 import dev.goldberry.widgets.markup.Wiring;
 
-/// A raised surface — `docs/core-widgets.md` §5's `card`, "elevated surface:
-/// shadow tokens, hover-elevation optional via class".
+/// A raised surface: a `panel` whose stylesheet says it sits above the page.
 ///
 /// ```kdl
 /// card {
@@ -26,38 +25,36 @@ import dev.goldberry.widgets.markup.Wiring;
 /// }
 /// ```
 ///
-/// ## The elevation is an edge, and no longer because it has to be
+/// ```java
+/// new Card(new Text("Disk usage"), new Text("72% of 500 GB"));
+/// ```
 ///
-/// §5 says "shadow tokens". When this was built §10's CSS subset had no
-/// `box-shadow` and nothing painted outside a box's own rectangle, so `popover`
-/// hit the wall first and answered it the same way
-/// (ADR-0104):
-/// **elevation is an edge**, a brighter surface and a stronger border than the
-/// page it sits on.
+/// ## The elevation is an edge and a shadow
 ///
-/// **It is an edge and a shadow now** — `box-shadow`, at §1.5's level 1, with
-/// `--gb-elevation-1/-2/-3` in both themes (ADR-0310, ADR-0312), and
-/// `class="interactive"` lifting to level 2 under the pointer with the blur and
-/// the offset animating along with the alpha.
+/// A card is raised two ways at once. It has a `box-shadow` at the design
+/// system's first elevation level, from the `--gb-elevation-1/-2/-3` tokens that
+/// both themes define, and it has an edge: a brighter surface and a stronger
+/// border than the page it sits on. `class="interactive"` lifts it to level 2
+/// under the pointer, with the blur and the offset animating along with the
+/// alpha.
 ///
-/// The edge did not go away and is not going to, and it never was only a
-/// workaround. A shadow says "this is nearer" by darkening what is underneath; a
-/// border and a lift in tone say it by contrast. A card sitting on *another
-/// card* is sitting on its own colour, where the first says almost nothing and
-/// the second says it exactly — which is why §5 asked for both and why the
-/// Panels screen puts a card inside a card.
+/// Both are there on purpose. A shadow says "this is nearer" by darkening what
+/// is underneath; a border and a lift in tone say it by contrast. A card sitting
+/// on *another* card is sitting on its own colour, where the shadow says almost
+/// nothing and the edge says it exactly, which is why the Panels screen puts a
+/// card inside a card.
 ///
 /// ## Everything else about it is `panel`'s
 ///
-/// A card owns no axis, no padding of its own and no content — it is a `panel`
-/// whose stylesheet rules say "raised". `class="interactive"` adds the hover
-/// elevation §5 calls optional; nothing here reads it, because a class is the
-/// stylesheet's business.
+/// A card owns no axis, no padding of its own and no content; it is a `panel`
+/// whose stylesheet rules say "raised". Nothing here reads `class="interactive"`,
+/// because a class is the stylesheet's business.
 ///
-/// A card carries **no title**. §5 gives that to `group-box`, and the "group with
-/// optional label" in this line is the *accessible* name, which would arrive with
-/// the AccessKit bridge along with every other widget's — and that bridge is **on
-/// hold and owned by no milestone** ([ADR-0440]).
+/// A card carries no title: that is `group-box`'s. It has no accessible name of
+/// its own either, which would arrive with the accessibility bridge along with
+/// every other widget's, and that bridge is on hold.
+///
+/// Read more: [Panels](https://goldberry.dev/docs/components/panels.html#card).
 @Markup("card")
 public record Card(List<Widget> children, Attributes attributes)
         implements Widget.Leaf, Styled, Paints, Attributed<Card> {
@@ -66,7 +63,7 @@ public record Card(List<Widget> children, Attributes attributes)
         this(List.of(kids), Attributes.NONE);
     }
 
-    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    /// Written out so that the parameters taking null for a default can say so.
     public Card(@Nullable List<Widget> children, @Nullable Attributes attributes) {
         children = List.copyOf(children == null ? List.of() : children);
         attributes = attributes == null ? Attributes.NONE : attributes;

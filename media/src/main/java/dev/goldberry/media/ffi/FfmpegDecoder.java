@@ -21,7 +21,7 @@ import dev.goldberry.media.codec.Received;
 import dev.goldberry.media.codec.VideoFrame;
 
 /// The built-in decoder: one `AVCodecContext`, behind the [Decoder] SPI every
-/// provider implements (`docs/goldberry-media.md` §5).
+/// provider implements.
 ///
 /// It is the last one the Engine tries for a track, after every
 /// [dev.goldberry.media.codec.DecoderProvider]. It is opened
@@ -49,7 +49,7 @@ import dev.goldberry.media.codec.VideoFrame;
 /// matrix tag is BT.709 from 720 rows up and BT.601 below, the convention every
 /// player follows for untagged video.
 ///
-/// **Hardware** (phase 5, ADR-0470). Opened with a [Hardware] that is enabled,
+/// **Hardware.** Opened with a [Hardware] that is enabled,
 /// a video decoder decodes on the platform's device where it can
 /// ([HardwareDecoder]), and every picture is copied back to system memory and
 /// lent like a software one. On the hardware path a failure is thrown as an

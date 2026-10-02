@@ -20,22 +20,22 @@ import dev.goldberry.widgets.menu.Separator;
 /// Puts a [TrayIcon] on the desktop, and turns a [Menu] into the rows the shell
 /// will draw.
 ///
-/// The split `menu` already has: a `Menu` is a value and **showing** one is not
-/// (ADR-0106).
-/// The reason the *same* value works here is
-/// ADR-0163's:
-/// what is short-lived about a menu is the popup, not the description, so a
-/// description outlives an opening — and a tray menu, which the platform holds
-/// for as long as the icon is up, is the longest-lived opening there is.
-/// [dev.goldberry.widgets.menu.Accelerators] walks the same
-/// value for the same reason.
+/// ```java
+/// Optional<BackendTray> tray = Trays.show(host, TrayIcon.of("Goldberry", menu));
+/// tray.ifPresent(BackendTray::close);   // in stop(): the tray outlives the process otherwise
+/// ```
 ///
-/// ## What the platform cannot draw
+/// A `Menu` is a value and showing one is a separate call, the same split the
+/// `menu` package makes. The same value works here because what is short-lived
+/// about a menu is the popup, not the description, and a tray menu, which the
+/// platform holds for as long as the icon is up, is the longest-lived opening
+/// there is. The menu cannot be changed in place: close the tray and show a
+/// new one.
 ///
-/// A tray row is a GTK menu item, an `NSMenuItem` or a Win32 popup entry. It has
-/// a label, an enabled state and a tick, and that is the whole vocabulary. So
-/// three things an author may reasonably have written on an [Item] are **dropped
-/// here, with a warning**, rather than silently:
+/// A tray row is a GTK menu item, an `NSMenuItem` or a Win32 popup entry. It
+/// has a label, an enabled state and a tick, and that is the whole vocabulary.
+/// So three things an author may reasonably have written on an [Item] are
+/// **dropped here, with a warning**, rather than silently:
 ///
 ///   - an **icon**, which no platform's tray API takes;
 ///   - an **accelerator**, which is a key bound to a window and a tray has no
@@ -45,6 +45,8 @@ import dev.goldberry.widgets.menu.Separator;
 ///
 /// The warning is the point. A tray that quietly ignored half a description
 /// would be a menu an author kept editing without effect.
+///
+/// Read more: [Menus and the tray](https://goldberry.dev/docs/components/menus.html#the-tray-icon).
 public final class Trays {
 
     private static final Logger LOG = LoggerFactory.getLogger(Trays.class);

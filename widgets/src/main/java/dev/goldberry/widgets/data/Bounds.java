@@ -1,7 +1,12 @@
 package dev.goldberry.widgets.data;
 
-/// What the value axis has to reach — `charts.md` §3.1's "axis min/max, soft
-/// min/max".
+/// What the value axis has to reach: a soft minimum and maximum the data may
+/// push past, or a hard one it may not.
+///
+/// ```java
+/// chart.softAxis(99, 100)   // Bounds.soft
+/// chart.axis(0, 100)        // Bounds.hard
+/// ```
 ///
 /// ## Why soft bounds exist
 ///
@@ -24,6 +29,8 @@ package dev.goldberry.widgets.data;
 /// surprise if you were wrong. Hard is for an axis whose range is a definition
 /// rather than an observation: a percentage of a whole, a fraction, a gauge with
 /// a physical stop.
+///
+/// Read more: [Charts](https://goldberry.dev/docs/components/charts.html#line-chart).
 ///
 /// @param min  the smallest value the axis must reach, or `NaN` for none
 /// @param max  the largest, or `NaN`

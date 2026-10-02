@@ -22,23 +22,25 @@ import dev.goldberry.markdown.model.Document;
 /// place Blend2D, HarfBuzz and Yoga live — and everything above it is records.
 /// Nothing here shapes a glyph, measures a line or owns a font; `markdown-view`
 /// builds `text` widgets and the toolkit's own cascade and text stack do the rest.
-/// That was the condition for Markdown being the toolkit's problem at all
-/// (`docs/gaps.md` G8).
+/// That was the condition for Markdown being the toolkit's problem at all.
 ///
 /// **Not an HTML renderer.** Markdown *to* HTML is
 /// [dev.goldberry.markdown.html.MarkdownHtml], which is a text
 /// transform with no window under it. HTML *in* is
 /// [dev.goldberry.html.view.HtmlView]
 /// — a parser and a fold over the same words and the same cascade, with no engine
-/// under it either (ADR-0298). What is still open is what an engine would buy, which
+/// under it either. What is still open is what an engine would buy, which
 /// is real inline layout; and a raw `<div>` *inside* a Markdown document is drawn as
 /// the markup it is, because a `html_block` is one of md4c's blocks and not a second
 /// parse (`book/src/TODO.md`).
 ///
 /// **Not a resolver.** A link's href and a wiki link's target are strings. Whether
 /// one may be followed, what a relative path is relative to, and which note
-/// `[[Meeting]]` means are the application's answers, in the same division ADR-0291
-/// drew for URL schemes.
+/// `[[Meeting]]` means are the application's answers, in the same division the
+/// toolkit draws for URL schemes: what a scheme means is packaging, and packaging is
+/// the application's.
+///
+/// Read more: [Markdown view](https://goldberry.dev/docs/components/content.html#markdown-view).
 public final class Markdown {
 
     private Markdown() {}
@@ -88,7 +90,7 @@ public final class Markdown {
     /// A rendered document is a **view** of text the application owns, and ticking a
     /// box is an edit to that text — so the round trip is: the view reports which box,
     /// this rewrites one character, the application stores it, and the binding brings
-    /// the parsed document back (ADR-0296, ADR-0300). Nothing in the toolkit writes to
+    /// the parsed document back. Nothing in the toolkit writes to
     /// anything, and an application that keeps its notes somewhere else — a CRDT, a
     /// database column, a file — still owns every write.
     ///

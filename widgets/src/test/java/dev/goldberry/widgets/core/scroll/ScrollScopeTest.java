@@ -20,8 +20,7 @@ import dev.goldberry.widget.attr.Attributes;
 import dev.goldberry.widgets.core.Column;
 import dev.goldberry.widgets.text.Text;
 
-/// The walk **up** from a target to the viewport that holds it
-/// ([ADR-0439]).
+/// The walk **up** from a target to the viewport that holds it.
 ///
 /// [ScrollControllerTest] covers the other direction — a handle created above a
 /// viewport and handed into it. What is asserted here is the half a `tour` needs
@@ -175,7 +174,8 @@ class ScrollScopeTest {
         /// A short `scroll` inside a taller one, both vertical and both with
         /// something to scroll.
         ///
-        /// The inner one warns — §2.4 discourages this and [ScrollState] says so
+        /// The inner one warns — nested same-axis scrollers are discouraged and
+        /// [ScrollState] says so
         /// — and that is exactly why it is worth pinning: the shape is
         /// discouraged rather than refused, so it happens. **Both must overflow**
         /// or the assertion below is vacuous: an outer viewport with nothing to

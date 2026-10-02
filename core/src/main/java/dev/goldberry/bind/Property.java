@@ -7,13 +7,13 @@ import java.util.function.Consumer;
 
 import org.jspecify.annotations.Nullable;
 
-/// One observable value — the whole of §9's "small built-in `Property<T>` type".
+/// One observable value, for state that has no model class to live in.
 ///
 /// A property is a cell with listeners. It is not a stream, not a computed graph,
 /// and has no dependency tracking: those are the things a framework brings, and
-/// §9 asks for a binding that needs no framework. What it has is the two
-/// operations a binding needs — read the value now, be told when it changes — and
-/// nothing else.
+/// a binding here needs no framework. What it has is the two operations a
+/// binding needs — read the value now, be told when it changes — and nothing
+/// else.
 ///
 /// ```java
 /// var frost = Property.of(true);
@@ -35,17 +35,16 @@ import org.jspecify.annotations.Nullable;
 /// **The application, and nothing in the widget tree.** A widget is handed the
 /// [Observable] half of this — the same value with no `set` on it — so a control
 /// built from markup cannot write to the model, and data flows down while events
-/// flow back up
-/// (ADR-0063).
-/// Keep the `Property` where the state belongs; hand out the path.
+/// flow back up. Keep the `Property` where the state belongs; hand out the path.
 ///
 /// ## Threads
 ///
 /// Confined to the UI thread, like everything a listener will touch: a listener
-/// rebuilds a widget, and the widget tree belongs to that thread
-/// (ADR-0020).
-/// Background work reaches a property the same way it reaches anything else, by
-/// completing on the UI thread.
+/// rebuilds a widget, and the widget tree belongs to that thread. Background
+/// work reaches a property the same way it reaches anything else, by completing
+/// on the UI thread.
+///
+/// Read more: [Values](https://goldberry.dev/docs/applications.html#values).
 ///
 /// @param <T> the value type
 public final class Property<T extends @Nullable Object> implements Observable<T> {

@@ -15,8 +15,8 @@ import dev.goldberry.paint.stroke.Stroke;
 ///
 /// [dev.goldberry.paint.geom.DasherTest] checks the geometry
 /// with no rasterizer under it; this checks the half that only pixels can answer,
-/// and it exists because one of those answers is **not** what ADR-0278 first
-/// assumed.
+/// and it exists because one of those answers is **not** what the dasher's design
+/// first assumed.
 class DashRenderingTest {
 
     private static final int WIDTH = 40;
@@ -60,7 +60,8 @@ class DashRenderingTest {
     @Test
     @DisplayName("a zero-length dash draws NOTHING, whatever the cap says")
     void zeroLengthDashesAreNotDots() {
-        // **This is the correction to ADR-0278.** SVG says a zero-length dash is
+        // **This is the correction to the dasher's first assumption.** SVG says a
+        // zero-length dash is
         // rendered as a dot when the cap is round or square, and `Dasher` emits
         // exactly that — a sub-path whose two points coincide, asserted in
         // `DasherTest`. Blend2D's stroker then **drops it**: a zero-length

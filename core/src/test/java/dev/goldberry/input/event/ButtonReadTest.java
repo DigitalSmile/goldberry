@@ -8,8 +8,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 /// **Reading a button off an event that has none is reported**, which is the
-/// trap `text-input` fell into and the entry that recorded it asked for
-/// ([ADR-0266]).
+/// trap `text-input` fell into and the entry that recorded it asked for.
 ///
 /// The failure it catches is specific and it is not a null-pointer: a guard at
 /// the top of `onPointer` is a guard on *every* kind, and a null button compares

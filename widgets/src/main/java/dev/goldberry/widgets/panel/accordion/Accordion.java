@@ -11,9 +11,8 @@ import dev.goldberry.widget.attr.Attributed;
 import dev.goldberry.widget.attr.Attributes;
 
 /// A column of [dev.goldberry.widgets.panel.collapse.Collapse]
-/// sections of which **one is open at a time** — `docs/core-widgets.md` §5's
-/// "`accordion=#true` on a containing `column` makes siblings mutually
-/// exclusive".
+/// sections of which one is open at a time. Opening a section closes the one
+/// that was open.
 ///
 /// ```kdl
 /// column accordion=#true {
@@ -22,28 +21,29 @@ import dev.goldberry.widget.attr.Attributes;
 /// }
 /// ```
 ///
-/// ## Why a `column` becomes one of these
+/// ```java
+/// new Accordion(
+///         new Collapse("General", new Text("…")),
+///         new Collapse("Advanced", new Text("…")));
+/// ```
 ///
-/// §5 puts the flag on the container, and it is right to: "one at a time" is a
-/// rule about *siblings*, which no section can enforce about the others. But a
-/// `column` is the most-used container in the toolkit and it is a plain record —
-/// making it stateful so that one flag can be honoured would give every column in
-/// every document a `State` object it never uses.
+/// ## Why it is written as a `column`
 ///
-/// So `column accordion=#true` **inflates to this**, and this reports its
-/// `cssType` as `column` with an `accordion` class. A document writes what §5
-/// says, a stylesheet still sees a column, and an ordinary column pays nothing
-/// ([ADR-0166]).
+/// "One at a time" is a rule about siblings, which no section can enforce about
+/// the others, so the flag goes on the container. But a `column` is the
+/// most-used container in the toolkit and it is a plain record; giving it state
+/// so that one flag can be honoured would give every column in every document a
+/// `State` object it never uses. So `column accordion=#true` inflates to this
+/// widget, and this widget reports its CSS type as `column` with an `accordion`
+/// class. A stylesheet still sees a column, and an ordinary column pays nothing.
 ///
-/// ## It is a composite, like every other one here
+/// ## How it works
 ///
-/// The sections become **controlled**: each is re-issued with the `open` this
-/// widget decides and an `onToggle` that reports back — which is exactly what
-/// `radio-group` does to its `radio` children
-/// (ADR-0073),
-/// and it is why a section can stay a value. A section that was already
-/// controlled by the *application* is left alone: two things deciding one boolean
-/// is a bug, and the application asked first.
+/// The sections become controlled: each is re-issued with the `open` this widget
+/// decides and an `onToggle` that reports back, the way a `radio-group` controls
+/// its `radio` children, so a section stays a value. A section the application
+/// already controls is left alone: two things deciding one boolean is a bug, and
+/// the application asked first.
 ///
 /// Anything that is not a `collapse` passes through untouched, so a heading or a
 /// rule between the sections is an ordinary child.
@@ -53,6 +53,8 @@ import dev.goldberry.widget.attr.Attributes;
 /// @param onOpen     what opening a section asks for, or null to keep it here
 /// @param children   the sections, and whatever else is between them
 /// @param attributes the `id` and classes, which land on the `column` node
+///
+/// Read more: [Panels](https://goldberry.dev/docs/components/panels.html#collapse).
 public record Accordion(int open, @Nullable IntConsumer onOpen, List<Widget> children, Attributes attributes)
         implements Widget.Stateful, Attributed<Accordion> {
 
@@ -63,7 +65,7 @@ public record Accordion(int open, @Nullable IntConsumer onOpen, List<Widget> chi
         this(NONE, null, List.of(sections), Attributes.NONE);
     }
 
-    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    /// Written out so that the parameters taking null for a default can say so.
     public Accordion(
             int open, @Nullable IntConsumer onOpen, @Nullable List<Widget> children, @Nullable Attributes attributes) {
         children = List.copyOf(children == null ? List.of() : children);

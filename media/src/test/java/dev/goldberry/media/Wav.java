@@ -8,8 +8,8 @@ import java.nio.charset.StandardCharsets;
 ///
 /// PCM in a RIFF header is forty-four bytes of arithmetic, so a test knows its
 /// input's duration, rate, channel count and every sample value exactly without a
-/// fixture corpus. The corpus of `docs/goldberry-media.md` §9 is for the codecs
-/// that cannot be written by hand.
+/// fixture corpus. The fixture corpus is for the codecs that cannot be written
+/// by hand.
 public final class Wav {
 
     private Wav() {}

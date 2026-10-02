@@ -36,8 +36,8 @@ import dev.goldberry.render.window.WindowSpec;
 /// A backend with no platform underneath it.
 ///
 /// Serves two purposes. It is the target for golden-image tests, which run
-/// identically on all three OSes because nothing platform-specific participates
-/// (`docs/ARCHITECTURE.md` §14). And it is how the SPI itself is testable before
+/// identically on all three OSes because nothing platform-specific participates.
+/// And it is how the SPI itself is testable before
 /// any real backend exists: every rule the interfaces state — UI-thread
 /// confinement, frame coalescing, damage bounds, buffer size agreement — is
 /// enforced here and asserted against.
@@ -47,6 +47,8 @@ import dev.goldberry.render.window.WindowSpec;
 ///
 /// Events are injected, not observed: [#post] queues one for the next
 /// [#pumpEvents]. A test drives the same code path a real backend drives.
+///
+/// Read more: [Architecture](https://goldberry.dev/docs/overview/architecture.html#the-backend-spi).
 public final class HeadlessBackend implements Backend {
 
     private static final Logger LOG = Logs.of(HeadlessBackend.class);
@@ -71,8 +73,7 @@ public final class HeadlessBackend implements Backend {
     /// is the one piece of state that has to be safe to touch from anywhere.
     private final AtomicBoolean woken = new AtomicBoolean();
 
-    /// The session's clipboard, in memory — lazy and able to refuse
-    /// ([ADR-0407]).
+    /// The session's clipboard, in memory — lazy and able to refuse.
     ///
     /// Its own class rather than an anonymous one here, because it has state and
     /// two seams a test reaches for; see [HeadlessClipboard] for what it models
@@ -206,7 +207,7 @@ public final class HeadlessBackend implements Backend {
     private boolean primarySelectionPresent = true;
 
     /// The primary selection, in memory — **present** unless a test has turned it
-    /// off with [#primarySelection(boolean)] ([ADR-0504]).
+    /// off with [#primarySelection(boolean)].
     ///
     /// Not narrowed, unlike [#clipboard()]: an `Optional<HeadlessPrimarySelection>`
     /// does not override an `Optional<PrimarySelection>`. A test reaches the
@@ -375,7 +376,7 @@ public final class HeadlessBackend implements Backend {
     }
 
     /// `:gpu`'s compositor, which renders this backend's GPU layers and reads
-    /// them back (`docs/gpu-plan.md`, D5; ADR-0481); found the first time a
+    /// them back; found the first time a
     /// window is asked for a surface, and closed with the backend.
     private @Nullable Compositor compositor;
 
@@ -439,7 +440,7 @@ public final class HeadlessBackend implements Backend {
     }
 
     /// What this backend says about motion, or empty for "the desktop does not
-    /// say" — which is what it says until a test sets one ([ADR-0383]).
+    /// say" — which is what it says until a test sets one.
     @Override
     public Optional<Boolean> reducedMotion() {
         return Optional.ofNullable(reducedMotion);
@@ -454,8 +455,7 @@ public final class HeadlessBackend implements Backend {
 
     /// Sets the setting and posts the change **to every open window**, which is
     /// what a real desktop does: the appearance is the session's, and a
-    /// [dev.goldberry.Host] is per window
-    /// (`docs/gaps.md` G26, [ADR-0322]).
+    /// [dev.goldberry.Host] is per window.
     ///
     /// Nothing is posted when the value has not changed, for the reason
     /// `WINDOW_MOVED` is deduplicated: a notification that reports no news is a

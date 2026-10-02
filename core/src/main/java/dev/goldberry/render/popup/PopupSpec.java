@@ -19,12 +19,14 @@ import dev.goldberry.render.window.WindowSpec;
 /// anchoring a menu under the button that opened it is the button's own rectangle
 /// and no conversion. A popup may extend beyond the owner's bounds, which is the
 /// entire reason it is a platform window rather than something in the in-window
-/// overlay layer (ADR-0100).
+/// overlay layer.
 ///
 /// Nothing here decides *where a menu near a screen edge should flip to*. That is
 /// placement policy — it needs the display's work area, the anchor rectangle and a
 /// preference order — and it belongs with the widget that has all three. This
-/// record is the platform request that policy ends in.
+/// record is the platform request that policy ends in. The size must be positive.
+///
+/// Read more: [Windows, popups and the host](https://goldberry.dev/docs/guide/windows.html#in-a-window-of-its-own).
 ///
 /// @param position where the popup's top-left sits, in the owner's coordinates
 /// @param size     the popup's logical size

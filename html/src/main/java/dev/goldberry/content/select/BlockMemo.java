@@ -16,19 +16,18 @@ import dev.goldberry.widget.Widget;
 /// which is what its documentation tells an application to do. One paragraph
 /// changed; every block is a new record, every widget under it is a new object, and
 /// the element tree has nothing to match the new description to the node it
-/// replaced — so it re-describes the note from top to bottom
-/// (`docs/gaps.md` G45, [ADR-0389]).
+/// replaced — so it re-describes the note from top to bottom.
 ///
 /// This is the matching. A block whose source is `equals` to the one at the same
 /// place last build, with the fold standing in the same place it stood then, gets
 /// the **same widget instance** back — and `Element.update` short-circuits on an
-/// identical description without walking below it, which is the mechanism ADR-0315
-/// left in place for a caller that could prove nothing changed.
+/// identical description without walking below it, which is the short cut the
+/// element tree keeps for a caller that can prove nothing changed.
 ///
 /// ## Why the same instance and not an equal one
 ///
-/// `Element.update` compares by identity, deliberately (ADR-0369's viewport rests on
-/// it): a widget is a value, and the *same* value describing a node means the node's
+/// `Element.update` compares by identity, deliberately, and a scrolled viewport
+/// relies on it too: a widget is a value, and the *same* value describing a node means the node's
 /// subtree cannot have changed. An equal-but-different widget would still be a full
 /// walk of the subtree comparing equal things.
 ///
@@ -182,7 +181,8 @@ public final class BlockMemo {
     /// Blocks the last build handed back without building them.
     ///
     /// For a test: what this class is for is a *count*, and a count is what can be
-    /// asserted on a machine somebody else is also using (`docs/testing.md` §4).
+    /// asserted on a machine somebody else is also using. Read more:
+    /// [Counts](https://goldberry.dev/docs/contributing/testing.html#a-cost-is-guarded-by-a-count).
     public int kept() {
         return kept;
     }

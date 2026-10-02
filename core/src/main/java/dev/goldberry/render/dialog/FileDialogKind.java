@@ -7,6 +7,8 @@ package dev.goldberry.render.dialog;
 /// dialog names one that may not, and a folder dialog cannot filter. A single
 /// "file dialog" with booleans would have to document which combinations are
 /// real, and this documents them by not being able to say them.
+///
+/// Read more: [Windows, popups and the host](https://goldberry.dev/docs/guide/windows.html#the-host).
 public enum FileDialogKind {
 
     /// Pick one or more existing files.

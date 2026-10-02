@@ -49,7 +49,7 @@ class HotReloadTest {
         var appliedOn = new AtomicReference<String>();
         // Stands in for Goldberry.ui(): the point is that the callback does not
         // run on the watcher thread, because everything it would touch is
-        // confined to the UI thread (ADR-0020).
+        // confined to the UI thread.
         Runnable[] pending = new Runnable[1];
         java.util.concurrent.Executor executor = task -> {
             pending[0] = task;

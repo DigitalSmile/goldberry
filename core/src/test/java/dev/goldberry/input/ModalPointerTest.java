@@ -22,7 +22,7 @@ import dev.goldberry.widget.Widget;
 import dev.goldberry.widget.style.Styled;
 
 /// **What the pointer may reach**, which used to be an accident of paint order
-/// and a scrim ([ADR-0232]).
+/// and a scrim: modality is one flag, and not a scrim.
 ///
 /// Two rules, and neither had ever been written down:
 ///
@@ -102,7 +102,7 @@ class ModalPointerTest {
     /// nothing here could tell the rule from the geometry — a filling scrim takes
     /// every press whether or not anything is modal. A small overlay is the case
     /// the entry names: a modal *without* a scrim, which used to trap the keyboard
-    /// and let every click through ([ADR-0232]).
+    /// and let every click through.
     private void build(boolean modal) {
         pressed.clear();
         tree = new ElementTree(new Node(
@@ -244,7 +244,7 @@ class ModalPointerTest {
     /// `web-view` is the one widget nothing painted can cover: a page is a
     /// platform window above the frame, so a `dialog` over it is drawn where
     /// nobody can see it. The widget therefore has to take the page off the
-    /// screen itself, and to do that it has to be able to ask ([ADR-0444]).
+    /// screen itself, and to do that it has to be able to ask.
     ///
     /// Answered from the same field the two rules above are enforced with, so
     /// there is one notion of "a modal is in force" rather than two that can

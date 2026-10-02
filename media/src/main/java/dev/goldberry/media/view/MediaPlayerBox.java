@@ -19,7 +19,7 @@ import dev.goldberry.widget.style.Paints;
 import dev.goldberry.widget.style.Styled;
 
 /// The node a stylesheet means by `media-player`: the picture, with the overlay
-/// laid over it (`docs/goldberry-media.md` §6).
+/// laid over it.
 ///
 /// Laid out as `stack` is: the first child (the `video-view`) stays in flow and
 /// sizes the box, and everything after it is taken out of flow, where

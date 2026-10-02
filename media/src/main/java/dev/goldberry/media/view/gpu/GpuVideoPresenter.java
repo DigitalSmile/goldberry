@@ -20,8 +20,7 @@ import dev.goldberry.paint.Frame;
 import dev.goldberry.widgets.core.image.Fit;
 
 /// The [VideoPresenter] over `:gpu`'s [VideoLayer]: the one class of this
-/// module that names `:gpu`'s types, loaded only when [GpuVideo#available()]
-/// (ADR-0484).
+/// module that names `:gpu`'s types, loaded only when [GpuVideo#available()].
 ///
 /// Each picture becomes one [VideoImage], made when the picture is first
 /// placed and handed to the layer again while the same picture is shown, since

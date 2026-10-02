@@ -32,10 +32,13 @@ import dev.goldberry.widget.ElementTree;
 import dev.goldberry.widget.Widget;
 import dev.goldberry.widget.style.Styled;
 
-/// The wheel, and the pointer capture a drag needs (§7.1).
+/// The wheel, and the pointer capture a drag needs.
 ///
 /// Two features that share a tree: a scroll view is the thing that consumes a
 /// wheel event, and its scrollbar is the thing that captures the pointer.
+///
+/// Read more:
+/// [A press captures the pointer](https://goldberry.dev/docs/guide/input.html#a-press-captures-the-pointer).
 class WheelAndCaptureTest {
 
     private final List<String> log = new ArrayList<>();

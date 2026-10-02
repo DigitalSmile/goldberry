@@ -13,10 +13,9 @@ import dev.goldberry.render.Backend;
 /// Every delay a widget can ask for goes through [EventLoop#after] — a tooltip's
 /// dwell, a hover-hold, a menu's safe triangle, a toast's stay, a carousel's
 /// interval. A test that wants to know what happens *after* one of them had no
-/// way to ask but to sleep, and about thirty of them did: `docs/testing.md` §0
-/// calls determinism a feature under test, and a suite that proves absence by
-/// waiting 1.5 seconds is neither deterministic nor quick (the 2026-09-18
-/// review, §6).
+/// way to ask but to sleep, and about thirty of them did. Determinism is a
+/// feature under test, and a suite that proves absence by waiting 1.5 seconds is
+/// neither deterministic nor quick.
 ///
 /// So the loop's clock is a seam, and this is the other side of it:
 ///

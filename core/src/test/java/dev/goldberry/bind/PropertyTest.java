@@ -12,7 +12,9 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
-/// The observable value of §9 (ADR-0062).
+/// The observable value a `bind=` path resolves to.
+///
+/// Read more: [Values](https://goldberry.dev/docs/applications.html#values).
 class PropertyTest {
 
     @Test

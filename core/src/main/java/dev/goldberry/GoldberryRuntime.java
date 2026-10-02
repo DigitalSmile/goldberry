@@ -17,10 +17,10 @@ import dev.goldberry.render.window.BackendWindow;
 
 /// The backend and event loop, owned so applications do not have to be.
 ///
-/// Created on the first [Window#open], on whichever thread makes that call —
-/// which becomes the UI thread for the process. That is the same rule the SPI
-/// states (ADR-0019); the only difference is that nobody has to write it down in
-/// their `main`.
+/// Created on the first [Window#open], on whichever thread makes that call,
+/// which becomes the UI thread for the process. That is the same rule the backend
+/// SPI states; the only difference is that nobody has to write it down in their
+/// `main`.
 ///
 /// Package-private. [Goldberry] and [Window] are the public surface; this is the
 /// wiring behind them.
@@ -51,8 +51,7 @@ final class GoldberryRuntime {
     /// A popup is dismissed when the *application* loses focus, and no platform
     /// reports that: opening the popup itself sends a lost for the window under
     /// it and a gained for the popup. Only something that can see every window
-    /// can tell the two apart, and that is the launcher
-    /// (ADR-0144).
+    /// can tell the two apart, and that is the launcher.
     void onFocusChange(Runnable watcher) {
         this.focusWatcher = watcher;
     }

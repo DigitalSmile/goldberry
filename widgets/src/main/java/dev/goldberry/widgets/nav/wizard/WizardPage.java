@@ -30,6 +30,8 @@ import dev.goldberry.widgets.markup.Wiring;
 /// of it; the children are shown when the page is current and are not built at
 /// all otherwise.
 ///
+/// Read more: [Navigation](https://goldberry.dev/docs/components/navigation.html#page).
+///
 /// @param label       what the step is called
 /// @param description an optional second line under it
 /// @param error       whether the application says this page failed
@@ -48,7 +50,7 @@ public record WizardPage(
         Attributes attributes)
         implements Widget.Leaf, Attributed<WizardPage> {
 
-    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    /// Written out so that the parameters taking null for a default can say so.
     public WizardPage(
             String label,
             @Nullable String description,
@@ -58,7 +60,7 @@ public record WizardPage(
             @Nullable Attributes attributes) {
         Objects.requireNonNull(label, "label");
         if (label.isEmpty()) {
-            throw new IllegalArgumentException("a page needs a label: it is what the indicator calls it (§13)");
+            throw new IllegalArgumentException("a page needs a label: it is what the indicator calls it");
         }
         children = List.copyOf(children == null ? List.of() : children);
         attributes = attributes == null ? Attributes.NONE : attributes;

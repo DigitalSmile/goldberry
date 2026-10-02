@@ -19,7 +19,7 @@ import dev.goldberry.text.Paragraph;
 import dev.goldberry.text.flow.TextAlign;
 import dev.goldberry.text.font.Font;
 
-/// Where a caret is — ADR-0285.
+/// Where a caret is: a prefix width of a shaped run, answered by the text stack.
 ///
 /// Against **real shaping**, because that is the whole subject: a caret's x is a
 /// prefix width of a shaped run, and a test that measured it by counting
@@ -232,7 +232,7 @@ class TextGeometryTest {
     }
 
     /// `text-align`, which every one of the four questions above had to be told
-    /// about — `docs/gaps.md` G30, ADR-0318.
+    /// about: a line starts where the paint says it does.
     ///
     /// The paint indents each line by its share of the box's slack, so a caret
     /// measured from the paragraph's origin drifted away from the glyphs by half

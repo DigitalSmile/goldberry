@@ -21,7 +21,7 @@ import dev.goldberry.widget.ElementTree;
 import dev.goldberry.widgets.TestHost;
 import dev.goldberry.widgets.core.Column;
 
-/// Two unnamed lists over the same identities, in one window — [ADR-0437].
+/// Two unnamed lists over the same identities, in one window.
 ///
 /// `ListTest` drives a row's handler and asserts what the widget **asked** the
 /// host for, which is the right level for everything else it tests and is
@@ -149,7 +149,7 @@ class ListFocusScopeTest {
         // `host.focus` is published and its callers are applications, which ask
         // with the focus wherever the user left it. Nothing about that reading
         // changes: a duplicated name asked for from outside any list is the
-        // first one, exactly as it was ([ADR-0437]).
+        // first one, exactly as it was.
         assertTrue(host.focus("list-Sweden", false));
         assertSame(row(lists().getFirst(), "list-Sweden"), router.focused());
     }

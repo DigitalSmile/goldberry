@@ -1,13 +1,14 @@
 plugins {
     id 'goldberry.java-conventions'
-    // Published to Maven Central as goldberry-emoji (ADR-0334, ADR-0384).
+    // Published to Maven Central as goldberry-emoji.
     id 'goldberry.publish'
 }
 
 description = 'Goldberry emoji: the Noto Color Emoji face, drawn from its COLRv1 paint graphs'
 
 // ============================================================================
-// The emoji face, opted into (ADR-0384, ADR-0456)
+// The emoji face, opted into
+// https://goldberry.dev/docs/guide/text.html#emoji
 //
 // The face is Noto Color Emoji's COLRv1 build: 5 MB of paint graphs that `:core`
 // draws itself. It moved out of `:core` in the first place because the face it
@@ -27,7 +28,7 @@ dependencies {
 
     // The shaping test needs HarfBuzz through :natives, and the rasterizer guard
     // that skips it on a machine with no libgoldberry — the same pair :widgets
-    // and :html take (ADR-0050).
+    // and :html take.
     testImplementation project(':natives')
     testImplementation testFixtures(project(':core'))
 }
@@ -99,7 +100,7 @@ def prepareAssets = tasks.register('prepareAssets', JavaExec) {
     // Under this module's **own** package, which is not a tidiness choice: a
     // resource directory is a package to the module system, so a font written to
     // `…goldberry.assets.fonts` in two modules is one package in two modules and
-    // the application refuses to start (ADR-0387).
+    // the application refuses to start.
     args assetCache.asFile.absolutePath,
             assetResources.get().asFile.absolutePath,
             '--only=noto-emoji',
@@ -111,8 +112,7 @@ def prepareAssets = tasks.register('prepareAssets', JavaExec) {
     // The directory is emptied first, so a file this build no longer prepares
     // does not survive in it. OpenMoji moving to `:emoji`, and then being
     // replaced by Noto, are exactly that case: without this, an incremental
-    // build kept shipping the face the manifest had stopped naming (ADR-0384,
-    // ADR-0456).
+    // build kept shipping the face the manifest had stopped naming.
     doFirst {
         delete assetResources
     }
@@ -136,7 +136,8 @@ tasks.register('vendorLicences', JavaExec) {
 }
 
 // ============================================================================
-// Coverage floor (docs/testing.md §3)
+// Coverage floor
+// https://goldberry.dev/docs/contributing/testing.html#advisory-dashboards
 //
 // One class, which reads a resource. What the tests reach is every line but the
 // `catch (IOException)` — a stream that opens and then fails mid-read, which

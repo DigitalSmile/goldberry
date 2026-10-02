@@ -23,14 +23,14 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-/// What a knob looks like (§14, [ADR-0050]).
+/// What a knob looks like, held as golden images.
 ///
 /// The only tests that can see the thing this control is: **an arc whose sweep is
 /// a number**. A value assertion says `KnobArc` was handed 0.5 and cannot say the
 /// ring went half way round, started at seven-thirty, or left its 90° gap at the
 /// bottom — and every way of getting an arc wrong (the sign of the sweep, the
 /// start measured from twelve instead of three, the two rings drawn at different
-/// radii) lays out perfectly and reports nothing ([ADR-0089]).
+/// radii) lays out perfectly and reports nothing.
 ///
 /// `./gradlew :widgets:test -Dgoldberry.golden.update=true` rewrites them.
 class KnobGoldenTest {
@@ -91,10 +91,10 @@ class KnobGoldenTest {
                 new Knob(0, 1, 1.0, 0, null)));
     }
 
-    /// §3's two diameters, side by side and at the same value.
+    /// The knob's two diameters, 32 and 48, side by side and at the same value.
     ///
-    /// The ring's stroke is a **constant** 2px rather than a proportion (§1.6's
-    /// line weight, which is [dev.goldberry.widgets.controls.spinner.Spinner]'s
+    /// The ring's stroke is a **constant** 2px rather than a proportion (the
+    /// icon grid's line weight, which is [dev.goldberry.widgets.controls.spinner.Spinner]'s
     /// answer to the same gap), so this is the
     /// image that says a 48px knob is a bigger circle and not a scaled drawing.
     @Test
@@ -106,7 +106,7 @@ class KnobGoldenTest {
     }
 
     /// On `--gb-surface` rather than `--gb-bg`, which is the gap
-    /// `controls-on-surface-*` exists to close ([ADR-0073]) — and the knob is a
+    /// `controls-on-surface-*` exists to close — and the knob is a
     /// real candidate for it, because its track is `--gb-border` and its body is
     /// one step from the panel it sits on.
     @Test
@@ -120,9 +120,9 @@ class KnobGoldenTest {
                 id("panel")));
     }
 
-    /// §2.1's disabled: 45% on the whole control, never a colour remap. Both rings
-    /// fade with the body, which is what one `opacity` on a subtree buys and eight
-    /// muted tokens would not ([ADR-0071]).
+    /// The design system's disabled: 45% on the whole control, never a colour
+    /// remap. Both rings fade with the body, which is what one `opacity` on a
+    /// subtree buys and eight muted tokens would not.
     @Test
     @DisplayName("disabled fades the rings with the body")
     void disabled() {

@@ -24,7 +24,7 @@ import dev.goldberry.widgets.controls.checkbox.Checkbox;
 import dev.goldberry.widgets.controls.radio.Radio;
 import dev.goldberry.widgets.core.Row;
 
-/// What a density looks like (§1.3, [ADR-0074]).
+/// What a density looks like.
 ///
 /// [DensityTest] checks that the token moved. This checks that the *control* did,
 /// which is a different claim: a height token can resolve to 28 and land on a
@@ -71,7 +71,7 @@ class DensityGoldenTest {
     }
 
     @Test
-    @DisplayName("the catalog at regular — 32px controls, §1.3's default")
+    @DisplayName("the catalog at regular — 32px controls, the default")
     void regular() {
         paint("controls-density-regular", Density.REGULAR);
     }
@@ -79,7 +79,7 @@ class DensityGoldenTest {
     @Test
     @DisplayName("the same scene at compact — 28px controls, and a 16px glyph that did not move")
     void compact() {
-        // The glyphs are the check: §1.3 shrinks the control and says nothing
+        // The glyphs are the check: a density shrinks the control and says nothing
         // about what is inside it, so the tick and the dot stay 16px and the row
         // closes around them. A density that scaled its contents would look
         // plausible here and be wrong -- it would be a zoom, not a density.

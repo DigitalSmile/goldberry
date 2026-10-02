@@ -19,8 +19,8 @@ import dev.goldberry.widget.attr.Bindable;
 import dev.goldberry.widgets.markup.Markup;
 import dev.goldberry.widgets.markup.Wiring;
 
-/// A progress indicator over an ordered list — `docs/core-widgets.md` §6's
-/// `steps`, and the second widget of the `nav` package.
+/// A progress indicator over an ordered list: a row or column of steps, each
+/// done, current, upcoming or failed.
 ///
 /// ```kdl
 /// steps current=1 clickable=#true change="app.go-step" {
@@ -47,28 +47,31 @@ import dev.goldberry.widgets.markup.Wiring;
 ///
 /// ## Read-only, unless asked — and reachability is the application's
 ///
-/// §6: "Standalone it is a read-only picture of where a process is;
+/// Standalone it is a read-only picture of where a process is.
 /// `clickable=#true` raises a `change` for a step the application says is
 /// reachable, and refuses the rest — the widget never decides reachability
-/// itself, because only the application knows whether step 3 is valid yet." So
+/// itself, because only the application knows whether step 3 is valid yet. So
 /// a step is pressable only when **both** the list says `clickable` and the step
 /// says `reachable`, and a press reports the step's index through `change`. The
 /// list moves nothing itself: `current` is read through `bind` or written by
-/// the application, which is [ADR-0063]'s rule for every value in this toolkit.
+/// the application. Data flows down and events flow up, which is the rule for
+/// every value in this toolkit.
 ///
 /// ## This node styles nothing
 ///
 /// `steps` as a **CSS type** is [StepList], the node this one builds — the
 /// arrangement every composite in the catalog has, and its reason: a composition
 /// node that was also styled would put two `steps` nodes in the cascade, one
-/// inside the other (ADR-0109).
+/// inside the other.
+///
+/// Read more: [Navigation](https://goldberry.dev/docs/components/navigation.html#steps).
 ///
 /// @param children  the steps, as written. Anything that is not a [Step] is
 ///                  drawn in the row and left alone
 /// @param current   the index of the current step when nothing is bound; out of
 ///                  range means every step is upcoming, which is what a process
 ///                  that has not started looks like
-/// @param source    §9's `bind` — read-only; a `Number` is read as the index
+/// @param source    the `bind` value — read-only; a `Number` is read as the index
 /// @param direction a row or a column
 /// @param clickable whether reachable steps take a press at all
 /// @param onChange  told the index of the step the user pressed, or null
@@ -84,7 +87,7 @@ public record Steps(
         Attributes attributes)
         implements Widget.Stateless, Attributed<Steps>, Bindable<Steps> {
 
-    /// Which way the list runs. §6's `direction="horizontal|vertical"`.
+    /// Which way the list runs: `direction="horizontal|vertical"` in markup.
     public enum Direction {
         HORIZONTAL,
         VERTICAL;
@@ -97,7 +100,7 @@ public record Steps(
         }
     }
 
-    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    /// Written out so that the parameters taking null for a default can say so.
     public Steps(
             @Nullable List<Widget> children,
             int current,

@@ -11,9 +11,8 @@ import org.junit.jupiter.api.Test;
 import dev.goldberry.render.model.LogicalSize;
 
 /// That a window can be asked to open maximized, and that the ask is refused
-/// where it would be silently dropped
-/// (ADR-0221) — and the same for the floor a user may drag it down to
-/// (ADR-0304).
+/// where it would be silently dropped — and the same for the floor a user may
+/// drag it down to.
 class WindowSpecTest {
 
     private static final LogicalSize SIZE = LogicalSize.of(960, 640);

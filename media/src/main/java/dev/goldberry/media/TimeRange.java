@@ -8,6 +8,8 @@ import java.util.Objects;
 ///
 /// @param start where the stretch begins
 /// @param end   where it ends, not before `start`
+///
+/// Read more: [A player](https://goldberry.dev/docs/components/media.html#a-player).
 public record TimeRange(Duration start, Duration end) {
 
     public TimeRange {

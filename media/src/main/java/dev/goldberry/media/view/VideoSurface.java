@@ -26,7 +26,7 @@ import dev.goldberry.widget.style.Paints;
 import dev.goldberry.widgets.core.image.Fit;
 
 /// The node a stylesheet means by `video-view`: the surface a player's pictures
-/// are drawn on (`docs/goldberry-media.md` §3, "Presentation", CPU present).
+/// are drawn on.
 ///
 /// Each time it renders, it asks the player for [MediaPlayer#shownPicture()]
 /// (the newest picture whose time has come on the master clock) and draws it
@@ -35,7 +35,7 @@ import dev.goldberry.widgets.core.image.Fit;
 /// picture falls due ([FollowingState]), so a 25 fps video costs 25 frames a
 /// second, and a paused one none.
 ///
-/// **On the GPU where it can be** (`docs/gpu-plan.md`, phase 6; ADR-0484). With
+/// **On the GPU where it can be.** With
 /// a [VideoPresenter] -- `:gpu` is on the module path -- the picture is a GPU
 /// layer over the rectangle [Fit] gives it: its planes converted by a shader,
 /// or its BGRA drawn as it is, composited under the window's frame or read

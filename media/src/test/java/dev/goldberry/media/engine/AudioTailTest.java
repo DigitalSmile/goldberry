@@ -8,7 +8,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 /// The last samples on their way to the ear, on a hand-moved
-/// [dev.goldberry.media.MediaClock] (ADR-0474).
+/// [dev.goldberry.media.MediaClock].
 @DisplayName("AudioTail")
 class AudioTailTest {
 

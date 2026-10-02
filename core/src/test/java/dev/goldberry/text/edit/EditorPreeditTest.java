@@ -15,12 +15,12 @@ import dev.goldberry.assets.BundledFont;
 import dev.goldberry.input.event.PreeditEvent;
 import dev.goldberry.text.font.Font;
 
-/// `docs/gaps.md` G15: what an editor does with a composition it has not been
-/// given permission to keep.
+/// What an editor does with a composition it has not been given permission to
+/// keep.
 ///
 /// The claim under all of it is one sentence — **a composition is not an edit**
 /// — and every test here is a way for that to be false: the text changing, the
-/// undo history growing, a ghost left on screen after `Escape` (ADR-0289).
+/// undo history growing, a ghost left on screen after `Escape`.
 class EditorPreeditTest {
 
     private Font font;

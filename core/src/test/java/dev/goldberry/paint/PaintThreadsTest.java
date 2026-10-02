@@ -90,7 +90,7 @@ class PaintThreadsTest {
         // nothing. This used to read the property and skip the assertion if one
         // was set — so the one run where somebody *had* set it, which is the run
         // where the two could actually disagree, was the run that checked
-        // nothing (the 2026-09-18 review, §11.3).
+        // nothing.
         var raw = System.getProperty(PaintThreads.PROPERTY);
         var configured = raw == null || raw.isBlank() ? UNSET : Integer.parseInt(raw.trim());
 

@@ -13,18 +13,21 @@ import dev.goldberry.bind.runtime.Models;
 
 /// That a class may keep a model's values and another class may change them.
 ///
-/// "Values here, actions there" (ADR-0134, ADR-0136), asserted against the
-/// **build's own output** — which since ADR-0155 means the *reflective* binding,
-/// because `:widgets` no longer weaves its models and neither does an ordinary
-/// application's jar. `SplitWeaveTest` in `:weaver` is the same shape asserted
-/// against the woven form, and `RuntimeAgreesWithWovenTest` is what holds the two
-/// to the same answers.
+/// Values in one class, actions in another, asserted against the **build's
+/// own output** — which means the *reflective* binding, because `:widgets` no
+/// longer weaves its models and neither does an ordinary application's jar.
+/// `SplitWeaveTest` in `:weaver` is the same shape asserted against the woven
+/// form, and `RuntimeAgreesWithWovenTest` is what holds the two to the same
+/// answers.
 ///
 /// Every action here is dispatched **through the registry**, which is what a
 /// document does and what the two forms share. Calling `actions.bump()` as a Java
 /// method is a write like any other: woven it notifies from inside the
 /// assignment, and bound at run time it waits for a sweep — so a test that called
 /// it directly would be asserting which of the two it got.
+///
+/// Read more:
+/// [More than one model](https://goldberry.dev/docs/applications.html#more-than-one-model).
 @DisplayName("values in one class, actions in another")
 class SplitModelTest {
 
@@ -112,7 +115,7 @@ class SplitModelTest {
         // one thing the two forms of a binding do not promise to agree on --
         // the weaver publishes in class-file order and reflection cannot see
         // that, so the runtime form sorts by member name instead of leaving it
-        // to `getDeclaredMethods` (ADR-0155).
+        // to `getDeclaredMethods`.
         assertEquals(
                 java.util.Set.of("split.bump", "split.say", "split.tick", "split.both"),
                 Models.actions(actions).bound().keySet());

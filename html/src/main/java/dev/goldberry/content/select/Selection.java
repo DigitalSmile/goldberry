@@ -7,8 +7,8 @@ import dev.goldberry.render.model.LogicalRect;
 /// **Mutable, and that is the design.** Everything else in the widget layer is a
 /// value rebuilt every frame; this is deliberately not, because a selection changes
 /// on every pointer move and rebuilding a six-hundred-word document to say so is the
-/// frame cost ADR-0299 removed. So the pointer handler writes here, the overlay's
-/// painter reads here, and a drag is a repaint (ADR-0301).
+/// frame cost the view exists to avoid. So the pointer handler writes here, the
+/// overlay's painter reads here, and a drag is a repaint.
 ///
 /// Confined to the UI thread, like everything else a frame touches.
 final class Selection {

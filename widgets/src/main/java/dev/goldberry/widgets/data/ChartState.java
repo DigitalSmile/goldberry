@@ -7,9 +7,9 @@ import dev.goldberry.widget.Widget;
 /// Which series a chart is showing — the one piece of state that spans a chart's
 /// two halves.
 ///
-/// `charts.md` §3.1 calls clicking a legend entry to isolate a series "the one
-/// interaction Grafana users reach for first", and it is the reason a chart is a
-/// stateful widget at all: the click arrives at the **legend** and changes what
+/// Clicking a legend entry to isolate a series is the interaction a dashboard's
+/// users reach for first, and it is the reason a chart is a stateful widget at
+/// all: the click arrives at the **legend** and changes what
 /// the **plot** draws, and those are siblings. Something above both has to
 /// remember it, and this is that.
 ///

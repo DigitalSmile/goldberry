@@ -1,5 +1,6 @@
 /*
- * Nord dark (ARCHITECTURE.md §10).
+ * Nord dark, the toolkit's dark theme: a custom-property layer and nothing else.
+ * https://goldberry.dev/docs/guide/styling.html#themes-density-and-scrollbars
  *
  * The raw palette is identical to nord-light on purpose — nord8 is a fact about
  * Nord, not about a theme. Everything that differs between the two files is a
@@ -40,27 +41,27 @@
   --gb-surface: var(--nord1);
   /* **A step, not a direction.** Lighter than `--gb-surface` here and *darker*
      than it on the light theme, which is why three widgets that read this
-     meaning "raised" were each wrong on one theme only (ADR-0168). Say
+     meaning "raised" were each wrong on one theme only. Say
      `--gb-surface-raised` or `--gb-surface-sunken` when the direction is the
      point; this is for a second plate that is merely *distinct* from the one
      under it.
 
      It stays because five things want exactly that and none of them wants a
      direction: a default `badge`, a `scrollbar` on hover, a `group-box-title`
-     band, a `skeleton-bar` and a collapsed `split-divider` (ADR-0245).
+     band, a `skeleton-bar` and a collapsed `split-divider`.
      `ThemeTest` asserts the two directions it takes, so the trap is a fact
      rather than a comment. */
   --gb-surface-2: var(--nord2);
   --gb-text: var(--nord6);
   --gb-text-muted: var(--nord4);
-  /* §1.2's scrim: what a veil dims the window with. Lighter on the light
+  /* The veil scrim: what a veil dims the window with. Lighter on the light
      theme, because the same alpha over white reads as a much heavier
      curtain than it does over nord0. */
   --gb-scrim: rgba(0, 0, 0, 0.55);
   --gb-border: var(--nord3);
 
   /* The edge of something raised — `card`, and whatever else says "above the
-     page" (ADR-0166). Not a palette entry but an **alpha over whatever is
+     page". Not a palette entry but an **alpha over whatever is
      underneath**, which is the only way to say "lighter than its own surface"
      in a subset with no colour functions, and which therefore stays right on a
      card sitting on a page, on a panel, or on another card.
@@ -72,7 +73,7 @@
      can see. */
   --gb-border-strong: rgba(255, 255, 255, 0.20);
 
-  /* §1.5's elevation, as three whole `box-shadow` values (ADR-0310).
+  /* The design system's elevation, as three whole `box-shadow` values.
 
      **The token is the whole shadow and not its colour.** A rule writes
      `box-shadow: var(--gb-elevation-2)` and chooses nothing — not the offset,
@@ -81,15 +82,15 @@
      same alpha that reads as a soft lift on nord-light's `#eceff4` is very
      nearly invisible on nord-0. A widget picking its own `rgba(0, 0, 0, .25)`
      would be right on one theme and wrong on the other, which is exactly the
-     mistake `--gb-surface-2` cost three widgets (ADR-0245).
+     mistake `--gb-surface-2` cost three widgets.
 
      The **geometry** is the same in both files on purpose — an object 8px off
-     the page throws the same shape whatever colour the page is — and §1.5's
+     the page throws the same shape whatever colour the page is — and the elevation rule's
      numbers are what it is: `0 2px 8px` raised, `0 8px 32px` overlay. Only the
      alpha differs, and here it is roughly two and a half times the light
      theme's.
 
-     Three, where §1.5's ladder names two shadowed levels: `-1` is its "raised"
+     Three, where the elevation ladder names two shadowed levels: `-1` is its "raised"
      (menus, cards, popovers), `-2` its "overlay" (dialogs, over the veil), and
      `-3` is above both — a thing the pointer is dragging, which has left the
      surface entirely and wants to look like it. */
@@ -99,7 +100,7 @@
 
 
   /* The surface of something **raised** — `card`, and whatever else is above the
-     page (ADR-0166).
+     page.
 
      A token of its own and not `--gb-surface-2`, which was the first answer and
      is not an elevation at all: it means "the second surface", and on the light
@@ -112,12 +113,12 @@
   --gb-surface-raised: var(--nord2);
 
   /* The surface of something **sunken** — a `text-input`, a `select`, and
-     whatever else content sits *in* rather than *on* (ADR-0168).
+     whatever else content sits *in* rather than *on*.
 
      `--gb-surface-raised`'s opposite, and here for the same reason: what a field
      wants is "one step more recessed than the page", and the two themes answer
      that in opposite directions. `--gb-surface-2` was the first answer and is
-     the same mistake ADR-0166 corrected for cards — it means "the second
+     the same mistake `--gb-surface-raised` corrected for cards — it means "the second
      surface" and promises no direction, so on the light theme a field built on
      it is one step off the page and reads as barely there.
 
@@ -127,7 +128,7 @@
      exactly `--gb-surface-raised` on this theme, so a field on a card vanished
      into it and was held together by its border alone.
 
-     Darkening is the technique `--gb-border-strong` uses (ADR-0166) and is the
+     Darkening is the technique `--gb-border-strong` uses and is the
      only way to say "one step below its own surface" in a subset with no colour
      functions — so it is a well on the page, on a panel and on a card, without
      three tokens that can each be wrong on their own. */
@@ -139,15 +140,15 @@
      Not `--gb-text-muted`, which was the first answer and is a step so small
      that a placeholder and a value looked alike: on this theme muted is
      `--nord4` and text is `--nord6`, two rungs apart on a ramp where the eye
-     needs four. §1.2's rank for de-emphasised *labels* is right for labels and
+     needs four. The muted rank for de-emphasised *labels* is right for labels and
      too strong for something whose whole job is to look unwritten.
 
      An **alpha over whatever is underneath**, which is `--gb-border-strong`'s
-     technique (ADR-0166) and is the only way to say "dimmer than its own
+     technique and is the only way to say "dimmer than its own
      surface" in a subset with no colour functions — so it is right on a field on
      a page, on a card, and on another field.
 
-     The alpha is what it is because of §1.2 rather than because of taste: at
+     The alpha is what it is because of the contrast floor rather than because of taste: at
      0.45 this was 2.4:1 on the light theme, which is a placeholder nobody can
      read. These are the lowest values that clear **4.5:1 against the worst
      background a field sits on** — which is a `card`, where the fill is
@@ -164,13 +165,13 @@
   --gb-info: var(--nord9);
 
   /* **The hue at a lightness you can draw a line with.** The third rank, and the
-     first widget to need it was §7's `message` -- the first one whose job is to
+     first widget to need it was `message` -- the first one whose job is to
      draw the aurora hues as a *glyph and a border on a surface* rather than as a
      fill under text.
 
      `--gb-danger` is documented above as "what a label, an icon or a border is
      drawn in", and measuring it found that untrue in five of the eight cases: on
-     `--gb-surface` this theme's danger is 2.46:1 against §1.2's 3:1 floor for
+     `--gb-surface` this theme's danger is 2.46:1 against the 3:1 floor for
      non-text, and on the light theme three of the four hues fail. So a hue now
      has three ranks -- itself, `-fill` for words on top of it, and `-line` for a
      stroke drawn on the page -- and `ContrastTest` measures every one of them.
@@ -184,9 +185,9 @@
   --gb-danger-line: #ce858c;
 
   /* The hue at a lightness you can **write words** with — the fourth rank, and
-     the one the `-line` rank turned out not to cover (ADR-0229).
+     the one the `-line` rank turned out not to cover.
 
-     `-line` is a 3:1 rank by construction, because §1.2's floor for a glyph or a
+     `-line` is a 3:1 rank by construction, because the contrast floor for a glyph or a
      border is 3:1. Several widgets draw a semantic hue as *text* — a
      `field-message`, a `statistic`'s delta, a chart's failure line — and text is
      4.5:1. Measured, `--gb-danger` is 2.46:1 on `--gb-surface` and `-line` is
@@ -204,13 +205,13 @@
   /* --nord11 at 78% lightness: 4.56:1 on --nord2, where --gb-danger-line is 3.02:1. */
   --gb-danger-text: #dfb1b5;
 
-  /* --- chart series (charts.md §2, ADR-0194) -----------------------------
+  /* --- chart series ---------------------------------------------------------
      The same eight hue angles as the light theme at **their own lightness**, not
      a flip of it: at L 0.62 every slot measures 2.57--2.9:1 on --gb-surface,
      below the 3:1 a mark needs, so the dark steps are L 0.66 -- inside the dark
      lightness band and clear of the floor. Contrast is a property of a pair and
-     the pair differs per theme, which is the argument ADR-0087 makes about the
-     semantic hues. */
+     the pair differs per theme, which is the same argument the semantic hues
+     make. */
   --gb-chart-1: #73a340;   /* nord14 green */
   --gb-chart-2: #c46fb7;   /* nord15 purple */
   --gb-chart-3: #b88a07;   /* nord13 yellow */
@@ -220,7 +221,7 @@
   --gb-chart-7: #d9704f;   /* nord12 orange */
   --gb-chart-8: #06a7a7;   /* nord7 teal */
 
-  /* --- a QR code (ADR-0391) -----------------------------------------------
+  /* --- a QR code -----------------------------------------------
      Near-black on white, and **identical in the dark theme**. A QR code is not
      a themed surface: the specification's module convention is dark on light,
      plenty of phone scanners will not read an inverted code, and a sign-in
@@ -229,13 +230,13 @@
      that a theme does not get a vote on, and an application that knows its
      scanner is happy inverted can still say so per node.
 
-     Near-black rather than black for §1.2's reason everywhere else: the
+     Near-black rather than black for the contrast rule's reason everywhere else: the
      contrast a scanner needs is met at 15.9:1 and pure black buys nothing but
      glare. */
   --gb-qr-ink: #1a1a1a;
   --gb-qr-paper: #ffffff;
 
-  /* What a `canvas3d` shows where there is no GPU to draw it with (ADR-0482):
+  /* What a `canvas3d` shows where there is no GPU to draw it with:
      a quiet surface (nord1) under the notice that says why, as a `web-view`
      with no engine shows one. */
   --gb-canvas3d-unavailable: #3b4252;
@@ -245,15 +246,15 @@
      danger *is*, and is what a label, an icon or a border is drawn in;
      `--gb-danger-fill` is what you may put words on top of.
 
-     They differ because §1.2's aurora hues are mid-tones. `--nord11` under
+     They differ because the aurora hues are mid-tones. `--nord11` under
      `--nord6` is 3.55:1 and under `--nord0` is 3.05:1 -- it carries legible text
      in neither direction, so a filled control that aliased it straight through
-     was below §1.2's 4.5:1 floor by construction, which is exactly what
-     `button.danger` did from the day it shipped (ADR-0088).
+     was below the 4.5:1 text floor by construction, which is exactly what
+     `button.danger` did from the day it shipped.
 
      The `-fill` values are **identical in both theme files**, because the hue is:
      `--nord13` is a pale yellow on a dark theme too. What a fill can carry is a
-     property of the fill, and the theme does not get a vote (ADR-0087).
+     property of the fill, and the theme does not get a vote.
 
      `--gb-accent-fill` needs no derivation here -- `--nord8` carries `--nord0`
      at 6.24:1 -- and does on the light theme, where the accent is `--nord10`. */
@@ -264,7 +265,7 @@
   /* nord10 at 40%. */
   --gb-selection: #5e81ac66;
 
-  /* Component tokens (design-system.md §3). A control's *metrics* are in the
+  /* Component tokens. A control's *metrics* are in the
      toolkit-base layer, which is theme-invariant; its *colours* are here,
      because only a theme knows what a hover looks like on its own background.
      An application overriding a component token restyles every button without
@@ -277,7 +278,7 @@
   /* Unchanged, and it is the one filled variant on this theme that never had a
      problem: its text is `--nord0`, so lightening on hover moves the fill *away*
      from the text and the ratio goes up (6.24 -> 7.00). That is the rule
-     ADR-0088 extracts -- a fill that carries text moves away from it. */
+     every filled control follows -- a fill that carries text moves away from it. */
   --gb-button-primary-bg: var(--gb-accent-fill);
   --gb-button-primary-bg-hover: #97cad9;
   --gb-button-primary-bg-active: #74b3c6;
@@ -289,24 +290,24 @@
      carrying `--nord6`, and lightening moved it *toward* its own text. The old
      hover was #cb717a at **2.95:1** -- the worst pair in the toolkit, and worse
      than the resting state it was a step from. The rule is the fill's, not the
-     theme's: move away from the text (ADR-0088). */
+     theme's: move away from the text. */
   --gb-button-danger-bg: var(--gb-danger-fill);
   --gb-button-danger-bg-hover: #913b43;
   --gb-button-danger-bg-active: #83353c;
   --gb-button-danger-text: var(--nord6);
 
-  /* `button.link` — a button that reads as a link (ADR-0293). Its fill is
+  /* `button.link` — a button that reads as a link. Its fill is
      transparent and its hover is the overlay wash, like `button.ghost`, so the
      only colour it needs is its text.
 
      **Not `--gb-accent`, and the measurement is the reason.** The accent is
-     #88c0d0 and it clears §1.2's 4.5:1 on `--gb-bg` (6.24) and `--gb-surface`
+     #88c0d0 and it clears the 4.5:1 text floor on `--gb-bg` (6.24) and `--gb-surface`
      (5.03) and **fails on `--gb-surface-2` at 4.31** — which is the surface a
      card inside a card paints, and exactly where a link in a caption would sit.
      One step lighter clears all three: 7.51, 6.05 and 5.19. It is an invented
      value rather than a Nord one, on `--gb-checkbox-border`'s terms — the ramp
      is what the rule asks for, and the palette does not happen to have a rung
-     there (ADR-0258). */
+     there. */
   --gb-button-link-text: #a3d0dd;
 
   /* The glyph's own surface, and it takes **the button's ramp** -- nord2 at
@@ -317,30 +318,30 @@
      place it is most often put. "One step up from the window" was measured
      against `--gb-bg` and forgot that almost nothing sits directly on the
      window. Starting a step higher gives it somewhere to go in both directions
-     and reuses the ramp §2.1's "one surface step" is already defined by, instead
+     and reuses the ramp the states rule's "one surface step" is already defined by, instead
      of inventing a second one that has to be kept in step by hand.
 
      Checked fills with the accent, and the mark is drawn in the darkest thing
      the palette has -- nord8 is a light frost blue, so a white tick on it would
-     not carry 4.5:1 (§1.2). A press darkens it to nord9, the next step down the
+     not carry the 4.5:1 text floor. A press darkens it to nord9, the next step down the
      frost ramp. */
   --gb-checkbox-bg: var(--nord2);
   /* The edge that makes an unchecked box findable, and the first token in this
      file that exists **because a measurement said so**.
 
      It used to be `--gb-border`, on the argument that a divider colour is what
-     an edge is. The sweep ADR-0239 built disagreed with that in numbers: on
+     an edge is. The contrast sweep disagreed with that in numbers: on
      `--gb-surface-2` the fill *is* `--gb-surface-2`, so the box differs from its
      backdrop by nothing at all and the whole control was held up by an edge at
-     1.17:1 against §1.2's floor of 3. All three surfaces failed, on both themes,
+     1.17:1 against the 3:1 floor for a mark. All three surfaces failed, on both themes,
      for both controls -- twelve of the nineteen pairs that sweep found.
 
      Nord has nothing between `--nord3` (#4c566a) and `--nord4` (#d8dee9), and
      the two ends are 1.17:1 and 6.39:1 -- so a palette colour is either
      invisible or a bright white edge on a dark control. This is the midpoint,
-     slid until it clears and no further, which is ADR-0088's method: **3.17:1
-     on `--gb-surface-2`**, 3.70 on `--gb-surface`, 4.60 on `--gb-bg`
-     (ADR-0258). */
+     slid until it clears and no further, which is the method every fill here
+     follows: **3.17:1
+     on `--gb-surface-2`**, 3.70 on `--gb-surface`, 4.60 on `--gb-bg`. */
   --gb-checkbox-border: #959dad;
   --gb-checkbox-bg-hover: var(--nord3);
   --gb-checkbox-bg-active: var(--nord1);
@@ -351,11 +352,11 @@
 
      It **used to alias `--gb-button-primary-bg-hover`**, and it no longer does,
      because the two stopped being the same thing. A button's fill is chosen so
-     its *label* clears §1.2's 4.5:1; a checked glyph carries a mark rather than
-     text, which §1.2 asks 3:1 of. On this theme the two ramps still hold the
+     its *label* clears the 4.5:1 text floor; a checked glyph carries a mark rather
+     than text, which the contrast rule asks 3:1 of. On this theme the two ramps still hold the
      same values -- the light theme is where they part -- so this is the same
      split the radio's block already argues for: identical values are the Nord
-     answer, not the mechanism (ADR-0088). */
+     answer, not the mechanism. */
   --gb-accent-bg-hover: #97cad9;
   --gb-accent-bg-active: #74b3c6;
   --gb-checkbox-bg-checked: var(--gb-accent);
@@ -372,7 +373,7 @@
      Nord answer, not the mechanism. */
   --gb-radio-bg: var(--nord2);
   /* `--gb-checkbox-border`'s, for the reason every other radio token is a
-     checkbox token: §2.1 gives the two controls one drawing with one corner
+     checkbox token: the design system gives the two controls one drawing with one corner
      radius between them. */
   --gb-radio-border: var(--gb-checkbox-border);
   --gb-radio-bg-hover: var(--nord3);
@@ -384,8 +385,8 @@
   --gb-radio-dot: transparent;
   --gb-radio-dot-checked: var(--nord0);
 
-  /* The switch (§3: track 36x20, thumb 16, travel 16). The pill takes the
-     button's ramp for the reason ADR-0073 gives -- an unchecked control whose
+  /* The switch (its metrics row: track 36x20, thumb 16, travel 16). The pill takes the
+     button's ramp for the reason the checkbox gives -- an unchecked control whose
      rest colour is `--gb-surface` is invisible on the panel it normally sits on
      -- and the on state takes the accent ramp `button.primary` and the checkbox
      already share.
@@ -406,7 +407,7 @@
      two -- nord-light does -- not because this one does; identical values are
      the Nord answer, not the mechanism, exactly as the radio's block says of the
      checkbox's. Found by looking at the golden image, which is the only thing
-     that could have (ADR-0075). */
+     that could have. */
   --gb-toggle-track-bg: var(--nord2);
   --gb-toggle-track-bg-hover: var(--nord3);
   --gb-toggle-track-bg-active: var(--nord1);
@@ -419,14 +420,14 @@
   --gb-toggle-thumb-bg: var(--nord6);
   --gb-toggle-thumb-bg-checked: var(--nord6);
 
-  /* The slider (§3: track 4, thumb 16, hit >= 32 cross-axis).
+  /* The slider (its metrics row: track 4, thumb 16, hit >= 32 cross-axis).
 
      The groove is `--gb-border`, and the reason is a bug this shipped with: it
      was nord1, which **is** `--gb-surface`, so the unfilled part of the groove
      was invisible on any panel -- and a slider is the control that hides it
      best, because the fill and the thumb still show and nothing else looks
      wrong. Fourth time this exact class of defect has appeared (the checkbox's
-     glyph in ADR-0073, the switch's thumb twice in ADR-0075), and the first
+     glyph once, the switch's thumb twice), and the first
      time the golden that exists for it -- `controls-on-surface-dark` -- was the
      thing that had not been extended to the new control.
 
@@ -447,21 +448,21 @@
   --gb-slider-thumb-bg-hover: #ffffff;
   --gb-slider-thumb-bg-active: var(--nord4);
   /* **None**, and the token exists anyway. Every one of this theme's three thumb
-     fills is light and its groove is nord3, so all three clear §1.2's 3:1 on
+     fills is light and its groove is nord3, so all three clear the 3:1 mark floor on
      their own and an edge would be decoration.
      Declared because a theme may need one and nord-light does, which is
      `--gb-toggle-thumb-bg-checked`'s arrangement exactly: two tokens because the
      *system* needs two, not because this file does. A transparent border is drawn
      and composites to nothing -- the background fills the whole border box first
-     -- so the disc is the same 16px of nord6 it has always been (ADR-0429). */
+     -- so the disc is the same 16px of nord6 it has always been. */
   --gb-slider-thumb-border: transparent;
   /* A tick mark is a groove one step long, so it is the groove's own colour --
      and `--gb-border` again for the same reason, since the marks sit on the
      control's background rather than in the groove and a scale that vanished on
-     a panel would be the fifth instance of ADR-0073's defect. */
+     a panel would be the fifth instance of that defect. */
   --gb-slider-tick-bg: var(--gb-border);
 
-  /* Progress (§3: track 4, radius full). The track is `--gb-border` for the
+  /* Progress (its metrics row: track 4, radius full). The track is `--gb-border` for the
      reason the slider's groove is: it is a channel cut into a surface, and the
      one token in this theme that reads as an edge on both `--gb-bg` and
      `--gb-surface` is the one named for edges. The fill is the accent, which is
@@ -469,8 +470,8 @@
   --gb-progress-track-bg: var(--gb-border);
   --gb-progress-fill-bg: var(--gb-accent);
 
-  /* The knob (design-system.md §3: diameters 32/48, arc 270 deg). The body takes
-     the button's ramp, for the reason ADR-0073 gave the switch and the checkbox:
+  /* The knob (diameters 32/48, arc 270 deg). The body takes
+     the button's ramp, for the reason the switch and the checkbox give:
      a control whose rest colour is `--gb-surface` is invisible on the panel it
      normally sits on, and starting a step higher gives it somewhere to go in
      both directions.
@@ -486,35 +487,35 @@
   --gb-knob-track: var(--gb-border);
   --gb-knob-arc: var(--gb-accent);
   /* The pointer, on the dial rather than on the window -- `--gb-text` is what
-     reads on a *surface*, and the dial is one step off it. §1.2 asks 3:1 of a
+     reads on a *surface*, and the dial is one step off it. The contrast rule asks 3:1 of a
      stroke rather than 4.5:1 of text, and this clears it on the whole ramp. */
   --gb-knob-pointer: var(--gb-text);
 
-  /* Segmented (design-system.md §3's `segmented` row). The bar is a plate, one
+  /* Segmented. The bar is a plate, one
      step up from the window and one up from a panel, so the control reads as a
      control on `--gb-bg` and on `--gb-surface` alike -- the same `--nord2` every
      other well in this file takes, for the same reason.
 
      The selected segment is the accent **fill** rather than `--gb-accent`,
      because it carries text: `--nord6` on `--nord8` is 1.9:1 and `--nord0` on it
-     is 12.6:1, so the pairing follows the fill and not the theme (ADR-0087).
+     is 12.6:1, so the pairing follows the fill and not the theme.
      There is no hover or press ramp for it: what a pointer does to a segment is
      a wash from `--gb-overlay-*`, because an opaque fill would paint over the
-     pill that travelled there (ADR-0099). */
+     pill that travelled there. */
   --gb-segmented-bg: var(--nord2);
   --gb-segmented-text: var(--gb-text);
   --gb-segmented-selected-bg: var(--gb-accent-fill);
   --gb-segmented-selected-text: var(--nord0);
 
-  /* Badge (design-system.md §3's `badge` row). Every pairing here is checked in
-     CI by ContrastTest against §1.2's 4.5:1 floor -- these are not colours
+  /* Badge. Every pairing here is checked in
+     CI by ContrastTest against the 4.5:1 text floor -- these are not colours
      somebody liked, they are colours that pass.
 
      The **foreground is chosen by the fill, not by the theme**, which is why
      `--gb-badge-warning-text` is `--nord0` on a dark theme where every other
-     text token is `--nord6`. §1.2's aurora hues are theme-invariant; white on
+     text token is `--nord6`. The aurora hues are theme-invariant; white on
      `--nord13` is 1.35:1 and unreadable on either theme, so the pairing follows
-     the hue across both files (ADR-0087).
+     the hue across both files.
 
      Two fills are **derived rather than aliased**, because the hue itself
      carries no legible small text at either end of the palette:
@@ -541,13 +542,13 @@
   --gb-badge-info-bg: var(--gb-info);
   --gb-badge-info-text: var(--nord0);
 
-  /* A banner's tint -- `design-system.md` §2's "4% tint of its kind colour" for
-     §7's `message`. The hue written out at 4% as `#rrggbbaa`, because §8's subset
+  /* A banner's tint -- a 4% tint of its kind colour, for
+     `message`. The hue written out at 4% as `#rrggbbaa`, because the CSS subset
      has no colour functions and `--gb-selection` set the convention: the palette
      entry it derives from stays visible in the value.
 
      Four percent is faint on purpose. A banner is told apart by its glyph and its
-     border, which is §1.2's rule -- the tint says "this block is a unit", not
+     border, which is the colour rule -- the tint says "this block is a unit", not
      "this block is red". */
   --gb-message-info-bg: #81a1c10a;
   --gb-message-success-bg: #a3be8c0a;
@@ -558,13 +559,13 @@
   --gb-overlay-hover: #ffffff14;
   --gb-overlay-active: #ffffff29;
 
-  /* Typography (design-system.md §1.4). Theme-invariant: only colour changes
+  /* Typography. Theme-invariant: only colour changes
      between themes, so these are identical in both files -- and they are here
-     rather than in the base layer because §10.1 puts the scale in the theme, so
+     rather than in the base layer because the typography tokens live in the theme layer, so
      a high-contrast or large-text theme is still an alias swap and not a code
      path.
 
-     Sizes and line heights are §1.4's table exactly: display 28/34, title 20/26,
+     Sizes and line heights are the type scale exactly: display 28/34, title 20/26,
      heading 15/20, body 13/18, caption 11/14, mono 13/18. Two weights, 400 and
      600, which is the whole of what the system ships. */
   --gb-font-display: 28px;
@@ -583,14 +584,14 @@
   --gb-weight-regular: 400;
   --gb-weight-strong: 600;
 
-  /* Motion (design-system.md §1.7). Theme-invariant like the type scale, and
+  /* Motion. Theme-invariant like the type scale, and
      here rather than in the base layer for the same reason: a reduced-motion or
      a deliberately-slower theme is then an alias swap and not a code path. */
   --gb-motion-fast: 100ms;
   --gb-motion-base: 160ms;
   --gb-motion-overlay: 240ms;
 
-  /* The HUD's plate (§7). The one group here that is **the same in both
+  /* The HUD's plate. The one group here that is **the same in both
      themes**: it lies over the application's own colours, which the toolkit does
      not know, so it carries its own contrast rather than borrowing the theme's.
 
@@ -602,15 +603,15 @@
   --gb-hud-text: #eceff4;
   --gb-hud-text-muted: #a3adbe;
 
-  /* The two readings §1.2 lets a HUD colour, on the HUD's own plate rather than
-     on the theme's surface (ADR-0229).
+  /* The two readings the colour rule lets a HUD colour, on the HUD's own plate rather than
+     on the theme's surface.
 
      Their own tokens for the reason every other `--gb-hud-*` has one: the plate
      is the same in both themes, so a theme-varying hue is the wrong thing to draw
      on it — the light theme's danger is a *dark* red, and a dark red on a
      near-black plate is not a warning, it is an absence. Measured against
      `#1c212a`, which is the plate with its 90% alpha taken off: the yellow is
-     10.34:1 and `--gb-danger` was **3.95:1**, below §1.2's 4.5:1 for text, which
+     10.34:1 and `--gb-danger` was **3.95:1**, below the 4.5:1 floor for text, which
      is what the `--gb-*-line` survey found here. */
   --gb-hud-warning: #ebcb8b;
   /* --nord11 at 66% lightness: 5.66:1 on the plate, where --nord11 is 3.95:1. */

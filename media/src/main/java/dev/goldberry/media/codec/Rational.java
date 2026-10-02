@@ -11,6 +11,8 @@ import java.time.Duration;
 ///
 /// @param num the numerator, positive
 /// @param den the denominator, positive
+///
+/// Read more: [Bringing a codec](https://goldberry.dev/docs/components/media.html#bringing-a-codec).
 public record Rational(int num, int den) {
 
     private static final BigInteger NANOS_PER_SECOND = BigInteger.valueOf(1_000_000_000L);

@@ -27,8 +27,8 @@ import dev.goldberry.render.window.GpuSurface;
 
 /// [VideoLayer] on a real device: every layout converted as the reference says,
 /// BGRA drawn as it is, a part of a picture stretched over the box, and a
-/// picture uploaded once however often it is drawn (`docs/gpu-plan.md`,
-/// phase 6; ADR-0484).
+/// picture uploaded once however often it is drawn. This is how `video-view`
+/// shows its pictures when the GPU is present.
 ///
 /// Pictures are drawn 1:1, so the linear sampler reads texel centres and the
 /// result is the conversion's alone.

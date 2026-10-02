@@ -300,7 +300,7 @@ class CodecFixturesTest {
     }
 
     @Test
-    @DisplayName("an Xvid and AC-3 AVI opens, lists both tracks, and names both codecs it cannot decode (ADR-0471)")
+    @DisplayName("an Xvid and AC-3 AVI opens, lists both tracks, and names both codecs it cannot decode")
     void aviOfPatentPoolCodecs() {
         var info = probe("clip-xvid-ac3.avi");
         assertEquals("mpeg4", info.defaultTrack(MediaType.VIDEO).orElseThrow().codecName());
@@ -317,7 +317,7 @@ class CodecFixturesTest {
 
     @ParameterizedTest(name = "{0} is {1}")
     @CsvSource({"clip-mpeg2.ts, MPEG-TS", "clip-flv1.flv, FLV"})
-    @DisplayName("a container this build has no demuxer for is named, not called invalid data (ADR-0471)")
+    @DisplayName("a container this build has no demuxer for is named, not called invalid data")
     void unsupportedContainer(String name, String format) {
         var error = error(name);
         assertEquals(new MediaError.UnsupportedContainer(format), error);
@@ -351,7 +351,7 @@ class CodecFixturesTest {
     }
 
     @Test
-    @DisplayName("an H.264/AAC MP4 opens, lists both tracks, and fails with UnsupportedCodec naming both (S7)")
+    @DisplayName("an H.264/AAC MP4 opens, lists both tracks, and fails with UnsupportedCodec naming both")
     void patentPool() {
         var info = probe("clip-h264-aac.mp4");
         assertEquals(

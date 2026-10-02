@@ -156,7 +156,7 @@ class TraysTest {
         assertEquals(null, spec.icon(), "no icon was described, so the platform's default is asked for");
     }
 
-    // -- A picture for each shade of shell (ADR-0501) -------------------------
+    // -- A picture for each shade of shell: the icon is inked for the panel it sits on
 
     private static final PixelFormat PIXELS = PixelFormat.BGRA32_PREMULTIPLIED;
 

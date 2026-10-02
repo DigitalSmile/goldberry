@@ -49,7 +49,9 @@ import dev.goldberry.widgets.Widgets;
 import dev.goldberry.widgets.controls.Scale;
 
 /// The sixth control, and the first whose value is **a number rather than a
-/// state** ([ADR-0079]).
+/// state**.
+///
+/// Read more: [Slider](https://goldberry.dev/docs/components/values.html#slider).
 ///
 /// [ToggleTest] proved a gesture. What is new here is that no stylesheet can name
 /// where the thumb goes, because the position came out of a model — so the widget
@@ -67,8 +69,8 @@ class SliderTest {
     ///
     /// A [Slider] is no longer that node: it is a composition that styles nothing
     /// and builds [SliderControl], which is `scroll`'s and `tabs`' arrangement and
-    /// is there so that one `slider` rule matches one element ([ADR-0430]). The
-    /// arithmetic is still the record's; the handlers are the node's.
+    /// is there so that one `slider` rule matches one element. The arithmetic
+    /// is unchanged; the handlers are the node's.
     ///
     /// Built with the **default** thumb width, which is what a control gets before
     /// any `render` has resolved `--gb-slider-thumb-size` — and, on the shipped
@@ -78,7 +80,7 @@ class SliderTest {
     }
 
     /// The groove inside a slider's track, which is where the fill, the thumb and
-    /// the rest live ([ADR-0080] moved them one level down).
+    /// the rest live, one level down from the track.
     private static SliderGroove groove(Slider slider) {
         return (SliderGroove)
                 ((SliderTrack) control(slider).children().getFirst()).children().getFirst();
@@ -128,7 +130,7 @@ class SliderTest {
 
         @Override
         public double nowMillis() {
-            throw new UnsupportedOperationException("a slider does not animate itself (§3.1)");
+            throw new UnsupportedOperationException("a slider does not animate itself: a drag is 1:1");
         }
 
         @Override
@@ -144,12 +146,12 @@ class SliderTest {
 
         @Override
         public boolean reducedMotion() {
-            throw new UnsupportedOperationException("a slider does not animate itself (§3.1)");
+            throw new UnsupportedOperationException("a slider does not animate itself: a drag is 1:1");
         }
     }
 
     @Nested
-    @DisplayName("parity (§11)")
+    @DisplayName("markup and Java build the same tree")
     class Parity {
 
         @Test
@@ -179,7 +181,7 @@ class SliderTest {
             // The `slider` node, which is what `SliderState` builds rather than
             // what the document wrote -- and the point of the split: `#gain` and
             // `.vertical` reach it because a composition hands its attributes to
-            // the node that carries its name (ADR-0430).
+            // the node that carries its name.
             assertEquals(
                     Length.points(2),
                     ComputedStyle.of(
@@ -190,7 +192,7 @@ class SliderTest {
 
         /// A contradiction is refused; a half-typed number is not. `max <= min`
         /// has no reading at all, while a mistyped `min=` is a document being
-        /// edited, which reload is deliberately forgiving about (ADR-0051).
+        /// edited, which reload is deliberately forgiving about.
         @Test
         @DisplayName("a range that is not a range is refused at construction")
         void badRangeRefused() {
@@ -256,7 +258,7 @@ class SliderTest {
             assertEquals(4, new Slider(0, 10, 4, 0, Property.of(null), null, false, null).resolved(), 1e-9);
         }
 
-        /// ADR-0063 in one assertion: dragging a bound slider whose handler does
+        /// The binding rule in one assertion: dragging a bound slider whose handler does
         /// nothing moves neither the property nor the thumb.
         @Test
         @DisplayName("a handler that does nothing leaves the thumb where it was")
@@ -351,7 +353,7 @@ class SliderTest {
             assertEquals(List.of(60.0, 40.0, 0.0, 100.0), asked);
         }
 
-        /// The reason ADR-0073 put scope traversal *after* the focused chain, and
+        /// The reason the router tries the focused chain *before* scope traversal, and
         /// the first control that actually relies on it: a slider inside a focus
         /// scope must keep its own arrows.
         @Test
@@ -389,12 +391,12 @@ class SliderTest {
     }
 
     @Nested
-    @DisplayName("the drag (§3.1: 1:1, no animation)")
+    @DisplayName("the drag: one to one, with no animation")
     class Drag {
 
         /// A press jumps the value to where it landed. The fraction comes from
         /// the router's local coordinates, which is the only way a widget can
-        /// know how far along itself a pointer is (ADR-0079) — mapped over the
+        /// know how far along itself a pointer is — mapped over the
         /// thumb's **travel**, which is where the thumb can actually go.
         ///
         /// 60px along a 200px track with a 16px thumb is `(60 − 8) / 184`, not
@@ -423,7 +425,7 @@ class SliderTest {
             assertEquals(100 * 142 / 184.0, asked.get(1), 1e-4);
         }
 
-        /// **The whole of ADR-0430, as three numbers.** The prize is 8px at each
+        /// **The whole of the travel mapping, as three numbers.** The prize is 8px at each
         /// end, so the test has to be specific about where those 8px went: the
         /// mapping is asserted against the thumb's width at both extremes and in
         /// the middle, and the old full-width mapping fails all three.
@@ -460,7 +462,7 @@ class SliderTest {
         /// than argued.
         ///
         /// Beyond the ends it **clamps**, which is not a rounding detail. The
-        /// press takes the pointer until the release (ADR-0058), so a drag that
+        /// press takes the pointer until the release, so a drag that
         /// wanders off the track arrives here with a local coordinate outside the
         /// box — and `x = −40` has to mean `min` rather than a value below it.
         @Test
@@ -499,7 +501,7 @@ class SliderTest {
 
         /// The banked number is the one the mapping uses, which is what makes
         /// `--gb-slider-thumb-size` a token an author can actually set rather
-        /// than a number the widget merely reads ([ADR-0251]).
+        /// than a number the widget merely reads.
         @Test
         @DisplayName("a fatter thumb moves the mapping with it")
         void theThumbWidthIsTheTokens() {
@@ -697,7 +699,8 @@ class SliderTest {
         }
 
         /// The groove is inside the track, and the track is what the value is
-        /// measured along — which is the whole of ADR-0080's structural half.
+        /// measured along — which is the structural half of measuring a value
+        /// along a part.
         @Test
         @DisplayName("the track holds the groove, and the slider holds the track")
         void anatomy() {
@@ -713,7 +716,7 @@ class SliderTest {
 
         /// The thumb is placed by that ratio and by nothing else. This is what
         /// says the position never became a transform — which is the thing a
-        /// stylesheet could not have expressed (ADR-0079).
+        /// stylesheet could not have expressed.
         @Test
         @DisplayName("the thumb carries no transform of its own")
         void thumbHasNoTransform() {
@@ -730,9 +733,9 @@ class SliderTest {
         /// start in the same place and end nowhere near each other.
         ///
         /// This was open as a defect for the whole of `slider`'s life with the
-        /// reason "§8's subset has no `text-align`" — which was true of the
-        /// subset and, it turned out, never true of the paragraph
-        /// ([ADR-0256]). `end` rather than `right`, for ADR-0247's reason.
+        /// reason "the CSS subset has no `text-align`" — which was true of the
+        /// subset and, it turned out, never true of the paragraph. `end` rather
+        /// than `right`, because the subset's alignment keywords are logical.
         @Test
         @DisplayName("the value label is aligned to the trailing edge of its fixed box")
         void theReadoutIsRightAligned() {
@@ -756,7 +759,7 @@ class SliderTest {
         }
 
         @Test
-        @DisplayName("§3's metrics: groove 4, thumb 16, hit target 32")
+        @DisplayName("the slider's metrics: groove 4, thumb 16, hit target 32")
         void metrics() {
             var slider = slider(0, 100, 25, 0);
 
@@ -765,12 +768,12 @@ class SliderTest {
             var groove = styleOf(slider, 0, 0);
             var thumb = styleOf(slider, 0, 0, 1);
 
-            assertEquals(Length.points(32), control.height(), "§1.3's hit target");
+            assertEquals(Length.points(32), control.height(), "a hit target is at least 32");
             assertEquals(
                     Length.points(32),
                     track.height(),
                     "the track is the whole hit target: it is what the pointer is mapped along");
-            assertEquals(Length.points(4), groove.height(), "§3's groove");
+            assertEquals(Length.points(4), groove.height(), "the groove is 4px");
             assertEquals(Length.points(16), thumb.width());
             assertEquals(Length.points(16), thumb.height());
         }
@@ -796,11 +799,11 @@ class SliderTest {
                 assertEquals(width / 2, left, 1e-6, "the scale starts under the thumb's centre");
                 assertEquals(width / 2, right, 1e-6, "and ends under it");
             } else {
-                fail("§3's metrics are points, not percentages");
+                fail("the slider's metrics are points, not percentages");
             }
         }
 
-        /// §3.1: "slider — drag: **1:1, no animation**". A thumb that eased
+        /// A slider's drag is **1:1, with no animation**. A thumb that eased
         /// toward the pointer would lag the finger, so `slider` is deliberately
         /// absent from the shared transition rule.
         @Test
@@ -815,9 +818,8 @@ class SliderTest {
         }
     }
 
-    /// §3's "optional tick marks and value label", and a fader's "optional dB
-    /// scale mapping" — the three things `slider` shipped without
-    /// ([ADR-0080]).
+    /// The catalogue's optional tick marks and value label, and a fader's
+    /// optional dB scale mapping — the three things `slider` shipped without.
     @Nested
     @DisplayName("the scale, the marks and the readout")
     class Optional {
@@ -860,7 +862,7 @@ class SliderTest {
         /// A pattern a double cannot satisfy is a document bug, and it is found
         /// where every other document bug is found — at inflation, with the text
         /// quoted — rather than on whichever frame first has a value to draw
-        /// (ADR-0062's rule, applied to a format string).
+        /// (the rule for a bad `bind` path, applied to a format string).
         @Test
         @DisplayName("a format a double cannot satisfy is refused when the slider is built")
         void badFormatRefused() {
@@ -974,8 +976,9 @@ class SliderTest {
             assertEquals(Scale.LINEAR, Scale.of(null));
             assertEquals(Scale.LINEAR, Scale.of("linear"));
             assertEquals(Scale.decibels(), Scale.of("db"));
-            // Two `decibels()` are the same value, which is what §11's parity
-            // test needs and what a lambda could never give.
+            // Two `decibels()` are the same value, which is what the parity test
+            // (markup and Java build the same tree) needs and what a lambda could
+            // never give.
             assertEquals(Scale.decibels(-60), Scale.decibels(-60));
             assertThrows(IllegalArgumentException.class, () -> Scale.of("dB"));
             assertThrows(IllegalArgumentException.class, () -> Scale.of("log"));
@@ -1020,7 +1023,7 @@ class SliderTest {
         /// It used to be `fraction * width`, and that was the same number only
         /// because the mapping was also wrong: the travel starts half a thumb in
         /// and ends half a thumb short, so 90% of a 100px track is 83.6px and not
-        /// 90 ([ADR-0430]). The assertion below is unchanged, which is the point
+        /// 90. The assertion below is unchanged, which is the point
         /// — the scale's curve is what this test is about, and it is untouched.
         private PointerEvent pressAt(float fraction, float width) {
             var thumb = (float) SliderControl.THUMB;

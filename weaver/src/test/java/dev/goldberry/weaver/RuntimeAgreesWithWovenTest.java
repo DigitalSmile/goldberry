@@ -18,7 +18,7 @@ import org.junit.jupiter.api.Test;
 
 /// The two forms of a binding, held to the same answers.
 ///
-/// Since [ADR-0155] a model is bound one of two ways: the weaver rewrites the
+/// A model is bound one of two ways: the weaver rewrites the
 /// class for a native image, and an ordinary jar reads the same annotations at
 /// run time. Two mechanisms with nothing in common — a rewritten `putfield`
 /// against a `VarHandle` and a sweep — and the whole promise of the arrangement

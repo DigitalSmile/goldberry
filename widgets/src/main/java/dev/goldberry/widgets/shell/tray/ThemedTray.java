@@ -17,7 +17,7 @@ import dev.goldberry.render.tray.BackendTray;
 /// it adds is **one listener, owned**: closing the tray closes the subscription
 /// with it, so an application that rebuilds its tray to change the menu —
 /// which is the only way a tray menu changes — does not leave one listener
-/// behind per rebuild, each holding two pictures and a dead tray (ADR-0501).
+/// behind per rebuild, each holding two pictures and a dead tray.
 ///
 /// UI-thread confined, like the tray it wraps; the host tells its listeners on
 /// that thread.

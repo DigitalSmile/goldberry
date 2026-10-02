@@ -25,8 +25,7 @@ import dev.goldberry.widgets.markup.Wiring;
 import dev.goldberry.widgets.panel.calendar.CalendarView;
 import dev.goldberry.widgets.panel.calendar.DateSelection;
 
-/// A typed date field with a calendar under it — `docs/core-widgets.md` §4's
-/// `date-picker`.
+/// A typed date field with a calendar under it.
 ///
 /// ```kdl
 /// field label="Departure" {
@@ -48,14 +47,14 @@ import dev.goldberry.widgets.panel.calendar.DateSelection;
 ///     └── picker-toggle the affordance that opens the grid
 /// ```
 ///
-/// The popover holds a [CalendarView], which is §10's widget unchanged — the
+/// The popover holds a [CalendarView], the `calendar` widget unchanged — the
 /// picker configures one and does not reimplement a month.
 ///
 /// ## The typed field is the source of truth
 ///
-/// §4 says why, and it is the sentence the whole design follows from: "a date
-/// picker you cannot type into is unusable for a birthday, and every keyboard
-/// user reaches the field before the grid". So the **text** is what this holds,
+/// The whole design follows from one sentence: a date picker you cannot type
+/// into is unusable for a birthday, and every keyboard user reaches the field
+/// before the grid. So the **text** is what this holds,
 /// the grid writes into it, and a value only leaves through
 /// [DateFormat#parse]. A picker that held a `LocalDate` and rendered it into the
 /// field would have to decide what the field says while somebody is halfway
@@ -63,8 +62,8 @@ import dev.goldberry.widgets.panel.calendar.DateSelection;
 ///
 /// ## What it will not let you reach
 ///
-/// §4: "`min`, `max` and a `disabled` predicate gate both the field and the grid,
-/// so an unreachable date cannot be typed either." One rule, asked in one place —
+/// `min`, `max` and a `disabled` predicate gate both the field and the grid, so
+/// an unreachable date cannot be typed either. One rule, asked in one place —
 /// [CalendarView#allows] — by the grid that draws the day and by the field that
 /// parsed it.
 ///
@@ -76,13 +75,15 @@ import dev.goldberry.widgets.panel.calendar.DateSelection;
 /// a value, typing is a way of reaching one, and abandoning the attempt must not
 /// throw away something nobody asked to lose. The arrows, `PgUp` and `PgDn` reach
 /// the grid without this widget forwarding anything — while a popup is open the
-/// keyboard belongs to it (ADR-0104).
+/// keyboard belongs to it.
+///
+/// Read more: [Fields and forms](https://goldberry.dev/docs/components/forms.html#date-picker).
 ///
 /// @param value      the text the field starts with when nothing is bound
 /// @param source     the `bind=` value, or null — a `LocalDate` or its text
 /// @param onChange   told the whole selection whenever a value is committed
 /// @param placeholder what the field shows when it is empty
-/// @param range      whether it chooses a pair — §4's `range=#true`
+/// @param range      whether it chooses a pair — `range=#true`
 /// @param month      which month the grid opens on when nothing is chosen
 /// @param today      which day the grid marks, or null for none
 /// @param min        the earliest reachable date, or null
@@ -112,7 +113,7 @@ public record DatePicker(
 
     private static final Logger LOG = Logs.of(DatePicker.class);
 
-    /// Written out so that the parameters taking null for a default can say so (ADR-0497).
+    /// Written out so that the parameters taking null for a default can say so.
     public DatePicker(
             @Nullable String value,
             @Nullable Observable<?> source,
@@ -158,7 +159,7 @@ public record DatePicker(
     /// An empty picker whose grid opens on `month`.
     ///
     /// The month is an argument for [CalendarView]'s reason: nothing in the
-    /// catalog may read the machine's time zone (ADR-0203), so a widget that
+    /// catalogue may read the machine's time zone, so a widget that
     /// opened on "this month" would be deciding what month it is.
     public DatePicker(YearMonth month) {
         this(month, null);
@@ -205,8 +206,8 @@ public record DatePicker(
     /// This picker holding `text` when nothing is bound.
     ///
     /// The *text*, not a `LocalDate`, because that is what this control holds —
-    /// §4's "the typed field is the source of truth", and the reason a picker can
-    /// be built showing something half typed.
+    /// the typed field is the source of truth, and that is the reason a picker
+    /// can be built showing something half typed.
     public DatePicker value(String text) {
         return new DatePicker(
                 Objects.requireNonNull(text, "text"),
@@ -244,7 +245,7 @@ public record DatePicker(
                 attributes);
     }
 
-    /// This picker choosing a pair — §4's `range=#true`.
+    /// This picker choosing a pair — `range=#true`.
     public DatePicker range(boolean pair) {
         return new DatePicker(
                 value,
@@ -320,8 +321,8 @@ public record DatePicker(
                 attributes);
     }
 
-    /// This picker writing and reading dates with `how` — §4's "a `java.time`
-    /// formatter the application supplies".
+    /// This picker writing and reading dates with `how` — a `java.time`
+    /// formatter the application supplies.
     public DatePicker format(DateFormat how) {
         return new DatePicker(
                 value,
@@ -430,7 +431,7 @@ public record DatePicker(
         return attributes.key();
     }
 
-    /// Which of §10's three models this picker's grid is in.
+    /// Which of the calendar's three models this picker's grid is in.
     public DateSelection.Mode mode() {
         return range ? DateSelection.Mode.RANGE : DateSelection.Mode.SINGLE;
     }
@@ -456,8 +457,7 @@ public record DatePicker(
         };
     }
 
-    /// Whether `date` may be reached — the one rule §4 asks the field and the
-    /// grid to share.
+    /// Whether `date` may be reached — the one rule the field and the grid share.
     public boolean allows(LocalDate date) {
         if (min != null && date.isBefore(min)) {
             return false;
@@ -476,14 +476,14 @@ public record DatePicker(
     /// Builds a `date-picker` from markup.
     ///
     /// `min=` and `max=` are **ISO** — `2026-01-01` — and are the one place this
-    /// widget names a date syntax. §4's "the toolkit does not invent a date
-    /// syntax" is about what a *user* types, which is [#format]'s and the
+    /// widget names a date syntax. The toolkit does not invent a date syntax
+    /// for what a *user* types, which is [#format]'s and the
     /// application's; a bound written into a document is written by a programmer,
     /// and `LocalDate.parse`'s own format is the one every JVM reads the same way
     /// whatever locale it started in.
     ///
-    /// The formatter itself is deliberately absent: §4 says the application
-    /// supplies it, and a `DateTimeFormatter` is not something KDL can carry. A
+    /// The formatter itself is deliberately absent: the application supplies
+    /// it, and a `DateTimeFormatter` is not something KDL can carry. A
     /// document therefore gets the locale's short form, which is the documented
     /// default rather than a gap.
     public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
@@ -496,7 +496,7 @@ public record DatePicker(
         return new DatePicker(
                 Objects.requireNonNullElse(node.stringProperty("value"), ""),
                 wiring.bound(node),
-                // A document's `change` carries **text**, because §9's valued
+                // A document's `change` carries **text**, because markup's valued
                 // actions cross as a `String` and nothing else -- so a document
                 // is told the formatted date and Java is told the `DateSelection`.
                 // That is the same split `text-input` has, one level up: what a

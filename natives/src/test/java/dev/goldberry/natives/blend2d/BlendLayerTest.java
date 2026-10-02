@@ -103,8 +103,8 @@ class BlendLayerTest {
     @Test
     @DisplayName("two overlapping shapes in one layer fade together, not separately")
     void groupsRatherThanFadesEach() {
-        // The whole difference between a layer and multiplying alpha per shape,
-        // and the reason ADR-0064 left it as an open question. Two opaque
+        // The whole difference between a layer and multiplying alpha per shape.
+        // Two opaque
         // rectangles overlapping, the group at 50%: through a layer the overlap
         // is the *top* rectangle at 50% over the backdrop. Faded separately it
         // would be the top at 50% over the bottom at 50% over the backdrop --

@@ -18,7 +18,8 @@ import dev.goldberry.render.model.LogicalSize;
 import dev.goldberry.widget.Widget;
 import dev.goldberry.widgets.core.scroll.Fitted;
 
-/// Opens a [Menu] — the half of `docs/core-widgets.md` §8 that is not a widget.
+/// Opens a [Menu]: the call that puts a menu on screen, which a widget cannot do
+/// for itself.
 ///
 /// ```java
 /// Menus.open(host, "file-button", new Menu(
@@ -34,7 +35,7 @@ import dev.goldberry.widgets.core.scroll.Fitted;
 /// against whatever summoned it, ask the platform for a window and close it
 /// again. A widget has no `Host` and must not — it is a value, described afresh
 /// every frame, and one holding the window it is drawn in would be describing its
-/// own surroundings ([ADR-0106]).
+/// own surroundings.
 ///
 /// So a menu is a widget and opening one is a call, and the two meet the way a
 /// composite meets its children everywhere else in this catalog: the opener
@@ -46,19 +47,21 @@ import dev.goldberry.widgets.core.scroll.Fitted;
 ///
 /// Every command **closes the whole stack**, which is what a menu does everywhere:
 /// choosing "Save" from a submenu of a submenu leaves nothing on screen. A press
-/// outside, or `Escape`, does the same through the popup's own light dismissal
-/// ([ADR-0103]).
+/// outside, or `Escape`, does the same through the popup's own light dismissal,
+/// which belongs to the popup window and not to the menu in it.
 ///
 /// A submenu closes its siblings as it opens, so moving down a menu past three
 /// items with submenus leaves one open rather than three.
+///
+/// Read more: [Menus and the tray](https://goldberry.dev/docs/components/menus.html#menu).
 public final class Menus {
 
     private static final org.slf4j.Logger LOG = org.slf4j.LoggerFactory.getLogger(Menus.class);
 
     private Menus() {}
 
-    /// How long the pointer has to rest on a row before its submenu opens —
-    /// §8's "hover-intent timing".
+    /// How long the pointer has to rest on a row before its submenu opens: the
+    /// hover-intent delay.
     ///
     /// Short, because a submenu is what the pointer is *going* to, unlike a
     /// tooltip which is a thing it happened to stop on. Long enough that
@@ -69,11 +72,10 @@ public final class Menus {
     ///
     /// Small on purpose: far enough that the two panels do not share an edge —
     /// which reads as one panel with a seam — and near enough that the pointer
-    /// crossing the gap does not leave both menus and put the submenu away
-    /// (ADR-0113).
+    /// crossing the gap does not leave both menus and put the submenu away.
     private static final float SUBMENU_GAP = 2;
 
-    /// Wires up §8's context menus: `context-menu="rowMenu"` on any widget opens
+    /// Wires up context menus: `context-menu="rowMenu"` on any widget opens
     /// `menus.get("rowMenu")` where the pointer is.
     ///
     /// One line in an application, and the line is here rather than in `:core`
@@ -81,7 +83,7 @@ public final class Menus {
     /// catalog boundary. The toolkit notices the right-click and knows which name
     /// the widget carried; only the catalog can turn that name into a menu and
     /// open it, which means wrapping every item so that choosing it closes the
-    /// stack (ADR-0108).
+    /// stack.
     ///
     /// A name nobody registered is **logged and ignored**, not thrown: a right
     /// click is not a request that can fail usefully, and taking a window down
@@ -115,7 +117,7 @@ public final class Menus {
     ///
     /// `menubar` is what wanted this: a heading's menu hangs from the bar with no
     /// gap, where a context menu stands off the pointer so as not to open
-    /// underneath it (ADR-0163).
+    /// underneath it.
     public static Optional<Popup> open(Host host, String anchorId, Menu menu, Placement placement) {
 
         return open(host, anchorId, menu, placement, null);
@@ -127,7 +129,7 @@ public final class Menus {
     /// to whatever is on its left, which is a fact about the bar and not about
     /// the menu. Everything else passes null, and those two arrows do nothing at
     /// the root of a context menu — which is right, because there is nowhere to
-    /// go (ADR-0219).
+    /// go.
     public static Optional<Popup> open(
             Host host, String anchorId, Menu menu, Placement placement, @Nullable Siblings siblings) {
 
@@ -135,13 +137,11 @@ public final class Menus {
         Objects.requireNonNull(anchorId, "anchorId");
         Objects.requireNonNull(placement, "placement");
         Objects.requireNonNull(menu, "menu");
-        // **By name, not by rectangle.** This used to resolve the anchor itself —
-        // `host.anchor(anchorId).painted()` — because no `Host.popup` overload
-        // took an id *and* the minimum width and the `Fit` a menu also needs, and
-        // a menu opened against a rectangle has nothing to re-resolve when its
-        // anchor scrolls. There is one now, and passing the name is the whole of
-        // what makes a menu travel with the heading it hangs off ([ADR-0432],
-        // [ADR-0270]).
+        // **By name, not by rectangle.** A menu opened against a rectangle has
+        // nothing to re-resolve when its anchor scrolls or its window moves; one
+        // opened against a name is placed again from wherever that node was last
+        // painted. Passing the name is the whole of what makes a menu travel with
+        // the heading it hangs off.
         return open(
                 host,
                 menu,
@@ -208,7 +208,7 @@ public final class Menus {
     /// the popup does, and the popup has to reach the stack whether it was placed
     /// against a name or a rectangle. A submenu is always a rectangle, because it
     /// is anchored inside the menu it came from and that is not a node this
-    /// window painted ([ADR-0432]).
+    /// window painted.
     private static Optional<Popup> open(
             Host host,
             Menu menu,
@@ -229,22 +229,11 @@ public final class Menus {
     /// A menu longer than the screen becomes a menu of the screen's height with
     /// its items scrolling inside it.
     ///
-    /// This used to be a **conservative estimate** applied here before the popup
-    /// was opened — rows times an assumed 34px — because `Menus` cannot lay
-    /// anything out and the facility that can did not say what it measured. It
-    /// erred towards wrapping, so a menu that would have fitted could get a
-    /// viewport nobody could see; and `--gb-menu-item-height` being 32 rather
-    /// than 34 was a number kept in two places, one of which was a stylesheet a
-    /// widget cannot read.
-    ///
-    /// It is a measurement now. The decision is still made **here** rather than
-    /// in the popup facility, for the two reasons that have not changed: `:core`
-    /// has no widgets to wrap anything in
-    /// (ADR-0092),
-    /// and whether long content should scroll or be clamped is a fact about the
-    /// content — a tooltip that scrolled would be absurd
-    /// (ADR-0118,
-    /// ADR-0179).
+    /// The popup facility measures the content and reports what it found, and
+    /// the decision to wrap is made **here** rather than in that facility, for
+    /// two reasons: `:core` has no widgets to wrap anything in, and whether long
+    /// content should scroll or be clamped is a fact about the content — a
+    /// tooltip that scrolled would be absurd.
     ///
     /// **Nothing happens to a menu that fits**, which is nearly all of them.
     private static final Fitted VIEWPORT = new Fitted("menu-viewport");
@@ -285,12 +274,10 @@ public final class Menus {
     /// One menu that is on screen: the popup it became, the rows in it, and which
     /// of them has its submenu showing.
     ///
-    /// It exists because four of `TODO.md`'s entries were the same missing thing —
-    /// a row could tell its menu that the pointer had arrived and nothing else, so
-    /// a keyboard `Right` waited out the pointer's delay, `Left` closed nothing,
-    /// and the row whose branch was open looked like every other row. All four are
-    /// answers only the menu can give, and this is the menu
-    /// (ADR-0219).
+    /// It exists because a row on its own can say only that the pointer arrived.
+    /// What a keyboard `Right` opens, what `Left` goes back to, and which row's
+    /// branch is showing are answers only the menu can give, and this is the
+    /// menu.
     private static final class OpenMenu {
 
         private final Host host;
@@ -331,8 +318,8 @@ public final class Menus {
             // One decision for the whole menu: the leading column appears when
             // *anything* in it has something to put there -- a tick or an icon --
             // and then every row has one, so the labels line up. A menu with
-            // neither has no column at all, which is most menus and which is the
-            // unexplained indent this removes (ADR-0113).
+            // neither has no column at all, which is most menus; a column with
+            // nothing in it would be an unexplained indent.
             var reserve = menu.children().stream()
                     .anyMatch(child -> child instanceof Item item && (item.isCheckable() || item.icon() != null));
             var children = new ArrayList<Widget>(menu.children().size());
@@ -374,7 +361,7 @@ public final class Menus {
 
                 @Override
                 public void open() {
-                    // No delay. §8's hover-intent stops a submenu dropping out of
+                    // No delay. The hover-intent delay stops a submenu dropping out of
                     // a pointer travelling past three rows, and a keypress has
                     // travelled past nothing.
                     cancelPending();
@@ -486,9 +473,8 @@ public final class Menus {
             // **Beside the menu, level with the row.** Two rectangles, because
             // the two axes answer to different things: an item's right edge is a
             // few pixels inside the menu's -- the panel's padding and its border
-            // -- so a submenu anchored to the item alone opens *on top of* the
-            // border of the menu it came from, which is what it looked like
-            // (ADR-0113).
+            // -- so a submenu anchored to the item alone would open *on top of*
+            // the border of the menu it came from.
             var bounds = self.bounds();
             var beside = new LogicalRect(
                     new LogicalPoint(bounds.left(), row.get().top()),
@@ -496,7 +482,7 @@ public final class Menus {
 
             // `AFTER` and not `BELOW`: a submenu sits beside its menu, and flips
             // to the other side near the edge of the screen, which is
-            // `Placement`'s (ADR-0104). The gap is the couple of pixels that keep
+            // `Placement`'s job. The gap is the couple of pixels that keep
             // the two panels from sharing an edge.
             //
             // No `Siblings`: a submenu is not on the bar, so `Left` in it goes

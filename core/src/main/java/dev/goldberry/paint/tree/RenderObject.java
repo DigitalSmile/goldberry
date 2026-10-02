@@ -23,10 +23,8 @@ import dev.goldberry.render.model.LogicalRect;
 import dev.goldberry.render.model.PhysicalSize;
 import dev.goldberry.text.flow.TextFlow;
 
-/// One visual node, kept between frames — ADR-0004's third tree.
-///
-/// > **Render objects** — one per visual node. Owns a `YGNode`, a
-/// > `ComputedStyle`, and the paint logic.
+/// One visual node, kept between frames — a node of the retained render tree,
+/// the third of the toolkit's three trees.
 ///
 /// It owns the `YGNode`, and the [Box] it holds is the style. What it does *not*
 /// own is the paint logic, which stays in [BoxPainter] as a function of the box —
@@ -41,10 +39,9 @@ import dev.goldberry.text.flow.TextFlow;
 /// - **The Yoga node survives.** Building one is cheap; attaching a measure
 ///   function is not — a [dev.goldberry.natives.yoga.MeasureCallback]
 ///   is a confined `Arena` and a `MethodHandle` bound into native code, measured
-///   at 11 µs against 0.3 µs for actually calling through it
-///   (ADR-0037).
-///   Paid per text node per frame, it was the largest single cost of text in a
-///   layout pass.
+///   at 11 µs against 0.3 µs for actually calling through it. Paid per text
+///   node per frame, it would be the largest single cost of text in a layout
+///   pass.
 /// - **Yoga skips what did not change.** Yoga dirties a node when a style is
 ///   *set on it*, not when the value differs — so re-setting an unchanged width
 ///   every frame dirties the whole tree and the layout cache never hits. Every
@@ -54,15 +51,16 @@ import dev.goldberry.text.flow.TextFlow;
 ///
 /// ## Reconciled against a value, not mutated by widgets
 ///
-/// A widget still describes itself as an immutable [Box]
-/// (ADR-0053),
-/// and this tree is diffed against that description. Widgets never touch a render
+/// A widget describes itself as an immutable [Box], and this tree is diffed
+/// against that description. Widgets never touch a render
 /// object. That keeps the declarative contract intact and makes the diff input an
 /// immutable tree, which is the ideal thing to diff — and it means this whole
 /// layer could be deleted and the toolkit would still draw, just slower.
 ///
 /// Confined to the UI thread, like the Yoga nodes underneath it, and must be
 /// closed — it holds native memory in the node and in the measure callback.
+///
+/// Read more: [Architecture](https://goldberry.dev/docs/overview/architecture.html#the-three-trees).
 public final class RenderObject implements AutoCloseable {
 
     private final YogaNode node;
@@ -168,7 +166,7 @@ public final class RenderObject implements AutoCloseable {
     /// four separate walks where every node is: the paint pass, the damage pass,
     /// the hit-test snapshot and the ink pass below. Reading Yoga in each of them
     /// was four times the cost for four identical answers, since nothing between
-    /// [RenderTree#update] and the next one can move a node ([ADR-0313]).
+    /// [RenderTree#update] and the next one can move a node.
     LogicalRect layout() {
         return placed;
     }
@@ -184,7 +182,7 @@ public final class RenderObject implements AutoCloseable {
     /// box's top-left corner is the origin, and its own transform is not applied.
     ///
     /// Read by the painter to skip a subtree that cannot put a pixel inside the
-    /// clip in force ([ADR-0313]). Recomputed once per layout pass by [#settle],
+    /// clip in force. Recomputed once per layout pass by [#settle],
     /// because it is a function of where Yoga put everything and of nothing
     /// else.
     Ink ink() {
@@ -202,7 +200,7 @@ public final class RenderObject implements AutoCloseable {
     /// node**. That is four native downcalls and two allocations a time, and a
     /// parent asking its children where they are would double every one of them
     /// across a tree that can be five thousand nodes deep in this application —
-    /// which is the whole measurable cost of this pass ([ADR-0313]).
+    /// which is the whole measurable cost of this pass.
     ///
     /// **The child's transform is applied here and its parent's is not.** A
     /// transform is written in the box's own coordinates, so `compose` anchors it
@@ -225,7 +223,7 @@ public final class RenderObject implements AutoCloseable {
         // that grew and squeezed this node is a layout this node's own boxes know
         // nothing about. With the same styles throughout and the same rectangle
         // to lay them out in, Yoga is a function and its answer is the one
-        // already read ([ADR-0313]).
+        // already read.
         //
         // This is what makes **scrolling** cost nothing here: a viewport moves by
         // a `transform` on one box, so exactly one node is `changed` and the
@@ -278,7 +276,7 @@ public final class RenderObject implements AutoCloseable {
         // Read by Yoga only when the container wraps, and set unconditionally
         // anyway: "does this box wrap" is a question about the box next frame as
         // well as this one, and a value the engine ignores costs one foreign
-        // call on the frame it changes (ADR-0374).
+        // call on the frame it changes.
         if (previous == null || previous.alignContent() != box.alignContent()) {
             node.setAlignContent(Yoga.align(box.alignContent()));
         }
@@ -294,7 +292,7 @@ public final class RenderObject implements AutoCloseable {
         // The four limits, together, because they arrive together. Skipped
         // wholesale when neither frame had any -- which is nearly every node --
         // so a box that never mentions a minimum costs one comparison rather
-        // than four foreign calls (ADR-0181).
+        // than four foreign calls.
         var limits = box.limits();
         if (previous == null ? !limits.isNone() : !previous.limits().equals(limits)) {
             node.setMinWidth(Yoga.length(limits.minWidth()));
@@ -306,15 +304,13 @@ public final class RenderObject implements AutoCloseable {
         // the order a reader looking for one of the two expects to find it.
         // Per edge for padding's reason, and `Length.AUTO` on an edge reaches
         // Yoga's own `YGNodeStyleSetMarginAuto` — which is what `margin: 0 auto`
-        // resolves to and what absorbs the free space beside the node
-        // (ADR-0313).
+        // resolves to and what absorbs the free space beside the node.
         var margin = box.margin();
         // `Insets.ZERO` on a first apply is skipped wholesale, which `limits`
-        // does for the same reason (ADR-0181): Yoga's own default margin is zero,
-        // so a box that never mentions one costs a single comparison rather than
-        // four foreign calls on the frame it first appears. Margin is rarer than
-        // padding in this catalog -- nothing in it wore one until today -- so
-        // that is nearly every node.
+        // does for the same reason: Yoga's own default margin is zero, so a box
+        // that never mentions one costs a single comparison rather than four
+        // foreign calls on the frame it first appears. Margin is rarer than
+        // padding in this catalog, so that is nearly every node.
         if (previous == null ? !margin.equals(Insets.ZERO) : !previous.margin().equals(margin)) {
             node.setMargin(Edge.TOP, Yoga.length(margin.top()));
             node.setMargin(Edge.RIGHT, Yoga.length(margin.right()));
@@ -349,8 +345,7 @@ public final class RenderObject implements AutoCloseable {
         // Yoga's half of `overflow`: a node that is not VISIBLE does not grow to
         // contain a child that overruns it. Without this a viewport would simply
         // stretch to its content and there would be nothing to scroll — the
-        // clip in the painter hides the overflow, and this is what *creates* it
-        // (ADR-0114).
+        // clip in the painter hides the overflow, and this is what *creates* it.
         if (previous == null || previous.overflow() != box.overflow()) {
             node.setOverflow(Yoga.overflow(box.overflow()));
         }
@@ -398,7 +393,7 @@ public final class RenderObject implements AutoCloseable {
         // evicted the old one. **Or the same paragraph measured by a different
         // rule** -- `white-space` is what decides whether the callback takes the
         // width Yoga offers or reports its own, so a restyle that changes it has
-        // to rebind even though the text did not change (ADR-0255).
+        // to rebind even though the text did not change.
         node.setMeasureFunction(Yoga.measure(paragraph.measureFunction(flow)));
         // And then say so, because **Yoga does not dirty a node when its measure
         // function is replaced**. It dirties on a style change, and the text is
@@ -419,9 +414,8 @@ public final class RenderObject implements AutoCloseable {
     /// Replaces this object's children with `next`, reusing what it can.
     ///
     /// Matched by position and then checked with [#accepts], which is enough
-    /// because the **element tree has already done the keyed diff**
-    /// (ADR-0052):
-    /// by the time a box tree exists, the order is stable and a node that moved
+    /// because the **element tree has already done the keyed diff**: by the
+    /// time a box tree exists, the order is stable and a node that moved
     /// moved for a reason. A mismatch costs a rebuilt subtree, never a wrong
     /// result.
     ///
@@ -531,15 +525,13 @@ public final class RenderObject implements AutoCloseable {
     /// **The policy, stated in one place.** A node is promoted when it is
     /// translucent *and has children*, because that is exactly where CSS's group
     /// opacity and Goldberry's per-box alpha multiply give different answers —
-    /// faded separately, a lower child shows through an upper one
-    /// (ADR-0064
-    /// stated that difference and left it open).
+    /// faded separately, a lower child shows through an upper one.
     ///
     /// A translucent **leaf** is deliberately not promoted. Its own background,
     /// border and text can overlap each other, so a layer would differ there too
     /// — by a fraction of a level along an antialiased edge — and paying an
     /// allocation and a blit for every faded label to fix that would be a poor
-    /// trade. `:disabled` at 45% (§2.1) is the case that matters and it is a
+    /// trade. `:disabled` at 45% is the case that matters and it is a
     /// control with children.
     ///
     /// Fully transparent is not promoted either: there is nothing to composite,
@@ -569,9 +561,9 @@ public final class RenderObject implements AutoCloseable {
         // has to be drawn again.
         // `contentChanged`, not `changed`: this node's own opacity and transform
         // are applied to the composite, so a group that is only fading or moving
-        // keeps the raster it already has. That is the whole of §1.7's layer
-        // promotion, and reading `changed` here meant an opacity transition
-        // invalidated the raster on every frame of itself.
+        // keeps the raster it already has. That is the whole of layer
+        // promotion, and reading `changed` here would make an opacity
+        // transition invalidate the raster on every frame of itself.
         if (contentChanged || !bounds.equals(layerBounds)) {
             layer.valid(false);
         }
@@ -605,8 +597,9 @@ public final class RenderObject implements AutoCloseable {
         //      Its `opacity` and `transform` are applied to the blit, not inside
         //      the layer, so neither does.
         //
-        // (3) is the one §1.7 promotes a node for. Answering it with (1) meant an
-        // opacity transition invalidated the very raster it existed to reuse.
+        // (3) is the one a node is promoted for. Answering it with (1) would
+        // make an opacity transition invalidate the very raster it exists to
+        // reuse.
         var previous = applied;
         // The inset that will reach Yoga, which is the box's own only when
         // nothing shifts it ([ContainingBlock]). Resolved here rather than inside
@@ -661,8 +654,7 @@ public final class RenderObject implements AutoCloseable {
     ///
     /// Most of these comparisons are reference checks in practice: a cached
     /// `ComputedStyle` hands `Box.style` the same `Decoration`, `Insets` and
-    /// `Transform` instances every frame
-    /// (ADR-0070).
+    /// `Transform` instances every frame.
     private static boolean sameAppearance(Box a, Box b) {
         return a.background() == b.background()
                 && a.opacity() == b.opacity()
@@ -676,7 +668,7 @@ public final class RenderObject implements AutoCloseable {
                 // it: a row that starts wrapping puts its third child on a second
                 // line without changing a single field of that child's box, so a
                 // subtree "unchanged" by this comparison had every rectangle in
-                // it move ([ADR-0313]). `overflow` and `elevated` change what is
+                // it move. `overflow` and `elevated` change what is
                 // drawn rather than where -- a box that starts clipping, and one
                 // that starts painting over its siblings.
                 && a.alignSelf() == b.alignSelf()
@@ -698,12 +690,12 @@ public final class RenderObject implements AutoCloseable {
                 && Objects.equals(a.text(), b.text())
                 && Objects.equals(a.icon(), b.icon())
                 && Objects.equals(a.mark(), b.mark())
-                // The painter, which was missing and is the one piece of a box
-                // whose *contents* this class cannot see. A `canvas`, a
-                // `sparkline`, a chart surface and a colour plane all draw
-                // through one, and a box whose painter changed was called
-                // unchanged: the node kept last frame's pixels and, in a promoted
-                // layer, was not even re-rastered (the 2026-09-18 review, §7).
+                // The painter, which is the one piece of a box whose *contents*
+                // this class cannot see. A `canvas`, a `sparkline`, a chart
+                // surface and a colour plane all draw through one, and a box
+                // whose painter changed must not be called unchanged: the node
+                // would keep last frame's pixels and, in a promoted layer, not
+                // even be re-rastered.
                 //
                 // Compared by identity, because a `Painter` is a lambda and there
                 // is nothing else to compare. The consequence is worth stating:

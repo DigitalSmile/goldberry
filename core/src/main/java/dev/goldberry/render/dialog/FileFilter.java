@@ -28,6 +28,8 @@ import java.util.Objects;
 /// off, and some ignore it altogether; a dialog is not a validator, so code that
 /// must not open a `.exe` checks the path it was given.
 ///
+/// Read more: [Windows, popups and the host](https://goldberry.dev/docs/guide/windows.html#the-host).
+///
 /// @param label      what the dropdown says
 /// @param extensions the extensions, dotless and lower-cased; empty means every file
 public record FileFilter(String label, List<String> extensions) {

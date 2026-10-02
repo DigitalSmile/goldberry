@@ -1,6 +1,8 @@
 package dev.goldberry.natives.yoga.style;
 
 /// Whether a line wraps — `YGWrap`, CSS's `flex-wrap`.
+///
+/// Read more: [The native boundary](https://goldberry.dev/docs/overview/architecture.html#the-native-boundary).
 public enum Wrap implements YogaEnum {
 
     /// One line, however much it overflows. Yoga's default, and CSS's.

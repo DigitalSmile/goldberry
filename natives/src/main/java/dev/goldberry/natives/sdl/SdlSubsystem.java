@@ -13,6 +13,8 @@ import java.util.Set;
 /// SDL initializes some subsystems implicitly: video, audio, joystick, sensor and
 /// camera each imply events, and gamepad implies joystick. So what [Sdl#wasInit()]
 /// reports is generally a superset of what was asked for.
+///
+/// Read more: [The native boundary](https://goldberry.dev/docs/overview/architecture.html#the-native-boundary).
 public enum SdlSubsystem {
     AUDIO(0x00000010),
 

@@ -18,7 +18,7 @@ import dev.goldberry.input.key.Shortcut;
 
 /// That the gallery has **one** order in it.
 ///
-/// The strip and the accelerators are two ways to set one property (ADR-0110),
+/// The strip and the accelerators are two ways to set one property,
 /// and they each used to hold their own list of screens. The lists disagreed:
 /// `Charts` was inserted after `Choosers` in the strip and *instead* of it in
 /// the accelerators, so `Ctrl+8` selected the ninth tab, and the tenth screen

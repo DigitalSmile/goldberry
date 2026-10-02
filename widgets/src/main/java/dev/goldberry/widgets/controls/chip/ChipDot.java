@@ -10,12 +10,10 @@ import dev.goldberry.widget.style.Paints;
 import dev.goldberry.widget.style.Styled;
 
 /// The 6-point status dot before a [Chip]'s label — a **part**, so it is
-/// CSS-selectable and not constructible
-/// (ADR-0065).
+/// CSS-selectable and not constructible from outside the package.
 ///
-/// ## It is a box, not a mark
-///
-/// Every other small glyph in this catalog is a [Box.Mark] — a tick, a ×, a
+/// It is a box, not a mark. Every other small glyph in this catalog is a
+/// [Box.Mark] — a tick, a ×, a
 /// chevron — because each is a *stroke* whose geometry the painter has to know.
 /// A dot is a filled square with a `full` radius, which is what a box already is,
 /// and adding a `DOT` kind to the painter would put a second way to draw a circle
@@ -27,14 +25,12 @@ import dev.goldberry.widget.style.Styled;
 /// ink. That is what lets a muted chip carry a live red dot, which is the only
 /// arrangement the widget is really for.
 ///
-/// ## And a colour the document supplied wins
-///
-/// A rule can name a *status*; it cannot name a Project, because a Project's hue
-/// is a row in a database rather than a variant somebody wrote CSS for. So
-/// [Chip#withDot(int)] hands one down and it is painted over the resolved
-/// background — `0` meaning "there was none", which is the same sentinel every
-/// other document-supplied colour in the catalog uses (`docs/gaps.md` G36,
-/// [ADR-0328]).
+/// A colour the document supplied wins. A rule can name a *status*; it cannot
+/// name a Project, because a Project's hue is a row in a database rather than a
+/// variant somebody wrote CSS for. So [Chip#withDot(int)] hands one down and it
+/// is painted over the resolved background — `0` meaning "there was none",
+/// which is the same sentinel every other document-supplied colour in the
+/// catalog uses.
 ///
 /// The **background** and not a foreground, so the two answers are the same
 /// property and a stylesheet keeps every other thing it decides about the dot —

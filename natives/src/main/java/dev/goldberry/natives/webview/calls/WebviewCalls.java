@@ -17,8 +17,7 @@ import dev.goldberry.natives.Downcalls;
 /// upstream C API returns a `webview_error_t` in an out-parameter shape this
 /// project would have to model, and two of the calls here have no upstream at all
 /// — [Pump], which is a GLib iteration on Linux and nothing anywhere else, and
-/// [Abi], which is how a stale library is caught before it is trusted
-/// ([ADR-0441]).
+/// [Abi], which is how a stale library is caught before it is trusted.
 ///
 /// See [Downcalls] for why each handle is a `static final` constant and why these
 /// live in a package of their own.
@@ -312,7 +311,7 @@ public record WebviewCalls(
     /// Exists so a failed [Create] can say *which* failure it was. Two GTK majors
     /// in one process is a segfault in `gtk_init_check`, not an error — and a
     /// Goldberry process is already a GTK 3 one whenever it has shown a tray
-    /// icon, because SDL's Linux tray is libayatana-appindicator ([ADR-0441]).
+    /// icon, because SDL's Linux tray is libayatana-appindicator.
     /// Always 0 on macOS and Windows.
     public static final class GtkConflict {
 
@@ -341,7 +340,7 @@ public record WebviewCalls(
     /// Create-and-embed in one call rather than two, because GDK picks its
     /// backend during `gtk_init` and prefers Wayland where both are available —
     /// so a page created first gets a `wl_surface` that cannot be reparented,
-    /// even when SDL is on X11 ([ADR-0442]).
+    /// even when SDL is on X11.
     public static final class CreateEmbedded {
 
         private static final MethodHandle FD_goldberry_webview_create_embedded = Downcalls.link(
@@ -518,8 +517,7 @@ public record WebviewCalls(
     /// `int goldberry_webview_has_focus(void* w)`
     ///
     /// 1 or 0. Only macOS can answer 1 in a way that matters: it is the one
-    /// platform where SDL also receives the keys a focused page is typed
-    /// ([ADR-0459]).
+    /// platform where SDL also receives the keys a focused page is typed.
     public static final class HasFocus {
 
         private static final MethodHandle FD_goldberry_webview_has_focus =

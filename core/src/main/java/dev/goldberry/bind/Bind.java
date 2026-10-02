@@ -21,8 +21,7 @@ import dev.goldberry.bind.runtime.BoundField;
 /// A **plain field**, of whatever type the model wants it to be. The weaver
 /// rewrites every assignment to it inside the class into a store that also
 /// notifies, and gives [BindingRegistry] a [BoundField] window onto it — so `gain++`
-/// moves a slider and the model never mentions a `Property`
-/// (ADR-0125).
+/// moves a slider and the model never mentions a `Property`.
 ///
 /// A [Property] field is still accepted and left alone. It is already observable,
 /// so there is nothing to rewire — the weaver binds it directly. That is what
@@ -37,25 +36,25 @@ import dev.goldberry.bind.runtime.BoundField;
 ///   shows up as a control that never moves.
 /// - Two fields may not claim the same path.
 ///
-/// Each is a **build** failure naming the field, for the reason the old
-/// annotation processor gave: a typo that reaches runtime is a control that
-/// renders perfectly and never moves (ADR-0096, still true — only the mechanism
-/// changed).
+/// Each is a **build** failure naming the field: a typo that reaches runtime is
+/// a control that renders perfectly and never moves.
 ///
 /// ## `private` is the expected case
 ///
 /// The weaver works on the class's own bytecode, from inside, so there is no
 /// access question to answer: no `opens`, no `setAccessible`, no handle lookup.
 /// A model's fields should be private, and the toolkit has no opinion about it
-/// because it never needs one (ADR-0125, superseding ADR-0098).
+/// because it never needs one.
 ///
 /// ## Kept at run time, because an ordinary jar reads it there
 ///
-/// `RUNTIME` rather than `CLASS`, since [ADR-0155]: the weaver is what a **native
-/// image** is built from, and a plain jar binds the same field reflectively from
-/// this annotation instead. The weaver reads it either way — it parses the class
-/// file, where a visible annotation and an invisible one differ only in which
-/// attribute they sit in.
+/// `RUNTIME` rather than `CLASS`: the weaver is what a **native image** is built
+/// from, and a plain jar binds the same field reflectively from this annotation
+/// instead. The weaver reads it either way — it parses the class file, where a
+/// visible annotation and an invisible one differ only in which attribute they
+/// sit in.
+///
+/// Read more: [Values](https://goldberry.dev/docs/applications.html#values).
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.FIELD)
 public @interface Bind {
@@ -77,9 +76,8 @@ public @interface Bind {
     ///
     /// Declared here rather than subscribed to by hand, because
     /// `Models.observable(model, "app.theme").subscribe(v -> host.restyle())` is
-    /// a line that says in Java what this says in one word, and gets forgotten
-    /// the same way the old `changed()` did
-    /// (ADR-0133).
+    /// a line that says in Java what this says in one word, and a line like that
+    /// gets forgotten.
     ///
     /// The toolkit wires it: an application that hands its model to
     /// [dev.goldberry.Application#models()] restyles on a
@@ -104,8 +102,7 @@ public @interface Bind {
     /// **Per value and not per model**, because that is the granularity the
     /// question has: one model routinely holds both the gain a slider shows and
     /// the byte count nothing shows, and a switch on the class would have to be
-    /// wrong about one of them
-    /// (ADR-0135).
+    /// wrong about one of them.
     ///
     /// Decided in the **build**: a field that does not ask has no call to emit,
     /// so it costs an instruction that is not there rather than a branch that is.

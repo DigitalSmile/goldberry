@@ -2,23 +2,32 @@ package dev.goldberry.stats;
 
 import java.util.Locale;
 
-/// What a whole run cost, in one line — the number a 60 fps claim is.
+/// What a whole run cost, in one line: every frame painted and every refresh
+/// missed since the window opened.
 ///
-/// [FrameStats] is a window over the last sixty frames, because that is what a
-/// HUD wants to watch. A run that exits after three hundred frames wants the
-/// opposite: every frame it painted, and every refresh it missed, since the
-/// window opened. This is that, and it exists so the line the launcher writes
-/// at exit — "N of M frames were late while resizing" — is a value a test can
-/// assert on rather than a string it has to parse ([ADR-0342]).
+/// ```java
+/// FrameSummary run = host.frames().summary();
+/// if (run.exceeds(30)) {
+///     System.err.println(run.describe());
+/// }
+/// ```
+///
+/// [FrameStats] is a window over the last sixty frames, which is what a HUD
+/// wants to watch. A run that paints three hundred frames and exits wants the
+/// opposite: the totals. This record is those totals as a value, so a test can
+/// assert on the number of late frames rather than parse the line the launcher
+/// logs. [FrameStats#summary] gives it.
+///
+/// Read more: [Measuring](https://goldberry.dev/docs/performance/measuring.html#the-showcase-under-load).
 ///
 /// @param frames           every frame painted since the window opened
 /// @param late             every refresh that went by with a frame wanted and
-///                         undelivered, summed over the run — the
-///                         [FrameStats#lateFrames] of every frame, not of the
-///                         last sixty
+///                         undelivered, summed over the run rather than over
+///                         the last sixty frames
 /// @param meanPaintMillis  the mean of every frame's paint time
-/// @param worstPaintMillis the dearest single frame
-/// @param displayHertz     what the display was doing, or 0 if it would not say
+/// @param worstPaintMillis the most expensive single frame, in milliseconds
+/// @param displayHertz     the display's refresh rate, or 0 if the platform
+///                         would not say
 public record FrameSummary(
         long frames, long late, double meanPaintMillis, double worstPaintMillis, double displayHertz) {
 
@@ -33,16 +42,16 @@ public record FrameSummary(
 
     /// Whether more refreshes were missed than `budget` allows.
     ///
-    /// A budget under zero is no budget, which is how a run that was not asked
-    /// to judge itself reads: nothing is over a ceiling that was never set.
+    /// A budget under zero is no budget, so a run that was not asked to judge
+    /// itself never exceeds one.
     public boolean exceeds(long budget) {
         return budget >= 0 && late > budget;
     }
 
     /// The line the launcher logs at exit.
     ///
-    /// `Locale.ROOT` because this line is grepped by a workflow, and a decimal
-    /// comma on a German runner would be a green build turned red by a locale.
+    /// Formatted in `Locale.ROOT`, because a workflow greps this line and a
+    /// decimal comma on a German runner would turn a green build red.
     public String describe() {
         return String.format(
                 Locale.ROOT,

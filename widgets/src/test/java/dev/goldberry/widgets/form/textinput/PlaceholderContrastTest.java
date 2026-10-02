@@ -25,11 +25,12 @@ import dev.goldberry.widgets.panel.card.Card;
 /// and says so in its own words: a translucent fill has no contrast ratio,
 /// because the answer depends on what it is composited over. `--gb-text-placeholder`
 /// and `--gb-surface-sunken` are **both** translucent — deliberately, so a field
-/// is one step below whatever surface it happens to sit on (ADR-0168) — so the
+/// is one step below whatever surface it happens to sit on — so the
 /// only honest measurement composites them explicitly against each background a
 /// field can be on, which is what this does.
 ///
-/// The floor is §1.2's 4.5:1. A placeholder is a hint rather than content, and
+/// The floor is the 4.5:1 every text pair meets. A placeholder is a hint rather
+/// than content, and
 /// the temptation is to treat it as incidental and let it go faint; at the first
 /// alpha tried it was **2.4:1 on the light theme**, which is not a hint, it is a
 /// smudge. The ceiling is the other half of the requirement: at full strength a
@@ -38,7 +39,7 @@ import dev.goldberry.widgets.panel.card.Card;
 /// `--gb-text`, so nobody could tell an empty field from a filled one.
 class PlaceholderContrastTest {
 
-    /// §1.2's floor for text.
+    /// The contrast floor for text.
     private static final double MINIMUM = 4.5;
 
     /// A placeholder must be **at most** this share of a value's contrast, or it

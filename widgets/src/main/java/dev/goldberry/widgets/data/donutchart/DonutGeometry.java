@@ -11,7 +11,8 @@ import org.jspecify.annotations.Nullable;
 /// is simpler in one way that is worth naming: **a ring needs no text metrics.**
 /// An axis chart's geometry depends on the shaped y labels, so it can only be
 /// worked out inside the painter and has to be left somewhere for the pointer to
-/// find (ADR-0054, `PaintedGeometry`). A ring depends on nothing but the box, and
+/// find, because hit testing runs against the painted frame (`PaintedGeometry`).
+/// A ring depends on nothing but the box, and
 /// a pointer event carries the box — so this is computed fresh on both sides and
 /// there is nothing to bank.
 ///

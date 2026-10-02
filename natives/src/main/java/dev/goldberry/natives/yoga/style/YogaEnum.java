@@ -21,6 +21,8 @@ import dev.goldberry.natives.yoga.measure.MeasureMode;
 ///
 /// The interface is sealed so that the permitted list and [#all()] sit together
 /// — an enum added to one and not the other is visible on the same screen.
+///
+/// Read more: [The native boundary](https://goldberry.dev/docs/overview/architecture.html#the-native-boundary).
 public sealed interface YogaEnum
         permits Align,
                 Direction,

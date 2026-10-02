@@ -11,22 +11,18 @@ import dev.goldberry.widget.Widget;
 
 /// Where a [Scroll] is — the whole of what it remembers.
 ///
-/// `docs/core-widgets.md` §1: "scroll position is retained state surviving
-/// rebuilds". This is that state, and it needs no key and no application field to
-/// survive one: the element tree keeps a state across every rebuild of the widget
-/// that described it, which is what the element layer is for
-/// (ADR-0052).
+/// The scroll position survives rebuilds because the element tree keeps a state
+/// across every rebuild of the widget that described it; no key and no
+/// application field is needed.
 ///
-/// **Unlike a control's value, this is genuinely the widget's own.** ADR-0063
-/// sends every *value* up to the application and reads it back down through
-/// `bind`, and a scroll position is the exception that proves the rule: it is not
-/// a value the application has an opinion about, it is where a rectangle happens
-/// to be. An application that made a list scroll to the top would be doing so
-/// through `scrollIntoView`, not by owning the offset.
+/// Unlike a control's value, which flows up to the application and back down
+/// through `bind`, a scroll position is the widget's own: it is not a value the
+/// application has an opinion about but where a rectangle happens to be. An
+/// application that wants a list scrolled to the top asks through a
+/// [ScrollController], not by owning the offset.
 ///
-/// Nothing here clamps. The clamp is [ScrollViewport]'s, because clamping needs
-/// the two extents and only the viewport is handed them — this stores what it is
-/// told ([ADR-0116]).
+/// The clamp is [ScrollViewport]'s, because clamping needs the two extents and
+/// only the viewport is handed them on an event; this stores what it is told.
 final class ScrollState extends State<Scroll> {
 
     private double offsetX;
@@ -34,18 +30,17 @@ final class ScrollState extends State<Scroll> {
 
     /// What the last frame laid this viewport and its content out as.
     ///
-    /// The clamp does not need these — the extents arrive on the event that asks
-    /// to move (ADR-0116) — but a **scrollbar** does: a thumb whose length says
-    /// how much of the document is visible has to be right before anything has
-    /// been touched. They arrive through [Measured], which is the other direction
-    /// ([ADR-0117]).
+    /// The clamp does not need these, because the extents arrive on the event
+    /// that asks to move, but a scrollbar does: a thumb whose length says how
+    /// much of the document is visible has to be right before anything has been
+    /// touched. They arrive through [Measured], once a frame.
     private Extent viewport = Extent.NONE;
     private Extent content = Extent.NONE;
 
     /// When the bars were last woken, and whether something is holding them open.
     private final ScrollFade fade = new ScrollFade();
 
-    /// A programmatic scroll on its way, drawn by the viewport (ADR-0363).
+    /// A programmatic scroll on its way, drawn by the viewport.
     private final ScrollGlide glide = new ScrollGlide();
 
     /// Which bar the pointer is dragging, or null.
@@ -67,8 +62,7 @@ final class ScrollState extends State<Scroll> {
             // this is not a position — it is the standing instruction that the
             // first measurement is to land there. "Opens at the end" and "stays
             // at the end" are then one piece of code rather than two, which is
-            // what stops them disagreeing about the frame in between
-            // (ADR-0392).
+            // what stops them disagreeing about the frame in between.
             stick.openAtEnd();
         }
     }
@@ -112,14 +106,13 @@ final class ScrollState extends State<Scroll> {
 
     private static final org.slf4j.Logger LOG = dev.goldberry.log.Logs.of(ScrollState.class);
 
-    /// The axes already reported nested, so the canon's ban is a message rather
-    /// than a stream ([ADR-0251]).
+    /// The axes already reported nested, so the design system's ban is a message
+    /// rather than a stream.
     ///
     /// `build` runs per element per invalidation, so an unguarded warning here
-    /// would be the log ADR-0243 has just finished quietening. Static and by axis
-    /// because the thing worth saying is *"this application nests scrollers"* and
-    /// it is worth saying once — a document that does it in four places has one
-    /// mistake, not four.
+    /// would flood the log. Static and by axis because the thing worth saying is
+    /// "this application nests scrollers" and it is worth saying once: a
+    /// document that does it in four places has one mistake, not four.
     private static final java.util.Set<ScrollAxis> REPORTED_NESTING =
             java.util.concurrent.ConcurrentHashMap.newKeySet();
 
@@ -142,41 +135,28 @@ final class ScrollState extends State<Scroll> {
         return REPORTED_NESTING.size();
     }
 
-    /// Whether this viewport is inside another one **on the same axis**, which
-    /// `docs/core-widgets.md` §2.4 discourages.
+    /// Logs, once per axis, that this viewport is inside another one on the same
+    /// axis, which the design system discourages.
     ///
-    /// Nothing enforced it, and chaining means a nested pair behaves reasonably
-    /// rather than badly — so the rule cost nothing and the author heard nothing.
-    /// This is the diagnostic, and it is deliberately *only* a diagnostic: the
-    /// arrangement still works, because refusing to build it would turn a design
-    /// rule into a crash.
+    /// It is only a diagnostic: the arrangement still works, with the inner one
+    /// taking the wheel until it reaches its edge, and refusing to build it would
+    /// turn a design rule into a crash.
     ///
-    /// ## Why it is `debug` and not `warn`
+    /// It is `debug` and not `warn` because the arrangement is often correct: a
+    /// list given a height of its own inside a page that scrolls is what every
+    /// chat window, console and settings page is. What the rule is about is an
+    /// inner viewport with no size of its own on the scrolling axis, which grows
+    /// to its content and leaves the wheel ambiguous. Telling the two apart needs
+    /// the inner box's resolved height, and this runs in `build`, before the
+    /// cascade has resolved anything, so the message stays at a level that does
+    /// not claim something is broken.
     ///
-    /// Because it was firing on the arrangement its own advice describes
-    /// ([ADR-0394]). The showcase's `scroll.tall-list` is a virtual list given a
-    /// height of 256 px and told not to grow, inside the gallery's viewport —
-    /// which is "give the inner box a size and let the outer one scroll", done.
-    /// It is also what every chat window, console and settings page is, and the
-    /// engine's behaviour in it is defined rather than accidental: the inner one
-    /// takes the wheel until it reaches its edge.
-    ///
-    /// What §2.4 is actually about is an inner viewport with **no size of its
-    /// own** on the scrolling axis, which grows to its content and leaves the
-    /// wheel ambiguous. Telling those two apart needs the inner box's resolved
-    /// height, and this runs in `build`, before the cascade has resolved
-    /// anything. So the message stays, at a level that does not claim something
-    /// is broken, and the sharper rule waits for a layout-time signal.
-    ///
-    /// [BuildContext#findAncestorState] is the whole implementation. It exists
-    /// for `scrollIntoView` and answers this question with nothing added — which
-    /// is the argument for asking it here rather than teaching the renderer about
-    /// scroll views.
+    /// [BuildContext#findAncestorState] is the whole implementation.
     private void warnIfNestedOnTheSameAxis(BuildContext context) {
         context.findAncestorState(ScrollState.class).ifPresent(outer -> {
             if (outer.widget().axis() == widget().axis() && REPORTED_NESTING.add(widget().axis())) {
                 LOG.debug(
-                        "a {} `scroll` is inside another one; §2.4 discourages that, and the inner"
+                        "a {} `scroll` is inside another one; the design system discourages that, and the inner"
                                 + " one takes the wheel until it reaches its edge. Give the inner"
                                 + " box a size of its own and let the outer one scroll, or make"
                                 + " them different axes.",
@@ -216,11 +196,11 @@ final class ScrollState extends State<Scroll> {
     ///
     /// Held here because the widget is a value rebuilt every frame and the wheel
     /// arrives where there is no cascade to ask — the same reason `viewport` and
-    /// `content` are here (ADR-0251).
+    /// `content` are here.
     private double line = ScrollViewport.LINE;
 
-    /// §2.4's reserved gutter, from `--gb-scrollbar-gutter`, banked for the same
-    /// reason [#line] is (ADR-0364).
+    /// The reserved scrollbar gutter, from `--gb-scrollbar-gutter`, banked for
+    /// the same reason [#line] is.
     private double gutter;
 
     private void guttered(double value) {
@@ -249,8 +229,8 @@ final class ScrollState extends State<Scroll> {
     /// It terminates because **nothing this rebuild draws can change what was
     /// measured**. The bars are absolutely positioned, so they take no space from
     /// the content and none from the viewport; the second frame measures exactly
-    /// what the first did, the router sees no change and notifies nobody
-    /// ([ADR-0117]). One extra frame when a window resizes, and none after it.
+    /// what the first did, the router sees no change and notifies nobody. One
+    /// extra frame when a window resizes, and none after it.
     ///
     /// The guard here is belt to the router's braces. It is cheap, and the thing
     /// it protects against — a scroll view repainting forever — is expensive
@@ -286,7 +266,7 @@ final class ScrollState extends State<Scroll> {
     ///
     /// **No glide and no woken bars.** The offset is where the content *is*; a
     /// glide would draw a 240ms slide every time a line was logged, and bars
-    /// that woke would say the user had scrolled when they had not (ADR-0363).
+    /// that woke would say the user had scrolled when they had not.
     private void keepToTheEnd() {
         if (widget().axis().isHorizontal() && stick.atEndX()) {
             offsetX = viewport.overflowX(content);
@@ -350,9 +330,9 @@ final class ScrollState extends State<Scroll> {
 
     /// Moves by `dx`, `dy` from wherever it is, clamped to what there is to show.
     ///
-    /// What [Reveal] calls, and the only thing a descendant may ask of a scroll
+    /// What a reveal calls, and the only thing a descendant may ask of a scroll
     /// view. A **distance** rather than a target, so the viewport needs to know
-    /// nothing about what asked or why ([ADR-0120]).
+    /// nothing about what asked or why.
     ///
     /// The clamp is the same one every other path takes, so a child asking to be
     /// revealed cannot scroll past the end any more than a wheel can.
@@ -363,7 +343,7 @@ final class ScrollState extends State<Scroll> {
             return;
         }
         // A programmatic move glides: the offset goes to the target now, and the
-        // viewport draws the way there on the frame clock (ADR-0363).
+        // viewport draws the way there on the frame clock.
         glide.start(offsetX, offsetY, x, y);
         setState(() -> {
             offsetX = x;
@@ -402,14 +382,13 @@ final class ScrollState extends State<Scroll> {
     /// Scrolls the least it can to bring `self` inside `clip`, along `axes`.
     ///
     /// The arithmetic lives **here** rather than on [ScrollController] because a
-    /// controller is no longer the only way in: [ScrollScope] reaches a viewport
-    /// by walking up from the target, and two copies of "how far is it out of
-    /// view" is how two callers end up disagreeing about what *in view* means
-    /// ([ADR-0439]).
+    /// controller is not the only way in: [ScrollScope] reaches a viewport by
+    /// walking up from the target, and two copies of "how far is it out of view"
+    /// is how two callers end up disagreeing about what *in view* means.
     void reveal(LogicalRect self, LogicalRect clip, ScrollAxis axes) {
         // `self` was painted where a glide had got to, and the offset is already
         // where it ends. Measure the rectangle where it will be, or a reveal asked
-        // again mid-glide would move the viewport a second time (ADR-0363).
+        // again mid-glide would move the viewport a second time.
         var ahead = LogicalRect.of(
                 (float) (self.left() - glideRemainingX()),
                 (float) (self.top() - glideRemainingY()),
@@ -439,8 +418,8 @@ final class ScrollState extends State<Scroll> {
     ///
     /// Positive means further down or right. **The least it can**: a reveal that
     /// centred its target would throw away everything the user was already
-    /// looking at, and §1 asks for the target to be in view rather than for it to
-    /// be anywhere in particular.
+    /// looking at, and a reveal asks for the target to be in view rather than
+    /// anywhere in particular.
     ///
     /// The near edge wins when the target is larger than the viewport, because
     /// showing the top of something too big to fit is what every browser does —

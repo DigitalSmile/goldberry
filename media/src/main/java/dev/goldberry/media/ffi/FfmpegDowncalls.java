@@ -13,20 +13,19 @@ import java.util.List;
 /// crossing fails.
 ///
 /// This is `:natives`' `Downcalls` for this module, and the holders under
-/// `…media.ffi.calls` follow its idiom exactly (ADR-0173). A holder keeps its
+/// `…media.ffi.calls` follow its idiom exactly. A holder keeps its
 /// unbound handle as a `private static final FD_<symbol>` and its address as a
 /// field, and has a `call` in ordinary Java types. The handle has to be a
 /// constant: in a native image, a handle that is not a compile-time constant is
-/// an interpreted lambda form, and that costs a factor of 450 per call
-/// (ADR-0161). The holders sit in a package of their own so that
+/// an interpreted lambda form, and that costs a factor of 450 per call.
+/// The holders sit in a package of their own so that
 /// `--initialize-at-build-time` can name it.
 public final class FfmpegDowncalls {
 
     private static final Linker LINKER = Linker.nativeLinker();
 
     /// Every descriptor linked so far, for the native-image metadata this module
-    /// will ship (`docs/media-plan.md`), as `Downcalls` records its own
-    /// (ADR-0339).
+    /// ships, as `Downcalls` records its own.
     private static final List<FunctionDescriptor> LINKED = Collections.synchronizedList(new ArrayList<>());
 
     private FfmpegDowncalls() {}

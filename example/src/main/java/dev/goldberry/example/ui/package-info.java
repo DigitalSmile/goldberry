@@ -4,7 +4,9 @@
 /// Opened to `:core` and `:widgets`, which read the KDL documents, the samples and
 /// the pictures kept in this package as resources.
 ///
-/// Marked for NullAway (`docs/testing.md` §2, ADR-0497).
+/// Marked for NullAway, as every package in the repository is.
+///
+/// Read more: [Views](https://goldberry.dev/docs/applications.html#views).
 @NullMarked
 package dev.goldberry.example.ui;
 

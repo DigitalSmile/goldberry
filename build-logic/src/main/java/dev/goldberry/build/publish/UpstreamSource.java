@@ -13,7 +13,7 @@ import java.util.regex.Pattern;
 
 /**
  * An upstream's source at one pinned tag, taken from git as a tar: what the
- * {@code ffmpeg-sources} classifier carries for FFmpeg and dav1d (ADR-0508).
+ * {@code ffmpeg-sources} classifier carries for FFmpeg and dav1d.
  *
  * <p>From git because the media superbuild builds from git: its
  * {@code ExternalProject}s shallow-clone the same repository at the same tag, so
@@ -32,7 +32,7 @@ import java.util.regex.Pattern;
  * line ending is converted for the archiving machine: {@code git archive} converts
  * text the way a checkout would, and Git for Windows checks out CRLF by default,
  * so without {@code -text} the same tag archived on two runners is two different
- * tarballs (ADR-0517).
+ * tarballs.
  *
  * @param name       the upstream's name, the archive's top directory's first half
  * @param repository where it is cloned from
@@ -57,7 +57,7 @@ public record UpstreamSource(String name, String repository, String tag, String 
         Objects.requireNonNull(commit, "commit");
         if (!COMMIT.matcher(commit).matches()) {
             throw new IllegalArgumentException(name + "'s commit pin '" + commit
-                    + "' is not a full 40-character commit id (gradle/libs.versions.toml, ADR-0508)");
+                    + "' is not a full 40-character commit id (gradle/libs.versions.toml)");
         }
     }
 
@@ -92,7 +92,7 @@ public record UpstreamSource(String name, String repository, String tag, String 
             if (!found.equals(commit)) {
                 throw new IllegalStateException(name + "'s tag " + tag + " at " + repository + " names " + found
                         + ", not the pinned " + commit + ". A moved tag is a different source; check upstream"
-                        + " and re-pin both in gradle/libs.versions.toml (ADR-0508).");
+                        + " and re-pin both in gradle/libs.versions.toml.");
             }
             var info = clone.resolve("info");
             Files.createDirectories(info);

@@ -14,12 +14,16 @@ import dev.goldberry.natives.NativePlatform;
 /// Verifies the hand-written layouts against the library that was actually
 /// compiled for this machine.
 ///
-/// This is the check ADR-0010 rests on. It needs a built `libgoldberry`, so it
-/// skips — loudly, with a reason — when the superbuild has not run. It must run
+/// This is the check hand-written bindings rest on. It needs a built
+/// `libgoldberry`, so it skips — loudly, with a reason — when the superbuild has
+/// not run. It must run
 /// on every target in CI: passing on Linux says nothing about Win64's 4-byte
 /// `long` or aarch64's alignment rules. Which is why CI passes
 /// `-Dgoldberry.native.required=true`, turning that skip into a failure
-/// ([NativeLibraryRequirement], ADR-0016).
+/// ([NativeLibraryRequirement]).
+///
+/// Read more:
+/// [Repository layout](https://goldberry.dev/docs/contributing/repository.html#the-export-list-and-the-layout-probe).
 class LayoutVerificationTest {
 
     @BeforeAll

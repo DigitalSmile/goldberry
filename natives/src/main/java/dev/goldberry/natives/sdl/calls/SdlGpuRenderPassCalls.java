@@ -93,7 +93,8 @@ public record SdlGpuRenderPassCalls(
         }
     }
 
-    /// Sets the rectangle outside which the next draws write nothing: a GPU\nlayer's clip (`docs/gpu-plan.md`, D4).
+    /// Sets the rectangle outside which the next draws write nothing: a GPU layer's
+    /// clip.
     ///
     /// `void SDL_SetGPUScissor(void*, void*)`
     public static final class SetGPUScissor {
@@ -209,7 +210,8 @@ public record SdlGpuRenderPassCalls(
         }
     }
 
-    /// Sets a fragment-shader uniform block for the draws that follow. SDL copies\nit.
+    /// Sets a fragment-shader uniform block for the draws that follow. SDL copies
+    /// it.
     ///
     /// `void SDL_PushGPUFragmentUniformData(void*, uint32_t, void*, uint32_t)`
     public static final class PushGPUFragmentUniformData {

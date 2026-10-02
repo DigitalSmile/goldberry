@@ -1,5 +1,5 @@
 /// GStreamer behind the Decoder SPI: the H.264, HEVC, AAC, AC-3 and E-AC-3
-/// decoders a Linux system has installed (ADR-0489).
+/// decoders a Linux system has installed.
 ///
 /// Not exported. Three layers, as on macOS:
 ///
@@ -16,7 +16,9 @@
 /// - **pure Java** the decoders need and a test can check without GStreamer:
 ///   the caps and pipeline descriptions, the frame layouts and the colour.
 ///
-/// Marked for NullAway from its first commit (`docs/testing.md` §2).
+/// Null-marked.
+///
+/// Read more: [Bringing a codec](https://goldberry.dev/docs/components/media.html#bringing-a-codec).
 @NullMarked
 package dev.goldberry.media.platform.linux;
 

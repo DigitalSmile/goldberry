@@ -19,7 +19,7 @@ import dev.goldberry.widgets.form.textinput.TextInput;
 ///
 /// ## Two pieces of state, and the second one is the interesting one
 ///
-/// §4 makes the hex field the source of truth, so `text` is the value — and it is
+/// The hex field is the source of truth, so `text` is the value — and it is
 /// the *only* thing that leaves. But the plane's cursor and the hue ramp cannot be
 /// derived from it, because the conversion is lossy exactly where a user drags:
 /// every colour with `s == 0` is a grey with no hue, and black has neither hue nor
@@ -39,7 +39,7 @@ final class ColorPickerState extends State<ColorPicker> implements PickerField.P
     /// of it.
     private static final float NO_MINIMUM_WIDTH = 0;
 
-    /// The hex, which is the value. §4's source of truth.
+    /// The hex, which is the value: the source of truth.
     private String text = "";
 
     /// The last hex that parsed — what `Esc` puts back.

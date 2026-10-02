@@ -23,14 +23,13 @@ import dev.goldberry.widgets.controls.TestFont;
 import dev.goldberry.widgets.form.textarea.TextArea;
 import dev.goldberry.widgets.form.textinput.TextInput;
 
-/// `--gb-caret-width` — the same number for both controls that draw a caret
-/// ([ADR-0253]).
+/// `--gb-caret-width` — the same number for both controls that draw a caret.
 ///
 /// A caret's box is set by the field **after** the cascade, so a
 /// `caret { width: 3px }` would be overwritten rather than honoured. Read as a
 /// custom property it resizes the caret, which is what an author writing one
 /// meant — and a thicker caret is a real low-vision aid rather than a
-/// preference, which is why §13 lists that kind of switch.
+/// preference, the kind of switch the accessibility baseline lists.
 class CaretWidthTest {
 
     @BeforeEach

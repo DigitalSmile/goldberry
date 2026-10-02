@@ -4,8 +4,8 @@ import java.util.List;
 
 import dev.goldberry.natives.sdl.gpu.enums.SdlGpuTextureFormat;
 
-/// How a picture's Y'CbCr planes are laid out: the four formats of the media
-/// engine's frame contract (`docs/goldberry-media.md` §5), each 4:2:0.
+/// How a picture's Y'CbCr planes are laid out: the four formats the media
+/// engine hands over, each 4:2:0.
 ///
 /// Each names the textures its planes are uploaded into, the shader that reads
 /// them, and how a sampled texel becomes a code value normalised to the bit

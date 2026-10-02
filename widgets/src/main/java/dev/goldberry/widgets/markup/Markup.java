@@ -17,23 +17,20 @@ import java.lang.annotation.Target;
 ///
 /// That is the whole registration. The build collects every annotated class in
 /// the module into one [WidgetCatalog] and declares it as a service, so a module
-/// that ships widgets is found by an application that never names it
-/// (ADR-0131).
+/// that ships widgets is found by an application that never names it.
 ///
-/// ## What it requires
+/// The annotated class must have a
+/// `public static Widget inflate(KdlNode, List<Widget>, Wiring)` method. Java
+/// cannot express that as a constraint on an annotation, so the build checks it:
+/// a `@Markup` class without one fails the build with the class named, rather
+/// than failing the first document that uses the node.
 ///
-/// A `public static Widget inflate(KdlNode, List<Widget>, Wiring)` on the same
-/// class. Java cannot express that as a type constraint on an annotation, so the
-/// **build** checks it: a `@Markup` class without one is a build failure naming
-/// the class, rather than a node that fails to inflate the first time a document
-/// uses it.
+/// The annotation has `CLASS` retention: the build has already read it, and
+/// nothing scans for it at run time. The catalogue is ordinary generated code
+/// that calls `Button::inflate`, which is what lets a native image resolve every
+/// widget ahead of time.
 ///
-/// ## Read at build time
-///
-/// `CLASS` retention, like [dev.goldberry.bind.Bind] and for
-/// the same reason: the weaver has already read it and an image that carried it
-/// would be carrying metadata for nobody. Nothing scans at run time — the catalog
-/// is ordinary generated code that calls `Button::inflate` (ADR-0127).
+/// Read more: [Markup](https://goldberry.dev/docs/guide/markup.html#parsing-and-inflating).
 @Retention(RetentionPolicy.CLASS)
 @Target(ElementType.TYPE)
 public @interface Markup {

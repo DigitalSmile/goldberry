@@ -1,11 +1,13 @@
-/// `docs/core-widgets.md` §3's `toggle` — a switch between on and off, flipped by a
-/// click, `Space` or a drag of its thumb.
+/// The `toggle` — a switch between on and off, flipped by a click, `Space` or a
+/// drag of its thumb.
 ///
-/// [dev.goldberry.widgets.controls.toggle.Toggle] is the widget,
-/// and it reports the value the user asked for rather than "toggle". Its track and
-/// thumb are parts.
+/// [dev.goldberry.widgets.controls.toggle.Toggle] is the widget, and it reports
+/// the value the user asked for rather than "toggle". Its track and thumb are
+/// parts.
 ///
-/// Marked for NullAway (`docs/testing.md` §2, ADR-0497).
+/// Every reference is non-null unless it says `@Nullable`.
+///
+/// Read more: [Choices](https://goldberry.dev/docs/components/choices.html#toggle).
 @NullMarked
 package dev.goldberry.widgets.controls.toggle;
 

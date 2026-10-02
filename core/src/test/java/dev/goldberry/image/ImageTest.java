@@ -20,7 +20,7 @@ import dev.goldberry.RendererRequirement;
 import dev.goldberry.render.model.PhysicalRect;
 import dev.goldberry.render.model.PhysicalSize;
 
-/// An image is a value — ADR-0283.
+/// An image is a value, and the decoder is the one thing Blend2D allocates.
 ///
 /// Split in two on purpose. [Building] needs no native library at all, because
 /// `ofArgb` is arithmetic and a premultiplied buffer; [Decoding] needs one,
@@ -66,7 +66,7 @@ class ImageTest {
 
             // Zero, not `0x00FFFFFF`: premultiplied storage cannot tell one
             // transparent colour from another, which is exactly why `Gradient.fade`
-            // exists (ADR-0277) and why nothing should read a colour out of a
+            // exists and why nothing should read a colour out of a
             // transparent pixel and believe it.
             assertEquals(0, image.argb(0, 0));
             assertEquals(0xFF000000, image.argb(0, 1));

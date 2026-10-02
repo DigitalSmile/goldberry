@@ -31,7 +31,7 @@ import dev.goldberry.widgets.form.form.Form;
 import dev.goldberry.widgets.form.form.FormController;
 import dev.goldberry.widgets.form.textinput.TextInput;
 
-/// §4's layout contract and its validation model.
+/// The form's layout contract and its validation model.
 ///
 /// What is worth testing here is **when** a field speaks. Whether a `Validator`
 /// returns the right answer is [ValidatorTest]'s, and needs no widget at all; a
@@ -42,6 +42,8 @@ import dev.goldberry.widgets.form.textinput.TextInput;
 /// Focus is moved through a real [PointerRouter] rather than by calling the
 /// widget, because "blur" here means `onFocusWithin` — and what that reports for
 /// a field with two controls in it is exactly the thing worth pinning.
+///
+/// Read more: [`form`](https://goldberry.dev/docs/components/forms.html#form).
 class FormTest {
 
     private final TestHost host = new TestHost();
@@ -94,8 +96,8 @@ class FormTest {
         return into;
     }
 
-    /// Whether the `field` node matches `:invalid` — the pseudo-class §4 asks
-    /// for, read off the node a stylesheet sees.
+    /// Whether the `field` node matches `:invalid` — the pseudo-class a field
+    /// exposes for its message, read off the node a stylesheet sees.
     private static boolean invalid(ElementTree tree) {
         return find(tree, "field").widget() instanceof Styled styled && styled.isInvalid();
     }
@@ -402,7 +404,7 @@ class FormTest {
         }
 
         @Test
-        @DisplayName("a document writes what §4 spells")
+        @DisplayName("a document writes a form, its fields and their attributes")
         void inflates() {
             var widgets = Widgets.inflater().inflateAll(KdlParser.parse("""
                     form {

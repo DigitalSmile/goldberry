@@ -9,30 +9,24 @@ import dev.goldberry.widget.Widget;
 import dev.goldberry.widget.style.Paints;
 import dev.goldberry.widget.style.Styled;
 
-/// The 16px circle with the dot in it — a **part** of [Radio], and the second
-/// part in the toolkit.
+/// The 16px circle with the dot in it — a **part** of [Radio], styleable as
+/// `radio-indicator` and not a node a document can write.
 ///
-/// ## Why this is a part and not a widget, again
+/// A part for the same two reasons as `CheckIndicator`. A radio has two
+/// surfaces a theme must style separately — the row, which is 32 tall and holds
+/// the label, and the glyph, which is 16 square and is what fills with the
+/// accent — and a [ComputedStyle] carries one background, one border and one
+/// radius. And a `radio-indicator` outside a `radio` is a circle that means
+/// nothing, so registering the KDL node would let a document create exactly
+/// that.
 ///
-/// `CheckIndicator` made the argument and [ADR-0065] asked that it be made again
-/// rather than assumed: a part is not a general escape hatch, and the second one
-/// is where a pattern either holds or turns out to have been a special case. It
-/// holds, for the same two reasons and no new ones. A radio has two surfaces a
-/// theme must style separately — the row, which is 32 tall and holds the label,
-/// and the glyph, which is 16 square and is what fills with the accent — and a
-/// [ComputedStyle] carries one background, one border and one radius. And a
-/// `radio-indicator` outside a `radio` is a circle that means nothing, so
-/// registering the KDL node would let a document create exactly that.
-///
-/// ## The circle is the radius, not a new shape
-///
-/// `border-radius: 8px` on a 16px box is a circle, drawn by the four cubics
-/// [ADR-0064] already ships. Nothing here draws a circle: this part is a square
-/// box that the stylesheet rounds, which is why a theme can make a radio
-/// square-ish without a Java change, and why no native symbol was needed.
+/// The circle is the radius, not a new shape: `border-radius: 8px` on a 16px
+/// box is a circle, drawn by the same rounded rectangle every box is. Nothing
+/// here draws a circle, which is why a theme can make a radio square-ish
+/// without a Java change.
 ///
 /// The dot itself is a **second** node, [RadioDot], and not a mark on this box:
-/// §3.1 asks it to scale 0.6→1 while the ring stays put, and a mark cannot move
+/// it scales from 0.6 to 1 while the ring stays put, and a mark cannot move
 /// independently of the box it is drawn onto.
 ///
 /// @param selected whether to draw the dot, which is also what `:checked` is

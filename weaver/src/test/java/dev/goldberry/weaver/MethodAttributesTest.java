@@ -20,7 +20,7 @@ import org.junit.jupiter.api.Test;
 /// A method is not its instructions. `Signature` is how a generic method is
 /// generic to anything that reads it back — `Method.getGenericReturnType`, an
 /// IDE, a serialiser. `RuntimeVisibleAnnotations` is how `@Action` survives to
-/// the reflective binder an unwoven jar uses (ADR-0155). `MethodParameters` is
+/// the reflective binder an unwoven jar uses. `MethodParameters` is
 /// how a parameter keeps the name its author gave it. `Exceptions` is the
 /// `throws` clause. All four are attributes of the method, none of them is
 /// reachable from the code array, and the weaver rebuilt every method of every
@@ -147,7 +147,7 @@ class MethodAttributesTest {
         void aWriterKeepsThemToo() {
             // Attributed.Helper is not a model and carries no marker at all. It is
             // rewritten only because one of its methods assigns to a @Bind field
-            // next door (ADR-0134) -- and that rewrite used to cost it every
+            // next door -- and that rewrite used to cost it every
             // attribute on every method, model or not.
             var woven = wovenHelper();
 

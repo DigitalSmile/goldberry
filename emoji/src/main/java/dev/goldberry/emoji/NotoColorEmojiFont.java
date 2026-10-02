@@ -7,14 +7,18 @@ import dev.goldberry.assets.EmojiFont;
 
 /// Noto Color Emoji, handed to `:core` through the [EmojiFont] service.
 ///
+/// An application adds the `goldberry-emoji` artifact to its path and names no
+/// type of it: the module system finds this provider, and every paragraph the
+/// application draws can show an emoji. A stylesheet reaches the face by name as
+/// `font-family: "Noto Color Emoji"`.
+///
 /// ## Which build
 ///
 /// Google's **COLRv1** build — the one whose glyphs are paint graphs of
 /// outlines, gradients and transforms — and not the `CBDT` build of 136-pixel
 /// bitmaps. The bitmaps are twice the size and blur at every size larger than
 /// the one they were drawn at; the graphs are drawn by the toolkit at whatever
-/// size and scale the text is, and are as sharp at 400% as at 100%
-/// ([ADR-0456]).
+/// size and scale the text is, and are as sharp at 400% as at 100%.
 ///
 /// ## The licence
 ///
@@ -22,11 +26,13 @@ import dev.goldberry.assets.EmojiFont;
 /// licence to travel with the font and for a modified version not to be called
 /// Noto. It does not ask for credit on screen, which is what put the previous
 /// emoji face, OpenMoji (CC BY-SA), in an artifact of its own. This stays an
-/// artifact of its own for the other reason ADR-0384 gave: 5 MB is a lot to
+/// artifact of its own for another reason: 5 MB is a lot to
 /// inherit for an application that never draws an emoji.
 ///
 /// [#CREDIT] is kept for an application that wants to name the face in an about
 /// box anyway, which the licence welcomes and does not require.
+///
+/// Read more: [Emoji](https://goldberry.dev/docs/guide/text.html#emoji).
 public final class NotoColorEmojiFont implements EmojiFont {
 
     /// A credit an application may put on screen. Optional under the OFL.
@@ -40,8 +46,8 @@ public final class NotoColorEmojiFont implements EmojiFont {
     /// `…goldberry.assets.fonts`, beside the faces `:core` ships, would make one
     /// package exist in two modules. That is a `LayerInstantiationException`
     /// before the first frame, and it is invisible on a class path, which is why
-    /// every test passed and the application would not open the last time
-    /// ([ADR-0387]).
+    /// every test passed and the application would not open the last time it
+    /// happened.
     private static final String RESOURCE = "/dev/goldberry/emoji/fonts/NotoColorEmoji.ttf";
 
     /// Required by [java.util.ServiceLoader]: a provider is instantiated by the

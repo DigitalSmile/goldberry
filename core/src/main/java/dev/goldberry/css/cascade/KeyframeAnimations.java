@@ -10,32 +10,32 @@ import org.jspecify.annotations.Nullable;
 import dev.goldberry.motion.Easing;
 
 /// Which `@keyframes` a node runs, and how: CSS's `animation` and its seven
-/// longhands, resolved by the cascade (ADR-0353).
+/// longhands, resolved by the cascade.
 ///
 /// ```css
+/// @keyframes tile-drop { from { opacity: 0 } to { opacity: 1 } }
 /// .tile { animation: tile-drop 850ms ease-enter both }
 /// .tile:nth-of-kind(2) { animation-delay: 60ms }
 /// ```
 ///
-/// ## Lists, the way CSS keeps them
-///
-/// Every longhand is a comma-separated list, and `animation-name`'s length
-/// decides how many animations run. A shorter list repeats from its start. So
+/// Every longhand is a comma-separated list, kept the way CSS keeps it:
+/// `animation-name`'s length decides how many animations run, and a shorter list
+/// repeats from its start, so
 /// `animation-name: a, b, c; animation-duration: 1s, 2s` runs `c` for one second.
-/// Keeping the seven lists apart until [#entries()] is what lets a later rule
-/// change only the delay of an animation an earlier rule named, which is what a
+/// The seven lists stay apart until [#entries()], which is what lets a later rule
+/// change only the delay of an animation an earlier rule named; that is what a
 /// stagger is.
-///
-/// ## The whitelist still holds
 ///
 /// A keyframe may declare anything, and only [Transitions.Animatable]'s six
 /// properties move. The rest are dropped when a keyframe is resolved, with a
-/// warning that names the property, for §1.7's reason: a keyframed `width` is a
+/// warning that names the property, because a keyframed `width` would be a
 /// layout pass on every frame.
+///
+/// Read more: [Styling](https://goldberry.dev/docs/guide/styling.html#transition-and-animation).
 ///
 /// @param names       what `animation-name` said; empty is `none`
 /// @param durations   milliseconds, never empty
-/// @param easings     §1.7's three curves, never empty
+/// @param easings     the curves, `ease-enter`, `ease-exit` or `linear`; never empty
 /// @param delays      milliseconds, possibly negative, never empty
 /// @param iterations  how many times; [Double#POSITIVE_INFINITY] is `infinite`
 /// @param directions  never empty
@@ -208,7 +208,7 @@ public record KeyframeAnimations(
         return new KeyframeAnimations(names, durations, easings, delays, iterations, directions, value);
     }
 
-    /// Every animation turned off — what reduced motion does to them (§1.7).
+    /// Every animation turned off, which is what reduced motion does to them.
     ///
     /// Unlike a transition, a keyframe animation has no end state the cascade
     /// already resolved to collapse onto: a loop never arrives, and a settle's

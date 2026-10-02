@@ -1,4 +1,5 @@
-/// §9's `web-view`: a page, in a window the engine owns.
+/// The backend SPI's web page: a page in a window the engine owns, or embedded
+/// in the application's where the window system allows it.
 ///
 /// [dev.goldberry.render.web.WebViewSpec] describes one and
 /// [dev.goldberry.render.web.BackendWebView] is the handle
@@ -11,11 +12,12 @@
 /// tree. `webview/webview` cannot render offscreen, and Wayland permits neither
 /// reparenting a foreign surface nor placing a window where a widget is — so
 /// there is no shape a page could take that would be the same on all four
-/// platforms *and* live in a layout. See
-/// [ADR-0441](../../../../../../../../book/src/adr/0441-a-web-page-is-a-window-not-a-box.md),
-/// and `WebViews` in `:widgets` for the door an application uses.
+/// platforms *and* live in a layout. `WebViews` in `:widgets` is the door an
+/// application uses. Exported to every module.
 ///
-/// Marked for NullAway (`docs/testing.md` §2, ADR-0497).
+/// Null-marked: a parameter or return is non-null unless it says `@Nullable`.
+///
+/// Read more: [Markdown, HTML and the web](https://goldberry.dev/docs/components/content.html#the-web-view).
 @NullMarked
 package dev.goldberry.render.web;
 

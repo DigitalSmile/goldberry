@@ -9,12 +9,12 @@ import org.jspecify.annotations.Nullable;
 
 /// A **tap** of a modifier key: pressed, and released with nothing in between.
 ///
-/// `docs/core-widgets.md` §8 asks a `menubar` for "`Alt`-style keyboard
-/// activation", and a bare `Alt` is not an accelerator. An accelerator is a key
-/// plus modifiers, and it fires on the *press* of the key — there is no key here,
-/// only the modifier, so there is nothing to press and nothing to look up. What a
-/// desktop actually recognises is a gesture over two events and a rule about what
-/// may happen between them, which is what this holds (ADR-0223).
+/// A `menubar` opens from the keyboard on a tap of `Alt`, and a bare `Alt` is not
+/// an accelerator. An accelerator is a key plus modifiers, and it fires on the
+/// *press* of the key — there is no key here, only the modifier, so there is
+/// nothing to press and nothing to look up. What a desktop actually recognises is
+/// a gesture over two events and a rule about what may happen between them, which
+/// is what this holds.
 ///
 /// ```java
 /// taps.bind(ModifierKey.ALT, this::activateFromKeyboard, this);
@@ -53,10 +53,12 @@ import org.jspecify.annotations.Nullable;
 ///
 /// The same shape [dev.goldberry.input.PointerRouter]'s
 /// accelerators use, and for the same reason: a widget that binds while it is
-/// mounted has to give the binding back, and must not take a later one with it
-/// (ADR-0220). Owners are compared by identity and never called.
+/// mounted has to give the binding back, and must not take a later one with it.
+/// Owners are compared by identity and never called.
 ///
 /// One per window, confined to the UI thread like everything else input touches.
+///
+/// Read more: [Input and focus](https://goldberry.dev/docs/guide/input.html#accelerators).
 public final class ModifierTaps {
 
     /// One per window. Its state is that window's keyboard gesture in progress.

@@ -6,6 +6,8 @@ package dev.goldberry.css.parse;
 /// because the only thing an author wants from a stylesheet error is the line
 /// and column, and by the time a cascade has run the token is long gone.
 ///
+/// Read more: [Styling](https://goldberry.dev/docs/guide/styling.html).
+///
 /// @param type    what kind of token this is
 /// @param text    the token's value with escapes resolved and quotes removed —
 ///                the identifier's name, the string's contents, the hash's value

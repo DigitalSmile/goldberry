@@ -103,7 +103,7 @@ final class Grid {
         }
     }
 
-    /// §7.9's format information: five bits of level and mask, a BCH(15, 5)
+    /// ISO/IEC 18004 §7.9's format information: five bits of level and mask, a BCH(15, 5)
     /// check over them, and the whole thing XORed with `101010000010010`.
     ///
     /// Written **twice**, in two places that share no modules, so a code with a
@@ -139,7 +139,7 @@ final class Grid {
         setFunction(8, size - 8, true);
     }
 
-    /// §7.10's version information — eighteen bits, BCH(18, 6), twice, and only
+    /// ISO/IEC 18004 §7.10's version information — eighteen bits, BCH(18, 6), twice, and only
     /// from version 7.
     ///
     /// Below that a decoder counts the modules between the finders, which is
@@ -164,7 +164,7 @@ final class Grid {
     }
 
     /// Lays `codewords` into every module that is not a function pattern —
-    /// §7.7.3's two-module-wide zigzag, upwards from the bottom right.
+    /// ISO/IEC 18004 §7.7.3's two-module-wide zigzag, upwards from the bottom right.
     ///
     /// The column at x = 6 is the vertical timing line and is skipped entirely,
     /// so the pairs to its left are shifted by one. Any modules left over after
@@ -199,7 +199,7 @@ final class Grid {
         }
     }
 
-    /// Inverts every data module the mask selects — §7.8.2.
+    /// Inverts every data module the mask selects — ISO/IEC 18004 §7.8.2.
     ///
     /// Its own inverse, which is what lets the encoder try all eight in place:
     /// apply, score, apply again to undo.
@@ -214,7 +214,7 @@ final class Grid {
         }
     }
 
-    /// §7.8.2's eight conditions. `x` is the column and `y` the row, which is
+    /// ISO/IEC 18004 §7.8.2's eight conditions. `x` is the column and `y` the row, which is
     /// the opposite of the standard's `(i, j)` — it names the row first — and is
     /// the one place this file deliberately does not use its notation, because
     /// everything else here is `(x, y)` and mixing the two is how a mask ends up

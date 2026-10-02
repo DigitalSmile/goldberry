@@ -1,7 +1,8 @@
 package dev.goldberry.media;
 
-/// How exactly a [MediaPlayer#seek(java.time.Duration, SeekMode)] lands
-/// (`docs/goldberry-media.md` §3, "Seeking").
+/// How exactly a [MediaPlayer#seek(java.time.Duration, SeekMode)] lands.
+///
+/// Read more: [A player](https://goldberry.dev/docs/components/media.html#a-player).
 public enum SeekMode {
 
     /// The first sample heard and the first picture shown are the ones at the

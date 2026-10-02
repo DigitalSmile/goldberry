@@ -21,13 +21,12 @@ import dev.goldberry.widgets.overlay.dialog.Dialogs;
 import dev.goldberry.widgets.shell.web.WebPage;
 import dev.goldberry.widgets.text.Text;
 
-/// The **Web view** screen: §9's `web-view`, filling the tab.
+/// The **Web view** screen: a `web-view`, filling the tab.
 ///
 /// The page is a real child window sitting over the widget's box, moved and
-/// resized with it — so it *is* the tab, which is what [ADR-0442][adr442] made
-/// possible. On macOS it is a `WKWebView` subview of the window's content view
-/// rather than a child window ([ADR-0458][adr458]), and it looks and behaves the
-/// same.
+/// resized with it — so it *is* the tab. On macOS it is a `WKWebView` subview of
+/// the window's content view rather than a child window, and it looks and
+/// behaves the same.
 ///
 /// ## The button is the demonstration, not a convenience
 ///
@@ -40,7 +39,7 @@ import dev.goldberry.widgets.text.Text;
 /// — its scrim dimmed the margin around the page and nothing else, and its
 /// buttons could not be pressed because the press landed on WebKit.
 ///
-/// Since [ADR-0444][adr444] the page gets out of the way instead: while a modal
+/// The page gets out of the way instead: while a modal
 /// is in force, `WebView` parks its child window off the side of the
 /// application's window, and puts it back when the dialog closes. Press the
 /// button and the page **disappears**; answer the dialog and it comes back,
@@ -60,9 +59,7 @@ import dev.goldberry.widgets.text.Text;
 /// perfectly visible with no parking needed, which is its own half of the
 /// demonstration.
 ///
-/// [adr442]: ../../../../../../../../book/src/adr/0442-a-page-is-a-child-window-where-the-window-system-allows-one.md
-/// [adr444]: ../../../../../../../../book/src/adr/0444-a-page-stands-aside-for-a-modal.md
-/// [adr458]: ../../../../../../../../book/src/adr/0458-a-page-on-macos-is-a-view-not-a-window.md
+/// Read more: [The web view](https://goldberry.dev/docs/components/content.html#the-web-view).
 public record WebScreen() implements Widget.Stateful {
 
     /// What the tab shows when it opens.
@@ -134,7 +131,7 @@ public record WebScreen() implements Widget.Stateful {
         ///
         /// This is the whole of the navigation mechanism: the screen holds the
         /// page it wants, `build` hands it to the widget, and the widget follows
-        /// it ([ADR-0449]). There is nothing to call and nothing to hold on to.
+        /// it. There is nothing to call and nothing to hold on to.
         private WebPage showing = page(GOLDBERRY_URL);
 
         /// The last thing the page's own script said, or null.
@@ -201,14 +198,14 @@ public record WebScreen() implements Widget.Stateful {
         ///
         /// The handlers are declared **here**, on the page value, rather than
         /// registered against something after it opens: a page is described by a
-        /// value and its bindings are part of what it is ([ADR-0448]). They are
+        /// value and its bindings are part of what it is. They are
         /// read when the page opens, which is why they are attached to every
         /// page this screen makes rather than only to the demo one.
         private WebPage page(@Nullable String url) {
             var base = url == null ? WebPage.ofHtml(DEMO_DOCUMENT) : WebPage.of(url);
             return base.on("goldberrySays", arguments -> {
                         // `arguments` is a JSON array, unparsed -- the toolkit
-                        // ships no reader (ADR-0448). One string argument is the
+                        // ships no JSON reader. One string argument is the
                         // whole of what this demo sends, so the quotes are taken
                         // off and nothing pretends to be a parser.
                         var said = unquote(arguments);

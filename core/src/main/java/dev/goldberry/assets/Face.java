@@ -9,14 +9,16 @@ import dev.goldberry.text.font.FontSource;
 /// What names one typeface: a family, one of the two weights, upright or italic.
 ///
 /// [BundledFont] is one of these, and so is an application's
-/// [dev.goldberry.text.font.FontSource]. They share the
-/// description, and **one matching rule** for when a stylesheet asks for a
-/// corner of the matrix a family does not have (`docs/gaps.md` G39, ADR-0349).
-/// Two copies of that rule would disagree the first time one was changed, and
-/// the result would be a shipped family that falls back differently from Inter.
+/// [dev.goldberry.text.font.FontSource]. They share the description, and **one
+/// matching rule** ([#match]) for when a stylesheet asks for a corner of the
+/// matrix a family does not have. Two copies of that rule would disagree the
+/// first time one was changed, and the result would be a shipped family that
+/// falls back differently from Inter.
 ///
 /// Sealed over the two, because the font book opens each kind differently and
 /// a third kind would be a face it could not open.
+///
+/// Read more: [Text, fonts and icons](https://goldberry.dev/docs/guide/text.html#faces-fonts-and-the-book).
 public sealed interface Face permits BundledFont, FontSource {
 
     /// The family name as a stylesheet writes it — `Inter`, `Forum`.

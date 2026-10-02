@@ -134,7 +134,7 @@ class StyleResolverTest {
         }
 
         @Test
-        @DisplayName("specificity beats layer, per §8")
+        @DisplayName("specificity beats layer")
         void specificityBeatsLayer() {
             // "Later layer wins AT EQUAL SPECIFICITY" -- so a sharper toolkit
             // rule still beats a vaguer application one, exactly as two rules in
@@ -176,8 +176,7 @@ class StyleResolverTest {
         /// longhand set. This was a `HashMap`, so the answer was whichever way
         /// the two property names' buckets fell: `padding` and `padding-left`
         /// came out the right way round and `inset` and `left` came out the wrong
-        /// way, so `inset: 8px; left: 20px` quietly lost its `left`
-        /// ([ADR-0311]).
+        /// way, so `inset: 8px; left: 20px` quietly lost its `left`.
         @Nested
         @DisplayName("the order the winners come out in")
         class DeclarationOrder {
@@ -290,7 +289,7 @@ class StyleResolverTest {
         @Test
         @DisplayName("a theme layer overrides the base's custom properties")
         void themeLayer() {
-            // §10: swapping a theme is swapping a custom-property layer.
+            // Swapping a theme is swapping a custom-property layer.
             var base = sheet(CascadeLayer.TOOLKIT_BASE, """
                     :root { --gb-bg: #ffffff }
                     button { background: var(--gb-bg) }
@@ -387,7 +386,7 @@ class StyleResolverTest {
     class Realistic {
 
         @Test
-        @DisplayName("base, theme and application compose the way §8 and §10 say")
+        @DisplayName("base, theme and application compose as the four layers of the cascade")
         void wholeCascade() {
             var base = sheet(CascadeLayer.TOOLKIT_BASE, """
                     :root { --gb-bg: #eceff4; --gb-fg: #2e3440 }
@@ -415,7 +414,7 @@ class StyleResolverTest {
         }
     }
 
-    /// One missing token is a **message**, not a stream ([ADR-0243]).
+    /// One missing token is a **message**, not a stream.
     ///
     /// A stylesheet is static, so a `var()` that resolves to nothing cannot
     /// resolve on the next frame either — but a style is resolved per element per

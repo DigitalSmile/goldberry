@@ -11,7 +11,7 @@ import dev.goldberry.media.codec.Frame;
 import dev.goldberry.media.codec.SampleFormat;
 import dev.goldberry.media.codec.TrackParams;
 
-/// One AAC, AC-3 or E-AC-3 track decoded by GStreamer (ADR-0489).
+/// One AAC, AC-3 or E-AC-3 track decoded by GStreamer.
 ///
 /// Samples come out as interleaved 32-bit float, converted by `audioconvert`
 /// from whatever the decoder produced. The channels are in GStreamer's order,

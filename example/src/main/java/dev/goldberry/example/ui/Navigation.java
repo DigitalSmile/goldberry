@@ -21,18 +21,20 @@ import dev.goldberry.widgets.text.Text;
 /// on screen while the rest of it travels, a trail *says where you are*, and a
 /// tour *walks* somebody through things that are already there. They are on one
 /// screen because choosing between them is a single decision and it used to be
-/// spread over three tabs ([ADR-0222]).
+/// spread over three tabs.
 ///
 /// ## Why this screen is not in a viewport
 ///
-/// [Scrolling] and [Console] own one each, and §2.4 bans nested same-axis
+/// [Scrolling] and [Console] own one each, and the toolkit bans nested same-axis
 /// scrollers — a screen inside the gallery's `scroll` that held another one would
 /// be exactly that. The wall is what makes the ban affordable: two columns of
 /// cards are half as tall as one, so the screen fits without needing to scroll at
 /// all.
 ///
+/// Read more: [Navigation](https://goldberry.dev/docs/components/navigation.html).
+///
 /// @param startTour the application's, because starting a tour needs a `Host` and
-///                  a widget has none (ADR-0121)
+///                  a widget has none
 public record Navigation(ShowcaseModel model, ShowcaseModel.Actions actions, Runnable startTour)
         implements Widget.Stateless {
 
@@ -41,7 +43,7 @@ public record Navigation(ShowcaseModel model, ShowcaseModel.Actions actions, Run
                     + " the rest travels, a trail says where you are, and a tour walks you through"
                     + " what is already there."
                     + " This screen is the one the gallery does not put in a viewport: two"
-                    + " of the cards below own one, and §2.4 bans a scroller inside a scroller.";
+                    + " of the cards below own one, and a scroller inside a scroller is not allowed.";
 
     @Override
     public Widget build(BuildContext context) {
@@ -60,11 +62,11 @@ public record Navigation(ShowcaseModel model, ShowcaseModel.Actions actions, Run
                         tour()));
     }
 
-    /// §6's `breadcrumbs`, driven by the model's path ([ADR-0306]).
+    /// The `breadcrumbs`, driven by the model's path.
     ///
     /// The card is here rather than in a document for the reason the road card on
     /// the Basic screen is: the crumbs are **one per element of a list that
-    /// changes**, and §8's markup has no way to describe that. A static trail
+    /// changes**, and markup has no way to describe that. A static trail
     /// would have been writable in KDL and would have shown nothing — the point
     /// of this widget is what it does when the path gets too long for the row.
     ///

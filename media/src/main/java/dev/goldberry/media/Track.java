@@ -28,6 +28,8 @@ import dev.goldberry.media.codec.TrackParams;
 ///                        untagged or `und`
 /// @param title           the track's own name, such as "Director's commentary",
 ///                        when the container gives one
+///
+/// Read more: [A player](https://goldberry.dev/docs/components/media.html#a-player).
 public record Track(
         int index,
         CodecId codec,

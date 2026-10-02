@@ -18,27 +18,32 @@ import dev.goldberry.css.select.Selector;
 import dev.goldberry.css.value.CssLength;
 import dev.goldberry.layout.Length;
 
-/// What a `tooltip` actually resolves to, against what `design-system.md` §3
-/// says it should.
+/// What a `tooltip` actually resolves to, against the metrics the design system
+/// gives it: padding 8/12, radius 4, `caption`, a 500ms show delay and a 100ms
+/// move-between delay.
 ///
 /// ## Why this exists
 ///
-/// §3's `tooltip` row and the shipped rule disagree in **three** places, and only
-/// one of the three had a comment saying so. The row reads *"padding 6/8; radius
-/// 4; `caption`; delay 500ms show / 100ms move-between"*; the stylesheet writes
+/// The design system's `tooltip` row and the shipped rule once disagreed in
+/// **three** places, and only one of the three had a comment saying so. The row
+/// asked for padding 6/8, radius 4 and `caption`; the stylesheet wrote
 /// `padding: 8px 12px`, `border-radius: 8px` and `font-size:
 /// var(--gb-font-body)` — the last with an argument beside it and the first two
 /// with nothing at all.
 ///
 /// Nothing was watching. `SupportedPropertyTest` asks whether a declaration does
-/// *something*, `ContrastTest` asks what colours measure, and no test asks
-/// whether a metric is the metric §3 pinned. Three of the four numbers in one row
-/// had drifted, and it was found by reading the row ([ADR-0263]).
+/// *something*, `ContrastTest` asks what colours measure, and no test asked
+/// whether a metric is the metric the design system pinned. Three of the four
+/// numbers in one row had drifted, and it was found by reading the row.
 ///
-/// So this asserts the **shipped** numbers, and each one carries where it stands
-/// in that argument: settled and amended into §3, or open and recorded in
-/// `ARCHITECTURE.md` §17.1. Either way a further drift is a failing test rather
-/// than a fourth silent departure.
+/// So this asserts the **shipped** numbers, which are now the design system's
+/// numbers: the padding row was amended because 6 is not on the spacing ramp,
+/// and the radius and the type rank were brought back to the row because the
+/// design system is the authority. A further drift is a failing test rather than
+/// a fourth silent departure.
+///
+/// Read more:
+/// [The design system: component metrics](https://goldberry.dev/docs/guide/design-system.html#component-metrics).
 class TooltipMetricsTest {
 
     private static ComputedStyle styleOf(String type) {
@@ -71,16 +76,16 @@ class TooltipMetricsTest {
         }
     }
 
-    /// §1.3's legal ramp, which is the fact the padding disagreement turns on.
+    /// The spacing ramp, which is the fact the padding disagreement turns on.
     private static final List<Integer> RAMP = List.of(2, 4, 8, 12, 16, 20, 24, 32, 40, 48, 64);
 
-    /// **Settled, and §3 was amended.** The row said `6/8` and **6 is not on
-    /// §1.3's ramp**, which the same document introduces with "no off-ramp
-    /// values" — so the row as written could not be implemented without breaking
-    /// a rule one section above it. That is a document bug rather than a design
+    /// **Settled, and the row was amended.** The row said `6/8` and **6 is not on
+    /// the spacing ramp**, which the design system allows no off-ramp values of —
+    /// so the row as written could not be implemented without breaking a rule
+    /// one section above it. That is a document bug rather than a design
     /// decision, and the shipped `8/12` is two legal steps.
     @Test
-    @DisplayName("§3's padding, which is 8/12 because 6 is off §1.3's ramp")
+    @DisplayName("the padding is 8/12, because 6 is off the spacing ramp")
     void padding() {
         var style = styleOf("tooltip");
 
@@ -90,30 +95,29 @@ class TooltipMetricsTest {
         assertEquals(Length.points(12), style.padding().right());
 
         for (var edge : List.of(style.padding().top(), style.padding().left())) {
-            assertTrue(
-                    RAMP.contains((int) ((Length.Points) edge).value()), () -> edge + " is not on §1.3's legal ramp");
+            assertTrue(RAMP.contains((int) ((Length.Points) edge).value()), () -> edge + " is not on the spacing ramp");
         }
     }
 
-    /// §3's radius, which the sheet wrote as 8 for two hundred ADRs and now
-    /// writes as 4 ([ADR-0380]). §1.5 groups radii as `4` (inputs, small
-    /// controls) · `8` (buttons, cards) · `12` (dialogs, popovers, frost panels)
-    /// and names no tooltip in any of them, so neither number *follows* — which
-    /// is why it was a decision to take rather than an edit, and why the one
-    /// taken is the one §3 wrote down.
+    /// The radius, which the sheet wrote as 8 for a long time and now writes as
+    /// 4. The design system groups radii as `4` (inputs, small controls) · `8`
+    /// (buttons, cards) · `12` (dialogs, popovers, frost panels) and names no
+    /// tooltip in any of them, so neither number *follows* — which is why it was
+    /// a decision to take rather than an edit, and why the one taken is the one
+    /// the tooltip row wrote down.
     @Test
-    @DisplayName("§3's radius, which is what ships")
+    @DisplayName("the radius is 4, as the design system's row says")
     void radius() {
         assertEquals(Corners.all(4), styleOf("tooltip").decoration().corners());
     }
 
-    /// §3's type rank, which the sheet wrote as `body` with an argument beside
-    /// it: §1.4 gives `caption` to secondary text *under* a control, where the
-    /// reader has the control for context, and a tooltip is the only text on
-    /// screen at the moment it is read. The argument stands and the design
-    /// system is the authority, so it is §1.4's to answer ([ADR-0380]).
+    /// The type rank, which the sheet wrote as `body` with an argument beside
+    /// it: the type scale gives `caption` to secondary text *under* a control,
+    /// where the reader has the control for context, and a tooltip is the only
+    /// text on screen at the moment it is read. The argument stands and the
+    /// design system is the authority, so it is the type scale's to answer.
     @Test
-    @DisplayName("§3's `caption`, which is what ships")
+    @DisplayName("the type rank is caption, as the design system's row says")
     void typography() {
         var style = styleOf("tooltip");
         var caption = styleOf("badge").typography().size();
@@ -123,9 +127,10 @@ class TooltipMetricsTest {
     }
 
     /// The one number in the row that never drifted, asserted so the pair of
-    /// delays stays a pair: §3 gives two and ADR-0262 built the second.
+    /// delays stays a pair: the row gives two, and a delay is a metric, so both
+    /// are tokens.
     @Test
-    @DisplayName("and §3's two delays are both tokens now")
+    @DisplayName("and the two delays are both tokens")
     void delays() {
         var sheets = Controls.stylesheets(Theme.NORD_DARK);
         var resolver = new StyleResolver(sheets);

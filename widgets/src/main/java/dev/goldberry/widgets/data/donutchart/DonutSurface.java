@@ -24,11 +24,10 @@ import dev.goldberry.widgets.data.SeriesPalette;
 
 /// The ring itself — the `donut-plot` part, and the node the pointer lands on.
 ///
-/// A **part**, so it is CSS-selectable and not constructible
-/// (ADR-0065).
-/// [DonutPlot] is what a `donut-chart` builds and this is what *it* builds; the
-/// split is there because a hovered slice is state and a widget is a value
-/// (ADR-0198).
+/// A part, so it is CSS-selectable and not constructible from outside the
+/// package. [DonutPlot] is what a `donut-chart` builds and this is what *it*
+/// builds; the split is there because a hovered slice is state and a widget is
+/// a value.
 ///
 /// ## The readout goes in the hole
 ///
@@ -37,6 +36,8 @@ import dev.goldberry.widgets.data.SeriesPalette;
 /// one place on the chart that cannot cover the data and cannot be clipped by the
 /// box — so the hovered slice's name and share are written there, and the other
 /// slices fade so the ring says which one it is talking about.
+///
+/// Read more: [Charts](https://goldberry.dev/docs/components/charts.html#donut-chart).
 ///
 /// @param values   one number per slice
 /// @param labels   one name per slice, for the readout
@@ -59,13 +60,13 @@ record DonutSurface(
     ///
     /// Below about a half it reads as a pie with a dot punched in it; above about
     /// three quarters the slices become arcs too thin to compare. The number is
-    /// here rather than in a stylesheet because §8's subset has no way to express
+    /// here rather than in a stylesheet because the subset has no way to express
     /// "a fraction of the smaller dimension", and a fixed pixel radius would make
     /// a donut in a small panel a ring and one in a large panel a hoop.
     static final double HOLE = 0.62;
 
-    /// The gap between slices, in radians at the outer edge — §14's 2px surface
-    /// gap, expressed as an angle because that is what an arc takes.
+    /// The gap between slices, in radians at the outer edge — the design system's
+    /// 2px surface gap, expressed as an angle because that is what an arc takes.
     private static final double GAP = 0.012;
 
     /// What a slice nobody is reading fades to while another is being read.
@@ -78,10 +79,9 @@ record DonutSurface(
 
     /// **Focusable**, so the chart is reachable without a pointer.
     ///
-    /// §2.2 requires everything to be reachable and `charts.md` §3.5 says so
-    /// again with feeling: a browser dashboard is a pointer surface and a desktop
-    /// application is not. A donut with nothing in it is not a Tab stop, because
-    /// there is nothing there to read.
+    /// Everything is reachable from the keyboard: a browser dashboard is a
+    /// pointer surface and a desktop application is not. A donut with nothing in
+    /// it is not a Tab stop, because there is nothing there to read.
     @Override
     public boolean isFocusable() {
         return drawn() > 0;
@@ -107,8 +107,9 @@ record DonutSurface(
     /// Shaped in `render` for
     /// [dev.goldberry.widgets.data.linechart.ChartSurface]'s
     /// reason: the hovered index is part of this widget, so this is two strings
-    /// rather than two per slice, and moving between slices re-shapes two of them
-    /// (ADR-0037).
+    /// rather than two per slice, and moving between slices re-shapes two of
+    /// them — shaping is the expensive half of the text path, so the fewer the
+    /// better.
     private @Nullable Readout readout(ComputedStyle style, Context context) {
         if (hovered < 0 || hovered >= values.size() || !(values.get(hovered) > 0)) {
             return null;

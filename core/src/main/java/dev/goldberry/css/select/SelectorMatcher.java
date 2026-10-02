@@ -11,6 +11,8 @@ import dev.goldberry.css.StyleElement;
 /// and everything else is a walk up the ancestor chain. Matching left to right
 /// would mean descending into every descendant of every candidate — the same
 /// answer, enormously more work.
+///
+/// Read more: [Styling](https://goldberry.dev/docs/guide/styling.html#selectors).
 public final class SelectorMatcher {
 
     private SelectorMatcher() {}
