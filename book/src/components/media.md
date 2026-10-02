@@ -102,7 +102,7 @@ found by `ServiceLoader` and consulted before FFmpeg's
 |---|---|---|
 | `videotoolbox`, `audiotoolbox` | H.264, HEVC; AAC, AC-3, E-AC-3 | macOS |
 | `gstreamer-video`, `gstreamer-audio` | The same, with the decoders installed | Linux ([ADR-0489](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0489-linux-and-windows-platform-decoders-are-gstreamer-and-media-foundation.md)) |
-| `mediafoundation-video`, `mediafoundation-audio` | The same | Windows, written and not yet run there |
+| `mediafoundation-video`, `mediafoundation-audio` | The same | Windows, held back in 2026.2: off unless `-Dgoldberry.media.mediaFoundation=true` ([ADR-0520](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0520-media-foundation-is-held-back-from-2026-2.md)) |
 
 An application brings its own codec the same way: implement `DecoderProvider`
 with `name`, `supports(request)` and `open(request)`, and declare

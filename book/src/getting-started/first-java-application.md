@@ -39,11 +39,10 @@ java {
 
 repositories {
     mavenCentral()
-    maven { url = 'https://central.sonatype.com/repository/maven-snapshots/' }
 }
 
 dependencies {
-    implementation platform('dev.goldberry:goldberry-bom:2026.1-SNAPSHOT')
+    implementation platform('dev.goldberry:goldberry-bom:2026.2')
     implementation 'dev.goldberry:goldberry'
     runtimeOnly 'dev.goldberry:goldberry-natives::linux-x64'
     runtimeOnly 'dev.goldberry:goldberry-natives::linux-aarch64'

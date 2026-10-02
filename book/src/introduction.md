@@ -82,9 +82,8 @@ part.
 
 ## Status
 
-Goldberry is pre-release. The version line is `2026.1`, every push to `master`
-publishes a snapshot to Maven Central's snapshot repository, and no release
-tag has been cut yet. The catalogue has 79 markup names, the GPU lane is built
+Goldberry's first release is `2026.2`, on Maven Central, and every push to
+`master` publishes a snapshot of the next line to the snapshot repository. The catalogue has 79 markup names, the GPU lane is built
 in part, and three content modules exist: Markdown and HTML, emoji, and media.
 [Status](status.md) records what is built, milestone by milestone, and
 [TODO](TODO.md) what is not.

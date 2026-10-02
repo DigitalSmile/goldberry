@@ -2,8 +2,8 @@
 
 <p class="gb-lede">What Goldberry does not do today, in one place. Each line says whether the gap is deliberate, deferred or in progress, and links the record that explains it.</p>
 
-Goldberry is pre-release. No release tag has been cut, snapshots are published on
-every push, and the first version is the `2026.1` line. The gaps below are the
+Goldberry's first release is `2026.2`, and snapshots of the next line are
+published on every push. The gaps below are the
 ones an application developer meets first. [TODO](../TODO.md) is the complete
 list, entry by entry, and [Status](../status.md) is what is built.
 
@@ -28,7 +28,7 @@ hit targets are 32 pixels, reduced motion is honoured and text scales to 150%.
 | Windows on ARM and macOS on Intel | <span class="gb-pill absent">not scheduled</span> | Four native artifacts, not six. Neither target has been built and both are a shrinking share ([ADR-0041](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0041-three-platforms-four-artifacts-two-backends.md)) |
 | A web view on Wayland | <span class="gb-pill absent">not scheduled</span> | A page is a child window placed over the widget's box. Wayland allows neither reparenting a foreign surface nor placing a window where a widget is, so there the widget opens nothing and says why ([ADR-0442](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0442-a-page-is-a-child-window-where-the-window-system-allows-one.md)) |
 | A web view on Windows | <span class="gb-pill partial">deferred</span> | Written against WebView2 and not yet verified on a Windows desktop |
-| Media on Windows and on `linux-aarch64` | <span class="gb-pill partial">deferred</span> | Written and untested. FFmpeg is built for `linux-x64` and `macos-aarch64` today; a release refuses to ship without all four ([ADR-0495](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0495-media-is-published-and-snapshots-publish-again.md)) |
+| H.264, HEVC, AAC, AC-3 and E-AC-3 on Windows | <span class="gb-pill partial">deferred</span> | They play through Windows' own decoders, which failed their first run on Windows and are held back in 2026.2: off unless `-Dgoldberry.media.mediaFoundation=true`. FFmpeg is built for all four targets, so VP8, VP9, AV1, Opus, Vorbis, FLAC and MP3 play everywhere ([ADR-0520](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0520-media-foundation-is-held-back-from-2026-2.md)) |
 | Frame evidence on three platforms | <span class="gb-pill built">in progress</span> | The budget is measured on one Linux machine. CI paints 300 frames while resizing on each runner and asserts no budget, because a GPU-less runner has no display somebody chose ([ADR-0342](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0342-a-window-is-resized-from-outside-and-the-run-says-what-it-cost.md), [ADR-0452](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0452-a-refresh-budget-needs-a-display-somebody-chose.md)) |
 | The GPU lane in CI | <span class="gb-pill built">in progress</span> | Composition, `canvas3d` and GPU video are measured on Metal and have run on Linux under X11. The lavapipe lane on CI has run and not yet reached a test ([ADR-0503](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0503-the-gpu-lane-finds-lavapipe-a-device-goes-before-sdl-and-a-gpu-golden-has-its-own-tolerance.md)) |
 | A native image on macOS and Windows | <span class="gb-pill built">in progress</span> | Built on every platform on a release tag. The macOS and Windows traces are not reviewed ([ADR-0337](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0337-the-native-showcase-is-built-on-every-platform.md)) |

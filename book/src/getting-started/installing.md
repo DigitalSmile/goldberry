@@ -8,21 +8,19 @@ versions: `2026.1`, `2026.2`, `2026.2.1`
 ([ADR-0333](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0333-a-version-is-a-year-and-a-count.md)).
 
 > [!NOTE]
-> No release has been cut yet. Every push to `master` publishes a `-SNAPSHOT`
-> of the next version to the Central Portal's snapshot repository, so until the
-> first tag the coordinates below end in `-SNAPSHOT` and the build needs the
-> snapshot repository.
+> The coordinates below are the newest release, `2026.2`, from Maven Central.
+> What is on `master` is published as snapshots of the next line, under
+> [Snapshots](#snapshots) below.
 
 ## Gradle
 
 ```groovy
 repositories {
     mavenCentral()
-    maven { url = 'https://central.sonatype.com/repository/maven-snapshots/' }   // snapshots only
 }
 
 dependencies {
-    implementation platform('dev.goldberry:goldberry-bom:2026.1-SNAPSHOT')
+    implementation platform('dev.goldberry:goldberry-bom:2026.2')
     implementation 'dev.goldberry:goldberry'                 // common, natives, core and widgets
 
     // The native library, one classifier per platform you run on.
@@ -36,19 +34,12 @@ dependencies {
 ## Maven
 
 ```xml
-<repositories>
-  <repository>
-    <id>central-snapshots</id>
-    <url>https://central.sonatype.com/repository/maven-snapshots/</url>
-  </repository>
-</repositories>
-
 <dependencyManagement>
   <dependencies>
     <dependency>
       <groupId>dev.goldberry</groupId>
       <artifactId>goldberry-bom</artifactId>
-      <version>2026.1-SNAPSHOT</version>
+      <version>2026.2</version>
       <type>pom</type>
       <scope>import</scope>
     </dependency>
@@ -67,6 +58,21 @@ dependencies {
     <scope>runtime</scope>
   </dependency>
 </dependencies>
+```
+
+## Snapshots
+
+Every push to `master` publishes a `-SNAPSHOT` of the line being worked on, the
+`goldberryVersion` in
+[`gradle.properties`](https://github.com/DigitalSmile/goldberry/blob/master/gradle.properties),
+to the Central Portal's snapshot repository. To follow `master`, add the
+repository and use that version with `-SNAPSHOT`:
+
+```groovy
+repositories {
+    mavenCentral()
+    maven { url = 'https://central.sonatype.com/repository/maven-snapshots/' }
+}
 ```
 
 ## Which natives jars to add

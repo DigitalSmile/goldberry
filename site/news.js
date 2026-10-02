@@ -12,6 +12,13 @@ window.NEWS = {
   limit: 4,
   items: [
     {
+      date: "2026-10-02",
+      title: "Goldberry 2026.2, the first release",
+      pill: "2026.2: the first release",
+      text: "The first release is on Maven Central under dev.goldberry: the toolkit, the native library for Linux, Windows and macOS, and the Markdown and HTML, emoji, GPU and media modules, with FFmpeg for all four platforms. The showcase is on the release page as a native binary.",
+      href: "https://github.com/DigitalSmile/goldberry/releases/tag/v2026.2"
+    },
+    {
       date: "2026-10-01",
       title: "The documentation: a guide in six parts",
       pill: "The documentation is a guide",

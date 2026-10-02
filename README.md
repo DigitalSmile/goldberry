@@ -26,8 +26,8 @@ JNI, no bundled web engine, no platform widget wrapping.
 - **Cross-platform.** Linux (Wayland/X11), Windows and macOS are peer platforms
   behind one SPI.
 
-> **Pre-release.** Nothing has been released yet; every push to `master`
-> publishes a `-SNAPSHOT`. There is no screen-reader support on any platform
+> **2026.2 is the first release.** It is on Maven Central, and every push to
+> `master` publishes a `-SNAPSHOT` of the next line. There is no screen-reader support on any platform
 > ([ADR-0440](book/src/adr/0440-the-accessibility-bridge-is-on-hold-and-the-semantics-tree-stays.md)).
 > [Status](book/src/status.md) says what is built, and [TODO](book/src/TODO.md)
 > what is not yet.
@@ -36,12 +36,12 @@ JNI, no bundled web engine, no platform widget wrapping.
 
 Requires **JDK 25**. Add the BOM for the version, the umbrella artifact for the
 toolkit, and one natives jar per platform you run on —
-[Installing](book/src/getting-started/installing.md) has the Maven form and the
-snapshot repository:
+[Installing](book/src/getting-started/installing.md) has the Maven form, the
+optional modules and the snapshots of `master`:
 
 ```groovy
 dependencies {
-    implementation platform('dev.goldberry:goldberry-bom:2026.1-SNAPSHOT')
+    implementation platform('dev.goldberry:goldberry-bom:2026.2')
     implementation 'dev.goldberry:goldberry'
     runtimeOnly 'dev.goldberry:goldberry-natives::linux-x64'   // linux-aarch64, macos-aarch64, windows-x64
 }

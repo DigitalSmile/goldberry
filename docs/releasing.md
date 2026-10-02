@@ -18,7 +18,9 @@ How Goldberry is versioned, published and released. The reasoning is in
 | `goldberry-bom` and the `goldberry` umbrella, `html`/`emoji`/`gpu`/`media` optional | **built**, resolved by a local consumer build; `media` and its `ffmpeg-linux-x64` classifier published into `mavenLocal` on 2026-09-30 (ADR-0495) |
 | `snapshot.yml` → `publish.yml` → Central snapshots | **the secrets are set and the first run went out** (run 17, 2026-09-19) — and failed partway: `:widgets:javadoc` refused a broken `[link]` after seven of the nine modules had uploaded, leaving `:widgets` and `:html` off that snapshot. The next green snapshot overwrites it. `check` generates javadoc now, so the same mistake fails on Linux four minutes in ([ADR-0405](../book/src/adr/0405-check-generates-the-published-javadoc.md)). **Runs 32 and 33 (2026-09-27, 2026-09-30) never reached the upload**: every per-OS Java job failed in `:natives:gpuTest`, where GPU test classes called SDL from their teardown after the missing library had skipped their setup. The teardowns now return when setup was skipped ([ADR-0495](../book/src/adr/0495-media-is-published-and-snapshots-publish-again.md)) |
 | The `dev.goldberry` namespace on Central (ADR-0510) | **not yet verified**: until the TXT record is in place and snapshots are enabled for it (one-time setup, steps 1 and 2), `publish.yml` is refused. Snapshots before 2026-10-01 are under `io.github.digitalsmile` |
-| `release.yml` → `publish.yml` → Central Portal deployment | **built, never run** |
+| `release.yml` → `publish.yml` → Central Portal deployment | **built, never run**; the first tag is `v2026.2` |
+| `goldberry-media` FFmpeg for all four targets | `media.yml` builds `windows-x64` (MSVC under MSYS2) and `linux-aarch64` as well as `macos-aarch64` and `linux-x64` since 2026-10-02; a release refuses with one missing. Windows took four rounds (C runtime, the d3d11va hwaccels, `AVIOContext`'s C `long`, a GPU-less Direct3D), and its Media Foundation decoders are held back from 2026.2 ([ADR-0520](../book/src/adr/0520-media-foundation-is-held-back-from-2026-2.md)) |
+| Release notes: `CHANGELOG.md` → `.github/release-notes.md` → the draft GitHub Release | **built** (2026-10-02): `:core:releaseNotes` writes the body, `release.yml`'s `notes` job opens the draft with it. `ReleaseNotesTest` and `ReleaseNotesRepositoryTest` hold the changelog, the template, the job and the documented coordinates |
 | `showcase.yml` → native images on the tag's draft GitHub Release | **built; the images work** — a manual run built them on all three platforms and the html, canvas and Markdown screens were checked by hand (2026-09-17). The release upload has not run: no tag yet |
 | Licence texts vendored (`checkLicenses -Pgoldberry.releaseCheck=true`) | **done** (2026-09-17) — all seven upstream files copied verbatim from the pinned checkouts; the check passes with eleven components |
 
@@ -27,7 +29,7 @@ How Goldberry is versioned, published and released. The reasoning is in
 `YEAR.RELEASE[.PATCH]`: `2026.1`, `2026.2`, `2026.2.1`. The release count starts at
 1 each year. There is no `.0` patch.
 
-`gradle.properties` holds the line being worked towards — `goldberryVersion=2026.1`
+`gradle.properties` holds the line being worked towards — `goldberryVersion=2026.2`
 — and **never** `-SNAPSHOT`:
 
 ```sh
@@ -175,18 +177,26 @@ summary instead of failing.
    `:media:ffmpegSourcesJar` both refuse a tag that does not name the pinned
    commit, and publication refuses the FFmpeg binaries without that jar
    (ADR-0508).
-3. **Tag the commit that declares the version**:
+3. **Write the release's section of `CHANGELOG.md`**: rename `## Unreleased` to
+   `## 2026.2 — <date>`, or write the section if there is none. It is the body of
+   the GitHub Release, through `.github/release-notes.md`, and
+   `./gradlew -q :core:releaseNotes` shows what it will be. Move the coordinates
+   in the README and in the guide's *Installing* and *Your first Java
+   application* to the version in the same commit; `ReleaseNotesRepositoryTest`
+   holds them to the changelog's newest section.
+4. **Tag the commit that declares the version**:
    ```sh
    git tag -a v2026.1 -m "Goldberry 2026.1"
    git push origin v2026.1
    ```
-   `release.yml` publishes to a Portal deployment; `showcase.yml` builds the native
-   images and attaches them to a **draft** GitHub Release for the tag.
-4. **Publish in the Portal** (Deployments → the deployment → *Publish*), unless
+   `release.yml` publishes to a Portal deployment and opens the tag's GitHub
+   Release as a **draft** with the notes; `showcase.yml` builds the native images
+   and attaches them to it.
+5. **Publish in the Portal** (Deployments → the deployment → *Publish*), unless
    `CENTRAL_AUTO_RELEASE` is on. Central takes a few minutes to an hour to sync.
    Then **publish the draft GitHub Release**, so the binaries and the artifacts
    appear together.
-5. **Merge the bump.** `release.yml` opens it as a pull request — `bump/2026.2`,
+6. **Merge the bump.** `release.yml` opens it as a pull request — `bump/2026.2`,
    moving `goldberryVersion` to `2026.2`
    ([ADR-0421](../book/src/adr/0421-the-release-line-moves-on-by-itself.md)).
    Until it is merged master publishes `2026.1-SNAPSHOT`, which Maven orders

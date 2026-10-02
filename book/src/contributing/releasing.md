@@ -59,9 +59,10 @@ Until the Central secrets exist, a snapshot run rehearses into `mavenLocal` and 
 <div class="gb-steps">
 <div><b>1</b><p>Rehearse. Actions, Release, Run workflow on master. It builds every platform and runs the whole chain into mavenLocal, uploading nothing. Fix anything red before tagging.</p></div>
 <div><b>2</b><p>Check the licences. The release run enforces it, and a bumped upstream pin means re-copying that component's file from the new checkout.</p></div>
-<div><b>3</b><p>Tag the commit that declares the version. release.yml publishes to a Portal deployment, and showcase.yml builds the native images and attaches them to a draft GitHub Release.</p></div>
-<div><b>4</b><p>Publish in the Portal, then publish the draft GitHub Release, so the binaries and the artifacts appear together. Central takes a few minutes to an hour to sync.</p></div>
-<div><b>5</b><p>Merge the bump. release.yml opens it as a pull request moving goldberryVersion to the next line.</p></div>
+<div><b>3</b><p>Write the release's section of CHANGELOG.md, and move the coordinates in the README and the guide to the version. The section is the body of the GitHub Release.</p></div>
+<div><b>4</b><p>Tag the commit that declares the version. release.yml publishes to a Portal deployment and opens the tag's GitHub Release as a draft with the notes, and showcase.yml builds the native images and attaches them to it.</p></div>
+<div><b>5</b><p>Publish in the Portal, then publish the draft GitHub Release, so the binaries and the artifacts appear together. Central takes a few minutes to an hour to sync.</p></div>
+<div><b>6</b><p>Merge the bump. release.yml opens it as a pull request moving goldberryVersion to the next line.</p></div>
 </div>
 
 Step 2 is one command, and `releaseCheck` turns a warning about an unvendored licence into a failure:
@@ -70,16 +71,22 @@ Step 2 is one command, and `releaseCheck` turns a warning about an unvendored li
 ./gradlew checkLicenses -Pgoldberry.releaseCheck=true
 ```
 
-Step 3 is a tag:
+Step 3 is a section of `CHANGELOG.md`, newest first: rename `## Unreleased` to the version and the date, or write one. A tag whose version has no section is refused before the release is opened. The notes it makes, through `.github/release-notes.md`, are one command away:
 
 ```sh
-git tag -a v2026.1 -m "Goldberry 2026.1"
-git push origin v2026.1
+./gradlew -q :core:releaseNotes     # prints the file it wrote, core/build/release-notes.md
+```
+
+Step 4 is a tag:
+
+```sh
+git tag -a v2026.2 -m "Goldberry 2026.2"
+git push origin v2026.2
 ```
 
 A release stops in the Portal for a person to press Publish, unless the repository variable `CENTRAL_AUTO_RELEASE` is `true`. A release on Central is permanent, so the first few get looked at.
 
-Step 5 matters more than it looks. Until the bump is merged, `master` publishes `2026.1-SNAPSHOT`, which Maven orders *below* the release it follows, so a consumer on the snapshot silently goes backwards. That is why the release workflow opens the pull request itself, which is [ADR-0421](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0421-the-release-line-moves-on-by-itself.md). If the job could not open it, the branch is pushed and this is what it ran:
+Step 6 matters more than it looks. Until the bump is merged, `master` publishes `2026.2-SNAPSHOT`, which Maven orders *below* the release it follows, so a consumer on the snapshot silently goes backwards. That is why the release workflow opens the pull request itself, which is [ADR-0421](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0421-the-release-line-moves-on-by-itself.md). If the job could not open it, the branch is pushed and this is what it ran:
 
 ```sh
 ./gradlew -q :core:bumpVersion

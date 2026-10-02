@@ -1,4 +1,5 @@
 import dev.goldberry.build.publish.PublishedModules
+import dev.goldberry.build.release.ReleaseNotes
 import dev.goldberry.build.version.BuildVersion
 import dev.goldberry.build.version.VersionBump
 
@@ -56,5 +57,28 @@ tasks.register('bumpVersion') {
         // The only output, and it is parsed: the workflow reads it for the branch
         // name and the commit message.
         println bump
+    }
+}
+
+// `./gradlew -q :core:releaseNotes` -- the body of the tag's GitHub Release: this
+// line's section of CHANGELOG.md, written into .github/release-notes.md. Prints
+// the file it wrote, which `release.yml` hands to `gh release create`. A line
+// with no section in the changelog fails here, before the release is opened.
+// https://goldberry.dev/docs/contributing/releasing.html#cutting-a-release
+tasks.register('releaseNotes') {
+    group = 'release'
+    description = 'Writes the GitHub Release body for this release line from CHANGELOG.md.'
+
+    def line = providers.gradleProperty('goldberryVersion').get()
+    def changelog = layout.settingsDirectory.file('CHANGELOG.md').asFile
+    def template = layout.settingsDirectory.file('.github/release-notes.md').asFile
+    def notes = layout.buildDirectory.file('release-notes.md')
+    // No inputs or outputs declared: the path it prints is what the workflow
+    // reads, and a task skipped as up to date would print nothing.
+    doLast {
+        def out = notes.get().asFile
+        out.parentFile.mkdirs()
+        out.setText(ReleaseNotes.of(changelog.getText('UTF-8'), line).render(template.getText('UTF-8')), 'UTF-8')
+        println out.absolutePath
     }
 }
