@@ -34,7 +34,7 @@ import dev.goldberry.log.Logs;
 ///
 /// ## The whitelist
 ///
-/// A keyframe may declare anything, and only the six
+/// A keyframe may declare anything, and only the seven
 /// [Animatable] properties move, for one reason: a keyframed `width` is a
 /// layout pass on every frame. The rest are dropped, and each is named once in
 /// a warning per block and property, not once per frame.

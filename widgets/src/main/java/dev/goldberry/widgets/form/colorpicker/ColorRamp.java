@@ -31,10 +31,10 @@ import dev.goldberry.widget.style.Styled;
 ///
 /// A `slider`'s *metrics*, not a `slider`, and the difference is the track: a
 /// `slider`'s is a groove in `--gb-border` and these are a picture of what the
-/// value means. A stylesheet has no gradient — [BlendGradient] is a fill style
-/// the painter has, not something a stylesheet can ask for — so the track is
-/// painted rather than styled, which makes this a `canvas` with a drag on it and
-/// a `slider` in nothing but its height.
+/// value means. That picture moves with the value — the alpha ramp is the
+/// current colour fading out — and a stylesheet's gradient is fixed when the
+/// sheet is written, so the track is painted rather than styled, which makes
+/// this a `canvas` with a drag on it and a `slider` in nothing but its height.
 ///
 /// It is also **not focusable**, and that is a decision rather than an omission:
 /// this control has one keyboard, the arrows on the plane cursor, and the

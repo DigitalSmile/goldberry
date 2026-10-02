@@ -2,9 +2,13 @@ package dev.goldberry.paint.shadow;
 
 import java.util.Objects;
 
+import org.jspecify.annotations.Nullable;
+
+import dev.goldberry.css.Border;
 import dev.goldberry.css.Corners;
 import dev.goldberry.css.value.Shadow;
 import dev.goldberry.paint.Path;
+import dev.goldberry.paint.geom.ConvexClip;
 
 /// The shape one band of a shadow is filled with.
 ///
@@ -50,8 +54,21 @@ import dev.goldberry.paint.Path;
 /// **nothing**, whatever its alpha says. That is why [ShadowRamp] drops those
 /// bands unconditionally rather than only under an opaque box.
 ///
+/// ## An inner shadow swaps the hole and the shape
+///
+/// An `inset` shadow is drawn inside the padding box, around a hole that is
+/// the padding box moved by the offset and shrunk by the spread. Its bands are
+/// [#insetBand]: the padding box is the shape and the moved box is the hole,
+/// with the same `grow` read inwards. The hole is clipped to the padding box
+/// first, because an offset pushes it past one edge and even-odd would fill
+/// what pokes out.
+///
 /// Read more: [Styling](https://goldberry.dev/docs/guide/styling.html#border-outline-and-shadow).
 public final class ShadowGeometry {
+
+    /// How finely an inner shadow's outlines are flattened, in logical pixels:
+    /// a twentieth of one, well under what a 2× display can show.
+    private static final double TOLERANCE = 0.05;
 
     private ShadowGeometry() {}
 
@@ -127,6 +144,93 @@ public final class ShadowGeometry {
         // and is a difference only a test's `assertEquals` can see -- which is
         // exactly the kind of thing to remove rather than to work around.
         return 0.0 - Math.max(Math.abs(shadow.offsetX()), Math.abs(shadow.offsetY()));
+    }
+
+    /// The padding box: the border box less each side's border width, which is
+    /// where an inner shadow is drawn.
+    ///
+    /// Its corners are the box's less the wider of the two sides beside each,
+    /// the same circle-for-an-ellipse approximation the border painter makes, so
+    /// an inner shadow meets the inside of a rounded border where the border
+    /// ends.
+    ///
+    /// @return the outline, or [Path#EMPTY] when the border fills the box
+    public static Path paddingBox(double width, double height, Corners corners, Border border) {
+        Objects.requireNonNull(corners, "corners");
+        Objects.requireNonNull(border, "border");
+        var inner = inner(width, height, border);
+        if (inner == null) {
+            return Path.EMPTY;
+        }
+        return Path.roundRect(inner[0], inner[1], inner[2], inner[3], innerCorners(width, height, corners, border));
+    }
+
+    /// One band of an **inner** shadow: the padding box, with the band's hole
+    /// cut out of it.
+    ///
+    /// The hole is the padding box moved by the shadow's offset and shrunk by
+    /// `grow` — the same number [ShadowRamp] gives an outer band, read the other
+    /// way round. A faint band has a small hole and inks most of the box; the
+    /// last, solid band has the largest and inks a rim.
+    ///
+    /// Two polygons, to be filled **even-odd**: the padding box, and the hole
+    /// clipped to it. The clip is what keeps a hole that an offset pushes past
+    /// the padding box's edge from being filled outside it, and it is why both
+    /// are flattened — the intersection of two rounded rectangles is not one.
+    ///
+    /// @param border the box's border, whose widths make the padding box
+    /// @param grow   how far the hole is inset from the padding box, spread
+    ///               included; negative when it is larger
+    /// @return the band's outline, or [Path#EMPTY] when the border fills the
+    ///         box
+    public static Path insetBand(
+            double width, double height, Corners corners, Border border, Shadow shadow, double grow) {
+        Objects.requireNonNull(corners, "corners");
+        Objects.requireNonNull(border, "border");
+        Objects.requireNonNull(shadow, "shadow");
+        var inner = inner(width, height, border);
+        if (inner == null) {
+            return Path.EMPTY;
+        }
+        var radii = innerCorners(width, height, corners, border);
+        var box = ConvexClip.polygon(Path.roundRect(inner[0], inner[1], inner[2], inner[3], radii), TOLERANCE);
+        var holeWidth = inner[2] - grow * 2;
+        var holeHeight = inner[3] - grow * 2;
+        var builder = Path.builder().append(ConvexClip.toPath(box));
+        if (holeWidth > 0 && holeHeight > 0) {
+            var hole = ConvexClip.polygon(
+                    Path.roundRect(
+                            inner[0] + shadow.offsetX() + grow,
+                            inner[1] + shadow.offsetY() + grow,
+                            holeWidth,
+                            holeHeight,
+                            grown(radii, -grow)),
+                    TOLERANCE);
+            builder.append(ConvexClip.toPath(ConvexClip.intersect(hole, box)));
+        }
+        return builder.build();
+    }
+
+    /// The padding box as `x, y, width, height`, or null when it is empty.
+    private static double @Nullable [] inner(double width, double height, Border border) {
+        var left = border.left().width();
+        var top = border.top().width();
+        var w = width - left - border.right().width();
+        var h = height - top - border.bottom().width();
+        return w > 0 && h > 0 ? new double[] {left, top, w, h} : null;
+    }
+
+    private static Corners innerCorners(double width, double height, Corners corners, Border border) {
+        var outer = corners.fittedTo(width, height);
+        var top = border.top().width();
+        var right = border.right().width();
+        var bottom = border.bottom().width();
+        var left = border.left().width();
+        return new Corners(
+                Math.max(0, outer.topLeft() - Math.max(top, left)),
+                Math.max(0, outer.topRight() - Math.max(top, right)),
+                Math.max(0, outer.bottomRight() - Math.max(bottom, right)),
+                Math.max(0, outer.bottomLeft() - Math.max(bottom, left)));
     }
 
     /// `corners` moved out by `by`, which is [Corners#grownBy] one way and

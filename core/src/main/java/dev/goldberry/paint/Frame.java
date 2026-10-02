@@ -18,8 +18,10 @@ import dev.goldberry.natives.blend2d.BlendFont;
 import dev.goldberry.natives.blend2d.BlendGlyphBuffer;
 import dev.goldberry.natives.blend2d.BlendGradient;
 import dev.goldberry.natives.blend2d.BlendImage;
+import dev.goldberry.natives.blend2d.BlendMatrix;
 import dev.goldberry.natives.blend2d.BlendPath;
 import dev.goldberry.natives.blend2d.enums.BlendCompOp;
+import dev.goldberry.natives.blend2d.enums.BlendExtendMode;
 import dev.goldberry.natives.blend2d.enums.BlendStrokeCap;
 import dev.goldberry.natives.blend2d.enums.BlendStrokeJoin;
 import dev.goldberry.paint.geom.Dasher;
@@ -426,11 +428,20 @@ public final class Frame {
         context.fillPath(x, y, path, gradient);
     }
 
+    /// Fills a pooled `path` with a [Gradient] value — a box's `background`
+    /// layer, built into the path its painter already holds.
+    void fillPath(double x, double y, BlendPath path, Gradient gradient) {
+        requireOpen();
+        try (var ramp = toBlend(gradient)) {
+            context.fillPath(x, y, path, ramp);
+        }
+    }
+
     /// Fills `path` with a rasterizer gradient the caller built and will close.
     ///
     /// Package-private, for [ColourGlyphPainter]: a COLRv1 glyph's gradients are
-    /// radial and conic as well as linear, extend by repeating and reflecting as
-    /// well as padding, and carry a matrix of their own — none of which the
+    /// conic as well as linear and radial, run between two circles that need
+    /// not share a centre, and carry a matrix of their own — none of which the
     /// public [Gradient] value says, nor needs to for anything an application
     /// draws.
     void fillPath(Path path, BlendGradient gradient) {
@@ -1102,19 +1113,50 @@ public final class Frame {
 
     /// A [Gradient] as the rasterizer's own, for the length of one fill.
     private static BlendGradient toBlend(Gradient gradient) {
-        return switch (gradient) {
-            case Gradient.Linear linear -> {
-                var ramp = BlendGradient.linear(linear.x1(), linear.y1(), linear.x2(), linear.y2());
-                try {
-                    for (var stop : linear.stops()) {
-                        ramp.addStop(stop.offset(), stop.argb());
+        var ramp =
+                switch (gradient) {
+                    case Gradient.Linear linear ->
+                        BlendGradient.linear(
+                                linear.x1(),
+                                linear.y1(),
+                                linear.x2(),
+                                linear.y2(),
+                                toBlend(linear.extend()),
+                                BlendMatrix.IDENTITY);
+                    // Blend2D's radial is a circle, so an ellipse is the circle of its
+                    // horizontal radius squeezed vertically about its own centre.
+                    case Gradient.Radial radial -> {
+                        var squeeze = radial.radiusY() / radial.radiusX();
+                        yield BlendGradient.radial(
+                                radial.cx(),
+                                radial.cy(),
+                                radial.radiusX(),
+                                radial.cx(),
+                                radial.cy(),
+                                radial.start() * radial.radiusX(),
+                                toBlend(radial.extend()),
+                                squeeze == 1
+                                        ? BlendMatrix.IDENTITY
+                                        : new BlendMatrix(1, 0, 0, squeeze, 0, radial.cy() * (1 - squeeze)));
                     }
-                } catch (RuntimeException | Error e) {
-                    ramp.close();
-                    throw e;
-                }
-                yield ramp;
+                };
+        try {
+            for (var stop : gradient.stops()) {
+                ramp.addStop(stop.offset(), stop.argb());
             }
+        } catch (RuntimeException | Error e) {
+            ramp.close();
+            throw e;
+        }
+        return ramp;
+    }
+
+    /// A ramp's [Gradient.Extend] as the rasterizer's own.
+    private static BlendExtendMode toBlend(Gradient.Extend extend) {
+        return switch (extend) {
+            case PAD -> BlendExtendMode.PAD;
+            case REPEAT -> BlendExtendMode.REPEAT;
+            case REFLECT -> BlendExtendMode.REFLECT;
         };
     }
 

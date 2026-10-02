@@ -13,6 +13,9 @@ import org.junit.jupiter.api.Test;
 
 import dev.goldberry.RendererRequirement;
 import dev.goldberry.css.Decoration;
+import dev.goldberry.css.background.Background;
+import dev.goldberry.css.background.BackgroundPosition;
+import dev.goldberry.css.background.GradientLayer;
 import dev.goldberry.css.value.Shadow;
 import dev.goldberry.css.value.Transform;
 import dev.goldberry.layout.FlexDirection;
@@ -100,6 +103,36 @@ class DamageTest {
             var area = damage.stream().mapToInt(r -> r.width() * r.height()).sum();
             assertTrue(area < 200 * 200 / 2, () -> "damaged " + area + " of 40000 pixels for one 50x20 box");
         }
+    }
+
+    @Test
+    @DisplayName("a gradient that moved damages its box, though its colour did not change")
+    void aGradientMoved() {
+        // A marching stripe: `background-position` animating with the colour
+        // under it held. Comparing only the colour called this unchanged and
+        // the stripe stood still.
+        var stripes = List.<GradientLayer>of(new GradientLayer.Linear(
+                new GradientLayer.Direction.Angle(Math.PI / 2),
+                List.of(
+                        new GradientLayer.ColorStop(0xFFFF0000, Length.points(0)),
+                        new GradientLayer.ColorStop(0xFF0000FF, Length.points(6))),
+                true));
+        try (var render = RenderTree.create()) {
+            render.update(target.frame(), striped(stripes, 0));
+            render.damage(target.frame());
+
+            render.update(target.frame(), striped(stripes, 3));
+
+            assertTrue(covers(render.damage(target.frame()), 25, 10), "the striped box");
+        }
+    }
+
+    private static Box striped(List<GradientLayer> stripes, double offset) {
+        return Box.filled(0xFF000000)
+                .size(Length.points(200), Length.points(200))
+                .children(Box.of()
+                        .fill(Background.of(0xFF000000, stripes, new BackgroundPosition(offset, 0)))
+                        .size(Length.points(50), Length.points(20)));
     }
 
     /// A painter is the one piece of a box whose *contents* the comparison cannot

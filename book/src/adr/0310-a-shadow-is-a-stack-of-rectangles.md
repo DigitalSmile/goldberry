@@ -11,6 +11,13 @@ adding it as an alternative and turned it down. The edge those records built sta
 — `--gb-border-strong` is still what tells a card apart — and it is now an edge
 *and* a shadow rather than an edge standing in for one.
 
+**Superseded in part by [ADR-0537](0537-a-shadow-is-a-list-and-may-be-cast-inside.md)**,
+which takes the whole comma list and draws `inset` shadows. The precedent
+cited below for keeping the first entry, `border: 1px dashed red` drawing
+solid, is gone too: **amended by
+[ADR-0536](0536-a-border-is-dashed-dotted-or-double-as-written.md)**, which
+draws dashed, dotted and double sides.
+
 ## Context
 
 `box-shadow` has been in §8's property list since the beginning and has been

@@ -152,12 +152,16 @@ public final class BoxPainter {
         var y = layout.top();
         var width = layout.width();
         var height = layout.height();
-        if (decoration.hasShadow()) {
-            // The painter cuts the border box out of every band, so the bands
-            // that would land under it are not built at all -- which is half of
-            // them for a shadow with any offset, whether or not the background
-            // is opaque.
-            ShadowPainter.paint(frame, path, decoration.shadow(), x, y, width, height, decoration.corners());
+        var shadows = decoration.shadows();
+        // The first shadow in the list is on top, so they are drawn last first.
+        // The painter cuts the border box out of every band, so the bands that
+        // would land under it are not built at all -- which is half of them for
+        // a shadow with any offset, whether or not the background is opaque.
+        for (var i = shadows.size() - 1; i >= 0; i--) {
+            var shadow = shadows.get(i);
+            if (!shadow.inset() && shadow.hasInk()) {
+                ShadowPainter.paint(frame, path, shadow, x, y, width, height, decoration.corners());
+            }
         }
 
         if ((box.background() >>> 24) != 0) {
@@ -173,8 +177,32 @@ public final class BoxPainter {
             }
         }
 
+        var layers = box.fill().layers();
+        if (!layers.isEmpty() && width > 0 && height > 0) {
+            // Over the colour, last first: the first layer written is on top.
+            // Each fills the box's own shape, so a gradient on a rounded card
+            // is rounded too. The ramp is placed in the frame's coordinates,
+            // which is where this box is.
+            path.reset();
+            RoundRect.addTo(path, 0, 0, width, height, decoration.corners());
+            var position = box.fill().position();
+            for (var i = layers.size() - 1; i >= 0; i--) {
+                frame.fillPath(x, y, path, layers.get(i).resolve(x, y, width, height, position));
+            }
+        }
+
+        // Inner shadows: over the background and under the border, inside the
+        // padding box, last first like the outer ones.
+        for (var i = shadows.size() - 1; i >= 0; i--) {
+            var shadow = shadows.get(i);
+            if (shadow.inset() && shadow.hasInk()) {
+                ShadowPainter.paintInset(
+                        frame, path, shadow, x, y, width, height, decoration.corners(), decoration.border());
+            }
+        }
+
         var border = decoration.border();
-        if (decoration.hasBorder() && border.isUniform()) {
+        if (decoration.hasBorder() && border.isUniform() && border.isDrawnSolid()) {
             // Stroked down the middle of the path, so the path is inset by half
             // the width to put the ink *inside* the border box — which is what
             // `border-box` sizing means and what makes a 1px border on a 32px
@@ -196,7 +224,8 @@ public final class BoxPainter {
             frame.strokePath(x, y, path, line.width(), BlendStrokeCap.BUTT, BlendStrokeJoin.MITER_CLIP, line.argb());
         } else if (decoration.hasBorder()) {
             // Sides that differ are filled one region each, mitred where they
-            // meet — a stroke has one width.
+            // meet — a stroke has one width. A dashed, dotted or double side
+            // is drawn there too, whether or not the four agree.
             BorderPainter.paint(frame, path, border, x, y, width, height, decoration.corners());
         }
 

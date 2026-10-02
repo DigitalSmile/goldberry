@@ -49,7 +49,18 @@ public final class BoxInk {
         var decoration = box.decoration();
         // The ring is symmetric and outside the edge; the shadow is neither.
         var ring = decoration.hasOutline() ? decoration.outlineOffset() + decoration.outlineWidth() : 0;
-        var shadow = decoration.shadow();
+        // Each side reaches as far as the furthest shadow on it; an inner
+        // shadow reaches nothing.
+        var shadowLeft = 0.0;
+        var shadowTop = 0.0;
+        var shadowRight = 0.0;
+        var shadowBottom = 0.0;
+        for (var shadow : decoration.shadows()) {
+            shadowLeft = Math.max(shadowLeft, shadow.outsetLeft());
+            shadowTop = Math.max(shadowTop, shadow.outsetTop());
+            shadowRight = Math.max(shadowRight, shadow.outsetRight());
+            shadowBottom = Math.max(shadowBottom, shadow.outsetBottom());
+        }
         // An icon is centred in its slot, so a glyph wider than the box hangs out
         // by half the difference on each side -- and by nothing at all in the
         // common case, where `Box.icon` sized the box to the glyph.
@@ -61,9 +72,9 @@ public final class BoxInk {
         // the one place it does not -- a failing assertion, where it reads as a
         // bug that is not there.
         return new Ink(
-                0 - Math.max(Math.max(ring, shadow.outsetLeft()), overhangX),
-                0 - Math.max(Math.max(ring, shadow.outsetTop()), overhangY),
-                width + Math.max(Math.max(ring, shadow.outsetRight()), overhangX),
-                height + Math.max(Math.max(ring, shadow.outsetBottom()), overhangY));
+                0 - Math.max(Math.max(ring, shadowLeft), overhangX),
+                0 - Math.max(Math.max(ring, shadowTop), overhangY),
+                width + Math.max(Math.max(ring, shadowRight), overhangX),
+                height + Math.max(Math.max(ring, shadowBottom), overhangY));
     }
 }

@@ -252,6 +252,43 @@ overlapping children do not show through each other
 ([ADR-0071](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0071-a-layer-is-a-subtrees-raster.md)). A translucent leaf
 keeps the cheap path.
 
+### Backgrounds and gradients
+
+```css
+.glow    { background: radial-gradient(circle at top, #88c0d066, transparent 60%), var(--gb-surface) }
+.tint    { background-image: linear-gradient(to right, #bf616a33, transparent) }
+.running { background: repeating-linear-gradient(90deg, #a3be8c 0 6px, transparent 6px 12px);
+           animation: march 400ms linear infinite }
+@keyframes march { to { background-position: 12px 0 } }
+```
+
+`background` is a comma list of layers, the first drawn on top, with the
+colour in the last one. `background-image` sets the layers and keeps the
+colour; `background-color` sets the colour and keeps the layers; `background`
+resets both, and `background: none` is no fill at all.
+
+A layer is `linear-gradient()`, `radial-gradient()` or their `repeating-`
+forms:
+
+- A linear gradient runs `to` a side or a corner, or at an angle (`deg`,
+  `rad`, `grad`, `turn`, with `0` up and turning clockwise). It runs to the
+  bottom when it says nothing.
+- A radial gradient is a `circle` or an `ellipse`, sized by
+  `closest-side`, `closest-corner`, `farthest-side` or `farthest-corner`
+  (the default) or by lengths, and centred `at` a position.
+- A stop is a colour with up to two positions, each a length or a
+  percentage. Stops are placed as CSS places them.
+
+Every layer is filled over the whole box, in its shape: a gradient on a
+rounded card is rounded. There is no `background-size`, `background-repeat`,
+`background-clip`, `background-origin` or `url()`, so a layer is never tiled.
+`background-position` moves every layer by the lengths it names. A percentage
+or a keyword moves a layer the size of its box by nothing, as it does in a
+browser, so only a length does anything. It is animatable, which is how the
+stripe above marches. Transition hints (a bare position between two stops)
+and colour interpolation methods are not read, and drop the declaration
+([ADR-0535](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0535-a-background-is-a-colour-under-gradient-layers.md)).
+
 ### Border, outline and shadow
 
 ```css
@@ -264,14 +301,35 @@ button:focus-visible { outline: 2px solid var(--gb-focus); outline-offset: 2px }
 `<width> || <style> || <color>` in any order. `border-width` and
 `border-color` take one to four values. `border-{side}-width` and
 `border-{side}-color`. `border-radius` takes one to four corners. `outline`,
-`outline-width`, `outline-color` and `outline-offset`. `box-shadow` is one
-shadow, not a list.
+`outline-width`, `outline-color` and `outline-offset`. `box-shadow` is a comma
+list of shadows, the first on top, each `[inset] <x> <y> [<blur>] [<spread>]
+<color>`.
 
 A border takes no layout room: it is drawn inside the box's edge, over the
 padding ([ADR-0505](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0505-a-border-has-four-sides-and-takes-no-room.md)).
-Every style keyword is drawn solid, and there are no `-style` longhands. An
-outline is drawn outside the box and takes no room either, so a focus ring
-cannot move a control by appearing.
+The style is set inside a shorthand, and there are no `-style` longhands. A
+shorthand that names no style is `solid`.
+
+- `dashed` is dashes three widths long with gaps the same, stretched so a side
+  starts and ends on a dash. A square corner is a dash's end; a rounded corner
+  is one dash shared by the two sides.
+- `dotted` is round dots as wide as the side, two widths apart, with one on
+  every corner.
+- `double` is two lines a third of the width each, with the middle third empty.
+- `groove`, `ridge`, `inset` and `outset` are drawn solid, with one warning per
+  style
+  ([ADR-0536](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0536-a-border-is-dashed-dotted-or-double-as-written.md)).
+
+An outline is drawn outside the box and takes no room either, so a focus ring
+cannot move a control by appearing. Its style is always drawn solid.
+
+A shadow is drawn as a stack of rounded rectangles whose alphas ramp across the
+blur. An outer shadow is drawn under the background and only outside the box.
+An `inset` shadow is drawn over the background and under the border, inside the
+padding box: the box's own shape, moved by the offset and shrunk by the spread,
+is the hole it is seen around, and on a rounded box it follows the inside of
+the curve
+([ADR-0537](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0537-a-shadow-is-a-list-and-may-be-cast-inside.md)).
 
 ### Transform
 
@@ -304,7 +362,10 @@ skeleton { animation: pulse 1.2s linear infinite }
 and `-fill-mode`.
 
 The animatable properties are a closed whitelist: `opacity`,
-`background-color`, `border-color`, `color` and `transform`.
+`background-color`, `background-position`, `border-color`, `box-shadow`,
+`color` and `transform`. Two shadow lists move pair by pair, the shorter one
+padded with transparent copies of the longer one's shadows; an inner shadow
+against an outer one swaps half-way.
 `transition: width 200ms` is a dropped declaration with a warning naming it,
 because animating a width would run layout on every frame
 ([ADR-0067](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0067-motion-is-an-overlay-on-a-frame-clock.md)).

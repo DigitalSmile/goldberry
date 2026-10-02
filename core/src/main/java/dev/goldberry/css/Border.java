@@ -1,10 +1,14 @@
 package dev.goldberry.css;
 
+import java.util.Locale;
 import java.util.Objects;
+
+import org.jspecify.annotations.Nullable;
 
 import dev.goldberry.css.value.CssColor;
 
-/// The four sides of a box's border, each a width and a colour, in CSS's order.
+/// The four sides of a box's border, each a width, a colour and a style, in
+/// CSS's order.
 ///
 /// ```css
 /// card { border: 1px solid var(--gb-border) }
@@ -46,16 +50,63 @@ public record Border(Line top, Line right, Line bottom, Line left) {
 
     /// The same line on all four sides — `border: 1px solid red`.
     public static Border all(double width, int argb) {
-        var line = new Line(width, argb);
+        return all(width, argb, Style.SOLID);
+    }
+
+    /// The same line on all four sides, in `style` — `border: 1px dashed red`.
+    public static Border all(double width, int argb, Style style) {
+        var line = new Line(width, argb, style);
         return new Border(line, line, line, line);
     }
 
-    /// One side's width and colour.
+    /// How a side is drawn — CSS's `border-style` keywords, less `none` and
+    /// `hidden`, which are a zero width rather than a way of drawing.
+    ///
+    /// [#SOLID], [#DASHED], [#DOTTED] and [#DOUBLE] are drawn as CSS draws
+    /// them. The four bevelled styles are drawn [#SOLID]: they shade a side
+    /// lighter or darker by an amount CSS leaves to the browser, and the
+    /// parser says so once when a sheet asks for one.
+    public enum Style {
+        SOLID,
+        DASHED,
+        DOTTED,
+        DOUBLE,
+        GROOVE,
+        RIDGE,
+        INSET,
+        OUTSET;
+
+        /// Whether the painter draws this style as a plain band of colour.
+        public boolean isDrawnSolid() {
+            return switch (this) {
+                case DASHED, DOTTED, DOUBLE -> false;
+                case SOLID, GROOVE, RIDGE, INSET, OUTSET -> true;
+            };
+        }
+
+        /// The style a CSS keyword names, or null when it names none.
+        public static @Nullable Style parse(String keyword) {
+            return switch (keyword.toLowerCase(Locale.ROOT)) {
+                case "solid" -> SOLID;
+                case "dashed" -> DASHED;
+                case "dotted" -> DOTTED;
+                case "double" -> DOUBLE;
+                case "groove" -> GROOVE;
+                case "ridge" -> RIDGE;
+                case "inset" -> INSET;
+                case "outset" -> OUTSET;
+                default -> null;
+            };
+        }
+    }
+
+    /// One side's width, colour and style.
     ///
     /// @param width thickness in logical pixels, drawn inside the box's edge;
     ///              clamped at zero for [Decoration]'s reason
     /// @param argb  `0xAARRGGBB`, not premultiplied
-    public record Line(double width, int argb) {
+    /// @param style how the side is drawn; see [Style]
+    public record Line(double width, int argb, Style style) {
 
         /// Nothing drawn.
         public static final Line NONE = new Line(0, CssColor.TRANSPARENT);
@@ -64,7 +115,13 @@ public record Border(Line top, Line right, Line bottom, Line left) {
             if (!Double.isFinite(width)) {
                 throw new IllegalArgumentException("border-width must be a finite number, not " + width);
             }
+            Objects.requireNonNull(style, "style");
             width = Math.max(0, width);
+        }
+
+        /// A solid side, which is what every border the toolkit ships is.
+        public Line(double width, int argb) {
+            this(width, argb, Style.SOLID);
         }
 
         /// Whether this side would put ink on the screen: a width, and a colour
@@ -74,11 +131,15 @@ public record Border(Line top, Line right, Line bottom, Line left) {
         }
 
         public Line width(double value) {
-            return new Line(value, argb);
+            return new Line(value, argb, style);
         }
 
         public Line argb(int value) {
-            return new Line(width, value);
+            return new Line(width, value, style);
+        }
+
+        public Line style(Style value) {
+            return new Line(width, argb, value);
         }
     }
 
@@ -88,13 +149,42 @@ public record Border(Line top, Line right, Line bottom, Line left) {
         TOP,
         RIGHT,
         BOTTOM,
-        LEFT
+        LEFT;
+
+        /// The side after this one, going clockwise.
+        public Side next() {
+            return switch (this) {
+                case TOP -> RIGHT;
+                case RIGHT -> BOTTOM;
+                case BOTTOM -> LEFT;
+                case LEFT -> TOP;
+            };
+        }
+
+        /// The side before this one, going clockwise.
+        public Side previous() {
+            return switch (this) {
+                case TOP -> LEFT;
+                case RIGHT -> TOP;
+                case BOTTOM -> RIGHT;
+                case LEFT -> BOTTOM;
+            };
+        }
     }
 
     /// Whether all four sides are the same line, and so whether one stroked
     /// rectangle draws them.
     public boolean isUniform() {
         return top.equals(right) && right.equals(bottom) && bottom.equals(left);
+    }
+
+    /// Whether every side is drawn as a plain band of colour — the drawing
+    /// the painter had before styles, and still the only one most boxes need.
+    public boolean isDrawnSolid() {
+        return top.style.isDrawnSolid()
+                && right.style.isDrawnSolid()
+                && bottom.style.isDrawnSolid()
+                && left.style.isDrawnSolid();
     }
 
     /// Whether any side would put ink on the screen.

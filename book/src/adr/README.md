@@ -570,3 +570,6 @@ proposing to undo them.
 - [ADR-0532 An icon is the size of its box](0532-an-icon-is-the-size-of-its-box.md)
 - [ADR-0533 Anything can be pressed, and it is a button to a reader](0533-anything-can-be-pressed-and-it-is-a-button-to-a-reader.md)
 - [ADR-0534 A region and a split read the model](0534-a-region-and-a-split-read-the-model.md)
+- [ADR-0535 A background is a colour under gradient layers](0535-a-background-is-a-colour-under-gradient-layers.md)
+- [ADR-0536 A border is dashed, dotted or double as written](0536-a-border-is-dashed-dotted-or-double-as-written.md)
+- [ADR-0537 A shadow is a list, and may be cast inside](0537-a-shadow-is-a-list-and-may-be-cast-inside.md)

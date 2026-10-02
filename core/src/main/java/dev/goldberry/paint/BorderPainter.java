@@ -1,16 +1,29 @@
 package dev.goldberry.paint;
 
+import java.util.function.Predicate;
+
 import dev.goldberry.css.Border;
 import dev.goldberry.css.Corners;
+import dev.goldberry.css.value.CssColor;
 import dev.goldberry.natives.blend2d.BlendPath;
+import dev.goldberry.paint.border.BorderPattern;
+import dev.goldberry.paint.stroke.Stroke;
 
-/// Puts a border whose four sides are **not** the same line on the frame, one
-/// side at a time.
+/// Puts a border whose four sides are **not** the same solid line on the
+/// frame, one side at a time.
 ///
-/// A uniform border never comes here. [BoxPainter] strokes it as it always has —
-/// one rounded rectangle, inset by half the width — and every golden in the
-/// corpus is that drawing. This is the other one, and it is a fill rather than a
-/// stroke, because a stroke has one width.
+/// A uniform solid border never comes here. [BoxPainter] strokes it as it always
+/// has — one rounded rectangle, inset by half the width — and every golden in
+/// the corpus is that drawing. This is the other one, and it is a fill rather
+/// than a stroke, because a stroke has one width.
+///
+/// ## Styled sides
+///
+/// A `dashed` side is a stroke of its centreline with a dash pattern, and a
+/// `dotted` side is a row of filled dots along it; [BorderPattern] says where
+/// both go. A `double` side is two solid bands a third of its width each, drawn
+/// as two thinner borders. The solid sides around them are still the regions
+/// below, with the styled sides' widths kept so the corners divide as before.
 ///
 /// ## Each side is a region
 ///
@@ -70,6 +83,150 @@ final class BorderPainter {
             double width,
             double height,
             Corners corners) {
+        if (border.isDrawnSolid()) {
+            paintRegions(frame, path, border, x, y, width, height, corners);
+            return;
+        }
+        // The solid sides first, as regions. A styled side keeps its width with
+        // its ink taken away, so the corners it shares are still divided as
+        // they would be with every side solid.
+        paintRegions(frame, path, inkOnly(border, Border.Style::isDrawnSolid), x, y, width, height, corners);
+        paintDouble(frame, path, border, x, y, width, height, corners);
+        for (var side : Border.Side.values()) {
+            var line = border.side(side);
+            if (!line.hasInk()) {
+                continue;
+            }
+            switch (line.style()) {
+                case DASHED -> paintDashed(frame, border, side, x, y, width, height, corners);
+                case DOTTED -> paintDotted(frame, border, side, x, y, width, height, corners);
+                case SOLID, DOUBLE, GROOVE, RIDGE, INSET, OUTSET -> {
+                    // Drawn above, as a region or as two.
+                }
+            }
+        }
+    }
+
+    /// `border` with the ink taken off every side whose style `keep` refuses,
+    /// widths kept.
+    private static Border inkOnly(Border border, Predicate<Border.Style> keep) {
+        return new Border(
+                keepIf(border.top(), keep),
+                keepIf(border.right(), keep),
+                keepIf(border.bottom(), keep),
+                keepIf(border.left(), keep));
+    }
+
+    private static Border.Line keepIf(Border.Line line, Predicate<Border.Style> keep) {
+        return keep.test(line.style()) ? line : line.argb(CssColor.TRANSPARENT);
+    }
+
+    /// The `double` sides: two bands each a third of the side's width, at its
+    /// outer and inner edges, with the middle third left empty.
+    ///
+    /// Each band is the region drawing of a border a third as wide, so the
+    /// bands mitre and follow the corners exactly as a solid side does.
+    private static void paintDouble(
+            Frame frame,
+            BlendPath path,
+            Border border,
+            double x,
+            double y,
+            double width,
+            double height,
+            Corners corners) {
+        var doubles = inkOnly(border, style -> style == Border.Style.DOUBLE);
+        if (!doubles.hasInk()) {
+            return;
+        }
+        var top = border.top().width();
+        var right = border.right().width();
+        var bottom = border.bottom().width();
+        var left = border.left().width();
+        var third = doubles.widths(top / 3, right / 3, bottom / 3, left / 3);
+        paintRegions(frame, path, third, x, y, width, height, corners);
+        // The inner band is the same drawing on the box inset by two thirds of
+        // each side, its corners pulled in to stay concentric.
+        var fitted = corners.fittedTo(width, height);
+        var inner = new Corners(
+                Math.max(0, fitted.topLeft() - Math.max(top, left) * 2 / 3),
+                Math.max(0, fitted.topRight() - Math.max(top, right) * 2 / 3),
+                Math.max(0, fitted.bottomRight() - Math.max(bottom, right) * 2 / 3),
+                Math.max(0, fitted.bottomLeft() - Math.max(bottom, left) * 2 / 3));
+        var innerWidth = width - (left + right) * 2 / 3;
+        var innerHeight = height - (top + bottom) * 2 / 3;
+        if (innerWidth > 0 && innerHeight > 0) {
+            paintRegions(frame, path, third, x + left * 2 / 3, y + top * 2 / 3, innerWidth, innerHeight, inner);
+        }
+    }
+
+    /// One `dashed` side: its run stroked with a pattern that starts and ends
+    /// on a dash.
+    private static void paintDashed(
+            Frame frame,
+            Border border,
+            Border.Side side,
+            double x,
+            double y,
+            double width,
+            double height,
+            Corners corners) {
+        var line = border.side(side);
+        var run = BorderPattern.dashedRun(border, side, width, height, corners);
+        var dash = BorderPattern.dashes(
+                run,
+                line.width(),
+                run.roundStart() && sharesCorner(border, side.previous(), Border.Style.DASHED),
+                run.roundEnd() && sharesCorner(border, side.next(), Border.Style.DASHED));
+        frame.strokePath(x, y, run.path(), Stroke.of(line.width()).dash(dash), line.argb());
+    }
+
+    /// One `dotted` side: a round dot as wide as the side at every point the
+    /// pattern puts one, filled together.
+    private static void paintDotted(
+            Frame frame,
+            Border border,
+            Border.Side side,
+            double x,
+            double y,
+            double width,
+            double height,
+            Corners corners) {
+        var line = border.side(side);
+        var run = BorderPattern.dottedRun(border, side, width, height, corners);
+        // The dot on the corner this side ends at is the next side's when that
+        // side is dotted too, so a corner is one dot rather than two on top of
+        // each other.
+        var dots = BorderPattern.dots(run, line.width(), !sharesCorner(border, side.next(), Border.Style.DOTTED));
+        var radius = line.width() / 2;
+        var builder = Path.builder();
+        for (var dot : dots) {
+            builder.append(Path.circle(dot.x(), dot.y(), radius));
+        }
+        frame.fillPath(x, y, builder.build(), line.argb());
+    }
+
+    /// Whether `neighbour` has ink in `style`, and so draws its half of the
+    /// corner it shares with the side being drawn.
+    private static boolean sharesCorner(Border border, Border.Side neighbour, Border.Style style) {
+        var line = border.side(neighbour);
+        return line.hasInk() && line.style() == style;
+    }
+
+    /// The drawing of a border whose sides are all solid bands — see the class
+    /// note.
+    private static void paintRegions(
+            Frame frame,
+            BlendPath path,
+            Border border,
+            double x,
+            double y,
+            double width,
+            double height,
+            Corners corners) {
+        if (!border.hasInk()) {
+            return;
+        }
         var lines = new Border.Line[] {border.top(), border.right(), border.bottom(), border.left()};
         var arcs = arcs(lines, width, height, corners);
         for (var side = 0; side < 4; side++) {

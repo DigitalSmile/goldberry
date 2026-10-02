@@ -8,6 +8,8 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.List;
+
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -15,10 +17,12 @@ import org.junit.jupiter.api.Test;
 import dev.goldberry.css.Border;
 import dev.goldberry.css.ComputedStyle;
 import dev.goldberry.css.Decoration;
+import dev.goldberry.css.background.BackgroundPosition;
 import dev.goldberry.css.cascade.Transitions;
 import dev.goldberry.css.cascade.Transitions.Animatable;
 import dev.goldberry.css.cascade.Transitions.Timing;
 import dev.goldberry.css.value.CssColor;
+import dev.goldberry.css.value.Shadow;
 import dev.goldberry.css.value.Transform;
 
 /// The frame clock, the curves, and the overlay: motion is an overlay on a
@@ -489,6 +493,51 @@ class MotionTest {
         void parses() {
             assertEquals(Animatable.TRANSFORM, Animatable.parse("transform"));
             assertNull(Animatable.parse("width"), "layout properties never transition");
+        }
+    }
+
+    @Nested
+    @DisplayName("backgrounds and shadow lists")
+    class Lists {
+
+        private static ComputedStyle moved(double x) {
+            return ComputedStyle.INITIAL
+                    .fill(ComputedStyle.INITIAL.fill().position(new BackgroundPosition(x, 0)))
+                    .transitions(Transitions.NONE.with(Animatable.BACKGROUND_POSITION, FAST));
+        }
+
+        private static ComputedStyle shadowed(List<Shadow> shadows) {
+            return ComputedStyle.INITIAL
+                    .decoration(Decoration.NONE.shadows(shadows))
+                    .transitions(Transitions.NONE.with(Animatable.BOX_SHADOW, FAST));
+        }
+
+        @Test
+        @DisplayName("`background-position` transitions, which is how a stripe marches")
+        void backgroundPosition() {
+            var animations = new Animations();
+            animations.observe(moved(0), 0);
+            animations.observe(moved(20), 0);
+
+            assertEquals(
+                    new BackgroundPosition(10, 0),
+                    animations.apply(moved(20), 50).fill().position());
+            assertEquals(Animatable.BACKGROUND_POSITION, Animatable.parse("background-position"));
+        }
+
+        @Test
+        @DisplayName("a shadow list transitions pair by pair")
+        void shadowList() {
+            var from = List.of(new Shadow(0, 2, 8, 0, 0xFF000000));
+            var to = List.of(new Shadow(0, 8, 32, 0, 0xFF000000), new Shadow(2, 0, 0, 0, 0xFF000000, true));
+            var animations = new Animations();
+            animations.observe(shadowed(from), 0);
+            animations.observe(shadowed(to), 0);
+
+            var midway = animations.apply(shadowed(to), 50).decoration().shadows();
+            assertEquals(2, midway.size());
+            assertEquals(5, midway.getFirst().offsetY(), 1e-9);
+            assertTrue(midway.get(1).inset(), "the arriving inner shadow fades in as an inner shadow");
         }
     }
 

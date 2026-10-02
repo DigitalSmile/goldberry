@@ -10,6 +10,10 @@ declined for one table's underline and said was "worth doing when something
 needs an edge the subset cannot fake". Closes the table-rules half of
 `book/src/TODO.md`'s `goldberry-html` entry.
 
+**Amended by [ADR-0536](0536-a-border-is-dashed-dotted-or-double-as-written.md)**:
+the style keyword is now a side's style, and dashed, dotted and double sides
+are drawn as written. There are still no `-style` longhands.
+
 ## Context
 
 `border` has been one width and one colour for the whole box since

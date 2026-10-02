@@ -5,10 +5,14 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
+import dev.goldberry.css.Border;
 import dev.goldberry.css.Corners;
 import dev.goldberry.css.value.Shadow;
 import dev.goldberry.paint.Path;
@@ -247,6 +251,132 @@ class ShadowGeometryTest {
             assertTrue(
                     bounds[0] < hole[0] || bounds[1] < hole[1] || bounds[2] > hole[2] || bounds[3] > hole[3],
                     "the innermost drawn band at " + last.grow() + " is entirely inside the hole");
+        }
+    }
+
+    @Nested
+    @DisplayName("an inner shadow's band")
+    class Inset {
+
+        /// The sub-paths of a path, each as its points.
+        private static List<double[]> polygons(Path path) {
+            var polygons = new ArrayList<double[]>();
+            var current = new ArrayList<Double>();
+            for (var segment : path.segments()) {
+                switch (segment) {
+                    case Path.Segment.MoveTo move -> {
+                        if (!current.isEmpty()) {
+                            polygons.add(current.stream()
+                                    .mapToDouble(Double::doubleValue)
+                                    .toArray());
+                            current.clear();
+                        }
+                        current.add(move.x());
+                        current.add(move.y());
+                    }
+                    case Path.Segment.LineTo line -> {
+                        current.add(line.x());
+                        current.add(line.y());
+                    }
+                    default -> {
+                        // Polygons only: closes carry no point.
+                    }
+                }
+            }
+            if (!current.isEmpty()) {
+                polygons.add(current.stream().mapToDouble(Double::doubleValue).toArray());
+            }
+            return polygons;
+        }
+
+        private static double[] boundsOfPolygon(double[] polygon) {
+            var bounds = new double[] {
+                Double.POSITIVE_INFINITY, Double.POSITIVE_INFINITY,
+                Double.NEGATIVE_INFINITY, Double.NEGATIVE_INFINITY
+            };
+            for (var i = 0; i < polygon.length; i += 2) {
+                cover(bounds, polygon[i], polygon[i + 1]);
+            }
+            return bounds;
+        }
+
+        @Test
+        @DisplayName("is the padding box with a hole in it, the hole moved by the offset")
+        void holeInThePaddingBox() {
+            var shadow = new Shadow(3, 0, 0, 0, BLACK, true);
+
+            var band = polygons(ShadowGeometry.insetBand(100, 40, Corners.SQUARE, Border.NONE, shadow, 0));
+
+            assertEquals(2, band.size(), "the box and the hole");
+            assertArrayEquals(new double[] {0, 0, 100, 40}, boundsOfPolygon(band.get(0)), 1e-9);
+            // Moved 3 right, then cut back to the box: its left edge is 3 in,
+            // which is the 3px stripe the shadow paints.
+            assertArrayEquals(new double[] {3, 0, 100, 40}, boundsOfPolygon(band.get(1)), 1e-9);
+        }
+
+        @Test
+        @DisplayName("the padding box is inside the border")
+        void insideTheBorder() {
+            var border = new Border(
+                    new Border.Line(1, BLACK),
+                    new Border.Line(2, BLACK),
+                    new Border.Line(3, BLACK),
+                    new Border.Line(4, BLACK));
+
+            var band = polygons(
+                    ShadowGeometry.insetBand(100, 40, Corners.SQUARE, border, new Shadow(0, 0, 0, 5, BLACK, true), 5));
+
+            assertArrayEquals(new double[] {4, 1, 98, 37}, boundsOfPolygon(band.get(0)), 1e-9);
+            assertArrayEquals(
+                    new double[] {9, 6, 93, 32}, boundsOfPolygon(band.get(1)), 1e-9, "spread shrinks the hole");
+        }
+
+        @Test
+        @DisplayName("a hole that has shrunk away leaves the whole padding box")
+        void noHole() {
+            var band = polygons(ShadowGeometry.insetBand(
+                    20, 20, Corners.SQUARE, Border.NONE, new Shadow(0, 0, 0, 0, BLACK, true), 15));
+
+            assertEquals(1, band.size());
+        }
+
+        @Test
+        @DisplayName("a rounded hole pushed past a rounded box is cut to the box's curve")
+        void roundedClip() {
+            var corners = Corners.all(10);
+            var band = polygons(
+                    ShadowGeometry.insetBand(60, 40, corners, Border.NONE, new Shadow(-8, -8, 0, 0, BLACK, true), 0));
+
+            var box = band.get(0);
+            for (var i = 0; i < band.get(1).length; i += 2) {
+                var x = band.get(1)[i];
+                var y = band.get(1)[i + 1];
+                assertTrue(
+                        insideOrOn(box, x, y),
+                        "every point of the clipped hole is inside the box: (" + x + ", " + y + ")");
+            }
+        }
+
+        private static boolean insideOrOn(double[] polygon, double x, double y) {
+            var n = polygon.length / 2;
+            for (var i = 0; i < n; i++) {
+                var j = (i + 1) % n;
+                var cross = (polygon[j * 2] - polygon[i * 2]) * (y - polygon[i * 2 + 1])
+                        - (polygon[j * 2 + 1] - polygon[i * 2 + 1]) * (x - polygon[i * 2]);
+                if (cross < -1e-6) {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        @Test
+        @DisplayName("a border that fills the box leaves no padding box and no band")
+        void noPaddingBox() {
+            assertSame(
+                    Path.EMPTY,
+                    ShadowGeometry.insetBand(
+                            10, 10, Corners.SQUARE, Border.all(5, BLACK), new Shadow(0, 0, 4, 0, BLACK, true), 0));
         }
     }
 }

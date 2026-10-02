@@ -3,11 +3,14 @@ package dev.goldberry.paint;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.List;
+
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import dev.goldberry.RendererRequirement;
+import dev.goldberry.css.Border;
 import dev.goldberry.css.Corners;
 import dev.goldberry.css.Decoration;
 import dev.goldberry.css.value.Shadow;
@@ -31,6 +34,10 @@ class ShadowPaintTest {
     private static final int RED = 0xFFFF0000;
 
     private static final int BLACK = 0xFF000000;
+
+    private static final int GREEN = 0xFF00FF00;
+
+    private static final int BLUE = 0xFF0000FF;
 
     @BeforeAll
     static void requireRenderer() {
@@ -166,6 +173,78 @@ class ShadowPaintTest {
         assertEquals(plain.pixel(45, 50), shadowed.pixel(45, 50));
         // And it is still a shadow: the page below the box is darkened.
         assertTrue(luminance(shadowed.pixel(60, 76)) < 250, "the page below is still shadowed");
+    }
+
+    /// The same page and box as [#painted], with a list of shadows and a
+    /// border.
+    private static TestFrames.Target painted(List<Shadow> shadows, int background, Corners corners, Border border) {
+        var target = TestFrames.of(120, 100, 1f);
+        var box = Box.filled(background)
+                .size(Length.points(60), Length.points(40))
+                .decoration(Decoration.NONE.corners(corners).border(border).shadows(shadows));
+        BoxPainter.paint(
+                target.frame(),
+                Box.filled(WHITE).padding(Insets.all(Length.points(30))).children(box));
+        return target;
+    }
+
+    @Test
+    @DisplayName("the first shadow in a list is drawn on top of the second")
+    void listOrder() {
+        // Two hard shadows 10px down; the second is spread 4px wider, so it
+        // shows round the first and under it nowhere.
+        var shadows = List.of(new Shadow(0, 10, 0, 0, GREEN), new Shadow(0, 10, 0, 4, BLUE));
+        var target = painted(shadows, RED, Corners.SQUARE, Border.NONE);
+
+        assertEquals(GREEN, target.pixel(60, 75), "the first shadow, on top");
+        assertEquals(BLUE, target.pixel(60, 83), "the second, where it reaches past the first");
+        assertEquals(RED, target.pixel(60, 50), "and the box over both");
+    }
+
+    @Test
+    @DisplayName("an inner shadow is drawn inside the box, over its background")
+    void inset() {
+        var target = painted(List.of(new Shadow(0, 6, 0, 0, BLACK, true)), RED, Corners.SQUARE, Border.NONE);
+
+        assertEquals(BLACK, target.pixel(60, 32), "the top 6px of the box");
+        assertEquals(RED, target.pixel(60, 40), "and the box below them");
+        assertEquals(WHITE, target.pixel(60, 25), "nothing outside the box");
+        assertEquals(WHITE, target.pixel(60, 75));
+    }
+
+    @Test
+    @DisplayName("an inner shadow sits inside the border, which is drawn over it")
+    void insetInsideTheBorder() {
+        var target = painted(List.of(new Shadow(4, 0, 0, 0, BLACK, true)), RED, Corners.SQUARE, Border.all(2, BLUE));
+
+        assertEquals(BLUE, target.pixel(31, 50), "the border");
+        assertEquals(BLACK, target.pixel(34, 50), "the 4px stripe inside it");
+        assertEquals(RED, target.pixel(40, 50), "and the background past the stripe");
+    }
+
+    @Test
+    @DisplayName("a blurred inner shadow is darkest at the edge and fades inwards")
+    void insetFades() {
+        var target = painted(List.of(new Shadow(0, 0, 12, 0, BLACK, true)), WHITE, Corners.SQUARE, Border.NONE);
+
+        var edge = luminance(target.pixel(60, 30));
+        var nearer = luminance(target.pixel(60, 33));
+        var middle = luminance(target.pixel(60, 50));
+        assertTrue(edge < nearer, "darker at the edge than a few pixels in");
+        assertTrue(nearer < middle, "and the middle is lighter still");
+        assertEquals(WHITE, target.pixel(60, 50), "past the blur, nothing");
+    }
+
+    @Test
+    @DisplayName("an inner shadow on a rounded box follows the curve and stays inside it")
+    void insetRounded() {
+        var target = painted(List.of(new Shadow(-6, -6, 0, 0, BLACK, true)), RED, Corners.all(12), Border.NONE);
+
+        assertEquals(
+                WHITE, target.pixel(30, 30), "the moved hole pokes out of the box here, and is cut back to its curve");
+        assertEquals(WHITE, target.pixel(89, 69), "the opposite corner, outside the curve, is the page too");
+        assertEquals(BLACK, target.pixel(87, 50), "the right edge carries the shadow");
+        assertEquals(RED, target.pixel(60, 50), "and the middle is the background");
     }
 
     private static double luminance(int argb) {

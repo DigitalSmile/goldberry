@@ -12,39 +12,34 @@ import dev.goldberry.css.parse.TokenType;
 import dev.goldberry.layout.Length;
 import dev.goldberry.log.Logs;
 
-/// CSS's `box-shadow` — one drop shadow cast by a box.
+/// One entry of CSS's `box-shadow` — a drop shadow cast by a box, or an inner
+/// shadow cast inside it.
 ///
 /// ```css
 /// box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
 /// box-shadow: var(--gb-elevation-2);
+/// box-shadow: inset 3px 0 0 var(--gb-accent), 0 1px 2px rgba(0, 0, 0, 0.2);
 /// ```
 ///
-/// ## One shadow, not a list
+/// ## A list
 ///
-/// CSS takes a comma-separated list and paints them back to front. This takes
-/// **one**, and a list is read as its first entry with the rest logged and
-/// dropped. Two reasons, and neither is that a list is hard to draw:
+/// The property is a comma-separated list, and [#parse] returns all of it. The
+/// first shadow in the list is drawn on top, as CSS says: outer shadows are
+/// painted under the background, last first, and inner ones over the background
+/// and under the border, last first.
 ///
-/// - Every shadow the design system pins is one shadow, and every one a theme
-///   ships is a single `--gb-elevation-*` token, so a list has no author in
-///   this repository.
-/// - The list idiom exists mostly to fake a blur profile a real Gaussian gives
-///   you for free (`0 1px 2px, 0 2px 8px`), and this *is* a ramp already. Two
-///   ramps stacked is two ramps' worth of fills for a difference nothing here
-///   asks for.
+/// ## Inset
 ///
-/// The first entry rather than a refusal for the reason `border: 1px dashed red`
-/// draws a solid line instead of nothing: drawing something is the more useful of
-/// the two wrong answers, and it is logged so "my second shadow is missing" has
-/// an answer.
+/// An `inset` shadow is cast **inside** the padding box: the box's own shape,
+/// moved by the offset and shrunk by the spread, is the hole the shadow is seen
+/// around. It reaches nothing outside the box, so its outsets are zero.
 ///
 /// ## What is refused
 ///
-/// `inset` — an inner shadow is a different drawing (it is clipped *to* the
-/// border box rather than cast outside it) and no rule in the canon asks for one.
-/// A shadow with **no colour** is refused too: CSS's default is `currentColor`,
-/// which the subset does not have, and guessing black would paint a hard black
-/// halo where an author meant a tinted one.
+/// A shadow with **no colour**: CSS's default is `currentColor`, which the
+/// subset does not have, and guessing black would paint a hard black halo where
+/// an author meant a tinted one. One bad entry drops the whole declaration, as
+/// CSS drops it.
 ///
 /// ## Units and geometry
 ///
@@ -65,14 +60,21 @@ import dev.goldberry.log.Logs;
 /// @param offsetY how far down the shadow is cast; negative is up
 /// @param blur    the blur radius, never negative — the *whole* width of the
 ///                fade, half of it outside the shape and half inside
-/// @param spread  how much bigger than the box the shape is; negative shrinks it
+/// @param spread  how much bigger than the box the shape is; negative shrinks it.
+///                For an inset shadow, how much smaller the hole is
 /// @param argb    `0xAARRGGBB`, not premultiplied
-public record Shadow(double offsetX, double offsetY, double blur, double spread, int argb) {
+/// @param inset   whether this is cast inside the box rather than behind it
+public record Shadow(double offsetX, double offsetY, double blur, double spread, int argb, boolean inset) {
 
     private static final Logger LOG = Logs.of(Shadow.class);
 
-    /// No shadow at all — what every box starts as.
+    /// No shadow at all.
     public static final Shadow NONE = new Shadow(0, 0, 0, 0, CssColor.TRANSPARENT);
+
+    /// A drop shadow, cast behind the box.
+    public Shadow(double offsetX, double offsetY, double blur, double spread, int argb) {
+        this(offsetX, offsetY, blur, spread, argb, false);
+    }
 
     public Shadow {
         requireFinite(offsetX, "a shadow's x offset");
@@ -126,21 +128,22 @@ public record Shadow(double offsetX, double offsetY, double blur, double spread,
     }
 
     private double outset(double towards) {
-        return hasInk() ? Math.max(0, towards + spread + reach()) : 0;
+        // An inner shadow is drawn inside the box and reaches nothing past it.
+        return hasInk() && !inset ? Math.max(0, towards + spread + reach()) : 0;
     }
 
     /// This shadow with its colour's alpha scaled by `alpha`.
     ///
     /// How `opacity` reaches a shadow — see [dev.goldberry.paint.Box#fade(double)].
     public Shadow fade(double alpha) {
-        return alpha >= 1 ? this : new Shadow(offsetX, offsetY, blur, spread, CssColor.fade(argb, alpha));
+        return alpha >= 1 ? this : new Shadow(offsetX, offsetY, blur, spread, CssColor.fade(argb, alpha), inset);
     }
 
     /// This shadow `t` of the way to `to`, for `transition: box-shadow`.
     ///
     /// Every component interpolates, colour included, which is CSS's own rule
-    /// for a shadow pair of equal length — and a pair here is always of equal
-    /// length, because there is only ever one.
+    /// for a pair of shadows. An inner shadow and an outer one do not
+    /// interpolate: the pair swaps half-way, as CSS's discrete rule says.
     ///
     /// The one asymmetry is [#NONE]: interpolating *from* no shadow would ramp
     /// the geometry up from zero as well as the alpha, so a card growing its
@@ -150,52 +153,96 @@ public record Shadow(double offsetX, double offsetY, double blur, double spread,
     public Shadow mix(Shadow to, double t) {
         var from = this;
         if (!from.hasInk() && to.hasInk()) {
-            from = new Shadow(to.offsetX, to.offsetY, to.blur, to.spread, to.argb & 0x00FFFFFF);
+            from = to.transparent();
         } else if (from.hasInk() && !to.hasInk()) {
-            to = new Shadow(from.offsetX, from.offsetY, from.blur, from.spread, from.argb & 0x00FFFFFF);
+            to = from.transparent();
+        }
+        if (from.inset != to.inset) {
+            return t < 0.5 ? from : to;
         }
         return new Shadow(
                 Interpolate.lerp(from.offsetX, to.offsetX, t),
                 Interpolate.lerp(from.offsetY, to.offsetY, t),
                 Interpolate.lerp(from.blur, to.blur, t),
                 Interpolate.lerp(from.spread, to.spread, t),
-                CssColor.mix(from.argb, to.argb, t));
+                CssColor.mix(from.argb, to.argb, t),
+                to.inset);
+    }
+
+    /// The same shadow at zero alpha — what an absent one interpolates as.
+    private Shadow transparent() {
+        return new Shadow(offsetX, offsetY, blur, spread, argb & 0x00FFFFFF, inset);
+    }
+
+    /// A list of shadows `t` of the way to another, for `transition:
+    /// box-shadow`.
+    ///
+    /// Pair by pair. The shorter list is padded with the longer one's own
+    /// shadows at zero alpha, so a shadow that arrives fades in at its full
+    /// size, as [#mix(Shadow, double)] does for one. A pair of an inner shadow
+    /// and an outer one makes the whole list swap half-way, CSS's rule for a
+    /// list that cannot interpolate.
+    public static List<Shadow> mix(List<Shadow> from, List<Shadow> to, double t) {
+        var size = Math.max(from.size(), to.size());
+        var mixed = new ArrayList<Shadow>(size);
+        for (var i = 0; i < size; i++) {
+            var a = i < from.size() ? from.get(i) : to.get(i).transparent();
+            var b = i < to.size() ? to.get(i) : from.get(i).transparent();
+            if (a.inset != b.inset) {
+                return t < 0.5 ? from : to;
+            }
+            mixed.add(a.mix(b, t));
+        }
+        return List.copyOf(mixed);
     }
 
     /// Parses a `box-shadow` value.
     ///
-    /// `<x> <y> [<blur>] [<spread>] <color>`, in CSS's order for the lengths and
-    /// with the colour anywhere among them — `red 0 2px 4px` is the same
-    /// declaration as `0 2px 4px red`, which is CSS's rule and is how a great
-    /// many stylesheets are written.
+    /// A comma-separated list of `[inset] <x> <y> [<blur>] [<spread>] <color>`,
+    /// in CSS's order for the lengths, with the colour and `inset` anywhere
+    /// among them — `red 0 2px 4px` is the same declaration as `0 2px 4px red`,
+    /// which is CSS's rule and is how a great many stylesheets are written.
     ///
-    /// @return the shadow, or null if these tokens are not one
-    public static @Nullable Shadow parse(List<Token> value, CssLength.Context context) {
+    /// @return the shadows, first on top; empty for `none`; null if these tokens
+    ///         are not a list of shadows
+    public static @Nullable List<Shadow> parse(List<Token> value, CssLength.Context context) {
         var entries = commaSeparated(value);
-        if (entries.size() > 1) {
-            LOG.debug(
-                    "painting the first of {} shadows: box-shadow takes one here, and the rest are dropped",
-                    entries.size());
+        if (entries.size() == 1) {
+            var only = withoutWhitespace(entries.getFirst());
+            if (only.size() == 1 && only.getFirst().isIdent("none")) {
+                return List.of();
+            }
         }
-        var first = entries.getFirst();
-        if (first.size() == 1 && first.getFirst().isIdent("none")) {
-            return NONE;
+        var shadows = new ArrayList<Shadow>(entries.size());
+        for (var entry : entries) {
+            var shadow = one(entry, context);
+            if (shadow == null) {
+                return null;
+            }
+            shadows.add(shadow);
         }
-        return one(first, context);
+        return List.copyOf(shadows);
     }
 
-    /// One entry of the list — the whole of the value in every stylesheet that
-    /// exists.
+    private static List<Token> withoutWhitespace(List<Token> tokens) {
+        return tokens.stream().filter(token -> !token.is(TokenType.WHITESPACE)).toList();
+    }
+
+    /// One entry of the list.
     private static @Nullable Shadow one(List<Token> entry, CssLength.Context context) {
         var lengths = new ArrayList<Double>();
         Integer argb = null;
+        var inset = false;
 
         for (var part : parts(entry)) {
             if (part.size() == 1 && part.getFirst().is(TokenType.IDENT)) {
                 var keyword = part.getFirst().text().toLowerCase(Locale.ROOT);
                 if (keyword.equals("inset")) {
-                    LOG.warn("dropping box-shadow: an `inset` shadow is not in the subset");
-                    return null;
+                    if (inset) {
+                        return null;
+                    }
+                    inset = true;
+                    continue;
                 }
             }
             var length = points(part, context);
@@ -228,7 +275,7 @@ public record Shadow(double offsetX, double offsetY, double blur, double spread,
             LOG.warn("dropping box-shadow: a blur radius may not be negative, and {} is", blur);
             return null;
         }
-        return new Shadow(lengths.get(0), lengths.get(1), blur, lengths.size() > 3 ? lengths.get(3) : 0, argb);
+        return new Shadow(lengths.get(0), lengths.get(1), blur, lengths.size() > 3 ? lengths.get(3) : 0, argb, inset);
     }
 
     /// A length in logical pixels, or null when this is not one.
@@ -309,12 +356,11 @@ public record Shadow(double offsetX, double offsetY, double blur, double spread,
         if (!hasInk()) {
             return "none";
         }
-        var text = new StringBuilder()
-                .append(px(offsetX))
-                .append(' ')
-                .append(px(offsetY))
-                .append(' ')
-                .append(px(blur));
+        var text = new StringBuilder();
+        if (inset) {
+            text.append("inset ");
+        }
+        text.append(px(offsetX)).append(' ').append(px(offsetY)).append(' ').append(px(blur));
         if (spread != 0) {
             text.append(' ').append(px(spread));
         }

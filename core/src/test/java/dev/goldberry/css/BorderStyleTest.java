@@ -90,11 +90,49 @@ class BorderStyleTest {
         }
 
         @Test
-        @DisplayName("the style keyword is read and drawn solid, in any order, as `border` has always done")
+        @DisplayName("the style keyword is the side's style, in any order")
         void styleIsAWord() {
             assertEquals(
-                    new Line(1, RED),
+                    new Line(1, RED, Border.Style.DASHED),
                     declared("border-bottom: dashed #ff0000 1px").bottom());
+        }
+
+        @Test
+        @DisplayName("a shorthand that names no style is solid, as every rule the toolkit ships was written")
+        void noStyleIsSolid() {
+            assertEquals(
+                    Border.Style.SOLID,
+                    declared("border-bottom: 1px #ff0000").bottom().style());
+        }
+
+        @ParameterizedTest
+        @CsvSource({
+            "solid, SOLID",
+            "dashed, DASHED",
+            "dotted, DOTTED",
+            "double, DOUBLE",
+            "groove, GROOVE",
+            "ridge, RIDGE",
+            "inset, INSET",
+            "outset, OUTSET"
+        })
+        @DisplayName("every CSS style keyword is carried, and the bevelled four are drawn solid")
+        void everyStyle(String keyword, Border.Style style) {
+            var border = declared("border: 2px " + keyword + " #ff0000");
+
+            assertEquals(Border.all(2, RED, style), border);
+            assertEquals(
+                    !List.of("dashed", "dotted", "double").contains(keyword),
+                    style.isDrawnSolid(),
+                    keyword + " is drawn as a plain band only if the painter has no drawing of its own for it");
+        }
+
+        @Test
+        @DisplayName("a side's width and colour longhands keep its style")
+        void longhandsKeepTheStyle() {
+            var border = declared("border-top: 1px dotted #0000ff; border-top-width: 3px; border-top-color: #ff0000");
+
+            assertEquals(new Line(3, RED, Border.Style.DOTTED), border.top());
         }
 
         @Test

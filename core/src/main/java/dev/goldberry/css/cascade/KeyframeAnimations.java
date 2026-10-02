@@ -26,7 +26,7 @@ import dev.goldberry.motion.Easing;
 /// change only the delay of an animation an earlier rule named; that is what a
 /// stagger is.
 ///
-/// A keyframe may declare anything, and only [Transitions.Animatable]'s six
+/// A keyframe may declare anything, and only [Transitions.Animatable]'s seven
 /// properties move. The rest are dropped when a keyframe is resolved, with a
 /// warning that names the property, because a keyframed `width` would be a
 /// layout pass on every frame.

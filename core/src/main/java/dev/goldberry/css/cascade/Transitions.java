@@ -48,7 +48,7 @@ public record Transitions(Map<Animatable, Timing> byProperty) {
 
     /// The properties a transition may name.
     ///
-    /// Six, and none of them changes a layout. `transform` is among them because
+    /// Seven, and none of them changes a layout. `transform` is among them because
     /// hit testing inverts the same matrix the painter applies, so a moving
     /// control responds where it is drawn; a transform the painter applied and hit
     /// testing did not would be a control that looks right and does not respond
@@ -64,6 +64,10 @@ public record Transitions(Map<Animatable, Timing> byProperty) {
 
         /// A control's surface, which is what a hover changes, fast.
         BACKGROUND_COLOR("background-color"),
+
+        /// Where a box's gradient layers sit. Moving a repeating stripe by one
+        /// period, forever, is how a "running" bar marches.
+        BACKGROUND_POSITION("background-position"),
 
         /// The border, so a checkbox's glyph outline can follow its hover.
         BORDER_COLOR("border-color"),

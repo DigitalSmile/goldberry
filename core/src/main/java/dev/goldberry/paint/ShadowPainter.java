@@ -1,5 +1,6 @@
 package dev.goldberry.paint;
 
+import dev.goldberry.css.Border;
 import dev.goldberry.css.Corners;
 import dev.goldberry.css.value.Shadow;
 import dev.goldberry.natives.blend2d.BlendPath;
@@ -84,6 +85,46 @@ final class ShadowPainter {
             path.reset();
             outline.replayInto(path);
             hole.replayInto(path);
+            frame.fillPathEvenOdd(x, y, path, band.argb());
+        }
+    }
+
+    /// Draws an `inset` shadow inside the box at `(x, y)`.
+    ///
+    /// **After the background and before the border**, CSS's order: an inner
+    /// shadow darkens the box's own fill and the border is drawn over its edge.
+    ///
+    /// The same bands as an outer shadow, each one the padding box with a hole
+    /// cut out of it — see [ShadowGeometry#insetBand]. A band whose hole is
+    /// large enough to cover the whole padding box paints nothing, and that is
+    /// the same test [ShadowGeometry#coveredAt] answers for an outer one: the
+    /// hole is the padding box grown by `-grow`, and it covers the box once that
+    /// is more than the offset moves it.
+    ///
+    /// @param border the box's border, whose widths make the padding box
+    static void paintInset(
+            Frame frame,
+            BlendPath path,
+            Shadow shadow,
+            double x,
+            double y,
+            double width,
+            double height,
+            Corners corners,
+            Border border) {
+
+        var bands = ShadowRamp.bands(shadow);
+        var covered = ShadowGeometry.coveredAt(shadow);
+        for (var band : bands) {
+            if (band.grow() <= covered) {
+                break;
+            }
+            var outline = ShadowGeometry.insetBand(width, height, corners, border, shadow, band.grow());
+            if (outline.isEmpty()) {
+                return;
+            }
+            path.reset();
+            outline.replayInto(path);
             frame.fillPathEvenOdd(x, y, path, band.argb());
         }
     }

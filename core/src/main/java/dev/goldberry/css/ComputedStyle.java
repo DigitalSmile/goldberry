@@ -14,6 +14,8 @@ import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 
 import dev.goldberry.assets.BundledFont;
+import dev.goldberry.css.background.Background;
+import dev.goldberry.css.background.BackgroundParser;
 import dev.goldberry.css.cascade.KeyframeAnimations;
 import dev.goldberry.css.cascade.StyleResolver;
 import dev.goldberry.css.cascade.Transitions;
@@ -167,7 +169,7 @@ public record ComputedStyle(
         OverflowWrap overflowWrap,
         WordBreak wordBreak,
         // --- paint: resolved into pixels ---
-        int background,
+        Background fill,
         int color,
         double opacity,
         Decoration decoration,
@@ -253,7 +255,7 @@ public record ComputedStyle(
             // A word breaks only between words, CSS's initial value for both.
             OverflowWrap.NORMAL,
             WordBreak.NORMAL,
-            CssColor.TRANSPARENT,
+            Background.none(),
             0xFF000000,
             1.0,
             Decoration.NONE,
@@ -284,6 +286,7 @@ public record ComputedStyle(
         textDecoration = Set.copyOf(Objects.requireNonNull(textDecoration, "textDecoration"));
         Objects.requireNonNull(overflowWrap, "overflowWrap");
         Objects.requireNonNull(wordBreak, "wordBreak");
+        Objects.requireNonNull(fill, "fill");
         Objects.requireNonNull(decoration, "decoration");
         Objects.requireNonNull(typography, "typography");
         Objects.requireNonNull(transitions, "transitions");
@@ -636,17 +639,28 @@ public record ComputedStyle(
             case "text-decoration", "text-decoration-line" ->
                 decorations(value).map(this::textDecoration).orElseGet(() -> dropped(property, value));
 
-            // `background` is CSS's shorthand and `background-color` its longhand,
-            // and the toolkit implements the one layer of it that exists: a
-            // colour. The difference between them is `none` — valid in the
-            // shorthand, where it means "no layer at all", and not a colour, so
-            // not a value the longhand takes. `select text-input` is what wanted
-            // it, for the same sentence that made it write `border: none` on the
-            // line above: an editor inside a control is that control's interior,
-            // with no fill of its own.
-            case "background" -> backgroundLayer(value).map(this::background).orElseGet(() -> dropped(property, value));
+            // `background` is CSS's shorthand: gradient layers, top first, and a
+            // colour under them. It resets what it does not name, so
+            // `background: none` is no fill at all -- which `select text-input`
+            // wanted, for the same sentence that made it write `border: none`:
+            // an editor inside a control is that control's interior, with no
+            // fill of its own. The three longhands change one part each.
+            case "background" ->
+                Optional.ofNullable(BackgroundParser.shorthand(value, context))
+                        .map(this::fill)
+                        .orElseGet(() -> dropped(property, value));
 
             case "background-color" -> colour(value).map(this::background).orElseGet(() -> dropped(property, value));
+
+            case "background-image" ->
+                Optional.ofNullable(BackgroundParser.images(value, context))
+                        .map(v -> fill(fill.layers(v)))
+                        .orElseGet(() -> dropped(property, value));
+
+            case "background-position" ->
+                Optional.ofNullable(BackgroundParser.position(value, context))
+                        .map(v -> fill(fill.position(v)))
+                        .orElseGet(() -> dropped(property, value));
 
             case "color" -> colour(value).map(this::color).orElseGet(() -> dropped(property, value));
 
@@ -687,9 +701,9 @@ public record ComputedStyle(
             // `border-bottom` under `table-head` and `tab-new`, `border-left` on
             // a quotation, `border-right` down a gutter, and a rule between a
             // document table's cells. The shorthand is `border`'s grammar over
-            // one side -- the style keyword is read and drawn solid, `none` is a
-            // zero width -- and it resets that side's colour the way `border`
-            // resets all four.
+            // one side -- the style keyword is that side's style, `none` is a
+            // zero width -- and it resets that side's colour and style the way
+            // `border` resets all four.
             //
             // The cascade applies declarations in the order they won, so `border`
             // then `border-left` is a uniform border with its left side replaced,
@@ -697,8 +711,8 @@ public record ComputedStyle(
             // per side, which is CSS's rule.
             case "border-top", "border-right", "border-bottom", "border-left" ->
                 stroke(value, context)
-                        .map(v -> decoration(decoration.border(
-                                decoration.border().side(sideOf(property), new Border.Line(v.width(), v.argb())))))
+                        .map(v ->
+                                decoration(decoration.border(decoration.border().side(sideOf(property), v.line()))))
                         .orElseGet(() -> dropped(property, value));
 
             case "border-top-width", "border-right-width", "border-bottom-width", "border-left-width" ->
@@ -741,9 +755,14 @@ public record ComputedStyle(
 
             case "border" ->
                 stroke(value, context)
-                        .map(v -> decoration(decoration.border(v.width(), v.argb())))
+                        .map(v -> {
+                            var line = v.line();
+                            return decoration(decoration.border(new Border(line, line, line, line)));
+                        })
                         .orElseGet(() -> dropped(property, value));
 
+            // A ring is drawn solid whatever its style says: it is a focus
+            // indicator, and the design system pins it solid.
             case "outline" ->
                 stroke(value, context)
                         .map(v -> decoration(decoration.outline(v.width(), v.argb(), decoration.outlineOffset())))
@@ -758,7 +777,7 @@ public record ComputedStyle(
             // invisible on nord-dark.
             case "box-shadow" -> {
                 var parsed = Shadow.parse(value, context);
-                yield parsed == null ? dropped(property, value) : decoration(decoration.shadow(parsed));
+                yield parsed == null ? dropped(property, value) : decoration(decoration.shadows(parsed));
             }
 
             // --- the typography half ------------------------------------------
@@ -1056,7 +1075,7 @@ public record ComputedStyle(
                 textDecoration,
                 overflowWrap,
                 wordBreak,
-                background,
+                fill,
                 color,
                 opacity,
                 decoration,
@@ -1094,7 +1113,7 @@ public record ComputedStyle(
                 textDecoration,
                 overflowWrap,
                 wordBreak,
-                background,
+                fill,
                 color,
                 opacity,
                 decoration,
@@ -1132,7 +1151,7 @@ public record ComputedStyle(
                 textDecoration,
                 overflowWrap,
                 wordBreak,
-                background,
+                fill,
                 color,
                 opacity,
                 decoration,
@@ -1173,7 +1192,7 @@ public record ComputedStyle(
                 textDecoration,
                 overflowWrap,
                 wordBreak,
-                background,
+                fill,
                 color,
                 opacity,
                 decoration,
@@ -1211,7 +1230,7 @@ public record ComputedStyle(
                 textDecoration,
                 overflowWrap,
                 wordBreak,
-                background,
+                fill,
                 color,
                 opacity,
                 decoration,
@@ -1249,7 +1268,7 @@ public record ComputedStyle(
                 textDecoration,
                 overflowWrap,
                 wordBreak,
-                background,
+                fill,
                 color,
                 opacity,
                 decoration,
@@ -1287,7 +1306,7 @@ public record ComputedStyle(
                 textDecoration,
                 overflowWrap,
                 wordBreak,
-                background,
+                fill,
                 color,
                 opacity,
                 decoration,
@@ -1325,7 +1344,7 @@ public record ComputedStyle(
                 textDecoration,
                 overflowWrap,
                 wordBreak,
-                background,
+                fill,
                 color,
                 opacity,
                 decoration,
@@ -1363,7 +1382,7 @@ public record ComputedStyle(
                 textDecoration,
                 overflowWrap,
                 wordBreak,
-                background,
+                fill,
                 color,
                 opacity,
                 decoration,
@@ -1401,7 +1420,7 @@ public record ComputedStyle(
                 textDecoration,
                 overflowWrap,
                 wordBreak,
-                background,
+                fill,
                 color,
                 opacity,
                 decoration,
@@ -1441,7 +1460,7 @@ public record ComputedStyle(
                 textDecoration,
                 overflowWrap,
                 wordBreak,
-                background,
+                fill,
                 color,
                 opacity,
                 decoration,
@@ -1489,7 +1508,7 @@ public record ComputedStyle(
                 textDecoration,
                 overflowWrap,
                 wordBreak,
-                background,
+                fill,
                 color,
                 opacity,
                 decoration,
@@ -1528,7 +1547,7 @@ public record ComputedStyle(
                 textDecoration,
                 overflowWrap,
                 wordBreak,
-                background,
+                fill,
                 color,
                 opacity,
                 decoration,
@@ -1567,7 +1586,7 @@ public record ComputedStyle(
                 textDecoration,
                 overflowWrap,
                 wordBreak,
-                background,
+                fill,
                 color,
                 opacity,
                 decoration,
@@ -1605,7 +1624,7 @@ public record ComputedStyle(
                 textDecoration,
                 overflowWrap,
                 wordBreak,
-                background,
+                fill,
                 color,
                 opacity,
                 decoration,
@@ -1646,7 +1665,7 @@ public record ComputedStyle(
                 textDecoration,
                 overflowWrap,
                 wordBreak,
-                background,
+                fill,
                 color,
                 opacity,
                 decoration,
@@ -1684,7 +1703,7 @@ public record ComputedStyle(
                 textDecoration,
                 overflowWrap,
                 wordBreak,
-                background,
+                fill,
                 color,
                 opacity,
                 decoration,
@@ -1722,7 +1741,7 @@ public record ComputedStyle(
                 textDecoration,
                 overflowWrap,
                 wordBreak,
-                background,
+                fill,
                 color,
                 opacity,
                 decoration,
@@ -1760,7 +1779,7 @@ public record ComputedStyle(
                 textDecoration,
                 overflowWrap,
                 wordBreak,
-                background,
+                fill,
                 color,
                 opacity,
                 decoration,
@@ -1798,7 +1817,7 @@ public record ComputedStyle(
                 textDecoration,
                 overflowWrap,
                 wordBreak,
-                background,
+                fill,
                 color,
                 opacity,
                 decoration,
@@ -1836,7 +1855,7 @@ public record ComputedStyle(
                 textDecoration,
                 overflowWrap,
                 wordBreak,
-                background,
+                fill,
                 color,
                 opacity,
                 decoration,
@@ -1874,7 +1893,7 @@ public record ComputedStyle(
                 textDecoration,
                 overflowWrap,
                 wordBreak,
-                background,
+                fill,
                 color,
                 opacity,
                 decoration,
@@ -1912,7 +1931,7 @@ public record ComputedStyle(
                 textDecoration,
                 overflowWrap,
                 wordBreak,
-                background,
+                fill,
                 color,
                 opacity,
                 decoration,
@@ -1952,7 +1971,7 @@ public record ComputedStyle(
                 v,
                 overflowWrap,
                 wordBreak,
-                background,
+                fill,
                 color,
                 opacity,
                 decoration,
@@ -1991,7 +2010,7 @@ public record ComputedStyle(
                 textDecoration,
                 v,
                 wordBreak,
-                background,
+                fill,
                 color,
                 opacity,
                 decoration,
@@ -2030,7 +2049,7 @@ public record ComputedStyle(
                 textDecoration,
                 overflowWrap,
                 v,
-                background,
+                fill,
                 color,
                 opacity,
                 decoration,
@@ -2058,7 +2077,19 @@ public record ComputedStyle(
         return new TextFlow(whiteSpace, textOverflow, textAlign, textDecoration, overflowWrap, wordBreak);
     }
 
+    /// The background's colour, under any gradient layers on it — what a
+    /// contrast check, a `background-color` transition and nearly every
+    /// widget mean by "the background".
+    public int background() {
+        return fill.colour();
+    }
+
+    /// The background's colour replaced, its layers kept — `background-color`.
     public ComputedStyle background(int v) {
+        return fill(fill.colour(v));
+    }
+
+    public ComputedStyle fill(Background v) {
         return new ComputedStyle(
                 direction,
                 justifyContent,
@@ -2123,7 +2154,7 @@ public record ComputedStyle(
                 textDecoration,
                 overflowWrap,
                 wordBreak,
-                background,
+                fill,
                 v,
                 opacity,
                 decoration,
@@ -2161,7 +2192,7 @@ public record ComputedStyle(
                 textDecoration,
                 overflowWrap,
                 wordBreak,
-                background,
+                fill,
                 color,
                 v,
                 decoration,
@@ -2199,7 +2230,7 @@ public record ComputedStyle(
                 textDecoration,
                 overflowWrap,
                 wordBreak,
-                background,
+                fill,
                 color,
                 opacity,
                 v,
@@ -2237,7 +2268,7 @@ public record ComputedStyle(
                 textDecoration,
                 overflowWrap,
                 wordBreak,
-                background,
+                fill,
                 color,
                 opacity,
                 decoration,
@@ -2275,7 +2306,7 @@ public record ComputedStyle(
                 textDecoration,
                 overflowWrap,
                 wordBreak,
-                background,
+                fill,
                 color,
                 opacity,
                 decoration,
@@ -2314,7 +2345,7 @@ public record ComputedStyle(
                 textDecoration,
                 overflowWrap,
                 wordBreak,
-                background,
+                fill,
                 color,
                 opacity,
                 decoration,
@@ -2352,7 +2383,7 @@ public record ComputedStyle(
                 textDecoration,
                 overflowWrap,
                 wordBreak,
-                background,
+                fill,
                 color,
                 opacity,
                 decoration,
@@ -2390,7 +2421,7 @@ public record ComputedStyle(
                 textDecoration,
                 overflowWrap,
                 wordBreak,
-                background,
+                fill,
                 color,
                 opacity,
                 decoration,
@@ -2887,32 +2918,53 @@ public record ComputedStyle(
         return entries;
     }
 
-    /// The width and colour of a `border:`, `border-<side>:` or `outline:` shorthand.
-    private record Stroke(double width, int argb) {}
+    /// The width, colour and style of a `border:`, `border-<side>:` or
+    /// `outline:` shorthand.
+    private record Stroke(double width, int argb, Border.Style style) {
+
+        /// The side this stroke draws, saying once if its style is one the
+        /// painter draws solid.
+        Border.Line line() {
+            if (style.isDrawnSolid() && style != Border.Style.SOLID) {
+                reportOnce(
+                        "border-style:" + style,
+                        "drawing border style \"{}\" as solid: the bevelled styles are not drawn",
+                        style.name().toLowerCase(Locale.ROOT));
+            }
+            return new Border.Line(width, argb, style);
+        }
+    }
+
+    /// Logs `message` at warn the first time `key` is seen — see [#REPORTED].
+    private static void reportOnce(String key, String message, Object argument) {
+        if (REPORTED.size() >= REPORT_LIMIT || REPORTED.add(key)) {
+            LOG.warn(message, argument);
+        }
+    }
 
     /// CSS's `<width> || <style> || <color>` shorthand, in any order.
     ///
-    /// The style keyword is **accepted and discarded**: `solid` is the only one
-    /// the painter can draw, and every rule that ships writes it. Refusing the
-    /// others would mean `border: 1px dashed red` failing to parse rather than
-    /// drawing a solid line, and drawing something is the more useful of the two
-    /// wrong answers — but it is logged, so "my dashes are solid" has an answer.
+    /// The style is carried to the border, which draws `solid`, `dashed`,
+    /// `dotted` and `double` and draws the four bevelled styles solid — saying
+    /// so once, at warn, so "my groove is flat" has an answer. A shorthand that
+    /// names no style draws solid, which is how every rule the toolkit ships was
+    /// written before styles were drawn.
     ///
     /// `none` sets the width to zero, which is how a rule turns a border off
     /// without having to say `border-width: 0`.
     private static Optional<Stroke> stroke(List<Token> value, CssLength.Context context) {
         Double width = null;
         Integer argb = null;
+        var style = Border.Style.SOLID;
         for (var part : split(value)) {
             if (part.size() == 1 && part.getFirst().is(TokenType.IDENT)) {
                 var keyword = part.getFirst().text().toLowerCase(Locale.ROOT);
                 if (keyword.equals("none") || keyword.equals("hidden")) {
-                    return Optional.of(new Stroke(0, CssColor.TRANSPARENT));
+                    return Optional.of(new Stroke(0, CssColor.TRANSPARENT, Border.Style.SOLID));
                 }
-                if (STROKE_STYLES.contains(keyword)) {
-                    if (!keyword.equals("solid")) {
-                        LOG.debug("drawing \"{}\" as solid: it is the only border style" + " the painter has", keyword);
-                    }
+                var named = Border.Style.parse(keyword);
+                if (named != null) {
+                    style = named;
                     continue;
                 }
             }
@@ -2930,11 +2982,8 @@ public record ComputedStyle(
         // A shorthand always resets what it does not mention, which is what makes
         // it a shorthand rather than three separate declarations: `border: red`
         // after `border: 2px solid blue` is a 0px border, not a red 2px one.
-        return Optional.of(new Stroke(width == null ? 0 : width, argb == null ? CssColor.TRANSPARENT : argb));
+        return Optional.of(new Stroke(width == null ? 0 : width, argb == null ? CssColor.TRANSPARENT : argb, style));
     }
-
-    private static final java.util.Set<String> STROKE_STYLES =
-            java.util.Set.of("solid", "dashed", "dotted", "double", "groove", "ridge", "inset", "outset");
 
     private static Optional<Integer> colour(List<Token> value) {
         return Optional.ofNullable(CssColor.parse(value));
@@ -3143,24 +3192,6 @@ public record ComputedStyle(
                     case 4 -> new Corners(parts.get(0), parts.get(1), parts.get(2), parts.get(3));
                     default -> null;
                 });
-    }
-
-    /// The `background` shorthand: a colour, or `none`.
-    ///
-    /// `none` is transparent here. In CSS it turns off the *image* layers and
-    /// leaves `background-color` alone, but the toolkit has no image layer — so
-    /// what "no background" can mean is the one thing it does mean to a painter,
-    /// and it is how a rule turns a fill off without having to know what colour
-    /// it is turning off. The same answer `border: none` gives, one property up.
-    private static Optional<Integer> backgroundLayer(List<Token> value) {
-        var parts = split(value);
-        if (parts.size() == 1
-                && parts.getFirst().size() == 1
-                && parts.getFirst().getFirst().is(TokenType.IDENT)
-                && parts.getFirst().getFirst().text().toLowerCase(Locale.ROOT).equals("none")) {
-            return Optional.of(CssColor.TRANSPARENT);
-        }
-        return colour(value);
     }
 
     /// Splits a value on whitespace into the component values of a shorthand.

@@ -107,6 +107,46 @@ class GradientTest {
     }
 
     @Nested
+    @DisplayName("radial ramps and what lies past the ends")
+    class RadialAndExtend {
+
+        @Test
+        @DisplayName("a linear ramp written without an extend holds its ends")
+        void padByDefault() {
+            assertEquals(
+                    Gradient.Extend.PAD,
+                    Gradient.linear(0, 0, 10, 0, new Gradient.Stop(0, 0xFF000000))
+                            .extend());
+        }
+
+        @Test
+        @DisplayName("a circle is an ellipse with two equal radii, starting at the centre")
+        void circle() {
+            var ramp = Gradient.radial(5, 6, 10, new Gradient.Stop(0, 0xFF000000), new Gradient.Stop(1, 0xFFFFFFFF));
+
+            assertEquals(new Gradient.Radial(5, 6, 10, 10, 0, ramp.stops(), Gradient.Extend.PAD), ramp);
+        }
+
+        @Test
+        @DisplayName("a radius must be positive and the start must be inside the ellipse")
+        void refused() {
+            var stops = List.of(new Gradient.Stop(0, 0xFF000000));
+            assertThrows(
+                    IllegalArgumentException.class,
+                    () -> new Gradient.Radial(0, 0, 0, 10, 0, stops, Gradient.Extend.PAD));
+            assertThrows(
+                    IllegalArgumentException.class,
+                    () -> new Gradient.Radial(0, 0, 10, Double.NaN, 0, stops, Gradient.Extend.PAD));
+            assertThrows(
+                    IllegalArgumentException.class,
+                    () -> new Gradient.Radial(0, 0, 10, 10, 1, stops, Gradient.Extend.PAD));
+            assertThrows(
+                    IllegalArgumentException.class,
+                    () -> new Gradient.Radial(Double.NaN, 0, 10, 10, 0, stops, Gradient.Extend.PAD));
+        }
+    }
+
+    @Nested
     @DisplayName("fading to transparent")
     class Fade {
 

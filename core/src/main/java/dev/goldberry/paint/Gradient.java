@@ -30,19 +30,41 @@ import java.util.Objects;
 /// the same RGB with a zero alpha, which is what [#fade] builds and why it
 /// exists rather than being left to each caller to remember.
 ///
-/// ## Sealed, with one implementation
+/// ## Sealed, with two shapes
 ///
-/// Only [Linear] today, because linear is what the rasterizer's wrapper binds.
-/// Radial is the obvious second and is deliberately not guessed at here: sealing
-/// means adding it later is a new record and an exhaustive `switch` that stops
-/// compiling until every consumer handles it, rather than a silent default branch
-/// that draws the wrong thing.
+/// [Linear] along a line and [Radial] out from a centre, which are the two a
+/// CSS `background` names. Sealing means a third is a new record and an
+/// exhaustive `switch` that stops compiling until every consumer handles it,
+/// rather than a silent default branch that draws the wrong thing.
+///
+/// ## Beyond the ends
+///
+/// [Extend] says what is drawn past the first and last stop: the end colours
+/// held ([Extend#PAD], CSS's plain gradients), the ramp again
+/// ([Extend#REPEAT], CSS's `repeating-` ones), or the ramp back and forth
+/// ([Extend#REFLECT]).
 ///
 /// Read more: [Canvas, images and QR codes](https://goldberry.dev/docs/components/drawing.html#the-painter).
 public sealed interface Gradient {
 
     /// The stops, in ascending offset order and never empty.
     List<Stop> stops();
+
+    /// What is drawn beyond the first and the last stop.
+    Extend extend();
+
+    /// What a ramp does past its two ends.
+    enum Extend {
+
+        /// The end colours hold.
+        PAD,
+
+        /// The ramp starts again, which is what a `repeating-` gradient is.
+        REPEAT,
+
+        /// The ramp runs backwards, then forwards again.
+        REFLECT
+    }
 
     /// One colour, at one position along the ramp.
     ///
@@ -60,10 +82,10 @@ public sealed interface Gradient {
 
     /// A ramp along the line from `(x1, y1)` to `(x2, y2)`.
     ///
-    /// Beyond either end the nearest stop's colour continues — the ramp covers
-    /// the shape it was placed over and anything past it holds, rather than
-    /// repeating.
-    record Linear(double x1, double y1, double x2, double y2, List<Stop> stops) implements Gradient {
+    /// Beyond either end, what [#extend] says: by default the nearest stop's
+    /// colour continues — the ramp covers the shape it was placed over and
+    /// anything past it holds, rather than repeating.
+    record Linear(double x1, double y1, double x2, double y2, List<Stop> stops, Extend extend) implements Gradient {
 
         public Linear {
             if (!Double.isFinite(x1) || !Double.isFinite(y1) || !Double.isFinite(x2) || !Double.isFinite(y2)) {
@@ -73,8 +95,51 @@ public sealed interface Gradient {
                 throw new IllegalArgumentException("a gradient runs between two finite points, and (" + x1 + "," + y1
                         + ") to (" + x2 + "," + y2 + ") is not a pair of them");
             }
+            Objects.requireNonNull(extend, "extend");
             stops = sorted(stops);
         }
+
+        /// A ramp whose ends hold.
+        public Linear(double x1, double y1, double x2, double y2, List<Stop> stops) {
+            this(x1, y1, x2, y2, stops, Extend.PAD);
+        }
+    }
+
+    /// A ramp out from `(cx, cy)`, round an ellipse with radii `radiusX` and
+    /// `radiusY`.
+    ///
+    /// Offset 0 sits `start` of the way out and offset 1 on the ellipse, so a
+    /// ramp whose first colour is some way from the centre needs no extra stop
+    /// inside it — which is what lets a repeating one repeat inwards as well as
+    /// out. Inside `start` and past the ellipse, what [#extend] says.
+    ///
+    /// @param start where offset 0 is, as a fraction of the way from the centre
+    ///              to the ellipse, from 0 up to but not including 1
+    record Radial(double cx, double cy, double radiusX, double radiusY, double start, List<Stop> stops, Extend extend)
+            implements Gradient {
+
+        public Radial {
+            if (!Double.isFinite(cx) || !Double.isFinite(cy)) {
+                throw new IllegalArgumentException(
+                        "a gradient's centre is a finite point, and (" + cx + "," + cy + ") is not one");
+            }
+            if (!(radiusX > 0) || !(radiusY > 0) || !Double.isFinite(radiusX) || !Double.isFinite(radiusY)) {
+                throw new IllegalArgumentException("a radial gradient's radii are finite and positive, and " + radiusX
+                        + " and " + radiusY + " are not both");
+            }
+            if (!(start >= 0) || !(start < 1)) {
+                throw new IllegalArgumentException(
+                        "a radial gradient starts from 0 up to but not including 1, and " + start + " does not");
+            }
+            Objects.requireNonNull(extend, "extend");
+            stops = sorted(stops);
+        }
+    }
+
+    /// A circular ramp of `radius` round `(cx, cy)` through `stops`, its ends
+    /// held.
+    static Radial radial(double cx, double cy, double radius, Stop... stops) {
+        return new Radial(cx, cy, radius, radius, 0, List.of(stops), Extend.PAD);
     }
 
     /// A linear ramp through `stops`.

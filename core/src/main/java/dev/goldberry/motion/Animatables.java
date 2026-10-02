@@ -1,13 +1,16 @@
 package dev.goldberry.motion;
 
+import java.util.List;
+
 import dev.goldberry.css.Border;
 import dev.goldberry.css.ComputedStyle;
+import dev.goldberry.css.background.BackgroundPosition;
 import dev.goldberry.css.cascade.Transitions.Animatable;
 import dev.goldberry.css.value.CssColor;
 import dev.goldberry.css.value.Shadow;
 import dev.goldberry.css.value.Transform;
 
-/// How each of the six animatable properties is read off a style, written back
+/// How each of the seven animatable properties is read off a style, written back
 /// onto one, compared and interpolated.
 ///
 /// One place for the four switches, shared by the two kinds of motion: a
@@ -24,7 +27,7 @@ final class Animatables {
     /// Colours are carried as their `0xAARRGGBB` bits in a `Double`, which is
     /// exact — a double holds every 32-bit integer — so the numeric properties
     /// share one representation. `transform` is the [Transform] itself,
-    /// `box-shadow` the [Shadow] itself, and `border-color` the [Border] itself,
+    /// `box-shadow` the list of [Shadow]s, and `border-color` the [Border] itself,
     /// because a box's sides can be four colours and a transition
     /// moves each of them; see `Animations.Running` for why that is worth a
     /// boxed value.
@@ -32,8 +35,9 @@ final class Animatables {
         return switch (property) {
             case OPACITY -> style.opacity();
             case BACKGROUND_COLOR -> (double) style.background();
+            case BACKGROUND_POSITION -> style.fill().position();
             case BORDER_COLOR -> style.decoration().border();
-            case BOX_SHADOW -> style.decoration().shadow();
+            case BOX_SHADOW -> style.decoration().shadows();
             case COLOR -> (double) style.color();
             case TRANSFORM -> style.transform();
         };
@@ -43,12 +47,13 @@ final class Animatables {
         return switch (property) {
             case OPACITY -> style.opacity((Double) value);
             case BACKGROUND_COLOR -> style.background(argb(value));
+            case BACKGROUND_POSITION -> style.fill(style.fill().position((BackgroundPosition) value));
             // The colours only: a width is not animatable, and the cascade's own
             // width for this frame is the one that stands.
             case BORDER_COLOR ->
                 style.decoration(
                         style.decoration().border(style.decoration().border().coloursOf((Border) value)));
-            case BOX_SHADOW -> style.decoration(style.decoration().shadow((Shadow) value));
+            case BOX_SHADOW -> style.decoration(style.decoration().shadows(shadows(value)));
             case COLOR -> style.color(argb(value));
             case TRANSFORM -> style.transform((Transform) value);
         };
@@ -56,6 +61,12 @@ final class Animatables {
 
     static int argb(Object value) {
         return (int) Math.round((Double) value);
+    }
+
+    /// A `box-shadow` value back from its boxed form: the list
+    /// [#valueOf] read off a style.
+    static List<Shadow> shadows(Object value) {
+        return ((List<?>) value).stream().map(Shadow.class::cast).toList();
     }
 
     static boolean sameValue(Animatable property, Object a, Object b) {
@@ -84,8 +95,9 @@ final class Animatables {
         return switch (property) {
             case OPACITY -> (Double) from + ((Double) to - (Double) from) * t;
             case BACKGROUND_COLOR, COLOR -> (double) CssColor.mix(argb(from), argb(to), t);
+            case BACKGROUND_POSITION -> ((BackgroundPosition) from).mix((BackgroundPosition) to, t);
             case BORDER_COLOR -> ((Border) from).mixColours((Border) to, t);
-            case BOX_SHADOW -> ((Shadow) from).mix((Shadow) to, t);
+            case BOX_SHADOW -> Shadow.mix(shadows(from), shadows(to), t);
             case TRANSFORM -> ((Transform) from).mix((Transform) to, t);
         };
     }

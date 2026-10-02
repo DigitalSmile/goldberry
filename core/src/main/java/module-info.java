@@ -67,6 +67,11 @@ module dev.goldberry.core {
     exports dev.goldberry.css.cascade;
     exports dev.goldberry.css.value;
 
+    // `background`: a colour and the gradient layers over it, as the cascade
+    // carries them to a `Box`. Exported because a box an application builds by
+    // hand names one.
+    exports dev.goldberry.css.background;
+
     // `@media`: the condition a rule applies under and the window facts it is
     // asked about. Exported because a rule carries one and a test or a tool
     // reading a parsed sheet meets it.
@@ -295,6 +300,9 @@ module dev.goldberry.core {
     // values, neither needs a `Frame`, and both are wrong in ways only a unit
     // test notices.
     exports dev.goldberry.paint.shadow;
+    // Where a dashed or dotted border side puts its ink, for `paint.shadow`'s
+    // reason: it is geometry over values, and it needs no `Frame`.
+    exports dev.goldberry.paint.border;
     // What a subtree actually draws, and therefore what the painter may skip. Its
     // own package for `paint.geom`'s reason once more: it is arithmetic over
     // rectangles, it needs no `Frame`, and a culler that is wrong by a pixel

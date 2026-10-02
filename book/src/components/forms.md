@@ -726,8 +726,8 @@ value may be an `Integer` or hex text. From markup, `change` carries the hex.
 - Pseudo-classes: `:focus-visible` on `color-swatch` and `color-plane`; `:disabled`.
 
 Swatch 24 with radius 4, plane 200 by 160, ramps 12 tall, preset swatch 20
-with gap 4. Everything in the board is painted rather than styled, because the
-subset has no gradient.
+with gap 4. Everything in the board is painted rather than styled, because what
+it shows moves with the value.
 
 ### Keyboard
 

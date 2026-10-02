@@ -12,6 +12,7 @@ import static org.junit.jupiter.params.provider.Arguments.arguments;
 import java.util.List;
 import java.util.stream.Stream;
 
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -41,8 +42,20 @@ class ShadowTest {
         return sheet.rules().getFirst().declarations().getFirst().value();
     }
 
-    private static Shadow parse(String value) {
+    /// The whole list, or null when the value is refused.
+    private static @Nullable List<Shadow> list(String value) {
         return Shadow.parse(tokens(value), CONTEXT);
+    }
+
+    /// The one shadow a single-entry value holds, [Shadow#NONE] for `none`, or
+    /// null when the value is refused.
+    private static @Nullable Shadow parse(String value) {
+        var shadows = list(value);
+        if (shadows == null) {
+            return null;
+        }
+        assertTrue(shadows.size() <= 1, () -> value + " is " + shadows.size() + " shadows, not one");
+        return shadows.isEmpty() ? Shadow.NONE : shadows.getFirst();
     }
 
     /// The whole pipeline, so a declaration is tested through the machinery that
@@ -104,23 +117,41 @@ class ShadowTest {
         }
 
         @Test
-        @DisplayName("`none` is a shadow that draws nothing, not a parse failure")
+        @DisplayName("`none` is an empty list, not a parse failure")
         void none() {
-            var shadow = parse("none");
-
-            assertNotNull(shadow);
-            assertSame(Shadow.NONE, shadow);
-            assertFalse(shadow.hasInk());
+            assertEquals(List.of(), list("none"));
         }
 
         @Test
-        @DisplayName("a comma list is read as its first shadow")
+        @DisplayName("a comma list is every shadow in it, in the order written")
         void commaList() {
-            // The whole list is what CSS takes and one is what this draws, so the
-            // question is which wrong answer: nothing, or the first. Drawing
-            // something is the more useful of the two, which is the same call
-            // `border: 1px dashed red` makes.
-            assertEquals(parse("0 1px 2px black"), parse("0 1px 2px black, 0 8px 24px red"));
+            // The first is on top, which is the painter's business; the parser
+            // keeps the order it was given.
+            assertEquals(
+                    List.of(new Shadow(0, 1, 2, 0, 0xFF000000), new Shadow(0, 8, 24, 0, 0xFFFF0000)),
+                    list("0 1px 2px black, 0 8px 24px red"));
+        }
+
+        @Test
+        @DisplayName("`inset` makes an inner shadow, written first or last")
+        void inset() {
+            var shadow = parse("inset 3px 0 0 #5e81ac");
+
+            assertNotNull(shadow);
+            assertTrue(shadow.inset());
+            assertEquals(3, shadow.offsetX());
+            assertEquals(shadow, parse("3px 0 0 #5e81ac inset"));
+        }
+
+        @Test
+        @DisplayName("inner and outer shadows mix in one list")
+        void mixedList() {
+            var shadows = list("inset 3px 0 0 #5e81ac, 0 1px 2px rgba(0, 0, 0, 0.2)");
+
+            assertNotNull(shadows);
+            assertEquals(2, shadows.size());
+            assertTrue(shadows.get(0).inset());
+            assertFalse(shadows.get(1).inset());
         }
 
         @Test
@@ -140,9 +171,10 @@ class ShadowTest {
         @Test
         @DisplayName("`em` resolves against the font size in force, like every other length")
         void relativeLengths() {
-            var shadow = Shadow.parse(tokens("0 0.5em 1em black"), new CssLength.Context(20, 16));
+            var shadows = Shadow.parse(tokens("0 0.5em 1em black"), new CssLength.Context(20, 16));
 
-            assertNotNull(shadow);
+            assertNotNull(shadows);
+            var shadow = shadows.getFirst();
             assertEquals(10, shadow.offsetY());
             assertEquals(20, shadow.blur());
         }
@@ -166,7 +198,9 @@ class ShadowTest {
             "five lengths,                                  1px 2px 3px 4px 5px black",
             "no colour and no currentColor to fall back on, 0 2px 8px",
             "a negative blur radius,                        0 2px -8px black",
-            "`inset` - a different drawing entirely,        inset 0 2px 8px black",
+            "`inset` said twice,                            inset inset 0 2px 8px black",
+            "a bad entry anywhere in the list,              '0 2px 8px black, lift-off'",
+            "an empty entry,                                '0 2px 8px black,'",
             "a percentage the cascade cannot resolve,       0 10% 8px black",
             "two colours,                                   0 2px 8px black red",
             "nonsense,                                      lift-off",
@@ -220,6 +254,18 @@ class ShadowTest {
 
             assertEquals(0, invisible.outsetBottom());
             assertFalse(invisible.hasInk());
+        }
+
+        @Test
+        @DisplayName("an inner shadow reaches nothing outside the box")
+        void insetReachesNowhere() {
+            var inner = new Shadow(0, 8, 32, 4, 0xFF000000, true);
+
+            assertTrue(inner.hasInk());
+            assertEquals(0, inner.outsetTop());
+            assertEquals(0, inner.outsetRight());
+            assertEquals(0, inner.outsetBottom());
+            assertEquals(0, inner.outsetLeft());
         }
     }
 
@@ -279,6 +325,40 @@ class ShadowTest {
             assertEquals(32, half.blur());
             assertEquals(0x80, half.argb() >>> 24);
         }
+
+        @Test
+        @DisplayName("an inner shadow fading in stays an inner shadow")
+        void insetFromNone() {
+            var to = new Shadow(3, 0, 0, 0, 0xFF000000, true);
+            var half = Shadow.NONE.mix(to, 0.5);
+
+            assertTrue(half.inset());
+            assertEquals(3, half.offsetX());
+            assertEquals(0x80, half.argb() >>> 24);
+        }
+
+        @Test
+        @DisplayName("lists mix pair by pair, and the shorter one's missing shadows fade in")
+        void lists() {
+            var from = List.of(new Shadow(0, 2, 8, 0, 0xFF000000));
+            var to = List.of(new Shadow(0, 8, 32, 0, 0xFF000000), new Shadow(0, 0, 0, 2, 0xFF0000FF));
+            var half = Shadow.mix(from, to, 0.5);
+
+            assertEquals(2, half.size());
+            assertEquals(5, half.getFirst().offsetY());
+            assertEquals(2, half.get(1).spread(), "the arriving shadow keeps its own shape");
+            assertEquals(0x80, half.get(1).argb() >>> 24, "and fades in");
+        }
+
+        @Test
+        @DisplayName("an inner shadow and an outer one do not interpolate: the list swaps half-way")
+        void insetAgainstOuterSwaps() {
+            var from = List.of(new Shadow(0, 2, 8, 0, 0xFF000000));
+            var to = List.of(new Shadow(0, 2, 8, 0, 0xFF000000, true));
+
+            assertEquals(from, Shadow.mix(from, to, 0.4));
+            assertEquals(to, Shadow.mix(from, to, 0.6));
+        }
     }
 
     @Nested
@@ -317,6 +397,17 @@ class ShadowTest {
         }
 
         @Test
+        @DisplayName("the whole list reaches the decoration, first on top")
+        void listApplies() {
+            var style = compute("button { box-shadow: inset 3px 0 0 #5e81ac, 0 1px 2px #00000033 }");
+
+            var shadows = style.decoration().shadows();
+            assertEquals(2, shadows.size());
+            assertTrue(shadows.getFirst().inset());
+            assertEquals(shadows.getFirst(), style.decoration().shadow());
+        }
+
+        @Test
         @DisplayName("a box with no shadow declared is plain")
         void plainByDefault() {
             assertSame(
@@ -344,7 +435,8 @@ class ShadowTest {
         static Stream<Arguments> printed() {
             return Stream.of(
                     arguments("a whole number of pixels", new Shadow(0, 2, 8, 0, 0x40000000), 4),
-                    arguments("a shadow with a spread", new Shadow(0, 4, 12, -2, 0xFF000000), 5));
+                    arguments("a shadow with a spread", new Shadow(0, 4, 12, -2, 0xFF000000), 5),
+                    arguments("an inner shadow", new Shadow(3, 0, 0, 0, 0xFF5E81AC, true), 5));
         }
 
         @ParameterizedTest(name = "{0}")
@@ -356,7 +448,9 @@ class ShadowTest {
 
             assertEquals(fieldCount, fields.length, () -> what + " is written in " + fieldCount + " fields: " + text);
             assertFalse(text.contains("."), () -> "a whole number of pixels needs no decimal point: " + text);
-            for (var i = 0; i < fieldCount - 1; i++) {
+            // `inset` comes first when it is there, as CSS writes it.
+            assertEquals(shadow.inset(), fields[0].equals("inset"), text);
+            for (var i = shadow.inset() ? 1 : 0; i < fieldCount - 1; i++) {
                 var length = fields[i];
                 assertTrue(length.endsWith("px"), () -> "a length written as " + length + " in: " + text);
             }

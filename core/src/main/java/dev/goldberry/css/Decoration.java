@@ -1,5 +1,8 @@
 package dev.goldberry.css;
 
+import java.util.List;
+import java.util.Objects;
+
 import dev.goldberry.css.value.CssColor;
 import dev.goldberry.css.value.Shadow;
 import dev.goldberry.paint.Box;
@@ -41,26 +44,43 @@ import dev.goldberry.paint.Box;
 /// @param outlineWidth  ring thickness, drawn outside the edge
 /// @param outlineColor  `0xAARRGGBB`, not premultiplied
 /// @param outlineOffset the gap between the box's edge and the inside of the ring
-/// @param shadow        the drop shadow cast behind the box, [Shadow#NONE] for
+/// @param shadows       the `box-shadow` list, first on top: drop shadows cast
+///                      behind the box and inner ones cast inside it. Empty for
 ///                      the overwhelming majority of boxes
 public record Decoration(
-        Corners corners, Border border, double outlineWidth, int outlineColor, double outlineOffset, Shadow shadow) {
+        Corners corners,
+        Border border,
+        double outlineWidth,
+        int outlineColor,
+        double outlineOffset,
+        List<Shadow> shadows) {
 
     /// Square corners, no border, no ring, no shadow — what every box starts as.
     public static final Decoration NONE =
-            new Decoration(Corners.SQUARE, Border.NONE, 0, CssColor.TRANSPARENT, 0, Shadow.NONE);
+            new Decoration(Corners.SQUARE, Border.NONE, 0, CssColor.TRANSPARENT, 0, List.of());
 
     public Decoration {
         // Clamped rather than refused. These arrive from a stylesheet, and the
         // rule for a bad declaration is to drop it and carry on: a negative
         // radius should not take a window down mid-frame. The corners clamp
         // themselves, in [Corners], for the same reason.
-        java.util.Objects.requireNonNull(corners, "corners");
-        java.util.Objects.requireNonNull(border, "border");
-        java.util.Objects.requireNonNull(shadow, "shadow");
+        Objects.requireNonNull(corners, "corners");
+        Objects.requireNonNull(border, "border");
+        shadows = List.copyOf(Objects.requireNonNull(shadows, "shadows"));
         requireFinite(outlineWidth, "outline-width");
         requireFinite(outlineOffset, "outline-offset");
         outlineWidth = Math.max(0, outlineWidth);
+    }
+
+    /// A decoration with one shadow, or none when it is [Shadow#NONE].
+    public Decoration(
+            Corners corners,
+            Border border,
+            double outlineWidth,
+            int outlineColor,
+            double outlineOffset,
+            Shadow shadow) {
+        this(corners, border, outlineWidth, outlineColor, outlineOffset, listOf(shadow));
     }
 
     /// A decoration with the same border on all four sides, which is every border
@@ -74,6 +94,10 @@ public record Decoration(
             double outlineOffset,
             Shadow shadow) {
         this(corners, Border.all(borderWidth, borderColor), outlineWidth, outlineColor, outlineOffset, shadow);
+    }
+
+    private static List<Shadow> listOf(Shadow shadow) {
+        return shadow.equals(Shadow.NONE) ? List.of() : List.of(shadow);
     }
 
     /// Whether a border would put ink on the screen.
@@ -90,9 +114,20 @@ public record Decoration(
         return outlineWidth > 0 && (outlineColor >>> 24) != 0;
     }
 
-    /// Whether a shadow would put ink on the screen.
+    /// Whether any shadow would put ink on the screen.
     public boolean hasShadow() {
-        return shadow.hasInk();
+        for (var shadow : shadows) {
+            if (shadow.hasInk()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /// The first shadow in the list, which is the one drawn on top, or
+    /// [Shadow#NONE] when there is none.
+    public Shadow shadow() {
+        return shadows.isEmpty() ? Shadow.NONE : shadows.getFirst();
     }
 
     /// Whether this is [#NONE] in effect — nothing to draw and nothing to round.
@@ -107,7 +142,7 @@ public record Decoration(
     }
 
     public Decoration corners(Corners value) {
-        return new Decoration(value, border, outlineWidth, outlineColor, outlineOffset, shadow);
+        return new Decoration(value, border, outlineWidth, outlineColor, outlineOffset, shadows);
     }
 
     /// The same line on all four sides — `border: 1px solid red`.
@@ -116,7 +151,7 @@ public record Decoration(
     }
 
     public Decoration border(Border value) {
-        return new Decoration(corners, value, outlineWidth, outlineColor, outlineOffset, shadow);
+        return new Decoration(corners, value, outlineWidth, outlineColor, outlineOffset, shadows);
     }
 
     /// Every side's width, colours kept — `border-width: 2px`.
@@ -130,22 +165,27 @@ public record Decoration(
     }
 
     public Decoration outline(double width, int argb, double offset) {
-        return new Decoration(corners, border, width, argb, offset, shadow);
+        return new Decoration(corners, border, width, argb, offset, shadows);
     }
 
     public Decoration outlineWidth(double value) {
-        return new Decoration(corners, border, value, outlineColor, outlineOffset, shadow);
+        return new Decoration(corners, border, value, outlineColor, outlineOffset, shadows);
     }
 
     public Decoration outlineColor(int argb) {
-        return new Decoration(corners, border, outlineWidth, argb, outlineOffset, shadow);
+        return new Decoration(corners, border, outlineWidth, argb, outlineOffset, shadows);
     }
 
     public Decoration outlineOffset(double value) {
-        return new Decoration(corners, border, outlineWidth, outlineColor, value, shadow);
+        return new Decoration(corners, border, outlineWidth, outlineColor, value, shadows);
     }
 
+    /// One shadow in place of the list, or none when it is [Shadow#NONE].
     public Decoration shadow(Shadow value) {
+        return shadows(listOf(value));
+    }
+
+    public Decoration shadows(List<Shadow> value) {
         return new Decoration(corners, border, outlineWidth, outlineColor, outlineOffset, value);
     }
 
@@ -165,7 +205,7 @@ public record Decoration(
                 outlineWidth,
                 CssColor.fade(outlineColor, alpha),
                 outlineOffset,
-                shadow.fade(alpha));
+                shadows.stream().map(shadow -> shadow.fade(alpha)).toList());
     }
 
     private static void requireFinite(double value, String name) {

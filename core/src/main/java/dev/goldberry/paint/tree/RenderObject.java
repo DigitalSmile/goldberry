@@ -665,7 +665,9 @@ public final class RenderObject implements AutoCloseable {
     /// `ComputedStyle` hands `Box.style` the same `Decoration`, `Insets` and
     /// `Transform` instances every frame.
     private static boolean sameAppearance(Box a, Box b) {
-        return a.background() == b.background()
+        // The whole fill and not only its colour: a gradient layer, or a
+        // `background-position` moving one, changes ink with the colour held.
+        return a.fill().equals(b.fill())
                 && a.opacity() == b.opacity()
                 && a.decoration().equals(b.decoration())
                 && a.transform().equals(b.transform())
