@@ -12,6 +12,8 @@ import dev.goldberry.motion.Clock;
 import dev.goldberry.render.clipboard.Clipboard;
 import dev.goldberry.render.clipboard.PrimarySelection;
 import dev.goldberry.render.desktop.SystemTheme;
+import dev.goldberry.render.desktop.menubar.AppMenuItem;
+import dev.goldberry.render.desktop.notify.Notification;
 import dev.goldberry.render.dialog.FileChoice;
 import dev.goldberry.render.dialog.FileDialogSpec;
 import dev.goldberry.render.dialog.FileDialogs;
@@ -848,5 +850,67 @@ public interface Host {
         Objects.requireNonNull(spec, "spec");
         Objects.requireNonNull(root, "root");
         return Optional.empty();
+    }
+
+    /// Shows a desktop notification: GNOME's banner, macOS's Notification
+    /// Center, Windows' toast.
+    ///
+    /// ```java
+    /// host.notify(Notification.of("Gate waiting", "prod-eu needs an approval")
+    ///         .onActivate(() -> showGates()));
+    /// ```
+    ///
+    /// **False is an ordinary answer**: a Linux session with no notification
+    /// daemon, a macOS process that is not an application bundle, a headless
+    /// run. [dev.goldberry.platform.Capability#NOTIFICATIONS] says whether this
+    /// build can ask at all. The action runs on the UI thread, and the window
+    /// repaints after it.
+    ///
+    /// On [Host] for the tray's reason: a notification is the application's.
+    ///
+    /// Read more: [Notifications](https://goldberry.dev/docs/guide/windows.html#notifications).
+    ///
+    /// @param notification what to show
+    /// @return whether the desktop took it
+    default boolean notify(Notification notification) {
+        Objects.requireNonNull(notification, "notification");
+        return false;
+    }
+
+    /// Puts `label` on the application's dock or launcher icon, or takes the
+    /// badge away for null or empty.
+    ///
+    /// macOS shows any short text. A Linux dock shows a number — Ubuntu's,
+    /// Dash to Dock, Plank, KDE's — and finds the application by its desktop
+    /// entry, which `-Dgoldberry.desktop.id` names. Windows has none.
+    ///
+    /// Read more: [Notifications](https://goldberry.dev/docs/guide/windows.html#the-badge).
+    ///
+    /// @return whether the desktop was told
+    default boolean badge(@Nullable String label) {
+        return false;
+    }
+
+    /// A number on the dock or launcher icon, or none for 0 or less — see
+    /// [#badge(String)].
+    default boolean badge(int count) {
+        return badge(count <= 0 ? null : Integer.toString(count));
+    }
+
+    /// Makes `headings` the application's own menu bar, where the platform has
+    /// one: on macOS, the bar at the top of the screen, after the application
+    /// menu (About, Hide, Quit). An empty list puts back what was there.
+    ///
+    /// A `menubar` widget calls this itself, and draws nothing in the window
+    /// when it answers true. **False everywhere but macOS**, and the widget
+    /// then stays the bar inside the window it has always been.
+    ///
+    /// Read more: [Menus and the tray](https://goldberry.dev/docs/components/menus.html#the-macos-menu-bar).
+    ///
+    /// @param headings the menus, each a submenu row
+    /// @return whether the platform shows them
+    default boolean applicationMenu(List<AppMenuItem> headings) {
+        Objects.requireNonNull(headings, "headings");
+        return false;
     }
 }

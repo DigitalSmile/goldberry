@@ -99,11 +99,11 @@ class ForeignSurfaceTest {
     }
 
     @Test
-    @DisplayName("declares the ten upcall shapes, Yoga's struct return among them")
+    @DisplayName("declares the fourteen upcall shapes, Yoga's struct return among them")
     void upcalls() {
         var upcalls = ForeignSurface.upcalls();
         assertAll(
-                () -> assertEquals(10, upcalls.size(), upcalls.toString()),
+                () -> assertEquals(14, upcalls.size(), upcalls.toString()),
                 () -> assertTrue(
                         upcalls.stream()
                                 .anyMatch(d -> d.returnLayout()
@@ -130,7 +130,22 @@ class ForeignSurfaceTest {
                 // with.
                 () -> assertTrue(
                         upcalls.contains(FunctionDescriptor.ofVoid(ADDRESS, ADDRESS, ADDRESS)),
-                        "a web page's binding callback"));
+                        "a web page's binding callback"),
+                // A page's cookies arriving, and a page asking whether it may
+                // go somewhere: the request number first, then the text.
+                () -> assertTrue(
+                        upcalls.contains(FunctionDescriptor.ofVoid(JAVA_LONG, ADDRESS)), "a page's cookie answer"),
+                () -> assertTrue(
+                        upcalls.contains(FunctionDescriptor.of(JAVA_INT, JAVA_LONG, ADDRESS)),
+                        "a page's navigation decision"),
+                // The notification center's delegate methods and its permission
+                // answer, a block whose second argument is a BOOL.
+                () -> assertTrue(
+                        upcalls.contains(FunctionDescriptor.ofVoid(ADDRESS, ADDRESS, ADDRESS, ADDRESS, ADDRESS)),
+                        "a notification delegate method"),
+                () -> assertTrue(
+                        upcalls.contains(FunctionDescriptor.ofVoid(ADDRESS, JAVA_BYTE, ADDRESS)),
+                        "the notification permission block"));
     }
 
     /// The holders that bind a **system** library, which is the case

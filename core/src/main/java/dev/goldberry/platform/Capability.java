@@ -125,5 +125,16 @@ public enum Capability {
     ///     // Offer the user their own browser instead.
     /// }
     /// ```
-    WEB_VIEW
+    WEB_VIEW,
+
+    /// Whether this process can ask the desktop to show a notification —
+    /// [dev.goldberry.Host#notify] — and set the badge on its icon.
+    ///
+    /// **Like [#WEB_VIEW], not a bit in `libgoldberry`.** The service is the
+    /// desktop's own, reached through a system library loaded at run time:
+    /// libdbus on Linux, `libobjc` on macOS, `shell32` on Windows. Present
+    /// means that library is there; whether a notification daemon is running,
+    /// or a macOS process is an application bundle, only posting one can tell,
+    /// and `Host.notify` answers false when it was not shown.
+    NOTIFICATIONS
 }

@@ -1,6 +1,11 @@
 package dev.goldberry.render.web;
 
+import java.net.HttpCookie;
+import java.net.URI;
+import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 
 import dev.goldberry.natives.webview.Webview;
 
@@ -46,6 +51,15 @@ final class NativeWebView implements BackendWebView {
     @Override
     public void eval(String script) {
         webview.eval(script);
+    }
+
+    @Override
+    public CompletionStage<List<HttpCookie>> cookies(URI url) {
+        Objects.requireNonNull(url, "url");
+        if (isClosed()) {
+            return CompletableFuture.failedFuture(new IllegalStateException("this page is closed"));
+        }
+        return webview.cookies(url.toString());
     }
 
     @Override

@@ -265,6 +265,39 @@ spellings.
 > those with `host.shortcut(…)` yourself. A row that is disabled, has a
 > submenu, or has no `press` is skipped.
 
+## The macOS menu bar
+
+On macOS a `menubar` is the application's menu bar, at the top of the screen,
+and draws nothing in the window. Its headings follow the application menu,
+which AppKit provides: About, Hide, Hide Others, Show All and Quit, under the
+application's title. The same document is still a bar in the window on Linux
+and Windows
+([ADR-0545](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0545-on-macos-a-menubar-is-the-applications-menu-bar.md)).
+
+The platform fires the accelerators itself there, so the bar binds none in the
+window, and F10 and a bare `Alt` do nothing. In the menu bar, and only there,
+`Ctrl` with no `Cmd` beside it is read as `Cmd`. A menu written once as
+`Ctrl+O` shows ⌘O on a Mac. `Primary+O` needs no reading at all.
+
+| In the `menubar` | In the macOS menu bar |
+|---|---|
+| `item` with `item`s | A menu, or a submenu inside one |
+| `item` with `press` | A command, with its accelerator as a key equivalent |
+| `checked=` | A tick |
+| `disabled=#true` | A greyed row |
+| `separator` | A dividing line |
+| Anything else | Left out |
+
+An application without a `menubar` can set the bar from Java with
+`host.applicationMenu(List<AppMenuItem>)`, which answers whether the platform
+shows it. An empty list puts back what was there. There is no Window menu of
+AppKit's own. An application that wants Minimize and Zoom writes one.
+
+> [!NOTE]
+> The macOS bar is written against AppKit's documentation and has not yet run
+> on a Mac. The translation from `menubar` to AppKit's rows is tested on every
+> platform.
+
 ## Context menus
 
 Any widget names its context menu, and the application says what the name

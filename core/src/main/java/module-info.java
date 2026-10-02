@@ -261,6 +261,8 @@ module dev.goldberry.core {
     exports dev.goldberry.platform;
 
     exports dev.goldberry.render.desktop;
+    exports dev.goldberry.render.desktop.menubar;
+    exports dev.goldberry.render.desktop.notify;
     exports dev.goldberry.render.dialog;
     // The displays a window can be on, and where a window opens on them.
     exports dev.goldberry.render.display;

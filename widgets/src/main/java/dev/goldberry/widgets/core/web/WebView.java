@@ -1,8 +1,10 @@
 package dev.goldberry.widgets.core.web;
 
+import java.net.URI;
 import java.time.Duration;
 import java.util.List;
 import java.util.Objects;
+import java.util.function.Predicate;
 
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
@@ -174,28 +176,62 @@ import dev.goldberry.widgets.shell.web.WebViews;
 /// while a page of that window holds the keyboard, and a press anywhere outside
 /// the page gives the keyboard back to the application.
 ///
+/// ## Signing in through it
+///
+/// Two things a sign-in needs from a page that its own script cannot give:
+///
+///   - **Where it is going.** [#onNavigate(Predicate)] asks before every
+///     navigation, and false cancels it — which is how an OAuth redirect to
+///     `myapp://callback?code=…` is caught rather than failed on.
+///   - **Its cookies, HttpOnly ones included.** A [WebViewController] given
+///     through [#controller(WebViewController)] reads them from the engine
+///     once the user has signed in.
+///
 /// Read more: [Markdown, HTML and the web](https://goldberry.dev/docs/components/content.html#the-web-view).
 ///
 /// @param page       what to open
+/// @param controller what an application holds to ask the open page for its
+///                   cookies, or null
 /// @param attributes id, classes and styles, as for any widget
-public record WebView(WebPage page, Attributes attributes) implements Widget.Stateful, Attributed<WebView> {
+public record WebView(WebPage page, @Nullable WebViewController controller, Attributes attributes)
+        implements Widget.Stateful, Attributed<WebView> {
 
     /// Written out so that the parameters taking null for a default can say so.
-    public WebView(WebPage page, @Nullable Attributes attributes) {
+    public WebView(WebPage page, @Nullable WebViewController controller, @Nullable Attributes attributes) {
         Objects.requireNonNull(page, "page");
         attributes = attributes == null ? Attributes.NONE : attributes;
         this.page = page;
+        this.controller = controller;
         this.attributes = attributes;
+    }
+
+    /// A page with no controller.
+    public WebView(WebPage page, @Nullable Attributes attributes) {
+        this(page, null, attributes);
     }
 
     /// A page with no attributes of its own.
     public WebView(WebPage page) {
-        this(page, Attributes.NONE);
+        this(page, null, Attributes.NONE);
     }
 
     @Override
     public WebView withAttributes(Attributes value) {
-        return new WebView(page, value);
+        return new WebView(page, controller, value);
+    }
+
+    /// The same widget, with `value` attached to its page once it opens.
+    public WebView controller(@Nullable WebViewController value) {
+        return new WebView(page, value, attributes);
+    }
+
+    /// The same widget, asking `decide` before its page goes anywhere — the
+    /// page's own [WebPage#onNavigate], spelled where the widget is written.
+    ///
+    /// The widget asks whatever its **current** page value says, so a rebuild
+    /// with a different predicate takes effect at once, with no reload.
+    public WebView onNavigate(@Nullable Predicate<URI> decide) {
+        return new WebView(page.onNavigate(decide), controller, attributes);
     }
 
     @Override
@@ -228,6 +264,9 @@ public record WebView(WebPage page, Attributes attributes) implements Widget.Sta
         private @Nullable String reason;
 
         private @Nullable Host host;
+
+        /// The controller the open page is attached to, or null.
+        private @Nullable WebViewController attached;
 
         /// The rectangle the page was last put at, so an unchanged layout costs
         /// no platform call at all.
@@ -571,10 +610,18 @@ public record WebView(WebPage page, Attributes attributes) implements Widget.Sta
             // the shim maps the page's window and reparents it inside this call,
             // so a page created over its box is visible — and empty — before
             // anything here could move it.
+            // Always hooked, whatever the page value says now: the hook asks the
+            // CURRENT value, so a rebuild that adds or changes a predicate takes
+            // effect without reopening the page.
+            var spec = widget().page().spec().onNavigate(this::decide);
             var opened = Objects.requireNonNull(host, "sync() opens a page only once it has a host")
-                    .embeddedWebView(widget().page().spec(), parkedAway(bounds));
+                    .embeddedWebView(spec, parkedAway(bounds));
             if (opened.isPresent()) {
                 page = opened.get();
+                attached = widget().controller();
+                if (attached != null) {
+                    attached.attach(page);
+                }
                 placed = bounds;
                 parked = true;
                 // What was opened is what is showing, so the rebuild after this
@@ -659,9 +706,37 @@ public record WebView(WebPage page, Attributes attributes) implements Widget.Sta
         @Override
         protected void dispose() {
             if (page != null) {
+                if (attached != null) {
+                    attached.detach(page);
+                    attached = null;
+                }
                 page.close();
                 page = null;
             }
+        }
+
+        /// Moves the controller when a rebuild hands this widget a different
+        /// one: the old one lets go of the page and the new one takes it.
+        @Override
+        protected void didUpdateWidget(WebView previous) {
+            var wanted = widget().controller();
+            if (page == null || wanted == attached) {
+                return;
+            }
+            if (attached != null) {
+                attached.detach(page);
+            }
+            attached = wanted;
+            if (wanted != null) {
+                wanted.attach(page);
+            }
+        }
+
+        /// What the page's navigation hook asks: the current page value's
+        /// predicate, or yes when it has none.
+        boolean decide(URI uri) {
+            var predicate = widget().page().onNavigate();
+            return predicate == null || predicate.test(uri);
         }
     }
 }

@@ -715,6 +715,31 @@ public class TestHost implements Host {
         return lastEmbeddedPage;
     }
 
+    /// Whether this host pretends the platform has a menu bar of its own.
+    private boolean platformMenuBar;
+
+    /// Every list of headings [#applicationMenu] was handed, in order.
+    private final java.util.List<java.util.List<dev.goldberry.render.desktop.menubar.AppMenuItem>> applicationMenus =
+            new java.util.ArrayList<>();
+
+    /// Makes [#applicationMenu] answer as macOS does: the platform shows it.
+    public TestHost platformMenuBar(boolean present) {
+        this.platformMenuBar = present;
+        return this;
+    }
+
+    /// What [#applicationMenu] was handed, in order; an empty list is a bar
+    /// being put back.
+    public java.util.List<java.util.List<dev.goldberry.render.desktop.menubar.AppMenuItem>> applicationMenus() {
+        return java.util.List.copyOf(applicationMenus);
+    }
+
+    @Override
+    public boolean applicationMenu(java.util.List<dev.goldberry.render.desktop.menubar.AppMenuItem> headings) {
+        applicationMenus.add(headings);
+        return platformMenuBar && !headings.isEmpty();
+    }
+
     /// A page that records instead of drawing.
     ///
     /// There is no headless backend to borrow here, unlike the tray above, and
@@ -773,6 +798,21 @@ public class TestHost implements Host {
         @Override
         public void eval(String script) {
             calls.add("eval(" + script + ")");
+        }
+
+        /// The cookies [#cookies] answers with.
+        private java.util.List<java.net.HttpCookie> jar = java.util.List.of();
+
+        /// Makes this page's engine hold `cookies`, whatever URL is asked about.
+        public FakeWebView holding(java.util.List<java.net.HttpCookie> cookies) {
+            this.jar = java.util.List.copyOf(cookies);
+            return this;
+        }
+
+        @Override
+        public java.util.concurrent.CompletionStage<java.util.List<java.net.HttpCookie>> cookies(java.net.URI url) {
+            calls.add("cookies(" + url + ")");
+            return java.util.concurrent.CompletableFuture.completedFuture(jar);
         }
 
         @Override

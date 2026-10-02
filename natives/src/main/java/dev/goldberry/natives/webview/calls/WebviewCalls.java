@@ -11,7 +11,7 @@ import java.lang.invoke.MethodHandle;
 
 import dev.goldberry.natives.Downcalls;
 
-/// The eighteen functions `libgoldberry-webview` exports.
+/// The twenty functions `libgoldberry-webview` exports.
 ///
 /// None of them is `webview/webview`'s own, for the reason md4c's are not: the
 /// upstream C API returns a `webview_error_t` in an out-parameter shape this
@@ -39,7 +39,9 @@ public record WebviewCalls(
         Return answer,
         CanEmbed canEmbed,
         HasFocus hasFocus,
-        Blur blur) {
+        Blur blur,
+        Cookies cookies,
+        OnNavigate onNavigate) {
 
     /// Binds **only** the ABI probe.
     ///
@@ -83,7 +85,9 @@ public record WebviewCalls(
                 new Return(lookup),
                 new CanEmbed(lookup),
                 new HasFocus(lookup),
-                new Blur(lookup));
+                new Blur(lookup),
+                new Cookies(lookup),
+                new OnNavigate(lookup));
     }
 
     /// Creates a page and its window.
@@ -557,6 +561,73 @@ public record WebviewCalls(
                 FD_goldberry_webview_blur.invokeExact(address, webview);
             } catch (Throwable t) {
                 throw Downcalls.failure("goldberry_webview_blur", t);
+            }
+        }
+    }
+
+    /// Reads the cookies the engine would send to a URL, HttpOnly ones
+    /// included.
+    ///
+    /// ```c
+    /// int goldberry_webview_cookies(void *w, const char *url,
+    ///                               void (*fn)(long long request, const char *cookies), long long request);
+    /// ```
+    ///
+    /// Asynchronous on every engine. 0 means `fn` will be called exactly once,
+    /// later and on the UI thread, with `request` beside the cookies as text —
+    /// one per line, seven tab-separated fields — or NULL when the engine
+    /// could not read them. -1 means it will never be called.
+    public static final class Cookies {
+
+        private static final MethodHandle FD_goldberry_webview_cookies =
+                Downcalls.link(FunctionDescriptor.of(JAVA_INT, ADDRESS, ADDRESS, ADDRESS, JAVA_LONG));
+
+        private final MemorySegment address;
+
+        Cookies(SymbolLookup lookup) {
+            this.address = Downcalls.symbol(lookup, "goldberry_webview_cookies");
+        }
+
+        /// @param url      the URL whose cookies are wanted, a C string
+        /// @param callback an upcall stub of the answer's shape
+        /// @param request  handed back beside the answer — how one stub serves
+        ///        every read in the process
+        /// @return 0 when the answer will come, -1 when it will not
+        public int call(MemorySegment webview, MemorySegment url, MemorySegment callback, long request) {
+            try {
+                return (int) FD_goldberry_webview_cookies.invokeExact(address, webview, url, callback, request);
+            } catch (Throwable t) {
+                throw Downcalls.failure("goldberry_webview_cookies", t);
+            }
+        }
+    }
+
+    /// Asks a function before the page goes anywhere.
+    ///
+    /// ```c
+    /// int goldberry_webview_on_navigate(void *w, int (*fn)(long long page, const char *uri), long long page);
+    /// ```
+    ///
+    /// `fn` answers nonzero to let the navigation go ahead and zero to cancel
+    /// it. It runs on the UI thread inside the engine's own decision. A NULL
+    /// `fn` takes the hook away, and a second call replaces the first.
+    public static final class OnNavigate {
+
+        private static final MethodHandle FD_goldberry_webview_on_navigate =
+                Downcalls.link(FunctionDescriptor.of(JAVA_INT, ADDRESS, ADDRESS, JAVA_LONG));
+
+        private final MemorySegment address;
+
+        OnNavigate(SymbolLookup lookup) {
+            this.address = Downcalls.symbol(lookup, "goldberry_webview_on_navigate");
+        }
+
+        /// @return 0, or -1 where the engine cannot be asked
+        public int call(MemorySegment webview, MemorySegment callback, long page) {
+            try {
+                return (int) FD_goldberry_webview_on_navigate.invokeExact(address, webview, callback, page);
+            } catch (Throwable t) {
+                throw Downcalls.failure("goldberry_webview_on_navigate", t);
             }
         }
     }

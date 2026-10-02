@@ -6,6 +6,10 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.net.URI;
+import java.util.concurrent.ExecutionException;
+import java.util.function.Predicate;
+
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -97,5 +101,60 @@ class WebViewSpecTest {
             var hint = WebViewEngine.translate(size);
             assertEquals(size.ordinal(), hint.value(), size + " does not line up with " + hint);
         }
+    }
+
+    @Test
+    @DisplayName("keeps its navigation hook through every other change")
+    void keepsItsNavigationHook() {
+        Predicate<URI> decide = uri -> !"myapp".equals(uri.getScheme());
+
+        var spec = WebViewSpec.of("https://example.org/login")
+                .onNavigate(decide)
+                .title("Sign in")
+                .sized(800, 600, WebSize.FIXED)
+                .debug(true)
+                .on("ready", arguments -> "");
+
+        assertTrue(spec.onNavigate() == decide, "a copy dropped the navigation hook");
+        assertNull(WebViewSpec.of("https://example.org").onNavigate(), "a page is asked about nothing by default");
+        assertNull(spec.onNavigate(null).onNavigate());
+    }
+
+    @Test
+    @DisplayName("cannot read cookies unless the engine behind it can")
+    void cookiesDefaultToUnsupported() {
+        BackendWebView page = new BackendWebView() {
+            @Override
+            public void navigate(String url) {}
+
+            @Override
+            public void html(String html) {}
+
+            @Override
+            public void title(String title) {}
+
+            @Override
+            public void size(int width, int height, WebSize size) {}
+
+            @Override
+            public void bounds(int x, int y, int width, int height) {}
+
+            @Override
+            public void eval(String script) {}
+
+            @Override
+            public boolean isClosed() {
+                return false;
+            }
+
+            @Override
+            public void close() {}
+        };
+
+        var answer = page.cookies(URI.create("https://example.org/")).toCompletableFuture();
+
+        assertTrue(answer.isCompletedExceptionally());
+        var failure = assertThrows(ExecutionException.class, answer::get);
+        assertTrue(failure.getCause() instanceof UnsupportedOperationException, failure.toString());
     }
 }

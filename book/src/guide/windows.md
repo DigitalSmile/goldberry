@@ -201,9 +201,58 @@ machine that built it had the headers. Where it was not, the call answers
 difference from the library's own record of how it was built
 ([ADR-0325](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0325-a-build-says-what-it-can-ask-the-desktop.md)).
 The values are `SYSTEM_THEME`, `INPUT_METHOD`, `DEVICE_HOTPLUG`,
-`FILE_DIALOG`, `SCREENSAVER_INHIBIT`, `WINDOW_DECORATIONS`, `WAYLAND` and
-`WEB_VIEW`. It may be asked before a window is open, and is empty where there
-is no native library at all.
+`FILE_DIALOG`, `SCREENSAVER_INHIBIT`, `WINDOW_DECORATIONS`, `WAYLAND`,
+`WEB_VIEW` and `NOTIFICATIONS`. It may be asked before a window is open, and is
+empty where there is no native library at all, apart from `WEB_VIEW` and
+`NOTIFICATIONS`, which are a second library being there.
+
+## Notifications
+
+```java
+host.notify(Notification.of("Gate waiting", "prod-eu needs an approval")
+        .onActivate(() -> actions.showGates()));
+```
+
+A notification is drawn by the desktop: GNOME's banner, macOS's Notification
+Center, Windows' toast. `notify` answers whether the desktop took it, and
+false is an ordinary answer. The action runs on the UI thread when the user
+clicks the notification, and the window repaints after it
+([ADR-0546](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0546-a-notification-is-the-desktops-and-false-means-it-was-not-shown.md)).
+
+| Platform | Shown by | A click | Needs |
+|---|---|---|---|
+| Linux | The `org.freedesktop.Notifications` service, over D-Bus | Reported | A notification daemon on the session bus |
+| macOS | `UNUserNotificationCenter` | Reported | An `.app` bundle, and the user's permission |
+| Windows | The notification area's balloon, shown as a toast | Not reported | Nothing |
+
+On macOS a plain `java` process has no bundle identifier, and macOS posts
+nothing for it. `notify` answers false and says why once, at info. Package the
+application as an `.app`. A real Windows toast needs an AppUserModelID
+registered at installation. Both are the application's packaging, not the
+toolkit's
+([ADR-0291](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0291-a-url-scheme-is-packaging-and-packaging-is-the-applications.md)).
+`Capability.NOTIFICATIONS` says whether this process can ask at all.
+
+### The badge
+
+```java
+host.badge(3);        // a number on the dock or launcher icon
+host.badge("!");      // any short text, on macOS
+host.badge(0);        // none
+```
+
+macOS shows any short text on the dock icon. A Linux dock shows a number:
+Ubuntu's dock, Dash to Dock, Plank and KDE's task manager read the Unity
+launcher signal. A dock finds the application by its desktop entry, which only
+the application knows. Name it with `-Dgoldberry.desktop.id=ru.example.App`,
+without `.desktop`, or start the application from its entry, which sets
+`GIO_LAUNCHED_DESKTOP_FILE`. Windows has no badge here, and `badge` answers
+false.
+
+> [!NOTE]
+> The Linux path is tested against a D-Bus daemon of the test's own. The
+> macOS and Windows paths are written against their documentation and have
+> not yet run there.
 
 ## Fullscreen
 

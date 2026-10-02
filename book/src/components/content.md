@@ -327,6 +327,54 @@ page is taken down on WebKit's thread, and its context outlives the
 application's exit
 ([ADR-0507](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0507-a-page-is-taken-down-on-webkits-thread-and-its-context-outlives-exit.md)).
 
+### Signing in through a page
+
+Two things a sign-in needs from a page cannot come from the page's own script.
+The engine hands them over instead
+([ADR-0544](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0544-a-page-says-where-it-is-going-and-hands-over-its-cookies.md)):
+
+- **Where it is going.** `onNavigate(Predicate<URI>)` is asked before every
+  navigation, a server's redirect included. False cancels it, and the page
+  stays on the document it had. An OAuth redirect to a custom scheme comes back
+  this way, with no loopback server.
+- **Its cookies, HttpOnly ones included.** `cookies(URI)` reads the engine's
+  jar for a URL. The answer is a `CompletionStage<List<HttpCookie>>` that
+  completes on the UI thread.
+
+```java
+private final WebViewController signIn = new WebViewController();
+
+new WebView(WebPage.of(GRAFANA + "/login"))
+        .onNavigate(uri -> {
+            if ("myapp".equals(uri.getScheme())) {
+                finish(uri.getQuery());
+                return false;
+            }
+            if (uri.getPath().equals("/")) {
+                signIn.cookies(URI.create(GRAFANA)).thenAccept(this::keepSession);
+            }
+            return true;
+        })
+        .controller(signIn)
+        .withAttributes(Attributes.NONE.id("sign-in"));
+```
+
+A page opened with `WebViews.open` takes `WebPage.onNavigate` the same way and
+answers `cookies(URI)` itself. The predicate runs inside the engine's decision,
+so it must answer at once, and one that throws lets the navigation go ahead.
+The widget asks the predicate of the page value it has **now**, so a rebuild
+with a new lambda needs no reload. A `WebViewController` is inert until its page
+has opened, and asking it then gives a stage that has already failed.
+
+| Platform | Cookies from | Navigations asked about |
+|---|---|---|
+| Linux | WebKitGTK's cookie manager | Every frame's: WebKitGTK does not say which frame |
+| macOS | `WKHTTPCookieStore`, matched to the URL by the toolkit | The main frame's; written, unverified |
+| Windows | WebView2's cookie manager | The main frame's (`NavigationStarting`); written, unverified |
+
+On Linux and macOS every page in the process shares one cookie jar, so a
+session signed in to in one page can be read from any other.
+
 ### Styling
 
 The widget builds a `column` with the class `web-view`, a `stack` with the
@@ -349,3 +397,4 @@ The page's own. The toolkit forwards nothing.
 - [ADR-0448: A page calls back through a name it was given](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0448-a-page-calls-back-through-a-name-it-was-given.md)
 - [ADR-0449: A page follows the value that describes it](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0449-a-page-follows-the-value-that-describes-it.md)
 - [ADR-0507: A page is taken down on WebKit's thread and its context outlives exit](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0507-a-page-is-taken-down-on-webkits-thread-and-its-context-outlives-exit.md)
+- [ADR-0544: A page says where it is going and hands over its cookies](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0544-a-page-says-where-it-is-going-and-hands-over-its-cookies.md)

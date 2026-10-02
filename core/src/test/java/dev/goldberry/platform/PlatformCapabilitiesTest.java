@@ -39,7 +39,7 @@ class PlatformCapabilitiesTest {
     /// load-time dependencies of the toolkit. So it has no `NativeCapability`
     /// twin and must not grow one: there is no flag compiled into `libgoldberry`
     /// that could answer it.
-    private static final Set<Capability> NOT_A_NATIVE_BIT = EnumSet.of(Capability.WEB_VIEW);
+    private static final Set<Capability> NOT_A_NATIVE_BIT = EnumSet.of(Capability.WEB_VIEW, Capability.NOTIFICATIONS);
 
     @Test
     @DisplayName("every capability is a native bit, or is one of the few that deliberately is not")
@@ -142,5 +142,17 @@ class PlatformCapabilitiesTest {
                     PlatformCapabilities.has(capability),
                     capability + " is reported differently by the two ways of asking");
         }
+    }
+
+    @Test
+    @DisplayName("notifications are reported from the system library, beside whatever libgoldberry says")
+    void notificationsAreNotANativeBit() {
+        var none = EnumSet.noneOf(NativeCapability.class);
+
+        assertEquals(Set.of(Capability.NOTIFICATIONS), PlatformCapabilities.read(none, false, true));
+        assertEquals(
+                Set.of(Capability.SYSTEM_THEME, Capability.WEB_VIEW, Capability.NOTIFICATIONS),
+                PlatformCapabilities.read(EnumSet.of(NativeCapability.SYSTEM_THEME), true, true));
+        assertEquals(Set.of(), PlatformCapabilities.read(none, false, false));
     }
 }

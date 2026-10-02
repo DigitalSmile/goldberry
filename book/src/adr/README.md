@@ -579,3 +579,6 @@ proposing to undo them.
 - [ADR-0541 A window opens where it was left, and is clamped onto a display that exists](0541-a-window-opens-where-it-was-left-and-is-clamped-onto-a-display-that-exists.md)
 - [ADR-0542 An application may open more than one window](0542-an-application-may-open-more-than-one-window.md)
 - [ADR-0543 A window asks for attention, and the desktop decides how](0543-a-window-asks-for-attention-and-the-desktop-decides-how.md)
+- [ADR-0544 A page says where it is going and hands over its cookies](0544-a-page-says-where-it-is-going-and-hands-over-its-cookies.md)
+- [ADR-0545 On macOS a menubar is the application's menu bar](0545-on-macos-a-menubar-is-the-applications-menu-bar.md)
+- [ADR-0546 A notification is the desktop's, and false means it was not shown](0546-a-notification-is-the-desktops-and-false-means-it-was-not-shown.md)

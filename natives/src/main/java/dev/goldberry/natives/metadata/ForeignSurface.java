@@ -12,6 +12,8 @@ import java.util.stream.Stream;
 
 import dev.goldberry.natives.Downcalls;
 import dev.goldberry.natives.Upcalls;
+import dev.goldberry.natives.desktop.macos.MacMenuBar;
+import dev.goldberry.natives.desktop.macos.MacNotifier;
 import dev.goldberry.natives.glib.GlibLog;
 import dev.goldberry.natives.sdl.SdlEventWatch;
 import dev.goldberry.natives.sdl.SdlFileDialogs;
@@ -60,13 +62,30 @@ public final class ForeignSurface {
             // A page's own script calling back. One stub for every
             // binding of every page, so the owner is the wrapper rather than
             // anything per-page.
-            Webview.class);
+            Webview.class,
+            // The macOS menu bar's one action and the notification center's
+            // delegate: classes of this process's own whose methods are stubs.
+            MacMenuBar.class,
+            MacNotifier.class);
+
+    /// The classes that bind a system library outside a `…calls` package —
+    /// libdbus, libobjc, shell32 — and declare every shape they send as a
+    /// constant, so that initialising them records the shapes wherever the
+    /// library is missing. Their libraries are opened by nested holders, which
+    /// this does not touch.
+    static final List<String> SYSTEM_LIBRARY_SHAPES = List.of(
+            "dev.goldberry.natives.desktop.notify.Dbus",
+            "dev.goldberry.natives.desktop.notify.WindowsNotifier",
+            "dev.goldberry.natives.desktop.macos.ObjC");
 
     private ForeignSurface() {}
 
     /// Every downcall descriptor, after initialising every holder.
     public static List<FunctionDescriptor> downcalls() {
         for (var name : holderClassNames()) {
+            initialise(name);
+        }
+        for (var name : SYSTEM_LIBRARY_SHAPES) {
             initialise(name);
         }
         return Downcalls.linked();

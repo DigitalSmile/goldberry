@@ -103,6 +103,14 @@ module dev.goldberry.natives {
     // one answers "the desktop does not say" when it cannot ask.
     exports dev.goldberry.natives.desktop;
 
+    // Notifications and the dock badge, and the macOS menu bar: bindings
+    // against libdbus, libobjc and shell32 loaded at run time. To `:core`,
+    // which puts the toolkit's own words on them.
+    exports dev.goldberry.natives.desktop.notify to
+            dev.goldberry.core;
+    exports dev.goldberry.natives.desktop.macos to
+            dev.goldberry.core;
+
     /// What this build of the platform layer can actually do.
     ///
     /// Qualified to `:core`, like Yoga's and Blend2D's wrappers and for the same

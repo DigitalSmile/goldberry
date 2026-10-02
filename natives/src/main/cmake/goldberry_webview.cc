@@ -23,6 +23,9 @@
 
 #include <webview/webview.h>
 
+#include <string>
+#include <unordered_map>
+
 #if defined(__linux__) || defined(__FreeBSD__)
 #define GOLDBERRY_WEBVIEW_GLIB 1
 #include <dlfcn.h>
@@ -76,7 +79,7 @@
 // The contract Webview.java binds. Bump on any change to the shape of what is
 // exported below; Java refuses a library that disagrees rather than calling into
 // it, because a mismatched shim is undefined behaviour and not a missing feature.
-#define GOLDBERRY_WEBVIEW_ABI 7
+#define GOLDBERRY_WEBVIEW_ABI 8
 
 // SizeHint.java carries these four numbers. Checked here rather than trusted
 // there, which is the same move the layout table makes for every other binding:
@@ -729,6 +732,651 @@ static void drain() {
 } // namespace goldberry_glib
 #endif
 
+} // extern "C", for the C++ below: none of it is exported, and C linkage would
+  // forbid two helpers of one name in two namespaces.
+
+// COOKIES AND NAVIGATION
+//
+// Two things about a page that an application sometimes has to know and that
+// no script in the page can tell it. What cookies the engine holds for a site:
+// an HttpOnly cookie is invisible to JavaScript by design, and a service that
+// accepts nothing but its own session cookie can only be signed in to through
+// a page and then read from the engine. And where the page is about to go: an
+// OAuth redirect to a custom scheme -- `myapp://callback?code=...` -- is a URL
+// no engine can load, so the only moment it exists is the decision to try.
+//
+// Both answer on the UI thread. GLib's main context is drained by
+// goldberry_webview_pump, and AppKit's run loop and the Win32 message queue by
+// SDL's own pump, so Java is called back from inside the frame loop and never
+// from a thread of the engine's.
+//
+// What crosses for cookies is TEXT, one cookie per line, seven tab-separated
+// fields:
+//
+//     name  value  domain  path  expires  secure  http-only
+//
+// `expires` is whole seconds since 1970, or -1 for a session cookie; the last
+// two are 0 or 1. A backslash, tab, newline or carriage return inside a field
+// is written \\ \t \n \r. One string rather than an array of structs, so that
+// three engines with three cookie types cross in one shape, and a field added
+// later is a column rather than a struct layout two languages must agree on.
+
+/// `void (*)(long long request, const char *cookies)` -- the cookies as text,
+/// or NULL when the engine could not read them.
+typedef void (*goldberry_webview_cookies_fn)(long long request, const char *cookies);
+
+/// `int (*)(long long page, const char *uri)` -- nonzero lets the navigation go
+/// ahead, zero cancels it.
+typedef int (*goldberry_webview_navigate_fn)(long long page, const char *uri);
+
+namespace goldberry_hooks {
+
+/// Appends `text` with the four characters the format reserves escaped.
+inline void append_field(std::string &out, const char *text) {
+    if (text == nullptr) {
+        return;
+    }
+    for (const char *c = text; *c != '\0'; c++) {
+        switch (*c) {
+            case '\\': out += "\\\\"; break;
+            case '\t': out += "\\t"; break;
+            case '\n': out += "\\n"; break;
+            case '\r': out += "\\r"; break;
+            default: out += *c; break;
+        }
+    }
+}
+
+/// One line of the format above.
+inline void append_cookie(std::string &out,
+                          const char *name,
+                          const char *value,
+                          const char *domain,
+                          const char *path,
+                          long long expires,
+                          bool secure,
+                          bool http_only) {
+    append_field(out, name);
+    out += '\t';
+    append_field(out, value);
+    out += '\t';
+    append_field(out, domain);
+    out += '\t';
+    append_field(out, path);
+    out += '\t';
+    out += std::to_string(expires);
+    out += '\t';
+    out += secure ? '1' : '0';
+    out += '\t';
+    out += http_only ? '1' : '0';
+    out += '\n';
+}
+
+/// Whom to ask about a page's navigations: the function, and the number Java
+/// registered the page under.
+struct navigation_hook {
+    goldberry_webview_navigate_fn fn{};
+    long long page{};
+};
+
+/// Whether `hook` lets the page go to `uri`. A URI the engine could not spell
+/// is let through rather than asked about: there is nothing to decide on.
+inline bool allowed(const navigation_hook &hook, const char *uri) {
+    return hook.fn == nullptr || uri == nullptr || hook.fn(hook.page, uri) != 0;
+}
+
+#if defined(GOLDBERRY_WEBVIEW_GLIB)
+// WebKitGTK: the website data manager's cookie manager, which reads cookies
+// for a URI itself -- domain, path and Secure already applied -- and the
+// view's `decide-policy` signal, which every navigation passes through,
+// server redirects included.
+
+/// One outstanding cookie read. Owned by the GAsyncReadyCallback, which runs
+/// exactly once.
+struct cookie_request {
+    goldberry_webview_cookies_fn fn;
+    long long request;
+};
+
+static void on_cookies(GObject *source, GAsyncResult *result, gpointer data) {
+    auto *request = static_cast<cookie_request *>(data);
+    GError *error = nullptr;
+    GList *cookies = webkit_cookie_manager_get_cookies_finish(WEBKIT_COOKIE_MANAGER(source), result, &error);
+    if (error != nullptr) {
+        g_log("goldberry-webview", G_LOG_LEVEL_DEBUG, "the engine could not read cookies: %s", error->message);
+        g_error_free(error);
+        request->fn(request->request, nullptr);
+        delete request;
+        return;
+    }
+    std::string out;
+    for (GList *item = cookies; item != nullptr; item = item->next) {
+        auto *cookie = static_cast<SoupCookie *>(item->data);
+        long long expires = -1;
+#if SOUP_CHECK_VERSION(2, 99, 0)
+        if (GDateTime *date = soup_cookie_get_expires(cookie)) {
+            expires = g_date_time_to_unix(date);
+        }
+#else
+        if (SoupDate *date = soup_cookie_get_expires(cookie)) {
+            expires = soup_date_to_time_t(date);
+        }
+#endif
+        append_cookie(out,
+                      soup_cookie_get_name(cookie),
+                      soup_cookie_get_value(cookie),
+                      soup_cookie_get_domain(cookie),
+                      soup_cookie_get_path(cookie),
+                      expires,
+                      soup_cookie_get_secure(cookie),
+                      soup_cookie_get_http_only(cookie));
+    }
+    g_list_free_full(cookies, reinterpret_cast<GDestroyNotify>(soup_cookie_free));
+    request->fn(request->request, out.c_str());
+    delete request;
+}
+
+/// The cookie jar behind `view`. Every page webview/webview makes is on the
+/// default context, so this is one jar for the process.
+static WebKitCookieManager *cookie_manager(WebKitWebView *view) {
+#if GTK_MAJOR_VERSION == 4
+    WebKitNetworkSession *session = webkit_web_view_get_network_session(view);
+    return session == nullptr ? nullptr : webkit_network_session_get_cookie_manager(session);
+#else
+    WebKitWebsiteDataManager *data = webkit_web_view_get_website_data_manager(view);
+    return data == nullptr ? nullptr : webkit_website_data_manager_get_cookie_manager(data);
+#endif
+}
+
+static int read_cookies(void *w, const char *url, goldberry_webview_cookies_fn fn, long long request) {
+    WebKitWebView *view = goldberry_glib::web_view(w);
+    WebKitCookieManager *manager = view == nullptr ? nullptr : cookie_manager(view);
+    if (manager == nullptr) {
+        return -1;
+    }
+    webkit_cookie_manager_get_cookies(manager, url, nullptr, on_cookies, new cookie_request{fn, request});
+    return 0;
+}
+
+/// NAVIGATION_ACTION only. A NEW_WINDOW_ACTION goes nowhere, because
+/// webview/webview connects no `create` handler, and a RESPONSE is a document
+/// arriving rather than a page going somewhere. WebKitGTK does not say which
+/// frame a navigation is in, so a frame's own navigations are asked about too.
+static gboolean on_decide_policy(WebKitWebView *, WebKitPolicyDecision *decision, WebKitPolicyDecisionType type,
+                                 gpointer data) {
+    if (type != WEBKIT_POLICY_DECISION_TYPE_NAVIGATION_ACTION) {
+        return FALSE;
+    }
+    auto *hook = static_cast<navigation_hook *>(data);
+    WebKitNavigationAction *action =
+            webkit_navigation_policy_decision_get_navigation_action(WEBKIT_NAVIGATION_POLICY_DECISION(decision));
+    WebKitURIRequest *request = action == nullptr ? nullptr : webkit_navigation_action_get_request(action);
+    const char *uri = request == nullptr ? nullptr : webkit_uri_request_get_uri(request);
+    if (allowed(*hook, uri)) {
+        // FALSE is "not handled here": WebKit's own default, which is to load.
+        return FALSE;
+    }
+    webkit_policy_decision_ignore(decision);
+    return TRUE;
+}
+
+/// The signal handler each page's hook is connected as, so a second hook
+/// replaces the first rather than both being asked.
+static std::unordered_map<void *, gulong> &navigation_handlers() {
+    static std::unordered_map<void *, gulong> map;
+    return map;
+}
+
+static void free_hook(gpointer data, GClosure *) {
+    delete static_cast<navigation_hook *>(data);
+}
+
+static int watch_navigation(void *w, goldberry_webview_navigate_fn fn, long long page) {
+    WebKitWebView *view = goldberry_glib::web_view(w);
+    if (view == nullptr) {
+        return -1;
+    }
+    auto &handlers = navigation_handlers();
+    if (auto found = handlers.find(w); found != handlers.end()) {
+        g_signal_handler_disconnect(view, found->second);
+        handlers.erase(found);
+    }
+    if (fn != nullptr) {
+        handlers[w] = g_signal_connect_data(view,
+                                            "decide-policy",
+                                            G_CALLBACK(on_decide_policy),
+                                            new navigation_hook{fn, page},
+                                            free_hook,
+                                            static_cast<GConnectFlags>(0));
+    }
+    return 0;
+}
+
+/// Before the engine is destroyed. The handler itself goes with the view, and
+/// its hook with it through free_hook; what is left is this file's record.
+static void forget(void *w) {
+    navigation_handlers().erase(w);
+}
+
+#elif defined(GOLDBERRY_WEBVIEW_COCOA)
+// WKWebView: the data store's WKHTTPCookieStore, which hands back EVERY cookie
+// and leaves matching them to a URL to the caller, and a WKNavigationDelegate,
+// which webview.h does not set and this file therefore can. UNVERIFIED: written
+// against Apple's documentation and webview.h's own Objective-C idioms, and not
+// yet run on a Mac.
+using goldberry_cocoa::cls;
+using goldberry_cocoa::msg_send;
+using goldberry_cocoa::sel;
+
+/// The head of every block: Clang's block ABI, which is what the runtime
+/// itself calls through. Only `invoke` is read.
+struct block_layout {
+    void *isa;
+    int flags;
+    int reserved;
+    void (*invoke)(void *, ...);
+};
+
+/// WKNavigationActionPolicyCancel and WKNavigationActionPolicyAllow.
+constexpr NSInteger POLICY_CANCEL = 0;
+constexpr NSInteger POLICY_ALLOW = 1;
+
+/// Every hooked page's hook, by its WKWebView -- the one thing the delegate
+/// is told.
+inline std::unordered_map<id, navigation_hook> &navigation_hooks() {
+    static std::unordered_map<id, navigation_hook> map;
+    return map;
+}
+
+inline std::string utf8(id text) {
+    const char *bytes = text == nullptr ? nullptr : msg_send<const char *>(text, sel("UTF8String"));
+    return bytes == nullptr ? std::string() : std::string(bytes);
+}
+
+inline std::string lower(std::string text) {
+    for (char &c : text) {
+        if (c >= 'A' && c <= 'Z') {
+            c = static_cast<char>(c - 'A' + 'a');
+        }
+    }
+    return text;
+}
+
+/// `webView:decidePolicyForNavigationAction:decisionHandler:`.
+///
+/// The main frame only. A nil target frame is a request for a new window,
+/// which a WKWebView opens only through a UI delegate's createWebView, and
+/// webview.h's has none -- it goes nowhere whatever is answered here.
+inline void decide_policy(id, SEL, id view, id action, id handler) {
+    NSInteger policy = POLICY_ALLOW;
+    auto found = navigation_hooks().find(view);
+    if (found != navigation_hooks().end()) {
+        id frame = msg_send<id>(action, sel("targetFrame"));
+        if (frame != nullptr && msg_send<BOOL>(frame, sel("isMainFrame"))) {
+            id url = msg_send<id>(msg_send<id>(action, sel("request")), sel("URL"));
+            std::string uri = url == nullptr ? std::string() : utf8(msg_send<id>(url, sel("absoluteString")));
+            if (!allowed(found->second, uri.empty() ? nullptr : uri.c_str())) {
+                policy = POLICY_CANCEL;
+            }
+        }
+    }
+    auto *block = reinterpret_cast<block_layout *>(handler);
+    reinterpret_cast<void (*)(id, NSInteger)>(block->invoke)(handler, policy);
+}
+
+/// The one delegate every hooked page shares. Never released: a WKWebView
+/// holds its navigation delegate weakly, so somebody has to own it, and the
+/// class is registered once per process anyway.
+inline id navigation_delegate() {
+    static id delegate = [] {
+        constexpr auto name = "GoldberryNavigationDelegate";
+        Class c = objc_lookUpClass(name);
+        if (c == nullptr) {
+            c = objc_allocateClassPair(objc_getClass("NSObject"), name, 0);
+            class_addProtocol(c, objc_getProtocol("WKNavigationDelegate"));
+            class_addMethod(c,
+                            sel("webView:decidePolicyForNavigationAction:decisionHandler:"),
+                            reinterpret_cast<IMP>(decide_policy),
+                            "v@:@@@?");
+            objc_registerClassPair(c);
+        }
+        return msg_send<id>(reinterpret_cast<id>(c), sel("new"));
+    }();
+    return delegate;
+}
+
+inline int watch_navigation(void *w, goldberry_webview_navigate_fn fn, long long page) {
+    webview::detail::objc::autoreleasepool pool;
+    id view = goldberry_cocoa::web_view(w);
+    if (view == nullptr) {
+        return -1;
+    }
+    if (fn == nullptr) {
+        navigation_hooks().erase(view);
+        return 0;
+    }
+    navigation_hooks()[view] = navigation_hook{fn, page};
+    msg_send<void>(view, sel("setNavigationDelegate:"), navigation_delegate());
+    return 0;
+}
+
+inline void forget(void *w) {
+    if (id view = goldberry_cocoa::web_view(w)) {
+        navigation_hooks().erase(view);
+    }
+}
+
+/// RFC 6265's domain-match, with NSHTTPCookie's spelling of it: a domain with
+/// a leading dot covers its subdomains, and one without is that host alone.
+inline bool domain_matches(const std::string &host, std::string domain) {
+    domain = lower(domain);
+    if (domain.empty()) {
+        return false;
+    }
+    if (domain[0] != '.') {
+        return host == domain;
+    }
+    domain.erase(0, 1);
+    if (host == domain) {
+        return true;
+    }
+    return host.size() > domain.size() + 1
+            && host.compare(host.size() - domain.size(), domain.size(), domain) == 0
+            && host[host.size() - domain.size() - 1] == '.';
+}
+
+/// RFC 6265's path-match.
+inline bool path_matches(std::string request, const std::string &cookie) {
+    if (request.empty()) {
+        request = "/";
+    }
+    if (cookie.empty() || request == cookie) {
+        return true;
+    }
+    if (request.compare(0, cookie.size(), cookie) != 0) {
+        return false;
+    }
+    return cookie.back() == '/' || request[cookie.size()] == '/';
+}
+
+inline int read_cookies(void *w, const char *url, goldberry_webview_cookies_fn fn, long long request) {
+    webview::detail::objc::autoreleasepool pool;
+    id view = goldberry_cocoa::web_view(w);
+    if (view == nullptr) {
+        return -1;
+    }
+    id store = msg_send<id>(
+            msg_send<id>(msg_send<id>(view, sel("configuration")), sel("websiteDataStore")), sel("httpCookieStore"));
+    id target = msg_send<id>(
+            cls("NSURL"), sel("URLWithString:"), msg_send<id>(cls("NSString"), sel("stringWithUTF8String:"), url));
+    if (store == nullptr || target == nullptr) {
+        return -1;
+    }
+    std::string host = lower(utf8(msg_send<id>(target, sel("host"))));
+    std::string path = utf8(msg_send<id>(target, sel("path")));
+    std::string scheme = lower(utf8(msg_send<id>(target, sel("scheme"))));
+    bool secure_channel = scheme == "https" || scheme == "wss";
+    // A block literal: Clang compiles blocks in C++ on Apple platforms (and
+    // CMake passes -fblocks there to say so). WebKit copies it, because the
+    // answer comes later, on the main thread.
+    void (^completion)(id) = ^(id cookies) {
+        std::string out;
+        NSUInteger count = cookies == nullptr ? 0 : msg_send<NSUInteger>(cookies, sel("count"));
+        for (NSUInteger i = 0; i < count; i++) {
+            id cookie = msg_send<id>(cookies, sel("objectAtIndex:"), i);
+            std::string domain = utf8(msg_send<id>(cookie, sel("domain")));
+            std::string cookie_path = utf8(msg_send<id>(cookie, sel("path")));
+            bool secure = msg_send<BOOL>(cookie, sel("isSecure"));
+            if (!domain_matches(host, domain) || !path_matches(path, cookie_path) || (secure && !secure_channel)) {
+                continue;
+            }
+            id date = msg_send<id>(cookie, sel("expiresDate"));
+            long long expires = date == nullptr
+                    ? -1
+                    : static_cast<long long>(msg_send<double>(date, sel("timeIntervalSince1970")));
+            append_cookie(out,
+                          utf8(msg_send<id>(cookie, sel("name"))).c_str(),
+                          utf8(msg_send<id>(cookie, sel("value"))).c_str(),
+                          domain.c_str(),
+                          cookie_path.c_str(),
+                          expires,
+                          secure,
+                          msg_send<BOOL>(cookie, sel("isHTTPOnly")));
+        }
+        fn(request, out.c_str());
+    };
+    msg_send<void>(store, sel("getAllCookies:"), completion);
+    return 0;
+}
+
+#elif defined(GOLDBERRY_WEBVIEW_WIN32)
+// WebView2: ICoreWebView2_2's cookie manager, which reads cookies for a URI
+// itself, and the NavigationStarting event, which can cancel. Both reached
+// through the controller webview.h hands out, so they work for a page in a
+// window of its own as well as an embedded one. UNVERIFIED: written against
+// the WebView2 SDK headers and not yet compiled.
+
+/// The page's ICoreWebView2, with a reference the caller releases. Null
+/// before the controller has arrived.
+inline ICoreWebView2 *core_of(void *w) {
+    ICoreWebView2Controller *controller = goldberry_win32::controller(w);
+    ICoreWebView2 *core = nullptr;
+    if (controller == nullptr || FAILED(controller->get_CoreWebView2(&core))) {
+        return nullptr;
+    }
+    return core;
+}
+
+/// A COM string as UTF-8, freed.
+inline std::string take(LPWSTR text) {
+    if (text == nullptr) {
+        return std::string();
+    }
+    std::string narrow = webview::detail::narrow_string(std::wstring(text));
+    CoTaskMemFree(text);
+    return narrow;
+}
+
+class cookies_handler final : public ICoreWebView2GetCookiesCompletedHandler {
+public:
+    cookies_handler(goldberry_webview_cookies_fn fn, long long request) : m_fn(fn), m_request(request) {}
+
+    ULONG STDMETHODCALLTYPE AddRef() override { return ++m_refs; }
+
+    ULONG STDMETHODCALLTYPE Release() override {
+        ULONG left = --m_refs;
+        if (left == 0) {
+            delete this;
+        }
+        return left;
+    }
+
+    HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void **out) override {
+        if (out == nullptr) {
+            return E_POINTER;
+        }
+        if (riid == __uuidof(IUnknown) || riid == __uuidof(ICoreWebView2GetCookiesCompletedHandler)) {
+            *out = static_cast<ICoreWebView2GetCookiesCompletedHandler *>(this);
+            AddRef();
+            return S_OK;
+        }
+        *out = nullptr;
+        return E_NOINTERFACE;
+    }
+
+    HRESULT STDMETHODCALLTYPE Invoke(HRESULT result, ICoreWebView2CookieList *list) override {
+        if (FAILED(result) || list == nullptr) {
+            m_fn(m_request, nullptr);
+            return S_OK;
+        }
+        UINT count = 0;
+        list->get_Count(&count);
+        std::string out;
+        for (UINT i = 0; i < count; i++) {
+            ICoreWebView2Cookie *cookie = nullptr;
+            if (FAILED(list->GetValueAtIndex(i, &cookie)) || cookie == nullptr) {
+                continue;
+            }
+            LPWSTR name = nullptr;
+            LPWSTR value = nullptr;
+            LPWSTR domain = nullptr;
+            LPWSTR path = nullptr;
+            double expires = -1;
+            BOOL session = TRUE;
+            BOOL secure = FALSE;
+            BOOL http_only = FALSE;
+            cookie->get_Name(&name);
+            cookie->get_Value(&value);
+            cookie->get_Domain(&domain);
+            cookie->get_Path(&path);
+            cookie->get_Expires(&expires);
+            cookie->get_IsSession(&session);
+            cookie->get_IsSecure(&secure);
+            cookie->get_IsHttpOnly(&http_only);
+            append_cookie(out,
+                          take(name).c_str(),
+                          take(value).c_str(),
+                          take(domain).c_str(),
+                          take(path).c_str(),
+                          session ? -1 : static_cast<long long>(expires),
+                          secure != FALSE,
+                          http_only != FALSE);
+            cookie->Release();
+        }
+        m_fn(m_request, out.c_str());
+        return S_OK;
+    }
+
+private:
+    std::atomic<ULONG> m_refs{1};
+    goldberry_webview_cookies_fn m_fn;
+    long long m_request;
+};
+
+inline int read_cookies(void *w, const char *url, goldberry_webview_cookies_fn fn, long long request) {
+    ICoreWebView2 *core = core_of(w);
+    if (core == nullptr) {
+        return -1;
+    }
+    ICoreWebView2_2 *core2 = nullptr;
+    HRESULT found = core->QueryInterface(__uuidof(ICoreWebView2_2), reinterpret_cast<void **>(&core2));
+    core->Release();
+    if (FAILED(found) || core2 == nullptr) {
+        // A WebView2 Runtime older than the cookie manager.
+        return -1;
+    }
+    ICoreWebView2CookieManager *manager = nullptr;
+    HRESULT got = core2->get_CookieManager(&manager);
+    core2->Release();
+    if (FAILED(got) || manager == nullptr) {
+        return -1;
+    }
+    auto *handler = new cookies_handler(fn, request);
+    HRESULT started = manager->GetCookies(webview::detail::widen_string(url).c_str(), handler);
+    handler->Release();
+    manager->Release();
+    return SUCCEEDED(started) ? 0 : -1;
+}
+
+class navigation_handler final : public ICoreWebView2NavigationStartingEventHandler {
+public:
+    explicit navigation_handler(navigation_hook hook) : m_hook(hook) {}
+
+    ULONG STDMETHODCALLTYPE AddRef() override { return ++m_refs; }
+
+    ULONG STDMETHODCALLTYPE Release() override {
+        ULONG left = --m_refs;
+        if (left == 0) {
+            delete this;
+        }
+        return left;
+    }
+
+    HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void **out) override {
+        if (out == nullptr) {
+            return E_POINTER;
+        }
+        if (riid == __uuidof(IUnknown) || riid == __uuidof(ICoreWebView2NavigationStartingEventHandler)) {
+            *out = static_cast<ICoreWebView2NavigationStartingEventHandler *>(this);
+            AddRef();
+            return S_OK;
+        }
+        *out = nullptr;
+        return E_NOINTERFACE;
+    }
+
+    HRESULT STDMETHODCALLTYPE Invoke(ICoreWebView2 *, ICoreWebView2NavigationStartingEventArgs *args) override {
+        LPWSTR uri = nullptr;
+        if (args != nullptr && SUCCEEDED(args->get_Uri(&uri)) && uri != nullptr) {
+            std::string text = take(uri);
+            if (!allowed(m_hook, text.c_str())) {
+                args->put_Cancel(TRUE);
+            }
+        }
+        return S_OK;
+    }
+
+private:
+    std::atomic<ULONG> m_refs{1};
+    navigation_hook m_hook;
+};
+
+struct navigation_registration {
+    navigation_handler *handler{};
+    EventRegistrationToken token{};
+};
+
+inline std::unordered_map<void *, navigation_registration> &navigation_registrations() {
+    static std::unordered_map<void *, navigation_registration> map;
+    return map;
+}
+
+/// Takes `w`'s hook off its engine, while the engine is still there.
+inline void forget(void *w) {
+    auto found = navigation_registrations().find(w);
+    if (found == navigation_registrations().end()) {
+        return;
+    }
+    navigation_registration registration = found->second;
+    navigation_registrations().erase(found);
+    if (ICoreWebView2 *core = core_of(w)) {
+        core->remove_NavigationStarting(registration.token);
+        core->Release();
+    }
+    registration.handler->Release();
+}
+
+inline int watch_navigation(void *w, goldberry_webview_navigate_fn fn, long long page) {
+    forget(w);
+    if (fn == nullptr) {
+        return 0;
+    }
+    ICoreWebView2 *core = core_of(w);
+    if (core == nullptr) {
+        return -1;
+    }
+    navigation_registration registration{};
+    registration.handler = new navigation_handler(navigation_hook{fn, page});
+    HRESULT added = core->add_NavigationStarting(registration.handler, &registration.token);
+    core->Release();
+    if (FAILED(added)) {
+        registration.handler->Release();
+        return -1;
+    }
+    navigation_registrations()[w] = registration;
+    return 0;
+}
+
+#else
+inline int read_cookies(void *, const char *, goldberry_webview_cookies_fn, long long) { return -1; }
+inline int watch_navigation(void *, goldberry_webview_navigate_fn, long long) { return -1; }
+inline void forget(void *) {}
+#endif
+
+} // namespace goldberry_hooks
+
+extern "C" {
+
 /// Opens a page in a window of the engine's own.
 ///
 /// The second argument of `webview_create` is the native window to embed into,
@@ -783,6 +1431,9 @@ GOLDBERRY_WEBVIEW_EXPORT void goldberry_webview_destroy(void *w) {
     if (w == nullptr) {
         return;
     }
+    // The navigation hook first, on every platform: it is registered on the
+    // engine, and the engine is about to go.
+    goldberry_hooks::forget(w);
 #if defined(GOLDBERRY_WEBVIEW_COCOA)
     webview::detail::objc::autoreleasepool pool;
     id holder = goldberry_cocoa::detach(w);
@@ -1256,5 +1907,45 @@ GOLDBERRY_WEBVIEW_EXPORT void goldberry_webview_blur(void *w) {
 #elif defined(GOLDBERRY_WEBVIEW_WIN32)
     goldberry_win32::blur(w);
 #endif
+}
+
+/// Reads the cookies the engine would send to `url`, HttpOnly ones included,
+/// and hands them to `fn` as text -- see "COOKIES AND NAVIGATION" above for
+/// the format -- or NULL when the engine could not read them.
+///
+/// Asynchronous on every engine: 0 means `fn` WILL be called, exactly once,
+/// later and on the UI thread, with `request` beside the answer; -1 means it
+/// will not be called at all, because this page or engine cannot read its jar.
+/// Java matches the answer to its question by `request`, which is why one
+/// upcall stub serves every read in the process.
+///
+/// The read is of the engine's jar rather than of the page, and on Linux and
+/// macOS every page shares one, so a page that signed in leaves its session
+/// readable from any other page.
+GOLDBERRY_WEBVIEW_EXPORT int goldberry_webview_cookies(
+        void *w, const char *url, goldberry_webview_cookies_fn fn, long long request) {
+    if (w == nullptr || url == nullptr || fn == nullptr) {
+        return -1;
+    }
+    return goldberry_hooks::read_cookies(w, url, fn, request);
+}
+
+/// Asks `fn` before the page goes anywhere, with the URI it is about to load.
+/// Nonzero lets it go; zero cancels the navigation, and the page stays on the
+/// document it had.
+///
+/// Every navigation of the page's main frame -- a link, a form, a script
+/// setting `location`, a server's redirect -- and on Linux a frame's own as
+/// well, because WebKitGTK does not say which frame a decision is for.
+/// Synchronous: `fn` runs on the UI thread inside the engine's decision, so it
+/// must answer at once rather than wait for anything.
+///
+/// `fn` NULL takes the hook away. A second call replaces the first. Returns 0,
+/// or -1 where the engine cannot be asked.
+GOLDBERRY_WEBVIEW_EXPORT int goldberry_webview_on_navigate(void *w, goldberry_webview_navigate_fn fn, long long page) {
+    if (w == nullptr) {
+        return -1;
+    }
+    return goldberry_hooks::watch_navigation(w, fn, page);
 }
 }

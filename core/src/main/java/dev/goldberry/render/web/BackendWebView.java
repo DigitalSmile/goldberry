@@ -1,5 +1,12 @@
 package dev.goldberry.render.web;
 
+import java.net.HttpCookie;
+import java.net.URI;
+import java.util.List;
+import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
+
 /// A web page, in a window the engine owns.
 ///
 /// ```java
@@ -122,6 +129,36 @@ public interface BackendWebView extends AutoCloseable {
     /// reaches a host through a binding rather than a return value. No binding is
     /// exposed yet, because nothing has asked for one.
     void eval(String script);
+
+    /// The cookies the engine would send to `url`, **HttpOnly ones included**.
+    ///
+    /// ```java
+    /// page.cookies(URI.create("https://grafana.example.org/"))
+    ///         .thenAccept(cookies -> cookies.stream()
+    ///                 .filter(cookie -> cookie.getName().equals("grafana_session"))
+    ///                 .findFirst()
+    ///                 .ifPresent(session -> connect(session.getValue())));
+    /// ```
+    ///
+    /// What an application needs to sign in to a service through a page: the
+    /// page's own script cannot see an HttpOnly cookie, and a service that
+    /// accepts nothing else can be called with the one the engine holds once the
+    /// user has signed in. The cookies are matched to `url` by domain, path and
+    /// scheme, as the engine would send them.
+    ///
+    /// Asynchronous on every engine, and the stage completes **on the UI
+    /// thread**, from inside the frame loop. The jar is the engine's rather than
+    /// the page's: on Linux and macOS every page in the process shares one.
+    ///
+    /// @param url an absolute URL
+    /// @return the cookies; failed with [UnsupportedOperationException] where
+    ///         this page cannot read them, which is the default, and with
+    ///         [IllegalStateException] where the engine tried and could not or the
+    ///         page closed first
+    default CompletionStage<List<HttpCookie>> cookies(URI url) {
+        Objects.requireNonNull(url, "url");
+        return CompletableFuture.failedFuture(new UnsupportedOperationException("this page cannot read its cookies"));
+    }
 
     /// Whether this page has been closed.
     boolean isClosed();

@@ -1,5 +1,7 @@
 package dev.goldberry.render.web;
 
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -49,6 +51,7 @@ public final class WebViewEngine {
                 page.title(spec.title());
             }
             bind(webview, spec);
+            watch(webview, spec);
             if (spec.url() != null) {
                 page.navigate(spec.url());
             } else if (spec.html() != null) {
@@ -81,6 +84,7 @@ public final class WebViewEngine {
                 .map(webview -> {
                     var page = new NativeWebView(webview);
                     bind(webview, spec);
+                    watch(webview, spec);
                     if (spec.url() != null) {
                         page.navigate(spec.url());
                     } else if (spec.html() != null) {
@@ -133,7 +137,7 @@ public final class WebViewEngine {
     /// otherwise perfectly good, and refusing to open it would lose the content
     /// over a binding the application can fix. The map is ordered, so which of
     /// two duplicates won is the one declared first.
-    private static void bind(dev.goldberry.natives.webview.Webview webview, WebViewSpec spec) {
+    private static void bind(Webview webview, WebViewSpec spec) {
         for (var entry : spec.callbacks().entrySet()) {
             var handler = entry.getValue();
             try {
@@ -145,6 +149,32 @@ public final class WebViewEngine {
     }
 
     private static final org.slf4j.Logger LOG = dev.goldberry.log.Logs.of(WebViewEngine.class);
+
+    /// Hooks the spec's navigation decision onto the page, before the content
+    /// for [#bind]'s reason: the first navigation is the content, and a hook
+    /// installed after it would not be asked about it.
+    ///
+    /// The engine reports a URI as text, and text [URI] will not parse — an
+    /// engine is more forgiving about a space in a query than the RFC is — is
+    /// let through rather than asked about: there is nothing to hand the
+    /// predicate, and refusing what cannot be read would refuse pages a browser
+    /// shows.
+    private static void watch(Webview webview, WebViewSpec spec) {
+        var decide = spec.onNavigate();
+        if (decide == null) {
+            return;
+        }
+        webview.onNavigate(text -> {
+            URI uri;
+            try {
+                uri = new URI(text);
+            } catch (URISyntaxException e) {
+                LOG.debug("a page navigates to {}, which is not a URI this can hand over; let through", text);
+                return true;
+            }
+            return decide.test(uri);
+        });
+    }
 
     /// [dev.goldberry.natives.webview.LoadState] in the
     /// toolkit's own word for it.

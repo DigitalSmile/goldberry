@@ -2,11 +2,24 @@ package dev.goldberry.natives.webview;
 
 import java.lang.foreign.Arena;
 import java.lang.foreign.FunctionDescriptor;
+import java.lang.foreign.Linker;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.ValueLayout;
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.MethodType;
+import java.net.HttpCookie;
+import java.time.Instant;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Predicate;
 
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 
 import dev.goldberry.log.Logs;
@@ -42,7 +55,7 @@ public final class Webview implements AutoCloseable {
     /// Bumped whenever the shim's exported functions change shape. A library
     /// found on a path the build did not choose — a distribution package, a `-D`
     /// override — is checked against this before anything is called through it.
-    public static final int ABI = 7;
+    public static final int ABI = 8;
 
     private static final Logger LOG = Logs.of(Webview.class);
 
@@ -143,12 +156,54 @@ public final class Webview implements AutoCloseable {
         private static final MemorySegment STUB = makeStub();
     }
 
+    /// ```c
+    /// void (*)(long long request, const char *cookies)
+    /// ```
+    private static final FunctionDescriptor COOKIES_DESCRIPTOR =
+            Upcalls.describe(FunctionDescriptor.ofVoid(ValueLayout.JAVA_LONG, ValueLayout.ADDRESS));
+
+    /// ```c
+    /// int (*)(long long page, const char *uri)
+    /// ```
+    private static final FunctionDescriptor NAVIGATE_DESCRIPTOR =
+            Upcalls.describe(FunctionDescriptor.of(ValueLayout.JAVA_INT, ValueLayout.JAVA_LONG, ValueLayout.ADDRESS));
+
+    /// Every cookie read still waiting for its answer, by the number handed to
+    /// the engine beside it — [#BINDINGS]' arrangement, for the same reason: one
+    /// upcall stub for the process, and a number to find the question by.
+    private static final Map<Long, CompletableFuture<List<HttpCookie>>> COOKIE_READS = new ConcurrentHashMap<>();
+
+    /// Every page's navigation hook, by the number the engine hands back.
+    private static final Map<Long, Predicate<String>> NAVIGATION_HOOKS = new ConcurrentHashMap<>();
+
+    private static final class CookieStubHolder {
+        private static final MemorySegment STUB =
+                stub("answerCookies", COOKIES_DESCRIPTOR, void.class, long.class, MemorySegment.class);
+    }
+
+    private static final class NavigateStubHolder {
+        private static final MemorySegment STUB =
+                stub("decideNavigation", NAVIGATE_DESCRIPTOR, int.class, long.class, MemorySegment.class);
+    }
+
+    /// The longest cookie answer this will read. A jar's cookies for one URL
+    /// are a few kilobytes; this is a bound on a missing NUL, not a limit
+    /// anybody should meet.
+    private static final long MAX_COOKIES_LENGTH = 1L << 24;
+
     private final WebviewCalls calls;
 
     /// The numbers this page's bindings are registered under, so closing it
     /// takes them out of the process-wide map rather than leaking one entry per
     /// bound name per page.
     private final java.util.List<Long> bindings = new java.util.ArrayList<>();
+
+    /// The cookie reads this page has asked for and not been answered, so that
+    /// closing it can fail them rather than leave a caller waiting for ever.
+    private final Set<Long> cookieReads = new HashSet<>();
+
+    /// The number this page's navigation hook is registered under, or 0.
+    private long navigationHook;
 
     private MemorySegment handle;
 
@@ -511,12 +566,17 @@ public final class Webview implements AutoCloseable {
     /// A C string the engine owns for the length of one call.
     // Restricted for `Sdl.readString`'s reason: the pointer arrives with no size,
     // and a bounded window is what keeps a missing NUL from running away.
+    private static @Nullable String readString(MemorySegment pointer) {
+        return readString(pointer, MAX_CALLBACK_LENGTH);
+    }
+
+    /// The same, read no further than `max` bytes.
     @SuppressWarnings("restricted")
-    private static String readString(MemorySegment pointer) {
+    private static @Nullable String readString(MemorySegment pointer, long max) {
         if (pointer == null || MemorySegment.NULL.equals(pointer)) {
             return null;
         }
-        return pointer.reinterpret(MAX_CALLBACK_LENGTH).getString(0);
+        return pointer.reinterpret(max).getString(0);
     }
 
     /// The longest argument list or id this will read out of the engine. A
@@ -539,6 +599,142 @@ public final class Webview implements AutoCloseable {
         }
     }
 
+    /// Reads the cookies the engine would send to `url`, **HttpOnly ones
+    /// included** — which is the point: a page's script cannot see them, and a
+    /// service that accepts only its own session cookie can be signed in to
+    /// through a page and then called with what the engine holds.
+    ///
+    /// Asynchronous on every engine. The answer arrives on the UI thread, from
+    /// inside [#pump()] on Linux and from SDL's own pump elsewhere, so the
+    /// future completes on the thread that paints.
+    ///
+    /// The engine's jar rather than the page's: on Linux and macOS every page in
+    /// the process shares one.
+    ///
+    /// @param url an absolute URL; its scheme, host and path choose the cookies
+    /// @return the cookies, or a future failed with
+    ///         [UnsupportedOperationException] where this engine cannot read its
+    ///         jar and [IllegalStateException] where it tried and could not, or
+    ///         where the page closed first
+    /// @throws IllegalStateException if the page has been closed
+    public CompletableFuture<List<HttpCookie>> cookies(String url) {
+        Objects.requireNonNull(url, "url");
+        requireOpen();
+        var answer = new CompletableFuture<List<HttpCookie>>();
+        var id = NEXT_BINDING.getAndIncrement();
+        COOKIE_READS.put(id, answer);
+        int result;
+        try (var arena = Arena.ofConfined()) {
+            result = calls.cookies().call(handle, arena.allocateFrom(url), CookieStubHolder.STUB, id);
+        }
+        if (result != 0) {
+            COOKIE_READS.remove(id);
+            answer.completeExceptionally(
+                    new UnsupportedOperationException("this web view engine cannot read its cookies"));
+            return answer;
+        }
+        cookieReads.add(id);
+        answer.whenComplete((_, _) -> cookieReads.remove(id));
+        return answer;
+    }
+
+    /// Asks `decide` before the page goes anywhere: false cancels the
+    /// navigation and the page stays where it was.
+    ///
+    /// ```java
+    /// page.onNavigate(uri -> {
+    ///     if (uri.startsWith("myapp://callback")) {
+    ///         signedIn(uri);
+    ///         return false;
+    ///     }
+    ///     return true;
+    /// });
+    /// ```
+    ///
+    /// Every navigation of the page's main frame — a link, a form, a script,
+    /// a server's redirect — and on Linux a frame's own as well, because
+    /// WebKitGTK does not say which frame a decision is for. A redirect to a
+    /// scheme no engine can load, which is how an OAuth sign-in comes back to a
+    /// desktop application, is asked about before the engine tries.
+    ///
+    /// `decide` runs on the UI thread **inside the engine's decision**: it must
+    /// answer at once. One that throws is logged and the navigation goes ahead,
+    /// which is what the page would have done without it.
+    ///
+    /// @param decide what to ask, or null to stop asking. Replaces any earlier
+    /// @return whether the engine will ask; false where it cannot be hooked
+    /// @throws IllegalStateException if the page has been closed
+    public boolean onNavigate(@Nullable Predicate<String> decide) {
+        requireOpen();
+        if (navigationHook != 0) {
+            NAVIGATION_HOOKS.remove(navigationHook);
+            navigationHook = 0;
+        }
+        if (decide == null) {
+            calls.onNavigate().call(handle, MemorySegment.NULL, 0);
+            return true;
+        }
+        var id = NEXT_BINDING.getAndIncrement();
+        NAVIGATION_HOOKS.put(id, decide);
+        if (calls.onNavigate().call(handle, NavigateStubHolder.STUB, id) != 0) {
+            NAVIGATION_HOOKS.remove(id);
+            LOG.warn("this web view engine cannot be asked about navigations; the page goes wherever it is sent");
+            return false;
+        }
+        navigationHook = id;
+        return true;
+    }
+
+    /// The upcall every cookie read is answered through. **Called from C; must
+    /// not throw.**
+    @SuppressWarnings("unused")
+    private static void answerCookies(long request, MemorySegment text) {
+        try {
+            var answer = COOKIE_READS.remove(request);
+            if (answer == null) {
+                // A read for a page that has closed; its caller was told then.
+                return;
+            }
+            var cookies = readString(text, MAX_COOKIES_LENGTH);
+            if (cookies == null) {
+                answer.completeExceptionally(
+                        new IllegalStateException("the web view engine could not read its cookies"));
+                return;
+            }
+            answer.complete(CookieText.parse(cookies, Instant.now().getEpochSecond()));
+        } catch (Throwable t) {
+            LOG.warn("a cookie answer could not be read", t);
+        }
+    }
+
+    /// The upcall every navigation decision is asked through. **Called from C;
+    /// must not throw**, and answers 1 — go ahead — for anything it cannot ask.
+    @SuppressWarnings("unused")
+    private static int decideNavigation(long page, MemorySegment uri) {
+        try {
+            var decide = NAVIGATION_HOOKS.get(page);
+            var text = readString(uri, MAX_CALLBACK_LENGTH);
+            if (decide == null || text == null) {
+                return 1;
+            }
+            LOG.trace("the page asks to go to {}", text);
+            return decide.test(text) ? 1 : 0;
+        } catch (Throwable t) {
+            LOG.warn("a navigation hook failed; the navigation goes ahead", t);
+            return 1;
+        }
+    }
+
+    @SuppressWarnings("restricted")
+    private static MemorySegment stub(String name, FunctionDescriptor descriptor, Class<?> returns, Class<?>... takes) {
+        try {
+            var target = MethodHandles.lookup().findStatic(Webview.class, name, MethodType.methodType(returns, takes));
+            return Linker.nativeLinker().upcallStub(target, descriptor, Arena.global());
+        } catch (ReflectiveOperationException e) {
+            throw new IllegalStateException("no " + name + " method to bind a page callback to", e);
+        }
+    }
+
     /// Whether this page has been closed.
     public boolean isClosed() {
         return handle == null;
@@ -557,6 +753,21 @@ public final class Webview implements AutoCloseable {
             // finds nothing rather than a page whose handle has gone.
             bindings.forEach(BINDINGS::remove);
             bindings.clear();
+            // The same for a navigation hook, and a cookie read still in flight is
+            // failed now rather than left waiting for an answer that may come to
+            // nobody: the engine may still call back, and finds nothing.
+            if (navigationHook != 0) {
+                NAVIGATION_HOOKS.remove(navigationHook);
+                navigationHook = 0;
+            }
+            for (var id : Set.copyOf(cookieReads)) {
+                var answer = COOKIE_READS.remove(id);
+                if (answer != null) {
+                    answer.completeExceptionally(
+                            new IllegalStateException("the page closed before its cookies were read"));
+                }
+            }
+            cookieReads.clear();
             calls.destroy().call(closing);
         }
     }

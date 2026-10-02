@@ -30,6 +30,8 @@ import dev.goldberry.paint.tree.RenderTree;
 import dev.goldberry.render.clipboard.Clipboard;
 import dev.goldberry.render.clipboard.PrimarySelection;
 import dev.goldberry.render.desktop.SystemTheme;
+import dev.goldberry.render.desktop.menubar.AppMenuItem;
+import dev.goldberry.render.desktop.notify.Notification;
 import dev.goldberry.render.dialog.FileChoice;
 import dev.goldberry.render.dialog.FileDialogSpec;
 import dev.goldberry.render.dialog.FileDialogs;
@@ -1727,5 +1729,32 @@ final class HostedWindow implements WindowHost {
     @Override
     public boolean isModal() {
         return router.isModal();
+    }
+
+    /// Posted under the application's title, with this window's repaint after
+    /// its action for the tray's reason: a click on a notification arrives with
+    /// no event behind it.
+    @Override
+    public boolean notify(Notification notification) {
+        return app.notifications().post(app.title(), notification.andThen(this::repaint));
+    }
+
+    @Override
+    public boolean badge(@Nullable String label) {
+        return app.notifications().badge(label);
+    }
+
+    /// The backend's menu bar, with the repaint after every row's action, for
+    /// the same reason as a notification's.
+    @Override
+    public boolean applicationMenu(List<AppMenuItem> headings) {
+        var bar = GoldberryRuntime.get().backend().menuBar();
+        if (headings.isEmpty()) {
+            bar.clear();
+            return false;
+        }
+        return bar.show(
+                app.title(),
+                headings.stream().map(heading -> heading.andThen(this::repaint)).toList());
     }
 }

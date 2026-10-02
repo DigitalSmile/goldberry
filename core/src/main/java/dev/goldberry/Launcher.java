@@ -17,6 +17,7 @@ import dev.goldberry.css.lint.StyleLint;
 import dev.goldberry.drive.FrameBudgetException;
 import dev.goldberry.drive.ResizeWalk;
 import dev.goldberry.motion.Clock;
+import dev.goldberry.render.desktop.notify.NotificationCenter;
 import dev.goldberry.render.model.LogicalSize;
 import dev.goldberry.render.window.Ownership;
 import dev.goldberry.render.window.WindowSpec;
@@ -353,6 +354,26 @@ final class Launcher {
     Clock clock() {
         return clock;
     }
+
+    /// The application's name, which a notification and the macOS menu bar are
+    /// shown under.
+    String title() {
+        return application.title();
+    }
+
+    /// Desktop notifications and the dock or launcher badge, for every window:
+    /// a notification is the application's, not one window's. Made on the first
+    /// notification or badge.
+    NotificationCenter notifications() {
+        if (notifications == null) {
+            notifications = new NotificationCenter(
+                    () -> GoldberryRuntime.get().backend().notifier(),
+                    (delay, action) -> GoldberryRuntime.get().loop().after(delay, action));
+        }
+        return notifications;
+    }
+
+    private @Nullable NotificationCenter notifications;
 
     List<Object> models() {
         return models;

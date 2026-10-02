@@ -37,6 +37,10 @@ import dev.goldberry.render.clipboard.Clipboard;
 import dev.goldberry.render.clipboard.PrimarySelection;
 import dev.goldberry.render.composite.Compositor;
 import dev.goldberry.render.desktop.SystemTheme;
+import dev.goldberry.render.desktop.menubar.BackendMenuBar;
+import dev.goldberry.render.desktop.menubar.MacMenuBarProjection;
+import dev.goldberry.render.desktop.notify.BackendNotifier;
+import dev.goldberry.render.desktop.notify.PlatformNotifier;
 import dev.goldberry.render.dialog.FileDialogs;
 import dev.goldberry.render.display.Display;
 import dev.goldberry.render.event.BackendEvent;
@@ -52,6 +56,7 @@ import dev.goldberry.render.web.BackendWebView;
 import dev.goldberry.render.web.WebViewEngine;
 import dev.goldberry.render.web.WebViewSpec;
 import dev.goldberry.render.window.BackendWindow;
+import dev.goldberry.render.window.NativeHandle;
 import dev.goldberry.render.window.WindowSpec;
 
 /// The desktop backend: SDL3 on Linux, Windows and macOS.
@@ -165,6 +170,11 @@ public final class Sdl3Backend implements Backend {
     /// Draws while the platform is holding the thread. See [#drawDuringModalLoop].
     /// Null when `libgoldberry` does not export the watch calls.
     private @Nullable SdlEventWatch resizeWatch;
+
+    /// The desktop notifier and the macOS menu bar, made on first use.
+    private @Nullable BackendNotifier notifier;
+
+    private @Nullable BackendMenuBar menuBar;
 
     /// Where a watched event goes — non-null only for the duration of a
     /// [#pumpEvents] call, which is the only time there is anywhere to send one.
@@ -1395,6 +1405,11 @@ public final class Sdl3Backend implements Backend {
         requireUiThread();
         closed = true;
         LOG.debug("closing the sdl3 backend and its {} window(s)", windowsById.size());
+        // Before the windows: a Windows notifier's icon belongs to one of them.
+        if (notifier != null) {
+            notifier.close();
+            notifier = null;
+        }
         // Before the windows: the watch is a native callback into this object, and
         // SDL must stop calling it while there is still something to call.
         if (resizeWatch != null) {
@@ -1733,6 +1748,41 @@ public final class Sdl3Backend implements Backend {
     @Override
     public FileDialogs fileDialogs() {
         return fileDialogs;
+    }
+
+    /// The desktop's notifications, made on first use. Nothing of SDL's: the
+    /// notifier binds libdbus, libobjc or shell32 itself. On this backend
+    /// rather than the SPI's default only because the headless one must not
+    /// post a real notification.
+    @Override
+    public BackendNotifier notifier() {
+        requireUiThread();
+        if (notifier == null) {
+            notifier = new PlatformNotifier(this::win32Handle);
+        }
+        return notifier;
+    }
+
+    /// macOS's own menu bar; [BackendMenuBar#NONE] everywhere else.
+    @Override
+    public BackendMenuBar menuBar() {
+        requireUiThread();
+        if (menuBar == null) {
+            menuBar = MacMenuBarProjection.current().orElse(BackendMenuBar.NONE);
+        }
+        return menuBar;
+    }
+
+    /// The first window's `HWND`, which a Windows notification-area icon
+    /// belongs to; 0 off Windows or with no window.
+    private long win32Handle() {
+        for (var window : windowsById.values()) {
+            var handle = window.nativeHandle();
+            if (handle.isPresent() && handle.get().kind() == NativeHandle.Kind.WIN32) {
+                return handle.get().value();
+            }
+        }
+        return 0;
     }
 
     SdlVideo video() {

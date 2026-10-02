@@ -7,6 +7,8 @@ import java.util.Optional;
 import dev.goldberry.render.clipboard.Clipboard;
 import dev.goldberry.render.clipboard.PrimarySelection;
 import dev.goldberry.render.desktop.SystemTheme;
+import dev.goldberry.render.desktop.menubar.BackendMenuBar;
+import dev.goldberry.render.desktop.notify.BackendNotifier;
 import dev.goldberry.render.dialog.FileChoice;
 import dev.goldberry.render.dialog.FileDialogs;
 import dev.goldberry.render.display.Display;
@@ -270,6 +272,23 @@ public interface Backend extends AutoCloseable {
     /// where. False by default.
     default boolean placesWindows() {
         return false;
+    }
+
+    /// What posts desktop notifications and sets the dock or launcher badge.
+    ///
+    /// Process-global, like the tray. The default shows nothing, which is right
+    /// for the headless backend: a test must not put a notification on the
+    /// desktop of whoever runs it.
+    default BackendNotifier notifier() {
+        return BackendNotifier.NONE;
+    }
+
+    /// The platform's own application menu bar, where there is one — macOS.
+    ///
+    /// The default is [BackendMenuBar#NONE], and a `menubar` widget then stays
+    /// a bar inside its window.
+    default BackendMenuBar menuBar() {
+        return BackendMenuBar.NONE;
     }
 
     /// Waits for platform events and delivers them, then returns.

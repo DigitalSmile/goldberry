@@ -1118,6 +1118,10 @@ else()
         target_link_libraries(goldberry-webview PRIVATE
             "-framework WebKit"
             "-framework Cocoa")
+        # The cookie store answers through a completion block, and the shim is
+        # C++. Apple's Clang has blocks on by default; said here so that a
+        # different default is a compile error rather than a guess.
+        target_compile_options(goldberry-webview PRIVATE -fblocks)
     elseif(CMAKE_SYSTEM_NAME STREQUAL "Windows")
         # The SDK headers found above. An include directory and no library: the
         # six below are Windows' own, and `WebView2Loader.dll` is opened by name

@@ -9,6 +9,7 @@ import org.slf4j.Logger;
 import dev.goldberry.log.Logs;
 import dev.goldberry.natives.platform.NativeCapabilities;
 import dev.goldberry.natives.platform.NativeCapability;
+import dev.goldberry.render.desktop.notify.PlatformNotifier;
 import dev.goldberry.render.web.WebViewEngine;
 
 /// What the native library this process loaded can actually do.
@@ -100,12 +101,32 @@ public final class PlatformCapabilities {
     /// Package-private and taken as a parameter by [#read] so a test can ask what
     /// the set looks like both ways without a native library of either kind.
     static Set<Capability> read(Set<NativeCapability> native_, boolean webView) {
+        return read(native_, webView, false);
+    }
+
+    /// The same, with [Capability#NOTIFICATIONS] — the other answer that is a
+    /// system library being there rather than a bit in `libgoldberry`.
+    static Set<Capability> read(Set<NativeCapability> native_, boolean webView, boolean notifications) {
         var capabilities = EnumSet.noneOf(Capability.class);
         capabilities.addAll(translate(native_));
         if (webView) {
             capabilities.add(Capability.WEB_VIEW);
         }
+        if (notifications) {
+            capabilities.add(Capability.NOTIFICATIONS);
+        }
         return Collections.unmodifiableSet(capabilities);
+    }
+
+    /// Whether a notification can be asked for, as a question that cannot
+    /// throw, for [#hasWebView]'s reason.
+    private static boolean hasNotifications() {
+        try {
+            return PlatformNotifier.isAvailable();
+        } catch (LinkageError | RuntimeException e) {
+            LOG.debug("could not ask whether notifications are available: {}", e.toString());
+            return false;
+        }
     }
 
     /// Whether a page can be opened, as a question that cannot throw.
@@ -132,8 +153,9 @@ public final class PlatformCapabilities {
         // `NoClassDefFoundError`. So a second ask in the catch below would turn a
         // handled absence into an unhandled error -- which is what it did.
         var webView = hasWebView();
+        var notifications = hasNotifications();
         try {
-            var capabilities = read(NativeCapabilities.get(), webView);
+            var capabilities = read(NativeCapabilities.get(), webView, notifications);
             // The line that answers "why is this application in the wrong theme
             // on my machine" without rebuilding anything. `debug` rather than
             // `info`: a complete build has nothing to report here, and the backend
@@ -155,7 +177,7 @@ public final class PlatformCapabilities {
             // process that has one and not the other can still open a page, and
             // saying otherwise would be the "asked and was told nothing" mistake
             // this class exists to avoid.
-            return read(Set.of(), webView);
+            return read(Set.of(), webView, notifications);
         }
     }
 }

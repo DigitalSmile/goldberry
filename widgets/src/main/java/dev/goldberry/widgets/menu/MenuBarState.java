@@ -1,6 +1,7 @@
 package dev.goldberry.widgets.menu;
 
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
 
 import org.jspecify.annotations.Nullable;
@@ -11,6 +12,7 @@ import dev.goldberry.Popup;
 import dev.goldberry.input.key.Key;
 import dev.goldberry.input.key.Shortcut;
 import dev.goldberry.input.tap.ModifierKey;
+import dev.goldberry.render.desktop.menubar.AppMenuItem;
 import dev.goldberry.widget.BuildContext;
 import dev.goldberry.widget.State;
 import dev.goldberry.widget.Widget;
@@ -56,9 +58,21 @@ final class MenuBarState extends State<MenuBar> {
     /// took from the one it had.
     private @Nullable Host boundOn;
 
+    /// The host whose platform menu bar is showing this bar's headings, or
+    /// null while the bar is drawn in the window.
+    private @Nullable Host projectedOn;
+
     @Override
     public Widget build(BuildContext context) {
         host = context.host().orElse(null);
+        if (project()) {
+            // The platform draws the bar and fires its accelerators itself, so
+            // nothing is drawn here and nothing is bound: a key bound twice
+            // would run its command twice.
+            close();
+            unbind();
+            return Widget.nothing();
+        }
         rebind();
 
         var bar = widget();
@@ -87,7 +101,38 @@ final class MenuBarState extends State<MenuBar> {
         // accelerator is an entry in a map that outlives the tree.
         close();
         unbind();
+        if (projectedOn != null) {
+            projectedOn.applicationMenu(List.of());
+            projectedOn = null;
+        }
         super.dispose();
+    }
+
+    /// Hands the headings to the platform's own menu bar, where there is one,
+    /// and answers whether it took them.
+    ///
+    /// Asked on every build, because a rebuilt bar may have new menus and its
+    /// rows' actions are new lambdas; the host keeps the actions current and
+    /// asks the platform again only when what it draws changed. False on every
+    /// platform but macOS, and then the bar is drawn in the window as it always
+    /// was.
+    private boolean project() {
+        var current = host;
+        if (current == null) {
+            return false;
+        }
+        var headings = AppMenus.rowsOf(widget().children()).stream()
+                .filter(row -> row.kind() == AppMenuItem.Kind.SUBMENU)
+                .toList();
+        if (headings.isEmpty() || !current.applicationMenu(headings)) {
+            if (projectedOn != null) {
+                projectedOn.applicationMenu(List.of());
+                projectedOn = null;
+            }
+            return false;
+        }
+        projectedOn = current;
+        return true;
     }
 
     /// One heading, wired to open its own menu.
