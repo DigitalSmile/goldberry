@@ -8,9 +8,16 @@
 # toolchain (meson, pkg-config, make, nasm) and its own natives, and a pull
 # request that touches neither should not pay for compiling FFmpeg.
 #
-# Two targets for now. Windows joins when the MSYS2 branch of the superbuild
-# has been run somewhere; linux-aarch64 joins with the
-# natives jar's publication, which needs all four.
+# All four targets, which a release of goldberry-media needs: FFmpeg for each
+# rides it as an `ffmpeg-<target>` classifier, and a release refuses to go
+# with one missing.
+#
+# Windows builds with MSVC, as the superbuild's Windows branch says: FFmpeg's
+# configure and make run under MSYS2, dav1d under meson, both with cl.exe from
+# the Visual Studio environment. Two things in MSYS2 would quietly break it,
+# and both are handled below: its coreutils `link.exe` shadows MSVC's linker,
+# and its own pkg-config splits PKG_CONFIG_PATH at the colon of `D:/`, so the
+# MINGW64 pkgconf, a native Windows program, is the one handed to configure.
 #
 # The FFmpeg and dav1d checkouts are cached by the catalog's hash, the one file
 # that pins them: a pin that moves invalidates the cache, and nothing
@@ -45,7 +52,25 @@ jobs:
             tools: >-
               sudo apt-get update && sudo apt-get install -y meson ninja-build nasm pkg-config make
               gstreamer1.0-plugins-base gstreamer1.0-plugins-good gstreamer1.0-plugins-bad gstreamer1.0-libav
+          - target: linux-aarch64
+            runner: ubuntu-24.04-arm
+            # The same as linux-x64; dav1d's arm64 assembly is GNU as, so nasm is
+            # not needed here and is installed only to keep the two lines alike.
+            tools: >-
+              sudo apt-get update && sudo apt-get install -y meson ninja-build nasm pkg-config make
+              gstreamer1.0-plugins-base gstreamer1.0-plugins-good gstreamer1.0-plugins-bad gstreamer1.0-libav
+          - target: windows-x64
+            runner: windows-2022
+            # meson and ninja from pip, nasm from Chocolatey; MSYS2 and MSVC are
+            # steps of their own below.
+            tools: >-
+              pip install meson ninja && choco install nasm -y --no-progress
+              && echo "C:\\Program Files\\NASM" >> "$GITHUB_PATH"
     runs-on: ${{ matrix.runner }}
+    defaults:
+      run:
+        # Bash on Windows too, so `./gradlew` and the tool lines read the same.
+        shell: bash
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
@@ -57,13 +82,44 @@ jobs:
       - name: Install the superbuild's tools
         run: ${{ matrix.tools }}
 
+      - name: MSYS2, for FFmpeg's configure and make
+        if: runner.os == 'Windows'
+        id: msys2
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          update: false
+          path-type: inherit
+          install: make diffutils mingw-w64-x86_64-pkgconf
+
+      - name: Hand the MSYS2 tools to the build
+        if: runner.os == 'Windows'
+        env:
+          MSYS2: ${{ steps.msys2.outputs.msys2-location }}
+        run: |
+          # coreutils' link.exe would be found before MSVC's linker.
+          rm -f "$MSYS2/usr/bin/link.exe"
+          # configure needs sed, awk and the rest. The Visual Studio
+          # environment, set after this, goes in front, so cl and link are MSVC's.
+          echo "$MSYS2/usr/bin" >> "$GITHUB_PATH"
+          # The superbuild clones FFmpeg and dav1d itself; with CRLF checkouts,
+          # configure is not a script sh can run.
+          git config --global core.autocrlf false
+          echo "MEDIA_TOOLS=-Pgoldberry.sh=$MSYS2/usr/bin/sh.exe -Pgoldberry.make=$MSYS2/usr/bin/make.exe -Pgoldberry.pkg-config=$MSYS2/mingw64/bin/pkgconf.exe" >> "$GITHUB_ENV"
+
+      - name: The Visual Studio environment
+        if: runner.os == 'Windows'
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+
       - uses: actions/cache@v4
         with:
           path: media/.deps/${{ matrix.target }}
           key: media-deps-${{ matrix.target }}-${{ hashFiles('gradle/libs.versions.toml', 'media/src/main/cmake/**') }}
 
       - name: Build FFmpeg and dav1d, with the layout probe and the size gate
-        run: ./gradlew :media:ffmpegBuild -Pgoldberry.skipNative=true --no-daemon
+        run: ./gradlew :media:ffmpegBuild -Pgoldberry.skipNative=true $MEDIA_TOOLS --no-daemon
 
       # `required`, so a test that could not load FFmpeg fails rather than skips:
       # a verification job that skips is a green tick over nothing.
@@ -76,7 +132,7 @@ jobs:
       - name: Test :media against it
         run: >-
           ./gradlew :media:check -Pgoldberry.skipNative=true -Pgoldberry.media.required=true
-          -Pgoldberry.platform.required=true --no-daemon
+          -Pgoldberry.platform.required=true $MEDIA_TOOLS --no-daemon
 
       - uses: actions/upload-artifact@v4
         with:
