@@ -27,6 +27,8 @@ Preview locally, no build step: `python3 -m http.server -d site 8000`.
 | Star count | stamped by CI from the GitHub API, refreshed by the browser hourly; nothing to edit |
 | Section order, menu | `index.html` |
 | Colours, type, motion | the tokens at the top of `assets/style.css` |
+| Analytics and the cookie banner | `assets/consent.js`: the Metrika snippet, the counter id and the banner. Raise `VERSION` there when what is counted changes, so everybody is asked again. Test with `node --test "site/test/*.test.mjs"` |
+| Privacy policy | `privacy.html`; change its date with it, and keep it in step with `consent.js`. `SiteTest` checks the parts it must name |
 
 Deployed by `.github/workflows/pages.yml`: this folder goes to `/`, the mdBook in
 `book/` to `/docs/`. CI runs `build.mjs`, which writes the content into

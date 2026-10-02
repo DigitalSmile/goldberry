@@ -137,6 +137,70 @@ class SiteTest {
     }
 
     @Nested
+    @DisplayName("counting visits")
+    class Consent {
+
+        private static final String SCRIPT = "site/assets/consent.js";
+
+        private static final String PRIVACY = "site/privacy.html";
+
+        /** Every page the site serves, and the template mdBook puts into the head of each page of the book. */
+        private static final List<String> PAGES = List.of("site/index.html", PRIVACY, "book/theme/head.hbs");
+
+        @Test
+        @DisplayName("no page loads the counter itself: each loads the consent script, which asks first")
+        void onlyThroughConsent() {
+            assertAll(PAGES.stream().map(page -> () -> {
+                var text = Repository.read(page);
+                assertAll(
+                        () -> assertTrue(!text.contains("mc.yandex.ru"), page + " loads Yandex Metrika without asking"),
+                        () -> assertTrue(!text.contains("<noscript>"), page + " has a pixel that counts without asking"),
+                        () -> assertTrue(text.contains("assets/consent.js\" defer></script>"),
+                                page + " does not load the consent script"));
+            }));
+        }
+
+        @Test
+        @DisplayName("the consent script holds the one counter, and links a privacy policy that exists")
+        void oneCounterAndAPolicy() {
+            var script = Repository.read(SCRIPT);
+            assertAll(
+                    () -> assertTrue(script.contains("var COUNTER = 113266145;"), "the counter id moved"),
+                    () -> assertTrue(script.contains("tag.js?id=' + COUNTER"), "tag.js is not loaded for COUNTER"),
+                    () -> assertTrue(script.contains("w.ym(COUNTER, 'init'"), "the counter is not initialised"),
+                    () -> assertTrue(script.contains("var PRIVACY = \"/privacy.html\";")),
+                    () -> assertTrue(Repository.exists(PRIVACY), PRIVACY + " is gone"));
+        }
+
+        @Test
+        @DisplayName("the privacy policy names the counter and its cookies, and lets a visitor change the answer")
+        void thePolicySaysWhatIsCounted() {
+            var policy = Repository.read(PRIVACY);
+            assertAll(Stream.of(
+                            "id=\"cookies\"",
+                            "id=\"consent-grant\"",
+                            "id=\"consent-deny\"",
+                            "Yandex Metrika",
+                            "Webvisor",
+                            "_ym_uid",
+                            "gb-consent",
+                            "Art. 6(1)(a)",
+                            "Art. 49(1)(a)")
+                    .map(needle -> () -> assertTrue(policy.contains(needle), PRIVACY + " does not say " + needle)));
+        }
+
+        @Test
+        @DisplayName("is reachable from the landing page's footer and from the foot of every page of the book")
+        void linkedFromEveryPage() {
+            assertAll(
+                    () -> assertTrue(Repository.read("site/content.js").contains("[\"Privacy\", \"privacy.html\"]")),
+                    () -> assertTrue(Repository.read("site/content.js")
+                            .contains("[\"Cookie settings\", \"privacy.html#cookies\"]")),
+                    () -> assertTrue(Repository.read("book/theme/goldberry.js").contains("\"../privacy.html#cookies\"")));
+        }
+    }
+
+    @Nested
     @DisplayName("pages.yml")
     class Workflow {
 
@@ -173,6 +237,15 @@ class SiteTest {
         void checksBothContentFiles() {
             assertAll(CONTENT.stream()
                     .map(file -> () -> assertTrue(text.contains(file), "pages.yml does not check the links in " + file)));
+        }
+
+        @Test
+        @DisplayName("tests the consent script before it builds, and does not deploy the tests")
+        void testsTheConsentScript() {
+            assertAll(
+                    () -> assertTrue(text.contains("run: node --test \"site/test/*.test.mjs\"")),
+                    () -> assertTrue(text.contains("rm -rf _site/test")),
+                    () -> assertTrue(Repository.exists("site/test/consent.test.mjs")));
         }
 
         @Test

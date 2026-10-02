@@ -179,3 +179,27 @@
         entry.select(remembered() || languageOf(panes[0]), true);
     });
 })();
+
+/*
+ * The foot of every page: the site's privacy policy and its cookie settings,
+ * which live on the landing page, one level above the book.
+ */
+(function () {
+    var main = document.querySelector("#mdbook-content main") || document.querySelector("main");
+    if (!main) {
+        return;
+    }
+    var root = typeof path_to_root === "string" ? path_to_root : "";
+    var foot = document.createElement("footer");
+    foot.className = "gb-foot";
+    [["Privacy policy", "../privacy.html"], ["Cookie settings", "../privacy.html#cookies"]].forEach(function (item, i) {
+        if (i > 0) {
+            foot.appendChild(document.createTextNode(" · "));
+        }
+        var link = document.createElement("a");
+        link.href = root + item[1];
+        link.textContent = item[0];
+        foot.appendChild(link);
+    });
+    main.appendChild(foot);
+})();

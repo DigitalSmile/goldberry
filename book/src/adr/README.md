@@ -554,3 +554,4 @@ proposing to undo them.
 - [ADR-0516 The README is a front door, and the guide is the rest](0516-the-readme-is-a-front-door-and-the-guide-is-the-rest.md)
 - [ADR-0517 A lane without libgoldberry is green](0517-a-lane-without-libgoldberry-is-green.md)
 - [ADR-0518 A doc comment explains the object and links the guide](0518-a-doc-comment-explains-the-object-and-links-the-guide.md)
+- [ADR-0519 goldberry.dev counts visits, and only with consent](0519-goldberry-dev-counts-visits-only-with-consent.md)

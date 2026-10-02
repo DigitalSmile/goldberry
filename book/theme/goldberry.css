@@ -683,3 +683,19 @@ html.navy .gb-shot .gb-dark {
 @media print {
     .gb-card, .gb-shot, .gb-stats > div { box-shadow: none; }
 }
+
+/* ---------- the foot of every page ---------- */
+
+/* Written by goldberry.js under the chapter: the privacy policy and the
+   cookie settings, which live on the landing page. */
+.gb-foot {
+    margin-top: 64px;
+    padding-top: 16px;
+    border-top: 1px solid var(--gb-line);
+    font-size: 14px;
+    color: var(--gb-muted);
+}
+
+.gb-foot a {
+    color: inherit;
+}

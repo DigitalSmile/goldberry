@@ -25,6 +25,7 @@ is the runbook and the status.
 | Custom domain `goldberry.dev` in Settings ▸ Pages, then **Enforce HTTPS** | domain set, Let's Encrypt certificate issued 2026-10-01; **Enforce HTTPS pending** |
 | Domain verified on the account (Settings ▸ Pages ▸ Verified domains) | TXT record published 2026-10-01; confirm **Verify** was clicked |
 | The book as documentation | done 2026-10-01: a guide in six parts, [`book.md`](book.md) and ADR-0511 |
+| Yandex Metrika counter 113266145, loaded only after consent; privacy policy at `/privacy.html` | done 2026-10-02: [ADR-0519](../book/src/adr/0519-goldberry-dev-counts-visits-only-with-consent.md), `site/assets/consent.js` tested by `site/test/consent.test.mjs` in `pages.yml`, held by `SiteTest`; **confirm** the banner, and that visits arrive after *Accept*, once Pages deploys |
 
 ## Going live, once
 

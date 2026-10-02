@@ -51,6 +51,11 @@ jobs:
             | tar -xz -C "$HOME/bin"
           echo "$HOME/bin" >> "$GITHUB_PATH"
 
+      - name: Test the consent script
+        # Node's own test runner: assets/consent.js loads nothing before the
+        # visitor accepts, and deletes Metrika's cookies when they take it back.
+        run: node --test "site/test/*.test.mjs"
+
       - name: Assemble the site
         env:
           GITHUB_TOKEN: ${{ github.token }}
@@ -60,6 +65,7 @@ jobs:
           mkdir -p _site
           cp -R site/. _site/
           rm -f _site/README.md
+          rm -rf _site/test
 
           mdbook build book -d "$PWD/_site/docs"
 
