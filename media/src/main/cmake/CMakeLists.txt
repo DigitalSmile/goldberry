@@ -168,6 +168,17 @@ goldberry_source(ffmpeg https://git.ffmpeg.org/ffmpeg.git ${GOLDBERRY_FFMPEG_REF
 # assembly, so -O3 buys no speed and costs 255 KB on linux-x64. The buildtype
 # stays release, which keeps NDEBUG and trim_dsp.
 # ----------------------------------------------------------------------------
+# MSVC's runtime as a DLL, as libgoldberry and FFmpeg below link it: one C
+# runtime in the process, the one the JDK already carries in its bin directory.
+# Stated rather than left to meson's default, because a static library built
+# against the other one fails to link into FFmpeg with unresolved `__imp_`
+# symbols.
+if(WIN32)
+    set(_dav1d_crt -Db_vscrt=md)
+else()
+    set(_dav1d_crt "")
+endif()
+
 ExternalProject_Add(dav1d
     ${_dav1d_source}
     PREFIX "${GOLDBERRY_MEDIA_DEPS_DIR}/dav1d"
@@ -175,7 +186,7 @@ ExternalProject_Add(dav1d
     CONFIGURE_COMMAND ${GOLDBERRY_MESON} setup <BINARY_DIR> <SOURCE_DIR>
         --prefix=${_stage} --libdir=lib
         --buildtype=release -Doptimization=2 --default-library=static
-        -Db_staticpic=true
+        -Db_staticpic=true ${_dav1d_crt}
         -Denable_tools=false -Denable_tests=false -Denable_examples=false -Denable_docs=false
     BUILD_COMMAND ${GOLDBERRY_MESON} compile -C <BINARY_DIR>
     INSTALL_COMMAND ${GOLDBERRY_MESON} install -C <BINARY_DIR>
@@ -183,9 +194,9 @@ ExternalProject_Add(dav1d
 goldberry_verify_checkout(dav1d ${GOLDBERRY_DAV1D_COMMIT} "${GOLDBERRY_DAV1D_SOURCE_DIR}")
 
 if(WIN32)
-    # UNTESTED: meson names a static library libdav1d.a with every compiler, and
-    # FFmpeg's MSVC toolchain turns pkg-config's -ldav1d into dav1d.lib. The copy
-    # is the name the linker will look for.
+    # meson names a static library libdav1d.a with every compiler, and FFmpeg's
+    # MSVC toolchain turns pkg-config's -ldav1d into dav1d.lib. The copy is the
+    # name the linker looks for.
     ExternalProject_Add_Step(dav1d msvc_library_name
         COMMAND ${CMAKE_COMMAND} -E copy_if_different "${_stage}/lib/libdav1d.a" "${_stage}/lib/dav1d.lib"
         DEPENDEES install
@@ -225,9 +236,10 @@ if(APPLE)
              --enable-hwaccel=vp9_videotoolbox,av1_videotoolbox)
     endif()
 elseif(WIN32)
-    # UNTESTED: written on macOS. Configure runs under
-    # MSYS2's shell with MSVC as the compiler.
-    list(APPEND GOLDBERRY_FFMPEG_CONFIGURE --toolchain=msvc --target-os=win64 --arch=x86_64)
+    # Configure runs under MSYS2's shell with MSVC as the compiler, as the Media
+    # workflow sets it up. -MD is the runtime dav1d is built with above: cl's
+    # default is the static one, and the two do not link together.
+    list(APPEND GOLDBERRY_FFMPEG_CONFIGURE --toolchain=msvc --target-os=win64 --arch=x86_64 --extra-cflags=-MD)
     if(GOLDBERRY_MEDIA_HWACCEL)
         list(APPEND GOLDBERRY_FFMPEG_CONFIGURE --enable-d3d11va
              --enable-hwaccel=vp9_d3d11va2,av1_d3d11va2)
