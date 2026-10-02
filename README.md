@@ -3,6 +3,7 @@
        alt="Goldberry — Modern Java UI toolkit" width="100%">
 </p>
 
+[![Maven Central](https://img.shields.io/maven-central/v/dev.goldberry/goldberry?label=Maven%20Central)](https://central.sonatype.com/artifact/dev.goldberry/goldberry)
 [![Snapshot](https://github.com/digitalsmile/goldberry/actions/workflows/snapshot.yml/badge.svg)](https://github.com/digitalsmile/goldberry/actions/workflows/snapshot.yml)
 [![Showcase](https://github.com/digitalsmile/goldberry/actions/workflows/showcase.yml/badge.svg)](https://github.com/digitalsmile/goldberry/actions/workflows/showcase.yml)
 [![Release](https://github.com/digitalsmile/goldberry/actions/workflows/release.yml/badge.svg)](https://github.com/digitalsmile/goldberry/actions/workflows/release.yml)

@@ -97,4 +97,15 @@ class ReleaseNotesRepositoryTest {
                             () -> file + " installs " + found + ", and the newest release is " + newest);
                 }));
     }
+
+    @Test
+    @DisplayName("the README's Maven Central badge shows the umbrella artifact's newest version and links its page")
+    void mavenCentralBadge() {
+        var readme = Repository.read("README.md");
+        assertAll(
+                () -> assertTrue(readme.contains("https://img.shields.io/maven-central/v/dev.goldberry/goldberry?"),
+                        "README.md has no Maven Central badge for dev.goldberry:goldberry"),
+                () -> assertTrue(readme.contains("(https://central.sonatype.com/artifact/dev.goldberry/goldberry)"),
+                        "the badge does not link the artifact's page on Central"));
+    }
 }
