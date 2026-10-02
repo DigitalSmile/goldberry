@@ -3,6 +3,7 @@ package dev.goldberry.css;
 import org.jspecify.annotations.Nullable;
 
 import dev.goldberry.assets.BundledFont;
+import dev.goldberry.assets.Face;
 import dev.goldberry.css.value.CssLength;
 
 /// Which face text is drawn with, and how big: family, size, weight, style and
@@ -17,13 +18,11 @@ import dev.goldberry.css.value.CssLength;
 /// turns them into a [dev.goldberry.text.font.Font], and a caller that has one
 /// invariably wants the rest.
 ///
-/// The weight is an enum and not a number because the design system ships **two**
-/// weights, 400 and 600, and a screen needing a third extends the system rather
-/// than improvising one. A stylesheet may still write any CSS number:
-/// [BundledFont.Weight#nearest] resolves it the way CSS's own font matching does,
-/// so `font-weight: bold` gets SemiBold rather than nothing. Storing the raw
-/// number instead would mean carrying a value no face can honour and discovering
-/// it in the painter.
+/// The weight is the CSS number the stylesheet wrote, 1 to 1000, and not the
+/// face it lands on. Which face that is depends on which faces the family has,
+/// and an application may ship a family at 500, 600, 700 and 800: the font book
+/// matches the number against the faces it knows, the way CSS's font matching
+/// does, so `font-weight: bold` over Inter's two weights still gets SemiBold.
 ///
 /// The size is a `double` and not a length because a font size in percent or
 /// `auto` has no meaning the shaper could use, and `em` (a size relative to the
@@ -42,13 +41,15 @@ import dev.goldberry.css.value.CssLength;
 /// @param family     the family name, matched against [BundledFont#of] — Inter,
 ///                   JetBrains Mono, Noto Color Emoji
 /// @param size       the em size in logical pixels
-/// @param weight     which of the two shipped weights
+/// @param weight     the CSS weight, 1 to 1000
 /// @param style      upright or italic
 /// @param lineHeight the line box height in logical pixels, or a **negative**
 ///                   value meaning "a multiple of the size", stored negated —
 ///                   see [#resolvedLineHeight()]
-public record Typography(
-        String family, double size, BundledFont.Weight weight, BundledFont.Style style, double lineHeight) {
+public record Typography(String family, double size, int weight, BundledFont.Style style, double lineHeight) {
+
+    /// The weight nobody wrote: CSS's `normal`.
+    private static final int REGULAR = 400;
 
     /// Inter 400 upright at 13/18 — `body`, the design system's default UI text.
     ///
@@ -56,25 +57,21 @@ public record Typography(
     /// window with no stylesheet at all should read as the design system, because
     /// the alternative is a toolkit whose out-of-the-box text is a size nobody
     /// chose.
-    public static final Typography INITIAL =
-            new Typography("Inter", 13, BundledFont.Weight.REGULAR, BundledFont.Style.UPRIGHT, 18);
+    public static final Typography INITIAL = new Typography("Inter", 13, REGULAR, BundledFont.Style.UPRIGHT, 18);
 
     /// Written out so that the parameters taking null for a default can say so.
+    ///
+    /// @throws IllegalArgumentException if the size or the line height is not a
+    ///         usable length, or the weight is outside 1 to 1000
     public Typography(
-            @Nullable String family,
-            double size,
-            BundledFont.@Nullable Weight weight,
-            BundledFont.@Nullable Style style,
-            double lineHeight) {
+            @Nullable String family, double size, int weight, BundledFont.@Nullable Style style, double lineHeight) {
         if (family == null || family.isBlank()) {
             family = "Inter";
         }
         if (!Double.isFinite(size) || size <= 0) {
             throw new IllegalArgumentException("font-size must be a positive length, not " + size);
         }
-        if (weight == null) {
-            weight = BundledFont.Weight.REGULAR;
-        }
+        Face.requireWeight(weight);
         if (style == null) {
             style = BundledFont.Style.UPRIGHT;
         }
@@ -88,8 +85,23 @@ public record Typography(
         this.lineHeight = lineHeight;
     }
 
+    /// One of the two named weights; null is regular.
+    public Typography(
+            @Nullable String family,
+            double size,
+            BundledFont.@Nullable Weight weight,
+            BundledFont.@Nullable Style style,
+            double lineHeight) {
+        this(family, size, weight == null ? REGULAR : weight.value(), style, lineHeight);
+    }
+
     /// The four-argument form: upright.
     public Typography(String family, double size, BundledFont.Weight weight, double lineHeight) {
+        this(family, size, weight, BundledFont.Style.UPRIGHT, lineHeight);
+    }
+
+    /// The four-argument form with a CSS weight: upright.
+    public Typography(String family, double size, int weight, double lineHeight) {
         this(family, size, weight, BundledFont.Style.UPRIGHT, lineHeight);
     }
 
@@ -105,7 +117,8 @@ public record Typography(
         return lineHeight < 0 ? -lineHeight * size : lineHeight;
     }
 
-    /// The bundled face this asks for, or null if no family matches.
+    /// The bundled face this asks for, or null if no family matches: the
+    /// nearest weight Inter or JetBrains Mono has, by CSS's matching rule.
     public @Nullable BundledFont face() {
         return BundledFont.of(family, weight, style);
     }
@@ -141,8 +154,16 @@ public record Typography(
         return new Typography(family, size * factor, weight, style, lineHeight < 0 ? lineHeight : lineHeight * factor);
     }
 
-    public Typography weight(BundledFont.Weight value) {
+    /// This, at a CSS weight.
+    ///
+    /// @throws IllegalArgumentException if it is outside 1 to 1000
+    public Typography weight(int value) {
         return new Typography(family, size, value, style, lineHeight);
+    }
+
+    /// This, at one of the two named weights.
+    public Typography weight(BundledFont.Weight value) {
+        return weight(value.value());
     }
 
     /// This, upright or italic — `font-style`.
@@ -165,7 +186,7 @@ public record Typography(
 
     @Override
     public String toString() {
-        return family + " " + weight.value()
+        return family + " " + weight
                 + (style == BundledFont.Style.ITALIC ? " italic " : " ")
                 + size + "/" + resolvedLineHeight();
     }

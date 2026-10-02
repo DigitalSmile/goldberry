@@ -230,8 +230,12 @@ are refused for `text-align`, and so is `justify`
 ```
 
 `font-family`, `font-size`, `font-weight`, `font-style` and `line-height`.
-A weight is a face, so `font-weight: bold` resolves to the nearer face that
-exists, which is 600 ([ADR-0066](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0066-a-weight-is-a-face-and-color-inherits.md)).
+A weight is any number from 1 to 1000, or `normal` (400) or `bold` (700), and
+it is drawn with the nearest face the family has by CSS's matching rule: over
+Inter's 400 and 600, `bold` is the 600 and `500` is the 400. A family an
+application ships at more weights gives each its own face
+([ADR-0066](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0066-a-weight-is-a-face-and-color-inherits.md),
+[ADR-0538](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0538-a-weight-is-a-number-and-the-nearest-face-answers-it.md)).
 `font-style: oblique` is refused because nothing shears a glyph
 ([ADR-0323](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0323-an-italic-is-a-face-and-the-matrix-closes.md)).
 `font-family: Inter, sans-serif` takes the first name and discards the rest.

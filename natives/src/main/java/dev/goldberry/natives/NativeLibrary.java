@@ -71,26 +71,18 @@ public final class NativeLibrary {
 
     /// Opens the classifier jar's library resource, from wherever it is.
     ///
-    /// Two lookups, because this class lives in a **named module** and the jar
-    /// holding the library does not. `Class.getResourceAsStream` on a class in a
-    /// named module searches *that module* and never the class path, so the first
-    /// call answers only when the library has been packaged into the natives
-    /// module itself. The system class loader is what finds an ordinary
-    /// `goldberry-natives-<classifier>` jar beside it.
+    /// Three lookups, because this class lives in a **named module** and the jar
+    /// holding the library is either on the class path or a module nothing
+    /// requires: [ClassifierJar] tries this module, the system class loader and
+    /// the module path, in that order.
     ///
     /// A native image takes the second branch: it carries the classifier jar's
     /// resource and has no file to point at.
     ///
     /// @param resource an absolute resource name, leading slash and all
-    /// @return the open stream, or null when neither lookup finds it
+    /// @return the open stream, or null when no lookup finds it
     private static InputStream openClassifierResource(String resource) {
-        var own = NativeLibrary.class.getResourceAsStream(resource);
-        if (own != null) {
-            return own;
-        }
-        // Without the leading slash: a ClassLoader resource name is always
-        // absolute, and one that starts with `/` matches nothing — silently.
-        return ClassLoader.getSystemResourceAsStream(resource.substring(1));
+        return ClassifierJar.open(NativePlatform.current(), resource);
     }
 
     public SymbolLookup lookup() {

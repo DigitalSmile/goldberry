@@ -147,6 +147,20 @@ Native access is granted to the one module that touches native code:
 java --enable-native-access=dev.goldberry.natives --module-path lib --module com.example.app/com.example.app.Hello
 ```
 
+The `opens` is for what the toolkit reads **itself**: markup, a
+`Stylesheet.resource`, a `FontSource.resource`. A resource directory is a
+package of its own, so `fonts/` beside the class is `com.example.app.fonts`,
+and that is the package to open. The `stream` forms,
+`FontSource.stream(…, () -> Hello.class.getResourceAsStream("fonts/Forum.ttf"))`
+and `Stylesheet.stream(…)`, read the file with your own code and need no
+`opens` at all ([Text, fonts and icons](../guide/text.md#shipping-a-face)).
+
+The natives jars are modules too, one per platform:
+`dev.goldberry.natives.linux_x64`, `dev.goldberry.natives.linux_aarch64`,
+`dev.goldberry.natives.macos_aarch64` and `dev.goldberry.natives.windows_x64`.
+They stay on the module path beside everything else. Nothing has to require
+them: the library is found there by name.
+
 An application on the class path needs no `opens` and grants
 `--enable-native-access=ALL-UNNAMED` instead. The showcase runs modular, which
 is what catches an unexported package before a user does

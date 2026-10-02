@@ -241,7 +241,7 @@ class ButtonTest {
             assertEquals("Inter", typography.family());
             assertEquals(13, typography.size(), 1e-9);
             assertEquals(18, typography.resolvedLineHeight(), 1e-9);
-            assertEquals(dev.goldberry.assets.BundledFont.Weight.SEMI_BOLD, typography.weight());
+            assertEquals(600, typography.weight());
 
             // And it is a real second face rather than a synthetic smear: the
             // weight picks a different file: a weight is a face here, never a

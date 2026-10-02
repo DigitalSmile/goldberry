@@ -2471,12 +2471,12 @@ public record ComputedStyle(
         return Optional.empty();
     }
 
-    /// A CSS weight — a number, or `normal` / `bold`.
+    /// A CSS weight — a number from 1 to 1000, or `normal` (400) / `bold` (700).
     ///
-    /// Resolved to one of the two shipped faces here rather than carried as a
-    /// number, so a weight no face can honour is discovered in the cascade and
-    /// not in the painter.
-    private static Optional<BundledFont.Weight> weight(List<Token> value) {
+    /// Carried as the number, rounded to a whole one: which face it lands on
+    /// is the font book's question, because it depends on which faces the
+    /// family has.
+    private static Optional<Integer> weight(List<Token> value) {
         var tokens = value.stream().filter(t -> !t.is(TokenType.WHITESPACE)).toList();
         if (tokens.size() != 1) {
             return Optional.empty();
@@ -2484,14 +2484,14 @@ public record ComputedStyle(
         var token = tokens.getFirst();
         if (token.is(TokenType.IDENT)) {
             return switch (token.text().toLowerCase(Locale.ROOT)) {
-                case "normal" -> Optional.of(BundledFont.Weight.REGULAR);
-                case "bold" -> Optional.of(BundledFont.Weight.SEMI_BOLD);
+                case "normal" -> Optional.of(400);
+                case "bold" -> Optional.of(700);
                 default -> Optional.empty();
             };
         }
         return Optional.ofNullable(CssLength.parseNumber(value))
                 .filter(v -> v >= 1 && v <= 1000)
-                .map(BundledFont.Weight::nearest);
+                .map(v -> (int) Math.round(v));
     }
 
     /// A CSS `font-style`, in the two values a shipped face can honour.

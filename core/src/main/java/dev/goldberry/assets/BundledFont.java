@@ -20,7 +20,9 @@ import org.jspecify.annotations.Nullable;
 /// A weight is a face here, not an axis. Inter and JetBrains Mono are variable
 /// files, and instancing `wght` at runtime would be the general answer, but the
 /// design system ships exactly two weights, so the second one is a second face.
-/// [Weight] is what a caller asks for; this enum is what answers.
+/// A stylesheet may ask for any CSS weight; [Face#match] answers with the
+/// nearest face the way a browser does, so 500 is Inter's 400 and 700 is its
+/// 600. An application that wants 500 to be a 500 ships that face.
 ///
 /// An italic is a face too. Inter's italic is **drawn**, with different
 /// letterforms, so it is a file rather than a transform; shearing the upright
@@ -61,13 +63,13 @@ public enum BundledFont implements Face {
     /// family, which is what a stylesheet writes.
     EMOJI("fonts/NotoColorEmoji.ttf", "Noto Color Emoji", Weight.REGULAR, Style.UPRIGHT);
 
-    /// The two weights the design system ships.
+    /// The two weights the design system ships, by name.
     ///
-    /// A closed pair rather than CSS's 100–900 ladder, because the design system
-    /// specifies two, and a screen needing a third extends the system rather than
-    /// improvising it. `font-weight: 700` resolves to the
-    /// nearer of these, the way CSS's own matching algorithm resolves a weight
-    /// no face provides — so a stylesheet that asks for bold gets SemiBold rather
+    /// The bundled faces are this pair, because the design system specifies
+    /// two. Everything that takes a weight takes a CSS number too; these are
+    /// the two numbers worth a name. `font-weight: 700` resolves to the nearer
+    /// bundled face, the way CSS's own matching algorithm resolves a weight no
+    /// face provides — so a stylesheet that asks for bold gets SemiBold rather
     /// than nothing.
     public enum Weight {
 
@@ -88,12 +90,12 @@ public enum BundledFont implements Face {
             return value;
         }
 
-        /// The shipped weight nearest to `css`.
+        /// The bundled weight nearest to `css`.
         ///
-        /// CSS's matching algorithm in the only form two faces need: everything
-        /// at or below 500 is regular, everything above is semi-bold. `bold`
-        /// (700) and `black` (900) both land on SemiBold, which is the honest
-        /// answer — the alternative is a heading that silently renders at 400.
+        /// [Face#match]'s rule over these two: everything at or below 500 is
+        /// regular, everything above is semi-bold. `bold` (700) and `black`
+        /// (900) both land on SemiBold, which is the honest answer — the
+        /// alternative is a heading that silently renders at 400.
         public static Weight nearest(double css) {
             return css > 500 ? SEMI_BOLD : REGULAR;
         }
@@ -145,10 +147,10 @@ public enum BundledFont implements Face {
         return family;
     }
 
-    /// Which of the two shipped weights this face is.
+    /// The CSS weight this face is drawn at: 400 or 600.
     @Override
-    public Weight weight() {
-        return weight;
+    public int weight() {
+        return weight.value();
     }
 
     /// Whether this face is upright or italic.
@@ -171,10 +173,16 @@ public enum BundledFont implements Face {
     /// asked for, upright — `JetBrains Mono` ships one face, so italic code stays
     /// upright code rather than becoming italic Inter, which the family filter has
     /// already ruled out anyway.
-    ///
-    /// Falls back to the family's upright regular in the end, because refusing
-    /// would mean throwing from inside a paint pass.
     public static @Nullable BundledFont of(String family, Weight weight, Style style) {
+        return of(family, weight.value(), style);
+    }
+
+    /// The bundled face for a family, a CSS weight and a style: the nearest one,
+    /// by [Face#match].
+    ///
+    /// @param weight 1 to 1000
+    /// @throws IllegalArgumentException if the weight is outside 1 to 1000
+    public static @Nullable BundledFont of(String family, int weight, Style style) {
         // The rule is [Face#match]'s, shared with the faces an application ships,
         // so a shipped family falls back exactly the way Inter does.
         return Face.match(ALL, family, weight, style);

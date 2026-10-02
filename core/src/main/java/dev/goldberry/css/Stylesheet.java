@@ -1,11 +1,13 @@
 package dev.goldberry.css;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Objects;
+import java.util.function.Supplier;
 
 import org.slf4j.Logger;
 
@@ -128,6 +130,10 @@ public record Stylesheet(
     ///
     /// UTF-8, because every file in this toolkit is.
     ///
+    /// The toolkit's module does the reading, so on the module path the package
+    /// holding the file must be opened to `dev.goldberry.core`. [#stream] reads
+    /// it with the application's own access and needs no `opens`.
+    ///
     /// @throws IllegalStateException if the resource is not on the module path,
     ///         which for a file that ships inside a jar is a build problem rather
     ///         than a runtime one — and a silent empty stylesheet would be a
@@ -142,20 +148,72 @@ public record Stylesheet(
         Objects.requireNonNull(name, "name");
         try (var in = owner.getResourceAsStream(name)) {
             if (in == null) {
-                throw new IllegalStateException("no stylesheet resource \"" + name + "\" beside " + owner.getName()
-                        + ". Either it is missing from src/main/resources/"
-                        + owner.getPackageName().replace('.', '/') + "/, or "
-                        + (owner.getModule().isNamed() && !owner.getModule().isOpen(owner.getPackageName())
-                                ? "module " + owner.getModule().getName()
-                                        + " does not open the package: JPMS encapsulates"
-                                        + " resources, so add `opens "
-                                        + owner.getPackageName() + ";` to its module-info"
-                                : "it is not on the module path"));
+                throw new IllegalStateException(missing(owner, name));
             }
             return parse(layer, new String(in.readAllBytes(), StandardCharsets.UTF_8), mode, name);
         } catch (IOException e) {
             throw new UncheckedIOException("could not read " + name, e);
         }
+    }
+
+    /// Parses a stylesheet from a stream the application opens, under
+    /// [#defaultMode].
+    ///
+    /// ```java
+    /// Stylesheet.stream(CascadeLayer.APPLICATION, "app.css", () -> MyApp.class.getResourceAsStream("app.css"))
+    /// ```
+    ///
+    /// The form that works in a modular application without opening anything:
+    /// the supplier is the application's code, so the file is read with the
+    /// application's own access. Read now, once, and closed.
+    ///
+    /// @param origin what the sheet is called in a warning, usually its file name
+    /// @throws IllegalStateException if the supplier answers null, which is a
+    ///         file that is not there
+    public static Stylesheet stream(CascadeLayer layer, String origin, Supplier<? extends InputStream> stream) {
+        return stream(layer, origin, stream, defaultMode(layer));
+    }
+
+    /// The same, under `mode`.
+    public static Stylesheet stream(
+            CascadeLayer layer, String origin, Supplier<? extends InputStream> stream, ParseMode mode) {
+        Objects.requireNonNull(origin, "origin");
+        Objects.requireNonNull(stream, "stream");
+        try (var in = stream.get()) {
+            if (in == null) {
+                throw new IllegalStateException(
+                        "no stylesheet " + origin + ": the stream supplier answered null, so the file is not there");
+            }
+            return parse(layer, new String(in.readAllBytes(), StandardCharsets.UTF_8), mode, origin);
+        } catch (IOException e) {
+            throw new UncheckedIOException("could not read " + origin, e);
+        }
+    }
+
+    /// Why `name` beside `owner` was not found, telling a missing file from an
+    /// encapsulated one.
+    ///
+    /// The package is the **file's**, which is the owner's only when the name
+    /// has no directory in it: `themes/dark.css` beside `app.App` is in
+    /// `app.themes`, and that is what has to be opened.
+    private static String missing(Class<?> owner, String name) {
+        var module = owner.getModule();
+        var reader = Stylesheet.class.getModule();
+        var to = reader.isNamed() ? " to " + reader.getName() : "";
+        var path = name.startsWith("/")
+                ? name.substring(1)
+                : owner.getPackageName().replace('.', '/') + "/" + name;
+        var slash = path.lastIndexOf('/');
+        var pkg = slash < 0 ? "" : path.substring(0, slash).replace('/', '.');
+        var where = "no stylesheet resource \"" + name + "\" beside " + owner.getName() + ". ";
+        if (module.isNamed() && module.getPackages().contains(pkg) && !module.isOpen(pkg, reader)) {
+            return where + "Module " + module.getName() + " does not open " + pkg + to
+                    + ", and JPMS encapsulates resources as well as classes. Add `opens " + pkg + to
+                    + ";` to its module-info, or read the file with your own code:"
+                    + " Stylesheet.stream(layer, \"" + name + "\", () -> " + owner.getSimpleName()
+                    + ".class.getResourceAsStream(\"" + name + "\"))";
+        }
+        return where + "It is missing from src/main/resources/" + path + ", or it is not on the module path";
     }
 
     /// An empty stylesheet — what a hot reload falls back to before the first

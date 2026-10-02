@@ -151,18 +151,23 @@ public interface Application {
     ///
     /// ```java
     /// @Override public List<FontSource> fonts() {
-    ///     return List.of(FontSource.resource(
-    ///             "Forum", Weight.REGULAR, Style.UPRIGHT, MyApp.class, "fonts/Forum-Regular.ttf"));
+    ///     return List.of(FontSource.stream("Forum", 400, Style.UPRIGHT,
+    ///             () -> MyApp.class.getResourceAsStream("fonts/Forum-Regular.ttf")));
     /// }
     /// ```
+    ///
+    /// The lambda is the application's code, so it reads the file with the
+    /// application's own access, and a modular application needs no `opens`
+    /// for it. `FontSource.resource` reads it with the toolkit's instead, and
+    /// then the package holding the file must be opened to `dev.goldberry.core`.
     ///
     /// Read **once**, before [#start], when the window's font book is opened. A
     /// face reaches the cascade, paragraph layout, a field's caret and the glyph
     /// cache together, because all four already share that book. The bundled
     /// families are searched first, so a file called `Inter` does not replace the
-    /// face the design system's metrics were drawn against. A face whose bytes
-    /// cannot be read is logged once, and text in that family is drawn in the UI
-    /// face instead.
+    /// face the design system's metrics were drawn against. Every file is looked
+    /// for as the book opens, and one that is not there is a warning at start
+    /// naming the face; text in that family is drawn in the UI face instead.
     ///
     /// Empty by default: the bundled faces are the whole design system.
     default List<FontSource> fonts() {

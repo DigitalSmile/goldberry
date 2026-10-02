@@ -229,6 +229,39 @@ an image that is working perfectly looks like an image that is doing nothing.
 The general shape of that trap is worth remembering: **the agent records how a
 lookup was made, not where the file will be.** A resource fetched through a
 `ClassLoader` by a library that knows nothing of modules is recorded without one.
+An application's own `logback.xml` is the same file with the same trap, so it
+belongs in that application's hand-written directory too.
+
+### What the trace no longer records
+
+The trace used to record a bare entry for every widget class the element tree
+re-described: `ScrollBar`, `ScrollContent`, `MasonryBox` and the like, and in an
+application's trace that application's own widget records as well. They came
+from one reflective question, "does this class override `Styled.restyle`?",
+asked of each class once. GraalVM 25.4 refused some of those entries outright
+("Unresolved type … BiConsumer") and an application's build had to strip them
+after tracing. The element tree now asks the two widgets for their `restyle`
+answer instead and compares them, so no widget class is reflected on, and a
+test holds `dev.goldberry.widget` to the same closed-world list a woven model
+is held to
+([ADR-0540](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0540-each-natives-jar-names-its-module-and-no-widget-class-is-reflected-on.md)).
+
+## The natives jar is a module now
+
+Each classifier jar names itself: `dev.goldberry.natives.linux_x64`,
+`dev.goldberry.natives.linux_aarch64`, `dev.goldberry.natives.macos_aarch64`,
+`dev.goldberry.natives.windows_x64`. A modular build keeps it on the module
+path instead of splitting it onto the class path, and the four no longer derive
+one and the same automatic name from their file names.
+
+Nothing `requires` a platform's module, so the JVM does not resolve it, and
+`NativeLibrary` reads the library from the module path anyway: this module, the
+system class loader, then the jar on `--module-path` by its name. The library's
+directory is not a package name, so nothing has to be opened.
+
+**`native-image` is the exception.** An image takes only resolved modules, so
+the natives jar either stays on `-cp`, which is what the showcase does, or
+goes on the module path with `--add-modules dev.goldberry.natives.<target>`.
 
 ## Why the library is carried rather than linked
 

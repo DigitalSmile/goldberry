@@ -50,9 +50,9 @@ class BundledFontTest {
         @DisplayName("each face knows which corner it is")
         void facesDescribeThemselves() {
             assertEquals(BundledFont.Style.ITALIC, BundledFont.UI_ITALIC.style());
-            assertEquals(BundledFont.Weight.REGULAR, BundledFont.UI_ITALIC.weight());
+            assertEquals(400, BundledFont.UI_ITALIC.weight());
             assertEquals(BundledFont.Style.ITALIC, BundledFont.UI_STRONG_ITALIC.style());
-            assertEquals(BundledFont.Weight.SEMI_BOLD, BundledFont.UI_STRONG_ITALIC.weight());
+            assertEquals(600, BundledFont.UI_STRONG_ITALIC.weight());
             assertEquals(BundledFont.Style.UPRIGHT, BundledFont.UI.style());
         }
     }

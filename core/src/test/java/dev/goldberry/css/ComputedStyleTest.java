@@ -718,27 +718,43 @@ class ComputedStyleTest {
 
             assertEquals("JetBrains Mono", style.typography().family());
             assertEquals(20, style.typography().size(), 1e-9);
-            assertEquals(BundledFont.Weight.SEMI_BOLD, style.typography().weight());
+            assertEquals(600, style.typography().weight());
         }
 
         @Test
-        @DisplayName("a weight no face ships resolves to the nearer one it does")
+        @DisplayName("a weight is the number the sheet wrote, and the face it lands on is the nearer one")
         void nearestWeight() {
-            // CSS's own matching, in the only form two faces need. `bold` and 900
-            // both land on SemiBold, which is the honest answer -- the
-            // alternative is a heading that silently renders at 400.
+            // The cascade carries the number; the face is the book's question,
+            // because it depends on which faces the family has. Over Inter's two,
+            // `bold` and 900 both land on SemiBold, which is the honest answer --
+            // the alternative is a heading that silently renders at 400.
             assertEquals(
-                    BundledFont.Weight.SEMI_BOLD,
-                    compute("button { font-weight: bold }").typography().weight());
+                    700, compute("button { font-weight: bold }").typography().weight());
             assertEquals(
-                    BundledFont.Weight.SEMI_BOLD,
-                    compute("button { font-weight: 900 }").typography().weight());
+                    900, compute("button { font-weight: 900 }").typography().weight());
             assertEquals(
-                    BundledFont.Weight.REGULAR,
-                    compute("button { font-weight: 500 }").typography().weight());
+                    500, compute("button { font-weight: 500 }").typography().weight());
             assertEquals(
-                    BundledFont.Weight.REGULAR,
-                    compute("button { font-weight: normal }").typography().weight());
+                    400, compute("button { font-weight: normal }").typography().weight());
+            assertEquals(
+                    451, compute("button { font-weight: 450.6 }").typography().weight());
+            assertEquals(
+                    BundledFont.UI_STRONG,
+                    compute("button { font-weight: bold }").typography().face());
+            assertEquals(
+                    BundledFont.UI_STRONG,
+                    compute("button { font-weight: 900 }").typography().face());
+            assertEquals(
+                    BundledFont.UI,
+                    compute("button { font-weight: 500 }").typography().face());
+        }
+
+        @Test
+        @DisplayName("a weight outside 1 to 1000 is dropped")
+        void weightOutOfRange() {
+            assertEquals(400, compute("button { font-weight: 0 }").typography().weight());
+            assertEquals(
+                    400, compute("button { font-weight: 1001 }").typography().weight());
         }
 
         /// `font-style`, which is a **face** rather than a decoration: the italic
@@ -831,7 +847,7 @@ class ComputedStyleTest {
             assertEquals("Inter", body.family());
             assertEquals(13, body.size(), 1e-9);
             assertEquals(18, body.resolvedLineHeight(), 1e-9);
-            assertEquals(BundledFont.Weight.REGULAR, body.weight());
+            assertEquals(400, body.weight());
         }
 
         @Test
@@ -1038,7 +1054,7 @@ class ComputedStyleTest {
             var style = child("panel { font-size: 20px; font-weight: 600 }");
 
             assertEquals(20, style.typography().size(), 1e-9);
-            assertEquals(BundledFont.Weight.SEMI_BOLD, style.typography().weight());
+            assertEquals(600, style.typography().weight());
         }
 
         @Test

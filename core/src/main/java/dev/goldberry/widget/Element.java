@@ -381,7 +381,7 @@ public final class Element implements BuildContext, StyleElement {
         // it -- see [#stableStyle].
         if (matchesDiffer(previous, next)) {
             invalidateStyle();
-        } else if (RESTYLES.get(next.getClass())) {
+        } else if (restyleDiffers(previous, next)) {
             // Selectors match the same, so the *cascade* produced the same thing;
             // what is left is `Styled.restyle`, which reads the widget and is the
             // one way a re-description can change a style it still matches the
@@ -402,40 +402,34 @@ public final class Element implements BuildContext, StyleElement {
         rebuild();
     }
 
-    /// Whether a widget of this class computes a style of its own — that is,
-    /// whether it overrides [Styled#restyle].
+    /// Whether [Styled#restyle] writes something different into this node's
+    /// style for `next` than it did for `previous`.
     ///
-    /// A [ClassValue] because the answer is a fact about the *class* and the
-    /// question is asked once per re-described node per frame: reflection once
-    /// per class, then a field read. Two widgets in the whole catalog override
-    /// it, both to write a number no selector can express — so for
-    /// almost every node the answer is `false` and the style survives the
-    /// rebuild.
+    /// Asked of the two widgets themselves, over the style the cascade last
+    /// resolved here, which is exactly what the renderer hands `restyle`. A
+    /// widget that does not override it answers with that very instance, so
+    /// for almost every node this is two calls that return their argument and
+    /// the style survives the rebuild. One that does override it is compared
+    /// by value, which is a flat record `equals` against a re-resolve that
+    /// costs two orders of magnitude more.
     ///
-    /// A widget that is not [Styled] has no style of its own at all; the renderer
-    /// passes its ancestor's straight through.
-    private static final ClassValue<Boolean> RESTYLES = new ClassValue<>() {
-
-        @Override
-        protected Boolean computeValue(Class<?> type) {
-            if (!Styled.class.isAssignableFrom(type)) {
-                return Boolean.FALSE;
-            }
-            try {
-                // The *declaring* class of the method this type would dispatch
-                // to. `Styled` itself means nobody overrode it.
-                return Styled.class
-                        != type.getMethod("restyle", dev.goldberry.css.ComputedStyle.class)
-                                .getDeclaringClass();
-            } catch (NoSuchMethodException e) {
-                // Cannot happen -- `restyle` is a public method on an interface
-                // this type implements. Answered conservatively rather than
-                // thrown, because the cost of being wrong this way is a style
-                // re-resolved and the cost of the other way is a stale one.
-                return Boolean.TRUE;
-            }
+    /// Asked rather than looked up: whether a class overrides a method is a
+    /// question for reflection, and reflection on every widget class is what a
+    /// native image's tracing agent records and an image build then has to be
+    /// told about, for the toolkit's widgets and an application's alike.
+    ///
+    /// A widget that is not [Styled] has no style of its own at all; the
+    /// renderer passes its ancestor's straight through. A node with nothing
+    /// cached is re-resolving anyway.
+    private boolean restyleDiffers(Widget previous, Widget next) {
+        var cascade = style;
+        if (cascade == null || !(next instanceof Styled styled)) {
+            return false;
         }
-    };
+        var now = styled.restyle(cascade);
+        var before = previous instanceof Styled was ? was.restyle(cascade) : cascade;
+        return now != before && !now.equals(before);
+    }
 
     /// Whether re-describing a node as `next` instead of `previous` could change
     /// what a selector matches — here or anywhere under it.

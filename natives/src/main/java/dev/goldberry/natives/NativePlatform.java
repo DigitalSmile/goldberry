@@ -80,6 +80,13 @@ public record NativePlatform(OperatingSystem os, Architecture arch) {
         return osToken() + "-" + archToken();
     }
 
+    /// The module name the classifier jar gives itself, e.g.
+    /// `dev.goldberry.natives.linux_x64`: the classifier with its hyphen made
+    /// legal, so a modular build can keep all four jars on the module path.
+    public String moduleName() {
+        return "dev.goldberry.natives." + classifier().replace('-', '_');
+    }
+
     /// The file name of the shared library for this platform.
     public String libraryFileName() {
         return sharedLibraryFileName("goldberry");

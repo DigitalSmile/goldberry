@@ -60,8 +60,14 @@ A weight is a face and so is an italic: Inter's italic is drawn, not
 sheared, and `font-weight: 600; font-style: italic` resolves to a file rather
 than to the nearer of three
 ([ADR-0066](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0066-a-weight-is-a-face-and-color-inherits.md),
-[ADR-0323](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0323-an-italic-is-a-face-and-the-matrix-closes.md)). A
-CSS weight no file provides resolves to the nearer one that does. A glyph
+[ADR-0323](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0323-an-italic-is-a-face-and-the-matrix-closes.md)).
+A weight is a CSS number, though, and a stylesheet may write any of them: the
+face is chosen by CSS's own nearest-weight rule over the faces the family has,
+so over Inter's two `font-weight: 500` is the 400 and `bold` (700) is the 600,
+as a browser draws them
+([ADR-0538](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0538-a-weight-is-a-number-and-the-nearest-face-answers-it.md)).
+There is no variable `wght` axis: Inter's 500 is not instanced from its
+variable file, and an application that wants a 500 ships one. A glyph
 neither family has draws `.notdef`: there is no fallback cascade beyond the
 emoji slot, so `font-family: Inter, sans-serif` keeps the first name only.
 
@@ -69,10 +75,14 @@ emoji slot, so `font-family: Inter, sans-serif` keeps the first name only.
 
 ```java
 @Override public List<FontSource> fonts() {
-    return List.of(FontSource.resource(
-            "Forum", BundledFont.Weight.REGULAR, BundledFont.Style.UPRIGHT,
-            MyApp.class, "fonts/Forum-Regular.ttf"
-    ));
+    return List.of(
+            forum(400, "fonts/Forum-Regular.ttf"),
+            forum(700, "fonts/Forum-Bold.ttf")
+    );
+}
+
+private static FontSource forum(int weight, String file) {
+    return FontSource.stream("Forum", weight, BundledFont.Style.UPRIGHT, () -> MyApp.class.getResourceAsStream(file));
 }
 ```
 
@@ -80,9 +90,32 @@ emoji slot, so `font-family: Inter, sans-serif` keeps the first name only.
 opens. A face named here reaches the cascade, paragraph layout, a field's
 caret and the glyph cache together, and a stylesheet names it with
 `font-family: Forum`. The bundled families are searched first, so a file
-called `Inter` cannot replace the face the design system was drawn against. A
-face whose bytes cannot be read is logged once and drawn in the UI face
+called `Inter` cannot replace the face the design system was drawn against
 ([ADR-0349](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0349-a-face-an-application-ships-is-found-after-the-bundled-ones.md)).
+
+**The weight is any CSS number**, 1 to 1000. A family shipped at 500, 600, 700
+and 800 gives each of them to the stylesheet that asks, and a weight it does
+not have is the nearest one it does, by the rule Inter answers by. The two
+named weights, `Weight.REGULAR` and `Weight.SEMI_BOLD`, are 400 and 600.
+
+**Read the file with your own code.** The supplier in `FontSource.stream` is
+the application's lambda, so it reads a resource with the application's own
+access, and a modular application opens nothing for it.
+`FontSource.resource(family, weight, style, MyApp.class, name)` reads it with
+the toolkit's module instead, and on the module path that needs the package
+holding the file opened to `dev.goldberry.core` (`opens com.example.app.fonts
+to dev.goldberry.core;` for `fonts/` beside `com.example.app.MyApp`). A
+resource directory is a package of its own, so it is that package, not the
+class's, that has to be opened.
+
+**A missing file is said at start.** The book looks for every file as it
+opens, before the window shows: a resource or a stream is opened and closed
+unread. One that is not there is a warning naming the face and why, a
+package nobody opened told apart from a file that is missing, and text in it
+is drawn in the UI face. Nothing is parsed until something is drawn in the
+face. `fonts.unreadable()` lists them, for an application that would rather
+refuse to start
+([ADR-0539](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0539-an-application-reads-its-own-resources-and-a-missing-face-is-said-at-start.md)).
 `FontSource.of(family, weight, style, bytes)` takes bytes already in hand.
 
 ## Paragraphs

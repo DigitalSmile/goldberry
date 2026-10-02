@@ -79,6 +79,7 @@ overwrite it:
   "resources": [
     { "module": "com.example.hello", "glob": "com/example/hello/*.kdl" },
     { "module": "com.example.hello", "glob": "com/example/hello/*.css" },
+    { "module": "com.example.hello", "glob": "logback.xml" },
     { "glob": "dev/goldberry/natives/**" }
   ]
 }
@@ -87,6 +88,12 @@ overwrite it:
 The last line is the native library itself. It lives in the classifier jar,
 which the image carries as a class-path resource and unpacks to a temporary
 file on first use ([ADR-0159](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0159-a-native-image-carries-its-own-library.md)).
+
+The `logback.xml` line is there if you log through Logback. Logback asks a
+`ClassLoader` for the file, so the agent records it without a module, and in
+an image built from the module path it is then not there at all: Logback
+starts with no appenders and the image prints nothing
+([Native image](../native.md#two-metadata-directories-traced-and-written)).
 
 </div>
 <div>
@@ -119,10 +126,12 @@ tasks.register('nativeImageMetadata', Exec) {
 }
 ```
 
-`splitPaths` is a small helper, used by both tasks. The natives classifier
-jars hold no classes and no module descriptor, so they go on the class path
-rather than the module path, where four jars would derive one and the same
-automatic module name:
+`splitPaths` is a small helper, used by both tasks. Each natives classifier
+jar names its own module, `dev.goldberry.natives.linux_x64` and so on, but
+nothing `requires` one, and an image takes only the modules that are
+resolved. So for an image they go on the class path, where the library is a
+plain resource
+([Native image](../native.md#the-natives-jar-is-a-module-now)):
 
 ```groovy
 def splitPaths = {

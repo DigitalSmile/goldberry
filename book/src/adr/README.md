@@ -573,3 +573,6 @@ proposing to undo them.
 - [ADR-0535 A background is a colour under gradient layers](0535-a-background-is-a-colour-under-gradient-layers.md)
 - [ADR-0536 A border is dashed, dotted or double as written](0536-a-border-is-dashed-dotted-or-double-as-written.md)
 - [ADR-0537 A shadow is a list, and may be cast inside](0537-a-shadow-is-a-list-and-may-be-cast-inside.md)
+- [ADR-0538 A weight is a number, and the nearest face answers it](0538-a-weight-is-a-number-and-the-nearest-face-answers-it.md)
+- [ADR-0539 An application reads its own resources, and a missing face is said at start](0539-an-application-reads-its-own-resources-and-a-missing-face-is-said-at-start.md)
+- [ADR-0540 Each natives jar names its module, and no widget class is reflected on](0540-each-natives-jar-names-its-module-and-no-widget-class-is-reflected-on.md)

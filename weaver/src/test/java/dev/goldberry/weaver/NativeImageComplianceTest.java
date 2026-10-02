@@ -6,9 +6,15 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import dev.goldberry.weaver.models.Counter;
 import dev.goldberry.weaver.models.EveryType;
+import dev.goldberry.widget.Widget;
+import java.io.IOException;
 import java.lang.classfile.ClassFile;
 import java.lang.classfile.instruction.InvokeDynamicInstruction;
 import java.lang.classfile.instruction.InvokeInstruction;
+import java.net.URISyntaxException;
+import java.nio.file.FileSystems;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -210,6 +216,40 @@ class NativeImageComplianceTest {
             assertFalse(call.contains("getAnnotation") || call.contains("isAnnotationPresent")
                             || call.contains("getDeclaredAnnotation"),
                     woven.getName() + " reads an annotation at run time: " + call);
+        }
+    }
+
+    @Test
+    @DisplayName("the element tree asks no widget class a reflective question")
+    void elementTreeReflectsOnNothing() throws IOException, URISyntaxException {
+        // Every widget class passes through `dev.goldberry.widget`, the
+        // application's as well as the toolkit's. A reflective call in there is
+        // one GraalVM's tracing agent records once per widget class it sees, and
+        // an application's image build then has to be told about every one of
+        // them -- which is how a widget record with a lambda component came to be
+        // an entry the image builder refused. So the package holds itself to the
+        // list above, the same as a woven model.
+        var root = Path.of(Widget.class
+                .getProtectionDomain()
+                .getCodeSource()
+                .getLocation()
+                .toURI());
+        var classes = new ArrayList<Path>();
+        try (var fs = Files.isDirectory(root)
+                ? null
+                : FileSystems.newFileSystem(root)) {
+            var base = fs == null ? root : fs.getPath("/");
+            try (var walk = Files.walk(base.resolve("dev/goldberry/widget"))) {
+                walk.filter(path -> path.toString().endsWith(".class")).forEach(classes::add);
+            }
+            assertFalse(classes.isEmpty(), "found the element tree's classes under " + root);
+            for (var path : classes) {
+                for (var call : callsIn(Files.readAllBytes(path))) {
+                    assertFalse(CLOSED_WORLD_HOSTILE.contains(call),
+                            path.getFileName() + " calls " + call
+                                    + ", which an image build has to be told about for every class it is asked of");
+                }
+            }
         }
     }
 }

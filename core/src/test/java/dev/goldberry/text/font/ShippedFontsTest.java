@@ -1,5 +1,6 @@
 package dev.goldberry.text.font;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -8,6 +9,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
+import java.io.ByteArrayInputStream;
 import java.io.UncheckedIOException;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -20,6 +22,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import dev.goldberry.RendererRequirement;
 import dev.goldberry.assets.BundledAssets;
@@ -186,6 +189,20 @@ class ShippedFontsTest {
         }
 
         @Test
+        @DisplayName("`font-weight: 500` draws the 500 an application shipped, and 700 the nearest heavier")
+        void numericWeightReachesItsFace() {
+            var medium = FontSource.of("Forum", 500, Style.UPRIGHT, BundledAssets.font(BundledFont.CODE));
+            var heavy = FontSource.of("Forum", 800, Style.UPRIGHT, BundledAssets.font(BundledFont.CODE));
+            try (var fonts = Fonts.bundled(List.of(medium, heavy))) {
+                var forum = Typography.INITIAL.family("Forum");
+
+                assertSame(fonts.of(medium, 13), fonts.of(forum.weight(500)));
+                assertSame(fonts.of(heavy, 13), fonts.of(forum.weight(700)));
+                assertSame(fonts.of(medium, 13), fonts.of(forum), "400 tries heavier up to 500 first");
+            }
+        }
+
+        @Test
         @DisplayName("the bundled families are searched first, so a file called Inter is not drawn")
         void cannotShadowInter() {
             var impostor = shipped("Inter", Weight.REGULAR, Style.UPRIGHT);
@@ -224,6 +241,170 @@ class ShippedFontsTest {
         private static double advance(Font font, String text) {
             return font.widthOf(text);
         }
+    }
+
+    /// A weight is a number, and a family registered at several of them gives
+    /// each one to the stylesheet that asks.
+    @Nested
+    @DisplayName("numeric weights")
+    class NumericWeights {
+
+        private static final List<FontSource> GROTESK = List.of(
+                source("Grotesk", 500, Style.UPRIGHT),
+                source("Grotesk", 600, Style.UPRIGHT),
+                source("Grotesk", 700, Style.UPRIGHT),
+                source("Grotesk", 800, Style.UPRIGHT));
+
+        @ParameterizedTest(name = "{0}")
+        @ValueSource(ints = {500, 600, 700, 800})
+        @DisplayName("a family shipped at 500, 600, 700 and 800 answers each with its own face")
+        void eachWeightIsItsOwnFace(int weight) {
+            var face = Face.match(GROTESK, "Grotesk", weight, Style.UPRIGHT);
+
+            assertEquals(weight, face == null ? -1 : face.weight());
+        }
+
+        /// CSS's nearest-weight order, one row per band: the weight asked for,
+        /// the weights the family has, and the one that answers.
+        static Stream<Arguments> nearest() {
+            return Stream.of(
+                    arguments("500 over 400 and 600 is the 400, as a browser draws it", 500, List.of(400, 600), 400),
+                    arguments("550 over 400 and 600 is the 600", 550, List.of(400, 600), 600),
+                    arguments("700 over 400 and 600 is the 600", 700, List.of(400, 600), 600),
+                    arguments("400 tries heavier up to 500 first", 400, List.of(300, 500, 800), 500),
+                    arguments("420 with nothing up to 500 goes lighter before heavier", 420, List.of(300, 600), 300),
+                    arguments("above 500 goes heavier first", 600, List.of(500, 900), 900),
+                    arguments("above 500 with nothing heavier takes the nearest lighter", 900, List.of(300, 800), 800),
+                    arguments("below 400 goes lighter first", 350, List.of(300, 400), 300),
+                    arguments("below 400 with nothing lighter takes the nearest heavier", 250, List.of(400, 300), 300));
+        }
+
+        @ParameterizedTest(name = "{0}")
+        @MethodSource("nearest")
+        @DisplayName("a weight the family does not have is the nearest one by CSS's rule")
+        void nearestByCss(String what, int asked, List<Integer> available, int expected) {
+            var faces = available.stream()
+                    .map(weight -> source("Grotesk", weight, Style.UPRIGHT))
+                    .toList();
+
+            var face = Face.match(faces, "Grotesk", asked, Style.UPRIGHT);
+
+            assertEquals(expected, face == null ? -1 : face.weight(), what);
+        }
+
+        @Test
+        @DisplayName("style still comes before weight")
+        void styleFirst() {
+            var faces = List.of(source("Grotesk", 700, Style.UPRIGHT), source("Grotesk", 300, Style.ITALIC));
+
+            assertSame(faces.get(1), Face.match(faces, "Grotesk", 700, Style.ITALIC));
+            assertSame(faces.get(0), Face.match(faces, "Grotesk", 300, Style.UPRIGHT));
+        }
+
+        @Test
+        @DisplayName("a family that ships only a semi-bold italic is still that family")
+        void anyFaceOfTheFamily() {
+            // CSS draws a family in whatever it has rather than in another family.
+            var only = List.of(source("Grotesk", 600, Style.ITALIC));
+
+            assertSame(only.getFirst(), Face.match(only, "Grotesk", 400, Style.UPRIGHT));
+        }
+
+        @Test
+        @DisplayName("a weight CSS cannot write is refused, on a source and in a match")
+        void outOfRange() {
+            assertThrows(IllegalArgumentException.class, () -> source("Grotesk", 0, Style.UPRIGHT));
+            assertThrows(IllegalArgumentException.class, () -> source("Grotesk", 1001, Style.UPRIGHT));
+            assertThrows(IllegalArgumentException.class, () -> Face.match(GROTESK, "Grotesk", 0, Style.UPRIGHT));
+            assertThrows(IllegalArgumentException.class, () -> Typography.INITIAL.weight(1001));
+        }
+
+        @Test
+        @DisplayName("the named weights are the numbers 400 and 600")
+        void namedWeights() {
+            assertEquals(400, source("Grotesk", Weight.REGULAR, Style.UPRIGHT).weight());
+            assertEquals(600, Typography.INITIAL.weight(Weight.SEMI_BOLD).weight());
+            assertSame(BundledFont.UI_STRONG, BundledFont.of("Inter", 700, Style.UPRIGHT));
+            assertSame(BundledFont.UI, BundledFont.of("Inter", 500, Style.UPRIGHT));
+        }
+    }
+
+    /// The book looks for every file when it opens, so a missing one is a line
+    /// at start rather than a fallback found on a screen later.
+    @Nested
+    @DisplayName("when the book opens")
+    class Probing {
+
+        @Test
+        @DisplayName("a resource that is not there is unreadable at once, and nothing is parsed to find out")
+        void missingResource() {
+            var missing = FontSource.resource("Forum", 400, Style.ITALIC, ShippedFontsTest.class, "nope.ttf");
+            var reads = new AtomicInteger();
+            var present = new FontSource("Forum", 400, Style.UPRIGHT, () -> {
+                reads.incrementAndGet();
+                return new byte[0];
+            });
+
+            try (var fonts = Fonts.bundled(List.of(present, missing))) {
+                assertEquals(List.of(missing), fonts.unreadable());
+                assertEquals(0, reads.get(), "bytes from anywhere else are taken on trust until drawn");
+            }
+        }
+
+        @Test
+        @DisplayName("the reason names the file and where it was looked for")
+        void reasonNamesTheFile() {
+            var missing = FontSource.resource("Forum", 400, Style.ITALIC, ShippedFontsTest.class, "nope.ttf");
+
+            var problem = missing.problem().orElseThrow();
+
+            assertTrue(problem.contains("dev/goldberry/text/font/nope.ttf"), problem);
+            assertTrue(problem.contains(ShippedFontsTest.class.getName()), problem);
+        }
+
+        @Test
+        @DisplayName("a stream is opened and closed unread, and read for real only when drawn")
+        void streamIsOpenedNotRead() {
+            var opened = new AtomicInteger();
+            var closed = new AtomicInteger();
+            var source = FontSource.stream("Forum", 400, Style.UPRIGHT, () -> {
+                opened.incrementAndGet();
+                return new ByteArrayInputStream(new byte[] {1, 2, 3}) {
+                    @Override
+                    public void close() {
+                        closed.incrementAndGet();
+                    }
+                };
+            });
+
+            try (var fonts = Fonts.bundled(List.of(source))) {
+                assertEquals(List.of(), fonts.unreadable());
+                assertEquals(1, opened.get());
+                assertEquals(1, closed.get(), "the probe closes what it opened");
+            }
+            assertArrayEquals(new byte[] {1, 2, 3}, source.bytes().get());
+            assertEquals(2, closed.get());
+        }
+
+        @Test
+        @DisplayName("a stream supplier that answers null, or throws, is a face that is not there")
+        void nullStream() {
+            var none = FontSource.stream("Forum", 400, Style.UPRIGHT, () -> null);
+            var thrown = FontSource.stream("Forum", 700, Style.UPRIGHT, () -> {
+                throw new IllegalStateException("no disk");
+            });
+
+            try (var fonts = Fonts.bundled(List.of(none, thrown))) {
+                assertEquals(List.of(none, thrown), fonts.unreadable());
+            }
+            assertThrows(UncheckedIOException.class, () -> none.bytes().get());
+        }
+    }
+
+    private static FontSource source(String family, int weight, Style style) {
+        return new FontSource(family, weight, style, () -> {
+            throw new AssertionError("matching must not read a face");
+        });
     }
 
     private static FontSource source(String family, Weight weight, Style style) {

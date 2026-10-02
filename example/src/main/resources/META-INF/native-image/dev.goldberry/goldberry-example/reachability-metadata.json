@@ -157,27 +157,6 @@
       "type": "dev.goldberry.widgets.GoldberryCatalog"
     },
     {
-      "type": "dev.goldberry.widgets.core.scroll.ScrollBar"
-    },
-    {
-      "type": "dev.goldberry.widgets.core.scroll.ScrollContent"
-    },
-    {
-      "type": "dev.goldberry.widgets.core.scroll.ScrollThumb"
-    },
-    {
-      "type": "dev.goldberry.widgets.core.scroll.ScrollViewport"
-    },
-    {
-      "type": "dev.goldberry.widgets.panel.masonry.MasonryBox"
-    },
-    {
-      "type": "dev.goldberry.widgets.panel.masonry.MasonryCell"
-    },
-    {
-      "type": "dev.goldberry.widgets.panel.masonry.MasonryColumn"
-    },
-    {
       "type": "java.lang.Thread",
       "methods": [
         {

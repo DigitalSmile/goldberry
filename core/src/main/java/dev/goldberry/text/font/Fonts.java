@@ -50,8 +50,9 @@ import dev.goldberry.log.Logs;
 /// name, after the bundled ones: a family is looked up among the toolkit's
 /// faces first, so an application that ships a file it calls `Inter` has not
 /// replaced the face every metric in the design system was drawn against. A
-/// shipped face is opened lazily like a bundled one, and one whose bytes cannot
-/// be read or parsed is reported once and drawn in the UI face from then on.
+/// shipped face is parsed lazily like a bundled one, but its file is looked for
+/// when the book opens; one that is not there, or whose bytes cannot be read
+/// or parsed, is reported once and drawn in the UI face from then on.
 /// When the emoji artifact is on the module path, every font the book opens is
 /// joined to the emoji face at the same size, so a paragraph's emoji have a
 /// face to be shaped in.
@@ -105,11 +106,18 @@ public final class Fonts implements AutoCloseable {
 
     /// A book over the bundled faces and the ones an application ships.
     ///
-    /// Opens nothing, like [#bundled()]; the sources are only described here.
+    /// Parses nothing, like [#bundled()]; the sources are only described here.
     /// A source whose family is also a bundled family can never be reached,
     /// because the bundled faces are searched first, and it is logged rather than
     /// refused. A stylesheet that asked for `Inter` still gets Inter, and the
     /// warning says why the file went unused.
+    ///
+    /// **Every file is looked for**, though, and that is not parsing: a resource
+    /// or a stream is opened and closed unread. One that is not there is
+    /// [#unreadable()], warned about now, once, naming the face and why, and
+    /// drawn in the UI face from then on. The launcher opens its book before
+    /// the window shows, so a font that will never draw is a line at start
+    /// rather than a fallback somebody notices on the screen that uses it.
     ///
     /// @param shipped the application's faces, in no particular order
     /// @throws IllegalArgumentException if two sources claim the same family,
@@ -122,9 +130,8 @@ public final class Fonts implements AutoCloseable {
         for (var source : sources) {
             var corner = source.family().toLowerCase(Locale.ROOT) + '/' + source.weight() + '/' + source.style();
             if (!seen.add(corner)) {
-                throw new IllegalArgumentException("two faces claim " + source.family() + " "
-                        + source.weight().value() + " " + source.style().cssName()
-                        + "; one of them could never be drawn");
+                throw new IllegalArgumentException("two faces claim " + source.family() + " " + source.weight() + " "
+                        + source.style().cssName() + "; one of them could never be drawn");
             }
             if (BundledFont.of(source.family(), source.weight(), source.style()) != null) {
                 LOG.warn(
@@ -134,7 +141,46 @@ public final class Fonts implements AutoCloseable {
                         source.family());
             }
         }
-        return new Fonts(sources);
+        var book = new Fonts(sources);
+        for (var source : sources) {
+            source.problem().ifPresent(problem -> {
+                book.unusable.add(source);
+                if (firstReport(source)) {
+                    LOG.warn(
+                            "the font {} {} {} cannot be read, so text asking for it is drawn in {} instead: {}",
+                            source.family(),
+                            source.weight(),
+                            source.style().cssName(),
+                            BundledFont.UI.family(),
+                            problem);
+                }
+            });
+        }
+        return book;
+    }
+
+    /// The shipped faces whose files were not there when this book opened, or
+    /// that have failed to open since, in the order they were given.
+    ///
+    /// What a test asserts, and what an application that would rather refuse
+    /// to start than draw a fallback reads from `host.fonts()`.
+    public List<FontSource> unreadable() {
+        return shipped.stream().filter(unusable::contains).toList();
+    }
+
+    /// The sources whose absence has been reported, so a process that opens a
+    /// book per window, or a test that renders a hundred times, says it once.
+    /// Bounded, because a source is an application's value and could be built
+    /// anew each time.
+    private static final Set<FontSource> REPORTED = new HashSet<>();
+
+    private static boolean firstReport(FontSource source) {
+        synchronized (REPORTED) {
+            if (REPORTED.size() >= 256) {
+                return false;
+            }
+            return REPORTED.add(source);
+        }
     }
 
     /// The faces this book was given beyond the bundled ones.

@@ -638,6 +638,15 @@ nativeTargets.each { target ->
         archiveBaseName = 'goldberry-natives'
         archiveClassifier = target.id
 
+        // A module name of its own per platform, which NativePlatform.moduleName()
+        // spells the same way. Without one, a modular build either splits the
+        // jar onto the class path or derives `goldberry.natives` from all four
+        // file names at once. Nothing requires a platform's module, so it is
+        // read from the module path by ClassifierJar when it is not resolved.
+        manifest {
+            attributes('Automatic-Module-Name': "dev.goldberry.natives.${target.id.replace('-', '_')}")
+        }
+
         def sourceDir = artifactsDir.map { new File(it, target.id) }
         // The layout here is what NativeLibrary.resourcePath() looks for;
         // NativeLibraryTest asserts the same literal from the Java side.

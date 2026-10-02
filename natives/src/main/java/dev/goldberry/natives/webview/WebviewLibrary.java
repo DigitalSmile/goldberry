@@ -13,6 +13,7 @@ import java.util.Optional;
 import org.slf4j.Logger;
 
 import dev.goldberry.log.Logs;
+import dev.goldberry.natives.ClassifierJar;
 import dev.goldberry.natives.NativeLibrary;
 import dev.goldberry.natives.NativePlatform;
 
@@ -167,10 +168,9 @@ public final class WebviewLibrary {
 
     private static Optional<Path> unpack(NativePlatform platform) {
         var resource = resourcePath(platform);
-        // The two lookups NativeLibrary documents: a class in a named module
-        // searches only that module, and the system class loader is what finds an
-        // ordinary classifier jar beside it.
-        try (InputStream in = open(resource)) {
+        // The lookups NativeLibrary makes: this module, the system class loader,
+        // then the module path for a classifier module nothing required.
+        try (InputStream in = ClassifierJar.open(platform, resource)) {
             if (in == null) {
                 return Optional.empty();
             }
@@ -185,13 +185,5 @@ public final class WebviewLibrary {
         } catch (IOException e) {
             throw new UncheckedIOException("Failed to unpack " + resource, e);
         }
-    }
-
-    private static InputStream open(String resource) {
-        var own = WebviewLibrary.class.getResourceAsStream(resource);
-        if (own != null) {
-            return own;
-        }
-        return ClassLoader.getSystemResourceAsStream(resource.substring(1));
     }
 }
