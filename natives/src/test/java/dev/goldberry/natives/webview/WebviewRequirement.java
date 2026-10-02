@@ -6,12 +6,12 @@ import org.junit.jupiter.api.Assumptions;
 
 /// What a test that needs `libgoldberry-webview` does when there is not one.
 ///
-/// The web view library is allowed to be missing — a Linux build without
-/// WebKitGTK's headers makes only `libgoldberry`, and that is a supported build —
-/// so by default these tests skip. On macOS it is never allowed to be missing:
-/// WKWebView is a system framework and the superbuild makes the library there
-/// unconditionally. `-Dgoldberry.webview.required=true` is how the macOS verify
-/// job says so, the way `goldberry.native.required` does for `libgoldberry`.
+/// The web view library may be missing from a local build — a Linux machine
+/// without WebKitGTK's headers makes only `libgoldberry`, and that is a
+/// supported build — so by default these tests skip. A published library may
+/// not be missing it: CI builds the web view for every target.
+/// `-Dgoldberry.webview.required=true` is how each verify job says so, the way
+/// `goldberry.native.required` does for `libgoldberry`.
 ///
 /// The decision is [#decide], a pure function of its inputs, so it is unit tested
 /// directly rather than by contorting system properties.

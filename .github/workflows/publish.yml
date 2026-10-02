@@ -119,11 +119,26 @@ jobs:
           pattern: native-*
           path: native-artifacts
 
+      # Linux's web view library, which linux.yml builds in a job of its own
+      # (the manylinux image has no WebKitGTK headers). macOS and Windows carry
+      # theirs inside `native-<target>`.
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: webview-*
+          path: webview-artifacts
+
+      # One directory per target, both libraries in it: what `nativeJar*` packs,
+      # and refuses to pack without the web view.
       - name: Flatten into the layout :natives expects
         run: |
           mkdir -p artifacts
           for dir in native-artifacts/native-*; do
             target="${dir#native-artifacts/native-}"
+            mkdir -p "artifacts/$target"
+            cp "$dir"/* "artifacts/$target/"
+          done
+          for dir in webview-artifacts/webview-*; do
+            target="${dir#webview-artifacts/webview-}"
             mkdir -p "artifacts/$target"
             cp "$dir"/* "artifacts/$target/"
           done

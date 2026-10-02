@@ -65,7 +65,7 @@ Failures there are the defect. Skips are correct. That is [ADR-0357](https://git
 
 The per-platform jobs do the opposite. They download the library their native job built and pass `-Dgoldberry.native.required=true`, so a skip is a failure. CI verifies the binary that ships and cannot pass without loading it, which is [ADR-0016](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0016-verify-the-artifact-and-never-skip-the-check.md).
 
-The web view library, `libgoldberry-webview`, is optional where its engine's headers may be missing, so its tests skip without it. On macOS it never is: WKWebView is a system framework and the superbuild always makes the library there. The macOS verify job downloads it beside `libgoldberry` and passes `-Dgoldberry.webview.required=true`, so `WebviewBindingTest` fails rather than skips if the library does not load, report the right ABI and bind. That is [ADR-0521](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0521-the-macos-natives-jar-carries-the-web-view.md).
+The web view library, `libgoldberry-webview`, may be missing from a local build where WebKitGTK's headers are absent, so its tests skip without it. A published one may not: CI builds it for every target (on Linux in a job of its own, on Ubuntu 22.04, since the manylinux image has no WebKitGTK 4.1). Every verify job puts it beside `libgoldberry` and passes `-Dgoldberry.webview.required=true`, so `WebviewBindingTest` fails rather than skips if the library does not load, report the right ABI and bind. That is [ADR-0521](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0521-every-natives-jar-carries-the-web-view.md).
 
 ### The GPU tests
 

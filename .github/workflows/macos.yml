@@ -68,9 +68,9 @@ jobs:
       - name: Build
         run: cmake --build build/native --target install
 
-      # The web view is optional on Linux, where it needs WebKitGTK's headers,
-      # and never on macOS: WKWebView is a system framework, and CMake builds
-      # libgoldberry-webview here unconditionally. So a Mac build without it is
+      # Every published natives jar carries the web view. Here it costs nothing
+      # to build: WKWebView is a system framework, and CMake builds
+      # libgoldberry-webview unconditionally. So a Mac build without it is
       # broken, not reduced, and stops here rather than shipping a natives jar on
       # which `WebViews.isAvailable()` is false -- which every snapshot did until
       # the upload below named only libgoldberry.

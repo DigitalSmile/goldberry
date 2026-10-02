@@ -44,16 +44,16 @@ dependencies {
 // macOS on Intel are not built, and `NativePlatform` refuses those two
 // pairs on the Java side so the two lists cannot drift into disagreement.
 // `webview` is the second library. It is linked into nothing and opened on
-// demand. On Linux and Windows it is OPTIONAL -- built only where WebKitGTK's or
-// WebView2's headers were present -- so the packaging below includes it when it
-// is there rather than demanding it. On macOS `webviewRequired` says otherwise:
-// WKWebView is a system framework, the superbuild makes the library there
-// unconditionally, and a Mac jar without it is a broken build, not a reduced one.
-// Every macOS snapshot shipped without it until the CI upload named it.
+// demand, so a LOCAL build without WebKitGTK's headers is a supported build with
+// one library instead of two. A published jar is another matter: CI builds the
+// web view for every target -- macOS from the SDK, Windows from the WebView2
+// headers it fetches, Linux in a job of its own on Ubuntu 22.04 -- and
+// `webviewRequired` makes the packaging refuse a jar without it. Every natives
+// jar shipped without it until the CI uploads named it.
 def nativeTargets = [
-        [id: 'linux-x64', library: 'libgoldberry.so', webview: 'libgoldberry-webview.so', webviewRequired: false],
-        [id: 'linux-aarch64', library: 'libgoldberry.so', webview: 'libgoldberry-webview.so', webviewRequired: false],
-        [id: 'windows-x64', library: 'goldberry.dll', webview: 'goldberry-webview.dll', webviewRequired: false],
+        [id: 'linux-x64', library: 'libgoldberry.so', webview: 'libgoldberry-webview.so', webviewRequired: true],
+        [id: 'linux-aarch64', library: 'libgoldberry.so', webview: 'libgoldberry-webview.so', webviewRequired: true],
+        [id: 'windows-x64', library: 'goldberry.dll', webview: 'goldberry-webview.dll', webviewRequired: true],
         [id: 'macos-aarch64', library: 'libgoldberry.dylib', webview: 'libgoldberry-webview.dylib', webviewRequired: true],
 ]
 
@@ -661,18 +661,17 @@ nativeTargets.each { target ->
                                 "Build it on a ${target.id} runner and download it there, " +
                                 "or pass -Pgoldberry.artifactsDir=<dir>.")
             }
-            // NOT a failure where the web view is optional, which is the whole
-            // difference between the two libraries: a build made without WebKit's
-            // headers produces one and not the other, and that is a supported
-            // build rather than a broken one. Said out loud so that "why has
-            // web-view stopped working" has an answer in the build log. On macOS
-            // there are no headers to be missing, so absence is a lost file.
+            // A failure for every target CI builds, because CI builds the web
+            // view for all of them and a jar without it is a lost file. The
+            // `webviewRequired: false` branch is kept for a target whose engine
+            // cannot be built yet: it says so out loud, so that "why has
+            // web-view stopped working" has an answer in the build log.
             if (!new File(sourceDir.get(), target.webview).isFile()) {
                 if (target.webviewRequired) {
                     throw new GradleException(
                             "No ${target.webview} for ${target.id} in ${sourceDir.get()}.\n" +
-                                    "The superbuild always makes it on this platform, so it was built and " +
-                                    "not handed over: the ${target.id} job uploads both libraries.")
+                                    "CI builds it for every target, so it was built and not handed over: " +
+                                    "see the ${target.id} jobs in the platform workflow and publish.yml.")
                 }
                 logger.lifecycle(
                         "no ${target.webview} for ${target.id}: this jar ships without web view support, " +
@@ -743,10 +742,9 @@ def nativeRequired = providers.systemProperty('goldberry.native.required')
         .map { Boolean.parseBoolean(it) }
         .getOrElse(false)
 
-// The same for libgoldberry-webview, which is optional where its headers may be
-// missing and required on macOS, where they cannot be. The macOS verify job sets
-// it, so a Mac library that does not load and bind is red there rather than a
-// skipped test over a natives jar with no web view.
+// The same for libgoldberry-webview, which a local build may lack and a published
+// one may not. Every verify job sets it, so a web view library that does not load
+// and bind is red there rather than a skipped test over a jar with no web view.
 // https://goldberry.dev/docs/contributing/testing.html#with-and-without-the-library
 def webviewRequired = providers.systemProperty('goldberry.webview.required')
         .orElse(providers.gradleProperty('goldberry.webview.required'))

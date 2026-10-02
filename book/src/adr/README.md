@@ -556,4 +556,4 @@ proposing to undo them.
 - [ADR-0518 A doc comment explains the object and links the guide](0518-a-doc-comment-explains-the-object-and-links-the-guide.md)
 - [ADR-0519 goldberry.dev counts visits, and only with consent](0519-goldberry-dev-counts-visits-only-with-consent.md)
 - [ADR-0520 Media Foundation is held back from 2026.2](0520-media-foundation-is-held-back-from-2026-2.md)
-- [ADR-0521 The macOS natives jar carries the web view](0521-the-macos-natives-jar-carries-the-web-view.md)
+- [ADR-0521 Every natives jar carries the web view](0521-every-natives-jar-carries-the-web-view.md)
