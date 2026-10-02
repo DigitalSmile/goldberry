@@ -247,6 +247,12 @@ class FrameBudgetTest {
         }
         actions.pickScreen(screen);
         var inflater = Widgets.inflater(
+                // The objects the documents name -- the Forms screen's controller
+                // and the media screens' players -- as ShowcaseScene passes them.
+                // Without them every measurement died on `audio-player`'s missing
+                // `player=` before a frame was drawn, and the benchmark lane could
+                // not tell that apart from a library it could not load.
+                model.named(),
                 Icons.strict().bind("palette", palette).bind("plus", plus),
                 showcase.models().toArray());
         return new ElementTree(new Screen(

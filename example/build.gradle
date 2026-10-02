@@ -229,7 +229,12 @@ tasks.named('check') {
     dependsOn gpuTest
 }
 
-tasks.named('test') {
+// `benchmark` as well as `test`: the benchmarks rasterize too, and without the
+// library every one of them skipped -- FrameBudgetTest reported six skips on
+// every nightly run and nobody read a table that was never printed. The no-web-
+// view and no-FFmpeg settings below apply to it for the same reason they apply
+// to the goldens: a measurement should not depend on what this machine installed.
+['test', 'benchmark'].each { taskName -> tasks.named(taskName) {
     def explicit = providers.systemProperty('goldberry.native.library')
             .orElse(providers.gradleProperty('goldberry.native.library'))
     if (explicit.present) {
@@ -282,7 +287,7 @@ tasks.named('test') {
     // "not available" branch.
     systemProperty 'goldberry.media.libdir', layout.buildDirectory
             .dir('no-such-ffmpeg').get().asFile.absolutePath
-}
+} }
 
 tasks.named('run') {
     // FFmpeg for the Media screen: an explicit directory wins, else what
