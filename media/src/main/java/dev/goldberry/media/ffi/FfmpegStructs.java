@@ -7,8 +7,10 @@ import static java.lang.foreign.ValueLayout.ADDRESS;
 import static java.lang.foreign.ValueLayout.JAVA_INT;
 import static java.lang.foreign.ValueLayout.JAVA_LONG;
 
+import java.lang.foreign.Linker;
 import java.lang.foreign.StructLayout;
 import java.util.List;
+import java.util.Objects;
 
 /// The FFmpeg structs the Engine reads fields of, declared by hand.
 ///
@@ -18,11 +20,12 @@ import java.util.List;
 /// its C type, which is the key [FfmpegLayoutCheck] matches against the probe.
 ///
 /// The offsets are FFmpeg 8.1's (avformat 62, avcodec 62, avutil 60), as the probe
-/// reports them. They hold on all four targets, because FFmpeg's public structs
-/// are made of `int`, `int64_t`, pointers and enums, and every target is LP64 or
-/// LLP64 with 64-bit pointers. The check still runs per target, at build time and
-/// at start-up. A layout that is wrong somewhere refuses to load there rather
-/// than read the wrong bytes.
+/// reports them. They hold on all four targets, because the fields read are
+/// `int`, `int64_t`, pointers and enums, and every target is LP64 or LLP64 with
+/// 64-bit pointers. One struct's size does not: `AVIOContext` holds a C `long`,
+/// which is 4 bytes on Windows, so its layout is built for the target it runs on.
+/// The check runs per target, at build time and at start-up. A layout that is
+/// wrong somewhere refuses to load there rather than read the wrong bytes.
 ///
 /// **Moving the FFmpeg pin means re-reading this file**, and the layout test
 /// fails until it has been.
@@ -58,13 +61,28 @@ public final class FfmpegStructs {
                     paddingLayout(348))
             .withName("AVFormatContext");
 
+    /// The size of C's `long` on this target: 8 bytes on Linux and macOS (LP64),
+    /// 4 on Windows (LLP64).
+    static final long C_LONG_SIZE = Objects.requireNonNull(
+                    Linker.nativeLinker().canonicalLayouts().get("long"), "the native linker has no C long")
+            .byteSize();
+
     /// `AVIOContext`: read only to free its buffer, which `avio_alloc_context` is
     /// allowed to have replaced.
-    public static final StructLayout AV_IO_CONTEXT = structLayout(
-                    paddingLayout(8), // av_class
-                    ADDRESS.withName("buffer"),
-                    paddingLayout(192))
-            .withName("AVIOContext");
+    public static final StructLayout AV_IO_CONTEXT = avIoContext(C_LONG_SIZE);
+
+    /// `AVIOContext` where C's `long` is `longSize` bytes. Its
+    /// `unsigned long checksum` follows five `int`s: at offset 104 where a `long`
+    /// is 8 bytes, at 100 where it is 4, with the pointer after it realigned to
+    /// 104. Everything after it is 8 bytes earlier on Windows, and the struct is
+    /// 200 bytes there rather than 208.
+    static StructLayout avIoContext(long longSize) {
+        return structLayout(
+                        paddingLayout(8), // av_class
+                        ADDRESS.withName("buffer"),
+                        paddingLayout(longSize == 8 ? 192 : 184))
+                .withName("AVIOContext");
+    }
 
     /// `AVPacket`: one compressed frame. Embedded by value in `AVStream` as the
     /// attached picture.
