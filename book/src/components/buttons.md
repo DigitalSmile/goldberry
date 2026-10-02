@@ -1,10 +1,11 @@
 # Buttons, badges and chips
 
-<p class="gb-lede">Three stadium-shaped widgets: one you press, one you read, and one you choose.</p>
+<p class="gb-lede">Three stadium-shaped widgets: one you press, one you read, and one you choose. And a fourth with no shape at all, which makes anything pressable.</p>
 
 By the end of this chapter you can wire a button to an action, pick its variant
 with a class, float it in a window corner, show a count that follows a value,
-and build a row of filter chips.
+build a row of filter chips, and make a picture or a row pressable without a
+button's box around it.
 
 ## `button`
 
@@ -260,3 +261,87 @@ field, where `Backspace` is what a hand reaches for.
 - [ADR-0328: a dot's colour is data](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0328-a-dots-colour-is-data.md)
 - [ADR-0063: data flows down, events flow up](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0063-data-flows-down-events-flow-up.md)
 - [ADR-0192: a row of chips wraps and the chevron does not](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0192-a-row-of-chips-wraps-and-the-chevron-does-not.md)
+
+## `pressable`
+
+Anything, made into something you press: a button's behaviour with none of a
+button's box.
+
+<div class="gb-shot"><img class="gb-light" src="../images/pressable-light.webp" width="185" alt="A row reading 2.4.0 and Released on Tuesday, with no button drawn around it"><img class="gb-dark" src="../images/pressable-dark.webp" width="185" alt="A row reading 2.4.0 and Released on Tuesday, with no button drawn around it"><p>A row made pressable, with no box of its own.</p></div>
+
+<div class="gb-tabs">
+
+```kdl
+pressable name="Open release 2.4" press="app.open-release" class="release-row" {
+  row {
+    text "2.4.0"
+    text class="caption" "Released on Tuesday"
+  }
+}
+```
+
+```java
+import dev.goldberry.widgets.controls.pressable.Pressable;
+
+new Pressable("Open release 2.4", () -> open(release),
+        new Row(new Text("2.4.0"), new Text("Released on Tuesday").styled("caption")))
+    .styled("release-row");
+```
+
+</div>
+
+A picture in a timeline that opens a viewer, a release row, a card on a board:
+each already has a look, and a `button` around it would draw a second. A
+`pressable` draws nothing of its own and behaves exactly as a button does. It
+is a Tab stop, a click activates it, `Space` and `Enter` activate it, and
+`:hover`, `:active` and `:focus-visible` match it from anywhere inside it.
+`disabled` takes it out of the Tab order and refuses activation, for
+everything inside it too. Behind a modal dialog it is out of reach, like the
+rest of the application.
+
+A press that something inside it handles belongs to that: a `button` in a
+pressable row is pressed on its own and the row hears nothing. A key that
+bubbles up from something focused inside it is left alone, so `Enter` in a
+field does not also press the row the field is in.
+
+A reader announces it as a button, so it must be named. Its content is a
+picture or a row of texts, not a label, so the name cannot be worked out from
+it the way a `button`'s is, and a pressable with no `name` is refused
+([ADR-0533](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0533-anything-can-be-pressed-and-it-is-a-button-to-a-reader.md)).
+
+### Attributes
+
+| Attribute | Type | Default | What it does |
+|---|---|---|---|
+| `name` | string | required | What a reader announces it as. A pressable without one is refused |
+| `press` | action name | none | What activating it does |
+| `disabled` | boolean | `#false` | Refuses activation, leaves the Tab order and matches `:disabled` |
+| `id`, `class` | string | | The usual |
+
+Its children are its content, laid out in a column.
+
+### Styling
+
+- CSS type `pressable`, and no parts.
+- Pseudo-classes: `:hover`, `:active`, `:focus-visible`, `:disabled`.
+
+The stylesheet gives it the pointer cursor, the focus ring at a 4 px radius
+and the 45 % disabled fade, and nothing else: no padding, no surface, no hover
+wash. An application that wants a wash writes one on its own class:
+
+```css
+.release-row:hover { background: var(--gb-overlay-hover); }
+```
+
+### Keyboard
+
+| Key | Does |
+|---|---|
+| `Tab` | reaches it, unless disabled |
+| `Space`, `Enter` | activate it, once per press; a held key does not repeat |
+
+### Read more
+
+- [ADR-0533: Anything can be pressed, and it is a button to a reader](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0533-anything-can-be-pressed-and-it-is-a-button-to-a-reader.md)
+- [ADR-0232: Modality is one flag, and not a scrim](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0232-modality-is-one-flag-and-not-a-scrim.md)
+- [ADR-0327: A hover is a node property, not a menu's](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0327-a-hover-is-a-node-property-not-a-menus.md)

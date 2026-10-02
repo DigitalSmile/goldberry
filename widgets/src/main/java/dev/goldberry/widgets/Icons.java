@@ -3,6 +3,7 @@ package dev.goldberry.widgets;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 
 import org.jspecify.annotations.Nullable;
 
@@ -37,16 +38,18 @@ public final class Icons {
     /// it has to hold a tick *and* an icon at one width, and a `select`'s chevron
     /// is 16 for the same reason.
     ///
-    /// It is here because this is the door. An `Icon` is a path built at a size
-    /// and cannot be rescaled afterwards, so the size is chosen at the moment of
-    /// construction; naming it where the icon is built saves an author a trip to
+    /// It is here because this is the door. An `Icon` is a path built at a size,
+    /// and a control's slot draws it at that size, so the size is chosen at the
+    /// moment of construction; naming it where the icon is built saves an author a trip to
     /// `controls.css`, where somebody building an icon in Java has no reason to
     /// look. A 20px glyph in the 16px column is centred and overhangs: legible,
     /// deliberate-looking, and not what anybody meant.
     ///
     /// **Not a maximum.** A `button`, a `chip`, a `tab` and a `crumb` size their
     /// boxes *to* the icon, so 20 and 24 are ordinary there and nothing is
-    /// overflowed. This is the number for the slots that cannot.
+    /// overflowed. This is the number for the slots that cannot. The `icon`
+    /// node is the exception the other way: it draws any icon at the size its
+    /// stylesheet gives the box.
     public static final double SLOT = 16;
 
     private final Map<String, Icon> byName = new LinkedHashMap<>();
@@ -129,6 +132,16 @@ public final class Icons {
                     + " markup cannot build an icon because nothing would close it.");
         }
         return icon;
+    }
+
+    /// The icon registered under `name`, or nothing — whether or not this
+    /// registry is [#strict()].
+    ///
+    /// The lookup for a caller that has a fallback of its own, which the
+    /// `icon` node is: a name not registered here goes on to the bundled set
+    /// rather than failing.
+    public Optional<Icon> find(String name) {
+        return Optional.ofNullable(byName.get(Objects.requireNonNull(name, "name")));
     }
 
     /// Every name registered here, in the order they were registered.

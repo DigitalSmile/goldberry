@@ -118,6 +118,66 @@ class BoundMarkupTest {
     }
 
     @Nested
+    @DisplayName("slot")
+    class Slot {
+
+        @Test
+        @DisplayName("a slot draws whatever widget the binding holds, with the document's id and classes laid over")
+        void anyWidget() {
+            bindings.bind("app.detail", Property.<Widget>of(new Text("Nothing selected").styled("empty")));
+
+            var bound = assertInstanceOf(Bound.class, inflate("""
+                    slot bind="app.detail" id="detail" class="pane"
+                    """));
+            var built = assertInstanceOf(Text.class, bound.build(null));
+
+            assertEquals(Widget.class, bound.type());
+            assertEquals("Nothing selected", built.content());
+            assertEquals("detail", built.attributes().id());
+            assertEquals(Set.of("empty", "pane"), built.attributes().classes());
+        }
+
+        @Test
+        @DisplayName("a model that replaces the widget replaces what is drawn")
+        void rebuildsOnChange() {
+            var detail = Property.<Widget>of(new Text("Nothing selected"));
+            bindings.bind("app.detail", detail);
+            var tree = new ElementTree(inflate("""
+                    slot bind="app.detail"
+                    """));
+
+            detail.set(new TextInput().placeholder("Name"));
+            tree.flush();
+
+            assertInstanceOf(TextInput.class, tree.root().children().getFirst().widget());
+        }
+
+        @Test
+        @DisplayName("a widget with no attributes is drawn as it is")
+        void unattributed() {
+            Widget plain = Widget.nothing();
+            bindings.bind("app.plain", Property.of(plain));
+
+            assertSame(plain, ((Bound) inflate("""
+                    slot bind="app.plain" id="ignored"
+                    """)).build(null));
+        }
+
+        @Test
+        @DisplayName("nothing bound, or a value that is not a widget, draws nothing")
+        void nothingBound() {
+            bindings.bind("app.word", Property.<Object>of("not a widget"));
+
+            assertSame(
+                    Widget.nothing(),
+                    ((Bound) Widgets.inflater().inflate(KdlParser.parse("slot").getFirst())).build(null));
+            assertSame(Widget.nothing(), ((Bound) inflate("""
+                    slot bind="app.word"
+                    """)).build(null));
+        }
+    }
+
+    @Nested
     @DisplayName("autocomplete")
     class Autocomplete {
 

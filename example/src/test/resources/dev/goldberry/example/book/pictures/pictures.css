@@ -27,3 +27,37 @@
 #gb-picture slider.vertical {
   height: 160px;
 }
+
+/* The icon chapter's three sizes and its warning: what an application's sheet
+   says about its own icons, and the sample does not. */
+#gb-picture icon.small {
+  width: 11px;
+  height: 11px;
+}
+
+#gb-picture icon.large {
+  width: 24px;
+  height: 24px;
+}
+
+#gb-picture icon.warn {
+  color: var(--gb-warning);
+}
+
+#gb-picture .icon-sizes {
+  gap: 12px;
+  align-items: center;
+  color: var(--gb-text);
+}
+
+/* A pressable has no look of its own; the sample's row is given one, as an
+   application would give its release rows. */
+#gb-picture .release-row {
+  color: var(--gb-text);
+}
+
+#gb-picture .release-row row {
+  gap: 12px;
+  padding: 8px 12px;
+  align-items: center;
+}

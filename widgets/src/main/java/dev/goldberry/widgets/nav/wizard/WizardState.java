@@ -60,7 +60,8 @@ final class WizardState extends State<Wizard> {
         for (var page : pages) {
             steps.add(new Step(page.label(), page.description())
                     .error(page.error())
-                    .reachable(page.reachable()));
+                    .reachable(page.reachable())
+                    .complete(page.complete()));
         }
         var indicator = new Steps(
                 steps,

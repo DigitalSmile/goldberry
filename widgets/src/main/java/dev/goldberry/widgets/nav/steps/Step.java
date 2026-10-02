@@ -1,5 +1,6 @@
 package dev.goldberry.widgets.nav.steps;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -30,12 +31,14 @@ import dev.goldberry.widgets.markup.Wiring;
 /// step "Account" description="Who you are"
 /// step error=#true "Payment"
 /// step reachable=#true "Review"
+/// step complete=#false "Grafana" description="Not signed in"
 /// ```
 ///
 /// ## What a document writes and what the list writes
 ///
-/// A document writes `error` and `reachable`; the list writes the index, the
-/// count and the [StepState] on every build, and a document cannot. That is
+/// A document writes `error`, `reachable` and `complete`; the list writes the
+/// index, the count and the [StepState] on every build, and a document cannot.
+/// That is
 /// [dev.goldberry.widgets.nav.breadcrumbs.Crumb]'s
 /// arrangement, and it is what keeps "one step is current" an invariant rather
 /// than a hope.
@@ -48,9 +51,10 @@ import dev.goldberry.widgets.markup.Wiring;
 /// ## Mirrored to `:checked`, and the state is a class
 ///
 /// The current step is `:checked`, which is the pseudo-class every "one of the
-/// set is the one" in this catalog uses. The four states are also classes —
-/// `step.done`, `step.current`, `step.upcoming`, `step.error` — because a
-/// stylesheet wants to colour all four and `:checked` names one.
+/// set is the one" in this catalog uses. The five states are also classes —
+/// `step.done`, `step.current`, `step.upcoming`, `step.incomplete`,
+/// `step.error` — because a stylesheet wants to colour all of them and
+/// `:checked` names one.
 ///
 /// Read more: [Navigation](https://goldberry.dev/docs/components/navigation.html#step).
 ///
@@ -58,6 +62,9 @@ import dev.goldberry.widgets.markup.Wiring;
 /// @param description an optional second line, in `caption`
 /// @param error       whether the application says this step failed
 /// @param reachable   whether the application says a press may go here
+/// @param complete    whether the application says this step is done; null
+///                    leaves it to the position, so a step before the current
+///                    one is done
 /// @param index       supplied by [Steps] on every build; not an attribute
 /// @param count       supplied by [Steps]; how many steps the list holds
 /// @param state       supplied by [Steps]
@@ -69,6 +76,7 @@ public record Step(
         @Nullable String description,
         boolean error,
         boolean reachable,
+        @Nullable Boolean complete,
         int index,
         int count,
         StepState state,
@@ -82,6 +90,7 @@ public record Step(
             @Nullable String description,
             boolean error,
             boolean reachable,
+            @Nullable Boolean complete,
             int index,
             int count,
             @Nullable StepState state,
@@ -99,6 +108,7 @@ public record Step(
         this.description = description;
         this.error = error;
         this.reachable = reachable;
+        this.complete = complete;
         this.index = index;
         this.count = count;
         this.state = state;
@@ -108,32 +118,43 @@ public record Step(
 
     /// A step with a name.
     public Step(String label) {
-        this(label, null, false, false, 0, 0, StepState.UPCOMING, null, Attributes.NONE);
+        this(label, null, false, false, null, 0, 0, StepState.UPCOMING, null, Attributes.NONE);
     }
 
     /// A step with a name and a second line.
     public Step(String label, @Nullable String description) {
-        this(label, description, false, false, 0, 0, StepState.UPCOMING, null, Attributes.NONE);
+        this(label, description, false, false, null, 0, 0, StepState.UPCOMING, null, Attributes.NONE);
     }
 
     /// This step, failed.
     public Step error(boolean value) {
-        return new Step(label, description, value, reachable, index, count, state, onPress, attributes);
+        return new Step(label, description, value, reachable, complete, index, count, state, onPress, attributes);
     }
 
     /// This step, one the application allows a press to reach.
     public Step reachable(boolean value) {
-        return new Step(label, description, error, value, index, count, state, onPress, attributes);
+        return new Step(label, description, error, value, complete, index, count, state, onPress, attributes);
+    }
+
+    /// This step, done or not done whatever the position says — or, given
+    /// null, done exactly when it comes before the current one.
+    ///
+    /// A step that was passed and is not done is [StepState#INCOMPLETE]: a
+    /// form skipped, an account not signed in. A step after the current one
+    /// that says it is done is [StepState#DONE], which is what going back to
+    /// an earlier page looks like.
+    public Step complete(@Nullable Boolean value) {
+        return new Step(label, description, error, reachable, value, index, count, state, onPress, attributes);
     }
 
     /// Used by [Steps] to tell a step where it stands.
     Step at(int position, int total, StepState where, @Nullable Runnable press) {
-        return new Step(label, description, error, reachable, position, total, where, press, attributes);
+        return new Step(label, description, error, reachable, complete, position, total, where, press, attributes);
     }
 
     @Override
     public Step withAttributes(Attributes value) {
-        return new Step(label, description, error, reachable, index, count, state, onPress, value);
+        return new Step(label, description, error, reachable, complete, index, count, state, onPress, value);
     }
 
     @Override
@@ -149,7 +170,7 @@ public record Step(
     /// The document's classes plus the state's word.
     @Override
     public Set<String> classes() {
-        var classes = new java.util.HashSet<>(attributes.classes());
+        var classes = new HashSet<>(attributes.classes());
         classes.add(state.word());
         return Set.copyOf(classes);
     }
@@ -220,13 +241,15 @@ public record Step(
 
     /// Builds a `step` from markup.
     ///
-    /// No index, no count, no state — the list writes those.
+    /// No index, no count, no state — the list writes those. `complete`
+    /// written as neither `#true` nor `#false` is left to the position.
     public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
         return new Step(
                 Wiring.label(node),
                 node.stringProperty("description"),
                 node.booleanProperty("error"),
                 node.booleanProperty("reachable"),
+                node.flagProperty("complete"),
                 0,
                 0,
                 StepState.UPCOMING,

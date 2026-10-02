@@ -77,7 +77,8 @@ class WidgetParityTest {
             "marker", "a chart annotation: what it describes is drawn on an axis by the chart",
             "list", "a `Bound`, which describes nothing until a model is bound — see BoundMarkupTest",
             "table", "a `Bound`, as `list` is",
-            "tree", "a `Bound`, as `list` is");
+            "tree", "a `Bound`, as `list` is",
+            "slot", "a `Bound` over any widget, as `list` is over a `ListView`");
 
     /// The two the widened sweep found: registered widgets with a CSS type of
     /// their own that a document **cannot name or class**.

@@ -5,11 +5,13 @@ import java.util.function.DoubleConsumer;
 
 import org.jspecify.annotations.Nullable;
 
+import dev.goldberry.bind.Observable;
 import dev.goldberry.kdl.KdlNode;
 import dev.goldberry.widget.State;
 import dev.goldberry.widget.Widget;
 import dev.goldberry.widget.attr.Attributed;
 import dev.goldberry.widget.attr.Attributes;
+import dev.goldberry.widget.attr.Bindable;
 import dev.goldberry.widgets.markup.Markup;
 import dev.goldberry.widgets.markup.Wiring;
 
@@ -18,6 +20,10 @@ import dev.goldberry.widgets.markup.Wiring;
 ///
 /// ```kdl
 /// split-pane axis="horizontal" position=0.3 first-min=160 second-min=240 {
+///     panel { text "The list" }
+///     panel { text "The detail" }
+/// }
+/// split-pane bind="layout.split" resize="layout.set-split" {
 ///     panel { text "The list" }
 ///     panel { text "The detail" }
 /// }
@@ -59,6 +65,17 @@ import dev.goldberry.widgets.markup.Wiring;
 /// anything between frames — which it could not, being a value rebuilt from the
 /// state.
 ///
+/// ## The position may come from a model
+///
+/// `bind=` names a number the position is read from, as a `slider`'s value
+/// is. With `resize=` beside it the split is controlled: the bound number is
+/// where the divider is, and a drag reports where it should go, which the
+/// application writes into the model. Data flows down and events flow up, so
+/// nothing here writes the model itself. With `bind=` alone the split keeps
+/// its own position, starts at the bound number and goes back to it whenever
+/// the model changes it, which is what restoring a saved layout needs. A bound
+/// value that is not a number is ignored and `position` is used instead.
+///
 /// ## The keyboard
 ///
 /// The split is resizable from the keyboard when the divider has focus. The
@@ -72,7 +89,8 @@ import dev.goldberry.widgets.markup.Wiring;
 /// @param axis        which way the two children are laid out — see [SplitAxis]
 /// @param position    where the divider sits, `0..1` of the pane's length; with
 ///                    [#onResize] this is where it *is*, and without it where it
-///                    starts
+///                    starts. A bound number wins over it
+/// @param source      the `bind=` value the position is read from, or null
 /// @param onResize    what a drag asks for, or null to keep the position here
 /// @param firstMin    the least the first child may be, in logical pixels
 /// @param secondMin   likewise for the second
@@ -86,13 +104,14 @@ import dev.goldberry.widgets.markup.Wiring;
 public record SplitPane(
         SplitAxis axis,
         double position,
+        @Nullable Observable<?> source,
         @Nullable DoubleConsumer onResize,
         float firstMin,
         float secondMin,
         boolean collapsible,
         List<Widget> children,
         Attributes attributes)
-        implements Widget.Stateful, Attributed<SplitPane> {
+        implements Widget.Stateful, Attributed<SplitPane>, Bindable<SplitPane> {
 
     /// What a child is given when nothing says otherwise.
     ///
@@ -107,6 +126,7 @@ public record SplitPane(
                 SplitAxis.HORIZONTAL,
                 0.5,
                 null,
+                null,
                 DEFAULT_MINIMUM,
                 DEFAULT_MINIMUM,
                 false,
@@ -118,6 +138,7 @@ public record SplitPane(
         this(
                 axis,
                 position,
+                null,
                 onResize,
                 DEFAULT_MINIMUM,
                 DEFAULT_MINIMUM,
@@ -126,10 +147,24 @@ public record SplitPane(
                 Attributes.NONE);
     }
 
+    /// Every part but the binding, which is what a split built in Java has.
+    public SplitPane(
+            @Nullable SplitAxis axis,
+            double position,
+            @Nullable DoubleConsumer onResize,
+            float firstMin,
+            float secondMin,
+            boolean collapsible,
+            @Nullable List<Widget> children,
+            @Nullable Attributes attributes) {
+        this(axis, position, null, onResize, firstMin, secondMin, collapsible, children, attributes);
+    }
+
     /// Written out so that the parameters taking null for a default can say so.
     public SplitPane(
             @Nullable SplitAxis axis,
             double position,
+            @Nullable Observable<?> source,
             @Nullable DoubleConsumer onResize,
             float firstMin,
             float secondMin,
@@ -152,6 +187,7 @@ public record SplitPane(
         position = Math.clamp(position, 0.0, 1.0);
         this.axis = axis;
         this.position = position;
+        this.source = source;
         this.onResize = onResize;
         this.firstMin = firstMin;
         this.secondMin = secondMin;
@@ -163,6 +199,22 @@ public record SplitPane(
     /// Whether the application is deciding, rather than this widget.
     public boolean isControlled() {
         return onResize != null;
+    }
+
+    /// Where the divider is asked to be: the bound number when there is one,
+    /// clamped to `0..1`, and [#position()] otherwise.
+    public double resolvedPosition() {
+        var bound = boundPosition();
+        return Double.isNaN(bound) ? position : bound;
+    }
+
+    /// The bound number, clamped to `0..1`, or `NaN` when nothing is bound or
+    /// what is bound is not a finite number.
+    double boundPosition() {
+        if (source != null && source.get() instanceof Number number && Double.isFinite(number.doubleValue())) {
+            return Math.clamp(number.doubleValue(), 0.0, 1.0);
+        }
+        return Double.NaN;
     }
 
     /// The first child — the left one, or the top one.
@@ -177,7 +229,17 @@ public record SplitPane(
 
     @Override
     public SplitPane withAttributes(Attributes value) {
-        return new SplitPane(axis, position, onResize, firstMin, secondMin, collapsible, children, value);
+        return new SplitPane(axis, position, source, onResize, firstMin, secondMin, collapsible, children, value);
+    }
+
+    @Override
+    public SplitPane bound(Observable<?> value) {
+        return new SplitPane(axis, position, value, onResize, firstMin, secondMin, collapsible, children, attributes);
+    }
+
+    @Override
+    public @Nullable Observable<?> binding() {
+        return source;
     }
 
     @Override
@@ -191,10 +253,14 @@ public record SplitPane(
     }
 
     /// Builds a `split-pane` from markup.
+    ///
+    /// `bind=` names the number the position is read from and `resize=` the
+    /// action a drag reports to; either may be written without the other.
     public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
         return new SplitPane(
                 SplitAxis.of(node.stringProperty("axis")),
                 node.numberProperty("position", 0.5),
+                wiring.bound(node),
                 wiring.numeric(node, "resize"),
                 (float) node.numberProperty("first-min", DEFAULT_MINIMUM),
                 (float) node.numberProperty("second-min", DEFAULT_MINIMUM),

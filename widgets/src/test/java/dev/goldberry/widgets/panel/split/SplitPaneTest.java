@@ -3,18 +3,25 @@ package dev.goldberry.widgets.panel.split;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.DoubleConsumer;
 
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 import dev.goldberry.RendererRequirement;
+import dev.goldberry.bind.Property;
+import dev.goldberry.bind.registry.ActionRegistry;
+import dev.goldberry.bind.registry.BindingRegistry;
 import dev.goldberry.input.event.KeyEvent;
 import dev.goldberry.input.event.PointerEvent;
 import dev.goldberry.input.hit.Extent;
@@ -23,7 +30,9 @@ import dev.goldberry.input.key.Modifiers;
 import dev.goldberry.kdl.KdlParser;
 import dev.goldberry.widget.ElementTree;
 import dev.goldberry.widget.attr.Attributes;
+import dev.goldberry.widgets.Icons;
 import dev.goldberry.widgets.Widgets;
+import dev.goldberry.widgets.markup.Wiring;
 import dev.goldberry.widgets.panel.Described;
 import dev.goldberry.widgets.text.Text;
 
@@ -626,6 +635,108 @@ class SplitPaneTest {
             drag(tree, 0, false);
 
             assertEquals(0, calls.get());
+        }
+    }
+
+    @Nested
+    @DisplayName("bound to a model")
+    class BoundToAModel {
+
+        private static SplitPane bound(Property<?> source, @Nullable DoubleConsumer onResize) {
+            return new SplitPane(
+                            SplitAxis.HORIZONTAL,
+                            0.5,
+                            onResize,
+                            SplitPane.DEFAULT_MINIMUM,
+                            SplitPane.DEFAULT_MINIMUM,
+                            false,
+                            List.of(new Text("a"), new Text("b")),
+                            Attributes.NONE)
+                    .bound(source);
+        }
+
+        @Test
+        @DisplayName("a controlled split's divider is the bound number, and a drag is reported rather than kept")
+        void controlled() {
+            var split = Property.of(0.25);
+            var asked = new AtomicReference<Double>();
+            var tree = measured(bound(split, asked::set));
+
+            assertEquals(0.25, view(tree).position(), 1e-6, "the bound number wins over position=");
+            drag(tree, 30, false);
+
+            assertEquals(0.35, asked.get(), 1e-6);
+            assertEquals(0.25, view(tree).position(), 1e-6, "nothing moves until the model does");
+
+            split.set(asked.get());
+            tree.flush();
+            assertEquals(0.35, view(tree).position(), 1e-6);
+        }
+
+        @Test
+        @DisplayName("bound with nobody to report to, it keeps its own drag and follows the model when that changes")
+        void boundAlone() {
+            var split = Property.of(0.25);
+            var tree = measured(bound(split, null));
+            assertEquals(0.25, view(tree).position(), 1e-6, "it starts where the model says");
+
+            drag(tree, 30, false);
+            assertEquals(0.35, view(tree).position(), 1e-6, "a drag is kept, as an uncontrolled split keeps it");
+            assertEquals(0.25, split.get(), 1e-9, "and the model is not written");
+
+            tree.root().markNeedsBuild();
+            tree.flush();
+            assertEquals(0.35, view(tree).position(), 1e-6, "a rebuild with the same model leaves the drag alone");
+
+            split.set(0.6);
+            tree.flush();
+            assertEquals(0.6, view(tree).position(), 1e-6, "a model that changes puts the divider back");
+        }
+
+        @Test
+        @DisplayName("a bound value that is not a number leaves position= in charge")
+        void notANumber() {
+            var pane = new SplitPane(
+                            SplitAxis.HORIZONTAL,
+                            0.3,
+                            null,
+                            SplitPane.DEFAULT_MINIMUM,
+                            SplitPane.DEFAULT_MINIMUM,
+                            false,
+                            List.of(new Text("a"), new Text("b")),
+                            Attributes.NONE)
+                    .bound(Property.of("wide"));
+
+            assertEquals(0.3, pane.resolvedPosition(), 1e-9);
+            assertEquals(0.3, view(measured(pane)).position(), 1e-6);
+        }
+
+        @Test
+        @DisplayName("a bound number outside 0 to 1 is clamped, as position= is")
+        void clamped() {
+            assertEquals(1.0, bound(Property.of(4), null).resolvedPosition(), 1e-9);
+            assertEquals(0.0, bound(Property.of(-2.5), null).resolvedPosition(), 1e-9);
+        }
+
+        @Test
+        @DisplayName("bind= and resize= inflate, and a drag reaches the action as a number")
+        void markup() {
+            var reported = new ArrayList<String>();
+            var bindings = BindingRegistry.strict();
+            bindings.bind("layout.split", Property.of(0.25));
+            var actions = ActionRegistry.strict().bind("layout.set-split", (String value) -> reported.add(value));
+            var pane = (SplitPane) Widgets.inflater(new Wiring(actions, Icons.none(), bindings))
+                    .inflate(KdlParser.parse("""
+                            split-pane bind="layout.split" resize="layout.set-split" {
+                                text "list"
+                                text "detail"
+                            }
+                            """).getFirst());
+
+            assertNotNull(pane.binding());
+            assertEquals(0.25, pane.resolvedPosition(), 1e-9);
+            drag(measured(pane), 30, false);
+            assertEquals(0.35, Double.parseDouble(reported.getFirst()), 1e-6);
         }
     }
 

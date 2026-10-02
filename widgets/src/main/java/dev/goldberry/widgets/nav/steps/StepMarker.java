@@ -14,7 +14,7 @@ import dev.goldberry.widget.style.Styled;
 ///
 /// What is in it depends on the state, and that is the one thing colour must
 /// not be left to carry alone: a done step has a tick, a failed one a cross,
-/// and the other two show their number. The state's word is a class here as
+/// and the other three show their number. The state's word is a class here as
 /// well as on the step, so a stylesheet can fill the disc without a descendant
 /// selector reaching through `step.done`.
 ///
@@ -39,7 +39,7 @@ record StepMarker(int index, StepState state) implements Widget.Leaf, Styled, Pa
             case ERROR -> Box.of().style(style).mark(new Box.Mark(Box.Mark.Kind.CROSS, style.color(), 2));
             // The number is a child of the disc rather than the disc's own
             // text, so the stylesheet's centring applies to it.
-            case CURRENT, UPCOMING ->
+            case CURRENT, UPCOMING, INCOMPLETE ->
                 Box.of()
                         .style(style)
                         .children(Box.text(context.paragraph(style, Integer.toString(index + 1)), style.color()));

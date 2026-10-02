@@ -115,17 +115,17 @@ chapter's *Styling* section lists the parts a widget has.
 
 <div class="gb-cards">
 <a class="gb-card" href="text.html"><strong>Text and links</strong><span>text, link</span></a>
-<a class="gb-card" href="buttons.html"><strong>Buttons, badges and chips</strong><span>button, badge, chip</span></a>
+<a class="gb-card" href="buttons.html"><strong>Buttons, badges and chips</strong><span>button, badge, chip, pressable</span></a>
 <a class="gb-card" href="choices.html"><strong>Choices</strong><span>checkbox, toggle, radio, radio-group, segmented, select, option</span></a>
 <a class="gb-card" href="values.html"><strong>Values and progress</strong><span>slider, knob, progress, spinner</span></a>
 <a class="gb-card" href="forms.html"><strong>Fields and forms</strong><span>text-input, text-area, field, form, code-input, date-picker, time-picker, color-picker</span></a>
 <a class="gb-card" href="panels.html"><strong>Panels</strong><span>panel, card, group-box, collapse, carousel, skeleton, statistic, tabs, timeline</span></a>
-<a class="gb-card" href="collections.html"><strong>Collections</strong><span>list, table, tree</span></a>
+<a class="gb-card" href="collections.html"><strong>Collections</strong><span>list, table, tree, slot</span></a>
 <a class="gb-card" href="navigation.html"><strong>Navigation</strong><span>breadcrumbs, steps, wizard</span></a>
 <a class="gb-card" href="menus.html"><strong>Menus and the tray</strong><span>menubar, menu, item, separator, and the tray icon</span></a>
 <a class="gb-card" href="overlays.html"><strong>Overlays</strong><span>dialog, popover, message, hud, toast and tour</span></a>
 <a class="gb-card" href="charts.html"><strong>Charts</strong><span>line-chart, bar-chart, area-chart, donut-chart, sparkline</span></a>
-<a class="gb-card" href="drawing.html"><strong>Canvas, images and QR codes</strong><span>canvas, image, qr-code</span></a>
+<a class="gb-card" href="drawing.html"><strong>Canvas, images and QR codes</strong><span>canvas, image, qr-code, icon</span></a>
 <a class="gb-card" href="content.html"><strong>Markdown, HTML and the web</strong><span>markdown-view, html-view, and the web view</span></a>
 <a class="gb-card" href="media.html"><strong>Audio and video</strong><span>media-player, video-view, audio-player, media-controls</span></a>
 <a class="gb-card" href="gpu.html"><strong>The GPU canvas</strong><span>canvas3d</span></a>
@@ -134,7 +134,7 @@ chapter's *Styling* section lists the parts a widget has.
 
 ## Every markup name
 
-The 79 names the inflater knows, and where each is documented. The layout
+The 82 names the inflater knows, and where each is documented. The layout
 widgets have a part of their own.
 
 | Name | Chapter |
@@ -166,6 +166,7 @@ widgets have a part of their own.
 | [`form`](forms.md#form) | Fields and forms |
 | [`group-box`](panels.md#group-box) | Panels |
 | [`html-view`](content.md#html-view) | Markdown, HTML and the web |
+| [`icon`](drawing.md#icon) | Canvas, images and QR codes |
 | [`hud`](overlays.md#hud) | Overlays |
 | [`image`](drawing.md#image) | Canvas, images and QR codes |
 | [`item`](menus.md#item) | Menus and the tray |
@@ -186,6 +187,7 @@ widgets have a part of their own.
 | [`panel`](panels.md#panel) | Panels |
 | [`point`](charts.md#point) | Charts |
 | [`popover`](overlays.md#popover) | Overlays |
+| [`pressable`](buttons.md#pressable) | Buttons, badges and chips |
 | [`progress`](values.md#progress) | Values and progress |
 | [`qr-code`](drawing.md#qr-code) | Canvas, images and QR codes |
 | [`radio`](choices.md#radio) | Choices |
@@ -197,6 +199,7 @@ widgets have a part of their own.
 | [`separator`](menus.md#separator) | Menus and the tray |
 | [`series`](charts.md#series) | Charts |
 | [`skeleton`](panels.md#skeleton) | Panels |
+| [`slot`](collections.md#slot) | Collections |
 | [`slider`](values.md#slider) | Values and progress |
 | [`spacer`](../layout/spacer.md#spacer) | Layout |
 | [`sparkline`](charts.md#sparkline) | Charts |

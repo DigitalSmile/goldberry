@@ -19,13 +19,14 @@ import dev.goldberry.widgets.markup.Wiring;
 ///     field label="Name" { text-input bind="signup.name" }
 /// }
 /// page error=#true "Payment" { … }
+/// page complete=#false "Grafana" description="Not signed in" { … }
 /// ```
 ///
 /// A description rather than a widget that draws itself —
 /// [dev.goldberry.widgets.panel.tabs.Tab]'s arrangement, and
 /// for the same reason: the wizard builds the indicator from every page and the
 /// content from one, so a page cannot decide where it goes. `label`,
-/// `description`, `error` and `reachable` are handed to the
+/// `description`, `error`, `reachable` and `complete` are handed to the
 /// [dev.goldberry.widgets.nav.steps.Step] the wizard makes
 /// of it; the children are shown when the page is current and are not built at
 /// all otherwise.
@@ -37,6 +38,9 @@ import dev.goldberry.widgets.markup.Wiring;
 /// @param error       whether the application says this page failed
 /// @param reachable   whether the application lets a press on the indicator
 ///                    come here, when the wizard is `clickable`
+/// @param complete    whether the application says this page is done; null
+///                    leaves it to the position, so every page before the
+///                    current one is drawn done
 /// @param children    the page's content
 /// @param attributes  `id` and `class`, which land on the content area while
 ///                    this page is shown
@@ -46,6 +50,7 @@ public record WizardPage(
         @Nullable String description,
         boolean error,
         boolean reachable,
+        @Nullable Boolean complete,
         List<Widget> children,
         Attributes attributes)
         implements Widget.Leaf, Attributed<WizardPage> {
@@ -56,6 +61,7 @@ public record WizardPage(
             @Nullable String description,
             boolean error,
             boolean reachable,
+            @Nullable Boolean complete,
             @Nullable List<Widget> children,
             @Nullable Attributes attributes) {
         Objects.requireNonNull(label, "label");
@@ -68,33 +74,44 @@ public record WizardPage(
         this.description = description;
         this.error = error;
         this.reachable = reachable;
+        this.complete = complete;
         this.children = children;
         this.attributes = attributes;
     }
 
     /// A page with a name and its content.
     public WizardPage(String label, Widget... children) {
-        this(label, null, false, false, List.of(children), Attributes.NONE);
+        this(label, null, false, false, null, List.of(children), Attributes.NONE);
     }
 
     /// This page with a second line under its name.
     public WizardPage describe(@Nullable String value) {
-        return new WizardPage(label, value, error, reachable, children, attributes);
+        return new WizardPage(label, value, error, reachable, complete, children, attributes);
     }
 
     /// This page, failed.
     public WizardPage error(boolean value) {
-        return new WizardPage(label, description, value, reachable, children, attributes);
+        return new WizardPage(label, description, value, reachable, complete, children, attributes);
     }
 
     /// This page, one a press on the indicator may reach.
     public WizardPage reachable(boolean value) {
-        return new WizardPage(label, description, error, value, children, attributes);
+        return new WizardPage(label, description, error, value, complete, children, attributes);
+    }
+
+    /// This page, done or not done whatever its position says — or, given
+    /// null, done exactly when it comes before the current one.
+    ///
+    /// For a wizard whose pages may be passed without being finished: an
+    /// account the user chose not to sign in to is drawn as visited and not
+    /// done, rather than ticked because it is behind the current page.
+    public WizardPage complete(@Nullable Boolean value) {
+        return new WizardPage(label, description, error, reachable, value, children, attributes);
     }
 
     @Override
     public WizardPage withAttributes(Attributes value) {
-        return new WizardPage(label, description, error, reachable, children, value);
+        return new WizardPage(label, description, error, reachable, complete, children, value);
     }
 
     @Override
@@ -109,6 +126,7 @@ public record WizardPage(
                 node.stringProperty("description"),
                 node.booleanProperty("error"),
                 node.booleanProperty("reachable"),
+                node.flagProperty("complete"),
                 children,
                 Attributes.of(node));
     }

@@ -311,3 +311,48 @@ selected opens it.
 - [ADR-0184: A tree is a list that remembers what is open](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0184-a-tree-is-a-list-that-remembers-what-is-open.md)
 - [ADR-0209: A tree finishes its keyboard](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0209-a-tree-finishes-its-keyboard.md)
 - [ADR-0210: A tree checks and selects two different things](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0210-a-tree-checks-and-selects-two-different-things.md)
+
+## `slot`
+
+A region of a document whose content the model decides: whatever widget a
+`bind=` value holds.
+
+<div class="gb-shot"><img class="gb-light" src="../images/slot-light.webp" width="640" alt="A card reading Samwise Gamgee, with The Shire, 1795 leagues under it"><img class="gb-dark" src="../images/slot-dark.webp" width="640" alt="A card reading Samwise Gamgee, with The Shire, 1795 leagues under it"><p>The widget the model holds, drawn where the document put it.</p></div>
+
+<div class="gb-tabs">
+
+```kdl
+slot bind="app.detail" id="detail" class="pane"
+```
+
+```java
+@Bind("app.detail") private Widget detail = new Text("Nothing selected");
+
+void select(Person person) {
+    detail = new PersonForm(person);   // the region redraws as the form
+}
+```
+
+</div>
+
+`list`, `table` and `tree` place a widget of their own kind. `slot` places any
+widget: a detail pane that is a form for one selection and a message for none,
+a toolbar that changes with the mode. The model holds the widget it builds and
+replaces it when the region should change. The element subscribes to the
+binding, so the region rebuilds and whatever is under it reconciles by key
+([ADR-0534](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0534-a-region-and-a-split-read-the-model.md)).
+
+**Attributes**
+
+| Attribute | Type | Default | What it does |
+|---|---|---|---|
+| `bind` | path | none | The widget a model holds. Nothing bound, or a value that is not a widget, draws nothing. |
+| `id`, `class` | string | | Laid over the widget's own id and classes, when it has any. |
+
+Children are ignored. A slot has no CSS type of its own: what a stylesheet sees
+is the widget it draws.
+
+**Read more**
+
+- [ADR-0534: A region and a split read the model](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0534-a-region-and-a-split-read-the-model.md)
+- [ADR-0367: A document places a list it cannot describe](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0367-a-document-places-a-list-it-cannot-describe.md)

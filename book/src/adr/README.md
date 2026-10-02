@@ -566,3 +566,7 @@ proposing to undo them.
 - [ADR-0528 A node knows its place among its siblings](0528-a-node-knows-its-place-among-its-siblings.md)
 - [ADR-0529 An application's stylesheet is lenient and loud](0529-an-applications-stylesheet-is-lenient-and-loud.md)
 - [ADR-0530 Five white-space keywords are two behaviours, and a long word may be cut](0530-five-white-space-keywords-are-two-behaviours-and-a-long-word-may-be-cut.md)
+- [ADR-0531 A step may say it is not done](0531-a-step-may-say-it-is-not-done.md)
+- [ADR-0532 An icon is the size of its box](0532-an-icon-is-the-size-of-its-box.md)
+- [ADR-0533 Anything can be pressed, and it is a button to a reader](0533-anything-can-be-pressed-and-it-is-a-button-to-a-reader.md)
+- [ADR-0534 A region and a split read the model](0534-a-region-and-a-split-read-the-model.md)

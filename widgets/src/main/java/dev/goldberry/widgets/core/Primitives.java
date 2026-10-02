@@ -3,7 +3,8 @@ package dev.goldberry.widgets.core;
 import java.util.List;
 
 /// The names of the structural widgets: `text`, `row`, `column`, `panel`,
-/// `stack`, `spacer`, `scroll`, `affix`, `canvas`, `image` and `qr-code`.
+/// `stack`, `spacer`, `scroll`, `affix`, `canvas`, `image`, `qr-code` and
+/// `icon`.
 ///
 /// These are ordinary widgets, registered for markup by their own `@Markup`
 /// annotations like every other widget. This list is kept apart from
@@ -24,6 +25,6 @@ public final class Primitives {
         // falls behind it, so every `@Markup` name in this package belongs here.
         return List.of(
                 "text", "link", "row", "column", "panel", "stack", "spacer", "scroll", "affix", "canvas", "image",
-                "qr-code");
+                "qr-code", "icon");
     }
 }

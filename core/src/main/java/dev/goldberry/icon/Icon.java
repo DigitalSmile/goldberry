@@ -2,6 +2,7 @@ package dev.goldberry.icon;
 
 import java.util.NoSuchElementException;
 import java.util.Objects;
+import java.util.Optional;
 
 import dev.goldberry.assets.BundledAssets;
 import dev.goldberry.paint.Frame;
@@ -70,6 +71,21 @@ public final class Icon implements AutoCloseable {
                         + BundledAssets.iconNames().size()
                         + " there are."));
         return of(name, data, size);
+    }
+
+    /// A bundled Lucide icon at `size` logical pixels square, or nothing when
+    /// the set has no icon of that name.
+    ///
+    /// The lookup for a name that comes from outside the program: a
+    /// configuration file, a server, a document being edited. An application
+    /// draws a fallback of its own on [Optional#empty()] rather than catching
+    /// the exception [#bundled] throws, which is the right answer for a name
+    /// written in the source.
+    ///
+    /// @throws IllegalArgumentException if the size is not positive and finite
+    public static Optional<Icon> find(String name, double size) {
+        Objects.requireNonNull(name, "name");
+        return BundledAssets.icon(name).map(data -> of(name, data, size));
     }
 
     /// An icon from path data in a 24×24 box, drawn at `size`.

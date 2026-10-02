@@ -26,6 +26,13 @@ final class SplitPaneState extends State<SplitPane> {
     /// Only meaningful while the widget is uncontrolled.
     private double position;
 
+    /// The bound number this state last took its position from, or `NaN`.
+    ///
+    /// An uncontrolled split with a binding keeps its own position and goes
+    /// back to the model's only when the model's changes, so a drag is not
+    /// undone by the next rebuild and a restored layout still lands.
+    private double adopted = Double.NaN;
+
     /// The pane's length along its axis, from the last frame that laid it out,
     /// or 0 before the first one.
     ///
@@ -56,19 +63,21 @@ final class SplitPaneState extends State<SplitPane> {
 
     @Override
     protected void initState() {
-        position = widget().position();
+        position = widget().resolvedPosition();
+        adopted = widget().boundPosition();
     }
 
-    /// A controlled split's answer comes from its widget; an uncontrolled one's
-    /// from here. Clamped on the way out, so a model outside the minimums shows a
-    /// legal divider rather than a pane with no room in it.
+    /// A controlled split's answer comes from its widget, bound or written; an
+    /// uncontrolled one's from here. Clamped on the way out, so a model outside
+    /// the minimums shows a legal divider rather than a pane with no room in it.
     private double resolved() {
-        return clamp(widget().isControlled() ? widget().position() : position);
+        return clamp(widget().isControlled() ? widget().resolvedPosition() : position);
     }
 
     @Override
     public Widget build(BuildContext context) {
         var split = widget();
+        adoptBound(split);
         return new SplitPaneView(
                 split.axis(),
                 resolved(),
@@ -80,6 +89,23 @@ final class SplitPaneState extends State<SplitPane> {
                 this::dragTo,
                 this::nudge,
                 this::toggleCollapse);
+    }
+
+    /// An uncontrolled split takes a bound number that changed since it last
+    /// looked, and ignores one that did not.
+    ///
+    /// Called from `build`, which is where a model's change arrives: the element
+    /// rebuilds a widget whose binding fired.
+    private void adoptBound(SplitPane split) {
+        var bound = split.boundPosition();
+        if (Double.isNaN(bound) || Double.compare(bound, adopted) == 0) {
+            return;
+        }
+        adopted = bound;
+        if (!split.isControlled()) {
+            position = bound;
+            restore = Double.NaN;
+        }
     }
 
     /// The pane's own size, once a frame and only when it changes.

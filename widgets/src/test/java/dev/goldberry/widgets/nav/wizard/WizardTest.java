@@ -235,6 +235,32 @@ class WizardTest {
         }
 
         @Test
+        @DisplayName("a page passed but not complete is drawn visited and not done")
+        void passedButNotComplete() {
+            var wizard = new Wizard(
+                    2,
+                    new WizardPage("GitLab").describe("Not signed in").complete(false),
+                    new WizardPage("Grafana").complete(true),
+                    new WizardPage("Kubernetes"));
+            var steps = Described.of(open(wizard), Step.class);
+
+            assertEquals(
+                    List.of(StepState.INCOMPLETE, StepState.DONE, StepState.CURRENT),
+                    steps.stream().map(Step::state).toList());
+        }
+
+        @Test
+        @DisplayName("a page that says nothing about completion is done by position, as before")
+        void completeByPosition() {
+            var steps = Described.of(open(wizard(2)), Step.class);
+
+            assertTrue(steps.stream().allMatch(step -> step.complete() == null));
+            assertEquals(
+                    List.of(StepState.DONE, StepState.DONE, StepState.CURRENT),
+                    steps.stream().map(Step::state).toList());
+        }
+
+        @Test
         @DisplayName("a clickable indicator reports a reachable step's index")
         void goTo() {
             var pressed = new ArrayList<Integer>();
@@ -284,6 +310,23 @@ class WizardTest {
             assertEquals(
                     StepState.ERROR,
                     Described.of(open(wizard), Step.class).get(1).state());
+        }
+
+        @Test
+        @DisplayName("a page may write complete, and one that does not leaves it to the position")
+        void complete() {
+            var wizard = (Wizard) Widgets.inflater()
+                    .inflateAll(KdlParser.parse(
+                            "wizard current=2 { page complete=#false \"One\"; page \"Two\"; page \"Three\" }"))
+                    .getFirst();
+
+            assertEquals(Boolean.FALSE, wizard.pages().getFirst().complete());
+            assertNull(wizard.pages().get(1).complete());
+            assertEquals(
+                    List.of(StepState.INCOMPLETE, StepState.DONE, StepState.CURRENT),
+                    Described.of(open(wizard), Step.class).stream()
+                            .map(Step::state)
+                            .toList());
         }
 
         @Test

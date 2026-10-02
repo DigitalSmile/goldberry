@@ -3,11 +3,13 @@ package dev.goldberry.widgets.nav.steps;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -213,6 +215,45 @@ class StepsTest {
         }
 
         @Test
+        @DisplayName("a passed step that says it is not complete is incomplete, and its line is not filled")
+        void passedButNotComplete() {
+            var list = new Steps(
+                    2, new Step("GitLab").complete(false), new Step("Grafana").complete(true), new Step("Kubernetes"));
+
+            assertEquals(
+                    List.of("GitLab:incomplete", "--", "Grafana:done", "==", "Kubernetes:current"), words(row(list)));
+            assertFalse(((Step) row(list).getFirst()).isChecked(), "incomplete is not current");
+        }
+
+        @Test
+        @DisplayName("a step ahead that says it is complete is done, and one that says not is upcoming")
+        void completeAhead() {
+            var list = new Steps(0, new Step("One"), new Step("Two").complete(true), new Step("Three").complete(false));
+
+            assertEquals(List.of("One:current", "--", "Two:done", "==", "Three:upcoming"), words(row(list)));
+        }
+
+        @Test
+        @DisplayName("the current step is current whatever it says about itself, and error still wins")
+        void currentAndErrorWin() {
+            var list = new Steps(1, new Step("One").error(true).complete(true), new Step("Two").complete(true));
+
+            assertEquals(List.of("One:error", "--", "Two:current"), words(row(list)));
+        }
+
+        @Test
+        @DisplayName("an incomplete step says so in its name and its marker's class")
+        void incompleteIsReadOut() {
+            var grafana = (Step) row(new Steps(1, new Step("Grafana").complete(false), new Step("Kubernetes")))
+                    .getFirst();
+
+            assertEquals("Grafana, step 1 of 2, incomplete", grafana.accessibleName());
+            assertTrue(grafana.classes().contains("incomplete"));
+            var marker = (StepMarker) grafana.children().getFirst();
+            assertEquals(Set.of("incomplete"), marker.classes());
+        }
+
+        @Test
         @DisplayName("a bound number is the index")
         void boundIndex() {
             var current = Property.of(2);
@@ -321,6 +362,25 @@ class StepsTest {
             assertEquals("Who you are", account.description());
             click(account);
             assertEquals(List.of(0), pressed);
+        }
+
+        @Test
+        @DisplayName("complete is a flag a document may write, and leaving it out leaves it to the position")
+        void complete() {
+            var list =
+                    (Steps) Widgets.inflater().inflateAll(KdlParser.parse("""
+                            steps current=2 {
+                                step complete=#false "GitLab"
+                                step "Grafana"
+                                step complete=#true "Kubernetes"
+                            }
+                            """)).getFirst();
+            var steps = list.rawSteps().stream().map(Step.class::cast).toList();
+
+            assertEquals(Boolean.FALSE, steps.get(0).complete());
+            assertNull(steps.get(1).complete());
+            assertEquals(
+                    List.of("GitLab:incomplete", "--", "Grafana:done", "==", "Kubernetes:current"), words(row(list)));
         }
 
         @Test

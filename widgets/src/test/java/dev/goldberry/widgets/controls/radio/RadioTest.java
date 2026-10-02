@@ -133,7 +133,8 @@ class RadioTest {
                             "spinner",
                             "badge",
                             "chip",
-                            "knob"),
+                            "knob",
+                            "pressable"),
                     Controls.controlTypes());
         }
 

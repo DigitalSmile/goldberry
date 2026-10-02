@@ -158,15 +158,17 @@ the rest.
 **Styling**
 
 The CSS type is `steps`, with the class `vertical` when the direction is. A
-`step` carries one of the classes `done`, `current`, `upcoming` or `error`, and
-the current one also matches `:checked`. Its parts are `step-marker`,
+`step` carries one of the classes `done`, `current`, `upcoming`, `incomplete`
+or `error`, and the current one also matches `:checked`. Its parts are `step-marker`,
 `step-body`, `step-label` and `step-description`. Between steps sits a
 `step-connector` holding a `step-connector-fill`, which scales from the step
 before it when that step is done
 ([ADR-0356](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0356-a-connector-grows-from-where-you-were-and-an-entry-has-a-marker-slot.md)).
 The marker is a 24px disc with a 2px ring: the accent when current, `--gb-success`
 with a tick when done, `--gb-danger` with a cross on error, the ring alone
-when upcoming.
+when upcoming. An incomplete step, one the list has passed that says it is not
+done, keeps the ring and its number in full ink, so it reads as visited and
+not ticked.
 
 **Keyboard**
 
@@ -197,6 +199,7 @@ step reachable=#true "Account" description="Who you are"
 ```java
 new Step("Account", "Who you are").reachable(true);
 new Step("Verify").error(true);
+new Step("Grafana", "Not signed in").complete(false);
 ```
 
 </div>
@@ -209,10 +212,13 @@ new Step("Verify").error(true);
 | `description` | string | none | A caption under the label. |
 | `error` | boolean | `#false` | Draws the step in `--gb-danger` with a cross, whatever its index. |
 | `reachable` | boolean | `#false` | Lets a clickable list press this step. |
+| `complete` | boolean | none | Whether the step is done. Unset, a step before the current one is done. `#false` there draws it `incomplete`, and `#true` after the current one draws it done. |
 | `id`, `class` | string | | The usual. |
 
 A step's state is not an attribute. `step current=#true` is ignored, because
-the list derives it from `current`.
+the list derives it from `current`. `complete` is the one exception to the
+position: only the application knows that a step the user went past was left
+undone ([ADR-0531](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0531-a-step-may-say-it-is-not-done.md)).
 
 ## `wizard`
 
@@ -254,8 +260,9 @@ Back, Next and Finish only call their handlers. The application moves
 `current`, by rebuilding with a new index or by setting the bound value, and a
 wizard that will not advance is an application that did not move it
 ([ADR-0344](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0344-a-list-of-steps-writes-where-each-one-stands.md)). A
-page the index has passed is done. A page marked `error` is drawn so in the
-indicator. Only the current page's children are built, and when the page
+page the index has passed is done, unless it says `complete=#false`: then it
+is drawn `incomplete`, visited and not done. A page marked `error` is drawn so
+in the indicator. Only the current page's children are built, and when the page
 changes the keyboard moves into the new content.
 
 > [!NOTE]
@@ -328,6 +335,7 @@ new WizardPage("Payment", new Text("Nothing to pay."))
 | `description` | string | none | The caption under that label. |
 | `error` | boolean | `#false` | Marks the page's step as an error. |
 | `reachable` | boolean | `#false` | Lets a `go-to` indicator press this page's step. |
+| `complete` | boolean | none | Whether the page is done, for a wizard whose pages may be passed undone. Unset, the position decides. |
 | `id`, `class` | string | | The classes land on `wizard-content` while the page is shown. |
 
 Any children are the page's content. A page has no CSS type of its own.

@@ -1,11 +1,13 @@
 package dev.goldberry.widgets.markup;
 
 import java.util.HashSet;
+import java.util.List;
 import java.util.Objects;
 
 import org.jspecify.annotations.Nullable;
 
 import dev.goldberry.bind.Observable;
+import dev.goldberry.kdl.KdlNode;
 import dev.goldberry.widget.BuildContext;
 import dev.goldberry.widget.Widget;
 import dev.goldberry.widget.attr.Attributed;
@@ -13,10 +15,11 @@ import dev.goldberry.widget.attr.Attributes;
 import dev.goldberry.widget.attr.Bindable;
 
 /// A widget a document places and the application builds — what `list`,
-/// `table` and `tree` inflate to.
+/// `table`, `tree` and `slot` inflate to.
 ///
 /// ```kdl
 /// list bind="app.people" id="people" class="sidebar"
+/// slot bind="app.detail" id="detail"
 /// ```
 ///
 /// A list's rows come from an item factory, a table's cells from a cell
@@ -32,11 +35,21 @@ import dev.goldberry.widget.attr.Bindable;
 /// not a `type` — nothing bound yet, or a binding to the wrong thing — draws
 /// nothing rather than failing, which is what a document mid-edit needs.
 ///
+/// ## `slot` is the same for any widget
+///
+/// `slot bind="…"` is this over [Widget] itself: a region of a document whose
+/// content the model decides, a detail pane that is a form for one selection
+/// and a message for none. The model holds the widget it builds and replaces
+/// it when the region should change, and the document says where it goes. A
+/// widget with no [Attributed] to lay the document's `id` and classes over is
+/// drawn as it is.
+///
 /// Read more: [Markup](https://goldberry.dev/docs/guide/markup.html#what-markup-cannot-say).
 ///
 /// @param source     the value `bind=` names, or null
 /// @param type       what that value has to be to be drawn
 /// @param attributes the document's `id` and `class`
+@Markup("slot")
 public record Bound(@Nullable Observable<?> source, Class<? extends Widget> type, Attributes attributes)
         implements Widget.Stateless, Attributed<Bound>, Bindable<Bound> {
 
@@ -52,8 +65,11 @@ public record Bound(@Nullable Observable<?> source, Class<? extends Widget> type
     @Override
     public Widget build(BuildContext context) {
         var value = source == null ? null : source.get();
-        if (!type.isInstance(value) || !(value instanceof Attributed<?> attributed)) {
+        if (!type.isInstance(value) || !(value instanceof Widget widget)) {
             return Widget.nothing();
+        }
+        if (!(widget instanceof Attributed<?> attributed)) {
+            return widget;
         }
         return attributed.withAttributes(merged(attributed.attributes()));
     }
@@ -84,5 +100,12 @@ public record Bound(@Nullable Observable<?> source, Class<? extends Widget> type
     @Override
     public @Nullable Object key() {
         return attributes.key();
+    }
+
+    /// Builds a `slot` from markup: whatever widget the `bind=` value holds.
+    ///
+    /// Children are ignored, for `list`'s reason: what is drawn is the model's.
+    public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
+        return new Bound(wiring.bound(node), Widget.class, Attributes.of(node));
     }
 }

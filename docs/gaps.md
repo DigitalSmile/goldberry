@@ -148,6 +148,7 @@ a rule.
 | ~~[G47](#g47)~~ | ~~A `qr-code` widget~~ | **closed** — ADR-0391 | done |
 | ~~[G48](#g48)~~ | ~~A viewport that opens at its end, and stays put when rows are added above~~ | **closed** — ADR-0392 | done |
 | ~~[G49](#g49)~~ | ~~Emoji render as boxes~~ | **closed** — ADR-0393 | done |
+| ~~[G56](#g56)~~ | ~~A box that can be pressed~~ | **closed** — ADR-0533 | done |
 
 **Not gaps** — available today, and brd must use them rather than grow its own:
 
@@ -2627,7 +2628,7 @@ alphanumerics do not.
 
 <a id="g56"></a>
 
-### G56 — a box that can be pressed
+### G56 — a box that can be pressed — **closed**
 
 **What Tessera wants.** To make an arbitrary widget the target of a click. A picture in a chat timeline,
 pressed, opens the viewer ([ADR-0092](adr/0092-the-room-is-what-a-real-account-showed.md), TG13).
@@ -2664,6 +2665,17 @@ input layer beside the one the toolkit has.
 is the reason it is visible and the rule is right. This is a gap because *the toolkit has no way to say
 "this is pressable"*, and a client that wants one ends up choosing between a control that reshapes its
 layout and a control that draws a word it did not want.
+
+**Closed — [ADR-0533](../book/src/adr/0533-anything-can-be-pressed-and-it-is-a-button-to-a-reader.md).**
+The first of the three shapes: `new Pressable(name, onPress, child)` in
+`dev.goldberry.widgets.controls.pressable`, and `pressable name="Open photo.jpg" press="viewer.open" { … }`
+in markup. It is a button in everything but its box. It is a Tab stop, a click, `Space` or `Enter` activates it, and
+`:hover`, `:active` and `:focus-visible` match it from anywhere inside. `disabled` works, it is unreachable behind a
+modal, and its role is `BUTTON`. The stylesheet gives it a focus ring and the disabled fade and nothing else, so the
+picture keeps its own look. The name is a required argument, which is §13's rule again. A picture has no label to
+read out, so the application says what pressing it does. `Attributes.onPress` was not taken: a hook cannot make a
+node focusable or give it a role, and the router needed no change for the container, so `hook` is left as it was
+for G50's drag and drop. **`MessageRows.picture`'s stack, `.chat-image-press` and the word `Open` can go.**
 
 <a id="g55"></a>
 

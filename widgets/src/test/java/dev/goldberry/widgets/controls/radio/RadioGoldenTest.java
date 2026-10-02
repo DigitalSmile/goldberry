@@ -440,7 +440,11 @@ class RadioGoldenTest {
         // own until it is selected, and what it would disappear against is the
         // bar rather than a panel -- which is the axis every image in
         // `SegmentedGoldenTest` is already on.
-        var exempt = List.of("button", "badge", "segmented", "option");
+        //
+        // `pressable` paints nothing at all: no fill, no border, no ink. What it
+        // could disappear against is its content's business, and the content is
+        // whatever the application put in it.
+        var exempt = List.of("button", "badge", "segmented", "option", "pressable");
         var inScene = new java.util.ArrayList<String>();
         collectTypes(new ElementTree(surfaceScene()).root(), inScene);
 

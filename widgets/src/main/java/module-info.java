@@ -69,6 +69,10 @@ module dev.goldberry.widgets {
     /// image codecs, because a specification is not a widget.
     exports dev.goldberry.widgets.core.qrcode;
 
+    /// `icon`: one icon on its own, sized by the stylesheet. Its two parts,
+    /// decorative and named, are styleable and not constructible.
+    exports dev.goldberry.widgets.core.icon;
+
     /// The chart widgets, built on `canvas` and the theme palette rather than
     /// on a chart engine. `sparkline` is the smallest — no axes, no legend.
     exports dev.goldberry.widgets.data;
@@ -166,6 +170,7 @@ module dev.goldberry.widgets {
     /// `option`, which is `segmented`'s child node **and** `select`'s — one
     /// widget, in a package of its own because it has two callers.
     exports dev.goldberry.widgets.controls.option;
+    exports dev.goldberry.widgets.controls.pressable;
     exports dev.goldberry.widgets.controls.progressbar;
     exports dev.goldberry.widgets.controls.radio;
     exports dev.goldberry.widgets.controls.segmented;

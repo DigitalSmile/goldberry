@@ -143,7 +143,9 @@ a stroke width as well as a shape, and it is built pre-scaled to one size so
 nothing is transformed at draw time
 ([ADR-0043](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0043-icons-are-stroked-paths.md)).
 `BundledAssets.iconNames()` lists the set, and `Icon.of(name, pathData, size)`
-builds one from your own SVG path data on the same grid.
+builds one from your own SVG path data on the same grid. `Icon.bundled` throws
+for a name the set does not have. `Icon.find(name, size)` returns an
+`Optional<Icon>` instead, for a name that comes from outside the program.
 
 Markup names an icon and never builds one. `icon="plus"` resolves against
 the `Icons` registry the application owns, because a document reloaded on
@@ -152,10 +154,14 @@ immutable value whose `close()` does nothing since
 [ADR-0277](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0277-a-path-is-a-value-and-the-rasterizers-is-package-private.md),
 and the showcase still opens its icons in `start` and closes them in `stop`.
 
-An icon is tinted by `color`, like text. There is no standalone `icon` node:
-what ships is the registry and `icon=` on the widgets that take one. An
-icon-only button has an empty label and needs `name=` for its accessible
-name.
+An icon is tinted by `color`, like text. Inside a widget that takes `icon=` it is
+drawn at the size it was built at. The standalone [`icon`](../components/drawing.md#icon)
+node is the other way round: the stylesheet sizes its box and the outline is
+scaled to fit, so `icon "plus"` at 11 px and at 24 px is one line of CSS each
+([ADR-0532](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0532-an-icon-is-the-size-of-its-box.md)).
+It looks the name up in the registry first and then in the bundled set, so it
+needs no registration. An icon-only button has an empty label and needs
+`name=` for its accessible name.
 
 ## Emoji
 

@@ -132,6 +132,7 @@ public final class Controls {
                 "spinner",
                 "badge",
                 "chip",
-                "knob");
+                "knob",
+                "pressable");
     }
 }

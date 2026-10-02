@@ -12,14 +12,17 @@ import dev.goldberry.bind.Property;
 import dev.goldberry.bind.registry.ActionRegistry;
 import dev.goldberry.bind.registry.BindingRegistry;
 import dev.goldberry.icon.Icon;
+import dev.goldberry.widget.Widget;
 import dev.goldberry.widgets.Icons;
 import dev.goldberry.widgets.markup.Wiring;
+import dev.goldberry.widgets.panel.card.Card;
 import dev.goldberry.widgets.panel.list.ListView;
 import dev.goldberry.widgets.panel.table.Column;
 import dev.goldberry.widgets.panel.table.Table;
 import dev.goldberry.widgets.panel.tree.Checkable;
 import dev.goldberry.widgets.panel.tree.Tree;
 import dev.goldberry.widgets.panel.tree.TreeNode;
+import dev.goldberry.widgets.text.Text;
 
 /// What the guide's samples are shown holding.
 ///
@@ -90,6 +93,7 @@ public final class PreviewValues implements AutoCloseable {
                         Property.of("We came down out of the pass at dusk and found the road still under snow.")),
                 Map.entry("app.code", Property.of("123")),
                 Map.entry("app.company", Property.of(company())),
+                Map.entry("app.detail", Property.of(detail())),
                 Map.entry("app.lands", Property.of(lands())),
                 Map.entry("app.name", Property.of("Peregrin Took")),
                 Map.entry("app.notes", Property.of("# Fellowship\n\nNine set out from Rivendell.\n\n- Frodo\n- Sam\n")),
@@ -121,6 +125,12 @@ public final class PreviewValues implements AutoCloseable {
                 Map.entry("trip.date", Property.of(LocalDate.of(2026, 9, 14))),
                 Map.entry("trip.time", Property.of(LocalTime.of(9, 30))),
                 Map.entry("view.mode", Property.of("grid")));
+    }
+
+    /// The widget the Collections chapter's `slot` is shown holding: a detail
+    /// pane for one selection.
+    private static Widget detail() {
+        return new Card(new Text("Samwise Gamgee"), new Text("The Shire, 1795 leagues").styled("caption"));
     }
 
     /// The Collections chapter's list, as its Java sample builds it.

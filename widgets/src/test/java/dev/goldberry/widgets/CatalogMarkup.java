@@ -55,6 +55,10 @@ public final class CatalogMarkup {
             case "option", "radio", "tab" -> type + attributes + " value=\"x\" \"X\"";
             case "image" -> type + attributes + " src=\"x.png\" alt=\"x\"";
             case "statistic" -> type + attributes + " label=\"Disk\" value=\"72\"";
+            // An icon is its name, and a name the set has draws something.
+            case "icon" -> type + attributes + " \"plus\"";
+            // A pressable is announced as a button, so it needs a name.
+            case "pressable" -> type + attributes + " name=\"Word\" {\n    text \"x\"\n}";
             // A marker is the thing drawn on an axis, and holds exactly one.
             case "marker" -> type + attributes + " {\n    text \"x\"\n}";
             // Exactly two children: a three-way split is two split panes.

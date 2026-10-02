@@ -463,6 +463,36 @@ segmented:disabled {
   opacity: 1;
 }
 
+/* ------------------------------------------------------------- pressable --
+ *
+ * Anything made pressable, and styled as nothing: no padding, no surface, no
+ * hover wash, because what it wraps -- a picture, a row, a card -- already has
+ * a look and a second one around it is the reason not to use a `button`. What
+ * it does get is what every control gets whatever it looks like: the pointer
+ * cursor, the focus ring and the disabled fade, written as rules of their own
+ * rather than added to the lists above so the lists stay the controls'.
+ *
+ * A column, like `panel`, so a single child fills it the way it would have
+ * filled the parent. The radius is only there for the ring to follow.
+ * `pressable:hover` and `pressable:active` match from anywhere inside it, and
+ * an application that wants a wash writes one on its own class.
+ */
+pressable {
+  flex-direction: column;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+pressable:focus-visible {
+  outline: 2px solid var(--gb-focus);
+  outline-offset: 2px;
+}
+
+pressable:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
 /* ---------------------------------------------------------------- button --
  *
  * height 32, padding-x 12, gap 6, radius 8: the `button` metrics row. The height
@@ -4237,6 +4267,24 @@ qr-code {
   flex-shrink: 0;
 }
 
+/* ------------------------------------------------------------------ icon --
+ *
+ * One icon on its own. The box is the icon: the outline is scaled to the
+ * smaller side of whatever this sheet makes it, and stroked in `color`, so an
+ * application sizes one with `width` and `height` -- or `1em` each, to match
+ * the text beside it -- and colours it like text. 16 is `Icons.SLOT`, the size
+ * the catalog's own slots draw at. Never squeezed by a narrow row, for
+ * `image`'s reason.
+ *
+ * A name that found nothing is an empty box with the class `missing`, which
+ * draws nothing here; an application that wants a fallback writes one.
+ */
+icon {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+
 /* ------------------------------------------------------------------ card --
  *
  * The "elevated surface". The specification says "shadow tokens", and
@@ -5312,6 +5360,12 @@ step.error {
   color: var(--gb-danger-text);
 }
 
+/* Passed and not done: the application said a step is not complete, and the
+   list has gone past it. Full ink, because it has been visited, and no tick. */
+step.incomplete {
+  color: var(--gb-text);
+}
+
 /* Only a step the list handed a press is focusable, and only that one gets a
    pointer and a wash. `:hover` on a picture would promise a click. */
 step:hover {
@@ -5356,6 +5410,14 @@ step-marker.error {
   border-color: var(--gb-danger-line);
   color: var(--gb-button-primary-text);
   padding: 6px;
+}
+
+/* Visited and not done: the upcoming ring, in the text's ink rather than the
+   muted one, with the number left in it. No fill, because a fill is "done" or
+   "here", and this step is neither. */
+step-marker.incomplete {
+  border-color: var(--gb-text-muted);
+  color: var(--gb-text);
 }
 
 /* The words: the label in `body-strong`, the description under it in `caption`.

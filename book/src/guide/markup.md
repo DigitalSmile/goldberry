@@ -253,6 +253,13 @@ A document cannot hand a `Runnable` to a widget, cannot compute a colour from
 a value, and cannot shorten a list when the model does. It can name every one
 of those things, and Java supplies them.
 
+What a document can do is say **where** such a widget goes. A model field that
+holds a widget is placed with [`slot bind="…"`](../components/collections.md#slot),
+and the region redraws whenever the model replaces it. A conditional becomes
+a model that holds one widget or another, and the loop above becomes a model
+that rebuilds the `Column`
+([ADR-0534](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0534-a-region-and-a-split-read-the-model.md)).
+
 ## How Java and markup compose
 
 A document inflates to a `Widget`, so it goes wherever a widget goes. The

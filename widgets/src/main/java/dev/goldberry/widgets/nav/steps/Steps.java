@@ -41,9 +41,10 @@ import dev.goldberry.widgets.markup.Wiring;
 /// done, at it is current, after it is upcoming. The list writes that onto every
 /// step on every build, the way a `tabs` tells a `tab` it is selected and a
 /// `breadcrumbs` tells its last crumb it is where you are — so a document cannot
-/// describe a list with two current steps, or none. The one word a step keeps
-/// for itself is `error`, because only the application knows that step three
-/// failed ([StepState]).
+/// describe a list with two current steps, or none. The words a step keeps
+/// for itself are `error`, because only the application knows that step three
+/// failed, and `complete`, because only the application knows that a step the
+/// user went past was left undone ([StepState]).
 ///
 /// ## Read-only, unless asked — and reachability is the application's
 ///
@@ -188,47 +189,44 @@ public record Steps(
         var total = count();
         var row = new ArrayList<Widget>(children.size() * 2);
         var index = 0;
+        StepState before = null;
         for (var child : children) {
             if (!(child instanceof Step step)) {
                 row.add(child);
                 continue;
             }
-            if (index > 0) {
+            if (before != null) {
                 // The connector before a step is filled when the step *before*
                 // it is done: the line is drawn from where you have been.
-                row.add(new StepConnector(index - 1 < now && !isError(index - 1)));
+                row.add(new StepConnector(before == StepState.DONE));
             }
             var at = index;
             var handler = onChange;
             Runnable press = clickable && step.reachable() && handler != null ? () -> handler.accept(at) : null;
-            row.add(step.at(at, total, stateOf(step, at, now), press));
+            before = stateOf(step, at, now);
+            row.add(step.at(at, total, before, press));
             index++;
         }
         return new StepList(row, direction, attributes);
     }
 
-    /// Where a step stands, from the index — unless the step says it failed.
+    /// Where a step stands, from the index — unless the step says it failed, or
+    /// says whether it is complete.
     static StepState stateOf(Step step, int index, int current) {
         if (step.error()) {
             return StepState.ERROR;
         }
-        if (index < current) {
+        if (index == current) {
+            return StepState.CURRENT;
+        }
+        var complete = step.complete();
+        if (complete == null) {
+            return index < current ? StepState.DONE : StepState.UPCOMING;
+        }
+        if (complete) {
             return StepState.DONE;
         }
-        return index == current ? StepState.CURRENT : StepState.UPCOMING;
-    }
-
-    private boolean isError(int index) {
-        var seen = 0;
-        for (var child : children) {
-            if (child instanceof Step step) {
-                if (seen == index) {
-                    return step.error();
-                }
-                seen++;
-            }
-        }
-        return false;
+        return index < current ? StepState.INCOMPLETE : StepState.UPCOMING;
     }
 
     /// Builds a `steps` from markup.

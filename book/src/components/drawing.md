@@ -1,10 +1,11 @@
 # Canvas, images and QR codes
 
-<p class="gb-lede">A canvas is the surface an application draws on itself, an image shows a decoded picture, and a QR code is a payload drawn as modules of whole device pixels.</p>
+<p class="gb-lede">A canvas is the surface an application draws on itself, an image shows a decoded picture, a QR code is a payload drawn as modules of whole device pixels, and an icon is one outline at whatever size its box is.</p>
 
 By the end of this chapter you can draw with paths, strokes, gradients and
 images on a `canvas`, hear the pointer and the keyboard on it, place a picture
-with one of four fit modes, and put a scannable code in a dialog.
+with one of four fit modes, put a scannable code in a dialog, and size an icon
+from the stylesheet.
 
 <div class="gb-shot">
 <img src="../images/gallery-canvas.png" alt="The showcase's Canvas screen: a card of paths, strokes and a gradient, a card drawing one image four ways, a card of the same picture decoded from five formats, a card of the image widget at four fits, and three QR codes at three error-correction levels">
@@ -309,3 +310,81 @@ None. A code is a figure.
 
 - [ADR-0391: A QR code is a specification and a grid of squares](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0391-a-qr-code-is-a-specification-and-a-grid-of-squares.md)
 - [ADR-0494: The QR encoder is an image format](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0494-the-qr-encoder-is-an-image-format.md)
+
+## `icon`
+
+One icon on its own, as big as the stylesheet makes its box and in the box's
+colour.
+
+<div class="gb-shot"><img class="gb-light" src="../images/icon-light.webp" width="134" alt="The cloud-upload icon at three sizes, 11, 16 and 24 pixels, and a circle-alert icon in the warning colour"><img class="gb-dark" src="../images/icon-dark.webp" width="134" alt="The cloud-upload icon at three sizes, 11, 16 and 24 pixels, and a circle-alert icon in the warning colour"><p>One icon at three sizes the stylesheet chose, and one coloured.</p></div>
+
+<div class="gb-tabs">
+
+```kdl
+row class="icon-sizes" {
+  icon "cloud-upload" class="small"
+  icon "cloud-upload"
+  icon "cloud-upload" class="large"
+  icon "circle-alert" class="warn" name="Not signed in"
+}
+```
+
+```java
+import dev.goldberry.widgets.core.icon.IconView;
+
+new IconView("cloud-upload").styled("small");
+new IconView(Icon.bundled("circle-alert", 24)).withAttributes(Attributes.NONE.classes("warn").name("Not signed in"));
+```
+
+</div>
+
+```css
+icon.small { width: 11px; height: 11px; }
+icon.large { width: 24px; height: 24px; }
+icon.warn { color: var(--gb-warning); }
+```
+
+Inside a `button` an icon is drawn at the size it was built at. Here the box
+decides: `width` and `height`, 16 by default, and the outline is scaled to the
+smaller of the two and centred along the other. Lucide is drawn on a 24-unit
+grid with a 2-unit stroke and the stroke scales with it, so an 11 px icon is
+the same drawing as a 24 px one, thinner. `width: 1em; height: 1em` sizes an
+icon to the text beside it. Nothing native is held, so a document reloaded on
+every keystroke builds nothing that has to be closed
+([ADR-0532](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0532-an-icon-is-the-size-of-its-box.md)).
+
+The argument is looked up in the application's `Icons` registry first, so
+`icon "home"` draws whatever the application registered as `home`, and then in
+the bundled set. A name that neither has is an empty box of the same size with
+the class `missing`, rather than an error. A stylesheet may draw a fallback on
+it:
+
+```css
+icon.missing { background: currentColor; border-radius: 9999px; width: 6px; height: 6px; }
+```
+
+In Java, `Icon.find(name, size)` is the same lookup for a name that comes from
+outside the program. It returns an `Optional<Icon>`, where `Icon.bundled`
+throws.
+
+### Attributes
+
+| Attribute | Type | Default | What it does |
+|---|---|---|---|
+| argument | string | none | The icon's name: a registered one, or a bundled Lucide name |
+| `name` | string | none | What a reader is told. Without one the icon is decorative |
+| `id`, `class` | string | | The usual |
+
+### Styling
+
+The CSS type is `icon`, with the class `missing` when the name found nothing.
+The default sheet makes it 16 by 16 with `flex-shrink: 0`. The stroke is the
+box's `color`, which it inherits like text.
+
+### Keyboard
+
+None. A named icon is a figure, and an unnamed one is decoration.
+
+### Read more
+
+- [ADR-0532: An icon is the size of its box](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0532-an-icon-is-the-size-of-its-box.md)
