@@ -42,9 +42,11 @@ jobs:
         include:
           - target: macos-aarch64
             runner: macos-14
+            platform-required: true
             tools: brew install meson pkg-config nasm ninja
           - target: linux-x64
             runner: ubuntu-24.04
+            platform-required: true
             # GStreamer's runtime and its decoders, for the system decoders: base has
             # appsrc, appsink and the converters, good the audio parsers, bad the
             # H.264 and HEVC parsers, and libav the decoders. No
@@ -54,6 +56,7 @@ jobs:
               gstreamer1.0-plugins-base gstreamer1.0-plugins-good gstreamer1.0-plugins-bad gstreamer1.0-libav
           - target: linux-aarch64
             runner: ubuntu-24.04-arm
+            platform-required: true
             # The same as linux-x64; dav1d's arm64 assembly is GNU as, so nasm is
             # not needed here and is installed only to keep the two lines alike.
             tools: >-
@@ -61,6 +64,9 @@ jobs:
               gstreamer1.0-plugins-base gstreamer1.0-plugins-good gstreamer1.0-plugins-bad gstreamer1.0-libav
           - target: windows-x64
             runner: windows-2022
+            # Media Foundation's decoders are held back in this release, off unless
+            # -Dgoldberry.media.mediaFoundation=true, so there is nothing to require.
+            platform-required: false
             # meson and ninja from pip, nasm from Chocolatey; MSYS2 and MSVC are
             # steps of their own below.
             tools: >-
@@ -132,13 +138,14 @@ jobs:
       # `check` includes the natives-jar test and the coverage floor.
       #
       # Each job requires its own system's decoders too: VideoToolbox and
-      # AudioToolbox on macOS, GStreamer on Linux. A test for another system's
-      # decoders still skips, since the flag fails a test only on its own system,
-      # and the coverage floor counts this system's decoders and no other's.
+      # AudioToolbox on macOS, GStreamer on Linux; not Media Foundation on
+      # Windows, which is held back. A test for another system's decoders still
+      # skips, since the flag fails a test only on its own system, and the coverage
+      # floor counts this system's decoders and no other's.
       - name: Test :media against it
         run: >-
           ./gradlew :media:check -Pgoldberry.skipNative=true -Pgoldberry.media.required=true
-          -Pgoldberry.platform.required=true $MEDIA_TOOLS --no-daemon
+          -Pgoldberry.platform.required=${{ matrix.platform-required }} $MEDIA_TOOLS --no-daemon
 
       - uses: actions/upload-artifact@v4
         with:

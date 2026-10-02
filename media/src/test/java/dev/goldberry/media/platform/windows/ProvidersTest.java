@@ -1,6 +1,7 @@
 package dev.goldberry.media.platform.windows;
 
 import static java.lang.foreign.ValueLayout.JAVA_BYTE;
+import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
@@ -130,6 +131,18 @@ class ProvidersTest {
         assertFalse(MediaFoundation.isWindows("Mac OS X"));
         var state = assertInstanceOf(MediaFoundation.State.Unavailable.class, MediaFoundation.load("Linux"));
         assertTrue(state.reason().contains("Linux"), state.reason());
+    }
+
+    @Test
+    @DisplayName("on Windows they are held back unless switched on, and refused before a library is opened")
+    void heldBackUnlessSwitchedOn() {
+        var state =
+                assertInstanceOf(MediaFoundation.State.Unavailable.class, MediaFoundation.load("Windows 11", false));
+        assertAll(
+                () -> assertTrue(state.reason().contains("held back"), state.reason()),
+                () -> assertTrue(
+                        state.reason().contains("-D" + MediaFoundation.ENABLE_PROPERTY + "=true"), state.reason()),
+                () -> assertTrue(state.reason().contains("Windows"), state.reason()));
     }
 
     @Test

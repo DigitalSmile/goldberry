@@ -344,9 +344,12 @@ class HardwareDecodeTest {
             }
         });
         if (failure[0] == null) {
-            // A device that decodes AV1 (Apple M3 and later): nothing to fall from.
+            // Every picture came: from a device that decodes AV1 (Apple M3 and
+            // later), or from software in the same decoder, when the device refused
+            // AV1 as the formats were agreed and FFmpeg went on without it, as a
+            // GPU-less Windows runner's Direct3D does. A device that refused is
+            // written off, so the next AV1 track goes to software at once.
             assertEquals(25, first.size());
-            assertFalse(policy.failed(av1, device));
             return;
         }
         assertInstanceOf(FfmpegException.class, failure[0], "for the ladder, not a MediaException");

@@ -19,6 +19,12 @@ import dev.goldberry.log.Logs;
 /// Media Feature Pack is installed), the state is [State.Unavailable] and every
 /// provider supports nothing.
 ///
+/// **Off unless asked for.** The decoders have not yet passed their tests on a
+/// Windows machine, so they are held back: on Windows too the state is
+/// [State.Unavailable] until `-Dgoldberry.media.mediaFoundation=true`
+/// ([#ENABLE_PROPERTY]) turns them on. Without them, Windows plays what FFmpeg
+/// decodes.
+///
 /// COM has to be initialised on every thread that calls into it, and a decoder
 /// is opened on one thread and used on another: [#enterThread] does it, once
 /// per thread, and every decoder method calls it first.
@@ -65,11 +71,30 @@ record MediaFoundation(MfPlat mfplat, Ole32 ole32) {
         return osName.toLowerCase(Locale.ROOT).startsWith("windows");
     }
 
+    /// The system property that turns the decoders on: they are held back until
+    /// they have passed their tests on a Windows machine.
+    static final String ENABLE_PROPERTY = "goldberry.media.mediaFoundation";
+
+    /// Whether [#ENABLE_PROPERTY] turns the decoders on in this process.
+    static boolean enabled() {
+        return Boolean.getBoolean(ENABLE_PROPERTY);
+    }
+
     /// Opens the libraries and starts Media Foundation. Package-private for the
     /// tests, which see what an ordinary run sees through [#get].
     static State load(String osName) {
+        return load(osName, enabled());
+    }
+
+    /// [#load(String)] with the switch given: refused before a library is opened
+    /// when it is off.
+    static State load(String osName, boolean enabled) {
         if (!isWindows(osName)) {
             return new State.Unavailable("the Media Foundation decoders are Windows's, and this is " + osName);
+        }
+        if (!enabled) {
+            return new State.Unavailable("the Media Foundation decoders are held back on Windows in this release; -D"
+                    + ENABLE_PROPERTY + "=true turns them on");
         }
         try {
             var ole32 = new Ole32(WindowsLibrary.OLE32.open());
