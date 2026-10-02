@@ -5,6 +5,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
 
@@ -25,14 +26,19 @@ import dev.goldberry.render.DamageRect;
 import dev.goldberry.render.GpuPlacement;
 import dev.goldberry.render.PixelBuffer;
 import dev.goldberry.render.desktop.SystemTheme;
+import dev.goldberry.render.display.Display;
+import dev.goldberry.render.display.DisplayLayout;
 import dev.goldberry.render.model.DisplayScale;
 import dev.goldberry.render.model.LogicalPoint;
+import dev.goldberry.render.model.LogicalRect;
 import dev.goldberry.render.model.LogicalSize;
 import dev.goldberry.render.model.PhysicalSize;
 import dev.goldberry.render.model.PixelFormat;
 import dev.goldberry.render.popup.BackendPopup;
+import dev.goldberry.render.window.Attention;
 import dev.goldberry.render.window.BackendWindow;
 import dev.goldberry.render.window.IconImage;
+import dev.goldberry.render.window.Ownership;
 import dev.goldberry.render.window.Presentation;
 import dev.goldberry.render.window.WindowSpec;
 import dev.goldberry.stats.FrameRing;
@@ -183,13 +189,36 @@ public final class Window implements AutoCloseable {
     }
 
     /// Opens a window from a full specification — for the cases that need to say
-    /// something about resizability or decorations.
+    /// something about resizability, decorations, or where it opens.
+    ///
+    /// @throws IllegalArgumentException if the spec asks for an owner: only a
+    ///         window opened through [Host#openWindow] has one to belong to
     public static Window open(WindowSpec spec) {
         Objects.requireNonNull(spec, "spec");
+        if (spec.ownership() != Ownership.NONE) {
+            throw new IllegalArgumentException("a window that belongs to another is opened through"
+                    + " Host.openWindow, which knows which window that is; Window.open has no owner to give it");
+        }
+        return open(spec, null);
+    }
+
+    /// Opens a window, belonging to `owner` when the spec says it should.
+    ///
+    /// Everything that decides where and to whom happens here, while the window
+    /// is still hidden: it appears where it was put, already above its owner.
+    static Window open(WindowSpec spec, @Nullable Window owner) {
         var runtime = GoldberryRuntime.get();
         var backendWindow = runtime.backend().createWindow(spec);
         var window = new Window(runtime, backendWindow);
         runtime.register(backendWindow, window);
+        if (owner != null && spec.ownership() != Ownership.NONE) {
+            window.belongTo(owner, spec.ownership() == Ownership.MODAL);
+        }
+        window.placeable = runtime.backend().placesWindows();
+        window.placeOpening(spec, owner);
+        window.normalSize = spec.size();
+        window.normalPosition = window.position().orElse(null);
+        window.openingMaximized = spec.maximized();
         LOG.info(
                 "window \"{}\" opened: {} at {} -> {}",
                 spec.title(),
@@ -199,6 +228,235 @@ public final class Window implements AutoCloseable {
         Startup.mark("window \"" + spec.title() + "\" open");
         window.repaint();
         return window;
+    }
+
+    /// Puts a new window where its spec asks, before it is first shown.
+    ///
+    /// An owned window with nowhere of its own to be is centred on its owner,
+    /// which is where a dialog belongs.
+    private void placeOpening(WindowSpec spec, @Nullable Window owner) {
+        var backend = runtime.backend();
+        if (!backend.placesWindows()) {
+            if (spec.position() != null || spec.display() != null) {
+                LOG.debug("this desktop places windows itself; \"{}\" opens where it puts it", spec.title());
+            }
+            return;
+        }
+        var layout = new DisplayLayout(backend.displays());
+        var at = layout.opening(spec.size(), spec.position(), spec.display());
+        if (at.isEmpty() && owner != null && spec.ownership() != Ownership.NONE) {
+            var origin = owner.position();
+            if (origin.isPresent()) {
+                var around = new LogicalRect(origin.get(), owner.size());
+                var centred = DisplayLayout.centred(spec.size(), around);
+                at = Optional.of(layout.clamp(new LogicalRect(centred, spec.size())));
+            }
+        }
+        at.ifPresent(window::place);
+    }
+
+    // --- where the window is ---------------------------------------------------
+
+    /// The size this window returns to when it stops being maximized or
+    /// fullscreen — see [#normalBounds()].
+    private LogicalSize normalSize = LogicalSize.of(1, 1);
+
+    /// Where it returns to, or null where the platform does not say.
+    private @Nullable LogicalPoint normalPosition;
+
+    /// Whether the platform lets this window be placed and says where it is —
+    /// asked once, as it opens, so the answer outlives the backend.
+    private boolean placeable;
+
+    /// Set while a window that asked to open maximized has not yet heard the
+    /// platform say so: the size it reports in between is the maximized one.
+    private boolean openingMaximized;
+
+    /// Where this window's top-left is, in the desktop's coordinates — the
+    /// space [Display#bounds()] is in.
+    ///
+    /// What an application saves when the window closes and hands back to
+    /// [WindowSpec#withPosition] the next time it opens.
+    ///
+    /// **Empty on Wayland**, which places every window itself and tells no
+    /// application where, and once the window has closed.
+    ///
+    /// Read more: [Where a window opens](https://goldberry.dev/docs/guide/windows.html#where-a-window-opens).
+    public Optional<LogicalPoint> position() {
+        if (!window.isOpen() || !placeable) {
+            return Optional.empty();
+        }
+        return window.position();
+    }
+
+    /// Asks for this window's top-left to be at `position`, in the desktop's
+    /// coordinates.
+    ///
+    /// **Clamped** first, onto the display most of the window would be on —
+    /// or the nearest — so a position saved on a monitor that has since gone
+    /// still lands somewhere the user can see. A request, like a resize: the
+    /// move arrives through [#onMove], and [#position()] reads it then.
+    ///
+    /// @return false where the platform will not place a window, which is
+    ///         Wayland, or once the window has closed
+    public boolean move(LogicalPoint position) {
+        Objects.requireNonNull(position, "position");
+        if (!window.isOpen()) {
+            return false;
+        }
+        var layout = new DisplayLayout(runtime.backend().displays());
+        return window.place(layout.clamp(new LogicalRect(position, size())));
+    }
+
+    /// The display this window is mostly on, or empty where the platform will
+    /// not say.
+    ///
+    /// Its [Display#name()] is what to save beside [#position()]: the
+    /// fallback [WindowSpec#withDisplay] opens on when the position is on no
+    /// display any more.
+    public Optional<Display> display() {
+        return window.isOpen() ? window.display() : Optional.empty();
+    }
+
+    /// The displays connected now, the primary one first; empty where the
+    /// platform names none.
+    public List<Display> displays() {
+        return runtime.backend().displays();
+    }
+
+    /// The bounds this window has when it is neither maximized nor
+    /// fullscreen — the ones to save, so that a window closed maximized opens
+    /// maximized *and* restores to the size the user last gave it.
+    ///
+    /// Tracked from the moves and resizes the platform reported while the
+    /// window was neither, and still answered once the window has closed —
+    /// which is when an application usually saves it. Empty on Wayland, where
+    /// no position is ever reported: save [#normalSize()] alone there.
+    public Optional<LogicalRect> normalBounds() {
+        var at = normalPosition;
+        return at == null ? Optional.empty() : Optional.of(new LogicalRect(at, normalSize));
+    }
+
+    /// The size of [#normalBounds()], which every platform can answer.
+    public LogicalSize normalSize() {
+        return normalSize;
+    }
+
+    /// Whether this window is in a state whose geometry is not its own.
+    private boolean outOfNormal() {
+        return maximized || fullscreen || openingMaximized;
+    }
+
+    // --- attention -------------------------------------------------------------
+
+    /// Asks the desktop to draw the user's eye to this window: a bounce of the
+    /// dock icon on macOS, a flashing taskbar button on Windows, and the
+    /// urgency hint on X11, which the desktop shows its own way.
+    ///
+    /// For something that finished, or failed, while the user was looking at
+    /// another application. Not a notification: it says *which* window, and
+    /// nothing about why.
+    ///
+    /// Read more: [Asking for attention](https://goldberry.dev/docs/guide/windows.html#asking-for-attention).
+    ///
+    /// @return false where the platform has no way to, or the window has
+    ///         closed
+    public boolean requestAttention(Attention attention) {
+        Objects.requireNonNull(attention, "attention");
+        return window.isOpen() && window.requestAttention(attention);
+    }
+
+    /// Withdraws a [#requestAttention] that is still in force.
+    ///
+    /// @return false where the platform has no way to, or the window has
+    ///         closed
+    public boolean cancelAttention() {
+        return window.isOpen() && window.cancelAttention();
+    }
+
+    /// Brings this window to the front and asks for the keyboard — for a
+    /// second window that is already open when it is asked for again.
+    ///
+    /// A desktop may refuse to take the keyboard from another application, and
+    /// flash the window instead.
+    ///
+    /// @return false where the platform refused, or the window has closed
+    public boolean raise() {
+        return window.isOpen() && window.raise();
+    }
+
+    // --- belonging to another window --------------------------------------------
+
+    /// Makes this window belong to `owner`, and modal for it when `modal`.
+    private void belongTo(Window owner, boolean modal) {
+        if (!window.parent(owner.window)) {
+            LOG.debug("the platform would not make \"{}\" belong to \"{}\"", window.title(), owner.title());
+            return;
+        }
+        if (modal && !window.modal(true)) {
+            LOG.debug("the platform would not make \"{}\" modal; the toolkit still blocks its owner", window.title());
+        }
+    }
+
+    /// Run when input arrives while this window is blocked, or null while it
+    /// is not — see [#blockInput].
+    private @Nullable Runnable blocked;
+
+    /// Stops this window taking input while a modal window of its own is open,
+    /// or starts it again when `onPress` is null.
+    ///
+    /// Not left to the platform: Windows disables a modal window's owner, but an
+    /// X11 window manager may not, and a click in the window under a modal one
+    /// must not reach it on any desktop. A press runs `onPress`, which brings
+    /// the modal window back to the front.
+    void blockInput(@Nullable Runnable onPress) {
+        var wasBlocked = blocked != null;
+        blocked = onPress;
+        if (onPress != null && !wasBlocked && router != null) {
+            // The hover would otherwise stay lit on whatever the pointer was
+            // over, a control that can no longer be pressed.
+            router.pointerExited();
+            repaintIfRestyled();
+        }
+    }
+
+    /// Whether `event` is input this window is not taking now — and, for a
+    /// press, what it does instead.
+    boolean swallowedWhileBlocked(dev.goldberry.render.event.BackendEvent event) {
+        var onPress = blocked;
+        if (onPress == null) {
+            return false;
+        }
+        return switch (event) {
+            case dev.goldberry.render.event.BackendEvent.PointerPressed _ -> {
+                onPress.run();
+                yield true;
+            }
+            case dev.goldberry.render.event.BackendEvent.PointerMoved _,
+                    dev.goldberry.render.event.BackendEvent.PointerReleased _,
+                    dev.goldberry.render.event.BackendEvent.PointerWheel _,
+                    dev.goldberry.render.event.BackendEvent.KeyPressed _,
+                    dev.goldberry.render.event.BackendEvent.KeyReleased _,
+                    dev.goldberry.render.event.BackendEvent.TextInput _,
+                    dev.goldberry.render.event.BackendEvent.TextEditing _,
+                    dev.goldberry.render.event.BackendEvent.FileDropped _,
+                    dev.goldberry.render.event.BackendEvent.TextDropped _,
+                    dev.goldberry.render.event.BackendEvent.FileDropCompleted _ -> true;
+            default -> false;
+        };
+    }
+
+    /// Whether this window takes no input now.
+    boolean isInputBlocked() {
+        return blocked != null;
+    }
+
+    /// The launcher's close hook, run as [#close()] begins — while the window
+    /// is still open, so what belongs to it can be closed first.
+    private Runnable launcherClose = () -> {};
+
+    void launcherOnClose(Runnable hook) {
+        this.launcherClose = Objects.requireNonNull(hook, "hook");
     }
 
     /// Sets what to draw. Called on the UI thread whenever the window needs a
@@ -510,6 +768,14 @@ public final class Window implements AutoCloseable {
         if (!window.isOpen()) {
             return;
         }
+        // First, while this window is still open: the windows that belong to
+        // it go before it does, as they would on the platform.
+        var hook = launcherClose;
+        launcherClose = () -> {};
+        hook.run();
+        if (!window.isOpen()) {
+            return;
+        }
         if (window instanceof BackendPopup) {
             // A popup opens and closes as often as a menu is used; at INFO it
             // would be the only thing in an application's log.
@@ -808,6 +1074,9 @@ public final class Window implements AutoCloseable {
         // longer matches, which is the same test one step later -- and dropping
         // it eagerly means a multi-megabyte allocation for every resize event a
         // compositor sends, which during a drag is per pointer motion.
+        if (!outOfNormal()) {
+            normalSize = size;
+        }
         launcherResize.accept(size);
         resizeHandler.accept(size);
         repaint();
@@ -817,6 +1086,9 @@ public final class Window implements AutoCloseable {
         LOG.trace("window moved to {}", position);
         // No repaint. The frame on screen is still the right one -- see
         // [#onMove].
+        if (!outOfNormal() && placeable) {
+            normalPosition = position;
+        }
         launcherMove.accept(position);
         moveHandler.accept(position);
     }
@@ -1051,6 +1323,7 @@ public final class Window implements AutoCloseable {
 
     void handleMaximizedChanged(boolean value) {
         maximized = value;
+        openingMaximized = false;
     }
 
     /// The platform's last word on whether this window fills its display — see

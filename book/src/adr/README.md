@@ -576,3 +576,6 @@ proposing to undo them.
 - [ADR-0538 A weight is a number, and the nearest face answers it](0538-a-weight-is-a-number-and-the-nearest-face-answers-it.md)
 - [ADR-0539 An application reads its own resources, and a missing face is said at start](0539-an-application-reads-its-own-resources-and-a-missing-face-is-said-at-start.md)
 - [ADR-0540 Each natives jar names its module, and no widget class is reflected on](0540-each-natives-jar-names-its-module-and-no-widget-class-is-reflected-on.md)
+- [ADR-0541 A window opens where it was left, and is clamped onto a display that exists](0541-a-window-opens-where-it-was-left-and-is-clamped-onto-a-display-that-exists.md)
+- [ADR-0542 An application may open more than one window](0542-an-application-may-open-more-than-one-window.md)
+- [ADR-0543 A window asks for attention, and the desktop decides how](0543-a-window-asks-for-attention-and-the-desktop-decides-how.md)

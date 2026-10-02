@@ -40,7 +40,11 @@ public record SdlWindowCalls(
         SetTextInputArea setTextInputArea,
         GetWindowProperties getWindowProperties,
         GetNumberProperty getNumberProperty,
-        GetPointerProperty getPointerProperty) {
+        GetPointerProperty getPointerProperty,
+        FlashWindow flashWindow,
+        SetWindowParent setWindowParent,
+        SetWindowModal setWindowModal,
+        RaiseWindow raiseWindow) {
 
     /// Binds every function above.
     ///
@@ -69,7 +73,122 @@ public record SdlWindowCalls(
                 new SetTextInputArea(lookup),
                 new GetWindowProperties(lookup),
                 new GetNumberProperty(lookup),
-                new GetPointerProperty(lookup));
+                new GetPointerProperty(lookup),
+                new FlashWindow(lookup),
+                new SetWindowParent(lookup),
+                new SetWindowModal(lookup),
+                new RaiseWindow(lookup));
+    }
+
+    /// Asks the desktop to draw the user's eye to a window: the urgency hint on
+    /// X11, a flashing taskbar button on Windows, a bouncing dock icon on macOS.
+    ///
+    /// `_Bool SDL_FlashWindow(void*, SDL_FlashOperation)`
+    public static final class FlashWindow {
+
+        private static final MethodHandle FD_SDL_FlashWindow =
+                Downcalls.link(FunctionDescriptor.of(JAVA_BOOLEAN, ADDRESS, JAVA_INT));
+
+        private final MemorySegment address;
+
+        FlashWindow(SymbolLookup lookup) {
+            this.address = Downcalls.symbol(lookup, "SDL_FlashWindow");
+        }
+
+        /// Calls `SDL_FlashWindow`.
+        ///
+        /// @param window    the window
+        /// @param operation `SDL_FLASH_CANCEL`, `…_BRIEFLY` or `…_UNTIL_FOCUSED`
+        /// @return false if SDL refused
+        public boolean call(MemorySegment window, int operation) {
+            try {
+                return (boolean) FD_SDL_FlashWindow.invokeExact(address, window, operation);
+            } catch (Throwable t) {
+                throw Downcalls.failure("SDL_FlashWindow", t);
+            }
+        }
+    }
+
+    /// Makes one top-level window belong to another, or to nobody again.
+    ///
+    /// `_Bool SDL_SetWindowParent(void*, void*)`
+    public static final class SetWindowParent {
+
+        private static final MethodHandle FD_SDL_SetWindowParent =
+                Downcalls.link(FunctionDescriptor.of(JAVA_BOOLEAN, ADDRESS, ADDRESS));
+
+        private final MemorySegment address;
+
+        SetWindowParent(SymbolLookup lookup) {
+            this.address = Downcalls.symbol(lookup, "SDL_SetWindowParent");
+        }
+
+        /// Calls `SDL_SetWindowParent`.
+        ///
+        /// @param window the child
+        /// @param parent the parent, or NULL for none
+        /// @return false if SDL refused
+        public boolean call(MemorySegment window, MemorySegment parent) {
+            try {
+                return (boolean) FD_SDL_SetWindowParent.invokeExact(address, window, parent);
+            } catch (Throwable t) {
+                throw Downcalls.failure("SDL_SetWindowParent", t);
+            }
+        }
+    }
+
+    /// Makes a window with a parent modal for it, or not.
+    ///
+    /// `_Bool SDL_SetWindowModal(void*, _Bool)`
+    public static final class SetWindowModal {
+
+        private static final MethodHandle FD_SDL_SetWindowModal =
+                Downcalls.link(FunctionDescriptor.of(JAVA_BOOLEAN, ADDRESS, JAVA_BOOLEAN));
+
+        private final MemorySegment address;
+
+        SetWindowModal(SymbolLookup lookup) {
+            this.address = Downcalls.symbol(lookup, "SDL_SetWindowModal");
+        }
+
+        /// Calls `SDL_SetWindowModal`.
+        ///
+        /// @param window a window that has a parent
+        /// @param modal  whether it is modal for that parent
+        /// @return false if SDL refused
+        public boolean call(MemorySegment window, boolean modal) {
+            try {
+                return (boolean) FD_SDL_SetWindowModal.invokeExact(address, window, modal);
+            } catch (Throwable t) {
+                throw Downcalls.failure("SDL_SetWindowModal", t);
+            }
+        }
+    }
+
+    /// Brings a window to the front and asks for the keyboard.
+    ///
+    /// `_Bool SDL_RaiseWindow(void*)`
+    public static final class RaiseWindow {
+
+        private static final MethodHandle FD_SDL_RaiseWindow =
+                Downcalls.link(FunctionDescriptor.of(JAVA_BOOLEAN, ADDRESS));
+
+        private final MemorySegment address;
+
+        RaiseWindow(SymbolLookup lookup) {
+            this.address = Downcalls.symbol(lookup, "SDL_RaiseWindow");
+        }
+
+        /// Calls `SDL_RaiseWindow`.
+        ///
+        /// @return false if SDL refused
+        public boolean call(MemorySegment window) {
+            try {
+                return (boolean) FD_SDL_RaiseWindow.invokeExact(address, window);
+            } catch (Throwable t) {
+                throw Downcalls.failure("SDL_RaiseWindow", t);
+            }
+        }
     }
 
     /// Tells the platform where the text being typed is, so a candidate window

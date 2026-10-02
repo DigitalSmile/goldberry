@@ -12,7 +12,8 @@ import java.lang.invoke.MethodHandle;
 
 import dev.goldberry.natives.Downcalls;
 
-/// SDL's display queries — scale, work area, and refresh rate.
+/// SDL's display queries — which displays there are, their names, bounds and
+/// scale, a window's work area, and refresh rate.
 ///
 /// One holder per function: its handle, its address, and a `call` whose
 /// parameters are the C prototype’s. See [Downcalls] for why the handle is a
@@ -21,7 +22,11 @@ public record SdlDisplayCalls(
         GetWindowDisplayScale getWindowDisplayScale,
         GetDisplayUsableBounds getDisplayUsableBounds,
         GetDisplayForWindow getDisplayForWindow,
-        GetCurrentDisplayMode getCurrentDisplayMode) {
+        GetCurrentDisplayMode getCurrentDisplayMode,
+        GetDisplays getDisplays,
+        GetDisplayName getDisplayName,
+        GetDisplayBounds getDisplayBounds,
+        GetDisplayContentScale getDisplayContentScale) {
 
     /// Binds every function above.
     ///
@@ -31,7 +36,126 @@ public record SdlDisplayCalls(
                 new GetWindowDisplayScale(lookup),
                 new GetDisplayUsableBounds(lookup),
                 new GetDisplayForWindow(lookup),
-                new GetCurrentDisplayMode(lookup));
+                new GetCurrentDisplayMode(lookup),
+                new GetDisplays(lookup),
+                new GetDisplayName(lookup),
+                new GetDisplayBounds(lookup),
+                new GetDisplayContentScale(lookup));
+    }
+
+    /// The displays connected now, as a zero-terminated array SDL allocated.
+    ///
+    /// The caller releases it with `SDL_free`. The first entry is the primary
+    /// display: `SDL_GetPrimaryDisplay` answers with the same one.
+    ///
+    /// `SDL_DisplayID* SDL_GetDisplays(int* count)`
+    public static final class GetDisplays {
+
+        private static final MethodHandle FD_SDL_GetDisplays = Downcalls.link(FunctionDescriptor.of(ADDRESS, ADDRESS));
+
+        private final MemorySegment address;
+
+        GetDisplays(SymbolLookup lookup) {
+            this.address = Downcalls.symbol(lookup, "SDL_GetDisplays");
+        }
+
+        /// Calls `SDL_GetDisplays`.
+        ///
+        /// @param outCount a caller-allocated `int` the count is written to
+        /// @return the array, or NULL on failure
+        public MemorySegment call(MemorySegment outCount) {
+            try {
+                return (MemorySegment) FD_SDL_GetDisplays.invokeExact(address, outCount);
+            } catch (Throwable t) {
+                throw Downcalls.failure("SDL_GetDisplays", t);
+            }
+        }
+    }
+
+    /// A display's human-readable name, which SDL owns.
+    ///
+    /// `const char* SDL_GetDisplayName(int)`
+    public static final class GetDisplayName {
+
+        private static final MethodHandle FD_SDL_GetDisplayName =
+                Downcalls.link(FunctionDescriptor.of(ADDRESS, JAVA_INT));
+
+        private final MemorySegment address;
+
+        GetDisplayName(SymbolLookup lookup) {
+            this.address = Downcalls.symbol(lookup, "SDL_GetDisplayName");
+        }
+
+        /// Calls `SDL_GetDisplayName`.
+        ///
+        /// @param displayId an `SDL_DisplayID`
+        /// @return the name, or NULL on failure
+        public MemorySegment call(int displayId) {
+            try {
+                return (MemorySegment) FD_SDL_GetDisplayName.invokeExact(address, displayId);
+            } catch (Throwable t) {
+                throw Downcalls.failure("SDL_GetDisplayName", t);
+            }
+        }
+    }
+
+    /// A display's full bounds, in the desktop's coordinates — what
+    /// [GetDisplayUsableBounds] takes the panels away from.
+    ///
+    /// `_Bool SDL_GetDisplayBounds(int, void*)`
+    public static final class GetDisplayBounds {
+
+        private static final MethodHandle FD_SDL_GetDisplayBounds =
+                Downcalls.link(FunctionDescriptor.of(JAVA_BOOLEAN, JAVA_INT, ADDRESS));
+
+        private final MemorySegment address;
+
+        GetDisplayBounds(SymbolLookup lookup) {
+            this.address = Downcalls.symbol(lookup, "SDL_GetDisplayBounds");
+        }
+
+        /// Calls `SDL_GetDisplayBounds`.
+        ///
+        /// @param displayId an `SDL_DisplayID`
+        /// @param outRect a caller-allocated `SDL_Rect`
+        /// @return false if SDL refused
+        public boolean call(int displayId, MemorySegment outRect) {
+            try {
+                return (boolean) FD_SDL_GetDisplayBounds.invokeExact(address, displayId, outRect);
+            } catch (Throwable t) {
+                throw Downcalls.failure("SDL_GetDisplayBounds", t);
+            }
+        }
+    }
+
+    /// The scale the desktop is set to on a display — 1.5 for 150%.
+    ///
+    /// Not the pixel density: a window's own scale is this times the density
+    /// of the display's mode.
+    ///
+    /// `float SDL_GetDisplayContentScale(int)`
+    public static final class GetDisplayContentScale {
+
+        private static final MethodHandle FD_SDL_GetDisplayContentScale =
+                Downcalls.link(FunctionDescriptor.of(JAVA_FLOAT, JAVA_INT));
+
+        private final MemorySegment address;
+
+        GetDisplayContentScale(SymbolLookup lookup) {
+            this.address = Downcalls.symbol(lookup, "SDL_GetDisplayContentScale");
+        }
+
+        /// Calls `SDL_GetDisplayContentScale`.
+        ///
+        /// @param displayId an `SDL_DisplayID`
+        /// @return the scale, or 0 on failure
+        public float call(int displayId) {
+            try {
+                return (float) FD_SDL_GetDisplayContentScale.invokeExact(address, displayId);
+            } catch (Throwable t) {
+                throw Downcalls.failure("SDL_GetDisplayContentScale", t);
+            }
+        }
     }
 
     /// The display scale in force for the window.

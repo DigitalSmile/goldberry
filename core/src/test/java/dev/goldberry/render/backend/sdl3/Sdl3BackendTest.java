@@ -175,4 +175,25 @@ class Sdl3BackendTest {
             assertFalse(Sdl3Backend.hasPrimarySelection(driver));
         }
     }
+
+    /// Wayland places every top-level window itself and SDL refuses the move,
+    /// and `dummy` and `offscreen` have no desktop to place one on.
+    @Nested
+    @DisplayName("a window's position")
+    class PlacementByDriver {
+
+        @ParameterizedTest
+        @ValueSource(strings = {"x11", "windows", "cocoa"})
+        @DisplayName("is the application's to choose where the window system lets it")
+        void placed(String driver) {
+            assertTrue(Sdl3Backend.placesWindows(driver));
+        }
+
+        @ParameterizedTest
+        @ValueSource(strings = {"wayland", "dummy", "offscreen", "kmsdrm", "", "X11"})
+        @DisplayName("and the desktop's everywhere else")
+        void notPlaced(String driver) {
+            assertFalse(Sdl3Backend.placesWindows(driver));
+        }
+    }
 }

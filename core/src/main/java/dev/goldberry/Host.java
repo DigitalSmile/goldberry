@@ -1,5 +1,6 @@
 package dev.goldberry;
 
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Consumer;
@@ -14,11 +15,13 @@ import dev.goldberry.render.desktop.SystemTheme;
 import dev.goldberry.render.dialog.FileChoice;
 import dev.goldberry.render.dialog.FileDialogSpec;
 import dev.goldberry.render.dialog.FileDialogs;
+import dev.goldberry.render.display.Display;
 import dev.goldberry.render.event.EventLoop;
 import dev.goldberry.render.model.LogicalPoint;
 import dev.goldberry.render.model.LogicalRect;
 import dev.goldberry.render.model.LogicalSize;
 import dev.goldberry.render.window.BackendWindow;
+import dev.goldberry.render.window.WindowSpec;
 import dev.goldberry.stats.FrameStats;
 import dev.goldberry.text.font.Fonts;
 import dev.goldberry.widget.style.Corner;
@@ -804,4 +807,46 @@ public interface Host {
     /// something belongs on [Host] instead — but a toolkit that made the window
     /// unreachable would be one an application has to fork to extend.
     Window window();
+
+    /// The displays connected now, the primary one first.
+    ///
+    /// Asked fresh each time, because a display can be plugged in or taken away
+    /// at any moment. Empty by default, which is the answer for a host with no
+    /// desktop under it: an offscreen render, and every golden image.
+    ///
+    /// Read more: [Displays](https://goldberry.dev/docs/guide/windows.html#displays).
+    default List<Display> displays() {
+        return List.of();
+    }
+
+    /// Opens a second top-level window with `root` in it, and returns the host
+    /// that window answers to.
+    ///
+    /// The new window has a tree, a router, overlays, focus, accelerators and
+    /// popups of its own, and shares everything that belongs to the
+    /// application rather than to a window: the stylesheets — a
+    /// [#restyle()] restyles every window — the fonts, the models and the
+    /// clock. It closes when the user closes it, when [WindowHost#close()] is
+    /// called, or when the application's first window closes, which ends the
+    /// application.
+    ///
+    /// ```java
+    /// var spec = WindowSpec.of("Settings", LogicalSize.of(480, 360)).withOwnership(Ownership.OWNED);
+    /// settings = host.openWindow(spec, new SettingsPage(model)).orElseThrow();
+    /// settings.onClose(() -> settings = null);
+    /// ```
+    ///
+    /// A window whose spec says it is owned or modal belongs to the window of
+    /// the host it was opened from — see
+    /// [dev.goldberry.render.window.Ownership].
+    ///
+    /// Read more: [More than one window](https://goldberry.dev/docs/guide/windows.html#more-than-one-window).
+    ///
+    /// @return the new window's host, or empty where this host has no desktop
+    ///         to open one on — the default
+    default Optional<WindowHost> openWindow(WindowSpec spec, Widget root) {
+        Objects.requireNonNull(spec, "spec");
+        Objects.requireNonNull(root, "root");
+        return Optional.empty();
+    }
 }

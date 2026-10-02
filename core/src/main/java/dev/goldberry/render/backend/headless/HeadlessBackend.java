@@ -22,6 +22,7 @@ import dev.goldberry.render.backend.sdl3.Sdl3Backend;
 import dev.goldberry.render.clipboard.PrimarySelection;
 import dev.goldberry.render.composite.Compositor;
 import dev.goldberry.render.desktop.SystemTheme;
+import dev.goldberry.render.display.Display;
 import dev.goldberry.render.event.BackendEvent;
 import dev.goldberry.render.event.EventSink;
 import dev.goldberry.render.model.DisplayScale;
@@ -129,6 +130,56 @@ public final class HeadlessBackend implements Backend {
     /// Changes it, for a test that wants a smaller screen or none of it reserved.
     public HeadlessBackend workArea(LogicalRect value) {
         this.workArea = Objects.requireNonNull(value, "workArea");
+        return this;
+    }
+
+    /// The displays a test gave this backend, or null for the one implied by
+    /// [#workArea()].
+    private @Nullable List<Display> displays;
+
+    /// Whether windows may be placed — see [#placesWindows(boolean)].
+    private boolean placesWindows = true;
+
+    /// One display, `Headless`, whose usable bounds are [#workArea()] — or the
+    /// ones a test set with [#displays(List)].
+    @Override
+    public List<Display> displays() {
+        if (displays != null) {
+            return displays;
+        }
+        var full = LogicalRect.of(
+                Math.min(0, workArea.left()),
+                Math.min(0, workArea.top()),
+                Math.max(1920, workArea.right()) - Math.min(0, workArea.left()),
+                Math.max(1080, workArea.bottom()) - Math.min(0, workArea.top()));
+        return List.of(new Display(1, "Headless", full, workArea, scale, true));
+    }
+
+    /// Gives this backend a desktop of several displays — the case a window
+    /// remembered on a monitor that has gone is about.
+    ///
+    /// A window's work area is then its own display's usable bounds.
+    public HeadlessBackend displays(List<Display> value) {
+        this.displays = List.copyOf(Objects.requireNonNull(value, "displays"));
+        return this;
+    }
+
+    /// Whether a test set displays of its own.
+    boolean hasOwnDisplays() {
+        return displays != null;
+    }
+
+    /// True unless a test asked for a desktop that places windows itself, the
+    /// way Wayland does.
+    @Override
+    public boolean placesWindows() {
+        return placesWindows;
+    }
+
+    /// Behaves like Wayland when false: [BackendWindow#place] is refused and
+    /// a window's position is nobody's business.
+    public HeadlessBackend placesWindows(boolean value) {
+        this.placesWindows = value;
         return this;
     }
 
@@ -496,6 +547,15 @@ public final class HeadlessBackend implements Backend {
         for (var window : List.copyOf(windows)) {
             if (window instanceof HeadlessPopup popup && popup.owner() == owner) {
                 popup.close();
+            }
+        }
+    }
+
+    /// Closes the top-level windows that belong to `parent`, as SDL does.
+    void closeChildrenOf(HeadlessWindow parent) {
+        for (var window : List.copyOf(windows)) {
+            if (window.parentWindow().orElse(null) == parent) {
+                window.close();
             }
         }
     }

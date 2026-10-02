@@ -4,8 +4,9 @@
 
 By the end of this chapter you can run an application and know what runs
 when, open a popup that leaves the window and an overlay that does not,
-follow the desktop's theme, go fullscreen, set an icon, and do work off the
-UI thread and come back.
+follow the desktop's theme, go fullscreen, set an icon, put the window back
+where the user left it, open a second window, and do work off the UI thread
+and come back.
 
 ```java
 public final class Hello implements Application {
@@ -36,8 +37,9 @@ public final class Hello implements Application {
 `Goldberry.launch(application, args)` takes over the calling thread as the
 UI thread and returns when the window has closed. In order:
 
-1. `title()`, `size()`, `minimumSize()`, `maximized()` and `icon()` are read
-   and the window is opened. `fonts()` is read and the font book opens.
+1. `title()`, `size()`, `minimumSize()`, `maximized()`, `position()`,
+   `display()` and `icon()` are read and the window is opened, hidden, put
+   where it was asked, and then shown. `fonts()` is read and the font book opens.
 2. `stylesheets()` is read and the renderer is built.
 3. `start(host)` runs. Open what has a `close()` here, bind accelerators,
    keep the `Host`.
@@ -62,6 +64,8 @@ and for repaints, and is the subject of
 | `size()` | 960 by 640 | what the window restores to when un-maximized |
 | `minimumSize()` | no minimum | the window manager stops the drag at the floor, and the application never clamps a frame ([ADR-0304](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0304-a-window-has-a-floor-and-the-desktop-enforces-it.md)) |
 | `maximized()` | false | a state the desktop owns, not a large size: it snaps to the work area and restores to `size()` ([ADR-0221](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0221-a-window-may-open-maximized.md)) |
+| `position()` | the platform's choice | where the window's top-left opens, clamped onto a display that exists ([Where a window opens](#where-a-window-opens)) |
+| `display()` | none | the name of the display to open centred on, and the fallback for a position on no display |
 | `icon()` | the platform's generic icon | several sizes of one `Image`; the backend picks which the platform scales from ([ADR-0351](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0351-a-window-icon-is-several-sizes-and-the-backend-picks-the-base.md)) |
 | `fonts()` | the bundled faces | faces the application ships ([Text, fonts and icons](text.md#shipping-a-face)) |
 
@@ -100,7 +104,9 @@ It is confined to the UI thread, except `repaint()`.
 | `fonts()` | the renderer's font book, for a canvas measuring its own text |
 | `clock()` | the clock frames are timed against. Virtual in a test |
 | `onContextMenu(handler)` | what a `context-menu="…"` right-click opens |
-| `window()` | the `Window`, for the close hook, the cursor, resize and scale notifications |
+| `displays()` | the displays connected now, the primary one first ([Displays](#displays)) |
+| `openWindow(spec, root)` | a second top-level window with a tree of its own ([More than one window](#more-than-one-window)) |
+| `window()` | the `Window`, for the close hook, the cursor, position, attention, resize and scale notifications |
 
 `window()` is an escape hatch and is named as one. Reaching for it is a
 signal that something belongs on `Host` instead.
@@ -216,6 +222,127 @@ what the platform last reported
 `canFullscreen()` is false for a host with no window under it, which is what
 a `media-player` reads to decide whether to offer the button at all.
 
+## Where a window opens
+
+```java
+@Override public Optional<LogicalPoint> position() { return settings.position(); }
+@Override public Optional<String> display()        { return settings.display(); }
+
+@Override public void start(Host host) {
+    var window = host.window();
+    window.onCloseRequest(() -> {
+        window.normalBounds().ifPresent(bounds -> settings.position(bounds.origin()));
+        settings.size(window.normalSize());
+        settings.maximized(window.isMaximized());
+        window.display().ifPresent(display -> settings.display(display.name()));
+        return true;
+    });
+}
+```
+
+A window is created hidden, so where it opens is decided before anybody sees
+it. `position()` is its top-left in the **desktop's coordinates**, the space
+`Window.position()` reports and every `Display` rectangle is in: the primary
+display's corner is usually the origin, and a display to its left has a
+negative `x`.
+
+What was saved may not fit the desktop the application opens on. A monitor
+was unplugged, or a laptop left its dock. So the position is checked, in
+order:
+
+1. on a display that exists: it opens there, **clamped** into that display's
+   usable bounds, clear of the taskbar or the dock;
+2. on no display: it opens centred on the display named by `display()`, if
+   that one is still connected, and otherwise centred on the primary display.
+
+With no position, a `display()` alone opens centred on that display, and
+nothing at all leaves it to the platform. The same clamp applies to
+`window.move(point)`, so a window can never be put off every screen.
+
+`normalBounds()` is what to save rather than the current bounds. They are
+the bounds the window returns to when it stops being maximized or
+fullscreen, so a window closed maximized opens maximized and still restores
+to the size the user last gave it. They are still answered after the window
+has closed. `onMove(listener)` reports every move.
+
+> [!NOTE]
+> **Wayland places every window itself.** A compositor tells no application
+> where its windows are, and refuses to put one anywhere. There,
+> `position()` is empty, `move` returns false, `normalBounds()` is empty and
+> `normalSize()` is the whole of what can be restored. X11, Windows and macOS
+> place windows as asked.
+
+### Displays
+
+```java
+for (var display : host.displays()) {
+    log.info("{} {} at {}", display.name(), display.bounds(), display.scale());
+}
+```
+
+A `Display` has a name, its full `bounds()`, the `usableBounds()` a window
+may occupy (less panels and docks), its `scale()`, and whether it is the
+`primary()` one. Its `id()` is good for this run only. Remember a display by
+its name, which is a monitor's model as a rule. `window.display()` is the
+display most of a window is on. `DisplayLayout` holds the rule above, for an
+application that wants to check a position itself
+([ADR-0541](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0541-a-window-opens-where-it-was-left-and-is-clamped-onto-a-display-that-exists.md)).
+
+## Asking for attention
+
+```java
+Goldberry.async(this::export)
+         .thenRun(() -> host.window().requestAttention(Attention.UNTIL_FOCUSED));
+```
+
+`requestAttention(Attention.BRIEFLY)` or `UNTIL_FOCUSED` asks the desktop to
+draw the user's eye to a window that is not in front: the dock icon bounces
+on macOS, the taskbar button flashes on Windows, and X11 sets the urgency
+hint, which the desktop shows its own way. `cancelAttention()` withdraws it,
+and `raise()` brings a window to the front, which a desktop may answer with a
+flash instead. It is not a notification. It says which window, and nothing
+about why
+([ADR-0543](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0543-a-window-asks-for-attention-and-the-desktop-decides-how.md)).
+
+## More than one window
+
+```java
+private WindowHost settings;
+
+void openSettings(Host host) {
+    if (settings != null) {
+        settings.window().raise();
+        return;
+    }
+    var spec = WindowSpec.of("Settings", LogicalSize.of(480, 360)).withOwnership(Ownership.OWNED);
+    settings = host.openWindow(spec, new SettingsPage(model)).orElseThrow();
+    settings.onClose(() -> settings = null);
+}
+```
+
+`host.openWindow(spec, root)` opens a second top-level window with `root` in
+it and returns its `WindowHost`, which is a `Host` for that window plus
+`close()`, `isOpen()` and `onClose(action)`. The new window has its own tree,
+router, overlays, focus, accelerators, popups and tooltips. It shares what
+belongs to the application: the stylesheets (a `restyle()` from any window
+restyles every window), the fonts, the models (a change repaints every
+window) and the clock. A widget in it reaches its own window's host through
+`BuildContext.host()`.
+
+`spec.withOwnership(...)` says whether it belongs to the window it was opened
+from:
+
+| Ownership | What it does |
+|---|---|
+| `NONE` | a window of its own, the default |
+| `OWNED` | kept above its owner and minimized with it; closes when its owner closes. Opens centred on the owner unless the spec says where |
+| `MODAL` | `OWNED`, and the owner takes no input until it closes. A press on the owner brings the modal window to the front |
+
+Closing the application's first window closes every other one and ends the
+application, as `Goldberry.stop()` does. Closing any other window takes its
+tree down on the next turn of the loop and then runs its `onClose` actions
+([ADR-0542](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0542-an-application-may-open-more-than-one-window.md)).
+
 ## Threads
 
 ```java
@@ -245,7 +372,8 @@ a no-op once the model is woven
 ## Closing
 
 `host.window().close()` closes the window, and the loop ends when the last
-window has closed. `window.onCloseRequest(handler)` sees the user's close
+window has closed. The first window is the application's: closing it closes
+every window `openWindow` opened. `window.onCloseRequest(handler)` sees the user's close
 button first and returns whether to allow it. `Goldberry.stop()` asks the
 loop to finish from any thread.
 
@@ -259,14 +387,14 @@ Goldberry.run();
 
 That is the whole API for a window with no widgets: no backend to name, no
 event loop to build. `Window.open(WindowSpec)` takes a spec with
-`withMaximized`, `withMinimumSize`, `withDecorated` and `withResizable`.
+`withMaximized`, `withMinimumSize`, `withDecorated`, `withResizable`,
+`withPosition` and `withDisplay`.
 Painting takes logical coordinates, colours are straight `0xAARRGGBB`, and
 the frame is the platform's own buffer wherever it lends one.
 
 `Window.open` may be called more than once, and `Goldberry.run()` returns
-when every window has closed. The launcher opens one window per
-`Application`; an application that wants a second top-level window opens it
-here and drives it itself.
+when every window has closed. An application launched through the launcher
+opens a second window with widgets in it through `host.openWindow`, not here.
 
 ## Read more
 
@@ -274,5 +402,8 @@ here and drives it itself.
 - [ADR-0100](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0100-a-window-has-a-layer-above-its-application.md): the overlay layer
 - [ADR-0102](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0102-a-popup-is-a-window-the-platform-may-refuse.md): popups
 - [ADR-0104](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0104-a-popup-is-measured-then-placed.md): measure, then place
+- [ADR-0541](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0541-a-window-opens-where-it-was-left-and-is-clamped-onto-a-display-that-exists.md): positions and displays
+- [ADR-0542](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0542-an-application-may-open-more-than-one-window.md): more than one window
+- [ADR-0543](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0543-a-window-asks-for-attention-and-the-desktop-decides-how.md): attention
 - [ADR-0140](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0140-a-widget-may-reach-its-window.md): `BuildContext.host()`
 - [Overlays](../components/overlays.md) and [Menus and the tray](../components/menus.md): the widgets that open over a window

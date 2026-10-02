@@ -1,9 +1,11 @@
 package dev.goldberry;
 
 import java.util.List;
+import java.util.Optional;
 
 import dev.goldberry.css.Stylesheet;
 import dev.goldberry.image.Image;
+import dev.goldberry.render.model.LogicalPoint;
 import dev.goldberry.render.model.LogicalSize;
 import dev.goldberry.render.window.WindowSpec;
 import dev.goldberry.text.font.FontSource;
@@ -107,6 +109,34 @@ public interface Application {
     /// how much fits on a screen is the case for saying otherwise.
     default boolean maximized() {
         return false;
+    }
+
+    /// Where the window's top-left opens, in the desktop's coordinates — what
+    /// [Window#position()] read when it last closed.
+    ///
+    /// ```java
+    /// @Override public Optional<LogicalPoint> position() {
+    ///     return settings.windowPosition();
+    /// }
+    /// ```
+    ///
+    /// Clamped onto a display that exists, so a position saved on a monitor
+    /// that has since been unplugged still opens on the screen. Empty by
+    /// default, which leaves it to the platform; ignored on Wayland, which
+    /// places every window itself.
+    ///
+    /// Read more: [Where a window opens](https://goldberry.dev/docs/guide/windows.html#where-a-window-opens).
+    default Optional<LogicalPoint> position() {
+        return Optional.empty();
+    }
+
+    /// The name of the display the window opens on — what
+    /// [Window#display()] named when it last closed.
+    ///
+    /// Centred on that display when there is no [#position()], and the
+    /// fallback when the position is on no display any more. Empty by default.
+    default Optional<String> display() {
+        return Optional.empty();
     }
 
     /// The stylesheets, in cascade order — the toolkit's, then the theme's, then

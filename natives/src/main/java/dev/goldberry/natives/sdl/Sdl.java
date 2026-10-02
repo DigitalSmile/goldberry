@@ -254,7 +254,7 @@ public final class Sdl {
     // what stops a corrupt pointer from becoming an unbounded read. SDL's error
     // and revision strings are short by construction.
     @SuppressWarnings("restricted")
-    private static String readString(MemorySegment pointer) {
+    static String readString(MemorySegment pointer) {
         if (MemorySegment.NULL.equals(pointer)) {
             return "";
         }

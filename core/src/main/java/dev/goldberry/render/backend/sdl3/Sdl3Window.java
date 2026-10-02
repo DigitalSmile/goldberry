@@ -13,6 +13,7 @@ import dev.goldberry.natives.sdl.SdlException;
 import dev.goldberry.natives.sdl.SdlVideo;
 import dev.goldberry.natives.sdl.SdlWindowHandle;
 import dev.goldberry.natives.sdl.desktop.SdlSystemCursor;
+import dev.goldberry.natives.sdl.window.SdlFlashOperation;
 import dev.goldberry.natives.sdl.window.SdlIconImage;
 import dev.goldberry.render.BackendException;
 import dev.goldberry.render.Cursor;
@@ -24,12 +25,14 @@ import dev.goldberry.render.PresentTimings;
 import dev.goldberry.render.composite.Claim;
 import dev.goldberry.render.composite.CompositedWindow;
 import dev.goldberry.render.composite.ReadbackSurface;
+import dev.goldberry.render.display.Display;
 import dev.goldberry.render.model.DisplayScale;
 import dev.goldberry.render.model.LogicalPoint;
 import dev.goldberry.render.model.LogicalRect;
 import dev.goldberry.render.model.LogicalSize;
 import dev.goldberry.render.model.PhysicalSize;
 import dev.goldberry.render.model.PixelFormat;
+import dev.goldberry.render.window.Attention;
 import dev.goldberry.render.window.BackendWindow;
 import dev.goldberry.render.window.GpuSurface;
 import dev.goldberry.render.window.IconImage;
@@ -554,6 +557,97 @@ sealed class Sdl3Window implements BackendWindow permits Sdl3Popup {
         return Optional.of(new LogicalPoint(point.x(), point.y()));
     }
 
+    /// `SDL_SetWindowPosition`, which on Wayland is a refusal: the compositor
+    /// places every top-level window itself.
+    ///
+    /// Rounded to SDL's whole units. Called on a hidden window too, which is
+    /// how a window opens where it was asked to rather than jumping there.
+    @Override
+    public boolean place(LogicalPoint position) {
+        Objects.requireNonNull(position, "position");
+        backend.requireUiThread();
+        requireOpen();
+        if (!backend.placesWindows()) {
+            return false;
+        }
+        return video().moveWindow(handle, Math.round(position.x()), Math.round(position.y()));
+    }
+
+    /// `SDL_GetDisplayForWindow`, looked up in the backend's list.
+    @Override
+    public Optional<Display> display() {
+        backend.requireUiThread();
+        if (!open) {
+            return Optional.empty();
+        }
+        var id = Integer.toUnsignedLong(video().displayForWindow(handle));
+        if (id == 0) {
+            return Optional.empty();
+        }
+        return backend.displays().stream().filter(display -> display.id() == id).findFirst();
+    }
+
+    @Override
+    public boolean requestAttention(Attention attention) {
+        Objects.requireNonNull(attention, "attention");
+        backend.requireUiThread();
+        if (!open) {
+            return false;
+        }
+        return video().flashWindow(
+                        handle,
+                        switch (attention) {
+                            case BRIEFLY -> SdlFlashOperation.BRIEFLY;
+                            case UNTIL_FOCUSED -> SdlFlashOperation.UNTIL_FOCUSED;
+                        });
+    }
+
+    @Override
+    public boolean cancelAttention() {
+        backend.requireUiThread();
+        return open && video().flashWindow(handle, SdlFlashOperation.CANCEL);
+    }
+
+    /// The window this one belongs to, or null. Read by the backend, which
+    /// closes a window's children before SDL destroys them with it.
+    private @Nullable Sdl3Window parentWindow;
+
+    @Nullable
+    Sdl3Window parentWindow() {
+        return parentWindow;
+    }
+
+    @Override
+    public boolean parent(@Nullable BackendWindow parent) {
+        backend.requireUiThread();
+        requireOpen();
+        Sdl3Window other = null;
+        if (parent != null) {
+            if (!(parent instanceof Sdl3Window window) || window instanceof Sdl3Popup || !window.isOpen()) {
+                throw new IllegalArgumentException("a parent must be an open top-level window of this backend");
+            }
+            other = window;
+        }
+        if (!video().setWindowParent(handle, other == null ? null : other.handle())) {
+            return false;
+        }
+        parentWindow = other;
+        return true;
+    }
+
+    @Override
+    public boolean modal(boolean modal) {
+        backend.requireUiThread();
+        requireOpen();
+        return video().setWindowModal(handle, modal);
+    }
+
+    @Override
+    public boolean raise() {
+        backend.requireUiThread();
+        return open && video().raiseWindow(handle);
+    }
+
     @Override
     public Optional<LogicalRect> workArea() {
         backend.requireUiThread();
@@ -769,6 +863,9 @@ sealed class Sdl3Window implements BackendWindow permits Sdl3Popup {
         // `windows()` is empty, so an orphaned popup is a process that will not
         // exit.
         backend.closePopupsOf(this);
+        // The windows that belong to this one, for the same reason: SDL
+        // destroys a parent's children with it.
+        backend.closeChildrenOf(this);
         // And any page embedded in this window, for the same reason: an embedded
         // page is a child X window, and the server destroys a window's children
         // with it — so one torn down afterwards is GTK unwinding a window that is

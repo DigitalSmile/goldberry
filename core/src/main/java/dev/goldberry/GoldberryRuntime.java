@@ -150,6 +150,11 @@ final class GoldberryRuntime {
             // had not caught up; there is nothing left to tell.
             return;
         }
+        // A window under a modal one of its own takes no input until that
+        // closes, whatever the platform does about it.
+        if (window.swallowedWhileBlocked(event)) {
+            return;
+        }
         switch (event) {
             case BackendEvent.FrameDue _ -> window.paint();
             case BackendEvent.Exposed _ -> window.repaint();

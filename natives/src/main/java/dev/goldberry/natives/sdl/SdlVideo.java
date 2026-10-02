@@ -9,11 +9,13 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
 
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 
 import dev.goldberry.log.Logs;
 import dev.goldberry.natives.NativeLibrary;
 import dev.goldberry.natives.layout.Layouts;
+import dev.goldberry.natives.sdl.calls.SdlClipboardCalls;
 import dev.goldberry.natives.sdl.calls.SdlDisplayCalls;
 import dev.goldberry.natives.sdl.calls.SdlEventCalls;
 import dev.goldberry.natives.sdl.calls.SdlSurfaceCalls;
@@ -22,6 +24,7 @@ import dev.goldberry.natives.sdl.calls.SdlWindowCalls;
 import dev.goldberry.natives.sdl.desktop.SdlSystemTheme;
 import dev.goldberry.natives.sdl.event.SdlEventType;
 import dev.goldberry.natives.sdl.window.NativeWindowHandle;
+import dev.goldberry.natives.sdl.window.SdlFlashOperation;
 import dev.goldberry.natives.sdl.window.SdlIconImage;
 import dev.goldberry.natives.sdl.window.SdlPixelFormat;
 import dev.goldberry.natives.sdl.window.SdlWindowFlag;
@@ -49,6 +52,7 @@ public final class SdlVideo {
     private static final long SURFACE_PITCH = Layouts.SDL_SURFACE.offsetOf("pitch");
     private static final long SURFACE_PIXELS = Layouts.SDL_SURFACE.offsetOf("pixels");
     private static final long DISPLAY_MODE_REFRESH_RATE = Layouts.SDL_DISPLAY_MODE.offsetOf("refresh_rate");
+    private static final long DISPLAY_MODE_PIXEL_DENSITY = Layouts.SDL_DISPLAY_MODE.offsetOf("pixel_density");
 
     private static final long RECT_SIZE = Layouts.SDL_RECT.byteSize();
     private static final long RECT_X = Layouts.SDL_RECT.offsetOf("x");
@@ -67,12 +71,16 @@ public final class SdlVideo {
     private final SdlEventCalls sdlEventCalls;
     private final SdlThemeCalls sdlThemeCalls;
 
+    /// SDL's allocator, for the display list SDL hands over.
+    private final SdlClipboardCalls.Free free;
+
     private SdlVideo(SymbolLookup lookup) {
         this.sdlWindowCalls = SdlWindowCalls.bind(lookup);
         this.sdlSurfaceCalls = SdlSurfaceCalls.bind(lookup);
         this.sdlDisplayCalls = SdlDisplayCalls.bind(lookup);
         this.sdlEventCalls = SdlEventCalls.bind(lookup);
         this.sdlThemeCalls = SdlThemeCalls.bind(lookup);
+        this.free = SdlClipboardCalls.bind(lookup).free();
         // Everything else is bound with `Downcalls.symbol`, which fails loudly,
         // because a missing symbol there means a window cannot open and the export
         // list is simply wrong. The display-mode pair is different: it feeds the
@@ -232,6 +240,134 @@ public final class SdlVideo {
         if (!sdlWindowCalls.setWindowPosition().call(window.pointer(), x, y)) {
             throw new SdlException("SDL_SetWindowPosition", Sdl.get().lastError());
         }
+    }
+
+    /// Moves a top-level window, and says whether the platform would.
+    ///
+    /// [#setWindowPosition], for the one caller to whom a refusal is an
+    /// answer rather than a failure: Wayland places every top-level window
+    /// itself, and SDL says so by refusing.
+    ///
+    /// @return false where the platform will not place the window
+    public boolean moveWindow(SdlWindowHandle window, int x, int y) {
+        if (!sdlWindowCalls.setWindowPosition().call(window.pointer(), x, y)) {
+            LOG.debug("SDL_SetWindowPosition refused: {}", Sdl.get().lastError());
+            return false;
+        }
+        return true;
+    }
+
+    /// The displays connected now, the primary one first.
+    ///
+    /// Read fresh on every call: a display can be plugged in or taken away
+    /// at any moment, and the list is a handful of entries.
+    ///
+    /// A display SDL cannot describe — gone between the list and the
+    /// question — is left out rather than thrown about.
+    public List<SdlDisplay> displays() {
+        try (var arena = Arena.ofConfined()) {
+            var count = arena.allocate(ValueLayout.JAVA_INT);
+            var array = sdlDisplayCalls.getDisplays().call(count);
+            if (MemorySegment.NULL.equals(array)) {
+                LOG.debug("SDL_GetDisplays refused: {}", Sdl.get().lastError());
+                return List.of();
+            }
+            try {
+                var n = count.get(ValueLayout.JAVA_INT, 0);
+                var ids = resizeIds(array, n);
+                var displays = new java.util.ArrayList<SdlDisplay>(n);
+                for (var i = 0; i < n; i++) {
+                    describe(ids.getAtIndex(ValueLayout.JAVA_INT, i), arena).ifPresent(displays::add);
+                }
+                return List.copyOf(displays);
+            } finally {
+                free.call(array);
+            }
+        }
+    }
+
+    /// One display, or empty when SDL no longer knows it.
+    private java.util.Optional<SdlDisplay> describe(int id, Arena arena) {
+        var bounds = arena.allocate(RECT_SIZE);
+        if (!sdlDisplayCalls.getDisplayBounds().call(id, bounds)) {
+            return java.util.Optional.empty();
+        }
+        var usable = arena.allocate(RECT_SIZE);
+        var usableRect = sdlDisplayCalls.getDisplayUsableBounds().call(id, usable) ? rect(usable) : rect(bounds);
+        var name = Sdl.readString(sdlDisplayCalls.getDisplayName().call(id));
+        var content = sdlDisplayCalls.getDisplayContentScale().call(id);
+        var density = 1f;
+        if (sdlDisplayCalls.getCurrentDisplayMode().isAvailable()) {
+            var mode = sdlDisplayCalls.getCurrentDisplayMode().call(id);
+            if (!MemorySegment.NULL.equals(mode)) {
+                var read = resizeDisplayMode(mode).get(ValueLayout.JAVA_FLOAT, DISPLAY_MODE_PIXEL_DENSITY);
+                density = read > 0f ? read : 1f;
+            }
+        }
+        return java.util.Optional.of(
+                new SdlDisplay(id, name, rect(bounds), usableRect, (content > 0f ? content : 1f) * density));
+    }
+
+    private static SdlRect rect(MemorySegment rect) {
+        return new SdlRect(
+                rect.get(ValueLayout.JAVA_INT, RECT_X),
+                rect.get(ValueLayout.JAVA_INT, RECT_Y),
+                rect.get(ValueLayout.JAVA_INT, RECT_W),
+                rect.get(ValueLayout.JAVA_INT, RECT_H));
+    }
+
+    /// Which display a window is mostly on, or 0 when SDL will not say.
+    public int displayForWindow(SdlWindowHandle window) {
+        if (!sdlDisplayCalls.getDisplayForWindow().isAvailable()) {
+            return 0;
+        }
+        return sdlDisplayCalls.getDisplayForWindow().call(window.pointer());
+    }
+
+    /// Asks the desktop to draw the user's eye to `window`, or to stop.
+    ///
+    /// @return false where the platform has no way to
+    public boolean flashWindow(SdlWindowHandle window, SdlFlashOperation operation) {
+        if (!sdlWindowCalls.flashWindow().call(window.pointer(), operation.value())) {
+            LOG.debug("SDL_FlashWindow refused: {}", Sdl.get().lastError());
+            return false;
+        }
+        return true;
+    }
+
+    /// Makes `window` belong to `parent`, or to nobody when it is null.
+    ///
+    /// @return false where the platform refused
+    public boolean setWindowParent(SdlWindowHandle window, @Nullable SdlWindowHandle parent) {
+        var other = parent == null ? MemorySegment.NULL : parent.pointer();
+        if (!sdlWindowCalls.setWindowParent().call(window.pointer(), other)) {
+            LOG.debug("SDL_SetWindowParent refused: {}", Sdl.get().lastError());
+            return false;
+        }
+        return true;
+    }
+
+    /// Makes a window that has a parent modal for it, or not.
+    ///
+    /// @return false where the platform refused, which it does for a window
+    ///         with no parent
+    public boolean setWindowModal(SdlWindowHandle window, boolean modal) {
+        if (!sdlWindowCalls.setWindowModal().call(window.pointer(), modal)) {
+            LOG.debug("SDL_SetWindowModal refused: {}", Sdl.get().lastError());
+            return false;
+        }
+        return true;
+    }
+
+    /// Brings a window to the front.
+    ///
+    /// @return false where the platform refused
+    public boolean raiseWindow(SdlWindowHandle window) {
+        if (!sdlWindowCalls.raiseWindow().call(window.pointer())) {
+            LOG.debug("SDL_RaiseWindow refused: {}", Sdl.get().lastError());
+            return false;
+        }
+        return true;
     }
 
     /// Resizes a window, in logical pixels.
@@ -837,6 +973,13 @@ public final class SdlVideo {
         return surface.reinterpret(Layouts.SDL_SURFACE.byteSize());
     }
 
+    // Restricted: the display list is SDL's allocation of exactly `count` ids
+    // and a zero terminator, which is the extent read here and nothing past it.
+    @SuppressWarnings("restricted")
+    private static MemorySegment resizeIds(MemorySegment array, int count) {
+        return array.reinterpret(ValueLayout.JAVA_INT.byteSize() * Math.max(0, count));
+    }
+
     // Restricted: same obligation as the surface above. SDL owns the mode and
     // keeps it alive for the display's lifetime; the extent is the struct's own
     // size, verified against C by the layout probe.
@@ -872,6 +1015,16 @@ public final class SdlVideo {
     ///
     /// Deliberately not `:core`'s `DamageRect`, for the reason [SdlSize] gives.
     public record SdlRect(int x, int y, int width, int height) {}
+
+    /// One display, as SDL describes it.
+    ///
+    /// @param id           the `SDL_DisplayID`, good for this run only
+    /// @param name         the name the platform gives it, or empty
+    /// @param bounds       its full extent, in the desktop's coordinates
+    /// @param usableBounds the part a window may use, less panels and docks
+    /// @param scale        the scale a window on it is drawn at: the desktop's
+    ///                     content scale times the mode's pixel density
+    public record SdlDisplay(int id, String name, SdlRect bounds, SdlRect usableBounds, float scale) {}
 
     /// A size in SDL's terms.
     ///

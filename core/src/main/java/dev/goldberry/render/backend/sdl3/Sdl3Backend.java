@@ -38,9 +38,12 @@ import dev.goldberry.render.clipboard.PrimarySelection;
 import dev.goldberry.render.composite.Compositor;
 import dev.goldberry.render.desktop.SystemTheme;
 import dev.goldberry.render.dialog.FileDialogs;
+import dev.goldberry.render.display.Display;
 import dev.goldberry.render.event.BackendEvent;
 import dev.goldberry.render.event.EventSink;
+import dev.goldberry.render.model.DisplayScale;
 import dev.goldberry.render.model.LogicalPoint;
+import dev.goldberry.render.model.LogicalRect;
 import dev.goldberry.render.popup.BackendPopup;
 import dev.goldberry.render.popup.PopupSpec;
 import dev.goldberry.render.tray.BackendTray;
@@ -1490,6 +1493,16 @@ public final class Sdl3Backend implements Backend {
         }
     }
 
+    /// Closes the top-level windows that belong to `parent`, before SDL
+    /// destroys them with it and leaves their handles dangling here.
+    void closeChildrenOf(Sdl3Window parent) {
+        for (var window : List.copyOf(windowsById.values())) {
+            if (window.parentWindow() == parent) {
+                window.close();
+            }
+        }
+    }
+
     @Override
     public Optional<BackendTray> createTray(TraySpec spec) {
         requireUiThread();
@@ -1665,6 +1678,53 @@ public final class Sdl3Backend implements Backend {
     @Override
     public Optional<PrimarySelection> primarySelection() {
         return Optional.ofNullable(primarySelection);
+    }
+
+    /// SDL's displays, in SDL's order — the primary one first, which is what
+    /// `SDL_GetPrimaryDisplay` answers with too.
+    ///
+    /// The rectangles are SDL's window coordinates, which are what
+    /// [Sdl3Window#position()] and its work area are in: points on macOS, and
+    /// the desktop's own units on X11 and Windows.
+    @Override
+    public List<Display> displays() {
+        requireUiThread();
+        requireOpen();
+        var described = video.displays();
+        var displays = new ArrayList<Display>(described.size());
+        for (var index = 0; index < described.size(); index++) {
+            displays.add(toDisplay(described.get(index), index == 0));
+        }
+        return List.copyOf(displays);
+    }
+
+    static Display toDisplay(SdlVideo.SdlDisplay display, boolean primary) {
+        return new Display(
+                Integer.toUnsignedLong(display.id()),
+                display.name(),
+                rect(display.bounds()),
+                rect(display.usableBounds()),
+                new DisplayScale(display.scale()),
+                primary);
+    }
+
+    private static LogicalRect rect(SdlVideo.SdlRect rect) {
+        return LogicalRect.of(rect.x(), rect.y(), rect.width(), rect.height());
+    }
+
+    @Override
+    public boolean placesWindows() {
+        return placesWindows(Sdl.get().videoDriver());
+    }
+
+    /// Whether an application may put a top-level window where it likes on
+    /// this video driver, and read back where one is.
+    ///
+    /// **X11, Windows and Cocoa.** Wayland places every top-level window
+    /// itself and reports no position — SDL refuses the move outright — and
+    /// `dummy` and `offscreen` have no desktop to place anything on.
+    static boolean placesWindows(String videoDriver) {
+        return "x11".equals(videoDriver) || "windows".equals(videoDriver) || "cocoa".equals(videoDriver);
     }
 
     /// The platform's file dialogs, held for [#clipboard()]'s reason: what the

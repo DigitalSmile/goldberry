@@ -10,6 +10,7 @@ import dev.goldberry.render.Cursor;
 import dev.goldberry.render.DamageRect;
 import dev.goldberry.render.PixelBuffer;
 import dev.goldberry.render.PresentTimings;
+import dev.goldberry.render.display.Display;
 import dev.goldberry.render.event.BackendEvent;
 import dev.goldberry.render.model.*;
 
@@ -383,6 +384,64 @@ public interface BackendWindow extends AutoCloseable {
     ///
     /// @param fullscreen true to fill the display, false for a window again
     default void setFullscreen(boolean fullscreen) {}
+
+    /// Puts this window's top-left at `position`, in the desktop's coordinates
+    /// — the space [#position()] answers in.
+    ///
+    /// Asked of a hidden window as well as a shown one: a window that is
+    /// placed before it is first shown appears where it was put. No clamping
+    /// here; the caller has already decided where the window may go.
+    ///
+    /// Not a popup's `move`, which is in its owner's coordinates.
+    ///
+    /// @return false where the platform will not place a top-level window,
+    ///         which is Wayland, and by default
+    default boolean place(LogicalPoint position) {
+        return false;
+    }
+
+    /// The display this window is mostly on, or empty where the platform will
+    /// not say.
+    default Optional<Display> display() {
+        return Optional.empty();
+    }
+
+    /// Asks the desktop to draw the user's eye to this window.
+    ///
+    /// @return false where the platform has no way to, and by default
+    default boolean requestAttention(Attention attention) {
+        return false;
+    }
+
+    /// Withdraws a [#requestAttention] that is still in force.
+    ///
+    /// @return false where the platform has no way to, and by default
+    default boolean cancelAttention() {
+        return false;
+    }
+
+    /// Makes this top-level window belong to `parent` — kept above it and
+    /// minimized with it — or to nobody when it is null.
+    ///
+    /// @return false where the platform refused, and by default
+    default boolean parent(@Nullable BackendWindow parent) {
+        return false;
+    }
+
+    /// Makes this window modal for its [#parent], or not.
+    ///
+    /// @return false where the platform refused, which it does for a window
+    ///         with no parent, and by default
+    default boolean modal(boolean modal) {
+        return false;
+    }
+
+    /// Brings this window to the front and asks for the keyboard.
+    ///
+    /// @return false where the platform refused, and by default
+    default boolean raise() {
+        return false;
+    }
 
     /// The current title.
     String title();

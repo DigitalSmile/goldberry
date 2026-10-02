@@ -142,6 +142,28 @@ SDL_SetWindowSize
 SDL_GetDisplayUsableBounds
 SDL_GetWindowPosition
 
+# The displays, and where a window opens on them (ADR-0541). SDL_GetDisplays
+# hands back an array SDL allocated -- SDL_free below releases it -- and the
+# other three describe one display: its name, its full bounds and the scale its
+# desktop is set to. A top-level window is placed with SDL_SetWindowPosition
+# above, while it is still hidden, so it appears where it was put.
+SDL_GetDisplays
+SDL_GetDisplayName
+SDL_GetDisplayBounds
+SDL_GetDisplayContentScale
+
+# Asking for the user's attention (ADR-0543): a bounce of the dock icon on
+# macOS, a flash of the taskbar button on Windows, the urgency hint on X11.
+SDL_FlashWindow
+
+# A second top-level window that belongs to the first (ADR-0542). A parent keeps
+# its child above it and takes it along when minimized; a modal child is one the
+# platform will not let the user go round. SDL_RaiseWindow brings a window --
+# that modal child, when its blocked parent is clicked -- to the front.
+SDL_SetWindowParent
+SDL_SetWindowModal
+SDL_RaiseWindow
+
 # The modifier keys, read at the moment a pointer event is translated rather
 # than latched from the last key event. A window that loses focus while Shift is
 # held never sees the key release, and a latched flag would stay stuck down.

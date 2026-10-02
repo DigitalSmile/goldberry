@@ -9,6 +9,7 @@ import dev.goldberry.render.clipboard.PrimarySelection;
 import dev.goldberry.render.desktop.SystemTheme;
 import dev.goldberry.render.dialog.FileChoice;
 import dev.goldberry.render.dialog.FileDialogs;
+import dev.goldberry.render.display.Display;
 import dev.goldberry.render.event.EventSink;
 import dev.goldberry.render.popup.BackendPopup;
 import dev.goldberry.render.popup.PopupSpec;
@@ -250,6 +251,25 @@ public interface Backend extends AutoCloseable {
     /// only thing a window contributes to it.
     default FileDialogs fileDialogs() {
         return FileDialogs.none();
+    }
+
+    /// The displays connected now, the primary one first — asked fresh each
+    /// time, because a display can be plugged in or taken away at any moment.
+    ///
+    /// Empty by default, which is right for a backend with no desktop under it,
+    /// and which turns every clamp in
+    /// [dev.goldberry.render.display.DisplayLayout] into a no-op.
+    default List<Display> displays() {
+        return List.of();
+    }
+
+    /// Whether this platform lets an application put a top-level window where
+    /// it likes, and says where one is.
+    ///
+    /// False on Wayland, which places every window itself and tells nobody
+    /// where. False by default.
+    default boolean placesWindows() {
+        return false;
     }
 
     /// Waits for platform events and delivers them, then returns.

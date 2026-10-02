@@ -11,12 +11,15 @@ import dev.goldberry.render.Cursor;
 import dev.goldberry.render.DamageRect;
 import dev.goldberry.render.PixelBuffer;
 import dev.goldberry.render.composite.ReadbackSurface;
+import dev.goldberry.render.display.Display;
+import dev.goldberry.render.display.DisplayLayout;
 import dev.goldberry.render.event.BackendEvent;
 import dev.goldberry.render.model.DisplayScale;
 import dev.goldberry.render.model.LogicalPoint;
 import dev.goldberry.render.model.LogicalRect;
 import dev.goldberry.render.model.LogicalSize;
 import dev.goldberry.render.model.PhysicalSize;
+import dev.goldberry.render.window.Attention;
 import dev.goldberry.render.window.BackendWindow;
 import dev.goldberry.render.window.GpuSurface;
 import dev.goldberry.render.window.IconImage;
@@ -147,10 +150,134 @@ public sealed class HeadlessWindow implements BackendWindow permits HeadlessPopu
         return open ? Optional.of(position) : Optional.empty();
     }
 
+    /// The work area of the display this window is on — the backend's one work
+    /// area, unless a test gave the backend displays of its own.
     @Override
     public Optional<LogicalRect> workArea() {
         backend.requireUiThread();
-        return open ? Optional.of(backend.workArea()) : Optional.empty();
+        if (!open) {
+            return Optional.empty();
+        }
+        if (!backend.hasOwnDisplays()) {
+            return Optional.of(backend.workArea());
+        }
+        return Optional.of(display().map(Display::usableBounds).orElse(backend.workArea()));
+    }
+
+    /// [#moveTo], which a window manager that lets an application place its
+    /// windows does — unless the backend was told to behave like Wayland, where
+    /// nothing is placed and this answers false.
+    @Override
+    public boolean place(LogicalPoint at) {
+        backend.requireUiThread();
+        requireOpen();
+        if (!backend.placesWindows()) {
+            return false;
+        }
+        moveTo(at);
+        return true;
+    }
+
+    /// The display most of this window is on, or the nearest one.
+    @Override
+    public Optional<Display> display() {
+        backend.requireUiThread();
+        if (!open) {
+            return Optional.empty();
+        }
+        return new DisplayLayout(backend.displays()).nearest(new LogicalRect(position, size));
+    }
+
+    /// The attention asked for and not withdrawn, or null.
+    private @Nullable Attention attention;
+
+    /// Every attention request, in order, cancellations left out.
+    private final List<Attention> attentionRequests = new java.util.ArrayList<>();
+
+    /// Recorded, because there is no taskbar here. Answers true.
+    @Override
+    public boolean requestAttention(Attention value) {
+        backend.requireUiThread();
+        requireOpen();
+        attention = Objects.requireNonNull(value, "attention");
+        attentionRequests.add(value);
+        return true;
+    }
+
+    @Override
+    public boolean cancelAttention() {
+        backend.requireUiThread();
+        attention = null;
+        return open;
+    }
+
+    /// The attention asked for last and not withdrawn since.
+    public Optional<Attention> attention() {
+        return Optional.ofNullable(attention);
+    }
+
+    /// Every [#requestAttention] this window was given.
+    public List<Attention> attentionRequests() {
+        return List.copyOf(attentionRequests);
+    }
+
+    /// The window this one belongs to, or null.
+    private @Nullable HeadlessWindow parentWindow;
+
+    private boolean modal;
+
+    private int raised;
+
+    /// Recorded, and closed with its parent as SDL does.
+    @Override
+    public boolean parent(@Nullable BackendWindow parent) {
+        backend.requireUiThread();
+        requireOpen();
+        if (parent != null && (!(parent instanceof HeadlessWindow window) || window instanceof HeadlessPopup)) {
+            throw new IllegalArgumentException("a parent must be a top-level window of this backend");
+        }
+        parentWindow = (HeadlessWindow) parent;
+        if (parentWindow == null) {
+            modal = false;
+        }
+        return true;
+    }
+
+    /// Refused for a window with no parent, as SDL refuses it.
+    @Override
+    public boolean modal(boolean value) {
+        backend.requireUiThread();
+        requireOpen();
+        if (value && parentWindow == null) {
+            return false;
+        }
+        modal = value;
+        return true;
+    }
+
+    @Override
+    public boolean raise() {
+        backend.requireUiThread();
+        if (!open) {
+            return false;
+        }
+        raised++;
+        return true;
+    }
+
+    /// The window this one was made to belong to, if any.
+    public Optional<HeadlessWindow> parentWindow() {
+        return Optional.ofNullable(parentWindow);
+    }
+
+    /// Whether it was made modal for its parent.
+    public boolean isModal() {
+        return modal;
+    }
+
+    /// How many times [#raise] was asked.
+    public int raiseCount() {
+        return raised;
     }
 
     /// Puts this window somewhere on the backend's pretend desktop.
@@ -338,6 +465,8 @@ public sealed class HeadlessWindow implements BackendWindow permits HeadlessPopu
         // does too — a fake that left them open would be the one place the event
         // loop's "run until every window has closed" quietly never finishes.
         backend.closePopupsOf(this);
+        // And the windows that belong to it, which SDL destroys with it too.
+        backend.closeChildrenOf(this);
         backend.forget(this);
         var surface = readback;
         readback = null;
