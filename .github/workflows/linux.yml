@@ -131,13 +131,25 @@ jobs:
           # so cmake and ninja come from pip instead of dnf. Meson is no longer
           # needed: libxkbcommon was the only meson-built dependency and it is
           # gone, since SDL owns keyboard translation.
-          dnf install -y \
-            libxml2-devel wayland-devel wayland-protocols-devel \
-            libX11-devel libxcb-devel libXext-devel libXrandr-devel \
-            libXcursor-devel libXi-devel libXfixes-devel libXtst-devel \
-            libXScrnSaver-devel libxkbcommon-devel libxkbfile-devel \
-            alsa-lib-devel pulseaudio-libs-devel \
-            dbus-devel systemd-devel ibus-devel
+          #
+          # Tried three times: a mirror caught mid-sync answers 404 for the
+          # repodata its own index names, and dnf gives up once every mirror on
+          # the list has been asked. Fresh metadata a little later finds one that
+          # has finished.
+          for attempt in 1 2 3; do
+            dnf install -y \
+              libxml2-devel wayland-devel wayland-protocols-devel \
+              libX11-devel libxcb-devel libXext-devel libXrandr-devel \
+              libXcursor-devel libXi-devel libXfixes-devel libXtst-devel \
+              libXScrnSaver-devel libxkbcommon-devel libxkbfile-devel \
+              alsa-lib-devel pulseaudio-libs-devel \
+              dbus-devel systemd-devel ibus-devel \
+              && break
+            [ "$attempt" -lt 3 ] || exit 1
+            echo "::warning::dnf install failed, attempt $attempt of 3; fresh metadata in 30 s"
+            dnf clean metadata
+            sleep 30
+          done
           # dbus-devel, systemd-devel and ibus-devel are the three this list was
           # missing, and the reason the published libgoldberry could not ask the
           # desktop whether it was set to dark.

@@ -62,6 +62,12 @@ final class GstVideoDecoder extends GstDecoder {
     private @Nullable Layout layout;
 
     GstVideoDecoder(GStreamer gs, GstCodec codec, DecoderRequest request, List<Gst.Candidate> candidates) {
+        this(gs, codec, request, candidates, MAX_QUEUED);
+    }
+
+    /// One that queues at most `maxQueued` packets on `appsrc`.
+    GstVideoDecoder(
+            GStreamer gs, GstCodec codec, DecoderRequest request, List<Gst.Candidate> candidates, int maxQueued) {
         // Checked before any pipeline is built (JEP 513), so a wrong track costs
         // nothing to refuse.
         if (!(request.params() instanceof TrackParams.Video video)) {
@@ -72,7 +78,7 @@ final class GstVideoDecoder extends GstDecoder {
         this.signal = ParameterSets.of(request)
                 .map(configuration -> configuration.shape().signal())
                 .orElse(ParameterSets.Signal.UNSPECIFIED);
-        super(gs, codec, request, candidates);
+        super(gs, codec, request, candidates, maxQueued);
         this.info = arena.allocate(GstLayout.VIDEO_INFO);
     }
 

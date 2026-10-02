@@ -8,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -82,6 +83,40 @@ class GStreamerTest {
             assertEquals(expected.get(i).md5(), hashes.get(i), "picture " + i);
         }
     }
+
+    @Test
+    @DisplayName("a packet asked for is taken when the failure lands between the asking and the sending")
+    void takesThePacketItAskedForAcrossAFallback() throws InterruptedException {
+        // `funnel` fails on the first packet, and the failure is left to land before
+        // the next send. That send hands avdec_h264 the packet kept, which fills a
+        // one-packet queue at once; the packet was asked for, so it is taken all the
+        // same. Under load the same happens with the real queue and a late failure.
+        var frames = new ArrayList<VideoFrame>();
+        try (var demuxer = Fixtures.demux("clip-h264-high.mp4")) {
+            var track = demuxer.info().defaultTrack(MediaType.VIDEO).orElseThrow();
+            demuxer.select(Set.of(track.index()));
+            try (var decoder = new GstVideoDecoder(
+                    gs,
+                    GstCodec.H264,
+                    demuxer.request(track.index()),
+                    List.of(new Gst.Candidate("funnel", 512), avdec()),
+                    1)) {
+                try (var packet = demuxer.read()) {
+                    assertTrue(decoder.send(packet), "the first packet");
+                }
+                Thread.sleep(FAILURE_LANDS_MILLIS);
+                try (var packet = demuxer.read()) {
+                    assertTrue(decoder.send(packet), "the packet after the failure");
+                }
+                assertEquals("avdec_h264", decoder.decoder(), "the next one decodes");
+                Fixtures.run(demuxer, decoder, frame -> frames.add(assertInstanceOf(VideoFrame.class, frame)));
+            }
+        }
+        assertEquals(Fixtures.frameHashes("clip-h264-high.mp4").size(), frames.size(), "every picture");
+    }
+
+    /// Long enough for `funnel`'s streaming thread to post its error.
+    private static final long FAILURE_LANDS_MILLIS = 500;
 
     @Test
     @DisplayName("with no decoder that works, the open fails and names the codec")

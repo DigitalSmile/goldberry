@@ -41,7 +41,7 @@ final class GstAudioDecoder extends GstDecoder {
         if (!(request.params() instanceof TrackParams.Audio)) {
             throw new IllegalArgumentException(request.codecName() + " is not an audio track");
         }
-        super(gs, codec, request, candidates);
+        super(gs, codec, request, candidates, MAX_QUEUED);
     }
 
     @Override

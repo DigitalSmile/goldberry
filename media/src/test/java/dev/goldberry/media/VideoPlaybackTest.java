@@ -340,8 +340,13 @@ class VideoPlaybackTest {
         assertEquals(3, statistics.shown());
         assertEquals(0, statistics.dropped());
 
-        // The clock jumps two pictures on: the one between plays unseen.
-        now.addAndGet(2 * FRAME);
+        // The clock jumps two pictures on: the one between plays unseen. Halfway
+        // first, with no view asking, until the last picture waits for its time:
+        // a view that asked before it was prepared would rightly be shown the one
+        // between, which is what a loaded machine did.
+        now.addAndGet(FRAME + FRAME / 2);
+        await(status -> player.untilNextPicture().isPresent());
+        now.addAndGet(FRAME / 2);
         awaitPicture(4 * FRAME);
         // And past the last picture's time, to the end.
         now.addAndGet(FRAME);

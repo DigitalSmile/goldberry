@@ -26,6 +26,8 @@ import dev.goldberry.media.codec.Received;
 /// **In:** each packet is copied into a buffer and queued on `appsrc`. At most
 /// [#MAX_QUEUED] wait there; past that, [#send] refuses and [#receive] waits for
 /// the pipeline to take them, which it does as the decoder works through them.
+/// A packet [#receive] asked for is always taken: the room is judged before a
+/// failure can hand every kept packet to the next candidate at once.
 ///
 /// **Out:** [#receive] takes whatever the pipeline has decoded by then, and
 /// answers "needs input" otherwise, so decoding runs ahead of the Engine
@@ -70,6 +72,7 @@ abstract sealed class GstDecoder implements Decoder permits GstVideoDecoder, Gst
     private final GstCodec codec;
     private final DecoderRequest request;
     private final List<Gst.Candidate> candidates;
+    private final int maxQueued;
     /// Shared: the decoder is opened on one thread and used on another.
     protected final Arena arena = Arena.ofShared();
 
@@ -84,11 +87,16 @@ abstract sealed class GstDecoder implements Decoder permits GstVideoDecoder, Gst
     private MemorySegment lentBuffer = MemorySegment.NULL;
     private boolean ending;
 
-    /// Opens a pipeline for `request` with the first of `candidates` that starts.
+    /// Opens a pipeline for `request` with the first of `candidates` that starts,
+    /// which queues at most `maxQueued` packets.
     ///
     /// @throws GstException when none of them starts
-    GstDecoder(GStreamer gs, GstCodec codec, DecoderRequest request, List<Gst.Candidate> candidates) {
+    GstDecoder(GStreamer gs, GstCodec codec, DecoderRequest request, List<Gst.Candidate> candidates, int maxQueued) {
+        if (maxQueued < 1) {
+            throw new IllegalArgumentException("a pipeline queues at least one packet, not " + maxQueued);
+        }
         this.gs = Objects.requireNonNull(gs, "gs");
+        this.maxQueued = maxQueued;
         this.codec = Objects.requireNonNull(codec, "codec");
         this.codecName = request.codecName();
         this.candidates = List.copyOf(candidates);
@@ -120,8 +128,11 @@ abstract sealed class GstDecoder implements Decoder permits GstVideoDecoder, Gst
 
     @Override
     public boolean send(Packet packet) {
+        // Judged on the pipeline [#receive] judged it on: check() may replace it
+        // with one that was just handed every kept packet, and is full already.
+        var room = pipeline.queued() < maxQueued;
         check();
-        if (pipeline.queued() >= MAX_QUEUED) {
+        if (!room) {
             return false;
         }
         var data = packet.data();
@@ -159,7 +170,7 @@ abstract sealed class GstDecoder implements Decoder permits GstVideoDecoder, Gst
             if (sample.equals(MemorySegment.NULL)) {
                 return Received.ENDED;
             }
-        } else if (sample.equals(MemorySegment.NULL) && pipeline.queued() >= MAX_QUEUED) {
+        } else if (sample.equals(MemorySegment.NULL) && pipeline.queued() >= maxQueued) {
             sample = awaitRoom();
         }
         return sample.equals(MemorySegment.NULL) ? Received.NEEDS_INPUT : new Received.Decoded(lend(sample));
@@ -270,7 +281,7 @@ abstract sealed class GstDecoder implements Decoder permits GstVideoDecoder, Gst
         var deadline = System.nanoTime() + STALL_NANOS;
         while (true) {
             var sample = pipeline.pull(POLL_NANOS);
-            if (!sample.equals(MemorySegment.NULL) || pipeline.queued() < MAX_QUEUED) {
+            if (!sample.equals(MemorySegment.NULL) || pipeline.queued() < maxQueued) {
                 return sample;
             }
             check();

@@ -72,7 +72,9 @@ class SubtitlePlaybackTest {
 
     @AfterEach
     void close() {
-        player.close();
+        if (player != null) {
+            player.close();
+        }
     }
 
     private PlayerStatus await(Predicate<PlayerStatus> condition) {
