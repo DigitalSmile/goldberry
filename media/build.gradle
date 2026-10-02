@@ -684,6 +684,12 @@ tasks.withType(JacocoReportBase).configureEach { dependsOn testNativesJar, 'test
 // operating system rather than the tests; this system's is counted only when
 // -Pgoldberry.platform.required=true says the job has its decoders installed,
 // which is the rule `:media-platform`'s own floor kept.
+//
+// The SDL sink is counted where libgoldberry is: built by this run, or named by
+// -Dgoldberry.native.library and there. Nothing else reaches it, so in the Media
+// lanes, which build FFmpeg and not the library, its tests skip and a floor
+// over it would measure the missing library: about a point of lines and of
+// branches.
 // ============================================================================
 def hostSystem = hostTargetId.substring(0, hostTargetId.indexOf('-'))
 def platformRequired = providers.gradleProperty('goldberry.platform.required')
@@ -691,6 +697,7 @@ def platformRequired = providers.gradleProperty('goldberry.platform.required')
         .map { Boolean.parseBoolean(it) }
         .getOrElse(false)
 def uncountedSystems = ['linux', 'macos', 'windows'].findAll { !(platformRequired && it == hostSystem) }
+def runHasLibgoldberry = !skipNative || (externalNativeLibrary.isPresent() && new File(externalNativeLibrary.get()).isFile())
 
 tasks.named('jacocoTestCoverageVerification', JacocoCoverageVerification) {
     onlyIf('FFmpeg is built for this machine') {
@@ -698,6 +705,9 @@ tasks.named('jacocoTestCoverageVerification', JacocoCoverageVerification) {
     }
     classDirectories.setFrom(sourceSets.main.output.classesDirs.asFileTree.matching {
         uncountedSystems.each { exclude "dev/goldberry/media/platform/${it}/**" }
+        if (!runHasLibgoldberry) {
+            exclude 'dev/goldberry/media/audio/SdlAudioSink*'
+        }
     })
     violationRules {
         rule {

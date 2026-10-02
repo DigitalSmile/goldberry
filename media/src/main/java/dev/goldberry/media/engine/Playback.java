@@ -1251,7 +1251,10 @@ public final class Playback implements AutoCloseable {
     }
 
     /// The audio thread wrote up to `endSample`, or (not `played`) moved there by
-    /// a seek. A write is the audio clock taking over from a seek's target.
+    /// a seek. A write is the audio clock taking over from a seek's target, once
+    /// the sink is current: sound from before a seek that is asked for and has
+    /// not run yet, still being written, would take the position back to where
+    /// the seek left until the seek lands.
     void audioWritten(long endSample, boolean played) {
         tail.reset();
         if (!played) {
@@ -1261,7 +1264,7 @@ public final class Playback implements AutoCloseable {
             audioFloorSample = endSample;
         }
         writtenEndSample = endSample;
-        if (played) {
+        if (played && sinkCurrent()) {
             seekingToNanos = Frame.NO_PTS;
         }
     }
