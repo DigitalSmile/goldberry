@@ -11,12 +11,14 @@ import org.jspecify.annotations.Nullable;
 /// card > heading { font-weight: 600 }
 /// ```
 ///
-/// The subset is type, `.class`, `#id`, the descendant and child combinators, and
-/// the pseudo-classes that describe widget state. Nothing else, and the omissions
-/// are load-bearing: no sibling combinators, no attribute selectors, no
-/// `:nth-child`. Each of those needs the element tree to answer questions about
-/// *order*, and the cheapest way to keep matching a walk up the ancestor chain is
-/// to never ask one.
+/// The subset is type, `.class`, `#id`, the descendant and child combinators,
+/// the pseudo-classes that describe widget state, and the [Structural] ones
+/// that describe where an element sits among its siblings: `:first-child`,
+/// `:last-child`, `:only-child` and `:nth-child(An+B)`. Those read an index the
+/// element already has, so matching is still a walk up the ancestor chain.
+/// Sibling combinators, attribute selectors, `:has()` and pseudo-elements are
+/// not in it: each would make one element's match depend on another element's
+/// content rather than on its own position.
 ///
 /// A selector is a chain of [Compound]s joined by [Combinator]s, stored
 /// **rightmost first**. That is the order matching reads them in: find the
@@ -59,22 +61,47 @@ public record Selector(List<Part> parts) {
     /// @param id           the `#id`, or null
     /// @param classes      the `.class` names, in source order
     /// @param pseudoClasses the `:state` names
+    /// @param structural   the `:first-child`-like conditions on its position
     public record Compound(
-            @Nullable String type, @Nullable String id, List<String> classes, List<PseudoClass> pseudoClasses) {
+            @Nullable String type,
+            @Nullable String id,
+            List<String> classes,
+            List<PseudoClass> pseudoClasses,
+            List<Structural> structural) {
 
         /// Written out so that the parameters taking null for a default can say so.
-        public Compound(@Nullable String type, @Nullable String id, @Nullable List<String> classes, @Nullable List<PseudoClass> pseudoClasses) {
+        public Compound(
+                @Nullable String type,
+                @Nullable String id,
+                @Nullable List<String> classes,
+                @Nullable List<PseudoClass> pseudoClasses,
+                @Nullable List<Structural> structural) {
             classes = List.copyOf(classes == null ? List.of() : classes);
             pseudoClasses = List.copyOf(pseudoClasses == null ? List.of() : pseudoClasses);
+            structural = List.copyOf(structural == null ? List.of() : structural);
             this.type = type;
             this.id = id;
             this.classes = classes;
             this.pseudoClasses = pseudoClasses;
+            this.structural = structural;
+        }
+
+        /// A compound with no structural condition.
+        public Compound(
+                @Nullable String type,
+                @Nullable String id,
+                @Nullable List<String> classes,
+                @Nullable List<PseudoClass> pseudoClasses) {
+            this(type, id, classes, pseudoClasses, null);
         }
 
         /// Whether this compound constrains nothing — the `*` of `* > .a`.
         public boolean isUniversal() {
-            return type == null && id == null && classes.isEmpty() && pseudoClasses.isEmpty();
+            return type == null
+                    && id == null
+                    && classes.isEmpty()
+                    && pseudoClasses.isEmpty()
+                    && structural.isEmpty();
         }
 
         @Override
@@ -88,6 +115,7 @@ public record Selector(List<Part> parts) {
             }
             classes.forEach(c -> text.append('.').append(c));
             pseudoClasses.forEach(p -> text.append(':').append(p.cssName()));
+            structural.forEach(p -> text.append(':').append(p.cssName()));
             return text.isEmpty() ? "*" : text.toString();
         }
     }
@@ -201,7 +229,9 @@ public record Selector(List<Part> parts) {
             if (compound.id() != null) {
                 ids++;
             }
-            classes += compound.classes().size() + compound.pseudoClasses().size();
+            classes += compound.classes().size()
+                    + compound.pseudoClasses().size()
+                    + compound.structural().size();
             if (compound.type() != null) {
                 types++;
             }

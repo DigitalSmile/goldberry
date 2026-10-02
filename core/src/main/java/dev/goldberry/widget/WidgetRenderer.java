@@ -12,12 +12,14 @@ import org.slf4j.Logger;
 import dev.goldberry.css.ComputedStyle;
 import dev.goldberry.css.Stylesheet;
 import dev.goldberry.css.cascade.StyleResolver;
+import dev.goldberry.css.media.MediaContext;
 import dev.goldberry.css.select.Selector.PseudoClass;
 import dev.goldberry.css.value.CssLength;
 import dev.goldberry.log.Logs;
 import dev.goldberry.motion.Clock;
 import dev.goldberry.motion.KeyframeTrack;
 import dev.goldberry.paint.Box;
+import dev.goldberry.render.desktop.SystemTheme;
 import dev.goldberry.stats.FrameStats;
 import dev.goldberry.text.ParagraphCache;
 import dev.goldberry.text.font.Font;
@@ -46,7 +48,10 @@ import dev.goldberry.widget.style.Styled;
 ///
 /// A resolved style is cached on its element, keyed by identity on this
 /// renderer's resolver and on the parent's style, so a theme swap is a new
-/// renderer and a frame in which nothing changed resolves nothing. Transitions
+/// renderer and a frame in which nothing changed resolves nothing. `@media`
+/// takes the same route: [#viewport], [#colorScheme] and [#reducedMotion]
+/// move the media context, and a move that changes some condition's answer
+/// swaps in a new resolver. Transitions
 /// and keyframe animations are observed here as well, which is why
 /// [#isAnimating()] is the question an application asks before it requests
 /// another frame.
@@ -57,7 +62,15 @@ public final class WidgetRenderer {
 
     private static final Logger LOG = Logs.of(WidgetRenderer.class);
 
-    private final StyleResolver resolver;
+    /// The cascade, under the media context below. Replaced, never edited, when
+    /// a context change flips an `@media` condition: [StyleResolver#under]
+    /// answers with a new instance then and with this one otherwise, and every
+    /// style an element cached is keyed on the instance.
+    private StyleResolver resolver;
+
+    /// What the `@media` conditions are asked about: the window's size, the
+    /// desktop's theme and [#reducedMotion].
+    private MediaContext media = MediaContext.UNKNOWN;
 
     /// What the **root** resolves `em` and `rem` against — the configured pair,
     /// which is what an application passed in and never changes.
@@ -340,6 +353,41 @@ public final class WidgetRenderer {
     /// Read more: [Motion](https://goldberry.dev/docs/guide/design-system.html#motion).
     public WidgetRenderer reducedMotion(boolean value) {
         this.reducedMotion = value;
+        return media(media.reducedMotion(value));
+    }
+
+    /// The window's logical size, which `@media (min-width: …)` and the rest
+    /// are asked about.
+    ///
+    /// Told on every frame by the frame sequence, before the tree is prepared,
+    /// so a resize that crosses a breakpoint restyles the frame it produced. A
+    /// resize that crosses none changes nothing: the resolver is kept, and so is
+    /// every style cached against it.
+    ///
+    /// Read more: [Media queries](https://goldberry.dev/docs/guide/styling.html#media-queries).
+    public WidgetRenderer viewport(double width, double height) {
+        return media(media.size(width, height));
+    }
+
+    /// The desktop's theme, which `@media (prefers-color-scheme: …)` is asked
+    /// about. Light until told otherwise, which is also what a desktop that does
+    /// not say is read as.
+    public WidgetRenderer colorScheme(SystemTheme value) {
+        return media(media.colorScheme(Objects.requireNonNull(value, "value")));
+    }
+
+    /// What the `@media` conditions are currently asked about.
+    public MediaContext media() {
+        return media;
+    }
+
+    private WidgetRenderer media(MediaContext value) {
+        media = value;
+        var next = resolver.under(value);
+        if (next != resolver) {
+            LOG.debug("an @media condition changed its answer under {}; restyling", value);
+            resolver = next;
+        }
         return this;
     }
 

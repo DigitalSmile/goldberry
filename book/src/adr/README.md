@@ -561,3 +561,8 @@ proposing to undo them.
 - [ADR-0523 A dialog takes itself off the window](0523-a-dialog-takes-itself-off-the-window.md)
 - [ADR-0524 A test drives a session with a host under it](0524-a-test-drives-a-session-with-a-host-under-it.md)
 - [ADR-0525 Every subtree laid out is checked for overruns](0525-every-subtree-laid-out-is-checked-for-overruns.md)
+- [ADR-0526 A media query is asked of the window](0526-a-media-query-is-asked-of-the-window.md)
+- [ADR-0527 CSS easing keywords run on the system curves](0527-css-easing-keywords-run-on-the-system-curves.md)
+- [ADR-0528 A node knows its place among its siblings](0528-a-node-knows-its-place-among-its-siblings.md)
+- [ADR-0529 An application's stylesheet is lenient and loud](0529-an-applications-stylesheet-is-lenient-and-loud.md)
+- [ADR-0530 Five white-space keywords are two behaviours, and a long word may be cut](0530-five-white-space-keywords-are-two-behaviours-and-a-long-word-may-be-cut.md)

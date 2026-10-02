@@ -13,9 +13,11 @@ import dev.goldberry.layout.MeasureMode;
 import dev.goldberry.layout.MeasuredSize;
 import dev.goldberry.log.Logs;
 import dev.goldberry.paint.Frame;
+import dev.goldberry.text.flow.OverflowWrap;
 import dev.goldberry.text.flow.TextDecoration;
 import dev.goldberry.text.flow.TextFlow;
 import dev.goldberry.text.flow.TextOverflow;
+import dev.goldberry.text.flow.WordBreak;
 import dev.goldberry.text.font.Font;
 import dev.goldberry.text.itemize.Itemizer;
 import dev.goldberry.text.itemize.Slot;
@@ -118,6 +120,11 @@ public final class Paragraph {
     /// would cost a hash of a `double` to serve the same hit.
     private double memoWidth = Double.NaN;
     private @Nullable TextLayout memo;
+
+    /// How [#memo] was broken: [#breaking]'s answer for the flow it was laid out
+    /// under. A paragraph is shared through the cache by every box drawing the
+    /// same text in the same font, so two boxes may ask with different flows.
+    private int memoBreaking = -1;
 
     /// Whether the text was shaped in logical order because it needed bidi.
     private final boolean bidiApproximate;
@@ -311,12 +318,14 @@ public final class Paragraph {
         return bidiApproximate;
     }
 
-    /// Breaks the text into lines that fit in `maxWidth` logical units.
+    /// Breaks the text into lines that fit in `maxWidth` logical units, between
+    /// words only.
     ///
     /// Greedy, which is what every browser does: each line takes as much as fits
-    /// and no more. A word longer than the whole width is **not** broken — it
-    /// overflows on a line of its own, because hyphenation and mid-word breaking
-    /// are decisions a style should make rather than a layout engine.
+    /// and no more. A word longer than the whole width is **not** broken here — it
+    /// overflows on a line of its own, because mid-word breaking is a decision a
+    /// style makes rather than a layout engine. [#layout(double, TextFlow)] is the
+    /// form that takes the style's answer.
     ///
     /// **Always a layout, and always at least one line.** Text with nothing in
     /// it breaks into a single empty line rather than into none: a blank line
@@ -328,13 +337,53 @@ public final class Paragraph {
     /// @param maxWidth the width to fit in, or [#UNCONSTRAINED] for one line per
     ///                 explicit newline and no wrapping at all
     public TextLayout layout(double maxWidth) {
+        return layout(maxWidth, NORMAL_BREAKING);
+    }
+
+    /// The same, breaking inside words where `flow` allows it.
+    ///
+    /// `overflow-wrap: anywhere` breaks a word only when it is wider than the
+    /// whole line, between two grapheme clusters, as late as the line allows.
+    /// `word-break: break-all` may break between any two grapheme clusters, so
+    /// every line is filled to the edge. Either way a line always takes at least
+    /// one grapheme, so a box narrower than one character still makes progress.
+    ///
+    /// Only the breaking half of `flow` is read here. Whether the paragraph wraps
+    /// at all is the caller's question, answered by the width it passes.
+    ///
+    /// @param maxWidth the width to fit in, or [#UNCONSTRAINED]
+    /// @param flow     what the cascade said about breaking inside a word
+    public TextLayout layout(double maxWidth, TextFlow flow) {
+        return layout(maxWidth, breaking(Objects.requireNonNull(flow, "flow")));
+    }
+
+    /// Breaking between words only.
+    private static final int NORMAL_BREAKING = 0;
+
+    /// Breaking a word that does not fit on a line of its own.
+    private static final int OVERFLOW_BREAKING = 1;
+
+    /// Breaking between any two grapheme clusters.
+    private static final int ANYWHERE_BREAKING = 2;
+
+    /// Which of the three ways of breaking `flow` asks for. `break-all` wins
+    /// over `overflow-wrap`, because every place the second may break the first
+    /// may break too.
+    private static int breaking(TextFlow flow) {
+        if (flow.wordBreak() == WordBreak.BREAK_ALL) {
+            return ANYWHERE_BREAKING;
+        }
+        return flow.overflowWrap() == OverflowWrap.ANYWHERE ? OVERFLOW_BREAKING : NORMAL_BREAKING;
+    }
+
+    private TextLayout layout(double maxWidth, int breaking) {
         if (Double.isNaN(maxWidth)) {
             throw new IllegalArgumentException(
                     "a NaN width would wrap every line to nothing; pass Paragraph.UNCONSTRAINED"
                             + " for no constraint");
         }
         // NaN never equals itself, so the first call always misses.
-        if (maxWidth == memoWidth) {
+        if (maxWidth == memoWidth && breaking == memoBreaking) {
             return Objects.requireNonNull(memo, "a width is remembered only together with its layout");
         }
 
@@ -346,7 +395,7 @@ public final class Paragraph {
         while (paragraphStart <= text.length()) {
             var newline = text.indexOf('\n', paragraphStart);
             var paragraphEnd = newline < 0 ? text.length() : newline;
-            wrap(paragraphStart, paragraphEnd, maxWidth, lines);
+            wrap(paragraphStart, paragraphEnd, maxWidth, breaking, lines);
             if (newline < 0) {
                 break;
             }
@@ -360,6 +409,7 @@ public final class Paragraph {
 
         var layout = new TextLayout(lines, widest, lines.size() * font.lineHeight());
         memoWidth = maxWidth;
+        memoBreaking = breaking;
         memo = layout;
         return layout;
     }
@@ -405,7 +455,7 @@ public final class Paragraph {
                         case UNDEFINED -> UNCONSTRAINED;
                         case EXACTLY, AT_MOST -> wraps ? (double) width : UNCONSTRAINED;
                     };
-            var layout = layout(available);
+            var layout = layout(available, flow);
             var measured = widthMode == MeasureMode.EXACTLY ? width : (float) layout.width();
             return new MeasuredSize(measured, (float) layout.height());
         };
@@ -452,7 +502,7 @@ public final class Paragraph {
         Objects.requireNonNull(frame, "frame");
         Objects.requireNonNull(flow, "flow");
 
-        var layout = layout(flow.wraps() ? maxWidth : UNCONSTRAINED);
+        var layout = layout(flow.wraps() ? maxWidth : UNCONSTRAINED, flow);
         var lineHeight = font.lineHeight();
         var ascent = font.ascent();
         var ellipsis = flow.ellipsises();
@@ -664,7 +714,7 @@ public final class Paragraph {
 
     /// Breaks `[start, end)` — one hard line — into as many soft lines as it
     /// takes, appending each.
-    private void wrap(int start, int end, double maxWidth, List<TextLine> lines) {
+    private void wrap(int start, int end, double maxWidth, int breaking, List<TextLine> lines) {
         if (start == end) {
             // A blank line. It draws nothing and still takes a line's height,
             // which is what a reader means by a blank line.
@@ -672,7 +722,11 @@ public final class Paragraph {
             return;
         }
 
-        var breaks = BreakIterator.getLineInstance();
+        // Under `break-all` every grapheme boundary is a place to break, which
+        // is a superset of the line breaker's opportunities: a space is a
+        // grapheme too.
+        var breaks =
+                breaking == ANYWHERE_BREAKING ? BreakIterator.getCharacterInstance() : BreakIterator.getLineInstance();
         breaks.setText(text.substring(start, end));
 
         var lineStart = start;
@@ -706,10 +760,17 @@ public final class Paragraph {
                 }
             }
 
-            // A single unbreakable chunk wider than the whole line. It goes on a
-            // line of its own and overflows: breaking inside it would be a
-            // hyphenation decision, which is a style's to make and not a layout
-            // engine's.
+            // A single unbreakable chunk wider than the whole line. Unless the
+            // style said `overflow-wrap: anywhere`, it goes on a line of its own
+            // and overflows: breaking inside it is a style's decision, not a
+            // layout engine's.
+            if (breaking == OVERFLOW_BREAKING) {
+                lineStart = breakInside(lineStart, offset, maxWidth, lines);
+                // What is left of the word fits, and is the start of the line
+                // the next word is tried against.
+                lastFitting = offset;
+                continue;
+            }
             lines.add(lineFor(lineStart, offset));
             lineStart = offset;
         }
@@ -717,6 +778,29 @@ public final class Paragraph {
         if (lineStart < end) {
             lines.add(lineFor(lineStart, end));
         }
+    }
+
+    /// Cuts `[start, end)`, one word too wide for the line, into lines of as many
+    /// grapheme clusters as fit, and returns where the remainder starts.
+    ///
+    /// The remainder is no wider than `maxWidth`, and is left for the caller to
+    /// put on the line it is building, so the next word can join it.
+    ///
+    /// At least one grapheme per line, even when one alone is wider than the
+    /// box, or a box narrower than a character would never finish.
+    private int breakInside(int start, int end, double maxWidth, List<TextLine> lines) {
+        var lineStart = start;
+        while (widthOf(lineStart, end) > maxWidth) {
+            var cut = offsetFitting(lineStart, end, maxWidth);
+            if (cut <= lineStart) {
+                var graphemes = BreakIterator.getCharacterInstance();
+                graphemes.setText(text);
+                cut = Math.min(end, graphemes.following(lineStart));
+            }
+            lines.add(lineFor(lineStart, cut));
+            lineStart = cut;
+        }
+        return lineStart;
     }
 
     /// Builds a line, trimming trailing whitespace out of the glyph range and the

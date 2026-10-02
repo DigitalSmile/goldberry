@@ -144,6 +144,7 @@ starts.
 | `goldberry.log.glib.writer` | `true` | also catches GLib's structured messages |
 | `goldberry.trace.frames` | `true`, `all` | counts what each frame did to the element tree |
 | `goldberry.trace.input` | `true` | reports every pseudo-class input sets |
+| `goldberry.css.lint` | `true` | lints the application's own stylesheets against everything in force whenever the launcher reads them, and logs each finding at warn. The development switch: dead declarations, rules a lenient parse dropped, and `@media` blocks that can never apply |
 
 `goldberry.golden.update`, `goldberry.golden.scales`, `goldberry.gpu.required`
 and the other `*.required` properties belong to this repository's own test
@@ -163,7 +164,10 @@ tasks and do nothing in an application.
 | `cannot find -lz` while building the native library | the linker needs `zlib1g-dev`, not only `zlib1g` | [Native image](../native.md) |
 | `the emoji face is not on the module path …` | `Font.bundled(BundledFont.EMOJI, …)` without `goldberry-emoji` | [Text, fonts and icons](text.md#emoji) |
 | `dropping "transition": width … is not a valid value` | a transition names a property outside the whitelist | [Styling](styling.md#transition-and-animation) |
-| `unsupported at-rule "@font-face"` | the CSS subset has `@media`, `@starting-style` and `@keyframes` and nothing else | [Styling](styling.md#properties) |
+| `unsupported at-rule "@font-face"` | the CSS subset has `@media`, `@starting-style` and `@keyframes` and nothing else. In an application's sheet the block is dropped with this warning; in the toolkit's own it is a `CssSyntaxException` | [Styling](styling.md#strict-and-lenient-sheets) |
+| `app.css, line 42: dropping "lane::before": …` | a lenient sheet left out one rule that asked for something outside the subset; the rest of the sheet is in force | [Styling](styling.md#strict-and-lenient-sheets) |
+| `app.css, line 7: "letter-spacing" is not a property this toolkit has` | every declaration of that property in the sheet does nothing; said once per property per sheet | [Styling](styling.md#properties) |
+| `easing "ease-in-out" is read as ease-enter` | at info: CSS's keyword runs on the system curve the table names | [Styling](styling.md#transition-and-animation) |
 | `nowhere to put a menu` logged by the showcase | the video driver has no popup windows, or the anchor was not painted yet | [ADR-0102](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0102-a-popup-is-a-window-the-platform-may-refuse.md) |
 
 ## Read more

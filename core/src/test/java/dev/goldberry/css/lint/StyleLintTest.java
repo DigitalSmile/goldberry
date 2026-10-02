@@ -463,4 +463,64 @@ class StyleLintTest {
                     "the custom property reached the end of the chain");
         }
     }
+
+    @Nested
+    @DisplayName("rules a lenient parse dropped")
+    class Dropped {
+
+        @Test
+        @DisplayName("each is a finding, with the selector, the reason and the line")
+        void reported() {
+            var findings = check("a { color: red }\nlane::before { color: blue }").stream()
+                    .filter(finding -> finding.kind() == Finding.Kind.DROPPED_RULE)
+                    .toList();
+            assertEquals(1, findings.size());
+            var finding = findings.getFirst();
+            assertEquals("lane::before", finding.selector());
+            assertEquals(2, finding.line());
+            assertTrue(finding.kind().isDefect());
+            assertTrue(finding.toString().contains("pseudo-elements"), finding.toString());
+        }
+
+        @Test
+        @DisplayName("and an @media block that can never apply is one too")
+        void unanswerableMedia() {
+            var findings = check("@media (hover: hover) { a { color: red } }");
+            assertEquals(1, findings.size());
+            assertEquals(Finding.Kind.DROPPED_RULE, findings.getFirst().kind());
+        }
+    }
+
+    @Nested
+    @DisplayName("the development switch")
+    class Switch {
+
+        @Test
+        @DisplayName("lints nothing unless asked")
+        void offByDefault() {
+            assertTrue(StyleLint.reportIfAsked(List.of(sheet("a { letter-spacing: 1px }")))
+                    .isEmpty());
+        }
+
+        @Test
+        @DisplayName("when asked, lints each application sheet once, and the toolkit's never")
+        void onWhenAsked() {
+            var mine = sheet("a { letter-spacing: 1px }");
+            var toolkit = Stylesheet.parse(CascadeLayer.TOOLKIT_BASE, "b { letter-spacing: 1px }");
+            var previous = System.getProperty(StyleLint.PROPERTY);
+            System.setProperty(StyleLint.PROPERTY, "true");
+            try {
+                var findings = StyleLint.reportIfAsked(List.of(toolkit, mine));
+                assertEquals(1, findings.size(), "the application's dead declaration and nothing of the toolkit's");
+                assertEquals("a", findings.getFirst().selector());
+                assertTrue(StyleLint.reportIfAsked(List.of(toolkit, mine)).isEmpty(), "and only once");
+            } finally {
+                if (previous == null) {
+                    System.clearProperty(StyleLint.PROPERTY);
+                } else {
+                    System.setProperty(StyleLint.PROPERTY, previous);
+                }
+            }
+        }
+    }
 }

@@ -139,11 +139,35 @@ class AnimationPropertyTest {
                 "animation: a b 1s",
                 "animation: a 1s 2s 3s",
                 "animation: a -1s",
-                "animation: a 1s ease-in-out",
             })
     @DisplayName("a shorthand that is not in the subset is dropped whole, and nothing runs")
     void droppedShorthand(String declaration) {
         assertTrue(resolve(declaration).isEmpty());
+    }
+
+    @Test
+    @DisplayName("the shorthand the report quoted runs, with `ease-in-out` read as ease-enter")
+    void reportedPulseRuns() {
+        var entry = resolve("animation: orc-pulse 900ms ease-in-out infinite alternate both")
+                .entries()
+                .getFirst();
+        assertEquals("orc-pulse", entry.name());
+        assertEquals(900.0, entry.durationMillis());
+        assertEquals(Easing.EASE_ENTER, entry.easing());
+        assertEquals(Double.POSITIVE_INFINITY, entry.iterations());
+        assertEquals(KeyframeAnimations.Direction.ALTERNATE, entry.direction());
+        assertEquals(KeyframeAnimations.FillMode.BOTH, entry.fillMode());
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"cubic-bezier(0.2, 0, 0, 1)", "steps(3, end)", "step-start", "ease-wobble"})
+    @DisplayName("a timing function outside the subset drops itself, not the animation")
+    void foreignEasingDropsOnlyItself(String easing) {
+        var entry =
+                resolve("animation: pulse 1s " + easing + " infinite").entries().getFirst();
+        assertEquals("pulse", entry.name());
+        assertEquals(Easing.EASE_ENTER, entry.easing());
+        assertEquals(Double.POSITIVE_INFINITY, entry.iterations());
     }
 
     @ParameterizedTest

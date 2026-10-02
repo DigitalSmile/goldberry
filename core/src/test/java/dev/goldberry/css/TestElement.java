@@ -107,6 +107,18 @@ public final class TestElement implements StyleElement {
         return states.contains(state);
     }
 
+    /// Its place among the children its parent was built [#with], which is what
+    /// the structural pseudo-classes read.
+    @Override
+    public int indexInParent() {
+        return parent == null ? 0 : parent.children.indexOf(this);
+    }
+
+    @Override
+    public int siblingCount() {
+        return parent == null ? 1 : parent.children.size();
+    }
+
     @Override
     public String toString() {
         return type == null ? "<anonymous>" : "<" + type + ">";

@@ -7,15 +7,18 @@ import java.util.Optional;
 import java.util.Set;
 
 import org.jspecify.annotations.Nullable;
+import org.slf4j.Logger;
 
 import dev.goldberry.css.ComputedStyle;
 import dev.goldberry.css.StyleElement;
 import dev.goldberry.css.StyleRule;
 import dev.goldberry.css.Stylesheet;
+import dev.goldberry.css.cascade.CascadeLayer;
 import dev.goldberry.css.cascade.StyleResolver;
 import dev.goldberry.css.parse.Token;
 import dev.goldberry.css.select.Selector;
 import dev.goldberry.css.value.CssLength;
+import dev.goldberry.log.Logs;
 
 /// Asks a stylesheet whether the engine will do what it says.
 ///
@@ -44,8 +47,16 @@ import dev.goldberry.css.value.CssLength;
 /// them as a value the engine would not take. So an application passes
 /// everything that will be loaded as `inForce` and its own as `linted`.
 ///
-/// Cheap enough to run at start-up, one resolution per selector, and nothing
-/// calls it for you.
+/// It also reports, as [Finding.Kind#DROPPED_RULE], every rule a lenient parse
+/// left out of a linted sheet, so the warnings the parse logged once are values
+/// here as well.
+///
+/// Cheap enough to run at start-up, one resolution per selector. Nothing calls
+/// it for you, with one exception that is asked for: run the application with
+/// `-Dgoldberry.css.lint=true` and the launcher lints the application's own
+/// sheets against everything in force whenever the sheets change, and logs each
+/// finding at warn. That is the development switch; a release build leaves it
+/// off and pays nothing.
 ///
 /// Read more:
 /// [Logging and diagnostics](https://goldberry.dev/docs/guide/logging.html#failure-messages-and-what-they-mean).
@@ -61,6 +72,53 @@ public final class StyleLint {
 
     private final List<Stylesheet> inForce;
     private final StyleResolver resolver;
+
+    /// The system property that turns on [#reportIfAsked]: `true` lints the
+    /// application's sheets whenever the launcher reads them.
+    public static final String PROPERTY = "goldberry.css.lint";
+
+    private static final Logger LOG = Logs.of(StyleLint.class);
+
+    /// The sheets [#reportIfAsked] has already linted, by identity, so a restyle
+    /// that hands back the same sheet does not repeat its findings.
+    private static final Set<Stylesheet> REPORTED =
+            java.util.Collections.newSetFromMap(new java.util.IdentityHashMap<>());
+
+    /// Lints the [CascadeLayer#APPLICATION] sheets in `inForce` against all of
+    /// them and logs every finding at warn, when [#PROPERTY] is `true`.
+    ///
+    /// What the launcher calls each time it reads an application's sheets. Off
+    /// by default, so a release build pays one property read; on, it is the
+    /// lint an application would otherwise have to remember to ask for. A
+    /// sheet is linted once however many times it is handed back.
+    ///
+    /// @return the findings it logged, empty when the property is off
+    public static List<Finding> reportIfAsked(List<Stylesheet> inForce) {
+        Objects.requireNonNull(inForce, "inForce");
+        if (!Boolean.getBoolean(PROPERTY)) {
+            return List.of();
+        }
+        var fresh = new ArrayList<Stylesheet>();
+        synchronized (REPORTED) {
+            for (var sheet : inForce) {
+                if (sheet.layer() == CascadeLayer.APPLICATION && REPORTED.add(sheet)) {
+                    fresh.add(sheet);
+                }
+            }
+        }
+        if (fresh.isEmpty()) {
+            return List.of();
+        }
+        var findings = new StyleLint(inForce).check(fresh);
+        for (var finding : findings) {
+            if (finding.kind().isDefect()) {
+                LOG.warn("css lint: {}", finding);
+            } else {
+                LOG.info("css lint: {}", finding);
+            }
+        }
+        return findings;
+    }
 
     /// A lint over what will actually be loaded.
     ///
@@ -80,6 +138,15 @@ public final class StyleLint {
         Objects.requireNonNull(linted, "linted");
         var findings = new ArrayList<Finding>();
         for (var sheet : linted) {
+            for (var dropped : sheet.dropped()) {
+                findings.add(new Finding(
+                        Finding.Kind.DROPPED_RULE,
+                        dropped.text(),
+                        null,
+                        dropped.reason(),
+                        dropped.line(),
+                        dropped.column()));
+            }
             for (var rule : sheet.rules()) {
                 for (var selector : rule.selectors()) {
                     checkRule(selector, rule, findings);

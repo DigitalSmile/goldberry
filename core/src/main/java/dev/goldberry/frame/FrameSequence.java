@@ -105,6 +105,9 @@ public final class FrameSequence {
         Objects.requireNonNull(frame, "frame");
         Objects.requireNonNull(renderer, "renderer");
 
+        // The window's size first, so an `@media` breakpoint it crosses has
+        // swapped the resolver before the build asks it anything.
+        renderer.viewport(frame.size().width(), frame.size().height());
         renderer.prepare(tree);
         if (tree.needsBuild()) {
             tree.flush();

@@ -182,4 +182,31 @@ class TextFlowTest {
                         .decorations(TextDecoration.LINE_THROUGH, TextDecoration.UNDERLINE)
                         .toString());
     }
+
+    @Test
+    @DisplayName("a flow breaks only between words unless told otherwise, and the old forms say so")
+    void wordBreakingIsNormalByDefault() {
+        assertEquals(OverflowWrap.NORMAL, TextFlow.NORMAL.overflowWrap());
+        assertEquals(WordBreak.NORMAL, TextFlow.NORMAL.wordBreak());
+        assertEquals(
+                TextFlow.NORMAL,
+                new TextFlow(WhiteSpace.NORMAL, TextOverflow.CLIP, TextAlign.START, TextDecoration.NONE));
+
+        var cut = TextFlow.NORMAL.overflowWrap(OverflowWrap.ANYWHERE).wordBreak(WordBreak.BREAK_ALL);
+        assertEquals(OverflowWrap.ANYWHERE, cut.overflowWrap());
+        assertEquals(WordBreak.BREAK_ALL, cut.wordBreak());
+        assertTrue(cut.toString().contains("overflow-wrap anywhere"), cut.toString());
+        assertEquals(cut, cut.textAlign(TextAlign.END).textAlign(TextAlign.START), "the withers keep both");
+    }
+
+    @Test
+    @DisplayName("CSS's five white-space keywords read onto the two behaviours, and nothing else does")
+    void whiteSpaceKeywords() {
+        assertEquals(WhiteSpace.NORMAL, WhiteSpace.parse("pre-wrap"));
+        assertEquals(WhiteSpace.NORMAL, WhiteSpace.parse("pre-line"));
+        assertEquals(WhiteSpace.NOWRAP, WhiteSpace.parse("PRE"));
+        assertEquals(null, WhiteSpace.parse("break-spaces"));
+        assertEquals(OverflowWrap.ANYWHERE, OverflowWrap.parse("break-word"));
+        assertEquals(null, WordBreak.parse("keep-all"));
+    }
 }

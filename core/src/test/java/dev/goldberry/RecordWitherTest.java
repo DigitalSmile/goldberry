@@ -81,7 +81,9 @@ class RecordWitherTest {
                 // the wrong one of the three would otherwise round-trip.
                 new dev.goldberry.layout.Insets(length(71), length(72), length(73), length(74)),
                 new dev.goldberry.layout.Insets(length(41), length(42), length(43), length(44)),
+                // `rowGap`, then `columnGap`: two lengths that must differ.
                 length(55),
+                length(56),
                 6,
                 7,
                 // `flexBasis`, distinct from every other bare `Length` here.
@@ -116,13 +118,16 @@ class RecordWitherTest {
                 .limits(new dev.goldberry.layout.Limits(length(31), length(32), length(33), length(34)))
                 .margin(new dev.goldberry.layout.Insets(length(71), length(72), length(73), length(74)))
                 .padding(new dev.goldberry.layout.Insets(length(41), length(42), length(43), length(44)))
-                .gap(length(55))
+                .rowGap(length(55))
+                .columnGap(length(56))
                 .flexGrow(6)
                 .flexShrink(7)
                 .flexBasis(length(88))
                 .position(dev.goldberry.layout.Position.ABSOLUTE)
                 .inset(new dev.goldberry.layout.Insets(length(61), length(62), length(63), length(64)))
                 .overflow(dev.goldberry.layout.Overflow.HIDDEN)
+                .overflowWrap(dev.goldberry.text.flow.OverflowWrap.ANYWHERE)
+                .wordBreak(dev.goldberry.text.flow.WordBreak.BREAK_ALL)
                 .background(0xFF102030)
                 .color(0xFF405060)
                 .opacity(0.5)

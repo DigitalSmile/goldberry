@@ -73,7 +73,11 @@ class SupportedPropertyTest {
     private static List<String> dead(List<Stylesheet> inForce, List<Stylesheet> linted) {
         return new StyleLint(inForce)
                 .check(linted).stream()
-                        .filter(finding -> finding.kind() == Finding.Kind.DEAD_DECLARATION)
+                        // A dropped rule too: the showcase's sheet is an
+                        // application's, parsed leniently, and a rule it
+                        // lost would be as invisible as a dead declaration.
+                        .filter(finding -> finding.kind() == Finding.Kind.DEAD_DECLARATION
+                                || finding.kind() == Finding.Kind.DROPPED_RULE)
                         .map(Finding::toString)
                         .sorted()
                         .toList();

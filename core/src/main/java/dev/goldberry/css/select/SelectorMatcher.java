@@ -78,6 +78,15 @@ public final class SelectorMatcher {
                 return false;
             }
         }
+        if (!compound.structural().isEmpty()) {
+            var index = element.indexInParent();
+            var count = element.siblingCount();
+            for (var position : compound.structural()) {
+                if (!position.matches(index, count)) {
+                    return false;
+                }
+            }
+        }
         return true;
     }
 }

@@ -1,17 +1,36 @@
 package dev.goldberry.motion;
 
 import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.jspecify.annotations.Nullable;
+import org.slf4j.Logger;
+
+import dev.goldberry.log.Logs;
 
 /// How a value moves between two others: the design system's three easing curves.
 ///
-/// **Three keywords, and no raw beziers in the stylesheet.** The CSS subset
+/// **Three curves, and no raw beziers in the stylesheet.** The CSS subset
 /// accepts these names rather than `cubic-bezier(…)`, and that is the
 /// whole point: a design system where every screen can invent its own curve has
 /// no motion language, only motion. `ease-enter` decelerates, `ease-exit`
 /// accelerates, `linear` is for continuous indicators. There is deliberately no
 /// bounce or overshoot in system components.
+///
+/// CSS's own four keywords are read **onto** the three, so a stylesheet written
+/// for a browser keeps its motion rather than losing the declaration:
+///
+/// | written | read as | because |
+/// |---|---|---|
+/// | `ease` | `ease-enter` | CSS's default; it decelerates for most of its length |
+/// | `ease-out` | `ease-enter` | the same shape: fast, then settling |
+/// | `ease-in` | `ease-exit` | the same shape: slow, then leaving |
+/// | `ease-in-out` | `ease-enter` | the system has no symmetric curve, and the ending is what is seen |
+///
+/// Each mapping is logged once, at info, so an author can see what their
+/// keyword became.
 ///
 /// ## Why the solver is here and not in the parser
 ///
@@ -55,19 +74,48 @@ public enum Easing {
         return name().toLowerCase(Locale.ROOT).replace('_', '-');
     }
 
-    /// The keyword, or null if the name is not one of the three.
+    /// The curve a keyword names, or null if it names none.
     ///
-    /// Null rather than a default, so a stylesheet writing `ease-in-out` — a
-    /// keyword CSS has and this system does not — is a dropped declaration with
-    /// the text quoted rather than a curve nobody chose.
+    /// The three system names, and CSS's `ease`, `ease-in`, `ease-out` and
+    /// `ease-in-out`, read onto them as the type's table says. Anything else,
+    /// `step-start` or a misspelling, is null rather than a default, so the
+    /// caller can name the text it refused rather than run a curve nobody chose.
     public static @Nullable Easing parse(String name) {
         for (var candidate : values()) {
             if (candidate.cssName().equalsIgnoreCase(name)) {
                 return candidate;
             }
         }
-        return null;
+        var lower = name.toLowerCase(Locale.ROOT);
+        var mapped = CSS_KEYWORDS.get(lower);
+        if (mapped != null && MAPPED.add(lower)) {
+            LOG.info(
+                    "easing \"{}\" is read as {}: the design system has three curves, ease-enter, ease-exit and linear",
+                    lower,
+                    mapped.cssName());
+        }
+        return mapped;
     }
+
+    /// Whether `name` is one of CSS's own easing keywords rather than one of the
+    /// three system names.
+    public static boolean isCssKeyword(String name) {
+        return CSS_KEYWORDS.containsKey(name.toLowerCase(Locale.ROOT));
+    }
+
+    /// CSS's four keywords and the system curve each is read as. See the type's
+    /// table for the reasons.
+    private static final Map<String, Easing> CSS_KEYWORDS = Map.of(
+            "ease", EASE_ENTER,
+            "ease-out", EASE_ENTER,
+            "ease-in", EASE_EXIT,
+            "ease-in-out", EASE_ENTER);
+
+    /// The CSS keywords already reported, so a mapping is one line in a log
+    /// rather than one per element per restyle.
+    private static final Set<String> MAPPED = ConcurrentHashMap.newKeySet();
+
+    private static final Logger LOG = Logs.of(Easing.class);
 
     /// The eased progress for a linear progress `t`, both in `0..1`.
     ///

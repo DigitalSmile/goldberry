@@ -94,6 +94,18 @@ text.name { white-space: nowrap; text-overflow: ellipsis }
 ([ADR-0255](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0255-a-label-that-does-not-fit-is-cut-not-wrapped.md)).
 `text-align` places the lines inside the box.
 
+A log line keeps its spacing and cuts a word too long for the box:
+
+```css
+text.log { white-space: pre-wrap; overflow-wrap: anywhere }
+```
+
+The paragraph never collapses spaces, so `pre-wrap` and `pre-line` wrap as
+`normal` does and `pre` stays on one line as `nowrap` does. A word wider than
+the whole line overflows unless `overflow-wrap: anywhere` cuts it between
+grapheme clusters; `word-break: break-all` cuts any word at the edge
+([ADR-0530](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0530-five-white-space-keywords-are-two-behaviours-and-a-long-word-may-be-cut.md)).
+
 Static text cannot be selected or copied. A `text-input` with
 `read-only=#true` shows text a user can select, in
 [Fields and forms](forms.md#text-input).

@@ -27,9 +27,35 @@ private final Stylesheet styles =
 ```
 
 `Stylesheet.resource` reads a file beside the class and parses it at start-up.
-A broken stylesheet is a `CssSyntaxException` with a position, because a
+A malformed stylesheet is a `CssSyntaxException` with a position, because a
 window that opens unthemed and says nothing is worse than one that refuses to
 open. `Stylesheet.parse(layer, text)` does the same for a string.
+
+### Strict and lenient sheets
+
+A sheet that asks for something the subset has not got is a different case
+from a malformed one, and what happens depends on whose sheet it is.
+
+| Sheet | Parsed | A selector, pseudo-class or at-rule outside the subset |
+|---|---|---|
+| the toolkit's own (`controls.css`, the themes, the content sheets) | strict | refuses the sheet with a `CssSyntaxException` |
+| an application's (`Stylesheet.resource` or `Stylesheet.parse` in any other layer) | lenient | drops **that rule**, with one warning naming the selector, the sheet and the line |
+
+```text
+WARN  app.css, line 42: dropping "lane::before": pseudo-elements (::before, ::after) are not in this subset
+```
+
+A lenient sheet keeps what it dropped in `Stylesheet.dropped()`, and
+`StyleLint` reports each one as a `DROPPED_RULE` finding. A property the
+engine has not got at all, such as `letter-spacing`, is warned about once per
+property per sheet when the sheet is read, with the first line it appears on.
+A malformed sheet (an unclosed block, a declaration with no value) is refused
+in both modes, which is what lets [hot reload](markup.md#hot-reload) keep the
+last good sheet while you type. The mode can be chosen explicitly with
+`Stylesheet.parse(layer, text, ParseMode.STRICT)`
+([ADR-0529](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0529-an-applications-stylesheet-is-lenient-and-loud.md)).
+Run with `-Dgoldberry.css.lint=true` while developing and the launcher lints
+your sheets each time it reads them ([Logging](logging.md#properties-an-application-can-set)).
 
 ## The cascade: four layers
 
@@ -64,10 +90,13 @@ panel text                { }       /* descendant */
 row > button              { }       /* child */
 checkbox:hover check-indicator { }  /* a part, under a state */
 :root                     { --gb-accent: #b48ead }
+list-row:nth-child(even)  { }       /* where it sits among its siblings */
+.steps > :last-child      { }
 ```
 
-The pseudo-classes are a closed set. A typo such as `:hovered` is a stylesheet
-error rather than a rule that never matches.
+The pseudo-classes are a closed set. A typo such as `:hovered` is refused in
+a strict sheet and dropped with a warning in a lenient one, rather than being
+a rule that never matches.
 
 | Pseudo-class | True when | Set by |
 |---|---|---|
@@ -82,15 +111,34 @@ error rather than a rule that never matches.
 | `:affixed` | an `affix` has pinned itself | the widget |
 | `:root` | the root element, where a theme hangs its properties | structure |
 
+The structural pseudo-classes say where a node sits among its parent's
+children:
+
+| Pseudo-class | True when |
+|---|---|
+| `:first-child`, `:last-child` | it is the first, or the last, of its parent's children |
+| `:only-child` | it is its parent's only child |
+| `:nth-child(An+B)` | it is at position An+B, counting from 1; `odd` and `even` work |
+| `:nth-last-child(An+B)` | the same, counting from the last child |
+
+The siblings are the children of the node's parent element, which is also
+what `>` reads. A composition widget is an element with one child, like an
+unstyled `<div>` around one node, so a card a stateless wrapper builds is the
+only child of that wrapper. When a parent's children are added, removed or
+reordered, only the children whose structural answer changed are restyled,
+and a sheet with no structural pseudo-class restyles nothing
+([ADR-0528](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0528-a-node-knows-its-place-among-its-siblings.md)).
+
 `:hover` and `:active` reach the whole ancestor chain, which is what lets
 `checkbox:active check-indicator` light the glyph when the label is pressed.
 The router refuses to set `:hover` or `:active` on a disabled widget, which
 is how a disabled control stays dull without `:not(:disabled):hover`.
 
-Not in the subset: `:not()`, `:focus-within`, attribute selectors, sibling
-combinators, and `::` pseudo-elements. A part is selected by its type name
-instead. A widget that wants to react to focus inside its subtree implements
-`Handles.onFocusWithin` rather than matching a selector.
+Not in the subset: `:not()`, `:has()`, `:focus-within`, attribute selectors,
+sibling combinators, and `::before` and `::after`. A part is selected by its
+type name instead, and generated content is a widget. A widget that wants to
+react to focus inside its subtree implements `Handles.onFocusWithin` rather
+than matching a selector.
 
 ### Parts
 
@@ -113,9 +161,9 @@ chapter lists its own under *Styling*.
 
 ## Properties
 
-The subset is closed. A property the engine does not know is logged at debug
-and ignored. A known property with a value it cannot read is dropped with a
-warning that quotes the text.
+The subset is closed. A property the engine does not know is ignored, and the
+sheet naming it warns once per property when it is read. A known property
+with a value it cannot read is dropped with a warning that quotes the text.
 
 ### Box and layout
 
@@ -125,22 +173,25 @@ warning that quotes the text.
   flex-wrap: wrap;
   justify-content: flex-start;
   align-items: center;
-  gap: 8px;
+  gap: 8px;                 /* or gap: 4px 8px, row then column */
   padding: 8px 12px;
   margin: 0 auto;
   width: 100%;
   min-height: 32px;
   overflow: hidden;
 }
-.toolbar > button { flex-grow: 1; flex-shrink: 0; flex-basis: 120px; align-self: flex-end }
+.toolbar > button { flex: 1 0 120px; align-self: flex-end }
 .badge { position: absolute; top: 4px; left: 4px }
 ```
 
-`flex-direction`, `flex-wrap`, `flex-grow`, `flex-shrink`, `flex-basis`,
-`justify-content`, `align-items`, `align-self`, `align-content`, `gap`,
+`flex-direction`, `flex-wrap`, `flex`, `flex-grow`, `flex-shrink`,
+`flex-basis`, `justify-content`, `align-items`, `align-self`,
+`align-content`, `gap`, `row-gap`, `column-gap`,
 `padding` and its four sides, `margin` and its four sides, `width`, `height`,
 `min-width`, `max-width`, `min-height`, `max-height`, `position`, `inset`,
 `top`, `right`, `bottom`, `left`, `overflow`. These compile to Yoga.
+`flex` expands as CSS says: `flex: 1` is `1 1 0%`, `flex: auto` is
+`1 1 auto`, `flex: none` is `0 0 auto`, and `flex: 120px` is `1 1 120px`.
 `margin: auto` centres on the main axis
 ([ADR-0311](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0311-margin-is-room-outside-and-auto-is-the-half-that-mattered.md)).
 Lengths are `px`, `%`, `em` and `rem`. There is no `calc()` and no
@@ -152,9 +203,18 @@ Lengths are `px`, `%`, `em` and `rem`. There is no `calc()` and no
 .cell    { white-space: nowrap; text-overflow: ellipsis; overflow: hidden }
 .readout { text-align: end }
 link     { text-decoration: underline }
+.log     { white-space: pre-wrap; overflow-wrap: anywhere }
 ```
 
-`white-space: normal | nowrap`, `text-overflow: clip | ellipsis`,
+`white-space: normal | nowrap | pre | pre-wrap | pre-line`. A paragraph
+never collapses spaces or newlines, so the five keywords are two behaviours:
+`pre-wrap` and `pre-line` wrap as `normal` does, and `pre` stays on one line
+as `nowrap` does. `pre-line` keeps runs of spaces CSS would fold into one.
+`overflow-wrap: normal | anywhere | break-word` cuts a word wider than the
+whole line between grapheme clusters; `word-break: normal | break-all` may cut
+any word at the edge of the line. Both inherit
+([ADR-0530](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0530-five-white-space-keywords-are-two-behaviours-and-a-long-word-may-be-cut.md)).
+`text-overflow: clip | ellipsis`,
 `text-align: start | center | end`, and `text-decoration` or
 `text-decoration-line: none | underline | line-through`. `left` and `right`
 are refused for `text-align`, and so is `justify`
@@ -250,8 +310,19 @@ because animating a width would run layout on every frame
 
 The timing that applies is the one on the style being moved **to**, so the
 two `button` rules above make a press snap and a release fade. Easing is one
-of three keywords: `ease-enter`, `ease-exit` and `linear`. `ease-in-out` is
-dropped with its text quoted. Colours interpolate in OKLCH. Animated values
+of three curves: `ease-enter`, `ease-exit` and `linear`. CSS's own keywords
+are read onto them, with one info line naming each mapping:
+
+| Written | Runs as |
+|---|---|
+| `ease`, `ease-out`, `ease-in-out` | `ease-enter` |
+| `ease-in` | `ease-exit` |
+
+A timing function outside that list (`cubic-bezier(…)`, `steps(…)`,
+`step-start`) in `transition` or `animation` drops itself with a warning
+naming it, and the rest of the declaration runs on the default `ease-enter`
+([ADR-0527](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0527-css-easing-keywords-run-on-the-system-curves.md)).
+Colours interpolate in OKLCH. Animated values
 live in an overlay applied at paint and are never written back into the
 computed style, so a transition retargeted halfway starts from where it is.
 `transition` does not inherit.
@@ -264,8 +335,34 @@ motion every transition collapses to zero and keyframe animations do not run.
 The desktop's setting is read at start-up, and
 `-Dgoldberry.motion.reduced=reduce` or `=full` overrides it.
 
-`@media` is parsed and not evaluated. A theme is chosen by swapping a
-stylesheet, not by a query.
+A theme is still chosen by swapping a stylesheet; `@media` below is for a
+sheet that adjusts itself to the window or the desktop.
+
+### Media queries
+
+```css
+@media (max-width: 900px) { .sidebar { width: 200px } }
+@media (prefers-color-scheme: dark) { :root { --brand: #88c0d0 } }
+@media (prefers-reduced-motion: reduce) { .pulse { animation: none } }
+@media screen and (min-width: 600px) and (max-width: 1200px) { }
+```
+
+| Feature | Asked of |
+|---|---|
+| `width`, `height`, as `min-`/`max-` or a range like `(width >= 600px)` | the window's logical size, in `px`, `em` or `rem` (16px) |
+| `orientation: portrait \| landscape` | the same |
+| `prefers-color-scheme: light \| dark` | the desktop's theme, light where it does not say |
+| `prefers-reduced-motion: reduce \| no-preference` | the renderer's reduced-motion switch |
+
+They combine with `and`, `or`, `not`, `only` and comma lists, and nest. The
+media types `all` and `screen` hold and `print` does not. A query naming
+anything else never holds and warns once; in a strict sheet it is refused.
+`@keyframes` inside `@media` is not in the subset.
+
+The cascade re-runs when an answer changes: on a resize that crosses a
+breakpoint, when the desktop's theme changes, and when reduced motion is
+switched. A resize that crosses none keeps every resolved style
+([ADR-0526](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0526-a-media-query-is-asked-of-the-window.md)).
 
 ### Cursor
 
@@ -299,8 +396,9 @@ comes through a `--gb-*` token, so an application rule that redefines one on
 
 ## Inheritance
 
-`color`, the font properties, `line-height`, `white-space`, `text-align` and
-`text-decoration` pass down the element tree. The layout properties,
+`color`, the font properties, `line-height`, `white-space`, `text-align`,
+`text-decoration`, `overflow-wrap` and `word-break` pass down the element
+tree. The layout properties,
 `background`, `opacity`, `transform`, `transition` and the border do not
 ([ADR-0066](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0066-a-weight-is-a-face-and-color-inherits.md)).
 

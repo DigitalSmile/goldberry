@@ -11,6 +11,7 @@ import java.util.stream.Stream;
 import dev.goldberry.css.Stylesheet;
 import dev.goldberry.css.Theme;
 import dev.goldberry.css.cascade.CascadeLayer;
+import dev.goldberry.css.parse.ParseMode;
 
 /// The stylesheets that give every widget in this module its default look, in
 /// the order the cascade wants them.
@@ -38,7 +39,7 @@ public final class Controls {
     /// its own, which is what lets switching a theme restyle a button that never
     /// mentions one.
     public static Stylesheet baseStylesheet() {
-        return Stylesheet.parse(CascadeLayer.TOOLKIT_BASE, baseSource());
+        return Stylesheet.parse(CascadeLayer.TOOLKIT_BASE, baseSource(), ParseMode.STRICT, "controls.css");
     }
 
     /// The base stylesheet's text, as it ships.

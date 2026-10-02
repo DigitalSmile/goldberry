@@ -68,7 +68,10 @@ public record Box(
         // `auto` included, so an `auto` edge absorbs the free space on that side.
         Insets margin,
         Insets padding,
-        Length gap,
+        // `row-gap` and `column-gap`: Yoga's two gutters. Equal unless a rule
+        // set them apart, and `gap(Length)` writes both.
+        Length rowGap,
+        Length columnGap,
         double flexGrow,
         double flexShrink,
         // Where the main axis starts from, before grow and shrink argue about
@@ -336,7 +339,7 @@ public record Box(
     public static final int TRANSPARENT = 0x00000000;
 
     /// Written out so that the parameters taking null for a default can say so.
-    public Box(int background, Decoration decoration, double opacity, Transform transform, Cursor cursor, FlexDirection direction, Justify justifyContent, Align alignItems, Align alignSelf, Align alignContent, Wrap wrap, Length width, Length height, Limits limits, Insets margin, Insets padding, Length gap, double flexGrow, double flexShrink, Length flexBasis, Position position, Insets inset, boolean elevated, Overflow overflow, @Nullable Text text, @Nullable Glyph icon, @Nullable Mark mark, @Nullable Painter painting, @Nullable List<Box> children, @Nullable Object owner) {
+    public Box(int background, Decoration decoration, double opacity, Transform transform, Cursor cursor, FlexDirection direction, Justify justifyContent, Align alignItems, Align alignSelf, Align alignContent, Wrap wrap, Length width, Length height, Limits limits, Insets margin, Insets padding, Length rowGap, Length columnGap, double flexGrow, double flexShrink, Length flexBasis, Position position, Insets inset, boolean elevated, Overflow overflow, @Nullable Text text, @Nullable Glyph icon, @Nullable Mark mark, @Nullable Painter painting, @Nullable List<Box> children, @Nullable Object owner) {
         Objects.requireNonNull(decoration, "decoration");
         Objects.requireNonNull(transform, "transform");
         Objects.requireNonNull(cursor, "cursor");
@@ -347,7 +350,8 @@ public record Box(
         Objects.requireNonNull(height, "height");
         Objects.requireNonNull(margin, "margin");
         Objects.requireNonNull(padding, "padding");
-        Objects.requireNonNull(gap, "gap");
+        Objects.requireNonNull(rowGap, "rowGap");
+        Objects.requireNonNull(columnGap, "columnGap");
         if (!Double.isFinite(flexGrow) || flexGrow < 0) {
             throw new IllegalArgumentException("flex-grow must be a non-negative number");
         }
@@ -400,7 +404,8 @@ public record Box(
         this.limits = limits;
         this.margin = margin;
         this.padding = padding;
-        this.gap = gap;
+        this.rowGap = rowGap;
+        this.columnGap = columnGap;
         this.flexGrow = flexGrow;
         this.flexShrink = flexShrink;
         this.flexBasis = flexBasis;
@@ -441,6 +446,8 @@ public record Box(
                 // CSS's initial value for each.
                 Insets.ZERO,
                 Insets.ZERO,
+                // No gap in either direction.
+                Length.points(0),
                 Length.points(0),
                 0,
                 // CSS's default, and Yoga's under `useWebDefaults` — so a box
@@ -489,7 +496,7 @@ public record Box(
     /// together — a box drawn on top must also be clicked first.
     public Box elevated(boolean value) {
         return new Box(background, decoration, opacity, transform, cursor, direction, justifyContent, alignItems,
-                alignSelf, alignContent, wrap, width, height, limits, margin, padding, gap, flexGrow, flexShrink, flexBasis, position, inset, value,
+                alignSelf, alignContent, wrap, width, height, limits, margin, padding, rowGap, columnGap, flexGrow, flexShrink, flexBasis, position, inset, value,
                 overflow, text, icon, mark, painting, children, owner);
     }
 
@@ -519,7 +526,7 @@ public record Box(
 
     public Box text(Text value) {
         return new Box(background, decoration, opacity, transform, cursor, direction, justifyContent, alignItems,
-                alignSelf, alignContent, wrap, width, height, limits, margin, padding, gap, flexGrow, flexShrink, flexBasis, position, inset,
+                alignSelf, alignContent, wrap, width, height, limits, margin, padding, rowGap, columnGap, flexGrow, flexShrink, flexBasis, position, inset,
                 elevated, overflow, value, icon, mark, painting, children, owner);
     }
 
@@ -537,7 +544,7 @@ public record Box(
 
     public Box icon(Glyph value) {
         return new Box(background, decoration, opacity, transform, cursor, direction, justifyContent, alignItems,
-                alignSelf, alignContent, wrap, width, height, limits, margin, padding, gap, flexGrow, flexShrink, flexBasis, position, inset,
+                alignSelf, alignContent, wrap, width, height, limits, margin, padding, rowGap, columnGap, flexGrow, flexShrink, flexBasis, position, inset,
                 elevated, overflow, text, value, mark, painting, children, owner);
     }
 
@@ -548,7 +555,7 @@ public record Box(
     /// context however it likes. Null takes the painter off.
     public Box painting(@Nullable Painter value) {
         return new Box(background, decoration, opacity, transform, cursor, direction, justifyContent, alignItems,
-                alignSelf, alignContent, wrap, width, height, limits, margin, padding, gap, flexGrow, flexShrink, flexBasis, position, inset,
+                alignSelf, alignContent, wrap, width, height, limits, margin, padding, rowGap, columnGap, flexGrow, flexShrink, flexBasis, position, inset,
                 elevated, overflow, text, icon, mark, value, children, owner);
     }
 
@@ -560,7 +567,7 @@ public record Box(
     /// override it.
     public Box mark(Mark value) {
         return new Box(background, decoration, opacity, transform, cursor, direction, justifyContent, alignItems,
-                alignSelf, alignContent, wrap, width, height, limits, margin, padding, gap, flexGrow, flexShrink, flexBasis, position, inset,
+                alignSelf, alignContent, wrap, width, height, limits, margin, padding, rowGap, columnGap, flexGrow, flexShrink, flexBasis, position, inset,
                 elevated, overflow, text, icon, value, painting, children, owner);
     }
 
@@ -577,14 +584,14 @@ public record Box(
     /// what is on screen, and the box tree is what is on screen.
     public Box cursor(Cursor value) {
         return new Box(background, decoration, opacity, transform, Objects.requireNonNull(value, "cursor"),
-                direction, justifyContent, alignItems, alignSelf, alignContent, wrap, width, height, limits, margin, padding, gap,
+                direction, justifyContent, alignItems, alignSelf, alignContent, wrap, width, height, limits, margin, padding, rowGap, columnGap,
                 flexGrow, flexShrink, flexBasis, position, inset, elevated, overflow, text, icon, mark, painting, children,
                 owner);
     }
 
     public Box background(int argb) {
         return new Box(argb, decoration, opacity, transform, cursor, direction, justifyContent, alignItems,
-                alignSelf, alignContent, wrap, width, height, limits, margin, padding, gap, flexGrow, flexShrink, flexBasis, position, inset,
+                alignSelf, alignContent, wrap, width, height, limits, margin, padding, rowGap, columnGap, flexGrow, flexShrink, flexBasis, position, inset,
                 elevated, overflow, text, icon, mark, painting, children, owner);
     }
 
@@ -595,7 +602,7 @@ public record Box(
     /// its effect is, because it applies to the rendered subtree.
     public Box opacity(double value) {
         return new Box(background, decoration, value, transform, cursor, direction, justifyContent, alignItems,
-                alignSelf, alignContent, wrap, width, height, limits, margin, padding, gap, flexGrow, flexShrink, flexBasis, position, inset,
+                alignSelf, alignContent, wrap, width, height, limits, margin, padding, rowGap, columnGap, flexGrow, flexShrink, flexBasis, position, inset,
                 elevated, overflow, text, icon, mark, painting, children, owner);
     }
 
@@ -613,7 +620,7 @@ public record Box(
     /// and `transition: transform` is not.
     public Box transform(Transform value) {
         return new Box(background, decoration, opacity, Objects.requireNonNull(value, "transform"), cursor,
-                direction, justifyContent, alignItems, alignSelf, alignContent, wrap, width, height, limits, margin, padding, gap,
+                direction, justifyContent, alignItems, alignSelf, alignContent, wrap, width, height, limits, margin, padding, rowGap, columnGap,
                 flexGrow, flexShrink, flexBasis, position, inset, elevated, overflow, text, icon, mark, painting, children,
                 owner);
     }
@@ -621,26 +628,26 @@ public record Box(
     /// The radius, border and focus ring drawn around this box.
     public Box decoration(Decoration value) {
         return new Box(background, Objects.requireNonNull(value, "decoration"), opacity, transform, cursor,
-                direction, justifyContent, alignItems, alignSelf, alignContent, wrap, width, height, limits, margin, padding, gap,
+                direction, justifyContent, alignItems, alignSelf, alignContent, wrap, width, height, limits, margin, padding, rowGap, columnGap,
                 flexGrow, flexShrink, flexBasis, position, inset, elevated, overflow, text, icon, mark, painting, children,
                 owner);
     }
 
     public Box direction(FlexDirection value) {
         return new Box(background, decoration, opacity, transform, cursor, value, justifyContent, alignItems,
-                alignSelf, alignContent, wrap, width, height, limits, margin, padding, gap, flexGrow, flexShrink, flexBasis, position, inset,
+                alignSelf, alignContent, wrap, width, height, limits, margin, padding, rowGap, columnGap, flexGrow, flexShrink, flexBasis, position, inset,
                 elevated, overflow, text, icon, mark, painting, children, owner);
     }
 
     public Box justifyContent(Justify value) {
         return new Box(background, decoration, opacity, transform, cursor, direction, value, alignItems, alignSelf, alignContent,
-                wrap, width, height, limits, margin, padding, gap, flexGrow, flexShrink, flexBasis, position, inset, elevated, overflow,
+                wrap, width, height, limits, margin, padding, rowGap, columnGap, flexGrow, flexShrink, flexBasis, position, inset, elevated, overflow,
                 text, icon, mark, painting, children, owner);
     }
 
     public Box alignItems(Align value) {
         return new Box(background, decoration, opacity, transform, cursor, direction, justifyContent, value,
-                alignSelf, alignContent, wrap, width, height, limits, margin, padding, gap, flexGrow, flexShrink, flexBasis, position, inset,
+                alignSelf, alignContent, wrap, width, height, limits, margin, padding, rowGap, columnGap, flexGrow, flexShrink, flexBasis, position, inset,
                 elevated, overflow, text, icon, mark, painting, children, owner);
     }
 
@@ -651,7 +658,7 @@ public record Box(
     /// the only value that reads differently here than it would on a parent.
     public Box alignSelf(Align value) {
         return new Box(background, decoration, opacity, transform, cursor, direction, justifyContent, alignItems,
-                value, alignContent, wrap, width, height, limits, margin, padding, gap, flexGrow, flexShrink, flexBasis, position, inset, elevated,
+                value, alignContent, wrap, width, height, limits, margin, padding, rowGap, columnGap, flexGrow, flexShrink, flexBasis, position, inset, elevated,
                 overflow, text, icon, mark, painting, children, owner);
     }
 
@@ -662,13 +669,13 @@ public record Box(
     /// is what a flex item does when there is nowhere else to go.
     public Box wrap(Wrap value) {
         return new Box(background, decoration, opacity, transform, cursor, direction, justifyContent, alignItems,
-                alignSelf, alignContent, Objects.requireNonNull(value, "wrap"), width, height, limits, margin, padding, gap, flexGrow,
+                alignSelf, alignContent, Objects.requireNonNull(value, "wrap"), width, height, limits, margin, padding, rowGap, columnGap, flexGrow,
                 flexShrink, flexBasis, position, inset, elevated, overflow, text, icon, mark, painting, children, owner);
     }
 
     public Box size(Length w, Length h) {
         return new Box(background, decoration, opacity, transform, cursor, direction, justifyContent, alignItems,
-                alignSelf, alignContent, wrap, w, h, limits, margin, padding, gap, flexGrow, flexShrink, flexBasis, position, inset, elevated,
+                alignSelf, alignContent, wrap, w, h, limits, margin, padding, rowGap, columnGap, flexGrow, flexShrink, flexBasis, position, inset, elevated,
                 overflow, text, icon, mark, painting, children, owner);
     }
 
@@ -686,13 +693,13 @@ public record Box(
     /// `max-width` in CSS and arrives here through [#style(ComputedStyle)].
     public Box limits(Limits value) {
         return new Box(background, decoration, opacity, transform, cursor, direction, justifyContent, alignItems,
-                alignSelf, alignContent, wrap, width, height, value, margin, padding, gap, flexGrow, flexShrink, flexBasis, position, inset, elevated,
+                alignSelf, alignContent, wrap, width, height, value, margin, padding, rowGap, columnGap, flexGrow, flexShrink, flexBasis, position, inset, elevated,
                 overflow, text, icon, mark, painting, children, owner);
     }
 
     public Box padding(Insets value) {
         return new Box(background, decoration, opacity, transform, cursor, direction, justifyContent, alignItems,
-                alignSelf, alignContent, wrap, width, height, limits, margin, value, gap, flexGrow, flexShrink, flexBasis, position, inset, elevated,
+                alignSelf, alignContent, wrap, width, height, limits, margin, value, rowGap, columnGap, flexGrow, flexShrink, flexBasis, position, inset, elevated,
                 overflow, text, icon, mark, painting, children, owner);
     }
 
@@ -704,7 +711,7 @@ public record Box(
     /// and `inset` do not, which is why they refuse `auto` at the cascade.
     public Box margin(Insets value) {
         return new Box(background, decoration, opacity, transform, cursor, direction, justifyContent, alignItems,
-                alignSelf, alignContent, wrap, width, height, limits, Objects.requireNonNull(value, "margin"), padding, gap,
+                alignSelf, alignContent, wrap, width, height, limits, Objects.requireNonNull(value, "margin"), padding, rowGap, columnGap,
                 flexGrow, flexShrink, flexBasis, position, inset, elevated,
                 overflow, text, icon, mark, painting, children, owner);
     }
@@ -724,7 +731,7 @@ public record Box(
     /// its siblings and move without disturbing them.
     public Box position(Position value) {
         return new Box(background, decoration, opacity, transform, cursor, direction, justifyContent, alignItems,
-                alignSelf, alignContent, wrap, width, height, limits, margin, padding, gap, flexGrow, flexShrink, flexBasis,
+                alignSelf, alignContent, wrap, width, height, limits, margin, padding, rowGap, columnGap, flexGrow, flexShrink, flexBasis,
                 Objects.requireNonNull(value, "position"), inset, elevated, overflow, text, icon, mark, painting,
                 children, owner);
     }
@@ -738,21 +745,42 @@ public record Box(
     /// parent's alignment, and one with all four is stretched to fill.
     public Box inset(Insets value) {
         return new Box(background, decoration, opacity, transform, cursor, direction, justifyContent, alignItems,
-                alignSelf, alignContent, wrap, width, height, limits, margin, padding, gap, flexGrow, flexShrink, flexBasis, position,
+                alignSelf, alignContent, wrap, width, height, limits, margin, padding, rowGap, columnGap, flexGrow, flexShrink, flexBasis, position,
                 Objects.requireNonNull(value, "inset"), elevated, overflow, text, icon, mark, painting, children,
                 owner);
     }
 
+    /// The gap, for a box whose two gaps agree. Where they differ this is the
+    /// **row** gap; Yoga is handed [#rowGap()] and [#columnGap()].
+    public Length gap() {
+        return rowGap;
+    }
+
+    /// Both gutters at once.
     public Box gap(Length value) {
         return new Box(background, decoration, opacity, transform, cursor, direction, justifyContent, alignItems,
-                alignSelf, alignContent, wrap, width, height, limits, margin, padding, value, flexGrow, flexShrink, flexBasis, position, inset,
+                alignSelf, alignContent, wrap, width, height, limits, margin, padding, value, value, flexGrow, flexShrink, flexBasis, position, inset,
+                elevated, overflow, text, icon, mark, painting, children, owner);
+    }
+
+    /// The space between lines, or between items in a column.
+    public Box rowGap(Length value) {
+        return new Box(background, decoration, opacity, transform, cursor, direction, justifyContent, alignItems,
+                alignSelf, alignContent, wrap, width, height, limits, margin, padding, value, columnGap, flexGrow, flexShrink, flexBasis, position, inset,
+                elevated, overflow, text, icon, mark, painting, children, owner);
+    }
+
+    /// The space between items in a row, or between columns.
+    public Box columnGap(Length value) {
+        return new Box(background, decoration, opacity, transform, cursor, direction, justifyContent, alignItems,
+                alignSelf, alignContent, wrap, width, height, limits, margin, padding, rowGap, value, flexGrow, flexShrink, flexBasis, position, inset,
                 elevated, overflow, text, icon, mark, painting, children, owner);
     }
 
     /// Share of the free space this box takes along its parent's main axis.
     public Box grow(double value) {
         return new Box(background, decoration, opacity, transform, cursor, direction, justifyContent, alignItems,
-                alignSelf, alignContent, wrap, width, height, limits, margin, padding, gap, value, flexShrink, flexBasis, position, inset, elevated,
+                alignSelf, alignContent, wrap, width, height, limits, margin, padding, rowGap, columnGap, value, flexShrink, flexBasis, position, inset, elevated,
                 overflow, text, icon, mark, painting, children, owner);
     }
 
@@ -765,7 +793,7 @@ public record Box(
     /// them rather than sharing what their content left over.
     public Box basis(Length value) {
         return new Box(background, decoration, opacity, transform, cursor, direction, justifyContent, alignItems,
-                alignSelf, alignContent, wrap, width, height, limits, margin, padding, gap, flexGrow, flexShrink,
+                alignSelf, alignContent, wrap, width, height, limits, margin, padding, rowGap, columnGap, flexGrow, flexShrink,
                 Objects.requireNonNull(value, "flex-basis"), position, inset, elevated,
                 overflow, text, icon, mark, painting, children, owner);
     }
@@ -775,7 +803,7 @@ public record Box(
     public Box alignContent(Align value) {
         return new Box(background, decoration, opacity, transform, cursor, direction, justifyContent, alignItems,
                 alignSelf, Objects.requireNonNull(value, "align-content"), wrap, width, height, limits, margin, padding,
-                gap, flexGrow, flexShrink, flexBasis, position, inset, elevated,
+                rowGap, columnGap, flexGrow, flexShrink, flexBasis, position, inset, elevated,
                 overflow, text, icon, mark, painting, children, owner);
     }
 
@@ -788,7 +816,7 @@ public record Box(
     /// Every one of those would otherwise be squashed by a narrow window.
     public Box shrink(double value) {
         return new Box(background, decoration, opacity, transform, cursor, direction, justifyContent, alignItems,
-                alignSelf, alignContent, wrap, width, height, limits, margin, padding, gap, flexGrow, value, flexBasis, position, inset, elevated,
+                alignSelf, alignContent, wrap, width, height, limits, margin, padding, rowGap, columnGap, flexGrow, value, flexBasis, position, inset, elevated,
                 overflow, text, icon, mark, painting, children, owner);
     }
 
@@ -798,13 +826,13 @@ public record Box(
     /// at it.
     public Box owner(Object value) {
         return new Box(background, decoration, opacity, transform, cursor, direction, justifyContent, alignItems,
-                alignSelf, alignContent, wrap, width, height, limits, margin, padding, gap, flexGrow, flexShrink, flexBasis, position, inset,
+                alignSelf, alignContent, wrap, width, height, limits, margin, padding, rowGap, columnGap, flexGrow, flexShrink, flexBasis, position, inset,
                 elevated, overflow, text, icon, mark, painting, children, value);
     }
 
     public Box children(Box... value) {
         return new Box(background, decoration, opacity, transform, cursor, direction, justifyContent, alignItems,
-                alignSelf, alignContent, wrap, width, height, limits, margin, padding, gap, flexGrow, flexShrink, flexBasis, position, inset,
+                alignSelf, alignContent, wrap, width, height, limits, margin, padding, rowGap, columnGap, flexGrow, flexShrink, flexBasis, position, inset,
                 elevated, overflow, text, icon, mark, painting, List.of(value), owner);
     }
 
@@ -844,7 +872,7 @@ public record Box(
                 // this field stays what the style asked for.
                 transform,
                 cursor, direction, justifyContent, alignItems, alignSelf, alignContent, wrap, width, height, limits, margin,
-                padding, gap, flexGrow, flexShrink, flexBasis, position, inset, elevated, overflow,
+                padding, rowGap, columnGap, flexGrow, flexShrink, flexBasis, position, inset, elevated, overflow,
                 text == null ? null : new Text(text.paragraph(), CssColor.fade(text.argb(), alpha), text.flow()),
                 icon == null ? null : new Glyph(icon.icon(), CssColor.fade(icon.argb(), alpha)),
                 mark == null ? null : mark.fade(alpha),
@@ -867,7 +895,7 @@ public record Box(
     /// sight is not merely invisible — it is not clickable either.
     public Box overflow(Overflow value) {
         return new Box(background, decoration, opacity, transform, cursor, direction, justifyContent, alignItems,
-                alignSelf, alignContent, wrap, width, height, limits, margin, padding, gap, flexGrow, flexShrink, flexBasis, position, inset,
+                alignSelf, alignContent, wrap, width, height, limits, margin, padding, rowGap, columnGap, flexGrow, flexShrink, flexBasis, position, inset,
                 elevated, Objects.requireNonNull(value, "overflow"), text, icon, mark, painting, children, owner);
     }
 
@@ -907,7 +935,8 @@ public record Box(
                 style.limits(),
                 style.margin(),
                 style.padding(),
-                style.gap(),
+                style.rowGap(),
+                style.columnGap(),
                 style.flexGrow(),
                 style.flexShrink(),
                 style.flexBasis(),

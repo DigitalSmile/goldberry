@@ -251,14 +251,15 @@ class CssParserTest {
         }
 
         @Test
-        @DisplayName("@media keeps the rules inside it")
+        @DisplayName("@media keeps the rules inside it, each carrying the block's condition")
         void mediaBlock() {
-            // Nothing evaluates the condition yet. Dropping the block would make
-            // a dark-mode stylesheet vanish silently, which is harder to
-            // diagnose than one that applies too eagerly.
-            var rules = CssParser.parse("@media (prefers-color-scheme: dark) { a { color: red } }");
-            assertEquals(1, rules.size());
-            assertEquals("a", rules.getFirst().selectors().getFirst().key().type());
+            var rules = CssParser.parse("a { color: blue } @media (prefers-color-scheme: dark) { a { color: red } }");
+            assertEquals(2, rules.size());
+            assertFalse(rules.getFirst().isConditional(), "a rule outside any block always applies");
+            var inside = rules.get(1);
+            assertEquals("a", inside.selectors().getFirst().key().type());
+            assertTrue(inside.isConditional());
+            assertEquals("(prefers-color-scheme: dark)", inside.media().toString());
         }
 
         @Test

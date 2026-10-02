@@ -93,7 +93,7 @@ Lucide, 24×24 grid, 2px stroke. Display sizes **16 / 20 / 24**, tinted by `colo
 | `--gb-motion-base`    | 160ms | component transitions: popover, tooltip, tabs, toggle |
 | `--gb-motion-overlay` | 240ms | overlays: dialog, toast, programmatic scroll |
 
-**Easing keywords** (the CSS subset accepts these, not raw beziers): `ease-enter` = `cubic-bezier(0.2, 0, 0, 1)` (decelerate), `ease-exit` = `cubic-bezier(0.4, 0, 1, 1)` (accelerate), `linear` (continuous indicators only). No bounce or overshoot in system components.
+**Easing keywords** (the CSS subset accepts these, not raw beziers): `ease-enter` = `cubic-bezier(0.2, 0, 0, 1)` (decelerate), `ease-exit` = `cubic-bezier(0.4, 0, 1, 1)` (accelerate), `linear` (continuous indicators only). No bounce or overshoot in system components. CSS's own keywords are read onto these curves rather than refused: `ease`, `ease-out` and `ease-in-out` run as `ease-enter`, `ease-in` as `ease-exit` (ADR-0527). A `cubic-bezier()` or `steps()` in a shorthand drops itself with a warning and the declaration runs on `ease-enter`.
 
 **How it works** (mechanics; details in ARCHITECTURE §5):
 

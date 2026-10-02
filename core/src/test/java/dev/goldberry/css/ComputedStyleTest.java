@@ -32,11 +32,13 @@ import dev.goldberry.layout.Insets;
 import dev.goldberry.layout.Justify;
 import dev.goldberry.layout.Length;
 import dev.goldberry.motion.Easing;
+import dev.goldberry.text.flow.OverflowWrap;
 import dev.goldberry.text.flow.TextAlign;
 import dev.goldberry.text.flow.TextDecoration;
 import dev.goldberry.text.flow.TextFlow;
 import dev.goldberry.text.flow.TextOverflow;
 import dev.goldberry.text.flow.WhiteSpace;
+import dev.goldberry.text.flow.WordBreak;
 
 class ComputedStyleTest {
 
@@ -535,7 +537,12 @@ class ComputedStyleTest {
                     arguments("a corner shorthand with one bad part", "border-radius: 7px nonsense", corners()),
                     arguments("five corners", "border-radius: 1px 2px 3px 4px 5px", corners()),
                     arguments("a limit that is not a length", "max-width: banana", limits()),
-                    arguments("a white-space keyword the subset has not got", "white-space: pre-wrap", whiteSpace()),
+                    arguments(
+                            "a white-space keyword the subset has not got", "white-space: break-spaces", whiteSpace()),
+                    arguments("a gap with three lengths", "gap: 1px 2px 3px", rowGap()),
+                    arguments("a gap of auto, which Yoga has no call for", "gap: auto", rowGap()),
+                    arguments("a flex shorthand with a negative factor", "flex: -1", flexGrow()),
+                    arguments("a flex shorthand with two bases", "flex: 1 10px 20px", flexBasis()),
                     arguments("a text-overflow keyword the subset has not got", "text-overflow: fade", textOverflow()));
         }
 
@@ -545,6 +552,14 @@ class ComputedStyleTest {
 
         private static Function<ComputedStyle, Object> flexGrow() {
             return ComputedStyle::flexGrow;
+        }
+
+        private static Function<ComputedStyle, Object> rowGap() {
+            return ComputedStyle::rowGap;
+        }
+
+        private static Function<ComputedStyle, Object> flexBasis() {
+            return ComputedStyle::flexBasis;
         }
 
         private static Function<ComputedStyle, Object> padding() {
@@ -935,11 +950,40 @@ class ComputedStyleTest {
         }
 
         @Test
-        @DisplayName("a curve CSS has and this system does not is refused")
-        void unknownEasing() {
-            assertTrue(compute("button { transition: color 100ms ease-in-out }")
+        @DisplayName("CSS's own ease keywords are read onto the system curves")
+        void cssEasingKeywords() {
+            for (var keyword : List.of("ease", "ease-out", "ease-in-out")) {
+                assertEquals(
+                        Easing.EASE_ENTER,
+                        compute("button { transition: color 100ms " + keyword + " }")
+                                .transitions()
+                                .get(Transitions.Animatable.COLOR)
+                                .easing(),
+                        keyword);
+            }
+            assertEquals(
+                    Easing.EASE_EXIT,
+                    compute("button { transition: color 100ms ease-in }")
+                            .transitions()
+                            .get(Transitions.Animatable.COLOR)
+                            .easing());
+        }
+
+        @Test
+        @DisplayName("a curve outside the subset drops itself and keeps the transition on the default curve")
+        void foreignEasingDropsOnlyItself() {
+            var timing = compute("button { transition: color 100ms cubic-bezier(0.4, 0, 0.2, 1) 20ms }")
                     .transitions()
-                    .isEmpty());
+                    .get(Transitions.Animatable.COLOR);
+            assertEquals(Easing.EASE_ENTER, timing.easing());
+            assertEquals(100, timing.durationMillis());
+            assertEquals(20, timing.delayMillis());
+            assertEquals(
+                    Easing.EASE_ENTER,
+                    compute("button { transition: color 100ms steps(4) }")
+                            .transitions()
+                            .get(Transitions.Animatable.COLOR)
+                            .easing());
         }
 
         @Test
@@ -1223,6 +1267,42 @@ class ComputedStyleTest {
             var child = computeChild("window { white-space: nowrap } button { white-space: normal }");
 
             assertEquals(WhiteSpace.NORMAL, child.whiteSpace());
+        }
+
+        @ParameterizedTest(name = "white-space: {0}")
+        @CsvSource({"normal, NORMAL", "pre-wrap, NORMAL", "pre-line, NORMAL", "nowrap, NOWRAP", "pre, NOWRAP"})
+        @DisplayName("CSS's five white-space keywords land on the two behaviours a paragraph has")
+        void preKeywordsAreAliases(String keyword, WhiteSpace expected) {
+            assertEquals(
+                    expected,
+                    compute("button { white-space: nowrap; white-space: " + keyword + " }")
+                            .whiteSpace());
+        }
+
+        @Test
+        @DisplayName("overflow-wrap and word-break are read, and inherit as CSS says")
+        void wordBreaking() {
+            var style = compute("button { overflow-wrap: anywhere; word-break: break-all }");
+            assertEquals(OverflowWrap.ANYWHERE, style.overflowWrap());
+            assertEquals(WordBreak.BREAK_ALL, style.wordBreak());
+            assertEquals(OverflowWrap.ANYWHERE, style.textFlow().overflowWrap());
+            assertEquals(WordBreak.BREAK_ALL, style.textFlow().wordBreak());
+
+            assertEquals(
+                    OverflowWrap.ANYWHERE,
+                    compute("button { overflow-wrap: break-word }").overflowWrap(),
+                    "break-word is anywhere here");
+            assertEquals(
+                    OverflowWrap.ANYWHERE,
+                    compute("button { word-wrap: break-word }").overflowWrap(),
+                    "and word-wrap is its old name");
+
+            var child = computeChild("window { overflow-wrap: anywhere; word-break: break-all }");
+            assertEquals(OverflowWrap.ANYWHERE, child.overflowWrap());
+            assertEquals(WordBreak.BREAK_ALL, child.wordBreak());
+            assertFalse(
+                    ComputedStyle.INITIAL.inheritsSameAs(ComputedStyle.INITIAL.overflowWrap(OverflowWrap.ANYWHERE)));
+            assertFalse(ComputedStyle.INITIAL.inheritsSameAs(ComputedStyle.INITIAL.wordBreak(WordBreak.BREAK_ALL)));
         }
 
         /// `inheritsSameAs` is the style cache's key, and the note on it says a

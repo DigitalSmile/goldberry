@@ -372,7 +372,7 @@ picture {
 /* **Rules between the cells**, one side of each: a row draws the line
    above it and a cell the line before it, so every pair of neighbours shares exactly
    one. The first row and the leftmost cell of each row draw none -- `first` is the
-   builder's, because the subset has no `:first-child`, and the cell's was put there
+   builder's, set before the subset had `:first-child`, and the cell's was put there
    for this rule before the rule could be written -- since the table's own border is
    already there, and a square line at a rounded corner would show outside the curve.
    A border takes no room here, so the 1px sits over the cell's padding and no word

@@ -18,10 +18,13 @@ import dev.goldberry.css.Keyframes;
 import dev.goldberry.css.StyleElement;
 import dev.goldberry.css.StyleRule;
 import dev.goldberry.css.Stylesheet;
+import dev.goldberry.css.media.MediaCondition;
+import dev.goldberry.css.media.MediaContext;
 import dev.goldberry.css.parse.Token;
 import dev.goldberry.css.parse.TokenType;
 import dev.goldberry.css.select.Selector;
 import dev.goldberry.css.select.SelectorMatcher;
+import dev.goldberry.css.select.Structural;
 import dev.goldberry.log.Logs;
 
 /// Runs the cascade for one element and substitutes `var()`.
@@ -45,6 +48,13 @@ import dev.goldberry.log.Logs;
 /// cached against the map its parent handed down, so a tree resolves each level
 /// once. A `var()` that resolves to nothing drops its declaration, and is
 /// reported once per property and element type rather than once per frame.
+///
+/// A rule inside `@media` applies only while its condition holds under this
+/// resolver's [MediaContext]. A resolver is immutable, so [#under] answers a
+/// new context with a new resolver sharing every index with this one, and only
+/// when some condition in the sheets answers differently: every style cached
+/// against the old resolver then misses at once, exactly as a theme swap does,
+/// and a resize that crosses no breakpoint keeps every cache.
 ///
 /// Read more: [Styling](https://goldberry.dev/docs/guide/styling.html#the-cascade-four-layers).
 public final class StyleResolver {
@@ -152,8 +162,29 @@ public final class StyleResolver {
     /// CSS's rule. Keyframes do not merge.
     private final java.util.Map<String, Keyframes> keyframes = new java.util.HashMap<>();
 
+    /// The window and desktop facts the `@media` conditions are asked about.
+    private final MediaContext media;
+
+    /// Every distinct `@media` condition in the sheets, in the order first met,
+    /// for [#under] to ask all of them about a new context.
+    private final List<MediaCondition> conditions;
+
+    /// Every distinct structural pseudo-class in the sheets — `:first-child`,
+    /// `:nth-child(2n)` — for [#positionMatters].
+    private final List<Structural> structural;
+
+    /// The types a structural pseudo-class sits on in an **ancestor** position
+    /// — `list-row` for `list-row:first-child text` — for
+    /// [#positionReachesDescendants].
+    private final Set<String> structuralAncestorTypes;
+
+    /// Whether a structural pseudo-class sits on an untyped compound in an
+    /// ancestor position, which reaches below every element.
+    private final boolean untypedStructuralAncestor;
+
     public StyleResolver(List<Stylesheet> stylesheets) {
         this.stylesheets = List.copyOf(Objects.requireNonNull(stylesheets, "stylesheets"));
+        this.media = MediaContext.UNKNOWN;
         indexAncestorStates();
         indexByType();
         for (var sheet : this.stylesheets) {
@@ -161,6 +192,110 @@ public final class StyleResolver {
                 keyframes.put(block.name(), block);
             }
         }
+        var distinct = new java.util.LinkedHashSet<MediaCondition>();
+        var positions = new java.util.LinkedHashSet<Structural>();
+        var ancestorTypes = new HashSet<String>();
+        var untypedAncestor = false;
+        for (var sheet : this.stylesheets) {
+            for (var rule : sheet.rules()) {
+                if (rule.isConditional()) {
+                    distinct.add(rule.media());
+                }
+                for (var selector : rule.selectors()) {
+                    var parts = selector.parts();
+                    for (var i = 0; i < parts.size(); i++) {
+                        var compound = parts.get(i).compound();
+                        positions.addAll(compound.structural());
+                        if (i > 0 && !compound.structural().isEmpty()) {
+                            if (compound.type() == null) {
+                                untypedAncestor = true;
+                            } else {
+                                ancestorTypes.add(compound.type());
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        this.conditions = List.copyOf(distinct);
+        this.structural = List.copyOf(positions);
+        this.structuralAncestorTypes = Set.copyOf(ancestorTypes);
+        this.untypedStructuralAncestor = untypedAncestor;
+    }
+
+    /// `base` under another media context: every index shared, one field new.
+    private StyleResolver(StyleResolver base, MediaContext media) {
+        this.stylesheets = base.stylesheets;
+        this.media = media;
+        this.reported.addAll(base.reported);
+        this.ancestorStates.putAll(base.ancestorStates);
+        this.untypedAncestorStates.addAll(base.untypedAncestorStates);
+        this.byType.putAll(base.byType);
+        this.untyped.addAll(base.untyped);
+        this.startingByType.putAll(base.startingByType);
+        this.startingUntyped.addAll(base.startingUntyped);
+        this.keyframes.putAll(base.keyframes);
+        this.conditions = base.conditions;
+        this.structural = base.structural;
+        this.structuralAncestorTypes = base.structuralAncestorTypes;
+        this.untypedStructuralAncestor = base.untypedStructuralAncestor;
+    }
+
+    /// This resolver, as it would cascade under `context`.
+    ///
+    /// **This very instance** when no `@media` condition in the sheets answers
+    /// differently under `context` than under the context this one has — which
+    /// is every call for sheets with no `@media` at all, and every frame of a
+    /// resize that crosses no breakpoint. Identity is what the element tree's
+    /// style cache is keyed on, so returning `this` is what keeps it warm.
+    ///
+    /// Otherwise a new resolver sharing every index with this one. Every cached
+    /// style misses against it at once, which is the whole invalidation: the
+    /// same route a theme swap takes.
+    public StyleResolver under(MediaContext context) {
+        Objects.requireNonNull(context, "context");
+        if (context.equals(media)) {
+            return this;
+        }
+        for (var condition : conditions) {
+            if (condition.matches(context) != condition.matches(media)) {
+                return new StyleResolver(this, context);
+            }
+        }
+        return this;
+    }
+
+    /// The context this resolver's `@media` conditions are answered under.
+    public MediaContext media() {
+        return media;
+    }
+
+    /// Whether moving an element from `oldIndex` of `oldCount` siblings to
+    /// `index` of `count` changes what any structural pseudo-class in the sheets
+    /// says about it.
+    ///
+    /// The question the element tree asks when it reconciles a parent's
+    /// children: a list that grew by one at the end moves nobody's index, and
+    /// under sheets that only say `:first-child` it invalidates nothing. With no
+    /// structural pseudo-class anywhere, which is the toolkit's own sheets, the
+    /// answer is always no and costs one empty loop.
+    public boolean positionMatters(int oldIndex, int oldCount, int index, int count) {
+        for (var position : structural) {
+            if (position.matches(oldIndex, oldCount) != position.matches(index, count)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /// Whether a change in position on an element of `type` can change what
+    /// matches **below** it — `list-row:first-child text` says yes for a
+    /// `list-row`. [#reachesDescendants]'s question for structure.
+    public boolean positionReachesDescendants(@Nullable String type) {
+        if (untypedStructuralAncestor) {
+            return true;
+        }
+        return type != null && structuralAncestorTypes.contains(type);
     }
 
     /// Buckets every rule by the type its rightmost compound names.
@@ -314,7 +449,8 @@ public final class StyleResolver {
         var starting = candidatesFor(element.type(), startingByType, startingUntyped);
         var matched = false;
         for (var candidate : starting) {
-            if (matchesAny(candidate.rule(), element)) {
+            var rule = candidate.rule();
+            if ((!rule.isConditional() || rule.media().matches(media)) && matchesAny(rule, element)) {
                 matched = true;
                 break;
             }
@@ -506,6 +642,9 @@ public final class StyleResolver {
         // decides the winner.
         for (var candidate : candidates) {
             var rule = candidate.rule();
+            if (rule.isConditional() && !rule.media().matches(media)) {
+                continue;
+            }
             // The most specific *matching* selector in the list is the one
             // that represents the rule, per the cascade.
             var best = -1;

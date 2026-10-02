@@ -52,6 +52,13 @@ public final class Element implements BuildContext, StyleElement {
 
     private boolean needsBuild = true;
     private boolean mounted = true;
+
+    /// Where this element sits among its parent's children, which is what
+    /// `:first-child` and `:nth-child` read. Set by the parent each time it
+    /// reconciles its children; a root is the first of one.
+    private int indexInParent;
+
+    private int siblingCount = 1;
     private final Set<Selector.PseudoClass> states = new LinkedHashSet<>();
 
     /// Live for as long as this element describes a widget with a [Widget#binding].
@@ -493,6 +500,46 @@ public final class Element implements BuildContext, StyleElement {
         needsBuild = false;
         var described = describe();
         children = reconcile(children, described);
+        position(children);
+    }
+
+    /// Tells each child where it now sits, and throws away the styles of the
+    /// children whose structural pseudo-classes now say something different.
+    ///
+    /// **Only those.** A child whose index and sibling count are unchanged is
+    /// untouched, and so is one whose position moved in a way no rule in the
+    /// sheets can see: under sheets with no `:first-child` or `:nth-child`,
+    /// which is the toolkit's own, nothing here invalidates anything, and a list
+    /// that grows at the end under `:first-child` rules invalidates nobody. The
+    /// resolver answers both questions from an index built once per sheet set.
+    ///
+    /// A child's subtree goes with it only when some rule reads a position in
+    /// an ancestor compound, `:first-child text` say, by
+    /// [StyleResolver#positionReachesDescendants]. With no resolver yet, before
+    /// the first frame, every moved child is invalidated whole, which is free:
+    /// nothing has been styled.
+    private void position(List<Element> next) {
+        var count = next.size();
+        var resolver = tree.styleResolver();
+        for (var i = 0; i < count; i++) {
+            var child = next.get(i);
+            var oldIndex = child.indexInParent;
+            var oldCount = child.siblingCount;
+            if (oldIndex == i && oldCount == count) {
+                continue;
+            }
+            child.indexInParent = i;
+            child.siblingCount = count;
+            if (resolver == null) {
+                child.invalidateStyle();
+            } else if (resolver.positionMatters(oldIndex, oldCount, i, count)) {
+                if (resolver.positionReachesDescendants(child.type())) {
+                    child.invalidateStyle();
+                } else {
+                    child.invalidateOwnStyle();
+                }
+            }
+        }
     }
 
     /// What this element's widget says its children should be.
@@ -757,6 +804,18 @@ public final class Element implements BuildContext, StyleElement {
     @Override
     public boolean hasState(Selector.PseudoClass state) {
         return states.contains(state);
+    }
+
+    /// This element's index among its parent's children — every child, the
+    /// composition ones included, which is what the child combinator sees too.
+    @Override
+    public int indexInParent() {
+        return indexInParent;
+    }
+
+    @Override
+    public int siblingCount() {
+        return siblingCount;
     }
 
     /// Sets or clears a pseudo-class on this element.

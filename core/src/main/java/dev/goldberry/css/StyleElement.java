@@ -16,10 +16,13 @@ import dev.goldberry.css.select.Selector;
 /// can ask, so that matching and the cascade depend on nothing else about the
 /// tree.
 ///
-/// It is also the reason the selector subset stops where it does. There is no
-/// `nextSibling()` here and no `indexInParent()`, so `+`, `~` and `:nth-child`
-/// cannot be expressed, which is the point: every one of them forces the matcher
-/// to know about ordering, and ordering is what makes invalidation expensive.
+/// It is also the reason the selector subset stops where it does. An element
+/// says where it sits among its siblings, [#indexInParent()] of
+/// [#siblingCount()], which is what `:first-child` and `:nth-child` read; it
+/// does not hand out its siblings, so `+`, `~` and `:has()` cannot be expressed.
+/// A position is a number the tree already knows when it reconciles a list of
+/// children, and the tree invalidates the children whose position changed. A
+/// sibling's content is not.
 ///
 /// Read more: [Styling](https://goldberry.dev/docs/guide/styling.html#selectors).
 public interface StyleElement {
@@ -80,6 +83,20 @@ public interface StyleElement {
             StyleResolver resolver,
             java.util.Map<String, java.util.List<Token>> inherited,
             java.util.Map<String, java.util.List<Token>> resolved) {}
+
+    /// This element's position among its parent's children, from 0.
+    ///
+    /// The default answers as if the element were alone, which is right for a
+    /// root and for a test's hand-written element that never asks.
+    default int indexInParent() {
+        return 0;
+    }
+
+    /// How many children this element's parent has, this one included: 1 for a
+    /// root.
+    default int siblingCount() {
+        return 1;
+    }
 
     /// Whether a state pseudo-class currently holds.
     ///

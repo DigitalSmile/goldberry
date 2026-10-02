@@ -9,6 +9,7 @@ import java.util.Optional;
 
 import dev.goldberry.css.Stylesheet;
 import dev.goldberry.css.cascade.CascadeLayer;
+import dev.goldberry.css.parse.ParseMode;
 
 /// How tall a control is: the density preference, applied to the whole
 /// application.
@@ -58,7 +59,7 @@ public enum Density {
     /// that parses, sorts and cascades every frame in order to do nothing.
     public List<Stylesheet> stylesheets() {
         return resourceName()
-                .map(resource -> List.of(Stylesheet.parse(CascadeLayer.THEME, source())))
+                .map(resource -> List.of(Stylesheet.parse(CascadeLayer.THEME, source(), ParseMode.STRICT, resource)))
                 .orElseGet(List::of);
     }
 

@@ -13,6 +13,7 @@ import org.slf4j.LoggerFactory;
 import dev.goldberry.bind.Property;
 import dev.goldberry.bind.Subscription;
 import dev.goldberry.bind.runtime.Models;
+import dev.goldberry.css.lint.StyleLint;
 import dev.goldberry.drive.FrameBudgetException;
 import dev.goldberry.drive.ResizeWalk;
 import dev.goldberry.frame.FrameSequence;
@@ -644,8 +645,13 @@ final class Launcher implements Host {
                     // starts where it said. Empty is "animate", because a default
                     // is not an instruction — and an application that disagrees
                     // calls `reducedMotion` on its own renderer afterwards.
-                    .reducedMotion(window.reducedMotion().orElse(false));
+                    .reducedMotion(window.reducedMotion().orElse(false))
+                    // What `@media (prefers-color-scheme: …)` is asked about.
+                    // Light where the desktop does not say, which is CSS's
+                    // reading of "no preference".
+                    .colorScheme(window.systemTheme().orElse(SystemTheme.LIGHT));
             stylesDirty = false;
+            StyleLint.reportIfAsked(application.stylesheets());
         }
         return renderer;
     }
@@ -1440,6 +1446,13 @@ final class Launcher implements Host {
     /// one — a screen that appears because the theme changed — must not be a
     /// `ConcurrentModificationException`.
     private void notifySystemTheme(SystemTheme theme) {
+        // The cascade first: a sheet with `@media (prefers-color-scheme: dark)`
+        // follows the desktop without the application doing anything. A
+        // renderer built later asks the window itself.
+        if (renderer != null) {
+            renderer.colorScheme(theme);
+            window.repaint();
+        }
         for (var listener : List.copyOf(systemThemeListeners)) {
             listener.accept(theme);
         }

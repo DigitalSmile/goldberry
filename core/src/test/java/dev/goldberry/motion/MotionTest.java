@@ -111,15 +111,24 @@ class MotionTest {
         }
 
         @Test
-        @DisplayName("the three keywords parse and nothing else does")
+        @DisplayName("the three keywords parse, CSS's four are read onto them, and nothing else does")
         void parsing() {
             assertEquals(Easing.EASE_ENTER, Easing.parse("ease-enter"));
+            assertEquals(Easing.EASE_EXIT, Easing.parse("ease-exit"));
             assertEquals(Easing.LINEAR, Easing.parse("linear"));
 
-            // CSS has `ease-in-out`; this system does not. A stylesheet naming
-            // it is a dropped declaration rather than a curve nobody chose.
-            assertEquals(null, Easing.parse("ease-in-out"));
+            // CSS's keywords keep a browser stylesheet's motion: the
+            // decelerating three are an arrival, `ease-in` is a departure.
+            assertEquals(Easing.EASE_ENTER, Easing.parse("ease"));
+            assertEquals(Easing.EASE_ENTER, Easing.parse("ease-out"));
+            assertEquals(Easing.EASE_ENTER, Easing.parse("ease-in-out"));
+            assertEquals(Easing.EASE_EXIT, Easing.parse("EASE-IN"));
+            assertTrue(Easing.isCssKeyword("ease-in-out"));
+            assertFalse(Easing.isCssKeyword("ease-enter"));
+
+            // Anything else is still nobody's curve.
             assertEquals(null, Easing.parse("cubic-bezier"));
+            assertEquals(null, Easing.parse("step-end"));
         }
     }
 

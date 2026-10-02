@@ -1,10 +1,15 @@
 package dev.goldberry.text.flow;
 
+import java.util.Locale;
+
+import org.jspecify.annotations.Nullable;
+
 /// Whether a paragraph may break a line the author did not: CSS's
-/// `white-space`, cut down to the two values a label needs.
+/// `white-space`, cut down to the two behaviours a paragraph has.
 ///
 /// ```css
 /// text.name { white-space: nowrap }
+/// .log      { white-space: pre-wrap }
 /// ```
 ///
 /// The whole of the difference is what a paragraph's measure function answers
@@ -15,9 +20,10 @@ package dev.goldberry.text.flow;
 /// CSS also has `pre`, `pre-wrap` and `pre-line`, and all three are statements
 /// about collapsing: whether runs of spaces and newlines in the source survive
 /// into the drawing. Goldberry never collapses anything, because a paragraph
-/// draws the string it was handed, so `pre-wrap` is what [#NORMAL] already does
-/// and `pre` is what [#NOWRAP] already does. Naming them would be four
-/// spellings of two behaviours.
+/// draws the string it was handed. So the stylesheet may write all five
+/// keywords and [#parse] reads them onto the two behaviours: `pre-wrap` and
+/// `pre-line` are [#NORMAL], and `pre` is [#NOWRAP]. `pre-line` keeps runs of
+/// spaces that CSS would fold into one; a log keeps its indentation either way.
 ///
 /// A hard newline still breaks under `nowrap`. CSS's `nowrap` collapses `\n`
 /// into a space; this does not. A paragraph keeps its explicit lines under
@@ -43,5 +49,17 @@ public enum WhiteSpace {
     /// Whether a line too long for its box may be broken.
     public boolean wraps() {
         return this == NORMAL;
+    }
+
+    /// The keyword, or null when `name` is not one of CSS's five.
+    ///
+    /// `normal`, `pre-wrap` and `pre-line` wrap; `nowrap` and `pre` do not. See
+    /// the type's documentation for why five spellings land on two values.
+    public static @Nullable WhiteSpace parse(String name) {
+        return switch (name.toLowerCase(Locale.ROOT)) {
+            case "normal", "pre-wrap", "pre-line" -> NORMAL;
+            case "nowrap", "pre" -> NOWRAP;
+            default -> null;
+        };
     }
 }

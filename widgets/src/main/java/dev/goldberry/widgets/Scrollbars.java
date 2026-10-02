@@ -8,6 +8,7 @@ import java.util.List;
 
 import dev.goldberry.css.Stylesheet;
 import dev.goldberry.css.cascade.CascadeLayer;
+import dev.goldberry.css.parse.ParseMode;
 
 /// Which scrollbars a window draws: an overlay thumb that fades, or a gutter
 /// that is always there. One of the accessibility switches.
@@ -39,7 +40,9 @@ public enum Scrollbars {
     /// The stylesheets that put this setting in force, to be added after the
     /// theme and the density. Empty for [#OVERLAY].
     public List<Stylesheet> stylesheets() {
-        return this == OVERLAY ? List.of() : List.of(Stylesheet.parse(CascadeLayer.THEME, source()));
+        return this == OVERLAY
+                ? List.of()
+                : List.of(Stylesheet.parse(CascadeLayer.THEME, source(), ParseMode.STRICT, ALWAYS_RESOURCE));
     }
 
     /// This setting's stylesheet text, as it ships — empty for [#OVERLAY].

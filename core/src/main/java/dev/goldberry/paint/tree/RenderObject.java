@@ -331,8 +331,13 @@ public final class RenderObject implements AutoCloseable {
             node.setPadding(Edge.BOTTOM, Yoga.length(padding.bottom()));
             node.setPadding(Edge.LEFT, Yoga.length(padding.left()));
         }
-        if (previous == null || !previous.gap().equals(box.gap())) {
-            node.setGap(Gutter.ALL, Yoga.length(box.gap()));
+        // Per gutter rather than `Gutter.ALL`, because `row-gap` and
+        // `column-gap` may differ; `gap: 8px` simply sets both the same.
+        if (previous == null || !previous.rowGap().equals(box.rowGap())) {
+            node.setGap(Gutter.ROW, Yoga.length(box.rowGap()));
+        }
+        if (previous == null || !previous.columnGap().equals(box.columnGap())) {
+            node.setGap(Gutter.COLUMN, Yoga.length(box.columnGap()));
         }
         if (previous == null || previous.flexGrow() != box.flexGrow()) {
             node.setFlexGrow((float) box.flexGrow());
@@ -685,7 +690,8 @@ public final class RenderObject implements AutoCloseable {
                 && a.height().equals(b.height())
                 && a.margin().equals(b.margin())
                 && a.padding().equals(b.padding())
-                && a.gap().equals(b.gap())
+                && a.rowGap().equals(b.rowGap())
+                && a.columnGap().equals(b.columnGap())
                 && a.flexGrow() == b.flexGrow()
                 && a.flexShrink() == b.flexShrink()
                 && a.flexBasis().equals(b.flexBasis())

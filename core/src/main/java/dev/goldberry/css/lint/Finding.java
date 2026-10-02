@@ -25,7 +25,8 @@ import org.jspecify.annotations.Nullable;
 /// @param property the property, or null for [Kind#UNTYPED_RULE], which is about
 ///                 the selector rather than about anything in the block
 /// @param value    the declaration's value as written, or null for the same
-///                 reason
+///                 reason; for [Kind#DROPPED_RULE], what the rule asked for
+///                 that the subset lacks
 /// @param line     the 1-based line the parser saw it at, or 0 when unknown
 /// @param column   the 1-based column, or 0 when unknown
 public record Finding(
@@ -78,7 +79,14 @@ public record Finding(
         /// any node that happens to be dark. The fix is `color: var(--gb-text)` on
         /// the root; see
         /// [Inheritance](https://goldberry.dev/docs/guide/styling.html#inheritance).
-        UNCOLOURED_ROOT;
+        UNCOLOURED_ROOT,
+
+        /// The rule asked for something outside the CSS subset — `::before`,
+        /// `[attr]`, `:has()`, `@supports` — and a lenient parse dropped it
+        /// whole, or an `@media` block asks about a feature the toolkit cannot
+        /// answer and will never apply. The parse warned once; this is the same
+        /// fact as a value.
+        DROPPED_RULE;
 
         /// Whether the rule does the wrong thing, as against merely costing more
         /// than it needs to.
@@ -120,6 +128,10 @@ public record Finding(
                         + " } — the engine applies nothing from this: either the property is not in the"
                         + " subset or the value is not one it takes";
             case UNTYPED_RULE -> prefix + selector + " — names no type, so every element has to consider it in full";
+            case DROPPED_RULE ->
+                prefix + selector + " — dropped when the sheet was read: " + value
+                        + ". The selectors and at-rules the subset has are listed under Selectors in the"
+                        + " styling guide.";
             case UNCOLOURED_ROOT ->
                 prefix + selector + " — nothing in force gives the root a color, so every primitive that"
                         + " inherits one draws in the initial black. A control sets its own and gets away"

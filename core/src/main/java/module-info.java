@@ -67,6 +67,11 @@ module dev.goldberry.core {
     exports dev.goldberry.css.cascade;
     exports dev.goldberry.css.value;
 
+    // `@media`: the condition a rule applies under and the window facts it is
+    // asked about. Exported because a rule carries one and a test or a tool
+    // reading a parsed sheet meets it.
+    exports dev.goldberry.css.media;
+
     // The design system's contrast floors, and the audit that measures a theme
     // against them. Exported for the same reason the cascade is: an application
     // may swap every alias token, and a theme it wrote is one nothing else can

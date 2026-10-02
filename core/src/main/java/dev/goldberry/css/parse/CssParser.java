@@ -4,11 +4,19 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
+import java.util.regex.Pattern;
+
+import org.jspecify.annotations.Nullable;
+import org.slf4j.Logger;
 
 import dev.goldberry.css.Declaration;
 import dev.goldberry.css.Keyframes;
 import dev.goldberry.css.StyleRule;
+import dev.goldberry.css.media.MediaCondition;
+import dev.goldberry.css.media.MediaQueries;
 import dev.goldberry.css.select.Selector;
+import dev.goldberry.css.select.Structural;
+import dev.goldberry.log.Logs;
 
 /// Turns [Token]s into [StyleRule]s.
 ///
@@ -16,120 +24,200 @@ import dev.goldberry.css.select.Selector;
 /// CssParser.Parsed parsed = CssParser.parseSheet(css);
 /// ```
 ///
-/// Parses the supported subset and refuses everything else, rather than
-/// following the CSS spec's rule of discarding what it does not understand.
-/// A browser must render a page written for browsers it has never heard of; a
-/// toolkit is reading a stylesheet its own application shipped, and a silently
-/// dropped rule there is a widget that is the wrong colour with nothing in the
-/// log — see [CssSyntaxException].
+/// Parses the supported subset, and does one of two things with what lies
+/// outside it, by [ParseMode]. [ParseMode#STRICT], the default here and what the
+/// toolkit's own sheets are read under, refuses the sheet with a
+/// [CssSyntaxException]: a rule in `controls.css` that silently matched nothing
+/// would be a control drawn wrong everywhere. [ParseMode#LENIENT], what an
+/// application's sheets are read under, drops the one rule that asked for it,
+/// warns once with the selector, the sheet and the line, and records a
+/// [DroppedRule]. A malformed sheet is refused in both.
 ///
-/// At-rules are recognised but not yet applied: `@media` is parsed for its block
-/// so the rules inside are not lost, and the condition is retained on the rules
-/// it produced. Evaluating those conditions needs a window to ask about width and
-/// colour scheme, which is the next piece.
-///
-/// Two at-rules **are** applied. `@starting-style` marks the rules inside it as the
-/// style an element transitions *from* on its first frame. `@keyframes` names a
-/// sequence `animation-name` can run.
+/// Three at-rules are read. `@media` gives every rule inside it the block's
+/// [MediaCondition], which the cascade evaluates against the window; a feature
+/// the toolkit cannot answer makes the block never apply, with a warning.
+/// `@starting-style` marks the rules inside it as the style an element
+/// transitions *from* on its first frame. `@keyframes` names a sequence
+/// `animation-name` can run.
 ///
 /// Read more: [Styling](https://goldberry.dev/docs/guide/styling.html#the-cascade-four-layers).
 public final class CssParser {
 
-    /// What a stylesheet's text parsed into: its rules, and its named keyframes.
+    private static final Logger LOG = Logs.of(CssParser.class);
+
+    /// What a stylesheet's text parsed into: its rules, its named keyframes, and
+    /// what a lenient parse left out.
     ///
-    /// @param rules     in source order, `@starting-style` rules among them
+    /// @param rules     in source order, `@starting-style` and `@media` rules
+    ///                  among them
     /// @param keyframes in source order; a later block with the same name wins,
     ///                  which is the cascade's business rather than the parser's
-    public record Parsed(List<StyleRule> rules, List<Keyframes> keyframes) {
+    /// @param dropped   the rules a [ParseMode#LENIENT] parse dropped, and the
+    ///                  `@media` blocks it will never apply; always empty under
+    ///                  [ParseMode#STRICT], which throws instead
+    public record Parsed(List<StyleRule> rules, List<Keyframes> keyframes, List<DroppedRule> dropped) {
 
         public Parsed {
             rules = List.copyOf(rules);
             keyframes = List.copyOf(keyframes);
+            dropped = List.copyOf(dropped);
+        }
+
+        /// A parse that dropped nothing.
+        public Parsed(List<StyleRule> rules, List<Keyframes> keyframes) {
+            this(rules, keyframes, List.of());
         }
     }
 
+    /// What a sheet is called in a warning when its caller gave it no name.
+    private static final String UNNAMED = "a stylesheet";
+
     private final List<Token> tokens;
+    private final ParseMode mode;
+    private final String origin;
     private int index;
     private int ruleOrder;
     private final List<Keyframes> keyframes = new ArrayList<>();
+    private final List<DroppedRule> dropped = new ArrayList<>();
 
-    private CssParser(List<Token> tokens) {
+    private CssParser(List<Token> tokens, ParseMode mode, String origin) {
         this.tokens = tokens;
+        this.mode = mode;
+        this.origin = origin;
     }
 
-    /// Parses a stylesheet's text.
+    /// Parses a stylesheet's text, strictly.
     ///
     /// @throws CssSyntaxException if anything in it is not in the supported subset
     public static List<StyleRule> parse(String css) {
         return parseSheet(css).rules();
     }
 
-    /// Parses a stylesheet's text into its rules **and** its keyframes.
+    /// Parses a stylesheet's text into its rules **and** its keyframes, strictly.
     ///
     /// @throws CssSyntaxException if anything in it is not in the supported subset
     public static Parsed parseSheet(String css) {
-        Objects.requireNonNull(css, "css");
-        var parser = new CssParser(CssTokenizer.tokenize(css));
-        var rules = parser.parseRules();
-        return new Parsed(rules, parser.keyframes);
+        return parseSheet(css, ParseMode.STRICT, UNNAMED);
     }
 
-    private List<StyleRule> parseRules() {
-        var rules = new ArrayList<StyleRule>();
-        skipWhitespace();
-        while (!peek().is(TokenType.EOF)) {
-            if (peek().is(TokenType.AT_KEYWORD)) {
-                rules.addAll(atRule());
-            } else {
-                rules.add(styleRule());
-            }
-            skipWhitespace();
-        }
-        return List.copyOf(rules);
-    }
-
-    /// `@media (...) { ... }`.
+    /// Parses a stylesheet's text under `mode`.
     ///
-    /// The condition is consumed and, for now, discarded: nothing evaluates it
-    /// yet. The rules inside are kept, which is deliberately the *permissive*
-    /// choice — a themed stylesheet whose dark-mode block silently vanished
-    /// would be far harder to diagnose than one that applies too eagerly, and
-    /// both are wrong only until the media evaluator lands.
-    private List<StyleRule> atRule() {
+    /// @param origin what the sheet is called in a warning: its resource name,
+    ///               usually
+    /// @throws CssSyntaxException if the text is malformed, or under
+    ///         [ParseMode#STRICT] if anything in it is not in the subset
+    public static Parsed parseSheet(String css, ParseMode mode, String origin) {
+        Objects.requireNonNull(css, "css");
+        Objects.requireNonNull(mode, "mode");
+        Objects.requireNonNull(origin, "origin");
+        var parser = new CssParser(CssTokenizer.tokenize(css), mode, origin);
+        var rules = new ArrayList<StyleRule>();
+        parser.rules(rules, MediaCondition.ALWAYS, false, false);
+        return new Parsed(rules, parser.keyframes, parser.dropped);
+    }
+
+    /// Rules up to the end of the sheet or, inside a block, up to its `}`, which
+    /// is left for the caller.
+    ///
+    /// The one place a lenient parse recovers. A rule that asks for something
+    /// outside the subset is re-read from its start and skipped whole, through
+    /// the end of its block; anything else that goes wrong is thrown, because a
+    /// sheet that is malformed cannot be skipped through reliably.
+    ///
+    /// @param media    the condition every rule here applies under
+    /// @param starting whether these are `@starting-style` rules
+    /// @param nested   whether this is a block's body, ended by `}`
+    private void rules(List<StyleRule> into, MediaCondition media, boolean starting, boolean nested) {
+        while (true) {
+            skipWhitespace();
+            var next = peek();
+            if (next.is(TokenType.EOF)) {
+                if (nested) {
+                    throw error(next, "unclosed block");
+                }
+                return;
+            }
+            if (nested && next.is(TokenType.CLOSE_BRACE)) {
+                return;
+            }
+            var start = index;
+            try {
+                if (next.is(TokenType.AT_KEYWORD)) {
+                    if (starting) {
+                        throw error(next, "@starting-style holds style rules and nothing else");
+                    }
+                    atRule(into, media);
+                } else {
+                    into.add(styleRule(media, starting));
+                }
+            } catch (CssSyntaxException e) {
+                if (mode == ParseMode.STRICT || !e.isUnsupportedFeature()) {
+                    throw e;
+                }
+                index = start;
+                var at = peek();
+                var text = skipRule();
+                drop(text, reason(e), at);
+            }
+        }
+    }
+
+    /// `@media`, `@starting-style` or `@keyframes`, under `media`.
+    private void atRule(List<StyleRule> into, MediaCondition media) {
         var at = advance();
-        if (at.text().equalsIgnoreCase("starting-style")) {
-            return startingStyle(at);
+        var name = at.text().toLowerCase(Locale.ROOT);
+        switch (name) {
+            case "starting-style" -> startingStyle(at, into, media);
+            case "keyframes" -> {
+                if (media != MediaCondition.ALWAYS) {
+                    throw unsupported(
+                            at, "@keyframes inside @media is not in this subset; declare it at the top level");
+                }
+                keyframes.add(keyframes(at));
+            }
+            case "media" -> media(at, into, media);
+            default ->
+                throw unsupported(
+                        at,
+                        "unsupported at-rule \"@" + at.text()
+                                + "\"; this subset has @media, @starting-style and @keyframes and nothing else");
         }
-        if (at.text().equalsIgnoreCase("keyframes")) {
-            keyframes.add(keyframes(at));
-            return List.of();
-        }
-        if (!at.text().equalsIgnoreCase("media")) {
-            throw error(
-                    at,
-                    "unsupported at-rule \"@" + at.text()
-                            + "\"; this subset has @media, @starting-style and @keyframes and nothing else");
-        }
-        // The prelude, up to the block.
+    }
+
+    /// `@media <queries> { rules }`.
+    ///
+    /// Every rule inside carries the block's condition, joined with the
+    /// enclosing block's when they nest, and the cascade decides per frame
+    /// whether it applies. A query naming a feature the toolkit cannot answer
+    /// never applies: refused under [ParseMode#STRICT], and under
+    /// [ParseMode#LENIENT] kept, never matched, and warned about once.
+    private void media(Token at, List<StyleRule> into, MediaCondition enclosing) {
+        var prelude = new ArrayList<Token>();
         while (!peek().is(TokenType.OPEN_BRACE)) {
-            if (peek().is(TokenType.EOF)) {
+            if (peek().is(TokenType.EOF) || peek().is(TokenType.SEMICOLON)) {
                 throw error(peek(), "@media has no block");
             }
-            advance();
+            prelude.add(advance());
+        }
+        var condition = MediaQueries.parse(prelude);
+        var reason = MediaCondition.unsupported(condition);
+        if (reason.isPresent()) {
+            if (mode == ParseMode.STRICT) {
+                throw unsupported(at, "@media " + condition + " cannot be evaluated: " + reason.get());
+            }
+            // A list keeps its readable queries, which is CSS's rule, so only a
+            // block whose every query is unreadable never applies at all.
+            var whole = condition instanceof MediaCondition.Unsupported;
+            drop(
+                    "@media " + condition,
+                    (whole ? "never applies: " : "a query in it never applies: ") + reason.get(),
+                    at);
         }
         advance(); // {
-
-        var inner = new ArrayList<StyleRule>();
-        skipWhitespace();
-        while (!peek().is(TokenType.CLOSE_BRACE)) {
-            if (peek().is(TokenType.EOF)) {
-                throw error(peek(), "unclosed @media block");
-            }
-            inner.add(styleRule());
-            skipWhitespace();
-        }
+        var combined =
+                enclosing != MediaCondition.ALWAYS ? new MediaCondition.And(List.of(enclosing, condition)) : condition;
+        rules(into, combined, false, true);
         advance(); // }
-        return inner;
     }
 
     /// `@starting-style { rules }` — the block form, which is the one CSS has
@@ -138,27 +226,70 @@ public final class CssParser {
     /// The rules inside are ordinary rules marked as starting styles. They keep
     /// their place in the source order, so a starting rule written after a normal
     /// one of equal specificity wins against it, as CSS says.
-    private List<StyleRule> startingStyle(Token at) {
+    private void startingStyle(Token at, List<StyleRule> into, MediaCondition media) {
         skipWhitespace();
         if (!peek().is(TokenType.OPEN_BRACE)) {
             throw error(at, "@starting-style takes a block and no prelude; found " + peek().describe());
         }
         advance(); // {
-        var inner = new ArrayList<StyleRule>();
-        skipWhitespace();
-        while (!peek().is(TokenType.CLOSE_BRACE)) {
-            if (peek().is(TokenType.EOF)) {
-                throw error(peek(), "unclosed @starting-style block");
-            }
-            if (peek().is(TokenType.AT_KEYWORD)) {
-                throw error(peek(), "@starting-style holds style rules and nothing else");
-            }
-            var rule = styleRule();
-            inner.add(new StyleRule(rule.selectors(), rule.declarations(), rule.order(), true));
-            skipWhitespace();
-        }
+        rules(into, media, true, true);
         advance(); // }
-        return inner;
+    }
+
+    /// Skips the rule starting at the current token, through the end of its
+    /// block or its `;`, and returns its prelude as written.
+    private String skipRule() {
+        var prelude = new StringBuilder();
+        var depth = 0;
+        while (true) {
+            var token = peek();
+            if (token.is(TokenType.EOF)) {
+                throw error(token, "unclosed rule");
+            }
+            if (depth == 0 && token.is(TokenType.SEMICOLON)) {
+                advance();
+                return squeeze(prelude);
+            }
+            if (depth == 0 && token.is(TokenType.OPEN_BRACE)) {
+                break;
+            }
+            if (token.is(TokenType.FUNCTION) || token.is(TokenType.OPEN_PAREN) || token.is(TokenType.OPEN_BRACKET)) {
+                depth++;
+            } else if (token.is(TokenType.CLOSE_PAREN) || token.is(TokenType.CLOSE_BRACKET)) {
+                depth--;
+            }
+            prelude.append(advance().cssText());
+        }
+        var braces = 0;
+        while (true) {
+            var token = advance();
+            if (token.is(TokenType.EOF)) {
+                throw error(token, "unclosed block");
+            }
+            if (token.is(TokenType.OPEN_BRACE)) {
+                braces++;
+            } else if (token.is(TokenType.CLOSE_BRACE) && --braces == 0) {
+                return squeeze(prelude);
+            }
+        }
+    }
+
+    private static String squeeze(CharSequence text) {
+        return text.toString().trim().replaceAll("\\s+", " ");
+    }
+
+    /// An error's message without the position [CssSyntaxException] appends,
+    /// which a dropped rule carries separately.
+    private static String reason(CssSyntaxException e) {
+        var message = Objects.requireNonNullElse(e.getMessage(), "outside the subset");
+        var position = message.lastIndexOf(" (line ");
+        return position < 0 ? message : message.substring(0, position);
+    }
+
+    /// Records a dropped rule and says so, once, at warn.
+    private void drop(String text, String reason, Token at) {
+        dropped.add(new DroppedRule(text, reason, at.line(), at.column()));
+        LOG.warn("{}, line {}: dropping \"{}\": {}", origin, at.line(), text, reason);
     }
 
     /// `@keyframes name { from { … } 50%, 75% { … } to { … } }`.
@@ -232,10 +363,10 @@ public final class CssParser {
         }
     }
 
-    private StyleRule styleRule() {
+    private StyleRule styleRule(MediaCondition media, boolean starting) {
         var selectors = selectorList();
         var declarations = declarationBlock();
-        return new StyleRule(selectors, declarations, ruleOrder++);
+        return new StyleRule(selectors, declarations, ruleOrder++, starting, media);
     }
 
     /// `.a, .b > c` — up to the `{`.
@@ -252,7 +383,22 @@ public final class CssParser {
             if (peek().is(TokenType.OPEN_BRACE)) {
                 return selectors;
             }
+            refuseOutsideTheSubset(peek());
             throw error(peek(), "expected \",\" or \"{\" after a selector, found " + peek().describe());
+        }
+    }
+
+    /// Throws the unsupported-feature error for a token that starts something
+    /// selectors have elsewhere and this subset has not: `[attr]`, `+`, `~`.
+    private void refuseOutsideTheSubset(Token token) {
+        if (token.is(TokenType.OPEN_BRACKET)) {
+            throw unsupported(token, "attribute selectors ([attr]) are not in this subset");
+        }
+        if (token.isDelim('+') || token.isDelim('~')) {
+            throw unsupported(token, "sibling combinators (+ and ~) are not in this subset");
+        }
+        if (token.isDelim('|')) {
+            throw unsupported(token, "namespaces are not in this subset");
         }
     }
 
@@ -283,6 +429,7 @@ public final class CssParser {
                 compounds.add(compound());
                 continue;
             }
+            refuseOutsideTheSubset(peek());
             break;
         }
 
@@ -317,8 +464,10 @@ public final class CssParser {
         String id = null;
         var classes = new ArrayList<String>();
         var pseudoClasses = new ArrayList<Selector.PseudoClass>();
+        var structural = new ArrayList<Structural>();
         var start = peek();
         var sawAnything = false;
+        refuseOutsideTheSubset(start);
 
         while (true) {
             var token = peek();
@@ -349,17 +498,28 @@ public final class CssParser {
             } else if (token.is(TokenType.COLON)) {
                 advance();
                 if (peek().is(TokenType.COLON)) {
-                    throw error(token, "pseudo-elements (::) are not in this subset");
+                    throw unsupported(token, "pseudo-elements (::before, ::after) are not in this subset");
+                }
+                if (peek().is(TokenType.FUNCTION)) {
+                    structural.add(functionalPseudoClass(advance()));
+                    sawAnything = true;
+                    continue;
                 }
                 if (!peek().is(TokenType.IDENT)) {
                     throw error(peek(), "expected a pseudo-class name after \":\", found " + peek().describe());
                 }
                 var name = advance();
+                var position = Structural.parse(name.text());
+                if (position != null) {
+                    structural.add(position);
+                    sawAnything = true;
+                    continue;
+                }
                 var pseudo = Selector.PseudoClass.parse(name.text());
                 if (pseudo == null) {
                     // Named rather than ignored: ":hovered" as a silently
                     // never-matching rule is a bad afternoon.
-                    throw error(
+                    throw unsupported(
                             name,
                             "unknown pseudo-class \":" + name.text() + "\"; supported: " + supportedPseudoClasses());
                 }
@@ -373,7 +533,74 @@ public final class CssParser {
         if (!sawAnything) {
             throw error(start, "expected a selector, found " + start.describe());
         }
-        return new Selector.Compound(type, id, classes, pseudoClasses);
+        return new Selector.Compound(type, id, classes, pseudoClasses, structural);
+    }
+
+    /// `:nth-child(…)` or `:nth-last-child(…)`, from the function token to its
+    /// `)`. Any other function, `:not()` or `:has()`, is outside the subset.
+    private Structural functionalPseudoClass(Token function) {
+        var name = function.text().toLowerCase(Locale.ROOT);
+        if (!name.equals("nth-child") && !name.equals("nth-last-child")) {
+            throw unsupported(
+                    function,
+                    "\":" + function.text() + "()\" is not in this subset; the functional pseudo-classes"
+                            + " are :nth-child() and :nth-last-child()");
+        }
+        var formula = new StringBuilder();
+        while (!peek().is(TokenType.CLOSE_PAREN)) {
+            if (peek().is(TokenType.EOF) || peek().is(TokenType.OPEN_BRACE)) {
+                throw error(peek(), "\":" + name + "(\" is not closed");
+            }
+            formula.append(advance().cssText());
+        }
+        advance(); // )
+        var position = nth(name.equals("nth-last-child"), formula.toString());
+        if (position == null) {
+            throw error(
+                    function,
+                    "\":" + name + "(" + formula.toString().trim() + ")\" is not odd, even, a number or An+B");
+        }
+        return position;
+    }
+
+    /// `An+B`, `An`, `n+B`, `-n+B` or `B`, with the spacing taken out. Group 1 is
+    /// the coefficient of `n` when there is an `n`, group 2 the offset after it,
+    /// and group 3 a lone number.
+    private static final Pattern FORMULA = Pattern.compile("^(?:([+-]?\\d*)n([+-]\\d+)?|([+-]?\\d+))$");
+
+    /// The position a formula names, or null when it is not one.
+    private static Structural.@Nullable Nth nth(boolean fromEnd, String formula) {
+        var text = formula.replaceAll("\\s+", "").toLowerCase(Locale.ROOT);
+        switch (text) {
+            case "odd" -> {
+                return new Structural.Nth(2, 1, fromEnd);
+            }
+            case "even" -> {
+                return new Structural.Nth(2, 0, fromEnd);
+            }
+            default -> {}
+        }
+        var matcher = FORMULA.matcher(text);
+        if (!matcher.matches()) {
+            return null;
+        }
+        try {
+            var lone = matcher.group(3);
+            if (lone != null) {
+                return new Structural.Nth(0, Integer.parseInt(lone), fromEnd);
+            }
+            var coefficient = Objects.requireNonNullElse(matcher.group(1), "");
+            var step =
+                    switch (coefficient) {
+                        case "", "+" -> 1;
+                        case "-" -> -1;
+                        default -> Integer.parseInt(coefficient);
+                    };
+            var offset = matcher.group(2);
+            return new Structural.Nth(step, offset == null ? 0 : Integer.parseInt(offset), fromEnd);
+        } catch (NumberFormatException e) {
+            return null;
+        }
     }
 
     private static String supportedPseudoClasses() {
@@ -381,6 +608,11 @@ public final class CssParser {
         for (var value : Selector.PseudoClass.values()) {
             names.add(":" + value.cssName());
         }
+        names.add(":first-child");
+        names.add(":last-child");
+        names.add(":only-child");
+        names.add(":nth-child()");
+        names.add(":nth-last-child()");
         return String.join(" ", names);
     }
 
@@ -508,5 +740,11 @@ public final class CssParser {
 
     private static CssSyntaxException error(Token at, String message) {
         return new CssSyntaxException(message, at.line(), at.column());
+    }
+
+    /// An error for something outside the subset rather than a mistake, which a
+    /// lenient parse drops the rule over instead of refusing the sheet.
+    private static CssSyntaxException unsupported(Token at, String message) {
+        return new CssSyntaxException(message, at.line(), at.column(), true);
     }
 }

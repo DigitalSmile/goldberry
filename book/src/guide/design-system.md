@@ -175,8 +175,11 @@ button:active { transition: background-color 0ms }
 | `--gb-motion-base` | 160 ms | component transitions: popover, tabs, toggle |
 | `--gb-motion-overlay` | 240 ms | overlays: dialog, toast |
 
-Three easing keywords: `ease-enter` decelerates, `ease-exit` accelerates,
-`linear` is for continuous indicators. The rules are: input feedback is
+Three easing curves: `ease-enter` decelerates, `ease-exit` accelerates,
+`linear` is for continuous indicators. CSS's `ease`, `ease-out` and
+`ease-in-out` run as `ease-enter` and `ease-in` as `ease-exit`, so a
+stylesheet written for a browser keeps its motion on the system's curves
+([Transition and animation](styling.md#transition-and-animation)). The rules are: input feedback is
 instant and only its release fades; exits are faster than enters; the focus
 ring is never delayed; nothing loops except a spinner, an indeterminate
 progress and a skeleton; and under reduced motion every transition is zero

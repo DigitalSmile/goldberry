@@ -8,6 +8,7 @@ import java.util.Locale;
 
 import dev.goldberry.css.cascade.CascadeLayer;
 import dev.goldberry.css.parse.CssSyntaxException;
+import dev.goldberry.css.parse.ParseMode;
 
 /// The two themes that ship with the toolkit, Nord light and Nord dark.
 ///
@@ -44,7 +45,9 @@ public enum Theme {
     ///         is a bug in the toolkit rather than in an application
     /// @throws UncheckedIOException if the resource cannot be read at all
     public Stylesheet load() {
-        return Stylesheet.parse(CascadeLayer.THEME, source());
+        // Strict by name: the theme layer is also where an application's own
+        // theme goes, which is lenient, and this one is the toolkit's.
+        return Stylesheet.parse(CascadeLayer.THEME, source(), ParseMode.STRICT, resourceName());
     }
 
     /// This theme's stylesheet text, as it ships.

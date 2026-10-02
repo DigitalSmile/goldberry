@@ -5,20 +5,20 @@ import java.util.Objects;
 import java.util.Set;
 
 /// How a paragraph sits in the box it is drawn in: whether a line may break, what
-/// marks one that did not fit, where one that fitted easily sits, and which rules
-/// are drawn along it.
+/// marks one that did not fit, where one that fitted easily sits, which rules
+/// are drawn along it, and whether a word may be broken inside.
 ///
 /// ```java
 /// var cell = TextFlow.ELLIPSIS.textAlign(TextAlign.END);
 /// var link = TextFlow.NORMAL.decorations(TextDecoration.UNDERLINE);
 /// ```
 ///
-/// One value rather than four fields, because the four are only ever read
+/// One value rather than six fields, because the six are only ever read
 /// together, by the one method that draws a paragraph into a box, and a painter
 /// that honoured one and not the others would be a bug nobody would find. The
 /// cascade resolves the four CSS properties separately, since CSS inherits
 /// `white-space` and `text-align` and does not inherit `text-overflow`, and a
-/// bundle cannot be part-inherited; once all four are resolved it hands out one
+/// bundle cannot be part-inherited; once all of them are resolved it hands out one
 /// `TextFlow`, so everything downstream of the cascade sees one value.
 ///
 /// A flow is an immutable value. The decoration set is copied on construction,
@@ -30,11 +30,18 @@ import java.util.Set;
 /// @param textOverflow what marks a line that was not broken and did not fit
 /// @param textAlign    where a line narrower than its box sits in it
 /// @param decorations  the rules drawn along it, and usually none
+/// @param overflowWrap whether a word wider than the whole line is broken
+/// @param wordBreak    whether a line may break between any two graphemes
 public record TextFlow(
-        WhiteSpace whiteSpace, TextOverflow textOverflow, TextAlign textAlign, Set<TextDecoration> decorations) {
+        WhiteSpace whiteSpace,
+        TextOverflow textOverflow,
+        TextAlign textAlign,
+        Set<TextDecoration> decorations,
+        OverflowWrap overflowWrap,
+        WordBreak wordBreak) {
 
-    /// Wraps, marks nothing, sits at the leading edge, is undecorated: CSS's
-    /// initial values for all four.
+    /// Wraps, marks nothing, sits at the leading edge, is undecorated, breaks
+    /// only between words: CSS's initial values for all six.
     public static final TextFlow NORMAL =
             new TextFlow(WhiteSpace.NORMAL, TextOverflow.CLIP, TextAlign.START, TextDecoration.NONE);
 
@@ -50,6 +57,14 @@ public record TextFlow(
         // Copied, so a flow is a value: this record is compared by equality and
         // kept as a key, and a set a caller can still mutate would change one.
         decorations = Set.copyOf(Objects.requireNonNull(decorations, "decorations"));
+        Objects.requireNonNull(overflowWrap, "overflowWrap");
+        Objects.requireNonNull(wordBreak, "wordBreak");
+    }
+
+    /// A flow that breaks lines only between words.
+    public TextFlow(
+            WhiteSpace whiteSpace, TextOverflow textOverflow, TextAlign textAlign, Set<TextDecoration> decorations) {
+        this(whiteSpace, textOverflow, textAlign, decorations, OverflowWrap.NORMAL, WordBreak.NORMAL);
     }
 
     /// A flow with no decoration.
@@ -64,22 +79,32 @@ public record TextFlow(
 
     /// This, with a different `white-space`.
     public TextFlow whiteSpace(WhiteSpace value) {
-        return new TextFlow(value, textOverflow, textAlign, decorations);
+        return new TextFlow(value, textOverflow, textAlign, decorations, overflowWrap, wordBreak);
     }
 
     /// This, with a different `text-overflow`.
     public TextFlow textOverflow(TextOverflow value) {
-        return new TextFlow(whiteSpace, value, textAlign, decorations);
+        return new TextFlow(whiteSpace, value, textAlign, decorations, overflowWrap, wordBreak);
     }
 
     /// This, with a different `text-align`.
     public TextFlow textAlign(TextAlign value) {
-        return new TextFlow(whiteSpace, textOverflow, value, decorations);
+        return new TextFlow(whiteSpace, textOverflow, value, decorations, overflowWrap, wordBreak);
     }
 
     /// This, with a different set of decorations.
     public TextFlow decorations(Set<TextDecoration> value) {
-        return new TextFlow(whiteSpace, textOverflow, textAlign, value);
+        return new TextFlow(whiteSpace, textOverflow, textAlign, value, overflowWrap, wordBreak);
+    }
+
+    /// This, with a different `overflow-wrap`.
+    public TextFlow overflowWrap(OverflowWrap value) {
+        return new TextFlow(whiteSpace, textOverflow, textAlign, decorations, value, wordBreak);
+    }
+
+    /// This, with a different `word-break`.
+    public TextFlow wordBreak(WordBreak value) {
+        return new TextFlow(whiteSpace, textOverflow, textAlign, decorations, overflowWrap, value);
     }
 
     /// This, decorated with the lines named: `flow.decorations(UNDERLINE)`, or
@@ -126,7 +151,9 @@ public record TextFlow(
         return "TextFlow[" + whiteSpace.name().toLowerCase(java.util.Locale.ROOT) + ", "
                 + textOverflow.name().toLowerCase(java.util.Locale.ROOT) + ", "
                 + textAlign.name().toLowerCase(java.util.Locale.ROOT) + ", "
-                + decorationNames() + "]";
+                + decorationNames()
+                + (overflowWrap == OverflowWrap.NORMAL ? "" : ", overflow-wrap anywhere")
+                + (wordBreak == WordBreak.NORMAL ? "" : ", word-break break-all") + "]";
     }
 
     /// The decorations as CSS writes them: `none`, or `underline line-through` in

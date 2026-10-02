@@ -37,11 +37,13 @@ import dev.goldberry.log.Logs;
 import dev.goldberry.motion.Easing;
 import dev.goldberry.paint.Box;
 import dev.goldberry.render.Cursor;
+import dev.goldberry.text.flow.OverflowWrap;
 import dev.goldberry.text.flow.TextAlign;
 import dev.goldberry.text.flow.TextDecoration;
 import dev.goldberry.text.flow.TextFlow;
 import dev.goldberry.text.flow.TextOverflow;
 import dev.goldberry.text.flow.WhiteSpace;
+import dev.goldberry.text.flow.WordBreak;
 
 /// Every property a node resolved to, typed.
 ///
@@ -69,9 +71,10 @@ import dev.goldberry.text.flow.WhiteSpace;
 /// ## What is not here
 ///
 /// The subset is closed. A property the engine does not know, such as
-/// `backdrop-filter` or `letter-spacing`, is logged at debug and ignored; a known
-/// property with a value it cannot read is dropped with a warning that quotes the
-/// text. Each property arrives with the thing that paints it, which is why the
+/// `backdrop-filter` or `letter-spacing`, is ignored, and the stylesheet that
+/// names it warns once per property when it is parsed ([#isProperty] is the
+/// question it asks); a known property with a value it cannot read is dropped
+/// with a warning that quotes the text. Each property arrives with the thing that paints it, which is why the
 /// design system's radii, its 1px borders and its focus ring are one
 /// [#decoration()]: they are drawn by one rounded-rectangle path.
 ///
@@ -116,7 +119,11 @@ public record ComputedStyle(
         // grew instead of moving.
         Insets margin,
         Insets padding,
-        Length gap,
+        // `row-gap` and `column-gap`, which `gap` writes together. Two
+        // components because CSS lets a wrapping row space its lines apart
+        // differently from its items, and Yoga has a gutter for each.
+        Length rowGap,
+        Length columnGap,
         double flexGrow,
         double flexShrink,
         // The main-axis size a box *starts* from, before `flex-grow` shares out
@@ -153,6 +160,12 @@ public record ComputedStyle(
         // child box, and a property that stopped at the node it was written on
         // would decorate nothing.
         Set<TextDecoration> textDecoration,
+        // Whether a word may be cut: `overflow-wrap` when it is wider than the
+        // whole line, `word-break: break-all` anywhere. Both inherit, which is
+        // CSS's rule, and they are two components because they are two
+        // properties a rule may set one at a time.
+        OverflowWrap overflowWrap,
+        WordBreak wordBreak,
         // --- paint: resolved into pixels ---
         int background,
         int color,
@@ -207,6 +220,7 @@ public record ComputedStyle(
             Insets.ZERO,
             Insets.ZERO,
             Length.points(0),
+            Length.points(0),
             0,
             // CSS's default and Yoga's under `useWebDefaults`: a width is a
             // preferred width, and a cramped row may take it back.
@@ -236,6 +250,9 @@ public record ComputedStyle(
             // line in the toolkit sat before the property existed.
             TextAlign.START,
             TextDecoration.NONE,
+            // A word breaks only between words, CSS's initial value for both.
+            OverflowWrap.NORMAL,
+            WordBreak.NORMAL,
             CssColor.TRANSPARENT,
             0xFF000000,
             1.0,
@@ -254,7 +271,8 @@ public record ComputedStyle(
         Objects.requireNonNull(height, "height");
         Objects.requireNonNull(margin, "margin");
         Objects.requireNonNull(padding, "padding");
-        Objects.requireNonNull(gap, "gap");
+        Objects.requireNonNull(rowGap, "rowGap");
+        Objects.requireNonNull(columnGap, "columnGap");
         Objects.requireNonNull(position, "position");
         Objects.requireNonNull(inset, "inset");
         Objects.requireNonNull(overflow, "overflow");
@@ -264,6 +282,8 @@ public record ComputedStyle(
         // Copied rather than merely checked, because a style is a value that is
         // cached and compared, and a set the caller can still add to is neither.
         textDecoration = Set.copyOf(Objects.requireNonNull(textDecoration, "textDecoration"));
+        Objects.requireNonNull(overflowWrap, "overflowWrap");
+        Objects.requireNonNull(wordBreak, "wordBreak");
         Objects.requireNonNull(decoration, "decoration");
         Objects.requireNonNull(typography, "typography");
         Objects.requireNonNull(transitions, "transitions");
@@ -386,7 +406,9 @@ public record ComputedStyle(
                 && typography.equals(other.typography)
                 && whiteSpace == other.whiteSpace
                 && textAlign == other.textAlign
-                && textDecoration.equals(other.textDecoration);
+                && textDecoration.equals(other.textDecoration)
+                && overflowWrap == other.overflowWrap
+                && wordBreak == other.wordBreak;
     }
 
     /// [#INITIAL] with every inherited property taken from `parent`.
@@ -432,7 +454,12 @@ public record ComputedStyle(
                 // here, because the child is usually an anonymous box holding the
                 // paragraph: `button.link { text-decoration: underline }` has to
                 // reach the label inside it or it decorates nothing at all.
-                .textDecoration(parent.textDecoration());
+                .textDecoration(parent.textDecoration())
+                // And whether a word may be cut, which CSS inherits for the
+                // reason it inherits `white-space`: `.log { overflow-wrap:
+                // anywhere }` is about the lines inside, not the box.
+                .overflowWrap(parent.overflowWrap())
+                .wordBreak(parent.wordBreak());
     }
 
     /// One declaration applied, or this style unchanged if it does not apply.
@@ -524,7 +551,17 @@ public record ComputedStyle(
             case "max-height" ->
                 fixed(value, context).map(v -> limits(limits.maxHeight(v))).orElseGet(() -> dropped(property, value));
 
-            case "gap" -> fixed(value, context).map(this::gap).orElseGet(() -> dropped(property, value));
+            // `gap: 8px` is both gutters and `gap: 8px 16px` is the row gap and
+            // then the column gap, which is CSS's order.
+            case "gap" -> gaps(value, context).orElseGet(() -> dropped(property, value));
+
+            case "row-gap" -> fixed(value, context).map(this::rowGap).orElseGet(() -> dropped(property, value));
+
+            case "column-gap" -> fixed(value, context).map(this::columnGap).orElseGet(() -> dropped(property, value));
+
+            // The shorthand for the three below. Applied as three withers, so a
+            // later `flex-basis` overrides the basis it wrote, as in CSS.
+            case "flex" -> flex(value, context).orElseGet(() -> dropped(property, value));
 
             case "flex-grow" ->
                 number(value).filter(v -> v >= 0).map(this::flexGrow).orElseGet(() -> dropped(property, value));
@@ -568,8 +605,21 @@ public record ComputedStyle(
             // `select-value` and a segment all want to be cut instead:
             // `white-space: nowrap` is what stops the wrap and `text-overflow` is
             // what marks the result.
+            // Five keywords onto two behaviours: the paragraph never collapses
+            // spaces, so `pre-wrap` and `pre-line` are `normal` and `pre` is
+            // `nowrap`. See [WhiteSpace].
             case "white-space" ->
-                keyword(value, WhiteSpace.class).map(this::whiteSpace).orElseGet(() -> dropped(property, value));
+                Optional.ofNullable(single(value, WhiteSpace::parse))
+                        .map(this::whiteSpace)
+                        .orElseGet(() -> dropped(property, value));
+            case "overflow-wrap", "word-wrap" ->
+                Optional.ofNullable(single(value, OverflowWrap::parse))
+                        .map(this::overflowWrap)
+                        .orElseGet(() -> dropped(property, value));
+            case "word-break" ->
+                Optional.ofNullable(single(value, WordBreak::parse))
+                        .map(this::wordBreak)
+                        .orElseGet(() -> dropped(property, value));
             case "text-overflow" ->
                 keyword(value, TextOverflow.class).map(this::textOverflow).orElseGet(() -> dropped(property, value));
             // The paragraph knows its lines' widths and the box does not, so it
@@ -823,10 +873,16 @@ public record ComputedStyle(
 
             // Not an error. CSS has more properties than this record, and a
             // stylesheet naming one the toolkit does not implement should not
-            // stop a window opening -- but it is logged, because "my
-            // `backdrop-filter` does nothing" needs an answer.
+            // stop a window opening. The warning is the sheet's, once per
+            // property when it is parsed (see `Stylesheet`); here, per node per
+            // restyle, it would be a stream, so it stays at debug.
             default -> {
-                LOG.debug("ignoring unsupported property \"{}\"", property);
+                var probe = PROBE.get();
+                if (probe != null) {
+                    probe[0] = true;
+                } else {
+                    LOG.debug("ignoring unsupported property \"{}\"", property);
+                }
                 yield this;
             }
         };
@@ -856,6 +912,10 @@ public record ComputedStyle(
     private static final int REPORT_LIMIT = 512;
 
     private ComputedStyle dropped(String property, List<Token> value) {
+        if (PROBE.get() != null) {
+            // [#isProperty] asking, with a value made to fail: not a drop.
+            return this;
+        }
         var text = text(value);
         // `add` returns false when it was already there, which is the whole test.
         if (REPORTED.size() >= REPORT_LIMIT || REPORTED.add(property + ':' + text)) {
@@ -905,6 +965,48 @@ public record ComputedStyle(
         return INITIAL.with(property, value, context) != INITIAL;
     }
 
+    /// Whether `property` is one the engine has at all, whatever its value.
+    ///
+    /// Answered the way [#applies] is, by **running the engine** rather than by
+    /// keeping a list: the property is handed to [#with] with no value, and the
+    /// only arm that does not look at the value is the `default` one, which is
+    /// the answer "no such property". So a property added to the switch is known
+    /// here the moment it exists.
+    ///
+    /// Remembered per name, because a stylesheet asks once per declaration and
+    /// the answer cannot change while the class is loaded.
+    ///
+    /// Custom properties answer false, as they do for [#applies].
+    ///
+    /// @param property the property name, lowercased as the parser leaves it
+    public static boolean isProperty(String property) {
+        Objects.requireNonNull(property, "property");
+        return KNOWN.computeIfAbsent(property, ComputedStyle::probe);
+    }
+
+    private static boolean probe(String property) {
+        var reachedDefault = new boolean[1];
+        PROBE.set(reachedDefault);
+        try {
+            INITIAL.with(property, List.of(), CssLength.Context.DEFAULT);
+        } catch (RuntimeException e) {
+            // An arm that read the empty value and threw is an arm that exists.
+            return true;
+        } finally {
+            PROBE.remove();
+        }
+        return !reachedDefault[0];
+    }
+
+    /// Set while [#isProperty] asks [#with], so the `default` arm can say it was
+    /// reached and [#dropped] stays quiet about a value made to fail. A thread
+    /// local rather than a scoped value only because `with` is called from
+    /// thirty arms that would all have to pass it on.
+    private static final ThreadLocal<boolean @Nullable []> PROBE = new ThreadLocal<>();
+
+    private static final java.util.concurrent.ConcurrentHashMap<String, Boolean> KNOWN =
+            new java.util.concurrent.ConcurrentHashMap<>();
+
     /// Forgets what has been reported, so a test can drive the same bad
     /// declaration twice.
     ///
@@ -940,7 +1042,8 @@ public record ComputedStyle(
                 limits,
                 margin,
                 padding,
-                gap,
+                rowGap,
+                columnGap,
                 flexGrow,
                 flexShrink,
                 flexBasis,
@@ -951,6 +1054,8 @@ public record ComputedStyle(
                 textOverflow,
                 textAlign,
                 textDecoration,
+                overflowWrap,
+                wordBreak,
                 background,
                 color,
                 opacity,
@@ -975,7 +1080,8 @@ public record ComputedStyle(
                 limits,
                 margin,
                 padding,
-                gap,
+                rowGap,
+                columnGap,
                 flexGrow,
                 flexShrink,
                 flexBasis,
@@ -986,6 +1092,8 @@ public record ComputedStyle(
                 textOverflow,
                 textAlign,
                 textDecoration,
+                overflowWrap,
+                wordBreak,
                 background,
                 color,
                 opacity,
@@ -1010,7 +1118,8 @@ public record ComputedStyle(
                 limits,
                 margin,
                 padding,
-                gap,
+                rowGap,
+                columnGap,
                 flexGrow,
                 flexShrink,
                 flexBasis,
@@ -1021,6 +1130,8 @@ public record ComputedStyle(
                 textOverflow,
                 textAlign,
                 textDecoration,
+                overflowWrap,
+                wordBreak,
                 background,
                 color,
                 opacity,
@@ -1048,7 +1159,8 @@ public record ComputedStyle(
                 limits,
                 margin,
                 padding,
-                gap,
+                rowGap,
+                columnGap,
                 flexGrow,
                 flexShrink,
                 flexBasis,
@@ -1059,6 +1171,8 @@ public record ComputedStyle(
                 textOverflow,
                 textAlign,
                 textDecoration,
+                overflowWrap,
+                wordBreak,
                 background,
                 color,
                 opacity,
@@ -1083,7 +1197,8 @@ public record ComputedStyle(
                 limits,
                 margin,
                 padding,
-                gap,
+                rowGap,
+                columnGap,
                 flexGrow,
                 flexShrink,
                 flexBasis,
@@ -1094,6 +1209,8 @@ public record ComputedStyle(
                 textOverflow,
                 textAlign,
                 textDecoration,
+                overflowWrap,
+                wordBreak,
                 background,
                 color,
                 opacity,
@@ -1118,7 +1235,8 @@ public record ComputedStyle(
                 limits,
                 margin,
                 padding,
-                gap,
+                rowGap,
+                columnGap,
                 flexGrow,
                 flexShrink,
                 flexBasis,
@@ -1129,6 +1247,8 @@ public record ComputedStyle(
                 textOverflow,
                 textAlign,
                 textDecoration,
+                overflowWrap,
+                wordBreak,
                 background,
                 color,
                 opacity,
@@ -1153,7 +1273,8 @@ public record ComputedStyle(
                 limits,
                 margin,
                 padding,
-                gap,
+                rowGap,
+                columnGap,
                 flexGrow,
                 flexShrink,
                 flexBasis,
@@ -1164,6 +1285,8 @@ public record ComputedStyle(
                 textOverflow,
                 textAlign,
                 textDecoration,
+                overflowWrap,
+                wordBreak,
                 background,
                 color,
                 opacity,
@@ -1188,7 +1311,8 @@ public record ComputedStyle(
                 limits,
                 margin,
                 padding,
-                gap,
+                rowGap,
+                columnGap,
                 flexGrow,
                 flexShrink,
                 flexBasis,
@@ -1199,6 +1323,8 @@ public record ComputedStyle(
                 textOverflow,
                 textAlign,
                 textDecoration,
+                overflowWrap,
+                wordBreak,
                 background,
                 color,
                 opacity,
@@ -1223,7 +1349,8 @@ public record ComputedStyle(
                 limits,
                 v,
                 padding,
-                gap,
+                rowGap,
+                columnGap,
                 flexGrow,
                 flexShrink,
                 flexBasis,
@@ -1234,6 +1361,8 @@ public record ComputedStyle(
                 textOverflow,
                 textAlign,
                 textDecoration,
+                overflowWrap,
+                wordBreak,
                 background,
                 color,
                 opacity,
@@ -1258,7 +1387,8 @@ public record ComputedStyle(
                 limits,
                 margin,
                 v,
-                gap,
+                rowGap,
+                columnGap,
                 flexGrow,
                 flexShrink,
                 flexBasis,
@@ -1269,6 +1399,8 @@ public record ComputedStyle(
                 textOverflow,
                 textAlign,
                 textDecoration,
+                overflowWrap,
+                wordBreak,
                 background,
                 color,
                 opacity,
@@ -1295,7 +1427,8 @@ public record ComputedStyle(
                 v,
                 margin,
                 padding,
-                gap,
+                rowGap,
+                columnGap,
                 flexGrow,
                 flexShrink,
                 flexBasis,
@@ -1306,6 +1439,8 @@ public record ComputedStyle(
                 textOverflow,
                 textAlign,
                 textDecoration,
+                overflowWrap,
+                wordBreak,
                 background,
                 color,
                 opacity,
@@ -1317,6 +1452,16 @@ public record ComputedStyle(
                 cursor);
     }
 
+    /// The gap, for a box whose two gaps agree, which is every box that wrote
+    /// `gap` and nothing more specific.
+    ///
+    /// Where `row-gap` and `column-gap` differ this is the **row** gap. A reader
+    /// that lays out in both directions reads [#rowGap()] and [#columnGap()].
+    public Length gap() {
+        return rowGap;
+    }
+
+    /// Both gaps at once, which is what `gap: 8px` writes.
     public ComputedStyle gap(Length v) {
         return new ComputedStyle(
                 direction,
@@ -1331,6 +1476,7 @@ public record ComputedStyle(
                 margin,
                 padding,
                 v,
+                v,
                 flexGrow,
                 flexShrink,
                 flexBasis,
@@ -1341,6 +1487,86 @@ public record ComputedStyle(
                 textOverflow,
                 textAlign,
                 textDecoration,
+                overflowWrap,
+                wordBreak,
+                background,
+                color,
+                opacity,
+                decoration,
+                typography,
+                transitions,
+                animations,
+                transform,
+                cursor);
+    }
+
+    /// `row-gap` alone: the space between lines, or between items in a column.
+    public ComputedStyle rowGap(Length v) {
+        return new ComputedStyle(
+                direction,
+                justifyContent,
+                alignItems,
+                alignSelf,
+                alignContent,
+                wrap,
+                width,
+                height,
+                limits,
+                margin,
+                padding,
+                v,
+                columnGap,
+                flexGrow,
+                flexShrink,
+                flexBasis,
+                position,
+                inset,
+                overflow,
+                whiteSpace,
+                textOverflow,
+                textAlign,
+                textDecoration,
+                overflowWrap,
+                wordBreak,
+                background,
+                color,
+                opacity,
+                decoration,
+                typography,
+                transitions,
+                animations,
+                transform,
+                cursor);
+    }
+
+    /// `column-gap` alone: the space between items in a row, or between columns.
+    public ComputedStyle columnGap(Length v) {
+        return new ComputedStyle(
+                direction,
+                justifyContent,
+                alignItems,
+                alignSelf,
+                alignContent,
+                wrap,
+                width,
+                height,
+                limits,
+                margin,
+                padding,
+                rowGap,
+                v,
+                flexGrow,
+                flexShrink,
+                flexBasis,
+                position,
+                inset,
+                overflow,
+                whiteSpace,
+                textOverflow,
+                textAlign,
+                textDecoration,
+                overflowWrap,
+                wordBreak,
                 background,
                 color,
                 opacity,
@@ -1365,7 +1591,8 @@ public record ComputedStyle(
                 limits,
                 margin,
                 padding,
-                gap,
+                rowGap,
+                columnGap,
                 v,
                 flexShrink,
                 flexBasis,
@@ -1376,6 +1603,8 @@ public record ComputedStyle(
                 textOverflow,
                 textAlign,
                 textDecoration,
+                overflowWrap,
+                wordBreak,
                 background,
                 color,
                 opacity,
@@ -1403,7 +1632,8 @@ public record ComputedStyle(
                 limits,
                 margin,
                 padding,
-                gap,
+                rowGap,
+                columnGap,
                 flexGrow,
                 flexShrink,
                 v,
@@ -1414,6 +1644,8 @@ public record ComputedStyle(
                 textOverflow,
                 textAlign,
                 textDecoration,
+                overflowWrap,
+                wordBreak,
                 background,
                 color,
                 opacity,
@@ -1438,7 +1670,8 @@ public record ComputedStyle(
                 limits,
                 margin,
                 padding,
-                gap,
+                rowGap,
+                columnGap,
                 flexGrow,
                 v,
                 flexBasis,
@@ -1449,6 +1682,8 @@ public record ComputedStyle(
                 textOverflow,
                 textAlign,
                 textDecoration,
+                overflowWrap,
+                wordBreak,
                 background,
                 color,
                 opacity,
@@ -1473,7 +1708,8 @@ public record ComputedStyle(
                 limits,
                 margin,
                 padding,
-                gap,
+                rowGap,
+                columnGap,
                 flexGrow,
                 flexShrink,
                 flexBasis,
@@ -1484,6 +1720,8 @@ public record ComputedStyle(
                 textOverflow,
                 textAlign,
                 textDecoration,
+                overflowWrap,
+                wordBreak,
                 background,
                 color,
                 opacity,
@@ -1508,7 +1746,8 @@ public record ComputedStyle(
                 limits,
                 margin,
                 padding,
-                gap,
+                rowGap,
+                columnGap,
                 flexGrow,
                 flexShrink,
                 flexBasis,
@@ -1519,6 +1758,8 @@ public record ComputedStyle(
                 textOverflow,
                 textAlign,
                 textDecoration,
+                overflowWrap,
+                wordBreak,
                 background,
                 color,
                 opacity,
@@ -1543,7 +1784,8 @@ public record ComputedStyle(
                 limits,
                 margin,
                 padding,
-                gap,
+                rowGap,
+                columnGap,
                 flexGrow,
                 flexShrink,
                 flexBasis,
@@ -1554,6 +1796,8 @@ public record ComputedStyle(
                 textOverflow,
                 textAlign,
                 textDecoration,
+                overflowWrap,
+                wordBreak,
                 background,
                 color,
                 opacity,
@@ -1578,7 +1822,8 @@ public record ComputedStyle(
                 limits,
                 margin,
                 padding,
-                gap,
+                rowGap,
+                columnGap,
                 flexGrow,
                 flexShrink,
                 flexBasis,
@@ -1589,6 +1834,8 @@ public record ComputedStyle(
                 textOverflow,
                 textAlign,
                 textDecoration,
+                overflowWrap,
+                wordBreak,
                 background,
                 color,
                 opacity,
@@ -1613,7 +1860,8 @@ public record ComputedStyle(
                 limits,
                 margin,
                 padding,
-                gap,
+                rowGap,
+                columnGap,
                 flexGrow,
                 flexShrink,
                 flexBasis,
@@ -1624,6 +1872,8 @@ public record ComputedStyle(
                 v,
                 textAlign,
                 textDecoration,
+                overflowWrap,
+                wordBreak,
                 background,
                 color,
                 opacity,
@@ -1648,7 +1898,8 @@ public record ComputedStyle(
                 limits,
                 margin,
                 padding,
-                gap,
+                rowGap,
+                columnGap,
                 flexGrow,
                 flexShrink,
                 flexBasis,
@@ -1659,6 +1910,8 @@ public record ComputedStyle(
                 textOverflow,
                 v,
                 textDecoration,
+                overflowWrap,
+                wordBreak,
                 background,
                 color,
                 opacity,
@@ -1685,7 +1938,8 @@ public record ComputedStyle(
                 limits,
                 margin,
                 padding,
-                gap,
+                rowGap,
+                columnGap,
                 flexGrow,
                 flexShrink,
                 flexBasis,
@@ -1695,6 +1949,86 @@ public record ComputedStyle(
                 whiteSpace,
                 textOverflow,
                 textAlign,
+                v,
+                overflowWrap,
+                wordBreak,
+                background,
+                color,
+                opacity,
+                decoration,
+                typography,
+                transitions,
+                animations,
+                transform,
+                cursor);
+    }
+
+    /// `overflow-wrap`: whether a word wider than the line is cut.
+    public ComputedStyle overflowWrap(OverflowWrap v) {
+        return new ComputedStyle(
+                direction,
+                justifyContent,
+                alignItems,
+                alignSelf,
+                alignContent,
+                wrap,
+                width,
+                height,
+                limits,
+                margin,
+                padding,
+                rowGap,
+                columnGap,
+                flexGrow,
+                flexShrink,
+                flexBasis,
+                position,
+                inset,
+                overflow,
+                whiteSpace,
+                textOverflow,
+                textAlign,
+                textDecoration,
+                v,
+                wordBreak,
+                background,
+                color,
+                opacity,
+                decoration,
+                typography,
+                transitions,
+                animations,
+                transform,
+                cursor);
+    }
+
+    /// `word-break`: whether a line may break between any two graphemes.
+    public ComputedStyle wordBreak(WordBreak v) {
+        return new ComputedStyle(
+                direction,
+                justifyContent,
+                alignItems,
+                alignSelf,
+                alignContent,
+                wrap,
+                width,
+                height,
+                limits,
+                margin,
+                padding,
+                rowGap,
+                columnGap,
+                flexGrow,
+                flexShrink,
+                flexBasis,
+                position,
+                inset,
+                overflow,
+                whiteSpace,
+                textOverflow,
+                textAlign,
+                textDecoration,
+                overflowWrap,
                 v,
                 background,
                 color,
@@ -1721,7 +2055,7 @@ public record ComputedStyle(
     /// [Box#text(dev.goldberry.text.Paragraph, int,
     /// TextFlow)].
     public TextFlow textFlow() {
-        return new TextFlow(whiteSpace, textOverflow, textAlign, textDecoration);
+        return new TextFlow(whiteSpace, textOverflow, textAlign, textDecoration, overflowWrap, wordBreak);
     }
 
     public ComputedStyle background(int v) {
@@ -1737,7 +2071,8 @@ public record ComputedStyle(
                 limits,
                 margin,
                 padding,
-                gap,
+                rowGap,
+                columnGap,
                 flexGrow,
                 flexShrink,
                 flexBasis,
@@ -1748,6 +2083,8 @@ public record ComputedStyle(
                 textOverflow,
                 textAlign,
                 textDecoration,
+                overflowWrap,
+                wordBreak,
                 v,
                 color,
                 opacity,
@@ -1772,7 +2109,8 @@ public record ComputedStyle(
                 limits,
                 margin,
                 padding,
-                gap,
+                rowGap,
+                columnGap,
                 flexGrow,
                 flexShrink,
                 flexBasis,
@@ -1783,6 +2121,8 @@ public record ComputedStyle(
                 textOverflow,
                 textAlign,
                 textDecoration,
+                overflowWrap,
+                wordBreak,
                 background,
                 v,
                 opacity,
@@ -1807,7 +2147,8 @@ public record ComputedStyle(
                 limits,
                 margin,
                 padding,
-                gap,
+                rowGap,
+                columnGap,
                 flexGrow,
                 flexShrink,
                 flexBasis,
@@ -1818,6 +2159,8 @@ public record ComputedStyle(
                 textOverflow,
                 textAlign,
                 textDecoration,
+                overflowWrap,
+                wordBreak,
                 background,
                 color,
                 v,
@@ -1842,7 +2185,8 @@ public record ComputedStyle(
                 limits,
                 margin,
                 padding,
-                gap,
+                rowGap,
+                columnGap,
                 flexGrow,
                 flexShrink,
                 flexBasis,
@@ -1853,6 +2197,8 @@ public record ComputedStyle(
                 textOverflow,
                 textAlign,
                 textDecoration,
+                overflowWrap,
+                wordBreak,
                 background,
                 color,
                 opacity,
@@ -1877,7 +2223,8 @@ public record ComputedStyle(
                 limits,
                 margin,
                 padding,
-                gap,
+                rowGap,
+                columnGap,
                 flexGrow,
                 flexShrink,
                 flexBasis,
@@ -1888,6 +2235,8 @@ public record ComputedStyle(
                 textOverflow,
                 textAlign,
                 textDecoration,
+                overflowWrap,
+                wordBreak,
                 background,
                 color,
                 opacity,
@@ -1912,7 +2261,8 @@ public record ComputedStyle(
                 limits,
                 margin,
                 padding,
-                gap,
+                rowGap,
+                columnGap,
                 flexGrow,
                 flexShrink,
                 flexBasis,
@@ -1923,6 +2273,8 @@ public record ComputedStyle(
                 textOverflow,
                 textAlign,
                 textDecoration,
+                overflowWrap,
+                wordBreak,
                 background,
                 color,
                 opacity,
@@ -1948,7 +2300,8 @@ public record ComputedStyle(
                 limits,
                 margin,
                 padding,
-                gap,
+                rowGap,
+                columnGap,
                 flexGrow,
                 flexShrink,
                 flexBasis,
@@ -1959,6 +2312,8 @@ public record ComputedStyle(
                 textOverflow,
                 textAlign,
                 textDecoration,
+                overflowWrap,
+                wordBreak,
                 background,
                 color,
                 opacity,
@@ -1983,7 +2338,8 @@ public record ComputedStyle(
                 limits,
                 margin,
                 padding,
-                gap,
+                rowGap,
+                columnGap,
                 flexGrow,
                 flexShrink,
                 flexBasis,
@@ -1994,6 +2350,8 @@ public record ComputedStyle(
                 textOverflow,
                 textAlign,
                 textDecoration,
+                overflowWrap,
+                wordBreak,
                 background,
                 color,
                 opacity,
@@ -2018,7 +2376,8 @@ public record ComputedStyle(
                 limits,
                 margin,
                 padding,
-                gap,
+                rowGap,
+                columnGap,
                 flexGrow,
                 flexShrink,
                 flexBasis,
@@ -2029,6 +2388,8 @@ public record ComputedStyle(
                 textOverflow,
                 textAlign,
                 textDecoration,
+                overflowWrap,
+                wordBreak,
                 background,
                 color,
                 opacity,
@@ -2146,6 +2507,9 @@ public record ComputedStyle(
     /// `none` is the whole list turned off, which is how a rule cancels a
     /// transition an earlier one declared.
     ///
+    /// A timing function outside the subset is skipped with a warning and the
+    /// entry keeps the default curve; see [#isForeignEasing].
+    ///
     /// **The whole declaration is dropped if any entry is bad**, and the
     /// property that made it bad is named. Half a transition list is worse than
     /// none: the author sees two of their three properties moving and has
@@ -2178,6 +2542,10 @@ public record ComputedStyle(
             Double delay = null;
 
             for (var part : parts) {
+                if (isForeignEasing(part)) {
+                    ignoredEasing("transition", part);
+                    continue;
+                }
                 if (part.size() == 1 && part.getFirst().is(TokenType.IDENT)) {
                     var name = part.getFirst().text();
                     var asProperty = Transitions.Animatable.parse(name);
@@ -2234,7 +2602,8 @@ public record ComputedStyle(
     /// `animation-name`.
     ///
     /// All or nothing, like `transition`: a list with one bad entry is dropped
-    /// whole.
+    /// whole. A timing function outside the subset is the exception, for the
+    /// reason [#isForeignEasing] gives.
     private static Optional<KeyframeAnimations> animationList(List<Token> value) {
         var entries = splitOnCommas(value);
         if (entries.size() == 1
@@ -2258,6 +2627,10 @@ public record ComputedStyle(
             KeyframeAnimations.Direction direction = null;
             KeyframeAnimations.FillMode fill = null;
             for (var part : split(entry)) {
+                if (isForeignEasing(part)) {
+                    ignoredEasing("animation", part);
+                    continue;
+                }
                 if (part.size() != 1) {
                     return Optional.empty();
                 }
@@ -2384,6 +2757,44 @@ public record ComputedStyle(
         return single(part, Easing::parse);
     }
 
+    /// Whether `part` of a `transition` or `animation` shorthand is a timing
+    /// function the subset does not have: `cubic-bezier(…)`, `steps(…)`,
+    /// `linear(…)`, `step-start`, `step-end`, or a word starting `ease` that is
+    /// not one of the curves [Easing#parse] reads.
+    ///
+    /// **Such a part drops itself, not the declaration.** The curve is the least
+    /// of what a shorthand says; dropping `orc-pulse 900ms … infinite alternate`
+    /// whole over its curve leaves a node that never moves, where skipping the
+    /// curve leaves one that moves on the default.
+    private static boolean isForeignEasing(List<Token> part) {
+        if (part.isEmpty()) {
+            return false;
+        }
+        var first = part.getFirst();
+        if (first.is(TokenType.FUNCTION)) {
+            var function = first.text().toLowerCase(Locale.ROOT);
+            return function.equals("cubic-bezier") || function.equals("steps") || function.equals("linear");
+        }
+        if (part.size() != 1 || !first.is(TokenType.IDENT)) {
+            return false;
+        }
+        var word = first.text().toLowerCase(Locale.ROOT);
+        return (word.startsWith("ease") || word.equals("step-start") || word.equals("step-end"))
+                && Easing.parse(word) == null;
+    }
+
+    /// Warns, once per text, that a timing function in `property` was skipped.
+    private static void ignoredEasing(String property, List<Token> part) {
+        var text = text(part);
+        if (REPORTED.size() >= REPORT_LIMIT || REPORTED.add(property + ":easing:" + text)) {
+            LOG.warn(
+                    "ignoring the timing function {} in \"{}\": the subset has ease-enter, ease-exit, linear and"
+                            + " CSS's ease keywords, so the default ease-enter runs instead",
+                    text,
+                    property);
+        }
+    }
+
     /// `infinite` or a non-negative number.
     private static @Nullable Double iterationCount(List<Token> part) {
         if (part.size() != 1) {
@@ -2455,8 +2866,17 @@ public record ComputedStyle(
     private static List<List<Token>> splitOnCommas(List<Token> value) {
         var entries = new ArrayList<List<Token>>();
         var current = new ArrayList<Token>();
+        // Only the commas between entries: the ones inside `cubic-bezier(…)`
+        // belong to the function, and splitting there turned one entry into
+        // four broken ones.
+        var depth = 0;
         for (var token : value) {
-            if (token.is(TokenType.COMMA)) {
+            if (token.is(TokenType.OPEN_PAREN) || token.is(TokenType.FUNCTION)) {
+                depth++;
+            } else if (token.is(TokenType.CLOSE_PAREN)) {
+                depth = Math.max(0, depth - 1);
+            }
+            if (depth == 0 && token.is(TokenType.COMMA)) {
                 entries.add(List.copyOf(current));
                 current.clear();
             } else {
@@ -2545,6 +2965,94 @@ public record ComputedStyle(
     /// wanted.
     private static Optional<Length> fixed(List<Token> value, CssLength.Context context) {
         return length(value, context).filter(v -> v != Length.AUTO);
+    }
+
+    /// `gap`: one length for both gutters, or the row gap and then the column
+    /// gap. Empty when either is not a fixed length, so half a `gap` is never
+    /// applied.
+    private Optional<ComputedStyle> gaps(List<Token> value, CssLength.Context context) {
+        var parts = split(value);
+        if (parts.isEmpty() || parts.size() > 2) {
+            return Optional.empty();
+        }
+        var row = fixed(parts.getFirst(), context);
+        var column = parts.size() == 1 ? row : fixed(parts.get(1), context);
+        if (row.isEmpty() || column.isEmpty()) {
+            return Optional.empty();
+        }
+        return Optional.of(rowGap(row.get()).columnGap(column.get()));
+    }
+
+    /// The `flex` shorthand: `none`, `auto`, `initial`, or up to a grow, a
+    /// shrink and a basis.
+    ///
+    /// CSS's expansions, which are not what the three numbers would suggest on
+    /// their own: `flex: 1` is `1 1 0%`, not `1 1 auto`, so that equal growers
+    /// share the whole row rather than the room left after their content.
+    ///
+    /// | written | grow | shrink | basis |
+    /// |---|---|---|---|
+    /// | `none` | 0 | 0 | auto |
+    /// | `auto` | 1 | 1 | auto |
+    /// | `initial` | 0 | 1 | auto |
+    /// | `2` | 2 | 1 | 0% |
+    /// | `2 3` | 2 | 3 | 0% |
+    /// | `2 120px` | 2 | 1 | 120px |
+    /// | `120px` | 1 | 1 | 120px |
+    ///
+    /// A first number is always the grow factor, so `flex: 0` is `0 1 0%`,
+    /// which is CSS's reading too.
+    private Optional<ComputedStyle> flex(List<Token> value, CssLength.Context context) {
+        var parts = split(value);
+        if (parts.size() == 1
+                && parts.getFirst().size() == 1
+                && parts.getFirst().getFirst().is(TokenType.IDENT)) {
+            return switch (parts.getFirst().getFirst().text().toLowerCase(Locale.ROOT)) {
+                case "none" -> Optional.of(flexGrow(0).flexShrink(0).flexBasis(Length.AUTO));
+                case "auto" -> Optional.of(flexGrow(1).flexShrink(1).flexBasis(Length.AUTO));
+                case "initial" -> Optional.of(flexGrow(0).flexShrink(1).flexBasis(Length.AUTO));
+                default ->
+                    length(parts.getFirst(), context)
+                            .map(basis -> flexGrow(1).flexShrink(1).flexBasis(basis));
+            };
+        }
+        if (parts.isEmpty() || parts.size() > 3) {
+            return Optional.empty();
+        }
+        Double grow = null;
+        Double shrink = null;
+        Length basis = null;
+        for (var part : parts) {
+            var asNumber = part.size() == 1 && part.getFirst().is(TokenType.NUMBER)
+                    ? part.getFirst().numeric()
+                    : null;
+            if (asNumber != null && basis == null && (grow == null || shrink == null)) {
+                if (asNumber < 0) {
+                    return Optional.empty();
+                }
+                if (grow == null) {
+                    grow = asNumber;
+                } else {
+                    shrink = asNumber;
+                }
+                continue;
+            }
+            if (basis != null) {
+                return Optional.empty();
+            }
+            var asLength = length(part, context);
+            if (asLength.isEmpty()) {
+                return Optional.empty();
+            }
+            basis = asLength.get();
+        }
+        if (grow == null) {
+            // A basis alone: `flex: 120px` grows and shrinks from it.
+            return Optional.of(flexGrow(1).flexShrink(1).flexBasis(Objects.requireNonNull(basis)));
+        }
+        return Optional.of(flexGrow(grow)
+                .flexShrink(shrink == null ? 1 : shrink)
+                .flexBasis(basis == null ? Length.percent(0) : basis));
     }
 
     /// CSS's 1-4 value edge shorthand.

@@ -1,11 +1,14 @@
 /// Reading a stylesheet: the CSS Syntax Level 3 tokenizer, the parser for the
 /// supported subset, and the error that stops both.
 ///
-/// Strict where a browser is lenient. A browser drops what it does not understand
-/// because the page was written for somebody else; a toolkit is reading a sheet its
-/// own application shipped, so an unsupported construct is refused with a line and
-/// column rather than left as a widget in the wrong colour. Hot reload is the one
-/// caller that catches the refusal, and keeps the last good sheet.
+/// Two modes, by whose sheet it is. The toolkit's own sheets are parsed
+/// [dev.goldberry.css.parse.ParseMode#STRICT]: an unsupported construct is
+/// refused with a line and column, because a rule in them that matched nothing
+/// would be a control drawn wrong everywhere. An application's sheets are parsed
+/// [dev.goldberry.css.parse.ParseMode#LENIENT]: the rule asking for it is dropped
+/// with one warning naming it, and the application still starts. A malformed sheet
+/// is refused in both, and hot reload is the caller that catches that refusal and
+/// keeps the last good sheet.
 ///
 /// One of the CSS engine's stages, each its own exported package.
 ///
