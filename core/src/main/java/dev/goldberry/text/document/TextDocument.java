@@ -6,6 +6,7 @@ import java.util.Objects;
 import org.jspecify.annotations.Nullable;
 
 import dev.goldberry.text.Paragraph;
+import dev.goldberry.text.flow.TextFlow;
 import dev.goldberry.text.font.Font;
 
 /// A text shaped one hard line at a time, and re-shaped one hard line at a time
@@ -73,6 +74,9 @@ public final class TextDocument {
 
     /// The width [#lines] was broken at, or `NaN` before anything asked.
     private double wrapWidth = Double.NaN;
+
+    /// The breaking [#lines] used, with the width it is the memo's key.
+    private TextFlow wrapFlow = TextFlow.NORMAL;
 
     private @Nullable DocumentLines lines;
 
@@ -258,20 +262,43 @@ public final class TextDocument {
     ///
     /// @param width the width to wrap at, or [Paragraph#UNCONSTRAINED]
     public DocumentLines lines(double width) {
+        return lines(width, TextFlow.NORMAL);
+    }
+
+    /// This document broken into visual lines at `width`, cutting a word wider
+    /// than the line where `flow` allows it -- `overflow-wrap` and `word-break`.
+    ///
+    /// The control that draws the text with `flow` has to ask with it too: the
+    /// rows here are what its caret, selection and scroll are measured against,
+    /// and a word the paint cuts and these rows do not would draw one more line
+    /// than the control believes it has.
+    ///
+    /// @param width the width to wrap at, or [Paragraph#UNCONSTRAINED]
+    /// @param flow  what the cascade said about breaking inside a word; only
+    ///              that half of it is read
+    public DocumentLines lines(double width, TextFlow flow) {
+        Objects.requireNonNull(flow, "flow");
         var held = lines;
-        if (held != null && width == wrapWidth) {
+        if (held != null && width == wrapWidth && breaksAlike(flow, wrapFlow)) {
             return held;
         }
         var visual = new int[hard.length + 1];
         for (var k = 0; k < hard.length; k++) {
-            var layout = shaped[k].layout(width);
+            var layout = shaped[k].layout(width, flow);
             // A hard line always occupies at least one visual line, blank or not.
             visual[k + 1] = visual[k] + Math.max(1, layout.lineCount());
         }
-        var built = new DocumentLines(this, width, visual);
+        var built = new DocumentLines(this, width, flow, visual);
         lines = built;
         wrapWidth = width;
+        wrapFlow = flow;
         return built;
+    }
+
+    /// Whether two flows break lines in the same places. Alignment and
+    /// decoration do not move a break, so a change to either keeps the memo.
+    private static boolean breaksAlike(TextFlow a, TextFlow b) {
+        return a.overflowWrap() == b.overflowWrap() && a.wordBreak() == b.wordBreak();
     }
 
     /// The width of `[from, to)`, both offsets into the whole text.

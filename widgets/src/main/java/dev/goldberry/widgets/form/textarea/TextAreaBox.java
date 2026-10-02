@@ -550,11 +550,19 @@ record TextAreaBox(
         // text wraps at what is left over — which is why it is computed from the
         // document's line count rather than from the layout it is about to cause.
         var gutterWidth = gutterWidth(style, context, hardLines(document));
-        var offset = editor.laidOut(document, padding, gutterWidth, style.textAlign());
+        // The flow the text is painted with, decided before the rows are: a word
+        // `overflow-wrap` lets the paint cut has to be cut in the rows the caret,
+        // the selection and the scroll are counted in, or the paint draws a line
+        // the control does not know it has.
+        // `text-value` resolved the ink and the flow and drew nothing, which is
+        // what [Value#carrier] is for.
+        var value = children.get(maxRows).text();
+        var flow = value == null ? style.textFlow() : value.flow();
+        var offset = editor.laidOut(document, padding, gutterWidth, flow);
 
         var lineHeight = font.lineHeight();
         var width = editor.contentWidth();
-        var lines = document.lines(width);
+        var lines = document.lines(width, flow);
 
         // The rows on screen, and one more for the row a partial scroll shows
         // half of. Everything below is drawn for these and for nothing else.
@@ -595,11 +603,8 @@ record TextAreaBox(
 
         // The text: the rows on screen, as one paragraph — a slice of the
         // document between two line starts, which re-wraps to exactly the rows
-        // the document said it would. `text-value` resolved the ink
-        // and the flow and drew nothing, which is what [Value#carrier] is for.
-        var value = children.get(maxRows).text();
+        // the document said it would, because both broke with `flow`.
         var ink = value == null ? style.color() : value.argb();
-        var flow = value == null ? style.textFlow() : value.flow();
         var visible = display.substring(
                 lines.get(firstVisual).start(), lines.get(lastVisual).end());
         boxes.add(Box.text(context.paragraph(style, visible), ink, flow)

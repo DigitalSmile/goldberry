@@ -212,7 +212,8 @@ never collapses spaces or newlines, so the five keywords are two behaviours:
 as `nowrap` does. `pre-line` keeps runs of spaces CSS would fold into one.
 `overflow-wrap: normal | anywhere | break-word` cuts a word wider than the
 whole line between grapheme clusters; `word-break: normal | break-all` may cut
-any word at the edge of the line. Both inherit
+any word at the edge of the line. A `text-area` cuts its rows the same way, and
+its caret, selection and scroll follow the cut. Both inherit
 ([ADR-0530](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0530-five-white-space-keywords-are-two-behaviours-and-a-long-word-may-be-cut.md)).
 `text-overflow: clip | ellipsis`,
 `text-align: start | center | end`, and `text-decoration` or

@@ -847,6 +847,69 @@ class TextAreaTest {
         }
     }
 
+    /// `overflow-wrap` in a multi-line field: a token too wide for the area is cut
+    /// where the paint cuts it, and the caret walks the rows the paint drew.
+    ///
+    /// **The defect this pins.** The area painted its visible rows through the
+    /// cascade's flow, which cut the token, and counted them through the
+    /// document, which did not -- so the paint drew a row the caret, the
+    /// selection and the scroll did not know about.
+    @Nested
+    @DisplayName("overflow-wrap")
+    class Wrapped {
+
+        /// A log line's digest, one word with nothing a line breaker could use,
+        /// far wider than the 300 points the area is measured at.
+        private static final String DIGEST =
+                "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08" + "9f86d081884c7d659a2feaa0c55ad015";
+
+        private ElementTree area(String rule) {
+            var tree = new ElementTree(new TextArea(DIGEST, null), host);
+            render(tree, rule);
+            box(tree).measured(new Extent(300, 200), new Extent(300, 200));
+            render(tree, rule);
+            box(tree).onFocusChanged(true, false);
+            render(tree, rule);
+            return tree;
+        }
+
+        private void key(ElementTree tree, String rule, Key which, Modifiers modifiers) {
+            box(tree).onKey(new KeyEvent(KeyEvent.Kind.PRESSED, which, modifiers, false, null));
+            render(tree, rule);
+            render(tree, rule);
+        }
+
+        @Test
+        @DisplayName("anywhere: Down from the start lands inside the token, on the row the paint cut it onto")
+        void downWalksTheCutRows() {
+            var rule = "text-area { overflow-wrap: anywhere }";
+            var tree = area(rule);
+            key(tree, rule, Key.HOME, Modifiers.of(Mod.CTRL));
+            var firstTop = box(tree).caretArea().orElseThrow().top();
+
+            key(tree, rule, Key.DOWN, Modifiers.NONE);
+
+            var caret = box(tree).edit().caret();
+            assertTrue(
+                    caret > 0 && caret < DIGEST.length(), () -> "the caret is at " + caret + " of " + DIGEST.length());
+            assertTrue(
+                    box(tree).caretArea().orElseThrow().top() > firstTop,
+                    "and it is drawn a row lower, where that part of the token is painted");
+        }
+
+        @Test
+        @DisplayName("without it, the token is one row, and Down has nowhere inside it to go")
+        void withoutItTheTokenIsOneRow() {
+            var tree = area(null);
+            key(tree, null, Key.HOME, Modifiers.of(Mod.CTRL));
+            var firstTop = box(tree).caretArea().orElseThrow().top();
+
+            key(tree, null, Key.DOWN, Modifiers.NONE);
+
+            assertEquals(firstTop, box(tree).caretArea().orElseThrow().top(), 0.01);
+        }
+    }
+
     /// `text-align` in a multi-line field: the caret, the highlight and the hit
     /// test follow the alignment the stylesheet resolved.
     ///

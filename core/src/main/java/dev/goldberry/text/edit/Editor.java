@@ -83,6 +83,9 @@ public final class Editor {
     /// same edge the glyphs were drawn from, or the caret drifts off the glyphs.
     private TextAlign textAlign = TextAlign.START;
 
+    /// How a word wider than [#wrapWidth] breaks, from the cascade's flow.
+    private TextFlow breaking = TextFlow.NORMAL;
+
     private boolean multiline;
 
     private boolean readOnly;
@@ -221,6 +224,23 @@ public final class Editor {
     /// See [#textAlign(TextAlign)].
     public TextAlign textAlign() {
         return textAlign;
+    }
+
+    /// The cascade's flow: its `text-align`, and how a word wider than
+    /// [#wrapWidth(double)] breaks -- `overflow-wrap` and `word-break`.
+    ///
+    /// The paint, the caret, the hit test, `Up`/`Down` and the selection all
+    /// read the same rows, so a word the paint cuts is a word the caret walks
+    /// across on two lines. [TextFlow#NORMAL] by default: words break only
+    /// between words.
+    public Editor textFlow(TextFlow flow) {
+        Objects.requireNonNull(flow, "flow");
+        // The breaking half only. Wrapping and truncation are this editor's own
+        // business -- it wraps at its width and never marks an ellipsis -- so a
+        // `white-space: nowrap` on the box must not reach the paint.
+        this.breaking = TextFlow.NORMAL.overflowWrap(flow.overflowWrap()).wordBreak(flow.wordBreak());
+        this.textAlign = flow.textAlign();
+        return this;
     }
 
     /// Whether `Enter` inserts a newline. False by default.
@@ -644,7 +664,7 @@ public final class Editor {
         // A document always has at least one hard line and a hard line always
         // occupies at least one visual line, so the caret has a line to sit on
         // without a fallback here.
-        return document().lines(wrapWidth);
+        return document().lines(wrapWidth, breaking);
     }
 
     /// Where to draw the caret, in the text's own space.
@@ -809,7 +829,7 @@ public final class Editor {
         var shaped = document();
         var rows = lines();
         var lineHeight = font.lineHeight();
-        var flow = TextFlow.NORMAL.textAlign(textAlign);
+        var flow = breaking.textAlign(textAlign);
         for (var k = 0; k < shaped.hardLineCount(); k++) {
             shaped.paragraphOf(k).paint(frame, x, top + rows.firstVisualOf(k) * lineHeight, wrapWidth, argb, flow);
         }

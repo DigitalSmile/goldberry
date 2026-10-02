@@ -5,7 +5,7 @@ import java.util.Optional;
 import dev.goldberry.input.hit.Extent;
 import dev.goldberry.render.model.LogicalRect;
 import dev.goldberry.text.document.TextDocument;
-import dev.goldberry.text.flow.TextAlign;
+import dev.goldberry.text.flow.TextFlow;
 import dev.goldberry.text.font.Font;
 
 /// What [TextAreaBox] tells its state — `text-input`'s seam, with a second
@@ -180,8 +180,11 @@ interface AreaEditor {
     /// @param document the text as the frame shaped it, a hard line at a time
     /// @param padding the control's resolved padding
     /// @param gutter  how wide the line-number column is, or 0 when there is none
+    /// @param flow    the flow the paint draws the text with: where a line sits
+    ///                (`text-align`) and where a word too wide for it breaks
+    ///                (`overflow-wrap`, `word-break`)
     /// @return how far the content is scrolled **up**, in logical pixels
-    double laidOut(TextDocument document, AreaPadding padding, double gutter, TextAlign align);
+    double laidOut(TextDocument document, AreaPadding padding, double gutter, TextFlow flow);
 
     /// The text shaped for this frame, re-using whatever the last frame shaped.
     ///

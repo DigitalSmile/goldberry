@@ -53,11 +53,13 @@ clusters.**
 
 - `.log { white-space: pre-wrap; overflow-wrap: anywhere }` keeps indentation
   and keeps a digest inside the box.
-- `layout(width)` without a flow is unchanged, and so is every caller of it,
-  which is everything except the measure function and the painter. A `text`
-  styled with `overflow-wrap: anywhere` is measured and drawn cut; a caret or
-  selection walk over the same paragraph through `layout(width)` would see the
-  uncut lines, which no catalog widget does today.
+- `layout(width)` without a flow is unchanged, and so is every caller that
+  breaks only between words. Everything that measures, draws or walks text with
+  a caret takes the flow: the measure function, the painter, and
+  `TextDocument.lines(width, flow)`, whose rows `Editor` and `text-area` count
+  their caret, selection and scroll in. `text-area` needed it: it painted its
+  rows cut and counted them uncut, so a cut token drew a row the caret could
+  not reach.
 - CSS also lets `overflow-wrap: anywhere` lower the box's smallest width. A
   paragraph here reports its widest line at the width it was offered, so
   `anywhere` and `break-word` cannot differ, and do not.

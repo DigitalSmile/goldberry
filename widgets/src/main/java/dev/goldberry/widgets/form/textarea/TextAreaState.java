@@ -21,6 +21,7 @@ import dev.goldberry.widgets.form.parts.Preedit;
 import dev.goldberry.text.edit.EditHistory;
 import dev.goldberry.text.edit.TextEdit;
 import dev.goldberry.text.flow.TextAlign;
+import dev.goldberry.text.flow.TextFlow;
 import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
@@ -671,11 +672,12 @@ final class TextAreaState extends State<TextArea> implements AreaEditor {
     }
 
     @Override
-    public double laidOut(TextDocument shaped, AreaPadding edges, double gutter, TextAlign align) {
+    public double laidOut(TextDocument shaped, AreaPadding edges, double gutter, TextFlow flow) {
         document = shaped;
         padding = edges;
         gutterWidth = gutter;
-        textAlign = align;
+        textAlign = flow.textAlign();
+        textFlow = flow;
 
         var lineHeight = shaped.font().lineHeight();
         var offset = scrollOffset;
@@ -755,6 +757,10 @@ final class TextAreaState extends State<TextArea> implements AreaEditor {
     /// runs before Yoga, and both are read by the hit test and the caret between
     /// frames rather than during one.
     private TextAlign textAlign = TextAlign.START;
+
+    /// The flow the paint drew the text with, from the last [#laidOut]: the rows
+    /// the caret and the scroll count have to break where the paint broke them.
+    private TextFlow textFlow = TextFlow.NORMAL;
 
     /// How far in `line` was drawn, which is what every x here is measured from.
     ///
@@ -851,7 +857,7 @@ final class TextAreaState extends State<TextArea> implements AreaEditor {
     /// The same, as the document's own view — null before the first render.
     private @Nullable DocumentLines layout() {
         var shaped = document;
-        return shaped == null ? null : shaped.lines(contentWidth());
+        return shaped == null ? null : shaped.lines(contentWidth(), textFlow);
     }
 
     /// Which visual line `offset` is on — the last one that starts at or before

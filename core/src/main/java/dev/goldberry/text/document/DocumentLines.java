@@ -4,6 +4,7 @@ import java.util.AbstractList;
 import java.util.Arrays;
 
 import dev.goldberry.text.TextLine;
+import dev.goldberry.text.flow.TextFlow;
 
 /// A [TextDocument] broken into visual lines at one width: which visual line an
 /// offset is on, where each hard line's rows begin, and how many rows there are.
@@ -34,13 +35,18 @@ public final class DocumentLines extends AbstractList<TextLine> {
     private final TextDocument document;
     private final double width;
 
+    /// How a word wider than the line breaks: `overflow-wrap` and `word-break`.
+    /// The rows here have to be the rows the paint draws, and the paint reads it.
+    private final TextFlow flow;
+
     /// Where each hard line's first visual line is; one longer than the hard
     /// line count, so the last entry is the total.
     private final int[] visualStarts;
 
-    DocumentLines(TextDocument document, double width, int[] visualStarts) {
+    DocumentLines(TextDocument document, double width, TextFlow flow, int[] visualStarts) {
         this.document = document;
         this.width = width;
+        this.flow = flow;
         this.visualStarts = visualStarts;
     }
 
@@ -83,7 +89,7 @@ public final class DocumentLines extends AbstractList<TextLine> {
     public int indexOf(int offset) {
         var k = document.hardLineAt(offset);
         var local = offset - document.startOf(k);
-        var lines = document.paragraphOf(k).layout(width);
+        var lines = document.paragraphOf(k).layout(width, flow);
         var within = 0;
         for (var i = 0; i < lines.lines().size(); i++) {
             if (lines.lines().get(i).start() <= local) {
@@ -95,7 +101,7 @@ public final class DocumentLines extends AbstractList<TextLine> {
 
     /// The line `index` as its own paragraph sees it.
     private TextLine localLine(int k, int within) {
-        var lines = document.paragraphOf(k).layout(width);
+        var lines = document.paragraphOf(k).layout(width, flow);
         if (lines.lines().isEmpty()) {
             return new TextLine(0, 0, 0, 0, 0);
         }
