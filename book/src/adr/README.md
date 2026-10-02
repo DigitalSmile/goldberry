@@ -557,3 +557,5 @@ proposing to undo them.
 - [ADR-0519 goldberry.dev counts visits, and only with consent](0519-goldberry-dev-counts-visits-only-with-consent.md)
 - [ADR-0520 Media Foundation is held back from 2026.2](0520-media-foundation-is-held-back-from-2026-2.md)
 - [ADR-0521 Every natives jar carries the web view](0521-every-natives-jar-carries-the-web-view.md)
+- [ADR-0522 Each overlay is its own node](0522-each-overlay-is-its-own-node.md)
+- [ADR-0523 A dialog takes itself off the window](0523-a-dialog-takes-itself-off-the-window.md)

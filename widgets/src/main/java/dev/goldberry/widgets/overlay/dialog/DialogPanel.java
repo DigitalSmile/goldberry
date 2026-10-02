@@ -21,6 +21,8 @@ import dev.goldberry.widget.semantics.Semantics;
 import dev.goldberry.widget.style.Paints;
 import dev.goldberry.widget.style.Styled;
 import dev.goldberry.widgets.core.presence.Phase;
+import dev.goldberry.widgets.core.scroll.Scroll;
+import dev.goldberry.widgets.core.scroll.ScrollAxis;
 
 /// The node a stylesheet calls `dialog`: the panel, its two keys, and the focus
 /// trap.
@@ -35,10 +37,11 @@ import dev.goldberry.widgets.core.presence.Phase;
 ///                   one closes the dialog first
 /// @param onEscape   the dismissive action
 /// @param onEnter    the affirmative action
+/// @param onDismiss  what the title bar's × does, already wrapped so the dialog
+///                   closes first, or null for a dialog with no ×
 /// @param phase      the shared opening or closing
 /// @param closing    whether input has stopped, which it does the instant
 ///                   closing starts
-/// @param closed     whether the closing animation has run out
 /// @param onMotion   told what each frame says about the motion preference
 /// @param attributes the `id` and classes the document wrote
 record DialogPanel(
@@ -47,12 +50,16 @@ record DialogPanel(
         List<Widget> buttons,
         Runnable onEscape,
         Runnable onEnter,
+        @Nullable Runnable onDismiss,
         Phase phase,
         boolean closing,
-        boolean closed,
         Consumer<Boolean> onMotion,
         Attributes attributes)
         implements Widget.Leaf, Styled, Paints, Handles, Semantics {
+
+    /// The class on the `scroll` the body sits in, so a stylesheet can tell
+    /// it from a `scroll` an author put inside the body.
+    static final String SCROLL_CLASS = "dialog-scroll";
 
     /// A panel arrives on `opacity` and a `scale` from 0.96 to 1. Near enough to one that it reads
     /// as the panel settling rather than as something flying at the reader.
@@ -130,35 +137,41 @@ record DialogPanel(
         }
     }
 
+    /// The title bar, the body, and the action bar.
+    ///
+    /// **The body is the part that scrolls.** The panel is capped at the
+    /// window's height by its stylesheet, and when its content would make it
+    /// taller the title and the actions keep their size and the body gives up
+    /// the difference. The `scroll` it sits in is a Tab stop only while there
+    /// is something to scroll, so a short dialog's Tab order is its fields and
+    /// its buttons and nothing else.
     @Override
     public List<Widget> children() {
-        if (closed) {
-            return List.of();
-        }
         var parts = new ArrayList<Widget>(3);
-        if (title != null) {
+        if (onDismiss != null) {
+            parts.add(new DialogHeader(title, onDismiss));
+        } else if (title != null) {
             parts.add(new DialogTitle(title));
         }
-        parts.add(new DialogBody(content));
+        parts.add(
+                new Scroll(List.of(new DialogBody(content)), ScrollAxis.VERTICAL, Attributes.NONE.classes(SCROLL_CLASS))
+                        .tabStopOnlyWhenScrollable());
         if (!buttons.isEmpty()) {
             parts.add(new DialogActions(buttons));
         }
         return List.copyOf(parts);
     }
 
-    /// See [DialogScrim#isAnimating()] — `closing` is about input and [#closed]
-    /// is about drawing, and conflating them is why a dialog used not to fade.
+    /// See [DialogScrim#isAnimating()]: a closing phase never settles itself,
+    /// and what ends it is the dialog describing nothing once the fade is over.
     @Override
     public boolean isAnimating() {
-        return !closed && phase.isRunning();
+        return phase.isRunning();
     }
 
     @Override
     public Box render(ComputedStyle style, List<Box> boxes, Context context) {
         onMotion.accept(context.reducedMotion());
-        if (closed) {
-            return Box.of();
-        }
         var box = Box.of().style(style).children(boxes.toArray(Box[]::new));
         if (context.reducedMotion()) {
             phase.skip();
@@ -192,6 +205,88 @@ record DialogPanel(
         @Override
         public Box render(ComputedStyle style, List<Box> children, Context context) {
             return Box.of().style(style).children(Box.text(context.paragraph(style, text), style.color()));
+        }
+    }
+
+    /// The title and the × beside it, for a dialog that asked for one.
+    ///
+    /// A row of its own rather than a × inside `dialog-title`, so the heading
+    /// is the same node with the same rule in every dialog and only a dialog
+    /// with a way out in its title bar has the row.
+    ///
+    /// @param title     the heading, or null for a row with only the ×
+    /// @param onDismiss what the × does
+    record DialogHeader(@Nullable String title, Runnable onDismiss) implements Widget.Leaf, Styled, Paints {
+
+        @Override
+        public String cssType() {
+            return "dialog-header";
+        }
+
+        @Override
+        public Set<String> classes() {
+            return Set.of();
+        }
+
+        @Override
+        public List<Widget> children() {
+            return title == null
+                    ? List.of(new DialogDismiss(onDismiss))
+                    : List.of(new DialogTitle(title), new DialogDismiss(onDismiss));
+        }
+
+        @Override
+        public Box render(ComputedStyle style, List<Box> boxes, Context context) {
+            return Box.of().style(style).children(boxes.toArray(Box[]::new));
+        }
+    }
+
+    /// The × at the end of the title bar.
+    ///
+    /// **Not a Tab stop**, for `tab-close`'s reason: the keyboard already has
+    /// the same way out. In a dialog with a ×, `Esc` and a press on the scrim
+    /// do what the × does, and a stop on it would put a Tab before every
+    /// field in the dialog.
+    ///
+    /// @param onDismiss what to do, already wrapped so the dialog closes first
+    record DialogDismiss(Runnable onDismiss) implements Widget.Leaf, Styled, Paints, Handles, Semantics {
+
+        /// The same pen `message-dismiss` draws its × with.
+        private static final double STROKE = 1.5;
+
+        @Override
+        public String cssType() {
+            return "dialog-dismiss";
+        }
+
+        @Override
+        public Set<String> classes() {
+            return Set.of();
+        }
+
+        @Override
+        public void onPointer(PointerEvent event) {
+            if (event.kind() == PointerEvent.Kind.CLICKED) {
+                onDismiss.run();
+            }
+            // Every kind, as the panel around it does: a press on the × is not
+            // a press on the scrim behind the panel.
+            event.consume();
+        }
+
+        @Override
+        public Box render(ComputedStyle style, List<Box> children, Context context) {
+            return Box.of().style(style).mark(new Box.Mark(Box.Mark.Kind.CROSS, style.color(), STROKE));
+        }
+
+        @Override
+        public Role role() {
+            return Role.BUTTON;
+        }
+
+        @Override
+        public String accessibleName() {
+            return "Close";
         }
     }
 

@@ -189,6 +189,7 @@ final class ScrollState extends State<Scroll> {
                 this::lined,
                 gutter,
                 this::guttered,
+                scroll.tabStopWhenFits(),
                 scroll.attributes());
     }
 

@@ -65,6 +65,7 @@ record ScrollViewport(
         java.util.function.DoubleConsumer onLine,
         double gutter,
         java.util.function.DoubleConsumer onGutter,
+        boolean tabStopWhenFits,
         Attributes attributes)
         implements Widget.Leaf, Styled, Paints, Handles, Measured, Anchored, Semantics {
 
@@ -205,9 +206,19 @@ record ScrollViewport(
 
     /// A viewport is a Tab stop: the arrows, `PageUp`, `PageDown`, `Home` and
     /// `End` act when it has focus.
+    ///
+    /// Unless its scroll asked to be one only when there is something to
+    /// scroll ([Scroll#tabStopOnlyWhenScrollable()]); then it is one while
+    /// its content overflows on its axis, as the last measurement says.
     @Override
     public boolean isFocusable() {
-        return true;
+        if (tabStopWhenFits) {
+            return true;
+        }
+        // Half a pixel, [ScrollStick]'s tolerance: layout rounding is not
+        // something to scroll.
+        return (axis.isVertical() && viewport.overflowY(content) > 0.5f)
+                || (axis.isHorizontal() && viewport.overflowX(content) > 0.5f);
     }
 
     /// While the bars are fading or a glide is under way; the idle frame loop

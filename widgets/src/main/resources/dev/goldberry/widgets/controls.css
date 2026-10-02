@@ -4806,8 +4806,9 @@ message-dismiss:focus-visible {
    the row allows it. The padding was the de-facto maximum before there was a real
    one; now there is, and the two would be fighting.
 
-   Down the page it stays: a tall dialog still has to be kept off the top and
-   bottom edges, and no maximum on the height is doing that job. */
+   Down the page it stays, and there it is the margin the height's maximum is
+   measured inside: `dialog { max-height: 100% }` is the window less 24px at the
+   top and 24px at the bottom. */
 dialog-scrim {
   flex-direction: column;
   align-items: center;
@@ -4825,11 +4826,17 @@ dialog-scrim {
    at all: it resolves against the containing block, and a dialog's is a scrim
    that fills the window. So "80% of the window" needs nothing to measure a
    window — see the note on `dialog-scrim` for why that scrim now has no padding
-   across. */
+   across.
+
+   The height has a maximum for the same reason and in the same way: no taller
+   than the scrim's content box, which is the window less its margins. A dialog
+   whose content would be taller keeps its title and its action bar and gives
+   the difference up from the body, which scrolls — see `scroll.dialog-scroll`. */
 dialog {
   flex-direction: column;
   min-width: 320px;
   max-width: 80%;
+  max-height: 100%;
   padding: 24px;
   gap: 8px;
   background: var(--gb-surface-raised);
@@ -4852,9 +4859,62 @@ dialog-title {
   flex-shrink: 0;
 }
 
+/* A title bar with a way out in it: the heading, and the × at the end. Only a
+   dialog that asked for the × has this row; every other one has its
+   `dialog-title` straight in the panel, under the rule above. */
+dialog-header {
+  flex-direction: row;
+  align-items: center;
+  /* The × at the end, with or without a heading to push it there. */
+  justify-content: flex-end;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+dialog-header > dialog-title {
+  flex-grow: 1;
+  flex-shrink: 1;
+}
+
+/* `message-dismiss`'s ×, a size up for the title rank beside it. */
+dialog-dismiss {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  border-radius: 4px;
+  color: var(--gb-text-muted);
+  cursor: pointer;
+  transition: background var(--gb-motion-fast), color var(--gb-motion-fast);
+}
+
+dialog-dismiss:hover {
+  background: var(--gb-overlay-hover);
+  color: var(--gb-text);
+}
+
+dialog-dismiss:active {
+  background: var(--gb-overlay-active);
+}
+
+/* The body's viewport. It neither grows nor keeps its size: in a panel that
+   sizes to its content there is nothing to grow into, and when the panel meets
+   its maximum height this is the one part that shrinks.
+
+   **Four pixels of room for a focus ring.** A viewport clips, and a field that
+   fills the body draws its ring 4px outside itself (2px wide, 2px off). So the
+   viewport reaches 4px past the body on every side and the body pads the same
+   4px back: the content sits exactly where it did, and the ring is inside the
+   clip. */
+scroll.dialog-scroll {
+  flex-grow: 0;
+  flex-shrink: 1;
+  margin: -4px;
+}
+
 dialog-body {
   flex-direction: column;
   gap: 8px;
+  padding: 4px;
   color: var(--gb-text);
 }
 

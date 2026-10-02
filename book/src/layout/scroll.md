@@ -86,6 +86,8 @@ A wheel is consumed only when it moved something. At the top of a list a further
 
 A `scroll` is a Tab stop. The keys act when it has focus and are consumed only when they moved something.
 
+From Java, `.tabStopOnlyWhenScrollable()` makes it a Tab stop only while its content overflows. That is for a viewport that wraps content of its own, such as a dialog's body: one that fits adds nothing to the Tab order, and one that overflows can still be scrolled from the keyboard.
+
 | Key | Moves |
 |---|---|
 | Up, Down, Left, Right | One line, `--gb-scroll-line` |

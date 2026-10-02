@@ -16,20 +16,22 @@ import dev.goldberry.Overlay;
 ///         new Text("Your draft has not been saved."),
 ///         new DialogAction("Keep editing", Role.DISMISSIVE, () -> stay()),
 ///         new DialogAction("Discard", Role.AFFIRMATIVE, () -> discard())));
-/// // …and the handlers above end with:
-/// open.remove();
+/// // …and when the application decides it is over without the user:
+/// open.dismiss();
 /// ```
 ///
-/// ## The application closes it, and the dialog fades first
+/// ## The dialog fades, then takes itself off the window
 ///
-/// What comes back is the [Overlay] handle, and `remove()` is how a dialog goes.
-/// That is the application's call and always will be: only it knows whether the
-/// question has been answered.
+/// What comes back is the [Overlay] handle. Every route out of a dialog — a
+/// button, `Esc`, a press on the scrim, the title bar's × — runs the closing
+/// animation first, calls the handler when it is over, and then removes the
+/// overlay. A handler does not have to remove it, and one that still does is
+/// harmless, because removing is idempotent.
 ///
-/// What it does **not** have to know is the animation. Every route out of a
-/// dialog — a button, `Esc`, a press on the scrim — runs the closing animation
-/// first and calls the handler when it is over, so a handler that removes the
-/// overlay immediately still gets the fade.
+/// When the **application** is the one that decides — a sign-in that finished
+/// on its own, a dialog that a newer one replaces — [Overlay#dismiss()] runs the
+/// same fade without pressing anything, and removes it at the end.
+/// [Overlay#remove()] takes it away at once, with no fade.
 ///
 /// Confined to the UI thread, like everything that touches a [Host].
 ///
@@ -57,10 +59,25 @@ public final class Dialogs {
     /// The keyboard half is the panel declaring itself modal, which the router
     /// reads off the tree.
     ///
+    /// A dialog that arrives without an id is given [#DEFAULT_ID], and **a key
+    /// it was given is kept**. An id doubles as a key, so naming the dialog
+    /// would otherwise replace a `keyed(…)` the caller wrote.
+    ///
     /// @return the handle that takes it away again
     public static Overlay show(Host host, Dialog dialog) {
         Objects.requireNonNull(host, "host");
         Objects.requireNonNull(dialog, "dialog");
-        return host.fill(dialog.attributes().id() == null ? dialog.id(DEFAULT_ID) : dialog);
+        return host.fill(named(dialog));
+    }
+
+    /// `dialog`, with [#DEFAULT_ID] if it has no id, and its own key either way.
+    static Dialog named(Dialog dialog) {
+        var attributes = dialog.attributes();
+        if (attributes.id() != null) {
+            return dialog;
+        }
+        var key = attributes.key();
+        var named = attributes.id(DEFAULT_ID);
+        return dialog.withAttributes(key == null ? named : named.key(key));
     }
 }

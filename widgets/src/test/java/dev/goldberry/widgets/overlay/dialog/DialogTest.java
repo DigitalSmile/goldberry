@@ -3,6 +3,7 @@ package dev.goldberry.widgets.overlay.dialog;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -313,12 +314,16 @@ class DialogTest {
             assertTrue(Described.first(tree, DialogScrim.class).isAnimating(), "the veil stopped asking for frames");
         }
 
-        /// And it stops when the fade is over, even if the application does not
-        /// remove the overlay — `message`'s rule, for `message`'s reason: a
-        /// `LEAVING` phase never settles itself, so something has to end it or the
-        /// loop spins for ever.
+        /// And it stops when the fade is over, even where there is no overlay to
+        /// take away — `message`'s rule, for `message`'s reason: a `LEAVING`
+        /// phase never settles itself, so something has to end it or the loop
+        /// spins for ever.
+        ///
+        /// What ends it is the scrim leaving the tree. A scrim that had faded
+        /// used to stay, drawing nothing and filling the window, and it took
+        /// every press in it.
         @Test
-        @DisplayName("and stop when it is over, whatever the application does")
+        @DisplayName("and when it is over there is no scrim left to ask, or to hit")
         void closedStopsAsking() {
             var tree = open(action("Cancel", Role.DISMISSIVE));
             Described.first(tree, DialogPanel.class).onKey(press(Key.ESCAPE));
@@ -327,9 +332,7 @@ class DialogTest {
             host.tick();
             tree.flush();
 
-            assertFalse(
-                    Described.first(tree, DialogScrim.class).isAnimating(),
-                    "the veil is still asking for frames after it has gone");
+            assertEquals(0, Described.counting(tree, "dialog-scrim"), "a closed dialog is still describing a veil");
             assertEquals(0, Described.counting(tree, "dialog"), "a dialog that has closed is still describing a panel");
         }
 
@@ -415,6 +418,144 @@ class DialogTest {
             var overlay = Dialogs.show(host, new Dialog("Delete this?", new Text("x")).id("confirm"));
 
             assertEquals("confirm", ((Dialog) overlay.widget()).attributes().id());
+        }
+
+        /// An id doubles as a key, so naming an anonymous dialog used to
+        /// replace the key the caller had given it — and a caller had to know
+        /// to set the id first for `keyed` to do anything at all.
+        @Test
+        @DisplayName("Dialogs.show names an unnamed dialog and keeps the key it was given")
+        void showKeepsAKey() {
+            var key = new Object();
+            var overlay = Dialogs.show(host, new Dialog("Delete this?", new Text("x")).keyed(key));
+
+            var shown = (Dialog) overlay.widget();
+            assertEquals(Dialogs.DEFAULT_ID, shown.attributes().id(), "it still has to be focusable by name");
+            assertSame(key, shown.key(), "the caller's key was replaced by the default id");
+        }
+
+        @Test
+        @DisplayName("and an unkeyed one is keyed by its name, as before")
+        void showKeysByName() {
+            var overlay = Dialogs.show(host, new Dialog("Delete this?", new Text("x")));
+
+            assertEquals(Dialogs.DEFAULT_ID, overlay.widget().key());
+        }
+    }
+
+    /// The opt-in way out: a × at the end of the title bar.
+    @Nested
+    @DisplayName("the title bar's ×")
+    class Dismiss {
+
+        private ElementTree dismissible(DialogAction... actions) {
+            var children = new ArrayList<dev.goldberry.widget.Widget>();
+            children.add(new Text("Sign in to continue."));
+            children.addAll(List.of(actions));
+            return new ElementTree(
+                    new Dialog("Sign in", children, dev.goldberry.widget.attr.Attributes.NONE.id("sign-in"))
+                            .dismissible(() -> pressed.add("×")),
+                    host);
+        }
+
+        @Test
+        @DisplayName("is absent unless asked for")
+        void optIn() {
+            var tree = open(action("Cancel", Role.DISMISSIVE));
+
+            assertEquals(0, Described.counting(tree, "dialog-dismiss"));
+            assertEquals(0, Described.counting(tree, "dialog-header"));
+            assertEquals(1, Described.counting(tree, "dialog-title"), "the heading is where it always was");
+        }
+
+        @Test
+        @DisplayName("sits at the end of a header row, beside the heading")
+        void structure() {
+            var tree = dismissible();
+
+            assertEquals(1, Described.counting(tree, "dialog-header"));
+            assertEquals(1, Described.counting(tree, "dialog-title"));
+            assertEquals(1, Described.counting(tree, "dialog-dismiss"));
+        }
+
+        /// A titleless dialog that asks for a × still gets one: the row is
+        /// there for the ×, and the heading is what is optional in it.
+        @Test
+        @DisplayName("a dialog with no title still gets its ×")
+        void withoutATitle() {
+            var tree = new ElementTree(new Dialog(null, new Text("x")).dismissible(() -> {}), host);
+
+            assertEquals(1, Described.counting(tree, "dialog-dismiss"));
+            assertEquals(0, Described.counting(tree, "dialog-title"));
+        }
+
+        @Test
+        @DisplayName("a press on it closes the dialog first and then runs its handler")
+        void pressCloses() {
+            var tree = dismissible();
+
+            Described.first(tree, DialogPanel.DialogDismiss.class).onPointer(click());
+            tree.flush();
+            assertTrue(pressed.isEmpty(), "told before the fade had run");
+
+            host.tick();
+            assertEquals(List.of("×"), pressed);
+        }
+
+        /// The keyboard has the same way out, which is why the × is not a Tab
+        /// stop of its own.
+        @Test
+        @DisplayName("Escape and the veil mean the ×, even beside a dismissive button")
+        void escapeIsTheCross() {
+            var tree = dismissible(action("Cancel", Role.DISMISSIVE));
+
+            Described.first(tree, DialogPanel.class).onKey(press(Key.ESCAPE));
+            host.tick();
+
+            assertEquals(List.of("×"), pressed);
+            var cross = Described.first(tree, DialogPanel.DialogDismiss.class);
+            assertFalse(cross.isFocusable(), "a Tab stop before every field in the dialog");
+            assertEquals(dev.goldberry.widget.semantics.Role.BUTTON, cross.role());
+            assertEquals("Close", cross.accessibleName());
+        }
+
+        @Test
+        @DisplayName("dismiss= asks for it in markup")
+        void markup() {
+            var actions = ActionRegistry.strict().bind("app.close", () -> pressed.add("close"));
+
+            var dialog = assertInstanceOf(
+                    Dialog.class,
+                    Widgets.inflater(actions).inflate(KdlParser.parse("""
+                            dialog title="Sign in" dismiss="app.close" {
+                                text "Sign in to continue."
+                            }
+                            """).getFirst()));
+
+            assertTrue(dialog.isDismissible());
+            dialog.onDismiss().run();
+            assertEquals(List.of("close"), pressed);
+        }
+    }
+
+    /// The body sits in a viewport, so a dialog taller than the window
+    /// scrolls rather than running off it. That the cap holds is
+    /// `DialogLayerTest`'s; here is what the panel describes.
+    @Nested
+    @DisplayName("the body")
+    class Body {
+
+        @Test
+        @DisplayName("is inside a scroll of its own, and the title and actions are not")
+        void scrolls() {
+            var tree = open(action("Cancel", Role.DISMISSIVE));
+
+            var scroll = Described.first(tree, dev.goldberry.widgets.core.scroll.Scroll.class);
+            assertTrue(scroll.attributes().classes().contains(DialogPanel.SCROLL_CLASS));
+            assertFalse(
+                    scroll.tabStopWhenFits(), "a body that fits would be a Tab stop before every field in the dialog");
+            assertEquals(1, Described.counting(tree, "dialog-body"));
+            assertEquals(1, Described.counting(tree, "scroll"), "the title or the actions are scrolling too");
         }
     }
 

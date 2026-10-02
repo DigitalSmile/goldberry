@@ -3,6 +3,7 @@ package dev.goldberry.widget.root;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 
 import org.jspecify.annotations.Nullable;
@@ -16,6 +17,7 @@ import dev.goldberry.layout.Length;
 import dev.goldberry.layout.Position;
 import dev.goldberry.paint.Box;
 import dev.goldberry.paint.tree.ContainingBlock;
+import dev.goldberry.widget.BuildContext;
 import dev.goldberry.widget.Element;
 import dev.goldberry.widget.ElementTree;
 import dev.goldberry.widget.Widget;
@@ -104,6 +106,12 @@ public record WindowRoot(Widget content, Property<List<Overlay>> overlays) imple
     /// A box tree has no z-order beyond document order, which is what
     /// makes an overlay layer a matter of list position rather than of a new
     /// concept.
+    ///
+    /// Each overlay's widget comes wrapped in a slot keyed by its [Overlay]
+    /// handle, so the reconciler matches overlays by **which one they are**
+    /// and never by what their widgets look like. Two dialogs with the same
+    /// id are two nodes, and one shown in the turn another was removed starts
+    /// from nothing.
     @Override
     public List<Widget> children() {
         // Never null: the launcher's property starts at List.of() and is only
@@ -117,9 +125,25 @@ public record WindowRoot(Widget content, Property<List<Overlay>> overlays) imple
         var children = new ArrayList<Widget>(entries.size() + 1);
         children.add(content);
         for (var entry : entries) {
-            children.add(entry.widget());
+            children.add(new OverlaySlot(entry));
         }
         return List.copyOf(children);
+    }
+
+    /// The overlay that `context` is inside, or empty when it is in the
+    /// application's content or in a tree with no window root.
+    ///
+    /// This is how a widget on the overlay layer reaches its own handle
+    /// without being handed it. A dialog is a value built before the handle
+    /// existed, and it still has to take itself off the window when it has
+    /// finished closing.
+    ///
+    /// ```java
+    /// WindowRoot.overlayOf(context).ifPresent(overlay -> overlay.dismissWith(this::leave));
+    /// ```
+    public static Optional<Overlay> overlayOf(BuildContext context) {
+        Objects.requireNonNull(context, "context");
+        return context.findAncestor(OverlaySlot.class).map(OverlaySlot::overlay);
     }
 
     /// Content fills the window; every overlay is pinned out of flow.
@@ -173,8 +197,7 @@ public record WindowRoot(Widget content, Property<List<Overlay>> overlays) imple
     /// A box carries the element that produced it — the tag hit testing gets from
     /// a rectangle back to a node — so the honest question is which of
     /// this node's own children that element is under, and the element tree
-    /// answers it. Child 0 is the content, child *i* is overlay *i-1*, which is
-    /// the order [#children()] builds them in.
+    /// answers it. That child is the content, or a slot that names its overlay.
     private @Nullable Overlay overlayFor(Box box, @Nullable List<Overlay> entries) {
         if (entries == null || entries.isEmpty() || !(box.owner() instanceof Element owner)) {
             return null;
@@ -188,8 +211,7 @@ public record WindowRoot(Widget content, Property<List<Overlay>> overlays) imple
                 child = node;
                 continue;
             }
-            var index = child == null ? -1 : node.children().indexOf(child);
-            return index >= 1 && index <= entries.size() ? entries.get(index - 1) : null;
+            return child != null && child.widget() instanceof OverlaySlot slot ? slot.overlay() : null;
         }
         return null;
     }

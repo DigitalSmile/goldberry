@@ -39,11 +39,14 @@ public final class Overlay {
     /// The gap from the window's edges, in logical pixels, when a caller does not
     /// choose one.
     ///
-    /// A number in Java rather than in a stylesheet because the CSS subset has no
-    /// `position` property at all, which is also why `affix` is a widget and not
-    /// `position: sticky`. `--gb-window-margin` is the name it will have when a
-    /// floating button needs it in a rule; until something can read it there, one
-    /// place is better than two.
+    /// A number in Java rather than in a stylesheet because an overlay is placed
+    /// by the window's root and not by a rule. The CSS subset has `position:
+    /// relative` and `absolute`, and both place a box against its own parent; it
+    /// has no `fixed`, which is what would reach the window from deep in a tree,
+    /// and no `sticky`, which is why `affix` is a widget. A corner and a margin
+    /// are therefore arguments to [Host#overlay(Widget, Corner, float)].
+    /// `--gb-window-margin` is the name the number will have when a rule needs
+    /// it; until something can read it there, one place is better than two.
     public static final float WINDOW_MARGIN = 16;
 
     private final Widget widget;
@@ -53,6 +56,10 @@ public final class Overlay {
     /// How this overlay takes itself out of the layer that holds it, or null once
     /// it has. Set by whoever attached it.
     private @Nullable Runnable detach;
+
+    /// How the widget in this overlay leaves, for [#dismiss], or null for "at
+    /// once". Set by that widget, from inside.
+    private @Nullable Runnable exit;
 
     /// An overlay laid out to **the whole window** rather than pinned to a
     /// corner.
@@ -131,12 +138,50 @@ public final class Overlay {
 
     /// Takes it off the window. Idempotent — removing twice is what shutdown
     /// looks like when two things both think they own it.
+    ///
+    /// At once: whatever the widget was showing is gone on the next frame. A
+    /// widget with an exit animation is taken away with it by [#dismiss].
     public void remove() {
         var run = detach;
         detach = null;
+        exit = null;
         if (run != null) {
             run.run();
         }
+    }
+
+    /// Takes it off the window **the way its widget leaves**.
+    ///
+    /// A widget that has an exit — a dialog fading out — runs it, and the
+    /// overlay is removed when it is over. One without an exit is removed at
+    /// once, exactly as by [#remove()]. Either way the overlay is gone in the
+    /// end, so this is the call to make when the application, rather than the
+    /// user, decides that something is finished.
+    ///
+    /// ```java
+    /// var open = Dialogs.show(host, new Dialog("Signing in", new Text("One moment…")));
+    /// // …and when the answer arrives:
+    /// open.dismiss();
+    /// ```
+    ///
+    /// Idempotent, like [#remove()]: dismissing twice is one exit.
+    public void dismiss() {
+        var leave = exit;
+        if (leave == null || detach == null) {
+            remove();
+            return;
+        }
+        leave.run();
+    }
+
+    /// Says how the widget in this overlay leaves, for [#dismiss].
+    ///
+    /// Called by that widget, which finds this overlay with
+    /// [dev.goldberry.widget.root.WindowRoot#overlayOf]. The exit has to end in
+    /// [#remove()]; until it is set, or after it is cleared with null,
+    /// dismissing removes at once.
+    public void dismissWith(@Nullable Runnable leave) {
+        exit = leave;
     }
 
     /// Called by the layer that accepted this overlay, with the way back out.

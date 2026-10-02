@@ -1,6 +1,7 @@
 package dev.goldberry.widgets.overlay.dialog;
 
 import java.util.List;
+import java.util.Objects;
 
 import org.jspecify.annotations.Nullable;
 
@@ -41,12 +42,24 @@ import dev.goldberry.widgets.markup.Wiring;
 /// ## What it is made of
 ///
 /// ```
-/// dialog-scrim          fills the window, dims it, and takes every press
-/// └── dialog            the panel: sizes to content, min 320 and max 80%
-///     ├── dialog-title  absent when there is no title
-///     ├── dialog-body   what the author wrote
-///     └── dialog-actions the buttons, in role order
+/// dialog-scrim            fills the window, dims it, and takes every press
+/// └── dialog              the panel: sizes to content, min 320, max 80% wide
+///     │                   and no taller than the window
+///     ├── dialog-title    absent when there is no title
+///     ├── dialog-body     what the author wrote, scrolling when it is taller
+///     │                   than the panel has room for
+///     └── dialog-actions  the buttons, in role order
 /// ```
+///
+/// A dialog with a title-bar × ([#dismissible]) puts the title and the × in a
+/// `dialog-header` row instead, so the heading's own rule is unchanged.
+///
+/// ## The height is capped and the body scrolls
+///
+/// A dialog is never taller than the window less the scrim's margins. When
+/// its content would make it taller, the title and the action bar keep their
+/// size and the **body** scrolls, which is the part that grew. The body's
+/// content sits in a `scroll` with the class `dialog-scroll`.
 ///
 /// The **children are the content and the [DialogAction]s together**, as the
 /// document wrote them, and this partitions them — `tabs` and `select` read
@@ -65,20 +78,45 @@ import dev.goldberry.widgets.markup.Wiring;
 /// the dialog is open.
 ///
 /// A press on the scrim is the same event as `Esc`: both mean "the dismissive
-/// one". A dialog with no dismissive action is not dismissible by either, which
-/// is what a dialog that must be answered wants.
+/// one". A dialog with no dismissive action and no × is not dismissible by
+/// either, which is what a dialog that must be answered wants.
+///
+/// ## A way out in the title bar, when asked for
+///
+/// `dismiss=` puts a × at the end of the title bar, which is the way out for a
+/// dialog whose content already has a button bar of its own — a `wizard`,
+/// say, where a dismissive action would be a second Cancel under the first.
+/// The × closes the dialog and runs `dismiss`, and in a dialog with a × `Esc`
+/// and a press on the scrim do the same: the three are one way out, and the
+/// × is the one that can be seen. A dismissive action in the same dialog is
+/// then a button like any other. It is opt-in: a dialog that must be answered
+/// stays one by default.
 ///
 /// Read more: [Overlays](https://goldberry.dev/docs/components/overlays.html#dialog).
 ///
 /// @param title      the heading, or null for a panel with no title bar
 /// @param children   the content and the actions, as the document wrote them
+/// @param onDismiss  what the title bar's × does after the dialog closes, or
+///                   null for a dialog with no ×
 /// @param attributes the `id` and classes, which land on the panel
 @Markup("dialog")
-public record Dialog(@Nullable String title, List<Widget> children, Attributes attributes)
-        implements Widget.Stateful, Attributed<Dialog> {
+public record Dialog(
+        @Nullable String title,
+        List<Widget> children,
+        @Nullable Runnable onDismiss,
+        Attributes attributes) implements Widget.Stateful, Attributed<Dialog> {
+
+    /// A dialog with no ×, which is every dialog that does not ask for one.
+    public Dialog(@Nullable String title, @Nullable List<Widget> children, @Nullable Attributes attributes) {
+        this(title, children, null, attributes);
+    }
 
     /// Written out so that the parameters taking null for a default can say so.
-    public Dialog(@Nullable String title, @Nullable List<Widget> children, @Nullable Attributes attributes) {
+    public Dialog(
+            @Nullable String title,
+            @Nullable List<Widget> children,
+            @Nullable Runnable onDismiss,
+            @Nullable Attributes attributes) {
         children = List.copyOf(children == null ? List.of() : children);
         attributes = attributes == null ? Attributes.NONE : attributes;
         // Blank and absent are the same: a title bar with one space in it is a
@@ -104,6 +142,7 @@ public record Dialog(@Nullable String title, List<Widget> children, Attributes a
         }
         this.title = title;
         this.children = children;
+        this.onDismiss = onDismiss;
         this.attributes = attributes;
     }
 
@@ -141,9 +180,20 @@ public record Dialog(@Nullable String title, List<Widget> children, Attributes a
         return title != null;
     }
 
+    /// This dialog with a × in its title bar that closes it and then runs
+    /// `then` — see the class note.
+    public Dialog dismissible(Runnable then) {
+        return new Dialog(title, children, Objects.requireNonNull(then, "then"), attributes);
+    }
+
+    /// Whether this dialog has a × in its title bar.
+    public boolean isDismissible() {
+        return onDismiss != null;
+    }
+
     @Override
     public Dialog withAttributes(Attributes value) {
-        return new Dialog(title, children, value);
+        return new Dialog(title, children, onDismiss, value);
     }
 
     @Override
@@ -162,7 +212,9 @@ public record Dialog(@Nullable String title, List<Widget> children, Attributes a
     /// `group-box`'s reason: the argument position is where a container's
     /// children start, and `dialog "Unsaved changes" { … }` would read as a
     /// dialog containing those words.
+    ///
+    /// `dismiss=` names an action, as `message`'s does, and asks for the ×.
     public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
-        return new Dialog(node.stringProperty("title"), children, Attributes.of(node));
+        return new Dialog(node.stringProperty("title"), children, wiring.action(node, "dismiss"), Attributes.of(node));
     }
 }

@@ -7,10 +7,12 @@ import java.util.List;
 import org.jspecify.annotations.Nullable;
 
 import dev.goldberry.Host;
+import dev.goldberry.Overlay;
 import dev.goldberry.render.event.EventLoop;
 import dev.goldberry.widget.BuildContext;
 import dev.goldberry.widget.State;
 import dev.goldberry.widget.Widget;
+import dev.goldberry.widget.root.WindowRoot;
 import dev.goldberry.widgets.controls.button.Button;
 import dev.goldberry.widgets.core.presence.Departure;
 import dev.goldberry.widgets.core.presence.Phase;
@@ -28,10 +30,19 @@ import dev.goldberry.widgets.core.presence.Phase;
 /// nothing outside a dialog is holding it, so a dialog that told the application
 /// first would be asking to be removed before it had faded.
 ///
-/// So every route out — a button, `Esc`, a press on the scrim — goes through
-/// [#close], which starts the exit, stops taking input, and runs the
-/// application's handler when the animation ends. The handler is what removes
-/// the [dev.goldberry.Overlay] the dialog is sitting in.
+/// So every route out — a button, `Esc`, a press on the scrim, the × — goes
+/// through [#close], which starts the exit, stops taking input, and runs the
+/// application's handler when the animation ends.
+///
+/// ## And then it takes itself off the window
+///
+/// When the fade is over the dialog describes nothing, and it removes the
+/// [Overlay] it is sitting in, which it finds from inside with
+/// [WindowRoot#overlayOf]. A handler that forgets to remove it no longer
+/// leaves a scrim over the window, and one that remembers is harmless,
+/// because removing is idempotent. The same state is what
+/// [Overlay#dismiss()] runs, so an application that closes the dialog itself
+/// gets the fade too.
 ///
 /// ## And the one thing it asks for
 ///
@@ -83,6 +94,10 @@ final class DialogState extends State<Dialog> {
     /// can account for is how a leak looks before it is one.
     private EventLoop.@Nullable Timer focusing;
 
+    /// The overlay this dialog is on, or null when it is not on one — a test
+    /// tree, or a dialog an application put in its own content.
+    private @Nullable Overlay overlay;
+
     @Override
     protected void dispose() {
         closing.cancel();
@@ -90,12 +105,19 @@ final class DialogState extends State<Dialog> {
             focusing.cancel();
             focusing = null;
         }
+        onOverlay(null);
         super.dispose();
     }
 
     @Override
     public Widget build(BuildContext context) {
         host = context.host().orElse(null);
+        onOverlay(WindowRoot.overlayOf(context).orElse(null));
+        if (closing.isOver()) {
+            // Nothing at all, rather than a scrim that draws nothing: a scrim
+            // is a hit target the size of the window. See [DialogScrim].
+            return Widget.nothing();
+        }
         var dialog = widget();
         askForFocus();
 
@@ -103,6 +125,7 @@ final class DialogState extends State<Dialog> {
         for (var action : ordered(dialog.actions())) {
             buttons.add(button(action));
         }
+        var dismiss = dialog.onDismiss();
         var phase = closing.phaseOr(opening);
         var panel = new DialogPanel(
                 dialog.title(),
@@ -110,12 +133,28 @@ final class DialogState extends State<Dialog> {
                 buttons,
                 this::escape,
                 this::confirm,
+                dismiss == null ? null : () -> close(dismiss),
                 phase,
                 closing.hasBegun(),
-                closing.isOver(),
                 this::motion,
                 dialog.attributes());
-        return new DialogScrim(panel, this::escape, phase, closing.hasBegun(), closing.isOver());
+        return new DialogScrim(panel, this::escape, phase, closing.hasBegun());
+    }
+
+    /// Tells the overlay this dialog is on how it leaves, so
+    /// [Overlay#dismiss()] runs the fade, and takes that back from one it has
+    /// left.
+    private void onOverlay(@Nullable Overlay found) {
+        if (found == overlay) {
+            return;
+        }
+        if (overlay != null) {
+            overlay.dismissWith(null);
+        }
+        overlay = found;
+        if (found != null) {
+            found.dismissWith(this::dismiss);
+        }
     }
 
     /// The canonical order: neutral, then dismissive, then **affirmative last**.
@@ -152,14 +191,27 @@ final class DialogState extends State<Dialog> {
                 .withAttributes(action.attributes().classes(classes.toArray(String[]::new)));
     }
 
-    /// `Esc`, and a press on the scrim, which mean the same thing: the
-    /// dismissive button. A dialog without one is not dismissible by either,
-    /// which is what a question that must be answered wants.
+    /// `Esc`, and a press on the scrim, which mean the same thing: the ×, when
+    /// the dialog has one, and otherwise the dismissive button. A dialog with
+    /// neither is not dismissible by either, which is what a question that must
+    /// be answered wants.
     private void escape() {
+        var dismiss = widget().onDismiss();
+        if (dismiss != null) {
+            close(dismiss);
+            return;
+        }
         var action = widget().actionFor(DialogAction.Role.DISMISSIVE);
         if (action != null) {
             close(action.onPress());
         }
+    }
+
+    /// [Overlay#dismiss()]: the application closing the dialog itself. The
+    /// same fade as every other way out, and no handler, because nothing was
+    /// pressed.
+    private void dismiss() {
+        close(null);
     }
 
     /// `Enter`, which presses the affirmative button if there is one.
@@ -179,7 +231,30 @@ final class DialogState extends State<Dialog> {
         // The rules are [Departure]'s: idempotent, two flags, stop drawing
         // before telling the application, and gone at once when there is no
         // window or the reader asked for no motion.
-        closing.begin(host, reducedMotion, then);
+        closing.begin(host, reducedMotion, () -> leave(then));
+    }
+
+    /// The end of the fade: the application's handler, then the overlay off
+    /// the window.
+    ///
+    /// **In a `finally`**, because a handler that throws must not leave a
+    /// scrim behind it — that is the window locked with nothing on screen.
+    private void leave(@Nullable Runnable then) {
+        try {
+            if (then != null) {
+                then.run();
+            }
+        } finally {
+            var on = overlay;
+            if (on != null) {
+                on.remove();
+            } else if (isMounted()) {
+                // No overlay to take away, so this element stays, and it has
+                // to hear that the fade is over. Without a window the departure
+                // ends inside `begin`, where nothing asks for the rebuild.
+                setState(() -> {});
+            }
+        }
     }
 
     /// Asks the window to put the keyboard in here, once.

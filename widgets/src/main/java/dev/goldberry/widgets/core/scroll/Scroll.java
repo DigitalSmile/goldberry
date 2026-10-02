@@ -29,11 +29,12 @@ import dev.goldberry.widgets.markup.Wiring;
 /// `start` (the default) or `end`, which opens at the end and stays there while
 /// the viewport is already there. `preserve-on-prepend=` says whether content
 /// inserted above the viewport moves the offset by the height added so what is
-/// on screen stays still; unset, it is on for `end` and off for `start`. Three
+/// on screen stays still; unset, it is on for `end` and off for `start`. Four
 /// things are Java only: [#height(double)] caps the viewport in logical pixels,
 /// [#controlledBy(ScrollController)] hands it a handle the application keeps,
-/// and [#anchor(ScrollAnchor)] and [#preserveOnPrepend(boolean)] are the two
-/// attributes as methods.
+/// [#tabStopOnlyWhenScrollable()] takes it out of the Tab order while
+/// everything fits, and [#anchor(ScrollAnchor)] and
+/// [#preserveOnPrepend(boolean)] are the two attributes as methods.
 ///
 /// The viewport is three nodes: `scroll`, which clips and takes the wheel and
 /// the keys; `scroll-content`, the box that moves; and whatever was written
@@ -65,6 +66,9 @@ import dev.goldberry.widgets.markup.Wiring;
 ///                          rather than the reader; null for "whatever the
 ///                          anchor says", which is the state an unset attribute
 ///                          is in
+/// @param tabStopWhenFits   whether the viewport is a Tab stop even while
+///                          everything fits in it, which it is unless
+///                          [#tabStopOnlyWhenScrollable()] said otherwise
 /// @param attributes        `id` and `class`, exactly as on the primitives
 ///
 /// Read more: [Scroll](https://goldberry.dev/docs/layout/scroll.html#scroll).
@@ -76,6 +80,7 @@ public record Scroll(
         @Nullable ScrollController controller,
         ScrollAnchor anchor,
         @Nullable Boolean preserveOnPrepend,
+        boolean tabStopWhenFits,
         Attributes attributes)
         implements Widget.Stateful, Attributed<Scroll> {
 
@@ -87,6 +92,7 @@ public record Scroll(
             @Nullable ScrollController controller,
             @Nullable ScrollAnchor anchor,
             @Nullable Boolean preserveOnPrepend,
+            boolean tabStopWhenFits,
             @Nullable Attributes attributes) {
         children = List.copyOf(children == null ? List.of() : children);
         axis = axis == null ? ScrollAxis.VERTICAL : axis;
@@ -98,7 +104,21 @@ public record Scroll(
         this.controller = controller;
         this.anchor = anchor;
         this.preserveOnPrepend = preserveOnPrepend;
+        this.tabStopWhenFits = tabStopWhenFits;
         this.attributes = attributes;
+    }
+
+    /// The form every caller wrote before a viewport could leave the Tab order:
+    /// a Tab stop always.
+    public Scroll(
+            @Nullable List<Widget> children,
+            @Nullable ScrollAxis axis,
+            double height,
+            @Nullable ScrollController controller,
+            @Nullable ScrollAnchor anchor,
+            @Nullable Boolean preserveOnPrepend,
+            @Nullable Attributes attributes) {
+        this(children, axis, height, controller, anchor, preserveOnPrepend, true, attributes);
     }
 
     public Scroll(List<Widget> children, ScrollAxis axis, Attributes attributes) {
@@ -121,7 +141,7 @@ public record Scroll(
     /// puts the newest item on the left of the screen, where that language's
     /// reader ends up.
     public Scroll anchor(ScrollAnchor value) {
-        return new Scroll(children, axis, height, controller, value, preserveOnPrepend, attributes);
+        return new Scroll(children, axis, height, controller, value, preserveOnPrepend, tabStopWhenFits, attributes);
     }
 
     /// Whether content inserted **above** this viewport moves the offset by the
@@ -139,7 +159,7 @@ public record Scroll(
     /// message
     /// ([Widget#key()]).
     public Scroll preserveOnPrepend(boolean value) {
-        return new Scroll(children, axis, height, controller, anchor, value, attributes);
+        return new Scroll(children, axis, height, controller, anchor, value, tabStopWhenFits, attributes);
     }
 
     /// Whether this viewport preserves its offset on a prepend, with the anchor
@@ -156,7 +176,7 @@ public record Scroll(
     /// is by definition somewhere else, and a controller made here would have a
     /// new identity on every rebuild.
     public Scroll controlledBy(ScrollController value) {
-        return new Scroll(children, axis, height, value, anchor, preserveOnPrepend, attributes);
+        return new Scroll(children, axis, height, value, anchor, preserveOnPrepend, tabStopWhenFits, attributes);
     }
 
     /// This viewport with a height of `value` logical pixels.
@@ -168,12 +188,24 @@ public record Scroll(
     /// An ordinary `scroll` leaves this alone and takes its height from the
     /// stylesheet, which is `flex-grow: 1` — fill what is left of the column.
     public Scroll height(double value) {
-        return new Scroll(children, axis, value, controller, anchor, preserveOnPrepend, attributes);
+        return new Scroll(children, axis, value, controller, anchor, preserveOnPrepend, tabStopWhenFits, attributes);
+    }
+
+    /// This viewport out of the Tab order **while everything fits in it**.
+    ///
+    /// A viewport is a Tab stop because its keys scroll it. With nothing to
+    /// scroll the stop does nothing, and where a viewport wraps content of
+    /// its own — a dialog's body — it is a stop before every field the reader
+    /// came to fill in. This makes it one only when its content overflows, so
+    /// a short body adds nothing to the Tab order and a long one can still be
+    /// scrolled from the keyboard.
+    public Scroll tabStopOnlyWhenScrollable() {
+        return new Scroll(children, axis, height, controller, anchor, preserveOnPrepend, false, attributes);
     }
 
     @Override
     public Scroll withAttributes(Attributes attributes) {
-        return new Scroll(children, axis, height, controller, anchor, preserveOnPrepend, attributes);
+        return new Scroll(children, axis, height, controller, anchor, preserveOnPrepend, tabStopWhenFits, attributes);
     }
 
     @Override

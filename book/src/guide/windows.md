@@ -128,6 +128,18 @@ window, which is what a `tour`'s veil and a `dialog`'s scrim are. A
 `Dialogs.show(host, dialog)` and a `Toasts.at(host, controller, corner)` are
 this call with a widget the catalogue wrote.
 
+Each overlay is its own node, told apart by its `Overlay` handle and never by
+what its widget looks like. Two equal widgets shown at once are two nodes, and
+one shown in the same turn another was removed starts with fresh state
+([ADR-0522](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0522-each-overlay-is-its-own-node.md)).
+A widget on the layer finds its own handle with
+`WindowRoot.overlayOf(context)`.
+
+`remove()` takes an overlay away at once. `dismiss()` takes it away the way its
+widget leaves: a `dialog` fades out first and is removed when the fade is over.
+An overlay whose widget has no exit is removed at once by either call. Both are
+idempotent.
+
 ### In a window of its own
 
 ```java

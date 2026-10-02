@@ -2,13 +2,17 @@ package dev.goldberry;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -23,7 +27,10 @@ import dev.goldberry.layout.Length;
 import dev.goldberry.layout.Position;
 import dev.goldberry.paint.Box;
 import dev.goldberry.text.font.Font;
+import dev.goldberry.widget.BuildContext;
+import dev.goldberry.widget.Element;
 import dev.goldberry.widget.ElementTree;
+import dev.goldberry.widget.State;
 import dev.goldberry.widget.Widget;
 import dev.goldberry.widget.WidgetRenderer;
 import dev.goldberry.widget.root.WindowRoot;
@@ -138,14 +145,135 @@ class OverlayLayerTest {
         var root = new WindowRoot(new Marker("app"), overlays);
         attach(overlays, new Marker("hud"), Corner.TOP_START);
 
-        var children = root.children();
+        var tree = new ElementTree(root);
+        var box = renderer("app { width: 100px } hud { width: 40px }").render(tree);
 
-        assertEquals(2, children.size());
+        assertEquals(2, box.children().size());
         assertEquals(
-                "app",
-                ((Styled) children.getFirst()).cssType(),
-                "a box tree has no z-order beyond document order," + " so being painted last is being listed last");
-        assertEquals("hud", ((Styled) children.get(1)).cssType());
+                Position.RELATIVE,
+                box.children().getFirst().position(),
+                "a box tree has no z-order beyond document order, so being painted last is being listed last");
+        assertEquals(Position.ABSOLUTE, box.children().get(1).position());
+        assertEquals(
+                "hud",
+                ((Styled) tree.root().children().get(1).children().getFirst().widget()).cssType());
+    }
+
+    /// Two overlays with equal widgets used to be matched like any other
+    /// children, by class and key — so one removed and another shown in the
+    /// same turn was **the same node**, and the new one inherited the old
+    /// one's state. A dialog whose fade was already over drew nothing and
+    /// kept its scrim, and the window could not be clicked.
+    @Test
+    @DisplayName("an overlay removed and an equal one shown in the same turn is a new node")
+    void anEqualOverlayIsANewNode() {
+        var overlays = Property.<List<Overlay>>of(List.of());
+        var tree = new ElementTree(new WindowRoot(new Marker("app"), overlays));
+        var first = attach(overlays, new Counter(), Corner.TOP_START);
+        tree.flush();
+        var before = stateOf(tree);
+
+        first.remove();
+        attach(overlays, new Counter(), Corner.TOP_START);
+        tree.flush();
+
+        assertNotSame(before, stateOf(tree), "the new overlay was handed the old one's state");
+    }
+
+    @Test
+    @DisplayName("an overlay that stays keeps its node while others come and go")
+    void aStayingOverlayKeepsItsNode() {
+        var overlays = Property.<List<Overlay>>of(List.of());
+        var tree = new ElementTree(new WindowRoot(new Marker("app"), overlays));
+        var leaving = attach(overlays, new Marker("hud"), Corner.TOP_START);
+        attach(overlays, new Counter(), Corner.TOP_START);
+        tree.flush();
+        var before = stateOf(tree);
+
+        leaving.remove();
+        tree.flush();
+
+        assertSame(before, stateOf(tree), "the overlay that stayed lost its state when the one before it went");
+    }
+
+    @Test
+    @DisplayName("a widget on the layer can find its own overlay, and one in the content cannot")
+    void overlayOf() {
+        var overlays = Property.<List<Overlay>>of(List.of());
+        var content = new Counter();
+        var tree = new ElementTree(new WindowRoot(content, overlays));
+        var entry = attach(overlays, new Counter(), Corner.TOP_START);
+        tree.flush();
+
+        var inContent =
+                Objects.requireNonNull(firstCounter(tree.root().children().getFirst()));
+        var onLayer = Objects.requireNonNull(firstCounter(tree.root().children().get(1)));
+        assertEquals(Optional.empty(), inContent.found, "the content found an overlay");
+        assertEquals(Optional.of(entry), onLayer.found);
+    }
+
+    @Test
+    @DisplayName("dismiss() runs the widget's exit, and removes at once without one")
+    void dismiss() {
+        var overlays = Property.<List<Overlay>>of(List.of());
+        var plain = attach(overlays, new Marker("hud"), Corner.TOP_START);
+        plain.dismiss();
+        assertFalse(plain.isAttached(), "with no exit, dismiss is remove");
+
+        var leaving = new java.util.ArrayList<String>();
+        var animated = attach(overlays, new Marker("hud"), Corner.TOP_START);
+        animated.dismissWith(() -> leaving.add("fading"));
+        animated.dismiss();
+        assertEquals(List.of("fading"), leaving);
+        assertTrue(animated.isAttached(), "the exit is what removes it, when it is over");
+
+        animated.remove();
+        animated.dismiss();
+        assertEquals(List.of("fading"), leaving, "a removed overlay ran its exit again");
+
+        var cleared = attach(overlays, new Marker("hud"), Corner.TOP_START);
+        cleared.dismissWith(() -> leaving.add("never"));
+        cleared.dismissWith(null);
+        cleared.dismiss();
+        assertFalse(cleared.isAttached(), "a cleared exit still held the overlay");
+    }
+
+    /// A stateful overlay, so a test can tell one node from another, and ask
+    /// which overlay it found itself in.
+    private record Counter() implements Widget.Stateful {
+
+        @Override
+        public State<?> createState() {
+            return new CounterState();
+        }
+    }
+
+    private static final class CounterState extends State<Counter> {
+
+        Optional<Overlay> found = Optional.empty();
+
+        @Override
+        public Widget build(BuildContext context) {
+            found = WindowRoot.overlayOf(context);
+            return new Marker("counter");
+        }
+    }
+
+    private static CounterState stateOf(ElementTree tree) {
+        return Objects.requireNonNull(firstCounter(tree.root().children().getLast()), "no counter on the layer");
+    }
+
+    private static @Nullable CounterState firstCounter(Element element) {
+        if (element.state().orElse(null) instanceof CounterState state) {
+            return state;
+        }
+        for (var child : element.children()) {
+            var found = firstCounter(child);
+            if (found != null) {
+                return found;
+            }
+        }
+        return null;
     }
 
     @Test

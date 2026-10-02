@@ -12,7 +12,8 @@ at a `WindowRoot`, and an overlay is one of its children beside the
 application's, so it is painted by the same frame and clipped to the window
 ([ADR-0100](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0100-a-window-has-a-layer-above-its-application.md)).
 `host.overlay(widget, corner)` puts a widget in a corner and `host.fill(widget)`
-covers the window. Both return an `Overlay` whose `remove()` takes it away.
+covers the window. Both return an `Overlay` whose `remove()` takes it away at
+once and whose `dismiss()` lets its widget leave the way it leaves first.
 A dialog, a HUD, a toast stack and a tour live here.
 
 **A platform popup** is a second window the platform draws, parented to this
@@ -67,7 +68,8 @@ private void askToDiscard() {
 }
 
 private void discard() {
-    open.remove();
+    // The dialog has already faded and taken itself off the window.
+    draft.discard();
 }
 ```
 
@@ -76,9 +78,23 @@ private void discard() {
 A dialog is a widget, and showing one is not: `Dialogs.show(host, dialog)`
 fills the window with it and hands back the `Overlay`
 ([ADR-0176](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0176-a-dialog-is-a-widget-and-showing-one-is-not.md)).
-Removing it is the application's, because only the application knows the
-question was answered. Every route out fades the panel first and calls the
-handler when the fade is over.
+Every route out (a button, `Escape`, a press on the veil, the ×) fades the
+panel first, calls the handler when the fade is over, and then removes the
+overlay. A handler does not have to call `remove()`, and one that still does
+is harmless. When the application decides the dialog is finished without the
+user, `open.dismiss()` runs the same fade, presses nothing, and removes it at
+the end. `open.remove()` takes it away at once, with no fade
+([ADR-0523](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0523-a-dialog-takes-itself-off-the-window.md)).
+
+Showing a dialog in the same turn another is removed is safe: each overlay is
+its own node, so the new dialog never inherits the old one's state
+([ADR-0522](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0522-each-overlay-is-its-own-node.md)).
+
+**Height.** A dialog is never taller than the window less 24 at the top and
+bottom. When its content would make it taller, the title and the button bar
+keep their size and the body scrolls. The body's viewport is a Tab stop only
+while it has something to scroll, so a short dialog's Tab order is its fields
+and its buttons.
 
 **The focus trap.** While a modal is mounted the focused node is inside it.
 Focus lands on the first focusable thing in the panel, `Tab` cycles within it,
@@ -94,34 +110,45 @@ the whole of the pointer's modality, and modality is one flag on the panel
 | Attribute | Type | Default | What it does |
 |---|---|---|---|
 | `title` | string | none | The title bar. Blank is the same as absent. |
-| `id`, `class` | string | | The usual. `Dialogs.show` gives an untitled one the id `dialog`. |
+| `dismiss` | action name | none | Puts a × at the end of the title bar. The × closes the dialog and then runs the action, and `Escape` and the veil do the same. In Java, `dialog.dismissible(handler)`. |
+| `id`, `class` | string | | The usual. `Dialogs.show` gives an unnamed one the id `dialog`, and keeps a key set with `keyed(…)`. |
 
 `action` children become the button bar, in role order. Every other child is
 the body. A dialog with two affirmative or two dismissive actions is refused,
 because `Enter` and `Escape` each press exactly one button.
 
+The × is for a dialog whose content has a button bar of its own, a `wizard`
+for one, where a dismissive action would be a second Cancel. It is opt-in: a
+dialog that must be answered stays one by default.
+
 **Styling**
 
 The CSS type is `dialog`, the panel, inside a `dialog-scrim`. Its parts are
-`dialog-title`, `dialog-body` and `dialog-actions`. The buttons are ordinary
+`dialog-title`, `dialog-body` and `dialog-actions`. A dialog with a × puts the
+title and a `dialog-dismiss` in a `dialog-header` row. The body sits in a
+`scroll` with the class `dialog-scroll`. The buttons are ordinary
 `button`s: the affirmative one carries `primary`, a neutral one `ghost`, the
 dismissive one neither. The bar puts the affirmative on the right; a theme
 that wants Windows order writes `dialog-actions { flex-direction: row-reverse }`.
-Padding 24, minimum width 320, maximum 80% of the window.
+Padding 24, minimum width 320, maximum 80% of the window, and no taller than
+the window less its margins.
 
 **Keyboard**
 
 | Key | Does |
 |---|---|
 | `Enter` | presses the affirmative action |
-| `Escape` | presses the dismissive action, as a press on the veil does |
+| `Escape` | presses the dismissive action, as a press on the veil does; in a dialog with a ×, does what the × does |
 | `Tab` | moves within the dialog and never leaves it |
 
-A dialog with no dismissive action cannot be dismissed by `Escape` or the veil.
+A dialog with no dismissive action and no × cannot be dismissed by `Escape` or
+the veil. The × is not a Tab stop, because `Escape` is the same way out.
 
 **Read more**
 
 - [ADR-0176: A dialog is a widget and showing one is not](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0176-a-dialog-is-a-widget-and-showing-one-is-not.md)
+- [ADR-0522: Each overlay is its own node](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0522-each-overlay-is-its-own-node.md)
+- [ADR-0523: A dialog takes itself off the window](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0523-a-dialog-takes-itself-off-the-window.md)
 - [ADR-0180: The keyboard goes back where it was](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0180-the-keyboard-goes-back-where-it-was.md)
 - [ADR-0232: Modality is one flag and not a scrim](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0232-modality-is-one-flag-and-not-a-scrim.md)
 
