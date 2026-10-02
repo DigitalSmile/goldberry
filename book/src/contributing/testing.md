@@ -65,6 +65,8 @@ Failures there are the defect. Skips are correct. That is [ADR-0357](https://git
 
 The per-platform jobs do the opposite. They download the library their native job built and pass `-Dgoldberry.native.required=true`, so a skip is a failure. CI verifies the binary that ships and cannot pass without loading it, which is [ADR-0016](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0016-verify-the-artifact-and-never-skip-the-check.md).
 
+The web view library, `libgoldberry-webview`, is optional where its engine's headers may be missing, so its tests skip without it. On macOS it never is: WKWebView is a system framework and the superbuild always makes the library there. The macOS verify job downloads it beside `libgoldberry` and passes `-Dgoldberry.webview.required=true`, so `WebviewBindingTest` fails rather than skips if the library does not load, report the right ABI and bind. That is [ADR-0521](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0521-the-macos-natives-jar-carries-the-web-view.md).
+
 ### The GPU tests
 
 GPU tests are tagged `gpu`, left out of `test`, and run by `:natives:gpuTest`, `:gpu:gpuTest` and `:media:gpuTest` on the JVM's first thread, which macOS's Cocoa needs for a GPU device. They need a video driver with a Metal view or a Vulkan surface: the desktop's default, or `-Pgoldberry.gpu.videoDriver=offscreen` for lavapipe on a runner with no display, and never `dummy`. They skip without a device, and `-Pgoldberry.gpu.required=true` makes that a failure. The record is [ADR-0475](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0475-sdl-gpu-is-bound-for-core-and-gpu-and-tested-on-the-first-thread.md).

@@ -18,7 +18,9 @@
 #
 # STATUS: green. The library builds and the layout check passes against the
 # downloaded dylib, so the Mach-O branch of the export machinery
-# (-exported_symbols_list, -u _symbol) is exercised rather than assumed.
+# (-exported_symbols_list, -u _symbol) is exercised rather than assumed. The
+# web view library rides the same artifact since 2026-10-02; before that it was
+# built here and never uploaded, so no published macOS jar had web-view.
 
 name: macOS
 
@@ -66,10 +68,30 @@ jobs:
       - name: Build
         run: cmake --build build/native --target install
 
+      # The web view is optional on Linux, where it needs WebKitGTK's headers,
+      # and never on macOS: WKWebView is a system framework, and CMake builds
+      # libgoldberry-webview here unconditionally. So a Mac build without it is
+      # broken, not reduced, and stops here rather than shipping a natives jar on
+      # which `WebViews.isAvailable()` is false -- which every snapshot did until
+      # the upload below named only libgoldberry.
+      - name: Check the web view library
+        run: |
+          lib=build/install/lib/libgoldberry-webview.dylib
+          test -f "$lib" || { echo "::error::no $lib: the macOS natives jar would ship without web-view"; exit 1; }
+          nm -gU "$lib" | grep -q ' _goldberry_webview_create$' \
+            || { echo "::error::$lib does not export goldberry_webview_create"; exit 1; }
+          otool -L "$lib" | grep -q 'WebKit.framework' \
+            || { echo "::error::$lib does not link WebKit.framework"; exit 1; }
+
+      # Both libraries, into one artifact: publish.yml copies the directory into
+      # the layout :natives packages, and the verify job below finds the web
+      # view beside libgoldberry, where WebviewLibrary looks for it.
       - uses: actions/upload-artifact@v4
         with:
           name: native-macos-aarch64
-          path: build/install/lib/libgoldberry.dylib
+          path: |
+            build/install/lib/libgoldberry.dylib
+            build/install/lib/libgoldberry-webview.dylib
           if-no-files-found: error
 
   verify:
@@ -95,10 +117,15 @@ jobs:
       # rather than build a rival one, and `goldberry.native.required` turns a
       # test that would have skipped for want of a library into a failure.
       # https://goldberry.dev/docs/contributing/testing.html#with-and-without-the-library
+      #
+      # `goldberry.webview.required` likewise for the web view: the dylib was
+      # downloaded beside libgoldberry, where WebviewLibrary looks, and
+      # WebviewBindingTest fails rather than skips if it does not load and bind.
       - run: |
           ./gradlew :natives:test --no-daemon \
             -Dgoldberry.native.library="$PWD/native-lib/libgoldberry.dylib" \
-            -Dgoldberry.native.required=true
+            -Dgoldberry.native.required=true \
+            -Dgoldberry.webview.required=true
 
       # The whole `:core`, `:widgets` and `:html` suites against the real library, not
       # just the golden images. Everything that needs a rasterizer skips in the
