@@ -20,8 +20,8 @@
 # forgetting it is a review request nobody merged rather than a snapshot that
 # Maven orders below the release it follows.
 #
-# STATUS: first run on v2026.2 (2026-10-02) red in one flaky test, nothing
-# uploaded; see docs/release-2026-10-02.md.
+# STATUS: first run on v2026.2 (2026-10-02) failed, nothing on Central: a flaky
+# test, then POMs without a description; see docs/release-2026-10-02.md.
 
 name: Release
 

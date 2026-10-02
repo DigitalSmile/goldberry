@@ -2,6 +2,7 @@ import com.vanniktech.maven.publish.JavaLibrary
 import com.vanniktech.maven.publish.JavaPlatform
 import com.vanniktech.maven.publish.JavadocJar
 import com.vanniktech.maven.publish.SourcesJar
+import dev.goldberry.build.publish.CentralPom
 import dev.goldberry.build.publish.CorrespondingSource
 import dev.goldberry.build.publish.PublishedModule
 import dev.goldberry.build.publish.PublishedModules
@@ -74,7 +75,11 @@ mavenPublishing {
 
     pom {
         name = PublishedModules.displayName(module)
-        description = project.description
+        // Read when the POM is written, not now: the plugin is applied from the
+        // build script's `plugins` block, before its `description = ...` line
+        // has run, and an eager read published all ten POMs of the first
+        // release without one, which Central refused.
+        description = provider { project.description }
         inceptionYear = '2026'
         url = 'https://goldberry.dev'
         licenses {
@@ -109,11 +114,21 @@ mavenPublishing {
 // modules upload one after another, and a refusal in :media's own task would
 // come after eight others were already on Central -- which is how the javadoc
 // lint once failed a snapshot with three modules already uploaded.
+//
+// The POM's name, description and URL are checked at the same point. Central
+// refuses a release without them, and a snapshot is never validated, so without
+// this a POM that lost one would publish every day and fail on release day.
 gradle.taskGraph.whenReady { graph ->
     tasks.withType(AbstractPublishToMaven).matching { graph.hasTask(it) }.each { task ->
+        def publication = task.publication
         CorrespondingSource.require(
-                task.publication.artifactId,
-                task.publication.artifacts.collect { it.classifier })
+                publication.artifactId,
+                publication.artifacts.collect { it.classifier })
+        new CentralPom(
+                publication.artifactId,
+                publication.pom.name.getOrNull(),
+                publication.pom.description.getOrNull(),
+                publication.pom.url.getOrNull()).require()
     }
 }
 
