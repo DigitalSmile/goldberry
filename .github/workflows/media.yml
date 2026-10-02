@@ -121,6 +121,12 @@ jobs:
       - name: Build FFmpeg and dav1d, with the layout probe and the size gate
         run: ./gradlew :media:ffmpegBuild -Pgoldberry.skipNative=true $MEDIA_TOOLS --no-daemon
 
+      # When FFmpeg's configure stops, the reason is in its log, not in the step's
+      # output, which ends at "not found".
+      - name: What FFmpeg's configure saw
+        if: failure()
+        run: tail -n 120 "media/.deps/${{ matrix.target }}/ffmpeg-build/ffbuild/config.log" || true
+
       # `required`, so a test that could not load FFmpeg fails rather than skips:
       # a verification job that skips is a green tick over nothing.
       # `check` includes the natives-jar test and the coverage floor.
