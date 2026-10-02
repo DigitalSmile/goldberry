@@ -286,10 +286,17 @@ class HttpIOTest {
         void timesOut() throws IOException {
             server = new TestHttpServer(DATA);
             server.stallAt = 0;
-            open(
-                    Source.of(server.uri("clip.bin")).withTimeout(Duration.ofMillis(300)),
-                    FAST.withStallTimeout(Duration.ofSeconds(30)));
+            // The open waits on the same timeout for the headers, so it is long
+            // enough for a loaded runner to answer: at 300 ms the Windows release
+            // lane timed out in the open and never reached the read.
+            var timeout = Duration.ofSeconds(2);
+            open(Source.of(server.uri("clip.bin")).withTimeout(timeout), FAST.withStallTimeout(Duration.ofSeconds(30)));
+            var started = System.nanoTime();
             assertThrows(HttpTimeoutException.class, () -> read(io, 10));
+            var waited = Duration.ofNanos(System.nanoTime() - started);
+            assertTrue(waited.compareTo(timeout) >= 0, () -> "gave up after " + waited);
+            // Well short of the 30 s stall timeout and the server's 30 s stall.
+            assertTrue(waited.compareTo(Duration.ofSeconds(10)) < 0, () -> "waited " + waited);
         }
 
         @Test
