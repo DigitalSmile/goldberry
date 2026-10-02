@@ -240,9 +240,13 @@ elseif(WIN32)
     # workflow sets it up. -MD is the runtime dav1d is built with above: cl's
     # default is the static one, and the two do not link together.
     list(APPEND GOLDBERRY_FFMPEG_CONFIGURE --toolchain=msvc --target-os=win64 --arch=x86_64 --extra-cflags=-MD)
+    # The d3d11va2 hwaccels are the ones used, and the d3d11va ones go with them:
+    # FFmpeg's Makefile adds dxva2_vp9.o and dxva2_av1.o, where both are defined,
+    # only under the d3d11va and dxva2 names, so the d3d11va2 ones alone link
+    # with their symbols missing.
     if(GOLDBERRY_MEDIA_HWACCEL)
         list(APPEND GOLDBERRY_FFMPEG_CONFIGURE --enable-d3d11va
-             --enable-hwaccel=vp9_d3d11va2,av1_d3d11va2)
+             --enable-hwaccel=vp9_d3d11va,vp9_d3d11va2,av1_d3d11va,av1_d3d11va2)
     endif()
 else()
     # No rpath: FfmpegLibraries loads the five in dependency order, and glibc
