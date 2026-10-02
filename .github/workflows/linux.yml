@@ -244,6 +244,12 @@ jobs:
             runs-on: ubuntu-24.04-arm
     runs-on: ${{ matrix.runs-on }}
     container: ubuntu:22.04
+    # Bash, not the container default. A job in a container runs its steps with
+    # `sh -e`, which on Ubuntu is dash, and dash has no `pipefail`: the first
+    # run of this job stopped at `set -o pipefail` before the configure began.
+    defaults:
+      run:
+        shell: bash
     steps:
       - uses: actions/checkout@v4
 
