@@ -398,6 +398,7 @@ public record Chip(
     /// `dot-colour=`/`dot-color=` names the dot's colour, and `dot`,
     /// `selected` and `disabled` are flags — so markup and Java build the same
     /// value.
+    @SuppressWarnings("unused")
     public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
         var colour = Wiring.colour(node, "dot-colour", "dot-color");
         return new Chip(

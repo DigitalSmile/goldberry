@@ -1,6 +1,6 @@
 # ADR-0341: CodeQL findings are fixed where they are real and answered here where they are not
 
-- **Status:** Accepted
+- **Status:** Accepted; amended by [ADR-0548](0548-four-codeql-queries-that-only-report-false-positives-are-excluded.md), which excludes four queries
 - **Date:** 2026-09-17
 - **Relates to:** `docs/testing.md` §2
 
@@ -102,6 +102,20 @@ The same kinds in code written since, then kinds this table did not have:
 | `constant-comparison` | `MemoryIO.awaitRelease` | `releases == entered` is re-read after every `wait()`, which the query does not model as a write by another thread |
 | `empty-zip-file-entry` | `CatalogCompilerTest` | The entry is a directory, which is what the test's archive needs to have |
 
+Added by the third triage, 2026-10-03 (`docs/codeql-2026-10-03.md`). 355
+findings, 352 of them the kinds above in code written since. Three were real and
+are fixed: `ConvexClip.toPath` read past the end of an odd-length point array
+(`index-out-of-bounds`), and so did a test helper in `ShadowGeometryTest`, and
+`FakeNotificationDaemon` never closed its `dbus-daemon` pipe
+(`input-resource-leak`). The new sites of old kinds:
+
+| Finding | Where | Why it stays |
+|---|---|---|
+| `unused-parameter` on upcall targets | `MacMenuBar.choose`, `MacNotifier` ×3 | An Objective-C method's signature: `self` and `_cmd` come with every message, and the delegate callbacks pass the centre and the notification whether or not Java wants them |
+| `unused-parameter` on a functional interface | `YuvDrawTest.Picture.codes(x, y)` | A picture that is the same down a column ignores `y`; the interface is the contract every picture meets |
+| `missing-case-in-switch` | `BorderPainter` | Multi-label `case SOLID, DOUBLE, GROOVE, RIDGE, INSET, OUTSET ->`, as for `MarkdownParser` |
+| `internal-representation-exposure` | `html.model.Element`, `MarkdownSyntax`, `markdown.model.Document`, `RadioGroup`, `Segmented`, `Column`, `Row`, and the 2026-09-30 ones again | Each copies with `List.copyOf`, `Set.copyOf`, `clone()` or an unmodifiable `EnumMap` copy before it stores |
+
 ## Alternatives considered
 
 - **A `query-filters:` block excluding `java/unused-parameter`.** It would
@@ -123,6 +137,9 @@ The same kinds in code written since, then kinds this table did not have:
 
 ## Consequences
 
+- **Updated 2026-10-03:** after the third triage a re-run has 352: 178 `_`, 114
+  unused parameters (73 of them `inflate`'s), and every other finding a kind in
+  the tables.
 - **Updated 2026-09-30:** a local re-run after the second triage has 308, all
   of them kinds in the two tables. 151 are `_`, and 102 are unused
   parameters, 72 of them `inflate`'s. The count grew with the code, not with

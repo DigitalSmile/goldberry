@@ -325,21 +325,21 @@ public final class BackgroundParser {
         for (var i = 0; i < words.size(); i++) {
             var word = words.get(i);
             if (word.size() == 1 && word.getFirst().is(TokenType.IDENT)) {
-                switch (word.getFirst().text().toLowerCase(Locale.ROOT)) {
-                    case "left" -> {
-                        x = Length.percent(0);
+                var keyword = word.getFirst().text().toLowerCase(Locale.ROOT);
+                switch (keyword) {
+                    // An axis is said once: `left right` and `10px left` are refused.
+                    case "left", "right" -> {
+                        if (horizontalSet) {
+                            return null;
+                        }
+                        x = Length.percent(keyword.equals("left") ? 0 : 100);
                         horizontalSet = true;
                     }
-                    case "right" -> {
-                        x = Length.percent(100);
-                        horizontalSet = true;
-                    }
-                    case "top" -> {
-                        y = Length.percent(0);
-                        verticalSet = true;
-                    }
-                    case "bottom" -> {
-                        y = Length.percent(100);
+                    case "top", "bottom" -> {
+                        if (verticalSet) {
+                            return null;
+                        }
+                        y = Length.percent(keyword.equals("top") ? 0 : 100);
                         verticalSet = true;
                     }
                     case "center" -> {
@@ -356,7 +356,7 @@ public final class BackgroundParser {
                 return null;
             }
             // A length is horizontal first, vertical second.
-            if (i == 0 && !horizontalSet) {
+            if (i == 0) {
                 x = length;
                 horizontalSet = true;
             } else if (!verticalSet) {

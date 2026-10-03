@@ -140,6 +140,7 @@ public record Breadcrumbs(List<Widget> children, int collapseAfter, Attributes a
     /// Which crumb is current is **not** an attribute, for the reason above: the
     /// trail writes it, and a document that could write it would be able to say
     /// something no trail is allowed to be.
+    @SuppressWarnings("unused")
     public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
         Objects.requireNonNull(node, "node");
         var collapse = (int) node.numberProperty("collapse-after", DEFAULT_COLLAPSE_AFTER);

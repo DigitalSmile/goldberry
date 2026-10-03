@@ -98,9 +98,11 @@ The `headless` backend renders to `BLImage` and pumps synthetic events through t
 - **The prose is formatted too.** `./gradlew checkMarkdown` fails on trailing whitespace or a missing final newline under `docs/`, `book/` and the top level, and `./gradlew formatMarkdown` fixes it. Two root tasks rather than a spotless step, for the reasons in ADR-0398 — a spotless `target` resolves against the project that declares it, and the step that used to live in the conventions plugin had never matched a single file.
 - **Advisory dashboards:** CodeQL (`codeql.yml`, nightly and per-PR) is live and needs no account. Qodana Community for JVM (`qodana.yaml`, `qodana.yml`) is connected to Qodana Cloud since 2026-09-30, gated on *new* high-severity findings against a committed baseline (`config/qodana/baseline.sarif.json`). Codecov (a step in `linux.yml`) is wired and **guarded on its secret**, so it is silent until connected rather than red until then. §7 is the checklist.
 
-  **CodeQL's first triage is ADR-0341.** The first scheduled scan (2026-09-14, CodeQL 2.27.0) found 184 things; the 4 security and 12 real correctness ones are fixed, the `ignored` bindings became JDK 22's `_` (which CodeQL does not read yet, so those 68 stay), and every finding that stays is in the ADR's table with its reason. Nothing is excluded from the suite or the scan. The second triage (2026-09-30, `docs/static-analysis-plan.md`) fixed what was new and real and added the rest to the same table: a local re-run then had 308, every one a kind the table answers.
+  **CodeQL's first triage is ADR-0341.** The first scheduled scan (2026-09-14, CodeQL 2.27.0) found 184 things; the 4 security and 12 real correctness ones are fixed, the `ignored` bindings became JDK 22's `_` (which CodeQL does not read yet, so those 68 stay), and every finding that stays is in the ADR's table with its reason. The second triage (2026-09-30, `docs/static-analysis-plan.md`) fixed what was new and real and added the rest to the same table: a local re-run then had 308, every one a kind the table answers. The third (2026-10-03, `docs/codeql-2026-10-03.md`) fixed three and left 352.
 
-  **Reading the alerts needs a token, so the scan is reproducible without one.** The code-scanning API refuses anonymous reads even on a public repository and the job log does not list findings. The same CLI and suite run locally in about six minutes:
+  **Four queries are excluded since 2026-10-03** ([ADR-0548](../book/src/adr/0548-four-codeql-queries-that-only-report-false-positives-are-excluded.md)). `config/codeql/goldberry.qls` is `security-and-quality` less `local-variable-is-never-read`, `unused-parameter`, `internal-representation-exposure` and `missing-case-in-switch`: 315 of the 352, every one a false positive three triages read site by site, and each query's real case caught by a blocking check (Error Prone's `UnusedVariable` and `MissingCasesInEnumSwitch`, `ImmutabilityTest`). The dashboard is left with 37, the kinds that have found real bugs here, each answered in ADR-0341's table. Tests stay in the scan.
+
+  **Reading the alerts needs a token, so the scan is reproducible without one.** The code-scanning API refuses anonymous reads even on a public repository and the job log does not list findings. The same CLI and suite file (`config/codeql/goldberry.qls`, which `codeql.yml` names too) run locally in about six minutes:
 
   ```sh
   # the bundle CI used: the version is in the job log's "CodeQL/<version>" tool-cache path
@@ -109,7 +111,7 @@ The `headless` backend renders to `BLImage` and pumps synthetic events through t
   rm -rf */build/classes/java        # the tracer must see javac run; a cache hit is an empty database
   codeql/codeql database create /tmp/gb-db --language=java-kotlin --source-root=. \
       --command="./gradlew compileJava compileTestJava -Pgoldberry.skipNative=true --no-daemon --no-build-cache"
-  codeql/codeql database analyze /tmp/gb-db codeql/java-queries:codeql-suites/java-security-and-quality.qls \
+  codeql/codeql database analyze /tmp/gb-db config/codeql/goldberry.qls \
       --format=sarif-latest --output=/tmp/gb.sarif
   ```
 
@@ -389,10 +391,14 @@ free and needs no licence.
   `AutoCloseableResource` leaves alone, and one style opinion off. Each change
   says why beside it
   ([ADR-0498](../book/src/adr/0498-qodana-reads-a-reviewed-profile-and-a-bound-value-may-be-null.md)).
-  The entry points the build reaches by reflection or weaving (`@Bind`,
-  `@Action`, every `inflate`) are in `.idea/misc.xml`, which the linter and
-  the IDE both read. A false positive is suppressed where it is, with the
-  reason beside it, and never in the profile.
+  What the build reaches only by reflection or weaving (every catalogue
+  `inflate`, every `@Bind` and `@Action` member) carries
+  `@SuppressWarnings("unused")`, and `ReflectiveEntryPointsTest` fails on one
+  that does not
+  ([ADR-0547](../book/src/adr/0547-a-member-reached-by-reflection-says-so-to-qodana.md)).
+  The entry points in `.idea/misc.xml` stay for the IDE; CI stopped honouring
+  them at the namespace move. A false positive is suppressed where it is, with
+  the reason beside it, and never in the profile.
 - **The baseline** is `config/qodana/baseline.sarif.json`, passed as
   `--baseline`. It is the SARIF of the run after the 2026-09-30 sweep
   (`docs/static-analysis-plan.md`), with the rule catalogue dropped (Qodana

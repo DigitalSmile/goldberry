@@ -423,10 +423,10 @@ public final class Element implements BuildContext, StyleElement {
     /// cached is re-resolving anyway.
     private boolean restyleDiffers(Widget previous, Widget next) {
         var cascade = style;
-        if (cascade == null || !(next instanceof Styled styled)) {
+        if (cascade == null || !(next instanceof Styled is)) {
             return false;
         }
-        var now = styled.restyle(cascade);
+        var now = is.restyle(cascade);
         var before = previous instanceof Styled was ? was.restyle(cascade) : cascade;
         return now != before && !now.equals(before);
     }

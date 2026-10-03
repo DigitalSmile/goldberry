@@ -168,7 +168,7 @@ public record Field(
     /// function, so a document can say which rule and not what the rule is.
     /// `required=#true` stays a flag because it is the one rule
     /// that *is* data.
-    @SuppressWarnings("unchecked")
+    @SuppressWarnings({"unchecked", "unused"})
     public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
         return new Field(
                 node.stringProperty("label"),

@@ -63,6 +63,7 @@ public record EntryMarker(Widget content, Attributes attributes) implements Widg
 
     /// Builds a `marker` from markup — exactly one child, because an axis has
     /// one point per event.
+    @SuppressWarnings("unused")
     public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
         if (children.size() != 1) {
             throw new IllegalArgumentException(

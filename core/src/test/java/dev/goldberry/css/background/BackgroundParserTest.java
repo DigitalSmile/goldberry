@@ -168,12 +168,40 @@ class BackgroundParserTest {
         }
 
         @ParameterizedTest
+        @CsvSource({
+            "at 10px, 10px, 50%",
+            "at 10px top, 10px, 0%",
+            "at left 30%, 0%, 30%",
+            "at center 30%, 50%, 30%",
+            "at 30% center, 30%, 50%"
+        })
+        @DisplayName("a centre's length is horizontal first, vertical once a keyword or a length has taken x")
+        void centreLengths(String centre, String x, String y) {
+            var layer = assertInstanceOf(
+                    GradientLayer.Radial.class, gradient("radial-gradient(" + centre + ", red, blue)"));
+
+            assertEquals(length(x), layer.centreX(), centre);
+            assertEquals(length(y), layer.centreY(), centre);
+        }
+
+        private static Length length(String written) {
+            return written.endsWith("%")
+                    ? Length.percent(Float.parseFloat(written.substring(0, written.length() - 1)))
+                    : Length.points(Float.parseFloat(written.substring(0, written.length() - 2)));
+        }
+
+        @ParameterizedTest
         @ValueSource(
                 strings = {
                     "radial-gradient(circle 20%, red, blue)",
                     "radial-gradient(circle ellipse, red, blue)",
                     "radial-gradient(ellipse 20px, red, blue)",
                     "radial-gradient(at nowhere, red, blue)",
+                    "radial-gradient(at top 30%, red, blue)",
+                    "radial-gradient(at left right, red, blue)",
+                    "radial-gradient(at top bottom, red, blue)",
+                    "radial-gradient(at 10px left, red, blue)",
+                    "radial-gradient(at 10px 20px 30px, red, blue)",
                     "radial-gradient(closest-side 20px, red, blue)"
                 })
         @DisplayName("what CSS refuses is refused")

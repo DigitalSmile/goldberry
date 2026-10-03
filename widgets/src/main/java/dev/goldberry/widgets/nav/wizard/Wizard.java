@@ -219,6 +219,7 @@ public record Wizard(
     /// `back`, `next` and `finish` are plain actions; `go-to` is numeric, since
     /// what the user pressed is an index. `back-label`, `next-label` and
     /// `finish-label` reword the buttons.
+    @SuppressWarnings("unused")
     public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
         Objects.requireNonNull(node, "node");
         var goTo = wiring.numeric(node, "go-to");

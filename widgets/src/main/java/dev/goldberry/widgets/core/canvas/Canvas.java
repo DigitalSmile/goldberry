@@ -366,6 +366,7 @@ public record Canvas(
 
     /// Builds a `canvas` from markup — see the class note on why it names no
     /// painter.
+    @SuppressWarnings("unused")
     public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
         return new Canvas(null, null, Attributes.of(node));
     }

@@ -1,0 +1,29 @@
+# The CodeQL suite codeql.yml runs, and docs/testing.md §2's local recipe with it,
+# so the dashboard and a local run read the same queries.
+#
+# GitHub's security-and-quality suite, less four queries whose every finding on
+# this codebase is a false positive and whose real cases a blocking check
+# already catches. Each was triaged site by site three times (2026-09-14,
+# 2026-09-30, 2026-10-03) before it was excluded; the reasons, and what still
+# answers for each, are in the decision record named in the CodeQL section of
+# docs/testing.md.
+- import: codeql-suites/java-security-and-quality.qls
+  from: codeql/java-queries
+- exclude:
+    id:
+      # Every finding is an unnamed `_` (JEP 456), which CodeQL still models
+      # as a local nobody reads. A named one is Error Prone's UnusedVariable,
+      # which -Werror makes a build failure.
+      - java/local-variable-is-never-read
+      # Every finding is a signature somebody else fixed: a widget's `inflate`,
+      # a C or Objective-C upcall, an interface method documented for the
+      # implementation that does read it. An unused parameter of a private
+      # method is Error Prone's UnusedVariable.
+      - java/unused-parameter
+      # Every finding is a constructor that copies with List.copyOf, Set.copyOf,
+      # Map.copyOf or clone() before it stores; the query does not follow the
+      # reassignment. ImmutabilityTest is the check that would fail.
+      - java/internal-representation-exposure
+      # Every finding is a multi-label `case A, B ->` arm, read as one label.
+      # A case really missing is Error Prone's MissingCasesInEnumSwitch.
+      - java/missing-case-in-switch

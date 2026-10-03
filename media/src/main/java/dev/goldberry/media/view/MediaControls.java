@@ -79,6 +79,7 @@ public record MediaControls(MediaPlayer player, Attributes attributes)
     /// application registered with the document.
     ///
     /// @throws IllegalArgumentException when the node has children
+    @SuppressWarnings("unused")
     public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
         if (!children.isEmpty()) {
             throw new IllegalArgumentException("media-controls takes no children");

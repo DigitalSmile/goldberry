@@ -496,6 +496,7 @@ public record Slider(
     /// the application has to have registered. `scale=` is strict:
     /// `scale="dB"` is refused rather than resolved quietly to linear, which
     /// would be a fader that works and is wrong.
+    @SuppressWarnings("unused")
     public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
         var min = node.numberProperty("min", 0);
         var max = node.numberProperty("max", 1);

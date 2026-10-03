@@ -2,6 +2,7 @@ package dev.goldberry.paint.geom;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.DisplayName;
@@ -43,6 +44,20 @@ class ConvexClipTest {
         var far = new double[] {20, 20, 30, 20, 30, 30, 20, 30};
 
         assertEquals(0, ConvexClip.intersect(far, SQUARE).length);
+    }
+
+    @Test
+    @DisplayName("an odd number of values is refused by name, not read past its end")
+    void oddLength() {
+        var odd = new double[] {0, 0, 10, 0, 10, 10, 0};
+
+        var path = assertThrows(IllegalArgumentException.class, () -> ConvexClip.toPath(odd));
+        var subject = assertThrows(IllegalArgumentException.class, () -> ConvexClip.intersect(odd, SQUARE));
+        var clip = assertThrows(IllegalArgumentException.class, () -> ConvexClip.intersect(SQUARE, odd));
+
+        assertTrue(path.getMessage().startsWith("polygon is x, y pairs"), path.getMessage());
+        assertTrue(subject.getMessage().startsWith("subject"), subject.getMessage());
+        assertTrue(clip.getMessage().startsWith("clip"), clip.getMessage());
     }
 
     @Test

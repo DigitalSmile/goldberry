@@ -336,6 +336,7 @@ public record Option(
     ///
     /// `selected` and the action are the control's to supply on every build,
     /// which is why neither is an attribute.
+    @SuppressWarnings("unused")
     public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
         return new Option(Wiring.requiredValue("option", node), Wiring.label(node),
                 wiring.icon(node), false, null,

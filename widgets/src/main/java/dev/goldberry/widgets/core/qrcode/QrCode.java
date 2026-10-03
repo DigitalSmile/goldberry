@@ -216,6 +216,7 @@ public record QrCode(String payload, Level level, int quietZone, Attributes attr
     /// being written, and a half-typed level should not take the window down.
     /// A payload that no version holds still throws, because that is not a typo
     /// that fixes itself on the next character.
+    @SuppressWarnings("unused")
     public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
         var level = Level.named(node.stringProperty("level"));
         var quietZone = (int) node.numberProperty("quiet-zone", STANDARD_QUIET_ZONE);

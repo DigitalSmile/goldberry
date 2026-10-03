@@ -389,6 +389,7 @@ public record ListView<T>(
 
     /// Builds a `list` from markup: a [Bound] over the `ListView` a model's
     /// `bind=` value holds, since a row factory is code a document cannot write.
+    @SuppressWarnings("unused")
     public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
         return new Bound(wiring.bound(node), ListView.class, Attributes.of(node));
     }

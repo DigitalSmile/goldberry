@@ -69,6 +69,7 @@ public record Spacer(Attributes attributes) implements Widget.Leaf, Styled, Pain
     }
 
     /// Builds a `spacer` from markup.
+    @SuppressWarnings("unused")
     public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
         return new Spacer(Attributes.of(node));
     }

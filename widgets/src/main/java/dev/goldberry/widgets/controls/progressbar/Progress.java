@@ -194,6 +194,7 @@ public record Progress(
     }
 
     /// Builds a `progress` from markup.
+    @SuppressWarnings("unused")
     public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
         return new Progress(
                 node.numberProperty("value", 0),

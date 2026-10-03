@@ -151,6 +151,7 @@ public record Canvas3d(Canvas3dRenderer renderer, boolean continuous, Depth dept
     ///
     /// @throws IllegalArgumentException when it has children, or `depth=` is
     ///                                  not a depth
+    @SuppressWarnings("unused")
     public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
         if (!children.isEmpty()) {
             throw new IllegalArgumentException("canvas3d takes no children");

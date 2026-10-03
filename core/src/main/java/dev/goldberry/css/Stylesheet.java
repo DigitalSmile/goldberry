@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.function.Supplier;
 
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 
 import dev.goldberry.css.cascade.CascadeLayer;
@@ -170,13 +171,14 @@ public record Stylesheet(
     /// @param origin what the sheet is called in a warning, usually its file name
     /// @throws IllegalStateException if the supplier answers null, which is a
     ///         file that is not there
-    public static Stylesheet stream(CascadeLayer layer, String origin, Supplier<? extends InputStream> stream) {
+    public static Stylesheet stream(
+            CascadeLayer layer, String origin, Supplier<? extends @Nullable InputStream> stream) {
         return stream(layer, origin, stream, defaultMode(layer));
     }
 
     /// The same, under `mode`.
     public static Stylesheet stream(
-            CascadeLayer layer, String origin, Supplier<? extends InputStream> stream, ParseMode mode) {
+            CascadeLayer layer, String origin, Supplier<? extends @Nullable InputStream> stream, ParseMode mode) {
         Objects.requireNonNull(origin, "origin");
         Objects.requireNonNull(stream, "stream");
         try (var in = stream.get()) {

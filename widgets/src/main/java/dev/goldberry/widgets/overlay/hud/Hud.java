@@ -181,6 +181,7 @@ public record Hud(List<Reading> readings, Attributes attributes)
     /// something about the frame loop rather than about a model. Nothing to bind
     /// and nothing to resolve: what it shows arrives on the render context, so a
     /// document writes `hud` and is done.
+    @SuppressWarnings("unused")
     public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
         return new Hud(readings(node.stringProperty("readings")), Attributes.of(node));
     }

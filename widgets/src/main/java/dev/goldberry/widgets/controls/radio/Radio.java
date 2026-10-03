@@ -249,6 +249,7 @@ public record Radio(
     /// `selected` and the action are the group's to supply on every build, which
     /// is why neither is an attribute: a document that could mark two options
     /// selected would break the one invariant a group exists to hold.
+    @SuppressWarnings("unused")
     public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
         return new Radio(Wiring.requiredValue("radio", node), Wiring.label(node),
                 false, null, Wiring.disabled(node), Attributes.of(node));

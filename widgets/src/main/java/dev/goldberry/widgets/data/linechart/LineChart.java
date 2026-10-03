@@ -215,6 +215,7 @@ public record LineChart(List<Series> series, List<String> categories, ChartOptio
     /// differently would be two x axes in one picture, which is the same mistake
     /// as two y axes and is refused the same way — by there being nowhere to put
     /// it.
+    @SuppressWarnings("unused")
     public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
         var read = ChartParts.read(children);
         return new LineChart(read.series(), read.categories(), Attributes.of(node));

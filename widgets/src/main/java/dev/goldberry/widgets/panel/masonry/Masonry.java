@@ -239,6 +239,7 @@ public record Masonry(List<Widget> children, int columns, int minColumnWidth, At
     /// disagrees with the
     /// document is found by looking at a picture, and a document that throws is
     /// found by running anything.
+    @SuppressWarnings("unused")
     public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
         var columns = (int) node.numberProperty("columns", UNSET);
         var minColumnWidth = (int) node.numberProperty("min-column-width", UNSET);

@@ -230,6 +230,7 @@ public record Sparkline(List<Double> values, boolean fill, boolean marker, Attri
     /// The values come from the node's arguments — `sparkline 4 9 7 12` — which
     /// is the one chart shape small enough to write inline, and inline data is
     /// for small static data.
+    @SuppressWarnings("unused")
     public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
         var values = new ArrayList<Double>();
         for (var argument : node.arguments()) {

@@ -25,13 +25,13 @@ inspections:
       REPORT_PARAMETER_FOR_PUBLIC_METHODS: false
 
   # A getter that hands out a resource someone else owns is not a leak. These
-  # types are owned by a window, a backend, a player or a tree, or live as long
-  # as the application, and whoever holds one closes it; a caller that
+  # types are owned by a window, a backend, a player, a notifier or a tree, or
+  # live as long as the application, and whoever holds one closes it; a caller that
   # borrows one for a statement must not. The first sixteen names are
   # IntelliJ's own defaults, which setting the option replaces.
   - inspection: AutoCloseableResource
     options:
-      ignoredTypes: "java.util.stream.Stream,java.util.stream.IntStream,java.util.stream.LongStream,java.util.stream.DoubleStream,java.io.ByteArrayOutputStream,java.io.ByteArrayInputStream,java.io.StringBufferInputStream,java.io.CharArrayWriter,java.io.CharArrayReader,java.io.StringWriter,java.io.StringReader,java.util.Formatter,java.util.Scanner,org.springframework.context.ConfigurableApplicationContext,io.micronaut.context.ApplicationContext,org.apache.pekko.actor.ActorSystem,dev.goldberry.render.Backend,dev.goldberry.render.window.BackendWindow,dev.goldberry.Window,dev.goldberry.Popup,dev.goldberry.render.event.EventLoop,dev.goldberry.text.font.Font,dev.goldberry.text.font.FontFace,dev.goldberry.icon.Icon,dev.goldberry.paint.tree.RenderObject,dev.goldberry.natives.yoga.YogaNode,dev.goldberry.media.MediaPlayer,dev.goldberry.media.audio.AudioSink,dev.goldberry.media.engine.Playback,dev.goldberry.media.codec.Packet,dev.goldberry.natives.sdl.audio.SdlAudioStream,dev.goldberry.natives.sdl.gpu.SdlGpuDevice,dev.goldberry.natives.sdl.gpu.SdlGpuTexture,dev.goldberry.gpu.Shader,dev.goldberry.gpu.GpuTexture,dev.goldberry.gpu.GpuSampler,dev.goldberry.gpu.GraphicsPipeline,dev.goldberry.example.media.ShowcaseServer"
+      ignoredTypes: "java.util.stream.Stream,java.util.stream.IntStream,java.util.stream.LongStream,java.util.stream.DoubleStream,java.io.ByteArrayOutputStream,java.io.ByteArrayInputStream,java.io.StringBufferInputStream,java.io.CharArrayWriter,java.io.CharArrayReader,java.io.StringWriter,java.io.StringReader,java.util.Formatter,java.util.Scanner,org.springframework.context.ConfigurableApplicationContext,io.micronaut.context.ApplicationContext,org.apache.pekko.actor.ActorSystem,dev.goldberry.render.Backend,dev.goldberry.render.window.BackendWindow,dev.goldberry.Window,dev.goldberry.Popup,dev.goldberry.render.event.EventLoop,dev.goldberry.text.font.Font,dev.goldberry.text.font.FontFace,dev.goldberry.icon.Icon,dev.goldberry.paint.tree.RenderObject,dev.goldberry.natives.yoga.YogaNode,dev.goldberry.media.MediaPlayer,dev.goldberry.media.audio.AudioSink,dev.goldberry.media.engine.Playback,dev.goldberry.media.codec.Packet,dev.goldberry.natives.sdl.audio.SdlAudioStream,dev.goldberry.natives.desktop.notify.FreedesktopNotifier,dev.goldberry.natives.sdl.gpu.SdlGpuDevice,dev.goldberry.natives.sdl.gpu.SdlGpuTexture,dev.goldberry.gpu.Shader,dev.goldberry.gpu.GpuTexture,dev.goldberry.gpu.GpuSampler,dev.goldberry.gpu.GraphicsPipeline,dev.goldberry.example.media.ShowcaseServer"
 
   # A style opinion this codebase decided against: an Optional parameter or
   # field is how several APIs here say "may be absent" without null.

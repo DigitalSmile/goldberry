@@ -120,6 +120,7 @@ public record WizardPage(
     }
 
     /// Builds a `page` from markup.
+    @SuppressWarnings("unused")
     public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
         return new WizardPage(
                 Wiring.label(node),

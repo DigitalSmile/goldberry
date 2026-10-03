@@ -275,6 +275,7 @@ public record Entry(
     /// No placement: the list writes it. A `marker` child is lifted out of the
     /// body onto the axis; two of them is a document describing two points for
     /// one event, and is refused.
+    @SuppressWarnings("unused")
     public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
         Widget marker = null;
         var body = new ArrayList<Widget>(children.size());

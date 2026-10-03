@@ -80,6 +80,7 @@ public record Row(List<Widget> children, Attributes attributes)
     }
 
     /// Builds a `row` from markup.
+    @SuppressWarnings("unused")
     public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
         return new Row(children, Attributes.of(node));
     }

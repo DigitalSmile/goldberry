@@ -213,6 +213,7 @@ public record Crumb(
     /// Builds a `crumb` from markup.
     ///
     /// No `current`, for the reason in the class note — the trail writes it.
+    @SuppressWarnings("unused")
     public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
         return new Crumb(
                 Wiring.label(node), wiring.icon(node), wiring.action(node, "press"), false, Attributes.of(node));

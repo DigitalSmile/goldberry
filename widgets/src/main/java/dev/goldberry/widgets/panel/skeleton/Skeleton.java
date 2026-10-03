@@ -245,6 +245,7 @@ public record Skeleton(Shape shape, int lines, Attributes attributes)
     }
 
     /// Builds a `skeleton` from markup.
+    @SuppressWarnings("unused")
     public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
         var lines = (int) node.numberProperty("lines", 3);
         return new Skeleton(Shape.of(node.stringProperty("shape")), lines, Attributes.of(node));

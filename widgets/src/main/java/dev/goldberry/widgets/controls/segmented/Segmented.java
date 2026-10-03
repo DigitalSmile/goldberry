@@ -265,6 +265,7 @@ public record Segmented(
     ///
     /// The same valued action `radio-group` takes, because this control shares
     /// that model exactly — a set's handler is useless without the value picked.
+    @SuppressWarnings("unused")
     public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
         return new Segmented(
                 node.stringProperty("value"),

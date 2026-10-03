@@ -107,6 +107,7 @@ public record Card(List<Widget> children, Attributes attributes)
     }
 
     /// Builds a `card` from markup.
+    @SuppressWarnings("unused")
     public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
         return new Card(children, Attributes.of(node));
     }

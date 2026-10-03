@@ -239,6 +239,7 @@ public record Button(
     /// `press=` names an action and `icon=` names an icon, and neither can be
     /// *built* by a document: an `Icon` owns native memory and has to be closed,
     /// so one reloaded on every keystroke would leak per reload.
+    @SuppressWarnings("unused")
     public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
         var button = button(node, wiring);
         // `float=#true` is placement, not appearance, so it composes with every

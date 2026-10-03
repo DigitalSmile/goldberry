@@ -299,6 +299,7 @@ public record Table<T>(
 
     /// Builds a `table` from markup: a [Bound] over the `Table` a model's `bind=`
     /// value holds, since a cell factory is code a document cannot write.
+    @SuppressWarnings("unused")
     public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
         return new Bound(wiring.bound(node), Table.class, Attributes.of(node));
     }

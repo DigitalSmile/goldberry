@@ -73,6 +73,7 @@ public record ChartSeries(@Nullable String name, List<Double> values, List<Strin
     ///
     /// The label is optional and the number is not: a point with no value is not
     /// a point, and one with no name is a point on an axis nobody labelled.
+    @SuppressWarnings("unused")
     public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
         var values = new ArrayList<Double>();
         var labels = new ArrayList<String>();

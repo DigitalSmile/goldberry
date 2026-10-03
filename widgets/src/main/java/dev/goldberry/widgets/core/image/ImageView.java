@@ -189,6 +189,7 @@ public record ImageView(
     ///
     /// `src` is one path; `srcset` is several, with `Nx` scales. A path that
     /// starts `classpath:` is a resource on the application's class loader.
+    @SuppressWarnings("unused")
     public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
         var loader = Thread.currentThread().getContextClassLoader();
         if (loader == null) {

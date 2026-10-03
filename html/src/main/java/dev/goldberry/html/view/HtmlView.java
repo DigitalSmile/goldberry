@@ -228,6 +228,7 @@ public record HtmlView(
     /// Children are refused rather than ignored: a page has content of its own, and an
     /// `html-view` with widgets inside it is a document saying something its author did
     /// not write.
+    @SuppressWarnings("unused")
     public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
         if (!children.isEmpty()) {
             throw new IllegalArgumentException("html-view takes its document as its argument, not as children;"

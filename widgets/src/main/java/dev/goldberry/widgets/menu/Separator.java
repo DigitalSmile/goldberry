@@ -69,6 +69,7 @@ public record Separator(Attributes attributes) implements Widget.Leaf, Styled, P
     }
 
     /// Builds a `separator` from markup.
+    @SuppressWarnings("unused")
     public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
         return new Separator(Attributes.of(node));
     }

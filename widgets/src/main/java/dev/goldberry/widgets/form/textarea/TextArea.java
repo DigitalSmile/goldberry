@@ -576,6 +576,7 @@ public record TextArea(
     /// `onEdit` and [#edit(TextEdit)] have no attribute: `change=` names a method
     /// that takes a value, and a [TextEdit] is not a value a KDL document can
     /// write or a registry can resolve. An editor is Java.
+    @SuppressWarnings("unused")
     public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
         var rows = (int) node.numberProperty("rows", DEFAULT_ROWS);
         var maxRows = (int) node.numberProperty("max-rows", 0);

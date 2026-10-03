@@ -256,6 +256,7 @@ public record SplitPane(
     ///
     /// `bind=` names the number the position is read from and `resize=` the
     /// action a drag reports to; either may be written without the other.
+    @SuppressWarnings("unused")
     public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
         return new SplitPane(
                 SplitAxis.of(node.stringProperty("axis")),

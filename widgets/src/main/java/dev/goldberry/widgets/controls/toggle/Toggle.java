@@ -270,6 +270,7 @@ public record Toggle(
     /// The change is a **valued** action: what the user asked for is `true` or
     /// `false` rather than "the other one", because a drag is a request for a
     /// particular state and dragging right on a switch already on asks for on.
+    @SuppressWarnings("unused")
     public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
         return new Toggle(Wiring.label(node), node.booleanProperty("on"),
                 wiring.bound(node), wiring.flag(node, "change"),

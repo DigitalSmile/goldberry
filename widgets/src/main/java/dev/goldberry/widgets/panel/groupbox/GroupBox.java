@@ -141,6 +141,7 @@ public record GroupBox(@Nullable String title, List<Widget> content, Attributes 
     /// argument position is where a container's *children* start and a
     /// `group-box "Appearance" { … }` would read as a group box containing the
     /// word "Appearance".
+    @SuppressWarnings("unused")
     public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
         return new GroupBox(node.stringProperty("title"), children, Attributes.of(node));
     }

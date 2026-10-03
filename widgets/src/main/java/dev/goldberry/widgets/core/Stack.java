@@ -102,6 +102,7 @@ public record Stack(List<Widget> children, Attributes attributes)
     }
 
     /// Builds a `stack` from markup.
+    @SuppressWarnings("unused")
     public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
         return new Stack(children, Attributes.of(node));
     }

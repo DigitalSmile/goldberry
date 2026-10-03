@@ -214,6 +214,7 @@ public record Dialog(
     /// dialog containing those words.
     ///
     /// `dismiss=` names an action, as `message`'s does, and asks for the ×.
+    @SuppressWarnings("unused")
     public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
         return new Dialog(node.stringProperty("title"), children, wiring.action(node, "dismiss"), Attributes.of(node));
     }

@@ -290,6 +290,7 @@ public record Message(
     /// document says who to tell rather than deciding by itself that a banner can
     /// be closed — nothing in a document could remove the banner anyway, because
     /// what put it there is the application's own state.
+    @SuppressWarnings("unused")
     public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
         return new Message(
                 Kind.of(node.stringProperty("kind")),

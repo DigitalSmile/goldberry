@@ -243,6 +243,7 @@ public record Step(
     ///
     /// No index, no count, no state — the list writes those. `complete`
     /// written as neither `#true` nor `#false` is left to the position.
+    @SuppressWarnings("unused")
     public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
         return new Step(
                 Wiring.label(node),

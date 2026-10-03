@@ -7,6 +7,8 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Supplier;
 
+import org.jspecify.annotations.Nullable;
+
 import dev.goldberry.assets.BundledFont;
 import dev.goldberry.assets.Face;
 
@@ -85,7 +87,7 @@ public record FontSource(String family, int weight, BundledFont.Style style, Sup
     /// when the face is first drawn. A supplier that answers null is a face
     /// that is not there.
     public static FontSource stream(
-            String family, int weight, BundledFont.Style style, Supplier<? extends InputStream> stream) {
+            String family, int weight, BundledFont.Style style, Supplier<? extends @Nullable InputStream> stream) {
         Objects.requireNonNull(stream, "stream");
         return new FontSource(family, weight, style, new StreamBytes(stream));
     }
@@ -149,7 +151,7 @@ public record FontSource(String family, int weight, BundledFont.Style style, Sup
 
     /// The application's own stream. Compared by the supplier, so two sources
     /// built from one constant are one face.
-    private record StreamBytes(Supplier<? extends InputStream> stream) implements Probed {
+    private record StreamBytes(Supplier<? extends @Nullable InputStream> stream) implements Probed {
 
         @Override
         public byte[] get() {

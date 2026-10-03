@@ -194,6 +194,7 @@ public record DonutChart(List<Series> slices, dev.goldberry.widgets.data.ChartSt
 
     /// Builds a `donut-chart` from markup, reading its inline `series` children
     /// — one point per series.
+    @SuppressWarnings("unused")
     public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
         return new DonutChart(ChartParts.read(children).series(), Attributes.of(node));
     }

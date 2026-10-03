@@ -212,6 +212,7 @@ public record Statistic(
     }
 
     /// Builds a `statistic` from markup.
+    @SuppressWarnings("unused")
     public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
         return new Statistic(
                 Objects.requireNonNull(node.stringProperty("label"), "label"),

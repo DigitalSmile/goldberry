@@ -176,6 +176,7 @@ public record Timeline(List<Widget> children, Direction direction, Align align, 
     }
 
     /// Builds a `timeline` from markup.
+    @SuppressWarnings("unused")
     public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
         Objects.requireNonNull(node, "node");
         return new Timeline(

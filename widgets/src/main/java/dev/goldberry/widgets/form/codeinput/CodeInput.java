@@ -216,6 +216,7 @@ public record CodeInput(
     /// Both actions take the code, which is the valued form `text-input` and
     /// `select` already use: a handler for a field is useless without what was
     /// typed.
+    @SuppressWarnings("unused")
     public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
         return new CodeInput(
                 Objects.requireNonNullElse(node.stringProperty("value"), ""),

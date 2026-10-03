@@ -81,6 +81,7 @@ public record AudioPlayer(MediaPlayer player, Attributes attributes)
     ///
     /// @throws IllegalArgumentException when the node has children, which an
     ///                                  `audio-player` does not take
+    @SuppressWarnings("unused")
     public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
         if (!children.isEmpty()) {
             throw new IllegalArgumentException("audio-player takes no children");

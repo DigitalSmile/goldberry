@@ -274,6 +274,7 @@ public record RadioGroup(
     /// An action that has to say **which one** — a group's handler is
     /// useless without the value picked, and one action per option would make
     /// adding an option an edit in Java too.
+    @SuppressWarnings("unused")
     public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
         return new RadioGroup(
                 node.stringProperty("value"),

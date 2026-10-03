@@ -121,6 +121,7 @@ public record Form(
     /// is the rule markup has always followed for actions and icons.
     /// Without it a document could declare a form and nothing
     /// could ever submit it.
+    @SuppressWarnings("unused")
     public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
         return new Form(
                 children,

@@ -389,6 +389,7 @@ public record TextInput(
     /// The `change` action takes the new text, which is the valued form
     /// `segmented` and `select` already use: a field's handler is useless without
     /// what was typed.
+    @SuppressWarnings("unused")
     public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
         var field = field(node, wiring);
         // `suggestions=` names the value the application's answer to `change`

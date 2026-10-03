@@ -220,6 +220,7 @@ public record Pressable(
     /// `name=` is required, and is the accessible name as it is on every node.
     /// `press=` names the action, `disabled=` disables it, and the
     /// children are the content.
+    @SuppressWarnings("unused")
     public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
         var name = node.stringProperty("name");
         if (name == null || name.isBlank()) {

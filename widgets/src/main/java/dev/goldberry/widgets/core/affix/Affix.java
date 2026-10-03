@@ -138,6 +138,7 @@ public record Affix(
     }
 
     /// Builds an `affix` from markup.
+    @SuppressWarnings("unused")
     public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
         var edges = node.stringProperty("edge");
         return new Affix(

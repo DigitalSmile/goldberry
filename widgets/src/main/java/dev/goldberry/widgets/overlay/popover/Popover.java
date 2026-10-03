@@ -124,6 +124,7 @@ public record Popover(List<Widget> children, Attributes attributes)
     /// It is the panel and not the opening: where a popover goes and when it goes
     /// away is `Host.popup`'s, which serves a tooltip and a select equally and is
     /// not a widget.
+    @SuppressWarnings("unused")
     public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
         return new Popover(children, Attributes.of(node));
     }

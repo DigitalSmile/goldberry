@@ -226,6 +226,7 @@ public record ColorPicker(
     /// property syntax carries — the same reason `calendar` has no `@Markup` at
     /// all. A document gets the plane, the ramps and the field, which is the whole
     /// control minus a shortcut.
+    @SuppressWarnings("unused")
     public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
         var reported = wiring.valued(node, "change");
         return new ColorPicker(

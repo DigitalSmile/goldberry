@@ -531,6 +531,7 @@ public record Tab(
     /// supply on every build, which is why none of them is an attribute: a
     /// document that could mark two tabs selected would break the one invariant a
     /// strip exists to hold.
+    @SuppressWarnings("unused")
     public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
         return new Tab(
                 Wiring.requiredValue("tab", node),

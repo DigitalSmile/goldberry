@@ -224,6 +224,7 @@ public record Scroll(
     /// [KdlNode#booleanProperty]: the default is the anchor's, so an absent
     /// attribute has to stay absent all the way to the widget rather than being
     /// resolved into a `false` here.
+    @SuppressWarnings("unused")
     public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
         return new Scroll(
                 children,

@@ -126,6 +126,7 @@ public record BarChart(List<Series> series, List<String> categories, ChartOption
     }
 
     /// Builds a `bar-chart` from markup, reading its inline `series` children.
+    @SuppressWarnings("unused")
     public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
         var read = ChartParts.read(children);
         return new BarChart(read.series(), read.categories(), Attributes.of(node));

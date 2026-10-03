@@ -86,6 +86,7 @@ public record Panel(List<Widget> children, Attributes attributes)
     }
 
     /// Builds a `panel` from markup.
+    @SuppressWarnings("unused")
     public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
         return new Panel(children, Attributes.of(node));
     }

@@ -133,6 +133,7 @@ public record Text(String content, @Nullable Observable<?> source, Attributes at
     /// `text bind="user.name" "…"` is what a lenient registry shows for a path
     /// nothing answers yet, and it is what a designer laying out a screen wants
     /// to see.
+    @SuppressWarnings("unused")
     public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
         var source = wiring.bound(node);
         var literal = Wiring.label(node);

@@ -429,6 +429,7 @@ public record TimePicker(
     /// `date-picker`'s stated reason: the toolkit does not invent a syntax for
     /// what a *user* types, and a bound written into a document is written by a
     /// programmer.
+    @SuppressWarnings("unused")
     public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
         var precision = precisionOf(node);
         // Resolved here only to format what `change` reports; the widget is given

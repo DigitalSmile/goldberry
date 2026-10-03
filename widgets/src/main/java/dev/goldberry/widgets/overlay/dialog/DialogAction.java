@@ -120,6 +120,7 @@ public record DialogAction(
     }
 
     /// Builds an `action` from markup.
+    @SuppressWarnings("unused")
     public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
         return new DialogAction(
                 Wiring.label(node),

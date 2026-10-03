@@ -87,6 +87,7 @@ public record MenuBar(List<Widget> children, Attributes attributes) implements W
 
     /// Builds a `menubar` from markup. Its children are `item`s, and an `item`
     /// with `item`s inside it is a heading — the same nesting a submenu uses.
+    @SuppressWarnings("unused")
     public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
         return new MenuBar(children, Attributes.of(node));
     }

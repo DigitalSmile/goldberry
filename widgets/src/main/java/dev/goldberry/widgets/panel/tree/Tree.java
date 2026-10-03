@@ -222,6 +222,7 @@ public record Tree(
 
     /// Builds a `tree` from markup: a [Bound] over the `Tree` a model's `bind=`
     /// value holds, since a node's children are suppliers a document cannot write.
+    @SuppressWarnings("unused")
     public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
         return new Bound(wiring.bound(node), Tree.class, Attributes.of(node));
     }

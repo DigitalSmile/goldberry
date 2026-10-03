@@ -117,6 +117,7 @@ public record Menu(List<Widget> children, Attributes attributes)
     ///
     /// A document declares a menu; *opening* one is `Menus.open(host, …)`,
     /// because that needs a `Host` and a widget must not have one.
+    @SuppressWarnings("unused")
     public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
         return new Menu(children, Attributes.of(node));
     }

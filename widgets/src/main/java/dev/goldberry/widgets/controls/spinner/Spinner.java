@@ -194,6 +194,7 @@ public record Spinner(SpinnerSize size, Attributes attributes)
     /// `size` is the only attribute of its own a spinner has: it has no value,
     /// no state and nothing to say. It still takes an id and classes, because
     /// everything CSS-selectable does.
+    @SuppressWarnings("unused")
     public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
         return new Spinner(SpinnerSize.of(node.stringProperty("size")), Attributes.of(node));
     }

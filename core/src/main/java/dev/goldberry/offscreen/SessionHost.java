@@ -1,9 +1,7 @@
 package dev.goldberry.offscreen;
 
 import java.time.Duration;
-import java.util.EnumMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Consumer;
@@ -81,10 +79,6 @@ final class SessionHost implements Host {
     /// window answers from the frame it painted, and so does this.
     private List<HitTest.Region> regions = List.of();
 
-    /// Bare-modifier taps by owner. The gesture is the window's, and a session
-    /// has no window, so they are kept and never fired.
-    private final Map<ModifierKey, Object> taps = new EnumMap<>(ModifierKey.class);
-
     SessionHost(
             PointerRouter router,
             Clock.Virtual clock,
@@ -159,13 +153,17 @@ final class SessionHost implements Host {
 
     @Override
     public void modifierTap(ModifierKey modifier, Runnable action, Object owner) {
+        // A bare-modifier tap is the window's gesture, and a session has no
+        // window, so there is nothing to bind and nothing that would fire it.
+        Objects.requireNonNull(modifier, "modifier");
         Objects.requireNonNull(action, "action");
-        taps.put(modifier, owner);
+        Objects.requireNonNull(owner, "owner");
     }
 
     @Override
     public void removeModifierTap(ModifierKey modifier, Object owner) {
-        taps.remove(modifier, owner);
+        Objects.requireNonNull(modifier, "modifier");
+        Objects.requireNonNull(owner, "owner");
     }
 
     @Override

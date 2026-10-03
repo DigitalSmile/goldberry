@@ -392,6 +392,7 @@ public record Item(
     /// contain — so nesting *is* the syntax and there is no `submenu` node to
     /// forget. `reservesCheck` and the hover callback are the menu's to supply on
     /// every open, which is why neither is an attribute.
+    @SuppressWarnings("unused")
     public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
         return new Item(
                 Wiring.label(node),

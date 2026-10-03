@@ -233,6 +233,7 @@ public record Steps(
     ///
     /// `change` is wired as a number, because what the user pressed is an index
     /// and a handler that got `"2"` would parse it.
+    @SuppressWarnings("unused")
     public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
         Objects.requireNonNull(node, "node");
         DoubleConsumer change = wiring.numeric(node, "change");

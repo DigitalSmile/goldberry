@@ -582,3 +582,5 @@ proposing to undo them.
 - [ADR-0544 A page says where it is going and hands over its cookies](0544-a-page-says-where-it-is-going-and-hands-over-its-cookies.md)
 - [ADR-0545 On macOS a menubar is the application's menu bar](0545-on-macos-a-menubar-is-the-applications-menu-bar.md)
 - [ADR-0546 A notification is the desktop's, and false means it was not shown](0546-a-notification-is-the-desktops-and-false-means-it-was-not-shown.md)
+- [ADR-0547 A member reached by reflection says so to Qodana](0547-a-member-reached-by-reflection-says-so-to-qodana.md)
+- [ADR-0548 Four CodeQL queries that only report false positives are excluded](0548-four-codeql-queries-that-only-report-false-positives-are-excluded.md)

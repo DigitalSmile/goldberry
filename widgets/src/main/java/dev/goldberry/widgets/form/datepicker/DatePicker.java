@@ -486,6 +486,7 @@ public record DatePicker(
     /// it, and a `DateTimeFormatter` is not something KDL can carry. A
     /// document therefore gets the locale's short form, which is the documented
     /// default rather than a gap.
+    @SuppressWarnings("unused")
     public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
         var format = DateFormat.of(Locale.getDefault(Locale.Category.FORMAT));
         var reported = wiring.valued(node, "change");

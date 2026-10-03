@@ -120,6 +120,7 @@ public record Collapse(
     ///
     /// `open=#true` is the initial state, and `toggle=` names an action taking a
     /// boolean when an application wants to own it.
+    @SuppressWarnings("unused")
     public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
         return new Collapse(
                 Objects.requireNonNullElse(node.stringProperty("title"), ""),

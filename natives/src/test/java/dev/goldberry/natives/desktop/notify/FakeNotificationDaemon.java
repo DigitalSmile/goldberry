@@ -75,8 +75,12 @@ final class FakeNotificationDaemon implements AutoCloseable {
                         "/usr/bin/dbus-daemon", "--config-file=" + config, "--nofork", "--print-address=1")
                 .redirectErrorStream(false)
                 .start();
-        var reader = new BufferedReader(new InputStreamReader(process.getInputStream(), StandardCharsets.UTF_8));
-        var address = reader.readLine();
+        // `--print-address=1` writes the address once and nothing after it, so
+        // the pipe is done with as soon as the line is read.
+        String address;
+        try (var reader = new BufferedReader(new InputStreamReader(process.getInputStream(), StandardCharsets.UTF_8))) {
+            address = reader.readLine();
+        }
         if (address == null || address.isBlank()) {
             process.destroyForcibly();
             return null;

@@ -35,6 +35,7 @@ public record ChartPoint() implements Widget.Leaf, Styled, Paints {
     }
 
     /// Builds a `point`. See the class note on why it carries nothing.
+    @SuppressWarnings("unused")
     public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
         return new ChartPoint();
     }

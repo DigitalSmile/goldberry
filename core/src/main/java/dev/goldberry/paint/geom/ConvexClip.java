@@ -85,9 +85,11 @@ public final class ConvexClip {
     ///
     /// Either winding is accepted for `clip`: which side of an edge is inside
     /// is read off the polygon's own signed area.
+    ///
+    /// @throws IllegalArgumentException if either has an odd number of values
     public static double[] intersect(double[] subject, double[] clip) {
-        Objects.requireNonNull(subject, "subject");
-        Objects.requireNonNull(clip, "clip");
+        requirePairs(subject, "subject");
+        requirePairs(clip, "clip");
         var orientation = Math.signum(signedArea(clip));
         if (orientation == 0 || subject.length < 6) {
             return new double[0];
@@ -109,16 +111,28 @@ public final class ConvexClip {
 
     /// A closed path through `polygon`'s points, or [Path#EMPTY] for fewer
     /// than three.
+    ///
+    /// @throws IllegalArgumentException if `polygon` has an odd number of values
     public static Path toPath(double[] polygon) {
-        Objects.requireNonNull(polygon, "polygon");
+        requirePairs(polygon, "polygon");
         if (polygon.length < 6) {
             return Path.EMPTY;
         }
         var builder = Path.builder().moveTo(polygon[0], polygon[1]);
-        for (var i = 2; i < polygon.length; i += 2) {
+        for (var i = 2; i + 1 < polygon.length; i += 2) {
             builder.lineTo(polygon[i], polygon[i + 1]);
         }
         return builder.close().build();
+    }
+
+    /// `points` as `x, y` pairs: a trailing `x` with no `y` is a caller's
+    /// mistake, said here rather than as an index out of bounds.
+    private static void requirePairs(double[] points, String name) {
+        Objects.requireNonNull(points, name);
+        if (points.length % 2 != 0) {
+            throw new IllegalArgumentException(
+                    name + " is x, y pairs, and has an odd number of values: " + points.length);
+        }
     }
 
     /// Twice the polygon's signed area; positive when it winds clockwise on a

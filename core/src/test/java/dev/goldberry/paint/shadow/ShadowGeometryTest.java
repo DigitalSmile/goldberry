@@ -294,7 +294,7 @@ class ShadowGeometryTest {
                 Double.POSITIVE_INFINITY, Double.POSITIVE_INFINITY,
                 Double.NEGATIVE_INFINITY, Double.NEGATIVE_INFINITY
             };
-            for (var i = 0; i < polygon.length; i += 2) {
+            for (var i = 0; i + 1 < polygon.length; i += 2) {
                 cover(bounds, polygon[i], polygon[i + 1]);
             }
             return bounds;

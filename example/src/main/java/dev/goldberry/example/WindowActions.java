@@ -34,21 +34,25 @@ import dev.goldberry.bind.Action;
 public record WindowActions(Runnable openMenu, Runnable toggleHud, Runnable openDialog, Runnable raiseToast) {
 
     @Action("app.open-menu")
+    @SuppressWarnings("unused")
     public void openTheMenu() {
         openMenu.run();
     }
 
     @Action("app.toggle-hud")
+    @SuppressWarnings("unused")
     public void toggleTheHud() {
         toggleHud.run();
     }
 
     @Action("app.open-dialog")
+    @SuppressWarnings("unused")
     public void openTheDialog() {
         openDialog.run();
     }
 
     @Action("app.raise-toast")
+    @SuppressWarnings("unused")
     public void raiseAToast() {
         raiseToast.run();
     }

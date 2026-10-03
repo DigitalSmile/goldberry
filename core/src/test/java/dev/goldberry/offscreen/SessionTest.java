@@ -28,6 +28,7 @@ import dev.goldberry.input.event.PointerEvent;
 import dev.goldberry.input.event.TextEvent;
 import dev.goldberry.input.handler.Handles;
 import dev.goldberry.input.key.Key;
+import dev.goldberry.input.tap.ModifierKey;
 import dev.goldberry.paint.Box;
 import dev.goldberry.paint.overflow.OverflowLog;
 import dev.goldberry.render.model.LogicalPoint;
@@ -291,6 +292,23 @@ class SessionTest {
                 session.host().shortcut("Ctrl+S", () -> log.add("saved"));
                 session.key("Ctrl+S");
                 assertEquals(List.of("saved"), log);
+            }
+        }
+
+        @Test
+        @DisplayName("keeps no modifier tap, since the gesture is a window's, and still refuses a null")
+        void modifierTap() {
+            try (var session = open()) {
+                var owner = new Object();
+                session.host().modifierTap(ModifierKey.CONTROL, () -> log.add("tapped"), owner);
+                session.key("Ctrl+S");
+                session.host().removeModifierTap(ModifierKey.CONTROL, owner);
+
+                assertEquals(List.of(), log);
+                assertThrows(
+                        NullPointerException.class,
+                        () -> session.host().modifierTap(ModifierKey.CONTROL, () -> {}, null));
+                assertThrows(NullPointerException.class, () -> session.host().removeModifierTap(null, owner));
             }
         }
     }

@@ -610,6 +610,7 @@ public record Knob(
     ///
     /// `detents` is a count, like `slider`'s `ticks` — a value a document can
     /// carry, naming nothing the application has to have registered.
+    @SuppressWarnings("unused")
     public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
         var min = node.numberProperty("min", 0);
         var max = node.numberProperty("max", 1);

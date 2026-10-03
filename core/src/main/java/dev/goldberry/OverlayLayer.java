@@ -101,6 +101,10 @@ public final class OverlayLayer {
     }
 
     private List<Overlay> list() {
+        // Never null, for WindowRoot.children's reason: the property starts at
+        // List.of() and is only ever set to a copy. IntelliJ reads Property's
+        // nullable type bound rather than the non-null List it is declared with.
+        //noinspection DataFlowIssue
         return overlays.get();
     }
 }

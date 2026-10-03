@@ -526,6 +526,7 @@ public record Select(
     ///
     /// The same valued action `segmented` and `radio-group` take: a set's handler
     /// is useless without the value picked.
+    @SuppressWarnings("unused")
     public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
         var select = control(node, children, wiring);
         // `options=` names a bound list that replaces the written options each

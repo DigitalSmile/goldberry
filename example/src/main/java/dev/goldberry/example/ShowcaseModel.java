@@ -74,12 +74,15 @@ public final class ShowcaseModel {
     /// Leagues walked from Bag End. The counter, in the one unit a hobbit
     /// measures anything in.
     @Bind("app.clicks")
+    @SuppressWarnings("unused")
     private int clicks;
 
     @Bind("app.prose")
+    @SuppressWarnings("unused")
     private boolean showProse = true;
 
     @Bind("app.partly")
+    @SuppressWarnings("unused")
     private Checkbox.Value partly = Checkbox.Value.MIXED;
 
     /// A `Number` rather than a `double`, because that is genuinely what it
@@ -87,11 +90,13 @@ public final class ShowcaseModel {
     /// what a `text` widget prints is whichever it was last given. A `double`
     /// here would render the starting value as `40.0`.
     @Bind("app.gain")
+    @SuppressWarnings("unused")
     private Number gain = 40;
 
     /// A restyle rather than a repaint: every resolved style depends on the
     /// theme, so changing it invalidates the stylesheets and not just the pixels.
     @Bind(value = "app.theme", restyle = true)
+    @SuppressWarnings("unused")
     private String themeName = "dark";
 
     /// The same fact as [#themeName], spelled the way a **switch** can read it.
@@ -107,6 +112,7 @@ public final class ShowcaseModel {
     /// long and is the single route every theme control in the window goes
     /// through — the strip, the switch, the menu, the tray and `Ctrl+T`.
     @Bind(value = "app.light", restyle = true)
+    @SuppressWarnings("unused")
     private boolean light;
 
     /// The Red Book's own field, and the one that proves the round trip: the
@@ -115,12 +121,14 @@ public final class ShowcaseModel {
     /// that round trip would be unusable, which is exactly what `TextInput`'s
     /// "has the value changed since the last build" test is there to prevent.
     @Bind("app.name")
+    @SuppressWarnings("unused")
     private String name = "";
 
     /// A field with a filter on it, so the screen shows one refusing a keystroke
     /// rather than only describing that it would. A palantír answers on a port
     /// like anything else that talks over a distance.
     @Bind("app.port")
+    @SuppressWarnings("unused")
     private String port = "8080";
 
     /// The enlistment form's two values. The status line is what Enlist writes,
@@ -128,12 +136,15 @@ public final class ShowcaseModel {
     /// interesting half of a form, and the half a screenshot of a happy one never
     /// shows.
     @Bind("app.signup-name")
+    @SuppressWarnings("unused")
     private String signupName = "";
 
     @Bind("app.signup-port")
+    @SuppressWarnings("unused")
     private String signupPort = "";
 
     @Bind("app.signup-status")
+    @SuppressWarnings("unused")
     private String signupStatus = "Nobody has enlisted yet";
 
     /// The departure date, and what the picker made of it.
@@ -143,9 +154,11 @@ public final class ShowcaseModel {
     /// rather than stringifying it, so the screen shows the application's own
     /// spelling of a date it owns.
     @Bind("trip.date")
+    @SuppressWarnings("unused")
     private @Nullable LocalDate tripDate = LocalDate.of(2026, 9, 14);
 
     @Bind("trip.status")
+    @SuppressWarnings("unused")
     private String tripStatus = "Type a date, or press the chevron";
 
     /// When the departure leaves, and what the wheels made of it.
@@ -153,18 +166,22 @@ public final class ShowcaseModel {
     /// A **`LocalTime`**, for `trip.date`'s reason: the control reports a typed
     /// value and a model that has parsed its own is what a picker formats from.
     @Bind("trip.time")
+    @SuppressWarnings("unused")
     private @Nullable LocalTime tripTime = LocalTime.of(9, 30);
 
     @Bind("trip.time-status")
+    @SuppressWarnings("unused")
     private String tripTimeStatus = "Type it, or turn the wheels";
 
     /// A colour, held as one — `color-picker` reports a `CssColor` value, which
     /// is an `0xAARRGGBB` int, and a model that keeps colours as colours is what
     /// the picker formats its hex from.
     @Bind("paint.colour")
+    @SuppressWarnings("unused")
     private Integer paintColour = 0xFF88C0D0;
 
     @Bind("paint.status")
+    @SuppressWarnings("unused")
     private String paintStatus = "Nord frost";
 
     /// The one-time code, and what happened to it.
@@ -174,15 +191,18 @@ public final class ShowcaseModel {
     /// when the last one fills. The status line is what the second writes, and it
     /// is the only way a screenshot can show the difference between them.
     @Bind("app.code")
+    @SuppressWarnings("unused")
     private String code = "";
 
     @Bind("app.code-status")
+    @SuppressWarnings("unused")
     private String codeStatus = "Type or paste six digits";
 
     /// The `text-area`'s value, so the screen shows a multi-line control that a
     /// model can see — and one long enough to wrap, which is the half of it
     /// `text-input` cannot demonstrate.
     @Bind("app.bio")
+    @SuppressWarnings("unused")
     private String bio = "We came down out of the pass at dusk and found the road still "
             + "under snow.\n\nPress Enter for a new line.";
 
@@ -195,6 +215,7 @@ public final class ShowcaseModel {
     /// than one line's height. A document of short lines would show a column of
     /// numbers and prove nothing.
     @Bind("app.notes")
+    @SuppressWarnings("unused")
     private String notes = "# Fellowship\n"
             + "\n"
             + "The road goes ever on and on, down from the door where it began, and now far "
@@ -217,6 +238,7 @@ public final class ShowcaseModel {
     /// trailing spaces in it, and every one of those is something a Java string
     /// literal would eat.
     @Bind("md.source")
+    @SuppressWarnings("unused")
     private String markdownSource = MarkdownSample.text();
 
     /// The HTML screen's page, which is the same arrangement one tab along: the
@@ -227,6 +249,7 @@ public final class ShowcaseModel {
     /// from a file, and one more: it is markup, so it is quotation marks all the way
     /// down.
     @Bind("html.source")
+    @SuppressWarnings("unused")
     private String htmlSource = HtmlSample.text();
 
     /// What the Markdown screen's last pressed link or ticked box reported.
@@ -235,6 +258,7 @@ public final class ShowcaseModel {
     /// how a document view works: the toolkit hands over a destination or an
     /// ordinal and stops.
     @Bind("md.followed")
+    @SuppressWarnings("unused")
     private String markdownFollowed = "Press a link, or tick a box — both are edits this application makes.";
 
     /// What the last link a reader pressed handed over.
@@ -245,23 +269,27 @@ public final class ShowcaseModel {
     /// to and what opening one costs are the application's. This application
     /// prints it.
     @Bind("html.followed")
+    @SuppressWarnings("unused")
     private String htmlFollowed = "Press a link in the page — nothing here opens a browser.";
 
     /// What the bar says about how this window came up. Written once, from a
     /// background job's continuation — see [dev.goldberry.example.Showcase].
     @Bind("app.status")
+    @SuppressWarnings("unused")
     private String status = "reading the map…";
 
     /// How long this process took to get a window on screen, as the bar prints
     /// it. Separate from [#status] because they answer different questions and
     /// arrive at different times.
     @Bind("app.startup")
+    @SuppressWarnings("unused")
     private String startup = "…";
 
     /// How the window's frames reach the screen, as the bar prints it:
     /// `GPU · vulkan`, or `CPU ·` and why. Set by the window when it changes,
     /// which is at its first frame and whenever it moves between the two.
     @Bind("app.presentation")
+    @SuppressWarnings("unused")
     private String presentation = "…";
 
     /// Whether the frame-rate readout is up.
@@ -273,6 +301,7 @@ public final class ShowcaseModel {
     /// toggled the HUD, which is exactly the arrangement bound values exist to
     /// replace.
     @Bind("app.hud")
+    @SuppressWarnings("unused")
     private boolean hud;
 
     /// The chapters open in the Navigation screen's strip, and which of them is
@@ -284,9 +313,11 @@ public final class ShowcaseModel {
     /// changes nothing anybody can see — the same rule the weaver
     /// enforces by refusing to bind an array at all.
     @Bind("app.tabs")
+    @SuppressWarnings("unused")
     private List<String> tabs = List.of("Rivendell", "Moria");
 
     @Bind("app.tab")
+    @SuppressWarnings("unused")
     private @Nullable String tab = "Rivendell";
 
     // --- the chips -----------------------------------------------------------
@@ -302,12 +333,15 @@ public final class ShowcaseModel {
     /// Independent, and that is the argument for chips over `segmented`: none,
     /// some or all of them may be on, and nothing about the row makes that wrong.
     @Bind("app.chip-unread")
+    @SuppressWarnings("unused")
     private boolean chipUnread = true;
 
     @Bind("app.chip-starred")
+    @SuppressWarnings("unused")
     private boolean chipStarred;
 
     @Bind("app.chip-archived")
+    @SuppressWarnings("unused")
     private boolean chipArchived;
 
     /// The tags the Basic screen's dismissable row shows.
@@ -320,6 +354,7 @@ public final class ShowcaseModel {
     /// Assignment is what is observed, which is why it is replaced rather than
     /// edited: a list mutated in place changes nothing anybody can see.
     @Bind("app.tags")
+    @SuppressWarnings("unused")
     private List<String> tags = List.of("java", "kdl", "blend2d", "harfbuzz", "yoga");
 
     // --- the trail -----------------------------------------------------------
@@ -330,6 +365,7 @@ public final class ShowcaseModel {
     /// draws what is here and a crumb asks for a prefix of it, which is the same
     /// loop every other control in this window runs.
     @Bind("app.path")
+    @SuppressWarnings("unused")
     private List<String> path = List.of("Home", "Library", "Reference");
 
     /// The places a deeper path goes, in order — the trail's equivalent of
@@ -353,29 +389,34 @@ public final class ShowcaseModel {
     /// different things: the field shows the value, and the sheet is a different
     /// number of rows per query — a value for one and a structure for the other.
     @Bind("app.icon-query")
+    @SuppressWarnings("unused")
     private String iconQuery = "";
 
     /// The same for the Emoji screen, and a second field rather than one shared
     /// with the icons: two sheets that filtered on one value would clear each
     /// other every time a reader moved between them.
     @Bind("app.emoji-query")
+    @SuppressWarnings("unused")
     private String emojiQuery = "";
 
     /// Which gallery screen is showing — the tab strip under the bar.
     /// `Ctrl+1`, a menu item and the strip itself are three ways to set one value
     /// rather than three copies of a selection.
     @Bind("app.screen")
+    @SuppressWarnings("unused")
     private String screen = "basic";
 
     /// The density preference. It moves every control's height through the
     /// design tokens alone, with no code in the application — and that is why
     /// it restyles rather than repaints.
     @Bind(value = "app.density", restyle = true)
+    @SuppressWarnings("unused")
     private Density density = Density.REGULAR;
 
     /// Whether scroll bars are always shown, which is density's shape: a token
     /// stylesheet, so it restyles.
     @Bind(value = "app.scrollbars", restyle = true)
+    @SuppressWarnings("unused")
     private Scrollbars scrollbars = Scrollbars.OVERLAY;
 
     /// How many chapters have been opened, so a new one gets a name nobody has
@@ -387,6 +428,7 @@ public final class ShowcaseModel {
     /// this counter is state, and it lives with the rest of the state rather than
     /// in the thing that increments it.
     @Bind(value = "app.tabs-added", repaint = false)
+    @SuppressWarnings("unused")
     private int added;
 
     /// The places a new chapter is named after, in order. Ten of them, which is
@@ -491,6 +533,7 @@ public final class ShowcaseModel {
 
         /// Shows a screen. What the gallery's strip asks for and this decides.
         @Action("app.pick-screen")
+        @SuppressWarnings("unused")
         public void pickScreen(String name) {
             values.screen = name;
         }
@@ -506,16 +549,19 @@ public final class ShowcaseModel {
         /// value is the widget itself. A row of three that shared one handler
         /// would be a `segmented` with rounder corners.
         @Action("app.toggle-unread")
+        @SuppressWarnings("unused")
         public void toggleUnread() {
             values.chipUnread = !values.chipUnread;
         }
 
         @Action("app.toggle-starred")
+        @SuppressWarnings("unused")
         public void toggleStarred() {
             values.chipStarred = !values.chipStarred;
         }
 
         @Action("app.toggle-archived")
+        @SuppressWarnings("unused")
         public void toggleArchived() {
             values.chipArchived = !values.chipArchived;
         }
@@ -534,6 +580,7 @@ public final class ShowcaseModel {
 
         /// Puts the five back, so the card can be tried more than once.
         @Action("app.reset-tags")
+        @SuppressWarnings("unused")
         public void resetTags() {
             values.tags = List.of("java", "kdl", "blend2d", "harfbuzz", "yoga");
         }
@@ -553,6 +600,7 @@ public final class ShowcaseModel {
 
         /// Goes deeper, so the trail can be pushed past its overflow.
         @Action("app.go-deeper")
+        @SuppressWarnings("unused")
         public void goDeeper() {
             if (values.path.size() >= DEEPER.size() + 1) {
                 return;
@@ -566,12 +614,14 @@ public final class ShowcaseModel {
 
         /// What the search field reports on every keystroke.
         @Action("app.set-icon-query")
+        @SuppressWarnings("unused")
         public void setIconQuery(String value) {
             values.iconQuery = value;
         }
 
         /// The emoji sheet's own field, for [ShowcaseModel#emojiQuery]'s reason.
         @Action("app.set-emoji-query")
+        @SuppressWarnings("unused")
         public void setEmojiQuery(String value) {
             values.emojiQuery = value;
         }
@@ -579,16 +629,19 @@ public final class ShowcaseModel {
         // --- the road --------------------------------------------------------
 
         @Action("app.click")
+        @SuppressWarnings("unused")
         public void click() {
             values.clicks++;
         }
 
         @Action("app.undo")
+        @SuppressWarnings("unused")
         public void undo() {
             values.clicks = Math.max(0, values.clicks - 1);
         }
 
         @Action("app.reset")
+        @SuppressWarnings("unused")
         public void reset() {
             values.clicks = 0;
         }
@@ -600,6 +653,7 @@ public final class ShowcaseModel {
         /// moves it. Delete this method and the control stops working — which is the
         /// behaviour, not a bug.
         @Action("app.toggle-prose")
+        @SuppressWarnings("unused")
         public void toggleProse() {
             values.showProse = !values.showProse;
         }
@@ -609,6 +663,7 @@ public final class ShowcaseModel {
         /// — dragging right on a switch already on asks for on — so the value comes up
         /// with the event and this sets exactly it.
         @Action("app.set-prose")
+        @SuppressWarnings("unused")
         void setProse(boolean value) {
             values.showProse = value;
         }
@@ -617,6 +672,7 @@ public final class ShowcaseModel {
         /// this goes to `CHECKED`, and a user can never get back to mixed by clicking
         /// — only the application can put it there.
         @Action("app.toggle-partly")
+        @SuppressWarnings("unused")
         void togglePartly() {
             values.partly = values.partly.toggled();
         }
@@ -624,6 +680,7 @@ public final class ShowcaseModel {
         /// Already snapped and clamped by whichever control asked. The application
         /// does no arithmetic at all, which is the point.
         @Action("app.set-gain")
+        @SuppressWarnings("unused")
         void setGain(double value) {
             values.gain = value;
         }
@@ -633,21 +690,25 @@ public final class ShowcaseModel {
         /// trip a real form makes, and the one that would move the caret to the
         /// end on every letter if the field adopted its own echo.
         @Action("app.set-name")
+        @SuppressWarnings("unused")
         void setName(String value) {
             values.name = value;
         }
 
         @Action("app.set-port")
+        @SuppressWarnings("unused")
         void setPort(String value) {
             values.port = value;
         }
 
         @Action("app.set-bio")
+        @SuppressWarnings("unused")
         void setBio(String value) {
             values.bio = value;
         }
 
         @Action("app.set-notes")
+        @SuppressWarnings("unused")
         void setNotes(String value) {
             values.notes = value;
         }
@@ -657,12 +718,14 @@ public final class ShowcaseModel {
         /// The preview is not mentioned here and does not need to be: it is bound to
         /// the field this writes, so the assignment *is* the notification.
         @Action("md.set-source")
+        @SuppressWarnings("unused")
         public void setMarkdownSource(String value) {
             values.markdownSource = value;
         }
 
         /// A link in the rendered Markdown, pressed.
         @Action("md.follow")
+        @SuppressWarnings("unused")
         public void followMarkdownLink(String href) {
             values.markdownFollowed = "Followed: " + href;
         }
@@ -671,6 +734,7 @@ public final class ShowcaseModel {
         /// it is a second action: what `[[Meeting]]` names is this application's
         /// business and not a URL.
         @Action("md.open-wiki")
+        @SuppressWarnings("unused")
         public void openWikiLink(String target) {
             values.markdownFollowed = "Wiki link: " + target;
         }
@@ -683,6 +747,7 @@ public final class ShowcaseModel {
         /// because it is bound to the property this assigns. The editor on the left
         /// shows the edit too, for the same reason.
         @Action("md.toggle-task")
+        @SuppressWarnings("unused")
         public void toggleTask(String index) {
             int task;
             try {
@@ -698,6 +763,7 @@ public final class ShowcaseModel {
         /// Every keystroke in the HTML editor. The preview is not mentioned here and
         /// does not need to be, for the reason above it.
         @Action("html.set-source")
+        @SuppressWarnings("unused")
         public void setHtmlSource(String value) {
             values.htmlSource = value;
         }
@@ -710,6 +776,7 @@ public final class ShowcaseModel {
         /// showcase's answer, and a real one would navigate, open the desktop's browser
         /// or refuse an `href` it does not trust.
         @Action("html.follow")
+        @SuppressWarnings("unused")
         public void followLink(String href) {
             values.htmlFollowed = "Followed: " + href;
         }
@@ -723,6 +790,7 @@ public final class ShowcaseModel {
         /// `DateSelection`. The toolkit invents no date syntax, so the
         /// application that chose the format is the one that reads it back.
         @Action("trip.set-date")
+        @SuppressWarnings("unused")
         void setTripDate(String value) {
             if (value.isBlank()) {
                 values.tripDate = null;
@@ -738,6 +806,7 @@ public final class ShowcaseModel {
         /// `trip.set-date`'s reason: valued actions cross as text, so the
         /// application that chose the format is the one that reads it back.
         @Action("trip.set-time")
+        @SuppressWarnings("unused")
         void setTripTime(String value) {
             if (value.isBlank()) {
                 values.tripTime = null;
@@ -757,6 +826,7 @@ public final class ShowcaseModel {
         /// text. Here the text is the value's own spelling rather than a
         /// formatting choice, so parsing it back is exact.
         @Action("paint.set-colour")
+        @SuppressWarnings("unused")
         void setPaintColour(String hex) {
             var argb = CssColor.parse(hex);
             if (argb == null) {
@@ -768,6 +838,7 @@ public final class ShowcaseModel {
 
         /// Every box, as it fills. The round trip a real form makes.
         @Action("app.set-code")
+        @SuppressWarnings("unused")
         void setCode(String value) {
             values.code = value;
             values.codeStatus = value.isEmpty() ? "Type or paste six digits" : value.length() + " of 6";
@@ -778,16 +849,19 @@ public final class ShowcaseModel {
         /// anything, because a showcase that verified a code would have to invent
         /// one that was right.
         @Action("app.code-complete")
+        @SuppressWarnings("unused")
         void codeComplete(String value) {
             values.codeStatus = "Verifying " + value + "…";
         }
 
         @Action("app.set-signup-name")
+        @SuppressWarnings("unused")
         void setSignupName(String value) {
             values.signupName = value;
         }
 
         @Action("app.set-signup-port")
+        @SuppressWarnings("unused")
         void setSignupPort(String value) {
             values.signupPort = value;
         }
@@ -799,6 +873,7 @@ public final class ShowcaseModel {
         /// *from* this model, so the values are already here and an event
         /// carrying them would hand the application its own data back.
         @Action("app.submit-signup")
+        @SuppressWarnings("unused")
         void submitSignup() {
             if (values.signup.submit()) {
                 values.signupStatus = values.signupName + " rides for Rivendell, hailed on " + values.signupPort;
@@ -830,6 +905,7 @@ public final class ShowcaseModel {
         // --- the theme -------------------------------------------------------
 
         @Action("app.toggle-theme")
+        @SuppressWarnings("unused")
         public void toggleTheme() {
             pickTheme(values.light ? "dark" : "light");
         }
@@ -838,6 +914,7 @@ public final class ShowcaseModel {
         /// [#toggleTheme()]: a switch reports the state it was dragged to rather
         /// than "the other one", exactly as `app.set-prose` does.
         @Action("app.set-light")
+        @SuppressWarnings("unused")
         public void setLight(boolean value) {
             pickTheme(value ? "light" : "dark");
         }
@@ -851,17 +928,20 @@ public final class ShowcaseModel {
         /// The two spellings are written here and nowhere else, which is what
         /// keeps them from disagreeing.
         @Action("app.pick-theme")
+        @SuppressWarnings("unused")
         public void pickTheme(String name) {
             values.themeName = name;
             values.light = "light".equals(name);
         }
 
         @Action("app.toggle-density")
+        @SuppressWarnings("unused")
         public void toggleDensity() {
             values.density = values.density == Density.REGULAR ? Density.COMPACT : Density.REGULAR;
         }
 
         @Action("app.toggle-scrollbars")
+        @SuppressWarnings("unused")
         public void toggleScrollbars() {
             values.scrollbars = values.scrollbars == Scrollbars.OVERLAY ? Scrollbars.ALWAYS : Scrollbars.OVERLAY;
         }

@@ -296,6 +296,7 @@ public record Checkbox(
     }
 
     /// Builds a `checkbox` from markup.
+    @SuppressWarnings("unused")
     public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
         return new Checkbox(Wiring.label(node),
                 // `indeterminate` wins over `checked`, because a document that

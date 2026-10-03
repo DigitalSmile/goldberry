@@ -136,6 +136,7 @@ public record IconView(@Nullable Icon icon, Attributes attributes) implements Wi
     /// The argument is the icon's name: the application's registered icon of
     /// that name if there is one, else the bundled one. `name=` is what a
     /// reader is told, as it is on every node.
+    @SuppressWarnings("unused")
     public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
         var name = Wiring.label(node);
         var icon = name.isEmpty()

@@ -346,6 +346,7 @@ public record MarkdownView(
     /// Children are refused rather than ignored: a document has content of its own,
     /// and a `markdown-view` with widgets inside it is a document that says
     /// something its author did not write.
+    @SuppressWarnings("unused")
     public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
         if (!children.isEmpty()) {
             throw new IllegalArgumentException("markdown-view takes its document as its argument, not as children;"

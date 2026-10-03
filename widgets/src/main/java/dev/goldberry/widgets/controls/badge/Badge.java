@@ -141,6 +141,7 @@ public record Badge(String text, @Nullable Observable<?> source, Attributes attr
     /// registry. A count is the archetypal bound value, so
     /// `bind` is the one wiring it takes, and the literal argument stays as the
     /// fallback the way `text`'s does.
+    @SuppressWarnings("unused")
     public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
         return new Badge(Wiring.label(node), wiring.bound(node), Attributes.of(node));
     }

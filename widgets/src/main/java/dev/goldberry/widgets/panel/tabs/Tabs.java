@@ -248,6 +248,7 @@ public record Tabs(
     /// `close` and `new` are the two halves of "a tab strip's list is the
     /// application's": the strip asks and the application answers, exactly as
     /// `change` does for the selection.
+    @SuppressWarnings("unused")
     public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
         return new Tabs(
                 node.stringProperty("value"),

@@ -149,6 +149,7 @@ public record Carousel(
     /// `interval` is in **milliseconds**, because KDL has numbers and not
     /// durations and `interval="5s"` would be a second syntax to parse and to get
     /// wrong.
+    @SuppressWarnings("unused")
     public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
         var millis = (long) node.numberProperty("interval", 0);
         // Resolved **once**, and null when the document named no action: a

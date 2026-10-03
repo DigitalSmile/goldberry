@@ -84,6 +84,7 @@ public record VideoView(MediaPlayer player, Fit fit, Attributes attributes)
     ///
     /// @throws IllegalArgumentException when the node has children, or `fit` is
     ///                                  not one of the four
+    @SuppressWarnings("unused")
     public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
         if (!children.isEmpty()) {
             throw new IllegalArgumentException("video-view takes no children");

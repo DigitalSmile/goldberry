@@ -90,6 +90,7 @@ public record Column(List<Widget> children, Attributes attributes)
     /// the accordion rather than on every column. The accordion reports `column`
     /// as its CSS type and adds an `accordion` class, so a stylesheet still sees
     /// a column.
+    @SuppressWarnings("unused")
     public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
         if (node.booleanProperty("accordion")) {
             return new dev.goldberry.widgets.panel.accordion.Accordion(

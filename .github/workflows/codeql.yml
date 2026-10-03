@@ -42,8 +42,11 @@ jobs:
           languages: java-kotlin
           # `security-and-quality` over the default `security-extended`: this is
           # an advisory dashboard rather than a gate, so the wider set is
-          # worth having and a false positive costs nothing but a read.
-          queries: security-and-quality
+          # worth having. Less four queries that report nothing but false
+          # positives here, whose real cases a blocking check already catches;
+          # the suite file says which and why, and the local recipe in
+          # docs/testing.md runs the same file.
+          queries: ./config/codeql/goldberry.qls
 
       - uses: gradle/actions/setup-gradle@v4
 

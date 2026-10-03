@@ -105,6 +105,7 @@ public record Bound(@Nullable Observable<?> source, Class<? extends Widget> type
     /// Builds a `slot` from markup: whatever widget the `bind=` value holds.
     ///
     /// Children are ignored, for `list`'s reason: what is drawn is the model's.
+    @SuppressWarnings("unused")
     public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
         return new Bound(wiring.bound(node), Widget.class, Attributes.of(node));
     }

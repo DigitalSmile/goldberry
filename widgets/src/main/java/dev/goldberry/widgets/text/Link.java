@@ -110,6 +110,7 @@ public record Link(
     }
 
     /// Builds a `link` from markup.
+    @SuppressWarnings("unused")
     public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
         return new Link(
                 Wiring.label(node),
