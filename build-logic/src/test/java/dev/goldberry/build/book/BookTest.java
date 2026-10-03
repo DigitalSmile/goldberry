@@ -213,7 +213,7 @@ class BookTest {
          */
         private static final Set<String> ONE_SHADE = Set.of(
                 "affix-pinned.png", // the showcase after seven lines of wheel
-                "gallery-canvas.png", // pinned at one scale: a decoded bitmap and a QR code
+                "gallery-drawing.png", // pinned at one scale: a decoded bitmap and a QR code
                 "gallery-gpu.png", // the GPU lane's picture
                 "media-player-subtitles.png", // a player mid-stream
                 "toast-dark.png"); // three toasts in flight

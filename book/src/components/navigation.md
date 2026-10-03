@@ -8,7 +8,7 @@ The application moves the index. None of them decides on its own where the
 user may go next
 ([ADR-0344](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0344-a-list-of-steps-writes-where-each-one-stands.md)).
 
-<div class="gb-shot"><img class="gb-light" src="../images/screen-navigation-light.webp" alt="The showcase's Navigation screen: breadcrumbs, rows of steps, a wizard on its second page, and a tab strip"><img class="gb-dark" src="../images/screen-navigation-dark.webp" alt="The showcase's Navigation screen: breadcrumbs, rows of steps, a wizard on its second page, and a tab strip"><p>The Navigation screen of the showcase.</p></div>
+<div class="gb-shot"><img class="gb-light" src="../images/screen-navigation-light.webp" alt="The showcase's Navigation screen: breadcrumbs with a Go deeper button, steps across and down in every state, and a wizard with its steps over its pages"><img class="gb-dark" src="../images/screen-navigation-dark.webp" alt="The showcase's Navigation screen: breadcrumbs with a Go deeper button, steps across and down in every state, and a wizard with its steps over its pages"><p>The Navigation screen of the showcase.</p></div>
 
 ## `breadcrumbs`
 

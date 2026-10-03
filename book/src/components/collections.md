@@ -2,7 +2,7 @@
 
 <p class="gb-lede">A list, a table and a tree: three widgets over a model the application owns, that select by id, report what the user chose, and never edit the data.</p>
 
-<div class="gb-shot"><img class="gb-light" src="../images/screen-collections-light.webp" alt="The showcase's Collections screen: a virtualized list of ten thousand rows, a sortable table of the Company, and a tree of the lands with cascading checkboxes"><img class="gb-dark" src="../images/screen-collections-dark.webp" alt="The showcase's Collections screen: a virtualized list of ten thousand rows, a sortable table of the Company, and a tree of the lands with cascading checkboxes"><p>The Collections screen of the showcase.</p></div>
+<div class="gb-shot"><img class="gb-light" src="../images/screen-collections-light.webp" alt="The showcase's Collections screen: a virtualized list of ten thousand rows, a sortable table of the Company, a tree of the lands with cascading checkboxes, and a slot"><img class="gb-dark" src="../images/screen-collections-dark.webp" alt="The showcase's Collections screen: a virtualized list of ten thousand rows, a sortable table of the Company, a tree of the lands with cascading checkboxes, and a slot"><p>The Collections screen of the showcase.</p></div>
 
 Each of the three takes the application's own type and a few functions that
 describe it: how to identify an item, how to draw it, what to call it. The

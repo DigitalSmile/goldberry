@@ -1,0 +1,24 @@
+/* The rules of the screens in `dev.goldberry.example.ui.forms`, loaded after
+   `showcase.css` by `ShowcaseStyles`. A rule every screen shares belongs in
+   `showcase.css`; a rule about one screen's cards belongs here. */
+
+/* The model's echo beside its label: a row of two captions. */
+#named-echo {
+  flex-direction: row;
+  gap: 8px;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+/* A narrower label column than the 120 the toolkit defaults to, because a card is
+   one column of a wall. The token moves every field in the form at once. */
+#signup {
+  --gb-field-label-width: 72px;
+}
+
+/* A colour picker's swatch and the caption that says what it holds. */
+#paint-row, #paint-alpha-row {
+  flex-direction: row;
+  gap: 8px;
+  align-items: center;
+}

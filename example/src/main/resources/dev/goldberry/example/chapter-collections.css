@@ -1,0 +1,39 @@
+/* The rules of the screens in `dev.goldberry.example.ui.collections`, loaded after
+   `showcase.css` by `ShowcaseStyles`. A rule every screen shares belongs in
+   `showcase.css`; a rule about one screen's cards belongs here. */
+
+/* The viewport the virtual list is measured against. A virtual list clipped only
+   by the screen's own scroll would have a window as tall as the screen; eight
+   rows is enough to see the thumb be honest about ten thousand. */
+scroll.tall-list {
+  height: 256px;
+  flex-grow: 0;
+  flex-shrink: 0;
+  background: var(--gb-surface);
+  border: 1px solid var(--gb-border);
+  border-radius: 8px;
+}
+
+/* The table, the tree and the slot's list get the list's plate, so the four read
+   as four of a kind. */
+table#company, tree#lands, list#slot-list {
+  background: var(--gb-surface);
+  border: 1px solid var(--gb-border);
+  border-radius: 8px;
+  padding: 4px 0;
+}
+
+/* The slot card: the list on the left, the region the model fills on the right. */
+row#slot-demo {
+  gap: 16px;
+  align-items: flex-start;
+}
+
+list#slot-list {
+  width: 160px;
+  flex-shrink: 0;
+}
+
+column.slot-detail {
+  gap: 4px;
+}

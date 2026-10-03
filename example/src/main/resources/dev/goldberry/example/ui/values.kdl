@@ -1,0 +1,71 @@
+// The Values screen's cards that need no Java: a slider, two knobs, two bars and
+// three spinners. The slider, the knobs and the first bar all read `app.gain`,
+// so moving any one of them moves the rest. `ValuesChapter` puts these in the
+// guide's order beside the card it builds itself.
+masonry id="values-document" min-column-width=360 {
+
+  card id="value-card" class="wall-card" {
+    row class="card-head" {
+      text class="card-title" "Sliders"
+      spacer
+      link class="card-docs" href="https://goldberry.dev/docs/components/values.html#slider" "Docs"
+    }
+    text class="card-summary" "A slider is a thumb on a track, snapped to its step and clamped to its range. Drag \
+it, or use the arrows, Page Up and Down, Home and End. The class vertical makes it a fader."
+    slider id="gain" min=0 max=100 step=5 ticks=5 format="%.0f%%" bind="app.gain" change="app.set-gain"
+    row id="faders" {
+      slider id="fader" class="vertical" min=0 max=100 step=5 bind="app.gain" change="app.set-gain"
+      text id="fader-label" class="caption" "The same value, as a fader"
+    }
+    text class="caption" "Disabled, and out of the Tab order:"
+    slider id="locked-fader" min=0 max=100 value=70 disabled=#true
+  }
+
+  card id="values-knob" class="wall-card" {
+    row class="card-head" {
+      text class="card-title" "Knobs"
+      spacer
+      link class="card-docs" href="https://goldberry.dev/docs/components/values.html#knob" "Docs"
+    }
+    text class="card-summary" "A knob turns up as you drag up, and Shift makes the drag ten times finer. Detents pull \
+the value to 0, 25, 50, 75 and 100. The large one turns round its dial instead."
+    row id="knobs" {
+      knob id="gain-knob" min=0 max=100 step=5 detents=5 bind="app.gain" change="app.set-gain"
+      knob id="gain-knob-large" class="large" drag="circular" min=0 max=100 bind="app.gain" change="app.set-gain"
+      text id="gain-knob-label" class="caption" "The slider's value, as two dials"
+    }
+  }
+
+  card id="report-card" class="wall-card" {
+    row class="card-head" {
+      text class="card-title" "Progress"
+      spacer
+      link class="card-docs" href="https://goldberry.dev/docs/components/values.html#progress" "Docs"
+    }
+    text class="card-summary" "A progress bar reports a value out of a maximum, or sweeps when nobody can say how \
+much is left. The first bar reads the slider's value: move it and the bar follows."
+    text class="caption" "Determinate, out of 100:"
+    progress id="known" max=100 bind="app.gain"
+    text class="caption" "Indeterminate:"
+    progress id="unknowable" indeterminate=#true
+  }
+
+  card id="values-spinner" class="wall-card" {
+    row class="card-head" {
+      text class="card-title" "Spinners"
+      spacer
+      link class="card-docs" href="https://goldberry.dev/docs/components/values.html#spinner" "Docs"
+    }
+    text class="card-summary" "A spinner is a ring that turns, for a wait with no measure. Small sits beside a line \
+of text, medium is the default and large stands on its own. Every spinner in a window turns together."
+    row id="spinners" {
+      spinner id="spinner-small" size="small"
+      spinner id="spinner-medium"
+      spinner id="spinner-large" size="large"
+    }
+    row id="busy" {
+      spinner size="small"
+      text id="busy-label" "The Company is on the road"
+    }
+  }
+}

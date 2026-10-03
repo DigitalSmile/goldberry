@@ -17,10 +17,10 @@ import dev.goldberry.Overlay;
 import dev.goldberry.Popup;
 import dev.goldberry.bind.runtime.Models;
 import dev.goldberry.css.Stylesheet;
-import dev.goldberry.css.cascade.CascadeLayer;
 import dev.goldberry.example.brand.ShowcaseIcon;
 import dev.goldberry.example.ui.AppMenu;
 import dev.goldberry.example.ui.Screen;
+import dev.goldberry.example.ui.overlays.ShowcaseTour;
 import dev.goldberry.html.view.HtmlStyles;
 import dev.goldberry.icon.Icon;
 import dev.goldberry.image.Image;
@@ -48,7 +48,6 @@ import dev.goldberry.widgets.overlay.hud.Hud;
 import dev.goldberry.widgets.overlay.toast.Toast;
 import dev.goldberry.widgets.overlay.toast.ToastController;
 import dev.goldberry.widgets.overlay.toast.Toasts;
-import dev.goldberry.widgets.overlay.tour.Stop;
 import dev.goldberry.widgets.overlay.tour.Tours;
 import dev.goldberry.widgets.shell.tray.TrayIcon;
 import dev.goldberry.widgets.shell.tray.Trays;
@@ -98,9 +97,10 @@ public final class Showcase implements Application {
 
     private static final float ICON_SIZE = 20;
 
-    /// The window's own stylesheet, read from `showcase.css` beside this class —
-    /// the layout of *this* window and nothing about how a button looks.
-    private final Stylesheet styles = Stylesheet.resource(CascadeLayer.APPLICATION, Showcase.class, "showcase.css");
+    /// The window's own stylesheets, read from `showcase.css` and the screens'
+    /// sheets beside this class — the layout of *this* window and nothing about how
+    /// a button looks.
+    private final List<Stylesheet> styles = ShowcaseStyles.sheets();
 
     private final ShowcaseModel model = new ShowcaseModel();
     private final ShowcaseModel.Actions actions = new ShowcaseModel.Actions(model);
@@ -229,7 +229,7 @@ public final class Showcase implements Application {
         sheets.add(HtmlStyles.stylesheet());
         // And the media module's, for `audio-player` and `media-player`.
         sheets.add(MediaStyles.stylesheet());
-        sheets.add(styles);
+        sheets.addAll(styles);
         return sheets;
     }
 
@@ -580,7 +580,7 @@ public final class Showcase implements Application {
         }
     }
 
-    /// Starts the `tour` over the Navigation screen.
+    /// Starts the `tour` described by [ShowcaseTour].
     ///
     /// The application's rather than the screen's, because starting one needs a
     /// [Host] and a widget has none — the same seam `Menus.open` sits on.
@@ -589,38 +589,10 @@ public final class Showcase implements Application {
     /// nobody is looking at would skip every stop and end immediately — which is
     /// correct behaviour and a useless demonstration.
     private void startTour() {
-        actions.pickScreen("navigation");
+        actions.pickScreen(ShowcaseTour.SCREEN);
         // After the frame that switches screens, so the targets exist to be
-        // found. A tour waits for a frame before positioning, and this
-        // is that wait at its coarsest: the screen has to be *built* before any
-        // of it can be anchored to.
-        host.after(
-                Duration.ofMillis(80),
-                () -> Tours.start(
-                        host,
-                        List.of(
-                                new Stop(
-                                        "demo-tabs",
-                                        "A strip of your own",
-                                        "Chapters that can be closed, and a + that opens the next stage"
-                                                + " of the road. The gallery's own strip above can do"
-                                                + " neither."),
-                                new Stop(
-                                        "jump-bar",
-                                        "Jump to a chapter",
-                                        "These ask the list beside them to bring a section into view."
-                                                + " The viewport moves the least it can."),
-                                new Stop(
-                                        "scroll-demo",
-                                        "A viewport of its own",
-                                        "Scroll it with the wheel, or focus it and use PageDown."
-                                                + " The headers stick as their sections pass."),
-                                new Stop(
-                                        "gallery",
-                                        "The gallery strip",
-                                        "Thirteen screens, and a Ctrl+digit for the first ten."
-                                                + " The last three are reached by the strip, its arrow"
-                                                + " keys, or Edit ▸ Go to."))));
+        // found: the screen has to be *built* before any of it can be anchored to.
+        host.after(Duration.ofMillis(80), () -> Tours.start(host, ShowcaseTour.stops()));
     }
 
     /// Puts a `hud` in the window's overlay layer, or takes it away again.

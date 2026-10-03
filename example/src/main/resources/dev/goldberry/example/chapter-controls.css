@@ -1,0 +1,61 @@
+/* The rules of the screens in `dev.goldberry.example.ui.controls`, loaded after
+   `showcase.css` by `ShowcaseStyles`. A rule every screen shares belongs in
+   `showcase.css`; a rule about one screen's cards belongs here. */
+
+/* A row of controls: the spacing ramp's 8 for related things, centred because a
+   badge or a chip is shorter than a button beside it, and wrapping because a
+   card is only as wide as the column it landed in. */
+.button-row, #shapes-row, #actions, #badges, #knobs, #spinners, #busy,
+#chip-filters, #chip-status, #chip-tags, #releases {
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+/* The count of leagues: the one number on the Buttons screen. */
+#leagues {
+  color: var(--gb-text);
+  font-size: var(--gb-font-title);
+  line-height: var(--gb-line-title);
+  font-weight: var(--gb-weight-strong);
+}
+
+/* A segmented bar has no width of its own: its cells are proportions of what it
+   is given, so a two-option bar is given a ceiling. */
+#theme-bar {
+  width: 280px;
+}
+
+/* The vertical fader. A definite height, because a slider on its side has no
+   length of its own to take. */
+#faders, #decibel-faders {
+  flex-direction: row;
+  gap: 12px;
+  align-items: center;
+  height: 120px;
+  flex-shrink: 0;
+}
+
+#fader-label, #gain-knob-label, #busy-label {
+  color: var(--gb-text-muted);
+}
+
+/* A pressable draws nothing of its own, so the row it wraps brings its own look,
+   and the hover wash is the application's to write. */
+.release-row {
+  padding: 8px;
+  border-radius: 8px;
+  border: 1px solid var(--gb-border);
+}
+
+.release-line {
+  flex-direction: row;
+  gap: 12px;
+  align-items: center;
+}
+
+.release-row:hover {
+  background: var(--gb-overlay-hover);
+}

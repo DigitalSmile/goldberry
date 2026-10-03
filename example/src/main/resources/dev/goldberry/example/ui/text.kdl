@@ -1,0 +1,87 @@
+// The Text screen's cards that need no Java: the ranks, the two ways a label
+// is cut, the three kinds of link, and the bundled faces as
+// specimens. `TextChapter` takes these cards and puts them in the guide's order
+// beside the ones it builds itself.
+masonry id="text-document" min-column-width=360 {
+
+  card id="text-card" class="wall-card" {
+    row class="card-head" {
+      text class="card-title" "Text and the type scale"
+      spacer
+      link class="card-docs" href="https://goldberry.dev/docs/components/text.html#text" "Docs"
+    }
+    text class="card-summary" "A text is one run of words that wraps at the width layout gives it. Its rank is a \
+class: display, title, heading, body, body-strong, caption or mono."
+    text id="rank-display" style="display" "A map of the West"
+    text id="rank-title" style="title" "From Bag End to the Sea"
+    text id="rank-heading" style="heading" "Nine set out from Rivendell"
+    text id="rank-body" style="body" "The Company kept to the high paths while the passes held."
+    text id="rank-body-strong" style="body-strong" "And turned under the mountain when the snow refused them."
+    text id="rank-caption" style="caption" "Marked in the Red Book, in a hand that was not steady"
+    text id="rank-mono" style="mono" "leagues = 1795  //  pace 3.1/hr"
+  }
+
+  card id="text-wrapping" class="wall-card" {
+    row class="card-head" {
+      text class="card-title" "Wrapping and cutting"
+      spacer
+      link class="card-docs" href="https://goldberry.dev/docs/components/text.html#text" "Docs"
+    }
+    text class="card-summary" "A label wraps by default. white-space: nowrap keeps it on one line and text-overflow: \
+ellipsis marks the cut; overflow-wrap: anywhere breaks a word too long for the line."
+    text class="caption" "Wrapped, as every text is unless told otherwise:"
+    text id="text-wrapped" "The road goes ever on and on, down from the door where it began, and now far ahead the \
+road has gone, and I must follow if I can."
+    text class="caption" "Kept on one line, and cut:"
+    text id="text-cut" class="one-line" "The road goes ever on and on, down from the door where it began, and now \
+far ahead the road has gone."
+    text class="caption" "A word wider than the line, broken anywhere:"
+    text id="text-anywhere" class="log-line" "fetch https://goldberry.dev/docs/components/text.html#wrapping-and-cutting \
+200 OK"
+  }
+
+  card id="links-card" class="wall-card" {
+    row class="card-head" {
+      text class="card-title" "Links"
+      spacer
+      link class="card-docs" href="https://goldberry.dev/docs/components/text.html#link" "Docs"
+    }
+    text class="card-summary" "A link is a word that does something: it runs an action in the application, or the \
+desktop opens its address, which the arrow after it says. Tab reaches each one and Enter follows it."
+    link id="league-link" action="app.click" "March a league, as a link"
+    link id="github-link" href="https://github.com/DigitalSmile/goldberry" "Goldberry on GitHub"
+    link id="visited-link" action="app.click" visited=#true "Somewhere you have been"
+    text class="caption" "Visited is the application's to set: the toolkit keeps no history."
+  }
+
+  card id="text-faces" class="wall-card" {
+    row class="card-head" {
+      text class="card-title" "One face, many sizes"
+      spacer
+      link class="card-docs" href="https://goldberry.dev/docs/guide/text.html#faces-fonts-and-the-book" "Docs"
+    }
+    text class="card-summary" "A face is a typeface parsed once, and a font is one size of it. These four lines are \
+one parse of Inter at four sizes: a second size over a face costs microseconds and no memory."
+    text class="face-size-11" "Inter at 11"
+    text class="face-size-13" "Inter at 13"
+    text class="face-size-20" "Inter at 20"
+    text class="face-size-28" "Inter at 28"
+  }
+
+  card id="text-bundled-faces" class="wall-card" {
+    row class="card-head" {
+      text class="card-title" "The bundled faces"
+      spacer
+      link class="card-docs" href="https://goldberry.dev/docs/guide/text.html#the-bundled-faces" "Docs"
+    }
+    text class="card-summary" "Inter in two weights and their italics, and JetBrains Mono, ship inside the toolkit. A \
+weight is any number: the nearest face answers it, so 500 draws the 400 and 700 the 600."
+    text id="face-regular" class="face-regular" "Inter 400: Three rings for the Elven-kings"
+    text id="face-strong" class="face-strong" "Inter 600: Seven for the Dwarf-lords"
+    text id="face-italic" class="face-italic" "Inter 400 italic: Nine for mortal men"
+    text id="face-strong-italic" class="face-strong-italic" "Inter 600 italic: One for the Dark Lord"
+    text id="face-mono" class="face-mono" "JetBrains Mono: ring.bind(\"Mordor\") != null"
+    text id="face-500" class="face-500" "font-weight: 500, which draws the 400"
+    text id="face-700" class="face-700" "font-weight: 700, which draws the 600"
+  }
+}

@@ -1,0 +1,243 @@
+package dev.goldberry.example.ui.layout;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import java.util.ArrayList;
+
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+
+import dev.goldberry.RendererRequirement;
+import dev.goldberry.css.Stylesheet;
+import dev.goldberry.css.Theme;
+import dev.goldberry.css.cascade.CascadeLayer;
+import dev.goldberry.css.select.Selector.PseudoClass;
+import dev.goldberry.example.Showcase;
+import dev.goldberry.input.PointerRouter;
+import dev.goldberry.input.event.PointerEvent;
+import dev.goldberry.input.hit.HitTest;
+import dev.goldberry.input.key.Modifiers;
+import dev.goldberry.motion.Clock;
+import dev.goldberry.paint.TestFrames;
+import dev.goldberry.paint.tree.RenderTree;
+import dev.goldberry.render.model.LogicalRect;
+import dev.goldberry.text.font.Fonts;
+import dev.goldberry.widget.Element;
+import dev.goldberry.widget.ElementTree;
+import dev.goldberry.widget.WidgetRenderer;
+import dev.goldberry.widgets.Controls;
+
+/// The Scrolling screen's sticky-header card, driven rather than photographed.
+///
+/// A golden can only show that it lays out: a thumb has faded by the time
+/// anything is painted, and a sticky header at rest is a header. Everything this
+/// card is *for* only happens when something scrolls, which is what this does.
+class ScrollingCardTest {
+
+    private TestFrames.Target target;
+    private RenderTree render;
+    private Fonts fonts;
+
+    @BeforeEach
+    void setUp() {
+        RendererRequirement.enforce();
+    }
+
+    @AfterEach
+    void tearDown() {
+        if (render != null) {
+            render.close();
+            render = null;
+        }
+        if (target != null) {
+            target.end();
+            target = null;
+        }
+        if (fonts != null) {
+            fonts.close();
+            fonts = null;
+        }
+    }
+
+    private final class Harness {
+
+        private final ElementTree tree;
+        private final WidgetRenderer renderer;
+        private final PointerRouter router = new PointerRouter();
+
+        Harness() {
+            target = TestFrames.of(900, 560, 1.0f, 0);
+            fonts = Fonts.bundled();
+            var sheets = new ArrayList<Stylesheet>(
+                    Controls.stylesheets(Theme.NORD_DARK, dev.goldberry.widgets.Density.REGULAR));
+            sheets.add(Stylesheet.resource(CascadeLayer.APPLICATION, Showcase.class, "showcase.css"));
+            renderer = new WidgetRenderer(sheets, fonts).clock(clock);
+            tree = new ElementTree(new ScrollingCard());
+            render = RenderTree.create();
+            router.focusRoot(tree.root());
+            router.windowBounds(LogicalRect.of(0, 0, 900, 560));
+            settle();
+        }
+
+        void frame() {
+            tree.flush();
+            render.update(target.frame(), renderer.render(tree));
+            router.updateRegions(HitTest.capture(render));
+        }
+
+        /// A virtual clock, so a jump's glide arrives in the frames
+        /// [#settle] runs rather than whenever the machine gets there.
+        final Clock.Virtual clock = Clock.virtual();
+
+        void settle() {
+            for (var i = 0; i < 6; i++) {
+                frame();
+                clock.advance(60);
+            }
+        }
+
+        Element byId(String id) {
+            return find(tree.root(), id);
+        }
+
+        /// Where a node is painted, after every transform above it.
+        LogicalRect rectOf(Element element) {
+            var found = new ArrayList<LogicalRect>();
+            render.forEachPlacedBox(placed -> {
+                if (placed.box().owner() == element) {
+                    var m = placed.transform();
+                    var l = placed.layout();
+                    found.add(LogicalRect.of(
+                            (float) (m.a() * l.left() + m.c() * l.top() + m.e()),
+                            (float) (m.b() * l.left() + m.d() * l.top() + m.f()),
+                            l.width(),
+                            l.height()));
+                }
+            });
+            assertEquals(1, found.size(), "expected exactly one box for that element");
+            return found.getFirst();
+        }
+
+        /// Turns the wheel over the middle of the list.
+        void wheel(float lines) {
+            var list = rectOf(byId("scroll-demo"));
+            router.pointerWheel(list.left() + 100, list.top() + list.size().height() / 2, 0, lines, Modifiers.NONE);
+            settle();
+        }
+
+        /// Clicks a jump button.
+        void click(String id) {
+            var rect = rectOf(byId(id));
+            var x = rect.left() + rect.size().width() / 2;
+            var y = rect.top() + rect.size().height() / 2;
+            router.pointerMoved(x, y);
+            router.pointerPressed(x, y, PointerEvent.Button.PRIMARY, 1, Modifiers.NONE);
+            router.pointerReleased(x, y, PointerEvent.Button.PRIMARY, 1, Modifiers.NONE);
+            settle();
+        }
+    }
+
+    private static Element find(Element from, String id) {
+        if (id.equals(from.id())) {
+            return from;
+        }
+        for (var child : from.children()) {
+            var found = find(child, id);
+            if (found != null) {
+                return found;
+            }
+        }
+        return null;
+    }
+
+    @Test
+    @DisplayName("the card builds its viewport, its four sticky headers and its toolbar")
+    void structure() {
+        var harness = new Harness();
+
+        assertNotNull(harness.byId("scroll-demo"), "no list");
+        assertNotNull(harness.byId("jump-bar"), "no toolbar");
+        for (var section : ScrollingCard.SECTIONS) {
+            assertNotNull(harness.byId("section-" + section.toLowerCase()), "no affix for " + section);
+        }
+    }
+
+    @Test
+    @DisplayName("the first header lifts and sticks as its section scrolls under it")
+    void headerSticks() {
+        var harness = new Harness();
+        var first = harness.byId("section-hobbiton");
+        var list = harness.rectOf(harness.byId("scroll-demo"));
+        assertFalse(first.hasState(PseudoClass.AFFIXED), "it was affixed before anything moved");
+
+        harness.wheel(6);
+
+        assertTrue(first.hasState(PseudoClass.AFFIXED), ":affixed did not come on when the header lifted");
+        // Still inside the viewport, which is the whole promise: the hole has
+        // scrolled away and the header has not.
+        var header = harness.rectOf(first.children().getFirst().children().getFirst());
+        assertTrue(
+                header.top() >= list.top() - 1, "the pinned header left the top of the list; it is at " + header.top());
+    }
+
+    @Test
+    @DisplayName("a jump button brings a section that is far below into view")
+    void jumpReveals() {
+        var harness = new Harness();
+        var list = harness.rectOf(harness.byId("scroll-demo"));
+
+        harness.click("jump-moria");
+
+        // The last section starts about forty rows down, so this is a scroll of
+        // most of the document -- and the affix has to end up inside the list.
+        var endings = harness.rectOf(harness.byId("section-moria"));
+        assertTrue(
+                endings.top() < list.top() + list.size().height() + 1,
+                "the last section is still below the fold, at " + endings.top());
+    }
+
+    @Test
+    @DisplayName("the jump buttons keep working, however many times they are pressed")
+    void jumpsRepeatedly() {
+        var harness = new Harness();
+        var list = harness.rectOf(harness.byId("scroll-demo"));
+
+        // Reported as "the buttons stop working after a few clicks". Alternating
+        // ends is the case: each press has somewhere to go, so a press that does
+        // nothing is a press that was dropped rather than one already satisfied.
+        for (var round = 1; round <= 4; round++) {
+            harness.click("jump-moria");
+            var endings = harness.rectOf(harness.byId("section-moria"));
+            var r = round;
+            assertTrue(
+                    endings.top() < list.top() + list.size().height() + 1,
+                    () -> "round " + r + ": Moria never arrived; it is at " + endings.top());
+
+            harness.click("jump-hobbiton");
+            var beginnings = harness.rectOf(harness.byId("section-hobbiton"));
+            assertTrue(
+                    beginnings.top() >= list.top() - 1
+                            && beginnings.top() < list.top() + list.size().height() + 1,
+                    () -> "round " + r + ": Hobbiton never came back; it is at " + beginnings.top());
+        }
+    }
+
+    @Test
+    @DisplayName("a jump acts once, so the user can scroll away from it afterwards")
+    void jumpDoesNotHold() {
+        var harness = new Harness();
+        harness.click("jump-moria");
+        var afterJump = harness.rectOf(harness.byId("section-moria")).top();
+
+        harness.wheel(-4);
+
+        assertTrue(
+                harness.rectOf(harness.byId("section-moria")).top() > afterJump + 10,
+                "the jump dragged the list back rather than letting go");
+    }
+}

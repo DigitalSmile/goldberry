@@ -105,13 +105,6 @@
   padding-top: 16px;
 }
 
-/* Except the Navigation screen, which the gallery does not wrap in a viewport --
-   the design system bans a scroller inside a scroller and one of its cards owns one. Here the
-   growth is real and it is this box that has to fill the tab panel. */
-#screen-navigation {
-  flex-grow: 1;
-}
-
 /* And the Markdown screen, for the same reason and one more: its preview pane owns
    a viewport, and a `split-pane` has to be *given* a height before it can divide
    one. Inside the gallery's scroll it would have been content-sized, which is a
@@ -165,6 +158,68 @@
   font-size: var(--gb-font-caption);
   line-height: var(--gb-line-caption);
   font-weight: var(--gb-weight-strong);
+}
+
+/* A card's head: its title, and the link to the section of the guide it shows,
+   pushed to the far edge by a `spacer`. Centred, because the link's ink and its
+   external-link arrow are shorter than the title's line. */
+.card-head {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+/* The link keeps its width and the title takes the squeeze, wrapping if it has
+   to: a "Docs" cut to "Do…" is a link nobody can read. */
+.card-docs {
+  flex-shrink: 0;
+}
+
+.card-head > .card-title {
+  flex-shrink: 1;
+}
+
+/* A row of controls placed on a card wraps rather than running out of it. A card
+   is as narrow as a column may get, and at a large text scale a row of five
+   buttons that fitted at 100% does not. Only the card's own rows: a row inside a
+   demonstration is the demonstration's to lay out. */
+.wall-card > row {
+  flex-wrap: wrap;
+}
+
+/* What the card shows, in a sentence or two: body text in the muted ink, so it
+   reads as a note about the card rather than as part of the demonstration. */
+.card-summary {
+  flex-shrink: 0;
+  color: var(--gb-text-muted);
+}
+
+/* A card with nothing to click: its head and its summary are all of it, and the
+   guide is the rest. */
+.reference-card {
+  gap: 4px;
+}
+
+/* A screen's opening: its heading beside the link to its chapter, then the line
+   that says what the screen is for. */
+.screen-intro {
+  flex-direction: column;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.screen-head {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+/* A screen that fills its tab rather than sitting in the gallery's viewport,
+   because it owns a viewport of its own. */
+.screen.fills {
+  flex-grow: 1;
 }
 
 /* A screen's heading. The type scale's `heading` is the token for exactly this -- 15/20 at
@@ -398,10 +453,6 @@ panel.surface-demo {
 }
 
 /* --- Overlays -------------------------------------------------------------- */
-
-#overlay-note, #menubar-note, #tabs-note {
-  color: var(--gb-text-muted);
-}
 
 #context-target {
   padding: 16px;
@@ -675,16 +726,8 @@ sparkline {
 /* --- Icons -------------------------------------------------------
  *
  * The sheet of every bundled icon. Not inside the gallery's viewport -- it is a
- * virtualized `list` and owns one -- so, like the Navigation and Markdown
- * screens, this box is what has to fill the tab panel.
+ * virtualized `list` and owns one -- so the screen fills the tab (`.screen.fills`).
  */
-#icons-screen {
-  flex-direction: column;
-  gap: 12px;
-  padding-top: 16px;
-  flex-grow: 1;
-}
-
 #icons-header {
   flex-direction: column;
   gap: 8px;
@@ -847,13 +890,6 @@ icon-tile-name {
    a different tile in it: a virtualized list of reflowing rows, a header that
    stays put, and a viewport that fills what the header leaves. What differs is
    the tile — an icon is a path and an emoji is text. */
-#emoji-screen {
-  flex-direction: column;
-  gap: 12px;
-  padding-top: 16px;
-  flex-grow: 1;
-}
-
 #emoji-header {
   flex-direction: column;
   gap: 8px;
@@ -1301,25 +1337,6 @@ chip.motion-entry {
   }
 }
 
-/* The Web screen — `web-view`.
- * https://goldberry.dev/docs/components/content.html#the-web-view
- *
- * One card rather than a wall, because there is one thing to say and no widget
- * to demonstrate: the page this screen is about opens in a window of WebKit's,
- * which no rule here can reach and no golden image can contain.
- *
- * Padded on the sides, which `.screen` does not do -- every other screen is a
- * `masonry` and gets its inset from the wall. `max-width` for the reason the
- * prose rules have one: a line of body text running the full width of a
- * maximised window is unreadable, and this screen is mostly prose. */
-#web-screen {
-  padding: 16px;
-}
-
-#web-screen > .wall-card {
-  max-width: 760px;
-}
-
 /* The button and the URL beside it. `align-items: center` so the caption sits on
  * the button's centre line rather than its top, and `gap` is the spacing ramp's 8 -- the
  * rung for two controls that belong together. */
@@ -1350,10 +1367,6 @@ chip.motion-entry {
   flex-shrink: 1;
 }
 
-#web-screen > .web-view {
-  flex-grow: 1;
-}
-
 .web-view {
   flex-direction: column;
 }
@@ -1361,17 +1374,6 @@ chip.motion-entry {
 /* The canvas inside it draws nothing: the page covers it. It exists to be the
  * thing with a box, and to give the widget a per-frame hook. */
 .web-view > canvas {
-  flex-grow: 1;
-}
-
-/* The Web screen must FILL the tab, and this is load-bearing rather than
- * cosmetic. A screen inside the gallery's viewport is content-sized (see
- * `#screen-navigation` above, which is the same exception for the same kind of
- * reason). The page is sized from the box the widget is *painted* at, so a
- * content-sized screen gives a zero-height canvas, a canvas that is never
- * painted, a widget that never learns where it is, and no page at all. The tab
- * was blank for exactly this reason. */
-#web-screen {
   flex-grow: 1;
 }
 

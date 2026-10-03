@@ -1,0 +1,60 @@
+// The **Menus** screen's markup half: the cards whose controls press what the
+// window registered (`app.open-menu`) or name a context menu the application
+// registered (`content`). The cards that need state of their own are Java, in
+// dev.goldberry.example.ui.menus, and are appended after these.
+masonry id="menus-wall" min-column-width=360 {
+
+  card id="menubar-card" class="wall-card" {
+    row class="card-head" {
+      text class="card-title" "A menu bar of its own"
+      spacer
+      link class="card-docs" href="https://goldberry.dev/docs/components/menus.html#menubar" "Docs"
+    }
+    text class="card-summary" "A menu bar is a widget, so a screen may have a second one. Click a heading, \
+then run the pointer along the bar to swap menus. Left and Right walk the headings, Escape closes."
+    // The same widget as the window's own bar, driven by the model's actions.
+    menubar id="demo-menubar" {
+      item "Errand" {
+        item press="app.click" accelerator="Ctrl+K" "March a league"
+        item press="app.undo" accelerator="Ctrl+Z" "Turn back"
+        separator
+        item press="app.reset" accelerator="Ctrl+R" "Begin again at Bag End"
+      }
+      item "Light" {
+        item press="app.toggle-theme" accelerator="Ctrl+T" "Moria or Lórien"
+        item press="app.toggle-hud" accelerator="Ctrl+F" "Frame rate"
+      }
+      item "Counsel" {
+        item "Not wired to anything"
+        item "And disabled too" disabled=#true
+      }
+    }
+  }
+
+  card id="menu-card" class="wall-card" {
+    row class="card-head" {
+      text class="card-title" "The window's menu"
+      spacer
+      link class="card-docs" href="https://goldberry.dev/docs/components/menus.html#menu" "Docs"
+    }
+    text class="card-summary" "A menu opens in a platform window of its own, placed under the button and \
+flipped above it near the bottom of the screen. Press the button, then Up, Down and Enter."
+    row class="toolbar" {
+      button id="menu-button" press="app.open-menu" \
+             tooltip="A platform popup window, free of this window's bounds" "Menu"
+    }
+  }
+
+  card id="context-card" class="wall-card" {
+    row class="card-head" {
+      text class="card-title" "Context menus"
+      spacer
+      link class="card-docs" href="https://goldberry.dev/docs/components/menus.html#context-menus" "Docs"
+    }
+    text class="card-summary" "Any widget names its context menu and the application says what the name \
+means. Right-click in the panel, or focus something and press the Menu key or Shift+F10."
+    panel id="context-target" context-menu="content" tooltip="Right-click me" {
+      text "Right-click anywhere in here."
+    }
+  }
+}

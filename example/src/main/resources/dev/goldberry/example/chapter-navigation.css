@@ -1,0 +1,10 @@
+/* The rules of the screens in `dev.goldberry.example.ui.navigation`, loaded after
+   `showcase.css` by `ShowcaseStyles`. A rule every screen shares belongs in
+   `showcase.css`; a rule about one screen's cards belongs here. */
+
+/* The row under the trail. */
+row#trail-actions {
+  gap: 8px;
+  align-items: center;
+  flex-shrink: 0;
+}

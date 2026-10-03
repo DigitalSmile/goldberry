@@ -2,7 +2,7 @@
 
 <p class="gb-lede">What opens over the window: a modal dialog, a floating panel, a banner in the layout, a frame-rate readout, toasts, a guided tour, and tooltips on any widget.</p>
 
-<div class="gb-shot"><img class="gb-light" src="../images/screen-overlays-light.webp" alt="The showcase's Overlays screen: a row of buttons that open a menu, a HUD, a dialog and a toast, a second menu bar, and a panel with a context menu"><img class="gb-dark" src="../images/screen-overlays-dark.webp" alt="The showcase's Overlays screen: a row of buttons that open a menu, a HUD, a dialog and a toast, a second menu bar, and a panel with a context menu"><p>The Overlays screen of the showcase.</p></div>
+<div class="gb-shot"><img class="gb-light" src="../images/screen-overlays-light.webp" alt="The showcase's Overlays screen: cards that open a dialog, the frame-rate readout, a toast, a popover and a tour, the four kinds of message, and widgets with tooltips"><img class="gb-dark" src="../images/screen-overlays-dark.webp" alt="The showcase's Overlays screen: cards that open a dialog, the frame-rate readout, a toast, a popover and a tour, the four kinds of message, and widgets with tooltips"><p>The Overlays screen of the showcase.</p></div>
 
 There are two places something can go over a window, and every overlay uses
 one of them.

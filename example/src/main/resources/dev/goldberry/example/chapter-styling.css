@@ -1,0 +1,685 @@
+/* The rules of the screens in `dev.goldberry.example.ui.styling`, loaded after
+   `showcase.css` by `ShowcaseStyles`. A rule every screen shares belongs in
+   `showcase.css`; a rule about one screen's cards belongs here.
+
+   The Styling and Design system screens are about CSS, so nearly every
+   demonstration on them is a rule in this file worn by an ordinary widget, and
+   the box wearing it says which declaration it is. Each rule is scoped by its
+   card's id, which is unique in the gallery, so a class name here cannot reach a
+   card on any other screen. The motion and type-scale rules these screens also
+   use (`motion-*`, `rank-*`, `#styled-area`) are in `showcase.css`. */
+
+/* --- what the cards are built from --------------------------------------- */
+
+row.styling-row {
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+column.styling-column {
+  gap: 8px;
+}
+
+/* The sunken well rather than `--gb-surface-2`: a card is a raised plate, and
+   in the dark theme the second surface is the plate's own colour. */
+panel.styling-box {
+  padding: 8px 12px;
+  gap: 4px;
+  background: var(--gb-surface-sunken);
+  flex-shrink: 0;
+}
+
+/* A declaration, printed: the code face at the caption's size. */
+text.styling-code {
+  font-family: "JetBrains Mono";
+  font-size: var(--gb-font-caption);
+  line-height: var(--gb-line-caption);
+  color: var(--gb-text-muted);
+}
+
+column.styling-swatch {
+  width: 96px;
+  gap: 4px;
+  align-items: center;
+}
+
+panel.styling-plate {
+  width: 56px;
+  height: 32px;
+  border-radius: 6px;
+  border: 1px solid var(--gb-border-strong);
+}
+
+/* --- Styling: strict and lenient sheets, properties ----------------------- */
+
+/* A segmented bar has no width of its own and would take the whole row. */
+#styling-sheets segmented,
+#styling-properties segmented {
+  width: 200px;
+}
+
+text-area.probe-sheet {
+  font-family: "JetBrains Mono";
+}
+
+column.probe-result {
+  gap: 2px;
+}
+
+/* --- Styling: the cascade ------------------------------------------------- */
+
+/* The same specificity as the theme's `button:hover`, one layer later: the
+   application's rule wins over the theme's even under the pointer, so it says
+   its own hover. */
+#styling-cascade button.cascade-plum {
+  background: var(--nord15);
+  color: var(--nord0);
+}
+
+#styling-cascade button.cascade-plum:hover {
+  background: #c29fbb;
+}
+
+/* An id beats a class, whatever the order. */
+#styling-cascade button#cascade-winner {
+  background: var(--nord14);
+}
+
+#styling-cascade button#cascade-winner:hover {
+  background: #b1c99d;
+}
+
+/* --- Styling: selectors ---------------------------------------------------- */
+
+/* A press snaps and a release fades: the timing that applies is the one on
+   the style being moved to. */
+#styling-selectors panel.selector-tile {
+  cursor: pointer;
+  transition: background-color var(--gb-motion-fast) ease-enter,
+              color var(--gb-motion-fast) ease-enter,
+              transform var(--gb-motion-base) ease-enter;
+}
+
+#styling-selectors panel.selector-tile:hover {
+  background: var(--gb-accent);
+  color: #2e3440;
+}
+
+#styling-selectors panel.selector-tile:active {
+  transform: scale(0.92);
+  transition: transform 0ms;
+}
+
+#styling-selectors text-input#selector-field:focus {
+  border-color: var(--gb-success);
+}
+
+#styling-selectors column#selector-stripes {
+  border: 1px solid var(--gb-border);
+  border-radius: 6px;
+}
+
+#selector-stripes > row.stripe {
+  padding: 4px 8px;
+}
+
+#selector-stripes > row.stripe:nth-child(even) {
+  background: var(--gb-surface-sunken);
+}
+
+#selector-stripes > row.stripe:first-child {
+  font-weight: 600;
+}
+
+/* --- Styling: parts --------------------------------------------------------- */
+
+/* Specificity is the point: an id outranks the theme's
+   `checkbox:hover check-indicator:checked`, so the plum holds under the
+   pointer too. */
+#parts-restyled check-indicator {
+  border-radius: 8px;
+}
+
+#parts-restyled check-indicator:checked {
+  background: var(--nord15);
+  border-color: var(--nord15);
+}
+
+#parts-restyled toggle-track:checked {
+  background: var(--nord15);
+}
+
+/* --- Styling: box and layout ------------------------------------------------ */
+
+#styling-box row#box-toolbar {
+  min-height: 96px;
+  padding: 8px;
+  align-items: flex-start;
+  border: 1px dashed var(--gb-border-strong);
+  border-radius: 8px;
+}
+
+#styling-box panel.box-item {
+  flex: 1 0 96px;
+}
+
+#styling-box panel.box-low {
+  align-self: flex-end;
+}
+
+#styling-box panel.box-wide {
+  flex: 2 0 96px;
+}
+
+#styling-box panel#box-host {
+  position: relative;
+  padding: 12px 40px 12px 12px;
+}
+
+#styling-box badge#box-badge {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+}
+
+#styling-box panel#box-centred {
+  margin: 0 auto;
+}
+
+/* --- Styling: text flow ----------------------------------------------------- */
+
+#styling-text-flow text#flow-ellipsis {
+  width: 240px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+}
+
+#styling-text-flow text#flow-end {
+  text-align: end;
+}
+
+#styling-text-flow text#flow-anywhere {
+  width: 200px;
+  overflow-wrap: anywhere;
+}
+
+#styling-text-flow text#flow-struck {
+  text-decoration: line-through;
+}
+
+/* --- Styling: colour -------------------------------------------------------- */
+
+#styling-colour panel.colour-wash {
+  background-color: rgba(136, 192, 208, 0.2);
+}
+
+#styling-colour panel.colour-faded {
+  opacity: 0.5;
+}
+
+#styling-colour panel.overlap {
+  position: relative;
+  width: 112px;
+  height: 64px;
+  background: transparent;
+  border: none;
+}
+
+#styling-colour panel.overlap-a,
+#styling-colour panel.overlap-b {
+  position: absolute;
+  width: 56px;
+  height: 40px;
+  border: none;
+  border-radius: 6px;
+}
+
+#styling-colour panel.overlap-a {
+  left: 8px;
+  top: 6px;
+  background: #bf616a;
+}
+
+#styling-colour panel.overlap-b {
+  left: 44px;
+  top: 18px;
+  background: #5e81ac;
+}
+
+/* One layer, composited once: the two plates do not show through each other. */
+#styling-colour panel.colour-group {
+  opacity: 0.6;
+}
+
+/* Two translucent leaves: where they overlap, both are seen. */
+#styling-colour panel.colour-plain > panel {
+  opacity: 0.6;
+}
+
+/* --- Styling: backgrounds and gradients ------------------------------------ */
+
+#styling-gradients panel.styling-box {
+  min-height: 56px;
+  justify-content: flex-end;
+}
+
+#styling-gradients panel.gradient-glow {
+  background: radial-gradient(circle at top, #88c0d088, transparent 70%), var(--gb-surface-sunken);
+}
+
+#styling-gradients panel.gradient-tint {
+  background-image: linear-gradient(to right, #bf616a66, transparent);
+}
+
+#styling-gradients panel.gradient-dusk {
+  background: linear-gradient(135deg, #d08770, #b48ead);
+  color: #2e3440;
+}
+
+/* The stripe marches because `background-position` animates; a layer is never
+   tiled, so the length moves every stripe at once. */
+#styling-gradients panel.gradient-march {
+  background: repeating-linear-gradient(90deg, #a3be8c55 0 6px, transparent 6px 12px), var(--gb-surface-sunken);
+  animation: styling-march 400ms linear infinite;
+}
+
+@keyframes styling-march {
+  to {
+    background-position: 12px 0;
+  }
+}
+
+/* --- Styling: border, outline and shadow ----------------------------------- */
+
+/* Room for the outline and the shadows, which take none of their own. */
+#styling-borders row#border-plates {
+  gap: 16px;
+  padding: 6px 6px 16px 6px;
+}
+
+#styling-borders panel.border-dashed {
+  border: 2px dashed var(--gb-accent);
+}
+
+#styling-borders panel.border-dotted {
+  border: 3px dotted #ebcb8b;
+}
+
+#styling-borders panel.border-double {
+  border: 6px double #a3be8c;
+}
+
+#styling-borders panel.border-side {
+  border-left: 4px solid #bf616a;
+}
+
+#styling-borders panel.border-outline {
+  outline: 2px solid var(--gb-focus);
+  outline-offset: 4px;
+}
+
+#styling-borders panel.shadow-list {
+  box-shadow: 0 0 0 2px #b48ead, 0 4px 8px rgba(0, 0, 0, 0.35), 0 12px 24px rgba(0, 0, 0, 0.25);
+}
+
+#styling-borders panel.shadow-inset {
+  box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.5);
+}
+
+/* --- Styling: transform ----------------------------------------------------- */
+
+#styling-transform row#transform-plates {
+  gap: 16px;
+  padding: 8px 4px 16px 4px;
+}
+
+#styling-transform panel.transform-turned {
+  transform: rotate(-8deg);
+}
+
+#styling-transform panel.transform-shrunk {
+  transform: scale(0.8);
+  transform-origin: left top;
+}
+
+#styling-transform panel.transform-lowered {
+  transform: translate(0, 8px);
+}
+
+#styling-transform button.transform-button {
+  transform: rotate(-6deg) scale(1.15);
+}
+
+/* --- Styling: media queries ------------------------------------------------- */
+
+#styling-media panel.media-lamp {
+  opacity: 0.45;
+}
+
+@media (max-width: 899px) {
+  #styling-media panel#media-narrow {
+    background: var(--gb-accent);
+    color: #2e3440;
+    opacity: 1;
+  }
+}
+
+@media (min-width: 900px) and (max-width: 1199px) {
+  #styling-media panel#media-medium {
+    background: var(--gb-accent);
+    color: #2e3440;
+    opacity: 1;
+  }
+}
+
+@media (min-width: 1200px) {
+  #styling-media panel#media-wide {
+    background: var(--gb-accent);
+    color: #2e3440;
+    opacity: 1;
+  }
+}
+
+@media (orientation: portrait) {
+  #styling-media panel#media-portrait {
+    background: var(--gb-accent);
+    color: #2e3440;
+    opacity: 1;
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  #styling-media panel#media-dark {
+    background: var(--gb-accent);
+    color: #2e3440;
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #styling-media panel#media-still {
+    background: var(--gb-accent);
+    color: #2e3440;
+    opacity: 1;
+  }
+}
+
+/* --- Styling: cursor -------------------------------------------------------- */
+
+#styling-cursor panel.cursor-box {
+  padding: 8px;
+  min-width: 88px;
+}
+
+#styling-cursor panel.cursor-default { cursor: default; }
+#styling-cursor panel.cursor-pointer { cursor: pointer; }
+#styling-cursor panel.cursor-text { cursor: text; }
+#styling-cursor panel.cursor-move { cursor: move; }
+#styling-cursor panel.cursor-wait { cursor: wait; }
+#styling-cursor panel.cursor-progress { cursor: progress; }
+#styling-cursor panel.cursor-crosshair { cursor: crosshair; }
+#styling-cursor panel.cursor-not-allowed { cursor: not-allowed; }
+#styling-cursor panel.cursor-ew-resize { cursor: ew-resize; }
+#styling-cursor panel.cursor-ns-resize { cursor: ns-resize; }
+#styling-cursor panel.cursor-nesw-resize { cursor: nesw-resize; }
+#styling-cursor panel.cursor-nwse-resize { cursor: nwse-resize; }
+#styling-cursor panel.cursor-grab { cursor: grab; }
+#styling-cursor panel.cursor-grabbing { cursor: grabbing; }
+
+/* --- Styling: custom properties and var() ---------------------------------- */
+
+#styling-custom-properties column.token-group {
+  gap: 6px;
+  padding: 8px;
+  border: 1px solid var(--gb-border);
+  border-radius: 8px;
+}
+
+#styling-custom-properties column.token-group slider {
+  width: 120px;
+}
+
+/* Redefined on one node, and inherited by everything under it: every control
+   inside reads its colours through these. */
+#styling-custom-properties column#vars-plum {
+  --gb-accent: #b48ead;
+  --gb-accent-fill: #b48ead;
+  --gb-button-primary-bg-hover: #c29fbb;
+  --gb-button-primary-bg-active: #a07d99;
+}
+
+#styling-custom-properties text#vars-fallback {
+  color: var(--vars-unset, #a3be8c);
+}
+
+/* --- Styling: inheritance --------------------------------------------------- */
+
+/* Colour and the font properties reach every text below; the dashed border,
+   the padding and the radius stop here. */
+#styling-inheritance column#inherit-parent {
+  gap: 8px;
+  padding: 8px;
+  color: #ebcb8b;
+  font-style: italic;
+  border: 1px dashed var(--gb-border-strong);
+  border-radius: 8px;
+}
+
+/* --- Design system: colour and alias tokens -------------------------------- */
+
+/* Narrower than an alias swatch: a palette name is short, and Aurora's five
+   fit on one line. */
+#design-palette column.styling-swatch {
+  width: 60px;
+}
+
+#design-palette panel.styling-plate {
+  width: 48px;
+}
+
+#design-palette panel.nord-0 { background: var(--nord0); }
+#design-palette panel.nord-1 { background: var(--nord1); }
+#design-palette panel.nord-2 { background: var(--nord2); }
+#design-palette panel.nord-3 { background: var(--nord3); }
+#design-palette panel.nord-4 { background: var(--nord4); }
+#design-palette panel.nord-5 { background: var(--nord5); }
+#design-palette panel.nord-6 { background: var(--nord6); }
+#design-palette panel.nord-7 { background: var(--nord7); }
+#design-palette panel.nord-8 { background: var(--nord8); }
+#design-palette panel.nord-9 { background: var(--nord9); }
+#design-palette panel.nord-10 { background: var(--nord10); }
+#design-palette panel.nord-11 { background: var(--nord11); }
+#design-palette panel.nord-12 { background: var(--nord12); }
+#design-palette panel.nord-13 { background: var(--nord13); }
+#design-palette panel.nord-14 { background: var(--nord14); }
+#design-palette panel.nord-15 { background: var(--nord15); }
+
+#design-aliases panel.alias-bg { background: var(--gb-bg); }
+#design-aliases panel.alias-surface { background: var(--gb-surface); }
+#design-aliases panel.alias-surface-2 { background: var(--gb-surface-2); }
+#design-aliases panel.alias-surface-raised { background: var(--gb-surface-raised); }
+#design-aliases panel.alias-surface-sunken { background: var(--gb-surface-sunken); }
+#design-aliases panel.alias-text { background: var(--gb-text); }
+#design-aliases panel.alias-text-muted { background: var(--gb-text-muted); }
+#design-aliases panel.alias-border { background: var(--gb-border); }
+#design-aliases panel.alias-border-strong { background: var(--gb-border-strong); }
+#design-aliases panel.alias-accent { background: var(--gb-accent); }
+#design-aliases panel.alias-focus { background: var(--gb-focus); }
+#design-aliases panel.alias-selection { background: var(--gb-selection); }
+#design-aliases panel.alias-scrim { background: var(--gb-scrim); }
+#design-aliases panel.alias-danger { background: var(--gb-danger); }
+#design-aliases panel.alias-warning { background: var(--gb-warning); }
+#design-aliases panel.alias-success { background: var(--gb-success); }
+#design-aliases panel.alias-info { background: var(--gb-info); }
+
+/* --- Design system: spacing ------------------------------------------------- */
+
+#design-spacing column#spacing-ramp {
+  gap: 4px;
+}
+
+#design-spacing row.spacing-step {
+  gap: 8px;
+  align-items: center;
+}
+
+#design-spacing row.spacing-step text.styling-code {
+  width: 48px;
+}
+
+#design-spacing panel.spacing-bar {
+  height: 12px;
+  border: none;
+  border-radius: 2px;
+  background: var(--gb-accent);
+}
+
+#design-spacing panel.space-2 { width: 2px; }
+#design-spacing panel.space-4 { width: 4px; }
+#design-spacing panel.space-8 { width: 8px; }
+#design-spacing panel.space-12 { width: 12px; }
+#design-spacing panel.space-16 { width: 16px; }
+#design-spacing panel.space-20 { width: 20px; }
+#design-spacing panel.space-24 { width: 24px; }
+#design-spacing panel.space-32 { width: 32px; }
+#design-spacing panel.space-40 { width: 40px; }
+#design-spacing panel.space-48 { width: 48px; }
+#design-spacing panel.space-64 { width: 64px; }
+
+/* --- Design system: type ---------------------------------------------------- */
+
+/* The rank `showcase.css` does not write: the body size at the strong weight. */
+#type-card text.rank-body-strong {
+  color: var(--gb-text);
+  font-size: var(--gb-font-body);
+  line-height: var(--gb-line-body);
+  font-weight: var(--gb-weight-strong);
+}
+
+/* --- Design system: shape, elevation and materials ------------------------- */
+
+#design-shape row#shape-radii panel.styling-box {
+  width: 64px;
+  height: 48px;
+  align-items: center;
+  justify-content: center;
+}
+
+#design-shape panel.radius-4 { border-radius: 4px; }
+#design-shape panel.radius-8 { border-radius: 8px; }
+#design-shape panel.radius-12 { border-radius: 12px; }
+#design-shape panel.radius-full { border-radius: 999px; }
+
+#design-shape row#shape-elevations {
+  gap: 24px;
+  padding: 8px 4px 32px 4px;
+}
+
+#design-shape panel.elevation-1 {
+  background: var(--gb-surface-raised);
+  box-shadow: var(--gb-elevation-1);
+}
+
+#design-shape panel.elevation-2 {
+  background: var(--gb-surface-raised);
+  box-shadow: var(--gb-elevation-2);
+}
+
+#design-shape panel.elevation-3 {
+  background: var(--gb-surface-raised);
+  box-shadow: var(--gb-elevation-3);
+}
+
+#design-shape panel#material-under {
+  position: relative;
+  height: 64px;
+  background: linear-gradient(90deg, #88c0d0, #b48ead);
+  color: #2e3440;
+}
+
+#design-shape panel.material-veil {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 50%;
+  padding: 8px;
+  border: none;
+  border-radius: 0 8px 8px 0;
+  background: var(--gb-scrim);
+  color: #eceff4;
+}
+
+/* --- Design system: icons --------------------------------------------------- */
+
+#design-icons icon.icon-16 { width: 16px; height: 16px; }
+#design-icons icon.icon-20 { width: 20px; height: 20px; }
+#design-icons icon.icon-24 { width: 24px; height: 24px; }
+#design-icons icon.icon-success { color: var(--gb-success-line); }
+#design-icons icon.icon-warning { color: var(--gb-warning-line); }
+#design-icons icon.icon-danger { color: var(--gb-danger-line); }
+
+/* --- Design system: motion -------------------------------------------------- */
+
+#design-motion row.duration-row {
+  gap: 12px;
+  align-items: center;
+}
+
+#design-motion row.duration-row text.styling-code {
+  width: 132px;
+}
+
+#design-motion panel.duration-track {
+  flex-direction: row;
+  width: 180px;
+  height: 28px;
+  padding: 2px;
+  border-radius: 14px;
+  background: var(--gb-surface-sunken);
+}
+
+#design-motion panel.duration-swatch {
+  width: 24px;
+  height: 24px;
+  border: none;
+  border-radius: 12px;
+  background: var(--gb-accent);
+  transition: transform var(--gb-motion-fast) ease-enter;
+}
+
+#design-motion panel.duration-swatch.base {
+  transition: transform var(--gb-motion-base) ease-enter;
+}
+
+#design-motion panel.duration-swatch.overlay {
+  transition: transform var(--gb-motion-overlay) ease-enter;
+}
+
+#design-motion panel.duration-swatch.across {
+  transform: translate(150px, 0);
+}
+
+/* --- Design system: scroll bars and metrics -------------------------------- */
+
+#design-scrollbars scroll#design-scroll {
+  width: 100%;
+  height: 56px;
+}
+
+#design-scrollbars row.scroll-stops {
+  gap: 8px;
+  padding: 8px 0;
+}
+
+#design-metrics column.metric {
+  gap: 4px;
+  align-items: flex-start;
+}
+
+#design-metrics column.metric progress,
+#design-metrics column.metric text-input {
+  width: 200px;
+}

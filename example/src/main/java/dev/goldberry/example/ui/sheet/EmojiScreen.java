@@ -13,6 +13,8 @@ import dev.goldberry.assets.BundledFont;
 import dev.goldberry.bind.Subscription;
 import dev.goldberry.bind.runtime.Models;
 import dev.goldberry.example.ShowcaseModel;
+import dev.goldberry.example.docs.DocLink;
+import dev.goldberry.example.ui.gallery.ScreenHeader;
 import dev.goldberry.text.font.FaceCoverage;
 import dev.goldberry.widget.BuildContext;
 import dev.goldberry.widget.State;
@@ -179,7 +181,18 @@ public record EmojiScreen(ShowcaseModel model, ShowcaseModel.Actions actions) im
             var query = widget().model().emojiQuery();
             refilter(query);
 
-            return new Column(List.of(header(query), scrolledSheet()), Attributes.NONE.id("emoji-screen"));
+            return new Column(
+                    List.of(
+                            new ScreenHeader(
+                                    "Emoji",
+                                    "The colour emoji face ships as goldberry-emoji. With it on the module path, an emoji"
+                                            + " in any line of text is routed to the face and drawn in colour from"
+                                            + " its paint graphs, sharp at any scale. Press one to see it at five"
+                                            + " sizes.",
+                                    DocLink.to("guide/text", "emoji")),
+                            header(query),
+                            scrolledSheet()),
+                    Attributes.NONE.id("screen-emoji").classes("screen", "fills"));
         }
 
         /// One line of ordinary prose with emoji in it, in **no particular
@@ -198,20 +211,18 @@ public record EmojiScreen(ShowcaseModel model, ShowcaseModel.Actions actions) im
                     Attributes.NONE.id("emoji-routed").classes("screen-note"));
         }
 
-        /// The title, the credit the licence asks for, the field and the count.
+        /// The credit the licence asks for, a line of routed prose, the chips,
+        /// the field and the count.
         private Widget header(String query) {
             var note = available
-                    ? "Noto Color Emoji's " + all.size() + " emoji, read out of the face's own cmap and"
-                            + " drawn in colour from its COLRv1 paint graphs — gradients, transforms and"
-                            + " composites, sharp at any scale; press one to see it at five sizes."
+                    ? "Noto Color Emoji's " + all.size() + " emoji, read out of the face's own cmap."
                             + " Noto Color Emoji by Google, SIL Open Font License 1.1."
                     : "The emoji face is not on this build's module path. It ships as goldberry-emoji,"
                             + " so an application that never draws an emoji does not carry it — add the"
                             + " artifact to draw these.";
             return new Column(
                     List.of(
-                            new Text("Every bundled emoji", Attributes.NONE.classes("screen-title")),
-                            new Text(note, Attributes.NONE.classes("screen-note")),
+                            new Text(note, Attributes.NONE.id("emoji-credit").classes("screen-note")),
                             routed(),
                             CategorySheet.chips(groups, category, this::choose, "emoji-category"),
                             new Row(

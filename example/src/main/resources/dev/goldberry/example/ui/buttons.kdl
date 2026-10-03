@@ -1,0 +1,71 @@
+// The Buttons screen's cards that need no Java: every button variant, every
+// badge, and the chips whose state is a bound boolean. `ButtonsChapter` puts
+// them in the guide's order beside the cards it builds itself.
+//
+// Every button presses `app.click`, so the bound badge below counts them.
+masonry id="buttons-document" min-column-width=360 {
+
+  card id="button-card" class="wall-card" {
+    row class="card-head" {
+      text class="card-title" "Buttons, every variant"
+      spacer
+      link class="card-docs" href="https://goldberry.dev/docs/components/buttons.html#button" "Docs"
+    }
+    text class="card-summary" "A button runs one action when pressed, and its look is a class: primary, ghost, \
+danger or link. Tab reaches each one and Space or Enter presses it."
+    row id="button-variants" class="button-row" {
+      button id="b-default" press="app.click" "Default"
+      button id="b-primary" class="primary" press="app.click" "Primary"
+      button id="b-ghost" class="ghost" press="app.click" "Ghost"
+      button id="b-danger" class="danger" press="app.click" "Danger"
+    }
+    row id="button-links" class="button-row" {
+      button id="b-link" class="link" press="app.click" "A button that reads as a link"
+      button id="b-link-disabled" class="link" disabled=#true "And one that cannot"
+    }
+    row id="button-icons" class="button-row" {
+      button id="b-icon-label" class="primary" icon="plus" press="app.click" "Icon and label"
+      button id="b-off" disabled=#true "Disabled"
+    }
+  }
+
+  card id="badge-card" class="wall-card" {
+    row class="card-head" {
+      text class="card-title" "Badges"
+      spacer
+      link class="card-docs" href="https://goldberry.dev/docs/components/buttons.html#badge" "Docs"
+    }
+    text class="card-summary" "A badge is a count or a status that reports and takes nothing back. Its kind is a \
+class, and a one-digit badge is a circle. The accent one is bound to the leagues walked: press a button."
+    row id="badges" {
+      badge "9"
+      badge class="accent" bind="app.clicks" "0"
+      badge class="info" "Shire"
+      badge class="success" "Rivendell"
+      badge class="warning" "Rohan"
+      badge class="danger" "Mordor"
+    }
+  }
+
+  card id="chip-card" class="wall-card" {
+    row class="card-head" {
+      text class="card-title" "Filter and status chips"
+      spacer
+      link class="card-docs" href="https://goldberry.dev/docs/components/buttons.html#chip" "Docs"
+    }
+    text class="card-summary" "A chip is a badge you can press. A filter chip asks an action to flip its value and \
+draws whatever the value says, so any number can be on. A dot is a status, and a disabled chip stops responding."
+    text class="caption" "Press one:"
+    row id="chip-filters" {
+      chip id="chip-unread" class="outlined" bind="app.chip-unread" press="app.toggle-unread" "Unread"
+      chip id="chip-starred" class="outlined" bind="app.chip-starred" press="app.toggle-starred" "Starred"
+      chip id="chip-archived" class="outlined" bind="app.chip-archived" press="app.toggle-archived" "Archived"
+    }
+    row id="chip-status" {
+      chip id="chip-live" class="outlined success" dot=#true "Live"
+      chip id="chip-degraded" class="outlined warning" dot=#true "Degraded"
+      chip id="chip-down" class="danger" dot=#true "Down"
+      chip id="chip-sealed" class="outlined" disabled=#true "Sealed"
+    }
+  }
+}

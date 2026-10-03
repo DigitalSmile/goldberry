@@ -71,60 +71,50 @@ class ShowcaseShellTest {
 
     // --- the gallery ---------------------------------------------------------
 
-    /// Thirteen screens, ten of which have a digit — and **which** ten is the
-    /// decision this asserts: the eleventh screen has no digit.
+    /// A screen per chapter of the guide, in the guide's order, and a Guide screen
+    /// last. Ten have a digit, which are the first ten in strip order; the rest
+    /// are reached by the strip, the arrows inside it, and Edit ▸ Go to.
     ///
-    /// This test used to say `GALLERY.size() <= 10` and call the eleventh screen
-    /// "a decision about which one loses its key". The decision is that **none of
-    /// them does**: `Ctrl+1`…`Ctrl+0` keep meaning exactly what they have always
-    /// meant, and `icons`, `emoji` and `motion` are reached by the strip, by the
-    /// arrows inside it, and by Edit ▸ Go to.
-    ///
-    /// The reason is what the two kinds of screen are for. The first ten are
-    /// galleries a reader moves *between* — the digit is worth having because the
-    /// comparison is the point. The two sheets are references opened once and
-    /// searched, and re-pointing a shortcut somebody already knows in order to
-    /// give one a key would cost more than it bought (the emoji sheet added the
-    /// second of them and moved no digit, which is the property being kept).
-    ///
-    /// What is still load-bearing is that the digits and the strip agree about
-    /// the first ten, which is [GalleryOrderTest]'s.
+    /// Written out rather than read from [dev.goldberry.example.ui.gallery.Gallery],
+    /// because what this pins is the order a reader of the guide meets: a screen
+    /// moved in the list moves a digit, and that is a change worth seeing in a
+    /// diff.
     @Test
-    @DisplayName("seventeen screens; the first ten have a digit and the rest have the strip")
+    @DisplayName("a screen per chapter, in the guide's order; the first ten have a digit")
     void theGallery() {
         assertEquals(
                 List.of(
-                        "basic",
-                        "panels",
-                        "overlays",
+                        "layout",
+                        "scrolling",
+                        "text",
+                        "buttons",
+                        "choices",
+                        "values",
                         "forms",
-                        "navigation",
+                        "panels",
                         "collections",
+                        "navigation",
+                        "menus",
+                        "overlays",
                         "charts",
-                        "markdown",
-                        "html",
-                        "canvas",
+                        "drawing",
                         "icons",
                         "emoji",
-                        "motion",
+                        "markdown",
+                        "html",
                         "web",
                         "audio",
                         "video",
-                        "gpu"),
+                        "gpu",
+                        "styling",
+                        "design",
+                        "input",
+                        "windows",
+                        "diagnostics",
+                        "application",
+                        "guide"),
                 Screen.GALLERY);
-
-        // A keyboard has ten digits and `Screen.GALLERY` may be longer. What must
-        // not drift is the *prefix*: the screens that have keys are the first ten
-        // in strip order, so no digit ever points at a different screen than it
-        // did yesterday.
-        assertEquals(
-                "canvas",
-                Screen.GALLERY.get(9),
-                "Ctrl+0 is the tenth screen, and inserting one above it would move every digit");
-        assertTrue(
-                Screen.GALLERY.size() > 10,
-                "if the gallery is back to ten, this test is describing a window that no longer"
-                        + " exists; rewrite it for the gallery that is");
+        assertEquals("navigation", Screen.GALLERY.get(9), "Ctrl+0 is the tenth screen");
     }
 
     @Test

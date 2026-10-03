@@ -25,6 +25,7 @@ import dev.goldberry.paint.Box;
 import dev.goldberry.paint.TestFrames;
 import dev.goldberry.paint.overflow.Overrun;
 import dev.goldberry.text.Paragraph;
+import dev.goldberry.text.flow.OverflowWrap;
 import dev.goldberry.text.flow.TextFlow;
 import dev.goldberry.text.flow.TextOverflow;
 import dev.goldberry.text.font.Font;
@@ -108,6 +109,21 @@ class TextScaleAuditTest {
             assertFalse(cut.marked(), "nothing in this box's flow asked for a cut");
             assertTrue(cut.needed() > cut.available(), cut::toString);
             assertTrue(cut.toString().contains("Export the current selection"), cut::toString);
+        }
+
+        @Test
+        @DisplayName("measures a word as the painter breaks it, so `overflow-wrap: anywhere` is not a cut")
+        void aWordBrokenAnywhereFits() {
+            // One word wider than the box. Breaking between words only, it cannot
+            // fit and is a cut; under `overflow-wrap: anywhere` the render tree
+            // breaks it between graphemes, and the audit has to measure the same.
+            var word = "https://example.org/a/path/that/no/line/of/eighty/points/holds";
+            var normal = Box.text(Paragraph.of(font, word), INK).size(Length.points(80), Length.AUTO);
+            var anywhere = Box.text(Paragraph.of(font, word), INK, TextFlow.NORMAL.overflowWrap(OverflowWrap.ANYWHERE))
+                    .size(Length.points(80), Length.AUTO);
+
+            assertFalse(cutsOf(normal).isEmpty(), "a word that cannot be broken is wider than the box");
+            assertEquals(List.of(), cutsOf(anywhere), "the same word, broken where the line runs out");
         }
 
         @Test

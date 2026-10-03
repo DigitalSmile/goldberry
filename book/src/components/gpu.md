@@ -8,7 +8,7 @@ from the log and from `Window.presentation()` whether a window went through the
 GPU.
 
 <div class="gb-shot">
-<img src="../images/gallery-gpu.png" alt="The showcase's GPU screen: a lit cube in a continuous canvas with a chip painted over it, the same cube in an on-demand canvas with a slider under it, and a hud of the present readings showing dashes">
+<img src="../images/gallery-gpu.png" alt="The showcase's GPU screen: a lit cube in a continuous canvas with a chip painted over it, the same cube in an on-demand canvas with a slider under it, a hud of the present readings showing dashes, and a card on what is measured">
 <p>The showcase's GPU screen. The left cube spins on every frame, the right one turns when the slider moves.</p>
 </div>
 

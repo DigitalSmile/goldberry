@@ -1,0 +1,49 @@
+/* The rules of the screens in `dev.goldberry.example.ui.windows`, loaded after
+   `showcase.css` by `ShowcaseStyles`. A rule every screen shares belongs in
+   `showcase.css`; a rule about one screen's cards belongs here. */
+
+/* A line a card reports the host's answer into: the code face, so the numbers
+   in a display's bounds line up. */
+#screen-windows .readout {
+  flex-shrink: 0;
+  color: var(--gb-text);
+  font-size: var(--gb-font-code);
+  line-height: var(--gb-line-code);
+  font-family: monospace;
+}
+
+#screen-windows .readout-lines {
+  flex-direction: column;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+/* A card's one button is as wide as its label, not as wide as the card. */
+#screen-windows .wall-card > button {
+  align-self: flex-start;
+}
+
+/* The note the overlay card floats over the window, and what the popup card
+   opens: each is drawn on nothing, so each brings its own surface. */
+.overlay-note,
+.popup-content,
+.second-page {
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  background: var(--gb-surface);
+}
+
+.overlay-note {
+  max-width: 280px;
+}
+
+.popup-content {
+  border: 1px solid var(--gb-border);
+  border-radius: 8px;
+}
+
+.second-page {
+  flex-grow: 1;
+  padding: 16px;
+}

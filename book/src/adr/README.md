@@ -584,3 +584,4 @@ proposing to undo them.
 - [ADR-0546 A notification is the desktop's, and false means it was not shown](0546-a-notification-is-the-desktops-and-false-means-it-was-not-shown.md)
 - [ADR-0547 A member reached by reflection says so to Qodana](0547-a-member-reached-by-reflection-says-so-to-qodana.md)
 - [ADR-0548 Four CodeQL queries that only report false positives are excluded](0548-four-codeql-queries-that-only-report-false-positives-are-excluded.md)
+- [ADR-0549 The showcase is the guide, a screen per chapter and a card per section](0549-the-showcase-is-the-guide-a-screen-per-chapter-and-a-card-per-section.md)

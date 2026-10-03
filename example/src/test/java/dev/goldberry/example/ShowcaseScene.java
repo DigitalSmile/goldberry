@@ -6,7 +6,6 @@ import java.util.List;
 import dev.goldberry.assets.BundledFont;
 import dev.goldberry.css.Stylesheet;
 import dev.goldberry.css.Theme;
-import dev.goldberry.css.cascade.CascadeLayer;
 import dev.goldberry.example.ui.AppMenu;
 import dev.goldberry.example.ui.Screen;
 import dev.goldberry.html.view.HtmlStyles;
@@ -86,7 +85,7 @@ public final class ShowcaseScene implements AutoCloseable {
         // And the module's other half, which the HTML screen is entirely made of.
         sheets.add(HtmlStyles.stylesheet());
         sheets.add(MediaStyles.stylesheet());
-        sheets.add(Stylesheet.resource(CascadeLayer.APPLICATION, Showcase.class, "showcase.css"));
+        sheets.addAll(ShowcaseStyles.sheets());
         return sheets;
     }
 

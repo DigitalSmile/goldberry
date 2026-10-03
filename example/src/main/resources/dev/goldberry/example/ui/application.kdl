@@ -1,0 +1,93 @@
+// The Application screen's cards that markup can write: values, actions, the
+// registries and the attributes every node has. The screen puts them in the
+// book's order among the cards built in Java.
+masonry {
+
+  card id="application-values" class="wall-card" {
+    row class="card-head" {
+      text class="card-title" "Values"
+      spacer
+      link class="card-docs" href="https://goldberry.dev/docs/applications.html#values" "Docs"
+    }
+    text class="card-summary" "A value is a @Bind field on a @Model class. A slider, a knob, a bar and a line of text all read app.gain here: drag one and the rest follow, because there is one value and four readers."
+    slider id="values-slider" min=0 max=100 step=5 format="%.0f%%" bind="app.gain" change="app.set-gain"
+    row class="toolbar" {
+      knob id="values-knob" min=0 max=100 step=5 bind="app.gain" change="app.set-gain"
+      text class="caption" "app.gain is"
+      text id="values-text" bind="app.gain" "40"
+    }
+    progress id="values-progress" max=100 bind="app.gain"
+  }
+
+  card id="application-actions" class="wall-card" {
+    row class="card-head" {
+      text class="card-title" "Actions"
+      spacer
+      link class="card-docs" href="https://goldberry.dev/docs/applications.html#actions" "Docs"
+    }
+    text class="card-summary" "An action is a method on an @Actions record, named by press=. These buttons call app.click, app.undo and app.reset, which assign app.clicks; the badge reads it and redraws."
+    row class="toolbar" {
+      text class="caption" "Leagues walked"
+      badge id="actions-count" class="accent" bind="app.clicks" "0"
+    }
+    row class="toolbar" {
+      button id="actions-click" class="primary" icon="plus" press="app.click" "March a league"
+      button id="actions-undo" press="app.undo" "Turn back"
+      button id="actions-reset" class="danger" press="app.reset" "Begin again"
+    }
+  }
+
+  card id="application-more-models" class="wall-card" {
+    row class="card-head" {
+      text class="card-title" "More than one model"
+      spacer
+      link class="card-docs" href="https://goldberry.dev/docs/applications.html#more-than-one-model" "Docs"
+    }
+    text class="card-summary" "Actions that need the window, such as showing the frame readout, live on a record of their own beside the view model. One document presses both: the first button is the window's, the second the model's."
+    row class="toolbar" {
+      button id="more-models-hud" press="app.toggle-hud" "Frame readout"
+      button id="more-models-theme" icon="palette" press="app.toggle-theme" "Switch the light"
+    }
+  }
+
+  card id="application-starting-fast" class="wall-card" {
+    row class="card-head" {
+      text class="card-title" "Starting fast"
+      spacer
+      link class="card-docs" href="https://goldberry.dev/docs/applications.html#starting-fast" "Docs"
+    }
+    text class="card-summary" "What a user waits for is the process. A native image puts a window up fastest; on the JVM, an AOT cache trained on your own screens loads and links the classes ahead of time."
+    row class="toolbar" {
+      text class="caption" "This window's first frame"
+      text id="starting-fast-startup" bind="app.startup" "…"
+    }
+  }
+
+  card id="markup-four-registries" class="wall-card" {
+    row class="card-head" {
+      text class="card-title" "The four registries"
+      spacer
+      link class="card-docs" href="https://goldberry.dev/docs/guide/markup.html#the-four-registries" "Docs"
+    }
+    text class="card-summary" "A document names what it cannot build. press= and change= name actions, bind= names a value, icon= names an icon built once, and controller= names an object. Each resolves in a registry of its own."
+    row class="toolbar" {
+      button id="registries-press" icon="plus" press="app.click" "press= and icon="
+      badge id="registries-bind" bind="app.clicks" "0"
+    }
+    slider id="registries-change" min=0 max=100 step=5 bind="app.gain" change="app.set-gain"
+  }
+
+  card id="markup-every-node" class="wall-card" {
+    row class="card-head" {
+      text class="card-title" "Attributes every node has"
+      spacer
+      link class="card-docs" href="https://goldberry.dev/docs/guide/markup.html#the-attributes-every-node-has" "Docs"
+    }
+    text class="card-summary" "Any node takes id=, class=, tooltip=, context-menu=, name= and, on a control, disabled=. Hover the first button for its tooltip, right-click it for a menu, and Tab past the one that is disabled."
+    row class="toolbar" {
+      button id="every-node-button" class="primary" tooltip="A tooltip, from tooltip=" context-menu="content" press="app.click" "Hover, then right-click"
+      button id="every-node-icon" icon="plus" name="March a league" tooltip="An icon-only button, named by name=" press="app.click" ""
+      button id="every-node-disabled" disabled=#true "Disabled"
+    }
+  }
+}

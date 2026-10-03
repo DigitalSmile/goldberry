@@ -1,0 +1,59 @@
+/* The rules of the screens in `dev.goldberry.example.ui.drawing`, loaded after
+   `showcase.css` by `ShowcaseStyles`. A rule every screen shares belongs in
+   `showcase.css`; a rule about one screen's cards belongs here. */
+
+/* The board the clipboard card pastes onto. A canvas has no size of its own, so
+   it is given one, on the same plate as the other canvases on the screen
+   (`showcase.css` sizes those). The arrow, because it is drawn on rather than
+   typed into. */
+#paste-board {
+  height: 160px;
+  flex-grow: 0;
+  flex-shrink: 0;
+  background: var(--gb-surface);
+  border: 1px solid var(--gb-border);
+  border-radius: 8px;
+  cursor: default;
+}
+
+/* The card the offscreen picture is taken of. It is not on a wall, so it is told
+   the wall card's arrangement itself. */
+.offscreen-card {
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* One icon at the sizes a class gives its box, and one in the warning colour.
+   The outline is scaled to the box, so each size is one line here. */
+#drawing-icon-row {
+  gap: 16px;
+  align-items: center;
+}
+
+#drawing-icon-row icon.small {
+  width: 11px;
+  height: 11px;
+}
+
+#drawing-icon-row icon.large {
+  width: 24px;
+  height: 24px;
+}
+
+#drawing-icon-row icon.warn {
+  color: var(--gb-warning);
+}
+
+/* A name the set does not have: an empty box, drawn as a dot. */
+#drawing-icon-row icon.missing {
+  background: var(--gb-text-muted);
+  border-radius: 9999px;
+  width: 6px;
+  height: 6px;
+}
+
+/* The image widget's four boxes wrap rather than run out of the card: four
+   pictures side by side are wider than a wall's narrowest column. */
+#image-row {
+  flex-wrap: wrap;
+}

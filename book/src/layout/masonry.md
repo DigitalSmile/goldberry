@@ -59,7 +59,7 @@ The two are exclusive. A masonry given both is an `IllegalArgumentException` at 
 
 ### The showcase's walls
 
-Every screen in the showcase is a masonry, because a card is as tall as its contents and no two cards are the same height. Laid out in equal rows the short ones would sit in acres of empty surface. The Basic screen says `min-column-width=560`, so it is two columns at 1200 and one readable column at 720. The Panels, Overlays and Forms screens keep a count, `columns=2` and `columns=3`, and a screen written in Java hands `Masonry.UNSET` for the mode it did not choose.
+Every screen in the showcase is a masonry, because a card is as tall as its contents and no two cards are the same height. Laid out in equal rows the short ones would sit in acres of empty surface. Most walls give a width rather than a count: no column is narrower than 360, so a screen is three columns at 1280 and one at 720. The Collections and Navigation screens keep a count of two, because a table and a strip of steps need the room. A screen written in Java hands `Masonry.UNSET` for the mode it did not choose.
 
 ### Styling
 

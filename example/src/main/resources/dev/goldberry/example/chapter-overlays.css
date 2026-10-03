@@ -1,0 +1,15 @@
+/* The rules of the screens in `dev.goldberry.example.ui.overlays`, loaded after
+   `showcase.css` by `ShowcaseStyles`. A rule every screen shares belongs in
+   `showcase.css`; a rule about one screen's cards belongs here. */
+
+/* The stacks of banners. A `column` has no gap of its own, and banners that touch
+   read as one control with rules through it: 12 keeps them apart without putting
+   a hole between things that arrived together. */
+column#notice-kinds, column#notice-summary, column#notices {
+  gap: 12px;
+}
+
+/* Reset sits at the far end of the bar, away from the buttons that add. */
+button#clear-notices {
+  margin-left: auto;
+}

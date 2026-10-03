@@ -14,7 +14,9 @@ import dev.goldberry.assets.BundledAssets;
 import dev.goldberry.bind.Subscription;
 import dev.goldberry.bind.runtime.Models;
 import dev.goldberry.example.ShowcaseModel;
+import dev.goldberry.example.docs.DocLink;
 import dev.goldberry.example.ui.Screen;
+import dev.goldberry.example.ui.gallery.ScreenHeader;
 import dev.goldberry.icon.Icon;
 import dev.goldberry.widget.BuildContext;
 import dev.goldberry.widget.State;
@@ -51,11 +53,8 @@ import dev.goldberry.widgets.text.Text;
 /// question a reader choosing an icon actually has, and one a sheet at a single
 /// size cannot answer.
 ///
-/// The eleventh screen, and the first one the gallery's `Ctrl+<n>` cannot reach —
-/// there are ten digits. That is not an oversight being tolerated: `Ctrl+0` is
-/// the tenth and an eleventh key does not exist, so the strip, the arrow keys and
-/// Edit ▸ Go to are how this one is reached, and `GalleryOrderTest` already said
-/// "ten digits, however many screens there are" before there were eleven.
+/// The screen opens with a [ScreenHeader] linking the guide's section on icons,
+/// and fills its tab: it owns its viewport, so the gallery does not give it one.
 ///
 /// ## Why it is a screen and not a card
 ///
@@ -300,10 +299,21 @@ public record IconsScreen(ShowcaseModel model, ShowcaseModel.Actions actions) im
             var query = widget().model().iconQuery();
             refilter(query);
 
-            return new Column(List.of(header(query), scrolledSheet()), Attributes.NONE.id("icons-screen"));
+            return new Column(
+                    List.of(
+                            new ScreenHeader(
+                                    "Icons",
+                                    "Lucide's " + total + " icons ship as stroked outlines, filed here under "
+                                            + Groups.ALL.size()
+                                            + " categories. The name under each is what icon= takes in a document;"
+                                            + " press one to see it at five sizes.",
+                                    DocLink.to("guide/text", "icons")),
+                            header(query),
+                            scrolledSheet()),
+                    Attributes.NONE.id("screen-icons").classes("screen", "fills"));
         }
 
-        /// The title, the chips, the field and the count.
+        /// The chips, the field and the count.
         ///
         /// The count is prose rather than a `badge`, because it is a sentence
         /// about a search — "42 of 1544" — and a badge is a number beside the
@@ -313,13 +323,6 @@ public record IconsScreen(ShowcaseModel model, ShowcaseModel.Actions actions) im
             var found = CategorySheet.distinct(matching);
             return new Column(
                     List.of(
-                            new Text("Every bundled icon", Attributes.NONE.classes("screen-title")),
-                            new Text(
-                                    "Lucide's " + total + " icons in " + Groups.ALL.size() + " categories,"
-                                            + " compiled into one path table at build time. The name"
-                                            + " under each is what a document writes in icon=\"…\"; press one to"
-                                            + " see it at five sizes.",
-                                    Attributes.NONE.classes("screen-note")),
                             CategorySheet.chips(Groups.ALL, category, this::choose, "icon-category"),
                             new Row(
                                     List.of(

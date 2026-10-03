@@ -1,14 +1,20 @@
 package dev.goldberry.example;
 
+import java.util.Set;
+import java.util.stream.Stream;
+
 import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.DynamicTest;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestFactory;
 
 import dev.goldberry.RendererRequirement;
 import dev.goldberry.css.Theme;
+import dev.goldberry.example.ui.gallery.Gallery;
 import dev.goldberry.golden.GoldenImage;
 import dev.goldberry.golden.ScaleInvariance;
 import dev.goldberry.natives.sdl.Sdl;
@@ -55,15 +61,9 @@ class GalleryGoldenTest {
         }
     }
 
-    /// The whole window, on `screen`.
-    private void paint(String name, String screen, Theme theme) {
-        paint(name, screen, theme, 900, 560);
-    }
-
-    /// The same, at a chosen size — for a screen with more on it than the
-    /// window shows.
+    /// The whole window on `screen`, at a chosen size.
     private void paint(String name, String screen, Theme theme, int width, int height) {
-        paint(name, screen, theme, width, height, false);
+        paint(name, screen, theme, width, height, false, Sweep.EVERY_SCALE);
     }
 
     /// Whether the golden is also re-rendered at [ScaleInvariance]'s multipliers
@@ -74,18 +74,13 @@ class GalleryGoldenTest {
         EVERY_SCALE,
 
         /// The picture is pinned at 1&times; and the invariance claim is not made
-        /// — see [#canvas()].
+        /// — see [#everyScreen()].
         ONE_SCALE
     }
 
-    /// The same, choosing how the text is drawn: with the one-font renderer these
+    /// The same, choosing how the text is drawn — with the one-font renderer these
     /// goldens were taken with, or with a **book**, which is what a screen about
-    /// `font-family` needs.
-    private void paint(String name, String screen, Theme theme, int width, int height, boolean book) {
-        paint(name, screen, theme, width, height, book, Sweep.EVERY_SCALE);
-    }
-
-    /// The same, told whether the scale sweep applies to this screen at all.
+    /// `font-family` needs — and whether the scale sweep applies at all.
     private void paint(String name, String screen, Theme theme, int width, int height, boolean book, Sweep sweep) {
         paint(name, screen, theme, width, height, book, sweep, null);
     }
@@ -173,246 +168,39 @@ class GalleryGoldenTest {
         GoldenImage.assertMatches(name, width, height, 1.0f, scene);
     }
 
-    /// 1720 tall rather than 900, for the Forms screen's reason: the shapes card
-    /// and the links card sit below the fold at 900, and a golden that stopped
-    /// there would not photograph the two things it exists to show.
-    @Test
-    @DisplayName("the Basic screen")
-    void basic() {
-        paint("gallery-basic", "basic", Theme.NORD_DARK, 1200, 1720);
-    }
-
-    @Test
-    @DisplayName("the Panels screen")
-    void panels() {
-        paint("gallery-panels", "panels", Theme.NORD_DARK, 1200, 900);
-    }
-
-    /// The screen an **optional module** draws, and the only golden in the gallery
-    /// that needs a stylesheet the toolkit does not ship.
+    /// Every screen, in the strip's order, each at 1200&times;900: the first
+    /// window's worth of it, which is what a reader opening the tab sees.
     ///
-    /// Taller than the walls: this screen is a `split-pane` rather than a masonry, so
-    /// what it shows is bounded by the window rather than by how many cards fit —
-    /// and the preview is worth more than the fold.
-    @Test
-    @DisplayName("the Markdown screen, with an editor and its live preview")
-    void markdown() {
-        paint("gallery-markdown", "markdown", Theme.NORD_DARK, 1200, 1000);
-    }
-
-    /// The other half of the same optional module.
+    /// Two screens are photographed at one scale and make no invariance claim:
     ///
-    /// Taller than the walls for the Markdown screen's reason — it is a `split-pane`
-    /// rather than a masonry, so what it shows is bounded by the window — and worth its
-    /// own image rather than being covered by that one: the two screens share an
-    /// arrangement and share no code below it, so a defect in either fold is a picture
-    /// that changed here and not there.
-    @Test
-    @DisplayName("the HTML screen, with an editor, a live preview and a link you can press")
-    void html() {
-        paint("gallery-html", "html", Theme.NORD_DARK, 1200, 1000);
-    }
-
-    @Test
-    @DisplayName("the Overlays screen")
-    void overlays() {
-        paint("gallery-overlays", "overlays", Theme.NORD_DARK, 1200, 900);
-    }
-
-    @Test
-    @DisplayName("the Forms screen")
-    void forms() {
-        // **Taller than the window**, which is what the four-argument form is for.
-        // The gutter card sits in the second half of
-        // the wall, and its whole claim is visible only in the picture: the long
-        // paragraph takes **one** number and three lines' height, so the numbers
-        // below it are where the wrap put them rather than where a column beside
-        // the control would have guessed. A golden that stopped at 900 would not
-        // photograph the one thing that card exists to show.
-        paint("gallery-forms", "forms", Theme.NORD_DARK, 1200, 1500);
-    }
-
-    @Test
-    @DisplayName("the Navigation screen")
-    void navigation() {
-        paint("gallery-navigation", "navigation", Theme.NORD_DARK, 1200, 900);
-    }
-
-    /// 1040 tall: the timeline card ends below the fold at 900, and Rivendell's
-    /// `badge` marker — the one widget marker in the showcase — sat on the last
-    /// row, cut in half.
-    @Test
-    @DisplayName("the Collections screen")
-    void collections() {
-        paint("gallery-collections", "collections", Theme.NORD_DARK, 1200, 1040);
-    }
-
-    @Test
-    @DisplayName("the Charts screen")
-    void charts() {
-        paint("gallery-charts", "charts", Theme.NORD_DARK, 1200, 900);
-    }
-
-    /// The Web screen, which is a picture of a **page that is not there**.
+    /// - **Drawing** holds QR codes and decoded bitmaps. A QR module is a
+    ///   hard-edged square in a dense grid and a bitmap drawn at its natural size
+    ///   is a raster; re-rendered at a fractional scale and resampled back, a run
+    ///   of modules reads inverted, which no neighbourhood search can forgive.
+    /// - **GPU** shows `canvas3d`, which is rendered at its physical size.
     ///
-    /// Every other golden in this file photographs the thing its screen is about.
-    /// This one cannot and never will: a page is a window WebKit draws, with no
-    /// offscreen surface and no way to stand where a widget is on Wayland
-    /// So the screen itself is the subject — the prose, the disabled
-    /// button and the banner that says why.
+    /// **Emoji** is drawn through a font book, because its subject is
+    /// `font-family` reaching the emoji face and the one-font renderer ignores the
+    /// property.
     ///
-    /// **The capability is pinned off by the build, not by the harness.** Having
-    /// no host is not enough: `Goldberry.capabilities()` answers from the
-    /// libraries on disk, and this module's test task therefore points
-    /// `goldberry.webview.library` at a path that cannot exist. Without that the
-    /// picture is of whoever ran the suite — 7.21% of it differed between a
-    /// machine with `libwebkitgtk-6.0-dev` installed and one without, which is
-    /// this screen's whole subject and exactly what a golden must not photograph.
-    ///
-    /// So this is the state most readers see, on every machine. The other one is
-    /// what `:example:run` shows on a desktop that has WebKit.
-    @Test
-    @DisplayName("the Web screen, whose subject is a window this image cannot contain")
-    void web() {
-        paint("gallery-web", "web", Theme.NORD_DARK, 1200, 900);
-    }
-
-    /// The Audio screen, with **FFmpeg pinned off** by this module's test task
-    /// (`goldberry.media.libdir` points at a directory that cannot exist), for the
-    /// Web screen's reason: whether a machine ran `:media:ffmpegBuild` is not
-    /// something a golden may photograph. So this is the player idle, the cards
-    /// around it, and the Capabilities card saying why nothing can play.
-    @Test
-    @DisplayName("the Audio screen, with FFmpeg absent on every machine")
-    void audio() {
-        paint("gallery-audio", "audio", Theme.NORD_DARK, 1200, 1100);
-    }
-
-    /// The Video screen, with FFmpeg pinned off for the same reason: the
-    /// `media-player` with nothing open, its backdrop and its controls, and the
-    /// cards around it. Its picture is photographed in `:media`'s own goldens,
-    /// where FFmpeg is there by requirement.
-    @Test
-    @DisplayName("the Video screen, with FFmpeg absent on every machine")
-    void video() {
-        paint("gallery-video", "video", Theme.NORD_DARK, 1200, 1100);
-    }
-
-    /// **The one golden in the repository with no scale sweep behind it**, and the
-    /// reason is what is on the screen rather than anything about the check.
-    ///
-    /// This wall holds three QR codes and four decoded bitmaps. A QR module is a
-    /// hard-edged square in a dense grid and a decoded PNG drawn at its natural
-    /// size is a raster, and neither is a fact about logical space: re-rendered at
-    /// a fractional scale and resampled back, a module boundary lands on the other
-    /// side of a pixel and a whole run of them reads inverted, which no
-    /// three-by-three neighbourhood search can forgive because the neighbour is
-    /// the opposite colour. Measured over the whole screen, against a 1.200%
-    /// budget every other gallery image meets with two orders of magnitude to
-    /// spare:
-    ///
-    /// | multiplier | pixels with no match | worst delta |
-    /// | --- | --- | --- |
-    /// | 1.5&times; | 0.605% | 163 |
-    /// | 2&times; | 0.743% | 163 |
-    /// | 1.75&times; | 1.189% | 229 |
-    /// | 1.25&times; | **1.229%** | 229 |
-    ///
-    /// It has been within a hair of failing since it was taken, and the quarter
-    /// scales tip it over. Raising the budget to accommodate it would loosen the
-    /// check on 245 images that do not need it; asserting invariance about a
-    /// barcode asserts something false. So this one screen is pinned at 1&times;
-    /// and makes no invariance claim, exactly as `DamageTest` is excluded because
-    /// a damage rectangle is in physical pixels by design.
-    ///
-    /// **What that costs is real**: the paths, strokes, gradient and dashed rule
-    /// on this wall *are* scale-invariant and are no longer checked to be. The
-    /// smaller assertion that would keep them — a sweep over part of an image — is
-    /// a mechanism nothing else needs yet.
-    @Test
-    @DisplayName("the canvas screen")
-    void canvas() {
-        // The `canvas` screen, and the one screen whose cards respond to the pointer.
-        // The picture is taken **at rest**: neither interactive card draws
-        // anything extra until something touches it, which is what makes a
-        // surface an application controls photographable at all.
-        paint("gallery-canvas", "canvas", Theme.NORD_DARK, 1200, 900, false, Sweep.ONE_SCALE);
-    }
-
-    /// The same screen at the size a small window gives it, and **the one picture
-    /// in the gallery whose subject is the window rather than a widget**.
-    ///
-    /// It was worth a picture for the opposite reason until a column count became
-    /// a width the window does. A masonry's
-    /// columns were a *count* and not a media query, so two columns of cards at
-    /// 1200 were two columns at 720 as well — half as wide and twice as tall —
-    /// and what this asserted was that they still fit: a card whose contents had
-    /// a minimum width would overflow rather than wrap, because a masonry reads
-    /// last frame and `wrap` is not built. It was a picture of a layout surviving a window it
-    /// was not designed for.
-    ///
-    /// `basic.kdl` says `min-column-width=560` now, so this is a picture of the
-    /// wall **reflowing** instead: 688 pixels holds one 560 column and not two, so
-    /// the narrow window gets one column of full-width cards. The assertion it
-    /// makes is stronger than the one it replaces — the old one could only tell
-    /// you that nothing burst, and this one fails if the count stops following the
-    /// width at all.
-    ///
-    /// The wide `gallery-basic` is **unchanged** by that, deliberately: 1168 holds
-    /// two 560s and a gap, so the same document is the same two columns at 1200
-    /// that it always was. A responsive wall whose widest picture moved would have
-    /// been a redesign wearing a layout change's clothes.
-    @Test
-    @DisplayName("the Basic screen in a narrow window, reflowed to one column")
-    void basicNarrow() {
-        paint("gallery-basic-narrow", "basic", Theme.NORD_DARK, 720, 900);
-    }
-
-    /// The eleventh screen, and the only golden in the gallery of a **virtualized**
-    /// tree: what is in the picture is the rows the viewport asked for, not the
-    /// 193 the sheet holds.
-    ///
-    /// It is worth a picture for a reason the others are not — the row height in
-    /// `IconsScreen` and the tile height in `showcase.css` are two numbers that
-    /// have to agree, and nothing can check that but an image: told the wrong one,
-    /// a virtualized list scrolls past its own content and every value assertion
-    /// still passes.
-    @Test
-    @DisplayName("the Icons screen, and every tile in the first viewport")
-    void icons() {
-        paint("gallery-icons", "icons", Theme.NORD_DARK, 1200, 900);
-    }
-
-    /// The Emoji sheet, drawn through a **font book** — the one golden in this
-    /// file that is not taken with the one-font renderer.
-    ///
-    /// It has to be. The screen's whole subject is `font-family: "Noto Color
-    /// Emoji"` reaching the emoji slot, and a renderer that ignores the
-    /// property would photograph a sheet of `.notdef` and call it a picture of an emoji
-    /// sheet. So this one opens a book, which is also what proves the face is on
-    /// the module path: without `goldberry-emoji` the glyphs would fall back to
-    /// Inter and this image would move.
-    @Test
-    @DisplayName("the Emoji screen, through a font book so the face is the one it names")
-    void emoji() {
-        paint("gallery-emoji", "emoji", Theme.NORD_DARK, 1200, 900, true);
-    }
-
-    /// The twelfth screen, 200 ms in on the virtual clock: the tile floor part way
-    /// through its ripple, the swatches part way through a breath and the mark
-    /// part way round.
-    ///
-    /// Deterministic, which is the whole reason it can be a golden: every one of
-    /// the three is a function of the frame time, and the offscreen renderer's
-    /// time is not the wall's. Its floor starts on the first render rather than
-    /// the first paint, or this picture would have no tiles in it.
-    /// The GPU screen with no GPU, which is every leg's picture of it: each
-    /// `canvas3d` shows `--gb-canvas3d-unavailable`. At one scale, for
-    /// the drawn picture's reason below.
-    @Test
-    @DisplayName("the GPU screen, with no GPU")
-    void gpu() {
-        paint("gallery-gpu", "gpu", Theme.NORD_DARK, 1200, 900, false, Sweep.ONE_SCALE);
+    /// Web, Audio and Video are the state every machine sees: the web view's
+    /// library and FFmpeg are pinned off by this module's test task, because
+    /// whether a machine has them is not something a golden may photograph.
+    @TestFactory
+    @DisplayName("every screen")
+    Stream<DynamicTest> everyScreen() {
+        return Gallery.TABS.stream()
+                .map(tab -> DynamicTest.dynamicTest(tab.title(), () -> {
+                    var oneScale = Set.of("drawing", "gpu").contains(tab.name()) ? Sweep.ONE_SCALE : Sweep.EVERY_SCALE;
+                    paint(
+                            "gallery-" + tab.name(),
+                            tab.name(),
+                            Theme.NORD_DARK,
+                            1200,
+                            900,
+                            tab.name().equals("emoji"),
+                            oneScale);
+                }));
     }
 
     /// The GPU screen drawn on a real device, read back: the showcase's cubes in
@@ -435,28 +223,21 @@ class GalleryGoldenTest {
         }
     }
 
-    @Test
-    @DisplayName("the Motion screen, 200 ms in")
-    void motion() {
-        paint("gallery-motion", "motion", Theme.NORD_DARK, 1200, 900);
-    }
-
     /// The same sheet in a narrow window, which is the **only** thing that can
-    /// show the reflow.
-    ///
-    /// The column count is `floor((width + gap) / (tile + gap))` over a width no
-    /// assertion can know, because it is what Yoga made of the viewport after the
-    /// shell, the padding and the scrollbar had taken their share. What this
-    /// picture proves is the two halves of that: **fewer columns**, and a last
-    /// column that is a whole tile rather than a clipped one.
-    ///
-    /// It also exercises `Measured`'s one-frame settle. The first frame is drawn
-    /// at the default seven; the width arrives; the second frame — which is the
-    /// one `Offscreen` photographs — is right.
+    /// show the reflow: fewer columns, and a last column that is a whole tile
+    /// rather than a clipped one.
     @Test
     @DisplayName("the Icons screen in a narrow window, with fewer columns")
     void iconsNarrow() {
         paint("gallery-icons-narrow", "icons", Theme.NORD_DARK, 720, 900);
+    }
+
+    /// A wall in a narrow window: the window chooses the column count, so 688
+    /// points hold one column of cards rather than two cramped ones.
+    @Test
+    @DisplayName("the Buttons screen in a narrow window, reflowed to one column")
+    void buttonsNarrow() {
+        paint("gallery-buttons-narrow", "buttons", Theme.NORD_DARK, 720, 900);
     }
 
     @Test
@@ -466,8 +247,8 @@ class GalleryGoldenTest {
     }
 
     @Test
-    @DisplayName("the Basic screen on the light theme")
-    void lightTheme() {
-        paint("gallery-basic-light", "basic", Theme.NORD_LIGHT, 1200, 1720);
+    @DisplayName("the Buttons screen on the light theme")
+    void buttonsLight() {
+        paint("gallery-buttons-light", "buttons", Theme.NORD_LIGHT, 1200, 900);
     }
 }

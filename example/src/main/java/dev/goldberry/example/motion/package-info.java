@@ -1,4 +1,4 @@
-/// The Motion screen's canvas choreography: a floor of glazed tiles that settles
+/// The Styling screen's canvas choreography: a floor of glazed tiles that settles
 /// into place and then slowly re-glazes itself.
 ///
 /// A tile's pose is a pure function of time, with no clock and no state.

@@ -1,0 +1,95 @@
+/* The rules of the screens in `dev.goldberry.example.ui.panels`, loaded after
+   `showcase.css` by `ShowcaseStyles`. A rule every screen shares belongs in
+   `showcase.css`; a rule about one screen's cards belongs here. */
+
+/* Three surfaces at equal width, so they are compared and not merely listed, and
+   three statistics likewise. */
+#surfaces, #numbers {
+  gap: 12px;
+  align-items: stretch;
+}
+
+.surface-demo {
+  flex-direction: column;
+  flex-grow: 1;
+  flex-shrink: 1;
+  gap: 6px;
+}
+
+/* Only the padding: the surface, the edge and the radius are `panel`'s own. */
+panel.surface-demo {
+  padding: 12px;
+}
+
+/* A settings row: a label, the spacer that pushes the value out, and the value. */
+.setting {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Each statistic takes an equal share of the row, so a four-digit figure and a
+   one-digit one still read as a set. */
+#numbers > statistic {
+  flex-grow: 1;
+  flex-shrink: 1;
+}
+
+.loading-block {
+  flex-direction: column;
+  flex-grow: 1;
+  flex-shrink: 1;
+  gap: 8px;
+}
+
+/* `flex-start`, Yoga's keyword: the avatar sits at the top of its two lines. */
+.loading-row {
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.loading-lines {
+  flex-direction: column;
+  flex-grow: 1;
+  gap: 8px;
+}
+
+/* A slide needs a surface of its own: `panel` is the building block and carries
+   none a theme did not give it. */
+.slide {
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px;
+  background: var(--gb-surface);
+  border-radius: 8px;
+}
+
+/* A definite height, so the three slides do not each set the strip's height and
+   make it jump as the carousel moves. */
+#demo-carousel carousel-viewport {
+  height: 90px;
+}
+
+#demo-accordion {
+  gap: 4px;
+}
+
+/* The demo strip has a definite height: a card is content-sized, so a strip that
+   asked to grow would have nothing to grow into. */
+#demo-tabs {
+  height: 260px;
+  flex-grow: 0;
+  flex-shrink: 0;
+}
+
+/* And its panel takes a surface, so the panel filling the card can be seen. */
+#demo-tabs > tab-panel {
+  background: var(--gb-surface);
+  border-radius: 8px;
+  padding: 12px;
+}
+
+#tab-body {
+  color: var(--gb-text);
+}

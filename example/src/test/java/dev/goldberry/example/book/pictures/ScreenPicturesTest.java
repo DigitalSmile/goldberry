@@ -44,7 +44,7 @@ class ScreenPicturesTest {
     }
 
     static final List<ScreenPicture> SCREENS = List.of(
-            new ScreenPicture("basic", 1200, 1720),
+            new ScreenPicture("buttons", 1200, 1000),
             new ScreenPicture("panels", 1200, 900),
             new ScreenPicture("markdown", 1200, 1000),
             new ScreenPicture("html", 1200, 1000),

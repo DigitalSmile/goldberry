@@ -1,0 +1,72 @@
+/* The rules of the screens in `dev.goldberry.example.ui.content`, loaded after
+   `showcase.css` by `ShowcaseStyles`. A rule every screen shares belongs in
+   `showcase.css`; a rule about one screen's cards belongs here.
+
+   All three screens fill their tab (`.screen.fills`): the Markdown and HTML
+   previews own a viewport, and a page is a window over the widget's box. */
+
+/* --- Markdown and HTML ---------------------------------------------------- */
+
+/* The split under the header takes the rest of the tab: a `split-pane` has to be
+   given a height before it can divide one. */
+#markdown-split,
+#html-split {
+  flex-grow: 1;
+}
+
+/* Each side is a caption over the thing it names, and fills its side of the
+   split: the editor so that its area is not floating in a tall empty box, the
+   preview so that its `scroll` has a height to scroll within. */
+.markdown-pane {
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px;
+  flex-grow: 1;
+}
+
+/* A `text-area`'s height is its rows, so what grows is the box round it;
+   `flex-shrink` lets the pair fit a short window. */
+#markdown-source,
+#html-source {
+  flex-shrink: 1;
+}
+
+/* --- Web view -------------------------------------------------------------- */
+
+/* Everything under the header: the address bar, the actions, and the page. It
+   must grow, because the page is sized from the box the widget is painted at, and
+   a content-sized box is a page in a zero-height strip. */
+#web-body {
+  flex-direction: column;
+  gap: 8px;
+  flex-grow: 1;
+}
+
+/* A field that grows and a button that does not. */
+#web-address {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+#web-url {
+  flex-grow: 1;
+}
+
+/* The two buttons, and what the page last said pushed to the far end. */
+#web-actions {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+#web-callback {
+  margin-left: auto;
+  flex-shrink: 1;
+}
+
+#web-page {
+  flex-grow: 1;
+}

@@ -2,23 +2,28 @@ package dev.goldberry.example;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Stream;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.DynamicTest;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestFactory;
 
 import dev.goldberry.RendererRequirement;
 import dev.goldberry.css.Stylesheet;
 import dev.goldberry.css.Theme;
-import dev.goldberry.css.cascade.CascadeLayer;
 import dev.goldberry.example.ui.AppMenu;
 import dev.goldberry.example.ui.Screen;
+import dev.goldberry.example.ui.gallery.Gallery;
 import dev.goldberry.golden.ScaleInvariance;
 import dev.goldberry.golden.TextScaleAudit;
 import dev.goldberry.html.view.HtmlStyles;
 import dev.goldberry.icon.Icon;
 import dev.goldberry.markdown.view.MarkdownStyles;
+import dev.goldberry.media.view.MediaStyles;
 import dev.goldberry.text.font.Fonts;
 import dev.goldberry.widget.Widget;
 import dev.goldberry.widgets.Controls;
@@ -29,7 +34,7 @@ import dev.goldberry.widgets.Widgets;
 ///
 /// Read more: [Tests and gates](https://goldberry.dev/docs/contributing/testing.html#goldens).
 ///
-/// [GalleryGoldenTest] photographs these eleven screens and cannot see this: it
+/// [GalleryGoldenTest] photographs the screens and cannot see this: it
 /// builds its renderer with the single-font constructor, whose paint context is
 /// `style -> font`, so `textScale` would be applied to a style that is thrown
 /// away. These lay the same screens out through a **book**, at 100% and at 150%,
@@ -42,15 +47,15 @@ import dev.goldberry.widgets.Widgets;
 /// the differential — **growing the text adds no cut nobody asked for, and pushes
 /// no box off the edge.** A new `…` at 150% is the feature working; a label that
 /// simply stops is not, and neither is a control laid out past the window.
-/// [TextScaleAudit] is the rule; this file is the eleven screens it is pointed
-/// at, plus the narrow window, plus the two screens an optional module draws.
+/// [TextScaleAudit] is the rule; this file is every screen it is pointed at,
+/// plus the narrow window.
 ///
 /// ## Why there is no picture
 ///
-/// A golden of eleven screens at 150% would pin every one of those per-label
+/// A golden of every screen at 150% would pin every one of those per-label
 /// decisions at once, in a form nobody reviews, before anybody had taken one —
-/// which is exactly what `TODO.md` warned against. It would also cost eleven more
-/// PNGs swept at every display scale, which is a third axis not worth paying
+/// which is exactly what `TODO.md` warned against. It would also cost a PNG per
+/// screen swept at every display scale, which is a third axis not worth paying
 /// for twice.
 class GalleryTextScaleTest {
 
@@ -129,14 +134,14 @@ class GalleryTextScaleTest {
     }
 
     /// The sheets `Showcase.stylesheets()` adds, so a screen is audited against
-    /// the cascade the application runs rather than a subset of it — the optional
-    /// module's two included, because the Panels wall holds a `markdown-view` and
-    /// the HTML screen is made entirely of the other half.
+    /// the cascade the application runs rather than a subset of it: the optional
+    /// modules' sheets, `showcase.css` and every screen package's own sheet.
     private List<Stylesheet> sheets() {
         var all = new ArrayList<Stylesheet>(Controls.stylesheets(Theme.NORD_DARK, model.density()));
         all.add(MarkdownStyles.stylesheet());
         all.add(HtmlStyles.stylesheet());
-        all.add(Stylesheet.resource(CascadeLayer.APPLICATION, Showcase.class, "showcase.css"));
+        all.add(MediaStyles.stylesheet());
+        all.addAll(ShowcaseStyles.sheets());
         return all;
     }
 
@@ -144,8 +149,7 @@ class GalleryTextScaleTest {
     /// ordinary text did not.
     ///
     /// @param accepted `container > child` for the overruns this screen already
-    ///                 has at 150%, each one a defect recorded rather than fixed —
-    ///                 see the note on [#basicNarrow()]
+    ///                 has at 150%, each one a defect recorded rather than fixed
     private void check(String screen, int width, int height, String... accepted) {
         var sheets = sheets();
         var normal = TextScaleAudit.of(width, height)
@@ -169,122 +173,32 @@ class GalleryTextScaleTest {
         TextScaleAudit.assertSurvivesLargeText("the " + screen + " screen", normal, large, List.of(accepted));
     }
 
-    @Test
-    @DisplayName("the Basic screen survives 150%")
-    void basic() {
-        check("basic", 1200, 1720);
-    }
+    /// Overruns a screen already has at 150%, as `container > child`, each one a
+    /// defect recorded rather than fixed. Empty: the next row that stops fitting
+    /// fails here, and an entry that stops happening fails too.
+    private static final Map<String, List<String>> ACCEPTED = Map.of();
 
-    @Test
-    @DisplayName("the Panels screen survives 150%")
-    void panels() {
-        check("panels", 1200, 900);
-    }
-
-    @Test
-    @DisplayName("the Markdown screen survives 150%")
-    void markdown() {
-        check("markdown", 1200, 1000);
-    }
-
-    @Test
-    @DisplayName("the HTML screen survives 150%")
-    void html() {
-        check("html", 1200, 1000);
-    }
-
-    @Test
-    @DisplayName("the Overlays screen survives 150%")
-    void overlays() {
-        check("overlays", 1200, 900);
-    }
-
-    @Test
-    @DisplayName("the Forms screen survives 150%")
-    void forms() {
-        check("forms", 1200, 1500);
-    }
-
-    /// One accepted overrun, and it is the clearest text-scale failure in the showcase.
-    ///
-    /// The navigation wall is a masonry in a column with `overflow: visible` and
-    /// no scroller around it, so at 100% it happens to end inside a 900-point
-    /// window and at 150% it is 556 points taller than one. Nothing is cut — it is
-    /// simply below the fold, and a window has no fold. The answer is a `scroll`
-    /// around the wall or a wall that reflows, both of which are changes to
-    /// `Screen` and `showcase.css` rather than to a check, so this records it.
-    @Test
-    @DisplayName("the Navigation screen survives 150%")
-    void navigation() {
-        check("navigation", 1200, 900, "`column#screen-navigation` > `masonry#navigation-wall`");
-    }
-
-    @Test
-    @DisplayName("the Collections screen survives 150%")
-    void collections() {
-        check("collections", 1200, 1040);
-    }
-
-    @Test
-    @DisplayName("the Charts screen survives 150%")
-    void charts() {
-        check("charts", 1200, 900);
-    }
-
-    @Test
-    @DisplayName("the canvas screen survives 150%")
-    void canvas() {
-        check("canvas", 1200, 900);
-    }
-
-    @Test
-    @DisplayName("the Icons screen survives 150%")
-    void icons() {
-        check("icons", 1200, 900);
-    }
-
-    @Test
-    @DisplayName("the Motion screen survives 150%")
-    void motion() {
-        check("motion", 1200, 900);
-    }
-
-    @Test
-    @DisplayName("the Emoji screen survives 150%")
-    void emoji() {
-        check("emoji", 1200, 900);
+    /// Every screen of the gallery, at the size the goldens are taken at.
+    @TestFactory
+    @DisplayName("every screen survives 150%")
+    Stream<DynamicTest> everyScreen() {
+        return Gallery.TABS.stream()
+                .map(tab -> DynamicTest.dynamicTest(
+                        tab.title(),
+                        () -> check(
+                                tab.name(),
+                                1200,
+                                900,
+                                ACCEPTED.getOrDefault(tab.name(), List.of()).toArray(String[]::new))));
     }
 
     /// The narrow window, which is where a text scale is most likely to break
-    /// something: a masonry's columns are a count rather than a media query, so
-    /// the cards are half as wide and the labels in them are not.
-    ///
-    /// ## The five accepted overruns, which are five real defects
-    ///
-    /// **The five this ratchet was written for are gone, and nothing here fixed
-    /// them.** They were five rows of buttons that did not fit 720 points once
-    /// their labels were half again as wide — a `row` of unshrinkable children
-    /// with nothing telling it what to do when they will not fit — and what
-    /// removed them was `masonry`'s responsive column count: a column count is
-    /// a width the window does.
-    /// At `min-column-width: 560` the narrow Basic screen reflows to **one**
-    /// column of 688 points where it used to pack two of 338, and the rows have
-    /// room.
-    ///
-    /// They are deleted rather than kept as forgiven, which is the ratchet doing
-    /// the job it exists for: an accepted failure that stops happening is
-    /// reported just as loudly as a new one, because a list of exceptions nobody
-    /// prunes is a list that stops meaning anything. The two that overrun at
-    /// **100%** as well — `button#reset` in `row#actions` and
-    /// `button#dialog-folder` in `row#dialog-actions` — were never on this list:
-    /// the check is differential, so it forgives what is already wrong at 100%
-    /// and catches only what 150% adds. Those two are still wrong at both scales
-    /// and are the showcase's to fix.
-    ///
-    /// So the list is empty, and the next row that stops fitting fails here.
+    /// something: the cards are as narrow as a column may get, and the labels in
+    /// them are not narrower. The check is differential, so it forgives what is
+    /// already wrong at 100% and catches only what 150% adds.
     @Test
-    @DisplayName("the Basic screen survives 150% in a narrow window too")
-    void basicNarrow() {
-        check("basic", 720, 900);
+    @DisplayName("the Buttons screen survives 150% in a narrow window too")
+    void buttonsNarrow() {
+        check("buttons", 720, 900);
     }
 }

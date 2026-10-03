@@ -1,0 +1,429 @@
+/* The rules of the screens in `dev.goldberry.example.ui.layout`, loaded after
+   `showcase.css` by `ShowcaseStyles`. A rule every screen shares belongs in
+   `showcase.css`; a rule about one screen's cards belongs here. */
+
+/* --- Layout: the pieces the demonstrations are drawn with ---------------- */
+
+/* A strip a few blocks sit in, sunk into the card so that the room a rule
+   leaves between them can be seen. */
+.layout-track {
+  flex-direction: row;
+  height: 44px;
+  padding: 6px;
+  gap: 8px;
+  flex-shrink: 0;
+  background: var(--gb-surface-sunken);
+  border-radius: 6px;
+}
+
+/* One block: a labelled square in the accent, so a block reads as a thing being
+   placed rather than as text. */
+.layout-block {
+  flex-direction: row;
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  background: var(--gb-badge-accent-bg);
+  color: var(--gb-badge-accent-text);
+  border-radius: 4px;
+}
+
+/* The CSS a card is about, written under the demonstration that obeys it. */
+.layout-rule {
+  font-size: var(--gb-font-caption);
+  line-height: var(--gb-line-caption);
+}
+
+/* --- Row, column and spacer ---------------------------------------------- */
+
+#layout-toolbar, #layout-title-bar {
+  gap: 8px;
+  padding: 4px 8px;
+  align-items: center;
+  background: var(--gb-surface-sunken);
+  border-radius: 6px;
+}
+
+.layout-setting {
+  padding: 4px 8px;
+  align-items: center;
+}
+
+#layout-confirm {
+  gap: 12px;
+  padding: 16px;
+  align-items: stretch;
+  background: var(--gb-surface-sunken);
+  border-radius: 6px;
+}
+
+.layout-actions, .layout-dialog-actions {
+  gap: 8px;
+}
+
+.layout-strip {
+  padding: 6px 8px;
+  align-items: center;
+  border: 1px dashed var(--gb-border);
+  border-radius: 6px;
+}
+
+.layout-strip spacer.wide {
+  flex-grow: 2;
+}
+
+/* --- Stack --------------------------------------------------------------- */
+
+.layout-avatars {
+  gap: 24px;
+  padding: 4px 0;
+}
+
+.layout-portrait {
+  flex-direction: row;
+  width: 48px;
+  height: 48px;
+  align-items: center;
+  justify-content: center;
+  background: var(--gb-surface-raised);
+  border: 1px solid var(--gb-border);
+  border-radius: 8px;
+}
+
+/* No inset: the stack's alignment and the badge's own align-self put it in the
+   bottom corner. */
+#layout-avatar-aligned {
+  align-items: flex-start;
+  justify-content: flex-start;
+}
+
+#layout-avatar-aligned badge {
+  align-self: flex-end;
+}
+
+/* An inset of zero pins it to the top right edge. */
+#layout-avatar-inset badge {
+  top: 0;
+  right: 0;
+}
+
+/* --- Masonry ------------------------------------------------------------- */
+
+#layout-bricks {
+  gap: 8px;
+}
+
+#layout-bricks masonry-column {
+  gap: 8px;
+}
+
+.layout-brick {
+  flex-direction: row;
+  height: 48px;
+  align-items: center;
+  justify-content: center;
+  background: var(--gb-badge-accent-bg);
+  color: var(--gb-badge-accent-text);
+  border-radius: 6px;
+}
+
+.layout-brick.tall {
+  height: 88px;
+}
+
+.layout-brick.short {
+  height: 28px;
+}
+
+/* --- The subset and units ------------------------------------------------ */
+
+#layout-properties {
+  flex-wrap: wrap;
+  gap: 6px;
+  align-content: flex-start;
+}
+
+.layout-property {
+  padding: 2px 8px;
+  font-size: var(--gb-font-caption);
+  line-height: var(--gb-line-caption);
+  background: var(--gb-surface-sunken);
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+#layout-unit-bars {
+  gap: 6px;
+}
+
+.layout-bar {
+  flex-direction: row;
+  height: 28px;
+  padding: 0 8px;
+  align-items: center;
+  flex-shrink: 0;
+  background: var(--gb-badge-accent-bg);
+  color: var(--gb-badge-accent-text);
+  border-radius: 4px;
+}
+
+.layout-bar.unit-px {
+  width: 160px;
+}
+
+.layout-bar.unit-percent {
+  width: 75%;
+}
+
+.layout-bar.unit-em {
+  font-size: 11px;
+  width: 16em;
+}
+
+.layout-bar.unit-rem {
+  width: 14rem;
+}
+
+/* --- Direction and gap --------------------------------------------------- */
+
+#layout-form {
+  gap: 12px;
+  padding: 12px;
+  background: var(--gb-surface-sunken);
+  border-radius: 6px;
+}
+
+.layout-field {
+  gap: 8px;
+  align-items: center;
+}
+
+.layout-field text-input {
+  flex-grow: 1;
+  flex-shrink: 1;
+}
+
+.layout-label {
+  min-width: 48px;
+  flex-shrink: 0;
+}
+
+.layout-track.gap-small {
+  gap: 4px;
+}
+
+/* A panel has no direction of its own: this one is told. */
+.layout-panel-row {
+  flex-direction: row;
+  gap: 16px;
+}
+
+/* --- Padding and margin -------------------------------------------------- */
+
+.layout-margin-demo {
+  padding: 8px 0;
+  background: var(--gb-surface-sunken);
+  border-radius: 6px;
+}
+
+#layout-dialog {
+  flex-direction: column;
+  padding: 16px 24px;
+  margin: 0 auto;
+  border: 1px dashed var(--gb-border-strong);
+  border-radius: 6px;
+}
+
+.layout-dialog-actions {
+  margin-top: 16px;
+}
+
+/* --- Alignment ----------------------------------------------------------- */
+
+.layout-track.justify-start {
+  justify-content: flex-start;
+}
+
+.layout-track.justify-center {
+  justify-content: center;
+}
+
+.layout-track.justify-between {
+  justify-content: space-between;
+}
+
+.layout-track.align-end {
+  height: 56px;
+  align-items: flex-end;
+}
+
+.layout-track.align-end .layout-block.tall {
+  height: 44px;
+}
+
+.layout-track.align-end .layout-block.self-start {
+  align-self: flex-start;
+}
+
+/* --- Wrapping ------------------------------------------------------------ */
+
+#layout-tags {
+  flex-wrap: wrap;
+  gap: 8px;
+  align-content: flex-start;
+}
+
+/* --- Growing, shrinking and the basis ------------------------------------ */
+
+#layout-editor {
+  height: 72px;
+  gap: 1px;
+  background: var(--gb-border);
+  border: 1px solid var(--gb-border);
+  border-radius: 6px;
+}
+
+#layout-files {
+  flex-basis: 120px;
+  flex-shrink: 0;
+  gap: 4px;
+  padding: 8px;
+  background: var(--gb-surface-sunken);
+}
+
+#layout-source {
+  flex-grow: 1;
+  flex-basis: 0;
+  padding: 8px;
+  background: var(--gb-surface);
+}
+
+.layout-shares .layout-block {
+  width: auto;
+  flex-basis: 0;
+  flex-shrink: 1;
+}
+
+.layout-shares .layout-block.share-1 {
+  flex-grow: 1;
+}
+
+.layout-shares .layout-block.share-2 {
+  flex-grow: 2;
+}
+
+/* --- Width, height and limits -------------------------------------------- */
+
+#layout-note {
+  flex-direction: row;
+  width: 50%;
+  min-width: 200px;
+  max-width: 280px;
+  padding: 8px;
+  background: var(--gb-surface-sunken);
+  border: 1px dashed var(--gb-border-strong);
+  border-radius: 6px;
+}
+
+#layout-tall-box {
+  flex-direction: row;
+  height: 48px;
+  padding: 0 8px;
+  align-items: center;
+  background: var(--gb-surface-sunken);
+  border-radius: 6px;
+}
+
+/* --- Position, inset and overflow ---------------------------------------- */
+
+#layout-frame {
+  flex-direction: column;
+  height: 72px;
+  padding: 8px;
+  position: relative;
+  background: var(--gb-surface-sunken);
+  border-radius: 6px;
+}
+
+/* The text keeps clear of the badge, which takes no room of its own. */
+#layout-frame > text {
+  margin-right: 56px;
+}
+
+#layout-pinned {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+}
+
+#layout-clip {
+  flex-direction: column;
+  height: 34px;
+  padding: 8px;
+  overflow: hidden;
+  background: var(--gb-surface-sunken);
+  border: 1px dashed var(--gb-border-strong);
+  border-radius: 6px;
+}
+
+/* --- Density ------------------------------------------------------------- */
+
+#layout-density-row text-input {
+  width: 160px;
+}
+
+/* A box of the application's own that reads the token, so it moves with the
+   density as every control does. */
+#layout-token-box {
+  flex-direction: row;
+  height: var(--gb-control-height);
+  padding: 0 8px;
+  align-items: center;
+  flex-shrink: 0;
+  background: var(--gb-badge-accent-bg);
+  color: var(--gb-badge-accent-text);
+  border-radius: 4px;
+}
+
+/* --- Scrolling ------------------------------------------------------------ */
+
+/* The screen's viewports, each a fixed height so the wall fits a window
+   without a scroller of its own around them. */
+#screen-scrolling .scroll-demo {
+  height: 220px;
+}
+
+/* A viewport on both axes is a column, which would stretch its content to its
+   own width and leave nothing to scroll across: the grid keeps its own width. */
+#viewport-demo scroll-content {
+  align-self: flex-start;
+}
+
+.viewport-row {
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.viewport-grid {
+  gap: 4px;
+  padding: 8px;
+}
+
+.viewport-cell {
+  flex-direction: row;
+  width: 64px;
+  height: 36px;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  background: var(--gb-surface-sunken);
+  border-radius: 4px;
+}
+
+.viewport-offset {
+  font-size: var(--gb-font-caption);
+  line-height: var(--gb-line-caption);
+  color: var(--gb-text-muted);
+}

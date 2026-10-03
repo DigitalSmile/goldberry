@@ -1,0 +1,45 @@
+/* The rules of the screens in `dev.goldberry.example.ui.media`, loaded after
+   `showcase.css` by `ShowcaseStyles`. A rule every screen shares belongs in
+   `showcase.css`; a rule about one screen's cards belongs here. */
+
+/* The player card spans the screen above the wall. */
+.media-card {
+  margin-bottom: 12px;
+}
+
+/* A 16:9 stage for the samples, which are 320x180. */
+#video-player {
+  height: 360px;
+}
+
+/* The bare `video-view` has no size of its own and grows into what it is given,
+   so its card gives it a height. */
+#video-bare-stage {
+  flex-direction: column;
+  gap: 8px;
+}
+
+#video-bare {
+  height: 180px;
+}
+
+/* Buttons that belong together, wrapping when the card is narrow. */
+.media-actions {
+  flex-direction: row;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* A label and its value, the label in a column of its own width. */
+.media-line {
+  flex-direction: row;
+  gap: 12px;
+}
+
+.media-label {
+  min-width: 72px;
+}
+
+.media-value {
+  flex-shrink: 1;
+}

@@ -8,8 +8,8 @@ with one of four fit modes, put a scannable code in a dialog, and size an icon
 from the stylesheet.
 
 <div class="gb-shot">
-<img src="../images/gallery-canvas.png" alt="The showcase's Canvas screen: a card of paths, strokes and a gradient, a card drawing one image four ways, a card of the same picture decoded from five formats, a card of the image widget at four fits, and three QR codes at three error-correction levels">
-<p>The showcase's Canvas screen. The drawings are a <code>canvas</code> each, the four photographs on the right are <code>image</code> widgets, and the three codes are <code>qr-code</code>.</p>
+<img src="../images/gallery-drawing.png" alt="The showcase's Drawing screen: a card of paths, strokes and a gradient, a pointer grid, a plan to drag and zoom, the image widget at four fits, the same picture decoded from five formats, and a sticky note with a caret">
+<p>The showcase's Drawing screen. The drawings are a <code>canvas</code> each, the four photographs are <code>image</code> widgets, and each card links back to its section here.</p>
 </div>
 
 ## `canvas`

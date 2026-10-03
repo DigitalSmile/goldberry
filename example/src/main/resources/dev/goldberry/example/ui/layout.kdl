@@ -1,0 +1,354 @@
+// The **Layout** screen: the layout widgets and the CSS that sizes them, one
+// card per section of the guide's Layout part.
+//
+// A document, because nothing here holds a value: every demonstration is a
+// tree and a stylesheet, which is the whole argument of the chapter. The rules
+// each card is drawn with are in `chapter-layout.css`, keyed on the ids and
+// classes below.
+masonry id="layout-cards" min-column-width=360 {
+
+  card id="layout-row" class="wall-card" {
+    row class="card-head" {
+      text class="card-title" "Row"
+      spacer
+      link class="card-docs" href="https://goldberry.dev/docs/layout/row-and-column.html#row" "Docs"
+    }
+    text class="card-summary" "A row lays its children out left to right. The direction is the row's; the gap, the padding and how the children line up are the stylesheet's."
+    row id="layout-toolbar" {
+      button press="app.click" "Find"
+      spacer
+      button class="primary" press="app.click" "New"
+    }
+    row class="layout-setting" {
+      text "Guide"
+      spacer
+      text class="caption" "Gandalf the Grey"
+    }
+  }
+
+  card id="layout-column" class="wall-card" {
+    row class="card-head" {
+      text class="card-title" "Column"
+      spacer
+      link class="card-docs" href="https://goldberry.dev/docs/layout/row-and-column.html#column" "Docs"
+    }
+    text class="card-summary" "A column lays its children out top to bottom. Nest a row in it for the buttons, and the two describe any arrangement flexbox can."
+    column id="layout-confirm" {
+      text "Delete this file?"
+      row class="layout-actions" {
+        spacer
+        button press="app.click" "Cancel"
+        button class="danger" press="app.click" "Delete"
+      }
+    }
+  }
+
+  card id="layout-spacer" class="wall-card" {
+    row class="card-head" {
+      text class="card-title" "Spacer"
+      spacer
+      link class="card-docs" href="https://goldberry.dev/docs/layout/spacer.html#spacer" "Docs"
+    }
+    text class="card-summary" "A spacer takes the room nobody else asked for. One pushes a button to the far end; two share the room and centre what is between them."
+    row id="layout-title-bar" {
+      text "Goldberry"
+      spacer
+      button press="app.toggle-theme" "Theme"
+    }
+    row class="layout-strip" {
+      spacer
+      text "Nine set out from Rivendell"
+      spacer
+    }
+    row class="layout-strip" {
+      text "A"
+      spacer
+      text "B"
+      spacer class="wide"
+      text "C"
+    }
+    text class="caption layout-rule" "The spacer between B and C is flex-grow: 2, so it takes twice the share."
+  }
+
+  card id="layout-stack" class="wall-card" {
+    row class="card-head" {
+      text class="card-title" "Stack"
+      spacer
+      link class="card-docs" href="https://goldberry.dev/docs/layout/stack.html#stack" "Docs"
+    }
+    text class="card-summary" "A stack keeps its first child in flow and draws the rest over it, so a badge on an avatar cannot move or resize it. Alignment or an inset says where the overlay lands."
+    row class="layout-avatars" {
+      stack id="layout-avatar-aligned" class="layout-avatar" {
+        panel class="layout-portrait" { text "GB" }
+        badge class="info" "3"
+      }
+      stack id="layout-avatar-inset" class="layout-avatar" {
+        panel class="layout-portrait" { text "FB" }
+        badge class="danger" "9"
+      }
+    }
+    text class="caption" "The first badge is placed by align-self, the second by top: 0 and right: 0."
+  }
+
+  card id="split-card" class="wall-card" {
+    row class="card-head" {
+      text class="card-title" "Split pane"
+      spacer
+      link class="card-docs" href="https://goldberry.dev/docs/layout/split-pane.html#split-pane" "Docs"
+    }
+    text class="card-summary" "Two panes and a divider you can drag. The position is a fraction, so it survives a resize; the minimums are pixels. Tab to the divider and use the arrows, or Enter to collapse."
+    split-pane id="demo-split" first-min=120 second-min=140 collapsible=#true {
+      panel class="split-demo" {
+        text class="caption" "The map"
+        text "Tab to the divider and use the arrows, or Enter to collapse."
+      }
+      panel class="split-demo" {
+        text class="caption" "The road"
+        text "This one takes whatever is left, which is why only the first is given a size."
+      }
+    }
+  }
+
+  card id="layout-masonry" class="wall-card" {
+    row class="card-head" {
+      text class="card-title" "Masonry"
+      spacer
+      link class="card-docs" href="https://goldberry.dev/docs/layout/masonry.html#masonry" "Docs"
+    }
+    text class="card-summary" "A masonry deals cards of unequal height into columns, each under whichever column is shortest. This screen is one; the bricks below are a second, with three columns."
+    masonry id="layout-bricks" columns=3 {
+      panel class="layout-brick tall" { text "1" }
+      panel class="layout-brick" { text "2" }
+      panel class="layout-brick short" { text "3" }
+      panel class="layout-brick short" { text "4" }
+      panel class="layout-brick" { text "5" }
+      panel class="layout-brick tall" { text "6" }
+      panel class="layout-brick" { text "7" }
+    }
+  }
+
+  card id="layout-subset" class="wall-card" {
+    row class="card-head" {
+      text class="card-title" "The subset"
+      spacer
+      link class="card-docs" href="https://goldberry.dev/docs/layout/sizing.html#the-subset" "Docs"
+    }
+    text class="card-summary" "These are the layout properties the engine applies. Any other declaration is dropped and logged, never approximated, and StyleLint lists every dead one in a sheet."
+    row id="layout-properties" {
+      text class="layout-property" "flex-direction"
+      text class="layout-property" "justify-content"
+      text class="layout-property" "align-items"
+      text class="layout-property" "align-self"
+      text class="layout-property" "align-content"
+      text class="layout-property" "flex-wrap"
+      text class="layout-property" "width"
+      text class="layout-property" "height"
+      text class="layout-property" "min-width"
+      text class="layout-property" "max-width"
+      text class="layout-property" "min-height"
+      text class="layout-property" "max-height"
+      text class="layout-property" "padding"
+      text class="layout-property" "margin"
+      text class="layout-property" "gap"
+      text class="layout-property" "flex-grow"
+      text class="layout-property" "flex-shrink"
+      text class="layout-property" "flex-basis"
+      text class="layout-property" "position"
+      text class="layout-property" "inset"
+      text class="layout-property" "overflow"
+    }
+    text class="caption" "Not here: display, aspect-ratio, row-gap, calc(), grid and position: sticky."
+  }
+
+  card id="layout-units" class="wall-card" {
+    row class="card-head" {
+      text class="card-title" "Units"
+      spacer
+      link class="card-docs" href="https://goldberry.dev/docs/layout/sizing.html#units" "Docs"
+    }
+    text class="card-summary" "A px is a logical pixel, the same distance at any display scale. A percentage is of the parent, em is the element's own font size and rem the root's."
+    column id="layout-unit-bars" {
+      panel class="layout-bar unit-px" { text "width: 160px" }
+      panel class="layout-bar unit-percent" { text "width: 75%" }
+      panel class="layout-bar unit-em" { text "width: 16em at 11px" }
+      panel class="layout-bar unit-rem" { text "width: 14rem" }
+    }
+  }
+
+  card id="layout-direction-gap" class="wall-card" {
+    row class="card-head" {
+      text class="card-title" "Direction and gap"
+      spacer
+      link class="card-docs" href="https://goldberry.dev/docs/layout/sizing.html#direction-and-gap" "Docs"
+    }
+    text class="card-summary" "A gap is one length, between rows and columns alike. A row and a column keep their direction; on a panel or a card the stylesheet chooses it."
+    column id="layout-form" {
+      row class="layout-field" {
+        text class="layout-label" "Name"
+        text-input placeholder="Frodo Baggins"
+      }
+      row class="layout-field" {
+        text class="layout-label" "Email"
+        text-input placeholder="frodo@bag-end.shire"
+      }
+    }
+    text class="caption layout-rule" "gap: 4px"
+    row class="layout-track gap-small" {
+      panel class="layout-block" { text "A" }
+      panel class="layout-block" { text "B" }
+      panel class="layout-block" { text "C" }
+    }
+    text class="caption layout-rule" "gap: 16px, on a panel told flex-direction: row"
+    panel class="layout-track layout-panel-row" {
+      panel class="layout-block" { text "A" }
+      panel class="layout-block" { text "B" }
+      panel class="layout-block" { text "C" }
+    }
+  }
+
+  card id="layout-padding-margin" class="wall-card" {
+    row class="card-head" {
+      text class="card-title" "Padding and margin"
+      spacer
+      link class="card-docs" href="https://goldberry.dev/docs/layout/sizing.html#padding-and-margin" "Docs"
+    }
+    text class="card-summary" "Padding is room inside a box's edge and margin is room outside it, written as CSS writes them. margin: 0 auto centres a box in a container it does not control."
+    row class="layout-margin-demo" {
+      panel id="layout-dialog" {
+        text "Delete this file?"
+        row class="layout-dialog-actions" {
+          spacer
+          button press="app.click" "Cancel"
+          button class="danger" press="app.click" "Delete"
+        }
+      }
+    }
+    text class="caption" "padding: 16px 24px inside the dashed edge, margin: 0 auto outside it."
+  }
+
+  card id="layout-alignment" class="wall-card" {
+    row class="card-head" {
+      text class="card-title" "Alignment"
+      spacer
+      link class="card-docs" href="https://goldberry.dev/docs/layout/sizing.html#alignment" "Docs"
+    }
+    text class="card-summary" "justify-content places children along the main axis and align-items across it. align-self is one child's own answer."
+    text class="caption layout-rule" "justify-content: flex-start"
+    row class="layout-track justify-start" {
+      panel class="layout-block" { text "1" }
+      panel class="layout-block" { text "2" }
+      panel class="layout-block" { text "3" }
+    }
+    text class="caption layout-rule" "justify-content: center"
+    row class="layout-track justify-center" {
+      panel class="layout-block" { text "1" }
+      panel class="layout-block" { text "2" }
+      panel class="layout-block" { text "3" }
+    }
+    text class="caption layout-rule" "justify-content: space-between"
+    row class="layout-track justify-between" {
+      panel class="layout-block" { text "1" }
+      panel class="layout-block" { text "2" }
+      panel class="layout-block" { text "3" }
+    }
+    text class="caption layout-rule" "align-items: flex-end, and one child align-self: flex-start"
+    row class="layout-track align-end" {
+      panel class="layout-block" { text "1" }
+      panel class="layout-block tall" { text "2" }
+      panel class="layout-block self-start" { text "3" }
+    }
+  }
+
+  card id="layout-wrapping" class="wall-card" {
+    row class="card-head" {
+      text class="card-title" "Wrapping"
+      spacer
+      link class="card-docs" href="https://goldberry.dev/docs/layout/sizing.html#wrapping" "Docs"
+    }
+    text class="card-summary" "flex-wrap: wrap lets a row break into lines, and align-content places the lines. Make the window narrower and the chips take more lines."
+    row id="layout-tags" {
+      chip class="outlined" "Unread"
+      chip class="outlined" "Starred"
+      chip class="outlined" "Archived"
+      chip class="outlined" "Shire"
+      chip class="outlined" "Bree"
+      chip class="outlined" "Rivendell"
+      chip class="outlined" "Moria"
+      chip class="outlined" "Lothlórien"
+      chip class="outlined" "Rohan"
+      chip class="outlined" "Gondor"
+    }
+  }
+
+  card id="layout-grow-shrink" class="wall-card" {
+    row class="card-head" {
+      text class="card-title" "Growing, shrinking and the basis"
+      spacer
+      link class="card-docs" href="https://goldberry.dev/docs/layout/sizing.html#growing-shrinking-and-the-basis" "Docs"
+    }
+    text class="card-summary" "flex-grow shares out the room left after content and flex-shrink gives it back. flex-basis: 0 with flex-grow: 1 is a fixed share of the row."
+    row id="layout-editor" {
+      column id="layout-files" {
+        text "main.java"
+        text "Window.java"
+      }
+      column id="layout-source" {
+        text "// the file"
+      }
+    }
+    text class="caption layout-rule" "flex-grow: 1, 2 and 1, each from a basis of 0"
+    row class="layout-track layout-shares" {
+      panel class="layout-block share-1" { text "1" }
+      panel class="layout-block share-2" { text "2" }
+      panel class="layout-block share-1" { text "1" }
+    }
+  }
+
+  card id="layout-limits" class="wall-card" {
+    row class="card-head" {
+      text class="card-title" "Width, height and limits"
+      spacer
+      link class="card-docs" href="https://goldberry.dev/docs/layout/sizing.html#width-height-and-limits" "Docs"
+    }
+    text class="card-summary" "width and height are preferred sizes; min- and max- are the limits a cramped or roomy row cannot pass. Make the window narrower and the note stops at its minimum."
+    panel id="layout-note" {
+      text "width: 50%, min-width: 200px, max-width: 280px"
+    }
+    panel id="layout-tall-box" {
+      text "height: 48px"
+    }
+  }
+
+  card id="layout-position" class="wall-card" {
+    row class="card-head" {
+      text class="card-title" "Position, inset and overflow"
+      spacer
+      link class="card-docs" href="https://goldberry.dev/docs/layout/sizing.html#position-inset-and-overflow" "Docs"
+    }
+    text class="card-summary" "An absolute child is placed by its inset from the nearest positioned ancestor, out of flow. overflow: hidden clips whatever does not fit."
+    panel id="layout-frame" {
+      text "The badge is position: absolute, 8px from the top and the right."
+      badge id="layout-pinned" class="success" "Live"
+    }
+    panel id="layout-clip" {
+      text "overflow: hidden, on a box one line tall. The rest of this sentence wraps onto a second line and a third, below the edge, where nothing is drawn."
+    }
+  }
+
+  card id="layout-density" class="wall-card" {
+    row class="card-head" {
+      text class="card-title" "Density and the size tokens"
+      spacer
+      link class="card-docs" href="https://goldberry.dev/docs/layout/sizing.html#density-and-the-size-tokens" "Docs"
+    }
+    text class="card-summary" "A control's height is a token, so compact density is three custom properties and no rules. Switch it and every control below moves together."
+    row id="layout-density-row" class="toolbar" {
+      button id="layout-switch-density" class="primary" press="app.toggle-density" "Switch the density"
+      text-input placeholder="A field"
+    }
+    panel id="layout-token-box" {
+      text "height: var(--gb-control-height)"
+    }
+    text class="caption" "Ctrl+D switches it for the whole window."
+  }
+}

@@ -1,0 +1,70 @@
+// The Choices screen's cards that need no Java: the checkboxes, the switches,
+// a group of radios and the theme on three controls. Everything flows down
+// through `bind=` and back up through `change=`. `ChoicesChapter` puts these in
+// the guide's order beside the cards it builds itself.
+masonry id="choices-document" min-column-width=360 {
+
+  card id="switch-card" class="wall-card" {
+    row class="card-head" {
+      text class="card-title" "Checkboxes"
+      spacer
+      link class="card-docs" href="https://goldberry.dev/docs/components/choices.html#checkbox" "Docs"
+    }
+    text class="card-summary" "A checkbox is a tick with a label, in two states or three. Clicking asks for the \
+change and the application sets it. Mixed is a state only the application can put a box in: click it and it \
+asks for all."
+    checkbox id="prose-toggle" bind="app.prose" change="app.toggle-prose" "Second breakfast"
+    checkbox id="partly" bind="app.partly" change="app.toggle-partly" "Provisions packed"
+    checkbox id="unavailable" checked=#true disabled=#true "Sworn to the Fellowship"
+    checkbox id="indeterminate-still" indeterminate=#true disabled=#true "Counsel not yet taken"
+  }
+
+  card id="choices-toggle" class="wall-card" {
+    row class="card-head" {
+      text class="card-title" "Switches"
+      spacer
+      link class="card-docs" href="https://goldberry.dev/docs/components/choices.html#toggle" "Docs"
+    }
+    text class="card-summary" "A toggle is a switch whose change carries the state asked for, so a drag right on a \
+switch that is on asks for on. This one reads the same value as the Second breakfast checkbox."
+    toggle id="prose-switch" bind="app.prose" change="app.set-prose" "Second breakfast"
+    toggle id="prose-switch-off" on=#true disabled=#true "Bound by oath"
+  }
+
+  card id="choices-radio" class="wall-card" {
+    row class="card-head" {
+      text class="card-title" "Radios"
+      spacer
+      link class="card-docs" href="https://goldberry.dev/docs/components/choices.html#radio" "Docs"
+    }
+    text class="card-summary" "A radio is one option in a group: it carries a value and a label, and the group \
+decides whether it is on. These pick the window's light, and the third is disabled."
+    radio-group id="themes" bind="app.theme" change="app.pick-theme" {
+      radio value="dark" "Moria, the dark"
+      radio value="light" "Lothlórien, the light"
+      radio value="system" disabled=#true "Follow the system"
+    }
+  }
+
+  card id="theme-card" class="wall-card" {
+    row class="card-head" {
+      text class="card-title" "One value, three controls"
+      spacer
+      link class="card-docs" href="https://goldberry.dev/docs/components/choices.html#segmented" "Docs"
+    }
+    text class="card-summary" "A segmented bar is a radio group drawn as one bar, with Left and Right as its keys. The \
+bar, the radios and the select here all read one value, so any of them, or Ctrl+T, moves the others."
+    segmented id="theme-bar" bind="app.theme" change="app.pick-theme" {
+      option value="dark" "Moria"
+      option value="light" "Lórien"
+    }
+    radio-group id="theme-radios" class="inline" bind="app.theme" change="app.pick-theme" {
+      radio value="dark" "Dark"
+      radio value="light" "Light"
+    }
+    select id="theme-select" bind="app.theme" change="app.pick-theme" placeholder="Choose a light" {
+      option value="dark" "Moria, the dark"
+      option value="light" "Lothlórien, the light"
+    }
+  }
+}

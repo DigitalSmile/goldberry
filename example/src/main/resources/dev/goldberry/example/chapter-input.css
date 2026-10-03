@@ -1,0 +1,140 @@
+/* The rules of the screens in `dev.goldberry.example.ui.input`, loaded after
+   `showcase.css` by `ShowcaseStyles`. A rule every screen shares belongs in
+   `showcase.css`; a rule about one screen's cards belongs here. */
+
+/* A canvas has no size of its own, so every pad on this screen is given one. */
+#kinds-pad,
+#capture-pad,
+#wheel-plan,
+#keys-pad {
+  height: 140px;
+  flex-grow: 0;
+  flex-shrink: 0;
+  background: var(--gb-surface);
+  border: 1px solid var(--gb-border);
+  border-radius: 8px;
+  /* What a painter's `style.ink()` is: the pads write their prompt in it. */
+  color: var(--gb-text-muted);
+}
+
+#capture-pad {
+  cursor: crosshair;
+}
+
+#wheel-plan {
+  cursor: move;
+}
+
+#keys-pad {
+  height: 64px;
+  cursor: text;
+}
+
+#drag-track {
+  height: 32px;
+  flex-shrink: 0;
+  cursor: ew-resize;
+}
+
+/* A line the demonstration reports into: the code face, so numbers line up. */
+#screen-input .readout {
+  flex-shrink: 0;
+  color: var(--gb-text);
+  font-size: var(--gb-font-code);
+  line-height: var(--gb-line-code);
+  font-family: monospace;
+}
+
+#screen-input .readout-lines {
+  flex-direction: column;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+/* The nested boxes a press is traced through. */
+phase-box {
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px;
+  flex-shrink: 0;
+  border: 1px solid var(--gb-border);
+  border-radius: 8px;
+  background: var(--gb-surface);
+}
+
+.phase-inner {
+  height: 36px;
+  border: 1px solid var(--gb-accent);
+  cursor: pointer;
+}
+
+.phase-label {
+  color: var(--gb-text-muted);
+  font-size: var(--gb-font-caption);
+  line-height: var(--gb-line-caption);
+}
+
+.kind-tallies,
+.cursor-boxes {
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.kind-tally {
+  color: var(--gb-text-muted);
+  font-size: var(--gb-font-code);
+  line-height: var(--gb-line-code);
+  font-family: monospace;
+}
+
+.kind-last {
+  color: var(--gb-accent);
+}
+
+.accelerator-list {
+  flex-direction: column;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.accelerator-row {
+  flex-direction: row;
+  gap: 8px;
+  align-items: center;
+}
+
+.accelerator-keys {
+  width: 120px;
+  font-size: var(--gb-font-code);
+  line-height: var(--gb-line-code);
+  font-family: monospace;
+}
+
+.cursor-box {
+  padding: 8px 10px;
+  flex-shrink: 0;
+}
+
+#cursor-pointer { cursor: pointer; }
+#cursor-text { cursor: text; }
+#cursor-crosshair { cursor: crosshair; }
+#cursor-move { cursor: move; }
+#cursor-ew-resize { cursor: ew-resize; }
+#cursor-ns-resize { cursor: ns-resize; }
+#cursor-wait { cursor: wait; }
+#cursor-not-allowed { cursor: not-allowed; }
+
+.drop-target,
+.context-panel {
+  padding: 12px;
+  gap: 8px;
+  flex-shrink: 0;
+  color: var(--gb-text);
+}
+
+.drop-target {
+  min-height: 64px;
+  border: 1px dashed var(--gb-border);
+}

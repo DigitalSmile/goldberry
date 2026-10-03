@@ -1,0 +1,42 @@
+/* The rules of the screens in `dev.goldberry.example.ui.application`, loaded after
+   `showcase.css` by `ShowcaseStyles`. A rule every screen shares belongs in
+   `showcase.css`; a rule about one screen's cards belongs here. */
+
+/* A document a reader edits: the editor, a line saying what the last attempt
+   came to, and what it inflated to, in a sunken well so it reads as output. */
+.live-preview {
+  flex-direction: column;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.preview {
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px;
+  border: 1px solid var(--gb-border);
+  border-radius: 8px;
+  background: var(--gb-surface-sunken);
+}
+
+.preview-status {
+  color: var(--gb-text-muted);
+}
+
+/* The toolkit's refusal, in the colour a field's error message has. */
+.preview-refused {
+  color: var(--gb-danger-text);
+}
+
+/* One mark per league: wraps rather than running off the card. */
+.league-marks {
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: center;
+}
+
+.league-loop, .two-counters {
+  flex-direction: column;
+  gap: 8px;
+}

@@ -64,7 +64,7 @@ goes on from there to a widget tree, a KDL document and a stylesheet.
 ```sh
 ./gradlew build                                # every module, and libgoldberry for this machine
 ./gradlew build -Pgoldberry.skipNative=true    # Java only; tests that need the library skip
-./gradlew run                                  # the showcase
+./gradlew run                                  # the showcase: a screen per chapter of the guide
 ```
 
 The native build needs CMake 3.28 or newer, Ninja and a C/C++ toolchain;

@@ -3,6 +3,10 @@ package dev.goldberry.example.ui;
 import dev.goldberry.bind.Subscription;
 import dev.goldberry.bind.runtime.Models;
 import dev.goldberry.example.ShowcaseModel;
+import dev.goldberry.example.ui.gallery.Documents;
+import dev.goldberry.example.ui.gallery.Gallery;
+import dev.goldberry.example.ui.gallery.GalleryContext;
+import dev.goldberry.example.ui.gallery.GalleryTab;
 import dev.goldberry.icon.Icon;
 import dev.goldberry.kdl.KdlInflater;
 import dev.goldberry.widget.BuildContext;
@@ -12,60 +16,49 @@ import dev.goldberry.widget.attr.Attributes;
 import dev.goldberry.widgets.core.Column;
 import dev.goldberry.widgets.core.scroll.Scroll;
 import dev.goldberry.widgets.core.scroll.ScrollAxis;
-import dev.goldberry.widgets.panel.masonry.Masonry;
 import dev.goldberry.widgets.panel.tabs.Tab;
 import dev.goldberry.widgets.panel.tabs.Tabs;
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
-import dev.goldberry.example.ui.sheet.EmojiScreen;
-import dev.goldberry.example.ui.sheet.IconsScreen;
 
 /// The whole window, in three bands: a **menu bar**, a **bar**, and a **gallery**
-/// of thirteen screens under them.
+/// of screens under them.
 ///
 /// ```text
-    /// ┌──────────────────────────────────┐
-    /// │ File  Edit  Help                 │  menubar  — the window's
-    /// ├──────────────────────────────────┤
-    /// │ Goldberry 9  42 ms  ◐  Switch    │  #bar     — startup, and the light
-    /// ├──────────────────────────────────┤
-    /// │ Basic │ Panels │ … │ Motion      │  #gallery — thirteen screens
-    /// │ ┌────────┐ ┌────────┐            │
-    /// │ │  card  │ │  card  │  a masonry │
-    /// │ └────────┘ └────────┘            │
-    /// └──────────────────────────────────┘
-    /// ```
+/// ┌──────────────────────────────────┐
+/// │ File  Edit  Help                 │  menubar  — the window's
+/// ├──────────────────────────────────┤
+/// │ Goldberry 9  42 ms  ◐  Switch    │  #bar     — startup, and the light
+/// ├──────────────────────────────────┤
+/// │ Layout │ Scrolling │ … │ Guide   │  #gallery — one screen per chapter
+/// │ ┌────────┐ ┌────────┐            │
+/// │ │  card  │ │  card  │  a masonry │
+/// │ └────────┘ └────────┘            │
+/// └──────────────────────────────────┘
+/// ```
 ///
-/// ## Why the screens are questions and not widget families
+/// ## Why the screens are the book's chapters
 ///
-/// Because twelve was one screen per *widget family* and nobody reads a gallery
-/// that way. `Controls`, `Values` and `Text` were three tabs you had to visit in
-/// order to see what one screen's worth of chrome looks like; `Overlays` and
-/// `Notifications` were the two halves of a comparison a reader could not make
-/// with a tab between them; `Tabs` and `Scrolling` were both "how do I get around
-/// a window". The screens are *questions* rather than widget families, and all but
-/// two of them are a wall of cards.
+/// The showcase is where a reader of the guide comes to see what a chapter
+/// describes. So the gallery has a screen per chapter, in the guide's order, and
+/// a card per section of it, each with a link back to that section. The list is
+/// [Gallery#TABS].
 ///
 /// ## What this widget rebuilds for
 ///
-/// Almost nothing. Every *value* in this window reaches its widget through a
-/// binding and needs no rebuild here; the subscriptions below are the
-/// **structural** changes — whether the prose card is in the tree, what the count
-/// makes possible, and which chapters exist.
+/// Almost nothing. Every value in this window reaches its widget through a
+/// binding, and a screen whose structure follows the model subscribes to what it
+/// needs itself. The one subscription here is the Help menu's frame-rate tick.
 ///
-/// The gallery's own selection is not among them: the strip reads it through
-/// `bind` like any other control, and the screens are all built either way. That
-/// is the trade `tabs`' lazy content makes — only the selected screen's widgets are
-/// built into elements — and it is why switching screens costs a rebuild of one
-/// screen rather than of the window.
+/// The gallery's own selection is not among them either: the strip reads it
+/// through `bind` like any other control, and `tabs` builds only the selected
+/// screen's widgets into elements. That is why switching screens costs a rebuild
+/// of one screen rather than of the window.
 ///
 /// Read more: [Views](https://goldberry.dev/docs/applications.html#views).
 ///
 /// @param model    the state every screen reads
-/// @param inflater what turns the seven documents into widgets
-/// @param plus     the icon on [Basic]'s primary button
+/// @param inflater what turns the documents into widgets
+/// @param plus     the icon on the primary buttons
 /// @param menu     File, Edit and Help. Built here rather than handed over
 ///                 finished, because the frame-rate row's tick follows
 ///                 `app.hud` and this is what rebuilds when it moves
@@ -74,108 +67,19 @@ public record Screen(ShowcaseModel model, ShowcaseModel.Actions actions,
         Runnable startTour, AppMenu menu)
         implements Widget.Stateful {
 
-    /// Every screen in the gallery, in the order the strip shows them.
+    /// Every screen in the gallery, in the order the strip shows them: the names in
+    /// [Gallery#TABS].
     ///
-    /// **The one order.** Two things read it — the strip below, which is built
-    /// from it by [#inGalleryOrder], and
-    /// [dev.goldberry.example.Showcase], which hangs `Ctrl+1`…
-    /// off it — and they used to hold a copy each. The copies drifted the moment a
-    /// screen was inserted in the middle, so `Ctrl+8` selected the screen beside
-    /// the one the eighth tab named. A gallery with two orders in it is a gallery
-    /// that disagrees with itself.
-    ///
-    /// **Thirteen, and ten of them have a digit** — `Ctrl+0` is the tenth and a
-    /// keyboard has no eleventh digit. That was once written here as a *limit* on
-    /// how many screens the gallery could hold, and it is not one:
-    /// `GalleryOrderTest` has always asserted "ten digits, however many screens
-    /// there are", and `Showcase.screenShortcuts` has always bound what it can and
-    /// stopped. So `icons`, `emoji` and `motion` are reached by the strip, by the
-    /// arrow keys inside it, and by Edit ▸ Go to — three ways, none of them a
-    /// digit.
-    ///
-    /// The rule that *is* load-bearing is the one below it: the strip and this
-    /// list must name the same screens, because a screen in one and not the other
-    /// is either a key bound to nothing or a tab no key can reach. That has been
-    /// checked since the gallery was twelve screens long and two of them were
-    /// unreachable.
-    public static final List<String> GALLERY = List.of(
-            "basic", "panels", "overlays", "forms", "navigation", "collections", "charts", "markdown", "html",
-            "canvas", "icons", "emoji", "motion", "web", "audio", "video", "gpu");
+    /// Read by the strip below, by `Showcase`, which hangs `Ctrl+1`… off it, and by
+    /// the Edit ▸ Go to submenu and the tray. Ten of the screens have a digit; the
+    /// rest are reached by the strip, its arrow keys, and Edit ▸ Go to.
+    public static final List<String> GALLERY = Gallery.names();
 
-    /// What each screen is called, for the strip, the Edit ▸ Go to submenu and the
-    /// tray.
-    ///
-    /// A map beside [#GALLERY] rather than a `Tab` label written where the tab is
-    /// built, because three separate places name these screens and two of them are
-    /// not tabs. It is checked against the list below, so a screen added to one
-    /// and not the other is a failure at build rather than a menu row reading
-    /// `null`.
-    ///
-    /// `Map.ofEntries` and not `Map.of`, which takes at most ten pairs — the
-    /// eleventh screen is what found that, at compile time, which is where a
-    /// limit like this should be found.
-    private static final Map<String, String> TITLES = Map.ofEntries(
-            Map.entry("basic", "Basic"),
-            Map.entry("panels", "Panels"),
-            Map.entry("overlays", "Overlays"),
-            Map.entry("forms", "Forms"),
-            Map.entry("navigation", "Navigation"),
-            Map.entry("collections", "Collections"),
-            Map.entry("charts", "Charts"),
-            Map.entry("markdown", "Markdown"),
-            Map.entry("html", "HTML"),
-            Map.entry("canvas", "Canvas"),
-            Map.entry("icons", "Icons"),
-            Map.entry("emoji", "Emoji"),
-            Map.entry("motion", "Motion"),
-            Map.entry("web", "Web view"),
-            Map.entry("audio", "Audio"),
-            Map.entry("video", "Video"),
-            Map.entry("gpu", "GPU"));
-
-    /// What a screen is called. Refuses rather than defaults, because a defaulted
-    /// title is a menu row named `collections` that nobody notices for a month.
+    /// What a screen is called, for the strip, the Edit ▸ Go to submenu and the
+    /// tray. Refuses rather than defaults, because a defaulted title is a menu row
+    /// named `collections` that nobody notices for a month.
     public static String title(String name) {
-        var title = TITLES.get(name);
-        if (title == null) {
-            throw new IllegalArgumentException(
-                    "no screen is called \"" + name + "\"; the gallery is " + GALLERY);
-        }
-        return title;
-    }
-
-    /// `tabs` in [#GALLERY] order, and a failure rather than a silent reorder
-    /// when the two do not name the same screens.
-    ///
-    /// The tabs are written where their content is built, because each carries a
-    /// paragraph about why it is a document or Java; the *order* is the list
-    /// above. Keeping them apart is only safe if disagreeing is loud, so it
-    /// throws: a screen in the strip and not in the list would be one no key could
-    /// reach, and a screen in the list and not in the strip would be a `Ctrl+6`
-    /// that selected nothing at all.
-    public static List<Tab> inGalleryOrder(List<Tab> tabs) {
-        var byName = new LinkedHashMap<String, Tab>();
-        for (var tab : tabs) {
-            if (byName.put(tab.value(), tab) != null) {
-                throw new IllegalStateException(
-                        "two tabs in the gallery are called \"" + tab.value() + "\"");
-            }
-        }
-        var ordered = new ArrayList<Tab>(GALLERY.size());
-        for (var name : GALLERY) {
-            var tab = byName.remove(name);
-            if (tab == null) {
-                throw new IllegalStateException(
-                        "Screen.GALLERY names \"" + name + "\", which the strip has no tab for");
-            }
-            ordered.add(tab);
-        }
-        if (!byName.isEmpty()) {
-            throw new IllegalStateException(
-                    "the strip has tabs Screen.GALLERY does not name, so nothing binds a key to"
-                            + " them: " + byName.keySet());
-        }
-        return List.copyOf(ordered);
+        return Gallery.tab(name).title();
     }
 
     @Override
@@ -183,61 +87,29 @@ public record Screen(ShowcaseModel model, ShowcaseModel.Actions actions,
         return new ScreenState();
     }
 
-    /// The subscriptions, the documents, and the gallery.
+    /// The subscription, the documents, and the gallery.
     static final class ScreenState extends State<Screen> {
 
-        private final List<Subscription> watching = new ArrayList<>(3);
+        @SuppressWarnings("NullAway.Init") // subscribed in initState()
+        private Subscription watching;
 
-        /// The documents, inflated once — see [Panes].
+        /// The bar, inflated once.
         @SuppressWarnings("NullAway.Init") // inflated in initState()
         private Widget bar;
-        @SuppressWarnings("NullAway.Init") // inflated in initState()
-        private Masonry basic;
-        @SuppressWarnings("NullAway.Init") // inflated in initState()
-        private Masonry panels;
-        @SuppressWarnings("NullAway.Init") // inflated in initState()
-        private Masonry overlays;
-        @SuppressWarnings("NullAway.Init") // inflated in initState()
-        private Masonry forms;
 
-        /// The Markdown screen's two panes. **Not a `Masonry`**: that screen is one
-        /// thing divided rather than a wall of cards, so its document's root is a
-        /// `split-pane` and nothing is appended to it.
-        @SuppressWarnings("NullAway.Init") // inflated in initState()
-        private Widget markdown;
-
-        /// And the HTML screen's, which is the same shape for the same reason — see
-        /// [HtmlScreen].
-        @SuppressWarnings("NullAway.Init") // inflated in initState()
-        private Widget html;
-
-        /// And the two media screens' players, each from its own document.
-        @SuppressWarnings("NullAway.Init") // inflated in initState()
-        private Widget audio;
-
-        @SuppressWarnings("NullAway.Init") // inflated in initState()
-        private Widget video;
+        /// The gallery's documents, inflated as each screen first asks.
+        @SuppressWarnings("NullAway.Init") // made in initState()
+        private GalleryContext context;
 
         @Override
         protected void initState() {
-            bar = Panes.bar(widget().inflater());
-            basic = Panes.basic(widget().inflater());
-            panels = Panes.panels(widget().inflater());
-            overlays = Panes.overlays(widget().inflater());
-            forms = Panes.forms(widget().inflater());
-            markdown = Panes.markdown(widget().inflater());
-            html = Panes.html(widget().inflater());
-            audio = Panes.audio(widget().inflater());
-            video = Panes.video(widget().inflater());
-
-            // Structure only. Every *value* in this window reaches its widget
-            // through a binding and needs no rebuild here.
-            for (var path : List.of("app.prose", "app.clicks", "app.tabs", "app.hud")) {
-                // Which chapters exist is structure too: a tab added or closed is
-                // a different tree, not a different value.
-                watching.add(Models.observable(widget().model(), path)
-                        .subscribe(value -> setState(() -> { })));
-            }
+            var documents = new Documents(widget().inflater());
+            bar = documents.document("statusbar.kdl");
+            context = new GalleryContext(
+                    widget().model(), widget().actions(), documents, widget().plus(), widget().startTour());
+            // The Help menu's frame-rate row shows a tick, and a menu row's
+            // `checked` is a constant: the bar is built again when it moves.
+            watching = Models.observable(widget().model(), "app.hud").subscribe(value -> setState(() -> {}));
         }
 
         /// A property outlives the tree — it is the application's — so a listener
@@ -245,102 +117,34 @@ public record Screen(ShowcaseModel model, ShowcaseModel.Actions actions,
         /// see.
         @Override
         protected void dispose() {
-            watching.forEach(Subscription::close);
-            watching.clear();
+            watching.close();
         }
 
         /// One screen, in a viewport that can show more of it than the window is
-        /// tall.
-        ///
-        /// The gallery is what `scroll` was built for.
-        ///
-        /// Every screen but one, and the exception is the rule rather than a
-        /// special case: [Navigation] holds a card that owns a viewport of its
-        /// own, and nested same-axis scrollers are not allowed. A viewport over content
-        /// that fits draws no thumb and takes no input, so wrapping a short screen
-        /// costs one element — and a screen that is short at one window size is
-        /// tall at another, which is the case a per-screen decision would get
-        /// wrong.
-        private static Widget scrolled(Widget screen) {
-            return new Scroll(List.of(screen), ScrollAxis.VERTICAL, Attributes.NONE);
+        /// tall — unless the screen owns a viewport itself, which the design system
+        /// will not nest inside another on the same axis.
+        private Widget screen(GalleryTab tab) {
+            var screen = tab.screen().apply(context);
+            return switch (tab.fit()) {
+                case SCROLLED -> new Scroll(List.of(screen), ScrollAxis.VERTICAL, Attributes.NONE);
+                case FILLS -> screen;
+            };
         }
 
         @Override
-        public Widget build(BuildContext context) {
+        public Widget build(BuildContext buildContext) {
             var model = widget().model();
             var actions = widget().actions();
 
-            // The gallery: one strip, thirteen screens, none of them closable. It is
-            // bound like every other control -- `Ctrl+1`... , the Edit menu and
-            // the strip itself are three ways to set one property rather than
-            // three copies of a selection. Through `inGalleryOrder`, so the order
-            // is `GALLERY`'s and the tabs below are free to be written wherever
-            // their content is explained.
-            var gallery = new Tabs(null, List.<Widget>copyOf(inGalleryOrder(List.of(
-                    new Tab("basic", title("basic"),
-                            scrolled(new Basic(model, actions, basic, widget().plus()))),
-                    // The one screen with nothing appended to its wall: every card
-                    // on it is a container, so it holds no value and needs no Java.
-                    new Tab("panels", title("panels"),
-                            scrolled(new Wall("panels", "Panels", PANELS_NOTE,
-                                    panels.columns(), panels.minColumnWidth(), panels.children()))),
-                    new Tab("overlays", title("overlays"),
-                            scrolled(new Overlays(overlays))),
-                    new Tab("forms", title("forms"), scrolled(new Forms(forms))),
-                    // Not `scrolled`: this screen holds a card that owns a viewport
-                    // of its own, and nested same-axis scrollers are not allowed -- so
-                    // the screen that demonstrates the rule is where the gallery
-                    // has to keep it.
-                    new Tab("navigation", title("navigation"),
-                            new Navigation(model, actions, widget().startTour())),
-                    new Tab("collections", title("collections"),
-                            scrolled(new Wall("collections", "Collections", COLLECTIONS_NOTE,
-                                    2, Masonry.UNSET, Collections.cards()))),
-                    new Tab("charts", title("charts"), scrolled(new Charts())),
-                    // The screen about an **optional module**: `goldberry-html`'s
-                    // `markdown-view`, which this application opts into and never
-                    // registers. Not `scrolled`, for
-                    // [Navigation]'s reason and one more: the preview pane owns a
-                    // viewport, and a `split-pane` needs a height to divide.
-                    new Tab("markdown", title("markdown"), new MarkdownScreen(markdown)),
-                    // The same optional module's other half: `html-view`, which
-                    // renders a page with no browser engine behind it. Not
-                    // `scrolled`, for the Markdown screen's two reasons.
-                    new Tab("html", title("html"), new HtmlScreen(html)),
-                    // The `canvas`, which is the one screen about a *primitive*
-                    // rather than about a family of widgets -- and the only one
-                    // whose cards respond to the pointer by redrawing themselves.
-                    new Tab("canvas", title("canvas"), scrolled(new CanvasScreen())),
-                    // The sheet of every bundled icon, and the one screen that is
-                    // about an *asset* rather than about a widget. Not `scrolled`:
-                    // it is a virtualized `list` and owns a viewport of its own,
-                    // which is [Navigation]'s reason and the ban on nested
-                    // same-axis scrollers.
-                    new Tab("icons", title("icons"), new IconsScreen(model, actions)),
-                    // The same sheet with a different asset in it, and the screen
-                    // where this application opts into `goldberry-emoji` and
-                    // carries the credit CC BY-SA asks for.
-                    // Not `scrolled`, for the Icons screen's reason.
-                    new Tab("emoji", title("emoji"), new EmojiScreen(model, actions)),
-                    // What moves by itself: a canvas choreography, `@keyframes`
-                    // and `@starting-style`, one card each. Last, so no digit
-                    // moves.
-                    new Tab("motion", title("motion"), scrolled(new MotionScreen())),
-                    // The `web-view`, filling the tab: a real child window over
-                    // the widget's box, moved with it. NOT `scrolled` --
-                    // a page is clipped by the window rather than by an ancestor's
-                    // box, so a viewport would scroll the frame out from under a
-                    // page that stayed put. Last, after `motion`, so no digit
-                    // moves; the gallery is longer than ten digits now,
-                    // so this screen has no accelerator.
-                    new Tab("web", title("web"), new WebScreen()),
-                    new Tab("audio", title("audio"),
-                            scrolled(new MediaScreen(
-                                    MediaScreen.Kind.AUDIO, model.audioPlayer(), model.javaPcmDecoder(), audio))),
-                    new Tab("video", title("video"),
-                            scrolled(new MediaScreen(MediaScreen.Kind.VIDEO, model.videoPlayer(), null, video))),
-                    // `canvas3d`, the GPU screen's lit cube.
-                    new Tab("gpu", title("gpu"), scrolled(new GpuScreen()))))),
+            // The gallery: one strip, a screen per chapter, none of them closable.
+            // It is bound like every other control -- `Ctrl+1`..., the Edit menu
+            // and the strip itself are three ways to set one property rather than
+            // three copies of a selection.
+            var gallery = new Tabs(
+                    null,
+                    Gallery.TABS.stream()
+                            .map(tab -> (Widget) new Tab(tab.name(), tab.title(), screen(tab)))
+                            .toList(),
                     Models.observable(model, "app.screen"), actions::pickScreen, null, null,
                     Attributes.NONE)
                     .id("gallery");
@@ -354,15 +158,5 @@ public record Screen(ShowcaseModel model, ShowcaseModel.Actions actions,
                     // under this name.
                     .contextMenu("content");
         }
-
-        private static final String PANELS_NOTE =
-                "The containers, and the only wall in this gallery with nothing appended to"
-                        + " it: not one card here holds a value, so the screen is a document"
-                        + " with no Java behind it at all.";
-
-        private static final String COLLECTIONS_NOTE =
-                "The three widgets that hold many rows. What is worth comparing is how each"
-                        + " answers scale: the list virtualizes, the table sorts, the tree"
-                        + " fetches — and none of the three does the work itself.";
     }
 }

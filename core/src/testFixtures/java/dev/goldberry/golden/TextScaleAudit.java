@@ -470,7 +470,10 @@ public final class TextScaleAudit {
         var contentHeight = Math.max(0, height - top - bottom);
 
         var flow = text.flow();
-        var layout = text.paragraph().layout(flow.wraps() ? contentWidth : Paragraph.UNCONSTRAINED);
+        // With the flow, as the render tree measures it: `overflow-wrap` and
+        // `word-break` decide where a word may be cut, and a paragraph laid out
+        // without them reports a cut the painter never makes.
+        var layout = text.paragraph().layout(flow.wraps() ? contentWidth : Paragraph.UNCONSTRAINED, flow);
         var quoted = quote(text.paragraph().text());
 
         if (layout.width() > contentWidth + SLACK) {

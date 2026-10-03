@@ -14,7 +14,7 @@ import dev.goldberry.css.Theme;
 import dev.goldberry.css.cascade.CascadeLayer;
 import dev.goldberry.css.cascade.StyleResolver;
 import dev.goldberry.css.value.CssLength;
-import dev.goldberry.example.ui.SectionHeader;
+import dev.goldberry.example.ui.gallery.SectionHeader;
 import dev.goldberry.widget.Element;
 import dev.goldberry.widget.ElementTree;
 import dev.goldberry.widgets.Controls;

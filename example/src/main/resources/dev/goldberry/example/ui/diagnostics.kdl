@@ -1,0 +1,43 @@
+// The Diagnostics screen's cards that markup can write: three readings the
+// window already publishes, bound like any other value. The screen puts them in
+// the chapter's order among the cards built in Java.
+masonry {
+
+  card id="diagnostics-startup" class="wall-card" {
+    row class="card-head" {
+      text class="card-title" "The start-up timeline"
+      spacer
+      link class="card-docs" href="https://goldberry.dev/docs/guide/logging.html#the-start-up-timeline" "Docs"
+    }
+    text class="card-summary" "At TRACE the toolkit prints a table after the first frame, each phase measured from process start. Startup.mark adds rows of your own; this is what Startup.sinceProcessStart() said for this window."
+    row class="toolbar" {
+      text class="caption" "First frame"
+      text id="diagnostics-startup-time" bind="app.startup" "…"
+    }
+    text class="mono" "-Dgoldberry.log.level=TRACE"
+  }
+
+  card id="diagnostics-frames" class="wall-card" {
+    row class="card-head" {
+      text class="card-title" "Frames"
+      spacer
+      link class="card-docs" href="https://goldberry.dev/docs/guide/logging.html#frames" "Docs"
+    }
+    text class="card-summary" "At TRACE every painted frame logs its stage timings. A hud draws the same numbers live; it never asks for a frame, so move the pointer or press the button to see it update."
+    hud id="diagnostics-hud" readings="stages"
+    button id="diagnostics-toggle-hud" press="app.toggle-hud" "Frame readout over the window"
+  }
+
+  card id="diagnostics-presentation" class="wall-card" {
+    row class="card-head" {
+      text class="card-title" "Which way a window presents"
+      spacer
+      link class="card-docs" href="https://goldberry.dev/docs/guide/logging.html#which-way-a-window-presents" "Docs"
+    }
+    text class="card-summary" "Each window logs one line when it starts presenting a different way, through the GPU or on the CPU, with the reason. window.presentation() is the same fact; this badge reads it."
+    row class="toolbar" {
+      text class="caption" "This window"
+      badge id="diagnostics-presentation-badge" class="info" bind="app.presentation" "…"
+    }
+  }
+}

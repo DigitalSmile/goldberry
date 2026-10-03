@@ -7,11 +7,14 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Set;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import dev.goldberry.example.ui.Screen;
+import dev.goldberry.example.ui.gallery.Gallery;
+import dev.goldberry.example.ui.gallery.GalleryTab;
 import dev.goldberry.input.key.Key;
 import dev.goldberry.input.key.Mod;
 import dev.goldberry.input.key.Shortcut;
@@ -85,39 +88,24 @@ class GalleryOrderTest {
     }
 
     @Test
-    @DisplayName("the strip is put in the gallery's order, whatever order it is written in")
-    void theStripFollowsTheList() {
-        var written = new ArrayList<>(Screen.GALLERY);
-        java.util.Collections.reverse(written);
-
-        var ordered = Screen.inGalleryOrder(
-                written.stream().map(GalleryOrderTest::tab).toList());
-
-        assertEquals(
-                Screen.GALLERY,
-                ordered.stream()
-                        .map(dev.goldberry.widgets.panel.tabs.Tab::value)
-                        .toList());
+    @DisplayName("the strip, the digits and the menus read one list")
+    void oneList() {
+        assertEquals(Gallery.names(), Screen.GALLERY, "Screen.GALLERY is the gallery's tab list, not a copy of it");
+        Gallery.TABS.forEach(tab -> assertEquals(tab.title(), Screen.title(tab.name())));
     }
 
     @Test
-    @DisplayName("a tab the list does not name is a failure, not a screen without a key")
-    void anUnnamedTabIsRefused() {
-        var tabs = new ArrayList<>(
-                Screen.GALLERY.stream().map(GalleryOrderTest::tab).toList());
-        tabs.add(tab("histograms"));
-
-        var failure = assertThrows(IllegalStateException.class, () -> Screen.inGalleryOrder(tabs));
+    @DisplayName("a screen nobody added is a failure, not a menu row that opens nothing")
+    void anUnknownScreenIsRefused() {
+        var failure = assertThrows(IllegalArgumentException.class, () -> Screen.title("histograms"));
         assertTrue(failure.getMessage().contains("histograms"), failure.getMessage());
     }
 
     @Test
-    @DisplayName("a screen the strip has no tab for is a failure too")
-    void aMissingTabIsRefused() {
-        var tabs = Screen.GALLERY.stream().skip(1).map(GalleryOrderTest::tab).toList();
-
-        var failure = assertThrows(IllegalStateException.class, () -> Screen.inGalleryOrder(tabs));
-        assertTrue(failure.getMessage().contains(Screen.GALLERY.getFirst()), failure.getMessage());
+    @DisplayName("no two screens share a label")
+    void theTitlesAreDistinct() {
+        var titles = Gallery.TABS.stream().map(GalleryTab::title).toList();
+        assertEquals(titles.size(), Set.copyOf(titles).size(), "two tabs read the same: " + titles);
     }
 
     @Test
@@ -131,11 +119,5 @@ class GalleryOrderTest {
                 Screen.GALLERY.size(),
                 seen.size(),
                 "a duplicate would give two digits to one screen and none to another: " + seen);
-    }
-
-    /// A tab with nothing behind it — this test is about ordering, and a `Tab`'s
-    /// content is never looked at by the code under test.
-    private static dev.goldberry.widgets.panel.tabs.Tab tab(String name) {
-        return new dev.goldberry.widgets.panel.tabs.Tab(name, name, new dev.goldberry.widgets.text.Text(name));
     }
 }

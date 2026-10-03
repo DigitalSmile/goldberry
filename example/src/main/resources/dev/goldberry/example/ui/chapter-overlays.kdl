@@ -1,0 +1,45 @@
+// The **Overlays** screen's markup half: the cards whose buttons press what the
+// window registered, because a dialog, a HUD and a toast each need the window.
+// The cards that keep state of their own are Java, in
+// dev.goldberry.example.ui.overlays, and are appended after these.
+masonry id="overlays-wall" min-column-width=360 {
+
+  card id="overlays-dialog" class="wall-card" {
+    row class="card-head" {
+      text class="card-title" "A modal dialog"
+      spacer
+      link class="card-docs" href="https://goldberry.dev/docs/components/overlays.html#dialog" "Docs"
+    }
+    text class="card-summary" "A dialog covers the window with a veil and keeps the keyboard inside until \
+it is answered. Open it, then try Tab: Enter presses the affirmative button, Escape the dismissive one."
+    row class="toolbar" {
+      button id="dialog-button" class="primary" press="app.open-dialog" "Open the dialog"
+    }
+  }
+
+  card id="overlays-hud" class="wall-card" {
+    row class="card-head" {
+      text class="card-title" "The frame-rate readout"
+      spacer
+      link class="card-docs" href="https://goldberry.dev/docs/components/overlays.html#hud" "Docs"
+    }
+    text class="card-summary" "A HUD floats in the window's own overlay layer and reads the frame loop \
+without asking for frames. Switch it on, then resize the window or drag a slider and watch the stages."
+    row class="toolbar" {
+      button id="hud-button" press="app.toggle-hud" "Frame rate"
+    }
+  }
+
+  card id="overlays-toasts" class="wall-card" {
+    row class="card-head" {
+      text class="card-title" "Toasts"
+      spacer
+      link class="card-docs" href="https://goldberry.dev/docs/components/overlays.html#toasts" "Docs"
+    }
+    text class="card-summary" "A toast is raised through a controller and stacks in a corner. Three show at \
+once and a fourth waits its turn; the pointer on one pauses its timer. Every third carries an action."
+    row class="toolbar" {
+      button id="toast-button" press="app.raise-toast" "Raise a toast"
+    }
+  }
+}

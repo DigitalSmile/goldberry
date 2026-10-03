@@ -1,0 +1,35 @@
+// The Charts screen's line chart, written as the guide writes one: a `series`
+// node per line and a `point` node per reading.
+//
+// The root is a `masonry` because `Documents.wall` wants one; `ChartsChapter`
+// takes its card out and puts it among its own, in the screen's order.
+masonry id="charts-markup" {
+  card id="line-chart-card" class="wall-card" {
+    row class="card-head" {
+      text class="card-title" "A line chart in markup"
+      spacer
+      link class="card-docs" href="https://goldberry.dev/docs/components/charts.html#line-chart" "Docs"
+    }
+    text class="card-summary" "One line per series, with a legend and a crosshair. Here each series is a series node holding point nodes. Click a legend entry to show that series alone, or Tab to the plot and walk it with the arrows."
+    line-chart id="road" {
+      series name="On the road" {
+        point "Mon" 12
+        point "Tue" 19
+        point "Wed" 15
+        point "Thu" 27
+        point "Fri" 31
+        point "Sat" 28
+        point "Sun" 36
+      }
+      series name="Off it" {
+        point "Mon" 8
+        point "Tue" 11
+        point "Wed" 9
+        point "Thu" 18
+        point "Fri" 21
+        point "Sat" 19
+        point "Sun" 24
+      }
+    }
+  }
+}

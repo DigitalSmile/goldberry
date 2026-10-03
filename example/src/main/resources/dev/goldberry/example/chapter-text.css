@@ -1,0 +1,82 @@
+/* The rules of the screens in `dev.goldberry.example.ui.text`, loaded after
+   `showcase.css` by `ShowcaseStyles`. A rule every screen shares belongs in
+   `showcase.css`; a rule about one screen's cards belongs here. */
+
+/* A label kept to one line, and the cut marked. */
+.one-line {
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* A log line: its spacing kept, and a word too long for the box cut anywhere. */
+.log-line {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-family: "JetBrains Mono";
+  font-size: var(--gb-font-code);
+  line-height: var(--gb-line-code);
+}
+
+/* One face at four sizes. */
+.face-size-11 {
+  font-size: 11px;
+  line-height: 14px;
+}
+
+.face-size-13 {
+  font-size: 13px;
+  line-height: 18px;
+}
+
+.face-size-20 {
+  font-size: 20px;
+  line-height: 26px;
+}
+
+.face-size-28 {
+  font-size: 28px;
+  line-height: 34px;
+}
+
+/* The bundled faces, one specimen each, at the heading size so the difference
+   between a weight and an italic can be seen. */
+.face-regular, .face-strong, .face-italic, .face-strong-italic, .face-mono, .face-500, .face-700 {
+  font-size: var(--gb-font-heading);
+  line-height: var(--gb-line-heading);
+}
+
+.face-regular {
+  font-weight: 400;
+}
+
+.face-strong {
+  font-weight: 600;
+}
+
+.face-italic {
+  font-weight: 400;
+  font-style: italic;
+}
+
+.face-strong-italic {
+  font-weight: 600;
+  font-style: italic;
+}
+
+.face-mono {
+  font-family: "JetBrains Mono";
+  font-weight: 400;
+}
+
+.face-500 {
+  font-weight: 500;
+}
+
+.face-700 {
+  font-weight: 700;
+}
+
+/* The selection card's text area, given a height to show its gutter in. */
+#text-editor-area {
+  flex-shrink: 0;
+}

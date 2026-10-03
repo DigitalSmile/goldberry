@@ -1,0 +1,187 @@
+// The **Forms** screen: a card per section of the Fields and forms chapter.
+//
+// All of it is markup. A field holds its own text, caret and undo stack, so a
+// wall of them needs no more wiring than a wall of cards; the ones that are wired
+// are wired the way a real form is, `bind=` down and `change=` back up, to the
+// paths `ShowcaseModel` registers. The two objects a form names, its controller
+// and a validator, are in the model's `Named` registry.
+//
+// The root is the wall's masonry, whose column width the screen keeps. The one
+// card the screen adds in Java is the `field` card, whose required field needs a
+// value of its own to check.
+masonry id="forms-document" min-column-width=360 {
+
+  card id="forms-model" class="wall-card" {
+    row class="card-head" {
+      text class="card-title" "A field and the model"
+      spacer
+      link class="card-docs" href="https://goldberry.dev/docs/components/forms.html#how-a-field-talks-to-the-model" "Docs"
+    }
+    text class="card-summary" "A field keeps its own text and caret. bind= hands it a value and change= reports each edit, and the field ignores the echo of its own keystroke. Type into either field below: the other follows."
+    text-input id="model-first" bind="app.name" change="app.set-name" \
+               placeholder="Type here…" max-length=40
+    text-input id="model-second" bind="app.name" change="app.set-name" \
+               placeholder="…or here" max-length=40
+  }
+
+  card id="named-card" class="wall-card" {
+    row class="card-head" {
+      text class="card-title" "A bound text input"
+      spacer
+      link class="card-docs" href="https://goldberry.dev/docs/components/forms.html#text-input" "Docs"
+    }
+    text class="card-summary" "A single line of text in a well. This one is bound to the model, which echoes it below, and holds at most 40 characters: a paste past that is clipped, not refused."
+    text-input id="name" bind="app.name" change="app.set-name" \
+               placeholder="Your name in the Red Book" max-length=40
+    row id="named-echo" {
+      text class="caption" "The Book says:"
+      text id="name-echo" class="caption" bind="app.name"
+    }
+  }
+
+  card id="limits-card" class="wall-card" {
+    row class="card-head" {
+      text class="card-title" "What a field refuses"
+      spacer
+      link class="card-docs" href="https://goldberry.dev/docs/components/forms.html#text-input" "Docs"
+    }
+    text class="card-summary" "A filter rejects a keystroke and never corrects it. A password masks its text and will not copy out, a read-only field takes no edit, and a disabled one is out of the Tab order."
+    text class="caption" "Digits only, at most five"
+    text-input id="port" bind="app.port" change="app.set-port" filter="digits" max-length=5
+    text class="caption" "Password"
+    text-input id="secret" password=#true placeholder="The word that opens the doors"
+    text class="caption" "Read-only"
+    text-input id="frozen" value="Copied from the Red Book, not written into it" read-only=#true
+    text class="caption" "Disabled"
+    text-input id="off" value="Speak, friend" disabled=#true
+  }
+
+  card id="overflow-card" class="wall-card" {
+    row class="card-head" {
+      text class="card-title" "Longer than the box"
+      spacer
+      link class="card-docs" href="https://goldberry.dev/docs/components/forms.html#text-input" "Docs"
+    }
+    text class="card-summary" "A value wider than its field scrolls under the caret, and a drag is a selection. Click the first field and press End, then Home; drag across the second."
+    text-input id="long" \
+               value="Eighteen hundred leagues of road, and a field that is not wide enough for it."
+    text-input id="selectable" value="Press, hold and move: a drag is a selection."
+  }
+
+  card id="forms-text-area" class="wall-card" {
+    row class="card-head" {
+      text class="card-title" "More than one line"
+      spacer
+      link class="card-docs" href="https://goldberry.dev/docs/components/forms.html#text-area" "Docs"
+    }
+    text class="card-summary" "A text area wraps its text and grows from rows to max-rows, then scrolls. Enter breaks a line, and Up and Down keep the column."
+    text-area id="bio" bind="app.bio" change="app.set-bio" rows=3 max-rows=6
+  }
+
+  card id="gutter-card" class="wall-card" {
+    row class="card-head" {
+      text class="card-title" "Numbered lines"
+      spacer
+      link class="card-docs" href="https://goldberry.dev/docs/components/forms.html#text-area" "Docs"
+    }
+    text class="card-summary" "gutter=#true numbers the lines you typed at the positions the wrap put them, so the long paragraph is one number and three lines. Press Enter and the numbers follow."
+    text-area id="notes" class="mono" gutter=#true rows=8 max-rows=8 \
+              bind="app.notes" change="app.set-notes"
+  }
+
+  card id="signup-card" class="wall-card" {
+    row class="card-head" {
+      text class="card-title" "A form that refuses"
+      spacer
+      link class="card-docs" href="https://goldberry.dev/docs/components/forms.html#form" "Docs"
+    }
+    text class="card-summary" "A form finds its fields and gates a submission on them. Enlist asks the form's controller to submit, and every field checks. Leave one empty, or give a port below 1024, and press Enlist."
+    form id="signup" class="horizontal" controller="app.signup-form" {
+      field label="Name" required=#true {
+        text-input bind="app.signup-name" change="app.set-signup-name" \
+                   placeholder="Meriadoc Brandybuck"
+      }
+      field label="Palantír" required=#true validator="app.port-rule" {
+        text-input bind="app.signup-port" change="app.set-signup-port" \
+                   filter="digits" max-length=5 placeholder="8080"
+      }
+      field class="actions" {
+        button id="enlist" class="primary" press="app.submit-signup" "Enlist"
+        text id="signup-status" class="caption" bind="app.signup-status"
+      }
+    }
+  }
+
+  card id="stacked-card" class="wall-card" {
+    row class="card-head" {
+      text class="card-title" "The same form, stacked"
+      spacer
+      link class="card-docs" href="https://goldberry.dev/docs/components/forms.html#form" "Docs"
+    }
+    text class="card-summary" "Stacked is the default: each label sits above its control. form.horizontal is a label column beside them instead."
+    form id="stacked" {
+      field label="Name" { text-input placeholder="Peregrin Took" }
+      field label="Palantír" { text-input placeholder="8080" filter="digits" }
+    }
+  }
+
+  card id="code-card" class="wall-card" {
+    row class="card-head" {
+      text class="card-title" "Boxes for a one-time code"
+      spacer
+      link class="card-docs" href="https://goldberry.dev/docs/components/forms.html#code-input" "Docs"
+    }
+    text class="card-summary" "A row of single-character boxes over one string. Type digits, or paste 123 456 and the space is dropped. Backspace clears the last box and Escape starts again."
+    code-input id="one-time-code" length=6 type="digits" \
+               bind="app.code" change="app.set-code" complete="app.code-complete"
+    text id="code-status" class="caption" bind="app.code-status"
+    text class="caption" "Masked, as an authenticator draws it"
+    code-input id="masked-code" length=6 type="digits" mask=#true
+    text class="caption" "Five boxes for letters and digits: an odd length has no middle gap"
+    code-input id="alnum-code" length=5 type="alnum"
+  }
+
+  card id="date-card" class="wall-card" {
+    row class="card-head" {
+      text class="card-title" "A date, typed or picked"
+      spacer
+      link class="card-docs" href="https://goldberry.dev/docs/components/forms.html#date-picker" "Docs"
+    }
+    text class="card-summary" "A text field that parses, with a calendar in a popover. Type a date, or press the chevron; nothing before September or after December can be chosen."
+    date-picker id="departure" bind="trip.date" change="trip.set-date" \
+                month="2026-09" min="2026-09-01" max="2026-12-31" \
+                placeholder="When are you leaving?"
+    text id="trip-status" class="caption" bind="trip.status"
+    text class="caption" "In the grid: arrows move a day, PgUp and PgDn a month, Shift a year"
+  }
+
+  card id="forms-time" class="wall-card" {
+    row class="card-head" {
+      text class="card-title" "A time, typed or turned"
+      spacer
+      link class="card-docs" href="https://goldberry.dev/docs/components/forms.html#time-picker" "Docs"
+    }
+    text class="card-summary" "The date picker's twin, with wheels in the popover instead of a grid. This one only reaches 06:00 to 22:00."
+    time-picker id="departure-time" bind="trip.time" change="trip.set-time" \
+                min="06:00" max="22:00" placeholder="Boarding time"
+    text id="trip-time-status" class="caption" bind="trip.time-status"
+    text class="caption" "In the wheels: Up and Down turn one, Left and Right choose which"
+  }
+
+  card id="paint-card" class="wall-card" {
+    row class="card-head" {
+      text class="card-title" "A colour, dragged or typed"
+      spacer
+      link class="card-docs" href="https://goldberry.dev/docs/components/forms.html#color-picker" "Docs"
+    }
+    text class="card-summary" "A swatch that opens a board: a plane, a hue ramp, a hex field and presets, all writing into the hex. The second picker has an alpha ramp, which is off unless asked for."
+    row id="paint-row" {
+      color-picker id="paint" bind="paint.colour" change="paint.set-colour"
+      text id="paint-status" class="caption" bind="paint.status"
+    }
+    row id="paint-alpha-row" {
+      color-picker id="paint-alpha" alpha=#true value="#bf616a80"
+      text class="caption" "With alpha"
+    }
+  }
+}

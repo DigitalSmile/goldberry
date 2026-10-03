@@ -1,0 +1,25 @@
+/* The rules of the screens in `dev.goldberry.example.ui.charts`, loaded after
+   `showcase.css` by `ShowcaseStyles`. A rule every screen shares belongs in
+   `showcase.css`; a rule about one screen's cards belongs here. */
+
+/* A chart has no intrinsic size: it takes the room it is given, so every plot
+   this file adds is given a height here. */
+#road {
+  height: 148px;
+}
+
+/* The bars under the shared crosshair are shorter than the line above them,
+   because they are the second reading of the same days. */
+#rests {
+  height: 112px;
+}
+
+/* The two statistics side by side, each taking half. */
+#charts-statistics {
+  gap: 16px;
+  align-items: flex-start;
+}
+
+#charts-statistics statistic {
+  flex-grow: 1;
+}

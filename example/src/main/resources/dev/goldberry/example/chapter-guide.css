@@ -1,0 +1,17 @@
+/* The rules of the screens in `dev.goldberry.example.ui.guide`, loaded after
+   `showcase.css` by `ShowcaseStyles`. A rule every screen shares belongs in
+   `showcase.css`; a rule about one screen's cards belongs here. */
+
+/* One part of the book: a caption over its wall of chapters. */
+.guide-part {
+  flex-direction: column;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.guide-part-title {
+  color: var(--gb-text-muted);
+  font-size: var(--gb-font-caption);
+  line-height: var(--gb-line-caption);
+  font-weight: var(--gb-weight-strong);
+}

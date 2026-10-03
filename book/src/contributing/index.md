@@ -45,11 +45,11 @@ A new widget is not done when it draws. `docs/testing.md` §5 says what it arriv
 
 1. a row in the widget specification, in the `core-widgets.md` format;
 2. a row of design-system metrics;
-3. a page in the showcase gallery;
+3. a card in the showcase gallery, on the screen of the chapter that documents it, linking that section;
 4. semantics assertions, so the sweep finds a role and a name;
 5. golden images, in both themes and at both densities.
 
-The gallery is the demo, the visual-regression corpus and the accessibility sweep at once, so a widget that is not in it is not tested. [Writing a widget](../guide/writing-a-widget.md) walks through the code. The sweeps that read the registry are in [Tests and gates](testing.md#accessibility-sweeps).
+The gallery is the demo, the visual-regression corpus and the accessibility sweep at once, so a widget that is not in it is not tested. The gallery has a screen per chapter of this guide and a card per section, and `GalleryDocsTest` fails on a section with no card, a card with no link, or a link to a heading that does not exist. [Writing a widget](../guide/writing-a-widget.md) walks through the code. The sweeps that read the registry are in [Tests and gates](testing.md#accessibility-sweeps).
 
 ## Decisions are recorded
 

@@ -1,0 +1,171 @@
+// The **Panels** screen: a card per section of the Panels chapter.
+//
+// Containers hold no value, so these cards need no `bind=`, no `change=` and no
+// Java: the two widgets here with state, `collapse` and `carousel`, keep it
+// themselves. The tab strip and the timeline are the screen's Java cards, added
+// after these.
+//
+// Nothing here styles the widgets: `card`, `group-box`, `statistic`,
+// `skeleton`, `collapse` and `carousel` carry their own appearance in
+// `controls.css`. What the stylesheets add is the layout around them.
+masonry id="panels-document" min-column-width=360 {
+
+  card id="panels-panel" class="wall-card" {
+    row class="card-head" {
+      text class="card-title" "The building block"
+      spacer
+      link class="card-docs" href="https://goldberry.dev/docs/components/panels.html#panel" "Docs"
+    }
+    text class="card-summary" "A panel is a flat surface with the theme's border and radius, and no elevation. It is the one container a theme can restyle completely."
+    panel id="panel-demo" class="surface-demo" {
+      text class="caption" "The map"
+      text "Where the road goes next."
+    }
+  }
+
+  card id="surface-card" class="wall-card" {
+    row class="card-head" {
+      text class="card-title" "Surfaces"
+      spacer
+      link class="card-docs" href="https://goldberry.dev/docs/components/panels.html#card" "Docs"
+    }
+    text class="card-summary" "A card is a raised surface: a shadow and a stronger edge. With the interactive class it lifts under the pointer. Point at the third one."
+    row id="surfaces" {
+      panel class="surface-demo" {
+        text class="caption" "panel"
+        text "Flat."
+      }
+      card class="surface-demo" {
+        text class="caption" "card"
+        text "A shadow and an edge."
+      }
+      card id="interactive-card" class="surface-demo interactive" {
+        text class="caption" "card.interactive"
+        text "Rises when pointed at."
+      }
+    }
+  }
+
+  card id="group-box-card" class="wall-card" {
+    row class="card-head" {
+      text class="card-title" "Titled frames"
+      spacer
+      link class="card-docs" href="https://goldberry.dev/docs/components/panels.html#group-box" "Docs"
+    }
+    text class="card-summary" "A group box frames a cluster of settings under a title. Without a title there is no header and no gap where one would be."
+    group-box id="company-box" title="The Company" {
+      row class="setting" { text "Ring-bearer"; spacer; text class="caption" "Frodo Baggins" }
+      row class="setting" { text "Guide"; spacer; text class="caption" "Gandalf the Grey" }
+      row class="setting" { text "Sworn sword"; spacer; text class="caption" "Aragorn" }
+    }
+    group-box id="untitled-box" {
+      text "A group box with no title is still a frame."
+    }
+  }
+
+  card id="collapse-card" class="wall-card" {
+    row class="card-head" {
+      text class="card-title" "Folding away"
+      spacer
+      link class="card-docs" href="https://goldberry.dev/docs/components/panels.html#collapse" "Docs"
+    }
+    text class="card-summary" "A header and a body that folds away. A shut body is unmounted, not hidden. Press a header, or focus one and use Left and Right."
+    collapse title="The Council's terms" {
+      row class="setting" { text "Bearers"; spacer; text class="caption" "1" }
+      row class="setting" { text "Companions"; spacer; text class="caption" "8" }
+    }
+    collapse title="Already open" open=#true {
+      text "Close this one and its text is gone from the tree until it opens again."
+    }
+    collapse title="Nothing in here" {
+      text "An empty section is still a section."
+    }
+  }
+
+  card id="accordion-card" class="wall-card" {
+    row class="card-head" {
+      text class="card-title" "One section at a time"
+      spacer
+      link class="card-docs" href="https://goldberry.dev/docs/components/panels.html#collapse" "Docs"
+    }
+    text class="card-summary" "column accordion=#true is an accordion: opening one section shuts the others."
+    column accordion=#true id="demo-accordion" {
+      collapse title="The Shire" {
+        row class="setting" { text "Second breakfast"; spacer; text class="caption" "Kept" }
+        row class="setting" { text "Pipe-weed"; spacer; text class="caption" "Longbottom Leaf" }
+      }
+      collapse title="Rivendell" {
+        row class="setting" { text "Council"; spacer; text class="caption" "Held" }
+        row class="setting" { text "Sword reforged"; spacer; text class="caption" "Andúril" }
+      }
+      collapse title="Moria" {
+        row class="setting" { text "Doors"; spacer; text class="caption" "Mellon" }
+      }
+    }
+  }
+
+  card id="carousel-card" class="wall-card" {
+    row class="card-head" {
+      text class="card-title" "One stage at a time"
+      spacer
+      link class="card-docs" href="https://goldberry.dev/docs/components/panels.html#carousel" "Docs"
+    }
+    text class="card-summary" "One slide out of a list, with previous, next and a dot per slide. Only the current slide exists. Focus the strip and use the arrows, or press a dot."
+    carousel id="demo-carousel" {
+      panel class="slide" {
+        text class="caption" "Stage 1 of 3: Bag End"
+        text "The dots go straight to a slide."
+      }
+      panel class="slide" {
+        text class="caption" "Stage 2 of 3: Rivendell"
+        text "The other two slides were dropped when you left them."
+      }
+      panel class="slide" {
+        text class="caption" "Stage 3 of 3: Moria"
+        text "Next is greyed here, because this carousel does not loop."
+      }
+    }
+  }
+
+  card id="loading-card" class="wall-card" {
+    row class="card-head" {
+      text class="card-title" "While the map is unrolled"
+      spacer
+      link class="card-docs" href="https://goldberry.dev/docs/components/panels.html#skeleton" "Docs"
+    }
+    text class="card-summary" "A skeleton stands in for content that is loading, sized from what it replaces so nothing jumps when it arrives. Its shapes are text, title, circle and rect."
+    column class="loading-block" {
+      text class="caption" "A title, then three lines of text"
+      skeleton shape="title"
+      skeleton shape="text" lines=3
+    }
+    column class="loading-block" {
+      text class="caption" "A circle beside a title and two lines"
+      row class="loading-row" {
+        skeleton shape="circle"
+        column class="loading-lines" {
+          skeleton shape="title"
+          skeleton shape="text" lines=2
+        }
+      }
+    }
+    column class="loading-block" {
+      text class="caption" "A rectangle, for a picture"
+      skeleton id="loading-rect" shape="rect"
+    }
+  }
+
+  card id="numbers-card" class="wall-card" {
+    row class="card-head" {
+      text class="card-title" "Numbers"
+      spacer
+      link class="card-docs" href="https://goldberry.dev/docs/components/panels.html#statistic" "Docs"
+    }
+    text class="card-summary" "A labelled number, with an optional unit and a change under it, green when it went up and red when it went down. The value is text the application formatted."
+    row id="numbers" {
+      statistic label="Leagues walked" value="1,795" delta="+42" direction="up"
+      statistic label="Days from Rivendell" value="93" unit="d" delta="-2" direction="down"
+      statistic label="Companions lost" value="1" delta="Gandalf"
+    }
+  }
+}
