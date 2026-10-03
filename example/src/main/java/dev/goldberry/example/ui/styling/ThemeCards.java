@@ -3,10 +3,10 @@ package dev.goldberry.example.ui.styling;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
+import java.util.Set;
 
 import org.jspecify.annotations.Nullable;
 
-import dev.goldberry.Goldberry;
 import dev.goldberry.Host;
 import dev.goldberry.bind.Subscription;
 import dev.goldberry.css.Theme;
@@ -98,8 +98,9 @@ final class ThemeCards {
     /// What the desktop says about light and dark, live, and a button that
     /// follows it.
     ///
-    /// @param actions where following the desktop is asked for
-    record Desktop(ShowcaseModel.Actions actions) implements Widget.Stateful {
+    /// @param actions      where following the desktop is asked for
+    /// @param capabilities what this build can do, which says whether it can ask
+    record Desktop(ShowcaseModel.Actions actions, Set<Capability> capabilities) implements Widget.Stateful {
 
         @Override
         public State<?> createState() {
@@ -124,7 +125,7 @@ final class ThemeCards {
                     listening = host.onSystemThemeChanged(theme -> setState(() -> said = Optional.of(theme)));
                 }
             }
-            var canAsk = Goldberry.capabilities().contains(Capability.SYSTEM_THEME);
+            var canAsk = widget().capabilities().contains(Capability.SYSTEM_THEME);
             var answer = !canAsk
                     ? "This build cannot ask the desktop."
                     : said.map(theme -> "The desktop says " + theme.name().toLowerCase(Locale.ROOT) + ".")

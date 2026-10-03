@@ -57,7 +57,7 @@ public record StylingChapter(GalleryContext context) implements Widget.Stateless
                         SheetCards.inheritance(),
                         ThemeCards.restyle(model, actions),
                         ThemeCards.themes(model, actions),
-                        new ThemeCards.Desktop(actions),
+                        new ThemeCards.Desktop(actions, context.capabilities()),
                         ThemeCards.textScale()));
     }
 }

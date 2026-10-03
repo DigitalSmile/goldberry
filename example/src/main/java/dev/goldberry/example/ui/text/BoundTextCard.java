@@ -1,5 +1,7 @@
 package dev.goldberry.example.ui.text;
 
+import java.util.Objects;
+
 import dev.goldberry.bind.Property;
 import dev.goldberry.example.docs.DocLink;
 import dev.goldberry.example.ui.gallery.ShowcaseCard;
@@ -42,7 +44,9 @@ public record BoundTextCard() implements Widget.Stateful {
                                     + " value answers. Type in the field: the line under it reads the same value.",
                             DocLink.to("components/text", "text"))
                     .of(
-                            new TextInput(name.get(), value -> setState(() -> name.set(value)))
+                            new TextInput(
+                                            Objects.requireNonNullElse(name.get(), ""),
+                                            value -> setState(() -> name.set(value)))
                                     .placeholder("Who goes there?")
                                     .withAttributes(Attributes.NONE.id("text-bound-field")),
                             Text.of("Nobody yet", name).style(TextRank.HEADING).id("text-bound-echo"));

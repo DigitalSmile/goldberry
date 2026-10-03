@@ -181,6 +181,24 @@ class StylingChapterTest {
     }
 
     @Test
+    @DisplayName("the desktop card asks the capabilities it was given whether it can ask")
+    void desktopCardReadsTheContext() {
+        var cannot = new ThemeCards.Desktop(scene.actions(), Set.of());
+        try (var session = Offscreen.of(480, 400)
+                .stylesheets(scene.stylesheets(Theme.NORD_DARK))
+                .fonts(fonts)
+                .session(cannot)) {
+            assertEquals("This build cannot ask the desktop.", text(session, "desktop-says"));
+        }
+        try (var session = open("styling")) {
+            assertNotEquals(
+                    "This build cannot ask the desktop.",
+                    text(session, "desktop-says"),
+                    "the window's screen pins a build that can ask");
+        }
+    }
+
+    @Test
     @DisplayName("the density card switches the density, and its controls keep their own values")
     void densityCard() {
         try (var session = open("design")) {

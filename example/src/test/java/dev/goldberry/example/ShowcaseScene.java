@@ -1,7 +1,9 @@
 package dev.goldberry.example;
 
 import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.List;
+import java.util.Set;
 
 import dev.goldberry.assets.BundledFont;
 import dev.goldberry.css.Stylesheet;
@@ -12,6 +14,7 @@ import dev.goldberry.html.view.HtmlStyles;
 import dev.goldberry.icon.Icon;
 import dev.goldberry.markdown.view.MarkdownStyles;
 import dev.goldberry.media.view.MediaStyles;
+import dev.goldberry.platform.Capability;
 import dev.goldberry.text.font.Font;
 import dev.goldberry.widget.Widget;
 import dev.goldberry.widgets.Controls;
@@ -32,6 +35,16 @@ import dev.goldberry.widgets.Widgets;
 /// no native library skips rather than fails in a constructor.
 public final class ShowcaseScene implements AutoCloseable {
 
+    /// What the screens say this build can do: everything but the web view.
+    ///
+    /// Pinned rather than asked, because `Goldberry.capabilities()` is the build
+    /// machine's answer — a library built here without ibus, udev or libdecor says
+    /// no where CI's says yes — and the build machine is not something a golden
+    /// may photograph. The web view is off for the reason the Web screen is: this
+    /// module's test task pins its library away.
+    public static final Set<Capability> CAPABILITIES =
+            Set.copyOf(EnumSet.complementOf(EnumSet.of(Capability.WEB_VIEW)));
+
     private final Showcase showcase = new Showcase();
     private final ShowcaseModel model = modelOf(ShowcaseModel.class);
     private final ShowcaseModel.Actions actions = modelOf(ShowcaseModel.Actions.class);
@@ -50,6 +63,11 @@ public final class ShowcaseScene implements AutoCloseable {
     /// The application's values.
     public ShowcaseModel model() {
         return model;
+    }
+
+    /// What the application's controls ask for.
+    public ShowcaseModel.Actions actions() {
+        return actions;
     }
 
     /// The whole window, switched to `screen`.
@@ -72,7 +90,8 @@ public final class ShowcaseScene implements AutoCloseable {
                 new AppMenu(
                         actions,
                         new AppMenu.Handlers(() -> {}, () -> {}, () -> {}, () -> {}, () -> {}, () -> {}),
-                        plus));
+                        plus),
+                CAPABILITIES);
     }
 
     /// The stylesheets the window loads for `theme`, at the model's density.

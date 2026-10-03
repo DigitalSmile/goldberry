@@ -7,6 +7,7 @@ import org.jspecify.annotations.Nullable;
 
 import dev.goldberry.Host;
 import dev.goldberry.WindowHost;
+import dev.goldberry.bind.Subscription;
 import dev.goldberry.example.docs.DocLink;
 import dev.goldberry.example.ui.gallery.ShowcaseCard;
 import dev.goldberry.render.model.LogicalSize;
@@ -63,6 +64,10 @@ public record SecondWindowCard() implements Widget.Stateful {
 
         private @Nullable WindowHost second;
 
+        /// The second window's close listener, dropped with this card so it never
+        /// reaches a state that is gone.
+        private @Nullable Subscription closing;
+
         private String answer = "One window.";
 
         @Override
@@ -90,14 +95,16 @@ public record SecondWindowCard() implements Widget.Stateful {
 
         private void open(Optional<Host> host) {
             var opened = host.flatMap(window -> window.openWindow(SPEC, new SecondPage()));
-            opened.ifPresent(window -> window.onClose(() -> {
-                if (isMounted()) {
-                    setState(() -> {
-                        second = null;
-                        answer = "The second window closed.";
-                    });
-                }
-            }));
+            stopListening();
+            closing = opened.map(window -> window.onClose(() -> {
+                        if (isMounted()) {
+                            setState(() -> {
+                                second = null;
+                                answer = "The second window closed.";
+                            });
+                        }
+                    }))
+                    .orElse(null);
             setState(() -> {
                 second = opened.orElse(null);
                 answer = opened.isPresent()
@@ -120,8 +127,17 @@ public record SecondWindowCard() implements Widget.Stateful {
             }
         }
 
+        private void stopListening() {
+            var listening = closing;
+            closing = null;
+            if (listening != null) {
+                listening.close();
+            }
+        }
+
         @Override
         protected void dispose() {
+            stopListening();
             var window = second;
             if (window != null && window.isOpen()) {
                 window.close();

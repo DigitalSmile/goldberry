@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
@@ -14,6 +15,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import dev.goldberry.RendererRequirement;
+import dev.goldberry.example.ShowcaseScene;
 import dev.goldberry.example.ui.application.ChapterFixture;
 import dev.goldberry.platform.Capability;
 import dev.goldberry.widgets.controls.badge.Badge;
@@ -89,6 +91,19 @@ class DiagnosticsChapterTest {
                     () -> assertEquals("yes", ChapterFixture.says(session, "capability-wayland")),
                     () -> assertEquals("no", ChapterFixture.says(session, "capability-system_theme")),
                     () -> assertEquals("system theme", BuildCapabilities.label(Capability.SYSTEM_THEME)));
+        }
+    }
+
+    @Test
+    @DisplayName("says what the screen was given, not what the build machine's library answers")
+    void capabilitiesComeFromTheContext() {
+        try (var session = fixture.window("diagnostics")) {
+            assertAll(Set.of(Capability.values()).stream()
+                    .map(capability -> () -> assertEquals(
+                            ShowcaseScene.CAPABILITIES.contains(capability) ? "yes" : "no",
+                            ChapterFixture.says(
+                                    session, "capability-" + capability.name().toLowerCase(Locale.ROOT)),
+                            capability::name)));
         }
     }
 

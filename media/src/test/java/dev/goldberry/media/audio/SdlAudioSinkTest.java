@@ -82,35 +82,43 @@ class SdlAudioSinkTest {
     @Test
     @DisplayName("plays faster at a rate, and refuses one SDL does not take")
     void rate() throws InterruptedException {
-        try (var sink = new SdlAudioSink();
+        try (var fast = new SdlAudioSink();
+                var plain = new SdlAudioSink();
                 var arena = Arena.ofConfined()) {
             // Before opening: kept, and applied when the stream opens.
-            assertTrue(sink.setRate(4f));
-            assertFalse(sink.setRate(0.001f));
-            assertFalse(sink.setRate(200f));
-            sink.open(FORMAT);
+            assertTrue(fast.setRate(4f));
+            assertFalse(fast.setRate(0.001f));
+            assertFalse(fast.setRate(200f));
+            fast.open(FORMAT);
+            plain.open(FORMAT);
             var samples = 2 * FORMAT.sampleRate();
-            sink.write(arena.allocate(JAVA_FLOAT, (long) samples * FORMAT.channels()), samples);
-            // The rate the queue drains at, against the wall clock, read until it
-            // shows. At four times the speed it is four; at one it would be one,
-            // and two is the line between them. Read over a whole run rather than
-            // once after a fixed sleep, so a runner that is slow to schedule the
-            // device's thread is waited for instead of failed: only what has been
-            // drained past the first tenth of a second counts, because the
-            // device's first pull takes a buffer at once at any rate.
-            var started = System.nanoTime();
-            var deadline = TimeBudget.of(Duration.ofSeconds(2)).deadlineFrom(started);
-            var observed = 0.0;
-            while (observed < 2 && sink.queuedSamples() > 0 && System.nanoTime() < deadline) {
+            var silence = arena.allocate(JAVA_FLOAT, (long) samples * FORMAT.channels());
+            fast.write(silence, samples);
+            plain.write(silence, samples);
+            // Against a stream at 1 on the same device, not against the wall
+            // clock. Both are SDL's dummy device, whose one thread takes a buffer
+            // from each stream in the same pass, so at four times the speed the
+            // fast queue drains four buffers for the plain one's one however the
+            // runner schedules that thread. A wall-clock rate is the scheduler's:
+            // a starved Windows runner measured 1.34 at four. Two is the line
+            // between one and four; it is read once the plain stream has given
+            // up four buffers, so a pull landing between the two readings cannot
+            // decide it.
+            var deadline = TimeBudget.of(Duration.ofSeconds(2)).deadlineFrom(System.nanoTime());
+            long drainedFast = 0;
+            long drainedPlain = 0;
+            while (drainedPlain < 4 * 1024 && fast.queuedSamples() > 0 && System.nanoTime() < deadline) {
                 Thread.sleep(10);
-                var drained = samples - sink.queuedSamples();
-                var elapsed = (System.nanoTime() - started) * (double) FORMAT.sampleRate() / 1e9;
-                if (drained >= FORMAT.sampleRate() / 10) {
-                    observed = Math.max(observed, drained / elapsed);
-                }
+                drainedFast = samples - fast.queuedSamples();
+                drainedPlain = samples - plain.queuedSamples();
             }
-            assertTrue(observed >= 2, "the queue drained at " + observed + "x the wall clock, asked for 4x");
-            assertTrue(sink.setRate(1f));
+            var ratio = drainedPlain == 0 ? 0 : (double) drainedFast / drainedPlain;
+            assertTrue(drainedPlain > 0, "the plain stream played nothing in the time allowed");
+            assertTrue(
+                    ratio >= 2,
+                    "at 4 the queue drained " + ratio + "x what the same device drained at 1 (" + drainedFast + " / "
+                            + drainedPlain + " samples)");
+            assertTrue(fast.setRate(1f));
         }
     }
 
@@ -122,31 +130,42 @@ class SdlAudioSinkTest {
             sink.open(FORMAT);
             var samples = FORMAT.sampleRate() * 2;
             sink.write(arena.allocate(JAVA_FLOAT, (long) samples * FORMAT.channels()), samples);
-            // A pull is 1024 samples, about every 21 ms. Stepping alone would leave
-            // most readings a millisecond apart equal to the one before; the
-            // estimate moves between them. So what is asserted is the share of
-            // readings that moved, over at least forty of them, rather than a
-            // count of distinct values in a fixed window -- a runner that sleeps
-            // long between readings takes longer to collect them, and fails
-            // nothing.
+            // A pull is 1024 samples, about every 21 ms, and SDL's own queue steps
+            // by one at each. The sink's estimate moves **between** them, so what
+            // is asserted is readings where the sink's queue moved and SDL's did
+            // not: a stepping queue never has one, however its readings fall.
+            // Not a share of readings that moved: that is the scheduler's. On a
+            // loaded machine the device pulls late, the estimate rightly stalls a
+            // pull ahead of it, and a starved run moved 10 of 39. The deadline
+            // only bounds a failure, so it runs to just short of the two seconds
+            // queued: a starved runner has slept 90 ms in a `sleep(1)`.
             var last = Long.MAX_VALUE;
+            var lastRaw = Long.MAX_VALUE;
             var readings = 0;
-            var moved = 0;
-            var deadline = TimeBudget.of(Duration.ofMillis(300)).deadlineFrom(System.nanoTime());
+            var between = 0;
+            var deadline = TimeBudget.of(Duration.ofMillis(1500))
+                    .shortOf(Duration.ofSeconds(2))
+                    .deadlineFrom(System.nanoTime());
             while (readings < 40 && sink.queuedSamples() > 0 && System.nanoTime() < deadline) {
+                var rawBefore = sink.rawQueuedSamples();
                 var queued = sink.queuedSamples();
+                var raw = sink.rawQueuedSamples();
                 assertTrue(queued <= last, "the queue rose from " + last + " to " + queued + " with nothing written");
-                if (queued < last && last != Long.MAX_VALUE) {
-                    moved++;
+                // A pull landing between the two raw readings is neither.
+                if (queued < last && last != Long.MAX_VALUE && rawBefore == raw && raw == lastRaw) {
+                    between++;
                 }
                 last = queued;
+                lastRaw = raw;
                 readings++;
                 Thread.sleep(1);
             }
-            assertTrue(readings >= 10, "only " + readings + " readings before the queue ran dry");
+            var why = sink.queuedSamples() > 0 ? "before the deadline" : "before the queue ran dry";
+            assertTrue(readings >= 10, "only " + readings + " readings " + why);
             assertTrue(
-                    moved * 2 > readings - 1,
-                    moved + " of " + (readings - 1) + " readings moved; a stepping queue moves once a pull");
+                    between >= 3,
+                    between + " of " + (readings - 1) + " readings moved while SDL's queue stood still;"
+                            + " a stepping queue moves only when the device pulls");
 
             sink.pause();
             var paused = sink.queuedSamples();
@@ -190,8 +209,10 @@ class SdlAudioSinkTest {
             }
             assertEquals(1, asked[0], "twenty writes in a moment ask the system once");
 
-            // Let the dummy device take a pull, which says how big one is.
-            var deadline = TimeBudget.of(Duration.ofMillis(500)).deadlineFrom(System.nanoTime());
+            // Let the dummy device take a pull, which says how big one is. The
+            // loop ends at the first one; the deadline only bounds a device that
+            // never pulls, and a starved runner has gone 300 ms between pulls.
+            var deadline = TimeBudget.of(Duration.ofSeconds(2)).deadlineFrom(System.nanoTime());
             while (sink.latencyNanos() == Duration.ofMillis(100).toNanos() && System.nanoTime() < deadline) {
                 sink.queuedSamples();
                 Thread.sleep(2);
@@ -201,12 +222,13 @@ class SdlAudioSinkTest {
             assertTrue(sdl > 0, "no pull was seen");
             // A pull is SDL's device buffer, about 1024 frames at 48 kHz, 21 ms. It
             // is counted in samples rather than timed, but a reader that polls
-            // late can see two or three pulls land as one, so the window is wide:
-            // between 2 and 100 ms is a pull, and a count of them is what is
-            // reported. A latency of nothing, or of a second, is still outside it.
+            // late can see several pulls land as one -- a starved Windows runner
+            // saw eight, 170 ms -- so the window is wide: between 2 and 500 ms is
+            // a pull, and a count of them is what is reported. A latency of
+            // nothing, or of a second, is still outside it.
             var perPull = sdl / pulls;
             assertTrue(
-                    perPull >= 2_000_000L && perPull <= 100_000_000L,
+                    perPull >= 2_000_000L && perPull <= 500_000_000L,
                     "SDL's part is " + sdl + " ns for " + pulls + " pulls");
         }
     }

@@ -1,5 +1,9 @@
 package dev.goldberry.example.ui;
 
+import java.util.List;
+import java.util.Set;
+
+import dev.goldberry.Goldberry;
 import dev.goldberry.bind.Subscription;
 import dev.goldberry.bind.runtime.Models;
 import dev.goldberry.example.ShowcaseModel;
@@ -9,6 +13,7 @@ import dev.goldberry.example.ui.gallery.GalleryContext;
 import dev.goldberry.example.ui.gallery.GalleryTab;
 import dev.goldberry.icon.Icon;
 import dev.goldberry.kdl.KdlInflater;
+import dev.goldberry.platform.Capability;
 import dev.goldberry.widget.BuildContext;
 import dev.goldberry.widget.State;
 import dev.goldberry.widget.Widget;
@@ -18,7 +23,6 @@ import dev.goldberry.widgets.core.scroll.Scroll;
 import dev.goldberry.widgets.core.scroll.ScrollAxis;
 import dev.goldberry.widgets.panel.tabs.Tab;
 import dev.goldberry.widgets.panel.tabs.Tabs;
-import java.util.List;
 
 /// The whole window, in three bands: a **menu bar**, a **bar**, and a **gallery**
 /// of screens under them.
@@ -62,10 +66,23 @@ import java.util.List;
 /// @param menu     File, Edit and Help. Built here rather than handed over
 ///                 finished, because the frame-rate row's tick follows
 ///                 `app.hud` and this is what rebuilds when it moves
+/// @param capabilities what the screens say this build can do; see
+///                 [GalleryContext#capabilities()]
 public record Screen(ShowcaseModel model, ShowcaseModel.Actions actions,
         KdlInflater<Widget> inflater, Icon plus,
-        Runnable startTour, AppMenu menu)
+        Runnable startTour, AppMenu menu, Set<Capability> capabilities)
         implements Widget.Stateful {
+
+    public Screen {
+        capabilities = Set.copyOf(capabilities);
+    }
+
+    /// The window's screen, saying what the loaded library answers.
+    public Screen(ShowcaseModel model, ShowcaseModel.Actions actions,
+            KdlInflater<Widget> inflater, Icon plus,
+            Runnable startTour, AppMenu menu) {
+        this(model, actions, inflater, plus, startTour, menu, Goldberry.capabilities());
+    }
 
     /// Every screen in the gallery, in the order the strip shows them: the names in
     /// [Gallery#TABS].
@@ -106,7 +123,12 @@ public record Screen(ShowcaseModel model, ShowcaseModel.Actions actions,
             var documents = new Documents(widget().inflater());
             bar = documents.document("statusbar.kdl");
             context = new GalleryContext(
-                    widget().model(), widget().actions(), documents, widget().plus(), widget().startTour());
+                    widget().model(),
+                    widget().actions(),
+                    documents,
+                    widget().plus(),
+                    widget().startTour(),
+                    widget().capabilities());
             // The Help menu's frame-rate row shows a tick, and a menu row's
             // `checked` is a constant: the bar is built again when it moves.
             watching = Models.observable(widget().model(), "app.hud").subscribe(value -> setState(() -> {}));

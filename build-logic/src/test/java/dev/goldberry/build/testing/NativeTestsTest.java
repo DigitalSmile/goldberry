@@ -51,7 +51,11 @@ class NativeTestsTest {
     void wiresATestJvm() {
         var test = project.getTasks().named("test", org.gradle.api.tasks.testing.Test.class).get();
         nativeTests.wire(test);
-        var expected = directory.resolve("natives/build/native/macos-aarch64/install/lib/libgoldberry.dylib");
+        // Under the project's directory as Gradle holds it, which is canonical:
+        // on macOS the `@TempDir` is a `/var/...` symlink to `/private/var/...`.
+        var expected = project.getProjectDir()
+                .toPath()
+                .resolve("natives/build/native/macos-aarch64/install/lib/libgoldberry.dylib");
         assertAll(
                 () -> assertTrue(test.getJvmArgs().contains(NativeTests.NATIVE_ACCESS), test.getJvmArgs()::toString),
                 () -> assertEquals(

@@ -18,6 +18,7 @@ import dev.goldberry.build.repository.Repository;
 
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /// A doc comment is written for the reader of the published javadoc, who has a
@@ -48,6 +49,17 @@ class SourceDocsTest {
     private static final Set<String> MAY_CITE = Set.of(
             "build-logic/src/test/java/dev/goldberry/build/repository/DecisionLogTest.java",
             "build-logic/src/test/java/dev/goldberry/build/book/SourceDocsTest.java");
+
+    /// A build's output or Gradle's state, at the root or in a module. Matched on
+    /// the path from the root and not on the whole path, which would also take
+    /// any package called `build` -- this module's own, `dev.goldberry.build`.
+    private static final Pattern OUTPUT = Pattern.compile("([^/]+/)?(build|\\.gradle)/");
+
+    /// The sources that may name a working document: the tests whose subject is
+    /// one, which read the testing notes and hold them to the build.
+    private static final Set<String> MAY_NAME = Set.of(
+            "build-logic/src/test/java/dev/goldberry/build/analysis/CodeQlSuiteTest.java",
+            "build-logic/src/test/java/dev/goldberry/build/benchmark/BenchmarkLaneTest.java");
 
     /// A working document under `docs/`, named by file.
     private static final Pattern WORKING_DOCUMENT = Pattern.compile("\\bdocs/[a-z0-9-]+\\.md\\b");
@@ -117,6 +129,9 @@ class SourceDocsTest {
     void namesNoWorkingDocument() {
         var naming = new TreeSet<String>();
         for (var source : javaSources()) {
+            if (MAY_NAME.contains(relative(source))) {
+                continue;
+            }
             var lines = read(source).lines().toList();
             for (var number = 0; number < lines.size(); number++) {
                 if (WORKING_DOCUMENT.matcher(lines.get(number)).find()) {
@@ -127,6 +142,23 @@ class SourceDocsTest {
         assertTrue(naming.isEmpty(), () -> naming.size() + " lines name a file under docs/; say the rule and link"
                 + " the guide (book/src/contributing/doc-comments.md). The first of them:\n  "
                 + String.join("\n  ", naming.stream().limit(40).toList()));
+    }
+
+    @Test
+    @DisplayName("is read in every source, this module's too, and never in a build's output")
+    void readsEverySource() {
+        assertAll(
+                () -> assertTrue(SourceDocsTest.isOutput("build/reports/x.java")),
+                () -> assertTrue(SourceDocsTest.isOutput("core/build/generated/sources/x.java")),
+                () -> assertTrue(SourceDocsTest.isOutput(".gradle/assets/x.java")),
+                () -> assertTrue(SourceDocsTest.isOutput("build-logic/.gradle/x.java")),
+                () -> assertFalse(SourceDocsTest.isOutput(
+                        "build-logic/src/test/java/dev/goldberry/build/book/SourceDocsTest.java")),
+                () -> assertFalse(
+                        SourceDocsTest.isOutput("build-logic/src/main/groovy/goldberry.java-conventions.gradle")),
+                () -> assertTrue(
+                        javaSources().stream().map(SourceDocsTest::relative).anyMatch(MAY_CITE::contains),
+                        "the walk does not reach build-logic's own sources"));
     }
 
     @Test
@@ -150,10 +182,10 @@ class SourceDocsTest {
         var root = Repository.root();
         try (Stream<Path> files = Files.walk(root)) {
             return files.filter(Files::isRegularFile)
-                    .filter(file -> !file.toString().contains("/build/") && !file.toString().contains("/.gradle/"))
                     .filter(file -> {
                         var relative = root.relativize(file).toString().replace('\\', '/');
-                        return isJavaSource(relative) || isGradleScript(relative) || isWorkflow(relative);
+                        return !isOutput(relative)
+                                && (isJavaSource(relative) || isGradleScript(relative) || isWorkflow(relative));
                     })
                     .sorted()
                     .toList();
@@ -165,6 +197,12 @@ class SourceDocsTest {
     /// The Java sources only, where a guide link is a doc comment's.
     private static List<Path> javaSources() {
         return sources().stream().filter(file -> file.toString().endsWith(".java")).toList();
+    }
+
+    /// Whether `relative`, from the root, is under a build's output or Gradle's
+    /// state rather than a source.
+    static boolean isOutput(String relative) {
+        return OUTPUT.matcher(relative).lookingAt();
     }
 
     /// `<module>/src/<set>/java/**.java`, in any source set of any module.

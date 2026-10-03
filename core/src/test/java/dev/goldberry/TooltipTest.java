@@ -3,7 +3,9 @@ package dev.goldberry;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
+import java.time.Duration;
 import java.util.List;
 import java.util.Set;
 
@@ -42,6 +44,9 @@ import dev.goldberry.widget.style.Styled;
 ///
 /// Read more: [Tooltips](https://goldberry.dev/docs/components/overlays.html#tooltips).
 class TooltipTest {
+
+    /// The delay a tooltip waits when the stylesheet says nothing usable.
+    private static final Duration DEFAULT_DELAY = Duration.ofMillis(500);
 
     /// The same, but in the Tab order — for the keyboard half of the rule.
     ///
@@ -217,9 +222,9 @@ class TooltipTest {
         Goldberry.launch(new TestApp(
                 new Target(Attributes.NONE.tooltip("Save the document")).id("target"),
                 host -> hoverAfterTheFirstFrame(() ->
-                        // Long enough for the 500ms delay to come due. The loop is
-                        // woken by its own timer rather than by this.
-                        later(900, () -> {
+                        // Until the 500ms delay has come due and the tooltip is up.
+                        // The loop is woken by its own timer rather than by this.
+                        whenTheTooltipIsUp(() -> {
                             shown[0] = tooltipWindow().isPresent();
                             kind[0] = tooltipWindow().map(HeadlessPopup::kind).orElse(null);
                             Goldberry.stop();
@@ -236,13 +241,16 @@ class TooltipTest {
     @DisplayName("it does not open immediately")
     void waitsForTheDelay() {
         var immediately = new boolean[1];
+        var readAt = new long[1];
         Goldberry.launch(new TestApp(
                 new Target(Attributes.NONE.tooltip("Save")).id("target"),
                 host -> hoverAfterTheFirstFrame(() -> later(60, () -> {
+                    readAt[0] = System.nanoTime();
                     immediately[0] = tooltipWindow().isPresent();
                     Goldberry.stop();
                 }))));
 
+        assumeReadBeforeTheDelay(readAt[0]);
         assertFalse(immediately[0], "60ms is not 500ms");
     }
 
@@ -307,16 +315,20 @@ class TooltipTest {
                 // first draft of this test used `Target` and passed against the
                 // unfixed launcher.
                 new Focusable(Attributes.NONE.tooltip("Save the document")).id("target"),
-                host -> hoverAfterTheFirstFrame(() -> later(900, () -> {
+                host -> hoverAfterTheFirstFrame(() -> whenTheTooltipIsUp(() -> {
                     upAfterTheClick[0] = tooltipWindow().isPresent();
                     // Press and release where the pointer already is, which is
                     // what focuses the target.
                     backend.post(new BackendEvent.PointerPressed(ownerWindow(), 50, 50, 1, 1, 0));
                     backend.post(new BackendEvent.PointerReleased(ownerWindow(), 50, 50, 1, 1, 0));
-                    later(150, () -> {
+                    // Comfortably past `SPURIOUS_EXIT_NANOS`, 250ms, so this exit is
+                    // the user's rather than the one opening a popup provokes --
+                    // counted from when the tooltip was **seen**, which is no
+                    // earlier than it opened. Counted from the hover instead, a
+                    // runner that fired the delay late put this exit inside the
+                    // window and the tooltip rightly stayed.
+                    later(400, () -> {
                         backend.post(new BackendEvent.PointerExited(ownerWindow()));
-                        // Comfortably past `SPURIOUS_EXIT_NANOS`, so this exit is
-                        // the user's rather than the one opening a popup provokes.
                         later(500, () -> {
                             stillUpAfterLeaving[0] = tooltipWindow().isPresent();
                             Goldberry.stop();
@@ -345,7 +357,7 @@ class TooltipTest {
                 new Focusable(Attributes.NONE.tooltip("Save the document")).id("target"),
                 host -> later(150, () -> {
                     backend.post(new BackendEvent.KeyPressed(ownerWindow(), Key.TAB.sdlKeycode(), 0, false));
-                    later(900, () -> {
+                    whenTheTooltipIsUp(() -> {
                         shown[0] = tooltipWindow().isPresent();
                         Goldberry.stop();
                     });
@@ -369,7 +381,7 @@ class TooltipTest {
         var hoveredAfter = new boolean[1];
         Goldberry.launch(new TestApp(
                 new Target(Attributes.NONE.tooltip("Save the document")).id("target"),
-                host -> hoverAfterTheFirstFrame(() -> later(900, () -> {
+                host -> hoverAfterTheFirstFrame(() -> whenTheTooltipIsUp(() -> {
                     cursorAfter[0] = ownerWindow().cursor();
                     hoveredAfter[0] = tooltipWindow().isPresent();
                     Goldberry.stop();
@@ -391,14 +403,74 @@ class TooltipTest {
                 .thenRun(action);
     }
 
+    /// When [#hoverAfterTheFirstFrame] posted its move: no later than the window
+    /// saw it, so a reading taken less than a delay after this is less than a
+    /// delay after the hover.
+    private volatile long hoveredAt;
+
     /// A pointer move, posted **after the first frame**: hit testing runs against
     /// the frame that was painted, so a pointer event that arrives
     /// before there is one lands on nothing at all.
     private void hoverAfterTheFirstFrame(Runnable then) {
         later(150, () -> {
+            hoveredAt = System.nanoTime();
             backend.post(new BackendEvent.PointerMoved(ownerWindow(), 50, 50, 0));
             then.run();
         });
+    }
+
+    /// Runs `then` on the UI thread once a tooltip is up, or after five seconds
+    /// when none comes, which the caller's assertion then reports.
+    ///
+    /// Polled rather than read at a fixed time after the hover: a starved runner
+    /// fires the delay late, and a test that read at 900ms saw no tooltip yet, or
+    /// one that had only just opened.
+    private void whenTheTooltipIsUp(Runnable then) {
+        whenTheTooltipIsUp(then, System.nanoTime() + Duration.ofSeconds(5).toNanos());
+    }
+
+    private void whenTheTooltipIsUp(Runnable then, long deadline) {
+        later(20, () -> {
+            if (tooltipWindow().isPresent() || System.nanoTime() > deadline) {
+                then.run();
+            } else {
+                whenTheTooltipIsUp(then, deadline);
+            }
+        });
+    }
+
+    /// Runs `then` on the UI thread once the window has taken the hover, which
+    /// is when the target's `cursor: pointer` reaches it, or after five seconds.
+    ///
+    /// The window takes the hover no later than this sees it, so a delay counted
+    /// from here has started by then.
+    private void whenHovered(Runnable then) {
+        whenHovered(then, System.nanoTime() + Duration.ofSeconds(5).toNanos());
+    }
+
+    private void whenHovered(Runnable then, long deadline) {
+        later(5, () -> {
+            if (ownerWindow().cursor() == Cursor.POINTER || System.nanoTime() > deadline) {
+                then.run();
+            } else {
+                whenHovered(then, deadline);
+            }
+        });
+    }
+
+    /// For a test that a tooltip is **not up yet**: aborts the run when the
+    /// reading at `readAt` came after the default delay had passed since the
+    /// hover.
+    ///
+    /// An idle machine reads well inside the delay. A loaded one can read after
+    /// it, where an open tooltip is the right answer and says nothing about what
+    /// the test is for, so that run is inconclusive rather than a failure. A
+    /// Windows runner has slept 88 ms in a `sleep(1)`.
+    private void assumeReadBeforeTheDelay(long readAt) {
+        var waited = Duration.ofNanos(readAt - hoveredAt);
+        assumeTrue(
+                waited.compareTo(DEFAULT_DELAY) < 0,
+                () -> "read " + waited.toMillis() + "ms after the hover, when the default had come due");
     }
 
     /// **A stylesheet can change the delay**, which the design system's `tooltip`
@@ -421,10 +493,13 @@ class TooltipTest {
         var shown = new boolean[1];
         Goldberry.launch(new TestApp(
                 new Target(Attributes.NONE.tooltip("Save")).id("target"),
-                host -> hoverAfterTheFirstFrame(() -> later(250, () -> {
+                // 250ms from when the window **took** the hover, which is when the
+                // delay starts: from when it was posted, a loop that took it late
+                // started the 60ms late too, and was read before it came due.
+                host -> hoverAfterTheFirstFrame(() -> whenHovered(() -> later(250, () -> {
                     shown[0] = tooltipWindow().isPresent();
                     Goldberry.stop();
-                })),
+                }))),
                 "\ntarget { --gb-tooltip-delay: 60ms }\n"));
 
         assertTrue(shown[0], "250ms is past a 60ms token and short of the 500ms default");
@@ -441,14 +516,17 @@ class TooltipTest {
     @DisplayName("and a token that is not a duration is ignored rather than guessed at")
     void aLengthIsNotADelay() {
         var shown = new boolean[1];
+        var readAt = new long[1];
         Goldberry.launch(new TestApp(
                 new Target(Attributes.NONE.tooltip("Save")).id("target"),
                 host -> hoverAfterTheFirstFrame(() -> later(250, () -> {
+                    readAt[0] = System.nanoTime();
                     shown[0] = tooltipWindow().isPresent();
                     Goldberry.stop();
                 })),
                 "\ntarget { --gb-tooltip-delay: 60px }\n"));
 
+        assumeReadBeforeTheDelay(readAt[0]);
         assertFalse(shown[0], "a length is not a delay, so the 500ms default should still be waiting");
     }
 
@@ -469,8 +547,8 @@ class TooltipTest {
                 new Pair(
                         new Target(Attributes.NONE.tooltip("The first")).id("first"),
                         new Target(Attributes.NONE.tooltip("The second")).id("second")),
-                host -> hoverAfterTheFirstFrame(() -> later(900, () -> {
-                    // The first tooltip is up by now -- 900ms is past its 500.
+                host -> hoverAfterTheFirstFrame(() -> whenTheTooltipIsUp(() -> {
+                    // The first tooltip is up, so this is a move between two.
                     backend.post(new BackendEvent.PointerMoved(ownerWindow(), 350, 50, 0));
                     later(250, () -> {
                         shown[0] = tooltipWindow().isPresent();
@@ -488,15 +566,18 @@ class TooltipTest {
     @DisplayName("but the first tooltip in a row still waits the full one")
     void theFirstStillWaits() {
         var shown = new boolean[1];
+        var readAt = new long[1];
         Goldberry.launch(new TestApp(
                 new Pair(
                         new Target(Attributes.NONE.tooltip("The first")).id("first"),
                         new Target(Attributes.NONE.tooltip("The second")).id("second")),
                 host -> hoverAfterTheFirstFrame(() -> later(250, () -> {
+                    readAt[0] = System.nanoTime();
                     shown[0] = tooltipWindow().isPresent();
                     Goldberry.stop();
                 }))));
 
+        assumeReadBeforeTheDelay(readAt[0]);
         assertFalse(shown[0], "nothing was showing to move between, so this is a first hover");
     }
 }

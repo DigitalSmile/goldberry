@@ -58,3 +58,9 @@ exclude:
       # FFmpeg's, written the same way.
       - natives/src/main/java/dev/goldberry/natives
       - media/src/main/java/dev/goldberry/media/ffi
+      # Benchmarks and probes: measurement code, which this dashboard leaves out
+      # the way it leaves out the tests they were moved from. A source set of
+      # their own is imported as production code, so each is named here, and
+      # QodanaScopeTest fails on one that is not.
+      - "**/src/benchmark"
+      - "**/src/jmh"

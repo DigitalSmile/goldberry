@@ -5,7 +5,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 
-import dev.goldberry.Goldberry;
 import dev.goldberry.platform.Capability;
 import dev.goldberry.widget.BuildContext;
 import dev.goldberry.widget.Widget;
@@ -20,16 +19,12 @@ import dev.goldberry.widgets.text.Text;
 ///
 /// Read more: [What this build can do](https://goldberry.dev/docs/guide/logging.html#what-this-build-can-do).
 ///
-/// @param present what `Goldberry.capabilities()` answered
+/// @param present what `Goldberry.capabilities()` answered, or what a picture
+///                of the screen pins
 public record BuildCapabilities(Set<Capability> present) implements Widget.Stateless {
 
     public BuildCapabilities {
         present = Set.copyOf(present);
-    }
-
-    /// What the loaded native library says it was built with.
-    public static BuildCapabilities ofThisBuild() {
-        return new BuildCapabilities(Goldberry.capabilities());
     }
 
     /// A capability as a reader would name it: `SYSTEM_THEME` is `system theme`.

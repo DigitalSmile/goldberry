@@ -76,7 +76,7 @@ public record DiagnosticsChapter(GalleryContext context) implements Widget.State
                                 + " Goldberry.capabilities() answers from the library's own record, before any"
                                 + " window opens. This is the answer for this build.",
                         DocLink.to(LOGGING, "what-this-build-can-do"))
-                .of(BuildCapabilities.ofThisBuild()));
+                .of(new BuildCapabilities(context.capabilities())));
         cards.add(new ShowcaseCard(
                         "diagnostics-properties",
                         "Properties an application can set",

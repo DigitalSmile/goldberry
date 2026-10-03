@@ -589,3 +589,5 @@ proposing to undo them.
 - [ADR-0551 Benchmarks are a source set, run one at a time by their own workflow](0551-benchmarks-are-a-source-set-run-one-at-a-time-by-their-own-workflow.md)
 - [ADR-0552 A clock bound has room, and stops short of the defect](0552-a-clock-bound-has-room-and-stops-short-of-the-defect.md)
 - [ADR-0553 macOS and Windows build and test their library in one Gradle job](0553-macos-and-windows-build-and-test-their-library-in-one-gradle-job.md)
+- [ADR-0554 A picture of a screen pins what the build can do](0554-a-picture-of-a-screen-pins-what-the-build-can-do.md)
+- [ADR-0555 Qodana inspects the toolkit, not its measurement code](0555-qodana-inspects-the-toolkit-not-its-measurement-code.md)

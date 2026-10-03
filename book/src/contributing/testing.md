@@ -82,6 +82,8 @@ A golden compares a rendered frame against a committed PNG. **One** reference se
 
 Goldens render through the shipped `Offscreen` entry point, so every golden also tests the API an application would use to take the same picture. That is [ADR-0284](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0284-a-picture-with-no-window-under-it.md).
 
+**A golden does not photograph the machine.** Some screens show what the build machine has, such as the capabilities `libgoldberry` was compiled with, or whether the web view and FFmpeg are there. Each of these is pinned for the picture. The test task points the web view and FFmpeg at nothing. `ShowcaseScene` hands every screen a fixed set of capabilities instead of `Goldberry.capabilities()`. A screen that reads anything else from the machine takes it from its `GalleryContext` too. That is [ADR-0554](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0554-a-picture-of-a-screen-pins-what-the-build-can-do.md).
+
 **Blessing a change.** After a deliberate visual change:
 
 ```sh
@@ -114,7 +116,7 @@ The javadoc gate is [ADR-0343](https://github.com/DigitalSmile/goldberry/blob/ma
 Three more analysers run and none of them blocks a merge:
 
 - **CodeQL**, in `codeql.yml`, on pull requests and weekly. The first triage is [ADR-0341](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0341-codeql-findings-are-fixed-where-real-and-answered-where-not.md): every finding that stays is in its table with a reason. The alerts need a token to read, and `docs/testing.md` §2 has the recipe for running the same scan locally in about six minutes.
-- **Qodana**, in `qodana.yml`, against a committed baseline in `config/qodana/`. The gate fails on new high-severity findings only. The profile is reviewed as code, which is [ADR-0498](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0498-qodana-reads-a-reviewed-profile-and-a-bound-value-may-be-null.md).
+- **Qodana**, in `qodana.yml`, against a committed baseline in `config/qodana/`. The gate fails on new high-severity findings only. The profile is reviewed as code, which is [ADR-0498](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0498-qodana-reads-a-reviewed-profile-and-a-bound-value-may-be-null.md). It inspects `main` only. The tests are left out, and so is every other source set, `src/benchmark` and `src/jmh`, by name in `qodana.yaml`; `QodanaScopeTest` fails on one that is not ([ADR-0555](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0555-qodana-inspects-the-toolkit-not-its-measurement-code.md)).
 - **Codecov**, a step in `linux.yml`, guarded on its secret and silent until connected. `docs/testing.md` §7 is the checklist for connecting it.
 
 Coverage floors are per module and set from measured values: `:core` at 80% line and 68% branch, `:widgets` and `:html` at 87% and 71%, `:media` at 86% and 74%. Each is a ratchet that catches a drop and never blocks a change that merely fails to raise it, and each sits at least four points under what the suite reaches, because a refactor that only moves code moves coverage by a point or two. They run on the linux-x64 verify leg, where the library is loaded, and `:media`'s in the Media workflow.
@@ -141,7 +143,7 @@ TimeBudget.of(Duration.ofSeconds(2)).shortOf(Duration.ofSeconds(5))
         .assertWithin(elapsed, "the pump with a frame already requested");
 ```
 
-`-Dgoldberry.timing.slack=3` multiplies every bound by three for a machine known to be loaded, the benchmarks' budgets included; it is `1` when unset and cannot be less. A test that waits for something to happen polls until it does, with a `TimeBudget` as the deadline, rather than sleeping a fixed time and looking once. That is [ADR-0552](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0552-a-clock-bound-has-room-and-stops-short-of-the-defect.md).
+`-Dgoldberry.timing.slack=3` multiplies every bound by three for a machine known to be loaded, the benchmarks' budgets included; it is `1` when unset and cannot be less. A test that waits for something to happen polls until it does, with a `TimeBudget` as the deadline, rather than sleeping a fixed time and looking once. A test that checks something has *not happened yet* records when it looked. If a loaded machine looked after the thing was due, the run is inconclusive: it aborts with an assumption instead of failing. `TooltipTest` does this for the default tooltip delay. Where a rate can be measured against a control instead of the wall clock, it is: `SdlAudioSinkTest` plays a stream at 4 beside one at 1 on the same SDL device, whose one thread serves both, so a starved CI runner slows both alike. That is [ADR-0552](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0552-a-clock-bound-has-room-and-stops-short-of-the-defect.md).
 
 ## Accessibility sweeps
 
