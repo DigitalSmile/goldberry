@@ -121,33 +121,67 @@ shell's.
 
 ## The benchmark lane
 
-Benchmarks are JUnit classes tagged `benchmark`. `./gradlew benchmark` runs
-them all, `./gradlew :widgets:benchmark` one module's, and `check` never does.
-They print their measurements and assert almost nothing, because a timing
-assertion on shared CI hardware fails for reasons that have nothing to do
-with the code. The inventory, from `docs/testing.md` §1.5:
+A benchmark is a JUnit class under a module's `src/benchmark/java`, and a
+probe is a `main` beside it. `./gradlew benchmark` runs every module's
+benchmarks, `./gradlew :widgets:benchmark` one module's, and `check` only
+compiles them, so a benchmark that no longer builds is found on the commit
+that broke it. They print their measurements and assert almost nothing,
+because a timing assertion on shared CI hardware fails for reasons that have
+nothing to do with the code.
+
+They run **one module at a time**, whatever `org.gradle.parallel` says: every
+`benchmark` task holds a shared build service with one slot. Two benchmarks
+measured together measure each other, and a table taken beside a compiler is a
+table of the compiler.
+
+The lane has a workflow of its own, **Benchmarks**, which compiles the
+benchmarks, runs them, and runs JMH. Start it from the Actions tab, with a
+`--tests` filter to run one, or let the nightly workflow call it: nightly runs
+only when master has moved since the last nightly that did any work, because
+the same commit measured twice is the same numbers. No pull request, push or
+snapshot runs a benchmark.
+
+The inventory, from `docs/testing.md` §1.5:
 
 | Benchmark | Module | What it prices |
 |---|---|---|
 | `PaintBenchmark` | `:core` | Painting a frame, and what Blend2D's workers do to it |
 | `TextBenchmark` | `:core` | The text path: shaping, the paragraph cache, wrapping |
+| `EditorKeystrokeBenchmark` | `:core` | One keystroke into a 2 kB, a 50 kB and a 500 kB editor document |
 | `FrameBenchmark` | `:widgets` | A frame of a real widget tree, split by stage |
 | `DeepTreeStyleBenchmark` | `:widgets` | A 50-, 100- and 200-deep tree's first frame and a middle ancestor's hover, against the catalog's sheets |
 | `TextAreaFrameBenchmark` | `:widgets` | One keystroke into a 2 kB, a 50 kB and a 500 kB note |
+| `AxisLabellingBenchmark` | `:widgets` | One numeric and one time-axis labelling, against a third of a frame |
 | `MarkdownFrameBenchmark` | `:html` | The same keystroke through a `markdown-view`, with an md4c control row |
+| `PlaneCopyBenchmark` | `:media` | Copying and converting a 4K picture's planes, against a picture's time at 60 fps |
+| `ReadPacketBenchmark` | `:media` | One `read_packet` through the upcall stub against a direct call |
 | `BindingSchemeBenchmark` | `:weaver` | The two ways of binding a model, against each other |
 | `BindingCodegenBenchmark` | `:weaver` | Whether a jar should generate its binding rather than reflect |
 | `DowncallBenchmark` | `:natives` | One foreign call, held both ways |
 | `ModifierPollBenchmark` | `:natives` | The per-event modifier poll |
 | `BindingBenchmark` | `:example` | The binding schema before and after ADR-0125, and the showcase's own names |
-| `FrameBudgetTest` | `:example` | A frame of the real application, stage by stage and resolution by resolution |
+| `FrameBudgetBenchmark` | `:example` | A frame of the real application, stage by stage and resolution by resolution |
+
+And the probes, each run by a task of its own and read by a person, because
+they open a real window or device and the numbers are the machine's:
+
+| Probe | Task | What it measures |
+|---|---|---|
+| `GpuPresentProbe` | `:natives:gpuPresentProbe` | Window-surface and composited present, and the swapchain switch |
+| `GpuVideoProbe` | `:gpu:gpuVideoProbe` | A composited frame with a 4K video layer under the UI |
+| `VideoLayerProbe` | `:gpu:videoLayerProbe` | The video layer's upload of a new 4K picture each frame |
+| `VideoPresentProbe` | `:media:videoPresentProbe` | A minute of 4K60 video in a window: dropped pictures and CPU time |
 
 Run one by name:
 
 ```sh
 ./gradlew :widgets:benchmark --tests '*TextAreaFrameBenchmark*'
-./gradlew :example:benchmark --tests '*FrameBudgetTest*' -i
+./gradlew :example:benchmark --tests '*FrameBudgetBenchmark*' -i
+./gradlew benchmark --tests '*Text*'
 ```
+
+The last names benchmarks in two modules, and every other module's task is
+given the same filter and finds nothing, which is not a failure.
 
 `MarkdownFrameBenchmark` carries a control row, md4c timed on its own. Two
 runs whose parse times disagree are two runs on two differently loaded
@@ -171,7 +205,7 @@ both.
 ## A cost is guarded by a count, never by a clock
 
 A test under `check` that asserts a millisecond fails for what else the
-machine was doing. `FrameBudgetTest` is the record of it: it asserted
+machine was doing. `FrameBudgetBenchmark` is the record of it: it asserted
 per-stage wall-clock budgets, and its style row reads 3.6 ms on an idle
 machine and 20 ms under a parallel Gradle, on the same commit. It moved to
 the benchmark lane on 2026-09-18, where its table is read rather than its

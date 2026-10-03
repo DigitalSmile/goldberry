@@ -20,7 +20,7 @@
 | Headless widget | The `headless` backend renders to memory and pumps synthetic events through the normal dispatch path. A virtual clock steps animations. Every test task presses `Ctrl` as the primary modifier on every desktop | `:core`, `:widgets`, `:html`, `:example` |
 | Golden | A rendered frame against a committed PNG, with a tolerance | `:widgets`, `:core`, `:html`, `:example` |
 | Native layer | The layout probe, the export list, FFM lifecycle, and the GPU tests on the JVM's first thread | `:natives`, `:gpu`, `:media` |
-| Benchmark | JUnit classes tagged `benchmark`. They print numbers and assert almost nothing | `./gradlew benchmark`, never `check` |
+| Benchmark | JUnit classes and probes under `src/benchmark/java`. They print numbers and assert almost nothing | `./gradlew benchmark` and the Benchmarks workflow; `check` only compiles them |
 | Accessibility | Contrast over the token tables, and sweeps that read the widget registry | `:widgets` |
 | Drift guard | A test that reads the repository rather than the JVM | `build-logic`, `:natives` |
 
@@ -36,7 +36,8 @@ In every module under the conventions, `check` runs:
 
 - the compile, with Error Prone and NullAway as errors in `src/main`;
 - `spotlessCheck`, `pmdMain`, and SpotBugs as a report;
-- `test`, and in `:natives`, `:gpu` and `:media` also `gpuTest`;
+- `test`, and in `:natives`, `:gpu`, `:media` and `:example` also `gpuTest`;
+- `benchmarkClasses`: the benchmarks compile, and none of them runs;
 - `jacocoTestCoverageVerification`, which passes trivially where a module declares no floor;
 - `javadoc`, in every published module, with doclint on;
 - in `:natives`, the tests of the included `build-logic` build.
@@ -55,6 +56,8 @@ Two invocations rather than two tasks, because weaving rewrites the compiled cla
 
 ### With and without the library
 
+Every module whose tests load `libgoldberry` applies one plugin, `goldberry.native-tests`, and every test task in it gets the same wiring: JEP 472's grant, the library named by `-Dgoldberry.native.library` or else the one this machine's `:natives:cmakeBuild` makes, that library as an input so a rebuilt one re-runs what paints through it, and `cmakeBuild` first unless `-Pgoldberry.skipNative=true` asks for a Java-only build or a library was handed over. The switches a test reads from the command line — `goldberry.native.required`, `goldberry.golden.update`, `goldberry.gpu.videoDriver`, `goldberry.timing.slack` and the rest — reach every test JVM from one list in build-logic, `ForwardedProperties`, so a flag cannot work in one module and stop at the Gradle daemon in the next. The record is [ADR-0550](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0550-a-module-says-what-its-tests-need-and-a-plugin-wires-it.md).
+
 The Java-only jobs build with `-Pgoldberry.skipNative=true`, so a test that rasterizes calls `RendererRequirement.enforce()` first and skips without a library. To check a change the way those jobs will, point the library at nothing and run everything:
 
 ```sh
@@ -69,7 +72,7 @@ The web view library, `libgoldberry-webview`, may be missing from a local build 
 
 ### The GPU tests
 
-GPU tests are tagged `gpu`, left out of `test`, and run by `:natives:gpuTest`, `:gpu:gpuTest` and `:media:gpuTest` on the JVM's first thread, which macOS's Cocoa needs for a GPU device. They need a video driver with a Metal view or a Vulkan surface: the desktop's default, or `-Pgoldberry.gpu.videoDriver=offscreen` for lavapipe on a runner with no display, and never `dummy`. They skip without a device, and `-Pgoldberry.gpu.required=true` makes that a failure. The record is [ADR-0475](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0475-sdl-gpu-is-bound-for-core-and-gpu-and-tested-on-the-first-thread.md).
+GPU tests are tagged `gpu`, left out of `test`, and run by `:natives:gpuTest`, `:gpu:gpuTest`, `:media:gpuTest` and `:example:gpuTest` on the JVM's first thread, which macOS's Cocoa needs for a GPU device. They need a video driver with a Metal view or a Vulkan surface: the desktop's default, or `-Pgoldberry.gpu.videoDriver=offscreen` for lavapipe on a runner with no display, and never `dummy`. They skip without a device, and `-Pgoldberry.gpu.required=true` makes that a failure. The record is [ADR-0475](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0475-sdl-gpu-is-bound-for-core-and-gpu-and-tested-on-the-first-thread.md).
 
 ## Goldens
 
@@ -114,18 +117,31 @@ Three more analysers run and none of them blocks a merge:
 - **Qodana**, in `qodana.yml`, against a committed baseline in `config/qodana/`. The gate fails on new high-severity findings only. The profile is reviewed as code, which is [ADR-0498](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0498-qodana-reads-a-reviewed-profile-and-a-bound-value-may-be-null.md).
 - **Codecov**, a step in `linux.yml`, guarded on its secret and silent until connected. `docs/testing.md` §7 is the checklist for connecting it.
 
-Coverage floors are per module and set from measured values: `:core` at 80% line and 68% branch, `:widgets` and `:html` at 87% and 71%. Each is a ratchet that catches a drop and never blocks a change that merely fails to raise it. They run on the linux-x64 verify leg, where the library is loaded.
+Coverage floors are per module and set from measured values: `:core` at 80% line and 68% branch, `:widgets` and `:html` at 87% and 71%, `:media` at 86% and 74%. Each is a ratchet that catches a drop and never blocks a change that merely fails to raise it, and each sits at least four points under what the suite reaches, because a refactor that only moves code moves coverage by a point or two. They run on the linux-x64 verify leg, where the library is loaded, and `:media`'s in the Media workflow.
 
 ## A cost is guarded by a count
 
-A timing assertion on shared CI hardware fails for reasons that have nothing to do with the code. So the benchmarks print measurements and assert almost nothing, and `check` never runs them:
+A timing assertion on shared CI hardware fails for reasons that have nothing to do with the code. So the benchmarks live in a source set of their own, print measurements and assert almost nothing, and `check` only compiles them:
 
 ```sh
-./gradlew benchmark                                        # every module
+./gradlew benchmark                                        # every module, one at a time
 ./gradlew :widgets:benchmark --tests '*TextAreaFrameBenchmark*'
 ```
 
-What `check` is owed instead is the counting pair. `TextAreaKeystrokeCostTest` asserts that typing into a 500 kB note shapes and draws about what typing into a 2 kB note does, in characters, which is the same number on every machine. `BlockReuseTest` counts blocks built and kept for the Markdown preview. `FrameBudgetTest`'s style row reads 3.6 ms alone and 20 ms under a parallel Gradle, which is why it is a benchmark and not a gate. The inventory of benchmarks is in `docs/testing.md` §1.5, and [Measuring](../performance/measuring.md) says how to read one.
+No pull request, push or snapshot runs them. The Benchmarks workflow does, by hand or when the nightly workflow calls it, and the nightly does nothing on a night master has not moved. That is [ADR-0551](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0551-benchmarks-are-a-source-set-run-one-at-a-time-by-their-own-workflow.md).
+
+What `check` is owed instead is the counting pair. `TextAreaKeystrokeCostTest` asserts that typing into a 500 kB note shapes and draws about what typing into a 2 kB note does, in characters, which is the same number on every machine. `BlockReuseTest` counts blocks built and kept for the Markdown preview. `FrameBudgetBenchmark`'s style row reads 3.6 ms alone and 20 ms under a parallel Gradle, which is why it is a benchmark and not a gate. The inventory of benchmarks is in `docs/testing.md` §1.5, and [Measuring](../performance/measuring.md) says how to read one.
+
+### A clock bound has room
+
+A few tests under `check` cannot avoid a clock: a pump that must return *promptly* when a frame is pending, a 404 that must fail *at once* rather than after a backoff, a close that must not wait out a stall. They compare a measured duration with a `TimeBudget` from `:core`'s test fixtures, which has two numbers: **the bound**, a generous multiple of what the operation takes when it works, and **the defect**, what it takes when it is broken — the timeout it was meant to beat. The allowance may grow towards the defect and never reach it.
+
+```java
+TimeBudget.of(Duration.ofSeconds(2)).shortOf(Duration.ofSeconds(5))
+        .assertWithin(elapsed, "the pump with a frame already requested");
+```
+
+`-Dgoldberry.timing.slack=3` multiplies every bound by three for a machine known to be loaded, the benchmarks' budgets included; it is `1` when unset and cannot be less. A test that waits for something to happen polls until it does, with a `TimeBudget` as the deadline, rather than sleeping a fixed time and looking once. That is [ADR-0552](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0552-a-clock-bound-has-room-and-stops-short-of-the-defect.md).
 
 ## Accessibility sweeps
 
@@ -137,12 +153,14 @@ The AccessKit bridge that would export the semantics tree is on hold, and the sw
 
 | Workflow | Trigger | What it does |
 |---|---|---|
-| `linux.yml`, `macos.yml`, `windows.yml` | Pull request, and every push through `snapshot.yml` | The Java job: `build checkLicenses checkMarkdown` without the library, then the suite woven, then the coverage report. The natives job builds `libgoldberry`, inside a `manylinux_2_28` container on Linux. The verify job runs `:natives:test`, the `:core`, `:widgets`, `:html` and `:emoji` suites with every golden, and the GPU tests on lavapipe, against the library it downloaded |
+| `linux.yml` | Pull request, and every push through `snapshot.yml` | The Java job: `build checkLicenses checkMarkdown` without the library, then the suite woven, then the coverage report. The natives job builds `libgoldberry` inside a `manylinux_2_28` container, and the web view job its library on Ubuntu 22.04. The verify job runs `:natives:test`, the `:core`, `:widgets`, `:html` and `:emoji` suites with every golden and the coverage floors, the GPU tests on lavapipe, and `:example`'s tests, against the libraries it downloaded |
+| `macos.yml`, `windows.yml` | Pull request, and every push through `snapshot.yml` | One job: `:natives:cmakeBuild`, then `./gradlew build` against the library it made with `native.required` and `webview.required`, then the upload `publish.yml` packages. The GPU lanes run on macOS, not required ([ADR-0553](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0553-macos-and-windows-build-and-test-their-library-in-one-gradle-job.md)) |
 | `snapshot.yml` | Push to `master` | Calls `publish.yml`, which calls all three per-OS workflows and then uploads one `-SNAPSHOT` of every module to Central |
 | `release.yml` | A `v*` tag. A manual run rehearses into `mavenLocal` | The same chain as a signed release to a Central Portal deployment, after the licence check, then a pull request that bumps the version |
 | `showcase.yml` | A `v*` tag, or by hand | The GraalVM native image on three platforms, each run for 300 frames with its window resized a pixel a frame. On a tag, attached to a draft GitHub Release |
 | `media.yml` | A pull request touching `media/`, and the publish chain | The FFmpeg and dav1d superbuild on macOS and Linux, and `:media`'s tests against what it built |
-| `nightly.yml` | 03:40 UTC | PIT mutation testing and the benchmarks. Numbers to read, not gates to pass |
+| `nightly.yml` | 03:40 UTC, when master has moved since the last nightly | PIT mutation testing and SpotBugs, and the Benchmarks workflow. Numbers to read, not gates to pass |
+| `benchmarks.yml` | Called by `nightly.yml`, or by hand with an optional `--tests` filter | Every module's benchmarks, one module at a time, and JMH on `:core` |
 | `codeql.yml` | Pull request, and weekly | The security and quality query suite |
 | `qodana.yml` | Pull request and push | IntelliJ's inspections, new findings against the baseline |
 | `pages.yml` | Push touching `site/` or `book/` | The landing page and this book |

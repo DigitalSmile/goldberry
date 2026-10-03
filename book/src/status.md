@@ -25,6 +25,19 @@ page is the other half: it says what works and what it cost to find out.
 
 - Multi-module Gradle (Groovy DSL), version catalog, convention plugins, JPMS module
   graph, JDK 25 toolchain, JUnit 6, licence disclosure, decision log.
+- **A module says what its tests need, and a plugin wires it** (2026-10-03,
+  [ADR-0550](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0550-a-module-says-what-its-tests-need-and-a-plugin-wires-it.md)).
+  `goldberry.native-tests` and `goldberry.asset-tool` replace the wiring eight
+  scripts carried; no script calls `evaluationDependsOn` or reads another
+  project's `ext`, and what tests share across modules is a test fixture. macOS
+  and Windows CI build `libgoldberry` through Gradle and test it in the same job
+  ([ADR-0553](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0553-macos-and-windows-build-and-test-their-library-in-one-gradle-job.md));
+  Linux's release container still runs CMake itself.
+- **Benchmarks are a source set, run one at a time by their own workflow**
+  (2026-10-03, [ADR-0551](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0551-benchmarks-are-a-source-set-run-one-at-a-time-by-their-own-workflow.md)).
+  `benchmarks.yml` runs by hand or from the nightly, which skips a night master
+  has not moved; clock bounds have room and stop short of the defect they guard
+  ([ADR-0552](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0552-a-clock-bound-has-room-and-stops-short-of-the-defect.md)).
 
 ## M0 — Skeleton
 

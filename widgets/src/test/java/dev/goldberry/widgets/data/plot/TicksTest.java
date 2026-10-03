@@ -7,7 +7,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.util.List;
 
 import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 /// Where an axis puts its labels.
@@ -188,28 +187,5 @@ class TicksTest {
         assertThrows(IllegalArgumentException.class, () -> Ticks.extended(0, 1, 1));
         assertThrows(IllegalArgumentException.class, () -> Ticks.extended(Double.NaN, 1, 5));
         assertThrows(IllegalArgumentException.class, () -> Ticks.extended(0, Double.POSITIVE_INFINITY, 5));
-    }
-
-    /// A clock, so not a test: a cost is guarded by a count, never by a clock --
-    /// and this has no count to guard it with, because what it watches
-    /// is the *work* a search does rather than the answer it gives. Under a
-    /// parallel Gradle it measures the machine's load as much as the search.
-    ///
-    /// So it runs under `./gradlew benchmark` and not under `check`, which is
-    /// where a measurement belongs.
-    @Test
-    @Tag("benchmark")
-    @DisplayName("answers quickly enough to run inside a frame")
-    void isFastEnoughForAFrame() {
-        // It runs per axis per frame, so a millisecond here would be a third of
-        // a frame's budget. Loose enough not to be flaky, tight enough to catch
-        // a search that stopped pruning.
-        var started = System.nanoTime();
-        for (var i = 0; i < 1_000; i++) {
-            Ticks.extended(0, 97 + i, 5);
-        }
-        var perCall = (System.nanoTime() - started) / 1_000.0 / 1_000.0;
-
-        assertTrue(perCall < 200, "an axis labelling took " + perCall + " µs, which is too slow to do per frame");
     }
 }

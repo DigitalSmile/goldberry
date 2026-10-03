@@ -2,6 +2,10 @@ plugins {
     id 'goldberry.java-conventions'
     // Published to Maven Central as goldberry-emoji.
     id 'goldberry.publish'
+    // The shaping test goes through the real library, like every other module's.
+    id 'goldberry.native-tests'
+    // The Noto Color Emoji face.
+    id 'goldberry.asset-tool'
 }
 
 description = 'Goldberry emoji: the Noto Color Emoji face, drawn from its COLRv1 paint graphs'
@@ -33,107 +37,13 @@ dependencies {
     testImplementation testFixtures(project(':core'))
 }
 
-// The shaping test goes through the real library, like every other module's.
-evaluationDependsOn(':natives')
-
-def hostNativeLibrary = project(':natives').ext.hostNativeLibrary
-
-tasks.withType(Test).configureEach {
-    jvmArgs '--enable-native-access=ALL-UNNAMED'
-
-    // Forwarded to the forked test JVM, exactly as :core, :widgets and :html do.
-    // Without `goldberry.native.required` this module's suite *aborts* every test
-    // when there is no rasterizer, and a job that passes `-Pgoldberry.skipNative`
-    // reports green having asserted nothing -- which is how `ColourEmojiTest` and
-    // `emojiNeedTheEmojiFace` (then in `OpenMojiFontTest`) ran in no CI lane at all until the
-    // 2026-09-18 review read the workflow (B3).
-    ['goldberry.golden.update', 'goldberry.golden.scales',
-     'goldberry.golden.scales.report', 'goldberry.native.required'].each { name ->
-        var value = providers.systemProperty(name).orElse(providers.gradleProperty(name))
-        if (value.present) {
-            systemProperty name, value.get()
-        }
-    }
-
-    systemProperty 'goldberry.native.library',
-            providers.systemProperty('goldberry.native.library')
-                    .orElse(hostNativeLibrary.map { it.asFile.absolutePath })
-                    .get()
-
-    inputs.files(providers.provider {
-        var library = file(providers.systemProperty('goldberry.native.library')
-                .orElse(hostNativeLibrary.map { it.asFile.absolutePath })
-                .get())
-        library.isFile() ? [library] : []
-    }).withPropertyName('nativeLibrary').optional()
-}
-
-def skipNative = providers.gradleProperty('goldberry.skipNative')
-        .map { Boolean.parseBoolean(it) }
-        .getOrElse(false)
-def externalLibrary = providers.systemProperty('goldberry.native.library').isPresent()
-
-if (!skipNative && !externalLibrary) {
-    tasks.withType(Test).configureEach { dependsOn ':natives:cmakeBuild' }
-}
-
-def assetCache = layout.settingsDirectory.dir('.gradle/assets')
-def assetResources = layout.buildDirectory.dir('generated/assets')
-
-configurations {
-    assetTool
-}
-
-dependencies {
-    assetTool project(':assets')
-}
-
 // The same tool `:core` runs, told which asset it means. One file:
 // `--only=noto-emoji` is what keeps this module from fetching the fonts it does
-// not ship.
-def prepareAssets = tasks.register('prepareAssets', JavaExec) {
-    group = 'assets'
-    description = 'Fetches the pinned Noto Color Emoji release and prepares it as a resource.'
-
-    classpath = configurations.assetTool
-    mainClass = 'dev.goldberry.assets.prepare.PrepareAssets'
-    // Under this module's **own** package, which is not a tidiness choice: a
-    // resource directory is a package to the module system, so a font written to
-    // `…goldberry.assets.fonts` in two modules is one package in two modules and
-    // the application refuses to start.
-    args assetCache.asFile.absolutePath,
-            assetResources.get().asFile.absolutePath,
-            '--only=noto-emoji',
-            '--root=dev/goldberry/emoji'
-
-    inputs.files configurations.assetTool
-    outputs.dir assetResources
-
-    // The directory is emptied first, so a file this build no longer prepares
-    // does not survive in it. OpenMoji moving to `:emoji`, and then being
-    // replaced by Noto, are exactly that case: without this, an incremental
-    // build kept shipping the face the manifest had stopped naming.
-    doFirst {
-        delete assetResources
-    }
-}
-
-sourceSets.main.resources.srcDir(prepareAssets.map { assetResources.get() })
-
-/// Vendors Noto Color Emoji's licence text into licenses/, the way :core does
-/// for the assets it still carries.
-tasks.register('vendorLicences', JavaExec) {
-    group = 'assets'
-    description = 'Copies Noto Color Emoji\'s licence into licenses/ from the pinned release.'
-
-    classpath = configurations.assetTool
-    mainClass = 'dev.goldberry.assets.prepare.PrepareAssets'
-    args assetCache.asFile.absolutePath,
-            assetResources.get().asFile.absolutePath,
-            rootProject.layout.projectDirectory.dir('licenses').asFile.absolutePath,
-            '--only=noto-emoji',
-            '--root=dev/goldberry/emoji'
-}
+// not ship. Under this module's **own** package, which is not a tidiness choice:
+// a resource directory is a package to the module system, so a font written to
+// `…goldberry.assets.fonts` in two modules is one package in two modules and the
+// application refuses to start.
+assetTool.bundle('noto-emoji', 'dev/goldberry/emoji')
 
 // ============================================================================
 // Coverage floor

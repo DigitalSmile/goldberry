@@ -78,7 +78,7 @@ import dev.goldberry.widgets.text.Text;
 ///
 /// The sheet is a **virtualized `list` of rows** — a grid of equal-height tiles
 /// is a list of equal-height rows, and a list builds only the rows a reader can
-/// see. `FrameBudgetTest` measures what that is worth, against a `masonry` of all
+/// see. `FrameBudgetBenchmark` measures what that is worth, against a `masonry` of all
 /// 1544 tiles, rather than leaving it to a paragraph like this one:
 ///
 /// | | elements | opens in | style | layout | raster |

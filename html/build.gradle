@@ -6,6 +6,8 @@ plugins {
     // its own and an application that puts one in a KDL document finds it through
     // the module path rather than by naming it.
     id 'goldberry.weave'
+    // Every test here parses, and parsing is md4c inside libgoldberry.
+    id 'goldberry.native-tests'
 }
 
 description = 'Goldberry HTML: Markdown through md4c, and the content widgets that render it'
@@ -46,48 +48,9 @@ dependencies {
     testImplementation libs.jqwik
 }
 
-// Every test here parses, and parsing is md4c inside libgoldberry -- so the same
-// wiring :core and :widgets have, for the same reason: the tests must run against
-// the library this build produced. Without it every parse test skips quietly,
-// which looks exactly like passing.
-evaluationDependsOn(':natives')
-
-def hostNativeLibrary = project(':natives').ext.hostNativeLibrary
-
-tasks.withType(Test).configureEach {
-    jvmArgs '--enable-native-access=ALL-UNNAMED'
-
-    ['goldberry.golden.update', 'goldberry.golden.scales',
-     'goldberry.golden.scales.report', 'goldberry.native.required'].each { name ->
-        var value = providers.systemProperty(name).orElse(providers.gradleProperty(name))
-        if (value.present) {
-            systemProperty name, value.get()
-        }
-    }
-
-    systemProperty 'goldberry.native.library',
-            providers.systemProperty('goldberry.native.library')
-                    .orElse(hostNativeLibrary.map { it.asFile.absolutePath })
-                    .get()
-
-    // An input, so a rebuilt library re-runs them rather than leaving them
-    // UP-TO-DATE and green against a library they never saw.
-    inputs.files(providers.provider {
-        var library = file(providers.systemProperty('goldberry.native.library')
-                .orElse(hostNativeLibrary.map { it.asFile.absolutePath })
-                .get())
-        library.isFile() ? [library] : []
-    }).withPropertyName('nativeLibrary').optional()
-}
-
 def skipNative = providers.gradleProperty('goldberry.skipNative')
         .map { Boolean.parseBoolean(it) }
         .getOrElse(false)
-def externalLibrary = providers.systemProperty('goldberry.native.library').isPresent()
-
-if (!skipNative && !externalLibrary) {
-    tasks.withType(Test).configureEach { dependsOn ':natives:cmakeBuild' }
-}
 
 // ============================================================================
 // Coverage floor

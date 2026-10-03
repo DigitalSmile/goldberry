@@ -355,7 +355,7 @@ class LinuxDependenciesTest {
          * {@code checkToolchain}. A required dependency the check would reject has
          * to be installed here, or CI fails on its own preflight.
          */
-        static final List<String> APT_WORKFLOWS = List.of("showcase.yml", "nightly.yml");
+        static final List<String> APT_WORKFLOWS = List.of("showcase.yml", "nightly.yml", "benchmarks.yml");
 
         /**
          * The release leg. It runs CMake directly inside a manylinux container with

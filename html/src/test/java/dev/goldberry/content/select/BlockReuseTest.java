@@ -43,7 +43,7 @@ import dev.goldberry.widgets.controls.button.Button;
 /// What a keystroke costs a rendered document, as a **count**: a block nobody typed
 /// in keeps its widget, and a keystroke rebuilds one block.
 ///
-/// [dev.goldberry.markdown.view.MarkdownFrameBenchmark] has the
+/// `MarkdownFrameBenchmark` has the
 /// milliseconds and asserts none of them, for the reason every benchmark in this
 /// repository gives: a threshold that passes alone and fails under a parallel build
 /// teaches nobody anything. What holds on any machine is how many blocks were built,

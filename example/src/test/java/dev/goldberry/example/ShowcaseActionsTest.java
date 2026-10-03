@@ -30,7 +30,7 @@ class ShowcaseActionsTest {
     }
 
     /// The two names `BindingBenchmark.showcaseModel` resolves, resolved here
-    /// under `check`. The benchmark is tagged `benchmark` and runs nightly only,
+    /// under `check`. The benchmark is compiled by `check` and runs nightly only,
     /// so when the actions moved into their own record the name it asked for
     /// stopped resolving and the lane was red for a week before anybody read it.
     /// A benchmark's names are resolved under `check`: a count rather than a

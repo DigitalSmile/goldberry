@@ -8,11 +8,11 @@ import dev.goldberry.natives.blend2d.BlendImage;
 
 /// What a `:core` test that actually paints does when there is no rasterizer.
 ///
-/// [dev.goldberry.natives.NativeLibraryRequirement] does this
-/// job in `:natives`, and cannot be reused: it lives in that module's *test*
-/// sources, and the class it asks — `NativeLibrary` — is in the one package
-/// `:natives` deliberately does not export. So the question is asked
-/// the only way an outside module can ask it: by trying.
+/// `NativeLibraryRequirement` does this job in `:natives`, and is not the
+/// answer here: the class it asks — `NativeLibrary` — is in the one package
+/// `:natives` deliberately does not export, and a `:core` test that paints
+/// wants to know whether *Blend2D* answers, not whether a file loaded. So the
+/// question is asked the only way an outside module can ask it: by trying.
 ///
 /// The distinction that matters is between "no library" and "a broken library".
 /// A missing library is an ordinary state on a contributor's machine and skips;

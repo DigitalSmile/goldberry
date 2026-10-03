@@ -92,7 +92,7 @@ class EmojiScreenTest {
 
         /// The same, with a query already typed.
         ///
-        /// Set **before** the tree is built, which is what `FrameBudgetTest`
+        /// Set **before** the tree is built, which is what `FrameBudgetBenchmark`
         /// does with the icon sheet and for the same reason: the screen reads the
         /// query in `build`, and the subscription that rebuilds it on a keystroke
         /// is the binding runtime's — woven in an image, reflective in a jar, and

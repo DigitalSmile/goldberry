@@ -1,0 +1,105 @@
+# The benchmark lane
+# https://goldberry.dev/docs/performance/measuring.html#the-benchmark-lane
+#
+# Every measurement this repository keeps: the JUnit benchmarks under each
+# module's src/benchmark/java, and JMH on :core. They print what something costs
+# and assert almost nothing, so they gate nothing -- no pull request, no push and
+# no snapshot runs them. Nightly calls this workflow when master has moved, and a
+# person starts it from the Actions tab, optionally narrowed to one benchmark:
+#
+#   tests: '*TextAreaFrameBenchmark*'
+#
+# The numbers are read in the log and argued about in prose.
+name: Benchmarks
+
+on:
+  workflow_call:
+    inputs:
+      tests:
+        description: A --tests filter, such as '*FrameBudgetBenchmark*'. Empty runs every benchmark.
+        type: string
+        default: ''
+      jmh:
+        description: Run JMH on :core as well.
+        type: boolean
+        default: true
+  workflow_dispatch:
+    inputs:
+      tests:
+        description: A --tests filter, such as '*FrameBudgetBenchmark*'. Empty runs every benchmark.
+        type: string
+        default: ''
+      jmh:
+        description: Run JMH on :core as well.
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+jobs:
+  benchmarks:
+    name: Benchmarks
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+      - uses: gradle/actions/setup-gradle@v4
+
+      # Gradle's `checkToolchain` needs these before CMake runs, D-Bus, IBus and
+      # udev included. LinuxDependenciesTest holds this list to the table.
+      - name: Install build tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            cmake ninja-build \
+            libx11-dev libxext-dev libxrandr-dev libxcursor-dev libxi-dev \
+            libxfixes-dev libxss-dev libxtst-dev libwayland-dev wayland-protocols \
+            libdecor-0-dev \
+            libxkbcommon-dev xkb-data libegl1-mesa-dev libgles2-mesa-dev \
+            libasound2-dev libpulse-dev libdbus-1-dev libudev-dev \
+            libibus-1.0-dev \
+            libwebkit2gtk-4.1-dev
+
+      # The native library, because every benchmark that shapes text or paints a
+      # frame needs a rasterizer -- without it they skip quietly, which looks
+      # exactly like passing.
+      - name: Build libgoldberry
+        run: ./gradlew :natives:cmakeBuild --no-daemon
+
+      # Compiled first and on its own, so the step that measures runs nothing but
+      # the measurements: a compiler beside a benchmark is a benchmark of both.
+      - name: Compile the benchmarks
+        run: ./gradlew benchmarkClasses --no-daemon
+
+      # One module's benchmarks at a time, whatever org.gradle.parallel says.
+      # `--continue`, so one module's failure does not cost the others' numbers.
+      - name: Run the benchmarks
+        env:
+          TESTS: ${{ inputs.tests }}
+        run: |
+          filter=()
+          if [ -n "$TESTS" ]; then
+            filter=(--tests "$TESTS")
+          fi
+          ./gradlew benchmark "${filter[@]}" --no-daemon --continue
+
+      # JMH on the hot seams that are pure logic. Distinct from the task above,
+      # which measures whole operations against a real rasterizer: this one adds
+      # forks, warm-up and a blackhole, so the number is not an artifact of the JIT
+      # specialising the loop away.
+      - name: JMH
+        if: ${{ inputs.jmh }}
+        run: ./gradlew :core:jmh --no-daemon
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: benchmarks
+          path: |
+            core/build/results/jmh
+            */build/reports/tests/benchmark
+          if-no-files-found: ignore

@@ -9,12 +9,13 @@ plugins {
     // on `weaveModels`, and a module that cannot be woven cannot be imaged.
     id 'goldberry.weave'
     id 'application'
+    // The goldens, the screen tests and the GPU lane rasterize through libgoldberry.
+    id 'goldberry.native-tests'
+    // The category tables the Icons and Emoji sheets are grouped by.
+    id 'goldberry.asset-tool'
 }
 
 description = 'Goldberry showcase: what the toolkit looks like from an application'
-
-// Before the dependencies, which name :natives' test output for the GPU lane.
-evaluationDependsOn(':natives')
 
 dependencies {
     implementation project(':core')
@@ -50,9 +51,9 @@ dependencies {
     // be checked as pictures the way the catalog is.
     testImplementation testFixtures(project(':core'))
 
-    // :natives' GPU test helpers: the device requirement and the launcher that
+    // :natives' GPU test fixtures: the device requirement and the launcher that
     // runs the GPU lane on the first thread (`gpuTest` below).
-    testImplementation rootProject.project(':natives').sourceSets.test.output
+    testImplementation testFixtures(project(':natives'))
     testImplementation libs.junit.platform.launcher
 
     // On the *test* classpath as well as the runtime one, for
@@ -81,64 +82,23 @@ dependencies {
 // another module also writes is a split package and a showcase that will not
 // open.
 // ============================================================================
-configurations {
-    assetTool
-}
+assetTool.catalogs('dev/goldberry/example/catalog')
 
-dependencies {
-    assetTool project(':assets')
-}
-
-def assetCache = layout.settingsDirectory.dir('.gradle/assets')
-def catalogResources = layout.buildDirectory.dir('generated/catalogs')
-
-def prepareCatalogs = tasks.register('prepareCatalogs', JavaExec) {
-    group = 'assets'
-    description = 'Compiles the icon categories and emoji groups the showcase sheets are grouped by.'
-
-    classpath = configurations.assetTool
-    mainClass = 'dev.goldberry.assets.prepare.PrepareCatalogs'
-    args assetCache.asFile.absolutePath,
-            catalogResources.get().dir('dev/goldberry/example/catalog').asFile.absolutePath
-
-    inputs.files configurations.assetTool
-    outputs.dir catalogResources
-
-    doFirst {
-        delete catalogResources
-    }
-}
-
-sourceSets.main.resources.srcDir(prepareCatalogs.map { catalogResources.get() })
-
-/// Vendors Unicode's licence into licenses/, for the emoji groups the showcase
-/// compiles out of `emoji-test.txt`.
-tasks.register('vendorLicences', JavaExec) {
-    group = 'assets'
-    description = 'Copies the Unicode licence into licenses/.'
-
-    classpath = configurations.assetTool
-    mainClass = 'dev.goldberry.assets.prepare.PrepareAssets'
-    args assetCache.asFile.absolutePath,
-            layout.buildDirectory.dir('generated/unused').get().asFile.absolutePath,
-            rootProject.layout.projectDirectory.dir('licenses').asFile.absolutePath,
-            '--only=unicode-emoji',
-            '--root=dev/goldberry/example'
-}
+// Unicode's licence, for the emoji groups the showcase compiles out of
+// `emoji-test.txt`. Run by hand and committed.
+assetTool.licences('unicode-emoji', 'dev/goldberry/example')
 
 // Where a locally built libgoldberry lives, for a run straight from the source
 // tree. A released application gets the library from a classifier jar instead
 // and needs none of this.
 //
-// Taken from :natives rather than derived again here. This file used to carry
-// its own copy of the host-target detection -- a looser one, which guessed
-// `linux` for anything it did not recognise where :natives raises. Three copies
-// of that logic is two too many, and the failure mode is silent: the showcase
-// would look for a library in a directory the superbuild never writes to.
-evaluationDependsOn(':natives')
-
-def hostTarget = project(':natives').ext.hostNativeTargetId
-def hostLibrary = project(':natives').ext.hostNativeLibrary.get().asFile
+// From build-logic's one table of targets rather than derived again here. This
+// file used to carry its own copy of the host-target detection -- a looser one,
+// which guessed `linux` for anything it did not recognise -- and the failure mode
+// is silent: the showcase would look for a library in a directory the superbuild
+// never writes to.
+def hostTarget = nativeTests.host.id()
+def hostLibrary = nativeTests.host.localLibrary(layout.settingsDirectory.asFile.toPath()).toFile()
 
 application {
     mainClass = 'dev.goldberry.example.Showcase'
@@ -197,70 +157,14 @@ tasks.named('test') {
             .withPathSensitivity(PathSensitivity.RELATIVE)
 }
 
-def gpuTest = tasks.register('gpuTest', JavaExec) {
-    group = 'verification'
-    description = 'Runs the showcase\'s GPU tests on the JVM\'s first thread, as macOS needs.'
-    classpath = sourceSets.test.runtimeClasspath
-    mainClass = 'dev.goldberry.natives.sdl.gpu.GpuTestLauncher'
-    jvmArgs '--enable-native-access=ALL-UNNAMED'
-    if (project(':natives').ext.hostNativeTargetId.startsWith('macos-')) {
-        jvmArgs '-XstartOnFirstThread'
-    }
-    systemProperty 'goldberry.native.library',
-            providers.systemProperty('goldberry.native.library')
-                    .orElse(providers.provider { hostLibrary.absolutePath })
-                    .get()
-    ['goldberry.native.required', 'goldberry.gpu.required', 'goldberry.gpu.videoDriver',
-     'goldberry.golden.update'].each { name ->
-        var value = providers.systemProperty(name).orElse(providers.gradleProperty(name))
-        if (value.present) {
-            systemProperty name, value.get()
-        }
-    }
-    def summary = layout.buildDirectory.file('gpu-test/summary.txt')
-    inputs.files(sourceSets.test.runtimeClasspath).withPropertyName('testClasspath')
-    outputs.file(summary)
-    argumentProviders.add({
-        [summary.get().asFile.absolutePath, 'dev.goldberry.example']
-    } as CommandLineArgumentProvider)
-}
+nativeTests.gpuTests('dev.goldberry.example')
 
-tasks.named('check') {
-    dependsOn gpuTest
-}
-
-// `benchmark` as well as `test`: the benchmarks rasterize too, and without the
-// library every one of them skipped -- FrameBudgetTest reported six skips on
-// every nightly run and nobody read a table that was never printed. The no-web-
-// view and no-FFmpeg settings below apply to it for the same reason they apply
-// to the goldens: a measurement should not depend on what this machine installed.
-['test', 'benchmark'].each { taskName -> tasks.named(taskName) {
-    def explicit = providers.systemProperty('goldberry.native.library')
-            .orElse(providers.gradleProperty('goldberry.native.library'))
-    if (explicit.present) {
-        systemProperty 'goldberry.native.library', explicit.get()
-    } else if (hostLibrary.isFile()) {
-        systemProperty 'goldberry.native.library', hostLibrary.absolutePath
-    }
-
-    // Forwarded for the same reason the run task forwards it: a golden that has
-    // to be rewritten is rewritten by a property, and one that stopped at the
-    // Gradle daemon would look like a test that refuses to update. The scale
-    // settings ride along for the scale sweep, which is a property too.
-    // `goldberry.trace.frames` rides along for the same reason: it is read into a
-    // `static final` when the renderer's classes initialise, so a property that
-    // stopped at the Gradle daemon would silently trace nothing -- and the two
-    // defects that probe exists for -- a handed-down style losing its identity,
-    // and a state invalidating less than it reaches -- were both found from a
-    // test rather than from a window.
-    ['goldberry.golden.update', 'goldberry.golden.scales',
-     'goldberry.golden.scales.report', 'goldberry.trace.frames'].each { name ->
-        var value = providers.systemProperty(name).orElse(providers.gradleProperty(name))
-        if (value.present) {
-            systemProperty name, value.get()
-        }
-    }
-
+// Every test task, `benchmark` as well as `test`: the benchmarks rasterize too,
+// and the no-web-view and no-FFmpeg settings below apply to them for the same
+// reason they apply to the goldens -- a measurement should not depend on what
+// this machine installed. The library itself, and the golden and trace switches,
+// are `goldberry.native-tests`' business.
+tasks.withType(Test).configureEach {
     // No web view, on purpose, for every test in this module.
     //
     // The Web screen photographs a CAPABILITY, and that is the one thing a golden
@@ -287,7 +191,7 @@ tasks.named('check') {
     // "not available" branch.
     systemProperty 'goldberry.media.libdir', layout.buildDirectory
             .dir('no-such-ffmpeg').get().asFile.absolutePath
-} }
+}
 
 tasks.named('run') {
     // FFmpeg for the Media screen: an explicit directory wins, else what
@@ -295,8 +199,7 @@ tasks.named('run') {
     // says FFmpeg is not available, which is a supported state.
     def mediaLibdir = providers.systemProperty('goldberry.media.libdir')
             .orElse(providers.gradleProperty('goldberry.media.libdir'))
-    def builtFfmpeg = project(':media').layout.buildDirectory
-            .dir("ffmpeg/${hostTarget}/install/lib").get().asFile
+    def builtFfmpeg = nativeTests.host.localFfmpeg(layout.settingsDirectory.asFile.toPath()).toFile()
     if (mediaLibdir.present) {
         systemProperty 'goldberry.media.libdir', mediaLibdir.get()
     } else if (builtFfmpeg.isDirectory()) {
@@ -538,22 +441,23 @@ def imageName = "goldberry-showcase-${hostTarget}"
 // **classpath** (not its module path: nothing `requires` it, so module
 // resolution would leave it out) and `NativeLibrary` finds it there with the
 // code it already has.
-def nativesTaskSuffix = hostTarget.split('-').collect { it.capitalize() }.join('')
-def nativesJarTask = ":natives:nativeJar${nativesTaskSuffix}"
+configurations {
+    hostNatives {
+        canBeConsumed = false
+        canBeResolved = true
+        description = 'libgoldberry for this machine, as the classifier jar the image carries.'
+    }
+}
+
+dependencies {
+    hostNatives project(path: ':natives', configuration: 'hostNativesJar')
+}
 
 // The jar packages whatever is in :natives' artifacts directory, which CI fills
-// by downloading each platform's build. Locally nothing fills it
-// unless `stageHostArtifact` runs, so an image built from a source tree asks for
-// both -- and in that order, which `dependsOn` alone does not promise.
-//
-// The ordering is declared from here rather than by making `nativeJar` depend on
-// staging, because that dependency would be wrong in CI: the Linux legs build
-// inside the manylinux container and download the result, and a `cmakeBuild` on
-// the runner would produce a different binary against a different glibc.
+// by downloading each platform's build. Locally nothing fills it unless
+// `stageHostArtifact` runs, so an image built from a source tree asks for it;
+// :natives orders its jar after the staging.
 def nativesStageTask = ':natives:stageHostArtifact'
-project(':natives').tasks.named("nativeJar${nativesTaskSuffix}").configure {
-    mustRunAfter nativesStageTask
-}
 
 tasks.register('nativeImage', Exec) {
     group = 'distribution'
@@ -567,12 +471,10 @@ tasks.register('nativeImage', Exec) {
     // And the library, staged out of this machine's build and packaged as the
     // resource the image will carry.
     dependsOn nativesStageTask
-    dependsOn nativesJarTask
 
     def runtimeClasspath = configurations.runtimeClasspath
     def appJar = tasks.named('jar').flatMap { it.archiveFile }
-    def nativesJar = project(':natives').tasks.named(
-            "nativeJar${nativesTaskSuffix}").flatMap { it.archiveFile }
+    def nativesJar = configurations.hostNatives
     def target = imageDirNative
 
     inputs.files(nativesJar)
@@ -600,7 +502,7 @@ tasks.register('nativeImage', Exec) {
                 // path nothing would `require` it and resolution would drop it;
                 // on the class path it is exactly what a released application
                 // sees, which is the arrangement NativeLibrary was written for.
-                '-cp', nativesJar.get().asFile.absolutePath,
+                '-cp', nativesJar.singleFile.absolutePath,
                 '--module', "${appModule}/dev.goldberry.example.Showcase",
                 '-o', new File(target.get().asFile, imageName).absolutePath,
                 // JEP 472, the same module the jar names.

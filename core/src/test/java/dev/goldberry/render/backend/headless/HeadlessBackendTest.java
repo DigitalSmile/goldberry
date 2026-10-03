@@ -18,6 +18,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 
+import dev.goldberry.junit.TimeBudget;
 import dev.goldberry.render.BackendException;
 import dev.goldberry.render.DamageRect;
 import dev.goldberry.render.PixelBuffer;
@@ -365,14 +366,17 @@ class HeadlessBackendTest {
         var window = (HeadlessWindow) backend.createWindow(SPEC);
         window.requestFrame();
 
+        var timeout = Duration.ofSeconds(5);
         var start = System.nanoTime();
-        var delivered = backend.pumpEvents(event -> {}, Duration.ofSeconds(5));
+        var delivered = backend.pumpEvents(event -> {}, timeout);
         var elapsed = Duration.ofNanos(System.nanoTime() - start);
 
         assertEquals(1, delivered);
-        assertTrue(
-                elapsed.toMillis() < 1_000,
-                () -> "the pump waited " + elapsed.toMillis() + "ms with a frame already requested");
+        // Promptly means well short of the timeout the bug sat out, with room
+        // for a loaded runner; no slack lets it reach the timeout itself.
+        TimeBudget.of(Duration.ofSeconds(2))
+                .shortOf(timeout)
+                .assertWithin(elapsed, "the pump with a frame already requested");
     }
 
     @Test

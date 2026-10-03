@@ -31,6 +31,8 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
+import dev.goldberry.junit.TimeBudget;
+
 /// `HttpIO` against a local server: Range, the read-ahead cache, reconnects,
 /// stalls, timeouts, ICY, and the abort.
 ///
@@ -274,11 +276,14 @@ class HttpIOTest {
             server.status = 404;
             var started = System.nanoTime();
             // Eight attempts would take over 6 s of backoff; the 404 that answers
-            // the first is final.
+            // the first is final. The request count says so exactly; the clock
+            // only has to say it did not wait the backoff out.
             var failure = assertThrows(HttpStatusException.class, () -> readAll(io));
             assertEquals(404, failure.status());
             assertEquals(2, server.requests().size());
-            assertTrue(System.nanoTime() - started < TimeUnit.SECONDS.toNanos(3));
+            TimeBudget.of(Duration.ofSeconds(4))
+                    .shortOf(Duration.ofSeconds(6))
+                    .assertWithin(Duration.ofNanos(System.nanoTime() - started), "failing on a 404");
         }
 
         @Test
@@ -294,9 +299,13 @@ class HttpIOTest {
             var started = System.nanoTime();
             assertThrows(HttpTimeoutException.class, () -> read(io, 10));
             var waited = Duration.ofNanos(System.nanoTime() - started);
-            assertTrue(waited.compareTo(timeout) >= 0, () -> "gave up after " + waited);
+            // At least the timeout, less a tick of a coarse clock: Windows' timer
+            // advances in steps of about 16 ms.
+            assertTrue(waited.compareTo(timeout.minusMillis(50)) >= 0, () -> "gave up after " + waited);
             // Well short of the 30 s stall timeout and the server's 30 s stall.
-            assertTrue(waited.compareTo(Duration.ofSeconds(10)) < 0, () -> "waited " + waited);
+            TimeBudget.of(Duration.ofSeconds(10))
+                    .shortOf(Duration.ofSeconds(30))
+                    .assertWithin(waited, "a read past its timeout");
         }
 
         @Test

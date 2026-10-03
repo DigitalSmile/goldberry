@@ -25,7 +25,7 @@ class RepositoryTest {
     }
 
     @ParameterizedTest(name = "{0}")
-    @ValueSource(strings = {"showcase.yml", "linux.yml", "nightly.yml"})
+    @ValueSource(strings = {"showcase.yml", "linux.yml", "nightly.yml", "benchmarks.yml"})
     @DisplayName("hands a workflow over with no carriage return, whatever the checkout did")
     void workflowsAreLineFeedOnly(String name) {
         var text = Repository.workflow(name);

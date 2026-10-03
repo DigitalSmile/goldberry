@@ -12,7 +12,6 @@ import java.time.temporal.ChronoUnit;
 import java.util.List;
 
 import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 /// Where the labels go on a time axis.
@@ -267,31 +266,5 @@ class TimeTicksTest {
         assertTrue(
                 labelling.values().size() <= 8,
                 "expected about five labels, got " + labelling.values().size());
-    }
-
-    /// `TicksTest.isFastEnoughForAFrame`'s reason, for the same search: a clock
-    /// is not a count, so this runs under `./gradlew benchmark`. What `check`
-    /// holds instead is [#theTopOfTheLadder] above, which bounds the *answer* on
-    /// a span of centuries.
-    @Test
-    @Tag("benchmark")
-    @DisplayName("it is fast enough to run once per axis per frame")
-    void aMillisecondWouldBeAThirdOfAFrame() {
-        var from = utc("2026-01-01T00:00:00Z");
-        var to = utc("2026-12-31T00:00:00Z");
-        for (var i = 0; i < 200; i++) {
-            TimeTicks.of(from, to, 6, UTC);
-        }
-
-        var started = System.nanoTime();
-        for (var i = 0; i < 1000; i++) {
-            TimeTicks.of(from, to, 6, UTC);
-        }
-        var each = (System.nanoTime() - started) / 1000.0;
-
-        // The same bound `Ticks` is held to, and for the same reason: this runs
-        // per axis per frame, and a millisecond would be a third of a frame's
-        // budget.
-        assertTrue(each < 200_000, "a labelling took " + (each / 1000) + " µs");
     }
 }

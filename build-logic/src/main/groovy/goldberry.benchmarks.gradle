@@ -1,0 +1,81 @@
+import dev.goldberry.build.benchmark.BenchmarkLane
+
+// ============================================================================
+// The benchmark lane
+// https://goldberry.dev/docs/performance/measuring.html#the-benchmark-lane
+//
+// A benchmark is a JUnit class under src/benchmark/java, and a probe is a `main`
+// beside it. They print what something costs and assert almost nothing, because
+// a timing assertion on shared CI hardware fails for reasons that have nothing to
+// do with the code. So they live in a source set of their own rather than in the
+// test tree under a tag:
+//
+//  - `check` compiles them and never runs them. A benchmark whose scaffolding no
+//    longer compiles is found on the commit that broke it, not at night.
+//  - `./gradlew benchmark` runs every module's, one module at a time.
+//  - The Benchmarks workflow runs that, nightly and by hand.
+//
+// They see the module's test classes as well as its main ones -- a benchmark is
+// built from the same fixtures the tests are -- and nothing in the test tree
+// sees them.
+// ============================================================================
+
+plugins {
+    id 'java'
+}
+
+def benchmarks = sourceSets.create(BenchmarkLane.SOURCE_SET) {
+    compileClasspath += sourceSets.main.output + sourceSets.test.output
+    runtimeClasspath += sourceSets.main.output + sourceSets.test.output
+}
+
+configurations {
+    benchmarkImplementation.extendsFrom testImplementation
+    benchmarkCompileOnly.extendsFrom testCompileOnly
+    benchmarkRuntimeOnly.extendsFrom testRuntimeOnly
+}
+
+// `testClasses` and not only the compiled test classes: the weaver declares a
+// test tree's widget catalog on that lifecycle task, and a benchmark that mounts
+// a test widget needs the catalog as much as a test does.
+tasks.named(benchmarks.compileJavaTaskName) {
+    dependsOn tasks.named('testClasses')
+}
+
+// One benchmark task at a time across the whole build. Two measured at once
+// measure each other.
+def oneAtATime = gradle.sharedServices.registerIfAbsent(BenchmarkLane.SERVICE, BenchmarkLane.OneAtATime) {
+    maxParallelUsages = 1
+}
+
+tasks.register(BenchmarkLane.TASK, Test) {
+    group = BenchmarkLane.GROUP
+    description = 'Runs the benchmarks, which print measurements rather than asserting them.'
+
+    testClassesDirs = benchmarks.output.classesDirs
+    classpath = benchmarks.runtimeClasspath
+    useJUnitPlatform()
+    usesService(oneAtATime)
+
+    // `./gradlew benchmark --tests '*Text*'` names a class in one module, and
+    // every other module's task is given the same filter. And a module whose
+    // source set holds only probes -- `main`s, run by a task of their own -- has
+    // classes and no benchmark, which is not a misconfiguration.
+    filter {
+        failOnNoMatchingTests = false
+    }
+    failOnNoDiscoveredTests = false
+    // The numbers are the whole output, so they have to reach the console.
+    testLogging {
+        events 'started', 'passed', 'failed', 'skipped'
+        showStandardStreams = true
+        exceptionFormat = 'full'
+    }
+    // Never up to date: a benchmark whose result is cached from last week is
+    // worse than no benchmark.
+    outputs.upToDateWhen { false }
+}
+
+tasks.named('check') {
+    dependsOn tasks.named(benchmarks.classesTaskName)
+}

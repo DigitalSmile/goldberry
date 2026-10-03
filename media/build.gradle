@@ -1,5 +1,7 @@
 import dev.goldberry.build.ToolResolver
+import dev.goldberry.build.natives.NativeTarget
 import dev.goldberry.build.publish.CorrespondingSource
+import dev.goldberry.build.toolchain.ToolLookup
 import dev.goldberry.build.publish.UpstreamSource
 import org.apache.tools.ant.filters.ReplaceTokens
 
@@ -14,14 +16,11 @@ plugins {
     // classifiers, below -- because a goldberry-media with no FFmpeg to load is a
     // jar that fails on every machine that adds it.
     id 'goldberry.publish'
+    // The SDL audio sink's tests load libgoldberry.
+    id 'goldberry.native-tests'
 }
 
 description = 'Goldberry media: audio and video playback over FFmpeg, driven from Java'
-
-// The GPU lane's test helpers are :gpu's and :natives' test classes, so both
-// are configured before this module's dependencies name their source sets.
-evaluationDependsOn(':natives')
-evaluationDependsOn(':gpu')
 
 // ============================================================================
 // goldberry-media
@@ -61,10 +60,10 @@ dependencies {
     // The tests see :gpu, as an application that ships it does: the GPU path
     // where a frame has a GPU surface, and the CPU path everywhere else.
     // `gpuTest` below draws video on a real device with :gpu's harness, and
-    // runs on :natives' first-thread launcher.
+    // runs on :natives' first-thread launcher; both are test fixtures.
     testImplementation project(':gpu')
-    testImplementation rootProject.project(':gpu').sourceSets.test.output
-    testImplementation rootProject.project(':natives').sourceSets.test.output
+    testImplementation testFixtures(project(':gpu'))
+    testImplementation testFixtures(project(':natives'))
     testImplementation libs.junit.platform.launcher
 }
 
@@ -81,10 +80,12 @@ dependencies {
 //
 // and the tests below find the result by themselves.
 // ============================================================================
-def hostTargetId = project(':natives').ext.hostNativeTargetId
+def hostTarget = nativeTests.host
+def hostTargetId = hostTarget.id()
 def superbuildSource = layout.projectDirectory.dir('src/main/cmake')
 def superbuildWorkDir = layout.buildDirectory.dir("ffmpeg/${hostTargetId}/cmake")
-def superbuildInstallDir = layout.buildDirectory.dir("ffmpeg/${hostTargetId}/install")
+// `NativeTarget.ffmpegInstallDir()`, which is where :example's `run` looks too.
+def superbuildInstallDir = layout.buildDirectory.dir(hostTarget.ffmpegInstallDir())
 def catalogFile = rootProject.layout.projectDirectory.file('gradle/libs.versions.toml')
 
 // Outside build/, like :natives' clones, so `clean` does not throw away a
@@ -96,19 +97,8 @@ def depsDir = providers.gradleProperty('goldberry.media.depsDir')
 // Every tool by absolute path, for the reason :natives gives: a
 // Gradle daemon started by an IDE carries launchd's PATH forever, and a tool the
 // check can see must be the tool the build runs.
-def toolPath = providers.environmentVariable('PATH')
-        .orElse(providers.environmentVariable('Path'))
-        .getOrElse('')
-def resolveTool = { String name ->
-    def override = providers.gradleProperty("goldberry.${name}")
-            .orElse(providers.systemProperty("goldberry.${name}"))
-    var found = ToolResolver.resolve(
-            override.getOrElse(name),
-            toolPath,
-            System.getProperty('os.name', ''),
-            System.getProperty('user.home', ''))
-    return found.isPresent() ? found.get().toFile() : null
-}
+def tools = ToolLookup.from(providers)
+def resolveTool = { String name -> tools.fileOrNull(name) }
 
 def superbuildTools = [
         cmake       : resolveTool('cmake'),
@@ -227,7 +217,7 @@ tasks.register('ffmpegBuild', Exec) {
 // install directory; any target reads `-Pgoldberry.media.artifactsDir=<dir>/<id>`
 // when CI hands over what every runner built.
 // ============================================================================
-def mediaTargets = ['linux-x64', 'linux-aarch64', 'windows-x64', 'macos-aarch64']
+def mediaTargets = NativeTarget.ALL.collect { it.id() }
 def mediaArtifactsDir = providers.gradleProperty('goldberry.media.artifactsDir').map { file(it) }
 def taskSuffix = { String id -> id.split('-').collect { it.capitalize() }.join('') }
 
@@ -480,19 +470,11 @@ def libraryDirectory = providers.systemProperty('goldberry.media.libdir')
         .orElse(providers.gradleProperty('goldberry.media.libdir'))
         .orElse(superbuildInstallDir.map { it.dir('lib').asFile.absolutePath })
 
-def hostNativeLibrary = project(':natives').ext.hostNativeLibrary
-def externalNativeLibrary = providers.systemProperty('goldberry.native.library')
 def skipNative = providers.gradleProperty('goldberry.skipNative').map { Boolean.parseBoolean(it) }.getOrElse(false)
 
+// libgoldberry, JEP 472 and the forwarded properties come from
+// `goldberry.native-tests`; FFmpeg is this module's own.
 tasks.withType(Test).configureEach {
-    // JEP 472, for the upcall stubs and the library lookups. ALL-UNNAMED because
-    // whitebox tests run on the class path.
-    jvmArgs '--enable-native-access=ALL-UNNAMED'
-
-    // libgoldberry, for the SDL audio sink's tests: the library this build
-    // produced, as :html's tests take it.
-    systemProperty 'goldberry.native.library',
-            externalNativeLibrary.orElse(hostNativeLibrary.map { it.asFile.absolutePath }).get()
     // SDL's dummy driver: it consumes audio in real time and plays nothing, so the
     // tests are silent, and they run on a CI runner with no sound card.
     environment 'SDL_AUDIO_DRIVER', 'dummy'
@@ -501,24 +483,6 @@ tasks.withType(Test).configureEach {
     // directory and FFmpeg is found on the class path.
     if (name != 'testNativesJar') {
         systemProperty 'goldberry.media.libdir', libraryDirectory.get()
-    }
-
-    // A golden that has to be rewritten is rewritten by a property, forwarded as
-    // :html forwards it.
-    ['goldberry.golden.update', 'goldberry.golden.scales', 'goldberry.golden.scales.report'].each { name ->
-        var value = providers.systemProperty(name).orElse(providers.gradleProperty(name))
-        if (value.present) {
-            systemProperty name, value.get()
-        }
-    }
-    // `goldberry.platform.required` does for the system decoders what
-    // `goldberry.media.required` does for FFmpeg, for a job whose purpose is
-    // them: each system's tests fail on that system only.
-    ['goldberry.media.required', 'goldberry.platform.required'].each { name ->
-        var value = providers.systemProperty(name).orElse(providers.gradleProperty(name))
-        if (value.present) {
-            systemProperty name, value.get()
-        }
     }
 
     // The libraries are an input, so a rebuilt FFmpeg re-runs the tests rather
@@ -548,39 +512,14 @@ tasks.named('test') {
 // Cocoa needs for a Metal device. Without a device the tests skip,
 // unless -Pgoldberry.gpu.required=true says the lane has one.
 // ============================================================================
-def gpuTest = tasks.register('gpuTest', JavaExec) {
-    group = 'verification'
-    description = 'Runs this module\'s GPU tests on the JVM\'s first thread, as macOS needs.'
-    classpath = sourceSets.test.runtimeClasspath
-    mainClass = 'dev.goldberry.natives.sdl.gpu.GpuTestLauncher'
-    jvmArgs '--enable-native-access=ALL-UNNAMED'
-    if (hostTargetId.startsWith('macos-')) {
-        jvmArgs '-XstartOnFirstThread'
-    }
+nativeTests.gpuTests('dev.goldberry.media').configure {
     environment 'SDL_AUDIO_DRIVER', 'dummy'
-    systemProperty 'goldberry.native.library',
-            externalNativeLibrary.orElse(hostNativeLibrary.map { it.asFile.absolutePath }).get()
     systemProperty 'goldberry.media.libdir', libraryDirectory.get()
-    ['goldberry.native.required', 'goldberry.gpu.required', 'goldberry.gpu.videoDriver',
-     'goldberry.golden.update', 'goldberry.media.required'].each { name ->
-        var value = providers.systemProperty(name).orElse(providers.gradleProperty(name))
-        if (value.present) {
-            systemProperty name, value.get()
-        }
-    }
-    def summary = layout.buildDirectory.file('gpu-test/summary.txt')
-    inputs.files(sourceSets.test.runtimeClasspath).withPropertyName('testClasspath')
     inputs.files(providers.provider {
         var directory = file(libraryDirectory.get())
         directory.isDirectory() ? fileTree(directory) : files()
     }).withPropertyName('ffmpegLibraries').optional()
-    outputs.file(summary)
-    argumentProviders.add({
-        [summary.get().asFile.absolutePath, 'dev.goldberry.media']
-    } as CommandLineArgumentProvider)
 }
-
-tasks.named('check') { dependsOn gpuTest }
 
 // The 4K60 run: a minute of 4K60 VP9 on the
 // platform's video engine, shown by a video-view in a real, composited window.
@@ -595,19 +534,11 @@ dependencies {
     add('probeRuntime', libs.logback.classic)
 }
 
-tasks.register('videoPresentProbe', JavaExec) {
-    group = 'verification'
-    description = 'Plays a minute of 4K60 video in a window and reports dropped pictures and CPU time.'
-    classpath = sourceSets.test.runtimeClasspath + probeRuntime
-    mainClass = 'dev.goldberry.media.view.VideoPresentProbe'
+nativeTests.probe('videoPresentProbe', 'dev.goldberry.media.view.VideoPresentProbe',
+        'Plays a minute of 4K60 video in a window and reports dropped pictures and CPU time.').configure {
+    classpath += probeRuntime
     workingDir = projectDir
-    systemProperty 'logback.configurationFile', file('src/test/probe/logback.xml').absolutePath
-    jvmArgs '--enable-native-access=ALL-UNNAMED'
-    if (hostTargetId.startsWith('macos-')) {
-        jvmArgs '-XstartOnFirstThread'
-    }
-    systemProperty 'goldberry.native.library',
-            externalNativeLibrary.orElse(hostNativeLibrary.map { it.asFile.absolutePath }).get()
+    systemProperty 'logback.configurationFile', file('src/benchmark/probe/logback.xml').absolutePath
     systemProperty 'goldberry.media.libdir', libraryDirectory.get()
     systemProperty 'goldberry.log.level', providers.gradleProperty('goldberry.log.level').getOrElse('info')
     ['goldberry.probe.clip', 'goldberry.gpu', 'goldberry.gpu.composite'].each { name ->
@@ -616,7 +547,6 @@ tasks.register('videoPresentProbe', JavaExec) {
             systemProperty name, value.get()
         }
     }
-    outputs.upToDateWhen { false }
 }
 
 // The same tests with no :gpu on the class path, as an application that ships
@@ -627,7 +557,7 @@ def testWithoutGpu = tasks.register('testWithoutGpu', Test) {
     group = 'verification'
     description = 'Runs the tests with :gpu off the class path, as an application without it.'
     testClassesDirs = sourceSets.test.output.classesDirs
-    def gpuBuild = rootProject.project(':gpu').layout.buildDirectory.get().asFile.toPath()
+    def gpuBuild = layout.settingsDirectory.dir('gpu/build').asFile.toPath()
     classpath = sourceSets.test.runtimeClasspath.filter { !it.toPath().startsWith(gpuBuild) }
     useJUnitPlatform { excludeTags 'natives-jar', 'gpu' }
     // The GPU lane's class names :gpu's types in its methods' signatures, and
@@ -672,8 +602,11 @@ tasks.withType(JacocoReportBase).configureEach { dependsOn testNativesJar, 'test
 //
 // Measured with FFmpeg loaded on 2026-09-23, after phase 6: 89.5% of lines,
 // 78.9% of branches (phase 3 closed at 88.9% and 77.1%, phase 2 at 85.9% and
-// 74.4%).
-// The floor sits just under both, as :html's does. Without FFmpeg every native
+// 74.4%), and 90.0% and 79.9% on 2026-10-03.
+// The floor sits four points under the lines and six under the branches. It sat
+// one under, and that was too close for this module of all of them: which of
+// its tests run depends on the machine's decoders -- a hardware path, a system
+// codec -- so the same commit measures differently on two runners. Without FFmpeg every native
 // test skips and the figure falls by a third, a gate no Java-only build could
 // pass, so it applies only where the libraries are there -- `:html`'s condition,
 // for this module's library. What is left uncovered is mostly the
@@ -697,7 +630,7 @@ def platformRequired = providers.gradleProperty('goldberry.platform.required')
         .map { Boolean.parseBoolean(it) }
         .getOrElse(false)
 def uncountedSystems = ['linux', 'macos', 'windows'].findAll { !(platformRequired && it == hostSystem) }
-def runHasLibgoldberry = !skipNative || (externalNativeLibrary.isPresent() && new File(externalNativeLibrary.get()).isFile())
+def runHasLibgoldberry = !skipNative || nativeTests.explicitLibrary.map { new File(it).isFile() }.orElse(false)
 
 tasks.named('jacocoTestCoverageVerification', JacocoCoverageVerification) {
     onlyIf('FFmpeg is built for this machine') {
@@ -711,15 +644,8 @@ tasks.named('jacocoTestCoverageVerification', JacocoCoverageVerification) {
     })
     violationRules {
         rule {
-            limit { counter = 'LINE'; minimum = 0.88 }
-            limit { counter = 'BRANCH'; minimum = 0.77 }
+            limit { counter = 'LINE'; minimum = 0.86 }
+            limit { counter = 'BRANCH'; minimum = 0.74 }
         }
     }
-}
-
-// The SDL sink's tests need libgoldberry, and must run against the one this
-// build made; the same wiring :html has.
-if (!skipNative && !externalNativeLibrary.isPresent()) {
-    tasks.withType(Test).configureEach { dependsOn ':natives:cmakeBuild' }
-    gpuTest.configure { dependsOn ':natives:cmakeBuild' }
 }

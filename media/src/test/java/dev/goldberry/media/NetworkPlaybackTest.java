@@ -13,7 +13,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 import java.util.function.BooleanSupplier;
 import java.util.function.Predicate;
 
@@ -24,6 +23,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import dev.goldberry.junit.TimeBudget;
 import dev.goldberry.media.audio.AudioFormat;
 import dev.goldberry.media.audio.VirtualSink;
 import dev.goldberry.media.io.HttpIO;
@@ -354,14 +354,19 @@ class NetworkPlaybackTest {
         server = new TestHttpServer(Wav.sine(RATE, 2, RATE, 440, 12_000));
         // The headers arrive; the bytes never do.
         server.stallAt = 0;
-        var options = HttpIO.Options.DEFAULT.withStallTimeout(Duration.ofSeconds(30));
+        var stall = Duration.ofSeconds(30);
+        var options = HttpIO.Options.DEFAULT.withStallTimeout(stall);
         open(server.uri("clip.wav"), true, Duration.ofMillis(500), List.of(new QuickHttp(options)));
         sleep(200);
         assertEquals(PlaybackState.OPENING, player.status().state());
         var started = System.nanoTime();
         player.close();
         player = null;
-        assertTrue(System.nanoTime() - started < TimeUnit.SECONDS.toNanos(2));
+        // At once means well short of the stall timeout a close that waited
+        // for the read would sit out.
+        TimeBudget.of(Duration.ofSeconds(5))
+                .shortOf(stall)
+                .assertWithin(Duration.ofNanos(System.nanoTime() - started), "closing while opening");
     }
 
     @Test

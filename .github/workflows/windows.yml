@@ -2,8 +2,14 @@
 # https://goldberry.dev/docs/contributing/testing.html#the-ci-matrix
 #
 # One target, `windows-x64`. Windows on ARM was dropped from the matrix;
-# MSVC would cross-target it with `-A ARM64` from this same runner if
-# it ever comes back.
+# MSVC would cross-target it from this same runner if it ever comes back.
+#
+# **One job**, for macos.yml's reason: Gradle builds libgoldberry with the
+# arguments `natives/build.gradle` holds -- Ninja and MSVC, handed `cl` by
+# absolute path -- and then runs the whole build against it. The library that
+# passed the tests is the one uploaded. This is the job that earns its keep for
+# the bindings: Win64's C `long` is 4 bytes where every other target has 8, and
+# the layout probe is what checks the hand-written layouts model it.
 #
 # `workflow_call` is what lets publish.yml reuse this without duplicating it --
 # and on a push to master that is the only way this runs. There is no `push`
@@ -31,13 +37,11 @@ defaults:
 
 # Upstream refs are deliberately absent. The superbuild reads them straight out
 # of gradle/libs.versions.toml, which is the only place any of them is written
-# down. They used to be duplicated here because the manylinux
-# container has no JDK -- but reading the catalog never needed a JDK, only
-# something that can parse a text file, and CMake can.
+# down.
 
 jobs:
-  java:
-    name: Java
+  build:
+    name: Build and test (windows-x64)
     runs-on: windows-2022
     steps:
       - uses: actions/checkout@v4
@@ -46,109 +50,67 @@ jobs:
           distribution: temurin
           java-version: '25'
       - uses: gradle/actions/setup-gradle@v4
-      - run: ./gradlew build -Pgoldberry.skipNative=true --no-daemon
 
-  natives:
-    name: libgoldberry (windows-x64)
-    runs-on: windows-2022
-    steps:
-      - uses: actions/checkout@v4
+      # Windows carries MSVC, CMake and Ninja already, but `cl` is only on the
+      # PATH inside a Developer Command Prompt. Without it CMake's Ninja generator
+      # takes MinGW's `cc`, and `checkToolchain` refuses to build with that.
+      # https://goldberry.dev/docs/contributing/building.html#windows
+      - name: Install build tools
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
 
-      - name: Configure
-        run: |
-          cmake -S natives/src/main/cmake -B build/native \
-            -G "Visual Studio 17 2022" -A x64 \
-            -DCMAKE_BUILD_TYPE=Release \
-            -DCMAKE_INSTALL_PREFIX="$PWD/build/install" \
-            -DGOLDBERRY_TARGET_ID=windows-x64
+      # The seven upstream clones, keyed on the catalog that pins them. Only the
+      # sources, as on macOS.
+      - name: Cache the upstream sources
+        uses: actions/cache@v4
+        with:
+          path: natives/.deps/windows-x64/*-src
+          key: natives-sources-windows-x64-${{ hashFiles('gradle/libs.versions.toml') }}
+          restore-keys: natives-sources-windows-x64-
 
-      - name: Build
-        # --config matters for the multi-config Visual Studio generator.
-        run: cmake --build build/native --config Release --target install
+      - name: Build libgoldberry
+        run: ./gradlew :natives:cmakeBuild --no-daemon
 
       # The web view library, which the superbuild makes here from the WebView2
-      # SDK headers it fetches itself -- "Goldberry web view: ON" in the
-      # configure log. It was built on every run and never uploaded, so no
-      # published Windows jar had web-view. A build without it is a lost file
-      # rather than a reduced build, and stops here.
+      # SDK headers it fetches itself. A build without it is a lost file rather
+      # than a reduced build, and stops here.
       - name: Check the web view library
         run: |
-          lib=build/install/lib/goldberry-webview.dll
+          lib=natives/build/native/windows-x64/install/lib/goldberry-webview.dll
           test -f "$lib" || { echo "::error::no $lib: the Windows natives jar would ship without web-view"; exit 1; }
           ls -la "$lib"
 
+      # The whole build against the library just made, as on macOS. Left out:
+      # the coverage floors, measured and run on linux-x64, and the GPU lanes,
+      # which this runner has never been asked for -- it has no device to give
+      # them. `webview.required`: WebviewBindingTest loads the DLL, checks its
+      # ABI and binds every call; loading needs only Windows' own DLLs, since
+      # WebView2Loader is opened when a page is, not when the library is.
+      # https://goldberry.dev/docs/contributing/testing.html#with-and-without-the-library
+      - name: Build and test against it
+        run: |
+          ./gradlew build --no-daemon --continue \
+            -x jacocoTestCoverageVerification -x gpuTest \
+            -Pgoldberry.native.required=true \
+            -Pgoldberry.webview.required=true
+
       # Both libraries, into one artifact: publish.yml copies the directory into
-      # the layout :natives packages, and the verify job below finds the web
-      # view beside goldberry.dll, where WebviewLibrary looks for it.
+      # the layout :natives packages. After the tests, so what is published is
+      # what they passed against.
       - uses: actions/upload-artifact@v4
         with:
           name: native-windows-x64
           path: |
-            build/install/lib/goldberry.dll
-            build/install/lib/goldberry-webview.dll
+            natives/build/native/windows-x64/install/lib/goldberry.dll
+            natives/build/native/windows-x64/install/lib/goldberry-webview.dll
           if-no-files-found: error
-
-  # This is the job that earns its keep: Win64's C `long` is 4 bytes where every
-  # other target has 8, and nothing before this point has checked that the
-  # hand-written layouts model it correctly.
-  verify:
-    name: Verify layouts (windows-x64)
-    needs: natives
-    # Runs even if the build job failed, so that a missing artifact fails at the
-    # download step below rather than skipping this job silently.
-    if: ${{ !cancelled() }}
-    runs-on: windows-2022
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '25'
-      - uses: gradle/actions/setup-gradle@v4
-      - uses: actions/download-artifact@v4
-        with:
-          name: native-windows-x64
-          path: native-lib
-      # No C/C++ toolchain is set up in this job, and none is wanted: passing
-      # `goldberry.native.library` tells Gradle to verify the downloaded artifact
-      # rather than build a rival one, and `goldberry.native.required` turns a
-      # test that would have skipped for want of a library into a failure.
-      # https://goldberry.dev/docs/contributing/testing.html#with-and-without-the-library
-      #
-      # `goldberry.webview.required` likewise for the web view: the DLL was
-      # downloaded beside goldberry.dll, and WebviewBindingTest loads it, checks
-      # its ABI and binds every call. Loading needs only Windows' own DLLs --
-      # WebView2Loader is opened when a page is, not when the library is.
-      - run: |
-          ./gradlew :natives:test --no-daemon \
-            -Dgoldberry.native.library="$PWD/native-lib/goldberry.dll" \
-            -Dgoldberry.native.required=true \
-            -Dgoldberry.webview.required=true
-
-      # The whole `:core`, `:widgets` and `:html` suites against the real library, not
-      # just the golden images. Everything that needs a rasterizer skips in the
-      # `java` job by design -- it builds no native library -- so this is the
-      # only place those tests run at all: the frame loop, pointer plumbing,
-      # damage, text metrics, and every golden image including the controls'.
-      #
-      # No display, no compositor, no Xvfb: Frame paints into memory, so it is
-      # the same check on every platform. The point of running it on all three is
-      # that Blend2D JITs its pipelines per CPU -- if AVX2 and NEON ever disagree
-      # by more than a rounding step, this is where it surfaces.
-      - name: Core, widget, Markdown and emoji tests, and the golden images
-        run: |
-          ./gradlew :core:test :widgets:test :html:test :emoji:test --no-daemon \
-            -Dgoldberry.native.library="$PWD/native-lib/goldberry.dll" \
-            -Dgoldberry.native.required=true
 
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
           name: golden-failures-windows-x64
           path: |
-            core/build/golden-failures
-            widgets/build/golden-failures
-            html/build/golden-failures
-            emoji/build/golden-failures
+            */build/golden-failures
+            */build/reports/tests
           if-no-files-found: ignore
-

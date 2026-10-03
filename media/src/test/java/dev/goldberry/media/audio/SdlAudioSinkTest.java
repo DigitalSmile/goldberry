@@ -15,6 +15,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import dev.goldberry.junit.TimeBudget;
 import dev.goldberry.natives.NativeLibrary;
 
 /// The desktop sink, against SDL's `dummy` driver (the test task sets
@@ -88,13 +89,27 @@ class SdlAudioSinkTest {
             assertFalse(sink.setRate(0.001f));
             assertFalse(sink.setRate(200f));
             sink.open(FORMAT);
-            var samples = FORMAT.sampleRate();
+            var samples = 2 * FORMAT.sampleRate();
             sink.write(arena.allocate(JAVA_FLOAT, (long) samples * FORMAT.channels()), samples);
-            Thread.sleep(250);
-            // A quarter of a second at four times the speed is a second of audio;
-            // at 1 it would be a quarter. Half a second is a safe margin either way.
-            var drained = samples - sink.queuedSamples();
-            assertTrue(drained > samples / 2, "drained only " + drained + " of " + samples + " in 250 ms at 4x");
+            // The rate the queue drains at, against the wall clock, read until it
+            // shows. At four times the speed it is four; at one it would be one,
+            // and two is the line between them. Read over a whole run rather than
+            // once after a fixed sleep, so a runner that is slow to schedule the
+            // device's thread is waited for instead of failed: only what has been
+            // drained past the first tenth of a second counts, because the
+            // device's first pull takes a buffer at once at any rate.
+            var started = System.nanoTime();
+            var deadline = TimeBudget.of(Duration.ofSeconds(2)).deadlineFrom(started);
+            var observed = 0.0;
+            while (observed < 2 && sink.queuedSamples() > 0 && System.nanoTime() < deadline) {
+                Thread.sleep(10);
+                var drained = samples - sink.queuedSamples();
+                var elapsed = (System.nanoTime() - started) * (double) FORMAT.sampleRate() / 1e9;
+                if (drained >= FORMAT.sampleRate() / 10) {
+                    observed = Math.max(observed, drained / elapsed);
+                }
+            }
+            assertTrue(observed >= 2, "the queue drained at " + observed + "x the wall clock, asked for 4x");
             assertTrue(sink.setRate(1f));
         }
     }
@@ -105,21 +120,33 @@ class SdlAudioSinkTest {
         try (var sink = new SdlAudioSink();
                 var arena = Arena.ofConfined()) {
             sink.open(FORMAT);
-            var samples = FORMAT.sampleRate() / 2;
+            var samples = FORMAT.sampleRate() * 2;
             sink.write(arena.allocate(JAVA_FLOAT, (long) samples * FORMAT.channels()), samples);
-            var seen = new java.util.TreeSet<Long>();
+            // A pull is 1024 samples, about every 21 ms. Stepping alone would leave
+            // most readings a millisecond apart equal to the one before; the
+            // estimate moves between them. So what is asserted is the share of
+            // readings that moved, over at least forty of them, rather than a
+            // count of distinct values in a fixed window -- a runner that sleeps
+            // long between readings takes longer to collect them, and fails
+            // nothing.
             var last = Long.MAX_VALUE;
-            var deadline = System.nanoTime() + 150_000_000L;
-            while (System.nanoTime() < deadline) {
+            var readings = 0;
+            var moved = 0;
+            var deadline = TimeBudget.of(Duration.ofMillis(300)).deadlineFrom(System.nanoTime());
+            while (readings < 40 && sink.queuedSamples() > 0 && System.nanoTime() < deadline) {
                 var queued = sink.queuedSamples();
                 assertTrue(queued <= last, "the queue rose from " + last + " to " + queued + " with nothing written");
+                if (queued < last && last != Long.MAX_VALUE) {
+                    moved++;
+                }
                 last = queued;
-                seen.add(queued);
+                readings++;
                 Thread.sleep(1);
             }
-            // A pull is 1024 samples, about every 21 ms: stepping alone would give
-            // a handful of values in 150 ms, and the estimate gives many more.
-            assertTrue(seen.size() > 20, "only " + seen.size() + " distinct readings: " + seen);
+            assertTrue(readings >= 10, "only " + readings + " readings before the queue ran dry");
+            assertTrue(
+                    moved * 2 > readings - 1,
+                    moved + " of " + (readings - 1) + " readings moved; a stepping queue moves once a pull");
 
             sink.pause();
             var paused = sink.queuedSamples();
@@ -164,7 +191,7 @@ class SdlAudioSinkTest {
             assertEquals(1, asked[0], "twenty writes in a moment ask the system once");
 
             // Let the dummy device take a pull, which says how big one is.
-            var deadline = System.nanoTime() + 500_000_000L;
+            var deadline = TimeBudget.of(Duration.ofMillis(500)).deadlineFrom(System.nanoTime());
             while (sink.latencyNanos() == Duration.ofMillis(100).toNanos() && System.nanoTime() < deadline) {
                 sink.queuedSamples();
                 Thread.sleep(2);
@@ -172,12 +199,14 @@ class SdlAudioSinkTest {
             var sdl = sink.latencyNanos() - Duration.ofMillis(100).toNanos();
             var pulls = SdlAudioSink.pullsAhead(System.getProperty("os.name", ""));
             assertTrue(sdl > 0, "no pull was seen");
-            // A pull is SDL's device buffer, about 1024 frames at 48 kHz; the first
-            // one seen can be a little shorter or longer. Between 5 and 50 ms a
-            // pull is what SDL takes, and a count of them is what is reported.
+            // A pull is SDL's device buffer, about 1024 frames at 48 kHz, 21 ms. It
+            // is counted in samples rather than timed, but a reader that polls
+            // late can see two or three pulls land as one, so the window is wide:
+            // between 2 and 100 ms is a pull, and a count of them is what is
+            // reported. A latency of nothing, or of a second, is still outside it.
             var perPull = sdl / pulls;
             assertTrue(
-                    perPull >= 5_000_000L && perPull <= 50_000_000L,
+                    perPull >= 2_000_000L && perPull <= 100_000_000L,
                     "SDL's part is " + sdl + " ns for " + pulls + " pulls");
         }
     }

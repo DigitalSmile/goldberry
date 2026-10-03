@@ -56,14 +56,19 @@ The map that stays current is in the code. `docs/ARCHITECTURE.md` §2.1 has the 
 
 **Which document wins.** `docs/design-system.md` and `docs/core-widgets.md` are the authority on what a widget is. `docs/ARCHITECTURE.md` is a summary of them and records where it knowingly departs, in its §17.1. The decision log is the authority on why, and a design document describes what. [ADR-0001](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0001-record-architecture-decisions.md) draws that line. [Status](../status.md) says what is built and [TODO](../TODO.md) what is not, and the two are kept apart on purpose.
 
-**The convention plugins** are four precompiled Groovy script plugins under `build-logic/src/main/groovy/`:
+**The convention plugins** are seven precompiled Groovy script plugins under `build-logic/src/main/groovy/`, thin over the Java beside them, which carries the logic and its unit tests:
 
 | Plugin | What it configures |
 |---|---|
-| `goldberry.java-conventions` | The toolchain, the module path, Error Prone and NullAway, Spotless, PMD, SpotBugs, JaCoCo, the `benchmark` and `blessGoldens` tasks, PIT, and the CI annotations |
+| `goldberry.java-conventions` | The toolchain, the module path, Error Prone and NullAway, Spotless, PMD, SpotBugs, JaCoCo, `blessGoldens`, PIT, and the CI annotations; it applies `goldberry.benchmarks` |
+| `goldberry.benchmarks` | The `src/benchmark/java` source set and the `benchmark` task, one module at a time; `check` only compiles it |
+| `goldberry.native-tests` | Every test task of a module whose tests load `libgoldberry`: the grant, the library, the forwarded properties, the native build first; and `nativeTests.gpuTests(...)` and `nativeTests.probe(...)` |
+| `goldberry.asset-tool` | `assetTool.bundle(entries, package)`: `prepareAssets` into the resources, and `vendorLicences` |
 | `goldberry.versioning` | The group and the calendar version, `printVersion` and `bumpVersion` |
 | `goldberry.publish` | The Maven Central publication, applied by the shipped modules and refused anywhere else |
 | `goldberry.weave` | The weaver over a module's compiled classes, catalog half always and model half for a native image |
+
+No build script reads another project's configuration. What one module's tests share with another's is a test fixture — `:natives`' library and GPU requirements and its first-thread launcher, `:gpu`'s compositing harness, `:core`'s goldens and `TimeBudget` — and the native target matrix is `NativeTarget` in build-logic rather than a table `:natives` lends out. That is [ADR-0550](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0550-a-module-says-what-its-tests-need-and-a-plugin-wires-it.md).
 
 The build is written in the Groovy DSL, and [ADR-0013](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0013-groovy-dsl-for-the-build.md) says what that trades away. The root `build.gradle` is a container: it aggregates coverage and owns `checkLicenses`, `checkMarkdown`, `formatMarkdown` and the root `blessGoldens`.
 
@@ -85,6 +90,9 @@ A fact that has to be true in two places gets a test that reads both. The rule c
 | `BoundaryTest`, `DeterminismTest` | The whole graph, through ArchUnit | The module arrows in `ARCHITECTURE.md` §2, and no clock, random source or default locale in the deterministic layer |
 | `SiteTest` | `site/content.js` and the book | The pages the landing page links by name are where it says |
 | `SourceDocsTest` | Every Java, Gradle and workflow source, and the book | No record number in a source; every `goldberry.dev/docs` link lands on a page and a heading that exist; every published package links the guide; no Java source names a file under `docs/` |
+| `BenchmarkLaneTest` | Every source tree, the build scripts, `docs/testing.md` and the workflows | No benchmark in a test tree or under a tag; every probe task runs a class in its module's `src/benchmark`; every measurement is in the inventory; only `benchmarks.yml` runs one |
+| `ForwardedPropertiesTest` | The workflows | Every switch a workflow sets for a test JVM is on the one list the build hands on |
+| `NativeTargetTest` | `natives/build.gradle` and `media/build.gradle` | The libraries are installed where every module's tests look for them |
 
 Most of these live in `build-logic/src/test/`, which `./gradlew :build-logic:test` runs. The ArchUnit pair lives in `:widgets`, because that is the module whose test classpath holds the whole graph.
 

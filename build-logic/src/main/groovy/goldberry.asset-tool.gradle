@@ -1,0 +1,32 @@
+import dev.goldberry.build.assets.AssetTool
+
+// ============================================================================
+// Bundled assets
+// https://goldberry.dev/docs/guide/text.html
+//
+// The fonts, the icon set and the showcase's tables are fetched and prepared by
+// :assets, an ordinary Java tool with its own tests, and only invoked from here.
+// A module says which entries it ships and under which package:
+//
+//   assetTool.bundle('inter,jetbrains-mono,lucide', null)
+//
+// A configuration rather than a reach into :assets' source sets: resolving
+// another project's classpath directly is unsafe and Gradle refuses it, and this
+// asks for the same thing through the dependency graph, build dependency included.
+// ============================================================================
+
+plugins {
+    id 'java'
+}
+
+def tool = configurations.create(AssetTool.CONFIGURATION) {
+    canBeConsumed = false
+    canBeResolved = true
+    description = 'The :assets tool, run to prepare this module\'s bundled resources.'
+}
+
+dependencies {
+    add(AssetTool.CONFIGURATION, project(':assets'))
+}
+
+extensions.create(AssetTool.EXTENSION, AssetTool, tool, sourceSets)

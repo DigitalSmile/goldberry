@@ -141,7 +141,7 @@ class ShowcaseDocumentsTest {
     @DisplayName("the Markdown screen binds one property to an editor and a preview")
     void markdownIsLive() {
         // Building the preview parses its document, and md4c is in libgoldberry --
-        // which CI's Java job does not build. The one test here that needs it.
+        // which CI's Java job does not build.
         RendererRequirement.enforce();
         // `markdown.kdl` says `markdown-view` and nothing in this application tells
         // the inflater where that node comes from: `goldberry-html` declares a
@@ -192,6 +192,11 @@ class ShowcaseDocumentsTest {
     @Test
     @DisplayName("every screen document inflates against the real registries")
     void everyScreenInflates() {
+        // Every document, so the Markdown and HTML chapters too, which parse
+        // through md4c and resolve entities with it: libgoldberry, which CI's
+        // Java job does not build. Without it this skips rather than failing on a
+        // class that could not initialise; the jobs that build the library run it.
+        RendererRequirement.enforce();
         documentNames()
                 .forEach(name ->
                         assertFalse(typesIn(documents.document(name)).isEmpty(), () -> name + " inflated to nothing"));
@@ -200,6 +205,8 @@ class ShowcaseDocumentsTest {
     @Test
     @DisplayName("a bound control holds the model's own property, not a copy")
     void bindingsReachTheModel() {
+        // Every document again, md4c included, for the reason above.
+        RendererRequirement.enforce();
         var bound = new ArrayList<Widget>();
         everyDocument().forEach(document -> collectBound(new ElementTree(document).root(), bound));
 

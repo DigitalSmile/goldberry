@@ -1,9 +1,11 @@
-/// Test fixtures, not shipped API: JUnit 5 extensions shared by the tests of
-/// every module.
+/// Test fixtures, not shipped API: what a test in every module shares with JUnit.
 ///
-/// One so far. [dev.goldberry.junit.HeadlessRuntime] gives a test the running
-/// runtime a widget expects to find, on the `headless` backend, with no window
-/// and no native library, so a lane without `libgoldberry` stays green.
+/// [dev.goldberry.junit.HeadlessRuntime] gives a test the running runtime a
+/// widget expects to find, on the `headless` backend, with no window and no
+/// native library, so a lane without `libgoldberry` stays green.
+/// [dev.goldberry.junit.TimeBudget] is the bound a test that has to read a clock
+/// compares with, with room for a loaded machine and never enough to let the
+/// defect it guards against pass.
 ///
 /// Null-marked, as every package is.
 ///

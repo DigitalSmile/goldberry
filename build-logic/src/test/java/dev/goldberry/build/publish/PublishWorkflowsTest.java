@@ -4,6 +4,7 @@ import dev.goldberry.build.repository.Repository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
 import java.util.regex.Pattern;
@@ -40,6 +41,23 @@ class PublishWorkflowsTest {
                 () -> assertTrue(text.contains("pull_request:"), name + " must still gate pull requests"));
     }
 
+    @ParameterizedTest(name = "{0} builds and tests its library in one Gradle job")
+    @CsvSource({"macos.yml, macos-aarch64", "windows.yml, windows-x64"})
+    @DisplayName("macOS and Windows build libgoldberry through Gradle and upload the one the tests passed against")
+    void platformsBuildThroughGradle(String name, String target) {
+        var text = Repository.workflow(name);
+        var build = text.indexOf("./gradlew :natives:cmakeBuild");
+        var tests = text.indexOf("./gradlew build");
+        var upload = text.indexOf("name: native-" + target);
+        assertAll(
+                () -> assertTrue(build >= 0, name + " does not build libgoldberry through :natives:cmakeBuild"),
+                () -> assertFalse(text.contains("cmake -S"), name + " configures CMake itself again"),
+                () -> assertFalse(text.contains("download-artifact"), name + " tests a library it downloaded"),
+                () -> assertTrue(text.contains("-Pgoldberry.native.required=true"), name + " lets a test skip"),
+                () -> assertTrue(build < tests && tests < upload,
+                        name + " must build, then test, then upload native-" + target + " for publish.yml"));
+    }
+
     @ParameterizedTest(name = "{0} calls publish.yml")
     @ValueSource(strings = {"snapshot.yml", "release.yml"})
     @DisplayName("snapshots and releases go through the one publishing workflow")
@@ -70,7 +88,7 @@ class PublishWorkflowsTest {
     @DisplayName("exactly one workflow publishes to Maven Central")
     void oneCentralPublisher() {
         for (var name : new String[]{"linux.yml", "macos.yml", "windows.yml", "showcase.yml",
-                "snapshot.yml", "release.yml", "nightly.yml", "codeql.yml", "qodana.yml"}) {
+                "snapshot.yml", "release.yml", "nightly.yml", "benchmarks.yml", "codeql.yml", "qodana.yml"}) {
             assertFalse(Repository.workflow(name).contains("publishToMavenCentral"),
                     name + " publishes to Central; only publish.yml may");
         }

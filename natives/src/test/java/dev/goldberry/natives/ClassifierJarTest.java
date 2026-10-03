@@ -56,7 +56,7 @@ class ClassifierJarTest {
         // rename on either side fails here rather than as a missing library.
         var script = Files.readString(Path.of("build.gradle"));
         assertTrue(
-                script.contains("'Automatic-Module-Name': \"dev.goldberry.natives.${target.id.replace('-', '_')}\""),
+                script.contains("'Automatic-Module-Name': \"dev.goldberry.natives.${target.id().replace('-', '_')}\""),
                 "natives/build.gradle names each classifier jar the way NativePlatform.moduleName() does");
     }
 

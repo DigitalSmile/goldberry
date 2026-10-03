@@ -1,5 +1,9 @@
 plugins {
     id 'java'
+    // The two binding schemes, measured against each other in one JVM. This is
+    // the only module that can: it holds a raw model and can weave a copy of it
+    // in memory, so both forms of one class exist side by side.
+    id 'goldberry.benchmarks'
 }
 
 description = 'Goldberry weaver: the widget catalog, and the models a native image is built from'
@@ -77,34 +81,8 @@ tasks.named('jar') {
 }
 
 tasks.named('test') {
-    // `benchmark`-tagged classes print numbers and assert almost nothing, so
-    // `check` never runs them -- the same rule the java-conventions plugin
-    // applies everywhere else, written out here because this module is plain
-    // `java` and does not get that plugin.
-    useJUnitPlatform { excludeTags 'benchmark' }
+    useJUnitPlatform()
     testLogging { exceptionFormat = 'full' }
-}
-
-// The two binding schemes, measured against each other in one JVM. This is the
-// only module that can: it holds a raw model and can weave a copy of it in
-// memory, so both forms of one class exist side by side.
-tasks.register('benchmark', Test) {
-    group = 'verification'
-    description = 'Runs the benchmarks, which print measurements rather than asserting them.'
-
-    testClassesDirs = sourceSets.test.output.classesDirs
-    classpath = sourceSets.test.runtimeClasspath
-
-    useJUnitPlatform { includeTags 'benchmark' }
-    // The numbers are the whole output, so they have to reach the console.
-    testLogging {
-        events 'started', 'passed', 'failed'
-        showStandardStreams = true
-        exceptionFormat = 'full'
-    }
-    // Never up to date: a benchmark whose result is cached from last week is
-    // worse than no benchmark.
-    outputs.upToDateWhen { false }
 }
 
 tasks.withType(PublishToMavenRepository).configureEach { enabled = false }

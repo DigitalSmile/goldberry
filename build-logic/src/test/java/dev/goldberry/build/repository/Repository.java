@@ -1,9 +1,16 @@
 package dev.goldberry.build.repository;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.SimpleFileVisitor;
+import java.nio.file.attribute.BasicFileAttributes;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
 
 /**
  * The repository build-logic builds, read as text by the drift guards -- the
@@ -78,5 +85,54 @@ public final class Repository {
     /** A workflow under {@code .github/workflows}. */
     public static String workflow(String name) {
         return read(".github/workflows/" + name);
+    }
+
+    /** Every workflow's file name, sorted. */
+    public static List<String> workflowNames() {
+        try (var files = Files.list(root().resolve(".github/workflows"))) {
+            return files.map(file -> file.getFileName().toString())
+                    .filter(name -> name.endsWith(".yml") || name.endsWith(".yaml"))
+                    .sorted()
+                    .toList();
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
+
+    /**
+     * Every file under the root whose path, relative to it, matches {@code glob}.
+     * Build output, the git directory and the upstream clones are not walked.
+     *
+     * @param glob a {@code glob:} pattern over the relative path, such as
+     *             {@code *}{@code /src/benchmark/java/**}{@code .java}
+     * @return the relative paths, sorted, with {@code /} as the separator
+     */
+    public static List<String> files(String glob) {
+        var root = root();
+        var matcher = root.getFileSystem().getPathMatcher("glob:" + glob);
+        var found = new ArrayList<String>();
+        try {
+            Files.walkFileTree(root, new SimpleFileVisitor<>() {
+                @Override
+                public FileVisitResult preVisitDirectory(Path directory, BasicFileAttributes attributes) {
+                    var name = directory.getFileName() == null ? "" : directory.getFileName().toString();
+                    return Set.of("build", ".git", ".deps", ".gradle", "node_modules").contains(name)
+                            ? FileVisitResult.SKIP_SUBTREE
+                            : FileVisitResult.CONTINUE;
+                }
+
+                @Override
+                public FileVisitResult visitFile(Path file, BasicFileAttributes attributes) {
+                    var relative = root.relativize(file);
+                    if (matcher.matches(relative)) {
+                        found.add(relative.toString().replace(File.separatorChar, '/'));
+                    }
+                    return FileVisitResult.CONTINUE;
+                }
+            });
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+        return found.stream().sorted().toList();
     }
 }

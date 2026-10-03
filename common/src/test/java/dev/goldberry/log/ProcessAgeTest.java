@@ -49,7 +49,7 @@ class ProcessAgeTest {
     }
 
     @Test
-    @DisplayName("on Linux, agrees with ProcessHandle to within the second ProcessHandle can be wrong by")
+    @DisplayName("on Linux, agrees with ProcessHandle to within the second ProcessHandle can be wrong by, and room")
     void agreesWithProcessHandleOnLinux() {
         var fromProc = ProcessAge.fromProc();
         assumeTrue(fromProc.isPresent(), "no /proc here");
@@ -60,8 +60,12 @@ class ProcessAgeTest {
                 .orElseThrow();
         var age = fromProc.orElseThrow();
         assertTrue(age.isPositive(), "a running process has an age: " + age);
+        // ProcessHandle's start time is rounded to the clock tick and can be a
+        // second late; the two readings are also taken a moment apart, which on a
+        // loaded runner is not nothing. Two seconds is that second and room, and
+        // still a fraction of what a wrong field in `stat` would give.
         assertTrue(
-                age.minus(handle).abs().compareTo(Duration.ofMillis(1_100)) < 0,
+                age.minus(handle).abs().compareTo(Duration.ofSeconds(2)) < 0,
                 "kernel " + age.toMillis() + " ms against ProcessHandle " + handle.toMillis() + " ms");
     }
 

@@ -42,8 +42,12 @@ class MenusChapterTest {
 
     @AfterEach
     void close() {
-        fonts.close();
-        scene.close();
+        if (fonts != null) {
+            fonts.close();
+        }
+        if (scene != null) {
+            scene.close();
+        }
     }
 
     private Session session(Widget root) {

@@ -585,3 +585,7 @@ proposing to undo them.
 - [ADR-0547 A member reached by reflection says so to Qodana](0547-a-member-reached-by-reflection-says-so-to-qodana.md)
 - [ADR-0548 Four CodeQL queries that only report false positives are excluded](0548-four-codeql-queries-that-only-report-false-positives-are-excluded.md)
 - [ADR-0549 The showcase is the guide, a screen per chapter and a card per section](0549-the-showcase-is-the-guide-a-screen-per-chapter-and-a-card-per-section.md)
+- [ADR-0550 A module says what its tests need, and a plugin wires it](0550-a-module-says-what-its-tests-need-and-a-plugin-wires-it.md)
+- [ADR-0551 Benchmarks are a source set, run one at a time by their own workflow](0551-benchmarks-are-a-source-set-run-one-at-a-time-by-their-own-workflow.md)
+- [ADR-0552 A clock bound has room, and stops short of the defect](0552-a-clock-bound-has-room-and-stops-short-of-the-defect.md)
+- [ADR-0553 macOS and Windows build and test their library in one Gradle job](0553-macos-and-windows-build-and-test-their-library-in-one-gradle-job.md)

@@ -1,0 +1,33 @@
+import dev.goldberry.build.natives.NativeTarget
+import dev.goldberry.build.testing.NativeTests
+
+// ============================================================================
+// Tests that load libgoldberry
+// https://goldberry.dev/docs/contributing/testing.html#with-and-without-the-library
+//
+// Every Test task of a module that applies this -- `test`, `benchmark`, and any
+// a module registers -- gets the same five things, which eight build scripts used
+// to write out for themselves and did not write the same way:
+//
+//  - JEP 472's grant, for the unnamed module whitebox tests run in;
+//  - the command-line properties a test reads, from one list;
+//  - `goldberry.native.library`: the one named with -D or -P, else the one this
+//    machine's `:natives:cmakeBuild` makes;
+//  - that library as an input, so a rebuilt one re-runs what paints through it;
+//  - `:natives:cmakeBuild` first, unless -Pgoldberry.skipNative=true asks for a
+//    Java-only build or a library was handed over to be verified.
+//
+// The GPU lane and the probes are asked for by name through `nativeTests`.
+// None of it reads another project's configuration, so no module has to make
+// :natives configure first.
+// ============================================================================
+
+plugins {
+    id 'java'
+}
+
+def nativeTests = extensions.create(NativeTests.EXTENSION, NativeTests, NativeTarget.host(), sourceSets)
+
+tasks.withType(Test).configureEach { Test task ->
+    nativeTests.wire(task)
+}

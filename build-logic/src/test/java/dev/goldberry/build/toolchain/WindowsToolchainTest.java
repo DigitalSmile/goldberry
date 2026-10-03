@@ -57,6 +57,28 @@ class WindowsToolchainTest {
     }
 
     @Nested
+    @DisplayName("windows.yml")
+    class PlatformWorkflow {
+
+        private final String workflow = Repository.workflow("windows.yml");
+
+        @Test
+        @DisplayName("builds libgoldberry through Gradle, with cl on the PATH first, and no CMake of its own")
+        void buildsThroughGradleWithMsvc() {
+            var setup = workflow.indexOf("uses: " + WindowsToolchain.CI_SETUP_ACTION);
+            var build = workflow.indexOf("name: " + WindowsToolchain.BUILD_STEP);
+            assertAll(
+                    () -> assertTrue(setup >= 0, "windows.yml never runs " + WindowsToolchain.CI_SETUP_ACTION),
+                    () -> assertTrue(build >= 0, "windows.yml has no '" + WindowsToolchain.BUILD_STEP + "' step"),
+                    () -> assertTrue(setup < build, "MSVC has to be set up before libgoldberry is built"),
+                    () -> assertTrue(workflow.contains("./gradlew :natives:cmakeBuild"),
+                            "windows.yml builds libgoldberry some other way than :natives:cmakeBuild"),
+                    () -> assertFalse(workflow.contains("cmake -S"),
+                            "windows.yml configures CMake itself; the arguments live in natives/build.gradle"));
+        }
+    }
+
+    @Nested
     @DisplayName("showcase.yml")
     class Workflow {
 

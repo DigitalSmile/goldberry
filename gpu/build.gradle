@@ -1,4 +1,4 @@
-import dev.goldberry.build.ToolResolver
+import dev.goldberry.build.toolchain.ToolLookup
 
 import java.security.MessageDigest
 
@@ -9,9 +9,12 @@ plugins {
     // `canvas3d` is a markup widget: the weaver collects it into this module's
     // catalog, which the markup finds through a `uses`.
     id 'goldberry.weave'
+    // `canvas3d` with no GPU is a widget tree painted by Blend2D, and a golden of
+    // it, so even the tests that need no device need libgoldberry.
+    id 'goldberry.native-tests'
+    // The compositing harness, which :media's GPU lane draws video through.
+    id 'java-test-fixtures'
 }
-
-evaluationDependsOn(':natives')
 
 description = 'Goldberry GPU: the canvas3d widget and the GPU composition path'
 
@@ -27,13 +30,18 @@ dependencies {
     // public surface.
     implementation project(':natives')
 
-    // :natives' GPU test helpers: the device requirement and the launcher that
+    // :natives' GPU test fixtures: the device requirement and the launcher that
     // runs the tests on the first thread (`gpuTest` below).
-    testImplementation rootProject.project(':natives').sourceSets.test.output
+    testImplementation testFixtures(project(':natives'))
     testImplementation libs.junit.platform.launcher
     // GoldenImage, for the GPU layers' z-order goldens, which live in
     // src/test/resources/golden like every module's.
     testImplementation testFixtures(project(':core'))
+
+    // The harness asks for a device and fails a test through JUnit.
+    testFixturesImplementation testFixtures(project(':natives'))
+    testFixturesImplementation platform(libs.junit.bom)
+    testFixturesImplementation libs.junit.jupiter
 }
 
 // ============================================================================
@@ -70,19 +78,8 @@ def shaderSets = [
                  'example/src/main/resources/dev/goldberry/example/gpu')],
 ]
 
-def toolPath = providers.environmentVariable('PATH')
-        .orElse(providers.environmentVariable('Path'))
-        .getOrElse('')
-def resolveTool = { String name ->
-    def override = providers.gradleProperty("goldberry.${name}")
-            .orElse(providers.systemProperty("goldberry.${name}"))
-    var found = ToolResolver.resolve(
-            override.getOrElse(name),
-            toolPath,
-            System.getProperty('os.name', ''),
-            System.getProperty('user.home', ''))
-    return found.isPresent() ? found.get().toFile() : null
-}
+// DXC and SPIRV-Cross by absolute path, or named with -Pgoldberry.dxc=<path>.
+def tools = ToolLookup.from(providers)
 
 tasks.register('compileShaders') {
     group = 'build'
@@ -93,8 +90,8 @@ tasks.register('compileShaders') {
     }
 
     doLast {
-        def dxc = resolveTool('dxc')
-        def spirvCross = resolveTool('spirv-cross')
+        def dxc = tools.fileOrNull('dxc')
+        def spirvCross = tools.fileOrNull('spirv-cross')
         if (dxc == null || spirvCross == null) {
             throw new GradleException("""\
                 compileShaders needs DXC and SPIRV-Cross, which the Vulkan SDK installs
@@ -159,95 +156,16 @@ tasks.register('compileShaders') {
 // `test` with no device at all.
 // https://goldberry.dev/docs/contributing/testing.html#the-gpu-tests
 // ============================================================================
-def hostNativeLibrary = project(':natives').ext.hostNativeLibrary
-def hostTargetId = project(':natives').ext.hostNativeTargetId
-
-tasks.named('test') {
-    useJUnitPlatform { excludeTags 'gpu' }
-
-    // What needs no GPU still needs libgoldberry: `canvas3d` with no GPU is a
-    // widget tree painted by Blend2D, and a golden of it. Without the
-    // library those tests skip, which looks exactly like passing.
-    jvmArgs '--enable-native-access=ALL-UNNAMED'
-    ['goldberry.golden.update', 'goldberry.native.required'].each { name ->
-        var value = providers.systemProperty(name).orElse(providers.gradleProperty(name))
-        if (value.present) {
-            systemProperty name, value.get()
-        }
-    }
-    systemProperty 'goldberry.native.library',
-            providers.systemProperty('goldberry.native.library')
-                    .orElse(hostNativeLibrary.map { it.asFile.absolutePath })
-                    .get()
-}
-
-def gpuTest = tasks.register('gpuTest', JavaExec) {
-    group = 'verification'
-    description = 'Runs this module\'s GPU tests on the JVM\'s first thread, as macOS needs.'
-    classpath = sourceSets.test.runtimeClasspath
-    mainClass = 'dev.goldberry.natives.sdl.gpu.GpuTestLauncher'
-    jvmArgs '--enable-native-access=ALL-UNNAMED'
-    if (hostTargetId.startsWith('macos-')) {
-        jvmArgs '-XstartOnFirstThread'
-    }
-    systemProperty 'goldberry.native.library',
-            providers.systemProperty('goldberry.native.library')
-                    .orElse(hostNativeLibrary.map { it.asFile.absolutePath })
-                    .get()
-    ['goldberry.native.required', 'goldberry.gpu.required', 'goldberry.gpu.videoDriver',
-     'goldberry.golden.update'].each { name ->
-        var value = providers.systemProperty(name).orElse(providers.gradleProperty(name))
-        if (value.present) {
-            systemProperty name, value.get()
-        }
-    }
-    def summary = layout.buildDirectory.file('gpu-test/summary.txt')
-    inputs.files(sourceSets.test.runtimeClasspath).withPropertyName('testClasspath')
-    outputs.file(summary)
-    argumentProviders.add({
-        [summary.get().asFile.absolutePath, 'dev.goldberry.gpu']
-    } as CommandLineArgumentProvider)
-}
-
-tasks.named('check') {
-    dependsOn gpuTest
-}
+nativeTests.gpuTests('dev.goldberry.gpu')
 
 // The video measurement: a 4K picture's planes uploaded, converted and
 // composited under the UI every frame, on a real window. Run on purpose and
 // read by a person; not part of `check`.
 // https://goldberry.dev/docs/components/gpu.html#what-is-measured-and-what-is-not-yet
-tasks.register('gpuVideoProbe', JavaExec) {
-    group = 'verification'
-    description = 'Measures a composited frame with a 4K video layer on a real window.'
-    classpath = sourceSets.test.runtimeClasspath
-    mainClass = 'dev.goldberry.gpu.render.GpuVideoProbe'
-    jvmArgs '--enable-native-access=ALL-UNNAMED'
-    if (hostTargetId.startsWith('macos-')) {
-        jvmArgs '-XstartOnFirstThread'
-    }
-    systemProperty 'goldberry.native.library',
-            providers.systemProperty('goldberry.native.library')
-                    .orElse(hostNativeLibrary.map { it.asFile.absolutePath })
-                    .get()
-    outputs.upToDateWhen { false }
-}
+nativeTests.probe('gpuVideoProbe', 'dev.goldberry.gpu.render.GpuVideoProbe',
+        'Measures a composited frame with a 4K video layer on a real window.')
 
 // The video layer's measurement: what it costs the UI thread to show a new 4K
-// picture every frame. Run on purpose and read by a person; not part of
-// `check`.
-tasks.register('videoLayerProbe', JavaExec) {
-    group = 'verification'
-    description = 'Measures the video layer\'s upload of a 4K picture each frame.'
-    classpath = sourceSets.test.runtimeClasspath
-    mainClass = 'dev.goldberry.gpu.video.VideoLayerProbe'
-    jvmArgs '--enable-native-access=ALL-UNNAMED'
-    if (hostTargetId.startsWith('macos-')) {
-        jvmArgs '-XstartOnFirstThread'
-    }
-    systemProperty 'goldberry.native.library',
-            providers.systemProperty('goldberry.native.library')
-                    .orElse(hostNativeLibrary.map { it.asFile.absolutePath })
-                    .get()
-    outputs.upToDateWhen { false }
-}
+// picture every frame.
+nativeTests.probe('videoLayerProbe', 'dev.goldberry.gpu.video.VideoLayerProbe',
+        'Measures the video layer\'s upload of a 4K picture each frame.')

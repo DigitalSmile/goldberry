@@ -96,14 +96,14 @@ class DeclaredFontResourceTest {
     @Test
     @DisplayName("the glob, the asset step's root and the read path agree")
     void theThreeSpellingsAgree() {
-        // The asset step writes under `--root=…`; the metadata globs under the
+        // The asset step writes under the root `assetTool.bundle` is given; the metadata globs under the
         // same directory; NotoColorEmojiFont reads a file inside it. Any two of the
         // three can be changed without the build noticing, and the symptom is a
         // native image that is fine until something draws an emoji.
         var build = read(projectDir.resolve("build.gradle"));
         assertAll(
                 () -> assertTrue(
-                        build.contains("'--root=dev/goldberry/emoji'"),
+                        build.contains("assetTool.bundle('noto-emoji', 'dev/goldberry/emoji')"),
                         "the asset step writes somewhere else:\n" + build),
                 () -> assertTrue(FONT.startsWith("dev/goldberry/emoji/fonts/"), FONT),
                 () -> assertTrue(FONT.endsWith(".ttf"), FONT));

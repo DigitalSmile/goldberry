@@ -10,17 +10,21 @@
 # headers ship only in Apple's SDK, and that SDK's licence restricts it to Apple
 # hardware. On a real macOS runner the question does not arise.
 #
+# **One job.** Gradle builds libgoldberry the way it does on a laptop --
+# `:natives:cmakeBuild`, with the arguments `natives/build.gradle` holds and
+# nowhere else -- and then runs the whole build against it. There used to be
+# three jobs here: a Java build without the library, a CMake build with the
+# arguments written out a second time, and a verify job that downloaded the
+# result. The runner has a JDK, so nothing was gained by the split but a second
+# copy of the configure line and three queues to wait in. The library that
+# passed the tests is the one this job uploads, which is the property the verify
+# job existed for.
+#
 # `workflow_call` is what lets publish.yml reuse this without duplicating it --
 # and on a push to master that is the only way this runs. There is no `push`
 # trigger: snapshot.yml calls this workflow on every push and publishes the
 # library it built, so a trigger here would build every native library twice per
 # commit and publish neither. Pull requests still run it directly.
-#
-# STATUS: green. The library builds and the layout check passes against the
-# downloaded dylib, so the Mach-O branch of the export machinery
-# (-exported_symbols_list, -u _symbol) is exercised rather than assumed. The
-# web view library rides the same artifact since 2026-10-02; before that it was
-# built here and never uploaded, so no published macOS jar had web-view.
 
 name: macOS
 
@@ -31,13 +35,11 @@ on:
 
 # Upstream refs are deliberately absent. The superbuild reads them straight out
 # of gradle/libs.versions.toml, which is the only place any of them is written
-# down. They used to be duplicated here because the manylinux
-# container has no JDK -- but reading the catalog never needed a JDK, only
-# something that can parse a text file, and CMake can.
+# down.
 
 jobs:
-  java:
-    name: Java
+  build:
+    name: Build and test (macos-aarch64)
     runs-on: macos-14
     steps:
       - uses: actions/checkout@v4
@@ -46,126 +48,85 @@ jobs:
           distribution: temurin
           java-version: '25'
       - uses: gradle/actions/setup-gradle@v4
-      - run: ./gradlew build -Pgoldberry.skipNative=true --no-daemon
 
-  natives:
-    name: libgoldberry (macos-aarch64)
-    runs-on: macos-14
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Install Ninja
+      - name: Install build tools
         run: brew install ninja
 
-      - name: Configure
-        run: |
-          cmake -S natives/src/main/cmake -B build/native \
-            -G Ninja -DCMAKE_OSX_ARCHITECTURES=arm64 \
-            -DCMAKE_BUILD_TYPE=Release \
-            -DCMAKE_INSTALL_PREFIX="$PWD/build/install" \
-            -DGOLDBERRY_TARGET_ID=macos-aarch64
+      # The seven upstream clones, about 330 MB, keyed on the catalog that pins
+      # them. Only the sources: what they compile to belongs to this run's
+      # configure, and a stale object from another one is worse than a rebuild.
+      - name: Cache the upstream sources
+        uses: actions/cache@v4
+        with:
+          path: natives/.deps/macos-aarch64/*-src
+          key: natives-sources-macos-aarch64-${{ hashFiles('gradle/libs.versions.toml') }}
+          restore-keys: natives-sources-macos-aarch64-
 
-      - name: Build
-        run: cmake --build build/native --target install
+      - name: Build libgoldberry
+        run: ./gradlew :natives:cmakeBuild --no-daemon
 
       # Every published natives jar carries the web view. Here it costs nothing
       # to build: WKWebView is a system framework, and CMake builds
       # libgoldberry-webview unconditionally. So a Mac build without it is
       # broken, not reduced, and stops here rather than shipping a natives jar on
-      # which `WebViews.isAvailable()` is false -- which every snapshot did until
-      # the upload below named only libgoldberry.
+      # which `WebViews.isAvailable()` is false.
       - name: Check the web view library
         run: |
-          lib=build/install/lib/libgoldberry-webview.dylib
+          lib=natives/build/native/macos-aarch64/install/lib/libgoldberry-webview.dylib
           test -f "$lib" || { echo "::error::no $lib: the macOS natives jar would ship without web-view"; exit 1; }
           nm -gU "$lib" | grep -q ' _goldberry_webview_create$' \
             || { echo "::error::$lib does not export goldberry_webview_create"; exit 1; }
           otool -L "$lib" | grep -q 'WebKit.framework' \
             || { echo "::error::$lib does not link WebKit.framework"; exit 1; }
 
-      # Both libraries, into one artifact: publish.yml copies the directory into
-      # the layout :natives packages, and the verify job below finds the web
-      # view beside libgoldberry, where WebviewLibrary looks for it.
-      - uses: actions/upload-artifact@v4
-        with:
-          name: native-macos-aarch64
-          path: |
-            build/install/lib/libgoldberry.dylib
-            build/install/lib/libgoldberry-webview.dylib
-          if-no-files-found: error
-
-  verify:
-    name: Verify layouts (macos-aarch64)
-    needs: natives
-    # Runs even if the build job failed, so that a missing artifact fails at the
-    # download step below rather than skipping this job silently.
-    if: ${{ !cancelled() }}
-    runs-on: macos-14
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '25'
-      - uses: gradle/actions/setup-gradle@v4
-      - uses: actions/download-artifact@v4
-        with:
-          name: native-macos-aarch64
-          path: native-lib
-      # No C/C++ toolchain is set up in this job, and none is wanted: passing
-      # `goldberry.native.library` tells Gradle to verify the downloaded artifact
-      # rather than build a rival one, and `goldberry.native.required` turns a
-      # test that would have skipped for want of a library into a failure.
+      # The whole build against the library just made: every module's tests and
+      # goldens, the layout probe, the web view's binding, the showcase's own
+      # tests. `native.required` and `webview.required` turn a test that would
+      # skip for want of either library into a failure, because a green tick
+      # over skipped tests is the outcome worse than a red one.
       # https://goldberry.dev/docs/contributing/testing.html#with-and-without-the-library
       #
-      # `goldberry.webview.required` likewise for the web view: the dylib was
-      # downloaded beside libgoldberry, where WebviewLibrary looks, and
-      # WebviewBindingTest fails rather than skips if it does not load and bind.
-      - run: |
-          ./gradlew :natives:test --no-daemon \
-            -Dgoldberry.native.library="$PWD/native-lib/libgoldberry.dylib" \
-            -Dgoldberry.native.required=true \
-            -Dgoldberry.webview.required=true
-
-      # The whole `:core`, `:widgets` and `:html` suites against the real library, not
-      # just the golden images. Everything that needs a rasterizer skips in the
-      # `java` job by design -- it builds no native library -- so this is the
-      # only place those tests run at all: the frame loop, pointer plumbing,
-      # damage, text metrics, and every golden image including the controls'.
-      #
-      # No display, no compositor, no Xvfb: Frame paints into memory, so it is
-      # the same check on every platform. The point of running it on all three is
-      # that Blend2D JITs its pipelines per CPU -- if AVX2 and NEON ever disagree
-      # by more than a rounding step, this is where it surfaces.
-      - name: Core, widget, Markdown and emoji tests, and the golden images
+      # Two things are left out, each for a reason:
+      #  - the coverage floors, which are measured on linux-x64 and run there;
+      #  - the GPU lanes, which run in the next step and are not required here.
+      # `--continue`, so one red module does not hide the next one's result.
+      - name: Build and test against it
         run: |
-          ./gradlew :core:test :widgets:test :html:test :emoji:test --no-daemon \
-            -Dgoldberry.native.library="$PWD/native-lib/libgoldberry.dylib" \
-            -Dgoldberry.native.required=true
+          ./gradlew build --no-daemon --continue \
+            -x jacocoTestCoverageVerification -x gpuTest \
+            -Pgoldberry.native.required=true \
+            -Pgoldberry.webview.required=true
 
       # The GPU tests, on Metal if this runner has it.
       # Not required: whether GitHub's macOS VMs expose Metal is not
       # known yet, so a runner without a device skips and says why in the
       # summary. The Linux legs run the same tests on lavapipe, required. When a
-      # run here shows a device, this becomes -Dgoldberry.gpu.required=true.
+      # run here shows a device, this becomes -Pgoldberry.gpu.required=true.
       #
       # Cocoa, which a Metal device needs, starts only on the first thread; the
       # gpuTest tasks start their JVM with -XstartOnFirstThread for that.
       - name: GPU tests, on Metal if the runner has it
         run: |
           ./gradlew :natives:gpuTest :gpu:gpuTest --no-daemon \
-            -Dgoldberry.native.library="$PWD/native-lib/libgoldberry.dylib" \
-            -Dgoldberry.native.required=true
+            -Pgoldberry.native.required=true
           cat natives/build/gpu-test/summary.txt gpu/build/gpu-test/summary.txt
+
+      # Both libraries, into one artifact: publish.yml copies the directory into
+      # the layout :natives packages. After the tests, so what is published is
+      # what they passed against.
+      - uses: actions/upload-artifact@v4
+        with:
+          name: native-macos-aarch64
+          path: |
+            natives/build/native/macos-aarch64/install/lib/libgoldberry.dylib
+            natives/build/native/macos-aarch64/install/lib/libgoldberry-webview.dylib
+          if-no-files-found: error
 
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
           name: golden-failures-macos-aarch64
           path: |
-            core/build/golden-failures
-            widgets/build/golden-failures
-            html/build/golden-failures
-            emoji/build/golden-failures
+            */build/golden-failures
+            */build/reports/tests
           if-no-files-found: ignore
-

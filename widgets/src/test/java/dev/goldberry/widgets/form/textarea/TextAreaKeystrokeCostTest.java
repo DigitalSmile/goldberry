@@ -44,7 +44,7 @@ import dev.goldberry.widgets.controls.TestFont;
 /// defect arrived as a stopwatch reading from an application rather than as a
 /// red test here.
 ///
-/// [TextAreaFrameBenchmark] is where the milliseconds are, and it asserts
+/// `TextAreaFrameBenchmark` is where the milliseconds are, and it asserts
 /// nothing.
 ///
 /// Read more: [What a frame costs](https://goldberry.dev/docs/performance/index.html).
