@@ -4,8 +4,10 @@ import static java.lang.foreign.ValueLayout.JAVA_FLOAT;
 
 import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 
 import dev.goldberry.log.Logs;
@@ -15,6 +17,7 @@ import dev.goldberry.media.audio.AudioFormat;
 import dev.goldberry.media.codec.AudioFrame;
 import dev.goldberry.media.codec.Decoder;
 import dev.goldberry.media.codec.Frame;
+import dev.goldberry.media.codec.Packet;
 import dev.goldberry.media.codec.Received;
 import dev.goldberry.media.ffi.Decoders;
 import dev.goldberry.media.ffi.Demuxer;
@@ -39,7 +42,15 @@ import dev.goldberry.media.ffi.Resampler;
 /// [PacketQueue.Item.Flush] a seek queues, clears the sink and moves the clock
 /// to the target, and then waits. Otherwise the sink would still hold the old
 /// position's samples, and pressing play after a paused seek would play a fifth
-/// of a second of the place just left.
+/// of a second of the place just left. It also decodes, and discards, the packets
+/// that end before an accurate seek's target. The demux thread starts at the
+/// keyframe before the target, and left queued, that audio would fill the queue
+/// and stop the demux thread before the video had reached the target.
+///
+/// **A looping source plays on at a seam.** At a [PacketQueue.Item.Seam] the
+/// decoder is drained and flushed, as at the end, and the next pass's samples
+/// follow the last pass's in the sink: what overlaps the last pass is trimmed,
+/// and a gap before the next is filled with silence, so the audio clock runs on.
 final class AudioWorker {
 
     private static final Logger LOG = Logs.of(AudioWorker.class);
@@ -51,6 +62,17 @@ final class AudioWorker {
     private final AudioFormat format;
     /// The Serial this thread is playing. Its own.
     private int serial;
+    /// The decoder playing the track, replaced when one fails mid-stream. Opened
+    /// on this thread, so null until [#play()] has begun.
+    private @Nullable Decoder decoder;
+    /// How many rungs of the fallback ladder have failed on this track.
+    private int skip;
+    /// What the packets taken now are moved by: the passes of a looping source
+    /// played before them.
+    private long offsetNanos;
+    /// Where the last pass's sound ended, from a seam until the next pass's first
+    /// samples are written; [Frame#NO_PTS] otherwise.
+    private long seamNanos = Frame.NO_PTS;
     /// Set when another track takes over: the thread stops at its next check,
     /// writes nothing more, and reports nothing more.
     private volatile boolean retired;
@@ -78,8 +100,6 @@ final class AudioWorker {
     /// The thread's whole life: open the decoder, then decode until the playback
     /// stops, or another track takes over.
     void play() {
-        Decoder decoder;
-        var skip = 0;
         try {
             // Opened here, on the thread that will use it: the SPI promises a
             // decoder one thread (the track's decode thread), and a provider may
@@ -99,13 +119,24 @@ final class AudioWorker {
             while (running()) {
                 if (playback.paused()) {
                     var flush = queue.takeFlush();
-                    if (flush == null) {
+                    if (flush != null) {
+                        flushTo(flush, resampler);
+                        discardBeforeNanos = flush.targetNanos();
+                        nextPts = flush.targetNanos();
+                        continue;
+                    }
+                    var early = discardBeforeNanos == Frame.NO_PTS
+                            ? null
+                            : queue.takeBefore(discardBeforeNanos - offsetNanos);
+                    if (early == null) {
                         playback.awaitWhile(() -> playback.paused() && !queue.flushQueued());
                         continue;
                     }
-                    flushTo(flush, decoder, resampler);
-                    discardBeforeNanos = flush.targetNanos();
-                    nextPts = flush.targetNanos();
+                    try (var packet = early.packet()) {
+                        if (early.serial() == serial) {
+                            nextPts = decode(packet, resampler, output, discardBeforeNanos, nextPts);
+                        }
+                    }
                     continue;
                 }
                 var item = queue.take(50, TimeUnit.MILLISECONDS);
@@ -115,46 +146,40 @@ final class AudioWorker {
                 }
                 switch (item) {
                     case PacketQueue.Item.Flush flush -> {
-                        flushTo(flush, decoder, resampler);
+                        flushTo(flush, resampler);
                         discardBeforeNanos = flush.targetNanos();
                         nextPts = flush.targetNanos();
                     }
                     case PacketQueue.Item.Data(var packet, var packetSerial) -> {
                         try (packet) {
-                            if (packetSerial != serial) {
-                                continue;
-                            }
-                            try {
-                                while (!decoder.send(packet)) {
-                                    nextPts = drainFrames(decoder, resampler, output, discardBeforeNanos, nextPts);
-                                }
-                                nextPts = drainFrames(decoder, resampler, output, discardBeforeNanos, nextPts);
-                            } catch (MediaException e) {
-                                throw e;
-                            } catch (RuntimeException e) {
-                                // The fallback ladder's mid-stream rung: this decoder
-                                // is done; the next candidate takes over from the
-                                // next packet.
-                                LOG.warn("audio decoder failed mid-stream; trying the next", e);
-                                decoder.close();
-                                skip++;
-                                var resolved = Decoders.open(
-                                        playback.ffmpeg(), demuxer, stream, playback.decoderProviders(), skip);
-                                decoder = resolved.decoder();
-                                playback.audioDecoder(resolved.provider());
+                            if (packetSerial == serial) {
+                                nextPts = decode(packet, resampler, output, discardBeforeNanos, nextPts);
                             }
                         }
+                    }
+                    case PacketQueue.Item.Seam(var seamSerial, var offset) -> {
+                        if (seamSerial != serial) {
+                            continue;
+                        }
+                        decoder().sendEnd();
+                        nextPts = drainFrames(resampler, output, discardBeforeNanos, nextPts);
+                        decoder().flush();
+                        offsetNanos = offset;
+                        // The next pass begins where this one's sound ended: what
+                        // would overlap it is discarded, and a gap is filled.
+                        discardBeforeNanos = nextPts;
+                        seamNanos = nextPts;
                     }
                     case PacketQueue.Item.End(var endSerial) -> {
                         if (endSerial != serial) {
                             continue;
                         }
-                        decoder.sendEnd();
-                        nextPts = drainFrames(decoder, resampler, output, discardBeforeNanos, nextPts);
+                        decoder().sendEnd();
+                        nextPts = drainFrames(resampler, output, discardBeforeNanos, nextPts);
                         var tail = resampler.drain(output.segment(), output.capacity());
                         write(output.segment(), tail, format.samples(nextPts));
                         playOut();
-                        decoder.flush();
+                        decoder().flush();
                     }
                 }
             }
@@ -167,14 +192,47 @@ final class AudioWorker {
                 playback.fail(new MediaError.InvalidData(e.toString()), e);
             }
         } finally {
-            decoder.close();
+            decoder().close();
         }
     }
 
+    /// Decodes `packet`, and writes what it holds from `discardBeforeNanos` on.
+    /// A decoder that fails is replaced by the next candidate, which takes over
+    /// from the next packet: the fallback ladder's mid-stream rung.
+    ///
+    /// @return the stream time after the last sample written
+    private long decode(
+            Packet packet, Resampler resampler, OutputBuffer output, long discardBeforeNanos, long nextPts) {
+        var pts = nextPts;
+        try {
+            while (!decoder().send(packet)) {
+                pts = drainFrames(resampler, output, discardBeforeNanos, pts);
+            }
+            return drainFrames(resampler, output, discardBeforeNanos, pts);
+        } catch (MediaException e) {
+            throw e;
+        } catch (RuntimeException e) {
+            LOG.warn("audio decoder failed mid-stream; trying the next", e);
+            decoder().close();
+            skip++;
+            var resolved = Decoders.open(playback.ffmpeg(), demuxer, stream, playback.decoderProviders(), skip);
+            decoder = resolved.decoder();
+            playback.audioDecoder(resolved.provider());
+            return pts;
+        }
+    }
+
+    /// The decoder [#play()] opened.
+    private Decoder decoder() {
+        return Objects.requireNonNull(decoder, "no decoder before play()");
+    }
+
     /// A seek: the decoder, the resampler and the sink start over at the target.
-    private void flushTo(PacketQueue.Item.Flush flush, Decoder decoder, Resampler resampler) {
+    private void flushTo(PacketQueue.Item.Flush flush, Resampler resampler) {
         serial = flush.serial();
-        decoder.flush();
+        offsetNanos = 0;
+        seamNanos = Frame.NO_PTS;
+        decoder().flush();
         resampler.reset();
         playback.sink().clear();
         playback.audioWritten(format.samples(flush.targetNanos()), false);
@@ -184,21 +242,24 @@ final class AudioWorker {
     /// Receives every frame the decoder has, converts, trims and writes each.
     ///
     /// @return the stream time after the last sample written
-    private long drainFrames(
-            Decoder decoder, Resampler resampler, OutputBuffer output, long discardBeforeNanos, long nextPts) {
+    private long drainFrames(Resampler resampler, OutputBuffer output, long discardBeforeNanos, long nextPts) {
         var pts = nextPts;
         while (running()) {
-            var received = decoder.receive();
+            var received = decoder().receive();
             if (!(received instanceof Received.Decoded(var frame))) {
                 return pts;
             }
             if (!(frame instanceof AudioFrame audio)) {
                 continue;
             }
-            var framePts = audio.ptsNanos() == Frame.NO_PTS ? pts : audio.ptsNanos();
+            var framePts = audio.ptsNanos() == Frame.NO_PTS ? pts : audio.ptsNanos() + offsetNanos;
+            var startSample = format.samples(framePts);
+            if (seamNanos != Frame.NO_PTS) {
+                fillGap(output, format.samples(seamNanos), startSample);
+                seamNanos = Frame.NO_PTS;
+            }
             output.ensure(resampler.capacityFor(audio));
             var written = resampler.convert(audio, output.segment(), output.capacity());
-            var startSample = format.samples(framePts);
             var skipped = 0;
             if (discardBeforeNanos != Frame.NO_PTS && framePts < discardBeforeNanos) {
                 skipped = (int) Math.min(written, format.samples(discardBeforeNanos) - startSample);
@@ -207,6 +268,18 @@ final class AudioWorker {
             pts = format.nanos(startSample + written);
         }
         return pts;
+    }
+
+    /// Writes silence from sample index `fromSample` up to `toSample`: the gap at
+    /// a seam where the last pass's sound ended before the next pass starts.
+    private void fillGap(OutputBuffer output, long fromSample, long toSample) {
+        var at = fromSample;
+        while (at < toSample && running()) {
+            var samples = (int) Math.min(toSample - at, output.capacity());
+            output.segment().asSlice(0, (long) samples * format.bytesPerFrame()).fill((byte) 0);
+            write(output.segment(), samples, at);
+            at += samples;
+        }
     }
 
     /// Writes `samples` samples that start at sample index `startSample`, after

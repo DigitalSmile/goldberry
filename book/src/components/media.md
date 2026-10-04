@@ -57,6 +57,24 @@ volume, the rate and the buffered ranges. `player.status()` reads the latest and
 `setMuted`, `setRate` from 0.25 to 4 with the pitch following, `step(count)`
 for a picture at a time, and `close`.
 
+`setLooping(true)`, or `MediaPlayer.builder().looping(true)`, plays the source
+over and over. The player never reaches `ENDED`, and there is no pause where the
+source joins back onto its start. The engine reads the start again before the
+end is heard. The sound and the pictures run on in time across the seam, and the
+position is the time within the pass that is playing. A pass is as long as its
+last picture. The sound is fitted to that length: trimmed where it runs over,
+and padded with silence where it falls short. A source with no picture loops at
+the end of its sound's last packet, so an Opus track's encoder padding, a few
+milliseconds, is heard at the seam. A source that cannot seek, or a live one,
+ends anyway
+([ADR-0556](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0556-a-looping-source-is-read-again-ahead-of-its-end-and-joined-at-a-seam.md)).
+
+`MediaProbe.probe(source)` says what a source holds without playing it. A video
+track's `TrackParams.Video` has its `frameRate()`, a `FrameRate` such as `60/1`
+or `30000/1001`, and the `Track` has its `frameCount()` where the container
+records one. MP4 does. Matroska and WebM do not, so for them the count is
+`frameRate.framesIn(duration)`.
+
 In markup a player is a named object. The application registers it and a node
 names it with `player=`
 ([ADR-0170](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0170-a-document-names-an-object-and-a-label-hands-focus-down.md)):
@@ -110,6 +128,11 @@ with `name`, `supports(request)` and `open(request)`, and declare
 provider for a patented codec holds the licence for it.
 `MediaPlayer.builder().decoderProviders(list)` lists providers by hand, and
 `PlatformDecoders.providers()` is the system's set.
+
+The probe still names such a track's pixel format: the build neither decodes
+nor parses H.264 or HEVC, so the name is read from the parameter sets in the
+track's `avcC` or `hvcC` record
+([ADR-0557](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0557-the-probe-reads-an-h-264-or-hevc-pixel-format-from-the-parameter-sets.md)).
 
 Hardware decoding is a rung of the built-in decoder: on by default on macOS and
 Windows, switched with `setHardwareDecoding(HardwareDecoding.AUTO)` or `OFF`,
@@ -172,9 +195,9 @@ overlay on `.is-pointer-idle`.
 
 Once the player has focus: `Space` or `K` plays and pauses, `Left` and `Right`
 seek five seconds, `Up` and `Down` change the volume by five percent, `M` mutes,
-`Home` goes to the start, `,` and `.` step a picture back and on, `<` and `>`
-slow down and speed up through 0.25 to 2, and `F` and `Escape` enter and leave
-fullscreen.
+`L` loops the source and stops looping it, `Home` goes to the start, `,` and `.`
+step a picture back and on, `<` and `>` slow down and speed up through 0.25 to
+2, and `F` and `Escape` enter and leave fullscreen.
 
 ### Read more
 
@@ -329,15 +352,17 @@ Children are refused.
 
 The CSS type is `media-controls`, a row with `--gb-media-gap`. Its pieces carry
 `media-play`, `media-time`, `media-seek`, `media-live`, `media-rate`,
-`media-mute`, `media-volume`, `media-audio-track`, `media-video-track`,
-`media-subtitles-menu` and `media-fullscreen`. The state is on the bar as
+`media-loop`, `media-mute`, `media-volume`, `media-audio-track`,
+`media-video-track`, `media-subtitles-menu` and `media-fullscreen`. The
+`media-loop` button shows only while the player loops, and pressing it stops
+the loop. The state is on the bar as
 `is-playing`, `is-paused`, `is-buffering`, `is-ended` or `is-error`, and
 `is-scrubbing` while the seek bar is held.
 
 ### Keyboard
 
 The bar is a focus stop. `Space` or `K`, `Left` and `Right`, `Up` and `Down`,
-`M`, `Home`, `,` and `.`, and `<` and `>`, as on `media-player`. A key bubbles
+`M`, `L`, `Home`, `,` and `.`, and `<` and `>`, as on `media-player`. A key bubbles
 to the bar from a control inside it that does not want it.
 
 ### Read more

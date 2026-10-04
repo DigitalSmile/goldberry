@@ -159,6 +159,63 @@ class PacketQueueTest {
         assertEquals(Frame.NO_PTS, queue.endNanos());
     }
 
+    /// A packet at `ptsMillis` that plays `millis`.
+    private static Packet at(long ptsMillis, long millis) {
+        return Packet.of(MemorySegment.NULL, 0, ptsMillis, ptsMillis, millis, true, MS);
+    }
+
+    @Test
+    @DisplayName(
+            "takeBefore takes the packets at the head that end by the time given, and stops at the first that does not")
+    void takeBefore() {
+        var queue = new PacketQueue(SECOND, 1 << 20);
+        queue.put(at(0, 20), 0);
+        queue.put(at(20, 20), 0);
+        queue.put(at(40, 20), 0);
+        assertEquals(60_000_000L, queue.queuedNanos());
+
+        assertEquals(0, queue.takeBefore(40_000_000L).packet().pts());
+        assertEquals(20, queue.takeBefore(40_000_000L).packet().pts());
+        assertNull(queue.takeBefore(40_000_000L), "the packet at 40 ms ends at 60 ms, past the time");
+        assertEquals(20_000_000L, queue.queuedNanos(), "what is taken leaves the count");
+        assertEquals(40, queue.takeBefore(60_000_000L).packet().pts());
+    }
+
+    @Test
+    @DisplayName("takeBefore takes no marker, and no packet with no timestamp")
+    void takeBeforeLeavesTheRest() {
+        var queue = new PacketQueue(SECOND, 1 << 20);
+        queue.flush(1, SECOND, true);
+        assertNull(queue.takeBefore(SECOND), "a flush is the paused thread's to take first");
+        assertInstanceOf(PacketQueue.Item.Flush.class, queue.takeFlush());
+        queue.put(Packet.of(MemorySegment.NULL, 0, Packet.NO_TIMESTAMP, Packet.NO_TIMESTAMP, 20, true, MS), 1);
+        assertNull(queue.takeBefore(SECOND));
+        queue.take(1, TimeUnit.SECONDS);
+        queue.seam(1, SECOND);
+        queue.put(at(0, 20), 1);
+        assertNull(queue.takeBefore(SECOND), "a seam stays at the head");
+    }
+
+    @Test
+    @DisplayName("a seam is a marker with its offset, which moves how far the queue reaches, until a flush")
+    void seam() {
+        var queue = new PacketQueue(SECOND, 1 << 20);
+        queue.put(at(980, 20), 0);
+        assertEquals(SECOND, queue.endNanos());
+        queue.seam(0, SECOND);
+        queue.put(at(0, 20), 0);
+        assertEquals(SECOND + 20_000_000L, queue.endNanos(), "the next pass reaches on from the last");
+
+        queue.take(1, TimeUnit.SECONDS);
+        var seam = assertInstanceOf(PacketQueue.Item.Seam.class, queue.take(1, TimeUnit.SECONDS));
+        assertEquals(new PacketQueue.Item.Seam(0, SECOND), seam);
+        assertInstanceOf(PacketQueue.Item.Data.class, queue.take(1, TimeUnit.SECONDS));
+
+        queue.flush(1, 500_000_000L, true);
+        queue.put(at(500, 20), 1);
+        assertEquals(520_000_000L, queue.endNanos(), "a seek is back in the source's own time");
+    }
+
     @Test
     @DisplayName("abort wakes a waiting take for good and closes what is queued")
     void abort() throws Exception {

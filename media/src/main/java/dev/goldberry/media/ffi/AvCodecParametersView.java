@@ -7,6 +7,9 @@ import static java.lang.foreign.ValueLayout.JAVA_INT;
 import static java.lang.foreign.ValueLayout.JAVA_LONG;
 
 import java.lang.foreign.MemorySegment;
+import java.util.Optional;
+
+import dev.goldberry.media.codec.FrameRate;
 
 /// The fields of `AVCodecParameters` the Engine reads
 /// ([FfmpegStructs#AV_CODEC_PARAMETERS]).
@@ -83,6 +86,12 @@ final class AvCodecParametersView {
     /// Height in pixels.
     static int height(MemorySegment parameters) {
         return parameters.get(JAVA_INT, HEIGHT);
+    }
+
+    /// The frame rate the codec's own headers state, for a stream whose pictures
+    /// all last as long.
+    static Optional<FrameRate> frameRate(MemorySegment parameters) {
+        return AvRationalView.frameRate(parameters, FfmpegStructs.AV_CODEC_PARAMETERS, "framerate");
     }
 
     /// The channel count, from the channel layout.

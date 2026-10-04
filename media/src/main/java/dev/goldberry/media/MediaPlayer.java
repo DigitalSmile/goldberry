@@ -77,6 +77,7 @@ public final class MediaPlayer implements AutoCloseable {
     private volatile boolean muted;
     private volatile float rate = 1f;
     private volatile Duration audioDelay = Duration.ZERO;
+    private volatile boolean looping;
     private boolean closed;
     /// The views attached, and the form they decide on. Guarded by `lock`.
     private final List<Attachment> attachments = new ArrayList<>();
@@ -93,6 +94,7 @@ public final class MediaPlayer implements AutoCloseable {
                         .toList();
         this.ioProviders = builder.ioProviders == null ? null : List.copyOf(builder.ioProviders);
         this.hardwareDecoding = builder.hardwareDecoding;
+        this.looping = builder.looping;
     }
 
     /// A builder. The sink defaults to [SdlAudioSink], the default playback
@@ -135,13 +137,16 @@ public final class MediaPlayer implements AutoCloseable {
             next.setRate(rate);
             next.setAudioDelay(audioDelay.toNanos());
             next.setPictureForm(pictureForm);
+            next.setLooping(looping);
             playback = next;
         }
         if (previous != null) {
             previous.close();
         }
-        next.start();
+        // Before the engine's threads start: published after, a source that
+        // opens at once is BUFFERING before OPENING is heard.
         publish();
+        next.start();
     }
 
     /// How long until a picture that is not yet due falls due, or empty when none
@@ -278,6 +283,33 @@ public final class MediaPlayer implements AutoCloseable {
         }
         this.rate = rate;
         publish();
+    }
+
+    /// Plays the source over and over, or not. Kept for the next source opened,
+    /// as the rate is.
+    ///
+    /// A looping player never reaches [PlaybackState#ENDED]: at the end of the
+    /// source it plays on from the start with no pause at the seam. The source
+    /// is read again ahead of time, the sound and the pictures run on in time
+    /// across the seam, and [VideoStatistics] counts on. [PlayerStatus#position()]
+    /// is the time within the pass playing. A seek moves within the source as
+    /// usual.
+    ///
+    /// Turned on, it takes effect at the next end of the source the player reads,
+    /// which is up to two seconds ahead of what is heard: turned on that close
+    /// to the end, or after it, the source ends this time, and plays over from
+    /// the next seek. A source that cannot seek, or a live one, ends anyway.
+    ///
+    /// Read more: [A player](https://goldberry.dev/docs/components/media.html#a-player).
+    public void setLooping(boolean looping) {
+        this.looping = looping;
+        current().ifPresent(playback -> playback.setLooping(looping));
+        publish();
+    }
+
+    /// Whether the player plays the source over and over: see [#setLooping].
+    public boolean looping() {
+        return looping;
     }
 
     /// The largest [#setAudioDelay] takes either way: more than any device's
@@ -424,7 +456,8 @@ public final class MediaPlayer implements AutoCloseable {
                     Optional.empty(),
                     Optional.empty(),
                     Optional.empty(),
-                    Optional.empty());
+                    Optional.empty(),
+                    looping);
         }
         var playback = current.get();
         return new PlayerStatus(
@@ -442,7 +475,8 @@ public final class MediaPlayer implements AutoCloseable {
                 Optional.ofNullable(playback.nowPlaying()),
                 Optional.ofNullable(playback.audioTrack()),
                 Optional.ofNullable(playback.videoTrack()),
-                Optional.ofNullable(playback.subtitles()));
+                Optional.ofNullable(playback.subtitles()),
+                looping);
     }
 
     /// Calls `listener` with every new status. **On the Engine's threads.**
@@ -577,6 +611,7 @@ public final class MediaPlayer implements AutoCloseable {
         private @Nullable List<? extends DecoderProvider> decoderProviders;
         private @Nullable List<? extends MediaIOProvider> ioProviders;
         private HardwareDecoding hardwareDecoding = HardwareDecoding.AUTO;
+        private boolean looping;
 
         private Builder() {}
 
@@ -628,6 +663,13 @@ public final class MediaPlayer implements AutoCloseable {
         /// Exactly these protocols, instead of the ones `ServiceLoader` finds.
         public Builder ioProviders(List<? extends MediaIOProvider> providers) {
             this.ioProviders = List.copyOf(providers);
+            return this;
+        }
+
+        /// Whether the player plays every source over and over from the start:
+        /// [MediaPlayer#setLooping]. Off unless set.
+        public Builder looping(boolean looping) {
+            this.looping = looping;
             return this;
         }
 

@@ -23,6 +23,7 @@ is our own content and carries no third-party licence:
 | `clip-vp9.webm` | WebM | VP9, Opus | phase 3 |
 | `clip-av1.mkv` | Matroska | AV1, Opus | phase 3 (dav1d) |
 | `clip-av1.mp4` | MP4 | AV1, FLAC | phase 3 |
+| `clip-vp9-long-gop.webm` | WebM | VP9 `testsrc2` at 32×18, one keyframe, at zero; Opus sine; ten seconds | a paused accurate seek 9.5 s past its keyframe, in a source with audio |
 | `clip-vp9-444.webm` | WebM | VP9 profile 1 (4:4:4), 0.2 s, silent | the built-in decoder's conversion to I420 |
 | `clip-vp9-10bit.webm` | WebM | VP9 profile 2 (10-bit 4:2:0), 0.2 s, silent | I010, and video with no audio on the free-running clock |
 | `clip-vp9-709.webm` | WebM | VP9, tagged BT.709, limited range, 0.2 s, silent | GPU present's parity for the HD matrix (ADR-0484) |

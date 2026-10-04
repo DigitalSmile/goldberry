@@ -1,4 +1,4 @@
-package dev.goldberry.media.platform.bitstream;
+package dev.goldberry.media.bitstream;
 
 import static java.lang.foreign.ValueLayout.JAVA_BYTE;
 
@@ -85,6 +85,30 @@ public final class ParameterSets {
         public boolean decodable() {
             return (bitDepth == 8 || bitDepth == 10) && (chromaFormat == 0 || chromaFormat == 1);
         }
+
+        /// FFmpeg's name for the pixel format a decoder of this stream hands
+        /// over: `yuv420p`, `yuv422p10le`, `gray`. A full-range stream is named as
+        /// a limited one, since FFmpeg's `yuvj` names are deprecated for the
+        /// range a frame carries beside its format. Empty for a depth FFmpeg has
+        /// no format of.
+        public Optional<String> pixelFormat() {
+            var base =
+                    switch (chromaFormat) {
+                        case 0 -> "gray";
+                        case 1 -> "yuv420p";
+                        case 2 -> "yuv422p";
+                        case 3 -> "yuv444p";
+                        default -> null;
+                    };
+            if (base == null) {
+                return Optional.empty();
+            }
+            return switch (bitDepth) {
+                case 8 -> Optional.of(base);
+                case 9, 10, 12, 14, 16 -> Optional.of(base + bitDepth + "le");
+                default -> Optional.empty();
+            };
+        }
     }
 
     /// The colour a stream's VUI signals (ITU-T H.264 §E.2.1): whether luma
@@ -157,6 +181,22 @@ public final class ParameterSets {
         } catch (IllegalArgumentException e) {
             // No record, or Annex B start codes rather than one: a stream whose
             // packets are not in the form the providers read.
+            return Optional.empty();
+        }
+    }
+
+    /// The pixel format of a `codec` track whose decoder configuration record is
+    /// `record`, read from its first SPS: what the probe says of a track whose
+    /// codec the published natives neither decode nor parse. Empty for any other
+    /// codec, and for a record that does not read.
+    public static Optional<String> pixelFormat(CodecId codec, byte[] record) {
+        try {
+            return switch (codec) {
+                case H264 -> h264(record).shape().pixelFormat();
+                case HEVC -> hevc(record).shape().pixelFormat();
+                default -> Optional.empty();
+            };
+        } catch (IllegalArgumentException e) {
             return Optional.empty();
         }
     }

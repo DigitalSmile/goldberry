@@ -2,10 +2,10 @@ package dev.goldberry.media.platform.macos;
 
 import java.util.Optional;
 
+import dev.goldberry.media.bitstream.ParameterSets;
 import dev.goldberry.media.codec.Decoder;
 import dev.goldberry.media.codec.DecoderProvider;
 import dev.goldberry.media.codec.DecoderRequest;
-import dev.goldberry.media.platform.bitstream.ParameterSets;
 
 /// H.264 and HEVC, decoded by macOS's VideoToolbox.
 ///

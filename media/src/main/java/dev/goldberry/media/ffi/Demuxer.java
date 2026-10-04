@@ -18,8 +18,10 @@ import dev.goldberry.media.MediaError;
 import dev.goldberry.media.MediaException;
 import dev.goldberry.media.MediaInfo;
 import dev.goldberry.media.Track;
+import dev.goldberry.media.bitstream.ParameterSets;
 import dev.goldberry.media.codec.CodecId;
 import dev.goldberry.media.codec.DecoderRequest;
+import dev.goldberry.media.codec.FrameRate;
 import dev.goldberry.media.codec.MediaType;
 import dev.goldberry.media.codec.Packet;
 import dev.goldberry.media.codec.Rational;
@@ -273,11 +275,13 @@ public final class Demuxer implements AutoCloseable {
         var parameters = AvStreamView.codecParameters(stream);
         var codecName = ffmpeg.codecName(AvCodecParametersView.codecId(parameters));
         var disposition = AvStreamView.disposition(stream);
+        var codec = CodecId.fromFfmpegName(codecName);
+        var params = params(codec, stream, parameters);
         return new Track(
                 AvStreamView.index(stream),
-                CodecId.fromFfmpegName(codecName),
+                codec,
                 codecName,
-                params(parameters),
+                params,
                 Timestamps.toDuration(
                         AvStreamView.duration(stream),
                         AvStreamView.timeBaseNum(stream),
@@ -286,7 +290,15 @@ public final class Demuxer implements AutoCloseable {
                 (disposition & constants.dispositionDefault()) != 0,
                 (disposition & constants.dispositionAttachedPic()) != 0,
                 metadata(stream, "language").filter(language -> !language.equalsIgnoreCase("und")),
-                metadata(stream, "title"));
+                metadata(stream, "title"),
+                params instanceof TrackParams.Video ? frameCount(stream) : OptionalLong.empty());
+    }
+
+    /// How many pictures `stream` holds, when the container records it. Not
+    /// asked of a sound track, where FFmpeg counts packets.
+    private static OptionalLong frameCount(MemorySegment stream) {
+        var frames = AvStreamView.frameCount(stream);
+        return frames > 0 ? OptionalLong.of(frames) : OptionalLong.empty();
     }
 
     /// The stream's metadata entry named `key`, when it has one and it is not
@@ -307,7 +319,7 @@ public final class Demuxer implements AutoCloseable {
         }
     }
 
-    private TrackParams params(MemorySegment parameters) {
+    private TrackParams params(CodecId codec, MemorySegment stream, MemorySegment parameters) {
         var constants = ffmpeg.constants();
         var type = AvCodecParametersView.codecType(parameters);
         var profile = known(AvCodecParametersView.profile(parameters), constants.profileUnknown());
@@ -317,10 +329,12 @@ public final class Demuxer implements AutoCloseable {
             return new TrackParams.Video(
                     Math.max(AvCodecParametersView.width(parameters), 0),
                     Math.max(AvCodecParametersView.height(parameters), 0),
-                    ffmpeg.pixelFormatName(AvCodecParametersView.format(parameters)),
+                    ffmpeg.pixelFormatName(AvCodecParametersView.format(parameters))
+                            .or(() -> pixelFormat(codec, parameters)),
                     profile,
                     known(AvCodecParametersView.level(parameters), constants.levelUnknown()),
-                    knownBitRate);
+                    knownBitRate,
+                    frameRate(stream, parameters));
         }
         if (type == constants.mediaTypeAudio()) {
             return new TrackParams.Audio(
@@ -334,6 +348,25 @@ public final class Demuxer implements AutoCloseable {
             return new TrackParams.Subtitle();
         }
         return new TrackParams.Other(type == constants.mediaTypeAttachment() ? MediaType.ATTACHMENT : MediaType.DATA);
+    }
+
+    /// The pixel format of a track FFmpeg has not named one for, from its
+    /// decoder configuration record: an H.264 or HEVC track, which this build
+    /// neither decodes nor parses.
+    private static Optional<String> pixelFormat(CodecId codec, MemorySegment parameters) {
+        var extradata = AvCodecParametersView.extradata(parameters);
+        if (extradata.equals(MemorySegment.NULL)) {
+            return Optional.empty();
+        }
+        return ParameterSets.pixelFormat(codec, extradata.toArray(JAVA_BYTE));
+    }
+
+    /// The average rate, else the one the codec's headers state, else the base
+    /// rate FFmpeg finds the timestamps on.
+    private static Optional<FrameRate> frameRate(MemorySegment stream, MemorySegment parameters) {
+        return AvStreamView.averageFrameRate(stream)
+                .or(() -> AvCodecParametersView.frameRate(parameters))
+                .or(() -> AvStreamView.baseFrameRate(stream));
     }
 
     private static OptionalInt known(int value, int unknown) {

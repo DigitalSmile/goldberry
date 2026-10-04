@@ -18,6 +18,7 @@ import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 
 import dev.goldberry.log.Logs;
+import dev.goldberry.media.bitstream.ParameterSets;
 import dev.goldberry.media.codec.CodecId;
 import dev.goldberry.media.codec.Decoder;
 import dev.goldberry.media.codec.DecoderRequest;
@@ -26,7 +27,6 @@ import dev.goldberry.media.codec.PixelFormat;
 import dev.goldberry.media.codec.Received;
 import dev.goldberry.media.codec.TrackParams;
 import dev.goldberry.media.codec.VideoFrame;
-import dev.goldberry.media.platform.bitstream.ParameterSets;
 
 /// One H.264 or HEVC track decoded by a VideoToolbox decompression session.
 ///

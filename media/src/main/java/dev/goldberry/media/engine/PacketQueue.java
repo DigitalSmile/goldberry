@@ -38,6 +38,12 @@ import dev.goldberry.media.codec.Packet;
 /// this track. Less the clock, it is what the track can play without another
 /// byte, which is what the water marks are measured against.
 ///
+/// **A seam.** A looping source is read again from its start without a flush:
+/// [#seam] queues a [Item.Seam] at the end of one pass, and the packets after it
+/// are the next pass's, whose times the decode thread moves on by the marker's
+/// offset. [#endNanos()] counts in that moved time, so the water marks see no
+/// jump back at the seam.
+///
 /// [#abort()] wakes the consumer for good. It is how the Engine stops.
 final class PacketQueue {
 
@@ -59,6 +65,13 @@ final class PacketQueue {
         /// A seek happened: flush the decoder, and discard decoded media before
         /// `targetNanos` when `accurate`.
         record Flush(int serial, long targetNanos, boolean accurate) implements Item {}
+
+        /// A looping source starts over: drain the decoder as at the end, flush
+        /// it, and present what follows `offsetNanos` later than its own times say.
+        ///
+        /// @param offsetNanos what to add to every time after the marker: the
+        ///                    passes played before it, end to end
+        record Seam(int serial, long offsetNanos) implements Item {}
     }
 
     private final ReentrantLock lock = new ReentrantLock();
@@ -69,6 +82,9 @@ final class PacketQueue {
     private long queuedNanos;
     private long queuedBytes;
     private long endNanos = Frame.NO_PTS;
+    /// The offset of the latest [Item.Seam] queued: what the packets queued now
+    /// are moved by.
+    private long offsetNanos;
     private boolean ended;
     private boolean aborted;
 
@@ -103,7 +119,10 @@ final class PacketQueue {
             items.addLast(data);
             queuedNanos += durationOf(data);
             queuedBytes += packet.data().byteSize();
-            endNanos = Math.max(endNanos, endOf(packet));
+            var end = endOf(packet);
+            if (end != Frame.NO_PTS) {
+                endNanos = Math.max(endNanos, end + offsetNanos);
+            }
             ended = false;
             notEmpty.signalAll();
             return true;
@@ -146,6 +165,21 @@ final class PacketQueue {
         }
     }
 
+    /// Queues the start of another pass over a looping source, at `serial`: the
+    /// packets queued after it are presented `offsetNanos` later than their own
+    /// times say.
+    void seam(int serial, long offsetNanos) {
+        lock.lock();
+        try {
+            items.addLast(new Item.Seam(serial, offsetNanos));
+            this.offsetNanos = offsetNanos;
+            ended = false;
+            notEmpty.signalAll();
+        } finally {
+            lock.unlock();
+        }
+    }
+
     /// Drops and closes every queued packet, and queues a [Item.Flush] in their
     /// place.
     void flush(int serial, long targetNanos, boolean accurate) {
@@ -154,6 +188,7 @@ final class PacketQueue {
             closeQueued();
             ended = false;
             endNanos = Frame.NO_PTS;
+            offsetNanos = 0;
             items.addLast(new Item.Flush(serial, targetNanos, accurate));
             notEmpty.signalAll();
         } finally {
@@ -180,8 +215,7 @@ final class PacketQueue {
             }
             var item = Objects.requireNonNull(items.pollFirst());
             if (item instanceof Item.Data data) {
-                queuedNanos = Math.max(0, queuedNanos - durationOf(data));
-                queuedBytes = Math.max(0, queuedBytes - data.packet().data().byteSize());
+                taken(data);
             }
             return item;
         } catch (InterruptedException e) {
@@ -203,6 +237,29 @@ final class PacketQueue {
                 return flush;
             }
             return null;
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    /// The next item, if it is a packet that ends at or before `nanos`, in the
+    /// packet's own time, taken; anything else stays queued. What a paused audio
+    /// thread uses to go through the audio before an accurate seek's target:
+    /// left queued, it would fill the queue and stop the demux thread before the
+    /// video had reached the target.
+    Item.@Nullable Data takeBefore(long nanos) {
+        lock.lock();
+        try {
+            if (aborted || !(items.peekFirst() instanceof Item.Data data)) {
+                return null;
+            }
+            var end = endOf(data.packet());
+            if (end == Frame.NO_PTS || end > nanos) {
+                return null;
+            }
+            items.pollFirst();
+            taken(data);
+            return data;
         } finally {
             lock.unlock();
         }
@@ -255,6 +312,7 @@ final class PacketQueue {
 
     /// The stream time just past the latest packet queued since the last flush,
     /// or [Frame#NO_PTS] before one. A packet with no timestamp does not move it.
+    /// After a [#seam] it is moved on by the seam's offset, as the packets will be.
     long endNanos() {
         lock.lock();
         try {
@@ -287,6 +345,13 @@ final class PacketQueue {
         }
     }
 
+    /// Takes `data`, which has left the queue, off what the queue holds. Called
+    /// with the lock held.
+    private void taken(Item.Data data) {
+        queuedNanos = Math.max(0, queuedNanos - durationOf(data));
+        queuedBytes = Math.max(0, queuedBytes - data.packet().data().byteSize());
+    }
+
     /// Called with the lock held.
     private void closeQueued() {
         for (var item : items) {
@@ -301,7 +366,7 @@ final class PacketQueue {
 
     /// Where `packet` ends: its presentation time, or its decoding time when it
     /// has none, plus its duration.
-    private static long endOf(Packet packet) {
+    static long endOf(Packet packet) {
         var time = packet.pts() != Packet.NO_TIMESTAMP ? packet.pts() : packet.dts();
         if (time == Packet.NO_TIMESTAMP) {
             return Frame.NO_PTS;

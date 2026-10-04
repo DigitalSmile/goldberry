@@ -11,6 +11,8 @@ import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
+import java.util.OptionalLong;
 import java.util.Set;
 
 import org.junit.jupiter.api.AfterEach;
@@ -24,6 +26,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 import dev.goldberry.media.audio.AudioFormat;
 import dev.goldberry.media.audio.VirtualSink;
 import dev.goldberry.media.codec.CodecId;
+import dev.goldberry.media.codec.FrameRate;
 import dev.goldberry.media.codec.MediaType;
 import dev.goldberry.media.codec.TrackParams;
 import dev.goldberry.media.io.MediaIO;
@@ -348,6 +351,36 @@ class CodecFixturesTest {
         assertEquals(CodecId.PNG, cover.codec());
         assertTrue(info.defaultTrack(MediaType.VIDEO).isEmpty());
         play("tone-cover.mp3", true);
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @CsvSource({"clip-h264-aac.mp4, 25", "clip-av1.mp4, 25", "clip-vp9.webm, -1", "clip-av1.mkv, -1"})
+    @DisplayName("a video track says its frame rate, and how many pictures it holds where the container records it")
+    void frameRateAndCount(String name, long frames) {
+        var info = probe(name);
+        var video = info.defaultTrack(MediaType.VIDEO).orElseThrow();
+        var params = assertInstanceOf(TrackParams.Video.class, video.params());
+        assertEquals(Optional.of(new FrameRate(25, 1)), params.frameRate());
+        assertEquals(frames < 0 ? OptionalLong.empty() : OptionalLong.of(frames), video.frameCount());
+        // A sound track has neither: FFmpeg's count is of its packets.
+        info.tracks(MediaType.AUDIO).forEach(audio -> assertEquals(OptionalLong.empty(), audio.frameCount()));
+    }
+
+    @Test
+    @DisplayName("an H.264 track, which this build neither decodes nor parses, names its pixel format from its SPS")
+    void h264PixelFormat() {
+        var video = probe("clip-h264-aac.mp4").defaultTrack(MediaType.VIDEO).orElseThrow();
+        assertEquals(Optional.of("yuv420p"), ((TrackParams.Video) video.params()).pixelFormat());
+    }
+
+    @Test
+    @DisplayName("a WebM, which records no count, has one from its duration and its rate")
+    void countFromTheDuration() {
+        var info = probe("clip-vp9-long-gop.webm");
+        var params = (TrackParams.Video)
+                info.defaultTrack(MediaType.VIDEO).orElseThrow().params();
+        assertEquals(
+                250, params.frameRate().orElseThrow().framesIn(info.duration().orElseThrow()));
     }
 
     @Test

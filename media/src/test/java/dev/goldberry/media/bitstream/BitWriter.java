@@ -1,4 +1,4 @@
-package dev.goldberry.media.platform.bitstream;
+package dev.goldberry.media.bitstream;
 
 import java.io.ByteArrayOutputStream;
 

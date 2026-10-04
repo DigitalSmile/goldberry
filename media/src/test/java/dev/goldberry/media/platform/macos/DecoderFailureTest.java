@@ -19,6 +19,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import dev.goldberry.media.bitstream.ParameterSets;
+import dev.goldberry.media.bitstream.ParameterSetsTest;
 import dev.goldberry.media.codec.CodecId;
 import dev.goldberry.media.codec.Decoder;
 import dev.goldberry.media.codec.DecoderRequest;
@@ -27,8 +29,6 @@ import dev.goldberry.media.codec.Packet;
 import dev.goldberry.media.codec.Rational;
 import dev.goldberry.media.codec.Received;
 import dev.goldberry.media.codec.TrackParams;
-import dev.goldberry.media.platform.bitstream.ParameterSets;
-import dev.goldberry.media.platform.bitstream.ParameterSetsTest;
 import dev.goldberry.media.platform.fixtures.Fixtures;
 
 /// The decoders when things go wrong, and when a stream is played twice: what

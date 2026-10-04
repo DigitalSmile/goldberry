@@ -69,7 +69,8 @@ class TransportTest {
                 Optional.empty(),
                 Optional.empty(),
                 Optional.empty(),
-                Optional.empty());
+                Optional.empty(),
+                false);
     }
 
     private static TimeRange range(long fromMillis, long toMillis) {

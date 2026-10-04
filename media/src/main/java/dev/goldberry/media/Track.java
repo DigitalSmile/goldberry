@@ -3,6 +3,7 @@ package dev.goldberry.media;
 import java.time.Duration;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.OptionalLong;
 
 import dev.goldberry.media.codec.CodecId;
 import dev.goldberry.media.codec.MediaType;
@@ -28,6 +29,10 @@ import dev.goldberry.media.codec.TrackParams;
 ///                        untagged or `und`
 /// @param title           the track's own name, such as "Director's commentary",
 ///                        when the container gives one
+/// @param frameCount      how many pictures a video track holds, when the
+///                        container records it: MP4 does, Matroska and WebM do
+///                        not, and there [dev.goldberry.media.codec.FrameRate#framesIn]
+///                        of the duration is the count
 ///
 /// Read more: [A player](https://goldberry.dev/docs/components/media.html#a-player).
 public record Track(
@@ -39,7 +44,8 @@ public record Track(
         boolean isDefault,
         boolean attachedPicture,
         Optional<String> language,
-        Optional<String> title) {
+        Optional<String> title,
+        OptionalLong frameCount) {
 
     public Track {
         if (index < 0) {
@@ -51,6 +57,31 @@ public record Track(
         Objects.requireNonNull(duration, "duration");
         Objects.requireNonNull(language, "language");
         Objects.requireNonNull(title, "title");
+        Objects.requireNonNull(frameCount, "frameCount");
+    }
+
+    /// A track whose count of pictures is not known: every component but that.
+    public Track(
+            int index,
+            CodecId codec,
+            String codecName,
+            TrackParams params,
+            Optional<Duration> duration,
+            boolean isDefault,
+            boolean attachedPicture,
+            Optional<String> language,
+            Optional<String> title) {
+        this(
+                index,
+                codec,
+                codecName,
+                params,
+                duration,
+                isDefault,
+                attachedPicture,
+                language,
+                title,
+                OptionalLong.empty());
     }
 
     /// A track with no language and no title: every component but those two.

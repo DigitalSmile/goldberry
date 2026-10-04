@@ -1,9 +1,9 @@
 package dev.goldberry.media.platform.linux;
 
+import dev.goldberry.media.bitstream.ParameterSets;
 import dev.goldberry.media.codec.Decoder;
 import dev.goldberry.media.codec.DecoderProvider;
 import dev.goldberry.media.codec.DecoderRequest;
-import dev.goldberry.media.platform.bitstream.ParameterSets;
 
 /// H.264 and HEVC, decoded by the GStreamer decoders the Linux system has
 /// installed.

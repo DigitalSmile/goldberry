@@ -32,6 +32,9 @@ import java.util.Optional;
 /// @param audioTrack     the audio track playing, once the tracks are chosen
 /// @param videoTrack     the video track the player shows, never cover art
 /// @param subtitles      where the subtitles showing come from, when any show
+/// @param looping        whether the source starts over when it ends, and so
+///                       never reaches [PlaybackState#ENDED]; the position is
+///                       then the time within the pass playing
 ///
 /// Read more: [A player](https://goldberry.dev/docs/components/media.html#a-player).
 public record PlayerStatus(
@@ -49,7 +52,8 @@ public record PlayerStatus(
         Optional<String> nowPlaying,
         Optional<Track> audioTrack,
         Optional<Track> videoTrack,
-        Optional<SubtitleSource> subtitles) {
+        Optional<SubtitleSource> subtitles,
+        boolean looping) {
 
     /// Before anything is opened.
     public static final PlayerStatus IDLE = new PlayerStatus(
@@ -67,7 +71,8 @@ public record PlayerStatus(
             Optional.empty(),
             Optional.empty(),
             Optional.empty(),
-            Optional.empty());
+            Optional.empty(),
+            false);
 
     public PlayerStatus {
         Objects.requireNonNull(state, "state");

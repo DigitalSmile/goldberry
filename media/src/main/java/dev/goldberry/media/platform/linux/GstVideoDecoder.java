@@ -10,12 +10,12 @@ import java.util.Optional;
 
 import org.jspecify.annotations.Nullable;
 
+import dev.goldberry.media.bitstream.ParameterSets;
 import dev.goldberry.media.codec.DecoderRequest;
 import dev.goldberry.media.codec.Frame;
 import dev.goldberry.media.codec.PixelFormat;
 import dev.goldberry.media.codec.TrackParams;
 import dev.goldberry.media.codec.VideoFrame;
-import dev.goldberry.media.platform.bitstream.ParameterSets;
 
 /// One H.264 or HEVC track decoded by GStreamer.
 ///

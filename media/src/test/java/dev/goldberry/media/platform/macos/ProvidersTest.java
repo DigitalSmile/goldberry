@@ -17,12 +17,12 @@ import java.util.OptionalLong;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import dev.goldberry.media.bitstream.ParameterSetsTest;
 import dev.goldberry.media.codec.CodecId;
 import dev.goldberry.media.codec.DecoderRequest;
 import dev.goldberry.media.codec.Rational;
 import dev.goldberry.media.codec.TrackParams;
 import dev.goldberry.media.platform.PlatformDecoders;
-import dev.goldberry.media.platform.bitstream.ParameterSetsTest;
 
 /// What the providers claim, from requests made up here: no FFmpeg, and for the
 /// refusals no Mac either.

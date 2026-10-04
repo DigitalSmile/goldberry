@@ -78,6 +78,14 @@ $ff -f lavfi -i "$short" -vf "scale=out_color_matrix=bt601:out_range=pc,format=y
     -c:v libvpx-vp9 -b:v 200k -colorspace smpte170m -color_primaries smpte170m -color_trc smpte170m \
     -color_range pc "$out/clip-vp9-full.webm"
 
+# --- Ten seconds with a single keyframe, at zero, and an Opus sine: a paused
+# accurate seek decodes from there, so the audio before a target 9.5 s in must
+# not fill its queue and stop the demuxer short of the target. 32x18, so it stays
+# small.
+$ff -f lavfi -i "testsrc2=s=32x18:r=25:d=10" -f lavfi -i "sine=f=440:d=10:r=48000" \
+    -c:v libvpx-vp9 -crf 50 -b:v 0 -g 250 -keyint_min 250 -c:a libopus -b:a 24k -shortest \
+    "$out/clip-vp9-long-gop.webm"
+
 # --- Two audio tracks, for track selection (phase 7): two seconds each, the
 # first at 440 Hz tagged English and titled, the second at 880 Hz tagged French,
 # both FLAC so a switch can be checked to the sample.

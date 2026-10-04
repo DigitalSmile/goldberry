@@ -106,6 +106,18 @@ import dev.goldberry.media.subtitle.Subtitles;
 /// keeps the [FrameQueue], so the picture on screen stays up until the new
 /// track's first picture replaces it.
 ///
+/// ## Looping
+///
+/// A looping playback ([#setLooping]) does not end. At the end of the source the
+/// demux thread seeks back to its start and queues a seam in every queue, with
+/// the length of the source as the offset of the passes after it: the decode
+/// threads drain their decoders there and move what follows on by that offset.
+/// So the clock, the pictures' times and the sound run on across the seam, the
+/// queues fill ahead of it as they do anywhere else, and the position reported
+/// ([#positionNanos()]) is the time within the source. The length is measured
+/// from the packets ([PassLength]), or is the container's duration when they say
+/// none. A source that cannot seek, or a live one, ends.
+///
 /// ## Stopping
 ///
 /// [#close()] aborts the queues and the demuxer's I/O, which wakes every blocked
@@ -255,6 +267,19 @@ public final class Playback implements AutoCloseable {
     private final AudioTail tail;
     /// What the position reads while a seek settles: the target.
     private volatile long seekingToNanos = Frame.NO_PTS;
+    /// Whether the source starts over at its end; set by [#setLooping].
+    private volatile boolean looping;
+    /// How long one pass over a looping source is, once the demux thread has
+    /// wrapped around once; 0 before.
+    private volatile long loopPeriodNanos;
+    /// What the passes queued now are moved by: every pass queued since the last
+    /// seek, end to end. Written by the demux thread.
+    private volatile long loopOffsetNanos;
+    // The demux thread's own: how long a pass over the source is, as far as
+    // its packets have said, and whether one has been read since the last seam,
+    // so a source with none never wraps around and around.
+    private final PassLength passLength = new PassLength();
+    private boolean readSinceWrap;
 
     // Guarded by `gate`.
     private boolean hasAudio;
@@ -339,7 +364,36 @@ public final class Playback implements AutoCloseable {
     /// What is playing now, in nanoseconds of stream time: the master clock, or
     /// the target while a seek settles.
     public long positionNanos() {
-        return presentationNanos();
+        return sourceNanos(presentationNanos());
+    }
+
+    /// `nanos` on the playback's clock as a time within the source. The same
+    /// but for a looping source that has wrapped, whose clock runs on past its
+    /// length: there, the time within the pass playing, or within the last
+    /// pass once the playback has ended.
+    long sourceNanos(long nanos) {
+        var period = loopPeriodNanos;
+        if (period <= 0) {
+            return nanos;
+        }
+        if (state == PlaybackState.ENDED) {
+            return Math.clamp(nanos - loopOffsetNanos, 0, period);
+        }
+        return Math.floorMod(nanos, period);
+    }
+
+    /// Whether the source starts over when it ends: see the type's
+    /// documentation. Takes effect at the next end the demux thread reads, which
+    /// is up to a queue's length ahead of what is heard; a playback that has
+    /// ended already stays ended until a seek.
+    public void setLooping(boolean looping) {
+        this.looping = looping;
+        signal();
+    }
+
+    /// Whether the source starts over when it ends.
+    public boolean looping() {
+        return looping;
     }
 
     /// How much is demuxed past the position, in nanoseconds: the least any
@@ -414,7 +468,7 @@ public final class Playback implements AutoCloseable {
 
     /// The cues showing now: none when no subtitles are chosen.
     public List<Cue> showingCues() {
-        return subtitles == null ? List.of() : cues.showing(Duration.ofNanos(presentationNanos()));
+        return subtitles == null ? List.of() : cues.showing(Duration.ofNanos(positionNanos()));
     }
 
     /// Shows the cues of `file`, read already, in place of whatever subtitles
@@ -644,7 +698,7 @@ public final class Playback implements AutoCloseable {
     /// replaces a seek the application asked for that has not run yet. That seek
     /// moves every queue anyway, and it is where the application wants to be.
     void reseek(long positionNanos) {
-        var target = Math.max(positionNanos, 0);
+        var target = Math.max(sourceNanos(positionNanos), 0);
         synchronized (seekLock) {
             if (pendingSeek.get() == null) {
                 seekingToNanos = target;
@@ -809,6 +863,9 @@ public final class Playback implements AutoCloseable {
             }
             var packet = opened.read();
             if (packet == null) {
+                if (looping && wrap(opened)) {
+                    continue;
+                }
                 forEachQueue(queue -> queue.end(serial));
                 ended = true;
                 startIfBuffered();
@@ -823,8 +880,16 @@ public final class Playback implements AutoCloseable {
                     : packet.streamIndex() == videoStream ? videoQueue : null;
             if (target == null) {
                 packet.close();
-            } else if (!target.put(packet, serial) && stopping) {
-                return;
+            } else {
+                if (target == videoQueue) {
+                    passLength.video(packet);
+                } else {
+                    passLength.audio(packet);
+                }
+                readSinceWrap = true;
+                if (!target.put(packet, serial) && stopping) {
+                    return;
+                }
             }
             startIfBuffered();
             followTitle();
@@ -1035,8 +1100,44 @@ public final class Playback implements AutoCloseable {
         return bufferedAheadNanos() >= highWaterNanos;
     }
 
+    /// Starts a looping source over: seeks to its start and queues a seam in
+    /// every queue, moving the next pass on by the source's length.
+    ///
+    /// @return false when the source cannot start over, and ends instead: it
+    ///         cannot seek, it is live, nothing says how long it is, or nothing
+    ///         was read since it last started over
+    private boolean wrap(Demuxer opened) {
+        var bytes = io;
+        var described = info;
+        var measured = passLength.nanos();
+        var period = measured != Frame.NO_PTS
+                ? measured
+                : described == null
+                        ? 0
+                        : described.duration().map(Duration::toNanos).orElse(0L);
+        if (!readSinceWrap || period <= 0 || bytes == null || !bytes.isSeekable() || bytes.isLive()) {
+            return false;
+        }
+        try {
+            opened.seek(0);
+        } catch (MediaException e) {
+            LOG.warn("cannot start {} over; it ends", source.uri(), e);
+            return false;
+        }
+        readSinceWrap = false;
+        loopPeriodNanos = period;
+        var offset = loopOffsetNanos + period;
+        loopOffsetNanos = offset;
+        forEachQueue(queue -> queue.seam(serial, offset));
+        return true;
+    }
+
     private void seekTo(Demuxer opened, SeekRequest request) {
         opened.seek(request.targetNanos());
+        loopOffsetNanos = 0;
+        // A seek to the very end reads nothing before it, and a looping source
+        // still starts over from there: only a wrap with nothing after it stops one.
+        readSinceWrap = true;
         serial++;
         // Before the flushes, so a decode thread that takes its flush at once
         // already finds the new Serial the latest.

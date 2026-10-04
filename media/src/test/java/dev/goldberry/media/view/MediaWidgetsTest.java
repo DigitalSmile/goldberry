@@ -48,6 +48,7 @@ import dev.goldberry.widget.Element;
 import dev.goldberry.widget.ElementTree;
 import dev.goldberry.widget.Widget;
 import dev.goldberry.widget.attr.Attributes;
+import dev.goldberry.widgets.controls.button.Button;
 import dev.goldberry.widgets.controls.option.Option;
 import dev.goldberry.widgets.controls.select.Select;
 import dev.goldberry.widgets.controls.slider.Slider;
@@ -274,6 +275,31 @@ class MediaWidgetsTest {
             player.setRate(1f);
             assertTrue(mount(new MediaControls(player)).stream()
                     .noneMatch(e -> e.classes().contains("media-rate")));
+        }
+
+        @Test
+        @DisplayName("L loops and stops; a loop button shows only while looping, and pressed, stops it")
+        void loop() {
+            openPlaying();
+            assertTrue(mount(new MediaControls(player)).stream()
+                    .noneMatch(e -> e.classes().contains("media-loop")));
+            var press = key(Key.L);
+            bar().onKey(press);
+            assertTrue(press.isConsumed());
+            assertTrue(player.looping());
+            assertTrue(player.status().looping());
+            var button = mount(new MediaControls(player)).stream()
+                    .filter(e -> e.classes().contains("media-loop"))
+                    .map(e -> (Button) e.widget())
+                    .findFirst()
+                    .orElseThrow();
+            button.onPress().run();
+            assertFalse(player.looping());
+            assertTrue(mount(new MediaControls(player)).stream()
+                    .noneMatch(e -> e.classes().contains("media-loop")));
+            bar().onKey(key(Key.L));
+            bar().onKey(new KeyEvent(KeyEvent.Kind.PRESSED, Key.L, Modifiers.NONE, true, null));
+            assertTrue(player.looping(), "a held key does it once");
         }
 
         @Test

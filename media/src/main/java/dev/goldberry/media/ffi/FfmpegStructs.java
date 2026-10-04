@@ -123,14 +123,16 @@ public final class FfmpegStructs {
                     AV_RATIONAL.withName("time_base"),
                     paddingLayout(8), // start_time
                     JAVA_LONG.withName("duration"),
-                    paddingLayout(8), // nb_frames
+                    JAVA_LONG.withName("nb_frames"),
                     JAVA_INT.withName("disposition"),
                     JAVA_INT.withName("discard"),
                     paddingLayout(8), // sample_aspect_ratio
                     ADDRESS.withName("metadata"),
-                    paddingLayout(8), // avg_frame_rate
+                    AV_RATIONAL.withName("avg_frame_rate"),
                     AV_PACKET.withName("attached_pic"),
-                    paddingLayout(16)) // event_flags, r_frame_rate, pts_wrap_bits
+                    paddingLayout(4), // event_flags
+                    AV_RATIONAL.withName("r_frame_rate"),
+                    paddingLayout(4)) // pts_wrap_bits
             .withName("AVStream");
 
     /// `AVDictionaryEntry`: one entry of a metadata dictionary, as `av_dict_get`
@@ -153,7 +155,9 @@ public final class FfmpegStructs {
                     JAVA_INT.withName("level"),
                     JAVA_INT.withName("width"),
                     JAVA_INT.withName("height"),
-                    paddingLayout(20), // sample_aspect_ratio, framerate, field_order
+                    paddingLayout(8), // sample_aspect_ratio
+                    AV_RATIONAL.withName("framerate"),
+                    paddingLayout(4), // field_order
                     JAVA_INT.withName("color_range"),
                     JAVA_INT.withName("color_primaries"),
                     JAVA_INT.withName("color_trc"),

@@ -424,6 +424,26 @@ class VideoPlaybackTest {
     }
 
     @Test
+    @DisplayName("a paused accurate seek far past its keyframe shows the target in a source with audio")
+    void pausedSeekFarPastTheKeyframe() {
+        // Ten seconds with one keyframe, at zero: every seek decodes from there,
+        // and the audio before the target must not fill its queue and stop the
+        // demuxer short of the target.
+        open("clip-vp9-long-gop.webm", false);
+        await(status -> status.state() == PlaybackState.PLAYING);
+        player.pause();
+        for (var millis : List.of(5_000, 8_500, 9_500, 3_000)) {
+            player.seek(Duration.ofMillis(millis));
+            awaitPicture(millis / 40 * FRAME);
+            assertEquals(PlaybackState.PAUSED, player.status().state());
+        }
+        // And play goes on from the last target, on the audio clock.
+        player.play();
+        playAudioTo(2 * FRAME);
+        awaitPicture(3_000_000_000L + 2 * FRAME);
+    }
+
+    @Test
     @DisplayName("scrubbing shows each keyframe, the release shows the target, and play goes on from there")
     void scrubAndRelease() {
         open("clip-vp9.webm", false);

@@ -591,3 +591,6 @@ proposing to undo them.
 - [ADR-0553 macOS and Windows build and test their library in one Gradle job](0553-macos-and-windows-build-and-test-their-library-in-one-gradle-job.md)
 - [ADR-0554 A picture of a screen pins what the build can do](0554-a-picture-of-a-screen-pins-what-the-build-can-do.md)
 - [ADR-0555 Qodana inspects the toolkit, not its measurement code](0555-qodana-inspects-the-toolkit-not-its-measurement-code.md)
+- [ADR-0556 A looping source is read again ahead of its end, and joined at a seam](0556-a-looping-source-is-read-again-ahead-of-its-end-and-joined-at-a-seam.md)
+- [ADR-0557 The probe reads an H.264 or HEVC pixel format from the parameter sets](0557-the-probe-reads-an-h-264-or-hevc-pixel-format-from-the-parameter-sets.md)
+- [ADR-0558 A video track says its frame rate and its count of pictures](0558-a-video-track-says-its-frame-rate-and-its-count-of-pictures.md)

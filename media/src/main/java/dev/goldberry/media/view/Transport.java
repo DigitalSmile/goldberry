@@ -61,6 +61,13 @@ import dev.goldberry.widgets.text.Text;
 /// (`.media-subtitles-menu`) when the source has a subtitle track, or a file was
 /// loaded beside it: "Subtitles off", each track, and the file.
 ///
+/// ## Looping
+///
+/// `L` plays the source over and over ([MediaPlayer#setLooping]), and pressed
+/// again, stops. While it loops, a button (`.media-loop`, a `repeat` glyph)
+/// shows after the rate and stops it when pressed; a player that is not looping
+/// shows none, so it looks as it always did.
+///
 /// ## What is buffered
 ///
 /// A network source's [PlayerStatus#bufferedRanges()] are the seek bar's
@@ -75,6 +82,7 @@ import dev.goldberry.widgets.text.Text;
 /// | `←` / `→` | back or forward five seconds |
 /// | `↑` / `↓` | volume up or down a twentieth |
 /// | `M` | mute or unmute |
+/// | `L` | play the source over and over, or stop |
 /// | `Home` | back to the start |
 /// | `,` / `.` | a picture back or on, pausing |
 /// | `<` / `>` (`Shift`+`,` / `.`) | slower or faster, through [#RATES] |
@@ -106,7 +114,8 @@ final class Transport {
         VOLUME("volume-2"),
         MUTED("volume-x"),
         FULLSCREEN("maximize"),
-        WINDOWED("minimize");
+        WINDOWED("minimize"),
+        LOOP("repeat");
 
         final String lucide;
 
@@ -186,6 +195,15 @@ final class Transport {
         if (status.rate() != 1f) {
             // Only when it is not 1, so a player at normal speed looks as it did.
             controls.add(new Text(rateLabel(status.rate()), Attributes.NONE.classes("media-rate")));
+        }
+        if (status.looping()) {
+            // Only while looping, as the rate: pressed, it stops; `L` starts it.
+            controls.add(new Button(
+                    "",
+                    icon(Glyph.LOOP),
+                    () -> player.setLooping(false),
+                    false,
+                    Attributes.NONE.classes("media-loop")));
         }
         controls.add(new Button(
                 "",
@@ -386,6 +404,12 @@ final class Transport {
                     case M -> {
                         if (!event.isRepeat()) {
                             player.setMuted(!status.muted());
+                        }
+                        yield true;
+                    }
+                    case L -> {
+                        if (!event.isRepeat()) {
+                            player.setLooping(!player.looping());
                         }
                         yield true;
                     }

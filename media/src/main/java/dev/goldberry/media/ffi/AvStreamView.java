@@ -6,6 +6,9 @@ import static java.lang.foreign.ValueLayout.JAVA_INT;
 import static java.lang.foreign.ValueLayout.JAVA_LONG;
 
 import java.lang.foreign.MemorySegment;
+import java.util.Optional;
+
+import dev.goldberry.media.codec.FrameRate;
 
 /// The fields of `AVStream` the Engine reads ([FfmpegStructs#AV_STREAM]).
 final class AvStreamView {
@@ -17,6 +20,7 @@ final class AvStreamView {
     private static final long TIME_BASE_DEN =
             FfmpegStructs.AV_STREAM.byteOffset(groupElement("time_base"), groupElement("den"));
     private static final long DURATION = offset("duration");
+    private static final long NB_FRAMES = offset("nb_frames");
     private static final long DISPOSITION = offset("disposition");
     private static final long DISCARD = offset("discard");
     private static final long METADATA = offset("metadata");
@@ -51,6 +55,24 @@ final class AvStreamView {
     /// The stream's duration in its time base, or `AV_NOPTS_VALUE`.
     static long duration(MemorySegment stream) {
         return stream.get(JAVA_LONG, DURATION);
+    }
+
+    /// How many pictures the stream holds, when the container records it (MP4's
+    /// sample table does, Matroska does not); 0 when it does not.
+    static long frameCount(MemorySegment stream) {
+        return stream.get(JAVA_LONG, NB_FRAMES);
+    }
+
+    /// The average frame rate, from the container or measured by
+    /// `avformat_find_stream_info`.
+    static Optional<FrameRate> averageFrameRate(MemorySegment stream) {
+        return AvRationalView.frameRate(stream, FfmpegStructs.AV_STREAM, "avg_frame_rate");
+    }
+
+    /// The real base frame rate: the lowest rate every timestamp falls on, a
+    /// guess FFmpeg makes from the first packets.
+    static Optional<FrameRate> baseFrameRate(MemorySegment stream) {
+        return AvRationalView.frameRate(stream, FfmpegStructs.AV_STREAM, "r_frame_rate");
     }
 
     /// The `AV_DISPOSITION_*` bits.

@@ -18,6 +18,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
+import dev.goldberry.media.bitstream.ParameterSets.Signal;
+import dev.goldberry.media.bitstream.ParameterSetsTest;
 import dev.goldberry.media.codec.CodecId;
 import dev.goldberry.media.codec.DecoderRequest;
 import dev.goldberry.media.codec.Frame;
@@ -25,8 +27,6 @@ import dev.goldberry.media.codec.PixelFormat;
 import dev.goldberry.media.codec.Rational;
 import dev.goldberry.media.codec.TrackParams;
 import dev.goldberry.media.codec.VideoFrame;
-import dev.goldberry.media.platform.bitstream.ParameterSets.Signal;
-import dev.goldberry.media.platform.bitstream.ParameterSetsTest;
 
 /// The GStreamer package's pure Java: caps, pipeline descriptions, layouts,
 /// colour and times. None of it needs GStreamer.

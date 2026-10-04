@@ -1,4 +1,4 @@
-package dev.goldberry.media.platform.bitstream;
+package dev.goldberry.media.bitstream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -9,11 +9,14 @@ import java.io.ByteArrayOutputStream;
 import java.util.Arrays;
 import java.util.HexFormat;
 import java.util.List;
+import java.util.Optional;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+
+import dev.goldberry.media.codec.CodecId;
 
 /// The configuration records of the fixtures, and made-up SPSs for the cases
 /// the fixtures do not reach.
@@ -116,6 +119,41 @@ public class ParameterSetsTest {
         assertEquals(12, deep.bitDepth());
         assertFalse(deep.decodable());
         assertTrue(ParameterSets.h264Sps(h264HighSps(110, 1, 10)).decodable());
+    }
+
+    @ParameterizedTest(name = "chroma {0}, {1}-bit: {2}")
+    @CsvSource({
+        "0, 8, gray",
+        "0, 10, gray10le",
+        "1, 8, yuv420p",
+        "1, 10, yuv420p10le",
+        "2, 8, yuv422p",
+        "2, 12, yuv422p12le",
+        "3, 8, yuv444p",
+        "3, 14, yuv444p14le"
+    })
+    @DisplayName("a shape names its pixel format as FFmpeg does")
+    void pixelFormatNames(int chromaFormat, int bitDepth, String name) {
+        assertEquals(Optional.of(name), new ParameterSets.Shape(0, bitDepth, chromaFormat).pixelFormat());
+    }
+
+    @Test
+    @DisplayName("a depth or chroma format FFmpeg has no format of has no name")
+    void noPixelFormat() {
+        assertEquals(Optional.empty(), new ParameterSets.Shape(0, 11, 1).pixelFormat());
+        assertEquals(Optional.empty(), new ParameterSets.Shape(0, 8, 4).pixelFormat());
+    }
+
+    @Test
+    @DisplayName("the fixtures' records name the pixel format ffprobe reports, and nothing else is read")
+    void pixelFormatOfARecord() {
+        assertEquals(Optional.of("yuv420p"), ParameterSets.pixelFormat(CodecId.H264, AVCC_HIGH));
+        assertEquals(Optional.of("yuv420p"), ParameterSets.pixelFormat(CodecId.H264, AVCC_BASELINE));
+        assertEquals(Optional.of("yuv420p"), ParameterSets.pixelFormat(CodecId.HEVC, HVCC_MAIN));
+        assertEquals(Optional.of("yuv420p10le"), ParameterSets.pixelFormat(CodecId.HEVC, HVCC_MAIN10));
+        assertEquals(Optional.of("yuv422p"), ParameterSets.pixelFormat(CodecId.H264, avcC(h264HighSps(122, 2, 8))));
+        assertEquals(Optional.empty(), ParameterSets.pixelFormat(CodecId.H264, new byte[0]), "no record");
+        assertEquals(Optional.empty(), ParameterSets.pixelFormat(CodecId.VP9, AVCC_HIGH), "not H.264 or HEVC");
     }
 
     @Test

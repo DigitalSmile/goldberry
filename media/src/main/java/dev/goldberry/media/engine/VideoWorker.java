@@ -51,6 +51,13 @@ import dev.goldberry.media.picture.PictureForm;
 /// a paused player shows the position it was moved to, and a seek bar dragged
 /// while paused shows each keyframe it passes.
 ///
+/// ## Looping
+///
+/// At a [PacketQueue.Item.Seam] the decoder is drained, as at the end, and
+/// flushed, since the next pass starts at a keyframe; the pictures after it are
+/// queued at their own times moved on by the seam's offset. So the pictures of a
+/// looping source run on in time, and nothing waits at the seam.
+///
 /// ## One thread
 ///
 /// Everything here but the constructor runs on the video thread, so its fields
@@ -123,6 +130,9 @@ final class VideoWorker {
     private boolean awaitingKeyframe;
     /// Where the last flush moved to: the start before the first.
     private long flushTargetNanos;
+    /// What the pictures decoded now are moved by: the passes of a looping
+    /// source played before them.
+    private long offsetNanos;
     /// Set when another track takes over: the thread stops at its next check,
     /// queues nothing more, and reports nothing more.
     private volatile boolean retired;
@@ -204,6 +214,27 @@ final class VideoWorker {
                             }
                         }
                     }
+                    case PacketQueue.Item.Seam(var seamSerial, var offset) -> {
+                        if (seamSerial != serial || awaitingKeyframe) {
+                            continue;
+                        }
+                        try {
+                            decoder.sendEnd();
+                            drainFrames(decoder);
+                        } catch (MediaException e) {
+                            throw e;
+                        } catch (RuntimeException e) {
+                            if (retired) {
+                                return;
+                            }
+                            decoder = fallBack(decoder, e);
+                            continue;
+                        }
+                        queuePending();
+                        discardBeforeNanos = Frame.NO_PTS;
+                        decoder.flush();
+                        offsetNanos = offset;
+                    }
                     case PacketQueue.Item.End(var endSerial) -> {
                         if (endSerial != serial || awaitingKeyframe) {
                             continue;
@@ -271,6 +302,7 @@ final class VideoWorker {
         serial = flush.serial();
         awaitingKeyframe = false;
         flushTargetNanos = flush.targetNanos();
+        offsetNanos = 0;
         decoder.flush();
         if (pending != null) {
             frames.recycle(pending);
@@ -301,7 +333,7 @@ final class VideoWorker {
     private void picture(VideoFrame frame) {
         var pts = frame.ptsNanos() == Frame.NO_PTS
                 ? (lastPts == Frame.NO_PTS ? 0 : lastPts + frameNanos)
-                : frame.ptsNanos();
+                : frame.ptsNanos() + offsetNanos;
         if (lastPts != Frame.NO_PTS && pts > lastPts) {
             frameNanos = pts - lastPts;
             if (!retired) {

@@ -50,6 +50,21 @@ class TrackParamsTest {
     }
 
     @Test
+    @DisplayName("a video track made without a frame rate has none")
+    void noFrameRate() {
+        assertEquals(Optional.empty(), VIDEO.frameRate());
+        var withRate = new TrackParams.Video(
+                1920,
+                1080,
+                Optional.of("yuv420p"),
+                OptionalInt.of(0),
+                OptionalInt.empty(),
+                OptionalLong.empty(),
+                Optional.of(new FrameRate(60, 1)));
+        assertEquals(60.0, withRate.frameRate().orElseThrow().perSecond());
+    }
+
+    @Test
     @DisplayName("refuses negative sizes and rates, and an Other that is a playable kind")
     void refuses() {
         assertThrows(

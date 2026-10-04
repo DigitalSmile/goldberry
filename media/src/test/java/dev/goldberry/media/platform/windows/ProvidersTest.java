@@ -20,11 +20,11 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.DisabledOnOs;
 import org.junit.jupiter.api.condition.OS;
 
+import dev.goldberry.media.bitstream.ParameterSetsTest;
 import dev.goldberry.media.codec.CodecId;
 import dev.goldberry.media.codec.DecoderRequest;
 import dev.goldberry.media.codec.Rational;
 import dev.goldberry.media.codec.TrackParams;
-import dev.goldberry.media.platform.bitstream.ParameterSetsTest;
 
 /// What the Media Foundation providers claim, from requests made up here: no
 /// FFmpeg, and for the refusals no Windows either.

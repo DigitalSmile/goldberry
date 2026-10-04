@@ -36,17 +36,24 @@ public sealed interface TrackParams {
     /// @param width       coded width in pixels
     /// @param height      coded height in pixels
     /// @param pixelFormat FFmpeg's name for the decoded pixel format, such as
-    ///                    `yuv420p` or `yuv420p10le`, when the container says
+    ///                    `yuv420p` or `yuv420p10le`, when the container says;
+    ///                    for H.264 and HEVC, which the published natives do
+    ///                    not decode, when the stream's parameter sets say
     /// @param profile     the codec profile number, when known
     /// @param level       the codec level number, when known
     /// @param bitRate     the average bit rate in bits per second, when known
+    /// @param frameRate   how many pictures a second, when the container or the
+    ///                    codec says: the average rate, else the rate the
+    ///                    codec's headers state, else the base rate FFmpeg
+    ///                    finds the timestamps on
     record Video(
             int width,
             int height,
             Optional<String> pixelFormat,
             OptionalInt profile,
             OptionalInt level,
-            OptionalLong bitRate)
+            OptionalLong bitRate,
+            Optional<FrameRate> frameRate)
             implements TrackParams {
 
         public Video {
@@ -57,6 +64,18 @@ public sealed interface TrackParams {
             Objects.requireNonNull(profile, "profile");
             Objects.requireNonNull(level, "level");
             Objects.requireNonNull(bitRate, "bitRate");
+            Objects.requireNonNull(frameRate, "frameRate");
+        }
+
+        /// A video track whose frame rate is not known: every component but that.
+        public Video(
+                int width,
+                int height,
+                Optional<String> pixelFormat,
+                OptionalInt profile,
+                OptionalInt level,
+                OptionalLong bitRate) {
+            this(width, height, pixelFormat, profile, level, bitRate, Optional.empty());
         }
 
         @Override

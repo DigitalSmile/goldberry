@@ -94,10 +94,13 @@ int main(int argc, char **argv) {
     FIELD(AVStream, codecpar);
     FIELD(AVStream, time_base);
     FIELD(AVStream, duration);
+    FIELD(AVStream, nb_frames);
     FIELD(AVStream, disposition);
     FIELD(AVStream, discard);
     FIELD(AVStream, metadata);
+    FIELD(AVStream, avg_frame_rate);
     FIELD(AVStream, attached_pic);
+    FIELD(AVStream, r_frame_rate);
 
     /* A track's language and title are entries of its metadata dictionary
      * (av_dict_get), read to label a track menu. */
@@ -116,6 +119,7 @@ int main(int argc, char **argv) {
     FIELD(AVCodecParameters, level);
     FIELD(AVCodecParameters, width);
     FIELD(AVCodecParameters, height);
+    FIELD(AVCodecParameters, framerate);
     FIELD(AVCodecParameters, color_range);
     FIELD(AVCodecParameters, color_primaries);
     FIELD(AVCodecParameters, color_trc);
