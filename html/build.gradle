@@ -52,25 +52,3 @@ def skipNative = providers.gradleProperty('goldberry.skipNative')
         .map { Boolean.parseBoolean(it) }
         .getOrElse(false)
 
-// ============================================================================
-// Coverage floor
-// https://goldberry.dev/docs/contributing/testing.html#advisory-dashboards
-//
-// :widgets' floor rather than :core's, because that is what this module is: a
-// parser that turns events into records, a serializer, and one widget. Every
-// line of it is reachable from a unit test with no frame under it -- the one
-// thing that needs a window is the golden image, and that is the showcase's.
-// ============================================================================
-tasks.named('jacocoTestCoverageVerification') {
-    // Measured with libgoldberry loaded, so only meaningful with it. Under
-    // -Pgoldberry.skipNative every test that shapes, paints or parses skips, and
-    // the figure drops to roughly half -- a gate no Java-only build can pass. The
-    // Linux verify job runs it against the real library instead.
-    onlyIf('the native library is part of this build') { !skipNative }
-    violationRules {
-        rule {
-            limit { counter = 'LINE'; minimum = 0.87 }
-            limit { counter = 'BRANCH'; minimum = 0.71 }
-        }
-    }
-}

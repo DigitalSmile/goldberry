@@ -211,7 +211,11 @@ class TooltipTest {
 
     @AfterEach
     void tearDown() {
-        runtime.shutdown();
+        // Null when setUp aborted before installing one: a build without the
+        // library skips the class, and the skip must not become an error here.
+        if (runtime != null) {
+            runtime.shutdown();
+        }
     }
 
     private HeadlessWindow ownerWindow() {

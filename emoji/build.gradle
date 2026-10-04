@@ -45,21 +45,3 @@ dependencies {
 // application refuses to start.
 assetTool.bundle('noto-emoji', 'dev/goldberry/emoji')
 
-// ============================================================================
-// Coverage floor
-// https://goldberry.dev/docs/contributing/testing.html#advisory-dashboards
-//
-// One class, which reads a resource. What the tests reach is every line but the
-// `catch (IOException)` — a stream that opens and then fails mid-read, which
-// this module has no way to produce and which a mock would prove nothing about.
-// The floor is a little under what the suite reaches, which is this repository's
-// rule for every other module's number.
-// ============================================================================
-tasks.named('jacocoTestCoverageVerification') {
-    violationRules {
-        rule {
-            limit { counter = 'LINE'; minimum = 0.70 }
-            limit { counter = 'BRANCH'; minimum = 0.50 }
-        }
-    }
-}

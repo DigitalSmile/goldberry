@@ -22,9 +22,8 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
-import dev.goldberry.junit.TimeBudget;
-import dev.goldberry.junit.WallClock;
 import dev.goldberry.media.audio.AudioFormat;
 import dev.goldberry.media.audio.VirtualSink;
 import dev.goldberry.media.io.HttpIO;
@@ -350,7 +349,7 @@ class NetworkPlaybackTest {
     }
 
     @Test
-    @WallClock
+    @Timeout(10)
     @DisplayName("closing while a network source is still opening returns at once")
     void closeWhileOpening() throws IOException {
         server = new TestHttpServer(Wav.sine(RATE, 2, RATE, 440, 12_000));
@@ -361,14 +360,11 @@ class NetworkPlaybackTest {
         open(server.uri("clip.wav"), true, Duration.ofMillis(500), List.of(new QuickHttp(options)));
         sleep(200);
         assertEquals(PlaybackState.OPENING, player.status().state());
-        var started = System.nanoTime();
+        // At once means short of the 30 s stall a close that waited for the read
+        // would sit out, which the test's own timeout catches. How long the close
+        // takes on a loaded machine is not compared with anything.
         player.close();
         player = null;
-        // At once means well short of the stall timeout a close that waited
-        // for the read would sit out.
-        TimeBudget.of(Duration.ofSeconds(5))
-                .shortOf(stall)
-                .assertWithin(Duration.ofNanos(System.nanoTime() - started), "closing while opening");
     }
 
     @Test

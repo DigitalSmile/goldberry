@@ -82,26 +82,16 @@ jobs:
           ls -la "$lib"
 
       # The whole build against the library just made, as on macOS. Left out:
-      # the coverage floors, measured and run on linux-x64, and the GPU lanes,
-      # which this runner has never been asked for -- it has no device to give
-      # them. `webview.required`: WebviewBindingTest loads the DLL, checks its
-      # ABI and binds every call; loading needs only Windows' own DLLs, since
-      # WebView2Loader is opened when a page is, not when the library is.
+      # the GPU lanes, which this runner has never been asked for -- it has no
+      # device to give them. `webview.required`: WebviewBindingTest loads the
+      # DLL, checks its ABI and binds every call; loading needs only Windows' own
+      # DLLs, since WebView2Loader is opened when a page is, not when the
+      # library is.
       # https://goldberry.dev/docs/contributing/testing.html#with-and-without-the-library
       - name: Build and test against it
         run: |
           ./gradlew build --no-daemon --continue \
-            -x jacocoTestCoverageVerification -x gpuTest -x wallClockTest \
-            -Pgoldberry.native.required=true \
-            -Pgoldberry.webview.required=true
-
-      # The tests that read a wall clock, alone: nothing compiles or analyses
-      # beside this JVM, which is the lane's whole point. A failed test here is
-      # run again before it is believed, and a failure that persists is red.
-      # https://goldberry.dev/docs/contributing/testing.html#the-wall-clock-lane
-      - name: The wall-clock lane
-        run: |
-          ./gradlew wallClockTest --no-daemon --continue \
+            -x gpuTest \
             -Pgoldberry.native.required=true \
             -Pgoldberry.webview.required=true
 

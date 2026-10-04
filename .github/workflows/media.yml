@@ -135,28 +135,15 @@ jobs:
 
       # `required`, so a test that could not load FFmpeg fails rather than skips:
       # a verification job that skips is a green tick over nothing.
-      # `check` includes the natives-jar test and the coverage floor.
+      # `check` includes the natives-jar test.
       #
       # Each job requires its own system's decoders too: VideoToolbox and
       # AudioToolbox on macOS, GStreamer on Linux; not Media Foundation on
       # Windows, which is held back. A test for another system's decoders still
-      # skips, since the flag fails a test only on its own system, and the coverage
-      # floor counts this system's decoders and no other's.
+      # skips, since the flag fails a test only on its own system.
       - name: Test :media against it
         run: >-
-          ./gradlew :media:check -x wallClockTest -x jacocoTestCoverageVerification
-          -Pgoldberry.skipNative=true -Pgoldberry.media.required=true
-          -Pgoldberry.platform.required=${{ matrix.platform-required }} $MEDIA_TOOLS --no-daemon
-
-      # The tests that read a wall clock -- the sink against the dummy device,
-      # playback paced by a video thread, a read timing out -- alone, after the
-      # suite, and run again before a failure is believed. Then the coverage
-      # floor, which reads the lane's exec file too and is gated on linux-x64
-      # alone.
-      # https://goldberry.dev/docs/contributing/testing.html#the-wall-clock-lane
-      - name: The wall-clock lane, and the coverage floor
-        run: >-
-          ./gradlew :media:wallClockTest :media:jacocoTestCoverageVerification --continue
+          ./gradlew :media:check
           -Pgoldberry.skipNative=true -Pgoldberry.media.required=true
           -Pgoldberry.platform.required=${{ matrix.platform-required }} $MEDIA_TOOLS --no-daemon
 

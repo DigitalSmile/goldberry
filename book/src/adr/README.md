@@ -595,3 +595,4 @@ proposing to undo them.
 - [ADR-0557 The probe reads an H.264 or HEVC pixel format from the parameter sets](0557-the-probe-reads-an-h-264-or-hevc-pixel-format-from-the-parameter-sets.md)
 - [ADR-0558 A video track says its frame rate and its count of pictures](0558-a-video-track-says-its-frame-rate-and-its-count-of-pictures.md)
 - [ADR-0559 The tests that read a wall clock run in a lane of their own, and are the only ones run again](0559-the-tests-that-read-a-wall-clock-run-in-a-lane-of-their-own.md)
+- [ADR-0560 No test compares a duration with a bound, and no module has a coverage floor](0560-no-test-compares-a-duration-with-a-bound-and-no-module-has-a-coverage-floor.md)

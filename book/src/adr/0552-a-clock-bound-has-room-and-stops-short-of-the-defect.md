@@ -1,6 +1,6 @@
 # ADR-0552: A clock bound has room, and stops short of the defect
 
-- **Status:** Accepted
+- **Status:** Superseded in part by [ADR-0560](0560-no-test-compares-a-duration-with-a-bound-and-no-module-has-a-coverage-floor.md) — no test under `check` holds a clock bound any more; the benchmarks' budgets still follow this record
 - **Date:** 2026-10-03
 - **Relates to:** `docs/build-simplification-2026-10-03.md`,
   [ADR-0551](0551-benchmarks-are-a-source-set-run-one-at-a-time-by-their-own-workflow.md)

@@ -1,5 +1,11 @@
 # CI stability: the wall-clock lane (2026-10-04)
 
+> **Superseded the same afternoon.** The first push with the lane went red in
+> `TooltipTest`'s rewritten `tearDown`, not in the lane, and the ask became
+> "get rid of timing/size related tests". ADR-0560 removed every clock bound,
+> the lane, the retries and the coverage floors; the `TestClock`-driven tests
+> below stay. Notes: [`ci-fixes-2026-10-04.md`](ci-fixes-2026-10-04.md).
+
 The decision is
 [ADR-0559](../book/src/adr/0559-the-tests-that-read-a-wall-clock-run-in-a-lane-of-their-own.md).
 This file is the working notes and the status of the work; the ledger of

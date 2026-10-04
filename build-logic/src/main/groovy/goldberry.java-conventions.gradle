@@ -2,8 +2,6 @@ import dev.goldberry.build.ci.BuildFailureAnnotation
 import dev.goldberry.build.ci.TestFailureAnnotations
 import dev.goldberry.build.ci.WorkflowCommand
 import dev.goldberry.build.format.KeepDocReferencedImports
-import dev.goldberry.build.testing.WallClockLane
-import dev.goldberry.build.benchmark.BenchmarkLane
 import org.gradle.api.artifacts.VersionCatalogsExtension
 
 plugins {
@@ -20,8 +18,6 @@ plugins {
     // only by name. A plugin of its own because :weaver, which is plain `java`,
     // has benchmarks too.
     id 'goldberry.benchmarks'
-    // For the wall-clock lane alone; every other test task keeps zero retries.
-    id 'org.gradle.test-retry'
 }
 
 // Precompiled Groovy script plugins do not get the generated `libs` accessors
@@ -181,13 +177,6 @@ tasks.withType(Test).configureEach {
     systemProperty 'goldberry.input.primary', 'ctrl'
 }
 
-// The tests that read a wall clock run in a lane of their own, after the
-// module's suite, one module at a time and nothing beside them, and are the one
-// place a failed test is run again before it is believed.
-// https://goldberry.dev/docs/contributing/testing.html#the-wall-clock-lane
-WallClockLane.apply(project, gradle.sharedServices.registerIfAbsent(
-        BenchmarkLane.SERVICE, BenchmarkLane.OneAtATime) { maxParallelUsages = 1 })
-
 // On a GitHub Actions runner, every failed test and the build's own failure also
 // become annotations on the run. A job log cannot be read without
 // signing in; a check run's annotations can, so this is what makes a red CI run
@@ -199,11 +188,10 @@ WallClockLane.apply(project, gradle.sharedServices.registerIfAbsent(
 // classpath -- the jmh plugin included -- under every module, and :core's
 // versioned `me.champeau.jmh` request then refuses to resolve.
 if (WorkflowCommand.onGithubActions(System.getenv())) {
-    // A failure in the wall-clock lane is a warning: the lane runs it again,
-    // and a failure that persists fails the build, which is the error.
+    // No test task runs a failed test again, so every failure is the error it
+    // says it is.
     tasks.withType(Test).configureEach { Test task ->
-        def level = task.name == WallClockLane.TASK ? WorkflowCommand.Level.WARNING : WorkflowCommand.Level.ERROR
-        task.addTestListener(new TestFailureAnnotations(task.path, level, { line -> println line }))
+        task.addTestListener(new TestFailureAnnotations(task.path, { line -> println line }))
     }
     def registered = 'goldberry.buildFailureAnnotation'
     if (!gradle.extensions.extraProperties.has(registered)) {
@@ -378,11 +366,12 @@ tasks.withType(Pmd).configureEach {
 // exec file across both tasks, so that merge costs nothing and happens by
 // construction.
 //
-// No global percentage gate. `jacocoTestCoverageVerification` is configured per
-// module by the module that knows what its own floor means: strict on the logic
-// modules, where a line is either exercised or it is not, and absent on the
-// painters, where the goldens carry correctness and line coverage would only
-// prove reachability.
+// No coverage gate, global or per module. A floor is read from a figure that
+// moves with which tests a machine ran -- which decoders it has, which library
+// it loaded -- and the same commit measured a point under :media's on one
+// runner and over it on three. Coverage is reported, aggregated and uploaded,
+// and read by a person; it fails nothing.
+// https://goldberry.dev/docs/contributing/testing.html#advisory-dashboards
 // ============================================================================
 jacoco {
     toolVersion = catalog.findVersion('jacoco').get().requiredVersion
@@ -409,19 +398,12 @@ tasks.withType(Test).configureEach {
             .file("jacoco/${name}-${bindingMode}.exec").get().asFile
 }
 
-// Both the report and the gate read every exec file, not the one this invocation
-// happened to write. `JacocoReportBase` is the type they share.
+// The report reads every exec file, not the one this invocation happened to
+// write. `JacocoReportBase` is the type the report tasks share.
 tasks.withType(JacocoReportBase).configureEach {
     executionData.setFrom(fileTree(layout.buildDirectory.dir('jacoco')) {
         include '**/*.exec'
     })
-}
-
-// The gate runs with `check`, and passes trivially in a module that declares no
-// rules -- there is no single global number, so a floor exists only where a
-// module has said what its own means.
-tasks.named('check') {
-    dependsOn tasks.named('jacocoTestCoverageVerification')
 }
 
 tasks.withType(JacocoReport).configureEach {

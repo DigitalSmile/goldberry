@@ -8,15 +8,15 @@ import java.util.function.Supplier;
 
 import org.jspecify.annotations.Nullable;
 
-/// How long something may take in a test that has to read a clock, with room for
-/// the machine the test happens to run on.
+/// How long something may take in a benchmark, with room for the machine it
+/// happens to run on.
 ///
-/// A cost is guarded by a count, never by a clock, and most of this repository's
-/// tests do that. The few that cannot -- a pump that must return *promptly*, a
-/// failure that must come *at once* rather than after a backoff -- compare a
-/// measured duration with a bound, and a bound that passes on an idle laptop
-/// fails on a runner building four modules beside it. So a bound here has two
-/// parts:
+/// A cost is guarded by a count, never by a clock, and no test under `check`
+/// compares a measured duration with a bound: a bound that passes on an idle
+/// laptop fails on a runner building four modules beside it, and widening it
+/// does not converge. The benchmarks, which run one at a time in a lane of
+/// their own and fail nothing a push depends on, still hold a figure to the
+/// defect it guards against, and a bound here has two parts:
 ///
 /// - **the bound**, a generous multiple of what the operation takes when it
 ///   works, written in the test;

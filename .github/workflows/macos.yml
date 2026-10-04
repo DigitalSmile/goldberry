@@ -86,24 +86,13 @@ jobs:
       # over skipped tests is the outcome worse than a red one.
       # https://goldberry.dev/docs/contributing/testing.html#with-and-without-the-library
       #
-      # Two things are left out, each for a reason:
-      #  - the coverage floors, which are measured on linux-x64 and run there;
-      #  - the GPU lanes, which run in the next step and are not required here.
-      # `--continue`, so one red module does not hide the next one's result.
+      # The GPU lanes are left out: they run in the next step and are not
+      # required here. `--continue`, so one red module does not hide the next
+      # one's result.
       - name: Build and test against it
         run: |
           ./gradlew build --no-daemon --continue \
-            -x jacocoTestCoverageVerification -x gpuTest -x wallClockTest \
-            -Pgoldberry.native.required=true \
-            -Pgoldberry.webview.required=true
-
-      # The tests that read a wall clock, alone: nothing compiles or analyses
-      # beside this JVM, which is the lane's whole point. A failed test here is
-      # run again before it is believed, and a failure that persists is red.
-      # https://goldberry.dev/docs/contributing/testing.html#the-wall-clock-lane
-      - name: The wall-clock lane
-        run: |
-          ./gradlew wallClockTest --no-daemon --continue \
+            -x gpuTest \
             -Pgoldberry.native.required=true \
             -Pgoldberry.webview.required=true
 

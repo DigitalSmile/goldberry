@@ -1,7 +1,12 @@
 # ADR-0559: The tests that read a wall clock run in a lane of their own, and are the only ones run again
 
-- **Status:** Accepted
+- **Status:** Superseded by [ADR-0560](0560-no-test-compares-a-duration-with-a-bound-and-no-module-has-a-coverage-floor.md) — the lane, the tag and the retries were taken out the same day, with the last clock bound
 - **Date:** 2026-10-04
+
+> **Superseded the same day.** The first push with the lane went red in a test
+> the lane's work had rewritten, while the lane itself was green on every job.
+> The bounds it sheltered are gone, so there is nothing for it to shelter. The
+> `TestClock`-driven tests it introduced stay; that part of this record holds.
 - **Relates to:** `docs/ci-stability-2026-10-04.md`, `docs/flaky-tests.md`,
   [ADR-0551](0551-benchmarks-are-a-source-set-run-one-at-a-time-by-their-own-workflow.md),
   [ADR-0552](0552-a-clock-bound-has-room-and-stops-short-of-the-defect.md),

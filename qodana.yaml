@@ -61,6 +61,16 @@ exclude:
       # Benchmarks and probes: measurement code, which this dashboard leaves out
       # the way it leaves out the tests they were moved from. A source set of
       # their own is imported as production code, so each is named here, and
-      # QodanaScopeTest fails on one that is not.
-      - "**/src/benchmark"
-      - "**/src/jmh"
+      # QodanaScopeTest fails on one that is not. Named directory by directory:
+      # a glob here (`**/src/benchmark`) is accepted and ignored, and the run of
+      # 2026-10-04 reported 52 findings from the directories it was meant to
+      # leave out.
+      - core/src/benchmark
+      - core/src/jmh
+      - example/src/benchmark
+      - gpu/src/benchmark
+      - html/src/benchmark
+      - media/src/benchmark
+      - natives/src/benchmark
+      - weaver/src/benchmark
+      - widgets/src/benchmark

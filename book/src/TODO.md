@@ -727,8 +727,9 @@ on, which in four cases is the same thing.
   before the engine's threads start (45145b77), `statistics` waits for the last
   picture to be prepared before asking for it (the same commit), and the
   end-of-playback sequence allows the one stall and recovery a starved demux
-  thread produces. Since 2026-10-04 the class runs in the wall-clock lane
-  besides, and `docs/flaky-tests.md` is where a recurrence is written down. —
+  thread produces. On 2026-10-04 the class ran in a wall-clock lane for a day,
+  until the lane went with the last clock bound; `docs/flaky-tests.md` is where
+  a recurrence is written down. —
   [ADR-0463](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0463-video-is-converted-as-it-is-decoded-and-paced-by-the-picture.md),
   [ADR-0559](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0559-the-tests-that-read-a-wall-clock-run-in-a-lane-of-their-own.md)
 ## Build, artifacts and release

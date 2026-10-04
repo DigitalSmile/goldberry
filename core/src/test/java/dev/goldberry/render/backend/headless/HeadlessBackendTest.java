@@ -18,8 +18,6 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 
-import dev.goldberry.junit.TimeBudget;
-import dev.goldberry.junit.WallClock;
 import dev.goldberry.render.BackendException;
 import dev.goldberry.render.DamageRect;
 import dev.goldberry.render.PixelBuffer;
@@ -354,7 +352,6 @@ class HeadlessBackendTest {
 
     @Test
     @Timeout(10)
-    @WallClock
     @DisplayName("an outstanding frame request never lets the loop sit idle")
     void pendingFrameDoesNotPark() {
         // The bug this exists for cost a second per frame. A repaint asked for
@@ -368,22 +365,17 @@ class HeadlessBackendTest {
         var window = (HeadlessWindow) backend.createWindow(SPEC);
         window.requestFrame();
 
-        var timeout = Duration.ofSeconds(5);
-        var start = System.nanoTime();
-        var delivered = backend.pumpEvents(event -> {}, timeout);
-        var elapsed = Duration.ofNanos(System.nanoTime() - start);
+        // A pump timeout the test's own cannot contain: a pump that sits it out,
+        // which is the bug, fails on the test's timeout, and a prompt one returns
+        // however loaded the machine is. No measured duration is compared with a
+        // bound.
+        var delivered = backend.pumpEvents(event -> {}, Duration.ofSeconds(30));
 
         assertEquals(1, delivered);
-        // Promptly means well short of the timeout the bug sat out, with room
-        // for a loaded runner; no slack lets it reach the timeout itself.
-        TimeBudget.of(Duration.ofSeconds(2))
-                .shortOf(timeout)
-                .assertWithin(elapsed, "the pump with a frame already requested");
     }
 
     @Test
     @Timeout(10)
-    @WallClock
     @DisplayName("pumpEvents returns when the timeout elapses")
     void pumpTimesOut() {
         var start = System.nanoTime();

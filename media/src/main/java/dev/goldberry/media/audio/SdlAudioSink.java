@@ -259,17 +259,6 @@ public final class SdlAudioSink implements AudioSink {
         return Math.max(raw - estimate.drained(now), 0);
     }
 
-    /// What SDL's stream holds, unsmoothed: the queue [#queuedSamples()] steers
-    /// its estimate from, which steps once a pull. For the test that tells the
-    /// two apart.
-    synchronized long rawQueuedSamples() {
-        if (silence != null) {
-            return silence.queuedSamples();
-        }
-        var current = stream;
-        return current == null ? 0 : current.queuedFrames();
-    }
-
     @Override
     public synchronized void clear() {
         if (silence != null) {

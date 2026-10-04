@@ -26,7 +26,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
-import dev.goldberry.junit.WallClock;
 import dev.goldberry.media.audio.AudioFormat;
 import dev.goldberry.media.audio.VirtualSink;
 import dev.goldberry.media.codec.AudioFrame;
@@ -71,7 +70,6 @@ import dev.goldberry.media.picture.VideoPlanes;
 ///
 /// The clips are `fixtures/`'s `testsrc2` at 160×90, 25 fps: one picture every
 /// 40 ms, and a single keyframe at zero.
-@WallClock
 @DisplayName("MediaPlayer playing video, against FFmpeg")
 class VideoPlaybackTest {
 

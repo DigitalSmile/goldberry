@@ -56,13 +56,7 @@ jobs:
           distribution: temurin
           java-version: '25'
       - uses: gradle/actions/setup-gradle@v4
-      # Without the wall-clock lane, which runs after the build in a step of its
-      # own; here, with no library, every test in it skips, and the step proves
-      # the wiring on every push.
-      # https://goldberry.dev/docs/contributing/testing.html#the-wall-clock-lane
-      - run: ./gradlew build checkLicenses checkMarkdown -x wallClockTest -Pgoldberry.skipNative=true --no-daemon
-      - name: The wall-clock lane
-        run: ./gradlew wallClockTest -Pgoldberry.skipNative=true --no-daemon --continue
+      - run: ./gradlew build checkLicenses checkMarkdown -Pgoldberry.skipNative=true --no-daemon
 
       # The suite runs in BOTH binding modes on every PR.
       # https://goldberry.dev/docs/contributing/testing.html#what-check-runs
@@ -83,8 +77,8 @@ jobs:
             --no-daemon
 
       # One report over both modes: a line is uncovered only if NEITHER reached
-      # it. Uploaded rather than gated in CI -- the gate is
-      # `jacocoTestCoverageVerification`, which `build` above already ran.
+      # it. Uploaded and read, not gated: no module has a coverage floor.
+      # https://goldberry.dev/docs/contributing/testing.html#advisory-dashboards
       - name: Aggregate coverage
         run: ./gradlew testCodeCoverageReport -Pgoldberry.skipNative=true --no-daemon
 
@@ -382,33 +376,9 @@ jobs:
       # the same check on every platform. The point of running it on all three is
       # that Blend2D JITs its pipelines per CPU -- if AVX2 and NEON ever disagree
       # by more than a rounding step, this is where it surfaces.
-      #
-      # The coverage floors run here and not in the `java` job: they were measured
-      # with the library loaded, and with `-Pgoldberry.skipNative` every test that
-      # shapes or paints skips, which halves the figure. One leg is
-      # enough -- coverage does not differ by CPU.
       - name: Core, widget, Markdown and emoji tests, and the golden images
         run: |
           ./gradlew :core:test :widgets:test :html:test :emoji:test --no-daemon \
-            -Dgoldberry.native.library="$PWD/native-lib/libgoldberry.so" \
-            -Dgoldberry.native.required=true
-
-      # The tests that read a wall clock, after the suites and alone, so the JVM
-      # has the runner to itself; then the coverage floors, which read the lane's
-      # exec file as well as the suite's.
-      # https://goldberry.dev/docs/contributing/testing.html#the-wall-clock-lane
-      - name: The wall-clock lane
-        run: |
-          ./gradlew :core:wallClockTest :widgets:wallClockTest :html:wallClockTest :emoji:wallClockTest \
-            --no-daemon --continue \
-            -Dgoldberry.native.library="$PWD/native-lib/libgoldberry.so" \
-            -Dgoldberry.native.required=true
-
-      - name: The coverage floors
-        if: matrix.target == 'linux-x64'
-        run: |
-          ./gradlew :core:jacocoTestCoverageVerification :widgets:jacocoTestCoverageVerification \
-            :html:jacocoTestCoverageVerification :emoji:jacocoTestCoverageVerification --no-daemon \
             -Dgoldberry.native.library="$PWD/native-lib/libgoldberry.so" \
             -Dgoldberry.native.required=true
 
@@ -455,14 +425,11 @@ jobs:
       # tests -- need a rasterizer too, and this is the only place they meet a
       # real library on every push: showcase.yml, which used to run them, builds
       # the native image on a release tag or by hand now. One leg is
-      # enough, for the coverage floors' reason.
+      # enough: what they test does not differ by CPU.
       - name: The example's tests, against the library
         if: matrix.target == 'linux-x64'
         run: |
-          ./gradlew :example:build -x wallClockTest --no-daemon \
-            -Dgoldberry.native.library="$PWD/native-lib/libgoldberry.so" \
-            -Dgoldberry.native.required=true
-          ./gradlew :example:wallClockTest --no-daemon --continue \
+          ./gradlew :example:build --no-daemon \
             -Dgoldberry.native.library="$PWD/native-lib/libgoldberry.so" \
             -Dgoldberry.native.required=true
 

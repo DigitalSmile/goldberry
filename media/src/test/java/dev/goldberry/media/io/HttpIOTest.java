@@ -30,16 +30,17 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-
-import dev.goldberry.junit.TimeBudget;
-import dev.goldberry.junit.WallClock;
+import org.junit.jupiter.api.Timeout;
 
 /// `HttpIO` against a local server: Range, the read-ahead cache, reconnects,
 /// stalls, timeouts, ICY, and the abort.
 ///
 /// No FFmpeg here: this is the byte stream the demuxer would read, checked byte
 /// for byte against what the server holds.
-@WallClock
+///
+/// Nothing here compares a measured duration with a bound. A read that must
+/// give up is asserted to give up, and the test's own timeout catches one that
+/// sat a stall out instead; how long the giving up took is the machine's.
 @DisplayName("HttpIO")
 class HttpIOTest {
 
@@ -268,6 +269,7 @@ class HttpIOTest {
         }
 
         @Test
+        @Timeout(5)
         @DisplayName("a resource that disappears fails at once rather than retrying")
         void goneIsFinal() throws IOException {
             server = new TestHttpServer(DATA);
@@ -276,20 +278,17 @@ class HttpIOTest {
                     Source.of(server.uri("clip.bin")),
                     FAST.withReconnects(8, Duration.ofMillis(200), Duration.ofSeconds(5)));
             server.status = 404;
-            var started = System.nanoTime();
             // Eight attempts would take over 6 s of backoff; the 404 that answers
-            // the first is final. The request count says so exactly; the clock
-            // only has to say it did not wait the backoff out.
+            // the first is final. The request count says so exactly, and the
+            // test's timeout is short of what eight attempts would take.
             var failure = assertThrows(HttpStatusException.class, () -> readAll(io));
             assertEquals(404, failure.status());
             assertEquals(2, server.requests().size());
-            TimeBudget.of(Duration.ofSeconds(4))
-                    .shortOf(Duration.ofSeconds(6))
-                    .assertWithin(Duration.ofNanos(System.nanoTime() - started), "failing on a 404");
         }
 
         @Test
-        @DisplayName("a read waits no longer than the source's timeout")
+        @Timeout(20)
+        @DisplayName("a read gives up after the source's timeout, not before")
         void timesOut() throws IOException {
             server = new TestHttpServer(DATA);
             server.stallAt = 0;
@@ -302,12 +301,11 @@ class HttpIOTest {
             assertThrows(HttpTimeoutException.class, () -> read(io, 10));
             var waited = Duration.ofNanos(System.nanoTime() - started);
             // At least the timeout, less a tick of a coarse clock: Windows' timer
-            // advances in steps of about 16 ms.
+            // advances in steps of about 16 ms. A lower bound only: a loaded
+            // machine can make the wait longer and never shorter. A read that
+            // waited the 30 s stall out instead would not throw this, and the
+            // test's timeout is short of the stall besides.
             assertTrue(waited.compareTo(timeout.minusMillis(50)) >= 0, () -> "gave up after " + waited);
-            // Well short of the 30 s stall timeout and the server's 30 s stall.
-            TimeBudget.of(Duration.ofSeconds(10))
-                    .shortOf(Duration.ofSeconds(30))
-                    .assertWithin(waited, "a read past its timeout");
         }
 
         @Test

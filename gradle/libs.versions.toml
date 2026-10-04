@@ -42,8 +42,6 @@ pitestJunit5 = "1.2.3"
 # version, rather than a literal in the plugin.
 pmd = "7.27.0"
 jmhPlugin = "0.7.3"
-# The wall-clock lane's retries; https://plugins.gradle.org/plugin/org.gradle.test-retry
-testRetryPlugin = "1.6.6"
 jmh = "1.37"
 
 # SLF4J is the only compile-time logging dependency the toolkit has: a facade, so
