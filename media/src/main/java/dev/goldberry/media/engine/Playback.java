@@ -685,6 +685,9 @@ public final class Playback implements AutoCloseable {
     /// sample heard and the first picture shown are the target's. Coalesced:
     /// while one seek runs, only the latest request waits.
     public void seek(long positionNanos, boolean accurate) {
+        if (!canSeek()) {
+            return;
+        }
         var target = Math.max(positionNanos, 0);
         synchronized (seekLock) {
             seekingToNanos = target;
@@ -693,11 +696,27 @@ public final class Playback implements AutoCloseable {
         signal();
     }
 
+    /// Whether a seek can do anything: the bytes can be read out of order and the
+    /// source is not live. A live stream has only a now, and a source that cannot
+    /// seek has nowhere to go, so a seek on either is dropped and the stream plays
+    /// on. Handed to the demuxer, it would be FFmpeg's generic seek, which rewinds
+    /// to the last index entry it holds: inside the AVIO buffer that works, past
+    /// it the unseekable source refuses, and which of the two happened depended
+    /// on how far the demux thread had read. Before the source is open, nothing
+    /// is known and the request waits for [#seekTo], which asks again.
+    private boolean canSeek() {
+        var bytes = io;
+        return bytes == null || (bytes.isSeekable() && !bytes.isLive());
+    }
+
     /// An accurate seek the Engine makes for itself, after a track switch, a
     /// subtitle track chosen, or a decoder that fell back. Unlike [#seek], it never
     /// replaces a seek the application asked for that has not run yet. That seek
     /// moves every queue anyway, and it is where the application wants to be.
     void reseek(long positionNanos) {
+        if (!canSeek()) {
+            return;
+        }
         var target = Math.max(sourceNanos(positionNanos), 0);
         synchronized (seekLock) {
             if (pendingSeek.get() == null) {
@@ -1133,6 +1152,12 @@ public final class Playback implements AutoCloseable {
     }
 
     private void seekTo(Demuxer opened, SeekRequest request) {
+        if (!canSeek()) {
+            // Asked while the source was still opening, and now known to be a
+            // seek that cannot be made: dropped, and the position is the clock's.
+            seekingToNanos = Frame.NO_PTS;
+            return;
+        }
         opened.seek(request.targetNanos());
         loopOffsetNanos = 0;
         // A seek to the very end reads nothing before it, and a looping source

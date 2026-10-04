@@ -205,7 +205,10 @@ public final class TestHttpServer implements AutoCloseable {
         }
     }
 
-    /// An endless ICY stream of the resource, looped.
+    /// An endless ICY stream of the resource, looped: its MPEG frames over and
+    /// over, as a station sends them. An ID3v2 tag at the front of the file is
+    /// left out, since a tag in the middle of a stream is bytes the decoder
+    /// refuses, and no station sends one.
     private void radio(HttpExchange exchange) throws IOException {
         var metaint = icy;
         var headers = exchange.getResponseHeaders();
@@ -217,7 +220,8 @@ public final class TestHttpServer implements AutoCloseable {
         }
         exchange.sendResponseHeaders(200, 0);
         var out = exchange.getResponseBody();
-        var at = 0;
+        var frames = id3v2Length(data);
+        var at = frames;
         var block = 0;
         while (true) {
             var sent = 0;
@@ -225,7 +229,10 @@ public final class TestHttpServer implements AutoCloseable {
                 var count = Math.min(metaint - sent, data.length - at);
                 out.write(data, at, count);
                 sent += count;
-                at = (at + count) % data.length;
+                at += count;
+                if (at == data.length) {
+                    at = frames;
+                }
             }
             if (wantsMetadata) {
                 var names = titles;
@@ -234,6 +241,16 @@ public final class TestHttpServer implements AutoCloseable {
             }
             out.flush();
         }
+    }
+
+    /// How long the ID3v2 tag at the front of `file` is, or 0 without one: the
+    /// ten-byte header and the syncsafe size in its last four bytes.
+    static int id3v2Length(byte[] file) {
+        if (file.length < 10 || file[0] != 'I' || file[1] != 'D' || file[2] != '3') {
+            return 0;
+        }
+        var size = ((file[6] & 0x7f) << 21) | ((file[7] & 0x7f) << 14) | ((file[8] & 0x7f) << 7) | (file[9] & 0x7f);
+        return Math.min(10 + size, file.length);
     }
 
     /// One metadata block: the length byte, then the text padded to 16s.

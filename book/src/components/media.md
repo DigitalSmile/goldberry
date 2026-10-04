@@ -55,7 +55,9 @@ volume, the rate and the buffered ranges. `player.status()` reads the latest and
 `player.onStatus(listener)` hears each change. The transport is `play`, `pause`,
 `seek(position)` or `seek(position, SeekMode.KEYFRAME)`, `setVolume`,
 `setMuted`, `setRate` from 0.25 to 4 with the pitch following, `step(count)`
-for a picture at a time, and `close`.
+for a picture at a time, and `close`. A seek on a source that cannot seek, or
+a live one, is dropped and the stream plays on; `PlayerStatus.seekable()` says
+which.
 
 `setLooping(true)`, or `MediaPlayer.builder().looping(true)`, plays the source
 over and over. The player never reaches `ENDED`, and there is no pause where the

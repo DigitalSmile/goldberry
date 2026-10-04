@@ -172,7 +172,9 @@ public final class MediaPlayer implements AutoCloseable {
 
     /// Seeks to `position`, clamped at zero. The first sample heard and the first
     /// picture shown are the ones at `position`, not the keyframe before it
-    /// ([SeekMode#ACCURATE]). Seeks requested while one runs are coalesced.
+    /// ([SeekMode#ACCURATE]). Seeks requested while one runs are coalesced. On a
+    /// source that cannot seek, or a live one, the seek is dropped and the stream
+    /// plays on: [PlayerStatus#seekable()] says which.
     public void seek(Duration position) {
         seek(position, SeekMode.ACCURATE);
     }

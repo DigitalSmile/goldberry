@@ -325,8 +325,34 @@ class NetworkPlaybackTest {
 
         // A seek on a live stream does nothing, and the stream plays on.
         player.seek(Duration.ofSeconds(5));
-        playUntil(status -> status.position().compareTo(Duration.ofSeconds(1)) > 0);
-        assertEquals(PlaybackState.PLAYING, player.status().state());
+        var played = playUntil(status -> status.position().compareTo(Duration.ofSeconds(1)) > 0);
+        assertEquals(Optional.empty(), played.error(), played.toString());
+        assertEquals(PlaybackState.PLAYING, played.state());
+    }
+
+    /// The demuxer's seek on a stream that cannot seek is FFmpeg's generic one,
+    /// which rewinds to the last index entry it has: inside the AVIO buffer that
+    /// works, and past it the unseekable source refuses and playback failed.
+    /// Which of the two happened depended on how far the demux thread had read,
+    /// so the radio test above passed or failed with the machine. This source is
+    /// read well past the buffer before the seek, so the rewind is always the
+    /// refused one, and the seek must never reach the demuxer.
+    @Test
+    @DisplayName("a seek on a source that cannot seek is dropped, and the stream plays on")
+    void seekOnLiveIsDropped() {
+        var io = new MemoryIO(Wav.sine(RATE, 2, RATE * 10, 440, 12_000));
+        io.seekable = false;
+        io.live = true;
+        open(URI.create("mem:///live.wav"), false, Duration.ofMillis(100), List.of(new Memory(io)));
+        var before = playUntil(status -> status.position().compareTo(Duration.ofSeconds(1)) > 0);
+        assertFalse(before.seekable());
+
+        player.seek(Duration.ZERO);
+        var after = playUntil(
+                status -> status.position().compareTo(before.position().plusMillis(500)) > 0);
+        assertEquals(Optional.empty(), after.error(), after.toString());
+        assertEquals(PlaybackState.PLAYING, after.state());
+        assertTrue(pushed.stream().noneMatch(status -> status.state() == PlaybackState.ERROR), states.toString());
     }
 
     @Test
