@@ -32,12 +32,14 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 import dev.goldberry.junit.TimeBudget;
+import dev.goldberry.junit.WallClock;
 
 /// `HttpIO` against a local server: Range, the read-ahead cache, reconnects,
 /// stalls, timeouts, ICY, and the abort.
 ///
 /// No FFmpeg here: this is the byte stream the demuxer would read, checked byte
 /// for byte against what the server holds.
+@WallClock
 @DisplayName("HttpIO")
 class HttpIOTest {
 

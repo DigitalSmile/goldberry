@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -23,6 +24,7 @@ import dev.goldberry.css.cascade.CascadeLayer;
 import dev.goldberry.input.event.PointerEvent;
 import dev.goldberry.input.handler.Handles;
 import dev.goldberry.input.key.Key;
+import dev.goldberry.junit.DrivenRuntime;
 import dev.goldberry.paint.Box;
 import dev.goldberry.render.backend.headless.HeadlessBackend;
 import dev.goldberry.render.backend.headless.HeadlessPopup;
@@ -276,6 +278,7 @@ class PopupLifecycleTest {
     }
 
     private HeadlessBackend backend;
+    private DrivenRuntime runtime;
 
     @BeforeEach
     void installBackend() {
@@ -283,7 +286,7 @@ class PopupLifecycleTest {
         // whatever the backend is.
         RendererRequirement.enforce();
         backend = new HeadlessBackend();
-        GoldberryRuntime.install(backend);
+        runtime = DrivenRuntime.install(backend);
     }
 
     @AfterEach
@@ -406,20 +409,15 @@ class PopupLifecycleTest {
                 "and the content won, because it wanted more — this is a floor, not a width");
     }
 
-    /// Runs `action` on the UI thread after `millis`, so a deferred check has
-    /// had time to fire and the answer can be read while the loop is still up —
-    /// `shutDown` closes every popup, so anything asserted after `launch`
-    /// returns is asserting the teardown.
-    private static void later(long millis, Runnable action) {
-        Goldberry.async(() -> {
-                    try {
-                        Thread.sleep(millis);
-                    } catch (InterruptedException e) {
-                        Thread.currentThread().interrupt();
-                    }
-                    return null;
-                })
-                .thenRun(action);
+    /// Runs `then` on the UI thread once the focus events posted before it have
+    /// been delivered and the launcher's settle delay has elapsed **on the
+    /// loop's clock**, so the deferred check has fired and the answer is read
+    /// while the loop is still up — `shutDown` closes every popup, so anything
+    /// asserted after `launch` returns is asserting the teardown. A tick past
+    /// the delay, read at an exact time rather than after a sleep a loaded
+    /// runner might cut short.
+    private void settled(Runnable then) {
+        runtime.afterTheNextPump(() -> runtime.elapsed(Launcher.focusSettle().plus(Duration.ofMillis(1)), then));
     }
 
     /// **A popup goes away when the application does.**
@@ -438,7 +436,7 @@ class PopupLifecycleTest {
                     var opened = host.popup(new Plate("menu"), LogicalPoint.of(40, 60), LogicalSize.of(180, 132))
                             .orElseThrow();
                     backend.post(new BackendEvent.FocusChanged(ownerWindow(), false));
-                    later(300, () -> {
+                    settled(() -> {
                         stillOpen[0] = opened.isOpen();
                         Goldberry.stop();
                     });
@@ -463,7 +461,7 @@ class PopupLifecycleTest {
                     // Exactly the pair a compositor sends.
                     backend.post(new BackendEvent.FocusChanged(ownerWindow(), false));
                     backend.post(new BackendEvent.FocusChanged(onlyPopup(), true));
-                    later(300, () -> {
+                    settled(() -> {
                         stillOpen[0] = opened.isOpen();
                         Goldberry.stop();
                     });

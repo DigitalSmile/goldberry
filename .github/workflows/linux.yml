@@ -56,7 +56,13 @@ jobs:
           distribution: temurin
           java-version: '25'
       - uses: gradle/actions/setup-gradle@v4
-      - run: ./gradlew build checkLicenses checkMarkdown -Pgoldberry.skipNative=true --no-daemon
+      # Without the wall-clock lane, which runs after the build in a step of its
+      # own; here, with no library, every test in it skips, and the step proves
+      # the wiring on every push.
+      # https://goldberry.dev/docs/contributing/testing.html#the-wall-clock-lane
+      - run: ./gradlew build checkLicenses checkMarkdown -x wallClockTest -Pgoldberry.skipNative=true --no-daemon
+      - name: The wall-clock lane
+        run: ./gradlew wallClockTest -Pgoldberry.skipNative=true --no-daemon --continue
 
       # The suite runs in BOTH binding modes on every PR.
       # https://goldberry.dev/docs/contributing/testing.html#what-check-runs
@@ -382,10 +388,27 @@ jobs:
       # shapes or paints skips, which halves the figure. One leg is
       # enough -- coverage does not differ by CPU.
       - name: Core, widget, Markdown and emoji tests, and the golden images
-        env:
-          COVERAGE: ${{ matrix.target == 'linux-x64' && ':core:jacocoTestCoverageVerification :widgets:jacocoTestCoverageVerification :html:jacocoTestCoverageVerification :emoji:jacocoTestCoverageVerification' || '' }}
         run: |
-          ./gradlew :core:test :widgets:test :html:test :emoji:test $COVERAGE --no-daemon \
+          ./gradlew :core:test :widgets:test :html:test :emoji:test --no-daemon \
+            -Dgoldberry.native.library="$PWD/native-lib/libgoldberry.so" \
+            -Dgoldberry.native.required=true
+
+      # The tests that read a wall clock, after the suites and alone, so the JVM
+      # has the runner to itself; then the coverage floors, which read the lane's
+      # exec file as well as the suite's.
+      # https://goldberry.dev/docs/contributing/testing.html#the-wall-clock-lane
+      - name: The wall-clock lane
+        run: |
+          ./gradlew :core:wallClockTest :widgets:wallClockTest :html:wallClockTest :emoji:wallClockTest \
+            --no-daemon --continue \
+            -Dgoldberry.native.library="$PWD/native-lib/libgoldberry.so" \
+            -Dgoldberry.native.required=true
+
+      - name: The coverage floors
+        if: matrix.target == 'linux-x64'
+        run: |
+          ./gradlew :core:jacocoTestCoverageVerification :widgets:jacocoTestCoverageVerification \
+            :html:jacocoTestCoverageVerification :emoji:jacocoTestCoverageVerification --no-daemon \
             -Dgoldberry.native.library="$PWD/native-lib/libgoldberry.so" \
             -Dgoldberry.native.required=true
 
@@ -436,7 +459,10 @@ jobs:
       - name: The example's tests, against the library
         if: matrix.target == 'linux-x64'
         run: |
-          ./gradlew :example:build --no-daemon \
+          ./gradlew :example:build -x wallClockTest --no-daemon \
+            -Dgoldberry.native.library="$PWD/native-lib/libgoldberry.so" \
+            -Dgoldberry.native.required=true
+          ./gradlew :example:wallClockTest --no-daemon --continue \
             -Dgoldberry.native.library="$PWD/native-lib/libgoldberry.so" \
             -Dgoldberry.native.required=true
 

@@ -2,6 +2,8 @@ import dev.goldberry.build.ci.BuildFailureAnnotation
 import dev.goldberry.build.ci.TestFailureAnnotations
 import dev.goldberry.build.ci.WorkflowCommand
 import dev.goldberry.build.format.KeepDocReferencedImports
+import dev.goldberry.build.testing.WallClockLane
+import dev.goldberry.build.benchmark.BenchmarkLane
 import org.gradle.api.artifacts.VersionCatalogsExtension
 
 plugins {
@@ -18,6 +20,8 @@ plugins {
     // only by name. A plugin of its own because :weaver, which is plain `java`,
     // has benchmarks too.
     id 'goldberry.benchmarks'
+    // For the wall-clock lane alone; every other test task keeps zero retries.
+    id 'org.gradle.test-retry'
 }
 
 // Precompiled Groovy script plugins do not get the generated `libs` accessors
@@ -177,6 +181,13 @@ tasks.withType(Test).configureEach {
     systemProperty 'goldberry.input.primary', 'ctrl'
 }
 
+// The tests that read a wall clock run in a lane of their own, after the
+// module's suite, one module at a time and nothing beside them, and are the one
+// place a failed test is run again before it is believed.
+// https://goldberry.dev/docs/contributing/testing.html#the-wall-clock-lane
+WallClockLane.apply(project, gradle.sharedServices.registerIfAbsent(
+        BenchmarkLane.SERVICE, BenchmarkLane.OneAtATime) { maxParallelUsages = 1 })
+
 // On a GitHub Actions runner, every failed test and the build's own failure also
 // become annotations on the run. A job log cannot be read without
 // signing in; a check run's annotations can, so this is what makes a red CI run
@@ -188,8 +199,11 @@ tasks.withType(Test).configureEach {
 // classpath -- the jmh plugin included -- under every module, and :core's
 // versioned `me.champeau.jmh` request then refuses to resolve.
 if (WorkflowCommand.onGithubActions(System.getenv())) {
+    // A failure in the wall-clock lane is a warning: the lane runs it again,
+    // and a failure that persists fails the build, which is the error.
     tasks.withType(Test).configureEach { Test task ->
-        task.addTestListener(new TestFailureAnnotations(task.path, { line -> println line }))
+        def level = task.name == WallClockLane.TASK ? WorkflowCommand.Level.WARNING : WorkflowCommand.Level.ERROR
+        task.addTestListener(new TestFailureAnnotations(task.path, level, { line -> println line }))
     }
     def registered = 'goldberry.buildFailureAnnotation'
     if (!gradle.extensions.extraProperties.has(registered)) {

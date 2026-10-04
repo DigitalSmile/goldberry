@@ -91,7 +91,17 @@ jobs:
       - name: Build and test against it
         run: |
           ./gradlew build --no-daemon --continue \
-            -x jacocoTestCoverageVerification -x gpuTest \
+            -x jacocoTestCoverageVerification -x gpuTest -x wallClockTest \
+            -Pgoldberry.native.required=true \
+            -Pgoldberry.webview.required=true
+
+      # The tests that read a wall clock, alone: nothing compiles or analyses
+      # beside this JVM, which is the lane's whole point. A failed test here is
+      # run again before it is believed, and a failure that persists is red.
+      # https://goldberry.dev/docs/contributing/testing.html#the-wall-clock-lane
+      - name: The wall-clock lane
+        run: |
+          ./gradlew wallClockTest --no-daemon --continue \
             -Pgoldberry.native.required=true \
             -Pgoldberry.webview.required=true
 

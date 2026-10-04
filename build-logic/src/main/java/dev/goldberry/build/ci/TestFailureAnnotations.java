@@ -21,15 +21,29 @@ import java.util.stream.Collectors;
 public final class TestFailureAnnotations implements TestListener {
 
     private final String taskPath;
+    private final WorkflowCommand.Level level;
     private final Consumer<String> out;
 
     /**
+     * An error per failed test.
+     *
      * @param taskPath the {@code Test} task's path, e.g. {@code :core:test}, so an
      *                 annotation says which module and which binding mode ran it
      * @param out      where the command line goes; standard output on a runner
      */
     public TestFailureAnnotations(String taskPath, Consumer<String> out) {
+        this(taskPath, WorkflowCommand.Level.ERROR, out);
+    }
+
+    /**
+     * @param taskPath the {@code Test} task's path
+     * @param level    the annotation's severity: an error, or a warning for a
+     *                 task that runs a failed test again before believing it
+     * @param out      where the command line goes
+     */
+    public TestFailureAnnotations(String taskPath, WorkflowCommand.Level level, Consumer<String> out) {
         this.taskPath = taskPath;
+        this.level = level;
         this.out = out;
     }
 
@@ -64,7 +78,7 @@ public final class TestFailureAnnotations implements TestListener {
         var body = result.getExceptions().stream()
                 .map(FailureText::of)
                 .collect(Collectors.joining("\n\n"));
-        return WorkflowCommand.error(title, body.isEmpty() ? "failed without an exception" : body);
+        return new WorkflowCommand(level, title, body.isEmpty() ? "failed without an exception" : body);
     }
 
     private static String simpleName(String className) {

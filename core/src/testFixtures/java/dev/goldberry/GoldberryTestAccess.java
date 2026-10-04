@@ -1,6 +1,7 @@
 package dev.goldberry;
 
 import dev.goldberry.render.Backend;
+import dev.goldberry.render.event.EventLoop;
 
 /// Reaches the package-private runtime from a test in another package.
 ///
@@ -18,6 +19,14 @@ public final class GoldberryTestAccess {
     /// Installs `backend` as the runtime's, before anything starts one.
     public static void install(Backend backend) {
         GoldberryRuntime.install(backend);
+    }
+
+    /// Installs `backend` and `loop`, a loop over that backend whose clock the
+    /// test moves -- `TestClock.loopOver(backend)` -- so every delay a widget asks
+    /// of the loop elapses when the test says, not when the machine gets round
+    /// to it.
+    public static void install(Backend backend, EventLoop loop) {
+        GoldberryRuntime.install(backend, loop);
     }
 
     /// Takes it down again, so the next test starts from nothing.

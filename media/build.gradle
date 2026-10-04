@@ -636,6 +636,11 @@ tasks.named('jacocoTestCoverageVerification', JacocoCoverageVerification) {
     onlyIf('FFmpeg is built for this machine') {
         new File(libraryDirectory.get(), 'ffmpeg-layout.properties').isFile()
     }
+    // One leg, as :core's and :widgets' floors: which tests run here moves with
+    // the machine's decoders and with what a loaded runner reached in time, and
+    // four legs each reading the floor is four chances for the same commit to
+    // measure a point under it. The floor is measured on linux-x64 and read there.
+    onlyIf('the floor is read on linux-x64') { hostTargetId == 'linux-x64' }
     classDirectories.setFrom(sourceSets.main.output.classesDirs.asFileTree.matching {
         uncountedSystems.each { exclude "dev/goldberry/media/platform/${it}/**" }
         if (!runHasLibgoldberry) {

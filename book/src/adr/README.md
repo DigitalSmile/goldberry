@@ -594,3 +594,4 @@ proposing to undo them.
 - [ADR-0556 A looping source is read again ahead of its end, and joined at a seam](0556-a-looping-source-is-read-again-ahead-of-its-end-and-joined-at-a-seam.md)
 - [ADR-0557 The probe reads an H.264 or HEVC pixel format from the parameter sets](0557-the-probe-reads-an-h-264-or-hevc-pixel-format-from-the-parameter-sets.md)
 - [ADR-0558 A video track says its frame rate and its count of pictures](0558-a-video-track-says-its-frame-rate-and-its-count-of-pictures.md)
+- [ADR-0559 The tests that read a wall clock run in a lane of their own, and are the only ones run again](0559-the-tests-that-read-a-wall-clock-run-in-a-lane-of-their-own.md)

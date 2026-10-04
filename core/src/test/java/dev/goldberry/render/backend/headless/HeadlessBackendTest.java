@@ -19,6 +19,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 
 import dev.goldberry.junit.TimeBudget;
+import dev.goldberry.junit.WallClock;
 import dev.goldberry.render.BackendException;
 import dev.goldberry.render.DamageRect;
 import dev.goldberry.render.PixelBuffer;
@@ -353,6 +354,7 @@ class HeadlessBackendTest {
 
     @Test
     @Timeout(10)
+    @WallClock
     @DisplayName("an outstanding frame request never lets the loop sit idle")
     void pendingFrameDoesNotPark() {
         // The bug this exists for cost a second per frame. A repaint asked for
@@ -381,6 +383,7 @@ class HeadlessBackendTest {
 
     @Test
     @Timeout(10)
+    @WallClock
     @DisplayName("pumpEvents returns when the timeout elapses")
     void pumpTimesOut() {
         var start = System.nanoTime();

@@ -723,8 +723,14 @@ on, which in four cases is the same thing.
   listener attached after the first transition. Both are the test's clock and
   the video thread meeting in an order the assertion does not allow, not a
   player defect anybody has seen; and both make a red `check` mean less than it
-  should. —
-  [ADR-0463](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0463-video-is-converted-as-it-is-decoded-and-paced-by-the-picture.md)
+  should. ~~Both are open.~~ Both were the test's: `OPENING` is published
+  before the engine's threads start (45145b77), `statistics` waits for the last
+  picture to be prepared before asking for it (the same commit), and the
+  end-of-playback sequence allows the one stall and recovery a starved demux
+  thread produces. Since 2026-10-04 the class runs in the wall-clock lane
+  besides, and `docs/flaky-tests.md` is where a recurrence is written down. —
+  [ADR-0463](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0463-video-is-converted-as-it-is-decoded-and-paced-by-the-picture.md),
+  [ADR-0559](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0559-the-tests-that-read-a-wall-clock-run-in-a-lane-of-their-own.md)
 ## Build, artifacts and release
 - **A build with no network cannot produce a usable `goldberry-core`.** The bundled
   fonts and icons are fetched from upstream releases and cached, so this bites once per

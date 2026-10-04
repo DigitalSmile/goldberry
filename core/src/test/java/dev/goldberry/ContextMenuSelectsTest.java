@@ -19,6 +19,7 @@ import dev.goldberry.css.Stylesheet;
 import dev.goldberry.css.cascade.CascadeLayer;
 import dev.goldberry.input.handler.Handles;
 import dev.goldberry.input.handler.Selects;
+import dev.goldberry.junit.DrivenRuntime;
 import dev.goldberry.paint.Box;
 import dev.goldberry.render.backend.headless.HeadlessBackend;
 import dev.goldberry.render.backend.headless.HeadlessPopup;
@@ -133,12 +134,13 @@ class ContextMenuSelectsTest {
     }
 
     private HeadlessBackend backend;
+    private DrivenRuntime runtime;
 
     @BeforeEach
     void setUp() {
         RendererRequirement.enforce();
         backend = new HeadlessBackend();
-        GoldberryRuntime.install(backend);
+        runtime = DrivenRuntime.install(backend);
     }
 
     @AfterEach
@@ -156,18 +158,6 @@ class ContextMenuSelectsTest {
                 .count();
     }
 
-    private static void later(long millis, Runnable action) {
-        Goldberry.async(() -> {
-                    try {
-                        Thread.sleep(millis);
-                    } catch (InterruptedException e) {
-                        Thread.currentThread().interrupt();
-                    }
-                    return null;
-                })
-                .thenRun(action);
-    }
-
     /// A right-click at (120, 90) on `root`, with `handler` registered.
     ///
     /// The handler opens nothing by default — the headless backend has no popup
@@ -176,10 +166,12 @@ class ContextMenuSelectsTest {
     private void rightClick(Widget root, Consumer<Host> handler) {
         Goldberry.launch(new TestApp(root, host -> {
             handler.accept(host);
-            later(150, () -> {
+            // After the first frame, which hit testing runs against; the record is
+            // complete once the next pump has delivered the press.
+            runtime.afterTheFirstFrame(host, () -> {
                 backend.post(new BackendEvent.PointerMoved(window(), 120, 90, 0));
                 backend.post(new BackendEvent.PointerPressed(window(), 120, 90, 3, 1, 0));
-                later(200, Goldberry::stop);
+                runtime.afterTheNextPump(Goldberry::stop);
             });
         }));
     }
@@ -243,12 +235,12 @@ class ContextMenuSelectsTest {
         var opened = new long[1];
         Goldberry.launch(new TestApp(new Plate("row", asked, "rows"), host -> {
             host.onContextMenu((menu, at) -> {});
-            later(150, () -> {
+            runtime.afterTheFirstFrame(host, () -> {
                 host.focus("row", true);
-                later(150, () -> {
+                runtime.afterTheNextPump(() -> {
                     // SDL's `SDLK_APPLICATION` — the key between AltGr and Ctrl.
                     backend.post(new BackendEvent.KeyPressed(window(), 0x40000065, 0, false));
-                    later(200, () -> {
+                    runtime.afterTheNextPump(() -> {
                         opened[0] = popups();
                         Goldberry.stop();
                     });

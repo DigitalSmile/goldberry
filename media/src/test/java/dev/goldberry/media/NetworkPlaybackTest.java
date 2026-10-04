@@ -24,6 +24,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import dev.goldberry.junit.TimeBudget;
+import dev.goldberry.junit.WallClock;
 import dev.goldberry.media.audio.AudioFormat;
 import dev.goldberry.media.audio.VirtualSink;
 import dev.goldberry.media.io.HttpIO;
@@ -349,6 +350,7 @@ class NetworkPlaybackTest {
     }
 
     @Test
+    @WallClock
     @DisplayName("closing while a network source is still opening returns at once")
     void closeWhileOpening() throws IOException {
         server = new TestHttpServer(Wav.sine(RATE, 2, RATE, 440, 12_000));

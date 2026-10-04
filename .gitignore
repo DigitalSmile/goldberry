@@ -66,3 +66,6 @@ example/run.log
 
 # Claude Code's scratch space: agent worktrees and session state, not the project's.
 .claude/
+
+# A JVM crash log, which a GPU lane that aborts leaves beside the build it ran in
+hs_err_pid*.log

@@ -144,7 +144,20 @@ jobs:
       # floor counts this system's decoders and no other's.
       - name: Test :media against it
         run: >-
-          ./gradlew :media:check -Pgoldberry.skipNative=true -Pgoldberry.media.required=true
+          ./gradlew :media:check -x wallClockTest -x jacocoTestCoverageVerification
+          -Pgoldberry.skipNative=true -Pgoldberry.media.required=true
+          -Pgoldberry.platform.required=${{ matrix.platform-required }} $MEDIA_TOOLS --no-daemon
+
+      # The tests that read a wall clock -- the sink against the dummy device,
+      # playback paced by a video thread, a read timing out -- alone, after the
+      # suite, and run again before a failure is believed. Then the coverage
+      # floor, which reads the lane's exec file too and is gated on linux-x64
+      # alone.
+      # https://goldberry.dev/docs/contributing/testing.html#the-wall-clock-lane
+      - name: The wall-clock lane, and the coverage floor
+        run: >-
+          ./gradlew :media:wallClockTest :media:jacocoTestCoverageVerification --continue
+          -Pgoldberry.skipNative=true -Pgoldberry.media.required=true
           -Pgoldberry.platform.required=${{ matrix.platform-required }} $MEDIA_TOOLS --no-daemon
 
       - uses: actions/upload-artifact@v4

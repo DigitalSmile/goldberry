@@ -67,8 +67,13 @@ final class GoldberryRuntime {
     }
 
     private GoldberryRuntime(Backend backend) {
+        this(backend, new EventLoop(backend));
+    }
+
+    /// With a loop somebody else made: a test's, over a clock it moves.
+    private GoldberryRuntime(Backend backend, EventLoop loop) {
         this.backend = backend;
-        this.loop = new EventLoop(backend);
+        this.loop = loop;
     }
 
     /// The runtime, starting the desktop backend on first use.
@@ -92,10 +97,22 @@ final class GoldberryRuntime {
     /// a real use case, but not one with a caller yet, and a setter that must be
     /// called before an implicit initialization is a bad shape to publish.
     static synchronized void install(Backend backend) {
+        install(backend, new EventLoop(Objects.requireNonNull(backend, "backend")));
+    }
+
+    /// Installs a backend and the loop over it, before anything starts one.
+    ///
+    /// For a test that drives the loop's clock: `TestClock.loopOver(backend)`
+    /// makes a loop whose delays elapse when the test says so, and a tooltip's
+    /// dwell or a menu's safe triangle is then asserted at an exact time rather
+    /// than slept past. The loop must be over `backend`, since it is the one the
+    /// runtime pumps.
+    static synchronized void install(Backend backend, EventLoop loop) {
         if (instance != null) {
             throw new IllegalStateException("the Goldberry runtime is already started");
         }
-        instance = new GoldberryRuntime(Objects.requireNonNull(backend, "backend"));
+        instance =
+                new GoldberryRuntime(Objects.requireNonNull(backend, "backend"), Objects.requireNonNull(loop, "loop"));
     }
 
     /// Whether a runtime exists yet. Lets [Goldberry#run()] refuse politely

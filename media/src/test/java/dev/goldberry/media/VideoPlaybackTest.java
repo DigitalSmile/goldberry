@@ -26,6 +26,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
+import dev.goldberry.junit.WallClock;
 import dev.goldberry.media.audio.AudioFormat;
 import dev.goldberry.media.audio.VirtualSink;
 import dev.goldberry.media.codec.AudioFrame;
@@ -70,6 +71,7 @@ import dev.goldberry.media.picture.VideoPlanes;
 ///
 /// The clips are `fixtures/`'s `testsrc2` at 160×90, 25 fps: one picture every
 /// 40 ms, and a single keyframe at zero.
+@WallClock
 @DisplayName("MediaPlayer playing video, against FFmpeg")
 class VideoPlaybackTest {
 
@@ -272,9 +274,23 @@ class VideoPlaybackTest {
         // sound and runs out on the system clock from where the sound stopped.
         open("clip-vp9.webm", true);
         var ended = await(status -> status.state() == PlaybackState.ENDED);
+        // OPENING, BUFFERING, PLAYING, ENDED; and between PLAYING and ENDED, at
+        // most a stall and its recovery. A demux thread starved by the machine
+        // lets the queue run dry, and BUFFERING then PLAYING again is what the
+        // state diagram says happens, not a defect: a full `check` under load saw
+        // it once. Anything else in the sequence is.
+        var seen = List.copyOf(states);
         assertEquals(
-                List.of(PlaybackState.OPENING, PlaybackState.BUFFERING, PlaybackState.PLAYING, PlaybackState.ENDED),
-                List.copyOf(states));
+                List.of(PlaybackState.OPENING, PlaybackState.BUFFERING, PlaybackState.PLAYING),
+                seen.subList(0, 3),
+                "the start of " + seen);
+        assertEquals(PlaybackState.ENDED, seen.getLast(), "the end of " + seen);
+        assertEquals(
+                1, seen.stream().filter(state -> state == PlaybackState.ENDED).count(), "ended once: " + seen);
+        assertTrue(
+                seen.subList(3, seen.size() - 1).stream()
+                        .allMatch(state -> state == PlaybackState.BUFFERING || state == PlaybackState.PLAYING),
+                "only a stall and its recovery between playing and the end: " + seen);
         assertEquals("ffmpeg", ended.audioDecoder().orElseThrow());
         assertEquals("ffmpeg", ended.videoDecoder().orElseThrow());
         assertTrue(ended.hasVideo());

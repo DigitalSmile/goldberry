@@ -16,11 +16,18 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import dev.goldberry.junit.TimeBudget;
+import dev.goldberry.junit.WallClock;
 import dev.goldberry.natives.NativeLibrary;
 
 /// The desktop sink, against SDL's `dummy` driver (the test task sets
 /// `SDL_AUDIO_DRIVER=dummy`): it consumes audio at the real rate and plays
 /// nothing, so these tests are silent and need no sound card.
+///
+/// The device's thread pulls on its own schedule and the sink is read against a
+/// wall clock, so the class runs in the wall-clock lane: a `sleep(1)` loop under
+/// a parallel build on a four-core runner read five times in a second and a
+/// half, and no bound that passes idle survives that.
+@WallClock
 @DisplayName("SdlAudioSink, against SDL's dummy driver")
 class SdlAudioSinkTest {
 

@@ -27,6 +27,8 @@ dependencies {
     implementation "net.ltgt.gradle:gradle-errorprone-plugin:${libs.versions.errorprone.get()}"
     implementation "com.github.spotbugs.snom:spotbugs-gradle-plugin:${libs.versions.spotbugsPlugin.get()}"
     implementation "me.champeau.jmh:jmh-gradle-plugin:${libs.versions.jmhPlugin.get()}"
+    // Applied by the conventions for the wall-clock lane, and configured nowhere else.
+    implementation "org.gradle:test-retry-gradle-plugin:${libs.versions.testRetryPlugin.get()}"
     // Applied by `goldberry.publish`, which only the shipped modules apply.
     implementation "com.vanniktech:gradle-maven-publish-plugin:${libs.versions.mavenPublishPlugin.get()}"
 
