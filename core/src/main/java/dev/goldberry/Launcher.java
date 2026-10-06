@@ -142,11 +142,6 @@ final class Launcher {
             this(frames, size, null, -1, null);
         }
 
-        /// The four flags there were before the capture.
-        Options(int frames, @Nullable LogicalSize size, @Nullable LogicalSize resize, long lateBudget) {
-            this(frames, size, resize, lateBudget, null);
-        }
-
         /// Reads `--frames=N`, `--size=WxH`, `--resize=WxH`, `--late-budget=N`
         /// and `--capture=PATH`, ignoring everything else — an application's
         /// own arguments are its business. Null reads as no arguments.

@@ -26,7 +26,9 @@ import dev.goldberry.gpu.view.TestCube;
 import dev.goldberry.image.Image;
 import dev.goldberry.natives.sdl.Sdl;
 import dev.goldberry.natives.sdl.SdlSubsystem;
+import dev.goldberry.natives.sdl.gpu.GpuDeviceRequirement;
 import dev.goldberry.natives.sdl.gpu.GpuTestLauncher;
+import dev.goldberry.natives.sdl.gpu.SdlGpuDevice;
 import dev.goldberry.offscreen.Offscreen;
 import dev.goldberry.paint.BoxPainter;
 import dev.goldberry.render.model.PhysicalSize;
@@ -50,10 +52,14 @@ class OffscreenGpuTest {
     private static final int WIDTH = 200;
     private static final int HEIGHT = 160;
 
+    private static SdlGpuDevice required;
     private static Font font;
 
+    /// The device requirement first: without the library or a device the test
+    /// skips, or fails where the lane required one, before a font is asked for.
     @BeforeAll
     static void open() {
+        required = GpuDeviceRequirement.enforce();
         font = Font.bundled(BundledFont.UI, 13);
     }
 
@@ -61,6 +67,9 @@ class OffscreenGpuTest {
     static void close() {
         if (font != null) {
             font.close();
+        }
+        if (required != null) {
+            required.close();
         }
     }
 

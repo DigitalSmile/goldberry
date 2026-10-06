@@ -19,7 +19,7 @@ struct type_Scale
     packed_float3 padding;
 };
 
-kernel void main0(device type_StructuredBuffer_float& _input [[buffer(0)]], device type_RWStructuredBuffer_float& _output [[buffer(1)]], constant type_Scale& Scale [[buffer(2)]], uint3 gl_GlobalInvocationID [[thread_position_in_grid]])
+kernel void main0(constant type_Scale& Scale [[buffer(0)]], device type_StructuredBuffer_float& _input [[buffer(1)]], device type_RWStructuredBuffer_float& _output [[buffer(2)]], uint3 gl_GlobalInvocationID [[thread_position_in_grid]])
 {
     _output._m0[gl_GlobalInvocationID.x] = _input._m0[gl_GlobalInvocationID.x] * Scale.scale;
 }

@@ -1,7 +1,6 @@
 package dev.goldberry.gpu.offscreen;
 
 import java.util.EnumSet;
-import java.util.Objects;
 
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
@@ -170,6 +169,6 @@ public final class OffscreenGpu implements AutoCloseable {
 
     @Override
     public String toString() {
-        return "OffscreenGpu[" + Objects.requireNonNullElse(device.driver(), "?") + (closed ? ", closed]" : "]");
+        return "OffscreenGpu[" + device.driver() + (closed ? ", closed]" : "]");
     }
 }

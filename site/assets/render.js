@@ -80,7 +80,8 @@
     features: function (S) {
       return (S.features || []).map(function (f) {
         var points = (f.points || []).map(function (p) { return "<li>" + esc(p) + "</li>"; }).join("");
-        return '<article class="card"><div class="card-icon">' + icon(f.icon) + "</div><h3>" + esc(f.title) + "</h3><p>" + esc(f.text) + "</p>" + (points ? "<ul>" + points + "</ul>" : "") + "</article>";
+        return '<article class="card"><div class="card-icon">' + icon(f.icon) + "</div><h3>" + esc(f.title) + "</h3><p>" + esc(f.text) + "</p>" + (points ? "<ul>" + points + "</ul>" : "") +
+          (f.href ? '<a class="more" href="' + esc(f.href) + '">' + esc(f.hrefLabel || "Learn more") + " →</a>" : "") + "</article>";
       }).join("");
     },
     perfStart: function (S) {

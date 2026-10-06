@@ -447,11 +447,6 @@ public final class Window implements AutoCloseable {
         };
     }
 
-    /// Whether this window takes no input now.
-    boolean isInputBlocked() {
-        return blocked != null;
-    }
-
     /// The launcher's close hook, run as [#close()] begins — while the window
     /// is still open, so what belongs to it can be closed first.
     private Runnable launcherClose = () -> {};

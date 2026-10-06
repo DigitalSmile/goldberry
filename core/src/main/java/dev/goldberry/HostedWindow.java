@@ -396,11 +396,6 @@ final class HostedWindow implements WindowHost {
         closeListeners.clear();
     }
 
-    /// Whether this window's tree has been taken down.
-    boolean isDisposed() {
-        return disposed;
-    }
-
     // --- WindowHost -----------------------------------------------------------
 
     @Override

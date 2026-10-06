@@ -47,7 +47,8 @@ window.SITE = {
       { q: "Which platforms are supported?", a: "Linux (Wayland and X11), Windows and macOS, as peer platforms behind one SDL3 backend. There is also a headless backend for tests and servers." },
       { q: "Does it need a GPU?", a: "No. Frames are rasterized on the CPU with Blend2D across worker threads. The goldberry-gpu module adds GPU composition, a canvas3d layer and GPU video presentation when you want them." },
       { q: "How is it licensed?", a: "Apache License 2.0, with no contributor licence agreement and no commercial edition. The source is on GitHub at DigitalSmile/goldberry." },
-      { q: "How do I add it to a project?", a: "Add the goldberry-bom to Gradle or Maven, then the goldberry artifact plus the goldberry-natives classifier jars for the platforms you run on. Coordinates are under dev.goldberry." }
+      { q: "How do I add it to a project?", a: "Add the goldberry-bom to Gradle or Maven, then the goldberry artifact plus the goldberry-natives classifier jars for the platforms you run on. Coordinates are under dev.goldberry." },
+      { q: "How do I test an application?", a: "In a plain JUnit test, with no display. Offscreen renders a widget tree to pixels, and an Offscreen session drives it through the real input router: click a widget by id or by role and name, type, press accelerators, step a virtual clock to an exact frame, and compare the picture with a golden image using a tolerance that absorbs antialiasing. Documents inflate against the real models, so a typo in markup fails the test, not the user." }
     ]
   },
 
@@ -111,7 +112,7 @@ window.SITE = {
     { icon: "box", title: "A GPU when you want one", text: "The CPU path never needs a GPU context. goldberry-gpu adds one, bound to SDL_GPU.", points: ["Windows composite through the GPU by default, and fall back to the CPU", "canvas3d: a GPU layer your own renderer draws into", "Shaders in HLSL, compiled and committed"] },
     { icon: "globe", title: "A web page, when the platform has one", text: "web-view drives the desktop's own engine through a separate optional library.", points: ["WebKitGTK, WebView2 and WKWebView", "Never a load-time dependency of the toolkit", "Ask Goldberry.capabilities() for WEB_VIEW before offering one"] },
     { icon: "blocks", title: "Plain-Java models", text: "@Model, @Bind and @Action make ordinary field assignments observable.", points: ["A jar binds at run time through the annotations", "A build-time weaver prepares the same model for native image", "No annotation processor, no code generation step"] },
-    { icon: "flask-conical", title: "Content widgets, tested in pixels", text: "Markdown, HTML and charts render as ordinary widgets, with no browser engine underneath.", points: ["markdown-view and html-view, first-party charts", "Golden images per platform", "A virtual frame clock makes animation deterministic"] }
+    { icon: "flask-conical", title: "Tests without a display", text: "Offscreen renders a widget tree to pixels and drives it through the real input router, in a plain JUnit test.", points: ["Click by id or by role and name, type, press accelerators", "A virtual clock steps an animation to an exact frame", "Golden images compared with a tolerance, one set for every platform"], href: "docs/guide/testing.html", hrefLabel: "Testing an application" }
   ],
 
   // "Starts fast, runs fast". Plain numbers from the README and the Status page.
@@ -215,8 +216,8 @@ window.SITE = {
         { t: "None", tone: "good" }, { t: "None", tone: "good" }, "None beyond the FX modules", "None", "Kotlin runtime, Skiko, Compose runtime", "None"] },
       { label: "Platforms", cells: [
         "Linux (Wayland, X11), Windows, macOS", "Same", "Linux, Windows, macOS, mobile through Gluon", "Linux, Windows, macOS", "Linux, Windows, macOS", "Linux, Windows, macOS"] },
-      { label: "Headless testing", cells: [
-        { t: "Headless backend, golden images per platform, virtual frame clock", tone: "good" }, { t: "Same", tone: "good" }, { t: "Monocle, TestFX", tone: "mid" }, { t: "Headless AWT, no pixel goldens built in", tone: "mid" }, { t: "Compose UI testing", tone: "mid" }, { t: "SWTBot", tone: "mid" }] },
+      { label: "Testing an application", cells: [
+        { t: "Offscreen sessions in JUnit: click by id or role, type, step a virtual clock, compare pixels with goldens; no display", tone: "good" }, { t: "Same", tone: "good" }, { t: "TestFX; Monocle for headless", tone: "mid" }, { t: "AssertJ Swing; headless AWT, no pixel goldens built in", tone: "mid" }, { t: "Compose UI test rule", tone: "mid" }, { t: "SWTBot", tone: "mid" }] },
       { label: "Accessibility", cells: [
         { t: "Keyboard, focus ring, WCAG AA contrast and roles; no screen-reader bridge yet", tone: "no" }, { t: "Same", tone: "no" }, { t: "Yes", tone: "good" }, { t: "Yes", tone: "good" }, { t: "Yes, through AWT", tone: "good" }, { t: "Yes, native", tone: "good" }] }
     ],
@@ -263,7 +264,7 @@ window.SITE = {
     licenseHref: "https://github.com/DigitalSmile/goldberry/blob/master/LICENSE",
     note: "Open source.",
     columns: [
-      { title: "Docs", links: [["Introduction", "docs/"], ["Getting started", "docs/getting-started/requirements.html"], ["Components", "docs/components/index.html"], ["Status", "docs/status.html"], ["Decision log", "https://github.com/DigitalSmile/goldberry/tree/master/book/src/adr"], ["Native image", "docs/native.html"]] },
+      { title: "Docs", links: [["Introduction", "docs/"], ["Getting started", "docs/getting-started/requirements.html"], ["Components", "docs/components/index.html"], ["Status", "docs/status.html"], ["Decision log", "https://github.com/DigitalSmile/goldberry/tree/master/book/src/adr"], ["Testing", "docs/guide/testing.html"], ["Native image", "docs/native.html"]] },
       { title: "Project", links: [["GitHub", "https://github.com/DigitalSmile/goldberry"], ["Issues", "https://github.com/DigitalSmile/goldberry/issues"], ["Releases", "https://github.com/DigitalSmile/goldberry/releases"], ["Licence", "https://github.com/DigitalSmile/goldberry/blob/master/LICENSE"], ["Privacy", "privacy.html"], ["Cookie settings", "privacy.html#cookies"]] },
       { title: "Page", links: [["Features", "#features"], ["Quick start", "#quickstart"], ["Performance", "#performance"], ["Compare", "#compare"], ["FAQ", "#faq"], ["llms.txt", "llms.txt"]] }
     ]

@@ -168,11 +168,6 @@ final class MotionCards {
             cancelSwaps();
             super.dispose();
         }
-
-        /// The floor, for a test.
-        TileFloor floor() {
-            return floor;
-        }
     }
 
     /// A row of chips, each entering from its starting style.

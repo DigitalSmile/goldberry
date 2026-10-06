@@ -291,10 +291,15 @@ class HttpIOTest {
         @DisplayName("a read gives up after the source's timeout, not before")
         void timesOut() throws IOException {
             server = new TestHttpServer(DATA);
+            // The open waits on the same timeout for the headers. A client's first
+            // connection and a server's first request pay for their own start-up,
+            // which a loaded runner has stretched past two seconds; so the first
+            // connection is an untimed one that reads a little and closes, and the
+            // timed open comes second, to a server that is already answering.
+            open(Source.of(server.uri("clip.bin")), FAST);
+            read(io, 10);
+            io.close();
             server.stallAt = 0;
-            // The open waits on the same timeout for the headers, so it is long
-            // enough for a loaded runner to answer: at 300 ms the Windows release
-            // lane timed out in the open and never reached the read.
             var timeout = Duration.ofSeconds(2);
             open(Source.of(server.uri("clip.bin")).withTimeout(timeout), FAST.withStallTimeout(Duration.ofSeconds(30)));
             var started = System.nanoTime();

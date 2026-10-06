@@ -1,3 +1,4 @@
+import dev.goldberry.build.shaders.MetalBindings
 import dev.goldberry.build.toolchain.ToolLookup
 
 import java.security.MessageDigest
@@ -131,8 +132,14 @@ tasks.register('compileShaders') {
                 run([dxc.absolutePath, '-T', profile, '-E', 'main', '-spirv', '-Fo', spirv.absolutePath, source.absolutePath])
                 run([dxc.absolutePath, '-T', profile, '-E', 'main', '-Fo', new File(out, "${name}.dxil").absolutePath,
                      source.absolutePath])
-                run([spirvCross.absolutePath, spirv.absolutePath, '--msl', '--msl-version', '20100',
-                     '--output', new File(out, "${name}.msl").absolutePath])
+                // Metal binds by SDL's order, not by descriptor set, so the SPIR-V that
+                // feeds SPIRV-Cross carries each resource's Metal index as its binding,
+                // worked out from the registers, and is not the SPIR-V that ships.
+                def metalSpirv = new File(temporaryDir, "${name}.metal.spv")
+                run([dxc.absolutePath, '-T', profile, '-E', 'main', '-spirv'] + MetalBindings.dxcArguments(source.toPath())
+                        + ['-Fo', metalSpirv.absolutePath, source.absolutePath])
+                run([spirvCross.absolutePath, metalSpirv.absolutePath, '--msl', '--msl-version', '20100',
+                     '--msl-decoration-binding', '--output', new File(out, "${name}.msl").absolutePath])
                 manifest["${name}.sha256"] = MessageDigest.getInstance('SHA-256').digest(source.bytes).encodeHex().toString()
             }
             // What the shaders include is part of what they were compiled from.
