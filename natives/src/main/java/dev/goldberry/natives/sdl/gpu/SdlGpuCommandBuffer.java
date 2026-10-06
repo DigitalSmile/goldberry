@@ -8,6 +8,7 @@ import static java.lang.foreign.ValueLayout.JAVA_INT;
 import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
 import java.nio.ByteBuffer;
+import java.util.Arrays;
 import java.util.BitSet;
 import java.util.EnumSet;
 import java.util.List;
@@ -664,19 +665,29 @@ public final class SdlGpuCommandBuffer {
         /// @throws IllegalArgumentException when the count is not the shader's,
         ///                                  or a texture cannot be sampled
         public void bindVertexSamplers(SdlGpuSampler sampler, SdlGpuTexture... textures) {
+            bindVertexSamplers(bindings(sampler, textures));
+        }
+
+        /// Binds each texture with its own sampler to the vertex shader's
+        /// sampler slots from 0, in order: every slot the bound pipeline's
+        /// vertex shader declares, and no more.
+        ///
+        /// @throws IllegalStateException    when no pipeline is bound
+        /// @throws IllegalArgumentException when the count is not the shader's,
+        ///                                  or a texture cannot be sampled
+        public void bindVertexSamplers(List<SdlGpuSamplerBinding> slots) {
             requireOpen();
             var bound = requirePipeline("bindVertexSamplers");
             var shader = bound.description().vertex();
-            requireOwn(sampler);
-            if (textures.length != shader.samplers()) {
+            if (slots.size() != shader.samplers()) {
                 throw new IllegalArgumentException(
-                        shader + " samples " + shader.samplers() + " textures, not " + textures.length);
+                        shader + " samples " + shader.samplers() + " textures, not " + slots.size());
             }
             try (var arena = Arena.ofConfined()) {
-                var bindings = samplerBindings(arena, sampler, textures);
-                device.calls().renderPass().bindGPUVertexSamplers().call(pass, 0, bindings, textures.length);
+                var bindings = samplerBindings(arena, slots);
+                device.calls().renderPass().bindGPUVertexSamplers().call(pass, 0, bindings, slots.size());
             }
-            boundVertexSamplers = textures.length;
+            boundVertexSamplers = slots.size();
         }
 
         /// Binds `buffers` to the vertex shader's storage-buffer slots from 0:
@@ -790,18 +801,28 @@ public final class SdlGpuCommandBuffer {
         /// @throws IllegalArgumentException when the count is not the pipeline's,
         ///                                  or a texture cannot be sampled
         public void bindFragmentSamplers(SdlGpuSampler sampler, SdlGpuTexture... textures) {
+            bindFragmentSamplers(bindings(sampler, textures));
+        }
+
+        /// Binds each texture with its own sampler to the fragment shader's
+        /// slots from 0, in order: every slot the bound pipeline declares, and
+        /// no more.
+        ///
+        /// @throws IllegalStateException    when no pipeline is bound
+        /// @throws IllegalArgumentException when the count is not the pipeline's,
+        ///                                  or a texture cannot be sampled
+        public void bindFragmentSamplers(List<SdlGpuSamplerBinding> slots) {
             requireOpen();
             var bound = requirePipeline("bindFragmentSamplers");
-            requireOwn(sampler);
-            if (textures.length != bound.samplers()) {
+            if (slots.size() != bound.samplers()) {
                 throw new IllegalArgumentException(
-                        bound + " samples " + bound.samplers() + " textures, not " + textures.length);
+                        bound + " samples " + bound.samplers() + " textures, not " + slots.size());
             }
             try (var arena = Arena.ofConfined()) {
-                var bindings = samplerBindings(arena, sampler, textures);
-                device.calls().renderPass().bindGPUFragmentSamplers().call(pass, 0, bindings, textures.length);
+                var bindings = samplerBindings(arena, slots);
+                device.calls().renderPass().bindGPUFragmentSamplers().call(pass, 0, bindings, slots.size());
             }
-            boundSamplers = textures.length;
+            boundSamplers = slots.size();
         }
 
         /// Binds `buffer`, from byte `offset`, to vertex slot `slot` of the bound
@@ -1273,18 +1294,30 @@ public final class SdlGpuCommandBuffer {
 
     /// An `SDL_GPUTextureSamplerBinding` array of `textures`, each with
     /// `sampler`, checked sampleable and this device's.
-    private MemorySegment samplerBindings(Arena arena, SdlGpuSampler sampler, SdlGpuTexture[] textures) {
+    /// One slot per texture, each read with `sampler`.
+    private static List<SdlGpuSamplerBinding> bindings(SdlGpuSampler sampler, SdlGpuTexture[] textures) {
+        return Arrays.stream(textures)
+                .map(texture -> new SdlGpuSamplerBinding(texture, sampler))
+                .toList();
+    }
+
+    /// `slots` as SDL's array of `SDL_GPUTextureSamplerBinding`, each texture
+    /// and sampler checked for this device's and the texture for sampling.
+    private MemorySegment samplerBindings(Arena arena, List<SdlGpuSamplerBinding> slots) {
         var layout = Layouts.SDL_GPU_TEXTURE_SAMPLER_BINDING;
-        var bindings = arena.allocate(layout.layout(), Math.max(1, textures.length));
-        for (var i = 0; i < textures.length; i++) {
-            var texture = textures[i];
+        var bindings = arena.allocate(layout.layout(), Math.max(1, slots.size()));
+        for (var i = 0; i < slots.size(); i++) {
+            var slot = slots.get(i);
+            var texture = slot.texture();
             requireOwn(texture);
+            requireOwn(slot.sampler());
             if (!texture.usages().contains(SdlGpuTextureUsage.SAMPLER)) {
                 throw new IllegalArgumentException(texture + " cannot be sampled");
             }
             var at = i * layout.byteSize();
             bindings.set(ADDRESS, at + layout.offsetOf("texture"), texture.handle());
-            bindings.set(ADDRESS, at + layout.offsetOf("sampler"), sampler.handle());
+            bindings.set(
+                    ADDRESS, at + layout.offsetOf("sampler"), slot.sampler().handle());
         }
         return bindings;
     }

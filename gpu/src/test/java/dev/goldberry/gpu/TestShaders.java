@@ -46,6 +46,14 @@ final class TestShaders {
                 ShaderStage.FRAGMENT, DIRECTORY + "array.frag", 1, 1, TestShaders.class::getResourceAsStream);
     }
 
+    /// `shadowed.frag`: a colour texture in sampler slot 0, read through a
+    /// plain sampler, darkened by a depth map in slot 1, read through a
+    /// comparison sampler against the reference in fragment uniform block 0.
+    static ShaderCode shadowedFragment() {
+        return ShaderCode.load(
+                ShaderStage.FRAGMENT, DIRECTORY + "shadowed.frag", 2, 1, TestShaders.class::getResourceAsStream);
+    }
+
     /// `depthonly.frag`: writes nothing, for a pipeline with no colour target.
     static ShaderCode depthOnlyFragment() {
         return ShaderCode.load(

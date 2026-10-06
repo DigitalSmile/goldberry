@@ -9,7 +9,6 @@ import org.jspecify.annotations.Nullable;
 
 import dev.goldberry.css.value.Affine;
 import dev.goldberry.css.value.Transform;
-import dev.goldberry.layout.Insets;
 import dev.goldberry.layout.Length;
 import dev.goldberry.layout.Overflow;
 import dev.goldberry.natives.yoga.YogaConfig;
@@ -69,6 +68,10 @@ import dev.goldberry.render.model.PhysicalSize;
 public final class RenderTree implements AutoCloseable {
 
     private final YogaConfig config = YogaConfig.create();
+
+    /// The boxes Yoga lays out one line short, collected by each reconcile and
+    /// pinned after the layout pass that follows it.
+    private final ShrinkToFit shrink = new ShrinkToFit();
     private final Thread owner = Thread.currentThread();
 
     private @Nullable RenderObject root;
@@ -105,7 +108,7 @@ public final class RenderTree implements AutoCloseable {
         // Yoga skips a subtree with nothing dirty in it, so on a static frame
         // this call is close to free — which is the whole return on the guards
         // in `RenderObject.apply`.
-        root.node().calculateLayout(size.width(), size.height());
+        layOut(root, size.width(), size.height());
         // Where Yoga put everything, and what each subtree draws -- read once,
         // here, rather than in each of the walks that follow. A frame painted
         // twice (a damage pass and a full one) settles once.
@@ -142,6 +145,19 @@ public final class RenderTree implements AutoCloseable {
         return List.copyOf(found);
     }
 
+    /// Runs Yoga over the tree, and once more when [ShrinkToFit] pinned a box
+    /// that the first pass laid out at its cap.
+    ///
+    /// The second pass re-lays out only what the pins dirtied, and there is no
+    /// third: a pinned box has a definite width, which is a case Yoga gets
+    /// right.
+    private void layOut(RenderObject root, float width, float height) {
+        root.node().calculateLayout(width, height);
+        if (shrink.pin()) {
+            root.node().calculateLayout(width, height);
+        }
+    }
+
     /// Brings the retained tree in line with `box`, at `scale`. The half of
     /// [#update] that is not the layout pass, shared with [#measure].
     private RenderObject reconcile(Box box, float scale) {
@@ -161,10 +177,10 @@ public final class RenderTree implements AutoCloseable {
             root.close();
             root = new RenderObject(config, box.text() != null);
         }
-        // The root's containing block is the window, which has no padding to be
-        // placed inside of — so nothing shifts, and `ContainingBlock` says so by
-        // handing every inset straight back.
-        root.update(box, Insets.ZERO, config);
+        // No parent: the root's containing block is the window, which has no
+        // padding to be placed inside of, and Yoga does not lay a root out as an
+        // absolute child.
+        root.update(box, null, config, shrink);
         return root;
     }
 
@@ -211,7 +227,7 @@ public final class RenderTree implements AutoCloseable {
         requireUsable();
 
         var root = reconcile(box, scale.factor());
-        root.node().calculateLayout(availableWidth, availableHeight);
+        layOut(root, availableWidth, availableHeight);
         root.settle();
         var layout = root.layout();
         return new LogicalSize(layout.width(), layout.height());

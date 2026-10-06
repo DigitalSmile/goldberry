@@ -2,10 +2,12 @@ package dev.goldberry.gpu.offscreen;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -73,19 +75,32 @@ class OffscreenGpuTest {
         }
     }
 
+    /// The scene's background, which is what shows where the canvas is when
+    /// nothing renders it.
+    private static final int BACKGROUND = 0xFF2E3440;
+
+    /// The stylesheets of the scene: the canvas 160 by 120 inside 20 of padding.
+    private static List<Stylesheet> sheets() {
+        var sheets = new ArrayList<Stylesheet>(Controls.stylesheets(Theme.NORD_DARK, Density.REGULAR));
+        sheets.add(Stylesheet.parse(
+                CascadeLayer.APPLICATION,
+                "#scene { padding: 20px; flex-grow: 1; background: #2e3440; }"
+                        + " canvas3d { width: 160px; height: 120px; }"));
+        return sheets;
+    }
+
+    private static Column scene(Canvas3d canvas) {
+        return new Column(List.of(canvas), Attributes.NONE.id("scene"));
+    }
+
     /// The scene of `Canvas3dGoldenTest`, so the two pictures share a golden.
     private static final class Mounted implements AutoCloseable {
         final ElementTree tree;
         final WidgetRenderer renderer;
 
         Mounted(Canvas3d canvas) {
-            var sheets = new ArrayList<Stylesheet>(Controls.stylesheets(Theme.NORD_DARK, Density.REGULAR));
-            sheets.add(Stylesheet.parse(
-                    CascadeLayer.APPLICATION,
-                    "#scene { padding: 20px; flex-grow: 1; background: #2e3440; }"
-                            + " canvas3d { width: 160px; height: 120px; }"));
-            tree = new ElementTree(new Column(List.of(canvas), Attributes.NONE.id("scene")));
-            renderer = new WidgetRenderer(sheets, font);
+            tree = new ElementTree(scene(canvas));
+            renderer = new WidgetRenderer(sheets(), font);
         }
 
         Image picture(PhysicalSize size, float scale, GpuSurface surface) {
@@ -117,6 +132,37 @@ class OffscreenGpuTest {
             });
             assertEquals("init", cube.calls.getFirst(), "the renderer was initialised on the offscreen device");
             assertEquals("dispose", cube.calls.getLast(), "and disposed with the tree");
+        }
+    }
+
+    @Test
+    @DisplayName("renders the canvas in a session's frames and a strip's, as in a still render")
+    void sessionsAndStrips() {
+        try (var gpu = OffscreenGpu.open()) {
+            var builder = Offscreen.of(WIDTH, HEIGHT).stylesheets(sheets()).gpu(gpu.surface());
+            var still = builder.render(scene(new Canvas3d(new TestCube()).depth(Canvas3d.Depth.D16)));
+            var centre = still.argb(WIDTH / 2, HEIGHT / 2);
+            assertNotEquals(BACKGROUND, centre, "the still render has the cube");
+            try (var session = builder.session(scene(new Canvas3d(new TestCube()).depth(Canvas3d.Depth.D16)))) {
+                assertClose(centre, session.frame().argb(WIDTH / 2, HEIGHT / 2), "a session's first frame");
+                session.advance(Duration.ofMillis(16));
+                assertClose(centre, session.frame().argb(WIDTH / 2, HEIGHT / 2), "and one after the clock moved");
+            }
+            try (var strip = builder.strip(scene(new Canvas3d(new TestCube()).depth(Canvas3d.Depth.D16)))) {
+                assertClose(centre, strip.frame().argb(WIDTH / 2, HEIGHT / 2), "a strip's frame");
+            }
+        }
+    }
+
+    /// Each channel of `actual` within two levels of `expected`'s: the same
+    /// draw on the same device, read back twice.
+    private static void assertClose(int expected, int actual, String what) {
+        for (var shift = 0; shift < 32; shift += 8) {
+            assertEquals(
+                    (expected >>> shift) & 0xFF,
+                    (actual >>> shift) & 0xFF,
+                    2,
+                    what + ": " + Integer.toHexString(actual));
         }
     }
 

@@ -64,6 +64,33 @@ the multisampled texture's own contents are then undefined. A depth target in
 such a pass has the same sample count. The sampled picture is the resolved
 one.
 
+Which counts a device has for a format is asked before the target is made:
+`device.supportsSamples(format, samples)` is true for 1 and the driver's
+answer for 2, 4 and 8, and `device.maxSamples(format, limit)` is the highest
+supported count at most `limit`. A renderer with an anti-aliasing setting
+asks for both of its targets' formats and takes the smaller answer:
+
+```java
+var samples = Math.min(
+        device.maxSamples(TextureFormat.B8G8R8A8_UNORM, settings.msaa()),
+        device.maxSamples(TextureFormat.D32_FLOAT, settings.msaa()));
+```
+
+**A sampler per slot.** `pass.bindFragmentSamplers(sampler, textures...)`
+reads every texture of a shader with one sampler. A shader that reads its
+textures differently binds a `SamplerBinding` per slot, slot 0 first:
+
+```java
+pass.bindFragmentSamplers(List.of(
+        new SamplerBinding(faces, trilinear),
+        new SamplerBinding(shadow, shadowCompare)));
+```
+
+The shader declares the slots in the same order, each texture with its own
+sampler: a `SamplerState` for the first and a `SamplerComparisonState` for
+the second, read with `Sample` and `SampleCmp`. `bindVertexSamplers` takes
+the same list for a vertex shader.
+
 
 ## Compute and storage
 
@@ -138,6 +165,19 @@ driver `goldberry.gpu.videoDriver` names, SDL's default, or `offscreen` when
 the default cannot start on a machine with no display. It quits what it
 started when closed. With no device at all, `open` throws with the driver's
 reason, rather than rendering the notice.
+
+`strip(...)` and `session(...)` show GPU layers through the same surface,
+in every frame they hand out, so a test that clicks the board and moves the
+clock compares pictures with the canvas in them:
+
+```java
+try (var gpu = OffscreenGpu.open();
+        var session = Offscreen.of(1600, 900).gpu(gpu.surface()).session(new Board(state))) {
+    session.click("pass");
+    session.advance(Duration.ofSeconds(1));
+    GoldenImage.assertMatches("board-after-pass", session.frame());
+}
+```
 
 A running window's picture is `window.capture()`: the last frame as the
 screen shows it, GPU layers and all, composited again into a texture and read

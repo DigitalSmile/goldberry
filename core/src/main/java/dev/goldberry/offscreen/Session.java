@@ -121,16 +121,7 @@ public final class Session implements AutoCloseable {
                 surface.scale().factor());
         var tree = new ElementTree(new WindowRoot(root, layer.overlays()), host);
         router.focusRoot(tree.root());
-        this.strip = new Filmstrip(
-                surface.size(),
-                surface.scale(),
-                surface.format(),
-                surface.background(),
-                ownFonts,
-                renderer,
-                clock,
-                router,
-                tree);
+        this.strip = new Filmstrip(surface, ownFonts, renderer, clock, router, tree);
         try {
             settle();
         } catch (RuntimeException e) {
@@ -146,6 +137,10 @@ public final class Session implements AutoCloseable {
 
     /// The picture at the current clock, of the tree as the last event left it.
     ///
+    /// GPU layers are in it when the session was opened from a builder given
+    /// [Offscreen#gpu(dev.goldberry.render.window.GpuSurface)], as they are in
+    /// [Offscreen#render(Widget)]'s picture.
+    ///
     /// @throws IllegalStateException if this session has been closed
     public Image frame() {
         settle();
@@ -157,6 +152,12 @@ public final class Session implements AutoCloseable {
     /// Moves the clock on by `by`, firing every timer due on the way at the
     /// time it was due, with a frame after each.
     ///
+    /// What is already due fires first, at the current time: a timer with no
+    /// delay that the last [#frame()] left behind is the usual one. Then the
+    /// clock steps to each later timer in turn, in order, however the timers
+    /// came to be pending. A chain that re-arms itself with no delay fires once
+    /// per step and does not hold the clock back.
+    ///
     /// @throws IllegalArgumentException if negative
     /// @throws IllegalStateException if this session has been closed
     public Session advance(Duration by) {
@@ -167,18 +168,14 @@ public final class Session implements AutoCloseable {
         }
         var clock = strip.clock();
         var target = clock.nowMillis() + by.toNanos() / 1_000_000.0;
-        while (true) {
-            var due = timers.nextDueMillis();
-            if (due.isEmpty()) {
-                break;
-            }
-            var next = (double) due.getAsLong();
-            // A timer due now that the last settle left behind is a chain that
-            // reschedules itself; stepping to it again would never end.
-            if (next > target || next <= clock.nowMillis()) {
-                break;
-            }
-            clock.set(next);
+        settle();
+        // Strictly after the clock: a timer due at or before it was fired by
+        // the settle above, or is a chain that settle re-armed at the same
+        // time, and stepping to it would not move the clock at all.
+        for (var due = timers.nextDueMillisAfter(clock.nowMillis());
+                due.isPresent() && due.getAsLong() <= target;
+                due = timers.nextDueMillisAfter(clock.nowMillis())) {
+            clock.set((double) due.getAsLong());
             settle();
         }
         clock.set(target);

@@ -901,6 +901,120 @@ class GpuApiTest {
     }
 
     @Nested
+    @DisplayName("samplers")
+    class Samplers {
+
+        @Test
+        @DisplayName("each slot reads with its own: a colour plainly, and a depth map through a comparison")
+        void aSamplerPerSlot() {
+            var green = new byte[SIZE * SIZE * 4];
+            for (var i = 0; i < SIZE * SIZE; i++) {
+                green[i * 4 + 1] = (byte) 0xFF;
+                green[i * 4 + 3] = (byte) 0xFF;
+            }
+            try (var colour = device.createTexture(TextureSpec.sampled(TextureFormat.B8G8R8A8_UNORM, SIZE, SIZE));
+                    var depth = device.createTexture(TextureSpec.sampledDepth(TextureFormat.D32_FLOAT, SIZE, SIZE));
+                    var depthOnlyFragment = device.createShader(TestShaders.depthOnlyFragment());
+                    var depthOnly = device.createPipeline(PipelineSpec.depthOnly(
+                                    meshVertex, depthOnlyFragment, DepthTest.less(TextureFormat.D32_FLOAT))
+                            .vertexBuffer(TestShaders.meshLayout())
+                            .build());
+                    var fullscreen = device.createShader(TestShaders.fullscreenVertex());
+                    var shadowedFragment = device.createShader(TestShaders.shadowedFragment());
+                    var shadowed = device.createPipeline(
+                            PipelineSpec.builder(fullscreen, shadowedFragment, TextureFormat.B8G8R8A8_UNORM)
+                                    .build());
+                    var nearest = device.createSampler(SamplerSpec.nearest());
+                    var comparison = device.createSampler(SamplerSpec.nearest().withCompare(CompareOp.LESS_OR_EQUAL));
+                    var quadBuffer = vertexBuffer(quad(4, 4, 12, 12, 0.25f, 1, 0, 0));
+                    var target = renderTarget();
+                    var frame = device.beginFrame()) {
+                frame.copyPass(copy -> copy.upload(colour, ByteBuffer.wrap(green)));
+                // 0.25 under the quad, the far plane everywhere else.
+                frame.renderPass(DepthTarget.clear(depth), pass -> {
+                    pass.bindPipeline(depthOnly);
+                    pass.pushVertexUniforms(0, IDENTITY);
+                    pass.bindVertexBuffer(0, quadBuffer);
+                    pass.draw(6);
+                });
+                frame.renderPass(target, Load.clear(0, 0, 1, 1), pass -> {
+                    pass.bindPipeline(shadowed);
+                    pass.bindFragmentSamplers(
+                            List.of(new SamplerBinding(colour, nearest), new SamplerBinding(depth, comparison)));
+                    pass.pushFragmentUniforms(0, 0.5f, 0f, 0f, 0f);
+                    pass.draw(3);
+                });
+                var readback = frame.readback(target);
+                frame.submit();
+                var pixels = readback.awaitPixels();
+                assertEquals(BLACK, argb(pixels, 8, 8), "0.5 is behind the 0.25 stored under the quad");
+                assertEquals(GREEN, argb(pixels, 24, 24), "and in front of the far plane, where the colour shows");
+            }
+        }
+
+        @Test
+        @DisplayName(
+                "refuses a list of the wrong length, a texture that cannot be sampled, and another device's sampler")
+        void refusals() {
+            try (var fullscreen = device.createShader(TestShaders.fullscreenVertex());
+                    var shadowedFragment = device.createShader(TestShaders.shadowedFragment());
+                    var shadowed = device.createPipeline(
+                            PipelineSpec.builder(fullscreen, shadowedFragment, TextureFormat.B8G8R8A8_UNORM)
+                                    .build());
+                    var nearest = device.createSampler(SamplerSpec.nearest());
+                    var sampled = device.createTexture(TextureSpec.sampled(TextureFormat.B8G8R8A8_UNORM, 4, 4));
+                    var targetOnly = device.createTexture(TextureSpec.renderTarget(TextureFormat.B8G8R8A8_UNORM, 4, 4)
+                            .withUsages(EnumSet.of(TextureUsage.COLOR_TARGET)));
+                    var target = renderTarget();
+                    var frame = device.beginFrame()) {
+                frame.renderPass(target, Load.dontCare(), pass -> {
+                    pass.bindPipeline(shadowed);
+                    var one = List.of(new SamplerBinding(sampled, nearest));
+                    assertThrows(IllegalArgumentException.class, () -> pass.bindFragmentSamplers(one), "one of two");
+                    var unsampleable =
+                            List.of(new SamplerBinding(sampled, nearest), new SamplerBinding(targetOnly, nearest));
+                    assertThrows(IllegalArgumentException.class, () -> pass.bindFragmentSamplers(unsampleable));
+                    assertThrows(NullPointerException.class, () -> new SamplerBinding(sampled, null));
+                });
+                frame.submit();
+            }
+        }
+    }
+
+    @Nested
+    @DisplayName("sample counts")
+    class SampleCounts {
+
+        @Test
+        @DisplayName("one sample is always supported, and the highest supported count up to a limit makes a texture")
+        void asked() {
+            for (var format : List.of(TextureFormat.B8G8R8A8_UNORM, TextureFormat.D32_FLOAT)) {
+                assertTrue(device.supportsSamples(format, 1), format + " at one sample");
+                var highest = device.maxSamples(format, 8);
+                assertTrue(device.supportsSamples(format, highest), format + " at " + highest);
+                assertTrue(device.maxSamples(format, 2) <= 2, "a limit is a limit");
+                assertEquals(1, device.maxSamples(format, 1));
+                var spec = format == TextureFormat.D32_FLOAT
+                        ? TextureSpec.depth(format, 16, 16).withSamples(highest)
+                        : TextureSpec.renderTarget(format, 16, 16)
+                                .withUsages(EnumSet.of(TextureUsage.COLOR_TARGET))
+                                .withSamples(highest);
+                try (var texture = device.createTexture(spec)) {
+                    assertEquals(highest, texture.samples());
+                }
+            }
+        }
+
+        @Test
+        @DisplayName("refuses a count that is not 1, 2, 4 or 8")
+        void refusals() {
+            assertThrows(IllegalArgumentException.class, () -> device.supportsSamples(TextureFormat.D16_UNORM, 3));
+            assertThrows(IllegalArgumentException.class, () -> device.maxSamples(TextureFormat.D16_UNORM, 16));
+            assertThrows(IllegalArgumentException.class, () -> device.supportsSamples(TextureFormat.D16_UNORM, 0));
+        }
+    }
+
+    @Nested
     @DisplayName("frames")
     class Frames {
 

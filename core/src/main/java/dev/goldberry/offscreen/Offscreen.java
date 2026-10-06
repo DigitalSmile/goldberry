@@ -295,7 +295,9 @@ public final class Offscreen {
     /// shows instead.
     ///
     /// The surface is the caller's, and is told what each render placed, as a
-    /// window's is after each frame.
+    /// window's is after each frame. A [#strip(Widget)] and a [#session(Widget)]
+    /// show GPU layers through it too, in every [Filmstrip#frame()] and
+    /// [Session#frame()], and tell it after each one.
     public Offscreen gpu(GpuSurface surface) {
         this.gpu = Objects.requireNonNull(surface, "surface");
         return this;
@@ -304,16 +306,12 @@ public final class Offscreen {
     /// A frame over `buffer` at this render's scale, showing GPU layers through
     /// [#gpu] when there is one.
     private Frame frameOver(PixelBuffer buffer) {
-        var surface = gpu;
-        return surface == null ? Frame.over(buffer, scale) : Frame.over(buffer, scale, surface);
+        return surface().frameOver(buffer);
     }
 
     /// Tells [#gpu] what `frame`, ended, placed.
     private void placed(Frame frame) {
-        var surface = gpu;
-        if (surface != null) {
-            surface.placed(frame.gpuPlacements());
-        }
+        surface().placed(frame);
     }
 
     /// Runs `painter` over the whole buffer and returns what it drew.
@@ -515,7 +513,7 @@ public final class Offscreen {
             // that is the expensive part -- and the cascade index is rebuilt, which
             // is what a strip costs a studio ([Studio]).
             var renderer = new WidgetRenderer(stylesheets, bookFor(ownFonts)).clock(clock);
-            return new Filmstrip(size, scale, FORMAT, background, ownFonts, renderer, clock, root);
+            return new Filmstrip(surface(), ownFonts, renderer, clock, root);
         } catch (RuntimeException e) {
             if (ownFonts != null) {
                 ownFonts.close();
@@ -547,7 +545,7 @@ public final class Offscreen {
             // Never the studio's renderer, for the strip's reason.
             var book = bookFor(ownFonts);
             var renderer = new WidgetRenderer(stylesheets, book).clock(clock);
-            return new Session(new Surface(size, scale, FORMAT, background), ownFonts, book, renderer, clock, root);
+            return new Session(surface(), ownFonts, book, renderer, clock, root);
         } catch (RuntimeException e) {
             if (ownFonts != null) {
                 ownFonts.close();
@@ -556,9 +554,39 @@ public final class Offscreen {
         }
     }
 
-    /// What a session draws into: the four knobs on this builder that describe
-    /// the buffer rather than the tree.
-    record Surface(PhysicalSize size, DisplayScale scale, PixelFormat format, int background) {}
+    /// What a strip or a session draws into: the knobs on this builder that
+    /// describe the buffer rather than the tree, and how GPU layers are shown in
+    /// it.
+    ///
+    /// @param gpu the surface GPU layers are shown through, or null for none --
+    ///            [Offscreen#gpu(GpuSurface)]'s answer
+    record Surface(
+            PhysicalSize size,
+            DisplayScale scale,
+            PixelFormat format,
+            int background,
+            @Nullable GpuSurface gpu) {
+
+        /// A frame over `buffer` at this surface's scale, showing GPU layers
+        /// through [#gpu] when there is one.
+        Frame frameOver(PixelBuffer buffer) {
+            var surface = gpu;
+            return surface == null ? Frame.over(buffer, scale) : Frame.over(buffer, scale, surface);
+        }
+
+        /// Tells [#gpu] what `frame`, ended, placed.
+        void placed(Frame frame) {
+            var surface = gpu;
+            if (surface != null) {
+                surface.placed(frame.gpuPlacements());
+            }
+        }
+    }
+
+    /// This builder's [Surface].
+    private Surface surface() {
+        return new Surface(size, scale, FORMAT, background, gpu);
+    }
 
     /// The book a strip shapes against: the one opened for it, the caller's, or a
     /// studio's.

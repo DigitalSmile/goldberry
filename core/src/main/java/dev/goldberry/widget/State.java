@@ -56,6 +56,36 @@ public abstract class State<W extends Widget> {
         return widget;
     }
 
+    /// Where this state is in the tree: the same [BuildContext] [#build] is
+    /// handed, available from [#initState] on.
+    ///
+    /// What a state needs **before its first build**. An element knows its
+    /// window when it is mounted, so `context().host()` already answers in
+    /// `initState`, and a state that starts something timed when it appears
+    /// sets it there with [dev.goldberry.Host#after] rather than from a build:
+    ///
+    /// ```java
+    /// protected void initState() {
+    ///     opening = context().host().map(host -> host.after(Duration.ofMillis(400), this::deal));
+    /// }
+    ///
+    /// protected void dispose() {
+    ///     opening.ifPresent(EventLoop.Timer::cancel);
+    /// }
+    /// ```
+    ///
+    /// @throws IllegalStateException before the state is mounted or after it is
+    ///         disposed: a context kept past [#dispose] is a callback that
+    ///         outlived its widget
+    protected final BuildContext context() {
+        var mounted = element;
+        if (mounted == null) {
+            throw new IllegalStateException(
+                    "this state is not mounted; its context exists from initState() until dispose()");
+        }
+        return mounted;
+    }
+
     /// Describes the UI for the current widget and state.
     ///
     /// Called on the UI thread, and must be pure with respect to everything
@@ -87,6 +117,7 @@ public abstract class State<W extends Widget> {
     /// Called once, after the state is attached and before the first build.
     ///
     /// Where a subscription belongs. [#dispose()] is where it is cancelled.
+    /// [#widget()] and [#context()] both answer here, the host included.
     protected void initState() {}
 
     /// Called when the element is rebuilt with a new widget of the same type.

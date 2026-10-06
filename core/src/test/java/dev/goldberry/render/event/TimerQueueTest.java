@@ -95,4 +95,17 @@ class TimerQueueTest {
         first.cancel();
         assertEquals(OptionalLong.of(100), timers.nextDueMillis(), "a cancelled timer is not next");
     }
+
+    @Test
+    @DisplayName("says when the next timer after a time is due, passing over what is due by then")
+    void nextDueAfter() {
+        assertEquals(OptionalLong.empty(), timers.nextDueMillisAfter(0));
+        timers.after(Duration.ZERO, () -> fired.add("now"));
+        timers.after(Duration.ofMillis(1), () -> fired.add("one"));
+        timers.after(Duration.ofMillis(40), () -> fired.add("forty"));
+        assertEquals(OptionalLong.of(0), timers.nextDueMillis(), "the zero delay is the earliest");
+        assertEquals(OptionalLong.of(1), timers.nextDueMillisAfter(0), "and is passed over after zero");
+        assertEquals(OptionalLong.of(40), timers.nextDueMillisAfter(1));
+        assertEquals(OptionalLong.empty(), timers.nextDueMillisAfter(40));
+    }
 }

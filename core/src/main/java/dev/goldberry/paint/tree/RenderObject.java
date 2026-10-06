@@ -8,6 +8,7 @@ import org.jspecify.annotations.Nullable;
 
 import dev.goldberry.css.value.Affine;
 import dev.goldberry.layout.Insets;
+import dev.goldberry.layout.Length;
 import dev.goldberry.natives.yoga.YogaConfig;
 import dev.goldberry.natives.yoga.YogaNode;
 import dev.goldberry.natives.yoga.style.Edge;
@@ -106,6 +107,16 @@ public final class RenderObject implements AutoCloseable {
     /// restyle and mark the node dirty each time — which is the cost this whole
     /// guard exists to avoid.
     private @Nullable TextFlow measuredFlow;
+
+    /// The width [ShrinkToFit] pins this box to when Yoga lays it out at its
+    /// cap, or [Float#NaN] when the rule does not apply to it.
+    private float cap = Float.NaN;
+
+    /// Whether the node's width is the [#cap] rather than the box's own.
+    ///
+    /// The box still says `auto`, and [#apply] guards against the box, so this
+    /// is what knows the value on the node is not the one the box declared.
+    private boolean pinned;
 
     /// Whether this is a measured leaf.
     ///
@@ -430,7 +441,7 @@ public final class RenderObject implements AutoCloseable {
     ///
     /// @return whether the child list changed, so the caller can avoid touching
     ///         Yoga's child list — which dirties the node — when it did not
-    boolean reconcileChildren(List<Box> next, Insets blockPadding, YogaConfig config) {
+    boolean reconcileChildren(List<Box> next, Box parent, YogaConfig config, ShrinkToFit shrink) {
         var changed = false;
 
         for (var i = 0; i < next.size(); i++) {
@@ -440,7 +451,7 @@ public final class RenderObject implements AutoCloseable {
                 // OR-ed in, not discarded: a promoted ancestor's raster is only
                 // reusable if *nothing* under it changed, and a child three
                 // levels down is under it.
-                changed |= existing.update(box, blockPadding, config);
+                changed |= existing.update(box, parent, config, shrink);
                 continue;
             }
             if (existing != null) {
@@ -450,7 +461,7 @@ public final class RenderObject implements AutoCloseable {
                 existing.close();
             }
             var built = new RenderObject(config, box.text() != null);
-            built.update(box, blockPadding, config);
+            built.update(box, parent, config, shrink);
             if (existing != null) {
                 children.set(i, built);
             } else {
@@ -588,9 +599,14 @@ public final class RenderObject implements AutoCloseable {
 
     /// This object brought up to date with `box`, children and all.
     ///
+    /// @param parent the box this one is a child of, or null for the root: its
+    ///               padding is this box's containing block ([ContainingBlock])
+    ///               and its direction decides [ShrinkToFit]
+    /// @param shrink told of every box [ShrinkToFit] applies to that this pass
+    ///               lays out again
     /// @return whether anything in this subtree changed, which is what a promoted
     ///         ancestor needs to know to decide its raster is still good
-    boolean update(Box box, Insets blockPadding, YogaConfig config) {
+    boolean update(Box box, @Nullable Box parent, YogaConfig config, ShrinkToFit shrink) {
         // Compared before `apply` overwrites it. Everything that affects what is
         // drawn, not only what Yoga reads: a background that changed needs a
         // repaint even though the layout is untouched.
@@ -622,6 +638,9 @@ public final class RenderObject implements AutoCloseable {
         // that moved out from under it is caught by `collectDamage` comparing
         // where it was against where it is, which is a comparison of results
         // rather than of styles and does not care why it moved.
+        // The root's containing block is the window, which has no padding to be
+        // placed inside of, so nothing shifts.
+        var blockPadding = parent == null ? Insets.ZERO : parent.padding();
         var inset = ContainingBlock.insetFor(box.position(), box.inset(), blockPadding);
         selfChanged = previous == null || !sameAppearance(previous, box);
         contentChanged = previous == null || !sameRaster(previous, box);
@@ -630,13 +649,52 @@ public final class RenderObject implements AutoCloseable {
         if (!box.children().isEmpty() || !children.isEmpty()) {
             // This box's own padding is the containing block for every absolutely
             // positioned child of it.
-            var childrenChanged = reconcileChildren(box.children(), box.padding(), config);
+            var childrenChanged = reconcileChildren(box.children(), box, config, shrink);
             changed |= childrenChanged;
             // A descendant's own opacity and transform *are* baked into this
             // node's raster, so a child changing anything invalidates it.
             contentChanged |= childrenChanged;
         }
+        shrinkToFit(previous, box, parent, shrink);
         return changed;
+    }
+
+    /// Keeps, drops or offers this box's [ShrinkToFit] pin, once the box and
+    /// everything under it has been applied.
+    ///
+    /// Dirty is Yoga's word for "will be laid out again", and Yoga marks a node
+    /// dirty when anything under it changes. So a pinned node that is dirty
+    /// has content that may no longer reach the cap, and it is measured again
+    /// with its own width; one that is clean keeps the width it was pinned to.
+    private void shrinkToFit(@Nullable Box previous, Box box, @Nullable Box parent, ShrinkToFit shrink) {
+        cap = ShrinkToFit.cap(box, parent);
+        if (pinned && (Float.isNaN(cap) || node.isDirty())) {
+            pinned = false;
+            // Unless `apply` has just put a new width on the node, which
+            // replaced the pin already.
+            if (previous != null && previous.width().equals(box.width())) {
+                node.setWidth(Yoga.length(box.width()));
+            }
+        }
+        if (!pinned && !Float.isNaN(cap) && node.isDirty()) {
+            shrink.offer(this);
+        }
+    }
+
+    /// Pins this box to its [#cap] when the pass just run laid it out at least
+    /// that wide, less `rounding`.
+    ///
+    /// Closed is a refusal rather than an error: an object offered by a
+    /// reconcile that threw part-way may have been replaced since.
+    ///
+    /// @return whether it was pinned, which dirties it for the next pass
+    boolean pinIfCapped(float rounding) {
+        if (pinned || Float.isNaN(cap) || node.isClosed() || node.layout().width() + rounding < cap) {
+            return false;
+        }
+        node.setWidth(Yoga.length(Length.points(cap)));
+        pinned = true;
+        return true;
     }
 
     /// Whether two boxes would draw the same thing **into a layer** — that is,

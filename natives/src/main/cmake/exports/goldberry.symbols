@@ -350,6 +350,9 @@ SDL_GetGPUDriver
 SDL_GetGPUDeviceDriver
 SDL_GetGPUShaderFormats
 SDL_GPUTextureSupportsFormat
+# ABI 20: which sample counts a format can be multisampled at, asked before a
+# target is made rather than learned from a refusal when it is.
+SDL_GPUTextureSupportsSampleCount
 SDL_CreateGPUTexture
 SDL_ReleaseGPUTexture
 SDL_CreateGPUTransferBuffer

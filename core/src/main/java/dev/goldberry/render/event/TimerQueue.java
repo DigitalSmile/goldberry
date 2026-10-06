@@ -98,6 +98,27 @@ public final class TimerQueue {
         return next.isPresent() ? OptionalLong.of(Math.ceilDiv(next.getAsLong(), NANOS_PER_MILLI)) : next;
     }
 
+    /// When the earliest pending timer due **after** `millis` is due, in
+    /// milliseconds on the clock this queue was made [over][#over(Clock)], or
+    /// empty when none is.
+    ///
+    /// What an owner stepping a virtual clock steps to once it has fired what
+    /// is already due. A timer due at or before `millis` is not an answer: it
+    /// is either about to fire at the current time or a chain re-arming itself
+    /// at it, and stepping to it would be standing still.
+    public OptionalLong nextDueMillisAfter(double millis) {
+        var after = (long) (millis * NANOS_PER_MILLI);
+        var earliest = Long.MAX_VALUE;
+        for (var timer : timers) {
+            if (timer.isPending() && timer.dueNanos() > after) {
+                earliest = Math.min(earliest, timer.dueNanos());
+            }
+        }
+        return earliest == Long.MAX_VALUE
+                ? OptionalLong.empty()
+                : OptionalLong.of(Math.ceilDiv(earliest, NANOS_PER_MILLI));
+    }
+
     /// The current time on this queue's clock, in nanoseconds.
     long nowNanos() {
         return nanos.getAsLong();

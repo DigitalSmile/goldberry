@@ -96,6 +96,18 @@ class SdlGpuDeviceTest {
     }
 
     @Test
+    @DisplayName("says one sample is always supported, and asks the driver for the rest")
+    void supportsSampleCounts() {
+        for (var format : SdlGpuTextureFormat.values()) {
+            assertTrue(device.supportsSamples(format, SdlGpuSampleCount.ONE), format::toString);
+        }
+        // Every desktop driver multisamples the two formats a board renders
+        // with, which is what makes 4x a safe default to ask for.
+        assertTrue(device.supportsSamples(SdlGpuTextureFormat.B8G8R8A8_UNORM, SdlGpuSampleCount.FOUR));
+        assertTrue(device.supportsSamples(SdlGpuTextureFormat.D32_FLOAT, SdlGpuSampleCount.FOUR));
+    }
+
+    @Test
     @DisplayName("clears a texture to a colour that downloads byte for byte")
     void clearsAndDownloads() {
         // 51/255 is 0.2 in the float, and 51 again in the byte: no rounding for

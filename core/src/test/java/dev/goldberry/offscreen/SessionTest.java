@@ -20,6 +20,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
 import dev.goldberry.RendererRequirement;
 import dev.goldberry.css.ComputedStyle;
@@ -344,6 +345,50 @@ class SessionTest {
                 });
                 session.advance(Duration.ofMillis(100));
                 assertEquals(List.of("first@30", "second@60"), log);
+            }
+        }
+
+        @Test
+        @DisplayName("fires what is already due first, and still stops at a timer set for one millisecond")
+        void dueBeforeTheAdvance() {
+            try (var session = open()) {
+                var host = session.host();
+                // What a frame leaves behind when a build asks for "next turn":
+                // due at the clock as the advance starts.
+                host.after(
+                        Duration.ZERO,
+                        () -> log.add("due@" + (long) host.clock().nowMillis()));
+                host.after(Duration.ofMillis(1), () -> {
+                    log.add("opening@" + (long) host.clock().nowMillis());
+                    host.after(
+                            Duration.ofMillis(100),
+                            () -> log.add("deal@" + (long) host.clock().nowMillis()));
+                });
+                session.advance(Duration.ofSeconds(8));
+                assertEquals(List.of("due@0", "opening@1", "deal@101"), log);
+                assertEquals(8_000, session.nowMillis());
+            }
+        }
+
+        @Test
+        @Timeout(10)
+        @DisplayName("and a chain that re-arms itself with no delay does not hold the clock back")
+        void zeroDelayChain() {
+            try (var session = open()) {
+                var host = session.host();
+                var chain = new Runnable() {
+                    @Override
+                    public void run() {
+                        host.after(Duration.ZERO, this);
+                    }
+                };
+                host.after(Duration.ZERO, chain);
+                host.after(
+                        Duration.ofMillis(20),
+                        () -> log.add("twenty@" + (long) host.clock().nowMillis()));
+                session.advance(Duration.ofMillis(50));
+                assertEquals(List.of("twenty@20"), log);
+                assertEquals(50, session.nowMillis());
             }
         }
 

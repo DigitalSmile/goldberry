@@ -3,6 +3,7 @@ package dev.goldberry.gpu;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.EnumSet;
+import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
@@ -99,6 +100,42 @@ public final class GpuDevice {
     /// allows; this is for the cases in between.
     public boolean supports(TextureFormat format, Set<TextureUsage> usages) {
         return sdl().supports(format.sdl(), TextureUsage.sdl(usages));
+    }
+
+    /// Whether it can make a texture of `format` with `samples` samples per
+    /// texel, as [TextureSpec#withSamples] asks: always for 1, and as the
+    /// driver says for 2, 4 and 8.
+    ///
+    /// Asked before a multisampled target is made, so that a count the device
+    /// lacks is a choice rather than a failure when the texture is created.
+    ///
+    /// @throws IllegalArgumentException when `samples` is not 1, 2, 4 or 8
+    public boolean supportsSamples(TextureFormat format, int samples) {
+        Objects.requireNonNull(format, "format");
+        return sdl().supportsSamples(format.sdl(), SdlGpuSampleCount.of(samples));
+    }
+
+    /// The most samples per texel it can make a texture of `format` with, at
+    /// most `limit`: 1 when it can multisample `format` at no count up to it.
+    ///
+    /// What a renderer with an anti-aliasing setting asks for: the setting's
+    /// count where the device has it, and the next one down where it does not.
+    ///
+    /// ```java
+    /// var samples = device.maxSamples(TextureFormat.B8G8R8A8_UNORM, settings.msaa());
+    /// ```
+    ///
+    /// @throws IllegalArgumentException when `limit` is not 1, 2, 4 or 8
+    public int maxSamples(TextureFormat format, int limit) {
+        Objects.requireNonNull(format, "format");
+        var device = sdl();
+        var highest = SdlGpuSampleCount.of(limit).samples();
+        // Highest first; one sample is always supported, so the walk ends there.
+        return List.of(SdlGpuSampleCount.values()).reversed().stream()
+                .filter(count -> count.samples() <= highest && device.supportsSamples(format.sdl(), count))
+                .findFirst()
+                .orElseThrow()
+                .samples();
     }
 
     /// Makes a texture.

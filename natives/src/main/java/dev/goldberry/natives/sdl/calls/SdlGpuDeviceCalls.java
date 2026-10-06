@@ -28,7 +28,8 @@ public record SdlGpuDeviceCalls(
         GetGPUDriver getGPUDriver,
         GetGPUDeviceDriver getGPUDeviceDriver,
         GetGPUShaderFormats getGPUShaderFormats,
-        TextureSupportsFormat textureSupportsFormat) {
+        TextureSupportsFormat textureSupportsFormat,
+        TextureSupportsSampleCount textureSupportsSampleCount) {
 
     /// Binds every function above.
     ///
@@ -41,7 +42,8 @@ public record SdlGpuDeviceCalls(
                 new GetGPUDriver(lookup),
                 new GetGPUDeviceDriver(lookup),
                 new GetGPUShaderFormats(lookup),
-                new TextureSupportsFormat(lookup));
+                new TextureSupportsFormat(lookup),
+                new TextureSupportsSampleCount(lookup));
     }
 
     /// Creates a GPU device on the first driver that can serve the options.
@@ -232,6 +234,36 @@ public record SdlGpuDeviceCalls(
                 return (boolean) FD_SDL_GPUTextureSupportsFormat.invokeExact(address, device, format, type, usage);
             } catch (Throwable t) {
                 throw Downcalls.failure("SDL_GPUTextureSupportsFormat", t);
+            }
+        }
+    }
+
+    /// Whether a device can make a texture of a format multisampled at a
+    /// count.
+    ///
+    /// `_Bool SDL_GPUTextureSupportsSampleCount(void*, uint32_t, uint32_t)`
+    public static final class TextureSupportsSampleCount {
+
+        private static final MethodHandle FD_SDL_GPUTextureSupportsSampleCount =
+                Downcalls.link(FunctionDescriptor.of(JAVA_BOOLEAN, ADDRESS, JAVA_INT, JAVA_INT));
+
+        private final MemorySegment address;
+
+        TextureSupportsSampleCount(SymbolLookup lookup) {
+            this.address = Downcalls.symbol(lookup, "SDL_GPUTextureSupportsSampleCount");
+        }
+
+        /// Calls `SDL_GPUTextureSupportsSampleCount`.
+        ///
+        /// @param device      the device
+        /// @param format      an `SDL_GPUTextureFormat`
+        /// @param sampleCount an `SDL_GPUSampleCount`
+        /// @return true if it can
+        public boolean call(MemorySegment device, int format, int sampleCount) {
+            try {
+                return (boolean) FD_SDL_GPUTextureSupportsSampleCount.invokeExact(address, device, format, sampleCount);
+            } catch (Throwable t) {
+                throw Downcalls.failure("SDL_GPUTextureSupportsSampleCount", t);
             }
         }
     }

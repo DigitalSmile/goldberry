@@ -12,9 +12,6 @@ import dev.goldberry.motion.Clock;
 import dev.goldberry.paint.Frame;
 import dev.goldberry.paint.tree.RenderTree;
 import dev.goldberry.render.PixelBuffer;
-import dev.goldberry.render.model.DisplayScale;
-import dev.goldberry.render.model.PhysicalSize;
-import dev.goldberry.render.model.PixelFormat;
 import dev.goldberry.text.font.Fonts;
 import dev.goldberry.widget.ElementTree;
 import dev.goldberry.widget.Widget;
@@ -74,13 +71,9 @@ import dev.goldberry.widget.WidgetRenderer;
 /// Read more: [Testing an application](https://goldberry.dev/docs/guide/testing.html#pictures).
 public final class Filmstrip implements AutoCloseable {
 
-    private final PhysicalSize size;
-
-    private final DisplayScale scale;
-
-    private final PixelFormat format;
-
-    private final int background;
+    /// The buffer's size, scale, format and background, and how GPU layers are
+    /// shown in it.
+    private final Offscreen.Surface surface;
 
     /// The book this strip opened for itself, or null when the caller's own was
     /// handed over — the one object whose ownership [#close()] has to get right.
@@ -113,16 +106,13 @@ public final class Filmstrip implements AutoCloseable {
     /// — is already a knob on the builder, and a second copy of those six setters
     /// would be two builders to keep in step.
     Filmstrip(
-            PhysicalSize size,
-            DisplayScale scale,
-            PixelFormat format,
-            int background,
+            Offscreen.Surface surface,
             @Nullable Fonts ownFonts,
             WidgetRenderer renderer,
             Clock.Virtual clock,
             Widget root) {
 
-        this(size, scale, format, background, ownFonts, renderer, clock, new PointerRouter(), new ElementTree(root));
+        this(surface, ownFonts, renderer, clock, new PointerRouter(), new ElementTree(root));
     }
 
     /// Opens a strip over a tree the caller mounted, routed by a router the
@@ -132,20 +122,14 @@ public final class Filmstrip implements AutoCloseable {
     /// focus and modality from the router, so both exist before this does. The
     /// strip owns them from here on and unmounts the tree when it closes.
     Filmstrip(
-            PhysicalSize size,
-            DisplayScale scale,
-            PixelFormat format,
-            int background,
+            Offscreen.Surface surface,
             @Nullable Fonts ownFonts,
             WidgetRenderer renderer,
             Clock.Virtual clock,
             PointerRouter router,
             ElementTree tree) {
 
-        this.size = size;
-        this.scale = scale;
-        this.format = format;
-        this.background = background;
+        this.surface = surface;
         this.ownFonts = ownFonts;
         this.renderer = renderer;
         this.clock = clock;
@@ -189,8 +173,10 @@ public final class Filmstrip implements AutoCloseable {
     /// answered against the rectangles that frame produced. The rectangles are
     /// what is needed, and they come out of the layout.
     void pass() {
-        var buffer = PixelBuffer.allocate(size, format);
-        var frame = Frame.over(buffer, scale);
+        // Never over the GPU surface: nothing is painted here, and a surface
+        // told about a pass would hear of layers no picture shows.
+        var buffer = PixelBuffer.allocate(surface.size(), surface.format());
+        var frame = Frame.over(buffer, surface.scale());
         try {
             sequence.layOut(frame, renderer);
             regions = sequence.captureRegions(frame);
@@ -209,11 +195,16 @@ public final class Filmstrip implements AutoCloseable {
     /// regions dirtied, so a widget that rearranged itself in response to its own
     /// measurements is photographed rearranged.
     ///
+    /// GPU layers are shown through the surface given to
+    /// [Offscreen#gpu(dev.goldberry.render.window.GpuSurface)]
+    /// when there is one, and the surface is told what the frame placed once
+    /// the frame has ended, as a window's is.
+    ///
     /// @throws IllegalStateException if this strip has been closed
     public Image frame() {
         requireOpen();
-        var buffer = PixelBuffer.allocate(size, format);
-        var frame = Frame.over(buffer, scale);
+        var buffer = PixelBuffer.allocate(surface.size(), surface.format());
+        var frame = surface.frameOver(buffer);
         try {
             fillBackground(frame);
             sequence.layOut(frame, renderer);
@@ -228,6 +219,7 @@ public final class Filmstrip implements AutoCloseable {
         // widget told about them here acts on the *next* frame, which is what makes
         // a strip's feedback arrive on the same schedule a window's does.
         regions = sequence.captureRegions(frame);
+        surface.placed(frame);
         frames++;
         return Image.of(buffer);
     }
@@ -364,8 +356,8 @@ public final class Filmstrip implements AutoCloseable {
     }
 
     private void fillBackground(Frame frame) {
-        if (background != 0) {
-            frame.fill(background);
+        if (surface.background() != 0) {
+            frame.fill(surface.background());
         }
     }
 
@@ -377,7 +369,7 @@ public final class Filmstrip implements AutoCloseable {
 
     @Override
     public String toString() {
-        return "Filmstrip[" + size + " at " + scale.factor() + "x, " + frames + " frame(s), " + clock.nowMillis() + "ms"
-                + (closed ? ", closed" : "") + "]";
+        return "Filmstrip[" + surface.size() + " at " + surface.scale().factor() + "x, " + frames + " frame(s), "
+                + clock.nowMillis() + "ms" + (closed ? ", closed" : "") + "]";
     }
 }

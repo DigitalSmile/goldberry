@@ -203,6 +203,14 @@ public final class SdlGpuDevice implements AutoCloseable {
                 .call(handle(), format.value(), SdlGpuResourceCalls.TEXTURETYPE_2D, SdlGpuTextureUsage.mask(usages));
     }
 
+    /// Whether this device can make a texture of `format` multisampled at
+    /// `samples`: always for [SdlGpuSampleCount#ONE], and as the driver says for
+    /// the others.
+    public boolean supportsSamples(SdlGpuTextureFormat format, SdlGpuSampleCount samples) {
+        return samples == SdlGpuSampleCount.ONE
+                || calls.device().textureSupportsSampleCount().call(handle(), format.value(), samples.value());
+    }
+
     /// Creates a 2D texture with one layer, one mip level and one sample.
     ///
     /// @throws SdlException when SDL refuses: a format the device cannot make

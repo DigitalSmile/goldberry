@@ -1,12 +1,15 @@
 package dev.goldberry.gpu;
 
 import java.nio.ByteBuffer;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
 import dev.goldberry.natives.sdl.gpu.SdlGpuBuffer;
 import dev.goldberry.natives.sdl.gpu.SdlGpuCommandBuffer;
 import dev.goldberry.natives.sdl.gpu.SdlGpuRegion;
+import dev.goldberry.natives.sdl.gpu.SdlGpuSamplerBinding;
 import dev.goldberry.natives.sdl.gpu.SdlGpuTexture;
 import dev.goldberry.render.model.PhysicalRect;
 
@@ -78,36 +81,67 @@ public final class RenderPass {
     /// Binds `textures`, each read with `sampler`, to the bound pipeline's
     /// fragment sampler slots from 0: as many as its fragment shader samples.
     ///
+    /// The shorthand for the case of one sampler for every slot;
+    /// [#bindFragmentSamplers(List)] gives each slot its own.
+    ///
     /// @throws IllegalStateException    when no pipeline is bound
     /// @throws IllegalArgumentException when the count is not the shader's, a
     ///                                  texture cannot be sampled, or anything
     ///                                  is another device's or closed
     public void bindFragmentSamplers(GpuSampler sampler, GpuTexture... textures) {
+        bindFragmentSamplers(slots(sampler, textures));
+    }
+
+    /// Binds each texture with its own sampler to the bound pipeline's fragment
+    /// sampler slots from 0, in order: as many as its fragment shader samples.
+    ///
+    /// @throws IllegalStateException    when no pipeline is bound
+    /// @throws IllegalArgumentException when the count is not the shader's, a
+    ///                                  texture cannot be sampled, or anything
+    ///                                  is another device's or closed
+    public void bindFragmentSamplers(List<SamplerBinding> slots) {
         requireOpen();
-        var sdlSampler = sampler.sdl(device);
-        var sdlTextures = new SdlGpuTexture[textures.length];
-        for (var i = 0; i < textures.length; i++) {
-            sdlTextures[i] = textures[i].sdl(device);
-        }
-        sdl.bindFragmentSamplers(sdlSampler, sdlTextures);
+        sdl.bindFragmentSamplers(sdlSlots(slots));
     }
 
     /// Binds `textures`, each read with `sampler`, to the vertex shader's
     /// sampler slots from 0: every slot its code declares, and no more. A
     /// height map, a table of instances.
     ///
+    /// The shorthand for the case of one sampler for every slot;
+    /// [#bindVertexSamplers(List)] gives each slot its own.
+    ///
     /// @throws IllegalStateException    when no pipeline is bound
     /// @throws IllegalArgumentException when the count is not the shader's, a
     ///                                  texture cannot be sampled, or anything
     ///                                  is another device's or closed
     public void bindVertexSamplers(GpuSampler sampler, GpuTexture... textures) {
+        bindVertexSamplers(slots(sampler, textures));
+    }
+
+    /// Binds each texture with its own sampler to the vertex shader's sampler
+    /// slots from 0, in order: every slot its code declares, and no more.
+    ///
+    /// @throws IllegalStateException    when no pipeline is bound
+    /// @throws IllegalArgumentException when the count is not the shader's, a
+    ///                                  texture cannot be sampled, or anything
+    ///                                  is another device's or closed
+    public void bindVertexSamplers(List<SamplerBinding> slots) {
         requireOpen();
-        var sdlSampler = sampler.sdl(device);
-        var sdlTextures = new SdlGpuTexture[textures.length];
-        for (var i = 0; i < textures.length; i++) {
-            sdlTextures[i] = textures[i].sdl(device);
-        }
-        sdl.bindVertexSamplers(sdlSampler, sdlTextures);
+        sdl.bindVertexSamplers(sdlSlots(slots));
+    }
+
+    /// One slot per texture, each read with `sampler`.
+    private static List<SamplerBinding> slots(GpuSampler sampler, GpuTexture... textures) {
+        Objects.requireNonNull(sampler, "sampler");
+        return Arrays.stream(textures)
+                .map(texture -> new SamplerBinding(texture, sampler))
+                .toList();
+    }
+
+    /// `slots` as this device's SDL bindings, each checked for ownership.
+    private List<SdlGpuSamplerBinding> sdlSlots(List<SamplerBinding> slots) {
+        return slots.stream().map(slot -> slot.sdl(device)).toList();
     }
 
     /// Binds `buffers` to the vertex shader's storage-buffer slots from 0:
