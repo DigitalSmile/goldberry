@@ -27,11 +27,10 @@ JNI, no bundled web engine, no platform widget wrapping.
 - **Cross-platform.** Linux (Wayland/X11), Windows and macOS are peer platforms
   behind one SPI.
 
-> **2026.2 is the first release.** It is on Maven Central, and every push to
-> `master` publishes a `-SNAPSHOT` of the next line. There is no screen-reader support on any platform
-> ([ADR-0440](book/src/adr/0440-the-accessibility-bridge-is-on-hold-and-the-semantics-tree-stays.md)).
-> [Status](book/src/status.md) says what is built, and [TODO](book/src/TODO.md)
-> what is not yet.
+> **Releases are on Maven Central.** The current release is `2026.2`, and every
+> push to `master` publishes a `-SNAPSHOT` of the next version. There is no
+> screen-reader support on any platform. [Status](book/src/status.md) says what
+> is built, and [TODO](book/src/TODO.md) what is not.
 
 ## Quick start
 
@@ -59,6 +58,33 @@ Goldberry.run();
 [Your first Java application](book/src/getting-started/first-java-application.md)
 goes on from there to a widget tree, a KDL document and a stylesheet.
 
+## Testing an application
+
+A test renders a widget tree to pixels with no display, drives it through the
+real input router, and compares the picture with a golden image:
+
+```java
+@Test
+void applyingSavesTheSettings() {
+    try (var session = Offscreen.of(800, 600)
+            .stylesheets(Controls.stylesheets(Theme.NORD_DARK))
+            .session(new SettingsScreen(settings, actions))) {
+        session.focus("name");
+        session.type("Deploy Orc");
+        session.click(session.byRole(Role.BUTTON, "Apply").orElseThrow());
+        session.advance(Duration.ofMillis(300));   // the virtual clock, past the animation
+        assertEquals(1, settings.saves());
+        assertEquals(List.of(), session.overruns());
+    }
+}
+```
+
+Documents inflate against the real models, so a `press=` or a `bind=` that
+names nothing fails the test. A virtual clock makes every frame the same on
+every machine, and one set of golden images serves all platforms with a
+tolerance that absorbs antialiasing. [Testing an
+application](book/src/guide/testing.md) has the whole of it.
+
 ## Build from source
 
 ```sh
@@ -79,8 +105,8 @@ property, and [Tests and gates](book/src/contributing/testing.md) the CI lanes.
 | [goldberry.dev/docs](https://goldberry.dev/docs/), from [`book/`](book/src/introduction.md) | The guide: overview, getting started, layout, components, performance, developer guide |
 | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | The design, layer by layer |
 | [`book/src/adr/`](book/src/adr/README.md) | The decision log: why each significant choice was made |
-| [`book/src/status.md`](book/src/status.md) | What is built, milestone by milestone |
-| [`book/src/TODO.md`](book/src/TODO.md) | What is not, and why |
+| [`book/src/status.md`](book/src/status.md) | What is built |
+| [`book/src/TODO.md`](book/src/TODO.md) | What is not built, and why |
 
 The book is [mdBook](https://rust-lang.github.io/mdBook/): `mdbook serve book`.
 
@@ -88,5 +114,4 @@ The book is [mdBook](https://rust-lang.github.io/mdBook/): `mdbook serve book`.
 
 [Apache License 2.0](LICENSE). Third-party software and assets are disclosed in
 [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md) and [`licenses/`](licenses/),
-and shipped inside every jar under `META-INF/`
-([ADR-0015](book/src/adr/0015-licensing-and-third-party-disclosure.md)).
+and shipped inside every jar under `META-INF/`.

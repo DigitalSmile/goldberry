@@ -59,21 +59,21 @@ application is one method. `models()` is the wiring for a document's names
 and for repaints, and is the subject of
 [Building an application](../applications.md).
 
-| Method | Default | Record |
+| Method | Default | What it means |
 |---|---|---|
 | `size()` | 960 by 640 | what the window restores to when un-maximized |
-| `minimumSize()` | no minimum | the window manager stops the drag at the floor, and the application never clamps a frame ([ADR-0304](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0304-a-window-has-a-floor-and-the-desktop-enforces-it.md)) |
-| `maximized()` | false | a state the desktop owns, not a large size: it snaps to the work area and restores to `size()` ([ADR-0221](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0221-a-window-may-open-maximized.md)) |
+| `minimumSize()` | no minimum | the window manager stops the drag at the floor, and the application never clamps a frame |
+| `maximized()` | false | a state the desktop owns, not a large size: it snaps to the work area and restores to `size()` |
 | `position()` | the platform's choice | where the window's top-left opens, clamped onto a display that exists ([Where a window opens](#where-a-window-opens)) |
 | `display()` | none | the name of the display to open centred on, and the fallback for a position on no display |
-| `icon()` | the platform's generic icon | several sizes of one `Image`; the backend picks which the platform scales from ([ADR-0351](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0351-a-window-icon-is-several-sizes-and-the-backend-picks-the-base.md)) |
+| `icon()` | the platform's generic icon | several sizes of one `Image`; the backend picks which the platform scales from |
 | `fonts()` | the bundled faces | faces the application ships ([Text, fonts and icons](text.md#shipping-a-face)) |
 
 `Goldberry.launch(app, args)` reads four flags from the array and ignores
 everything else: `--frames=N` paints that many frames and exits,
 `--size=WxH` overrides the opening size, `--resize=WxH` walks the window's
 size a pixel a frame, and `--late-budget=N` makes a run that misses more
-than N refreshes exit non-zero. They exist for CI, and
+than N refreshes exit non-zero. They exist for an automated run, and
 `Goldberry.launch(app)` passes none.
 
 ## The host
@@ -136,8 +136,7 @@ this call with a widget the catalogue wrote.
 
 Each overlay is its own node, told apart by its `Overlay` handle and never by
 what its widget looks like. Two equal widgets shown at once are two nodes, and
-one shown in the same turn another was removed starts with fresh state
-([ADR-0522](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0522-each-overlay-is-its-own-node.md)).
+one shown in the same turn another was removed starts with fresh state.
 A widget on the layer finds its own handle with
 `WindowRoot.overlayOf(context)`.
 
@@ -169,8 +168,7 @@ or `Escape`, closes it. `popup.close()`, `isOpen()`, `lightDismiss(false)`,
 > [!IMPORTANT]
 > `Optional.empty()` is a normal answer. Popup support belongs to the video
 > driver, and SDL's `dummy` driver has none. A caller that gets empty falls
-> back to an overlay at the cost of being clipped to the window
-> ([ADR-0102](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0102-a-popup-is-a-window-the-platform-may-refuse.md)).
+> back to an overlay at the cost of being clipped to the window.
 > `Menus.open(host, "menu-button", menu)` does the measuring, placing,
 > opening and the submenus for a `Menu`.
 
@@ -182,8 +180,7 @@ Subscription following = host.onSystemThemeChanged(theme -> actions.pickTheme(th
 ```
 
 Empty means the desktop has no such setting, and that is a different answer
-from light: the first is a default, the second a theme
-([ADR-0322](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0322-the-desktop-says-light-or-dark-or-says-nothing.md)).
+from light: the first is a default, the second a theme.
 The toolkit chooses nothing with the answer, and asking once at start-up is
 the bug `onSystemThemeChanged` exists to prevent.
 
@@ -198,8 +195,7 @@ if (!Goldberry.capabilities().contains(Capability.SYSTEM_THEME)) {
 A platform integration is compiled into the native library only where the
 machine that built it had the headers. Where it was not, the call answers
 "the desktop does not say", and `Goldberry.capabilities()` reports the
-difference from the library's own record of how it was built
-([ADR-0325](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0325-a-build-says-what-it-can-ask-the-desktop.md)).
+difference from the library's own record of how it was built.
 The values are `SYSTEM_THEME`, `INPUT_METHOD`, `DEVICE_HOTPLUG`,
 `FILE_DIALOG`, `SCREENSAVER_INHIBIT`, `WINDOW_DECORATIONS`, `WAYLAND`,
 `WEB_VIEW` and `NOTIFICATIONS`. It may be asked before a window is open, and is
@@ -216,8 +212,7 @@ host.notify(Notification.of("Gate waiting", "prod-eu needs an approval")
 A notification is drawn by the desktop: GNOME's banner, macOS's Notification
 Center, Windows' toast. `notify` answers whether the desktop took it, and
 false is an ordinary answer. The action runs on the UI thread when the user
-clicks the notification, and the window repaints after it
-([ADR-0546](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0546-a-notification-is-the-desktops-and-false-means-it-was-not-shown.md)).
+clicks the notification, and the window repaints after it.
 
 | Platform | Shown by | A click | Needs |
 |---|---|---|---|
@@ -229,8 +224,7 @@ On macOS a plain `java` process has no bundle identifier, and macOS posts
 nothing for it. `notify` answers false and says why once, at info. Package the
 application as an `.app`. A real Windows toast needs an AppUserModelID
 registered at installation. Both are the application's packaging, not the
-toolkit's
-([ADR-0291](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0291-a-url-scheme-is-packaging-and-packaging-is-the-applications.md)).
+toolkit's.
 `Capability.NOTIFICATIONS` says whether this process can ask at all.
 
 ### The badge
@@ -249,11 +243,6 @@ without `.desktop`, or start the application from its entry, which sets
 `GIO_LAUNCHED_DESKTOP_FILE`. Windows has no badge here, and `badge` answers
 false.
 
-> [!NOTE]
-> The Linux path is tested against a D-Bus daemon of the test's own. The
-> macOS and Windows paths are written against their documentation and have
-> not yet run there.
-
 ## Fullscreen
 
 ```java
@@ -266,8 +255,7 @@ host.onFullscreenChanged(on -> model.setFullscreen(on));
 Fullscreen is a state the platform owns. `setFullscreen` is a request whose
 answer arrives through `onFullscreenChanged`, several frames later on macOS,
 and the user can change it without the application, so `isFullscreen()` is
-what the platform last reported
-([ADR-0473](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0473-a-window-is-fullscreen-when-the-platform-says-so.md)).
+what the platform last reported.
 `canFullscreen()` is false for a host with no window under it, which is what
 a `media-player` reads to decide whether to offer the button at all.
 
@@ -334,8 +322,7 @@ may occupy (less panels and docks), its `scale()`, and whether it is the
 `primary()` one. Its `id()` is good for this run only. Remember a display by
 its name, which is a monitor's model as a rule. `window.display()` is the
 display most of a window is on. `DisplayLayout` holds the rule above, for an
-application that wants to check a position itself
-([ADR-0541](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0541-a-window-opens-where-it-was-left-and-is-clamped-onto-a-display-that-exists.md)).
+application that wants to check a position itself.
 
 ## Asking for attention
 
@@ -350,8 +337,7 @@ on macOS, the taskbar button flashes on Windows, and X11 sets the urgency
 hint, which the desktop shows its own way. `cancelAttention()` withdraws it,
 and `raise()` brings a window to the front, which a desktop may answer with a
 flash instead. It is not a notification. It says which window, and nothing
-about why
-([ADR-0543](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0543-a-window-asks-for-attention-and-the-desktop-decides-how.md)).
+about why.
 
 ## More than one window
 
@@ -389,8 +375,7 @@ from:
 
 Closing the application's first window closes every other one and ends the
 application, as `Goldberry.stop()` does. Closing any other window takes its
-tree down on the next turn of the loop and then runs its `onClose` actions
-([ADR-0542](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0542-an-application-may-open-more-than-one-window.md)).
+tree down on the next turn of the loop and then runs its `onClose` actions.
 
 ## Threads
 
@@ -402,8 +387,7 @@ Goldberry.async(() -> readTheFile())
 There is one UI thread, and every window, style and box tree is confined to
 it. `Goldberry.async(work)` runs the work on a virtual thread and delivers
 its result on the UI thread, so every callback chained onto the future may
-touch a window with no hand-off to write
-([ADR-0020](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0020-one-ui-thread-and-virtual-threads-behind-it.md)).
+touch a window with no hand-off to write.
 `Goldberry.ui()` is the UI thread as an `Executor`, `Goldberry.isUiThread()`
 says whether you are on it, and `host.repaint()` is safe from anywhere.
 
@@ -416,7 +400,7 @@ a no-op once the model is woven
 > On macOS the JVM must start on the process's first thread, because AppKit
 > requires it. Run with `-XstartOnFirstThread`. Without it SDL reports
 > `No available video device`, and the toolkit's message says which flag is
-> missing ([ADR-0039](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0039-macos-needs-the-first-thread.md)).
+> missing.
 
 ## Closing
 
@@ -447,12 +431,4 @@ opens a second window with widgets in it through `host.openWindow`, not here.
 
 ## Read more
 
-- [ADR-0093](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0093-an-application-is-a-root-widget.md): what the launcher owns
-- [ADR-0100](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0100-a-window-has-a-layer-above-its-application.md): the overlay layer
-- [ADR-0102](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0102-a-popup-is-a-window-the-platform-may-refuse.md): popups
-- [ADR-0104](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0104-a-popup-is-measured-then-placed.md): measure, then place
-- [ADR-0541](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0541-a-window-opens-where-it-was-left-and-is-clamped-onto-a-display-that-exists.md): positions and displays
-- [ADR-0542](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0542-an-application-may-open-more-than-one-window.md): more than one window
-- [ADR-0543](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0543-a-window-asks-for-attention-and-the-desktop-decides-how.md): attention
-- [ADR-0140](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0140-a-widget-may-reach-its-window.md): `BuildContext.host()`
 - [Overlays](../components/overlays.md) and [Menus and the tray](../components/menus.md): the widgets that open over a window

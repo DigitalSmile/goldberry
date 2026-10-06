@@ -1,8 +1,6 @@
 # Guide additions held back until the release
 
-Written 2026-10-06. These sections were drafted into `book/src/components/gpu.md`
-and taken out again: the guide and the site are not adjusted before a release.
-Each goes back where the heading says, in this order, before
+For `book/src/components/gpu.md`. Each section goes in, in this order, before
 `## What is measured, and what is not yet`.
 
 ## The texture model
@@ -27,19 +25,19 @@ level 0 of layer 0 wherever a `RenderTarget` is taken. `texture.layer(i)`,
 `texture.level(n)` and `texture.view(level, layer)` name one level of one
 layer as a `TextureView`, which `frame.renderPass` draws into, `copy.upload`
 fills, and `frame.readback` reads. A shader samples the array as one
-(`Texture2DArray` in HLSL) and picks the layer by index, so a card-face cache
+`Texture2DArray` in HLSL and picks the layer by index, so a card-face cache
 is one texture and every card one instance of one draw.
 
 **Mip levels** are uploaded one at a time through a view, or generated:
 `frame.generateMipmaps(texture)` fills every level below the first from the
 one above it, outside any pass, for a texture made with
-`TextureSpec.renderTarget` (the drivers blit through a colour target). A
+`TextureSpec.renderTarget`, because the drivers blit through a colour target. A
 `SamplerSpec` reads level 0 alone unless it has a mip filter:
 `SamplerSpec.trilinear()`, or `withMipFilter(Filter.LINEAR)`, reads the level
 the footprint calls for.
 
-**Float colour formats** -- `R16G16B16A16_FLOAT`, `R32_FLOAT` and
-`R11G11B10_UFLOAT` -- are colour targets a `Load.clear` takes past 1 and below
+**Float colour formats.** `R16G16B16A16_FLOAT`, `R32_FLOAT` and
+`R11G11B10_UFLOAT` are colour targets a `Load.clear` takes past 1 and below
 0, and read back as their bytes: halves, which `Float.float16ToFloat` decodes,
 or floats. The canvas's own target stays `B8G8R8A8_UNORM`; a renderer draws
 its scene in HDR and tonemaps into the canvas in its last pass. Whether a
@@ -54,8 +52,8 @@ whose fragment shader outputs nothing. The two kinds of pipeline and pass do
 not cross: a colour pipeline in a depth-only pass, or the reverse, is refused
 in Java. The scene then binds the shadow map like any texture, through a
 sampler with a comparison, `SamplerSpec.linear().withCompare(CompareOp.LESS_OR_EQUAL)`,
-for HLSL's `SampleCmp`. A sampled depth texture reads back as floats or shorts;
-one made with `TextureSpec.depth` alone is never read back.
+for HLSL's `SampleCmp`. A sampled depth texture reads back as floats or shorts.
+One made with `TextureSpec.depth` alone is never read back.
 
 **Samples.** A spec with `samples` of 2, 4 or 8 is a multisampled render
 target: one layer, one level, never sampled itself. A pipeline made with
@@ -96,7 +94,7 @@ frame.renderPass(target.colour(), Load.keep(), pass -> {
 
 What a pass writes is said when it begins, `frame.computePass(written, body)`
 or the form with lists of buffers and texture views, so the driver orders the
-writes against the draws around them; what it reads is bound after the
+writes against the draws around them. What it reads is bound after the
 pipeline with `bindStorageBuffers` and `bindStorageTextures`. A buffer or
 texture carries the usages of every stage that touches it: `COMPUTE_STORAGE_WRITE`
 for the pass, `GRAPHICS_STORAGE_READ` for the draw that reads it through
@@ -137,7 +135,7 @@ and the renderer's `init`, `render` and `dispose` run on it as they would in a
 window. Closing the `OffscreenGpu` closes the device and everything left on
 it. Where no window has started SDL's video, the offscreen GPU does, under the
 driver `goldberry.gpu.videoDriver` names, SDL's default, or `offscreen` when
-the default cannot start on a machine with no display; it quits what it
+the default cannot start on a machine with no display. It quits what it
 started when closed. With no device at all, `open` throws with the driver's
 reason, rather than rendering the notice.
 
@@ -145,5 +143,5 @@ A running window's picture is `window.capture()`: the last frame as the
 screen shows it, GPU layers and all, composited again into a texture and read
 back where the window is composited, and the window surface's pixels where it
 presents on the CPU. The launcher writes it for a run that paints a set number
-of frames: `--frames=N --capture=PATH` writes the last frame as a PNG
-([Measuring](../performance/measuring.md#the-flags)).
+of frames: `--frames=N --capture=PATH` writes the last frame as a PNG. The
+flags are listed under [Measuring](../performance/measuring.md#the-flags).

@@ -16,14 +16,11 @@ any other widget.
 ## What the five share
 
 **The palette is the theme's.** A series takes a colour by its position, slot 1
-to slot 8, read from `--gb-chart-1` to `--gb-chart-8`. The order was searched
-over every permutation so that adjacent series stay apart under colour-vision
-deficiency, and a ninth series is drawn in slot 8 again rather than in a
-generated hue
-([ADR-0194](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0194-a-series-colour-is-derived-from-nord-not-taken-from-it.md)).
-There is no colour argument. An application that wants one series in one colour
-writes a rule, and the plot and its legend swatch both follow it
-([ADR-0195](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0195-a-painter-reads-the-theme-through-a-custom-property.md)):
+to slot 8, read from `--gb-chart-1` to `--gb-chart-8`. The order keeps adjacent
+series apart under colour-vision deficiency, and a ninth series is drawn in
+slot 8 again rather than in a generated hue. There is no colour argument. An
+application that wants one series in one colour writes a rule, and the plot
+and its legend swatch both follow it:
 
 ```css
 #revenue { --gb-chart-1: #b48ead; }
@@ -38,21 +35,18 @@ labelled by `categories`, or one `Instant` per point.
 for a sample or a fixture. Data from a model is Java, through the record.
 
 **A legend appears for two or more series.** Clicking an entry shows that
-series alone, and clicking it again puts them all back
-([ADR-0198](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0198-a-charts-readout-is-painted-and-its-legend-is-a-control.md)).
+series alone, and clicking it again puts them all back.
 
 **Hovering draws a crosshair** at the nearest point, a marker on each series and
 a readout of what they read. The same crosshair can be shared across several
-charts through a `CrosshairGroup`
-([ADR-0206](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0206-a-crosshair-may-be-shared-and-a-bound-may-be-soft.md)).
+charts through a `CrosshairGroup`.
 
 **Long series are reduced** to about one point per pixel before drawing, with
 the largest-triangle-three-buckets algorithm, so a spike survives where drawing
 every point would lose it.
 
 **A chart with no data says so.** It keeps its box and shows a message, so a
-wall of loading cards does not reflow when the data lands
-([ADR-0200](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0200-a-chart-with-no-data-says-so.md)).
+wall of loading cards does not reflow when the data lands.
 
 ## `line-chart`
 
@@ -93,11 +87,11 @@ new LineChart(
 The knobs are withers, and each returns a `LineChart`:
 
 ```java
-chart.fill(Fill.GRADIENT)                                   // a fade under the line, ADR-0207
-     .curve(Curve.SMOOTH)                                   // monotone, cannot overshoot, ADR-0204
-     .times(instants, ZoneOffset.UTC)                       // the x is when, not which, ADR-0203
+chart.fill(Fill.GRADIENT)                                   // a fade under the line
+     .curve(Curve.SMOOTH)                                   // monotone, cannot overshoot
+     .times(instants, ZoneOffset.UTC)                       // the x is when, not which
      .threshold(Threshold.above(145, Threshold.Level.WARNING).labelled("Too long"))
-     .nulls(NullPolicy.ZERO)                                // GAP is the default, ADR-0201
+     .nulls(NullPolicy.ZERO)                                // GAP is the default
      .softAxis(99, 100)                                     // or .axis(0, 100) for a hard range
      .logY()                                                // a non-positive reading becomes a hole
      .markers(Markers.ALWAYS)                               // AUTO by default
@@ -109,8 +103,7 @@ chart.fill(Fill.GRADIENT)                                   // a fade under the 
 `STEP`. `NullPolicy` is `GAP`, `CONNECT` or `ZERO`. `Markers` is `AUTO`,
 `ALWAYS` or `NEVER`. A `Threshold` is `at`, `above`, `below` or `band`, in one
 of four semantic levels, `INFO`, `SUCCESS`, `WARNING` or `DANGER`, and never a
-series colour
-([ADR-0202](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0202-a-limit-is-not-a-series.md)).
+series colour.
 
 ### Attributes
 
@@ -136,17 +129,7 @@ own, so a chart sits on whatever surface it was given.
 ### Keyboard
 
 `Tab` reaches the plot. `Left` and `Right` walk the crosshair, `Home` and `End`
-jump to the ends, and `Escape` lets go
-([ADR-0199](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0199-a-chart-answers-the-keyboard-and-a-step-is-relative.md)).
-
-### Read more
-
-- [ADR-0198: A chart's readout is painted and its legend is a control](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0198-a-charts-readout-is-painted-and-its-legend-is-a-control.md)
-- [ADR-0201: A hole is not a zero](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0201-a-hole-is-not-a-zero.md)
-- [ADR-0203: A time axis is time, not a relabelled index](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0203-a-time-axis-is-time-not-a-relabelled-index.md)
-- [ADR-0204: A smooth line cannot overshoot](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0204-a-smooth-line-cannot-overshoot.md)
-- [ADR-0205: A log axis has no room for zero](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0205-a-log-axis-has-no-room-for-zero.md)
-- [ADR-0207: A fill may be a ramp](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0207-a-fill-may-be-a-ramp.md)
+jump to the ends, and `Escape` lets go.
 
 ### `series`
 
@@ -260,12 +243,6 @@ The CSS type is `bar-chart`, with the same parts, pseudo-classes and tokens as
 
 As `line-chart`: `Left`, `Right`, `Home`, `End` and `Escape` on the focused plot.
 
-### Read more
-
-- [ADR-0200: A chart with no data says so](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0200-a-chart-with-no-data-says-so.md)
-- [ADR-0202: A limit is not a series](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0202-a-limit-is-not-a-series.md)
-- [ADR-0206: A crosshair may be shared and a bound may be soft](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0206-a-crosshair-may-be-shared-and-a-bound-may-be-soft.md)
-
 ## `area-chart`
 
 A total and what it is made of: the series stacked into bands that add up.
@@ -323,11 +300,6 @@ The CSS type is `area-chart`, with the same parts, pseudo-classes and tokens as
 ### Keyboard
 
 As `line-chart`.
-
-### Read more
-
-- [ADR-0204: A smooth line cannot overshoot](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0204-a-smooth-line-cannot-overshoot.md)
-- [ADR-0207: A fill may be a ramp](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0207-a-fill-may-be-a-ramp.md)
 
 ## `donut-chart`
 
@@ -387,11 +359,6 @@ legend's entries are a key, not controls, so they carry no `.interactive`.
 `Left` and `Right` walk the ring, wrapping at the ends, `Home` and `End` jump
 to the first and last slice, and `Escape` lets go.
 
-### Read more
-
-- [ADR-0194: A series colour is derived from Nord, not taken from it](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0194-a-series-colour-is-derived-from-nord-not-taken-from-it.md)
-- [ADR-0199: A chart answers the keyboard and a step is relative](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0199-a-chart-answers-the-keyboard-and-a-step-is-relative.md)
-
 ## `sparkline`
 
 A trend with no axes, no legend and no readout: the shape of a change beside a
@@ -442,15 +409,9 @@ is not a CSS property.
 
 None. A sparkline is not focusable.
 
-### Read more
-
-- [ADR-0164: Elevation is an edge and a closed section is absent](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0164-elevation-is-an-edge-and-a-closed-section-is-absent.md)
-- [ADR-0194: A series colour is derived from Nord, not taken from it](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0194-a-series-colour-is-derived-from-nord-not-taken-from-it.md)
-
 ## What is not a chart here
 
-The scope is dashboard-grade and five widgets, and `docs/charts.md` in the
-repository says what that rules out.
+The scope is dashboard-grade and five widgets. That rules out the following.
 
 - **No dual y-axis.** Two measures at different scales are two charts, or one
   indexed to a common base.
@@ -459,7 +420,7 @@ repository says what that rules out.
 - **No query layer, no auto-refresh, no time-range picker.** A chart takes a
   `Series` and redraws because the model changed.
 - **No histogram, heatmap, scatter, candlestick, pan or zoom.** Those are
-  science-grade and wait for a `goldberry-plot` module that does not exist.
+  science-grade, and there is no module for them.
 - **No sixth widget.** When a request fits none of the five, the answer is a
   [`canvas`](drawing.md#canvas), a [`table`](collections.md#table), or a
   different module.

@@ -5,8 +5,7 @@
 All three share one model. There is an ordered list, a current index, and a set
 of entries the application says are reachable. The widget draws the picture.
 The application moves the index. None of them decides on its own where the
-user may go next
-([ADR-0344](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0344-a-list-of-steps-writes-where-each-one-stands.md)).
+user may go next.
 
 <div class="gb-shot"><img class="gb-light" src="../images/screen-navigation-light.webp" alt="The showcase's Navigation screen: breadcrumbs with a Go deeper button, steps across and down in every state, and a wizard with its steps over its pages"><img class="gb-dark" src="../images/screen-navigation-dark.webp" alt="The showcase's Navigation screen: breadcrumbs with a Go deeper button, steps across and down in every state, and a wizard with its steps over its pages"><p>The Navigation screen of the showcase.</p></div>
 
@@ -40,8 +39,7 @@ new Breadcrumbs(
 </div>
 
 The trail decides which crumb is current. It is always the last one written, so
-a document cannot mark one and a Java caller cannot either
-([ADR-0306](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0306-the-last-crumb-is-where-you-are.md)). A trail longer
+a document cannot mark one and a Java caller cannot either. A trail longer
 than `collapse-after` keeps its first crumb and its tail and folds the middle
 into a `…` button. Pressing that button opens a menu of the hidden crumbs.
 
@@ -70,10 +68,6 @@ cursor. There are no variant classes.
 | `Space`, `Enter`, `Down` | the `…` | opens the menu of hidden crumbs |
 
 Only a crumb that has a `press` and is not current is a Tab stop.
-
-**Read more**
-
-- [ADR-0306: The last crumb is where you are](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0306-the-last-crumb-is-where-you-are.md)
 
 ### `crumb`
 
@@ -137,8 +131,7 @@ Every step before `current` is done. The step at `current` is current. The
 rest are upcoming, unless a step says `error`. The widget writes those four
 words as classes and never decides where the user may go: `clickable` raises a
 `change` with the index of a step the application marked `reachable`, and
-refuses the rest
-([ADR-0344](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0344-a-list-of-steps-writes-where-each-one-stands.md)).
+refuses the rest.
 
 **Attributes**
 
@@ -162,9 +155,7 @@ The CSS type is `steps`, with the class `vertical` when the direction is. A
 or `error`, and the current one also matches `:checked`. Its parts are `step-marker`,
 `step-body`, `step-label` and `step-description`. Between steps sits a
 `step-connector` holding a `step-connector-fill`, which scales from the step
-before it when that step is done
-([ADR-0356](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0356-a-connector-grows-from-where-you-were-and-an-entry-has-a-marker-slot.md)).
-The marker is a 24px disc with a 2px ring: the accent when current, `--gb-success`
+before it when that step is done. The marker is a 24px disc with a 2px ring: the accent when current, `--gb-success`
 with a tick when done, `--gb-danger` with a cross on error, the ring alone
 when upcoming. An incomplete step, one the list has passed that says it is not
 done, keeps the ring and its number in full ink, so it reads as visited and
@@ -178,11 +169,6 @@ not ticked.
 
 A step is a Tab stop only when the list handed it a press. The list itself
 takes no arrow keys.
-
-**Read more**
-
-- [ADR-0344: A list of steps writes where each one stands](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0344-a-list-of-steps-writes-where-each-one-stands.md)
-- [ADR-0356: A connector grows from where you were](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0356-a-connector-grows-from-where-you-were-and-an-entry-has-a-marker-slot.md)
 
 ### `step`
 
@@ -218,7 +204,7 @@ new Step("Grafana", "Not signed in").complete(false);
 A step's state is not an attribute. `step current=#true` is ignored, because
 the list derives it from `current`. `complete` is the one exception to the
 position: only the application knows that a step the user went past was left
-undone ([ADR-0531](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0531-a-step-may-say-it-is-not-done.md)).
+undone.
 
 ## `wizard`
 
@@ -258,10 +244,9 @@ new Wizard(current,
 
 Back, Next and Finish only call their handlers. The application moves
 `current`, by rebuilding with a new index or by setting the bound value, and a
-wizard that will not advance is an application that did not move it
-([ADR-0344](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0344-a-list-of-steps-writes-where-each-one-stands.md)). A
-page the index has passed is done, unless it says `complete=#false`: then it
-is drawn `incomplete`, visited and not done. A page marked `error` is drawn so
+wizard that will not advance is an application that did not move it. A page
+the index has passed is done, unless it says `complete=#false`: then it is
+drawn `incomplete`, visited and not done. A page marked `error` is drawn so
 in the indicator. Only the current page's children are built, and when the page
 changes the keyboard moves into the new content.
 
@@ -299,10 +284,6 @@ page's classes land on `wizard-content`.
 
 The wizard takes no keys of its own. The buttons take `Space` and `Enter`, and
 the indicator takes what [`steps`](#steps) takes when `go-to` is wired.
-
-**Read more**
-
-- [ADR-0344: A list of steps writes where each one stands, and a wizard moves nothing](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0344-a-list-of-steps-writes-where-each-one-stands.md)
 
 ### `page`
 

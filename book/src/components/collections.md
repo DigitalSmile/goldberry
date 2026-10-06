@@ -7,13 +7,11 @@
 Each of the three takes the application's own type and a few functions that
 describe it: how to identify an item, how to draw it, what to call it. The
 widget holds no copy of the data. Selection is a set of ids the application
-holds and hands back in, and every change arrives as the whole new set
-([ADR-0063](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0063-data-flows-down-events-flow-up.md)).
+holds and hands back in, and every change arrives as the whole new set.
 
 > [!IMPORTANT]
 > A list, a table or a tree is built in Java. Markup can **place** one the
-> model holds, with `bind=`, but cannot describe one: an item factory is code
-> ([ADR-0367](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0367-a-document-places-a-list-it-cannot-describe.md)).
+> model holds, with `bind=`, but cannot describe one: an item factory is code.
 > The `kdl` samples below show the placing. The Java beside them is the widget.
 
 ## `list`
@@ -56,15 +54,13 @@ powers type-to-select.
 `--gb-list-row-height` from the cascade, so a compact density gets the right
 pitch. `virtualized(double)` names one. The list then builds only the rows a
 viewport can see, plus four either side, with a spacer above and below sized
-from the rest, so the showcase scrolls ten thousand rows
-([ADR-0213](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0213-a-virtual-list-is-two-spacers-and-a-window.md)). A
-list that is not virtualized builds every row.
+from the rest, so the showcase scrolls ten thousand rows. A list that is not
+virtualized builds every row.
 
 > [!WARNING]
 > A virtualized list's `list-row` height must be the pitch it was told. When a
 > stylesheet makes them differ by more than half a pixel the list logs it once
-> and the scroll range is wrong
-> ([ADR-0257](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0257-a-diagnostic-is-asked-for-not-logged.md)).
+> and the scroll range is wrong.
 
 **Attributes**
 
@@ -109,15 +105,7 @@ class `selected` rather than a pseudo-class. The row height is
 | letters | type-to-select, when `text` is set. One second between letters, repeat a letter to cycle |
 
 A right-click selects the row it is over before the context menu opens, unless
-it is already selected
-([ADR-0224](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0224-a-right-click-selects-what-it-is-over.md)).
-
-**Read more**
-
-- [ADR-0212: A list owns the models a tree borrowed](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0212-a-list-owns-the-models-a-tree-borrowed.md)
-- [ADR-0213: A virtual list is two spacers and a window](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0213-a-virtual-list-is-two-spacers-and-a-window.md)
-- [ADR-0254: A build may ask the cascade for a number](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0254-a-build-may-ask-the-cascade-for-a-number.md)
-- [ADR-0367: A document places a list it cannot describe](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0367-a-document-places-a-list-it-cannot-describe.md)
+it is already selected.
 
 ## `table`
 
@@ -155,8 +143,7 @@ remaining width, `fixed(double)` takes pixels.
 **Sorting is reported, not performed.** A press on a sortable header calls
 `onSort` with the `Sort` the table would like next: the column, ascending, or
 the same column flipped. The application sorts its items and rebuilds, and the
-caret appears on the column `sort` names
-([ADR-0214](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0214-a-table-is-a-list-with-columns.md)).
+caret appears on the column `sort` names.
 
 ```java
 private void sortBy(Sort next) {
@@ -165,10 +152,8 @@ private void sortBy(Sort next) {
 ```
 
 A `resizable` column has a grip after its header. Dragging it asks `onResize`
-for a new width, and the application decides what the column becomes
-([ADR-0361](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0361-a-column-is-resized-by-asking.md)). The header stays
-at the top while the rows scroll
-([ADR-0360](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0360-an-affix-stays-inside-its-container.md)).
+for a new width, and the application decides what the column becomes. The
+header stays at the top while the rows scroll.
 
 **Attributes**
 
@@ -209,12 +194,6 @@ Rows take what `list` takes: `Up`, `Down`, `Enter`, `Home`, `End`. A sortable
 header is a Tab stop, and `Enter` or `Space` on it asks for the next sort. A
 table has no type-to-select.
 
-**Read more**
-
-- [ADR-0214: A table is a list with columns](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0214-a-table-is-a-list-with-columns.md)
-- [ADR-0360: An affix stays inside its container](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0360-an-affix-stays-inside-its-container.md)
-- [ADR-0361: A column is resized by asking](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0361-a-column-is-resized-by-asking.md)
-
 ## `tree`
 
 A list that remembers what is open: nodes with children, a chevron on those
@@ -247,17 +226,15 @@ new Tree(lands, selected, this::select)
 
 **The model is a `TreeNode`.** It has an id, a label and either a list of
 children or a supplier of them. `TreeNode.leaf` has none, `TreeNode.of` has
-them now, and `TreeNode.lazy` fetches them the first time the node opens. The
-tree keeps which ids are open and what a supplier returned, so a rebuild with
-the same ids keeps the same shape
-([ADR-0184](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0184-a-tree-is-a-list-that-remembers-what-is-open.md)).
+them up front, and `TreeNode.lazy` fetches them the first time the node opens.
+The tree keeps which ids are open and what a supplier returned, so a rebuild
+with the same ids keeps the same shape.
 
 **Checking and selecting are two different things.** Selection is the list's,
 a set of ids reported whole. `checkable(Checkable)` adds a checkbox per node:
 `LEAF` on leaves only, `ANY` on every node, `CASCADE` where a parent's box
 shows its children's state and checking it checks them all. The checked set
-is reported through `checked(Set, Consumer)` and never touches selection
-([ADR-0210](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0210-a-tree-checks-and-selects-two-different-things.md)).
+is reported through `checked(Set, Consumer)` and never touches selection.
 
 **Attributes**
 
@@ -301,16 +278,8 @@ indent is 20px per level and the row height is `--gb-list-row-height`.
 | `*` | opens every sibling of the focused row |
 | letters | type-to-select over the visible rows |
 
-The keyboard is the subject of
-[ADR-0209](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0209-a-tree-finishes-its-keyboard.md). A click on the
-chevron opens or closes without selecting. A click on a parent that cannot be
-selected opens it.
-
-**Read more**
-
-- [ADR-0184: A tree is a list that remembers what is open](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0184-a-tree-is-a-list-that-remembers-what-is-open.md)
-- [ADR-0209: A tree finishes its keyboard](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0209-a-tree-finishes-its-keyboard.md)
-- [ADR-0210: A tree checks and selects two different things](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0210-a-tree-checks-and-selects-two-different-things.md)
+A click on the chevron opens or closes without selecting. A click on a parent
+that cannot be selected opens it.
 
 ## `slot`
 
@@ -339,8 +308,7 @@ void select(Person person) {
 widget: a detail pane that is a form for one selection and a message for none,
 a toolbar that changes with the mode. The model holds the widget it builds and
 replaces it when the region should change. The element subscribes to the
-binding, so the region rebuilds and whatever is under it reconciles by key
-([ADR-0534](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0534-a-region-and-a-split-read-the-model.md)).
+binding, so the region rebuilds and whatever is under it reconciles by key.
 
 **Attributes**
 
@@ -351,8 +319,3 @@ binding, so the region rebuilds and whatever is under it reconciles by key
 
 Children are ignored. A slot has no CSS type of its own: what a stylesheet sees
 is the widget it draws.
-
-**Read more**
-
-- [ADR-0534: A region and a split read the model](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0534-a-region-and-a-split-read-the-model.md)
-- [ADR-0367: A document places a list it cannot describe](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0367-a-document-places-a-list-it-cannot-describe.md)

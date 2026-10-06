@@ -20,8 +20,7 @@ void theSettingsScreenRenders() {
 ```
 
 Nothing opens. `Offscreen` runs the window's own sequence into memory: no
-backend, no SDL, no compositor
-([ADR-0284](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0284-a-picture-with-no-window-under-it.md)).
+backend, no SDL, no compositor.
 
 ## What ships, and what is test-scope
 
@@ -29,12 +28,11 @@ backend, no SDL, no compositor
 |---|---|---|
 | `Offscreen` and its `Session`, `Image`, `Clock.virtual()`, `ElementTree`, `WidgetRenderer`, `RenderTree`, `PointerRouter`, `HitTest`, `Frame.over`, `PixelBuffer.allocate` | `goldberry-core` | yes |
 | `Host` | `goldberry-core`, an interface | yes: implement or proxy it for a test |
-| `GoldenImage`, `Tolerance`, `ScaleInvariance`, `RendererRequirement`, `TestClock`, `TestFrames` | `core`'s test fixtures | no. The fixtures are shared inside this repository and are deliberately not published |
+| `GoldenImage`, `Tolerance`, `ScaleInvariance`, `RendererRequirement`, `TestClock`, `TestFrames` | `core`'s test fixtures | no. The fixtures are not published |
 | `TestHost`, `TestLoop`, `CatalogMarkup` | `widgets`' tests | no |
-| the `headless` backend | `core`, package-private | no. It is how the toolkit tests its own front door |
+| the `headless` backend | `core`, package-private | no |
 
-Everything below uses only the first two rows, and says so where the
-toolkit's own tests use a fixture instead.
+Everything below uses only the first two rows.
 
 ## Documents inflate against the real models
 
@@ -53,9 +51,8 @@ void everyDocumentResolvesItsNames() {
 The registries a model publishes are strict, so a `press=` or a `bind=`
 that names nothing fails here with the text quoted, rather than on the
 window's first frame. Icons are lenient because a test has no reason to
-build them. The showcase's `ShowcaseDocumentsTest` does exactly this over
-its five documents, and walks the result to assert which node types each
-one holds.
+build them. The result is a list of widgets a test can walk to assert which
+node types a document holds.
 
 ## Pictures
 
@@ -73,10 +70,9 @@ a picture cacheable and a golden image possible.
 
 ### Comparing with a tolerance
 
-Goldberry's own goldens are one reference set shared by every platform, and
-they are compared with a per-channel tolerance of 2 in 256 and a cap of 2% of
-pixels allowed to differ at all
-([ADR-0050](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0050-golden-images-have-a-tolerance.md)). Blend2D
+One reference set serves every platform when it is compared with a
+per-channel tolerance of 2 in 256 and a cap of 2% of pixels allowed to differ
+at all. Blend2D
 compiles its pipelines for the CPU it finds, and AVX2, SSE2 and NEON agree on
 what they draw and not on the last bit of a blended edge. The tolerance
 absorbs antialiased edges and nothing else: a colour that changed or a box in
@@ -101,10 +97,9 @@ static void assertClose(Image expected, Image actual) {
 ```
 
 `Image.decode(Files.readAllBytes(golden))` reads the reference back. Keep
-goldens in the repository as PNGs, and give the test a system property of
-your own that rewrites them instead of asserting. This repository's is
-`-Dgoldberry.golden.update=true`, and `./gradlew blessGoldens` runs every
-module's goldens with it set. The review is then `git diff --stat`.
+goldens in your repository as PNGs, and give the test a system property of
+your own that rewrites them instead of asserting. The review is then
+`git diff --stat`.
 
 ### Determinism rules
 
@@ -112,9 +107,9 @@ A golden is only a golden if the same tree draws the same bytes everywhere.
 Embedded fonts only, a fixed scale factor, the virtual clock, a seeded random
 source, and no wall-clock or locale dependence. A widget that reads
 `System.nanoTime()` or `LocalDate.now()` in `build` is not photographable.
-Goldberry's own goldens are also redrawn at 2x and 1.5x and checked for
-describing the same picture, which is a second question rather than a
-second set of files ([ADR-0162](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0162-a-golden-is-checked-at-every-scale.md)).
+A second check redraws the tree at 2x and 1.5x and asks whether the pictures
+describe the same thing, which is a second question rather than a second set
+of files.
 
 ## The virtual clock
 
@@ -131,8 +126,7 @@ renderer.render(tree);
 A `WidgetRenderer` takes one with `.clock(clock)`, and a `Host` answers one
 from `clock()`, so a widget that asks how long ago something happened can be
 asked what happens after a timeout without sleeping. A mid-transition frame
-is then the exact frame at 50 ms, on every machine
-([ADR-0067](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0067-motion-is-an-overlay-on-a-frame-clock.md)).
+is then the exact frame at 50 ms, on every machine.
 
 ## Driving input
 
@@ -172,11 +166,9 @@ Input does not move the clock. `advance(Duration)` does, and it stops at
 every timer on the way, so a dialog's closing animation ends, and its
 handler runs, at the moment it would in a window.
 
-A press on a disabled widget sets nothing. The toolkit's own tests run with
-`-Dgoldberry.input.primary=ctrl` on every runner, so a test that presses
-`Ctrl+C` is the same test on macOS
-([ADR-0396](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0396-a-test-presses-the-same-modifier-on-every-desktop.md)).
-Set the same property in your test task.
+A press on a disabled widget sets nothing. Set
+`-Dgoldberry.input.primary=ctrl` in your test task, so a test that presses
+`Ctrl+C` is the same test on macOS.
 
 The router underneath is public too. `pointerMoved`, `pointerPressed`,
 `pointerReleased` and `pointerWheel` take window coordinates;
@@ -208,7 +200,7 @@ driver, and no tray, web view, clipboard or file dialogs. `window()`
 throws. `session.host()` is the same host, for a test that opens something
 itself.
 
-A test of one widget can still implement `Host` and hand it to
+A test of one widget can implement `Host` itself and hand it to
 `ElementTree(root, host)`, recording what it was asked for. Answer `clock()`
 with `Clock.virtual()` and `popup(...)` with `Optional.empty()`.
 `OverlayLayer` is the list a `WindowRoot` draws and the door overlays go
@@ -249,8 +241,7 @@ yours.
 tree as the last frame laid it out, log nothing, and give the same answer
 every time. An empty list is evidence. The exemptions are the log's: a box
 that clips on purpose (`overflow` other than `visible`), a child placed by
-insets, and a pixel or two of rounding
-([ADR-0525](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0525-every-subtree-laid-out-is-checked-for-overruns.md)).
+insets, and a pixel or two of rounding.
 
 ## Running the launcher without a display
 
@@ -258,19 +249,16 @@ insets, and a pixel or two of rounding
 exits. With `-Dgoldberry.backend.videoDriver=dummy` SDL opens no window, so
 that is a smoke test of the whole front door: the window spec, `start`,
 `root`, the first frames and `stop`. It needs the native library, and under
-`dummy` every `host.popup(...)` answers empty
-([ADR-0102](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0102-a-popup-is-a-window-the-platform-may-refuse.md)).
+`dummy` every `host.popup(...)` answers empty.
 
 ## Skipping without the native library
 
 A test that rasterizes needs `libgoldberry`. On a machine without it, the
 first paint throws `UnsatisfiedLinkError`, and a missing library is an
-ordinary state on a contributor's machine where a broken one is not
-([ADR-0357](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0357-a-test-that-paints-asks-for-the-library-and-a-download-asks-twice.md)).
-This repository's tests call `RendererRequirement.enforce()`, which tries a
-two-by-two raster and aborts the test on `UnsatisfiedLinkError`,
-`NoClassDefFoundError` or `ExceptionInInitializerError`. It is a fixture, so
-an application writes the same five lines:
+ordinary state on a developer's machine where a broken one is not.
+`RendererRequirement` is a fixture, so an application writes the check
+itself: try a two-by-two raster and abort the test on `UnsatisfiedLinkError`,
+`NoClassDefFoundError` or `ExceptionInInitializerError`.
 
 ```java
 @BeforeEach
@@ -288,10 +276,4 @@ a library that is not in a jar on its path.
 
 ## Read more
 
-- [ADR-0050](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0050-golden-images-have-a-tolerance.md): the tolerance
-- [ADR-0067](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0067-motion-is-an-overlay-on-a-frame-clock.md): the virtual clock
-- [ADR-0284](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0284-a-picture-with-no-window-under-it.md): `Offscreen`
-- [ADR-0357](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0357-a-test-that-paints-asks-for-the-library-and-a-download-asks-twice.md): skipping without the library
-- [ADR-0524](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0524-a-test-drives-a-session-with-a-host-under-it.md): the session and its host
-- [ADR-0525](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0525-every-subtree-laid-out-is-checked-for-overruns.md): overruns
-- [Tests and gates](../contributing/testing.md): how this repository tests itself
+- [Tests and gates](../contributing/testing.md): how the toolkit tests itself

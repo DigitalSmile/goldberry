@@ -9,10 +9,8 @@ train an AOT cache for the JVM, and keep your own work out of the first frame.
 ## From exec to the first frame
 
 The user waits for the process, not for the toolkit. So the clock starts at
-`exec`, before any Java runs. The showcase, on one Linux machine with eight
-cores, an NVIDIA GPU and GNOME on XWayland, opening a real X11 window and
-painting three frames
-([ADR-0506](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0506-start-up-is-timed-from-the-kernels-clock-and-a-native-window-is-up-in-a-tenth-of-a-second.md)):
+`exec`, before any Java runs. The showcase on Linux with an NVIDIA GPU,
+opening an X11 window and painting three frames:
 
 | Launch | First frame, median | Range |
 |---|---|---|
@@ -22,14 +20,14 @@ painting three frames
 | Native image, GPU off | 365 ms | 351–460 ms, 7 runs |
 
 A native image is what a release of the showcase ships, and it is the fastest
-of the four. On the JVM, two seconds cold is honest and most of it is spent
-before the toolkit's first line and in building the showcase's first frame.
-The AOT cache takes a third off that.
+of the four. On the JVM, most of the two seconds cold is spent before the
+toolkit's first line and in building the showcase's first frame. The AOT cache
+takes a third off that.
 
 ## What the toolkit does in its time
 
-A native run, phase by phase, from the same record. The first column is time
-since `exec`. A duration in parentheses is how long that one phase took:
+A native run, phase by phase. The first column is time since `exec`. A
+duration in parentheses is how long that one phase took:
 
 ```text
    70.1ms   runtime starting            (about 50 ms of it an mDNS host lookup)
@@ -41,14 +39,12 @@ since `exec`. A duration in parentheses is how long that one phase took:
 ```
 
 The window is open at 116.2 ms. Creating the GPU device takes 190.1 ms of
-what follows, and the first frame comes after it. Three things in that listing are not the toolkit's own
-work and each has an entry in the TODO: a host-name lookup before `main`,
+what follows, and the first frame comes after it. Three things in that
+listing are not the toolkit's own work: a host-name lookup before `main`,
 WebKitGTK loaded to answer a capability question, and the driver's device
 creation.
 
-The JVM timeline that the landing page quotes comes from the first record,
-taken under `gradle run`
-([ADR-0028](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0028-the-start-up-timeline.md)):
+The same timeline on the JVM, under `gradle run`:
 
 ```text
 start-up timeline (866.6ms to here):
@@ -63,9 +59,7 @@ start-up timeline (866.6ms to here):
 
 The first row is the JVM and Gradle's launcher. Everything after it is the
 toolkit, and the deltas sum to about 330 ms: the library is mapped in under
-2 ms, SDL's video subsystem was 99 ms then, and the first frame 117 ms.
-ADR-0506 later found that timeline's zero to be about 200 ms late on Linux.
-Its deltas stand, and SDL's video subsystem is 14 ms today.
+2 ms, SDL's video subsystem takes 99 ms, and the first frame 117 ms.
 
 ## The TRACE timeline and how to read it
 
@@ -89,13 +83,11 @@ nobody can change. `Startup.logModules()` prints which Goldberry modules the
 JVM resolved, which is the first thing to check when a widget package seems
 to be missing.
 
-Four rules shape the timeline
-([ADR-0028](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0028-the-start-up-timeline.md)):
+Four rules shape the timeline:
 
 - Timed from process start. On Linux the zero comes from the kernel's own
   clock through `/proc`, because `ProcessHandle`'s instant is up to a second
-  late there
-  ([ADR-0506](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0506-start-up-is-timed-from-the-kernels-clock-and-a-native-window-is-up-in-a-tenth-of-a-second.md)).
+  late there.
 - Recorded always, reported at trace. A mark costs a timestamp and a queue
   append.
 - Summarised once, after the first frame. A second window is not a second
@@ -107,8 +99,7 @@ Four rules shape the timeline
 
 On the JVM the single largest saving is a cache the application trains for
 itself. JEP 483, JEP 514 and JEP 515 together let the JDK load classes
-pre-linked and keep the profiles of hot methods
-([ADR-0506](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0506-start-up-is-timed-from-the-kernels-clock-and-a-native-window-is-up-in-a-tenth-of-a-second.md)).
+pre-linked and keep the profiles of hot methods.
 
 <div class="gb-steps">
 <div><p>Run the application once with the cache output flag, and walk through the screens a user opens first.</p></div>
@@ -144,9 +135,7 @@ chapter walks the build. The command is one Gradle task:
 
 One flag decides whether the image is fast once it is running. GraalVM's FFM
 downcalls are not optimised, so Goldberry links every downcall handle while
-the image is built and holds it as a constant
-([ADR-0161](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0161-a-downcall-handle-is-a-constant-or-it-is-not-a-call.md),
-[ADR-0173](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0173-a-bound-function-is-a-holder-and-its-handle-is-a-constant.md)).
+the image is built and holds it as a constant.
 Sixty frames of the showcase, headless:
 
 | | 60 frames | Per frame |
@@ -156,20 +145,18 @@ Sixty frames of the showcase, headless:
 
 The image builds and paints correctly either way, so the number is written
 down rather than caught. [Native image](../native.md#the-one-flag-the-frame-rate-depends-on)
-explains the mechanism and the test that keeps the package list honest.
+explains the mechanism.
 
 ## The GPU device at the first frame
 
 With `goldberry-gpu` on the module path every window presents through the GPU
-by default
-([ADR-0480](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0480-windows-present-through-the-gpu-by-default-and-on-the-cpu-where-it-cannot.md)).
-The device is created at the first frame, and what it costs is the driver's
-to decide:
+by default. The device is created at the first frame, and what it costs is
+the driver's to decide:
 
-| Machine | Device creation | Record |
+| Machine | Device creation | Driver |
 |---|---|---|
-| M1 Pro, macOS, Metal | 19.5–21.3 ms at the first frame | [ADR-0480](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0480-windows-present-through-the-gpu-by-default-and-on-the-cpu-where-it-cannot.md) |
-| NVIDIA, Linux, Vulkan | 190.1 ms, a quarter of a native start | [ADR-0506](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0506-start-up-is-timed-from-the-kernels-clock-and-a-native-window-is-up-in-a-tenth-of-a-second.md) |
+| M1 Pro, macOS | 19.5–21.3 ms at the first frame | Metal |
+| NVIDIA, Linux | 190.1 ms, a quarter of a native start | Vulkan |
 
 The measured alternative is to keep every window on the CPU:
 
@@ -177,7 +164,7 @@ The measured alternative is to keep every window on the CPU:
 ./example/build/native/goldberry-showcase-linux-x64 -Dgoldberry.gpu=off
 ```
 
-On the NVIDIA machine that takes the native first frame from 519 ms to 365 ms.
+With the NVIDIA GPU that takes the native first frame from 519 ms to 365 ms.
 An application that shows no `canvas3d` and no video loses nothing by it, and
 the [GPU chapter](../components/gpu.md) says what the path adds.
 
@@ -188,10 +175,10 @@ small.
 
 **Open what has to be closed in `start`, not in a build.** A widget is a value
 that is rebuilt and thrown away, so an `Icon` built inside `build()` is parsed
-from the bundled set and scaled to its size on every rebuild
-([ADR-0043](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0043-icons-are-stroked-paths.md)). `Application.start`
-runs once on the UI thread before the first frame and before `root()`, and that
-is where an icon, a font source or an image belongs. Fonts open lazily: a face
+from the bundled set and scaled to its size on every rebuild.
+`Application.start` runs once on the UI thread before the first frame and
+before `root()`, and that is where an icon, a font source or an image
+belongs. Fonts open lazily: a face
 is parsed the first time something asks for it, so an application that never
 draws code text never pays for JetBrains Mono.
 
@@ -215,10 +202,8 @@ public final class Notes implements Application {
 
 **Do slow work with `Goldberry.async`.** It runs the work off the UI thread and
 delivers the result on it, so the callback may touch a window with no hand-off
-to write
-([ADR-0020](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0020-one-ui-thread-and-virtual-threads-behind-it.md)).
-A file read, a network call or a database query in `start` holds the first
-frame for exactly as long as it takes.
+to write. A file read, a network call or a database query in `start` holds
+the first frame for exactly as long as it takes.
 
 ```java
 @Override
@@ -229,7 +214,6 @@ public void start(Host host) {
 ```
 
 > [!TIP]
-> Measure before guessing. The first timeline ever printed showed SDL's video
-> subsystem at 99 ms and the four-megabyte native library at under 2 ms, which
-> is the opposite of what most people would guess
-> ([ADR-0028](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0028-the-start-up-timeline.md)).
+> Measure before guessing. The JVM timeline above shows SDL's video subsystem
+> at 99 ms and the four-megabyte native library at under 2 ms, which is the
+> opposite of what most people would guess.

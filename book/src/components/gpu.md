@@ -19,9 +19,8 @@ The UI is painted by Blend2D on the CPU whatever the window presents through.
 window presents its frame through SDL_GPU: the frame's damage is uploaded to a
 texture and drawn onto the window's swapchain, on Metal, Vulkan or Direct3D 12.
 Where that cannot be done, with no device, a refused claim or a popup, the
-window presents on the CPU exactly as it did before
-([ADR-0480](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0480-windows-present-through-the-gpu-by-default-and-on-the-cpu-where-it-cannot.md)).
-The window says which, once per change:
+window presents on the CPU exactly as it does without the module. The window
+says which, once per change:
 
 ```text
 [GPU] "Goldberry — showcase on Linux / amd64" presents through the GPU (vulkan)
@@ -29,8 +28,7 @@ The window says which, once per change:
 
 `Window.presentation()` answers the same thing in code, as a `Presentation.Gpu`
 with the driver's name or a `Presentation.Cpu` with the reason, and
-`Window.onPresentationChange(handler)` hears each change
-([ADR-0492](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0492-a-window-says-whether-it-presents-through-the-gpu.md)).
+`Window.onPresentationChange(handler)` hears each change.
 
 Two system properties set the policy:
 
@@ -42,11 +40,8 @@ Two system properties set the policy:
 What the GPU path adds is **GPU layers**: opaque rectangles in the frame's paint
 order that the GPU fills and the UI is composited over. A window that cannot
 composite reads a layer back into its frame instead, so the same tree draws
-the same picture both ways
-([ADR-0481](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0481-gpu-layers-are-placed-in-paint-order-and-shown-through-a-hole-or-read-back.md)).
-`canvas3d` is one layer. A `video-view` is the other, when `goldberry-media` and
-`goldberry-gpu` are both present
-([ADR-0484](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0484-video-view-shows-its-pictures-through-a-gpu-layer-when-gpu-is-present.md)).
+the same picture both ways. `canvas3d` is one layer. A `video-view` is the
+other, when `goldberry-media` and `goldberry-gpu` are both present.
 
 ## `canvas3d`
 
@@ -81,8 +76,7 @@ rendered.
 
 **Where there is no GPU.** With `goldberry.gpu=off`, with no device, or inside
 an `opacity` group, the box is filled with `--gb-canvas3d-unavailable` and a
-notice says why
-([ADR-0482](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0482-canvas3d-is-a-gpu-layer-an-application-renders-into.md)).
+notice says why.
 
 ### The renderer
 
@@ -145,8 +139,7 @@ submits the canvas's frame, and a frame closed without `submit` is discarded.
 A `RenderPass` binds a pipeline, vertex and index buffers and fragment samplers,
 pushes uniforms, and calls `draw` or `drawIndexed`. Misuse the API can see, a
 closed resource or a draw with nothing bound, throws in Java before the driver
-is reached. Everything is confined to the device's thread
-([ADR-0478](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0478-the-gpu-api-is-confined-scoped-and-checked-in-java.md)).
+is reached. Everything is confined to the device's thread.
 
 The `Canvas3dTarget` is a colour texture at the canvas's size in physical
 pixels, a depth texture beside it when the canvas asked for one, and `nanos`,
@@ -160,9 +153,8 @@ as every GPU layer is.
 
 Shaders are written in HLSL and compiled offline. The sources live in
 `src/main/shaders/*.hlsl`, and `./gradlew :gpu:compileShaders` runs DXC for
-SPIR-V and DXIL and SPIRV-Cross for MSL, then commits the bytecode as resources
-beside the code that loads them
-([ADR-0476](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0476-shaders-are-hlsl-compiled-by-dxc-and-spirv-cross-and-committed.md)).
+SPIR-V and DXIL and SPIRV-Cross for MSL, then writes the bytecode as resources
+beside the code that loads them.
 It is a task run on purpose, not part of `build`, because DXC and SPIRV-Cross
 come with the Vulkan SDK and are too much to ask of every build. The task also
 compiles the showcase's own `cube.vert.hlsl` and `cube.frag.hlsl`.
@@ -195,29 +187,14 @@ it, and a clip cuts it to a rectangle. Without a GPU the box is filled with
 
 None. A `canvas3d` is not focusable.
 
-### Read more
-
-- [ADR-0475: SDL_GPU is bound for core and gpu and tested on the first thread](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0475-sdl-gpu-is-bound-for-core-and-gpu-and-tested-on-the-first-thread.md)
-- [ADR-0477: The GPU composites with SDL_GPU directly](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0477-the-gpu-composites-with-sdl-gpu-directly.md)
-- [ADR-0478: The GPU API is confined, scoped and checked in Java](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0478-the-gpu-api-is-confined-scoped-and-checked-in-java.md)
-- [ADR-0479: A window is composited through a seam core declares and gpu provides](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0479-a-window-is-composited-through-a-seam-core-declares-and-gpu-provides.md)
-- [ADR-0481: GPU layers are placed in paint order and shown through a hole or read back](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0481-gpu-layers-are-placed-in-paint-order-and-shown-through-a-hole-or-read-back.md)
-- [ADR-0482: canvas3d is a GPU layer an application renders into](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0482-canvas3d-is-a-gpu-layer-an-application-renders-into.md)
-
 ## What is measured, and what is not yet
 
-Everything above was built and measured on Metal, on one M1 Pro. Creating the
-device costs about 20 ms at the first frame there, and 190 to 320 ms on NVIDIA's
-Vulkan driver on Linux
-([ADR-0480](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0480-windows-present-through-the-gpu-by-default-and-on-the-cpu-where-it-cannot.md)).
-A whole 2560 by 1600 frame costs 1.1 ms of CPU to composite against 2.65 ms for
-the window-surface present of the same frame, and a minute of 4K60 VP9 through
-a GPU layer shows all 3600 pictures where CPU present drops 1581
-([ADR-0485](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0485-the-audio-clock-never-jumps-and-4k60-plays-every-picture.md)).
+The figures are measured on Metal, on an M1 Pro, except where another driver
+is named. Creating the device costs about 20 ms at the first frame there, and
+190 to 320 ms on NVIDIA's Vulkan driver on Linux. A whole 2560 by 1600 frame
+costs 1.1 ms of CPU to composite against 2.65 ms for the window-surface present
+of the same frame, and a minute of 4K60 VP9 through a GPU layer shows all 3600
+pictures where CPU present drops 1581.
 
-On Linux the composited path has run on this project's machine under X11 and
-nowhere else. Windows and Direct3D 12 wait for a host. The lane that would test
-it on every push, on lavapipe, has run and not yet reached a test
-([ADR-0503](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0503-the-gpu-lane-finds-lavapipe-a-device-goes-before-sdl-and-a-gpu-golden-has-its-own-tolerance.md)).
-A device lost mid-render shows black and does not fall back. The
-[status page](../status.md#m4--gpu) keeps the current list.
+On Linux the composited path is measured under X11 only. Direct3D 12 on Windows
+is not measured. A device lost mid-render shows black and does not fall back.

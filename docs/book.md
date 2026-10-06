@@ -63,14 +63,24 @@ explanation of it. A widget's chapter shows the widget before it discusses it.
 
 **Short sentences, one idea each.** About twenty words. Active voice, present
 tense. No semicolons joining clauses. Parentheses and em dashes are for the
-log; the guide starts a new sentence instead. The one parenthesis the guide
-writes is a citation at the end of a sentence: `([ADR-0063](../adr/...))`.
+log; the guide starts a new sentence instead.
+
+**The guide states what is, not how it came to be** (ADR-0567). A chapter
+describes the toolkit as a reader finds it. It does not narrate a change
+("is a module now", "no longer", "not yet", "used to"), does not strike an
+item through, does not cite a record, a review, a gap, a milestone, a run or
+a date, and does not name a working document under `docs/`. Where the toolkit
+does not do something, the chapter says so in one sentence, in the present
+tense, and gives the reason in words when it has one. The reference pages
+`status.md` and `TODO.md` are the record by design and are exempt, and the
+contributing chapters may describe the decision log and the working documents
+because those are their subject. `BookTest` holds every other chapter to this.
 
 **Every claim comes from the repository.** A KDL attribute is one the widget's
 `inflate` reads. A Java constructor is one the record declares. A number is one
-an ADR or the README measured, cited. Nothing is invented to round a table out.
-Where the toolkit does not do something, the chapter says so in one sentence
-and links the record that explains why.
+the repository measured. Nothing is invented to round a table out. The record
+that explains a number or a limitation is found from the log's index, not from
+the chapter.
 
 **A widget's section is one shape.** Under a heading that is exactly its node
 name in backticks, `## \`button\`` or `### \`radio-group\``:
@@ -80,8 +90,7 @@ name in backticks, `## \`button\`` or `### \`radio-group\``:
 3. an *Attributes* table: attribute, type, default, what it does;
 4. *Styling*: the CSS type, its parts, the pseudo-classes it matches, the
    variant classes;
-5. *Keyboard*, where it takes any;
-6. *Read more*: the records, as relative links.
+5. *Keyboard*, where it takes any.
 
 The heading is what `BookTest` looks for, so every `@Markup` name in the
 repository has exactly one. A widget that has no markup name, `toast` or
@@ -126,8 +135,9 @@ constructor they call is the one the record has.
 ```
 
 **Links** between chapters are relative and end in `.md`:
-`../layout/scroll.md#keyboard`. mdBook rewrites them. A record is linked on
-GitHub, `https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/<file>`,
+`../layout/scroll.md#keyboard`. mdBook rewrites them. The guide does not link
+the log. Where a reference page has to, a record is linked on GitHub,
+`https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/<file>`,
 because the log is not built into the book. `BookTest` resolves every chapter
 link, fragment included, refuses a relative link into `adr/`, and checks that a
 GitHub record link names a file that exists.
@@ -303,3 +313,4 @@ Code first, documents after.
 | Schemes as drawn pictures | done 2026-10-01 (ADR-0515): the layers, the frame loop, the flow of values, the scroll nodes |
 | Compiled Java samples | not built. A sample is a fragment; compiling one means a harness that supplies its imports and its surrounding class, and the names in it are checked by reading, not by `javac` |
 | Links inside the book checked on the built site (`lychee`) | not built; `BookTest` checks the sources, which is the same set of links |
+| The guide neutral: no record citations, no change narrative, no struck items, no gaps or working documents in a reader chapter; `BookTest` holds it | done 2026-10-06 (ADR-0567): notes in `doc-neutral-2026-10-06.md` |

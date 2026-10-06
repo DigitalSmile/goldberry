@@ -399,6 +399,27 @@ final class Book {
         }
     }
 
+    /** A line of a chapter's prose: its number, counted from one, and its text. */
+    record Line(String chapter, int number, String text) {}
+
+    /** Every line of a chapter that is outside a fenced sample, in order. */
+    static List<Line> prose(String page) {
+        var prose = new ArrayList<Line>();
+        var lines = text(page).lines().toList();
+        var inFence = false;
+        for (var number = 0; number < lines.size(); number++) {
+            var line = lines.get(number);
+            if (!inFence && FENCE.matcher(line).matches()) {
+                inFence = true;
+            } else if (inFence && line.strip().equals("```")) {
+                inFence = false;
+            } else if (!inFence) {
+                prose.add(new Line(page, number + 1, line));
+            }
+        }
+        return prose;
+    }
+
     /** Every fenced sample in a chapter, with the line its fence opens on. */
     static List<Sample> samples(String page) {
         var samples = new ArrayList<Sample>();

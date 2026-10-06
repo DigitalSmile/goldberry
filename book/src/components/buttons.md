@@ -58,14 +58,13 @@ does not supply that name, because it has nothing to fall back on.
 | `name` | string | none | the accessible name; an icon-only button needs one, and the label wins where there is one |
 | `class`, `id`, `tooltip`, `context-menu` | | | as on every widget |
 
-A disabled button still lays out, paints and hit-tests. It does not act, so a
-click on it lands nowhere rather than on whatever is behind it.
+A disabled button lays out, paints and hit-tests. It does not act, so a click
+on it lands nowhere rather than on whatever is behind it.
 
 `float=#true` wraps the button in a `Floated` widget that keeps it at
 `--gb-window-margin` from two window edges. It is placement, not appearance, so
-it composes with every variant and shape
-([ADR-0347](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0347-an-icon-only-button-is-a-circle-and-float-is-a-place.md)).
-In Java the wrapper is `new Floated(button, Corner.BOTTOM_END)`.
+it composes with every variant and shape. In Java the wrapper is
+`new Floated(button, Corner.BOTTOM_END)`.
 
 ### Styling
 
@@ -79,13 +78,11 @@ In Java the wrapper is `new Floated(button, Corner.BOTTOM_END)`.
 The metrics are height 32, padding 12, gap 6, radius 8, in `body-strong`.
 Compact density makes the height 28. `button.link` has 4 px of padding, the
 regular weight and the ink `--gb-button-link-text`. It hovers with the ghost
-wash and never underlines
-([ADR-0293](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0293-a-button-that-reads-as-a-link.md)).
+wash and never underlines.
 
 Disabled is 45% opacity on the whole control and never a colour remap, so a
-disabled danger button still looks dangerous. The fade is applied once, by the
-outermost disabled node
-([ADR-0379](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0379-a-disabled-container-reaches-the-cascade.md)).
+disabled danger button looks dangerous. The fade is applied once, by the
+outermost disabled node.
 
 ### Keyboard
 
@@ -97,14 +94,6 @@ outermost disabled node
 A button activates on a click and not on a release. A press dragged off the
 button and let go is a cancelled click. A key with a modifier held is not
 consumed.
-
-### Read more
-
-- [ADR-0293: a button that reads as a link](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0293-a-button-that-reads-as-a-link.md)
-- [ADR-0347: an icon-only button is a circle, and float is a place](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0347-an-icon-only-button-is-a-circle-and-float-is-a-place.md)
-- [ADR-0260: a name is an attribute every widget has](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0260-a-name-is-an-attribute-every-widget-has.md)
-- [ADR-0077: disabled propagates for input and not for paint](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0077-disabled-propagates-for-input-and-not-for-paint.md)
-- [ADR-0355: a button leaves](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0355-a-button-leaves-a-field-counts-both-paddings-and-a-floor-starts-on-its-first-frame.md)
 
 ## `badge`
 
@@ -154,19 +143,12 @@ the binding answers, as a `text`'s does.
 - Variant classes: `accent`, `danger`, `warning`, `success`, `info`. The bare badge takes the neutral surface.
 
 Height 20, minimum width 20, padding 4, full radius, in `caption`. The minimum
-width equals the height so a one-digit badge is a circle
-([ADR-0259](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0259-a-badge-with-one-digit-is-a-circle.md)). Each filled
-variant pins its own foreground token, because white on the warning hue is
-1.35:1 ([ADR-0087](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0087-a-semantic-fill-brings-its-own-foreground.md)).
+width equals the height so a one-digit badge is a circle. Each filled variant
+pins its own foreground token, because white on the warning hue is 1.35:1.
 
 ### Keyboard
 
 None.
-
-### Read more
-
-- [ADR-0259: a badge with one digit is a circle](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0259-a-badge-with-one-digit-is-a-circle.md)
-- [ADR-0087: a semantic fill brings its own foreground](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0087-a-semantic-fill-brings-its-own-foreground.md)
 
 ## `chip`
 
@@ -201,10 +183,9 @@ new Row(
 
 A chip selects nothing itself. Pressing raises `press` and the application
 decides. The bound value, or the written `selected`, is what draws the
-`:checked` state. That is the controlled loop every control runs
-([ADR-0063](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0063-data-flows-down-events-flow-up.md)). Dismissing raises
-`dismiss` and removes nothing, because the list a row of chips shows is the
-application's.
+`:checked` state. That is the controlled loop every control runs. Dismissing
+raises `dismiss` and removes nothing, because the list a row of chips shows is
+the application's.
 
 > [!IMPORTANT]
 > The dot and the icon are one slot. A chip asked for both is refused where
@@ -226,23 +207,24 @@ application's.
 | `class`, `id`, `tooltip`, `context-menu`, `name` | | | as on every widget |
 
 The dot's colour is a value and not a class, because a project's hue lives in a
-row of a database and a stylesheet cannot have a rule per project
-([ADR-0328](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0328-a-dots-colour-is-data.md)). `withDot(0xFFBF616A)` is
-the Java spelling, and `0` means the stylesheet decides.
+row of a database and a stylesheet cannot have a rule per project.
+`withDot(0xFFBF616A)` is the Java spelling, and `0` means the stylesheet
+decides.
 
 ### Styling
 
 - CSS type `chip`.
 - Parts: `chip-dot`, `chip-label`, `chip-dismiss`.
 - Pseudo-classes: `:hover`, `:active`, `:checked`, `:focus-visible`.
-- Variant classes: `outlined`, `danger`, `warning`, `success`, `info`. An outlined chip that is chosen is still filled.
+- Variant classes: `outlined`, `danger`, `warning`, `success`, `info`. An outlined chip that is chosen is filled.
 
 Height 24, padding 8, full radius, gap 6, in `body`. The dismiss mark is 12
 square. A filled chip's dot takes the foreground its fill guarantees contrast
 against, and the hue itself only on an outlined chip.
 
 A disabled chip has no opacity rule of its own in `controls.css`. It stops
-responding and is left out of the Tab order, but it is drawn as it was.
+responding and is left out of the Tab order, but it is drawn as an enabled one
+is.
 
 ### Keyboard
 
@@ -254,13 +236,6 @@ responding and is left out of the Tab order, but it is drawn as it was.
 
 Both delete keys, because a chip is commonly the last thing before a text
 field, where `Backspace` is what a hand reaches for.
-
-### Read more
-
-- [ADR-0305: a chip is a badge you can press](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0305-a-chip-is-a-badge-you-can-press.md)
-- [ADR-0328: a dot's colour is data](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0328-a-dots-colour-is-data.md)
-- [ADR-0063: data flows down, events flow up](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0063-data-flows-down-events-flow-up.md)
-- [ADR-0192: a row of chips wraps and the chevron does not](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0192-a-row-of-chips-wraps-and-the-chevron-does-not.md)
 
 ## `pressable`
 
@@ -306,8 +281,7 @@ field does not also press the row the field is in.
 
 A reader announces it as a button, so it must be named. Its content is a
 picture or a row of texts, not a label, so the name cannot be worked out from
-it the way a `button`'s is, and a pressable with no `name` is refused
-([ADR-0533](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0533-anything-can-be-pressed-and-it-is-a-button-to-a-reader.md)).
+it the way a `button`'s is, and a pressable with no `name` is refused.
 
 ### Attributes
 
@@ -339,9 +313,3 @@ wash. An application that wants a wash writes one on its own class:
 |---|---|
 | `Tab` | reaches it, unless disabled |
 | `Space`, `Enter` | activate it, once per press; a held key does not repeat |
-
-### Read more
-
-- [ADR-0533: Anything can be pressed, and it is a button to a reader](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0533-anything-can-be-pressed-and-it-is-a-button-to-a-reader.md)
-- [ADR-0232: Modality is one flag, and not a scrim](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0232-modality-is-one-flag-and-not-a-scrim.md)
-- [ADR-0327: A hover is a node property, not a menu's](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0327-a-hover-is-a-node-property-not-a-menus.md)

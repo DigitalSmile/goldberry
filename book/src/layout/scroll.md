@@ -86,12 +86,12 @@ A wheel is consumed only when it moved something. At the top of a list a further
 
 A `scroll` is a Tab stop. The keys act when it has focus and are consumed only when they moved something.
 
-From Java, `.tabStopOnlyWhenScrollable()` makes it a Tab stop only while its content overflows. That is for a viewport that wraps content of its own, such as a dialog's body: one that fits adds nothing to the Tab order, and one that overflows can still be scrolled from the keyboard.
+From Java, `.tabStopOnlyWhenScrollable()` makes it a Tab stop only while its content overflows. That is for a viewport that wraps content of its own, such as a dialog's body: one that fits adds nothing to the Tab order, and one that overflows can be scrolled from the keyboard.
 
 | Key | Moves |
 |---|---|
 | Up, Down, Left, Right | One line, `--gb-scroll-line` |
-| Page Up, Page Down | The viewport's height less 24 px, so one line of the old page is still on screen |
+| Page Up, Page Down | The viewport's height less 24 px, so one line of the old page stays on screen |
 | Home | To the start |
 | End | To the end |
 
@@ -125,7 +125,7 @@ Preserving the offset means recognising a row that was on screen a frame ago, so
 
 ### What a frame pays
 
-The painter skips a subtree whose ink cannot land inside the clip in force, so a viewport costs what is visible and not what is in it. The culling is by the subtree's ink rather than the box's own rectangle, so a child drawn outside its parent is still painted. A wheel moves the offset by a transform on one box, and re-describing a node with the same type, id and classes keeps its cached style, so a notch no longer re-styles what it scrolls past.
+The painter skips a subtree whose ink cannot land inside the clip in force, so a viewport costs what is visible and not what is in it. The culling is by the subtree's ink rather than the box's own rectangle, so a child drawn outside its parent is still painted. A wheel moves the offset by a transform on one box, and re-describing a node with the same type, id and classes keeps its cached style, so a notch does not re-style what it scrolls past.
 
 A `scroll` does not virtualize. A `list` and a `table` build only the rows in their window, and that is in [Collections](../components/collections.md). A `masonry` cannot virtualize at all, and the cull is what makes a long wall affordable.
 
@@ -152,22 +152,3 @@ The tokens, with the overlay default and the `Scrollbars.ALWAYS` value:
 | `--gb-scrollbar-track` | `transparent` | `var(--gb-surface-2)` |
 | `--gb-scroll-thumb-size` | `6px` | `8px` |
 | `--gb-scroll-thumb-hover-size` | `10px` | `8px` |
-
-### Read more
-
-- [ADR-0116 A scroll view is a clip, an offset and two extents](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0116-a-scroll-view-is-a-clip-an-offset-and-two-extents.md)
-- [ADR-0117 A widget may be told what it measured](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0117-a-widget-may-be-told-what-it-measured.md)
-- [ADR-0118 A popup that does not fit scrolls](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0118-a-popup-that-does-not-fit-scrolls.md)
-- [ADR-0119 A widget may be told where it is](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0119-a-widget-may-be-told-where-it-is.md)
-- [ADR-0120 A widget scrolls itself into view](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0120-a-widget-scrolls-itself-into-view.md)
-- [ADR-0056 The wheel is lines, and the sign is ours](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0056-the-wheel-is-lines-and-the-sign-is-ours.md)
-- [ADR-0115 A wheel reports a fraction and a detent](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0115-a-wheel-reports-a-fraction-and-a-detent.md)
-- [ADR-0314 A notch is three lines, and down is down](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0314-a-notch-is-three-lines-and-down-is-down.md)
-- [ADR-0236 A wheel is consumed by whatever it moved](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0236-a-wheel-is-consumed-by-whatever-it-moved.md)
-- [ADR-0238 A wheel chains past a dead control](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0238-a-wheel-chains-past-a-dead-control.md)
-- [ADR-0251 A widget may read a token, and a nested scroller is named](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0251-a-widget-may-read-a-token-and-a-nested-scroller-is-named.md)
-- [ADR-0313 A frame pays for what is on screen](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0313-a-frame-pays-for-what-is-on-screen.md)
-- [ADR-0315 A rebuild is not a restyle](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0315-a-rebuild-is-not-a-restyle.md)
-- [ADR-0363 A programmatic scroll glides, and the offset is already there](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0363-a-programmatic-scroll-glides-and-the-offset-is-already-there.md)
-- [ADR-0364 Always-shown scroll bars are a token sheet](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0364-always-shown-scroll-bars-are-a-token-sheet.md)
-- [ADR-0392 A timeline opens at its end and keeps the reader's line](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0392-a-timeline-opens-at-its-end-and-keeps-the-readers-line.md)

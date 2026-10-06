@@ -60,8 +60,3 @@ A spacer grows by 1 unless the stylesheet gives it a `flex-grow` of its own. A s
 ```
 
 A spacer cannot be told not to grow. `flex-grow: 0` is the computed value when nothing was declared, so `render` reads it as unset and grows by 1 anyway. A fixed gap between two neighbours is `gap` on the container or `margin` on one of them, not a spacer with a width.
-
-### Read more
-
-- [ADR-0311 `margin` is room outside, and `auto` is the half that mattered](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0311-margin-is-room-outside-and-auto-is-the-half-that-mattered.md)
-- [ADR-0373 A column starts from nothing and grows](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0373-a-column-starts-from-nothing-and-grows.md)

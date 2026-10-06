@@ -12,8 +12,7 @@ runtimeOnly 'ch.qos.logback:logback-classic:1.6.3'
 ```
 
 Add nothing and you get silence, including from SLF4J itself, which would
-otherwise print a "no providers were found" warning
-([ADR-0023](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0023-logging-and-the-example-as-a-subproject.md)).
+otherwise print a "no providers were found" warning.
 Binding a provider is an application's decision and never a library's.
 
 ## A logback configuration
@@ -28,7 +27,7 @@ Binding a provider is an application's decision and never a library's.
        TRACE adds the start-up timeline and a line per frame. -->
   <logger name="dev.goldberry" level="${goldberry.log.level:-DEBUG}"/>
 
-  <!-- What the platform's own libraries say (ADR-0443). -->
+  <!-- What the platform's own libraries say. -->
   <logger name="native" level="warn"/>
   <logger name="native.glib.libayatana-appindicator" level="off"/>
 
@@ -42,8 +41,7 @@ toolkit knows. The showcase's `logback.xml` is the one above, and
 
 ## The start-up timeline
 
-At `TRACE`, one table is printed after the first frame
-([ADR-0028](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0028-the-start-up-timeline.md)):
+At `TRACE`, one table is printed after the first frame:
 
 ```text
 start-up timeline (866.6ms to here):
@@ -83,10 +81,9 @@ per element per frame would be measuring itself:
 
 ## The platform's own libraries
 
-GLib and SDL used to log to stderr, past SLF4J and past your configuration.
-Their messages are ordinary SLF4J events now, on
+What GLib and SDL log is an ordinary SLF4J event, on
 `native.<library>.<subsystem>`: `native.glib.libayatana-appindicator`,
-`native.sdl.video` ([ADR-0443](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0443-somebody-elses-log-line-is-still-a-log-line.md)).
+`native.sdl.video`. Nothing of theirs reaches stderr past your configuration.
 Level, route or switch them off by name like anything else.
 
 `-Dgoldberry.log.native=false` installs no bridge and gives each library its
@@ -98,8 +95,7 @@ writer, only if nothing else in the process sets one.
 ## Which way a window presents
 
 Each window logs one line at `INFO` when it starts presenting a different
-way, tagged `[GPU]` or `[CPU]`, with the reason
-([ADR-0492](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0492-a-window-says-whether-it-presents-through-the-gpu.md)).
+way, tagged `[GPU]` or `[CPU]`, with the reason.
 The same fact is `window.presentation()`, with `label()` for a status bar,
 and `onPresentationChange(listener)` for a change mid-run: a GPU that failed,
 or `goldberry.gpu.composite=auto` taking the GPU for a layer and giving it
@@ -114,8 +110,7 @@ Set<Capability> can = Goldberry.capabilities();
 The desktop integrations are compiled into the native library only where the
 machine that built it had the headers. `Goldberry.capabilities()` answers
 from the library's own record, before any window is open, and is empty
-where there is no native library at all
-([ADR-0325](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0325-a-build-says-what-it-can-ask-the-desktop.md)). The
+where there is no native library at all. The
 values are in [Windows, popups and the host](windows.md#capabilities).
 
 ## Properties an application can set
@@ -147,17 +142,17 @@ starts.
 | `goldberry.css.lint` | `true` | lints the application's own stylesheets against everything in force whenever the launcher reads them, and logs each finding at warn. The development switch: dead declarations, rules a lenient parse dropped, and `@media` blocks that can never apply |
 
 `goldberry.golden.update`, `goldberry.golden.scales`, `goldberry.gpu.required`
-and the other `*.required` properties belong to this repository's own test
-tasks and do nothing in an application.
+and the other `*.required` properties belong to the toolkit's own test tasks
+and do nothing in an application.
 
 ## Failure messages, and what they mean
 
 | You see | It means | Go to |
 |---|---|---|
-| `SDL_Init failed: No available video device`, with a line naming `-XstartOnFirstThread` | on macOS, `main` is not on the process's first thread. Add the flag to the `java` command | [ADR-0039](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0039-macos-needs-the-first-thread.md) |
+| `SDL_Init failed: No available video device`, with a line naming `-XstartOnFirstThread` | on macOS, `main` is not on the process's first thread. Add the flag to the `java` command | [Windows, popups and the host](windows.md#threads) |
 | `no action named "app.sav" is bound. Bound: …` | the document names an action no model in the inflater publishes. Usually the inflater was built from a list other than `models()`, or the name is misspelled | [Markup](markup.md#strict-by-default) |
 | `nothing is bound to "app.gian". Bound: …` | the same, for a `bind=` | [Markup](markup.md#strict-by-default) |
-| `"!prefs.frost" is not a binding path` | a `bind=` holds an expression. Only dotted paths are allowed | [ADR-0062](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0062-bind-is-a-path-and-nothing-else.md) |
+| `"!prefs.frost" is not a binding path` | a `bind=` holds an expression. Only dotted paths are allowed | [Markup](markup.md#bind-is-a-path-and-nothing-else) |
 | `unknown node "buton"; registered: …` | the node name is not in any catalogue on the path | [Markup](markup.md#parsing-and-inflating) |
 | `… its package is not open to this module. Add opens com.example.app to dev.goldberry.core;` | a `@Model` in a named module, bound at run time, needs its package opened | [Model weaving](../weaving.md#a-model-in-a-named-module-opens-its-package) |
 | `libgoldberry not found at …` | the natives jar for this platform is not on the path, or the library was not built | [Native image](../native.md), and `-Dgoldberry.native.library` above |
@@ -168,12 +163,8 @@ tasks and do nothing in an application.
 | `app.css, line 42: dropping "lane::before": …` | a lenient sheet left out one rule that asked for something outside the subset; the rest of the sheet is in force | [Styling](styling.md#strict-and-lenient-sheets) |
 | `app.css, line 7: "letter-spacing" is not a property this toolkit has` | every declaration of that property in the sheet does nothing; said once per property per sheet | [Styling](styling.md#properties) |
 | `easing "ease-in-out" is read as ease-enter` | at info: CSS's keyword runs on the system curve the table names | [Styling](styling.md#transition-and-animation) |
-| `nowhere to put a menu` logged by the showcase | the video driver has no popup windows, or the anchor was not painted yet | [ADR-0102](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0102-a-popup-is-a-window-the-platform-may-refuse.md) |
+| `nowhere to put a menu` logged by the showcase | the video driver has no popup windows, or the anchor was not painted yet | [Windows, popups and the host](windows.md#in-a-window-of-its-own) |
 
 ## Read more
 
-- [ADR-0023](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0023-logging-and-the-example-as-a-subproject.md): SLF4J, binding none
-- [ADR-0028](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0028-the-start-up-timeline.md): the start-up timeline
-- [ADR-0443](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0443-somebody-elses-log-line-is-still-a-log-line.md): native logs bridged
-- [ADR-0492](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0492-a-window-says-whether-it-presents-through-the-gpu.md): the presentation line
 - [Measuring](../performance/measuring.md): the HUD and the benchmarks

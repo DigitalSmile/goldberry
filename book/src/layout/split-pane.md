@@ -37,7 +37,7 @@ var split = new SplitPane(map, road);
 new SplitPane(SplitAxis.HORIZONTAL, position, this::setSplit, map, road)
 ```
 
-The full constructor is `SplitPane(axis, position, source, onResize, firstMin, secondMin, collapsible, children, attributes)`, and the one without `source` is kept. A list of any size other than two is an `IllegalArgumentException`. A three-way split is two split panes, one inside the other.
+The full constructor is `SplitPane(axis, position, source, onResize, firstMin, secondMin, collapsible, children, attributes)`, and there is one without `source`. A list of any size other than two is an `IllegalArgumentException`. A three-way split is two split panes, one inside the other.
 
 The position is a fraction and the minimums are pixels, deliberately. A divider a third of the way across stays a third of the way across when the window widens. A list that needs 160 points or its labels wrap needs them whatever the window does. The fraction is clamped against the pixels on every layout, which needs the pane's measured length, and that arrives once a frame through `Measured`.
 
@@ -70,8 +70,7 @@ split-pane bind="layout.split" resize="layout.set-split" first-min=160 {
 With `bind=` alone the split keeps its own position. It starts at the bound
 number, a drag moves it without telling anyone, and it goes back to the model's
 number whenever the model changes it. That is what restoring a saved layout
-needs. A bound value that is not a number is ignored and `position` is used
-([ADR-0534](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0534-a-region-and-a-split-read-the-model.md)).
+needs. A bound value that is not a number is ignored and `position` is used.
 In Java, `split.bound(observable)` does the same.
 
 ### Attributes
@@ -120,10 +119,3 @@ The divider is the Tab stop. The pane itself is not focusable and neither side i
 | Enter, Space | Collapses and restores, when `collapsible` |
 
 The arrows across the axis are left alone, so a horizontal split has nothing to say about Up and the key reaches whatever does.
-
-### Read more
-
-- [ADR-0165 A divider translates, and a rotation has three brakes](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0165-a-divider-translates-and-a-rotation-has-three-brakes.md)
-- [ADR-0297 An editor fills its pane, and a split knows its own width](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0297-an-editor-fills-its-pane-and-a-split-knows-its-own-width.md)
-- [ADR-0534 A region and a split read the model](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0534-a-region-and-a-split-read-the-model.md)
-- [ADR-0117 A widget may be told what it measured](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0117-a-widget-may-be-told-what-it-measured.md)

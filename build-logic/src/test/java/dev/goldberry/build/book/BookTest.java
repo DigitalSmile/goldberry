@@ -5,6 +5,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import dev.goldberry.build.repository.Repository;
@@ -40,6 +41,38 @@ class BookTest {
     /** The parts of the guide a widget may be documented in. */
     private static final Set<String> CATALOGUE = Set.of("layout/", "components/");
 
+    /** The reference pages that are the development record by design: a status table and a list of what is not built. */
+    private static final Set<String> RECORD_PAGES = Set.of("status.md", "TODO.md");
+
+    /** The chapters that describe the repository itself, where the decision log and the working documents are the subject. */
+    private static final String CONTRIBUTING = "contributing/";
+
+    /** A record cited by number, or a link to one; the template is a form, not a record. */
+    private static final Pattern RECORD = Pattern.compile("\\bADR-?\\s?\\d{3,4}\\b|\\badr/(?!0000-template)\\d{4}");
+
+    /** The bare word, which a reader of the guide cannot follow. */
+    private static final Pattern THE_LOG = Pattern.compile("\\bADRs?\\b");
+
+    /** A struck item, which tells the reader what used to be true. */
+    private static final Pattern STRUCK = Pattern.compile("~~");
+
+    /** A gap id from a review, or a working document under {@code docs/}. */
+    private static final Pattern WORKING = Pattern.compile("\\bG\\d{1,2}\\b|\\bGB-\\d{3}\\b|\\bdocs/[a-z0-9-]+\\.md\\b");
+
+    /** The chapters that describe the toolkit rather than its development: the guide without its record pages. */
+    private static List<Book.Chapter> neutral() {
+        return guide().stream().filter(chapter -> !RECORD_PAGES.contains(chapter.path())).toList();
+    }
+
+    /** The prose lines of {@code chapters} on which {@code pattern} is found, as {@code page:line: text}. */
+    private static List<String> found(List<Book.Chapter> chapters, Pattern pattern) {
+        return chapters.stream()
+                .flatMap(chapter -> Book.prose(chapter.path()).stream())
+                .filter(line -> pattern.matcher(line.text()).find())
+                .map(line -> line.chapter() + ":" + line.number() + ": " + line.text().strip())
+                .toList();
+    }
+
     @Nested
     @DisplayName("the summary")
     class Summary {
@@ -74,6 +107,41 @@ class BookTest {
                             + Book.title(chapter.path()).orElse("<no heading>") + "\"")
                     .toList();
             assertTrue(disagreeing.isEmpty(), () -> "the sidebar and the page disagree: " + disagreeing);
+        }
+    }
+
+    @Nested
+    @DisplayName("a chapter")
+    class Neutral {
+
+        @Test
+        @DisplayName("cites no record, so it reads as what the toolkit is and not as how it came to be")
+        void citesNoRecord() {
+            var citing = found(neutral(), RECORD);
+            assertTrue(citing.isEmpty(), () -> citing.size() + " lines cite a record: " + citing);
+        }
+
+        @Test
+        @DisplayName("names the decision log only where contributing is the subject")
+        void namesTheLogOnlyWhenContributing() {
+            var readers = neutral().stream().filter(chapter -> !chapter.path().startsWith(CONTRIBUTING)).toList();
+            var naming = found(readers, THE_LOG);
+            assertTrue(naming.isEmpty(), () -> naming.size() + " lines name the log: " + naming);
+        }
+
+        @Test
+        @DisplayName("strikes nothing through, because a reader is told what is and not what was")
+        void strikesNothingThrough() {
+            var struck = found(neutral(), STRUCK);
+            assertTrue(struck.isEmpty(), () -> struck.size() + " lines strike something through: " + struck);
+        }
+
+        @Test
+        @DisplayName("names no gap and no working document, which only the repository can follow")
+        void namesNoGapOrWorkingDocument() {
+            var readers = neutral().stream().filter(chapter -> !chapter.path().startsWith(CONTRIBUTING)).toList();
+            var working = found(readers, WORKING);
+            assertTrue(working.isEmpty(), () -> working.size() + " lines name a gap or a working document: " + working);
         }
     }
 

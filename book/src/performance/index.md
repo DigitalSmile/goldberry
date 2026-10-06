@@ -3,7 +3,7 @@
 <p class="gb-lede">A native window is up in a tenth of a second, a settled frame costs microseconds, and this page says where the rest of the time goes.</p>
 
 Read this page to know which numbers to expect from a Goldberry window and
-where each one was measured. The three chapters after it say how to start
+what each one measures. The three chapters after it say how to start
 fast, how to keep a frame cheap, and how to measure your own application
 rather than trust these figures.
 
@@ -16,22 +16,21 @@ rather than trust these figures.
 <div><b>9.1</b><i>µs</i><span>a frame in which nothing changed: layout and the walk on the retained tree</span></div>
 </div>
 
-Every number above comes from a record in the decision log, and the table
-below says which.
+The table below says what each number measures, and how.
 
-| Number | What it measures | Record |
+| Number | What it measures | Method |
 |---|---|---|
-| 519 ms, 116 ms | The showcase's native image, median of 7 runs, timed from `exec`. The window is open at 116.2 ms in the run the record prints | [ADR-0506](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0506-start-up-is-timed-from-the-kernels-clock-and-a-native-window-is-up-in-a-tenth-of-a-second.md) |
-| 1980 ms, 1340 ms | The showcase on the JVM, cold and with an AOT cache, median of 5 runs | [ADR-0506](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0506-start-up-is-timed-from-the-kernels-clock-and-a-native-window-is-up-in-a-tenth-of-a-second.md) |
-| 3.13 ms, 4.28 ms | Median and 95th percentile of a 960×640 frame with text, paced to the display | [Status, M1](../status.md#m1--vertical-slice), from the pacing in [ADR-0047](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0047-a-frame-nobody-sees-costs-full-price.md) |
-| 2.3 ms | A 3840×2160 paint in `PaintBenchmark`, down from 6.0 ms on one thread | [ADR-0042](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0042-blend2ds-workers-and-how-many.md) |
-| 117 µs | One small box changed at 960×640, repainted inside its damage, down from 367 µs | [ADR-0072](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0072-a-partial-repaint-needs-a-promise.md) |
-| 9.1 µs | Layout and the walk on a showcase-shaped tree when nothing changed, down from 190 µs | [ADR-0069](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0069-the-render-tree-is-retained.md) |
+| 519 ms, 116 ms | The showcase's native image, from `exec` to the first frame, and the moment the window is open | median of 7 runs, timed from `exec` |
+| 1980 ms, 1340 ms | The showcase on the JVM, cold and with an AOT cache | median of 5 runs |
+| 3.13 ms, 4.28 ms | A 960×640 frame with text, paced to the display | median and 95th percentile |
+| 2.3 ms | A 3840×2160 paint in `PaintBenchmark` | four paint workers, against 6.0 ms on one thread |
+| 117 µs | One small box changed at 960×640, repainted inside its damage | against 367 µs for a full repaint |
+| 9.1 µs | Layout and the walk on a showcase-shaped tree when nothing changed | the retained tree, against 190 µs rebuilt every frame |
 
 ## The frame loop
 
 One UI thread runs the loop. Blend2D's workers rasterize the bands. This is
-the pipeline from `docs/ARCHITECTURE.md` §5, in the order a frame runs it:
+the pipeline, in the order a frame runs it:
 
 ```text
 input events → dispatch (hit-test on render tree)
@@ -49,27 +48,21 @@ has the full picture.
 
 ## Where the time goes at 960×640
 
-Everything before rasterization is now a rounding error. Rasterization and
+Everything before rasterization is a rounding error. Rasterization and
 present are the frame.
 
-| Stage | Cost | Record |
+| Stage | Cost | Note |
 |---|---|---|
-| Everything but rasterization, nothing changed | 3.5 µs, down from 354 µs | [ADR-0070](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0070-the-cascade-resolves-invalidated-nodes.md) |
-| Rasterization on one thread | about 320 µs | [ADR-0070](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0070-the-cascade-resolves-invalidated-nodes.md) |
-| Paint in a live window, four workers | 2.146 ms, from 2.856 ms synchronous | [ADR-0042](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0042-blend2ds-workers-and-how-many.md) |
-| Present, unpaced | about 6.4 ms, of which 4.8 ms is blocking on the swapchain and 43 µs is this repository's code | [ADR-0046](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0046-what-present-actually-does.md) |
-| Present, paced to the display | 1.20 ms, with paint falling to 1.61 ms beside it | [ADR-0047](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0047-a-frame-nobody-sees-costs-full-price.md) |
+| Everything but rasterization, nothing changed | 3.5 µs | against 354 µs with nothing retained or cached |
+| Rasterization on one thread | about 320 µs | the whole frame, with Blend2D pinned to one thread |
+| Paint in a live window, four workers | 2.146 ms | against 2.856 ms synchronous |
+| Present, unpaced | about 6.4 ms | 4.8 ms of it blocks on the swapchain and 43 µs is the toolkit's own code |
+| Present, paced to the display | 1.20 ms | paint falls to 1.61 ms beside it |
 
 Read the paint row with care. The same scene paints in 0.34 ms in a benchmark
 loop and in 2.15 ms in a running window, because `present` leaves the next
 paint's caches cold. Only a figure from a live window says what a frame costs.
 [Measuring](measuring.md#a-benchmark-is-not-a-frame) explains the gap.
-
-> [!NOTE]
-> Every number on this page was measured on one Linux machine. The run that
-> would repeat the frame benchmarks on Linux, macOS and Windows is open, and
-> the status page says what each platform's CI leg has reported so far.
-> See [the frame evidence](../status.md#the-frame-evidence--built-run-and-asserting-no-budget).
 
 ## The three chapters
 

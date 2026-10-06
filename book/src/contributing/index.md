@@ -14,7 +14,7 @@ Third-party software is disclosed in [`THIRD-PARTY-NOTICES.md`](https://github.c
 ./gradlew checkLicenses
 ```
 
-A dependency named in one and not the other fails the build. The reasoning is in [ADR-0015](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0015-licensing-and-third-party-disclosure.md).
+A dependency named in one and not the other fails the build.
 
 ## What a change passes
 
@@ -25,23 +25,23 @@ A dependency named in one and not the other fails the build. The reasoning is in
 | Formatting | Every Java file matches palantir-java-format | `./gradlew spotlessApply` |
 | Error Prone and NullAway | `src/main` compiles with no finding, and every package is `@NullMarked` | Reading the finding |
 | PMD | The hand-picked rules in `config/pmd/ruleset.xml` | Reading the finding |
-| SpotBugs | Reports only. `build/reports/spotbugs/main.html` per module | Nothing yet |
+| SpotBugs | Reports only. `build/reports/spotbugs/main.html` per module | Nothing. It does not gate |
 | Tests, twice | The suite passes bound reflectively and again woven | The test, or the code |
-| Goldens | Every reference image still matches what the code draws | `./gradlew blessGoldens`, then review the diff |
+| Goldens | Every reference image matches what the code draws | `./gradlew blessGoldens`, then review the diff |
 | Export list | Every symbol bound in Java is exported, and nothing exported is unbound | Editing `goldberry.symbols` |
 | `package-info` | Every package has one, with a doc comment and `@NullMarked` | Writing it |
 | Javadoc | A `[link]` in a published module resolves | Fixing the link |
 | Markdown | No trailing whitespace, a final newline | `./gradlew formatMarkdown` |
 | Licences | `THIRD-PARTY-NOTICES.md` and `licenses/` agree | Editing both |
 
-[Tests and gates](testing.md) says what each one runs and why. The record behind the format-and-analysis tier is [ADR-0497](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0497-every-package-says-what-it-is-and-is-null-marked.md), and the record behind the two test runs is [ADR-0155](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0155-a-jar-binds-at-run-time-an-image-is-woven.md).
+[Tests and gates](testing.md) says what each one runs and why.
 
 > [!TIP]
 > Run `./gradlew spotlessApply check` before pushing. The formatter is the one gate that fixes itself.
 
 ## A widget arrives whole
 
-A new widget is not done when it draws. `docs/testing.md` §5 says what it arrives with, and the rule is before review, not after:
+A new widget is not done when it draws. Before review, it arrives with:
 
 1. a row in the widget specification, in the `core-widgets.md` format;
 2. a row of design-system metrics;
@@ -53,7 +53,7 @@ The gallery is the demo, the visual-regression corpus and the accessibility swee
 
 ## Decisions are recorded
 
-A change that chooses between designs gets an architecture decision record beside the code, in the same pull request. The log is the last part of this book, and [ADR-0001](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0001-record-architecture-decisions.md) says why it exists. [Recording a decision](decisions.md) says how to write one and what the build checks about it.
+A change that chooses between designs gets an architecture decision record beside the code, in the same pull request. The log is read on GitHub. [Recording a decision](decisions.md) says how to write one and what the build checks about it.
 
 ## The chapters
 

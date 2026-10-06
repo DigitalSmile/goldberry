@@ -21,7 +21,7 @@ The `y` of a draw is the baseline. The top of a line is
 
 A `FontFace` is a typeface parsed once. A `Font` is one size of it. `Fonts`
 is the book that caches both, keyed by family, weight and style, then by
-size ([ADR-0044](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0044-one-face-many-sizes.md)).
+size.
 
 ```java
 try (var face = FontFace.bundled(BundledFont.UI);
@@ -36,9 +36,8 @@ must outlive every font over it. `Font.bundled(BundledFont.UI, 16)` parses a
 face of its own, which is right for exactly one size.
 
 Shaping runs in the face's own design units and the size is applied once, in
-the font matrix, so a shaped run is correct at every size
-([ADR-0034](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0034-one-size-and-the-design-unit-crossing.md)). `Font`
-exists to make applying it twice unrepresentable.
+the font matrix, so a shaped run is correct at every size. `Font` exists to
+make applying it twice unrepresentable.
 
 A running application does not open a book of its own. The launcher opens one
 and hands it to the renderer, and a widget asks `Paints.Context.font(style)`
@@ -58,14 +57,11 @@ labels asks `host.fonts()`.
 
 A weight is a face and so is an italic: Inter's italic is drawn, not
 sheared, and `font-weight: 600; font-style: italic` resolves to a file rather
-than to the nearer of three
-([ADR-0066](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0066-a-weight-is-a-face-and-color-inherits.md),
-[ADR-0323](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0323-an-italic-is-a-face-and-the-matrix-closes.md)).
+than to the nearer of three.
 A weight is a CSS number, though, and a stylesheet may write any of them: the
 face is chosen by CSS's own nearest-weight rule over the faces the family has,
 so over Inter's two `font-weight: 500` is the 400 and `bold` (700) is the 600,
-as a browser draws them
-([ADR-0538](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0538-a-weight-is-a-number-and-the-nearest-face-answers-it.md)).
+as a browser draws them.
 There is no variable `wght` axis: Inter's 500 is not instanced from its
 variable file, and an application that wants a 500 ships one. A glyph
 neither family has draws `.notdef`: there is no fallback cascade beyond the
@@ -90,8 +86,7 @@ private static FontSource forum(int weight, String file) {
 opens. A face named here reaches the cascade, paragraph layout, a field's
 caret and the glyph cache together, and a stylesheet names it with
 `font-family: Forum`. The bundled families are searched first, so a file
-called `Inter` cannot replace the face the design system was drawn against
-([ADR-0349](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0349-a-face-an-application-ships-is-found-after-the-bundled-ones.md)).
+called `Inter` cannot replace the face the design system was drawn against.
 
 **The weight is any CSS number**, 1 to 1000. A family shipped at 500, 600, 700
 and 800 gives each of them to the stylesheet that asks, and a weight it does
@@ -114,8 +109,7 @@ unread. One that is not there is a warning naming the face and why, a
 package nobody opened told apart from a file that is missing, and text in it
 is drawn in the UI face. Nothing is parsed until something is drawn in the
 face. `fonts.unreadable()` lists them, for an application that would rather
-refuse to start
-([ADR-0539](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0539-an-application-reads-its-own-resources-and-a-missing-face-is-said-at-start.md)).
+refuse to start.
 `FontSource.of(family, weight, style, bytes)` takes bytes already in hand.
 
 ## Paragraphs
@@ -128,23 +122,20 @@ prose.paint(frame, 16, 16, 240, 0xFFECEFF4);
 
 A `Paragraph` is shaped once. Every re-wrap after that is arithmetic over the
 glyphs shaping produced, which is what makes it affordable to answer a layout
-pass from inside it
-([ADR-0036](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0036-the-paragraph-is-shaped-once-and-wrapped-many-times.md)).
+pass from inside it.
 A widget never calls `Paragraph.of` itself: `Paints.Context.paragraph(style,
 text)` shapes through a cache and returns the same instance each frame for
 the same text, which the retained render tree relies on.
 
 Right-to-left text is shaped in logical order and therefore drawn mirrored.
 `isBidiApproximate()` says when that happened. It is an approximation that
-says so rather than a refusal
-([ADR-0218](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0218-a-paragraph-approximates-bidi-rather-than-refusing-it.md)).
+says so rather than a refusal.
 Style runs within one paragraph are not built.
 
 ## Text scale
 
 Text scales from 90% to 150% without the boxes around it moving, which is
-the condition every control is built to survive
-([ADR-0267](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0267-a-text-scale-scales-the-text-and-not-the-layout.md)).
+the condition every control is built to survive.
 
 ```java
 renderer.textScale(1.5);     // clamped to WidgetRenderer.MINIMUM_TEXT_SCALE..MAXIMUM_TEXT_SCALE
@@ -152,7 +143,7 @@ renderer.textScale(1.5);     // clamped to WidgetRenderer.MINIMUM_TEXT_SCALE..MA
 
 The factor is applied where a resolved style becomes a `Font`, nowhere in
 the cascade. It is a switch on `WidgetRenderer`, which the low-level path
-builds itself; the launcher does not expose it yet.
+builds itself. The launcher does not expose it.
 
 ## Icons
 
@@ -173,8 +164,7 @@ row {
 Lucide's 1544 icons ship in `goldberry-core` as path data on a 24 by 24 grid.
 They are strokes, not fills: 2 px round-capped outlines, so an `Icon` carries
 a stroke width as well as a shape, and it is built pre-scaled to one size so
-nothing is transformed at draw time
-([ADR-0043](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0043-icons-are-stroked-paths.md)).
+nothing is transformed at draw time.
 `BundledAssets.iconNames()` lists the set, and `Icon.of(name, pathData, size)`
 builds one from your own SVG path data on the same grid. `Icon.bundled` throws
 for a name the set does not have. `Icon.find(name, size)` returns an
@@ -183,15 +173,12 @@ for a name the set does not have. `Icon.find(name, size)` returns an
 Markup names an icon and never builds one. `icon="plus"` resolves against
 the `Icons` registry the application owns, because a document reloaded on
 every keystroke would otherwise rebuild one per reload. An `Icon` is an
-immutable value whose `close()` does nothing since
-[ADR-0277](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0277-a-path-is-a-value-and-the-rasterizers-is-package-private.md),
-and the showcase still opens its icons in `start` and closes them in `stop`.
+immutable value, and its `close()` does nothing.
 
 An icon is tinted by `color`, like text. Inside a widget that takes `icon=` it is
 drawn at the size it was built at. The standalone [`icon`](../components/drawing.md#icon)
 node is the other way round: the stylesheet sizes its box and the outline is
-scaled to fit, so `icon "plus"` at 11 px and at 24 px is one line of CSS each
-([ADR-0532](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0532-an-icon-is-the-size-of-its-box.md)).
+scaled to fit, so `icon "plus"` at 11 px and at 24 px is one line of CSS each.
 It looks the name up in the registry first and then in the bundled set, so it
 needs no registration. An icon-only button has an empty label and needs
 `name=` for its accessible name.
@@ -203,15 +190,12 @@ implementation 'dev.goldberry:goldberry-emoji:<version>'
 ```
 
 Noto Color Emoji ships as its own artifact, because five megabytes of
-paint graphs should not be inherited by an application that never draws one
-([ADR-0384](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0384-the-emoji-face-is-an-artifact-an-application-opts-into.md)).
+paint graphs should not be inherited by an application that never draws one.
 With the module on the path, nothing else changes: the itemizer splits an
 emoji sequence out of a line and shapes it in the emoji face, and the rest of
-the line stays in the family the cascade chose
-([ADR-0393](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0393-an-emoji-is-routed-by-the-text-and-drawn-in-layers.md)).
+the line stays in the family the cascade chose.
 It is the COLRv1 build, drawn from its paint graphs, so an emoji is as sharp
-at 400% as at 100%
-([ADR-0456](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0456-the-emoji-face-is-noto-drawn-from-its-paint-graphs.md)).
+at 400% as at 100%.
 A stylesheet reaches the face by name as `font-family: "Noto Color Emoji"`.
 
 Without the module, `Font.bundled(BundledFont.EMOJI, size)` throws a
@@ -222,8 +206,7 @@ Without the module, `Font.bundled(BundledFont.EMOJI, size)` throws a
 
 `text-input` and `text-area` are controls. Underneath them is an `Editor`
 that is none of those things, and it is reachable on its own: a caret in a
-sticky on a board, a label on a shape, anything drawn on a `canvas`
-([ADR-0285](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0285-a-caret-is-the-text-stacks-and-not-a-controls.md)).
+sticky on a board, a label on a shape, anything drawn on a `canvas`.
 
 ```java
 var editor = new Editor(font).multiline(true).wrapWidth(240).clipboard(host.clipboard());
@@ -255,10 +238,8 @@ a break. An input method's composition arrives through `onPreedit` and is
 drawn beside the document, not in it.
 
 A `text-area` is also an editor. `gutter=#true` numbers the hard lines at
-the positions the wrap put them
-([ADR-0331](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0331-a-gutter-numbers-hard-lines-at-soft-positions.md)),
-and `.onEdit(...)` and `.edit(...)` hand a shortcut the caret as well as the
-text ([ADR-0332](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0332-an-editor-is-handed-the-caret.md)).
+the positions the wrap put them, and `.onEdit(...)` and `.edit(...)` hand a
+shortcut the caret as well as the text.
 
 ## Images
 
@@ -271,9 +252,7 @@ byte[] png = logo.scaled(64, 64).encodePng();
 ```
 
 Encoded bytes become an `Image`: PNG, JPEG and QOI through the rasterizer's
-codecs, WebP through libwebp, and GIF through a decoder written in Java
-([ADR-0283](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0283-an-image-is-a-value-and-the-decoder-is-the-one-thing-blend2d-allocates.md),
-[ADR-0329](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0329-two-more-codecs-one-fetched-and-one-written.md)). The
+codecs, WebP through libwebp, and GIF through a decoder written in Java. The
 format comes from the bytes, never from a file name: `ImageFormat.of(bytes)`
 says which. `Image.decodeAnimation(bytes)` returns every frame of an animated
 GIF or WebP with its delay; `decode` returns the first.
@@ -299,7 +278,7 @@ Underneath is `Clipboard`'s other half, `has`, `read` and `write` over a
 MIME type. One write offers several types in order, so pasting into your
 own application keeps a document's format and pasting into a chat gets a
 picture. A write is an offer: the platform asks for the bytes when somebody
-pastes ([ADR-0286](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0286-a-clipboard-write-is-an-offer.md)).
+pastes.
 
 ### A picture with no window
 
@@ -314,16 +293,9 @@ byte[] png = Offscreen.of(1200, 900)                     // physical pixels
 `Offscreen` runs the window's own sequence with no display, no SDL and no
 compositor: mount, lay out, tell each widget what size it came out as,
 advance a virtual clock past the arrival transitions, and paint what settled.
-Two renders of one document are the same bytes
-([ADR-0284](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0284-a-picture-with-no-window-under-it.md)). It is what
+Two renders of one document are the same bytes. It is what
 [Testing an application](testing.md) builds on.
 
 ## Read more
 
-- [ADR-0034](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0034-one-size-and-the-design-unit-crossing.md): one size, applied once
-- [ADR-0036](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0036-the-paragraph-is-shaped-once-and-wrapped-many-times.md): shaped once, wrapped many times
-- [ADR-0043](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0043-icons-are-stroked-paths.md): icons are strokes
-- [ADR-0044](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0044-one-face-many-sizes.md): one face, many sizes
-- [ADR-0285](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0285-a-caret-is-the-text-stacks-and-not-a-controls.md): the editor
-- [ADR-0349](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0349-a-face-an-application-ships-is-found-after-the-bundled-ones.md): shipping a face
 - [Text and links](../components/text.md): the `text` and `link` widgets

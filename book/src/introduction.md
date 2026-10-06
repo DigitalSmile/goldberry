@@ -19,7 +19,7 @@ behind one SDL3 backend.
 ## Where to start
 
 <div class="gb-cards">
-<a class="gb-card" href="overview/concept.html"><strong>Overview</strong><span>What Goldberry is, how it is built, and what it does not do yet.</span></a>
+<a class="gb-card" href="overview/concept.html"><strong>Overview</strong><span>What Goldberry is, how it is built, and what it does not do.</span></a>
 <a class="gb-card" href="getting-started/requirements.html"><strong>Getting started</strong><span>Requirements, the dependencies, a first window on the JVM, and the same window as a native binary.</span></a>
 <a class="gb-card" href="layout/index.html"><strong>Layout</strong><span>Flexbox from Yoga. Rows, columns, stacks, scrolling, split panes and masonry, each with an example.</span></a>
 <a class="gb-card" href="components/index.html"><strong>Components</strong><span>Every widget in the catalogue: markup, Java, attributes, styling and keyboard.</span></a>
@@ -82,23 +82,21 @@ part.
 
 ## Status
 
-Goldberry's first release is `2026.2`, on Maven Central, and every push to
-`master` publishes a snapshot of the next line to the snapshot repository. The catalogue has 79 markup names, the GPU lane is built
-in part, and three content modules exist: Markdown and HTML, emoji, and media.
-[Status](status.md) records what is built, milestone by milestone, and
-[TODO](TODO.md) what is not.
+Releases are on Maven Central. The current release is `2026.2`, and every push
+to `master` publishes a `-SNAPSHOT` of the next version. The catalogue has 82
+markup names. The optional modules are Markdown and HTML, emoji, media and the
+GPU. [Status](status.md) records what is built and [TODO](TODO.md) what is
+not.
 
 > [!IMPORTANT]
-> There is no screen-reader support on any platform, and none is scheduled
-> ([ADR-0440](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0440-the-accessibility-bridge-is-on-hold-and-the-semantics-tree-stays.md)).
-> The rest of the accessibility baseline is built: keyboard reachability, a
-> focus ring, WCAG AA contrast, hit targets, reduced motion and text scale.
+> There is no screen-reader support on any platform. The rest of the
+> accessibility baseline is in place: keyboard reachability, a focus ring, WCAG
+> AA contrast, hit targets, reduced motion and text scale.
 > [Limitations](overview/limitations.md) lists the rest.
 
 ## About this book
 
 The six parts before the reference are the guide. The
 [decision log](https://github.com/DigitalSmile/goldberry/tree/master/book/src/adr) on GitHub is the project's memory: one record per
-significant choice, with the forces, the alternatives and the costs. The guide
-links a record wherever it states a rule, so *why* is always one click away.
+significant choice, with the forces, the alternatives and the costs.
 Every page has an *edit this page* link to its source on GitHub.

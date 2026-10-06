@@ -9,23 +9,18 @@ one of them.
 
 **The overlay layer** is part of the window's own tree. Every window is rooted
 at a `WindowRoot`, and an overlay is one of its children beside the
-application's, so it is painted by the same frame and clipped to the window
-([ADR-0100](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0100-a-window-has-a-layer-above-its-application.md)).
+application's, so it is painted by the same frame and clipped to the window.
 `host.overlay(widget, corner)` puts a widget in a corner and `host.fill(widget)`
 covers the window. Both return an `Overlay` whose `remove()` takes it away at
 once and whose `dismiss()` lets its widget leave the way it leaves first.
 A dialog, a HUD, a toast stack and a tour live here.
 
 **A platform popup** is a second window the platform draws, parented to this
-one and free of its bounds
-([ADR-0103](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0103-a-popup-is-a-second-tree-in-a-second-window.md)).
-`host.popup(content, anchorId, placement)` measures the content, places it
-against the node with that id, flips it when it would leave the screen, and
-opens it ([ADR-0104](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0104-a-popup-is-measured-then-placed.md)). The
-answer is an `Optional<Popup>`, and empty is an ordinary answer: the video
-driver may have no popup windows, or nothing with that id has been painted yet
-([ADR-0102](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0102-a-popup-is-a-window-the-platform-may-refuse.md)). A
-menu, a select's list and a tooltip live here.
+one and free of its bounds. `host.popup(content, anchorId, placement)` measures
+the content, places it against the node with that id, flips it when it would
+leave the screen, and opens it. The answer is an `Optional<Popup>`, and empty
+is an ordinary answer: the video driver may have no popup windows, or nothing
+with that id has been painted. A menu, a select's list and a tooltip live here.
 
 ```java
 host.popup(new Popover(new Text("Saved.")), "save-button", Placement.BELOW)
@@ -76,19 +71,16 @@ private void discard() {
 </div>
 
 A dialog is a widget, and showing one is not: `Dialogs.show(host, dialog)`
-fills the window with it and hands back the `Overlay`
-([ADR-0176](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0176-a-dialog-is-a-widget-and-showing-one-is-not.md)).
-Every route out (a button, `Escape`, a press on the veil, the ×) fades the
-panel first, calls the handler when the fade is over, and then removes the
-overlay. A handler does not have to call `remove()`, and one that still does
-is harmless. When the application decides the dialog is finished without the
-user, `open.dismiss()` runs the same fade, presses nothing, and removes it at
-the end. `open.remove()` takes it away at once, with no fade
-([ADR-0523](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0523-a-dialog-takes-itself-off-the-window.md)).
+fills the window with it and hands back the `Overlay`. Every route out, a
+button, `Escape`, a press on the veil or the ×, fades the panel first, calls
+the handler when the fade is over, and then removes the overlay. A handler does
+not have to call `remove()`, and one that does is harmless. When the
+application decides the dialog is finished without the user, `open.dismiss()`
+runs the same fade, presses nothing, and removes it at the end.
+`open.remove()` takes it away at once, with no fade.
 
 Showing a dialog in the same turn another is removed is safe: each overlay is
-its own node, so the new dialog never inherits the old one's state
-([ADR-0522](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0522-each-overlay-is-its-own-node.md)).
+its own node, so the new dialog never inherits the old one's state.
 
 **Height.** A dialog is never taller than the window less 24 at the top and
 bottom. When its content would make it taller, the title and the button bar
@@ -100,10 +92,8 @@ and its buttons.
 Focus lands on the first focusable thing in the panel, `Tab` cycles within it,
 and a press on the veil counts as the dismissive action. When the overlay is
 removed the keyboard goes back to the one node that had it before, with the
-same keyboard-or-pointer flag it had then
-([ADR-0180](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0180-the-keyboard-goes-back-where-it-was.md)). The veil is
-the whole of the pointer's modality, and modality is one flag on the panel
-([ADR-0232](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0232-modality-is-one-flag-and-not-a-scrim.md)).
+same keyboard-or-pointer flag it had then. The veil is the whole of the
+pointer's modality, and modality is one flag on the panel.
 
 **Attributes**
 
@@ -128,7 +118,7 @@ The CSS type is `dialog`, the panel, inside a `dialog-scrim`. Its parts are
 title and a `dialog-dismiss` in a `dialog-header` row. The body sits in a
 `scroll` with the class `dialog-scroll`. The buttons are ordinary
 `button`s: the affirmative one carries `primary`, a neutral one `ghost`, the
-dismissive one neither. The bar puts the affirmative on the right; a theme
+dismissive one neither. The bar puts the affirmative on the right. A theme
 that wants Windows order writes `dialog-actions { flex-direction: row-reverse }`.
 Padding 24, minimum width 320, maximum 80% of the window, and no taller than
 the window less its margins.
@@ -138,19 +128,11 @@ the window less its margins.
 | Key | Does |
 |---|---|
 | `Enter` | presses the affirmative action |
-| `Escape` | presses the dismissive action, as a press on the veil does; in a dialog with a ×, does what the × does |
+| `Escape` | presses the dismissive action, as a press on the veil does. In a dialog with a ×, it does what the × does |
 | `Tab` | moves within the dialog and never leaves it |
 
 A dialog with no dismissive action and no × cannot be dismissed by `Escape` or
 the veil. The × is not a Tab stop, because `Escape` is the same way out.
-
-**Read more**
-
-- [ADR-0176: A dialog is a widget and showing one is not](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0176-a-dialog-is-a-widget-and-showing-one-is-not.md)
-- [ADR-0522: Each overlay is its own node](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0522-each-overlay-is-its-own-node.md)
-- [ADR-0523: A dialog takes itself off the window](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0523-a-dialog-takes-itself-off-the-window.md)
-- [ADR-0180: The keyboard goes back where it was](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0180-the-keyboard-goes-back-where-it-was.md)
-- [ADR-0232: Modality is one flag and not a scrim](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0232-modality-is-one-flag-and-not-a-scrim.md)
 
 ### `action`
 
@@ -205,9 +187,8 @@ host.popup(popover, "save-button", Placement.BELOW)
 </div>
 
 The two halves are deliberately not one widget. `popover` is the panel and
-nothing else; where it goes, when it flips and when it goes away belong to the
-popup, which serves a tooltip and a select equally
-([ADR-0104](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0104-a-popup-is-measured-then-placed.md)).
+nothing else. Where it goes, when it flips and when it goes away belong to the
+popup, which serves a tooltip and a select equally.
 
 **Attributes**
 
@@ -256,7 +237,7 @@ new Column(
 
 </div>
 
-A message is not a toast. A toast is transient and floats over the window; a
+A message is not a toast. A toast is transient and floats over the window. A
 message is part of the layout and stays until the condition does. Its text can
 be bound, and a null or blank value renders as nothing, which is how a form's
 error summary appears and goes:
@@ -280,8 +261,8 @@ there are none.
 
 **Styling**
 
-The CSS type is `message`, with the class `success`, `warning` or `danger`;
-the base rule is the info look. Its parts are `message-icon`, `message-body`
+The CSS type is `message`, with the class `success`, `warning` or `danger`.
+The base rule is the info look. Its parts are `message-icon`, `message-body`
 holding the text and `message-actions`, and `message-dismiss`, which matches
 `:hover`, `:active` and `:focus-visible`. Padding 12/16, radius 8, a 1px border
 and a 4% tint of the kind's colour.
@@ -319,9 +300,7 @@ private void toggleHud() {
 </div>
 
 A HUD never asks for a frame. A readout that requested one so it could show a
-fresh number would be measuring itself
-([ADR-0101](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0101-a-diagnostic-must-not-be-the-thing-it-measures.md)).
-It reads the window's statistics down the render context and updates when
+fresh number would be measuring itself. It reads the window's statistics down the render context and updates when
 something else paints.
 
 **Attributes**
@@ -342,17 +321,11 @@ The CSS type is `hud`. Each reading is a `hud-reading` carrying its name as a
 class, `hud-reading.paint`, plus `near` or `over` when a time approaches or
 passes the frame budget, and a `hud-caption` follows.
 
-**Read more**
-
-- [ADR-0100: A window has a layer above its application](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0100-a-window-has-a-layer-above-its-application.md)
-- [ADR-0101: A diagnostic must not be the thing it measures](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0101-a-diagnostic-must-not-be-the-thing-it-measures.md)
-
 ## Toasts
 
 A toast is a queue, and the stack is the widget. There is no `toast` node: a
 `Toast` is a record, text with an optional action and a timeout, raised
-through a controller from wherever it happens
-([ADR-0177](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0177-a-toast-is-a-queue-and-the-stack-is-the-widget.md)).
+through a controller from wherever it happens.
 
 <div class="gb-shot"><img src="../images/toast-dark.png" alt="Three toasts stacked in a corner, the last with an Undo button"><p>A stack of three. The newest is nearest the corner.</p></div>
 
@@ -382,22 +355,16 @@ never mentions the stack again.
 | `Toasts.of(context)` | The controller from inside a widget's build. |
 
 Three show at once by default. A fourth waits its turn and comes forward while
-the oldest is still fading. The timer pauses while the pointer is on a toast
-and resumes from where it was. A click on the plate dismisses it. When one
-leaves, the older ones slide to close the hole, and at a top corner the newest
-is nearest the top
-([ADR-0178](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0178-a-stack-closes-its-own-hole.md)).
+the oldest fades out. The timer pauses while the pointer is on a toast and
+resumes from where it was. A click on the plate dismisses it. When one leaves,
+the older ones slide to close the hole, and at a top corner the newest is
+nearest the top.
 
 **Styling**
 
 The stack is a `toaster`, with its corner as a class, `toaster.bottom-end`.
 Each toast is a `toast` holding `toast-text` and, with an action, a
 `button.ghost`. Width 360, padding 12/16, radius 8.
-
-**Read more**
-
-- [ADR-0177: A toast is a queue and the stack is the widget](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0177-a-toast-is-a-queue-and-the-stack-is-the-widget.md)
-- [ADR-0178: A stack closes its own hole](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0178-a-stack-closes-its-own-hole.md)
 
 ## Tours
 
@@ -416,8 +383,7 @@ A `Stop` names a target by id, with a title and a body. `Tours.start(host,
 stops)` fills the window with the tour and returns the `Overlay`, or `null`
 for an empty list. `Tours.start(host, stops, onEnd)` is told when it ends.
 Each stop reads the target's painted rectangle on every build, scrolls it into
-view first, and waits for the frame before placing the card
-([ADR-0121](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0121-a-tour-is-a-veil-and-a-sequence.md)). A stop whose
+view first, and waits for the frame before placing the card. A stop whose
 target is not on screen is logged and skipped. `Stop.within(ScrollController)`
 names the scroll to use when the enclosing one is not the right one.
 
@@ -428,7 +394,7 @@ the cut-out, `tour-ring` and `tour-card`, which holds texts classed
 `tour-title`, `tour-body` and `tour-count`, and buttons classed `tour-skip`,
 `tour-back` and `tour-next`. The card is radius 12, padding 16, at most 320
 wide, and the cut-out is inset 4 with radius 8. The veil's cut-out travels
-between stops ([ADR-0269](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0269-a-tour-arrives-and-its-cut-out-travels.md)).
+between stops.
 
 **Keyboard**
 
@@ -438,17 +404,11 @@ between stops ([ADR-0269](https://github.com/DigitalSmile/goldberry/blob/master/
 | `Left` | previous stop |
 | `Escape` | skips the whole tour |
 
-**Read more**
-
-- [ADR-0121: A tour is a veil and a sequence](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0121-a-tour-is-a-veil-and-a-sequence.md)
-- [ADR-0268: A tour card says how tall it came out](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0268-a-tour-card-says-how-tall-it-came-out.md)
-- [ADR-0269: A tour arrives and its cut-out travels](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0269-a-tour-arrives-and-its-cut-out-travels.md)
-
 ## Tooltips
 
 A tooltip is an attribute, not a widget. Any node takes `tooltip="…"`,
 including one from an application's own module, and the text rides on its
-`Attributes` ([ADR-0105](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0105-a-tooltip-is-an-attribute-not-a-widget.md)).
+`Attributes`.
 
 <div class="gb-tabs">
 
@@ -463,8 +423,7 @@ new Button("Menu", window::openMenu).tooltip("A platform popup, free of this win
 </div>
 
 It shows after 500 ms of hover, or when keyboard focus arrives, placed above
-the node and centred, and moves between neighbours after 100 ms
-([ADR-0308](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0308-a-tooltip-follows-the-focus-ring.md)). The tokens
+the node and centred, and moves between neighbours after 100 ms. The tokens
 `--gb-tooltip-delay` and `--gb-tooltip-delay-move` change the two delays. It is
 never focusable and never light-dismissed: it closes when the pointer leaves or
 focus moves, and not on a press. Plain text only.
@@ -472,10 +431,4 @@ focus moves, and not on a press. Plain text only.
 **Styling**
 
 The plate is the CSS type `tooltip`: padding 8/12, radius 4, `caption`, at most
-320 wide, on `--gb-hud-bg`
-([ADR-0380](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0380-the-tooltip-row-is-what-ships.md)).
-
-**Read more**
-
-- [ADR-0105: A tooltip is an attribute, not a widget](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0105-a-tooltip-is-an-attribute-not-a-widget.md)
-- [ADR-0308: A tooltip follows the focus ring](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0308-a-tooltip-follows-the-focus-ring.md)
+320 wide, on `--gb-hud-bg`.

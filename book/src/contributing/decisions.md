@@ -4,13 +4,13 @@
 
 ## Why the log exists
 
-`docs/ARCHITECTURE.md` says what the design is, in the present tense, with the reasoning compressed out. Six months on, nobody can tell which lines are considered choices and which are placeholders that survived because nobody revisited them. The decision log is the reasoning: one record per choice, with the forces that pushed on it, what was decided, what else was on the table, and what it costs. The point is that the reasoning survives the people who did it. That is [ADR-0001](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0001-record-architecture-decisions.md), and the log is the last part of this book.
+`docs/ARCHITECTURE.md` says what the design is, in the present tense, with the reasoning compressed out. Six months on, nobody can tell which lines are considered choices and which are placeholders that survived because nobody revisited them. The decision log is the reasoning: one record per choice, with the forces that pushed on it, what was decided, what else was on the table, and what it costs. The point is that the reasoning survives the people who did it. The log is `book/src/adr/`, read on GitHub, and [its index](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/README.md) lists every record.
 
 A record is reviewed in the same pull request as the code that implements it. Commit messages are keyed to changes, and a decision made across five commits is unrecoverable from them.
 
 ## When a change needs one
 
-A record is for a **choice**: there were alternatives, each had a cost, and the next maintainer could undo the choice without knowing what it was load-bearing for. A bug fix is a commit. It becomes a record when fixing it meant choosing between designs, or when the bug was invisible for a reason worth writing down. [ADR-0357](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0357-a-test-that-paints-asks-for-the-library-and-a-download-asks-twice.md) is one of those: the fix was two lines, and the rule it established applies to every test written since.
+A record is for a **choice**: there were alternatives, each had a cost, and the next maintainer could undo the choice without knowing what it was load-bearing for. A bug fix is a commit. It becomes a record when fixing it meant choosing between designs, or when the bug was invisible for a reason worth writing down.
 
 Two tests of whether a change needs a record:
 
@@ -25,14 +25,14 @@ Start from [the template](https://github.com/DigitalSmile/goldberry/blob/master/
 
 | Section | What goes there |
 |---|---|
-| Title | `# ADR-NNNN: Title`, or `# NNN. Title`. Both house styles are in use |
-| Status | `Proposed`, `Accepted`, or `Superseded by ADR-NNNN`. A bullet in the early records, a `## Status` section in the later ones |
+| Title | `# ADR-NNNN: Title`, or `# NNN. Title`. The log accepts both |
+| Status | `Proposed`, `Accepted`, or `Superseded by ADR-NNNN`. A bullet, or a `## Status` section |
 | Date | The day it was recorded |
 | Relates to | The `ARCHITECTURE.md` section, and the records it leans on or amends |
 | Context | The forces at play. What makes this a decision rather than an obvious call. The constraints stated honestly, including the ones about time or taste |
 | Decision | What was decided, in the active voice. One paragraph if possible |
 | Alternatives considered | What else was on the table, and the specific reason each was rejected. "It was worse" is not a reason |
-| Consequences | What becomes easy, what becomes hard, and what is now expensive to reverse. The costs, not only the benefits. This is the section future readers come for |
+| Consequences | What becomes easy, what becomes hard, and what becomes expensive to reverse. The costs, not only the benefits. This is the section future readers come for |
 
 ## Numbering
 
@@ -56,29 +56,27 @@ Records are numbered in the order they are **recorded**, not the order they were
 
 | Status | Meaning |
 |---|---|
-| Proposed | Written down, not yet agreed. An open question |
+| Proposed | Written down and not agreed. An open question |
 | Accepted | Agreed and in force |
 | Superseded | Replaced. The record names what replaced it |
 
 ## Supersession
 
-Records are immutable once accepted. A decision that turns out to be wrong is not edited. A new record supersedes it, the old one gains a `Superseded by ADR-NNNN` line in its status, and the wrong turn stays visible. [ADR-0012](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0012-native-ci-runners-with-a-pinned-glibc.md) replaced [ADR-0011](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0011-zig-cross-compilation-toolchain.md) that way, and [ADR-0510](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0510-publish-under-dev-goldberry.md) replaced [ADR-0009](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0009-publish-under-io-github-digitalsmile.md) and kept its text verbatim apart from the status line.
+Records are immutable once accepted. A decision that turns out to be wrong is not edited. A new record supersedes it, the old one gains a `Superseded by ADR-NNNN` line in its status, and the wrong turn stays visible.
 
-A record may also **amend** one without superseding it: a matrix that lost two rows, a mechanism that stayed while the numbers changed. The amending record says so in its status, and the amended one gains a blockquote pointing forward. ADR-0012 carries one from [ADR-0041](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0041-three-platforms-four-artifacts-two-backends.md).
+A record may also **amend** one without superseding it: a matrix that lost two rows, a mechanism that stayed while the numbers changed. The amending record says so in its status, and the amended one gains a blockquote pointing forward.
 
-The log will contain records that are wrong. That is the intended behaviour.
+The log contains records that are wrong. That is intended.
 
-## How the guide links a record
+## Where a record is linked from
 
-From a chapter of this book, a link is relative and ends in `.md`:
+A record is not built into the site, so a link to one is its GitHub address:
 
 ```markdown
 [ADR-0063](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0063-data-flows-down-events-flow-up.md)
 ```
 
-From `docs/`, the path is `../book/src/adr/NNNN-slug.md`. A Java doc comment does not cite a record at all: its reader has a tooltip or a javadoc site, not the repository, so the comment states the rule in plain words and links the chapter of this guide that covers it. The chapter's *Read more* is where the record is linked. That is [ADR-0518](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0518-a-doc-comment-explains-the-object-and-links-the-guide.md), and [Writing a doc comment](doc-comments.md) is the house style.
-
-Every chapter's *Read more* names the records behind it, and a widget's chapter links the record for each rule it states. A record that nothing links is a record nobody will find.
+From `docs/`, the path is `../book/src/adr/NNNN-slug.md`. A chapter of this guide states what the toolkit does and cites no record. A Java doc comment does not cite one either: its reader has a tooltip or a javadoc site, not the repository, so the comment states the rule in plain words and links the chapter of this guide that covers it. [Writing a doc comment](doc-comments.md) is the house style.
 
 ## The title
 
@@ -95,8 +93,8 @@ Not *Versioning*, and not *Use calendar versions*. The sentence is the decision,
 
 Two pages beside the log are updated when a record lands:
 
-- [Status](../status.md) says what is built, milestone by milestone. A record that completes a piece moves its row.
-- [TODO](../TODO.md) says what is deferred, known-broken, or specified and unbuilt. An entry leaves the top half when a record answers it and moves to *Answered* rather than being deleted, because each one records a trap somebody hit and the reasoning that got out of it. A record that closes an entry says so in its status, as [ADR-0508](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0508-ffmpegs-source-is-published-beside-its-binaries-from-the-same-place.md) does.
+- [Status](../status.md) says what is built. A record that completes a piece moves its row.
+- [TODO](../TODO.md) says what is deferred, known-broken, or specified and unbuilt. An entry leaves the top half when a record answers it and moves to *Answered* rather than being deleted, because each one records a trap somebody hit and the reasoning that got out of it. A record that closes an entry says so in its status.
 
 `docs/ARCHITECTURE.md` §17.1 lists where the design documents disagree with each other, and a record that settles one strikes the entry through rather than deleting it.
 
@@ -106,7 +104,7 @@ Two pages beside the log are updated when a record lands:
 <div><b>1</b><p>Take the next free number. The highest file in book/src/adr/ plus one.</p></div>
 <div><b>2</b><p>Copy 0000-template.md to NNNN-kebab-case-title.md and fill every section. Consequences last, and honestly.</p></div>
 <div><b>3</b><p>Add its line to the list at the end of book/src/adr/README.md, in the same shape as the line above it.</p></div>
-<div><b>4</b><p>Link it from the chapter, the status row or the TODO entry it changes, and from any record it supersedes or amends.</p></div>
+<div><b>4</b><p>Link it from the status row or the TODO entry it changes, and from any record it supersedes or amends. A chapter of the guide does not cite it.</p></div>
 <div><b>5</b><p>Run the build-logic tests and checkMarkdown. Put the record in the same pull request as the code.</p></div>
 </div>
 

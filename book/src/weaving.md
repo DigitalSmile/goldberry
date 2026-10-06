@@ -5,7 +5,7 @@ to them observable.
 
 **You do not have to run the weaver.** A plain jar binds a model reflectively and
 needs no build step at all; weaving is what a **GraalVM native image** is built
-from ([ADR-0155](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0155-a-jar-binds-at-run-time-an-image-is-woven.md)). The
+from. The
 short version is [below](#you-probably-do-not-need-to-run-any-of-this); this page
 starts with what the weaver does, because that is the form everything else is
 described against.
@@ -56,8 +56,7 @@ There is no `Property`, no `set`/`get`, no listener registration, and no
 `@Markup` is the widget-author's half: the build collects every annotated class in
 a module into a `WidgetCatalog`, declares it in the module descriptor, and
 `Widgets.inflater(...)` finds every catalog on the path. A module that ships
-widgets is found by an application that never names it
-([ADR-0131](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0131-a-widget-package-announces-itself.md)).
+widgets is found by an application that never names it.
 
 ## What the weaver actually does
 
@@ -69,8 +68,7 @@ its output, using the JDK 25 class-file API (JEP 484). For the class above,
 2. a synthesised `goldberry$set$gain(int)` — compare, store, notify;
 3. every `putfield gain` rewritten into a call to it — in that class and in any
    other class in the same build that assigns to it, which is what lets an
-   `@Actions` class beside the model change its values
-   ([ADR-0134](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0134-a-write-is-rewritten-wherever-it-is.md));
+   `@Actions` class beside the model change its values;
 4. `bindings()` and `actions()`, built from the annotations, the second as one
    `invokedynamic` per action bootstrapped by `LambdaMetafactory`.
 
@@ -90,13 +88,12 @@ not virtual, so no subclass and no proxy can see one — **the class that declar
 the field is the only place the write can be observed.** Doing that to the
 compiled class in the build is the one option that needs no `-javaagent`, no
 `opens`, and nothing generated at runtime, which is also what lets the result go
-into a GraalVM native image ([ADR-0127](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0127-the-binding-schema-fits-a-closed-world.md)).
+into a GraalVM native image.
 
 ## You probably do not need to run any of this
 
 **Model weaving is for a native image.** An ordinary jar binds the same
-annotations at run time and needs no build step at all
-([ADR-0155](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0155-a-jar-binds-at-run-time-an-image-is-woven.md)):
+annotations at run time and needs no build step at all:
 
 | | Woven | Bound at run time |
 |---|---|---|
@@ -107,9 +104,8 @@ annotations at run time and needs no build step at all
 | `Models.isWoven` | `true` | `false` |
 
 Everything else is identical. The same `Models.bindings`, the same
-`Models.actions`, the same paths, the same values, the same refusals — and
-`RuntimeAgreesWithWovenTest` drives one model class both ways through the same
-actions to keep it that way.
+`Models.actions`, the same paths, the same values, the same refusals. The two forms are held to agree on one model class driven
+both ways through the same actions.
 
 ### The sweep, and the one line it sometimes costs
 
@@ -173,9 +169,7 @@ module was compiled against, to weave a method with nothing in it for the weaver
 **A rewritten method keeps what javac wrote beside its code.** `Signature`, both
 annotation attributes, `MethodParameters` and `Exceptions` survive — on the model
 and on any class that writes to one. This is what lets the reflective binder
-(ADR-0155) keep working on a class that happens to have been woven, and it is
-asserted against the **woven bytes** by `MethodAttributesTest` rather than against
-whatever is on the test classpath.
+keep working on a class that happens to have been woven.
 
 Weaving is idempotent in the sense that matters: a pass over a tree that changed
 nothing rewrites no model and writes no class file. It is not a no-op — the
@@ -184,13 +178,9 @@ because that half is a generator rather than a rewriter and comparing its output
 to decide would cost more than writing it.
 
 **And it is safe on a half-recompiled tree**, which is what an incremental build
-hands it. A woven class is still recognised as a model on a later pass; a write
-the weaver already turned into a setter call still counts as a write; and a model
-gains package-private setters when a writer outside its nest appears. Each of
-those three was a real defect: without the first, a recompiled sibling's writes
-were left unrewritten and the build was green with dead bindings; without the
-second, recompiling only the model re-wove it with private setters its sibling
-could no longer reach, for an `IllegalAccessError` at the first click.
+hands it. A woven class is recognised as a model on a later pass; a write
+the weaver already turned into a setter call counts as a write; and a model
+gains package-private setters when a writer outside its nest appears.
 
 ## The two halves
 
@@ -202,12 +192,11 @@ separately:
 | `--models` | rewires `@Bind` fields, writes the `@Action` call sites | a **native image** only |
 | `--catalog` | writes the module's `WidgetCatalog` from its `@Markup` widgets, patches `provides` into `module-info.class`, writes `META-INF/services` | **every** build |
 
-Neither flag means both, which is what every pre-ADR-0155 integration already
-wrote.
+Neither flag means both.
 
-The catalog half has no runtime equivalent and never will: finding annotated
+The catalog half has no runtime equivalent: finding annotated
 classes while the program runs means scanning the path, which is the thing a
-`provides` exists to avoid ([ADR-0131](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0131-a-widget-package-announces-itself.md)).
+`provides` exists to avoid.
 So a module that ships widgets runs the weaver whatever it is building; a module
 that only keeps a model runs it only for an image.
 
@@ -254,7 +243,7 @@ def weave = tasks.register('weaveModels', JavaExec) {
     // this task's output tells Gradle that two tasks write to one place, and
     // Gradle answers an overlapping output by throwing away the compiler's
     // incremental state -- every build then fully recompiles the module and
-    // everything downstream of it (ADR-0398).
+    // everything downstream of it.
     outputs.file(layout.buildDirectory.file('tmp/weaveModels/stamp'))
     outputs.upToDateWhen { false }      // in place, and cheap on a settled tree
     doLast { layout.buildDirectory.file('tmp/weaveModels/stamp').get().asFile.text = 'woven' }
@@ -309,11 +298,7 @@ run one half; with neither it runs both:
 </plugin>
 ```
 
-A real Mojo would be nicer — one `<plugin>` block, incremental, no
-`<mainClass>` to get wrong — and is a small amount of work whose only awkward
-part is that this repository builds with Gradle and would have to write
-`META-INF/maven/plugin.xml` itself. It is not built, and this is honest about
-that rather than implying otherwise. Nothing above is a workaround for a missing
+Nothing above is a workaround for a missing
 feature: `process-classes` is where class post-processing belongs, and the weaver
 is a program that post-processes classes.
 
@@ -324,8 +309,7 @@ java -cp goldberry-weaver.jar:target/classes:<compile classpath> \
      dev.goldberry.weaver.WeaverMain target/classes
 ```
 
-**The classpath is not optional**, which the shorter `java -jar` line this page
-used to show quietly implied it was. The weaver regenerates stack-map frames for
+**The classpath is not optional.** The weaver regenerates stack-map frames for
 the methods it rewrites, and a frame where two of your types meet at a
 control-flow join is only computable by loading both — so the weaver has to be
 able to see the classes it is weaving and everything they were compiled against.
@@ -338,7 +322,7 @@ the member when it refuses a model.
 ## If you forget
 
 Nothing. A model that is annotated and not woven is bound at run time, which is
-the ordinary case — that is ADR-0155. All five annotations are `RUNTIME`-retained
+the ordinary case. All five annotations are `RUNTIME`-retained
 so that the reflective binder can read them.
 
 The one thing you can forget is the `opens` line, in a named module, and the
@@ -357,7 +341,7 @@ jar.
 | `static` `@Bind` field | A binding belongs to an instance; a static one is shared by every window in the process |
 | `final` `@Bind` field (unless a `Property`) | A value that cannot change is not something to subscribe to |
 | an array | Only the *assignment* is observed, so `values[0] = x` would notify nobody. Hold a `List` and assign a new one |
-| a path that is not `a.b.c` | The grammar `Bindings` enforces at runtime, checked first ([ADR-0062](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0062-bind-is-a-path-and-nothing-else.md)) |
+| a path that is not `a.b.c` | The grammar `Bindings` enforces at runtime, checked first |
 | two members claiming one name | Two features quietly sharing one name presents as a value changing by itself |
 | an `@Action` taking two arguments | A control reports either *that* something happened or *what* it should become, never both |
 | an `@Action` parameter that is not `String`, `double`, `int`, `boolean` or a box | A valued action crosses as the string the document wrote down |
@@ -384,6 +368,5 @@ form sorts by member name. It shows up only in the `Bound: ...` list a strict
 registry prints when it refuses a name.
 
 **Reading through a binding boxes a primitive.** `Models.observable(model,
-"app.gain").get()` on an `int` field allocates, where the old `Property<Integer>`
-handed back a box it already held. Writes got faster and reads got slower; the
-numbers are in [ADR-0125](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0125-a-raw-field-is-woven-into-a-binding.md).
+"app.gain").get()` on an `int` field allocates, where a `Property<Integer>`
+hands back a box it already holds.

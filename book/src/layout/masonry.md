@@ -75,10 +75,3 @@ The gap on both axes is the stylesheet's: the wall's `gap` is between columns an
 #wall { gap: 16px; }
 #wall masonry-column { gap: 16px; }
 ```
-
-### Read more
-
-- [ADR-0196 A masonry is a layout that reads last frame](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0196-a-masonry-is-a-layout-that-reads-last-frame.md)
-- [ADR-0436 A column count is a width the window does](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0436-a-column-count-is-a-width-the-window-does.md)
-- [ADR-0373 A column starts from nothing and grows](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0373-a-column-starts-from-nothing-and-grows.md)
-- [ADR-0117 A widget may be told what it measured](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0117-a-widget-may-be-told-what-it-measured.md)

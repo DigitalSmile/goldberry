@@ -52,8 +52,7 @@ property per sheet when the sheet is read, with the first line it appears on.
 A malformed sheet (an unclosed block, a declaration with no value) is refused
 in both modes, which is what lets [hot reload](markup.md#hot-reload) keep the
 last good sheet while you type. The mode can be chosen explicitly with
-`Stylesheet.parse(layer, text, ParseMode.STRICT)`
-([ADR-0529](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0529-an-applications-stylesheet-is-lenient-and-loud.md)).
+`Stylesheet.parse(layer, text, ParseMode.STRICT)`.
 Run with `-Dgoldberry.css.lint=true` while developing and the launcher lints
 your sheets each time it reads them ([Logging](logging.md#properties-an-application-can-set)).
 
@@ -77,8 +76,7 @@ stylesheet that loads late.
 
 `INLINE` has no `style=` attribute behind it. It is the layer a widget writes
 into for a value no selector can express, such as the position of the third
-of five segments
-([ADR-0099](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0099-an-indicator-travels-on-a-grid.md)).
+of five segments.
 
 ## Selectors
 
@@ -126,8 +124,7 @@ what `>` reads. A composition widget is an element with one child, like an
 unstyled `<div>` around one node, so a card a stateless wrapper builds is the
 only child of that wrapper. When a parent's children are added, removed or
 reordered, only the children whose structural answer changed are restyled,
-and a sheet with no structural pseudo-class restyles nothing
-([ADR-0528](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0528-a-node-knows-its-place-among-its-siblings.md)).
+and a sheet with no structural pseudo-class restyles nothing.
 
 `:hover` and `:active` reach the whole ancestor chain, which is what lets
 `checkbox:active check-indicator` light the glyph when the label is pressed.
@@ -144,8 +141,7 @@ than matching a selector.
 
 A control with two surfaces a theme must style differently is two cascade
 nodes. The inner one is a **part**: it has a type name, matches pseudo-classes
-and takes properties, and it cannot be written in a document
-([ADR-0065](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0065-a-part-is-styleable-and-not-constructible.md)).
+and takes properties, and it cannot be written in a document.
 
 ```css
 checkbox                         { gap: 8px }
@@ -192,8 +188,7 @@ with a value it cannot read is dropped with a warning that quotes the text.
 `top`, `right`, `bottom`, `left`, `overflow`. These compile to Yoga.
 `flex` expands as CSS says: `flex: 1` is `1 1 0%`, `flex: auto` is
 `1 1 auto`, `flex: none` is `0 0 auto`, and `flex: 120px` is `1 1 120px`.
-`margin: auto` centres on the main axis
-([ADR-0311](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0311-margin-is-room-outside-and-auto-is-the-half-that-mattered.md)).
+`margin: auto` centres on the main axis.
 Lengths are `px`, `%`, `em` and `rem`. There is no `calc()` and no
 `display: none`.
 
@@ -213,13 +208,11 @@ as `nowrap` does. `pre-line` keeps runs of spaces CSS would fold into one.
 `overflow-wrap: normal | anywhere | break-word` cuts a word wider than the
 whole line between grapheme clusters; `word-break: normal | break-all` may cut
 any word at the edge of the line. A `text-area` cuts its rows the same way, and
-its caret, selection and scroll follow the cut. Both inherit
-([ADR-0530](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0530-five-white-space-keywords-are-two-behaviours-and-a-long-word-may-be-cut.md)).
+its caret, selection and scroll follow the cut. Both inherit.
 `text-overflow: clip | ellipsis`,
 `text-align: start | center | end`, and `text-decoration` or
 `text-decoration-line: none | underline | line-through`. `left` and `right`
-are refused for `text-align`, and so is `justify`
-([ADR-0256](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0256-a-line-is-placed-by-the-paint-not-by-the-box.md)).
+are refused for `text-align`, and so is `justify`.
 
 ### Typography
 
@@ -233,11 +226,8 @@ are refused for `text-align`, and so is `justify`
 A weight is any number from 1 to 1000, or `normal` (400) or `bold` (700), and
 it is drawn with the nearest face the family has by CSS's matching rule: over
 Inter's 400 and 600, `bold` is the 600 and `500` is the 400. A family an
-application ships at more weights gives each its own face
-([ADR-0066](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0066-a-weight-is-a-face-and-color-inherits.md),
-[ADR-0538](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0538-a-weight-is-a-number-and-the-nearest-face-answers-it.md)).
-`font-style: oblique` is refused because nothing shears a glyph
-([ADR-0323](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0323-an-italic-is-a-face-and-the-matrix-closes.md)).
+application ships at more weights gives each its own face.
+`font-style: oblique` is refused because nothing shears a glyph.
 `font-family: Inter, sans-serif` takes the first name and discards the rest.
 There is no `letter-spacing`.
 
@@ -252,8 +242,7 @@ panel  { background: var(--gb-surface); color: var(--gb-text) }
 `background`, `background-color`, `color` and `opacity`. A colour is a hex
 value, `rgb()` or `rgba()`, `transparent`, or a `var()`. `opacity` on a node
 with children renders the subtree into a layer and composites it once, so two
-overlapping children do not show through each other
-([ADR-0071](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0071-a-layer-is-a-subtrees-raster.md)). A translucent leaf
+overlapping children do not show through each other. A translucent leaf
 keeps the cheap path.
 
 ### Backgrounds and gradients
@@ -290,8 +279,7 @@ rounded card is rounded. There is no `background-size`, `background-repeat`,
 or a keyword moves a layer the size of its box by nothing, as it does in a
 browser, so only a length does anything. It is animatable, which is how the
 stripe above marches. Transition hints (a bare position between two stops)
-and colour interpolation methods are not read, and drop the declaration
-([ADR-0535](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0535-a-background-is-a-colour-under-gradient-layers.md)).
+and colour interpolation methods are not read, and drop the declaration.
 
 ### Border, outline and shadow
 
@@ -310,9 +298,8 @@ list of shadows, the first on top, each `[inset] <x> <y> [<blur>] [<spread>]
 <color>`.
 
 A border takes no layout room: it is drawn inside the box's edge, over the
-padding ([ADR-0505](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0505-a-border-has-four-sides-and-takes-no-room.md)).
-The style is set inside a shorthand, and there are no `-style` longhands. A
-shorthand that names no style is `solid`.
+padding. The style is set inside a shorthand, and there are no `-style`
+longhands. A shorthand that names no style is `solid`.
 
 - `dashed` is dashes three widths long with gaps the same, stretched so a side
   starts and ends on a dash. A square corner is a dash's end; a rounded corner
@@ -321,8 +308,7 @@ shorthand that names no style is `solid`.
   every corner.
 - `double` is two lines a third of the width each, with the middle third empty.
 - `groove`, `ridge`, `inset` and `outset` are drawn solid, with one warning per
-  style
-  ([ADR-0536](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0536-a-border-is-dashed-dotted-or-double-as-written.md)).
+  style.
 
 An outline is drawn outside the box and takes no room either, so a focus ring
 cannot move a control by appearing. Its style is always drawn solid.
@@ -332,8 +318,7 @@ blur. An outer shadow is drawn under the background and only outside the box.
 An `inset` shadow is drawn over the background and under the border, inside the
 padding box: the box's own shape, moved by the offset and shrunk by the spread,
 is the hole it is seen around, and on a rounded box it follows the inside of
-the curve
-([ADR-0537](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0537-a-shadow-is-a-list-and-may-be-cast-inside.md)).
+the curve.
 
 ### Transform
 
@@ -346,8 +331,7 @@ toast.entering { transform: translate(0, 16px) }
 `transform` with `translate`, `scale` and `rotate`, and `transform-origin`.
 Layout runs first and the matrix moves the result, so a transform costs no
 layout pass. Hit testing maps the pointer back through the same matrix, so a
-scaled button responds where it is drawn
-([ADR-0068](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0068-the-transform-stack-is-java-side.md)).
+scaled button responds where it is drawn.
 
 ### Transition and animation
 
@@ -371,8 +355,7 @@ The animatable properties are a closed whitelist: `opacity`,
 padded with transparent copies of the longer one's shadows; an inner shadow
 against an outer one swaps half-way.
 `transition: width 200ms` is a dropped declaration with a warning naming it,
-because animating a width would run layout on every frame
-([ADR-0067](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0067-motion-is-an-overlay-on-a-frame-clock.md)).
+because animating a width would run layout on every frame.
 
 The timing that applies is the one on the style being moved **to**, so the
 two `button` rules above make a press snap and a release fade. Easing is one
@@ -386,23 +369,21 @@ are read onto them, with one info line naming each mapping:
 
 A timing function outside that list (`cubic-bezier(…)`, `steps(…)`,
 `step-start`) in `transition` or `animation` drops itself with a warning
-naming it, and the rest of the declaration runs on the default `ease-enter`
-([ADR-0527](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0527-css-easing-keywords-run-on-the-system-curves.md)).
+naming it, and the rest of the declaration runs on the default `ease-enter`.
 Colours interpolate in OKLCH. Animated values
 live in an overlay applied at paint and are never written back into the
 computed style, so a transition retargeted halfway starts from where it is.
 `transition` does not inherit.
 
 `@starting-style` gives an element the style it transitions **from** on its
-first frame ([ADR-0352](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0352-an-element-enters-from-its-starting-style.md)).
-`@keyframes` names a sequence `animation` runs under the same whitelist
-([ADR-0353](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0353-a-stylesheet-may-name-keyframes.md)). Under reduced
-motion every transition collapses to zero and keyframe animations do not run.
+first frame. `@keyframes` names a sequence `animation` runs under the same
+whitelist. Under reduced motion every transition collapses to zero and
+keyframe animations do not run.
 The desktop's setting is read at start-up, and
 `-Dgoldberry.motion.reduced=reduce` or `=full` overrides it.
 
-A theme is still chosen by swapping a stylesheet; `@media` below is for a
-sheet that adjusts itself to the window or the desktop.
+A theme is chosen by swapping a stylesheet. `@media` below is for a sheet
+that adjusts itself to the window or the desktop.
 
 ### Media queries
 
@@ -427,8 +408,7 @@ anything else never holds and warns once; in a strict sheet it is refused.
 
 The cascade re-runs when an answer changes: on a resize that crosses a
 breakpoint, when the desktop's theme changes, and when reduced motion is
-switched. A resize that crosses none keeps every resolved style
-([ADR-0526](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0526-a-media-query-is-asked-of-the-window.md)).
+switched. A resize that crosses none keeps every resolved style.
 
 ### Cursor
 
@@ -442,8 +422,7 @@ canvas    { cursor: crosshair }
 `not-allowed`, `ew-resize`, `ns-resize`, `nesw-resize`, `nwse-resize`,
 `grab` and `grabbing`. The last two fall back to `move`, because no platform
 has a system cursor for them. The cursor rides on the painted box and inherits
-down the stack of rectangles under the pointer, not the element tree
-([ADR-0057](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0057-the-cursor-rides-on-the-painted-box.md)).
+down the stack of rectangles under the pointer, not the element tree.
 
 ## Custom properties and `var()`
 
@@ -465,8 +444,7 @@ comes through a `--gb-*` token, so an application rule that redefines one on
 `color`, the font properties, `line-height`, `white-space`, `text-align`,
 `text-decoration`, `overflow-wrap` and `word-break` pass down the element
 tree. The layout properties,
-`background`, `opacity`, `transform`, `transition` and the border do not
-([ADR-0066](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0066-a-weight-is-a-face-and-color-inherits.md)).
+`background`, `opacity`, `transform`, `transition` and the border do not.
 
 `ComputedStyle.INITIAL` has black text on purpose, so a window with no
 stylesheet looks like one. Set `color` on your root, as the showcase does with
@@ -485,16 +463,14 @@ very little else.
 ```
 
 A field declared `restyle = true` asks for a restyle when it is assigned, and
-the toolkit calls `Host.restyle()` for you
-([ADR-0133](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0133-a-restyle-is-declared.md)). Everything else that
-changes a value asks for a repaint by itself
-([ADR-0128](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0128-a-change-is-its-own-frame-request.md)). An
-application outside the model system calls `host.restyle()` directly.
+the toolkit calls `Host.restyle()` for you. Everything else that changes a
+value asks for a repaint by itself. An application outside the model system
+calls `host.restyle()` directly.
 
 A restyle is not a full recompute of every node. Each element caches its
 resolved style and re-resolves only when the resolver changed, when the style
 it inherits changed, or when a pseudo-class or a rebuild invalidated its
-subtree ([ADR-0070](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0070-the-cascade-resolves-invalidated-nodes.md)).
+subtree.
 
 ## Themes, density and scrollbars
 
@@ -519,10 +495,8 @@ base rules never name a colour.
 `Density.COMPACT` is a handful of tokens on `:root`, and every control is 28 tall
 instead of 32 with nothing in your tree mentioning a height.
 `Density.REGULAR` ships no stylesheet at all, because regular is what the
-toolkit already is
-([ADR-0074](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0074-density-is-a-token-swap-and-regular-is-no-stylesheet.md)).
-`Scrollbars.ALWAYS` reserves a 12 px gutter beside scrolling content
-([ADR-0364](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0364-always-shown-scroll-bars-are-a-token-sheet.md)).
+toolkit already is.
+`Scrollbars.ALWAYS` reserves a 12 px gutter beside scrolling content.
 
 ### Following the desktop
 
@@ -538,29 +512,18 @@ private void follow(SystemTheme theme) {
 ```
 
 `host.systemTheme()` answers `LIGHT`, `DARK`, or empty where the desktop has
-no such setting, and empty is a different answer from light
-([ADR-0322](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0322-the-desktop-says-light-or-dark-or-says-nothing.md)).
+no such setting, and empty is a different answer from light.
 The toolkit chooses nothing with the answer. A Linux build without the D-Bus
 headers cannot ask at all, and says so through
-`Goldberry.capabilities().contains(Capability.SYSTEM_THEME)`
-([ADR-0325](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0325-a-build-says-what-it-can-ask-the-desktop.md)).
+`Goldberry.capabilities().contains(Capability.SYSTEM_THEME)`.
 
 ### Text scale
 
 The renderer scales text between 90% and 150% without scaling the boxes, which
-is the condition every control is built to survive
-([ADR-0267](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0267-a-text-scale-scales-the-text-and-not-the-layout.md)).
+is the condition every control is built to survive.
 The switch is `WidgetRenderer.textScale(double)`, on the renderer an
-application builds itself. The launcher does not expose it yet.
+application builds itself. The launcher does not expose it.
 
 ## Read more
 
-- [ADR-0066](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0066-a-weight-is-a-face-and-color-inherits.md): inheritance, and a weight is a face
-- [ADR-0067](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0067-motion-is-an-overlay-on-a-frame-clock.md): transitions
-- [ADR-0068](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0068-the-transform-stack-is-java-side.md): transforms
-- [ADR-0071](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0071-a-layer-is-a-subtrees-raster.md): opacity and layers
-- [ADR-0074](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0074-density-is-a-token-swap-and-regular-is-no-stylesheet.md): density
-- [ADR-0133](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0133-a-restyle-is-declared.md): a restyle is declared
-- [ADR-0310](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0310-a-shadow-is-a-stack-of-rectangles.md): shadows
-- [ADR-0505](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0505-a-border-has-four-sides-and-takes-no-room.md): borders
 - [Sizing with CSS](../layout/sizing.md): the layout half, in the Layout part

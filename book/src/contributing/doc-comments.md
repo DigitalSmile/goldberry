@@ -9,12 +9,11 @@ a javadoc site after a release, and in the source by the next maintainer. Only
 the last of those has the repository. The first two have the published jar and
 a browser, so everything a comment leans on has to be reachable from there.
 This guide is, at `https://goldberry.dev/docs/`. The decision log is not: it is
-read on GitHub, and a reader with a tooltip that says *ADR-0481* has nowhere to
+read on GitHub, and a reader with a tooltip that names a record has nowhere to
 go.
 
 So a comment explains, and links the guide. The reasoning behind a choice lives
-in the log, and the chapter that states the rule links the record. A reader who
-wants the history follows the chapter's *Read more*.
+in the log, which is read on GitHub.
 
 ## The shape
 
@@ -92,13 +91,12 @@ not have, so a renamed heading is found by the build and not by a reader.
 
 ## What a comment does not do
 
-- **Cite a record.** `ADR-0063` means nothing to a reader of the javadoc. Say
-  the rule: *data flows down and events flow up, so the widget never writes
-  the value it shows*. The chapter on [choices](../components/choices.md)
-  links the record for anyone who wants the history. `SourceDocsTest` fails on
-  a record number in a Java, Gradle or workflow file.
-- **Cite a section of a working document.** `docs/core-widgets.md §2` is a
-  file in the repository, not a page a user has. State the rule, and link the
+- **Cite a record.** A record number means nothing to a reader of the javadoc.
+  Say the rule: *data flows down and events flow up, so the widget never writes
+  the value it shows*. `SourceDocsTest` fails on a record number in a Java,
+  Gradle or workflow file.
+- **Cite a section of a working document.** A section of a specification under
+  `docs/` is a file in the repository, not a page a user has. State the rule, and link the
   chapter that states it.
 - **Quote a specification at itself.** A comment that says *§2: "External
   links carry a trailing icon"* is a footnote. *An external link carries a
@@ -117,7 +115,7 @@ not have, so a renamed heading is found by the build and not by a reader.
 A test is documentation of a rule, so its comment says the rule, what breaks
 when the rule is broken, and how the test sees it. Its `@DisplayName` reads as
 a sentence with no numbers in it: *data flows down and events flow up*, not
-*(ADR-0063)*. An assertion message explains the failure to the person reading a
+a record number. An assertion message explains the failure to the person reading a
 red build, and says what to do about it.
 
 ## Which chapter a package links

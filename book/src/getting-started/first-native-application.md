@@ -4,18 +4,17 @@
 
 A GraalVM native image is a closed world. It has to know every class, every
 resource and every foreign function before it runs, and it cannot bind a model
-by reflection. Goldberry was designed for that
-([ADR-0127](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0127-the-binding-schema-fits-a-closed-world.md)), and the
-toolkit's jars carry most of what an image needs. Four things are yours:
+by reflection. Goldberry is designed for that, and the toolkit's jars carry
+most of what an image needs. Four things are yours:
 
 1. **Weave the model**, so that assignments notify without reflection.
 2. **Declare your own resources**, by glob.
 3. **Trace one run**, for what depends on your application.
 4. **Run `native-image`.**
 
-The recipe below is the showcase's own, which CI builds on all three platforms
-on every release tag ([ADR-0337](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0337-the-native-showcase-is-built-on-every-platform.md)).
-[Native image](../native.md) explains every flag and every trap in depth.
+The recipe below is the showcase's own, and the showcase is built with it on
+all three platforms. [Native image](../native.md) explains every flag and
+every trap in depth.
 
 ## Before you start
 
@@ -60,15 +59,14 @@ tasks.named('jar') { mustRunAfter weaveModels }
 
 The weaver's version comes from the BOM, like every other artifact. The stamp
 file is deliberate: declaring the compiler's own output directory as this
-task's output makes Gradle recompile the whole module on every build
-([ADR-0398](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0398-the-build-declares-what-it-actually-writes.md)).
+task's output makes Gradle recompile the whole module on every build.
 
 </div>
 <div>
 
 **Declare your resources.** The document and the stylesheet are read by name
 at run time, and a trace only records what one run happened to touch. Globs
-are finite ([ADR-0160](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0160-a-modules-own-resources-are-declared-not-traced.md)).
+are finite.
 The file goes in a directory the agent never writes to, so a new trace cannot
 overwrite it:
 
@@ -87,7 +85,7 @@ overwrite it:
 
 The last line is the native library itself. It lives in the classifier jar,
 which the image carries as a class-path resource and unpacks to a temporary
-file on first use ([ADR-0159](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0159-a-native-image-carries-its-own-library.md)).
+file on first use.
 
 The `logback.xml` line is there if you log through Logback. Logback asks a
 `ClassLoader` for the file, so the agent records it without a module, and in
@@ -103,8 +101,7 @@ your run: the service the widget catalogue is found through, the upcall stubs
 the native code calls back into, the JDK's text resources, and whatever your
 logging configuration reflects over. GraalVM's agent records them. Run the
 woven application once, headless, for a hundred frames, and keep the output
-under `src/main/resources` so it is reviewed in a diff
-([ADR-0156](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0156-the-image-s-metadata-is-traced-not-written.md)):
+under `src/main/resources` so it is reviewed in a diff:
 
 ```groovy
 tasks.register('nativeImageMetadata', Exec) {
@@ -131,7 +128,7 @@ jar names its own module, `dev.goldberry.natives.linux_x64` and so on, but
 nothing `requires` one, and an image takes only the modules that are
 resolved. So for an image they go on the class path, where the library is a
 plain resource
-([Native image](../native.md#the-natives-jar-is-a-module-now)):
+([Native image](../native.md#the-natives-jar-is-a-module)):
 
 ```groovy
 def splitPaths = {
@@ -186,7 +183,7 @@ initialization policy, because the jars carry their own metadata and
 
 | Jar | Carries |
 |---|---|
-| `goldberry-natives` | the descriptor of every bound C function, written because the function exists rather than because a run reached it ([ADR-0339](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0339-a-foreign-call-is-registered-because-it-exists-not-because-a-run-reached-it.md)), and the class-initialization policy that makes a downcall handle a constant ([ADR-0173](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0173-a-bound-function-is-a-holder-and-its-handle-is-a-constant.md)) |
+| `goldberry-natives` | the descriptor of every bound C function, written because the function exists rather than because a run reached it, and the class-initialization policy that makes a downcall handle a constant |
 | `goldberry-core` | the fonts, the icon table, the two themes |
 | `goldberry-widgets` | the catalogue's stylesheets |
 | `goldberry-html`, `goldberry-media` | their stylesheets, when they are on the path |
@@ -208,15 +205,13 @@ initialization policy, because the jars carry their own metadata and
 | The first frame | about 520 ms with the GPU module, 365 ms without |
 | A headless frame | about 1.0 ms |
 
-The counter is a much smaller application and starts no slower
-([ADR-0506](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0506-start-up-is-timed-from-the-kernels-clock-and-a-native-window-is-up-in-a-tenth-of-a-second.md)).
+The counter is a much smaller application and starts no slower.
 
 > [!NOTE]
 > A screen the trace never reached contributes nothing to the metadata. After
-> adding a screen, re-run `nativeImageMetadata` and read the diff. The
-> showcase's own image once shipped without the light theme's stylesheet for
-> exactly this reason, which is why resources are declared by glob and not
-> traced.
+> adding a screen, re-run `nativeImageMetadata` and read the diff. A stylesheet
+> a trace misses is absent from the image, which is why resources are declared
+> by glob and not traced.
 
 ## Read next
 

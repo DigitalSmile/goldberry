@@ -2,11 +2,10 @@
 
 <p class="gb-lede">Five layers, three trees and one native boundary. This page is the map an application developer needs. The design document in the repository has the rest.</p>
 
-The authority on the design is
+The whole design is in
 [`docs/ARCHITECTURE.md`](https://github.com/DigitalSmile/goldberry/blob/master/docs/ARCHITECTURE.md),
-with the design system and the per-widget contracts beside it. This page
-summarises what is built. Where the two differ, the design document says so
-inline and [Status](../status.md) records what shipped.
+with the design system and the per-widget contracts beside it. This page is
+the summary.
 
 ## The layers
 
@@ -17,8 +16,7 @@ only the bottom row touches the platform.
 
 ## The three trees
 
-The widget layer follows Flutter's model
-([ADR-0004](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0004-three-tree-retained-declarative-model.md)):
+The widget layer follows Flutter's model:
 
 | Tree | Owned by | Lifetime | Holds |
 |---|---|---|---|
@@ -30,8 +28,7 @@ A rebuild produces a new widget tree. The element tree is reconciled against
 it by type and key, so a parent re-describing its child does not lose the
 child's state. The render tree is reconciled against the boxes the elements
 produce, and every Yoga setter is guarded by a comparison, so a frame in which
-nothing changed costs a few microseconds
-([ADR-0069](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0069-the-render-tree-is-retained.md)).
+nothing changed costs a few microseconds.
 
 ## The frame loop
 
@@ -43,14 +40,12 @@ Three properties of the loop shape what an application sees:
 
 - **It is idle when nothing moves.** A frame is asked for by a value that
   changed, a `setState`, a transition in flight, or a widget that says it is
-  animating. Nothing polls
-  ([ADR-0128](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0128-a-change-is-its-own-frame-request.md)).
+  animating. Nothing polls.
 - **Hit testing reads the painted frame.** A pointer event is about what the
   user can see, so dispatch runs against the snapshot taken while painting
-  rather than a fresh layout ([ADR-0054](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0054-hit-testing-runs-against-the-painted-frame.md)).
+  rather than a fresh layout.
 - **Only the damage is repainted**, where the backend promises the buffer it
-  lends back still holds the last frame
-  ([ADR-0072](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0072-a-partial-repaint-needs-a-promise.md)).
+  lends back still holds the last frame.
 
 [Performance](../performance/index.md) has the numbers for each stage.
 
@@ -59,35 +54,33 @@ Three properties of the loop shape what an application sees:
 Every C function the toolkit calls is bound by hand in one module,
 `dev.goldberry.natives`, and no raw `MemorySegment` leaves it. A bound function
 is a holder class whose method handle is a compile-time constant, which is what
-makes a call cheap on the JVM and in a native image alike
-([ADR-0173](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0173-a-bound-function-is-a-holder-and-its-handle-is-a-constant.md)).
+makes a call cheap on the JVM and in a native image alike.
 A layout probe checks every struct layout and constant against the compiled
 library at run time, on every platform, so a `long` that is 32 bits on Windows
-is caught before it is read ([ADR-0029](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0029-yogas-node-api-and-who-owns-a-node.md)).
+is caught before it is read.
 
 The libraries are statically linked into one `libgoldberry` per platform by a
 CMake superbuild. Four artifacts exist: `linux-x64`, `linux-aarch64`,
-`macos-aarch64` and `windows-x64` ([ADR-0041](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0041-three-platforms-four-artifacts-two-backends.md)).
+`macos-aarch64` and `windows-x64`.
 
 `goldberry-media` is the one exception. FFmpeg is LGPL and must stay a set of
 replaceable shared libraries, so the media module binds it itself, under the
-same rules ([ADR-0461](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0461-a-media-engine-binds-its-own-libraries.md)).
+same rules.
 
 ## The backend SPI
 
 The SPI is the only platform-facing interface. Two implementations exist and
 the list is closed: `sdl3` for every desktop, and `headless`, which renders to
-memory for tests and servers
-([ADR-0041](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0041-three-platforms-four-artifacts-two-backends.md)).
+memory for tests and servers.
 
 | The SPI answers | How |
 |---|---|
 | a window | logical pixels in, physical raster out, per-monitor fractional scale |
-| present | the platform lends a surface and Blend2D draws straight into it ([ADR-0046](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0046-what-present-actually-does.md)) |
+| present | the platform lends a surface and Blend2D draws straight into it |
 | input | pointer, wheel in lines, keys and committed text as separate events |
-| a popup | a second window with an owner, which a video driver may refuse ([ADR-0102](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0102-a-popup-is-a-window-the-platform-may-refuse.md)) |
-| the clipboard | text as a value, everything else as an offer by MIME type ([ADR-0286](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0286-a-clipboard-write-is-an-offer.md)) |
-| the desktop's theme | light, dark, or the desktop does not say ([ADR-0322](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0322-the-desktop-says-light-or-dark-or-says-nothing.md)) |
+| a popup | a second window with an owner, which a video driver may refuse |
+| the clipboard | text as a value, everything else as an offer by MIME type |
+| the desktop's theme | light, dark, or the desktop does not say |
 | a tray icon, file dialogs, a GPU surface | optional, and absent where the platform has none |
 
 ## Binding and weaving
@@ -101,8 +94,7 @@ make an assignment observable, and they are interchangeable:
 | build step | none | the weaver, one Gradle plugin or one Maven execution |
 | a change notifies | at the next sweep | inside the assignment |
 
-The same model, the same paths and the same refusals both ways
-([ADR-0155](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0155-a-jar-binds-at-run-time-an-image-is-woven.md)).
+The same model, the same paths and the same refusals both ways.
 [Model weaving](../weaving.md) explains the mechanism and
 [Native image](../native.md) what an image needs.
 
@@ -123,15 +115,13 @@ The same model, the same paths and the same refusals both ways
 
 `:assets`, `:weaver` and `:example` are build-time tools and the showcase. They
 are not published. The module graph is enforced by JPMS and the modules
-`:common ← :natives ← :core ← :widgets` are the spine
-([ADR-0007](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0007-jpms-modules-enforce-the-native-boundary.md),
-[ADR-0174](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0174-what-both-halves-need-is-its-own-module.md)).
+`:common ← :natives ← :core ← :widgets` are the spine.
 [Repository layout](../contributing/repository.md) has the packages.
 
 ## Read next
 
 <div class="gb-cards">
-<a class="gb-card" href="limitations.html"><strong>Limitations</strong><span>What the architecture leaves out, and where each gap is tracked.</span></a>
+<a class="gb-card" href="limitations.html"><strong>Limitations</strong><span>What the architecture leaves out, and why.</span></a>
 <a class="gb-card" href="../applications.html"><strong>Building an application</strong><span>The four kinds of class an application is made of.</span></a>
 <a class="gb-card" href="https://github.com/DigitalSmile/goldberry/tree/master/book/src/adr"><strong>Decision log</strong><span>Every choice above, with its alternatives and its costs.</span></a>
 </div>

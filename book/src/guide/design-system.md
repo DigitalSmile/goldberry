@@ -4,9 +4,7 @@
 
 By the end of this chapter you know which `--gb-*` tokens exist and what each
 is for, what the type classes measure, how big a control is at each density,
-and which parts of the written design are built and which are not. The full
-specification is `docs/design-system.md` in the repository. This page is the
-built subset.
+and what is not built.
 
 ## Principles
 
@@ -70,8 +68,7 @@ A semantic hue has three ranks. `--gb-danger` is what danger is, a fill;
 `--gb-danger-fill` is what you may put words on; `--gb-danger-line` is what
 you may draw a glyph or a border with on a surface, and it clears 3:1 against
 it. `--gb-warning`, `--gb-success` and `--gb-info` have `-line` ranks for
-the same reason, and `-text` ranks for words on their fills
-([ADR-0175](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0175-a-banner-says-its-kind-twice.md)).
+the same reason, and `-text` ranks for words on their fills.
 
 Above the aliases sit component tokens: `--gb-button-bg`,
 `--gb-button-bg-hover`, `--gb-checkbox-mark-checked`, `--gb-toggle-track-bg`,
@@ -79,8 +76,8 @@ Above the aliases sit component tokens: `--gb-button-bg`,
 An application may override component tokens, never structure. Every one is
 listed in `nord-dark.css` with a comment saying why it exists.
 
-Every text and surface pair in both themes is measured at 4.5:1, and every
-mark against the box it is drawn in at 3:1, by `ContrastTest` in CI.
+Every text and surface pair in both themes clears 4.5:1, and every mark
+clears 3:1 against the box it is drawn in.
 
 ## Spacing
 
@@ -144,15 +141,13 @@ The geometry is the same in both themes and the alpha is not, which is why
 they are tokens. A card wears level 1 and lifts to 2 on
 `card.interactive:hover`; a dialog, a toast and a tour card wear level 2; a
 popup is an edge rather than a shadow, because it is drawn in a window sized
-to itself and a shadow would be clipped
-([ADR-0312](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0312-the-catalog-puts-the-two-new-properties-on.md)).
+to itself and a shadow would be clipped.
 Level 3 is defined and used by nothing.
 
-**Materials.** Of the three the specification names, `opaque` is every
-surface, and `veil` is built as `--gb-scrim` behind a dialog and a tour.
-`frost` is not built: there is no `backdrop-filter` in the CSS subset and no
-blur in the rasterizer. A design that wants a frosted panel gets an opaque
-raised one, which is the fallback the specification mandates anyway.
+**Materials.** Of the three, `opaque` is every surface, and `veil` is
+`--gb-scrim` behind a dialog and a tour. `frost` is not built: there is no
+`backdrop-filter` in the CSS subset and no blur in the rasterizer. A design
+that wants a frosted panel gets an opaque raised one.
 
 ## Icons
 
@@ -204,8 +199,7 @@ checkbox:focus-visible { outline: 2px solid var(--gb-focus); outline-offset: 2px
 One focus owner per window. The ring is 2 px of `--gb-focus`, 2 px outside
 the control, following its radius, and it appears only for keyboard focus. It
 is one rule over a list of types in the base layer, not one rule per control.
-A composite is one Tab stop with the arrow keys moving inside it
-([ADR-0073](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0073-a-composite-is-one-tab-stop.md)).
+A composite is one Tab stop with the arrow keys moving inside it.
 
 ## Keyboard conventions
 
@@ -217,8 +211,7 @@ host.shortcut("Primary+Shift+Z", this::redo);
 Accelerators are written against the desktop's **primary modifier**, which
 has a name: `Primary` in a string, `Shortcut.primary(key)` in Java. It is
 `Cmd` on macOS and `Ctrl` everywhere else, and nothing is translated: a
-shortcut that says `Ctrl` means the control key on every desktop
-([ADR-0378](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0378-the-desktops-own-modifier-has-a-name.md)).
+shortcut that says `Ctrl` means the control key on every desktop.
 
 In a dialog `Enter` presses the affirmative action and `Escape` the
 dismissive one, and the affirmative sits on the right. A button activates on
@@ -237,16 +230,14 @@ form's default action. Tab order is document order.
 
 `Density.COMPACT` is those tokens on `:root` and nothing else. The 16 px glyph
 inside a checkbox or a radio does not shrink, so compact costs margin around
-the target rather than a smaller target
-([ADR-0074](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0074-density-is-a-token-swap-and-regular-is-no-stylesheet.md)).
+the target rather than a smaller target.
 
 ## Scrollbars
 
 Overlay by default: a 6 px thumb over the content that widens to 10 px with a
 track on hover, with no gutter reserved. `Scrollbars.ALWAYS` swaps in a
 classic 12 px gutter with an 8 px thumb and a `--gb-surface-2` track, and a
-layout must survive the gutter appearing
-([ADR-0364](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0364-always-shown-scroll-bars-are-a-token-sheet.md)).
+layout must survive the gutter appearing.
 
 ## Component metrics
 
@@ -280,28 +271,20 @@ them.
 
 ## Accessibility baseline
 
-Built: contrast measured in CI for both themes; every control operable from
-the keyboard, with the per-widget maps in each chapter; text scale to 150%
-without the boxes moving; reduced motion; hit targets of 32 at regular
-density; and a `Role` and an accessible name on every focusable widget,
-enforced by a sweep over the source tree.
+Contrast clears its ratios in both themes. Every control is operable from the
+keyboard, with the per-widget maps in each chapter. Text scales to 150%
+without the boxes moving. Reduced motion is honoured. Hit targets are 32 at
+regular density. Every focusable widget has a `Role` and an accessible name.
 
-Not built: a screen-reader bridge. Nothing on any platform reads the
-semantics tree, and the bridge is on hold with no milestone owning it
-([ADR-0440](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0440-the-accessibility-bridge-is-on-hold-and-the-semantics-tree-stays.md)).
-The tree stays, so a bridge would be an adapter rather than a rearchitecture.
+There is no screen-reader bridge. The toolkit builds a semantics tree, and
+nothing on any platform reads it.
 
 ## Governance
 
-A new widget enters the canon with a specification, a metrics row and
-gallery coverage in both themes before code, and the alias tokens, the
-component contracts and the metrics tables are the stable tier.
+The alias tokens, the component contracts and the metrics tables are the
+stable tier. A new widget comes with a specification, a metrics row and
+gallery coverage in both themes.
 
 ## Read more
 
 - [Styling](styling.md): the CSS that reads these tokens
-- [ADR-0074](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0074-density-is-a-token-swap-and-regular-is-no-stylesheet.md): density
-- [ADR-0175](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0175-a-banner-says-its-kind-twice.md): three ranks of a hue
-- [ADR-0310](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0310-a-shadow-is-a-stack-of-rectangles.md): elevation
-- [ADR-0378](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0378-the-desktops-own-modifier-has-a-name.md): the primary modifier
-- [ADR-0440](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0440-the-accessibility-bridge-is-on-hold-and-the-semantics-tree-stays.md): the bridge on hold

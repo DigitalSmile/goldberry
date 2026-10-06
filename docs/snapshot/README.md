@@ -9,10 +9,12 @@ to GB-012, written 2026-10-05 and 2026-10-06.
 
 | File | Destination at release | Note |
 |---|---|---|
-| `adr/0561-…` to `adr/0566-…` | `book/src/adr/` | Six records. `DecisionLogTest` wants the numbers contiguous from the highest in the log at that time: renumber if records landed in between, and fix the cross-references between them (0562 ↔ 0563, 0563 ↔ 0566) |
+| `adr/0561-…` to `adr/0568-…` | `book/src/adr/` | Eight records. `DecisionLogTest` wants the numbers contiguous from the highest in the log at that time: renumber if records landed in between, and fix the cross-references between them (0562 ↔ 0563, 0563 ↔ 0566) |
 | `adr/README-lines.md` | appended to `book/src/adr/README.md` | One line per record, in order |
 | `components-gpu.md` | `book/src/components/gpu.md`, before `## What is measured, and what is not yet` | Three sections: the texture model, compute and storage, rendering offscreen. The Java samples pass `BookTest`'s bracket rule as written |
 | `performance-measuring.md` | `book/src/performance/measuring.md` | One sentence and one table row for `--capture=` |
+| `adr/0568-…` | `book/src/adr/` | Metal shader bindings follow SDL's order; the fix for the macOS GPU lane of 2026-10-06 |
+| `adr/0567-…` | `book/src/adr/` | The guide is neutral: the rewrite itself went into `book/` on 2026-10-06 at the user's request, with the `BookTest` guard; only this record waits here |
 
 ## Doc comments that point at the guide
 
