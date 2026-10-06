@@ -1,5 +1,6 @@
 package dev.goldberry.render.backend.sdl3;
 
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -323,6 +324,37 @@ sealed class Sdl3Window implements BackendWindow permits Sdl3Popup {
         // its FrameDue was emitted; clearing it here would also discard a request
         // made by the painter *during* this frame, which is how an animation stops
         // after one frame.
+    }
+
+    /// The composite drawn again and read back while the window is composited;
+    /// the window surface's pixels, which SDL keeps between frames, while it
+    /// presents on the CPU.
+    @Override
+    public Optional<PixelBuffer> capture() {
+        backend.requireUiThread();
+        requireOpen();
+        var gpu = composited;
+        if (gpu != null) {
+            return gpu.capture();
+        }
+        if (!shown) {
+            return Optional.empty();
+        }
+        try {
+            var surface = video().acquireSurface(handle);
+            var size = new PhysicalSize(surface.width(), surface.height());
+            var rows = size.height();
+            var rowBytes = size.width() * 4;
+            var copy = ByteBuffer.allocateDirect(rows * rowBytes);
+            var source = surface.pixels();
+            for (var y = 0; y < rows; y++) {
+                copy.put(y * rowBytes, source, y * surface.stride(), rowBytes);
+            }
+            return Optional.of(new PixelBuffer(size, PixelFormat.BGRA32_PREMULTIPLIED, rowBytes, copy));
+        } catch (SdlException e) {
+            LOG.debug("\"{}\" has no surface to capture: {}", title, e.getMessage());
+            return Optional.empty();
+        }
     }
 
     /// Hands the frame to the compositor, or, if the GPU fails, leaves the

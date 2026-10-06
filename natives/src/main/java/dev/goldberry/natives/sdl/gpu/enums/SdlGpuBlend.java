@@ -10,5 +10,7 @@ public enum SdlGpuBlend {
     /// Premultiplied "over": `src + dst × (1 − src.a)` on every channel. What the
     /// UI quad is composited over the GPU layers with, since Blend2D paints
     /// premultiplied.
-    PREMULTIPLIED_OVER
+    PREMULTIPLIED_OVER,
+    /// Additive: `src + dst` on every channel. Particles, glows, light.
+    ADDITIVE
 }

@@ -31,7 +31,7 @@ import dev.goldberry.render.model.PhysicalSize;
 ///
 /// It turns by [#SPEED] radians a second from [#START], so the picture at a
 /// frame's time is exact, and it records what its canvas asked of it.
-final class TestCube implements Canvas3dRenderer {
+public final class TestCube implements Canvas3dRenderer {
 
     static final double START = 0.6;
     static final double SPEED = 1.0;
@@ -48,7 +48,7 @@ final class TestCube implements Canvas3dRenderer {
 
     /// The calls it was given, in order: `init`, `resize WxH`, `render WxH`,
     /// `dispose`.
-    final List<String> calls = new ArrayList<>();
+    public final List<String> calls = new ArrayList<>();
 
     private @Nullable GpuDevice device;
     private @Nullable Shader vertex;

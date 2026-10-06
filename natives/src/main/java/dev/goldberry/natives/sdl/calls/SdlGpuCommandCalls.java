@@ -67,6 +67,13 @@ public record SdlGpuCommandCalls(
     /// `SDL_GPU_STOREOP_DONT_CARE`: what a render pass drew may be discarded.
     public static final int STOREOP_DONT_CARE = 1;
 
+    /// `SDL_GPU_STOREOP_RESOLVE`: the multisampled contents are resolved into
+    /// another texture, and the target's own are then undefined.
+    public static final int STOREOP_RESOLVE = 2;
+
+    /// `SDL_GPU_STOREOP_RESOLVE_AND_STORE`: resolved, and the target kept too.
+    public static final int STOREOP_RESOLVE_AND_STORE = 3;
+
     /// `SDL_GPU_FILTER_NEAREST`: a blit that samples the nearest texel.
     public static final int FILTER_NEAREST = 0;
 

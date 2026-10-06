@@ -21,13 +21,17 @@ import dev.goldberry.natives.sdl.gpu.enums.SdlGpuShaderStage;
 ///                       `main0` for MSL made by SPIRV-Cross
 /// @param samplers       how many textures it samples
 /// @param uniformBuffers how many uniform blocks it reads
+/// @param storageTextures how many storage textures it reads
+/// @param storageBuffers how many storage buffers it reads
 public record SdlGpuShaderCode(
         SdlGpuShaderStage stage,
         SdlGpuShaderFormat format,
         byte[] code,
         String entryPoint,
         int samplers,
-        int uniformBuffers) {
+        int uniformBuffers,
+        int storageTextures,
+        int storageBuffers) {
 
     /// Checks the counts and that there is code, and copies it.
     public SdlGpuShaderCode {
@@ -37,10 +41,22 @@ public record SdlGpuShaderCode(
         if (code.length == 0) {
             throw new IllegalArgumentException("a shader needs code");
         }
-        if (samplers < 0 || uniformBuffers < 0) {
-            throw new IllegalArgumentException("samplers " + samplers + ", uniform buffers " + uniformBuffers);
+        if (samplers < 0 || uniformBuffers < 0 || storageTextures < 0 || storageBuffers < 0) {
+            throw new IllegalArgumentException("samplers " + samplers + ", uniform buffers " + uniformBuffers
+                    + ", storage textures " + storageTextures + ", storage buffers " + storageBuffers);
         }
         code = code.clone();
+    }
+
+    /// Code that reads no storage textures or buffers: the toolkit's own.
+    public SdlGpuShaderCode(
+            SdlGpuShaderStage stage,
+            SdlGpuShaderFormat format,
+            byte[] code,
+            String entryPoint,
+            int samplers,
+            int uniformBuffers) {
+        this(stage, format, code, entryPoint, samplers, uniformBuffers, 0, 0);
     }
 
     /// The bytecode; a copy.
@@ -62,12 +78,22 @@ public record SdlGpuShaderCode(
                 && Arrays.equals(code, that.code)
                 && entryPoint.equals(that.entryPoint)
                 && samplers == that.samplers
-                && uniformBuffers == that.uniformBuffers;
+                && uniformBuffers == that.uniformBuffers
+                && storageTextures == that.storageTextures
+                && storageBuffers == that.storageBuffers;
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(stage, format, Arrays.hashCode(code), entryPoint, samplers, uniformBuffers);
+        return Objects.hash(
+                stage,
+                format,
+                Arrays.hashCode(code),
+                entryPoint,
+                samplers,
+                uniformBuffers,
+                storageTextures,
+                storageBuffers);
     }
 
     @Override

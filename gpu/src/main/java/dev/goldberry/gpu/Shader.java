@@ -11,6 +11,8 @@ public final class Shader extends GpuResource {
     private final ShaderFormat format;
     private final int samplers;
     private final int uniformBuffers;
+    private final int storageTextures;
+    private final int storageBuffers;
 
     Shader(GpuDevice device, SdlGpuShader sdl, ShaderCode code, ShaderFormat format) {
         super(device, sdl);
@@ -19,6 +21,8 @@ public final class Shader extends GpuResource {
         this.format = format;
         this.samplers = code.samplers();
         this.uniformBuffers = code.uniformBuffers();
+        this.storageTextures = code.storageTextures();
+        this.storageBuffers = code.storageBuffers();
     }
 
     /// The stage it runs in.
@@ -39,6 +43,16 @@ public final class Shader extends GpuResource {
     /// How many uniform blocks it reads.
     public int uniformBuffers() {
         return uniformBuffers;
+    }
+
+    /// How many storage textures it reads.
+    public int storageTextures() {
+        return storageTextures;
+    }
+
+    /// How many storage buffers it reads.
+    public int storageBuffers() {
+        return storageBuffers;
     }
 
     /// The SDL shader, for `user`'s pipelines.

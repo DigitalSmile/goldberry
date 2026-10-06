@@ -4,7 +4,9 @@ import java.lang.foreign.MemorySegment;
 
 import dev.goldberry.natives.sdl.gpu.enums.SdlGpuShaderStage;
 
-/// A compiled shader on a [SdlGpuDevice]. A pipeline made from it keeps working
+/// A compiled shader on a [SdlGpuDevice], for one stage, and what it declared:
+/// how many textures it samples, how many storage textures and buffers it
+/// reads, and how many uniform blocks. A pipeline made from it keeps working
 /// after it is closed.
 ///
 /// Read more: [The native boundary](https://goldberry.dev/docs/overview/architecture.html#the-native-boundary).
@@ -13,12 +15,16 @@ public final class SdlGpuShader extends SdlGpuResource {
     private final SdlGpuShaderStage stage;
     private final int samplers;
     private final int uniformBuffers;
+    private final int storageTextures;
+    private final int storageBuffers;
 
-    SdlGpuShader(SdlGpuDevice device, MemorySegment handle, SdlGpuShaderStage stage, int samplers, int uniformBuffers) {
+    SdlGpuShader(SdlGpuDevice device, MemorySegment handle, SdlGpuShaderCode code) {
         super(device, handle);
-        this.stage = stage;
-        this.samplers = samplers;
-        this.uniformBuffers = uniformBuffers;
+        this.stage = code.stage();
+        this.samplers = code.samplers();
+        this.uniformBuffers = code.uniformBuffers();
+        this.storageTextures = code.storageTextures();
+        this.storageBuffers = code.storageBuffers();
     }
 
     /// The stage it runs in.
@@ -34,6 +40,16 @@ public final class SdlGpuShader extends SdlGpuResource {
     /// How many uniform blocks it reads.
     public int uniformBuffers() {
         return uniformBuffers;
+    }
+
+    /// How many storage textures it reads.
+    public int storageTextures() {
+        return storageTextures;
+    }
+
+    /// How many storage buffers it reads.
+    public int storageBuffers() {
+        return storageBuffers;
     }
 
     @Override

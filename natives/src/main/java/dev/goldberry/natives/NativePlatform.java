@@ -80,6 +80,14 @@ public record NativePlatform(OperatingSystem os, Architecture arch) {
         return osToken() + "-" + archToken();
     }
 
+    /// The dependency notation of the classifier jar, e.g.
+    /// `dev.goldberry:goldberry-natives::linux-x64`: what a build file names to
+    /// put the library on the class path. The natives are one artifact with four
+    /// classifiers, not four artifacts.
+    public String coordinate() {
+        return "dev.goldberry:goldberry-natives::" + classifier();
+    }
+
     /// The module name the classifier jar gives itself, e.g.
     /// `dev.goldberry.natives.linux_x64`: the classifier with its hyphen made
     /// legal, so a modular build can keep all four jars on the module path.

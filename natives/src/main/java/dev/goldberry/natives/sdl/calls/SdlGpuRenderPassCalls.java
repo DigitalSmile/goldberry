@@ -23,7 +23,11 @@ public record SdlGpuRenderPassCalls(
         BindGPUFragmentSamplers bindGPUFragmentSamplers,
         DrawGPUPrimitives drawGPUPrimitives,
         PushGPUVertexUniformData pushGPUVertexUniformData,
-        PushGPUFragmentUniformData pushGPUFragmentUniformData) {
+        PushGPUFragmentUniformData pushGPUFragmentUniformData,
+        BindGPUVertexSamplers bindGPUVertexSamplers,
+        BindGPUVertexStorageBuffers bindGPUVertexStorageBuffers,
+        BindGPUFragmentStorageBuffers bindGPUFragmentStorageBuffers,
+        BindGPUFragmentStorageTextures bindGPUFragmentStorageTextures) {
 
     /// Binds every function above.
     ///
@@ -36,7 +40,11 @@ public record SdlGpuRenderPassCalls(
                 new BindGPUFragmentSamplers(lookup),
                 new DrawGPUPrimitives(lookup),
                 new PushGPUVertexUniformData(lookup),
-                new PushGPUFragmentUniformData(lookup));
+                new PushGPUFragmentUniformData(lookup),
+                new BindGPUVertexSamplers(lookup),
+                new BindGPUVertexStorageBuffers(lookup),
+                new BindGPUFragmentStorageBuffers(lookup),
+                new BindGPUFragmentStorageTextures(lookup));
     }
 
     /// Binds the pipeline the next draws use.
@@ -236,6 +244,122 @@ public record SdlGpuRenderPassCalls(
                 FD_SDL_PushGPUFragmentUniformData.invokeExact(address, commandBuffer, slot, data, length);
             } catch (Throwable t) {
                 throw Downcalls.failure("SDL_PushGPUFragmentUniformData", t);
+            }
+        }
+    }
+
+    /// Binds textures and samplers the vertex shader reads: a height map, an instance table.
+    ///
+    /// `void SDL_BindGPUVertexSamplers(void*, Uint32, void*, Uint32)`
+    public static final class BindGPUVertexSamplers {
+
+        private static final MethodHandle FD_SDL_BindGPUVertexSamplers =
+                Downcalls.link(FunctionDescriptor.ofVoid(ADDRESS, JAVA_INT, ADDRESS, JAVA_INT));
+
+        private final MemorySegment address;
+
+        BindGPUVertexSamplers(SymbolLookup lookup) {
+            this.address = Downcalls.symbol(lookup, "SDL_BindGPUVertexSamplers");
+        }
+
+        /// Calls `SDL_BindGPUVertexSamplers`.
+        ///
+        /// @param renderPass the pass
+        /// @param firstSlot  the first slot bound
+        /// @param bindings   an `SDL_GPUTextureSamplerBinding*` array
+        /// @param count      how many bindings
+        public void call(MemorySegment renderPass, int firstSlot, MemorySegment bindings, int count) {
+            try {
+                FD_SDL_BindGPUVertexSamplers.invokeExact(address, renderPass, firstSlot, bindings, count);
+            } catch (Throwable t) {
+                throw Downcalls.failure("SDL_BindGPUVertexSamplers", t);
+            }
+        }
+    }
+
+    /// Binds storage buffers the vertex shader reads.
+    ///
+    /// `void SDL_BindGPUVertexStorageBuffers(void*, Uint32, void*, Uint32)`
+    public static final class BindGPUVertexStorageBuffers {
+
+        private static final MethodHandle FD_SDL_BindGPUVertexStorageBuffers =
+                Downcalls.link(FunctionDescriptor.ofVoid(ADDRESS, JAVA_INT, ADDRESS, JAVA_INT));
+
+        private final MemorySegment address;
+
+        BindGPUVertexStorageBuffers(SymbolLookup lookup) {
+            this.address = Downcalls.symbol(lookup, "SDL_BindGPUVertexStorageBuffers");
+        }
+
+        /// Calls `SDL_BindGPUVertexStorageBuffers`.
+        ///
+        /// @param renderPass the pass
+        /// @param firstSlot  the first slot bound
+        /// @param bindings   an `SDL_GPUBuffer**` array
+        /// @param count      how many bindings
+        public void call(MemorySegment renderPass, int firstSlot, MemorySegment bindings, int count) {
+            try {
+                FD_SDL_BindGPUVertexStorageBuffers.invokeExact(address, renderPass, firstSlot, bindings, count);
+            } catch (Throwable t) {
+                throw Downcalls.failure("SDL_BindGPUVertexStorageBuffers", t);
+            }
+        }
+    }
+
+    /// Binds storage buffers the fragment shader reads.
+    ///
+    /// `void SDL_BindGPUFragmentStorageBuffers(void*, Uint32, void*, Uint32)`
+    public static final class BindGPUFragmentStorageBuffers {
+
+        private static final MethodHandle FD_SDL_BindGPUFragmentStorageBuffers =
+                Downcalls.link(FunctionDescriptor.ofVoid(ADDRESS, JAVA_INT, ADDRESS, JAVA_INT));
+
+        private final MemorySegment address;
+
+        BindGPUFragmentStorageBuffers(SymbolLookup lookup) {
+            this.address = Downcalls.symbol(lookup, "SDL_BindGPUFragmentStorageBuffers");
+        }
+
+        /// Calls `SDL_BindGPUFragmentStorageBuffers`.
+        ///
+        /// @param renderPass the pass
+        /// @param firstSlot  the first slot bound
+        /// @param bindings   an `SDL_GPUBuffer**` array
+        /// @param count      how many bindings
+        public void call(MemorySegment renderPass, int firstSlot, MemorySegment bindings, int count) {
+            try {
+                FD_SDL_BindGPUFragmentStorageBuffers.invokeExact(address, renderPass, firstSlot, bindings, count);
+            } catch (Throwable t) {
+                throw Downcalls.failure("SDL_BindGPUFragmentStorageBuffers", t);
+            }
+        }
+    }
+
+    /// Binds storage textures the fragment shader reads.
+    ///
+    /// `void SDL_BindGPUFragmentStorageTextures(void*, Uint32, void*, Uint32)`
+    public static final class BindGPUFragmentStorageTextures {
+
+        private static final MethodHandle FD_SDL_BindGPUFragmentStorageTextures =
+                Downcalls.link(FunctionDescriptor.ofVoid(ADDRESS, JAVA_INT, ADDRESS, JAVA_INT));
+
+        private final MemorySegment address;
+
+        BindGPUFragmentStorageTextures(SymbolLookup lookup) {
+            this.address = Downcalls.symbol(lookup, "SDL_BindGPUFragmentStorageTextures");
+        }
+
+        /// Calls `SDL_BindGPUFragmentStorageTextures`.
+        ///
+        /// @param renderPass the pass
+        /// @param firstSlot  the first slot bound
+        /// @param bindings   an `SDL_GPUTexture**` array
+        /// @param count      how many bindings
+        public void call(MemorySegment renderPass, int firstSlot, MemorySegment bindings, int count) {
+            try {
+                FD_SDL_BindGPUFragmentStorageTextures.invokeExact(address, renderPass, firstSlot, bindings, count);
+            } catch (Throwable t) {
+                throw Downcalls.failure("SDL_BindGPUFragmentStorageTextures", t);
             }
         }
     }

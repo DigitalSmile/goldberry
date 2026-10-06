@@ -26,6 +26,54 @@ final class TestShaders {
                 ShaderStage.FRAGMENT, DIRECTORY + "mesh.frag", 0, 0, TestShaders.class::getResourceAsStream);
     }
 
+    /// `fullscreen.vert`: one triangle over the whole target from the vertex
+    /// id, with a texture coordinate per pixel. Three vertices.
+    static ShaderCode fullscreenVertex() {
+        return ShaderCode.load(
+                ShaderStage.VERTEX, DIRECTORY + "fullscreen.vert", 0, 0, TestShaders.class::getResourceAsStream);
+    }
+
+    /// `sample.frag`: one texture's first channel as grey.
+    static ShaderCode sampleFragment() {
+        return ShaderCode.load(
+                ShaderStage.FRAGMENT, DIRECTORY + "sample.frag", 1, 0, TestShaders.class::getResourceAsStream);
+    }
+
+    /// `array.frag`: one layer of a texture array, the layer a float in
+    /// fragment uniform block 0.
+    static ShaderCode arrayFragment() {
+        return ShaderCode.load(
+                ShaderStage.FRAGMENT, DIRECTORY + "array.frag", 1, 1, TestShaders.class::getResourceAsStream);
+    }
+
+    /// `depthonly.frag`: writes nothing, for a pipeline with no colour target.
+    static ShaderCode depthOnlyFragment() {
+        return ShaderCode.load(
+                ShaderStage.FRAGMENT, DIRECTORY + "depthonly.frag", 0, 0, TestShaders.class::getResourceAsStream);
+    }
+
+    /// `scale.comp`: `output[i] = input[i] * scale`, over workgroups of 64,
+    /// reading one storage buffer, writing one, with the scale in uniform
+    /// block 0.
+    static ComputeCode scaleCompute() {
+        return ComputeCode.load(
+                DIRECTORY + "scale.comp",
+                ComputeCode.builder(64, 1, 1)
+                        .readOnlyStorageBuffers(1)
+                        .readWriteStorageBuffers(1)
+                        .uniformBuffers(1),
+                TestShaders.class::getResourceAsStream);
+    }
+
+    /// `storage.vert`: a red vertex at `vertices[id].xy`, read from storage
+    /// buffer slot 0. Pairs with [#meshFragment].
+    static ShaderCode storageVertex() {
+        return ShaderCode.load(
+                DIRECTORY + "storage.vert",
+                ShaderCode.builder(ShaderStage.VERTEX).storageBuffers(1),
+                TestShaders.class::getResourceAsStream);
+    }
+
     /// The vertex layout both describe.
     static VertexBufferLayout meshLayout() {
         return VertexBufferLayout.perVertex(

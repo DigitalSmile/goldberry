@@ -25,6 +25,7 @@ import dev.goldberry.natives.sdl.gpu.enums.SdlGpuCullMode;
 import dev.goldberry.natives.sdl.gpu.enums.SdlGpuFrontFace;
 import dev.goldberry.natives.sdl.gpu.enums.SdlGpuIndexSize;
 import dev.goldberry.natives.sdl.gpu.enums.SdlGpuPrimitiveType;
+import dev.goldberry.natives.sdl.gpu.enums.SdlGpuSampleCount;
 import dev.goldberry.natives.sdl.gpu.enums.SdlGpuShaderFormat;
 import dev.goldberry.natives.sdl.gpu.enums.SdlGpuTextureFormat;
 import dev.goldberry.natives.sdl.gpu.enums.SdlGpuTextureUsage;
@@ -154,12 +155,18 @@ public final class NativeConstants {
             constants.add(new NativeConstant(usage.nativeName(), usage.value()));
         }
         constants.add(new NativeConstant("SDL_GPU_TEXTURETYPE_2D", SdlGpuResourceCalls.TEXTURETYPE_2D));
-        constants.add(new NativeConstant("SDL_GPU_SAMPLECOUNT_1", SdlGpuResourceCalls.SAMPLECOUNT_1));
+        constants.add(new NativeConstant("SDL_GPU_TEXTURETYPE_2D_ARRAY", SdlGpuResourceCalls.TEXTURETYPE_2D_ARRAY));
+        for (var count : SdlGpuSampleCount.values()) {
+            constants.add(new NativeConstant(count.nativeName(), count.value()));
+        }
         constants.add(new NativeConstant("SDL_GPU_LOADOP_LOAD", SdlGpuCommandCalls.LOADOP_LOAD));
         constants.add(new NativeConstant("SDL_GPU_LOADOP_CLEAR", SdlGpuCommandCalls.LOADOP_CLEAR));
         constants.add(new NativeConstant("SDL_GPU_LOADOP_DONT_CARE", SdlGpuCommandCalls.LOADOP_DONT_CARE));
         constants.add(new NativeConstant("SDL_GPU_STOREOP_STORE", SdlGpuCommandCalls.STOREOP_STORE));
         constants.add(new NativeConstant("SDL_GPU_STOREOP_DONT_CARE", SdlGpuCommandCalls.STOREOP_DONT_CARE));
+        constants.add(new NativeConstant("SDL_GPU_STOREOP_RESOLVE", SdlGpuCommandCalls.STOREOP_RESOLVE));
+        constants.add(
+                new NativeConstant("SDL_GPU_STOREOP_RESOLVE_AND_STORE", SdlGpuCommandCalls.STOREOP_RESOLVE_AND_STORE));
         constants.add(new NativeConstant("SDL_GPU_FILTER_NEAREST", SdlGpuCommandCalls.FILTER_NEAREST));
         constants.add(new NativeConstant("SDL_GPU_FILTER_LINEAR", SdlGpuCommandCalls.FILTER_LINEAR));
         constants.add(new NativeConstant("SDL_FLIP_NONE", SdlGpuCommandCalls.FLIP_NONE));
@@ -171,6 +178,8 @@ public final class NativeConstants {
         constants.add(new NativeConstant("SDL_GPU_SHADERSTAGE_FRAGMENT", SdlGpuPipelineCalls.SHADERSTAGE_FRAGMENT));
         constants.add(
                 new NativeConstant("SDL_GPU_SAMPLERMIPMAPMODE_NEAREST", SdlGpuPipelineCalls.SAMPLERMIPMAPMODE_NEAREST));
+        constants.add(
+                new NativeConstant("SDL_GPU_SAMPLERMIPMAPMODE_LINEAR", SdlGpuPipelineCalls.SAMPLERMIPMAPMODE_LINEAR));
         constants.add(new NativeConstant("SDL_GPU_FILLMODE_FILL", SdlGpuPipelineCalls.FILLMODE_FILL));
         constants.add(new NativeConstant("SDL_GPU_BLENDFACTOR_ZERO", SdlGpuPipelineCalls.BLENDFACTOR_ZERO));
         constants.add(new NativeConstant("SDL_GPU_BLENDFACTOR_ONE", SdlGpuPipelineCalls.BLENDFACTOR_ONE));

@@ -22,6 +22,14 @@ public enum SdlGpuTextureFormat {
     /// Four 8-bit channels in memory order B, G, R, A: what Blend2D paints, so
     /// the UI uploads without a conversion.
     B8G8R8A8_UNORM(12, 4),
+    /// Four 16-bit floats: a scene drawn in HDR, where bloom keeps values
+    /// above one until the tonemap.
+    R16G16B16A16_FLOAT(29, 8),
+    /// One 32-bit float: what a sampled depth map is read back as.
+    R32_FLOAT(30, 4),
+    /// Three unsigned floats packed into 32 bits: a cheaper HDR target with no
+    /// alpha.
+    R11G11B10_UFLOAT(33, 4),
     /// A 16-bit depth target: enough for most scenes, and every device has it.
     D16_UNORM(58, 2),
     /// A 32-bit float depth target.
@@ -49,6 +57,15 @@ public enum SdlGpuTextureFormat {
     /// never a colour target.
     public boolean isDepth() {
         return this == D16_UNORM || this == D32_FLOAT;
+    }
+
+    /// Whether the channels are floats rather than normalised integers: a
+    /// clear colour is taken as is, and a `Readback` hands back float bytes.
+    public boolean isFloat() {
+        return switch (this) {
+            case R16G16B16A16_FLOAT, R32_FLOAT, R11G11B10_UFLOAT, D32_FLOAT -> true;
+            default -> false;
+        };
     }
 
     /// The name the C shim reports this constant under, for the layout probe.

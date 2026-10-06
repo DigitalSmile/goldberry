@@ -101,7 +101,7 @@
 #endif
 
 /* Bumped whenever the exported surface changes shape. */
-#define GOLDBERRY_ABI_VERSION 18u
+#define GOLDBERRY_ABI_VERSION 19u
 
 GOLDBERRY_EXPORT uint32_t goldberry_abi_version(void) {
     return GOLDBERRY_ABI_VERSION;
@@ -738,6 +738,54 @@ static const goldberry_layout_entry_t GOLDBERRY_LAYOUTS[] = {
     GB_CONSTANT("SDL_GPU_SAMPLERADDRESSMODE_MIRRORED_REPEAT", SDL_GPU_SAMPLERADDRESSMODE_MIRRORED_REPEAT),
     GB_CONSTANT("SDL_GPU_TEXTUREFORMAT_D16_UNORM", SDL_GPU_TEXTUREFORMAT_D16_UNORM),
     GB_CONSTANT("SDL_GPU_TEXTUREFORMAT_D32_FLOAT", SDL_GPU_TEXTUREFORMAT_D32_FLOAT),
+    /* ABI 19: the texture model an application's renderer asks for (layers,
+     * mip levels, samples, float colour, sampled depth), storage usages, and
+     * compute. Everything a Java enumerator or struct names, in one bump. */
+    GB_CONSTANT("SDL_GPU_TEXTUREFORMAT_R16G16B16A16_FLOAT", SDL_GPU_TEXTUREFORMAT_R16G16B16A16_FLOAT),
+    GB_CONSTANT("SDL_GPU_TEXTUREFORMAT_R32_FLOAT", SDL_GPU_TEXTUREFORMAT_R32_FLOAT),
+    GB_CONSTANT("SDL_GPU_TEXTUREFORMAT_R11G11B10_UFLOAT", SDL_GPU_TEXTUREFORMAT_R11G11B10_UFLOAT),
+    GB_CONSTANT("SDL_GPU_TEXTURETYPE_2D_ARRAY", SDL_GPU_TEXTURETYPE_2D_ARRAY),
+    GB_CONSTANT("SDL_GPU_SAMPLECOUNT_2", SDL_GPU_SAMPLECOUNT_2),
+    GB_CONSTANT("SDL_GPU_SAMPLECOUNT_4", SDL_GPU_SAMPLECOUNT_4),
+    GB_CONSTANT("SDL_GPU_SAMPLECOUNT_8", SDL_GPU_SAMPLECOUNT_8),
+    GB_CONSTANT("SDL_GPU_STOREOP_RESOLVE", SDL_GPU_STOREOP_RESOLVE),
+    GB_CONSTANT("SDL_GPU_STOREOP_RESOLVE_AND_STORE", SDL_GPU_STOREOP_RESOLVE_AND_STORE),
+    GB_CONSTANT("SDL_GPU_SAMPLERMIPMAPMODE_LINEAR", SDL_GPU_SAMPLERMIPMAPMODE_LINEAR),
+    GB_CONSTANT("SDL_GPU_BUFFERUSAGE_GRAPHICS_STORAGE_READ", SDL_GPU_BUFFERUSAGE_GRAPHICS_STORAGE_READ),
+    GB_CONSTANT("SDL_GPU_BUFFERUSAGE_COMPUTE_STORAGE_READ", SDL_GPU_BUFFERUSAGE_COMPUTE_STORAGE_READ),
+    GB_CONSTANT("SDL_GPU_BUFFERUSAGE_COMPUTE_STORAGE_WRITE", SDL_GPU_BUFFERUSAGE_COMPUTE_STORAGE_WRITE),
+    GB_CONSTANT("SDL_GPU_TEXTUREUSAGE_GRAPHICS_STORAGE_READ", SDL_GPU_TEXTUREUSAGE_GRAPHICS_STORAGE_READ),
+    GB_CONSTANT("SDL_GPU_TEXTUREUSAGE_COMPUTE_STORAGE_READ", SDL_GPU_TEXTUREUSAGE_COMPUTE_STORAGE_READ),
+    GB_CONSTANT("SDL_GPU_TEXTUREUSAGE_COMPUTE_STORAGE_WRITE", SDL_GPU_TEXTUREUSAGE_COMPUTE_STORAGE_WRITE),
+    GB_STRUCT(SDL_GPUComputePipelineCreateInfo),
+    GB_FIELD(SDL_GPUComputePipelineCreateInfo, code_size),
+    GB_FIELD(SDL_GPUComputePipelineCreateInfo, code),
+    GB_FIELD(SDL_GPUComputePipelineCreateInfo, entrypoint),
+    GB_FIELD(SDL_GPUComputePipelineCreateInfo, format),
+    GB_FIELD(SDL_GPUComputePipelineCreateInfo, num_samplers),
+    GB_FIELD(SDL_GPUComputePipelineCreateInfo, num_readonly_storage_textures),
+    GB_FIELD(SDL_GPUComputePipelineCreateInfo, num_readonly_storage_buffers),
+    GB_FIELD(SDL_GPUComputePipelineCreateInfo, num_readwrite_storage_textures),
+    GB_FIELD(SDL_GPUComputePipelineCreateInfo, num_readwrite_storage_buffers),
+    GB_FIELD(SDL_GPUComputePipelineCreateInfo, num_uniform_buffers),
+    GB_FIELD(SDL_GPUComputePipelineCreateInfo, threadcount_x),
+    GB_FIELD(SDL_GPUComputePipelineCreateInfo, threadcount_y),
+    GB_FIELD(SDL_GPUComputePipelineCreateInfo, threadcount_z),
+    GB_FIELD(SDL_GPUComputePipelineCreateInfo, props),
+    GB_STRUCT(SDL_GPUStorageBufferReadWriteBinding),
+    GB_FIELD(SDL_GPUStorageBufferReadWriteBinding, buffer),
+    GB_FIELD(SDL_GPUStorageBufferReadWriteBinding, cycle),
+    GB_FIELD(SDL_GPUStorageBufferReadWriteBinding, padding1),
+    GB_FIELD(SDL_GPUStorageBufferReadWriteBinding, padding2),
+    GB_FIELD(SDL_GPUStorageBufferReadWriteBinding, padding3),
+    GB_STRUCT(SDL_GPUStorageTextureReadWriteBinding),
+    GB_FIELD(SDL_GPUStorageTextureReadWriteBinding, texture),
+    GB_FIELD(SDL_GPUStorageTextureReadWriteBinding, mip_level),
+    GB_FIELD(SDL_GPUStorageTextureReadWriteBinding, layer),
+    GB_FIELD(SDL_GPUStorageTextureReadWriteBinding, cycle),
+    GB_FIELD(SDL_GPUStorageTextureReadWriteBinding, padding1),
+    GB_FIELD(SDL_GPUStorageTextureReadWriteBinding, padding2),
+    GB_FIELD(SDL_GPUStorageTextureReadWriteBinding, padding3),
 
     /* Event types Goldberry dispatches on. */
     GB_CONSTANT("SDL_EVENT_QUIT", SDL_EVENT_QUIT),

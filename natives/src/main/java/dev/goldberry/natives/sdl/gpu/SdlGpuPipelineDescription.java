@@ -10,6 +10,7 @@ import dev.goldberry.natives.sdl.gpu.enums.SdlGpuCompareOp;
 import dev.goldberry.natives.sdl.gpu.enums.SdlGpuCullMode;
 import dev.goldberry.natives.sdl.gpu.enums.SdlGpuFrontFace;
 import dev.goldberry.natives.sdl.gpu.enums.SdlGpuPrimitiveType;
+import dev.goldberry.natives.sdl.gpu.enums.SdlGpuSampleCount;
 import dev.goldberry.natives.sdl.gpu.enums.SdlGpuShaderStage;
 import dev.goldberry.natives.sdl.gpu.enums.SdlGpuTextureFormat;
 import dev.goldberry.natives.sdl.gpu.enums.SdlGpuVertexFormat;
@@ -17,15 +18,18 @@ import dev.goldberry.natives.sdl.gpu.enums.SdlGpuVertexInputRate;
 
 /// Everything a graphics pipeline is made from, checked before SDL sees it.
 ///
-/// One colour target, one sample, filled polygons: what the composited window
-/// and `canvas3d` draw with. Several colour targets, multisampling, stencil and
-/// depth bias join when something asks for them.
+/// At most one colour target, filled polygons: what the composited window and
+/// `canvas3d` draw with. A pipeline with no colour target writes depth alone:
+/// a shadow map. A pipeline with more than one sample draws into a
+/// multisampled target, which a pass resolves. Several colour targets,
+/// stencil and depth bias join when something asks for them.
 ///
 /// Read more: [The native boundary](https://goldberry.dev/docs/overview/architecture.html#the-native-boundary).
 ///
 /// @param vertex           the vertex shader
 /// @param fragment         the fragment shader
-/// @param targetFormat     the colour target's format
+/// @param targetFormat     the colour target's format, or empty for a pipeline
+///                         that writes depth alone
 /// @param blend            how the output meets what the target holds
 /// @param primitiveType    how vertices are assembled
 /// @param cullMode         which triangles are discarded by their facing
@@ -36,17 +40,45 @@ import dev.goldberry.natives.sdl.gpu.enums.SdlGpuVertexInputRate;
 /// @param vertexAttributes the vertex shader's inputs, each read from one of
 ///                         the buffers
 /// @param depth            the depth test, or empty for none
+/// @param sampleCount      how many samples the targets it draws into have
 public record SdlGpuPipelineDescription(
         SdlGpuShader vertex,
         SdlGpuShader fragment,
-        SdlGpuTextureFormat targetFormat,
+        Optional<SdlGpuTextureFormat> targetFormat,
         SdlGpuBlend blend,
         SdlGpuPrimitiveType primitiveType,
         SdlGpuCullMode cullMode,
         SdlGpuFrontFace frontFace,
         List<VertexBuffer> vertexBuffers,
         List<VertexAttribute> vertexAttributes,
-        Optional<DepthTest> depth) {
+        Optional<DepthTest> depth,
+        SdlGpuSampleCount sampleCount) {
+
+    /// A description for single-sampled targets.
+    public SdlGpuPipelineDescription(
+            SdlGpuShader vertex,
+            SdlGpuShader fragment,
+            Optional<SdlGpuTextureFormat> targetFormat,
+            SdlGpuBlend blend,
+            SdlGpuPrimitiveType primitiveType,
+            SdlGpuCullMode cullMode,
+            SdlGpuFrontFace frontFace,
+            List<VertexBuffer> vertexBuffers,
+            List<VertexAttribute> vertexAttributes,
+            Optional<DepthTest> depth) {
+        this(
+                vertex,
+                fragment,
+                targetFormat,
+                blend,
+                primitiveType,
+                cullMode,
+                frontFace,
+                vertexBuffers,
+                vertexAttributes,
+                depth,
+                SdlGpuSampleCount.ONE);
+    }
 
     /// A vertex buffer the pipeline reads.
     ///
@@ -102,9 +134,11 @@ public record SdlGpuPipelineDescription(
     ///
     /// @throws IllegalArgumentException when a shader is for the wrong stage or
     ///                                  of another device, the colour target is
-    ///                                  a depth format, a slot or a location is
-    ///                                  declared twice, or an attribute reads a
-    ///                                  slot not declared or past its element
+    ///                                  a depth format, there is neither a
+    ///                                  colour target nor a depth test, a slot
+    ///                                  or a location is declared twice, or an
+    ///                                  attribute reads a slot not declared or
+    ///                                  past its element
     public SdlGpuPipelineDescription {
         Objects.requireNonNull(vertex, "vertex");
         Objects.requireNonNull(fragment, "fragment");
@@ -114,6 +148,7 @@ public record SdlGpuPipelineDescription(
         Objects.requireNonNull(cullMode, "cullMode");
         Objects.requireNonNull(frontFace, "frontFace");
         Objects.requireNonNull(depth, "depth");
+        Objects.requireNonNull(sampleCount, "sampleCount");
         vertexBuffers = List.copyOf(vertexBuffers);
         vertexAttributes = List.copyOf(vertexAttributes);
         if (vertex.stage() != SdlGpuShaderStage.VERTEX || fragment.stage() != SdlGpuShaderStage.FRAGMENT) {
@@ -123,8 +158,11 @@ public record SdlGpuPipelineDescription(
         if (vertex.device() != fragment.device()) {
             throw new IllegalArgumentException("a pipeline's shaders must be one device's");
         }
-        if (targetFormat.isDepth()) {
-            throw new IllegalArgumentException(targetFormat + " cannot be a colour target");
+        if (targetFormat.isPresent() && targetFormat.get().isDepth()) {
+            throw new IllegalArgumentException(targetFormat.get() + " cannot be a colour target");
+        }
+        if (targetFormat.isEmpty() && depth.isEmpty()) {
+            throw new IllegalArgumentException("a pipeline with no colour target needs a depth test");
         }
         var slots = new HashSet<Integer>();
         for (var buffer : vertexBuffers) {
@@ -156,7 +194,7 @@ public record SdlGpuPipelineDescription(
         return new SdlGpuPipelineDescription(
                 vertex,
                 fragment,
-                targetFormat,
+                Optional.of(targetFormat),
                 blend,
                 SdlGpuPrimitiveType.TRIANGLE_LIST,
                 SdlGpuCullMode.NONE,
@@ -164,6 +202,11 @@ public record SdlGpuPipelineDescription(
                 List.of(),
                 List.of(),
                 Optional.empty());
+    }
+
+    /// Whether the pipeline writes depth alone, with no colour target.
+    public boolean isDepthOnly() {
+        return targetFormat.isEmpty();
     }
 
     /// The depth target's format, or empty when the pipeline tests no depth.

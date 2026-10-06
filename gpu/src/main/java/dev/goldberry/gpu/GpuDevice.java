@@ -12,10 +12,13 @@ import org.jspecify.annotations.Nullable;
 import dev.goldberry.gpu.composite.ApiAccess;
 import dev.goldberry.gpu.render.StagingBuffer;
 import dev.goldberry.natives.sdl.SdlException;
+import dev.goldberry.natives.sdl.gpu.SdlGpuComputeCode;
 import dev.goldberry.natives.sdl.gpu.SdlGpuDevice;
 import dev.goldberry.natives.sdl.gpu.SdlGpuPipelineDescription;
+import dev.goldberry.natives.sdl.gpu.SdlGpuSamplerDescription;
 import dev.goldberry.natives.sdl.gpu.SdlGpuShaderCode;
 import dev.goldberry.natives.sdl.gpu.SdlGpuTexture;
+import dev.goldberry.natives.sdl.gpu.enums.SdlGpuSampleCount;
 
 /// The GPU: Metal on macOS, Direct3D 12 on Windows, Vulkan elsewhere. What
 /// textures, buffers, samplers, shaders and pipelines are made on, and what
@@ -105,7 +108,13 @@ public final class GpuDevice {
     public GpuTexture createTexture(TextureSpec spec) {
         var device = sdl();
         var texture = call(() -> device.createTexture(
-                spec.format().sdl(), spec.width(), spec.height(), TextureUsage.sdl(spec.usages())));
+                spec.format().sdl(),
+                spec.width(),
+                spec.height(),
+                spec.layers(),
+                spec.mipLevels(),
+                SdlGpuSampleCount.of(spec.samples()),
+                TextureUsage.sdl(spec.usages())));
         return new GpuTexture(this, texture, spec);
     }
 
@@ -139,8 +148,12 @@ public final class GpuDevice {
     /// @throws GpuException when the driver refuses
     public GpuSampler createSampler(SamplerSpec spec) {
         var device = sdl();
-        var sampler = call(() ->
-                device.createSampler(spec.filter().sdl(), spec.addressMode().sdl()));
+        var description = new SdlGpuSamplerDescription(
+                spec.filter().sdl(),
+                spec.addressMode().sdl(),
+                spec.mipFilter().map(Filter::sdl),
+                spec.compare().map(CompareOp::sdl));
+        var sampler = call(() -> device.createSampler(description));
         return new GpuSampler(this, sampler, spec);
     }
 
@@ -161,9 +174,40 @@ public final class GpuDevice {
                 bytecode.codeUnsafe(),
                 bytecode.entryPoint(),
                 code.samplers(),
-                code.uniformBuffers());
+                code.uniformBuffers(),
+                code.storageTextures(),
+                code.storageBuffers());
         var shader = call(() -> device.createShader(sdlCode));
         return new Shader(this, shader, code, format);
+    }
+
+    /// Makes a compute pipeline from `code`, in the one of its formats this
+    /// device takes.
+    ///
+    /// @throws IllegalArgumentException when it carries none of them; the
+    ///                                  message names what is missing
+    /// @throws GpuException             when the driver refuses the code
+    public ComputePipeline createComputePipeline(ComputeCode code) {
+        var device = sdl();
+        var format = code.formatFor(shaderFormats)
+                .orElseThrow(() -> new IllegalArgumentException(
+                        this + " takes " + shaderFormats + ", and the compute shader has only " + code.formats()));
+        var bytecode = Objects.requireNonNull(code.bytecode().get(format));
+        var sdlCode = new SdlGpuComputeCode(
+                format.sdl(),
+                bytecode.codeUnsafe(),
+                bytecode.entryPoint(),
+                code.samplers(),
+                code.readOnlyStorageTextures(),
+                code.readOnlyStorageBuffers(),
+                code.readWriteStorageTextures(),
+                code.readWriteStorageBuffers(),
+                code.uniformBuffers(),
+                code.threadsX(),
+                code.threadsY(),
+                code.threadsZ());
+        var pipeline = call(() -> device.createComputePipeline(sdlCode));
+        return new ComputePipeline(this, pipeline, code, format);
     }
 
     /// Makes a graphics pipeline.
@@ -188,7 +232,7 @@ public final class GpuDevice {
         var description = new SdlGpuPipelineDescription(
                 spec.vertexShader().sdl(this),
                 spec.fragmentShader().sdl(this),
-                spec.targetFormat().sdl(),
+                spec.targetFormat().map(TextureFormat::sdl),
                 spec.blend().sdl(),
                 spec.primitiveType().sdl(),
                 spec.cullMode().sdl(),
@@ -197,7 +241,8 @@ public final class GpuDevice {
                 attributes,
                 spec.depthTest()
                         .map(test -> new SdlGpuPipelineDescription.DepthTest(
-                                test.format().sdl(), test.compare().sdl(), test.write())));
+                                test.format().sdl(), test.compare().sdl(), test.write())),
+                SdlGpuSampleCount.of(spec.samples()));
         var pipeline = call(() -> device.createGraphicsPipeline(description));
         return new GraphicsPipeline(this, pipeline, spec);
     }

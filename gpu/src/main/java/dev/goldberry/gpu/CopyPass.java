@@ -48,6 +48,30 @@ public final class CopyPass {
                 List.of(new PhysicalRect(0, 0, destination.width(), destination.height())));
     }
 
+    /// Uploads the whole of `destination`, one level of one layer, from
+    /// `source`, tightly packed rows of the level's width from its position,
+    /// which is not moved.
+    ///
+    /// @throws IllegalArgumentException as [#upload(GpuTexture, ByteBuffer)]
+    public void upload(TextureView destination, ByteBuffer source) {
+        Objects.requireNonNull(destination, "destination");
+        upload(
+                destination,
+                source,
+                destination.width() * destination.format().bytesPerPixel(),
+                List.of(new PhysicalRect(0, 0, destination.width(), destination.height())));
+    }
+
+    /// Uploads `regions` of an image the size of `destination`'s level into it,
+    /// as [#upload(GpuTexture, ByteBuffer, int, List)] does for level 0.
+    ///
+    /// @throws IllegalArgumentException as that method
+    /// @throws GpuException             as that method
+    public void upload(TextureView destination, ByteBuffer source, int rowBytes, List<PhysicalRect> regions) {
+        Objects.requireNonNull(destination, "destination");
+        upload(destination.texture(), destination.level(), destination.layer(), source, rowBytes, regions);
+    }
+
     /// Uploads the damaged `regions` of `frame`, a painted UI frame, into
     /// `destination`, a [TextureFormat#B8G8R8A8_UNORM] texture of the frame's
     /// size: the composited window's upload.
@@ -80,12 +104,18 @@ public final class CopyPass {
     ///                                  texture, another device's or closed
     /// @throws GpuException             when the driver refuses the staging memory
     public void upload(GpuTexture destination, ByteBuffer source, int rowBytes, List<PhysicalRect> regions) {
+        upload(destination, 0, 0, source, rowBytes, regions);
+    }
+
+    private void upload(
+            GpuTexture texture, int level, int layer, ByteBuffer source, int rowBytes, List<PhysicalRect> regions) {
         Objects.requireNonNull(source, "source");
         requireOpen();
-        var texture = destination.sdl(device);
-        if (destination.format().isDepth()) {
-            throw new IllegalArgumentException(destination + " is a depth texture, which is not uploaded to");
+        var sdlTexture = texture.sdl(device);
+        if (texture.format().isDepth()) {
+            throw new IllegalArgumentException(texture + " is a depth texture, which is not uploaded to");
         }
+        var destination = texture.view(level, layer);
         var pixel = destination.format().bytesPerPixel();
         if (rowBytes < destination.width() * pixel) {
             throw new IllegalArgumentException("rows of " + rowBytes + " bytes are shorter than " + destination + "'s");
@@ -115,11 +145,16 @@ public final class CopyPass {
         var upload = device.upload();
         var offsets = GpuDevice.call(() -> upload.stage(source, rowBytes, pixel, regionsToCopy));
         var transfer = upload.buffer();
+        // Cycling hands the texture fresh memory when the GPU still reads the
+        // old, which is only right when every texel of every level and layer
+        // is about to be written: the whole of a one-level, one-layer texture.
         var whole = nonEmpty.size() == 1
+                && texture.mipLevels() == 1
+                && texture.layers() == 1
                 && nonEmpty.getFirst().width() == destination.width()
                 && nonEmpty.getFirst().height() == destination.height();
         for (var i = 0; i < regionsToCopy.size(); i++) {
-            sdl.upload(transfer, offsets[i], texture, regionsToCopy.get(i), whole);
+            sdl.upload(transfer, offsets[i], sdlTexture, level, layer, regionsToCopy.get(i), whole);
         }
     }
 

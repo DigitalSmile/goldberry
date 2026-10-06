@@ -28,8 +28,10 @@ public final class GraphicsPipeline extends GpuResource {
 
     @Override
     public String toString() {
-        return "GraphicsPipeline[" + spec.targetFormat() + ", " + spec.blend()
+        return "GraphicsPipeline[" + spec.targetFormat().map(Object::toString).orElse("depth only") + ", "
+                + spec.blend()
                 + spec.depthTest().map(test -> ", depth " + test.format()).orElse("")
+                + (spec.samples() > 1 ? ", " + spec.samples() + " samples" : "")
                 + (isClosed() ? ", closed]" : "]");
     }
 }

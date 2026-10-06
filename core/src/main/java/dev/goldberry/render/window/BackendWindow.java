@@ -55,6 +55,16 @@ public interface BackendWindow extends AutoCloseable {
     /// `headless`, or a GPU path — returns empty, and the caller allocates.
     ///
     /// @return the platform's buffer, already the right size, or empty
+    /// The last frame this window presented, as the screen shows it: with
+    /// every GPU layer drawn into it, where the window is composited. A copy,
+    /// so what the caller holds is this frame whatever is presented next.
+    ///
+    /// Empty before the first present, and for a backend that cannot read
+    /// its own window back.
+    default Optional<PixelBuffer> capture() {
+        return Optional.empty();
+    }
+
     default Optional<PixelBuffer> acquireFrame() {
         return Optional.empty();
     }

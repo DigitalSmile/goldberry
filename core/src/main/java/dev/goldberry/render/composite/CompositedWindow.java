@@ -1,6 +1,7 @@
 package dev.goldberry.render.composite;
 
 import java.util.List;
+import java.util.Optional;
 
 import dev.goldberry.render.DamageRect;
 import dev.goldberry.render.GpuPlacement;
@@ -57,6 +58,18 @@ public interface CompositedWindow extends AutoCloseable {
     /// parent's pixels it uncovers are whatever was last shown there before the
     /// page covered them, until the parent presents again.
     void exposed();
+
+    /// The last composite, drawn again into a texture and read back: the
+    /// frame last [#present]ed with its layers under it, as the swapchain
+    /// showed it. The swapchain itself cannot be read, so this is a second
+    /// composite of the same frame. Waits for the GPU.
+    ///
+    /// Empty before the first present, and after [#close].
+    ///
+    /// @throws RuntimeException when the GPU fails
+    default Optional<PixelBuffer> capture() {
+        return Optional.empty();
+    }
 
     /// Gives the window back: its surface can be asked for again. Idempotent.
     @Override

@@ -1,11 +1,14 @@
 package dev.goldberry.gpu;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.EnumSet;
 import java.util.List;
+import java.util.Optional;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -46,6 +49,67 @@ class GpuSpecsTest {
                     () -> new TextureSpec(TextureFormat.R8_UNORM, 1, 1, EnumSet.noneOf(TextureUsage.class)));
             assertThrows(IllegalArgumentException.class, () -> TextureSpec.sampled(TextureFormat.D16_UNORM, 1, 1));
             assertThrows(IllegalArgumentException.class, () -> TextureSpec.depth(TextureFormat.B8G8R8A8_UNORM, 1, 1));
+        }
+
+        @Test
+        @DisplayName("has one layer, one level and one sample unless asked, and names each level's size")
+        void counts() {
+            var plain = TextureSpec.sampled(TextureFormat.R8_UNORM, 16, 8);
+            assertEquals(1, plain.layers());
+            assertEquals(1, plain.mipLevels());
+            assertEquals(1, plain.samples());
+            assertFalse(plain.isArray());
+            var array = TextureSpec.array(TextureFormat.B8G8R8A8_UNORM, 16, 8, 64, EnumSet.of(TextureUsage.SAMPLER));
+            assertEquals(64, array.layers());
+            assertTrue(array.isArray());
+            assertEquals(5, TextureSpec.maxMipLevels(16, 8));
+            assertEquals(1, TextureSpec.maxMipLevels(1, 1));
+            var chain = plain.withMipChain();
+            assertEquals(5, chain.mipLevels());
+            assertEquals(16, chain.levelWidth(0));
+            assertEquals(2, chain.levelWidth(3));
+            assertEquals(1, chain.levelHeight(3), "a level is never below one texel");
+            assertEquals(1, chain.levelWidth(4));
+            assertEquals(3, plain.withMipLevels(3).mipLevels());
+            var msaa = TextureSpec.renderTarget(TextureFormat.B8G8R8A8_UNORM, 16, 8)
+                    .withUsages(EnumSet.of(TextureUsage.COLOR_TARGET))
+                    .withSamples(4);
+            assertEquals(4, msaa.samples());
+            assertEquals(
+                    EnumSet.of(TextureUsage.DEPTH_TARGET, TextureUsage.SAMPLER),
+                    TextureSpec.sampledDepth(TextureFormat.D32_FLOAT, 4, 4).usages());
+        }
+
+        @Test
+        @DisplayName(
+                "refuses counts the size cannot hold, and a multisampled texture that is sampled, layered or mipmapped")
+        void refusesCounts() {
+            var plain = TextureSpec.sampled(TextureFormat.R8_UNORM, 16, 8);
+            assertThrows(IllegalArgumentException.class, () -> plain.withMipLevels(0));
+            assertThrows(IllegalArgumentException.class, () -> plain.withMipLevels(6));
+            assertThrows(IllegalArgumentException.class, () -> plain.withLayers(0));
+            assertThrows(IllegalArgumentException.class, () -> plain.withSamples(3));
+            assertThrows(IllegalArgumentException.class, () -> plain.withSamples(4), "sampled");
+            var target = TextureSpec.renderTarget(TextureFormat.B8G8R8A8_UNORM, 16, 8)
+                    .withUsages(EnumSet.of(TextureUsage.COLOR_TARGET));
+            assertThrows(
+                    IllegalArgumentException.class, () -> target.withSamples(2).withLayers(2));
+            assertThrows(
+                    IllegalArgumentException.class, () -> target.withSamples(2).withMipLevels(2));
+            assertThrows(
+                    IllegalArgumentException.class, () -> plain.withMipChain().levelWidth(5));
+            assertThrows(
+                    IllegalArgumentException.class,
+                    () -> new TextureSpec(
+                            TextureFormat.D16_UNORM,
+                            1,
+                            1,
+                            EnumSet.of(TextureUsage.DEPTH_TARGET, TextureUsage.COLOR_TARGET)),
+                    "a depth format is never a colour target");
+            assertThrows(
+                    IllegalArgumentException.class,
+                    () -> new TextureSpec(TextureFormat.D16_UNORM, 1, 1, EnumSet.of(TextureUsage.SAMPLER)),
+                    "a depth format sampled alone is not a depth target");
         }
 
         @Test
@@ -111,6 +175,71 @@ class GpuSpecsTest {
             var layout = new VertexBufferLayout(0, 4, VertexInputRate.VERTEX, attributes);
             attributes.clear();
             assertEquals(1, layout.attributes().size());
+        }
+    }
+
+    @Nested
+    @DisplayName("a sampler spec")
+    class Samplers {
+
+        @Test
+        @DisplayName("reads level 0 alone and compares nothing unless asked")
+        void defaults() {
+            var linear = SamplerSpec.linear();
+            assertTrue(linear.mipFilter().isEmpty());
+            assertTrue(linear.compare().isEmpty());
+            assertEquals(Optional.of(Filter.LINEAR), SamplerSpec.trilinear().mipFilter());
+            assertEquals(
+                    Optional.of(Filter.NEAREST),
+                    linear.withMipFilter(Filter.NEAREST).mipFilter());
+            var shadow = SamplerSpec.linear().withCompare(CompareOp.LESS_OR_EQUAL);
+            assertEquals(Optional.of(CompareOp.LESS_OR_EQUAL), shadow.compare());
+            assertEquals(
+                    AddressMode.REPEAT,
+                    shadow.withAddressMode(AddressMode.REPEAT).addressMode());
+            assertEquals(
+                    shadow.compare(), shadow.withAddressMode(AddressMode.REPEAT).compare(), "kept");
+        }
+    }
+
+    @Nested
+    @DisplayName("compute code")
+    class Compute {
+
+        @Test
+        @DisplayName("carries its counts and workgroup, and refuses no code, a negative count and an empty workgroup")
+        void builds() {
+            var code = ComputeCode.builder(64, 1, 1)
+                    .readOnlyStorageBuffers(1)
+                    .readWriteStorageBuffers(2)
+                    .uniformBuffers(1)
+                    .code(ShaderFormat.SPIRV, new byte[] {1, 2, 3})
+                    .build();
+            assertEquals(64, code.threadsX());
+            assertEquals(2, code.readWriteStorageBuffers());
+            assertEquals(Optional.of(ShaderFormat.SPIRV), code.formatFor(EnumSet.of(ShaderFormat.SPIRV)));
+            assertTrue(code.formatFor(EnumSet.of(ShaderFormat.MSL)).isEmpty());
+            assertThrows(
+                    IllegalArgumentException.class,
+                    () -> ComputeCode.builder(1, 1, 1).build(),
+                    "no code");
+            assertThrows(
+                    IllegalArgumentException.class,
+                    () -> ComputeCode.builder(0, 1, 1)
+                            .code(ShaderFormat.SPIRV, new byte[] {1})
+                            .build());
+            assertThrows(
+                    IllegalArgumentException.class,
+                    () -> ComputeCode.builder(1, 1, 1)
+                            .samplers(-1)
+                            .code(ShaderFormat.SPIRV, new byte[] {1})
+                            .build());
+            var graphics = ShaderCode.builder(ShaderStage.VERTEX)
+                    .storageBuffers(1)
+                    .code(ShaderFormat.SPIRV, new byte[] {1})
+                    .build();
+            assertEquals(1, graphics.storageBuffers());
+            assertEquals(0, graphics.storageTextures());
         }
     }
 

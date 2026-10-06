@@ -23,7 +23,9 @@ public record SdlGpuPipelineCalls(
         CreateGPUSampler createGPUSampler,
         ReleaseGPUSampler releaseGPUSampler,
         CreateGPUGraphicsPipeline createGPUGraphicsPipeline,
-        ReleaseGPUGraphicsPipeline releaseGPUGraphicsPipeline) {
+        ReleaseGPUGraphicsPipeline releaseGPUGraphicsPipeline,
+        CreateGPUComputePipeline createGPUComputePipeline,
+        ReleaseGPUComputePipeline releaseGPUComputePipeline) {
 
     /// Binds every function above.
     ///
@@ -35,7 +37,9 @@ public record SdlGpuPipelineCalls(
                 new CreateGPUSampler(lookup),
                 new ReleaseGPUSampler(lookup),
                 new CreateGPUGraphicsPipeline(lookup),
-                new ReleaseGPUGraphicsPipeline(lookup));
+                new ReleaseGPUGraphicsPipeline(lookup),
+                new CreateGPUComputePipeline(lookup),
+                new ReleaseGPUComputePipeline(lookup));
     }
 
     /// `SDL_GPU_SHADERSTAGE_VERTEX`.
@@ -49,6 +53,9 @@ public record SdlGpuPipelineCalls(
 
     /// `SDL_GPU_SAMPLERMIPMAPMODE_NEAREST`: textures here have one level.
     public static final int SAMPLERMIPMAPMODE_NEAREST = 0;
+
+    /// `SDL_GPU_SAMPLERMIPMAPMODE_LINEAR`: blends the two nearest mip levels.
+    public static final int SAMPLERMIPMAPMODE_LINEAR = 1;
 
     /// `SDL_GPU_FILLMODE_FILL`.
     public static final int FILLMODE_FILL = 0;
@@ -230,6 +237,62 @@ public record SdlGpuPipelineCalls(
                 FD_SDL_ReleaseGPUGraphicsPipeline.invokeExact(address, device, pipeline);
             } catch (Throwable t) {
                 throw Downcalls.failure("SDL_ReleaseGPUGraphicsPipeline", t);
+            }
+        }
+    }
+
+    /// Creates a compute pipeline from one compute shader.
+    ///
+    /// `void* SDL_CreateGPUComputePipeline(void*, void*)`
+    public static final class CreateGPUComputePipeline {
+
+        private static final MethodHandle FD_SDL_CreateGPUComputePipeline =
+                Downcalls.link(FunctionDescriptor.of(ADDRESS, ADDRESS, ADDRESS));
+
+        private final MemorySegment address;
+
+        CreateGPUComputePipeline(SymbolLookup lookup) {
+            this.address = Downcalls.symbol(lookup, "SDL_CreateGPUComputePipeline");
+        }
+
+        /// Calls `SDL_CreateGPUComputePipeline`.
+        ///
+        /// @param device     the device
+        /// @param createInfo an `SDL_GPUComputePipelineCreateInfo*`
+        /// @return an `SDL_GPUComputePipeline*`, or NULL on failure
+        public MemorySegment call(MemorySegment device, MemorySegment createInfo) {
+            try {
+                return (MemorySegment) FD_SDL_CreateGPUComputePipeline.invokeExact(address, device, createInfo);
+            } catch (Throwable t) {
+                throw Downcalls.failure("SDL_CreateGPUComputePipeline", t);
+            }
+        }
+    }
+
+    /// Releases a compute pipeline. SDL frees it once no submitted command still
+    /// uses it.
+    ///
+    /// `void SDL_ReleaseGPUComputePipeline(void*, void*)`
+    public static final class ReleaseGPUComputePipeline {
+
+        private static final MethodHandle FD_SDL_ReleaseGPUComputePipeline =
+                Downcalls.link(FunctionDescriptor.ofVoid(ADDRESS, ADDRESS));
+
+        private final MemorySegment address;
+
+        ReleaseGPUComputePipeline(SymbolLookup lookup) {
+            this.address = Downcalls.symbol(lookup, "SDL_ReleaseGPUComputePipeline");
+        }
+
+        /// Calls `SDL_ReleaseGPUComputePipeline`.
+        ///
+        /// @param device   the device
+        /// @param pipeline the pipeline
+        public void call(MemorySegment device, MemorySegment pipeline) {
+            try {
+                FD_SDL_ReleaseGPUComputePipeline.invokeExact(address, device, pipeline);
+            } catch (Throwable t) {
+                throw Downcalls.failure("SDL_ReleaseGPUComputePipeline", t);
             }
         }
     }

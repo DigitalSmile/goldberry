@@ -1,5 +1,6 @@
 package dev.goldberry;
 
+import java.nio.ByteBuffer;
 import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -883,6 +884,30 @@ public final class Window implements AutoCloseable {
     /// safe to ask inside a `build` that runs every frame.
     public FrameStats frames() {
         return frames;
+    }
+
+    /// The last frame this window presented, as the screen shows it: GPU
+    /// layers and all, whether the window is composited or reads them back.
+    /// What a test compares with a reference, and what `--capture=` writes.
+    ///
+    /// Empty before the first frame, and on a backend that cannot read its
+    /// window back. Waits for the GPU where the window is composited.
+    public Optional<Image> capture() {
+        return window.capture().map(Window::direct);
+    }
+
+    /// `pixels` in direct memory, which an image drawn or encoded needs.
+    private static Image direct(PixelBuffer pixels) {
+        var source = pixels.pixels();
+        if (source.isDirect() && pixels.stride() == pixels.size().width() * 4) {
+            return Image.of(pixels);
+        }
+        var rowBytes = pixels.size().width() * 4;
+        var copy = ByteBuffer.allocateDirect(rowBytes * pixels.size().height()).order(source.order());
+        for (var y = 0; y < pixels.size().height(); y++) {
+            copy.put(y * rowBytes, source, source.position() + y * pixels.stride(), rowBytes);
+        }
+        return Image.of(new PixelBuffer(pixels.size(), pixels.format(), rowBytes, copy));
     }
 
     /// The same ring, as the thing that can be written to.

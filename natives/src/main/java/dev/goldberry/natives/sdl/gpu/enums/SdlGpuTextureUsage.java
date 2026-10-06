@@ -4,8 +4,8 @@ import java.util.Collection;
 
 /// What a texture may be used for, as SDL's `SDL_GPU_TEXTUREUSAGE_*` bits.
 ///
-/// Only the uses the toolkit has a caller for. SDL's storage-read and
-/// storage-write bits join when compute does.
+/// The uses a draw and a compute dispatch have. SDL's simultaneous
+/// read-write bit joins when a caller for it does.
 ///
 /// Read more: [The GPU canvas](https://goldberry.dev/docs/components/gpu.html#canvas3d) and
 /// [The native boundary](https://goldberry.dev/docs/overview/architecture.html#the-native-boundary).
@@ -15,7 +15,13 @@ public enum SdlGpuTextureUsage {
     /// Rendered into, or cleared.
     COLOR_TARGET(1 << 1),
     /// A depth or stencil target.
-    DEPTH_STENCIL_TARGET(1 << 2);
+    DEPTH_STENCIL_TARGET(1 << 2),
+    /// Read as a storage texture by a vertex or fragment shader.
+    GRAPHICS_STORAGE_READ(1 << 3),
+    /// Read as a storage texture by a compute shader.
+    COMPUTE_STORAGE_READ(1 << 4),
+    /// Written as a storage texture by a compute shader.
+    COMPUTE_STORAGE_WRITE(1 << 5);
 
     private final int bit;
 

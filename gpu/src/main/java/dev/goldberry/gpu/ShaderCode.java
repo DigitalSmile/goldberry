@@ -28,13 +28,26 @@ import org.jspecify.annotations.Nullable;
 ///
 /// @param stage          the stage it runs in
 /// @param bytecode       the code per format; at least one
-/// @param samplers       how many textures it samples
-/// @param uniformBuffers how many uniform blocks it reads
-public record ShaderCode(ShaderStage stage, Map<ShaderFormat, Bytecode> bytecode, int samplers, int uniformBuffers) {
+/// @param samplers        how many textures it samples
+/// @param uniformBuffers  how many uniform blocks it reads
+/// @param storageTextures how many storage textures it reads, texel by texel
+/// @param storageBuffers  how many storage buffers it reads
+public record ShaderCode(
+        ShaderStage stage,
+        Map<ShaderFormat, Bytecode> bytecode,
+        int samplers,
+        int uniformBuffers,
+        int storageTextures,
+        int storageBuffers) {
+
+    /// Code that reads no storage textures or buffers.
+    public ShaderCode(ShaderStage stage, Map<ShaderFormat, Bytecode> bytecode, int samplers, int uniformBuffers) {
+        this(stage, bytecode, samplers, uniformBuffers, 0, 0);
+    }
 
     /// The order formats are chosen in when a device takes more than one:
     /// precompiled Metal first, then what the toolkit ships.
-    static final List<ShaderFormat> PREFERENCE =
+    public static final List<ShaderFormat> PREFERENCE =
             List.of(ShaderFormat.METALLIB, ShaderFormat.MSL, ShaderFormat.SPIRV, ShaderFormat.DXIL, ShaderFormat.DXBC);
 
     /// One format's code.
@@ -111,8 +124,9 @@ public record ShaderCode(ShaderStage stage, Map<ShaderFormat, Bytecode> bytecode
         if (bytecode.isEmpty()) {
             throw new IllegalArgumentException("a shader needs code in at least one format");
         }
-        if (samplers < 0 || uniformBuffers < 0) {
-            throw new IllegalArgumentException("samplers " + samplers + ", uniform buffers " + uniformBuffers);
+        if (samplers < 0 || uniformBuffers < 0 || storageTextures < 0 || storageBuffers < 0) {
+            throw new IllegalArgumentException("samplers " + samplers + ", uniform buffers " + uniformBuffers
+                    + ", storage textures " + storageTextures + ", storage buffers " + storageBuffers);
         }
         bytecode = Collections.unmodifiableMap(new EnumMap<>(bytecode));
     }
@@ -134,7 +148,16 @@ public record ShaderCode(ShaderStage stage, Map<ShaderFormat, Bytecode> bytecode
     /// @throws UncheckedIOException     when one exists and cannot be read
     public static ShaderCode load(
             ShaderStage stage, String baseName, int samplers, int uniformBuffers, Resources resources) {
-        var builder = builder(stage).samplers(samplers).uniformBuffers(uniformBuffers);
+        return load(baseName, builder(stage).samplers(samplers).uniformBuffers(uniformBuffers), resources);
+    }
+
+    /// Reads `baseName` plus each format's [ShaderFormat#extension] through
+    /// `resources` into `builder`, which says the stage and the counts: the
+    /// way to load a shader that reads storage.
+    ///
+    /// @throws IllegalArgumentException when no format exists
+    /// @throws UncheckedIOException     when one exists and cannot be read
+    public static ShaderCode load(String baseName, Builder builder, Resources resources) {
         var found = false;
         for (var format : ShaderFormat.values()) {
             var name = baseName + format.extension();
@@ -175,6 +198,8 @@ public record ShaderCode(ShaderStage stage, Map<ShaderFormat, Bytecode> bytecode
         private final Map<ShaderFormat, Bytecode> bytecode = new EnumMap<>(ShaderFormat.class);
         private int samplers;
         private int uniformBuffers;
+        private int storageTextures;
+        private int storageBuffers;
 
         private Builder(ShaderStage stage) {
             this.stage = Objects.requireNonNull(stage, "stage");
@@ -189,6 +214,18 @@ public record ShaderCode(ShaderStage stage, Map<ShaderFormat, Bytecode> bytecode
         /// How many uniform blocks it reads.
         public Builder uniformBuffers(int count) {
             this.uniformBuffers = count;
+            return this;
+        }
+
+        /// How many storage textures it reads.
+        public Builder storageTextures(int count) {
+            this.storageTextures = count;
+            return this;
+        }
+
+        /// How many storage buffers it reads.
+        public Builder storageBuffers(int count) {
+            this.storageBuffers = count;
             return this;
         }
 
@@ -209,7 +246,7 @@ public record ShaderCode(ShaderStage stage, Map<ShaderFormat, Bytecode> bytecode
         /// @throws IllegalArgumentException when no format was added, or a
         ///                                  count is negative
         public ShaderCode build() {
-            return new ShaderCode(stage, bytecode, samplers, uniformBuffers);
+            return new ShaderCode(stage, bytecode, samplers, uniformBuffers, storageTextures, storageBuffers);
         }
     }
 }

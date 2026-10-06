@@ -146,14 +146,22 @@ public final class NativeLibrary {
         return new NativeLibrary(lookup, platform, libraryPath);
     }
 
+    /// What the error says when no classifier jar is on the class path: the
+    /// dependency to add, as a build file writes it, and the property that
+    /// points at a library instead.
+    static String missingMessage(NativePlatform platform, String resource) {
+        return "No libgoldberry for " + platform.classifier() + " on the classpath"
+                + " (expected resource " + resource + ")."
+                + " Add " + platform.coordinate() + " as a runtime dependency"
+                + " (goldberry-natives with the " + platform.classifier() + " classifier),"
+                + " or set -D" + LIBRARY_PATH_PROPERTY + ".";
+    }
+
     private static Path extractFromClasspath(NativePlatform platform) {
         var resource = resourcePath(platform);
         try (InputStream in = openClassifierResource(resource)) {
             if (in == null) {
-                throw new UnsatisfiedLinkError("No libgoldberry for " + platform.classifier() + " on the classpath"
-                        + " (expected resource " + resource + ")."
-                        + " Add the goldberry-natives-" + platform.classifier()
-                        + " artifact, or set -D" + LIBRARY_PATH_PROPERTY + ".");
+                throw new UnsatisfiedLinkError(missingMessage(platform, resource));
             }
             // A shared library must be a real file to be dlopen-ed; it cannot be
             // loaded from inside a jar.

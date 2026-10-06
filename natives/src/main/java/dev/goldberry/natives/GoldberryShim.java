@@ -30,7 +30,7 @@ public final class GoldberryShim {
     /// shape: a new library function, a new struct or constant row, a new upcall.
     /// A Java build and a library that disagree about it are mismatched
     /// artifacts, and [#get()] refuses the pair.
-    public static final int SUPPORTED_ABI_VERSION = 18;
+    public static final int SUPPORTED_ABI_VERSION = 19;
 
     private static final Logger LOG = Logs.of(GoldberryShim.class);
 

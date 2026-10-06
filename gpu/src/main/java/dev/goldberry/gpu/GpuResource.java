@@ -3,7 +3,7 @@ package dev.goldberry.gpu;
 import dev.goldberry.natives.sdl.gpu.SdlGpuResource;
 
 /// Something a [GpuDevice] made that has to be given back: a texture, a buffer,
-/// a sampler, a shader or a pipeline.
+/// a sampler, a shader, or a graphics or compute pipeline.
 ///
 /// Closing one releases it. The GPU keeps what it needs until the commands
 /// already submitted that use it have finished, so closing is safe at any point
@@ -14,7 +14,7 @@ import dev.goldberry.natives.sdl.gpu.SdlGpuResource;
 ///
 /// A resource still open when its device closes is released with it.
 public abstract sealed class GpuResource implements AutoCloseable
-        permits GpuTexture, GpuBuffer, GpuSampler, Shader, GraphicsPipeline {
+        permits GpuTexture, GpuBuffer, GpuSampler, Shader, GraphicsPipeline, ComputePipeline {
 
     private final GpuDevice device;
     private final SdlGpuResource sdl;

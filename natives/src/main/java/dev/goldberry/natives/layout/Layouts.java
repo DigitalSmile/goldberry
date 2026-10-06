@@ -632,8 +632,55 @@ public final class Layouts {
                     ValueLayout.JAVA_INT.withName("props"),
                     MemoryLayout.paddingLayout(4)));
 
+    /// `SDL_GPUComputePipelineCreateInfo`: the compute shader's bytecode, entry
+    /// point and format, how many of each resource it declares, and its
+    /// workgroup size.
+    public static final NativeStructLayout SDL_GPU_COMPUTE_PIPELINE_CREATE_INFO = new NativeStructLayout(
+            "SDL_GPUComputePipelineCreateInfo",
+            MemoryLayout.structLayout(
+                    ValueLayout.JAVA_LONG.withName("code_size"),
+                    ValueLayout.ADDRESS.withName("code"),
+                    ValueLayout.ADDRESS.withName("entrypoint"),
+                    ValueLayout.JAVA_INT.withName("format"),
+                    ValueLayout.JAVA_INT.withName("num_samplers"),
+                    ValueLayout.JAVA_INT.withName("num_readonly_storage_textures"),
+                    ValueLayout.JAVA_INT.withName("num_readonly_storage_buffers"),
+                    ValueLayout.JAVA_INT.withName("num_readwrite_storage_textures"),
+                    ValueLayout.JAVA_INT.withName("num_readwrite_storage_buffers"),
+                    ValueLayout.JAVA_INT.withName("num_uniform_buffers"),
+                    ValueLayout.JAVA_INT.withName("threadcount_x"),
+                    ValueLayout.JAVA_INT.withName("threadcount_y"),
+                    ValueLayout.JAVA_INT.withName("threadcount_z"),
+                    ValueLayout.JAVA_INT.withName("props"),
+                    MemoryLayout.paddingLayout(4)));
+
+    /// `SDL_GPUStorageBufferReadWriteBinding`: a buffer a compute pass writes.
+    public static final NativeStructLayout SDL_GPU_STORAGE_BUFFER_READ_WRITE_BINDING = new NativeStructLayout(
+            "SDL_GPUStorageBufferReadWriteBinding",
+            MemoryLayout.structLayout(
+                    ValueLayout.ADDRESS.withName("buffer"),
+                    ValueLayout.JAVA_BOOLEAN.withName("cycle"),
+                    ValueLayout.JAVA_BYTE.withName("padding1"),
+                    ValueLayout.JAVA_BYTE.withName("padding2"),
+                    ValueLayout.JAVA_BYTE.withName("padding3"),
+                    MemoryLayout.paddingLayout(4)));
+
+    /// `SDL_GPUStorageTextureReadWriteBinding`: a texture level and layer a
+    /// compute pass writes.
+    public static final NativeStructLayout SDL_GPU_STORAGE_TEXTURE_READ_WRITE_BINDING = new NativeStructLayout(
+            "SDL_GPUStorageTextureReadWriteBinding",
+            MemoryLayout.structLayout(
+                    ValueLayout.ADDRESS.withName("texture"),
+                    ValueLayout.JAVA_INT.withName("mip_level"),
+                    ValueLayout.JAVA_INT.withName("layer"),
+                    ValueLayout.JAVA_BOOLEAN.withName("cycle"),
+                    ValueLayout.JAVA_BYTE.withName("padding1"),
+                    ValueLayout.JAVA_BYTE.withName("padding2"),
+                    ValueLayout.JAVA_BYTE.withName("padding3"),
+                    MemoryLayout.paddingLayout(4)));
+
     /// `SDL_GPUSamplerCreateInfo`: filters, mipmap and address modes, and the
-    /// anisotropy and comparison the toolkit leaves off.
+    /// comparison a shadow map's sampler asks for.
     public static final NativeStructLayout SDL_GPU_SAMPLER_CREATE_INFO = new NativeStructLayout(
             "SDL_GPUSamplerCreateInfo",
             MemoryLayout.structLayout(
@@ -1404,6 +1451,9 @@ public final class Layouts {
                 SDL_GPU_BLIT_REGION,
                 SDL_GPU_BLIT_INFO,
                 SDL_GPU_SHADER_CREATE_INFO,
+                SDL_GPU_COMPUTE_PIPELINE_CREATE_INFO,
+                SDL_GPU_STORAGE_BUFFER_READ_WRITE_BINDING,
+                SDL_GPU_STORAGE_TEXTURE_READ_WRITE_BINDING,
                 SDL_GPU_SAMPLER_CREATE_INFO,
                 SDL_GPU_VERTEX_INPUT_STATE,
                 SDL_GPU_STENCIL_OP_STATE,

@@ -2,7 +2,9 @@ package dev.goldberry.gpu;
 
 import java.nio.ByteBuffer;
 import java.util.Objects;
+import java.util.Optional;
 
+import dev.goldberry.natives.sdl.gpu.SdlGpuBuffer;
 import dev.goldberry.natives.sdl.gpu.SdlGpuCommandBuffer;
 import dev.goldberry.natives.sdl.gpu.SdlGpuRegion;
 import dev.goldberry.natives.sdl.gpu.SdlGpuTexture;
@@ -23,26 +25,34 @@ public final class RenderPass {
 
     private final GpuDevice device;
     private final SdlGpuCommandBuffer.RenderPass sdl;
-    private final RenderTarget target;
+    private final Optional<RenderTarget> target;
     private boolean ended;
 
-    RenderPass(GpuDevice device, SdlGpuCommandBuffer.RenderPass sdl, RenderTarget target) {
+    RenderPass(GpuDevice device, SdlGpuCommandBuffer.RenderPass sdl, Optional<RenderTarget> target) {
         this.device = device;
         this.sdl = sdl;
         this.target = target;
     }
 
-    /// What it draws into.
-    public RenderTarget target() {
+    /// What it draws into, or empty for a pass with no colour target, which
+    /// writes depth alone.
+    public Optional<RenderTarget> target() {
         return target;
+    }
+
+    /// Whether the pass has no colour target.
+    public boolean isDepthOnly() {
+        return target.isEmpty();
     }
 
     /// Binds the pipeline the next draws use.
     ///
     /// @throws IllegalArgumentException when it draws another format than the
-    ///                                  target, tests depth this pass has no
-    ///                                  target for (or the reverse), or is
-    ///                                  another device's or closed
+    ///                                  target, draws colour in a pass with no
+    ///                                  colour target (or the reverse), tests
+    ///                                  depth this pass has no target for (or
+    ///                                  the reverse), or is another device's or
+    ///                                  closed
     public void bindPipeline(GraphicsPipeline pipeline) {
         requireOpen();
         sdl.bindPipeline(pipeline.sdl(device));
@@ -80,6 +90,75 @@ public final class RenderPass {
             sdlTextures[i] = textures[i].sdl(device);
         }
         sdl.bindFragmentSamplers(sdlSampler, sdlTextures);
+    }
+
+    /// Binds `textures`, each read with `sampler`, to the vertex shader's
+    /// sampler slots from 0: every slot its code declares, and no more. A
+    /// height map, a table of instances.
+    ///
+    /// @throws IllegalStateException    when no pipeline is bound
+    /// @throws IllegalArgumentException when the count is not the shader's, a
+    ///                                  texture cannot be sampled, or anything
+    ///                                  is another device's or closed
+    public void bindVertexSamplers(GpuSampler sampler, GpuTexture... textures) {
+        requireOpen();
+        var sdlSampler = sampler.sdl(device);
+        var sdlTextures = new SdlGpuTexture[textures.length];
+        for (var i = 0; i < textures.length; i++) {
+            sdlTextures[i] = textures[i].sdl(device);
+        }
+        sdl.bindVertexSamplers(sdlSampler, sdlTextures);
+    }
+
+    /// Binds `buffers` to the vertex shader's storage-buffer slots from 0:
+    /// every slot its code declares, and no more. Positions a compute pass
+    /// wrote, an instance table.
+    ///
+    /// @throws IllegalStateException    when no pipeline is bound
+    /// @throws IllegalArgumentException when the count is not the shader's, a
+    ///                                  buffer was not made with
+    ///                                  [BufferUsage#GRAPHICS_STORAGE_READ], or
+    ///                                  anything is another device's or closed
+    public void bindVertexStorageBuffers(GpuBuffer... buffers) {
+        requireOpen();
+        sdl.bindVertexStorageBuffers(sdlBuffers(buffers));
+    }
+
+    /// Binds `buffers` to the fragment shader's storage-buffer slots from 0:
+    /// every slot its code declares, and no more.
+    ///
+    /// @throws IllegalStateException    when no pipeline is bound
+    /// @throws IllegalArgumentException as [#bindVertexStorageBuffers]
+    public void bindFragmentStorageBuffers(GpuBuffer... buffers) {
+        requireOpen();
+        sdl.bindFragmentStorageBuffers(sdlBuffers(buffers));
+    }
+
+    /// Binds `textures` to the fragment shader's storage-texture slots from 0:
+    /// every slot its code declares, and no more. Read texel by texel, with no
+    /// sampler: the scene's colour for a distortion.
+    ///
+    /// @throws IllegalStateException    when no pipeline is bound
+    /// @throws IllegalArgumentException when the count is not the shader's, a
+    ///                                  texture was not made with
+    ///                                  [TextureUsage#GRAPHICS_STORAGE_READ],
+    ///                                  or anything is another device's or
+    ///                                  closed
+    public void bindFragmentStorageTextures(GpuTexture... textures) {
+        requireOpen();
+        var sdlTextures = new SdlGpuTexture[textures.length];
+        for (var i = 0; i < textures.length; i++) {
+            sdlTextures[i] = textures[i].sdl(device);
+        }
+        sdl.bindFragmentStorageTextures(sdlTextures);
+    }
+
+    private SdlGpuBuffer[] sdlBuffers(GpuBuffer[] buffers) {
+        var sdlBuffers = new SdlGpuBuffer[buffers.length];
+        for (var i = 0; i < buffers.length; i++) {
+            sdlBuffers[i] = buffers[i].sdl(device);
+        }
+        return sdlBuffers;
     }
 
     /// Binds `buffer` from its start to vertex slot `slot`.

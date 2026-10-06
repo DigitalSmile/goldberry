@@ -6,6 +6,8 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.nio.file.Path;
+
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -28,6 +30,17 @@ class LauncherOptionsTest {
 
         assertEquals(3, options.frames());
         assertEquals(new LogicalSize(800, 600), options.size());
+    }
+
+    @Test
+    @DisplayName("a capture path is read, and a blank one refused by name")
+    void capture() {
+        var options = Launcher.Options.of(new String[] {"--frames=2", "--capture=build/shots/last.png"});
+        assertEquals(Path.of("build/shots/last.png"), options.capture());
+        assertNull(Launcher.Options.of(new String[] {"--frames=2"}).capture());
+        var refused =
+                assertThrows(IllegalArgumentException.class, () -> Launcher.Options.of(new String[] {"--capture="}));
+        assertTrue(refused.getMessage().contains("--capture="), refused.getMessage());
     }
 
     @Test

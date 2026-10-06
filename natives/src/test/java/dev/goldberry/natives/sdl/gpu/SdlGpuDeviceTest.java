@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.EnumSet;
+import java.util.List;
 import java.util.Optional;
 import java.util.Random;
 import java.util.Set;
@@ -24,9 +25,12 @@ import dev.goldberry.natives.sdl.Sdl;
 import dev.goldberry.natives.sdl.SdlException;
 import dev.goldberry.natives.sdl.SdlVideo;
 import dev.goldberry.natives.sdl.SdlWindowHandle;
+import dev.goldberry.natives.sdl.gpu.enums.SdlGpuAddressMode;
 import dev.goldberry.natives.sdl.gpu.enums.SdlGpuBufferUsage;
+import dev.goldberry.natives.sdl.gpu.enums.SdlGpuCompareOp;
 import dev.goldberry.natives.sdl.gpu.enums.SdlGpuFilter;
 import dev.goldberry.natives.sdl.gpu.enums.SdlGpuPresentMode;
+import dev.goldberry.natives.sdl.gpu.enums.SdlGpuSampleCount;
 import dev.goldberry.natives.sdl.gpu.enums.SdlGpuShaderFormat;
 import dev.goldberry.natives.sdl.gpu.enums.SdlGpuTextureFormat;
 import dev.goldberry.natives.sdl.gpu.enums.SdlGpuTextureUsage;
@@ -540,6 +544,165 @@ class SdlGpuDeviceTest {
                     () -> device.createTexture(SdlGpuTextureFormat.R8_UNORM, 4, 4, Set.of()));
             assertThrows(
                     IllegalArgumentException.class, () -> device.createTransferBuffer(SdlGpuTransferUsage.UPLOAD, 0));
+        }
+    }
+
+    @Nested
+    @DisplayName("the texture model")
+    class TextureModel {
+
+        @Test
+        @DisplayName(
+                "a layer is cleared through a view, a level is uploaded on its own, and the levels below are generated")
+        void layersAndLevels() {
+            try (var texture = device.createTexture(
+                            SdlGpuTextureFormat.R8G8B8A8_UNORM, 4, 4, 2, 3, SdlGpuSampleCount.ONE, TARGET);
+                    var upload = device.createTransferBuffer(SdlGpuTransferUsage.UPLOAD, 4 * 4 * 4);
+                    var download = device.createTransferBuffer(SdlGpuTransferUsage.DOWNLOAD, 4 * 4 * 4 * 2)) {
+                assertEquals(2, texture.layers());
+                assertEquals(3, texture.mipLevels());
+                assertEquals(2, texture.levelWidth(1));
+                assertEquals(1, texture.levelHeight(2));
+                var checker = new byte[4 * 4 * 4];
+                for (var i = 0; i < 16; i++) {
+                    var white = (i % 4 + i / 4) % 2 == 0;
+                    checker[i * 4] = checker[i * 4 + 1] = checker[i * 4 + 2] = (byte) (white ? 0xFF : 0);
+                    checker[i * 4 + 3] = (byte) 0xFF;
+                }
+                upload.map(true).put(0, checker);
+                upload.unmap();
+                var commands = device.acquireCommandBuffer();
+                commands.beginRenderPass(new SdlGpuTextureView(texture, 0, 1), SdlGpuLoad.clear(0, 0, 1, 1))
+                        .close();
+                try (var pass = commands.beginCopyPass()) {
+                    pass.upload(upload, 0, texture, 0, 0, SdlGpuRegion.of(texture), false);
+                    pass.upload(upload, 0, texture, 2, 1, new SdlGpuRegion(0, 0, 1, 1), false);
+                }
+                commands.generateMipmaps(texture);
+                try (var pass = commands.beginCopyPass()) {
+                    pass.download(texture, 0, 1, new SdlGpuRegion(0, 0, 1, 1), download, 0);
+                    pass.download(texture, 1, 0, new SdlGpuRegion(0, 0, 2, 2), download, 4);
+                }
+                try (var fence = commands.submitWithFence()) {
+                    fence.await();
+                }
+                var bytes = download.map(false);
+                assertEquals(255, Byte.toUnsignedInt(bytes.get(2)), "layer 1 is blue");
+                assertEquals(0, Byte.toUnsignedInt(bytes.get(0)), "layer 1 is blue");
+                for (var i = 0; i < 4; i++) {
+                    assertEquals(127.5, Byte.toUnsignedInt(bytes.get(4 + i * 4)), 1, "level 1 texel " + i);
+                }
+                download.unmap();
+            }
+        }
+
+        @Test
+        @DisplayName("a pass with no colour target writes depth that downloads as floats")
+        void depthOnlyPass() {
+            var sampledDepth = EnumSet.of(SdlGpuTextureUsage.DEPTH_STENCIL_TARGET, SdlGpuTextureUsage.SAMPLER);
+            try (var depth = device.createTexture(SdlGpuTextureFormat.D32_FLOAT, 4, 4, sampledDepth);
+                    var download = device.createTransferBuffer(SdlGpuTransferUsage.DOWNLOAD, 4 * 4 * 4)) {
+                var commands = device.acquireCommandBuffer();
+                try (var pass = commands.beginRenderPass(SdlGpuDepthTarget.clear(depth, 0.5f))) {
+                    assertTrue(pass.isDepthOnly());
+                    assertEquals(4, pass.width());
+                }
+                try (var pass = commands.beginCopyPass()) {
+                    pass.download(depth, SdlGpuRegion.of(depth), download, 0);
+                }
+                try (var fence = commands.submitWithFence()) {
+                    fence.await();
+                }
+                assertEquals(0.5f, download.map(false).getFloat(0));
+                download.unmap();
+            }
+        }
+
+        @Test
+        @DisplayName("a sampler reads mip levels and compares when its description says so")
+        void samplerDescriptions() {
+            try (var trilinear = device.createSampler(new SdlGpuSamplerDescription(
+                            SdlGpuFilter.LINEAR,
+                            SdlGpuAddressMode.CLAMP_TO_EDGE,
+                            Optional.of(SdlGpuFilter.LINEAR),
+                            Optional.empty()));
+                    var shadow = device.createSampler(new SdlGpuSamplerDescription(
+                            SdlGpuFilter.LINEAR,
+                            SdlGpuAddressMode.CLAMP_TO_EDGE,
+                            Optional.empty(),
+                            Optional.of(SdlGpuCompareOp.LESS_OR_EQUAL)))) {
+                assertFalse(trilinear.compares());
+                assertTrue(shadow.compares());
+                assertEquals(SdlGpuFilter.LINEAR, trilinear.filter());
+            }
+        }
+
+        @Test
+        @DisplayName(
+                "refuses counts the size cannot hold, a multisampled texture that is sampled, and a level that is not there")
+        void refusals() {
+            assertThrows(
+                    IllegalArgumentException.class,
+                    () -> device.createTexture(SdlGpuTextureFormat.R8_UNORM, 4, 4, 1, 4, SdlGpuSampleCount.ONE, TARGET),
+                    "4x4 has three levels");
+            assertThrows(
+                    IllegalArgumentException.class,
+                    () -> device.createTexture(
+                            SdlGpuTextureFormat.R8_UNORM, 4, 4, 0, 1, SdlGpuSampleCount.ONE, TARGET));
+            assertThrows(
+                    IllegalArgumentException.class,
+                    () -> device.createTexture(
+                            SdlGpuTextureFormat.R8_UNORM, 4, 4, 1, 1, SdlGpuSampleCount.FOUR, TARGET),
+                    "sampled");
+            assertThrows(
+                    IllegalArgumentException.class,
+                    () -> device.createTexture(
+                            SdlGpuTextureFormat.R8_UNORM,
+                            4,
+                            4,
+                            2,
+                            1,
+                            SdlGpuSampleCount.FOUR,
+                            EnumSet.of(SdlGpuTextureUsage.COLOR_TARGET)),
+                    "layered");
+            assertEquals(3, SdlGpuDevice.maxMipLevels(4, 4));
+            assertEquals(1, SdlGpuDevice.maxMipLevels(1, 1));
+            try (var texture = device.createTexture(SdlGpuTextureFormat.R8_UNORM, 4, 4, TARGET);
+                    var upload = device.createTransferBuffer(SdlGpuTransferUsage.UPLOAD, 16)) {
+                assertThrows(IllegalArgumentException.class, () -> new SdlGpuTextureView(texture, 1, 0));
+                assertThrows(IllegalArgumentException.class, () -> new SdlGpuTextureView(texture, 0, 1));
+                var commands = device.acquireCommandBuffer();
+                assertThrows(IllegalArgumentException.class, () -> commands.generateMipmaps(texture), "one level");
+                try (var pass = commands.beginCopyPass()) {
+                    assertThrows(
+                            IllegalArgumentException.class,
+                            () -> pass.upload(upload, 0, texture, 1, 0, new SdlGpuRegion(0, 0, 1, 1), false));
+                }
+                commands.cancel();
+            }
+        }
+    }
+
+    @Nested
+    @DisplayName("a compute pass")
+    class Compute {
+
+        @Test
+        @DisplayName("refuses a write target not made for compute, binds nothing without a pipeline, and nests no pass")
+        void refusals() {
+            try (var plain = device.createBuffer(EnumSet.of(SdlGpuBufferUsage.VERTEX), 16);
+                    var written = device.createBuffer(EnumSet.of(SdlGpuBufferUsage.COMPUTE_STORAGE_WRITE), 16)) {
+                var commands = device.acquireCommandBuffer();
+                assertThrows(
+                        IllegalArgumentException.class, () -> commands.beginComputePass(List.of(plain), List.of()));
+                try (var pass = commands.beginComputePass(List.of(written), List.of())) {
+                    assertThrows(IllegalStateException.class, pass::bindStorageBuffers);
+                    assertThrows(IllegalStateException.class, () -> pass.dispatch(1, 1, 1));
+                    assertThrows(IllegalStateException.class, commands::beginCopyPass, "in a compute pass");
+                    assertThrows(IllegalArgumentException.class, () -> pass.pushUniforms(-1, 1f));
+                }
+                commands.cancel();
+            }
         }
     }
 

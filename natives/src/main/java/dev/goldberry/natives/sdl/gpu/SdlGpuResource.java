@@ -21,7 +21,8 @@ public abstract sealed class SdlGpuResource implements AutoCloseable
                 SdlGpuWindow,
                 SdlGpuShader,
                 SdlGpuSampler,
-                SdlGpuGraphicsPipeline {
+                SdlGpuGraphicsPipeline,
+                SdlGpuComputePipeline {
 
     private final SdlGpuDevice device;
     private final MemorySegment handle;

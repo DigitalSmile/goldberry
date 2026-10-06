@@ -10,12 +10,16 @@ public enum BlendMode {
     /// Premultiplied "over": `src + dst × (1 − src.a)` on every channel. What
     /// the UI is composited with, since it is painted premultiplied, and what
     /// any premultiplied output wants.
-    PREMULTIPLIED_OVER;
+    PREMULTIPLIED_OVER,
+    /// Additive: `src + dst` on every channel. Particles, glows, light, drawn
+    /// over a scene that keeps getting brighter where they overlap.
+    ADDITIVE;
 
     SdlGpuBlend sdl() {
         return switch (this) {
             case REPLACE -> SdlGpuBlend.REPLACE;
             case PREMULTIPLIED_OVER -> SdlGpuBlend.PREMULTIPLIED_OVER;
+            case ADDITIVE -> SdlGpuBlend.ADDITIVE;
         };
     }
 }

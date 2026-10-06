@@ -218,6 +218,26 @@ class CompositorTest {
         }
 
         @Test
+        @DisplayName("captures the last frame composited, opaque, and nothing before the first present")
+        void captures() {
+            var claimed = claimed(compositor, window);
+            assertTrue(claimed.capture().isEmpty(), "nothing presented yet");
+            var bytes = premultiplied(32, 16, 11);
+            claimed.present(frame(bytes, 32, 16), List.of(new DamageRect(0, 0, 32, 16)), List.of());
+            var captured = claimed.capture().orElseThrow();
+            assertEquals(new PhysicalSize(32, 16), captured.size());
+            var pixels = captured.pixels();
+            for (var i = 0; i < 32 * 16; i++) {
+                for (var channel = 0; channel < 3; channel++) {
+                    assertEquals(bytes[i * 4 + channel], pixels.get(i * 4 + channel), "pixel " + i);
+                }
+                assertEquals((byte) 0xFF, pixels.get(i * 4 + 3), "opaque, as the screen shows it");
+            }
+            claimed.close();
+            assertTrue(claimed.capture().isEmpty(), "given back");
+        }
+
+        @Test
         @DisplayName("presents nothing for no damage, and refuses to present once given back")
         void noDamageAndClosed() {
             var claimed = claimed(compositor, window);

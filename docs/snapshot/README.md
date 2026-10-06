@@ -1,0 +1,31 @@
+# Documents held back until the release
+
+The guide and the site are not adjusted between releases. Everything a change
+would have put into `book/` goes here instead, and moves into the book in the
+release commit. This folder holds the batch that closed the Gwent clone's issue list, GB-005
+to GB-012, written 2026-10-05 and 2026-10-06.
+
+## What is here, and where it goes
+
+| File | Destination at release | Note |
+|---|---|---|
+| `adr/0561-…` to `adr/0566-…` | `book/src/adr/` | Six records. `DecisionLogTest` wants the numbers contiguous from the highest in the log at that time: renumber if records landed in between, and fix the cross-references between them (0562 ↔ 0563, 0563 ↔ 0566) |
+| `adr/README-lines.md` | appended to `book/src/adr/README.md` | One line per record, in order |
+| `components-gpu.md` | `book/src/components/gpu.md`, before `## What is measured, and what is not yet` | Three sections: the texture model, compute and storage, rendering offscreen. The Java samples pass `BookTest`'s bracket rule as written |
+| `performance-measuring.md` | `book/src/performance/measuring.md` | One sentence and one table row for `--capture=` |
+
+## Doc comments that point at the guide
+
+`OffscreenGpu` and its `package-info` say "Read more: The GPU canvas" with the
+`#canvas3d` anchor for now. When `components-gpu.md` goes in, the anchor
+becomes `#rendering-offscreen`, which is the section written for them.
+`SourceDocsTest` and `tools/book/guide_links.py` check the links then.
+
+## Order of operations at release
+
+1. Move the ADRs in, renumbering if needed; append the index lines; run
+   `./gradlew -p build-logic test --tests '*DecisionLogTest'`.
+2. Paste the guide sections and the measuring additions; run the `BookTest`
+   and `SourceDocsTest` guards from the same task.
+3. Switch the two doc-comment anchors; run `:gpu:spotlessApply`.
+4. Delete this folder.

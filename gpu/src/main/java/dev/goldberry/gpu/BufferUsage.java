@@ -10,12 +10,22 @@ public enum BufferUsage {
     /// Vertices, bound to a pipeline's vertex slot.
     VERTEX,
     /// Indices, for an indexed draw.
-    INDEX;
+    INDEX,
+    /// Read as a storage buffer by a vertex or fragment shader: an instance
+    /// table, positions a compute pass wrote.
+    GRAPHICS_STORAGE_READ,
+    /// Read as a storage buffer by a compute shader.
+    COMPUTE_STORAGE_READ,
+    /// Written as a storage buffer by a compute shader.
+    COMPUTE_STORAGE_WRITE;
 
     SdlGpuBufferUsage sdl() {
         return switch (this) {
             case VERTEX -> SdlGpuBufferUsage.VERTEX;
             case INDEX -> SdlGpuBufferUsage.INDEX;
+            case GRAPHICS_STORAGE_READ -> SdlGpuBufferUsage.GRAPHICS_STORAGE_READ;
+            case COMPUTE_STORAGE_READ -> SdlGpuBufferUsage.COMPUTE_STORAGE_READ;
+            case COMPUTE_STORAGE_WRITE -> SdlGpuBufferUsage.COMPUTE_STORAGE_WRITE;
         };
     }
 

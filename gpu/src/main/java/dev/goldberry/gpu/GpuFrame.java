@@ -3,16 +3,20 @@ package dev.goldberry.gpu;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.function.Consumer;
 
 import org.jspecify.annotations.Nullable;
 
 import dev.goldberry.natives.sdl.SdlException;
+import dev.goldberry.natives.sdl.gpu.SdlGpuBuffer;
 import dev.goldberry.natives.sdl.gpu.SdlGpuCommandBuffer;
 import dev.goldberry.natives.sdl.gpu.SdlGpuDepthTarget;
 import dev.goldberry.natives.sdl.gpu.SdlGpuLoad;
 import dev.goldberry.natives.sdl.gpu.SdlGpuRegion;
 import dev.goldberry.natives.sdl.gpu.SdlGpuTarget;
+import dev.goldberry.natives.sdl.gpu.SdlGpuTexture;
+import dev.goldberry.natives.sdl.gpu.SdlGpuTextureView;
 import dev.goldberry.natives.sdl.gpu.enums.SdlGpuTransferUsage;
 import dev.goldberry.render.model.PhysicalRect;
 
@@ -110,27 +114,59 @@ public final class GpuFrame implements AutoCloseable {
     ///                                  open
     /// @throws GpuException             when the driver cannot begin the pass
     public void renderPass(RenderTarget target, Load load, DepthTarget depth, Consumer<RenderPass> body) {
+        Objects.requireNonNull(target, "target");
         Objects.requireNonNull(depth, "depth");
         recordRenderPass(target, load, depth, body);
     }
 
-    private void recordRenderPass(
-            RenderTarget target, Load load, @Nullable DepthTarget depth, Consumer<RenderPass> body) {
+    /// Records a render pass into `target`, a multisampled texture, whose
+    /// samples are resolved into `resolveTo` when the pass ends: one level of
+    /// one layer of a single-sampled texture of the target's format and size.
+    /// The target's own contents are then undefined. `body` runs now, with a
+    /// pipeline of the target's sample count, and the pass ends when it
+    /// returns.
+    ///
+    /// @throws IllegalArgumentException when `target` has one sample or is not
+    ///                                  a colour target, `resolveTo` is
+    ///                                  multisampled or of another format or
+    ///                                  size, or anything is another device's
+    ///                                  or closed
+    /// @throws IllegalStateException    when the frame is finished or a pass is
+    ///                                  open
+    /// @throws GpuException             when the driver cannot begin the pass
+    public void renderPass(GpuTexture target, Load load, TextureView resolveTo, Consumer<RenderPass> body) {
+        recordResolvingPass(target, load, resolveTo, null, body);
+    }
+
+    /// [#renderPass(GpuTexture, Load, TextureView, Consumer)], testing depth in
+    /// `depth`, which has the target's sample count.
+    ///
+    /// @throws IllegalArgumentException as that method, or when `depth` has
+    ///                                  another sample count
+    /// @throws IllegalStateException    as that method
+    /// @throws GpuException             as that method
+    public void renderPass(
+            GpuTexture target, Load load, TextureView resolveTo, DepthTarget depth, Consumer<RenderPass> body) {
+        recordResolvingPass(target, load, resolveTo, Objects.requireNonNull(depth, "depth"), body);
+    }
+
+    private void recordResolvingPass(
+            GpuTexture target,
+            Load load,
+            TextureView resolveTo,
+            @Nullable DepthTarget depth,
+            Consumer<RenderPass> body) {
+        Objects.requireNonNull(target, "target");
         Objects.requireNonNull(load, "load");
+        Objects.requireNonNull(resolveTo, "resolveTo");
         Objects.requireNonNull(body, "body");
         requireRecording("renderPass");
-        var sdlTarget = sdlTarget(target);
-        var sdlLoad =
-                switch (load) {
-                    case Load.Keep _ -> SdlGpuLoad.keep();
-                    case Load.Clear(var red, var green, var blue, var alpha) ->
-                        SdlGpuLoad.clear(red, green, blue, alpha);
-                    case Load.DontCare _ -> new SdlGpuLoad.DontCare();
-                };
-        var pass = depth == null
-                ? GpuDevice.call(() -> commands.beginRenderPass(sdlTarget, sdlLoad))
-                : GpuDevice.call(() -> commands.beginRenderPass(sdlTarget, sdlLoad, sdlDepth(depth)));
-        var render = new RenderPass(device, pass, target);
+        var sdlTarget = requireColorTarget(target);
+        var sdlResolve = new SdlGpuTextureView(resolveTo.texture().sdl(device), resolveTo.level(), resolveTo.layer());
+        var sdlLoad = sdlLoad(load);
+        var sdlDepth = depth == null ? null : sdlDepth(depth);
+        var pass = GpuDevice.call(() -> commands.beginRenderPass(sdlTarget, sdlLoad, sdlResolve, sdlDepth));
+        var render = new RenderPass(device, pass, Optional.of(target));
         openPass = "a render pass";
         try (pass) {
             body.accept(render);
@@ -140,16 +176,133 @@ public final class GpuFrame implements AutoCloseable {
         }
     }
 
+    /// Records a compute pass that writes `buffer`, made with
+    /// [BufferUsage#COMPUTE_STORAGE_WRITE]. `body` runs now, and the pass ends
+    /// when it returns.
+    ///
+    /// @throws IllegalArgumentException as [#computePass(List, List, Consumer)]
+    /// @throws IllegalStateException    as [#computePass(List, List, Consumer)]
+    /// @throws GpuException             as [#computePass(List, List, Consumer)]
+    public void computePass(GpuBuffer buffer, Consumer<ComputePass> body) {
+        computePass(List.of(Objects.requireNonNull(buffer, "buffer")), List.of(), body);
+    }
+
+    /// Records a compute pass that writes `writtenBuffers` and
+    /// `writtenTextures`, one level of one layer each, which were made with
+    /// the compute-write usage; the pipeline bound in it declares as many of
+    /// each. `body` runs now, binds a pipeline and its read-only storage, and
+    /// dispatches; the pass ends when the body returns.
+    ///
+    /// @throws IllegalArgumentException when a buffer or texture was not made
+    ///                                  to be written by compute, or is another
+    ///                                  device's or closed
+    /// @throws IllegalStateException    when the frame is finished or a pass is
+    ///                                  open
+    /// @throws GpuException             when the driver cannot begin the pass
+    public void computePass(
+            List<GpuBuffer> writtenBuffers, List<TextureView> writtenTextures, Consumer<ComputePass> body) {
+        Objects.requireNonNull(writtenBuffers, "writtenBuffers");
+        Objects.requireNonNull(writtenTextures, "writtenTextures");
+        Objects.requireNonNull(body, "body");
+        requireRecording("computePass");
+        var buffers = new ArrayList<SdlGpuBuffer>(writtenBuffers.size());
+        for (var buffer : writtenBuffers) {
+            buffers.add(buffer.sdl(device));
+        }
+        var views = new ArrayList<SdlGpuTextureView>(writtenTextures.size());
+        for (var view : writtenTextures) {
+            views.add(new SdlGpuTextureView(view.texture().sdl(device), view.level(), view.layer()));
+        }
+        var pass = GpuDevice.call(() -> commands.beginComputePass(buffers, views));
+        var compute = new ComputePass(device, pass);
+        openPass = "a compute pass";
+        try (pass) {
+            body.accept(compute);
+        } finally {
+            compute.end();
+            openPass = null;
+        }
+    }
+
+    /// Records a render pass with no colour target that tests and writes depth
+    /// in `depth`: a shadow map's pass, drawn with a [PipelineSpec#depthOnly]
+    /// pipeline. `body` runs now, and the pass ends when it returns.
+    ///
+    /// @throws IllegalArgumentException when `depth` is another device's or
+    ///                                  closed
+    /// @throws IllegalStateException    when the frame is finished or a pass is
+    ///                                  open
+    /// @throws GpuException             when the driver cannot begin the pass
+    public void renderPass(DepthTarget depth, Consumer<RenderPass> body) {
+        Objects.requireNonNull(depth, "depth");
+        recordRenderPass(null, Load.keep(), depth, body);
+    }
+
+    private void recordRenderPass(
+            @Nullable RenderTarget target, Load load, @Nullable DepthTarget depth, Consumer<RenderPass> body) {
+        Objects.requireNonNull(load, "load");
+        Objects.requireNonNull(body, "body");
+        requireRecording("renderPass");
+        var sdlLoad = sdlLoad(load);
+        SdlGpuCommandBuffer.RenderPass pass;
+        if (target == null) {
+            var sdlDepth = sdlDepth(Objects.requireNonNull(depth));
+            pass = GpuDevice.call(() -> commands.beginRenderPass(sdlDepth));
+        } else {
+            var sdlTarget = sdlTarget(target);
+            pass = depth == null
+                    ? GpuDevice.call(() -> commands.beginRenderPass(sdlTarget, sdlLoad))
+                    : GpuDevice.call(() -> commands.beginRenderPass(sdlTarget, sdlLoad, sdlDepth(depth)));
+        }
+        var render = new RenderPass(device, pass, Optional.ofNullable(target));
+        openPass = "a render pass";
+        try (pass) {
+            body.accept(render);
+        } finally {
+            render.end();
+            openPass = null;
+        }
+    }
+
+    private static SdlGpuLoad sdlLoad(Load load) {
+        return switch (load) {
+            case Load.Keep _ -> SdlGpuLoad.keep();
+            case Load.Clear(var red, var green, var blue, var alpha) -> SdlGpuLoad.clear(red, green, blue, alpha);
+            case Load.DontCare _ -> new SdlGpuLoad.DontCare();
+        };
+    }
+
     private SdlGpuTarget sdlTarget(RenderTarget target) {
         return switch (target) {
-            case GpuTexture texture -> {
-                var sdl = texture.sdl(device);
-                if (!texture.usages().contains(TextureUsage.COLOR_TARGET)) {
-                    throw new IllegalArgumentException(texture + " was not made to be rendered into");
-                }
-                yield sdl;
-            }
+            case GpuTexture texture -> requireColorTarget(texture);
+            case TextureView(var texture, var level, var layer) ->
+                new SdlGpuTextureView(requireColorTarget(texture), level, layer);
         };
+    }
+
+    private SdlGpuTexture requireColorTarget(GpuTexture texture) {
+        var sdl = texture.sdl(device);
+        if (!texture.usages().contains(TextureUsage.COLOR_TARGET)) {
+            throw new IllegalArgumentException(texture + " was not made to be rendered into");
+        }
+        return sdl;
+    }
+
+    /// Records the filling of every mip level of `texture` below the first from
+    /// the level above it, each a box filter of the one before: what a texture
+    /// uploaded at full size needs before a mipmapped sampler reads it. Outside
+    /// any pass.
+    ///
+    /// @throws IllegalArgumentException when the texture has one level, was not
+    ///                                  made as [TextureSpec#renderTarget] (both
+    ///                                  sampled and a colour target, which the
+    ///                                  drivers' blits need), or is another
+    ///                                  device's or closed
+    /// @throws IllegalStateException    when the frame is finished or a pass is
+    ///                                  open
+    public void generateMipmaps(GpuTexture texture) {
+        requireRecording("generateMipmaps");
+        commands.generateMipmaps(texture.sdl(device));
     }
 
     private SdlGpuDepthTarget sdlDepth(DepthTarget depth) {
@@ -167,24 +320,52 @@ public final class GpuFrame implements AutoCloseable {
         return readback(source, new PhysicalRect(0, 0, source.width(), source.height()));
     }
 
+    /// Records a copy of the whole of `view`, one level of one layer, into
+    /// memory the CPU reads once the frame is submitted: [Readback#await].
+    ///
+    /// @throws IllegalArgumentException as [#readback(GpuTexture)]
+    /// @throws IllegalStateException    as [#readback(GpuTexture)]
+    public Readback readback(TextureView view) {
+        return readback(view, new PhysicalRect(0, 0, view.width(), view.height()));
+    }
+
+    /// Records a copy of `region` of `view`, in the level's texels, into memory
+    /// the CPU reads once the frame is submitted: [Readback#await].
+    ///
+    /// @throws IllegalArgumentException as [#readback(GpuTexture, PhysicalRect)]
+    /// @throws IllegalStateException    as [#readback(GpuTexture, PhysicalRect)]
+    public Readback readback(TextureView view, PhysicalRect region) {
+        Objects.requireNonNull(view, "view");
+        return readback(view.texture(), view.level(), view.layer(), region);
+    }
+
     /// Records a copy of `region` of `source` into memory the CPU reads once
     /// the frame is submitted: [Readback#await]. Recorded in a copy pass of its
     /// own, so after what the frame has drawn so far.
     ///
-    /// @throws IllegalArgumentException when `source` is a depth texture, or is
-    ///                                  another device's or closed, or `region`
-    ///                                  is empty or outside it
+    /// A depth texture is read back only when it was made to be sampled: its
+    /// bytes are then [TextureFormat#D32_FLOAT] floats or
+    /// [TextureFormat#D16_UNORM] shorts.
+    ///
+    /// @throws IllegalArgumentException when `source` is a depth texture that
+    ///                                  is not sampled, or is another device's
+    ///                                  or closed, or `region` is empty or
+    ///                                  outside it
     /// @throws IllegalStateException    when the frame is finished or a pass is
     ///                                  open
     /// @throws GpuException             when the driver refuses the memory
     public Readback readback(GpuTexture source, PhysicalRect region) {
+        return readback(source, 0, 0, region);
+    }
+
+    private Readback readback(GpuTexture source, int level, int layer, PhysicalRect region) {
         requireRecording("readback");
         var texture = source.sdl(device);
-        if (source.format().isDepth()) {
-            throw new IllegalArgumentException(source + " is a depth texture, which is not read back");
+        if (source.format().isDepth() && !source.usages().contains(TextureUsage.SAMPLER)) {
+            throw new IllegalArgumentException(source + " is a depth texture made only to be tested, not read back");
         }
-        if (region.isEmpty() || !source.contains(region)) {
-            throw new IllegalArgumentException(region + " is empty or outside " + source);
+        if (region.isEmpty() || !source.view(level, layer).contains(region)) {
+            throw new IllegalArgumentException(region + " is empty or outside " + source.view(level, layer));
         }
         var sdlRegion = new SdlGpuRegion(region.x(), region.y(), region.width(), region.height());
         var bytes = texture.byteSize(sdlRegion);
@@ -194,7 +375,7 @@ public final class GpuFrame implements AutoCloseable {
         var sdlDevice = device.sdl();
         var transfer = GpuDevice.call(() -> sdlDevice.createTransferBuffer(SdlGpuTransferUsage.DOWNLOAD, (int) bytes));
         try (var pass = GpuDevice.call(commands::beginCopyPass)) {
-            pass.download(texture, sdlRegion, transfer, 0);
+            pass.download(texture, level, layer, sdlRegion, transfer, 0);
         } catch (RuntimeException e) {
             transfer.close();
             throw e;

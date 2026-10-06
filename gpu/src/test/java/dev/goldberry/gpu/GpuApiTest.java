@@ -10,6 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Random;
 import java.util.concurrent.atomic.AtomicReference;
@@ -427,6 +428,479 @@ class GpuApiTest {
     }
 
     @Nested
+    @DisplayName("the texture model")
+    class TextureModel {
+
+        @Test
+        @DisplayName("float colour targets clear past 1 and below 0, and read back as halves and floats")
+        void floatTargets() {
+            assertTrue(device.supports(
+                    TextureFormat.R16G16B16A16_FLOAT, EnumSet.of(TextureUsage.COLOR_TARGET, TextureUsage.SAMPLER)));
+            try (var halves = device.createTexture(TextureSpec.renderTarget(TextureFormat.R16G16B16A16_FLOAT, 2, 2));
+                    var floats = device.createTexture(TextureSpec.renderTarget(TextureFormat.R32_FLOAT, 2, 2));
+                    var frame = device.beginFrame()) {
+                assertTrue(halves.format().isFloat());
+                frame.renderPass(halves, Load.clear(2f, 0.5f, -1f, 1f), pass -> {});
+                frame.renderPass(floats, Load.clear(3.5f, 0, 0, 0), pass -> {});
+                var halfBytes = frame.readback(halves);
+                var floatBytes = frame.readback(floats);
+                frame.submit();
+                var read = halfBytes.await();
+                assertEquals(2 * 2 * 8, read.remaining());
+                assertEquals(2f, Float.float16ToFloat(read.getShort(0)));
+                assertEquals(0.5f, Float.float16ToFloat(read.getShort(2)));
+                assertEquals(-1f, Float.float16ToFloat(read.getShort(4)));
+                assertEquals(1f, Float.float16ToFloat(read.getShort(6)));
+                assertEquals(3.5f, floatBytes.await().getFloat(3 * 4), "the last pixel");
+            }
+            if (device.supports(TextureFormat.R11G11B10_UFLOAT, EnumSet.of(TextureUsage.COLOR_TARGET))) {
+                try (var packed = device.createTexture(TextureSpec.renderTarget(TextureFormat.R11G11B10_UFLOAT, 2, 2)
+                                .withUsages(EnumSet.of(TextureUsage.COLOR_TARGET)));
+                        var frame = device.beginFrame()) {
+                    frame.renderPass(packed, Load.clear(1f, 0.5f, 0.25f, 0f), pass -> {});
+                    frame.submit();
+                }
+            }
+        }
+
+        @Test
+        @DisplayName("a depth-only pass writes a depth map a later pass samples, and the pipelines do not cross")
+        void depthOnlyAndSampledDepth() {
+            try (var depth = device.createTexture(TextureSpec.sampledDepth(TextureFormat.D32_FLOAT, SIZE, SIZE));
+                    var depthOnlyFragment = device.createShader(TestShaders.depthOnlyFragment());
+                    var depthOnly = device.createPipeline(PipelineSpec.depthOnly(
+                                    meshVertex, depthOnlyFragment, DepthTest.less(TextureFormat.D32_FLOAT))
+                            .vertexBuffer(TestShaders.meshLayout())
+                            .build());
+                    var fullscreen = device.createShader(TestShaders.fullscreenVertex());
+                    var sampleFragment = device.createShader(TestShaders.sampleFragment());
+                    var sampled = device.createPipeline(
+                            PipelineSpec.builder(fullscreen, sampleFragment, TextureFormat.B8G8R8A8_UNORM)
+                                    .build());
+                    var nearest = device.createSampler(SamplerSpec.nearest());
+                    var comparison = device.createSampler(SamplerSpec.linear().withCompare(CompareOp.LESS_OR_EQUAL));
+                    var quadBuffer = vertexBuffer(quad(4, 4, 20, 20, 0.25f, 1, 0, 0));
+                    var target = renderTarget();
+                    var frame = device.beginFrame()) {
+                assertTrue(depthOnly.spec().isDepthOnly());
+                assertTrue(comparison.spec().compare().isPresent());
+                frame.renderPass(DepthTarget.clear(depth), pass -> {
+                    assertTrue(pass.isDepthOnly());
+                    assertTrue(pass.target().isEmpty());
+                    assertThrows(IllegalArgumentException.class, () -> pass.bindPipeline(mesh), "draws colour");
+                    pass.bindPipeline(depthOnly);
+                    pass.pushVertexUniforms(0, IDENTITY);
+                    pass.bindVertexBuffer(0, quadBuffer);
+                    pass.draw(6);
+                });
+                var depths = frame.readback(depth);
+                frame.renderPass(target, Load.clear(0, 0, 0, 1), pass -> {
+                    assertThrows(IllegalArgumentException.class, () -> pass.bindPipeline(depthOnly), "no colour");
+                    pass.bindPipeline(sampled);
+                    pass.bindFragmentSamplers(nearest, depth);
+                    pass.draw(3);
+                });
+                var grey = frame.readback(target);
+                frame.submit();
+                var floats = depths.await();
+                assertEquals(SIZE * SIZE * 4, floats.remaining());
+                assertEquals(0.25f, floats.getFloat((8 * SIZE + 8) * 4), "inside the quad");
+                assertEquals(1f, floats.getFloat((28 * SIZE + 28) * 4), "cleared to the far plane");
+                var pixels = grey.awaitPixels();
+                assertEquals(64, (argb(pixels, 8, 8) >> 16) & 0xFF, 1, "0.25 sampled from the depth map");
+                assertEquals(255, (argb(pixels, 28, 28) >> 16) & 0xFF, "1.0 sampled from the depth map");
+            }
+        }
+
+        @Test
+        @DisplayName("mip levels are uploaded one at a time, generated from level 0, and read by a mipmapped sampler")
+        void mipLevels() {
+            var checker = new byte[4 * 4 * 4];
+            for (var y = 0; y < 4; y++) {
+                for (var x = 0; x < 4; x++) {
+                    var white = (x + y) % 2 == 0;
+                    var at = (y * 4 + x) * 4;
+                    checker[at] = checker[at + 1] = checker[at + 2] = (byte) (white ? 0xFF : 0);
+                    checker[at + 3] = (byte) 0xFF;
+                }
+            }
+            var red = new byte[] {(byte) 0xFF, 0, 0, (byte) 0xFF};
+            try (var texture = device.createTexture(TextureSpec.renderTarget(TextureFormat.R8G8B8A8_UNORM, 4, 4)
+                            .withMipChain());
+                    var fullscreen = device.createShader(TestShaders.fullscreenVertex());
+                    var sampleFragment = device.createShader(TestShaders.sampleFragment());
+                    var sampled = device.createPipeline(
+                            PipelineSpec.builder(fullscreen, sampleFragment, TextureFormat.B8G8R8A8_UNORM)
+                                    .build());
+                    var trilinear = device.createSampler(SamplerSpec.trilinear());
+                    var level0 = device.createSampler(SamplerSpec.nearest());
+                    var small = device.createTexture(TextureSpec.renderTarget(TextureFormat.B8G8R8A8_UNORM, 1, 1));
+                    var frame = device.beginFrame()) {
+                assertEquals(3, texture.mipLevels());
+                assertEquals(new PhysicalSize(2, 2), texture.level(1).size());
+                frame.copyPass(copy -> {
+                    copy.upload(texture, ByteBuffer.wrap(checker));
+                    copy.upload(texture.level(2), ByteBuffer.wrap(red));
+                });
+                var uploaded = frame.readback(texture.level(2));
+                frame.generateMipmaps(texture);
+                var generated1 = frame.readback(texture.level(1));
+                var generated2 = frame.readback(texture.level(2));
+                frame.renderPass(small, Load.clear(0, 0, 0, 1), pass -> {
+                    pass.bindPipeline(sampled);
+                    pass.bindFragmentSamplers(trilinear, texture);
+                    pass.draw(3);
+                });
+                var throughMips = frame.readback(small);
+                frame.renderPass(small, Load.clear(0, 0, 0, 1), pass -> {
+                    pass.bindPipeline(sampled);
+                    pass.bindFragmentSamplers(level0, texture);
+                    pass.draw(3);
+                });
+                var throughLevel0 = frame.readback(small);
+                frame.submit();
+                assertEquals(0xFFFF0000, uploaded.awaitPixels().pixels().getInt(0), "level 2 as uploaded");
+                var one = generated1.await();
+                assertEquals(2 * 2 * 4, one.remaining());
+                for (var i = 0; i < 4; i++) {
+                    assertEquals(127.5, Byte.toUnsignedInt(one.get(i * 4)), 1, "level 1 texel " + i);
+                }
+                var two = generated2.await();
+                assertEquals(127.5, Byte.toUnsignedInt(two.get(0)), 1, "level 2, over the generated level 1");
+                assertEquals(255, Byte.toUnsignedInt(two.get(3)));
+                assertEquals(127.5, (argb(throughMips.awaitPixels(), 0, 0) >> 16) & 0xFF, 2, "the last level");
+                var texel = (argb(throughLevel0.awaitPixels(), 0, 0) >> 16) & 0xFF;
+                assertTrue(texel == 0 || texel == 255, "one texel of level 0, not a mean: " + texel);
+            }
+        }
+
+        @Test
+        @DisplayName("an array's layers are rendered into, uploaded and read back one at a time, and sampled by index")
+        void arrayLayers() {
+            var yellow = new byte[8 * 8 * 4];
+            for (var i = 0; i < 64; i++) {
+                yellow[i * 4] = 0;
+                yellow[i * 4 + 1] = (byte) 0xFF;
+                yellow[i * 4 + 2] = (byte) 0xFF;
+                yellow[i * 4 + 3] = (byte) 0xFF;
+            }
+            try (var array = device.createTexture(TextureSpec.array(
+                            TextureFormat.B8G8R8A8_UNORM,
+                            8,
+                            8,
+                            4,
+                            EnumSet.of(TextureUsage.COLOR_TARGET, TextureUsage.SAMPLER)));
+                    var fullscreen = device.createShader(TestShaders.fullscreenVertex());
+                    var arrayFragment = device.createShader(TestShaders.arrayFragment());
+                    var sampled = device.createPipeline(
+                            PipelineSpec.builder(fullscreen, arrayFragment, TextureFormat.B8G8R8A8_UNORM)
+                                    .build());
+                    var nearest = device.createSampler(SamplerSpec.nearest());
+                    var target = device.createTexture(TextureSpec.renderTarget(TextureFormat.B8G8R8A8_UNORM, 8, 8));
+                    var frame = device.beginFrame()) {
+                assertEquals(4, array.layers());
+                assertTrue(array.spec().isArray());
+                frame.renderPass(
+                        array.layer(0),
+                        Load.clear(1, 0, 0, 1),
+                        pass -> assertEquals(array.layer(0), pass.target().orElseThrow()));
+                frame.renderPass(array.layer(3), Load.clear(0, 0, 1, 1), pass -> {});
+                frame.renderPass(array.layer(1), Load.clear(0, 1, 0, 1), pass -> {});
+                frame.copyPass(copy -> copy.upload(array.layer(2), ByteBuffer.wrap(yellow)));
+                var layer0 = frame.readback(array.layer(0));
+                var layer1 = frame.readback(array.layer(1));
+                var layer2 = frame.readback(array.layer(2), new PhysicalRect(3, 3, 2, 2));
+                var layer3 = frame.readback(array.layer(3));
+                frame.renderPass(target, Load.clear(0, 0, 0, 1), pass -> {
+                    pass.bindPipeline(sampled);
+                    pass.bindFragmentSamplers(nearest, array);
+                    pass.pushFragmentUniforms(0, 3f, 0f, 0f, 0f);
+                    pass.draw(3);
+                });
+                var sampledLayer3 = frame.readback(target);
+                frame.renderPass(target, Load.clear(0, 0, 0, 1), pass -> {
+                    pass.bindPipeline(sampled);
+                    pass.bindFragmentSamplers(nearest, array);
+                    pass.pushFragmentUniforms(0, 2f, 0f, 0f, 0f);
+                    pass.draw(3);
+                });
+                var sampledLayer2 = frame.readback(target);
+                frame.submit();
+                assertEquals(RED, argb(layer0.awaitPixels(), 4, 4));
+                assertEquals(GREEN, argb(layer1.awaitPixels(), 4, 4));
+                assertEquals(0xFFFFFF00, argb(layer2.awaitPixels(), 1, 1));
+                assertEquals(2, layer2.width());
+                assertEquals(BLUE, argb(layer3.awaitPixels(), 7, 7));
+                assertEquals(BLUE, argb(sampledLayer3.awaitPixels(), 4, 4), "layer 3 by index");
+                assertEquals(0xFFFFFF00, argb(sampledLayer2.awaitPixels(), 4, 4), "layer 2 by index");
+            }
+        }
+
+        @Test
+        @DisplayName(
+                "refuse a level or layer that does not exist, a depth texture not made to be sampled, and mips for one level")
+        void refusals() {
+            try (var texture = device.createTexture(TextureSpec.renderTarget(TextureFormat.R8G8B8A8_UNORM, 4, 4)
+                            .withMipLevels(2));
+                    var sampledOnly = device.createTexture(TextureSpec.sampled(TextureFormat.R8G8B8A8_UNORM, 4, 4)
+                            .withMipLevels(2));
+                    var flat = device.createTexture(TextureSpec.renderTarget(TextureFormat.R8G8B8A8_UNORM, 4, 4));
+                    var depth = device.createTexture(TextureSpec.depth(TextureFormat.D16_UNORM, 4, 4));
+                    var frame = device.beginFrame()) {
+                assertThrows(IllegalArgumentException.class, () -> texture.level(2));
+                assertThrows(IllegalArgumentException.class, () -> texture.layer(1));
+                assertThrows(IllegalArgumentException.class, () -> texture.view(-1, 0));
+                assertThrows(IllegalArgumentException.class, () -> frame.readback(depth), "not sampled");
+                assertThrows(IllegalArgumentException.class, () -> frame.generateMipmaps(flat), "one level");
+                assertThrows(IllegalArgumentException.class, () -> frame.generateMipmaps(sampledOnly), "no target");
+                assertThrows(
+                        IllegalArgumentException.class,
+                        () -> frame.renderPass(sampledOnly.level(1), Load.keep(), pass -> {}),
+                        "not a colour target");
+                assertThrows(
+                        IllegalArgumentException.class,
+                        () -> frame.readback(texture.level(1), new PhysicalRect(0, 0, 4, 4)),
+                        "level 1 is 2x2");
+                frame.copyPass(copy -> assertThrows(
+                        IllegalArgumentException.class,
+                        () -> copy.upload(texture.level(1), ByteBuffer.allocate(4)),
+                        "level 1 takes 16 bytes"));
+            }
+        }
+    }
+
+    @Nested
+    @DisplayName("compute and storage")
+    class Compute {
+
+        /// A quad over pixels 4 to 20, as six `float4` positions in clip space,
+        /// halved: what the compute pass scales back up.
+        private static ByteBuffer halfQuad() {
+            float left = (2f * 4 / SIZE - 1) / 2;
+            float right = (2f * 20 / SIZE - 1) / 2;
+            float top = (1 - 2f * 4 / SIZE) / 2;
+            float bottom = (1 - 2f * 20 / SIZE) / 2;
+            float[][] corners = {
+                {left, top}, {right, top}, {left, bottom}, {left, bottom}, {right, top}, {right, bottom}
+            };
+            var bytes = ByteBuffer.allocate(6 * 16).order(ByteOrder.nativeOrder());
+            for (var corner : corners) {
+                bytes.putFloat(corner[0]).putFloat(corner[1]).putFloat(0f).putFloat(1f);
+            }
+            return bytes.flip();
+        }
+
+        @Test
+        @DisplayName("a compute pass scales a storage buffer by a uniform, and a draw reads the result as its vertices")
+        void scalesAndDraws() {
+            try (var input = buffer(EnumSet.of(BufferUsage.COMPUTE_STORAGE_READ), halfQuad());
+                    var output = device.createBuffer(
+                            EnumSet.of(BufferUsage.COMPUTE_STORAGE_WRITE, BufferUsage.GRAPHICS_STORAGE_READ), 6 * 16);
+                    var scale = device.createComputePipeline(TestShaders.scaleCompute());
+                    var storageVertex = device.createShader(TestShaders.storageVertex());
+                    var pipeline = device.createPipeline(
+                            PipelineSpec.builder(storageVertex, meshFragment, TextureFormat.B8G8R8A8_UNORM)
+                                    .build());
+                    var target = renderTarget();
+                    var frame = device.beginFrame()) {
+                assertEquals(1, storageVertex.storageBuffers());
+                assertEquals(64, scale.code().threadsX());
+                frame.computePass(output, pass -> {
+                    pass.bindPipeline(scale);
+                    pass.bindStorageBuffers(input);
+                    pass.pushUniforms(0, 2f, 0f, 0f, 0f);
+                    pass.dispatch(1);
+                });
+                frame.renderPass(target, Load.clear(0, 0, 0, 1), pass -> {
+                    pass.bindPipeline(pipeline);
+                    pass.bindVertexStorageBuffers(output);
+                    pass.draw(6);
+                });
+                var readback = frame.readback(target);
+                frame.submit();
+                var pixels = readback.awaitPixels();
+                assertEquals(RED, argb(pixels, 6, 6), "inside the scaled quad, outside the half one");
+                assertEquals(RED, argb(pixels, 12, 12));
+                assertEquals(BLACK, argb(pixels, 28, 28));
+                assertEquals(BLACK, argb(pixels, 2, 2));
+            }
+        }
+
+        @Test
+        @DisplayName("additive blending sums two translucent quads")
+        void additive() {
+            try (var quadBuffer = vertexBuffer(quad(4, 4, 28, 28, 0.5f, 0.25f, 0f, 0f));
+                    var additive = device.createPipeline(
+                            PipelineSpec.builder(meshVertex, meshFragment, TextureFormat.B8G8R8A8_UNORM)
+                                    .vertexBuffer(TestShaders.meshLayout())
+                                    .blend(BlendMode.ADDITIVE)
+                                    .build())) {
+                var pixels = draw(pass -> {
+                    pass.bindPipeline(additive);
+                    pass.pushVertexUniforms(0, IDENTITY);
+                    pass.bindVertexBuffer(0, quadBuffer);
+                    pass.draw(6);
+                    pass.draw(6);
+                });
+                var pixel = argb(pixels, 16, 16);
+                assertEquals(127.5, (pixel >> 16) & 0xFF, 1, "0.25 + 0.25 of red");
+                assertEquals(0, (pixel >> 8) & 0xFF);
+                assertEquals(255, pixel >>> 24, "alpha: 1 from the clear, plus 1 + 1, saturated");
+            }
+        }
+
+        @Test
+        @DisplayName("refuse a write target not made for compute, storage of the wrong count or usage, and nesting")
+        void refusals() {
+            try (var vertexOnly = device.createBuffer(BufferUsage.VERTEX, 64);
+                    var written = device.createBuffer(BufferUsage.COMPUTE_STORAGE_WRITE, 64);
+                    var readable = device.createBuffer(BufferUsage.COMPUTE_STORAGE_READ, 64);
+                    var scale = device.createComputePipeline(TestShaders.scaleCompute());
+                    var frame = device.beginFrame()) {
+                assertThrows(
+                        IllegalArgumentException.class,
+                        () -> frame.computePass(vertexOnly, pass -> {}),
+                        "not made to be written by compute");
+                frame.computePass(written, pass -> {
+                    assertThrows(IllegalStateException.class, () -> pass.bindStorageBuffers(readable), "no pipeline");
+                    assertThrows(IllegalStateException.class, () -> pass.dispatch(1), "no pipeline");
+                    pass.bindPipeline(scale);
+                    assertThrows(IllegalArgumentException.class, pass::bindStorageBuffers, "one is declared");
+                    assertThrows(
+                            IllegalArgumentException.class,
+                            () -> pass.bindStorageBuffers(vertexOnly),
+                            "not made to be read by compute");
+                    assertThrows(IllegalStateException.class, () -> pass.dispatch(1), "storage not bound");
+                    pass.bindStorageBuffers(readable);
+                    assertThrows(IllegalArgumentException.class, () -> pass.dispatch(0));
+                    assertThrows(IllegalArgumentException.class, () -> pass.pushUniforms(1, 1f), "one block");
+                    assertThrows(IllegalStateException.class, () -> frame.copyPass(copy -> {}), "passes do not nest");
+                });
+                frame.computePass(
+                        List.of(),
+                        List.of(),
+                        pass -> assertThrows(
+                                IllegalArgumentException.class, () -> pass.bindPipeline(scale), "writes one buffer"));
+                try (var target = renderTarget()) {
+                    frame.renderPass(target, Load.dontCare(), pass -> {
+                        pass.bindPipeline(mesh);
+                        assertThrows(
+                                IllegalArgumentException.class,
+                                () -> pass.bindVertexStorageBuffers(readable),
+                                "the mesh shader reads none");
+                    });
+                }
+            }
+        }
+    }
+
+    @Nested
+    @DisplayName("multisampling")
+    class Multisampling {
+
+        @Test
+        @DisplayName("a 4x target resolves a triangle's edge to coverage, where one sample gives all or nothing")
+        void resolves() {
+            // A triangle whose hypotenuse crosses pixel centres at an angle, so
+            // its edge pixels are partly covered.
+            try (var vertices = vertexBuffer(triangleVertices(2, 2, 30, 2, 2, 30, 0.5f, 1, 0, 0));
+                    var msaa = device.createTexture(TextureSpec.renderTarget(TextureFormat.B8G8R8A8_UNORM, SIZE, SIZE)
+                            .withUsages(EnumSet.of(TextureUsage.COLOR_TARGET))
+                            .withSamples(4));
+                    var resolved = renderTarget();
+                    var pipeline = device.createPipeline(
+                            PipelineSpec.builder(meshVertex, meshFragment, TextureFormat.B8G8R8A8_UNORM)
+                                    .vertexBuffer(TestShaders.meshLayout())
+                                    .samples(4)
+                                    .build());
+                    var frame = device.beginFrame()) {
+                assertEquals(4, msaa.samples());
+                assertEquals(4, pipeline.spec().samples());
+                frame.renderPass(msaa, Load.clear(0, 0, 0, 1), resolved.level(0), pass -> {
+                    assertThrows(IllegalArgumentException.class, () -> pass.bindPipeline(mesh), "one sample");
+                    pass.bindPipeline(pipeline);
+                    pass.pushVertexUniforms(0, IDENTITY);
+                    pass.bindVertexBuffer(0, vertices);
+                    pass.draw(3);
+                });
+                var readback = frame.readback(resolved);
+                frame.submit();
+                var pixels = readback.awaitPixels();
+                assertEquals(RED, argb(pixels, 6, 6), "inside");
+                assertEquals(BLACK, argb(pixels, 28, 28), "outside");
+                var partial = 0;
+                for (var i = 3; i < 29; i++) {
+                    // The hypotenuse runs from (30, 2) to (2, 30): x + y = 32,
+                    // through the centre of every pixel (i, 31 - i).
+                    var red = (argb(pixels, i, 31 - i) >> 16) & 0xFF;
+                    if (red > 0 && red < 255) {
+                        partial++;
+                    }
+                }
+                assertTrue(partial > 10, "edge pixels are partly covered: " + partial);
+            }
+            try (var vertices = vertexBuffer(triangleVertices(2, 2, 30, 2, 2, 30, 0.5f, 1, 0, 0))) {
+                var aliased = draw(pass -> {
+                    pass.bindPipeline(mesh);
+                    pass.pushVertexUniforms(0, IDENTITY);
+                    pass.bindVertexBuffer(0, vertices);
+                    pass.draw(3);
+                });
+                for (var i = 3; i < 29; i++) {
+                    var red = (argb(aliased, i, 31 - i) >> 16) & 0xFF;
+                    assertTrue(red == 0 || red == 255, "one sample is all or nothing: " + red);
+                }
+            }
+        }
+
+        @Test
+        @DisplayName(
+                "refuses a resolve from one sample, into a multisampled or mismatched texture, and a mismatched depth")
+        void refusals() {
+            try (var msaa = device.createTexture(TextureSpec.renderTarget(TextureFormat.B8G8R8A8_UNORM, SIZE, SIZE)
+                            .withUsages(EnumSet.of(TextureUsage.COLOR_TARGET))
+                            .withSamples(4));
+                    var otherMsaa =
+                            device.createTexture(TextureSpec.renderTarget(TextureFormat.B8G8R8A8_UNORM, SIZE, SIZE)
+                                    .withUsages(EnumSet.of(TextureUsage.COLOR_TARGET))
+                                    .withSamples(2));
+                    var single = renderTarget();
+                    var small = device.createTexture(TextureSpec.renderTarget(TextureFormat.B8G8R8A8_UNORM, 8, 8));
+                    var rgba =
+                            device.createTexture(TextureSpec.renderTarget(TextureFormat.R8G8B8A8_UNORM, SIZE, SIZE));
+                    var depth = device.createTexture(TextureSpec.depth(TextureFormat.D16_UNORM, SIZE, SIZE));
+                    var frame = device.beginFrame()) {
+                assertThrows(
+                        IllegalArgumentException.class,
+                        () -> frame.renderPass(single, Load.dontCare(), small.level(0), pass -> {}),
+                        "one sample");
+                assertThrows(
+                        IllegalArgumentException.class,
+                        () -> frame.renderPass(msaa, Load.dontCare(), otherMsaa.level(0), pass -> {}),
+                        "multisampled");
+                assertThrows(
+                        IllegalArgumentException.class,
+                        () -> frame.renderPass(msaa, Load.dontCare(), small.level(0), pass -> {}),
+                        "size");
+                assertThrows(
+                        IllegalArgumentException.class,
+                        () -> frame.renderPass(msaa, Load.dontCare(), rgba.level(0), pass -> {}),
+                        "format");
+                assertThrows(
+                        IllegalArgumentException.class,
+                        () -> frame.renderPass(
+                                msaa, Load.dontCare(), single.level(0), DepthTarget.clear(depth), pass -> {}),
+                        "one-sample depth");
+                assertThrows(
+                        IllegalArgumentException.class,
+                        () -> PipelineSpec.builder(meshVertex, meshFragment, TextureFormat.B8G8R8A8_UNORM)
+                                .samples(3)
+                                .build());
+            }
+        }
+    }
+
+    @Nested
     @DisplayName("frames")
     class Frames {
 
@@ -438,7 +912,7 @@ class GpuApiTest {
                     var frame = device.beginFrame()) {
                 frame.renderPass(target, Load.clearTransparent(), pass -> {
                     escaped.set(pass);
-                    assertSame(target, pass.target());
+                    assertSame(target, pass.target().orElseThrow());
                     assertThrows(IllegalStateException.class, () -> frame.copyPass(copy -> {}));
                     assertThrows(IllegalStateException.class, () -> frame.readback(target));
                     assertThrows(IllegalStateException.class, frame::submit);
@@ -735,7 +1209,12 @@ class GpuApiTest {
 
     /// A buffer holding `data`, uploaded in a frame of its own.
     private static GpuBuffer buffer(BufferUsage usage, ByteBuffer data) {
-        var buffer = device.createBuffer(usage, data.remaining());
+        return buffer(EnumSet.of(usage), data);
+    }
+
+    /// A buffer for `usages` holding `data`, uploaded in a frame of its own.
+    private static GpuBuffer buffer(java.util.Set<BufferUsage> usages, ByteBuffer data) {
+        var buffer = device.createBuffer(usages, data.remaining());
         try (var frame = device.beginFrame()) {
             frame.copyPass(copy -> copy.upload(buffer, 0, data));
             frame.submit();

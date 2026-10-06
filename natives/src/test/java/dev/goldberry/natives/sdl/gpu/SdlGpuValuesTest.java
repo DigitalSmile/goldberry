@@ -22,6 +22,7 @@ import dev.goldberry.natives.sdl.gpu.enums.SdlGpuCullMode;
 import dev.goldberry.natives.sdl.gpu.enums.SdlGpuFrontFace;
 import dev.goldberry.natives.sdl.gpu.enums.SdlGpuIndexSize;
 import dev.goldberry.natives.sdl.gpu.enums.SdlGpuPrimitiveType;
+import dev.goldberry.natives.sdl.gpu.enums.SdlGpuSampleCount;
 import dev.goldberry.natives.sdl.gpu.enums.SdlGpuShaderFormat;
 import dev.goldberry.natives.sdl.gpu.enums.SdlGpuTextureFormat;
 import dev.goldberry.natives.sdl.gpu.enums.SdlGpuTextureUsage;
@@ -96,7 +97,25 @@ class SdlGpuValuesTest {
         assertEquals(4, SdlGpuVertexFormat.UBYTE4_NORM.bytes());
         assertEquals(2, SdlGpuIndexSize.UINT16.bytes());
         assertEquals(4, SdlGpuIndexSize.UINT32.bytes());
-        assertEquals(3, SdlGpuBufferUsage.mask(EnumSet.allOf(SdlGpuBufferUsage.class)));
+        assertEquals(3, SdlGpuBufferUsage.mask(EnumSet.of(SdlGpuBufferUsage.VERTEX, SdlGpuBufferUsage.INDEX)));
+        assertEquals(0b111011, SdlGpuBufferUsage.mask(EnumSet.allOf(SdlGpuBufferUsage.class)));
+    }
+
+    @Test
+    @DisplayName("storage usages, sample counts and the float formats name SDL's constants")
+    void textureModelNames() {
+        assertEquals("SDL_GPU_BUFFERUSAGE_COMPUTE_STORAGE_WRITE", SdlGpuBufferUsage.COMPUTE_STORAGE_WRITE.nativeName());
+        assertEquals(
+                "SDL_GPU_TEXTUREUSAGE_GRAPHICS_STORAGE_READ", SdlGpuTextureUsage.GRAPHICS_STORAGE_READ.nativeName());
+        assertEquals("SDL_GPU_SAMPLECOUNT_4", SdlGpuSampleCount.FOUR.nativeName());
+        assertEquals(SdlGpuSampleCount.EIGHT, SdlGpuSampleCount.of(8));
+        assertEquals(1, SdlGpuSampleCount.ONE.samples());
+        assertThrows(IllegalArgumentException.class, () -> SdlGpuSampleCount.of(3));
+        assertEquals(8, SdlGpuTextureFormat.R16G16B16A16_FLOAT.bytesPerPixel());
+        assertTrue(SdlGpuTextureFormat.R32_FLOAT.isFloat());
+        assertTrue(SdlGpuTextureFormat.D32_FLOAT.isFloat());
+        assertFalse(SdlGpuTextureFormat.R11G11B10_UFLOAT.isDepth());
+        assertFalse(SdlGpuTextureFormat.B8G8R8A8_UNORM.isFloat());
     }
 
     @Test

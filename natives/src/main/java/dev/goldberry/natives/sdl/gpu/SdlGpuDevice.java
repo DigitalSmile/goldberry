@@ -3,6 +3,7 @@ package dev.goldberry.natives.sdl.gpu;
 import static java.lang.foreign.ValueLayout.ADDRESS;
 import static java.lang.foreign.ValueLayout.JAVA_BOOLEAN;
 import static java.lang.foreign.ValueLayout.JAVA_BYTE;
+import static java.lang.foreign.ValueLayout.JAVA_FLOAT;
 import static java.lang.foreign.ValueLayout.JAVA_INT;
 import static java.lang.foreign.ValueLayout.JAVA_LONG;
 
@@ -30,6 +31,7 @@ import dev.goldberry.natives.sdl.gpu.enums.SdlGpuBlend;
 import dev.goldberry.natives.sdl.gpu.enums.SdlGpuBufferUsage;
 import dev.goldberry.natives.sdl.gpu.enums.SdlGpuFilter;
 import dev.goldberry.natives.sdl.gpu.enums.SdlGpuPresentMode;
+import dev.goldberry.natives.sdl.gpu.enums.SdlGpuSampleCount;
 import dev.goldberry.natives.sdl.gpu.enums.SdlGpuShaderFormat;
 import dev.goldberry.natives.sdl.gpu.enums.SdlGpuTextureFormat;
 import dev.goldberry.natives.sdl.gpu.enums.SdlGpuTextureUsage;
@@ -201,35 +203,84 @@ public final class SdlGpuDevice implements AutoCloseable {
                 .call(handle(), format.value(), SdlGpuResourceCalls.TEXTURETYPE_2D, SdlGpuTextureUsage.mask(usages));
     }
 
-    /// Creates a 2D texture with one mip level and one sample.
+    /// Creates a 2D texture with one layer, one mip level and one sample.
     ///
     /// @throws SdlException when SDL refuses: a format the device cannot make
     ///                      for these usages, or a size beyond its limit
     public SdlGpuTexture createTexture(
             SdlGpuTextureFormat format, int width, int height, Set<SdlGpuTextureUsage> usages) {
+        return createTexture(format, width, height, 1, 1, SdlGpuSampleCount.ONE, usages);
+    }
+
+    /// Creates a 2D texture of `layers` layers (an array when more than one),
+    /// `mipLevels` mip levels and `sampleCount` samples per texel.
+    ///
+    /// @throws IllegalArgumentException when the size, a count or the usages
+    ///                                  make no texture: more levels than the
+    ///                                  size halves into, or a multisampled
+    ///                                  texture with more than one level or
+    ///                                  layer, or one that is sampled rather
+    ///                                  than a render target
+    /// @throws SdlException             when SDL refuses: a format the device
+    ///                                  cannot make for these usages, or a size
+    ///                                  beyond its limit
+    public SdlGpuTexture createTexture(
+            SdlGpuTextureFormat format,
+            int width,
+            int height,
+            int layers,
+            int mipLevels,
+            SdlGpuSampleCount sampleCount,
+            Set<SdlGpuTextureUsage> usages) {
         if (width <= 0 || height <= 0) {
             throw new IllegalArgumentException("texture " + width + "x" + height);
         }
         if (usages.isEmpty()) {
             throw new IllegalArgumentException("a texture needs at least one usage");
         }
+        if (layers <= 0) {
+            throw new IllegalArgumentException("texture of " + layers + " layers");
+        }
+        if (mipLevels <= 0 || mipLevels > maxMipLevels(width, height)) {
+            throw new IllegalArgumentException(mipLevels + " mip levels; a " + width + "x" + height
+                    + " texture has at most " + maxMipLevels(width, height));
+        }
+        Objects.requireNonNull(sampleCount, "sampleCount");
+        if (sampleCount != SdlGpuSampleCount.ONE) {
+            if (layers > 1 || mipLevels > 1) {
+                throw new IllegalArgumentException("a multisampled texture has one layer and one mip level");
+            }
+            var targetOnly = EnumSet.of(SdlGpuTextureUsage.COLOR_TARGET, SdlGpuTextureUsage.DEPTH_STENCIL_TARGET);
+            if (!targetOnly.containsAll(usages)) {
+                throw new IllegalArgumentException("a multisampled texture is a render target only, not " + usages);
+            }
+        }
         var info = Layouts.SDL_GPU_TEXTURE_CREATE_INFO;
         try (var arena = Arena.ofConfined()) {
             var createInfo = arena.allocate(info.layout());
-            createInfo.set(JAVA_INT, info.offsetOf("type"), SdlGpuResourceCalls.TEXTURETYPE_2D);
+            createInfo.set(
+                    JAVA_INT,
+                    info.offsetOf("type"),
+                    layers > 1 ? SdlGpuResourceCalls.TEXTURETYPE_2D_ARRAY : SdlGpuResourceCalls.TEXTURETYPE_2D);
             createInfo.set(JAVA_INT, info.offsetOf("format"), format.value());
             createInfo.set(JAVA_INT, info.offsetOf("usage"), SdlGpuTextureUsage.mask(usages));
             createInfo.set(JAVA_INT, info.offsetOf("width"), width);
             createInfo.set(JAVA_INT, info.offsetOf("height"), height);
-            createInfo.set(JAVA_INT, info.offsetOf("layer_count_or_depth"), 1);
-            createInfo.set(JAVA_INT, info.offsetOf("num_levels"), 1);
-            createInfo.set(JAVA_INT, info.offsetOf("sample_count"), SdlGpuResourceCalls.SAMPLECOUNT_1);
+            createInfo.set(JAVA_INT, info.offsetOf("layer_count_or_depth"), layers);
+            createInfo.set(JAVA_INT, info.offsetOf("num_levels"), mipLevels);
+            createInfo.set(JAVA_INT, info.offsetOf("sample_count"), sampleCount.value());
             var texture = calls.resources().createGPUTexture().call(handle(), createInfo);
             if (MemorySegment.NULL.equals(texture)) {
                 throw new SdlException("SDL_CreateGPUTexture", Sdl.get().lastError());
             }
-            return new SdlGpuTexture(this, texture, format, width, height, usages);
+            return new SdlGpuTexture(this, texture, format, width, height, layers, mipLevels, sampleCount, usages);
         }
+    }
+
+    /// How many mip levels a `width` by `height` texture can have: one per
+    /// halving down to one texel, counting the full-size level.
+    public static int maxMipLevels(int width, int height) {
+        return 32 - Integer.numberOfLeadingZeros(Math.max(width, height));
     }
 
     /// Creates a transfer buffer of `size` bytes.
@@ -306,12 +357,48 @@ public final class SdlGpuDevice implements AutoCloseable {
             createInfo.set(JAVA_INT, info.offsetOf("format"), code.format().bit());
             createInfo.set(JAVA_INT, info.offsetOf("stage"), code.stage().value());
             createInfo.set(JAVA_INT, info.offsetOf("num_samplers"), code.samplers());
+            createInfo.set(JAVA_INT, info.offsetOf("num_storage_textures"), code.storageTextures());
+            createInfo.set(JAVA_INT, info.offsetOf("num_storage_buffers"), code.storageBuffers());
             createInfo.set(JAVA_INT, info.offsetOf("num_uniform_buffers"), code.uniformBuffers());
             var shader = calls.pipelines().createGPUShader().call(handle(), createInfo);
             if (MemorySegment.NULL.equals(shader)) {
                 throw new SdlException("SDL_CreateGPUShader", Sdl.get().lastError());
             }
-            return new SdlGpuShader(this, shader, code.stage(), code.samplers(), code.uniformBuffers());
+            return new SdlGpuShader(this, shader, code);
+        }
+    }
+
+    /// Creates a compute pipeline from `code`.
+    ///
+    /// @throws IllegalArgumentException when the code is in a format this
+    ///                                  device does not take
+    /// @throws SdlException             when SDL refuses the code
+    public SdlGpuComputePipeline createComputePipeline(SdlGpuComputeCode code) {
+        if (!shaderFormats.contains(code.format())) {
+            throw new IllegalArgumentException(this + " takes " + shaderFormats + ", not " + code.format());
+        }
+        var info = Layouts.SDL_GPU_COMPUTE_PIPELINE_CREATE_INFO;
+        try (var arena = Arena.ofConfined()) {
+            var bytes = arena.allocateFrom(JAVA_BYTE, code.code());
+            var createInfo = arena.allocate(info.layout());
+            createInfo.set(JAVA_LONG, info.offsetOf("code_size"), code.size());
+            createInfo.set(ADDRESS, info.offsetOf("code"), bytes);
+            createInfo.set(ADDRESS, info.offsetOf("entrypoint"), arena.allocateFrom(code.entryPoint()));
+            createInfo.set(JAVA_INT, info.offsetOf("format"), code.format().bit());
+            createInfo.set(JAVA_INT, info.offsetOf("num_samplers"), code.samplers());
+            createInfo.set(JAVA_INT, info.offsetOf("num_readonly_storage_textures"), code.readOnlyStorageTextures());
+            createInfo.set(JAVA_INT, info.offsetOf("num_readonly_storage_buffers"), code.readOnlyStorageBuffers());
+            createInfo.set(JAVA_INT, info.offsetOf("num_readwrite_storage_textures"), code.readWriteStorageTextures());
+            createInfo.set(JAVA_INT, info.offsetOf("num_readwrite_storage_buffers"), code.readWriteStorageBuffers());
+            createInfo.set(JAVA_INT, info.offsetOf("num_uniform_buffers"), code.uniformBuffers());
+            createInfo.set(JAVA_INT, info.offsetOf("threadcount_x"), code.threadsX());
+            createInfo.set(JAVA_INT, info.offsetOf("threadcount_y"), code.threadsY());
+            createInfo.set(JAVA_INT, info.offsetOf("threadcount_z"), code.threadsZ());
+            var pipeline = calls.pipelines().createGPUComputePipeline().call(handle(), createInfo);
+            if (MemorySegment.NULL.equals(pipeline)) {
+                throw new SdlException("SDL_CreateGPUComputePipeline", Sdl.get().lastError());
+            }
+            return new SdlGpuComputePipeline(this, pipeline, code);
         }
     }
 
@@ -329,26 +416,59 @@ public final class SdlGpuDevice implements AutoCloseable {
     ///
     /// @throws SdlException when SDL refuses
     public SdlGpuSampler createSampler(SdlGpuFilter filter, SdlGpuAddressMode addressMode) {
+        return createSampler(SdlGpuSamplerDescription.of(filter, addressMode));
+    }
+
+    /// Creates the sampler `description` describes. One with a mip filter reads
+    /// every level the texture has; one without reads level 0 alone.
+    ///
+    /// @throws SdlException when SDL refuses
+    public SdlGpuSampler createSampler(SdlGpuSamplerDescription description) {
         var info = Layouts.SDL_GPU_SAMPLER_CREATE_INFO;
         try (var arena = Arena.ofConfined()) {
             var createInfo = arena.allocate(info.layout());
-            createInfo.set(JAVA_INT, info.offsetOf("min_filter"), filter.value());
-            createInfo.set(JAVA_INT, info.offsetOf("mag_filter"), filter.value());
-            createInfo.set(JAVA_INT, info.offsetOf("mipmap_mode"), SdlGpuPipelineCalls.SAMPLERMIPMAPMODE_NEAREST);
+            createInfo.set(
+                    JAVA_INT, info.offsetOf("min_filter"), description.filter().value());
+            createInfo.set(
+                    JAVA_INT, info.offsetOf("mag_filter"), description.filter().value());
+            var mip = description.mipFilter();
+            createInfo.set(
+                    JAVA_INT,
+                    info.offsetOf("mipmap_mode"),
+                    mip.isPresent() && mip.get() == SdlGpuFilter.LINEAR
+                            ? SdlGpuPipelineCalls.SAMPLERMIPMAPMODE_LINEAR
+                            : SdlGpuPipelineCalls.SAMPLERMIPMAPMODE_NEAREST);
+            // The level-of-detail clamp: level 0 alone without a mip filter, as
+            // the toolkit's own textures have one level, and every level with.
+            createInfo.set(JAVA_FLOAT, info.offsetOf("min_lod"), 0f);
+            createInfo.set(JAVA_FLOAT, info.offsetOf("max_lod"), mip.isPresent() ? MAX_LOD : 0f);
             for (var axis : new String[] {"address_mode_u", "address_mode_v", "address_mode_w"}) {
-                createInfo.set(JAVA_INT, info.offsetOf(axis), addressMode.value());
+                createInfo.set(
+                        JAVA_INT, info.offsetOf(axis), description.addressMode().value());
+            }
+            var compare = description.compare();
+            createInfo.set(JAVA_BOOLEAN, info.offsetOf("enable_compare"), compare.isPresent());
+            if (compare.isPresent()) {
+                createInfo.set(
+                        JAVA_INT, info.offsetOf("compare_op"), compare.get().value());
             }
             var sampler = calls.pipelines().createGPUSampler().call(handle(), createInfo);
             if (MemorySegment.NULL.equals(sampler)) {
                 throw new SdlException("SDL_CreateGPUSampler", Sdl.get().lastError());
             }
-            return new SdlGpuSampler(this, sampler, filter, addressMode);
+            return new SdlGpuSampler(this, sampler, description);
         }
     }
+
+    /// Vulkan's `VK_LOD_CLAMP_NONE`: a level-of-detail clamp past every level
+    /// a texture can have, which the other drivers take the same way.
+    private static final float MAX_LOD = 1000f;
 
     /// Creates a pipeline that draws triangles from the vertex id with `vertex`
     /// and `fragment`, into one colour target of `targetFormat`, blending with
     /// `blend`. No culling, no depth, one sample: [SdlGpuPipelineDescription#quads].
+    /// A pipeline with no colour target is described and made through
+    /// [#createGraphicsPipeline(SdlGpuPipelineDescription)].
     ///
     /// @throws IllegalArgumentException when a shader is for the wrong stage or
     ///                                  another device
@@ -400,6 +520,11 @@ public final class SdlGpuDevice implements AutoCloseable {
                     JAVA_INT,
                     rasterizer + rasterizerLayout.offsetOf("front_face"),
                     description.frontFace().value());
+            var multisample = info.offsetOf("multisample_state");
+            createInfo.set(
+                    JAVA_INT,
+                    multisample + Layouts.SDL_GPU_MULTISAMPLE_STATE.offsetOf("sample_count"),
+                    description.sampleCount().value());
             if (description.depth().isPresent()) {
                 var depth = description.depth().get();
                 var state = info.offsetOf("depth_stencil_state");
@@ -416,11 +541,13 @@ public final class SdlGpuDevice implements AutoCloseable {
                         depth.format().value());
                 createInfo.set(JAVA_BOOLEAN, target + targetLayout.offsetOf("has_depth_stencil_target"), true);
             }
-            createInfo.set(
-                    ADDRESS,
-                    target + targetLayout.offsetOf("color_target_descriptions"),
-                    colorTarget(arena, description.targetFormat(), description.blend()));
-            createInfo.set(JAVA_INT, target + targetLayout.offsetOf("num_color_targets"), 1);
+            if (description.targetFormat().isPresent()) {
+                createInfo.set(
+                        ADDRESS,
+                        target + targetLayout.offsetOf("color_target_descriptions"),
+                        colorTarget(arena, description.targetFormat().get(), description.blend()));
+                createInfo.set(JAVA_INT, target + targetLayout.offsetOf("num_color_targets"), 1);
+            }
             var pipeline = calls.pipelines().createGPUGraphicsPipeline().call(handle(), createInfo);
             if (MemorySegment.NULL.equals(pipeline)) {
                 throw new SdlException(
@@ -439,24 +566,36 @@ public final class SdlGpuDevice implements AutoCloseable {
         colorTarget.set(JAVA_INT, description.offsetOf("format"), format.value());
         switch (blend) {
             case REPLACE -> {}
-            case PREMULTIPLIED_OVER -> {
-                colorTarget.set(JAVA_BOOLEAN, blendState + blendLayout.offsetOf("enable_blend"), true);
-                for (var factor : new String[] {"src_color_blendfactor", "src_alpha_blendfactor"}) {
-                    colorTarget.set(
-                            JAVA_INT, blendState + blendLayout.offsetOf(factor), SdlGpuPipelineCalls.BLENDFACTOR_ONE);
-                }
-                for (var factor : new String[] {"dst_color_blendfactor", "dst_alpha_blendfactor"}) {
-                    colorTarget.set(
-                            JAVA_INT,
-                            blendState + blendLayout.offsetOf(factor),
-                            SdlGpuPipelineCalls.BLENDFACTOR_ONE_MINUS_SRC_ALPHA);
-                }
-                for (var op : new String[] {"color_blend_op", "alpha_blend_op"}) {
-                    colorTarget.set(JAVA_INT, blendState + blendLayout.offsetOf(op), SdlGpuPipelineCalls.BLENDOP_ADD);
-                }
-            }
+            case PREMULTIPLIED_OVER ->
+                blendState(
+                        colorTarget,
+                        blendState,
+                        SdlGpuPipelineCalls.BLENDFACTOR_ONE,
+                        SdlGpuPipelineCalls.BLENDFACTOR_ONE_MINUS_SRC_ALPHA);
+            case ADDITIVE ->
+                blendState(
+                        colorTarget,
+                        blendState,
+                        SdlGpuPipelineCalls.BLENDFACTOR_ONE,
+                        SdlGpuPipelineCalls.BLENDFACTOR_ONE);
         }
         return colorTarget;
+    }
+
+    /// Enables blending with `source` and `destination` factors on colour and
+    /// alpha alike, adding the two.
+    private static void blendState(MemorySegment colorTarget, long blendState, int source, int destination) {
+        var blendLayout = Layouts.SDL_GPU_COLOR_TARGET_BLEND_STATE;
+        colorTarget.set(JAVA_BOOLEAN, blendState + blendLayout.offsetOf("enable_blend"), true);
+        for (var factor : new String[] {"src_color_blendfactor", "src_alpha_blendfactor"}) {
+            colorTarget.set(JAVA_INT, blendState + blendLayout.offsetOf(factor), source);
+        }
+        for (var factor : new String[] {"dst_color_blendfactor", "dst_alpha_blendfactor"}) {
+            colorTarget.set(JAVA_INT, blendState + blendLayout.offsetOf(factor), destination);
+        }
+        for (var op : new String[] {"color_blend_op", "alpha_blend_op"}) {
+            colorTarget.set(JAVA_INT, blendState + blendLayout.offsetOf(op), SdlGpuPipelineCalls.BLENDOP_ADD);
+        }
     }
 
     /// Fills the `SDL_GPUVertexInputState` at `offset` of `createInfo`, with its

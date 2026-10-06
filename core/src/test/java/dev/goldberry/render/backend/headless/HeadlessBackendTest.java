@@ -124,6 +124,22 @@ class HeadlessBackendTest {
     }
 
     @Test
+    @DisplayName("a capture is the presented frame, copied, and nothing before the first present")
+    void captures() {
+        var window = (HeadlessWindow) backend.createWindow(SPEC);
+        assertTrue(window.capture().isEmpty(), "nothing presented yet");
+        var frame = PixelBuffer.allocate(window.physicalSize(), PixelFormat.BGRA32_PREMULTIPLIED);
+        frame.pixels().put(4, (byte) 0x42);
+        window.present(frame, List.of(DamageRect.all(window.physicalSize())));
+
+        var captured = window.capture().orElseThrow();
+        assertEquals(window.physicalSize(), captured.size());
+        assertEquals((byte) 0x42, captured.pixels().get(4));
+        captured.pixels().put(4, (byte) 0);
+        assertEquals((byte) 0x42, window.capture().orElseThrow().pixels().get(4), "a copy each time");
+    }
+
+    @Test
     @DisplayName("frame requests coalesce")
     void frameRequestsCoalesce() {
         var window = (HeadlessWindow) backend.createWindow(SPEC);

@@ -500,6 +500,14 @@ public sealed class HeadlessWindow implements BackendWindow permits HeadlessPopu
         return Optional.of(readback);
     }
 
+    /// [#lastFrame], copied: a headless window presents on the CPU, so the
+    /// frame it was given is what it shows, GPU layers read back and all.
+    @Override
+    public Optional<PixelBuffer> capture() {
+        backend.requireUiThread();
+        return Optional.ofNullable(lastFrame).map(HeadlessWindow::copyOf);
+    }
+
     /// The last frame presented, if any. What a golden-image test asserts on.
     public Optional<PixelBuffer> lastFrame() {
         backend.requireUiThread();

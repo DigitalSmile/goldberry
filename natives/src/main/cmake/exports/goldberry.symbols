@@ -411,6 +411,25 @@ SDL_PushGPUDebugGroup
 SDL_PopGPUDebugGroup
 SDL_InsertGPUDebugLabel
 
+# The texture model and compute, for a renderer written against the public API:
+# storage buffers and textures bound in a render pass, textures sampled by a
+# vertex shader, compute pipelines and passes, and the mip chain a copy of a
+# texture is given.
+SDL_BindGPUVertexSamplers
+SDL_BindGPUVertexStorageBuffers
+SDL_BindGPUFragmentStorageBuffers
+SDL_BindGPUFragmentStorageTextures
+SDL_CreateGPUComputePipeline
+SDL_ReleaseGPUComputePipeline
+SDL_BeginGPUComputePass
+SDL_BindGPUComputePipeline
+SDL_BindGPUComputeStorageBuffers
+SDL_BindGPUComputeStorageTextures
+SDL_PushGPUComputeUniformData
+SDL_DispatchGPUCompute
+SDL_EndGPUComputePass
+SDL_GenerateMipmapsForGPUTexture
+
 # --- Blend2D (sec. 5, paint & raster) ----------------------------------------
 # The image and context surface: enough to rasterize a frame into the buffer the
 # platform lends us. Paths, gradients, strokes and text follow. See ADR-0031.

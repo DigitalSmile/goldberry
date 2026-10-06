@@ -15,6 +15,20 @@ import dev.goldberry.natives.NativePlatform.OperatingSystem;
 
 class NativePlatformTest {
 
+    /// The notation `installing.md` tells a build file to write: one artifact,
+    /// four classifiers.
+    @ParameterizedTest
+    @CsvSource({
+        "Linux,    amd64,   dev.goldberry:goldberry-natives::linux-x64",
+        "Linux,    aarch64, dev.goldberry:goldberry-natives::linux-aarch64",
+        "Mac OS X, aarch64, dev.goldberry:goldberry-natives::macos-aarch64",
+        "Windows,  amd64,   dev.goldberry:goldberry-natives::windows-x64",
+    })
+    @DisplayName("the coordinate is the classifier jar's dependency notation")
+    void coordinateIsTheDependencyNotation(String osName, String osArch, String expected) {
+        assertEquals(expected, NativePlatform.of(osName, osArch).coordinate());
+    }
+
     @ParameterizedTest
     @CsvSource({
         "Linux,               amd64,   LINUX,   X64",

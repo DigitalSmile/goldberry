@@ -1,8 +1,10 @@
 package dev.goldberry.gpu.composite;
 
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
+import java.util.Optional;
 
 import org.jspecify.annotations.Nullable;
 
@@ -14,11 +16,14 @@ import dev.goldberry.natives.sdl.gpu.SdlGpuTexture;
 import dev.goldberry.natives.sdl.gpu.SdlGpuWindow;
 import dev.goldberry.natives.sdl.gpu.enums.SdlGpuTextureFormat;
 import dev.goldberry.natives.sdl.gpu.enums.SdlGpuTextureUsage;
+import dev.goldberry.natives.sdl.gpu.enums.SdlGpuTransferUsage;
 import dev.goldberry.render.DamageRect;
 import dev.goldberry.render.GpuPlacement;
 import dev.goldberry.render.PixelBuffer;
 import dev.goldberry.render.PresentTimings;
 import dev.goldberry.render.composite.CompositedWindow;
+import dev.goldberry.render.model.PhysicalSize;
+import dev.goldberry.render.model.PixelFormat;
 
 /// A window [SdlCompositor] claimed: each painted frame's damage uploaded into
 /// the window's UI texture, its GPU layers rendered, then the composite pass
@@ -41,6 +46,8 @@ final class SdlCompositedWindow implements CompositedWindow {
     private final UiComposite composite;
     private final LayerTextures layerTextures = new LayerTextures();
     private @Nullable SdlGpuTexture ui;
+    /// The layers the last present drew, for [#capture] to draw again.
+    private List<UiComposite.Layer> lastDrawn = List.of();
     private PresentTimings last = PresentTimings.NONE;
     private boolean closed;
 
@@ -90,6 +97,7 @@ final class SdlCompositedWindow implements CompositedWindow {
         // Layers may have changed with no damage at all -- a video's next
         // picture -- so with any on screen the window is composited again.
         var drawn = layerTextures.renderAll(api, layers);
+        lastDrawn = drawn;
         var layered = System.nanoTime();
         var commands = device.acquireCommandBuffer();
         try {
@@ -137,6 +145,37 @@ final class SdlCompositedWindow implements CompositedWindow {
                 } catch (RuntimeException ignored) {
                     // The original failure is the one worth reporting.
                 }
+            }
+        }
+    }
+
+    @Override
+    public Optional<PixelBuffer> capture() {
+        var texture = ui;
+        if (closed || texture == null) {
+            return Optional.empty();
+        }
+        var width = texture.width();
+        var height = texture.height();
+        var usages = EnumSet.of(SdlGpuTextureUsage.COLOR_TARGET, SdlGpuTextureUsage.SAMPLER);
+        try (var target = device.createTexture(SdlGpuTextureFormat.B8G8R8A8_UNORM, width, height, usages);
+                var download = device.createTransferBuffer(SdlGpuTransferUsage.DOWNLOAD, width * height * 4)) {
+            var commands = device.acquireCommandBuffer();
+            composite.draw(commands, target, SdlGpuTextureFormat.B8G8R8A8_UNORM, texture, lastDrawn);
+            try (var pass = commands.beginCopyPass()) {
+                pass.download(target, SdlGpuRegion.of(target), download, 0);
+            }
+            try (var fence = commands.submitWithFence()) {
+                fence.await();
+            }
+            var mapped = download.map(false);
+            try {
+                var copy = ByteBuffer.allocateDirect(mapped.remaining()).order(mapped.order());
+                copy.put(0, mapped, 0, mapped.remaining());
+                return Optional.of(new PixelBuffer(
+                        new PhysicalSize(width, height), PixelFormat.BGRA32_PREMULTIPLIED, width * 4, copy));
+            } finally {
+                download.unmap();
             }
         }
     }

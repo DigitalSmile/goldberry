@@ -83,7 +83,7 @@ def tools = ToolLookup.from(providers)
 
 tasks.register('compileShaders') {
     group = 'build'
-    description = 'Compiles src/main/shaders and src/test/shaders to SPIR-V, DXIL and MSL, and records their sources\' hashes.'
+    description = 'Compiles src/main/shaders and src/test/shaders (vertex, fragment and compute) to SPIR-V, DXIL and MSL, and records their sources\' hashes.'
     shaderSets.each { set ->
         inputs.dir(set.sources)
         outputs.dir(set.output)
@@ -121,9 +121,11 @@ tasks.register('compileShaders') {
             def sources = set.sources.asFile.listFiles().findAll { it.name.endsWith('.hlsl') }.sort { it.name }
             sources.each { source ->
                 def name = source.name - '.hlsl'
-                def profile = name.endsWith('.vert') ? 'vs_6_0' : name.endsWith('.frag') ? 'ps_6_0' : null
+                def profile = name.endsWith('.vert') ? 'vs_6_0'
+                        : name.endsWith('.frag') ? 'ps_6_0'
+                        : name.endsWith('.comp') ? 'cs_6_0' : null
                 if (profile == null) {
-                    throw new GradleException("${source.name}: a shader is named <name>.vert.hlsl or <name>.frag.hlsl")
+                    throw new GradleException("${source.name}: a shader is named <name>.vert.hlsl, <name>.frag.hlsl or <name>.comp.hlsl")
                 }
                 def spirv = new File(out, "${name}.spv")
                 run([dxc.absolutePath, '-T', profile, '-E', 'main', '-spirv', '-Fo', spirv.absolutePath, source.absolutePath])

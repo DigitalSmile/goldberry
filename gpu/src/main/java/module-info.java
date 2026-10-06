@@ -9,8 +9,10 @@
 /// the GPU to draw. A layer renders with the device of the window it is shown
 /// in: composited under the window's frame, or read back into it where the
 /// window presents on the CPU. And the `canvas3d` widget in `…gpu.view`, with
-/// the `Canvas3dRenderer` an application draws it with. And `…gpu.video`, the
-/// layer video is shown through, exported to `:media` alone. The toolkit's own
+/// the `Canvas3dRenderer` an application draws it with. And `…gpu.offscreen`,
+/// a device and read-back surface for a picture with no window, which an
+/// application's test hands to `Offscreen`. And `…gpu.video`, the layer video
+/// is shown through, exported to `:media` alone. The toolkit's own
 /// shaders and the quad and Y'CbCr arithmetic they need stay in the unexported
 /// `…gpu.render`.
 ///
@@ -39,6 +41,10 @@ module dev.goldberry.gpu {
 
     /// `canvas3d` and the renderer an application draws it with.
     exports dev.goldberry.gpu.view;
+
+    /// A GPU for a picture with no window under it: the surface an
+    /// application's test hands to `Offscreen.gpu`.
+    exports dev.goldberry.gpu.offscreen;
 
     /// Video on the GPU: the layer `:media`'s `video-view` shows its pictures
     /// through when this module is present. To `:media`

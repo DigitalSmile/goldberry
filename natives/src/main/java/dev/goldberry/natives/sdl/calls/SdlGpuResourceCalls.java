@@ -37,11 +37,11 @@ public record SdlGpuResourceCalls(
                 new UnmapGPUTransferBuffer(lookup));
     }
 
-    /// `SDL_GPU_TEXTURETYPE_2D`: every texture the toolkit makes.
+    /// `SDL_GPU_TEXTURETYPE_2D`: a texture with one layer.
     public static final int TEXTURETYPE_2D = 0;
 
-    /// `SDL_GPU_SAMPLECOUNT_1`: no multisampling.
-    public static final int SAMPLECOUNT_1 = 0;
+    /// `SDL_GPU_TEXTURETYPE_2D_ARRAY`: a texture with more than one layer.
+    public static final int TEXTURETYPE_2D_ARRAY = 1;
 
     /// Creates a texture.
     ///

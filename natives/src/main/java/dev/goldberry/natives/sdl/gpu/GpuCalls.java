@@ -3,6 +3,7 @@ package dev.goldberry.natives.sdl.gpu;
 import dev.goldberry.natives.NativeLibrary;
 import dev.goldberry.natives.sdl.calls.SdlGpuBufferCalls;
 import dev.goldberry.natives.sdl.calls.SdlGpuCommandCalls;
+import dev.goldberry.natives.sdl.calls.SdlGpuComputeCalls;
 import dev.goldberry.natives.sdl.calls.SdlGpuDebugCalls;
 import dev.goldberry.natives.sdl.calls.SdlGpuDeviceCalls;
 import dev.goldberry.natives.sdl.calls.SdlGpuPipelineCalls;
@@ -21,6 +22,7 @@ import dev.goldberry.natives.sdl.calls.SdlPropertiesCalls;
 /// @param pipelines  shaders, samplers and graphics pipelines
 /// @param renderPass what a render pass records
 /// @param buffers    vertex and index buffers, their copies, and indexed draws
+/// @param compute    compute passes and mip generation
 /// @param debug      debug groups and labels
 /// @param properties the property groups a device is configured with
 record GpuCalls(
@@ -31,6 +33,7 @@ record GpuCalls(
         SdlGpuPipelineCalls pipelines,
         SdlGpuRenderPassCalls renderPass,
         SdlGpuBufferCalls buffers,
+        SdlGpuComputeCalls compute,
         SdlGpuDebugCalls debug,
         SdlPropertiesCalls properties) {
 
@@ -52,6 +55,7 @@ record GpuCalls(
                     SdlGpuPipelineCalls.bind(lookup),
                     SdlGpuRenderPassCalls.bind(lookup),
                     SdlGpuBufferCalls.bind(lookup),
+                    SdlGpuComputeCalls.bind(lookup),
                     SdlGpuDebugCalls.bind(lookup),
                     SdlPropertiesCalls.bind(lookup));
         }

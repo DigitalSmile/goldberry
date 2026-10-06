@@ -88,8 +88,10 @@ public final class SdlCompositor implements Compositor {
     }
 
     /// The device as the GPU API sees it, made the first time: empty when there
-    /// is none and cannot be one, or this is closed.
-    Optional<GpuDevice> api() {
+    /// is none and cannot be one, or this is closed. Public for the offscreen
+    /// GPU, which is another package of this module; the package is not
+    /// exported.
+    public Optional<GpuDevice> api() {
         return open() ? Optional.of(requireApi()) : Optional.empty();
     }
 
@@ -100,8 +102,8 @@ public final class SdlCompositor implements Compositor {
     }
 
     /// Why there is no device, or empty when there is one or none was asked for
-    /// yet.
-    Optional<String> unavailable() {
+    /// yet. Public for the offscreen GPU, as [#api] is.
+    public Optional<String> unavailable() {
         return Optional.ofNullable(unavailable);
     }
 

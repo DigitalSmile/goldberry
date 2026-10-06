@@ -1,10 +1,11 @@
 package dev.goldberry.natives.sdl.gpu;
 
-/// What a render pass or a blit can draw into: a texture the device made, or the
-/// swapchain texture of a claimed window for the current frame.
+/// What a render pass or a blit can draw into: a texture the device made, one
+/// level of one layer of it, or the swapchain texture of a claimed window for
+/// the current frame.
 ///
 /// Read more: [The native boundary](https://goldberry.dev/docs/overview/architecture.html#the-native-boundary).
-public sealed interface SdlGpuTarget permits SdlGpuTexture, SdlGpuSwapchainTexture {
+public sealed interface SdlGpuTarget permits SdlGpuTexture, SdlGpuTextureView, SdlGpuSwapchainTexture {
 
     /// The width in pixels.
     int width();

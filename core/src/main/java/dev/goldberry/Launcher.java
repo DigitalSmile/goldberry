@@ -1,5 +1,10 @@
 package dev.goldberry;
 
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.nio.file.Files;
+import java.nio.file.InvalidPathException;
+import java.nio.file.Path;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
@@ -120,27 +125,37 @@ final class Launcher {
     ///                   the load a frame-rate claim is measured under
     /// @param lateBudget how many refreshes the run may miss before it exits
     ///                   non-zero, or -1 for a run that is not judged
+    /// @param capture    where the last frame of a `--frames=N` run is written
+    ///                   as a PNG, as the screen showed it, or null for no
+    ///                   picture — what a reference capture is taken with
     record Options(
             int frames,
             @Nullable LogicalSize size,
             @Nullable LogicalSize resize,
-            long lateBudget) {
+            long lateBudget,
+            @Nullable Path capture) {
 
-        static final Options NONE = new Options(0, null, null, -1);
+        static final Options NONE = new Options(0, null, null, -1, null);
 
         /// The two flags there were before the walk and the budget.
         Options(int frames, @Nullable LogicalSize size) {
-            this(frames, size, null, -1);
+            this(frames, size, null, -1, null);
         }
 
-        /// Reads `--frames=N`, `--size=WxH`, `--resize=WxH` and
-        /// `--late-budget=N`, ignoring everything else — an application's own
-        /// arguments are its business. Null reads as no arguments.
+        /// The four flags there were before the capture.
+        Options(int frames, @Nullable LogicalSize size, @Nullable LogicalSize resize, long lateBudget) {
+            this(frames, size, resize, lateBudget, null);
+        }
+
+        /// Reads `--frames=N`, `--size=WxH`, `--resize=WxH`, `--late-budget=N`
+        /// and `--capture=PATH`, ignoring everything else — an application's
+        /// own arguments are its business. Null reads as no arguments.
         static Options of(String @Nullable [] args) {
             var frames = 0;
             LogicalSize size = null;
             LogicalSize resize = null;
             var lateBudget = -1L;
+            Path capture = null;
             for (var arg : args == null ? new String[0] : args) {
                 if (arg.startsWith("--frames=")) {
                     frames = whole(arg, arg.substring("--frames=".length()), "frames");
@@ -150,9 +165,23 @@ final class Launcher {
                     resize = pair(arg, arg.substring("--resize=".length()));
                 } else if (arg.startsWith("--late-budget=")) {
                     lateBudget = whole(arg, arg.substring("--late-budget=".length()), "late frames");
+                } else if (arg.startsWith("--capture=")) {
+                    capture = path(arg, arg.substring("--capture=".length()));
                 }
             }
-            return new Options(frames, size, resize, lateBudget);
+            return new Options(frames, size, resize, lateBudget, capture);
+        }
+
+        /// `--capture=PATH`'s `PATH`, or a refusal that names the flag.
+        private static Path path(String flag, String text) {
+            if (text.isBlank()) {
+                throw new IllegalArgumentException(flag + " names no file");
+            }
+            try {
+                return Path.of(text);
+            } catch (InvalidPathException e) {
+                throw new IllegalArgumentException(flag + " is not a path", e);
+            }
         }
 
         /// `WxH`, or null for anything that is not two numbers around an `x`.
@@ -333,11 +362,36 @@ final class Launcher {
         if (options.frames() > 0 && !stopping) {
             if (painted >= options.frames()) {
                 stopping = true;
+                var capture = options.capture();
+                if (capture != null) {
+                    capture(window, capture);
+                }
                 LOG.info("painted {} frame(s); exiting", painted);
                 Goldberry.stop();
             } else {
                 window.repaint();
             }
+        }
+    }
+
+    /// Writes the window's last frame to `path` as a PNG: `--capture=`.
+    ///
+    /// @throws UncheckedIOException when the file cannot be written
+    private static void capture(Window window, Path path) {
+        var picture = window.capture();
+        if (picture.isEmpty()) {
+            LOG.warn("--capture={}: the window has no frame to capture", path);
+            return;
+        }
+        try {
+            var parent = path.toAbsolutePath().getParent();
+            if (parent != null) {
+                Files.createDirectories(parent);
+            }
+            Files.write(path, picture.get().encodePng());
+            LOG.info("captured the last frame to {}", path.toAbsolutePath());
+        } catch (IOException e) {
+            throw new UncheckedIOException("--capture=" + path + " could not be written", e);
         }
     }
 

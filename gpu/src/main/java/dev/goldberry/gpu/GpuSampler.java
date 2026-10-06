@@ -27,6 +27,9 @@ public final class GpuSampler extends GpuResource {
 
     @Override
     public String toString() {
-        return "GpuSampler[" + spec.filter() + ", " + spec.addressMode() + (isClosed() ? ", closed]" : "]");
+        return "GpuSampler[" + spec.filter() + ", " + spec.addressMode()
+                + spec.mipFilter().map(filter -> ", mip " + filter).orElse("")
+                + spec.compare().map(op -> ", compare " + op).orElse("")
+                + (isClosed() ? ", closed]" : "]");
     }
 }
