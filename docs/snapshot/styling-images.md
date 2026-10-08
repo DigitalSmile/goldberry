@@ -21,7 +21,10 @@ with:
 > from the root. On a display above 100% the picture's `@2x` variant is drawn
 > when there is one, at the same size. A `#xywh=x,y,width,height` fragment is
 > that rectangle of the picture, so one sprite sheet serves every box. Only the
-> quoted form is read: `url(ui/leather.png)` drops the declaration.
+> quoted form is read: `url(ui/leather.png)` drops the declaration. Write a
+> file path with forward slashes on every system: inside a CSS string a
+> backslash begins an escape, so `C:\Users\…` does not name the file it
+> appears to, and Windows reads `C:/Users/…` as the same path.
 >
 > `background-size` is `auto` (the picture's own size), `cover`, `contain`, or
 > one or two lengths or percentages of the box, with `auto` for an axis that

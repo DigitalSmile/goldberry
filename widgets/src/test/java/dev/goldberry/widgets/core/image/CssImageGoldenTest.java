@@ -51,10 +51,15 @@ class CssImageGoldenTest {
         return new Attributes(id, Set.of(classes), id);
     }
 
+    /// Writes `image` and answers its path as a stylesheet can quote it.
+    ///
+    /// With forward slashes: inside a CSS string a backslash begins an escape,
+    /// so a Windows path quoted as it prints (`C:\Users\…\AppData\…`) reaches
+    /// the loader with `\A` read as a newline. Windows takes either separator.
     private static String write(String name, Image image) throws IOException {
         var file = pictures.resolve(name);
         Files.write(file, image.encodePng());
-        return file.toString();
+        return file.toString().replace('\\', '/');
     }
 
     /// A 16-pixel weave of two browns with a lighter thread down its left edge.
