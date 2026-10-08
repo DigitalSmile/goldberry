@@ -288,29 +288,18 @@ class YogaLayoutTest {
     }
 
     /// **Which box an absolute child is placed against**, when the containing
-    /// block has padding. It is established here, and the answer is **Yoga**.
+    /// block has padding, and the answer is CSS's.
     ///
-    /// CSS is unambiguous: an absolutely positioned box's containing block is the
-    /// **padding box** of its nearest positioned ancestor, so `left: 0` inside a
-    /// 12px-padded parent puts the child's left edge at x = 12. `overflow: hidden`
-    /// clips to that same padding box, which is what makes the pair consistent —
-    /// and is why the toolkit clipping to the padding box while placing against
-    /// the border box is a disagreement rather than a pair of choices.
-    ///
-    /// The sharp part is that **Yoga contradicts itself**. Given no insets it
-    /// uses the padding box and is right; given `left: 0` it uses the border box
-    /// and is wrong. So the disagreement is not "Yoga does not do CSS absolute
-    /// positioning" — it is one path of two.
+    /// An absolutely positioned box's containing block is the **padding box** of
+    /// its nearest positioned ancestor, and the padding box is bounded by the
+    /// *outer* edge of the padding. So `left: 0; top: 0` inside a 12px-padded
+    /// parent with no border puts the child at (0, 0), which is what Yoga does.
+    /// The toolkit's own border never reaches Yoga, and correcting for that is
+    /// `ContainingBlock`'s job in `:core`; this test is about the library alone.
     ///
     /// Asserted with no painter and no widget in the way, so the answer is
     /// attributable. `errata` is at its default of `None`, which is Yoga's
-    /// spec-compliant mode: this is not a setting anybody turned off.
-    ///
-    /// **Deliberately still asserting Yoga's answer** now that the toolkit
-    /// corrects it. This test is about the compiled library;
-    /// `AbsolutePlacementTest` in `:core` is about the toolkit built on it, and
-    /// asserts (12, 12). The day Yoga fixes its inset path, this one fails first
-    /// and names the correction that has to come out.
+    /// spec-compliant mode.
     @Test
     @DisplayName("and against which box, when the containing block has padding")
     void absolutePositioningInsidePadding() {
@@ -331,20 +320,18 @@ class YogaLayoutTest {
             assertEquals(
                     new ComputedLayout(0f, 0f, 40f, 20f),
                     child.layout(),
-                    "Yoga measures an inset from the *border* box. CSS measures it from the"
-                            + " padding box, which would be (12, 12) — so something above Yoga has to"
-                            + " add the padding, and that is `ContainingBlock`, once,"
-                            + " for every absolutely positioned box in the toolkit");
+                    "an inset is measured from the padding box, whose edge is the outer edge"
+                            + " of the padding: (0, 0) with no border");
         }
     }
 
-    /// The other half, and the one that makes the first a contradiction rather
-    /// than a policy: with **no insets at all**, Yoga places the same child at
-    /// the padding edge — which is what CSS says and what the inset path does
-    /// not do.
+    /// The other half: with **no insets at all**, the same child takes its
+    /// static position, where a child in flow would start, inside the padding.
+    /// That is also CSS's answer, and the two together are why the toolkit
+    /// defines no edge a box did not name.
     @Test
-    @DisplayName("and with no insets it uses the padding box, which is the other answer")
-    void absoluteWithoutInsetsUsesThePaddingBox() {
+    @DisplayName("and with no insets it takes the static position, inside the padding")
+    void absoluteWithoutInsetsTakesTheStaticPosition() {
         try (var config = YogaConfig.create();
                 var root = YogaNode.create(config)) {
 
@@ -360,9 +347,7 @@ class YogaLayoutTest {
             assertEquals(
                     new ComputedLayout(12f, 12f, 40f, 20f),
                     child.layout(),
-                    "no insets, so the child is placed by alignment inside the content box —"
-                            + " and `left: 0` on the same child moves it to 0 rather than leaving"
-                            + " it where it is");
+                    "no insets, so the child is placed by alignment inside the content box");
         }
     }
 

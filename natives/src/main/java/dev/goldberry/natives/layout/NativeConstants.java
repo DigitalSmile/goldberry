@@ -11,7 +11,6 @@ import dev.goldberry.natives.sdl.SdlSubsystem;
 import dev.goldberry.natives.sdl.calls.SdlAudioCalls;
 import dev.goldberry.natives.sdl.calls.SdlGpuCommandCalls;
 import dev.goldberry.natives.sdl.calls.SdlGpuPipelineCalls;
-import dev.goldberry.natives.sdl.calls.SdlGpuResourceCalls;
 import dev.goldberry.natives.sdl.calls.SdlGpuSwapchainCalls;
 import dev.goldberry.natives.sdl.desktop.SdlSystemCursor;
 import dev.goldberry.natives.sdl.desktop.SdlSystemTheme;
@@ -28,6 +27,7 @@ import dev.goldberry.natives.sdl.gpu.enums.SdlGpuPrimitiveType;
 import dev.goldberry.natives.sdl.gpu.enums.SdlGpuSampleCount;
 import dev.goldberry.natives.sdl.gpu.enums.SdlGpuShaderFormat;
 import dev.goldberry.natives.sdl.gpu.enums.SdlGpuTextureFormat;
+import dev.goldberry.natives.sdl.gpu.enums.SdlGpuTextureType;
 import dev.goldberry.natives.sdl.gpu.enums.SdlGpuTextureUsage;
 import dev.goldberry.natives.sdl.gpu.enums.SdlGpuTransferUsage;
 import dev.goldberry.natives.sdl.gpu.enums.SdlGpuVertexFormat;
@@ -154,8 +154,9 @@ public final class NativeConstants {
         for (var usage : SdlGpuTransferUsage.values()) {
             constants.add(new NativeConstant(usage.nativeName(), usage.value()));
         }
-        constants.add(new NativeConstant("SDL_GPU_TEXTURETYPE_2D", SdlGpuResourceCalls.TEXTURETYPE_2D));
-        constants.add(new NativeConstant("SDL_GPU_TEXTURETYPE_2D_ARRAY", SdlGpuResourceCalls.TEXTURETYPE_2D_ARRAY));
+        for (var type : SdlGpuTextureType.values()) {
+            constants.add(new NativeConstant(type.nativeName(), type.value()));
+        }
         for (var count : SdlGpuSampleCount.values()) {
             constants.add(new NativeConstant(count.nativeName(), count.value()));
         }

@@ -45,10 +45,24 @@ public interface ImageLoader {
     }
 
     /// Where a load runs: a virtual thread when there is a UI thread to come back
-    /// to, the caller otherwise. A [ImageSource.Decoded] source never leaves.
+    /// to, the caller otherwise. A [ImageSource.Decoded] source never leaves, and
+    /// neither does a region of one: cutting pixels already in hand is a copy, not
+    /// a decode.
     static CompletableFuture<Image> run(ImageSource source) {
-        if (source instanceof ImageSource.Decoded(var image)) {
-            return CompletableFuture.completedFuture(image);
+        switch (source) {
+            case ImageSource.Decoded(var image) -> {
+                return CompletableFuture.completedFuture(image);
+            }
+            case ImageSource.Region(ImageSource.Decoded(var image), var rect) -> {
+                try {
+                    return CompletableFuture.completedFuture(image.cropped(rect));
+                } catch (IllegalArgumentException e) {
+                    return CompletableFuture.failedFuture(e);
+                }
+            }
+            default -> {
+                // Read and decoded below.
+            }
         }
         if (Goldberry.isUiThread()) {
             return Goldberry.async(source::load);

@@ -6,6 +6,8 @@ import java.util.Objects;
 
 import org.jspecify.annotations.Nullable;
 
+import dev.goldberry.css.Border;
+import dev.goldberry.css.image.StyleImages;
 import dev.goldberry.css.value.Affine;
 import dev.goldberry.layout.Insets;
 import dev.goldberry.layout.Length;
@@ -83,11 +85,11 @@ public final class RenderObject implements AutoCloseable {
     /// The inset currently *on* the node, which is not the one the box declared.
     ///
     /// An absolutely positioned child is shifted by its containing block's
-    /// padding before it reaches Yoga ([ContainingBlock]), so the box's own
-    /// `inset` is the wrong thing to guard against: a parent that grew padding
+    /// border before it reaches Yoga ([ContainingBlock]), so the box's own
+    /// `inset` is the wrong thing to guard against: a parent that grew a border
     /// moves this child without changing a single field of its box. Kept
     /// separately rather than derived, because deriving it needs the parent's
-    /// padding and this object has never had a reference to its parent.
+    /// border and this object has never had a reference to its parent.
     private @Nullable Insets appliedInset;
 
     /// The paragraph the attached measure callback measures, by identity.
@@ -371,9 +373,9 @@ public final class RenderObject implements AutoCloseable {
         }
         // Against `appliedInset` rather than against `previous.inset()`, because
         // the value on the node is the box's inset shifted by the containing
-        // block's padding and the box does not carry that ([ContainingBlock]).
+        // block's border and the box does not carry that ([ContainingBlock]).
         // Guarding on the declared inset would leave a child where it was when
-        // only its parent's padding had changed.
+        // only its parent's border had changed.
         if (!inset.equals(appliedInset)) {
             appliedInset = inset;
             // Per edge, like padding, and for the same reason: Yoga resolves the
@@ -522,6 +524,16 @@ public final class RenderObject implements AutoCloseable {
     /// screen, which is the classic partial-repaint artefact.
     private @Nullable DamageRect lastRect;
 
+    /// [StyleImages#generation()] when this node was last updated: how many
+    /// pictures had arrived, so the next update can tell whether one more has.
+    private long picturesSeen = -1;
+
+    /// Whether `box` draws a picture a stylesheet named, in its background or its
+    /// border.
+    private static boolean namesPictures(Box box) {
+        return box.fill().hasPictures() || box.decoration().borderImage().isDrawn();
+    }
+
     /// Whether this node's raster needs redrawing — see [#contentChanged].
     boolean hasContentChanged() {
         return contentChanged;
@@ -600,7 +612,7 @@ public final class RenderObject implements AutoCloseable {
     /// This object brought up to date with `box`, children and all.
     ///
     /// @param parent the box this one is a child of, or null for the root: its
-    ///               padding is this box's containing block ([ContainingBlock])
+    ///               padding box is this box's containing block ([ContainingBlock])
     ///               and its direction decides [ShrinkToFit]
     /// @param shrink told of every box [ShrinkToFit] applies to that this pass
     ///               lays out again
@@ -628,27 +640,34 @@ public final class RenderObject implements AutoCloseable {
         var previous = applied;
         // The inset that will reach Yoga, which is the box's own only when
         // nothing shifts it ([ContainingBlock]). Resolved here rather than inside
-        // `apply` because it needs the parent's padding, which `apply` has no
+        // `apply` because it needs the parent's border, which `apply` has no
         // reason to take.
         //
         // Nothing below counts it as a change, and that is checked rather than
         // assumed. The only thing that shifts a child without touching its own
-        // box is its **parent's** padding — which `sameAppearance` compares, so
+        // box is its **parent's** border — which `sameAppearance` compares, so
         // the parent is `selfChanged` and its rectangle is damaged; and a child
         // that moved out from under it is caught by `collectDamage` comparing
         // where it was against where it is, which is a comparison of results
         // rather than of styles and does not care why it moved.
-        // The root's containing block is the window, which has no padding to be
+        // The root's containing block is the window, which has no border to be
         // placed inside of, so nothing shifts.
-        var blockPadding = parent == null ? Insets.ZERO : parent.padding();
-        var inset = ContainingBlock.insetFor(box.position(), box.inset(), blockPadding);
-        selfChanged = previous == null || !sameAppearance(previous, box);
-        contentChanged = previous == null || !sameRaster(previous, box);
+        var blockBorder = parent == null ? Border.NONE : parent.decoration().border();
+        var inset = ContainingBlock.insetFor(box.position(), box.inset(), blockBorder);
+        // A box that names a picture draws more once the picture has arrived,
+        // and its box is the same value before and after: the address is what
+        // the cascade carries, not the pixels. So it counts as changed whenever
+        // a picture has arrived since it was last updated.
+        var pictures = StyleImages.generation();
+        var pictureArrived = picturesSeen != pictures && namesPictures(box);
+        picturesSeen = pictures;
+        selfChanged = previous == null || pictureArrived || !sameAppearance(previous, box);
+        contentChanged = previous == null || pictureArrived || !sameRaster(previous, box);
         changed = selfChanged;
         apply(box, inset);
         if (!box.children().isEmpty() || !children.isEmpty()) {
-            // This box's own padding is the containing block for every absolutely
-            // positioned child of it.
+            // This box's own padding box is the containing block for every
+            // absolutely positioned child of it.
             var childrenChanged = reconcileChildren(box.children(), box, config, shrink);
             changed |= childrenChanged;
             // A descendant's own opacity and transform *are* baked into this

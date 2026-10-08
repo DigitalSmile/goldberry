@@ -293,15 +293,23 @@ public final class GpuFrame implements AutoCloseable {
     /// uploaded at full size needs before a mipmapped sampler reads it. Outside
     /// any pass.
     ///
+    /// An sRGB texture is averaged in linear, as its sampler reads it, so a
+    /// far level of fine contrast keeps its brightness.
+    ///
     /// @throws IllegalArgumentException when the texture has one level, was not
     ///                                  made as [TextureSpec#renderTarget] (both
     ///                                  sampled and a colour target, which the
-    ///                                  drivers' blits need), or is another
-    ///                                  device's or closed
+    ///                                  drivers' blits need), is
+    ///                                  block-compressed, or is another device's
+    ///                                  or closed
     /// @throws IllegalStateException    when the frame is finished or a pass is
     ///                                  open
     public void generateMipmaps(GpuTexture texture) {
         requireRecording("generateMipmaps");
+        if (texture.format().isCompressed()) {
+            throw new IllegalArgumentException(
+                    texture + " is block-compressed: its mip levels are encoded with it and uploaded");
+        }
         commands.generateMipmaps(texture.sdl(device));
     }
 
@@ -348,9 +356,9 @@ public final class GpuFrame implements AutoCloseable {
     /// [TextureFormat#D16_UNORM] shorts.
     ///
     /// @throws IllegalArgumentException when `source` is a depth texture that
-    ///                                  is not sampled, or is another device's
-    ///                                  or closed, or `region` is empty or
-    ///                                  outside it
+    ///                                  is not sampled, is block-compressed, or
+    ///                                  is another device's or closed, or
+    ///                                  `region` is empty or outside it
     /// @throws IllegalStateException    when the frame is finished or a pass is
     ///                                  open
     /// @throws GpuException             when the driver refuses the memory
@@ -363,6 +371,9 @@ public final class GpuFrame implements AutoCloseable {
         var texture = source.sdl(device);
         if (source.format().isDepth() && !source.usages().contains(TextureUsage.SAMPLER)) {
             throw new IllegalArgumentException(source + " is a depth texture made only to be tested, not read back");
+        }
+        if (source.format().isCompressed()) {
+            throw new IllegalArgumentException(source + " is block-compressed, and has no pixels to read back");
         }
         if (region.isEmpty() || !source.view(level, layer).contains(region)) {
             throw new IllegalArgumentException(region + " is empty or outside " + source.view(level, layer));

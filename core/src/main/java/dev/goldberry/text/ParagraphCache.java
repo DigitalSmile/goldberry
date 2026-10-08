@@ -1,6 +1,7 @@
 package dev.goldberry.text;
 
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
@@ -76,7 +77,40 @@ public final class ParagraphCache {
         }
     }
 
-    private final Map<Key, Paragraph> entries;
+    /// The key of a joined paragraph: its spans, each compared by identity.
+    ///
+    /// Identity for [Key]'s reason, one level up. The spans come out of this
+    /// cache, so the same text in the same font is the same instance from one
+    /// frame to the next, and an equal list of the same instances is the same
+    /// join.
+    private record Joined(List<Paragraph> spans) {
+
+        @Override
+        public boolean equals(Object other) {
+            if (!(other instanceof Joined(var otherSpans)) || otherSpans.size() != spans.size()) {
+                return false;
+            }
+            for (var i = 0; i < spans.size(); i++) {
+                if (spans.get(i) != otherSpans.get(i)) {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        @Override
+        public int hashCode() {
+            var hash = 1;
+            for (var span : spans) {
+                hash = hash * 31 + System.identityHashCode(span);
+            }
+            return hash;
+        }
+    }
+
+    /// Both kinds of entry, [Key] and [Joined], in one recency order: a frame's
+    /// working set is all of its text, whichever way it was asked for.
+    private final Map<Object, Paragraph> entries;
     private final Thread owner = Thread.currentThread();
 
     private long hits;
@@ -114,7 +148,7 @@ public final class ParagraphCache {
             // of its own, and an unqualified call from inside the map would read
             // as either until the reader checks which one wins.
             @Override
-            protected boolean removeEldestEntry(Map.Entry<Key, Paragraph> eldest) {
+            protected boolean removeEldestEntry(Map.Entry<Object, Paragraph> eldest) {
                 if (super.size() <= ParagraphCache.this.capacity) {
                     return false;
                 }
@@ -178,6 +212,35 @@ public final class ParagraphCache {
         shapedCharacters += text.length();
         entries.put(key, shaped);
         return shaped;
+    }
+
+    /// `spans` joined into one paragraph, the same instance as last time for
+    /// the same spans.
+    ///
+    /// The spans are the ones [#paragraph] handed out, so a styled paragraph
+    /// whose runs did not change is a lookup. Joining shapes nothing, so a miss
+    /// here counts as a miss and adds nothing to [#shapedCharacters()]. One span
+    /// is answered with itself and is not held twice.
+    ///
+    /// @throws IllegalArgumentException if `spans` is empty
+    public Paragraph join(List<Paragraph> spans) {
+        requireOwner();
+        Objects.requireNonNull(spans, "spans");
+        if (spans.size() == 1) {
+            return Objects.requireNonNull(spans.getFirst(), "span");
+        }
+
+        requestsThisFrame++;
+        var key = new Joined(List.copyOf(spans));
+        var held = entries.get(key);
+        if (held != null) {
+            hits++;
+            return held;
+        }
+        var joined = Paragraph.join(key.spans());
+        misses++;
+        entries.put(key, joined);
+        return joined;
     }
 
     /// Marks the end of a frame, and grows the cache to fit what that frame

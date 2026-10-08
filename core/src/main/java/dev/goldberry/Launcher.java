@@ -18,6 +18,7 @@ import org.slf4j.LoggerFactory;
 import dev.goldberry.bind.Subscription;
 import dev.goldberry.bind.runtime.Models;
 import dev.goldberry.css.Stylesheet;
+import dev.goldberry.css.image.StyleImages;
 import dev.goldberry.css.lint.StyleLint;
 import dev.goldberry.drive.FrameBudgetException;
 import dev.goldberry.drive.ResizeWalk;
@@ -290,6 +291,9 @@ final class Launcher {
             modelSubscriptions.add(Models.onRestyle(model, this::restyleAll));
             modelSubscriptions.add(Models.onRepaint(model, this::repaintAll));
         }
+        // A picture a stylesheet named arrives after the frame that asked for
+        // it, and any window may be drawing it.
+        modelSubscriptions.add(StyleImages.onArrival(this::repaintAll));
 
         main.mount(application.root());
 

@@ -560,9 +560,10 @@ def testWithoutGpu = tasks.register('testWithoutGpu', Test) {
     def gpuBuild = layout.settingsDirectory.dir('gpu/build').asFile.toPath()
     classpath = sourceSets.test.runtimeClasspath.filter { !it.toPath().startsWith(gpuBuild) }
     useJUnitPlatform { excludeTags 'natives-jar', 'gpu' }
-    // The GPU lane's class names :gpu's types in its methods' signatures, and
-    // discovery reflects on them before any tag is read; it is not loaded here.
-    exclude '**/VideoOnGpuTest*'
+    // The GPU lane's classes name :gpu's types in their fields and methods'
+    // signatures, and discovery reflects on them before any tag is read; they
+    // are not loaded here.
+    exclude '**/*OnGpuTest*'
     systemProperty 'goldberry.test.gpuModule', 'absent'
 }
 

@@ -37,9 +37,11 @@ import dev.goldberry.widgets.core.presence.Phase;
 /// pinning is `inset: 0 0 auto 0` on a single node instead of a row height
 /// multiplied by an index — a measurement `render` would have had to guess at.
 ///
-/// That absolute child lands where it should because
-/// [dev.goldberry.paint.tree.ContainingBlock] places an absolutely positioned
-/// child inside its parent's padding, not at the border edge.
+/// That absolute child lands over the incoming month because the grid has no
+/// padding or border: an absolutely positioned child is placed against its
+/// parent's padding box
+/// ([dev.goldberry.paint.tree.ContainingBlock]), and a month in flow
+/// starts inside the padding, so a padded grid would set the two apart.
 ///
 /// The fade runs at the design system's `fast` duration, not `base`: a month
 /// change is a change of content rather than something entering the layout.

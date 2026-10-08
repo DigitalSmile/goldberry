@@ -292,6 +292,35 @@ public final class Session implements AutoCloseable {
         return this;
     }
 
+    /// Presses `key`, repeats the press `repeats` times as a platform does while
+    /// a key is held down, and releases it. Each repeat reaches accelerators
+    /// and the focused widget marked as one, which is how a test shows a toggle
+    /// bound with `Repeat.IGNORE` does not flip while its key is held.
+    ///
+    /// @throws IllegalArgumentException if `repeats` is negative
+    public Session hold(Key key, Modifiers modifiers, int repeats) {
+        Objects.requireNonNull(key, "key");
+        Objects.requireNonNull(modifiers, "modifiers");
+        if (repeats < 0) {
+            throw new IllegalArgumentException("a key is repeated zero or more times, not " + repeats);
+        }
+        settle();
+        router().keyPressed(key, modifiers, false);
+        settle();
+        for (var i = 0; i < repeats; i++) {
+            router().keyPressed(key, modifiers, true);
+            settle();
+        }
+        router().keyReleased(key, modifiers);
+        settle();
+        return this;
+    }
+
+    /// [#hold(Key, Modifiers, int)] with no modifiers.
+    public Session hold(Key key, int repeats) {
+        return hold(key, Modifiers.NONE, repeats);
+    }
+
     /// Presses and releases a key written the way a menu prints it —
     /// `"Ctrl+S"`, `"Escape"`.
     ///

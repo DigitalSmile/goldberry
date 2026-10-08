@@ -5,6 +5,7 @@ import java.util.Objects;
 
 import org.jspecify.annotations.Nullable;
 
+import dev.goldberry.css.image.CssImage;
 import dev.goldberry.css.value.CssColor;
 import dev.goldberry.layout.Length;
 import dev.goldberry.paint.Gradient;
@@ -26,7 +27,7 @@ import dev.goldberry.paint.Gradient;
 /// from its first stop to its last.
 ///
 /// Read more: [Styling](https://goldberry.dev/docs/guide/styling.html#backgrounds-and-gradients).
-public sealed interface GradientLayer {
+public sealed interface GradientLayer extends CssImage {
 
     /// The colour stops, in the order they were written.
     List<ColorStop> stops();
@@ -39,6 +40,7 @@ public sealed interface GradientLayer {
     Gradient resolve(double x, double y, double width, double height, BackgroundPosition position);
 
     /// This layer with every stop's alpha scaled by `alpha`.
+    @Override
     GradientLayer fade(double alpha);
 
     /// A colour, and where along the gradient it sits.

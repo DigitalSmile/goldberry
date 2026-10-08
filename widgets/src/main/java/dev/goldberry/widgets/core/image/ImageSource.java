@@ -13,9 +13,12 @@ import java.util.function.Supplier;
 import org.jspecify.annotations.Nullable;
 
 import dev.goldberry.image.Image;
+import dev.goldberry.image.ImageAddress;
+import dev.goldberry.render.model.PhysicalRect;
 
 /// Where an [ImageView]'s pixels come from: a path, a classpath resource, bytes,
-/// an asynchronous supplier, or an image already in hand.
+/// an asynchronous supplier, an image already in hand, or a rectangle of any of
+/// those.
 ///
 /// Sealed, because the loader has to know which of these can be read on the UI
 /// thread for free (a [Decoded] one) and which is a file read and a decode that
@@ -86,15 +89,38 @@ public sealed interface ImageSource {
         return new Supplied(key, supplier);
     }
 
+    /// The rectangle `rect` of `sheet`, in the sheet's own pixels: one sprite of
+    /// a sheet of them.
+    ///
+    /// Every region of one sheet shares the sheet's one decode — the shared
+    /// loader reads the sheet under its own key and cuts each region out of it —
+    /// so seventy sprites on one sheet cost one file read and one decode, not
+    /// seventy.
+    ///
+    /// @throws IllegalArgumentException if `rect` is empty
+    static ImageSource region(ImageSource sheet, PhysicalRect rect) {
+        return new Region(sheet, rect);
+    }
+
     /// A path in markup: `classpath:` names a resource on `loader`, anything else
-    /// is a file.
+    /// is a file. A `#xywh=x,y,width,height` fragment makes it a [#region] of
+    /// that sheet.
+    ///
+    /// @throws IllegalArgumentException for a fragment that is not four whole
+    ///         numbers with a positive size
     static ImageSource parse(String src, ClassLoader loader) {
         Objects.requireNonNull(src, "src");
-        if (src.startsWith(Resource.SCHEME)) {
-            var name = src.substring(Resource.SCHEME.length());
-            return new Resource(null, name.startsWith("/") ? name.substring(1) : name, loader);
+        var address = ImageAddress.parse(src);
+        var path = address.path();
+        ImageSource whole;
+        if (path.startsWith(Resource.SCHEME)) {
+            var name = path.substring(Resource.SCHEME.length());
+            whole = new Resource(null, name.startsWith("/") ? name.substring(1) : name, loader);
+        } else {
+            whole = new File(Path.of(path));
         }
-        return new File(Path.of(src));
+        var rect = address.region();
+        return rect == null ? whole : new Region(whole, rect);
     }
 
     /// See [ImageSource#file].
@@ -270,6 +296,41 @@ public sealed interface ImageSource {
         @Override
         public Image load() {
             return Objects.requireNonNull(supplier.get(), "the supplier for " + key + " returned no image");
+        }
+    }
+
+    /// See [ImageSource#region].
+    ///
+    /// @param sheet where the whole picture comes from
+    /// @param rect  the part of it to show, in the sheet's pixels
+    record Region(ImageSource sheet, PhysicalRect rect) implements ImageSource {
+
+        public Region {
+            Objects.requireNonNull(sheet, "sheet");
+            Objects.requireNonNull(rect, "rect");
+            if (rect.isEmpty()) {
+                throw new IllegalArgumentException("a region needs a positive size, and " + rect + " has none");
+            }
+        }
+
+        /// The sheet's key and the rectangle, as markup writes it; null when the
+        /// sheet has none, because a region of an image in hand is cut from
+        /// pixels nobody decoded.
+        @Override
+        public @Nullable String key() {
+            var whole = sheet.key();
+            return whole == null ? null : new ImageAddress(whole, rect).toString();
+        }
+
+        /// The sheet, read and decoded, and the rectangle cut out of it. The
+        /// shared loader does not come here for a region: it asks for the sheet
+        /// under the sheet's own key and cuts from that.
+        ///
+        /// @throws IllegalArgumentException if the rectangle is not inside the
+        ///         sheet
+        @Override
+        public Image load() {
+            return sheet.load().cropped(rect);
         }
     }
 }

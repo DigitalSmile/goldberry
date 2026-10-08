@@ -9,6 +9,7 @@ import dev.goldberry.natives.sdl.gpu.SdlGpuCommandBuffer;
 import dev.goldberry.natives.sdl.gpu.SdlGpuRegion;
 import dev.goldberry.render.PixelBuffer;
 import dev.goldberry.render.model.PhysicalRect;
+import dev.goldberry.render.model.PhysicalSize;
 import dev.goldberry.render.model.PixelFormat;
 
 /// A copy pass of a [GpuFrame]: CPU memory into textures and buffers, usable
@@ -37,6 +38,10 @@ public final class CopyPass {
     /// Uploads the whole of `destination` from `source`, tightly packed rows
     /// from its position, which is not moved.
     ///
+    /// For a block-compressed format the rows are rows of blocks, each
+    /// [TextureFormat#bytesPerRow] long: the level's blocks as an encoder
+    /// writes them.
+    ///
     /// @throws IllegalArgumentException when `source` holds too few bytes, or
     ///                                  `destination` is a depth texture,
     ///                                  another device's or closed
@@ -44,13 +49,13 @@ public final class CopyPass {
         upload(
                 destination,
                 source,
-                destination.width() * destination.format().bytesPerPixel(),
+                packedRow(destination.format(), destination.width()),
                 List.of(new PhysicalRect(0, 0, destination.width(), destination.height())));
     }
 
     /// Uploads the whole of `destination`, one level of one layer, from
     /// `source`, tightly packed rows of the level's width from its position,
-    /// which is not moved.
+    /// which is not moved: a mip level, a cube's face, a volume's slice.
     ///
     /// @throws IllegalArgumentException as [#upload(GpuTexture, ByteBuffer)]
     public void upload(TextureView destination, ByteBuffer source) {
@@ -58,7 +63,7 @@ public final class CopyPass {
         upload(
                 destination,
                 source,
-                destination.width() * destination.format().bytesPerPixel(),
+                packedRow(destination.format(), destination.width()),
                 List.of(new PhysicalRect(0, 0, destination.width(), destination.height())));
     }
 
@@ -97,11 +102,17 @@ public final class CopyPass {
     /// memory, then recorded. Empty regions are skipped; overlapping ones are
     /// uploaded twice, which is correct and costs the overlap.
     ///
-    /// @throws IllegalArgumentException when a region is outside the texture,
-    ///                                  `rowBytes` is shorter than a row, the
-    ///                                  source ends before a region's last
-    ///                                  pixel, or `destination` is a depth
-    ///                                  texture, another device's or closed
+    /// For a block-compressed format, regions are still in texels, but each
+    /// starts on a block and ends on one or at the level's edge, and the image
+    /// is rows of blocks: row `y` of blocks, texels `4y` to `4y + 3`, starts
+    /// `y × rowBytes` bytes in.
+    ///
+    /// @throws IllegalArgumentException when a region is outside the texture
+    ///                                  or not on its blocks, `rowBytes` is
+    ///                                  shorter than a row, the source ends
+    ///                                  before a region's last pixel, or
+    ///                                  `destination` is a depth texture,
+    ///                                  another device's or closed
     /// @throws GpuException             when the driver refuses the staging memory
     public void upload(GpuTexture destination, ByteBuffer source, int rowBytes, List<PhysicalRect> regions) {
         upload(destination, 0, 0, source, rowBytes, regions);
@@ -116,11 +127,13 @@ public final class CopyPass {
             throw new IllegalArgumentException(texture + " is a depth texture, which is not uploaded to");
         }
         var destination = texture.view(level, layer);
-        var pixel = destination.format().bytesPerPixel();
-        if (rowBytes < destination.width() * pixel) {
+        var format = destination.format();
+        if (rowBytes < format.bytesPerRow(destination.width())) {
             throw new IllegalArgumentException("rows of " + rowBytes + " bytes are shorter than " + destination + "'s");
         }
+        var block = format.bytesPerBlock();
         var nonEmpty = new ArrayList<PhysicalRect>(regions.size());
+        var inBlocks = new ArrayList<SdlGpuRegion>(regions.size());
         for (var region : regions) {
             if (region.isEmpty()) {
                 continue;
@@ -128,34 +141,77 @@ public final class CopyPass {
             if (!destination.contains(region)) {
                 throw new IllegalArgumentException(region + " is outside " + destination);
             }
-            var end = (long) (region.bottom() - 1) * rowBytes + (long) region.right() * pixel;
+            var blocks = blocks(format, destination.size(), region);
+            var end = (long) (blocks.bottom() - 1) * rowBytes + (long) blocks.right() * block;
             if (end > source.remaining()) {
                 throw new IllegalArgumentException(
                         region + " ends at byte " + end + ", and the source holds " + source.remaining());
             }
             nonEmpty.add(region);
+            inBlocks.add(new SdlGpuRegion(blocks.x(), blocks.y(), blocks.width(), blocks.height()));
         }
         if (nonEmpty.isEmpty()) {
             return;
         }
-        var regionsToCopy = new ArrayList<SdlGpuRegion>(nonEmpty.size());
-        for (var region : nonEmpty) {
-            regionsToCopy.add(new SdlGpuRegion(region.x(), region.y(), region.width(), region.height()));
-        }
         var upload = device.upload();
-        var offsets = GpuDevice.call(() -> upload.stage(source, rowBytes, pixel, regionsToCopy));
+        // Staged a row of blocks at a time, which for a plain format is a row
+        // of pixels.
+        var offsets = GpuDevice.call(() -> upload.stage(source, rowBytes, block, inBlocks));
         var transfer = upload.buffer();
         // Cycling hands the texture fresh memory when the GPU still reads the
-        // old, which is only right when every texel of every level and layer
-        // is about to be written: the whole of a one-level, one-layer texture.
+        // old, which is only right when every texel of every level, layer and
+        // slice is about to be written: the whole of a one-level, one-layer,
+        // one-slice texture.
         var whole = nonEmpty.size() == 1
                 && texture.mipLevels() == 1
                 && texture.layers() == 1
+                && texture.depth() == 1
                 && nonEmpty.getFirst().width() == destination.width()
                 && nonEmpty.getFirst().height() == destination.height();
-        for (var i = 0; i < regionsToCopy.size(); i++) {
-            sdl.upload(transfer, offsets[i], sdlTexture, level, layer, regionsToCopy.get(i), whole);
+        for (var i = 0; i < nonEmpty.size(); i++) {
+            var region = nonEmpty.get(i);
+            sdl.upload(
+                    transfer,
+                    offsets[i],
+                    sdlTexture,
+                    level,
+                    layer,
+                    new SdlGpuRegion(region.x(), region.y(), region.width(), region.height()),
+                    whole);
         }
+    }
+
+    /// `region` of a level `level` texels in size, in `format`'s blocks: the
+    /// region itself for a format that is not compressed.
+    ///
+    /// @throws IllegalArgumentException when the region does not start on a
+    ///                                  block, or ends neither on one nor at
+    ///                                  the level's edge
+    static PhysicalRect blocks(TextureFormat format, PhysicalSize level, PhysicalRect region) {
+        var size = format.blockSize();
+        var across = size.width();
+        var down = size.height();
+        if (region.x() % across != 0
+                || region.y() % down != 0
+                || (region.width() % across != 0 && region.right() != level.width())
+                || (region.height() % down != 0 && region.bottom() != level.height())) {
+            throw new IllegalArgumentException(region + " of a " + level + " level of " + format
+                    + " does not start and end on its " + across + "x" + down + " blocks");
+        }
+        return new PhysicalRect(
+                region.x() / across,
+                region.y() / down,
+                Math.ceilDiv(region.width(), across),
+                Math.ceilDiv(region.height(), down));
+    }
+
+    /// The bytes of one tightly packed row of `width` texels of `format`.
+    private static int packedRow(TextureFormat format, int width) {
+        var row = format.bytesPerRow(width);
+        if (row > Integer.MAX_VALUE) {
+            throw new IllegalArgumentException("a row of " + width + " texels of " + format + " is past 2 GiB");
+        }
+        return (int) row;
     }
 
     /// Uploads the remaining bytes of `source`, which is not moved, into

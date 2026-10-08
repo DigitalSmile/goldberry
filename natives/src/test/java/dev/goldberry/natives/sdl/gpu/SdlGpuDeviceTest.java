@@ -33,6 +33,7 @@ import dev.goldberry.natives.sdl.gpu.enums.SdlGpuPresentMode;
 import dev.goldberry.natives.sdl.gpu.enums.SdlGpuSampleCount;
 import dev.goldberry.natives.sdl.gpu.enums.SdlGpuShaderFormat;
 import dev.goldberry.natives.sdl.gpu.enums.SdlGpuTextureFormat;
+import dev.goldberry.natives.sdl.gpu.enums.SdlGpuTextureType;
 import dev.goldberry.natives.sdl.gpu.enums.SdlGpuTextureUsage;
 import dev.goldberry.natives.sdl.gpu.enums.SdlGpuTransferUsage;
 import dev.goldberry.natives.sdl.window.SdlWindowFlag;
@@ -91,8 +92,89 @@ class SdlGpuDeviceTest {
     @DisplayName("makes every format the toolkit uses, as a sampled texture")
     void supportsTheFormatsTheToolkitUses() {
         for (var format : SdlGpuTextureFormat.values()) {
-            assertTrue(device.supports(format, EnumSet.of(SdlGpuTextureUsage.SAMPLER)), format::toString);
+            if (!format.isCompressed()) {
+                assertTrue(device.supports(format, EnumSet.of(SdlGpuTextureUsage.SAMPLER)), format::toString);
+            }
         }
+        // A device decodes one family of compressed formats or both: BC on
+        // desktop GPUs, ASTC on Apple's and mobile ones.
+        var sampled = EnumSet.of(SdlGpuTextureUsage.SAMPLER);
+        assertTrue(device.supports(SdlGpuTextureFormat.BC7_RGBA_UNORM, sampled)
+                || device.supports(SdlGpuTextureFormat.ASTC_4x4_UNORM, sampled));
+        assertTrue(device.supports(SdlGpuTextureType.CUBE, SdlGpuTextureFormat.B8G8R8A8_UNORM, sampled));
+        assertTrue(device.supports(SdlGpuTextureType.THREE_D, SdlGpuTextureFormat.R8G8B8A8_UNORM, sampled));
+    }
+
+    @Test
+    @DisplayName("makes cubes and volumes, whose slices are the sub-resources, and refuses shapes SDL would")
+    void cubesAndVolumes() {
+        var sampled = EnumSet.of(SdlGpuTextureUsage.SAMPLER);
+        try (var cube = device.createTexture(
+                        SdlGpuTextureType.CUBE,
+                        SdlGpuTextureFormat.B8G8R8A8_UNORM,
+                        8,
+                        8,
+                        6,
+                        4,
+                        SdlGpuSampleCount.ONE,
+                        sampled);
+                var volume = device.createTexture(
+                        SdlGpuTextureType.THREE_D,
+                        SdlGpuTextureFormat.R8G8B8A8_UNORM,
+                        2,
+                        2,
+                        4,
+                        3,
+                        SdlGpuSampleCount.ONE,
+                        sampled)) {
+            assertEquals(SdlGpuTextureType.CUBE, cube.type());
+            assertEquals(6, cube.layers());
+            assertEquals(1, cube.depth());
+            cube.requireSubresource(3, 5);
+            assertEquals(1, volume.layers());
+            assertEquals(4, volume.depth());
+            assertEquals(2, volume.levelDepth(1));
+            assertEquals(1, volume.levelDepth(2));
+            volume.requireSubresource(0, 3);
+            volume.requireSubresource(1, 1);
+            assertThrows(IllegalArgumentException.class, () -> volume.requireSubresource(1, 2), "level 1 is 2 deep");
+        }
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> device.createTexture(
+                        SdlGpuTextureType.CUBE,
+                        SdlGpuTextureFormat.B8G8R8A8_UNORM,
+                        8,
+                        4,
+                        6,
+                        1,
+                        SdlGpuSampleCount.ONE,
+                        sampled),
+                "not square");
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> device.createTexture(
+                        SdlGpuTextureType.TWO_D,
+                        SdlGpuTextureFormat.B8G8R8A8_UNORM,
+                        8,
+                        8,
+                        2,
+                        1,
+                        SdlGpuSampleCount.ONE,
+                        sampled),
+                "a 2D texture of two layers");
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> device.createTexture(
+                        SdlGpuTextureFormat.BC7_RGBA_UNORM,
+                        8,
+                        8,
+                        EnumSet.of(SdlGpuTextureUsage.SAMPLER, SdlGpuTextureUsage.COLOR_TARGET)),
+                "a compressed texture is only sampled");
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> device.createTexture(SdlGpuTextureFormat.BC7_RGBA_UNORM, 6, 8, sampled),
+                "not whole blocks");
     }
 
     @Test

@@ -29,6 +29,8 @@ import dev.goldberry.input.event.PointerEvent;
 import dev.goldberry.input.event.TextEvent;
 import dev.goldberry.input.handler.Handles;
 import dev.goldberry.input.key.Key;
+import dev.goldberry.input.key.Repeat;
+import dev.goldberry.input.key.Shortcut;
 import dev.goldberry.input.tap.ModifierKey;
 import dev.goldberry.paint.Box;
 import dev.goldberry.paint.overflow.OverflowLog;
@@ -293,6 +295,27 @@ class SessionTest {
                 session.host().shortcut("Ctrl+S", () -> log.add("saved"));
                 session.key("Ctrl+S");
                 assertEquals(List.of("saved"), log);
+            }
+        }
+
+        @Test
+        @DisplayName("repeats a held key into an accelerator that fires on repeats, and not into one that ignores them")
+        void heldKey() {
+            try (var session = open()) {
+                session.host().shortcut(Shortcut.of(Key.F5), () -> log.add("refresh"), Repeat.FIRE);
+                session.host().shortcut(Shortcut.of(Key.ESCAPE), () -> log.add("menu"), Repeat.IGNORE);
+
+                session.hold(Key.F5, 2).hold(Key.ESCAPE, 3);
+
+                assertEquals(List.of("refresh", "refresh", "refresh", "menu"), log);
+            }
+        }
+
+        @Test
+        @DisplayName("refuses a negative number of repeats")
+        void negativeRepeats() {
+            try (var session = open()) {
+                assertThrows(IllegalArgumentException.class, () -> session.hold(Key.ESCAPE, -1));
             }
         }
 

@@ -17,6 +17,7 @@ import dev.goldberry.layout.Insets;
 import dev.goldberry.layout.Length;
 import dev.goldberry.layout.Position;
 import dev.goldberry.paint.Box;
+import dev.goldberry.paint.tree.ContainingBlock;
 import dev.goldberry.render.Cursor;
 import dev.goldberry.text.edit.TextEdit;
 import dev.goldberry.text.edit.keys.EditCommand;
@@ -350,13 +351,12 @@ record TextField(
         var offset =
                 editor.laidOut(paragraph, padding, padding(style.padding().right()), caretWidth, style.textAlign());
 
-        // No child's `left` carries the padding any more. It used to: an
-        // absolutely positioned box was placed against the **border** box while
-        // the clip was the padding box, so without the compensation the first
-        // character of every field was drawn under the left padding and clipped
-        // away. `ContainingBlock` shifts every absolute child by its containing
-        // block's padding now, so adding it here as well would count
-        // it twice and start the text a padding's width too far in.
+        // Every part is measured from the start of the text, which is the
+        // content box, and an absolutely positioned child is placed against the
+        // padding box, outside the padding. So each `left` goes through
+        // `ContainingBlock.inContentBox`, which adds the field's own padding
+        // less its border: without it the first character would be drawn under
+        // the left padding, where the field's clip hides it.
 
         // A line tall, and centred by the field's `align-items` like the text is —
         // **not** pinned top and bottom. A caret that filled a 32-point control
@@ -378,8 +378,10 @@ record TextField(
         var washEnd = composing.hasClause() ? composing.clauseEnd() : edit.end();
         var selection = children.get(0)
                 .position(Position.ABSOLUTE)
-                .inset(new Insets(Length.UNDEFINED, Length.UNDEFINED, Length.UNDEFINED, Length.points((float)
-                        (paragraph.widthBetween(0, clamp(washStart, length)) - offset))))
+                .inset(inContent(
+                        new Insets(Length.UNDEFINED, Length.UNDEFINED, Length.UNDEFINED, Length.points((float)
+                                (paragraph.widthBetween(0, clamp(washStart, length)) - offset))),
+                        style))
                 .size(
                         Length.points((float) paragraph.widthBetween(clamp(washStart, length), clamp(washEnd, length))),
                         line);
@@ -392,13 +394,17 @@ record TextField(
         // rather than from the control.
         var value = children.get(1)
                 .position(Position.ABSOLUTE)
-                .inset(new Insets(
-                        Length.UNDEFINED, Length.UNDEFINED, Length.UNDEFINED, Length.points((float) -offset)));
+                .inset(inContent(
+                        new Insets(
+                                Length.UNDEFINED, Length.UNDEFINED, Length.UNDEFINED, Length.points((float) -offset)),
+                        style));
 
         var caret = children.get(2)
                 .position(Position.ABSOLUTE)
-                .inset(new Insets(Length.UNDEFINED, Length.UNDEFINED, Length.UNDEFINED, Length.points((float)
-                        (paragraph.widthBetween(0, clamp(edit.caret(), length)) - offset))))
+                .inset(inContent(
+                        new Insets(Length.UNDEFINED, Length.UNDEFINED, Length.UNDEFINED, Length.points((float)
+                                (paragraph.widthBetween(0, clamp(edit.caret(), length)) - offset))),
+                        style))
                 .size(Length.points((float) caretWidth), line);
 
         // The rule under the composition, sitting on the bottom of the line
@@ -407,8 +413,10 @@ record TextField(
         // the foot of it.
         var underline = children.get(3)
                 .position(Position.ABSOLUTE)
-                .inset(new Insets(Length.UNDEFINED, Length.UNDEFINED, Length.UNDEFINED, Length.points((float)
-                        (paragraph.widthBetween(0, clamp(composing.start(), length)) - offset))))
+                .inset(inContent(
+                        new Insets(Length.UNDEFINED, Length.UNDEFINED, Length.UNDEFINED, Length.points((float)
+                                (paragraph.widthBetween(0, clamp(composing.start(), length)) - offset))),
+                        style))
                 .size(
                         Length.points((float) paragraph.widthBetween(
                                 clamp(composing.start(), length), clamp(composing.end(), length))),
@@ -426,6 +434,14 @@ record TextField(
                 // Without it a field would draw its text over the
                 // control beside it the moment the text outgrew the box.
                 .overflow(dev.goldberry.layout.Overflow.HIDDEN);
+    }
+
+    /// `inset`, measured from the start of the text, as the inset that places
+    /// a part there: the field's padding added, less its border, which the
+    /// containing block adds back.
+    private static Insets inContent(Insets inset, ComputedStyle style) {
+        return ContainingBlock.inContentBox(
+                inset, style.padding(), style.decoration().border());
     }
 
     /// One edge of the field's padding in logical pixels, or 0 when the style

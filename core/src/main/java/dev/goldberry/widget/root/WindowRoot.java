@@ -171,15 +171,15 @@ public record WindowRoot(Widget content, Property<List<Overlay>> overlays) imple
                     ? Insets.all(Length.points(0))
                     : entry.corner().insets(entry.margin());
             boxes.add(child.position(Position.ABSOLUTE)
-                    // Against the **window**, not against the application's
-                    // content box. An absolutely positioned child is placed
-                    // inside its containing block's padding by default, which is
-                    // CSS and is right for a child of the content — and this
-                    // layer is not one. A `window-root { padding: 16px }` is the
-                    // application saying where its own widgets start; a toast
-                    // pinned 12 points from the corner means 12 from the corner
-                    // of the window, and a veil that fills means the window.
-                    .inset(ContainingBlock.acrossBorderBox(inset, style.padding())));
+                    // Against the **window**, border included. An absolutely
+                    // positioned child is placed inside its containing block's
+                    // border by default, which is CSS and is right for a child
+                    // of the content — and this layer is not one. A toast pinned
+                    // 12 points from the corner means 12 from the corner of the
+                    // window, and a veil that fills means the window, whatever
+                    // edge a theme draws round `window-root`.
+                    .inset(ContainingBlock.acrossBorderBox(
+                            inset, style.decoration().border())));
         }
         return Box.of().style(style).children(boxes.toArray(Box[]::new));
     }

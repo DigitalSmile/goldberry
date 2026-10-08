@@ -21,6 +21,7 @@ import dev.goldberry.layout.Length;
 import dev.goldberry.layout.Overflow;
 import dev.goldberry.layout.Position;
 import dev.goldberry.paint.Box;
+import dev.goldberry.paint.tree.ContainingBlock;
 import dev.goldberry.render.Cursor;
 import dev.goldberry.render.model.LogicalRect;
 import dev.goldberry.text.document.DocumentLines;
@@ -575,11 +576,10 @@ record TextAreaBox(
         var windowTop = firstVisual * lineHeight - offset;
 
         var boxes = new ArrayList<Box>(children.size());
-        // In the padding box's coordinates, not the border box's: `ContainingBlock`
-        // shifts every absolutely positioned child by its containing block's
-        // padding on the way to Yoga, so a rectangle that added the
-        // padding itself — which is what these three did until that landed —
-        // would now be a padding's width too far in and a line too far down.
+        // In the content box's coordinates: these parts go into the clipping
+        // box below, which is pinned to the content box and has no padding or
+        // border of its own, so an inset here is measured from where the text
+        // starts.
         // The selection, or the clause an input method is converting -- never
         // both, because there is never both.
         var washStart = composing.hasClause() ? composing.clauseStart() : edit.start();
@@ -679,13 +679,16 @@ record TextAreaBox(
         // box pinned to the content box that clips, and the strip is its sibling
         // under a control that does not.
         //
-        // The inner box's insets are zero on all four edges: `ContainingBlock`
-        // shifts each by the control's padding, which is what lands it on the
-        // content box, and it has no padding of its own, so every part inside it
-        // is placed in the same coordinates it was before.
+        // The inner box is the content box on all four edges, written through
+        // `ContainingBlock.inContentBox` from the control's own padding and
+        // border, and it has none of either itself, so every part inside it is
+        // placed from the start of the text.
         var content = Box.of()
                 .position(Position.ABSOLUTE)
-                .inset(new Insets(ZERO, ZERO, ZERO, ZERO))
+                .inset(ContainingBlock.inContentBox(
+                        new Insets(ZERO, ZERO, ZERO, ZERO),
+                        style.padding(),
+                        style.decoration().border()))
                 .overflow(Overflow.HIDDEN)
                 .children(boxes.toArray(Box[]::new));
         var layerList = new ArrayList<Box>(3);
@@ -709,8 +712,8 @@ record TextAreaBox(
         return box.cursor(disabled ? Cursor.DEFAULT : Cursor.TEXT).overflow(Overflow.VISIBLE);
     }
 
-    /// A zero inset, which [dev.goldberry.paint.tree.ContainingBlock]
-    /// moves onto the padding edge.
+    /// A zero inset, which [ContainingBlock] places on the inside of the
+    /// control's border.
     private static final Length ZERO = Length.points(0);
 
     /// The number column's fill, placed from the inside of the border to the
@@ -718,14 +721,14 @@ record TextAreaBox(
     ///
     /// **Inside the border, not on it.** A control that no longer clips its
     /// children would otherwise have the strip painted over its own 1px edge,
-    /// so each inset is the padding less the border's width. The two corners on
+    /// so it is placed against the padding box, which starts inside the border.
+    /// The two corners on
     /// the leading side take the control's radius less that width as well,
     /// because a square strip in a rounded field shows its corners outside the
     /// curve.
     ///
-    /// The insets are **negative paddings** on purpose. `ContainingBlock` adds the
-    /// control's padding to every inset it is given, so `-padding + border` is
-    /// where it lands: the border's inner edge.
+    /// The insets are zero: [ContainingBlock] measures them from the padding box,
+    /// which starts at the border's inner edge.
     private static Box strip(Box part, ComputedStyle style, AreaPadding padding, double gutterWidth) {
         // Per side since a border's sides can differ; the field's own
         // rule is uniform, and a theme that gave it a heavier left edge should
@@ -741,23 +744,24 @@ record TextAreaBox(
                 0,
                 Math.max(0, corners.bottomLeft() - Math.max(bottom, left)));
         return part.position(Position.ABSOLUTE)
-                .inset(new Insets(
-                        Length.points((float) (top - padding.top())),
-                        Length.UNDEFINED,
-                        Length.points((float) (bottom - padding.bottom())),
-                        Length.points((float) (left - padding.left()))))
+                .inset(new Insets(ZERO, Length.UNDEFINED, ZERO, ZERO))
                 .size(Length.points((float) Math.max(0, gutterWidth + padding.left() - left)), Length.UNDEFINED)
                 .decoration(part.decoration().corners(fitted));
     }
 
     /// The scrollbar, down the content box's height and against the inside of the
-    /// right border — the right inset is a negative padding for [#strip]'s reason.
+    /// right border, where a right inset of zero lands for [#strip]'s reason.
     /// Beside the clipped layer rather than in it, so the part of it over the
     /// padding is drawn and can be pressed.
     private static Box bar(Box part, ComputedStyle style, AreaPadding padding) {
-        var border = style.decoration().border().right().width();
+        var border = style.decoration().border();
         return part.position(Position.ABSOLUTE)
-                .inset(new Insets(ZERO, Length.points((float) (border - padding.right())), ZERO, Length.UNDEFINED));
+                .inset(new Insets(
+                        Length.points((float) (padding.top() - border.top().width())),
+                        ZERO,
+                        Length.points(
+                                (float) (padding.bottom() - border.bottom().width())),
+                        Length.UNDEFINED));
     }
 
     /// The control's height: as many lines as the text has, between [#rows] and

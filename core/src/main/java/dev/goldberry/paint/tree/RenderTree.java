@@ -491,10 +491,13 @@ public final class RenderTree implements AutoCloseable {
     /// what keeps this free: an ordinary frame allocates nothing here and
     /// changes no context state.
     ///
-    /// The rectangle is the box's **padding box** rather than its border box,
-    /// which is CSS's rule — content scrolls under the border, not over it — and
-    /// is what makes a viewport with a 1px edge keep that edge crisp while the
-    /// rows inside it slide past.
+    /// The rectangle is the box's **content box**: the box less its padding,
+    /// and so less its border, which the toolkit paints over the padding. That
+    /// is narrower than CSS, which clips to the padding box and lets content
+    /// show in the padding; here content scrolls under the padding and the
+    /// border alike, which is what makes a viewport with a 1px edge keep that
+    /// edge crisp while the rows inside it slide past, and what a text field's
+    /// parts are clipped to.
     private static Clip clipFor(Box box, Affine transform, Clip parent, double left, double top, LogicalRect layout) {
 
         if (box.overflow() == Overflow.VISIBLE) {

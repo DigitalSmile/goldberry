@@ -8,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.ArrayList;
+import java.util.EnumSet;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -15,8 +16,11 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
+import dev.goldberry.gpu.Load;
+import dev.goldberry.gpu.Readback;
 import dev.goldberry.gpu.TextureFormat;
 import dev.goldberry.gpu.TextureSpec;
+import dev.goldberry.gpu.TextureUsage;
 import dev.goldberry.gpu.composite.CompositeHarness;
 import dev.goldberry.gpu.render.YuvConversion;
 import dev.goldberry.image.Image;
@@ -26,8 +30,9 @@ import dev.goldberry.render.model.PhysicalRect;
 import dev.goldberry.render.window.GpuSurface;
 
 /// [VideoLayer] on a real device: every layout converted as the reference says,
-/// BGRA drawn as it is, a part of a picture stretched over the box, and a
-/// picture uploaded once however often it is drawn. This is how `video-view`
+/// BGRA drawn as it is, a part of a picture stretched over the box, a picture
+/// uploaded once however often it is drawn, and one drawn into a layer and a
+/// level of a texture of the caller's. This is how `video-view`
 /// shows its pictures when the GPU is present.
 ///
 /// Pictures are drawn 1:1, so the linear sampler reads texel centres and the
@@ -198,6 +203,72 @@ class VideoLayerTest {
             var composited = harness.composited(surface -> drawn(layer, WIDTH, HEIGHT, surface));
             assertEquals(1, composited.placed().size());
             CompositeHarness.assertSamePicture("video-layer", composited.image(), readBack(layer, WIDTH, HEIGHT));
+        }
+    }
+
+    @Test
+    @DisplayName("draws into one layer of an array and one level of a mip chain, leaving the rest as it was")
+    void intoATextureView() {
+        var red = 0xFFC03020;
+        var blue = 0xFF2040D0;
+        var device = harness.device();
+        try (var layer = new VideoLayer();
+                var array = device.createTexture(TextureSpec.array(
+                        TextureFormat.B8G8R8A8_UNORM,
+                        WIDTH,
+                        HEIGHT,
+                        4,
+                        EnumSet.of(TextureUsage.COLOR_TARGET, TextureUsage.SAMPLER)));
+                var chain = device.createTexture(
+                        TextureSpec.renderTarget(TextureFormat.B8G8R8A8_UNORM, WIDTH * 2, HEIGHT * 2)
+                                .withMipLevels(2));
+                var frame = device.beginFrame()) {
+            for (var index = 0; index < 4; index++) {
+                frame.renderPass(array.layer(index), Load.clear(0, 1, 0, 1), _ -> {});
+            }
+            frame.renderPass(chain.level(0), Load.clear(0, 1, 0, 1), _ -> {});
+            layer.show(halves(red, blue));
+            layer.render(frame, array.layer(2));
+            layer.render(frame, chain.level(1));
+            var layers = new ArrayList<Readback>();
+            for (var index = 0; index < 4; index++) {
+                layers.add(frame.readback(array.layer(index)));
+            }
+            var level0 = frame.readback(chain.level(0));
+            var level1 = frame.readback(chain.level(1));
+            frame.submit();
+            for (var index = 0; index < 4; index++) {
+                var pixels = layers.get(index).awaitPixels().pixels().order(ByteOrder.LITTLE_ENDIAN);
+                if (index == 2) {
+                    assertEquals(red, pixels.getInt(0), "layer 2, left");
+                    assertEquals(blue, pixels.getInt((WIDTH - 1) * 4), "layer 2, right");
+                } else {
+                    for (var at = 0; at < WIDTH * HEIGHT * 4; at += 4) {
+                        assertEquals(0xFF00FF00, pixels.getInt(at), "layer " + index + " keeps its clear colour");
+                    }
+                }
+            }
+            var top = level0.awaitPixels().pixels().order(ByteOrder.LITTLE_ENDIAN);
+            assertEquals(0xFF00FF00, top.getInt(0), "level 0 keeps its clear colour");
+            var drawn = level1.awaitPixels();
+            assertEquals(WIDTH, drawn.size().width(), "level 1 is half the texture's width");
+            var half = drawn.pixels().order(ByteOrder.LITTLE_ENDIAN);
+            assertEquals(red, half.getInt(0), "level 1, left");
+            assertEquals(blue, half.getInt((WIDTH - 1) * 4), "level 1, right");
+        }
+    }
+
+    @Test
+    @DisplayName("refuses a target of another format than BGRA")
+    void refusesAnotherFormat() {
+        var device = harness.device();
+        try (var layer = new VideoLayer();
+                var rgba = device.createTexture(TextureSpec.renderTarget(TextureFormat.R8G8B8A8_UNORM, 4, 4));
+                var frame = device.beginFrame()) {
+            layer.show(halves(0xFF808080, 0xFF808080));
+            assertThrows(IllegalArgumentException.class, () -> layer.render(frame, rgba));
+            assertThrows(IllegalArgumentException.class, () -> layer.render(frame, rgba.layer(0)));
+            frame.submit();
         }
     }
 

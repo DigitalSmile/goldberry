@@ -44,7 +44,9 @@ class BackgroundParserTest {
     /// One gradient function, as `background-image` would read it.
     private static @Nullable GradientLayer gradient(String value) {
         var layers = BackgroundParser.images(tokens(value), CONTEXT);
-        return layers == null || layers.size() != 1 ? null : layers.getFirst();
+        return layers == null || layers.size() != 1 || !(layers.getFirst() instanceof GradientLayer layer)
+                ? null
+                : layer;
     }
 
     private static ComputedStyle compute(String declarations) {

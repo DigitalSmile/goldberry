@@ -21,6 +21,7 @@ import dev.goldberry.motion.KeyframeTrack;
 import dev.goldberry.paint.Box;
 import dev.goldberry.render.desktop.SystemTheme;
 import dev.goldberry.stats.FrameStats;
+import dev.goldberry.text.Paragraph;
 import dev.goldberry.text.ParagraphCache;
 import dev.goldberry.text.font.Font;
 import dev.goldberry.text.font.Fonts;
@@ -168,8 +169,13 @@ public final class WidgetRenderer {
             }
 
             @Override
-            public dev.goldberry.text.Paragraph paragraph(ComputedStyle style, String text) {
+            public Paragraph paragraph(ComputedStyle style, String text) {
                 return cache.paragraph(fonts.apply(style), text);
+            }
+
+            @Override
+            public Paragraph join(List<Paragraph> spans) {
+                return cache.join(spans);
             }
 
             /// This frame's time, read once in `render` -- not `clock.nowMillis()`

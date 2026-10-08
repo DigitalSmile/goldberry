@@ -2,7 +2,6 @@ package dev.goldberry.media.view.gpu;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
@@ -15,20 +14,17 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import dev.goldberry.RendererRequirement;
-import dev.goldberry.gpu.video.ColorMatrix;
-import dev.goldberry.gpu.video.PlaneLayout;
 import dev.goldberry.gpu.video.VideoImage;
 import dev.goldberry.media.codec.PixelFormat;
 import dev.goldberry.media.codec.VideoFrame;
-import dev.goldberry.media.picture.VideoPicture;
 import dev.goldberry.media.picture.VideoPlanes;
 import dev.goldberry.offscreen.Offscreen;
 import dev.goldberry.render.model.PhysicalRect;
 import dev.goldberry.widgets.core.image.Fit;
 
 /// [GpuVideo] and [GpuVideoPresenter] with no device: whether `:gpu`
-/// is found, how a picture becomes the layer's image, and what a frame with no
-/// GPU makes of it. The build runs this module's tests twice, with `:gpu` on
+/// is found, and what a frame with no GPU makes of a picture. How a picture
+/// becomes the layer's image is [PicturesTest]'s. The build runs this module's tests twice, with `:gpu` on
 /// the class path and without (`testWithoutGpu`), and says which in
 /// `goldberry.test.gpuModule`.
 @DisplayName("video-view's GPU presenter, with no device")
@@ -61,39 +57,6 @@ class GpuVideoTest {
                 VideoFrame.ColorMatrix.BT2020,
                 true,
                 40);
-    }
-
-    @Test
-    @DisplayName("maps planes to the layer's vocabulary, layout, colour and all")
-    void mapsPlanes() {
-        assumeTrue(GpuVideo.available());
-        for (var format : PixelFormat.values()) {
-            var planes = new ArrayList<ByteBuffer>();
-            var strides = new ArrayList<Integer>();
-            for (var plane = 0; plane < format.planes(); plane++) {
-                planes.add(ByteBuffer.allocateDirect(64));
-                strides.add(format.planeRowBytes(plane, 4));
-            }
-            var picture = new VideoPlanes(format, 4, 2, planes, strides, VideoFrame.ColorMatrix.BT709, false, 0);
-            var image = assertInstanceOf(VideoImage.Planes.class, GpuVideoPresenter.image(picture));
-            assertEquals(PlaneLayout.valueOf(format.name()), image.layout());
-            assertEquals(ColorMatrix.BT709, image.matrix());
-            assertEquals(strides, image.strides());
-            assertFalse(image.fullRange());
-        }
-        var full = (VideoImage.Planes) GpuVideoPresenter.image(nv12(4, 2));
-        assertEquals(ColorMatrix.BT2020, full.matrix());
-        assertEquals(true, full.fullRange());
-    }
-
-    @Test
-    @DisplayName("maps a converted picture to BGRA over its own pixels")
-    void mapsBgra() {
-        assumeTrue(GpuVideo.available());
-        var picture = new VideoPicture(4, 2, 16, ByteBuffer.allocateDirect(32), 0);
-        var image = assertInstanceOf(VideoImage.Bgra.class, GpuVideoPresenter.image(picture));
-        assertEquals(16, image.stride());
-        assertEquals(4, image.width());
     }
 
     @Test

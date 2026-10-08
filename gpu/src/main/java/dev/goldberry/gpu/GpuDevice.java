@@ -95,11 +95,21 @@ public final class GpuDevice {
         return sdl.isClosed();
     }
 
-    /// Whether it can make a texture of `format` for `usages`. The formats in
-    /// [TextureFormat] are supported everywhere for the usages [TextureSpec]
-    /// allows; this is for the cases in between.
+    /// Whether it can make a 2D texture of `format` for `usages`. The plain
+    /// formats in [TextureFormat] are supported everywhere for the usages
+    /// [TextureSpec] allows; this is for the cases in between, and for the
+    /// block-compressed formats, which a device decodes one family of: BC on
+    /// desktop GPUs, ASTC on Apple's and mobile ones.
     public boolean supports(TextureFormat format, Set<TextureUsage> usages) {
-        return sdl().supports(format.sdl(), TextureUsage.sdl(usages));
+        return supports(TextureType.TWO_D, format, usages);
+    }
+
+    /// Whether it can make a texture of `type` and `format` for `usages`: a
+    /// cube or a volume of a format it takes in 2D, in doubt.
+    public boolean supports(TextureType type, TextureFormat format, Set<TextureUsage> usages) {
+        Objects.requireNonNull(type, "type");
+        Objects.requireNonNull(format, "format");
+        return sdl().supports(type.sdl(), format.sdl(), TextureUsage.sdl(usages));
     }
 
     /// Whether it can make a texture of `format` with `samples` samples per
@@ -145,10 +155,11 @@ public final class GpuDevice {
     public GpuTexture createTexture(TextureSpec spec) {
         var device = sdl();
         var texture = call(() -> device.createTexture(
+                spec.type().sdl(),
                 spec.format().sdl(),
                 spec.width(),
                 spec.height(),
-                spec.layers(),
+                spec.type() == TextureType.THREE_D ? spec.depth() : spec.layers(),
                 spec.mipLevels(),
                 SdlGpuSampleCount.of(spec.samples()),
                 TextureUsage.sdl(spec.usages())));
@@ -189,7 +200,8 @@ public final class GpuDevice {
                 spec.filter().sdl(),
                 spec.addressMode().sdl(),
                 spec.mipFilter().map(Filter::sdl),
-                spec.compare().map(CompareOp::sdl));
+                spec.compare().map(CompareOp::sdl),
+                spec.maxAnisotropy());
         var sampler = call(() -> device.createSampler(description));
         return new GpuSampler(this, sampler, spec);
     }

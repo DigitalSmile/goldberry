@@ -101,4 +101,12 @@ public enum Role {
     /// that appears, is read, and goes. Paired with [Live#POLITE], which is the
     /// half that says an appearance is worth speaking.
     STATUS,
+
+    /// Words that are read and not operated: a `rich-text` paragraph, named by
+    /// what it says.
+    ///
+    /// Distinct from [#GROUP], which is a boundary with content in it: a styled
+    /// paragraph is the content, and its name is the sentence, whatever its runs
+    /// look like.
+    TEXT,
 }

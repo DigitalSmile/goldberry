@@ -1158,35 +1158,38 @@ class TextInputTest {
             assertEquals(TestFont.one().lineHeight(), points(selection.height()), 0.01);
         }
 
-        /// The field used to add its own padding to every part's `left`, because
-        /// an absolutely positioned child was placed against the **border** box
-        /// while the clip was the padding box — a `left` of zero drew the first
-        /// character under the padding and lost it, which is what the Forms
-        /// screen's first golden showed.
-        ///
-        /// `ContainingBlock` shifts every absolute child by its containing
-        /// block's padding now, so the compensation is gone and this
-        /// asserts both halves: the field writes zero, and zero still lands at
-        /// the padding.
+        /// Every part is measured from the start of the text, which is the
+        /// content box, and an absolute child is placed against the padding box,
+        /// outside the padding. So the field writes each `left` as its padding
+        /// less its border, which the containing block adds back: a `left` of
+        /// zero would draw the first character under the padding, where the
+        /// field's clip hides it.
         @Test
-        @DisplayName("no part's left carries the field's padding, and the text still starts at it")
-        void partsAreInPaddingBoxCoordinates() {
+        @DisplayName("each part's left carries the field's padding, so the text starts at it")
+        void partsAreInContentBoxCoordinates() {
             var tree = mounted(new TextInput("Goldberry", null));
             focus(tree, true, false);
             key(tree, Key.HOME);
 
             var parts = parts(tree);
-            var padding = style(tree).padding();
+            var style = style(tree);
+            var padding = points(style.padding().left());
+            var border = style.decoration().border();
 
-            assertEquals(0, points(parts.get(1).inset().left()), 0.01, "the text");
-            assertEquals(0, points(parts.get(2).inset().left()), 0.01, "the caret at offset 0");
             assertEquals(
-                    8,
+                    padding - border.left().width(), points(parts.get(1).inset().left()), 0.01, "the text");
+            assertEquals(
+                    padding - border.left().width(),
+                    points(parts.get(2).inset().left()),
+                    0.01,
+                    "the caret at offset 0");
+            assertEquals(
+                    padding,
                     points(ContainingBlock.insetFor(
-                                    Position.ABSOLUTE, parts.get(1).inset(), padding)
+                                    Position.ABSOLUTE, parts.get(1).inset(), border)
                             .left()),
                     0.01,
-                    "the text does not start at the field's padding after all");
+                    "the text does not start at the field's padding");
         }
     }
 
@@ -1408,11 +1411,23 @@ class TextInputTest {
         }
 
         private double valueLeft(ElementTree tree, String alignment) {
-            return points(parts(tree, rule(alignment)).get(VALUE).inset().left());
+            return textLeft(tree, alignment, VALUE);
         }
 
         private double caretLeft(ElementTree tree, String alignment) {
-            return points(parts(tree, rule(alignment)).get(CARET).inset().left());
+            return textLeft(tree, alignment, CARET);
+        }
+
+        /// Where part `index` starts, measured from the start of the text: its
+        /// written `left` less the field's padding and plus its border, which is
+        /// what the field adds to place a part in its content box.
+        private double textLeft(ElementTree tree, String alignment, int index) {
+            var sheet = rule(alignment);
+            var style = style(tree, sheet);
+            var written = points(parts(tree, sheet).get(index).inset().left());
+            return written
+                    - points(style.padding().left())
+                    + style.decoration().border().left().width();
         }
 
         @Test
@@ -1459,10 +1474,7 @@ class TextInputTest {
             for (var alignment : List.of("start", "center", "end")) {
                 assertEquals(
                         valueLeft(tree, alignment),
-                        points(parts(tree, rule(alignment))
-                                .get(SELECTION)
-                                .inset()
-                                .left()),
+                        textLeft(tree, alignment, SELECTION),
                         0.01,
                         alignment + ": a selection of everything starts where the text does");
             }

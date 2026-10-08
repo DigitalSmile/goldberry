@@ -18,6 +18,7 @@ import dev.goldberry.Popup;
 import dev.goldberry.Window;
 import dev.goldberry.bind.Subscription;
 import dev.goldberry.input.hit.HitTest;
+import dev.goldberry.input.key.Repeat;
 import dev.goldberry.input.key.Shortcut;
 import dev.goldberry.input.tap.ModifierKey;
 import dev.goldberry.render.backend.headless.HeadlessFileDialogs;
@@ -82,6 +83,7 @@ public class TestHost implements Host {
     private final Map<String, LogicalRect> anchors = new LinkedHashMap<>();
     private final Map<Shortcut, Runnable> shortcuts = new LinkedHashMap<>();
     private final Map<Shortcut, Object> owners = new LinkedHashMap<>();
+    private final Map<Shortcut, Repeat> repeats = new LinkedHashMap<>();
     private final Map<ModifierKey, Runnable> taps = new LinkedHashMap<>();
     private final Map<ModifierKey, Object> tapOwners = new LinkedHashMap<>();
     private ContextMenuHandler contextMenus;
@@ -321,7 +323,9 @@ public class TestHost implements Host {
 
     @Override
     public void shortcut(Shortcut accelerator, Runnable action) {
-        shortcut(accelerator, action, null);
+        // Cast, or `null` would pick the overload taking a `Repeat`.
+        shortcut(accelerator, action, (Object) null);
+        repeats.remove(accelerator);
     }
 
     /// The router's ownership, mirrored: what is bound, and who bound it, because
@@ -335,6 +339,23 @@ public class TestHost implements Host {
     }
 
     @Override
+    public void shortcut(Shortcut accelerator, Runnable action, Repeat repeat) {
+        shortcut(accelerator, action, (Object) null);
+        repeats.put(accelerator, repeat);
+    }
+
+    @Override
+    public void shortcut(Shortcut accelerator, Runnable action, Object owner, Repeat repeat) {
+        shortcut(accelerator, action, owner);
+        repeats.put(accelerator, repeat);
+    }
+
+    /// What each accelerator bound with a [Repeat] does while its key is held.
+    public Map<Shortcut, Repeat> repeats() {
+        return Map.copyOf(repeats);
+    }
+
+    @Override
     public void shortcut(String accelerator, Runnable action) {
         shortcut(Shortcut.of(accelerator), action);
     }
@@ -343,6 +364,7 @@ public class TestHost implements Host {
     public void removeShortcut(Shortcut accelerator) {
         shortcuts.remove(accelerator);
         owners.remove(accelerator);
+        repeats.remove(accelerator);
     }
 
     @Override

@@ -5,6 +5,7 @@ import java.text.BreakIterator;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 
 import org.jspecify.annotations.Nullable;
 
@@ -46,13 +47,22 @@ import dev.goldberry.text.itemize.Slot;
 /// wrapped to. The layout engine asks for a paragraph's size several times a
 /// pass, so the answer has to be that cheap.
 ///
-/// One direction and one style, in up to two faces. Text that Unicode draws as
+/// One direction, and one font unless it was joined. Text that Unicode draws as
 /// a picture is shaped in the emoji face when [Font#emoji()] names one, and
 /// everything else in the face the cascade chose. The split is by presentation
 /// and not by script, so a paragraph of Han text in a Latin face is still one
 /// run of `.notdef`. Measurements are prefix sums in logical order over one
 /// array of advances, concatenated from the shapings with the second rescaled
 /// into the first's design units.
+///
+/// ## Styled paragraphs
+///
+/// [#join] puts paragraphs end to end as one: a keyword in bold in the middle of
+/// a sentence in regular, wrapping as one text. Each piece keeps the shaping it
+/// already has, emoji and all, so joining shapes nothing. The line breaker then
+/// runs over the whole text, and a line is as tall as the tallest font on it.
+/// The colour each stretch is drawn in is not part of the paragraph: it is a
+/// [SpanPaint] handed to the painter, so a colour can change without a shaping.
 ///
 /// Text that needs bidi, any right-to-left character, is shaped with the
 /// direction forced to `LTR`, so the glyphs come back in the order the
@@ -129,17 +139,67 @@ public final class Paragraph {
     /// Whether the text was shaped in logical order because it needed bidi.
     private final boolean bidiApproximate;
 
+    /// Where each joined piece starts in [#text], and one past the last: null for
+    /// a paragraph that was shaped in one font and never joined, which is nearly
+    /// every paragraph.
+    private final int @Nullable [] spanStarts;
+
+    /// The font each joined piece was shaped in, index for index with
+    /// [#spanStarts]. Null exactly when that is.
+    private final Font @Nullable [] spanFonts;
+
+    /// Each piece's ascent, and what its font's line takes below the baseline,
+    /// read once at the join: a line's height is asked on every paint, and each
+    /// answer is a downcall into the rasterizer. Null when every piece is in
+    /// [#font], whose own two numbers answer.
+    private final double @Nullable [] spanAscents;
+
+    private final double @Nullable [] spanBelows;
+
+    /// Whether every line is measured by [#font] alone: true for a paragraph
+    /// that was never joined, and for a join whose pieces all share one font.
+    /// A uniform paragraph is laid out and drawn exactly as a paragraph was
+    /// before joining existed, one line height per line.
+    private final boolean uniform;
+
     private Paragraph(Font font, String text, boolean bidiApproximate) {
-        this.font = font;
-        this.text = text;
-        this.bidiApproximate = bidiApproximate;
         // Forced to logical order when the text would otherwise come back
         // visually ordered. Guessed as usual when it would not, so every
         // paragraph the toolkit has ever drawn is shaped exactly as before.
         var direction = bidiApproximate ? TextDirection.LTR : null;
-        this.segments = shapeSegments(font, text, direction);
+        this(font, text, bidiApproximate, shapeSegments(font, text, direction), null, null);
+    }
+
+    private Paragraph(
+            Font font,
+            String text,
+            boolean bidiApproximate,
+            Segment[] segments,
+            int @Nullable [] spanStarts,
+            Font @Nullable [] spanFonts) {
+        this.font = font;
+        this.text = text;
+        this.bidiApproximate = bidiApproximate;
+        this.segments = segments;
         this.run = segments.length == 1 && segments[0].font() == font ? segments[0].run() : concatenate(font, segments);
         this.advanceBeforeGlyph = segments.length == 1 ? EMPTY_PREFIX : glyphPrefix(run);
+        this.spanStarts = spanStarts;
+        this.spanFonts = spanFonts;
+        if (spanFonts == null || allIn(font, spanFonts)) {
+            this.uniform = true;
+            this.spanAscents = null;
+            this.spanBelows = null;
+        } else {
+            this.uniform = false;
+            var ascents = new double[spanFonts.length];
+            var belows = new double[spanFonts.length];
+            for (var k = 0; k < spanFonts.length; k++) {
+                ascents[k] = spanFonts[k].ascent();
+                belows[k] = spanFonts[k].lineHeight() - ascents[k];
+            }
+            this.spanAscents = ascents;
+            this.spanBelows = belows;
+        }
 
         var length = text.length();
         this.advanceBefore = new int[length + 1];
@@ -178,6 +238,17 @@ public final class Paragraph {
     /// What [#advanceBeforeGlyph] is when a paragraph has one segment and
     /// therefore never places a pen inside itself.
     private static final int[] EMPTY_PREFIX = new int[0];
+
+    /// Whether every font in `fonts` is `font` itself. The same object, because
+    /// a bold and a regular face at one size are two sets of metrics.
+    private static boolean allIn(Font font, Font[] fonts) {
+        for (var each : fonts) {
+            if (each != font) {
+                return false;
+            }
+        }
+        return true;
+    }
 
     /// One stretch of the text, and the face that shaped it.
     ///
@@ -234,7 +305,8 @@ public final class Paragraph {
     ///   the fraction differs per face — Inter is 2048 to the em and Noto Color
     ///   Emoji is 1024 — so appending one face's numbers to another's would make
     ///   an emoji half as wide as it is. Every measurement in this class is a prefix sum
-    ///   over this array, and a prefix sum needs one unit.
+    ///   over this array, and a prefix sum needs one unit. A joined piece at
+    ///   another size is rescaled by the ratio of the two sizes as well.
     ///
     /// The rounding is to the nearest design unit, which at 2048 to the em is a
     /// thousandth of a pixel at any size anybody reads text at.
@@ -257,6 +329,13 @@ public final class Paragraph {
         for (var segment : segments) {
             var piece = segment.run();
             var scale = (double) base.unitsPerEm() / segment.font().unitsPerEm();
+            if (segment.font().size() != base.size()) {
+                // A joined piece at another size: a design unit is a fraction of
+                // an em, and an em is the size. Never true of an emoji face, which
+                // is opened at its text face's size, so a paragraph that was not
+                // joined is measured exactly as before.
+                scale = scale * segment.font().size() / base.size();
+            }
             for (var i = 0; i < piece.length(); i++, at++) {
                 glyphIds[at] = piece.glyphId(i);
                 clusters[at] = piece.cluster(i) + segment.textStart();
@@ -305,6 +384,173 @@ public final class Paragraph {
                     text);
         }
         return new Paragraph(font, text, approximate);
+    }
+
+    /// `spans`, end to end, as one paragraph that wraps as one text.
+    ///
+    /// ```java
+    /// var sentence = Paragraph.join(List.of(
+    ///         Paragraph.of(regular, "Give it "),
+    ///         Paragraph.of(bold, "Bleeding"),
+    ///         Paragraph.of(regular, " equal to the boost it lost.")));
+    /// ```
+    ///
+    /// **Nothing is shaped again.** Each span keeps the shaping it was made with,
+    /// its emoji in the emoji face included, and the joined paragraph measures and
+    /// draws those glyphs where they are. A kern across a seam is lost, which is
+    /// the seam between two styles, where a reader expects none. The line breaker
+    /// runs over the whole text, so a line can end inside one span and the next
+    /// start in the middle of it, and a line is as tall as the tallest font on it:
+    /// the deepest ascent above its baseline and the deepest descent below.
+    ///
+    /// Measurements are in the first span's font, which is what [#font()] then
+    /// answers; a span in another face or at another size is rescaled into it.
+    /// Spans that are themselves joined are flattened. A list of one span answers
+    /// that span itself, so a styled paragraph with one style is the plain one.
+    ///
+    /// A widget joins through `Paints.Context.join`, which keeps the result for
+    /// as long as the spans are the same instances, for the reason
+    /// [ParagraphCache] keeps a shaping: the render tree keeps a measure callback
+    /// bound for as long as its paragraph is the same instance.
+    ///
+    /// @throws IllegalArgumentException if `spans` is empty: there is no font to
+    ///         measure nothing in
+    public static Paragraph join(List<Paragraph> spans) {
+        Objects.requireNonNull(spans, "spans");
+        if (spans.isEmpty()) {
+            throw new IllegalArgumentException("a paragraph joins one span or more; an empty one is"
+                    + " Paragraph.of(font, \"\"), in the font it would be measured in");
+        }
+        if (spans.size() == 1) {
+            return Objects.requireNonNull(spans.getFirst(), "span");
+        }
+
+        var text = new StringBuilder();
+        var segments = new ArrayList<Segment>();
+        var starts = new ArrayList<Integer>();
+        var fonts = new ArrayList<Font>();
+        var glyph = 0;
+        var approximate = false;
+        for (var span : spans) {
+            Objects.requireNonNull(span, "span");
+            var offset = text.length();
+            for (var segment : span.segments) {
+                segments.add(new Segment(
+                        segment.font(), segment.run(), glyph + segment.glyphStart(), offset + segment.textStart()));
+            }
+            for (var k = 0; k < span.spanCount(); k++) {
+                starts.add(offset + span.spanStart(k));
+                fonts.add(span.spanFont(k));
+            }
+            glyph += span.run.length();
+            approximate |= span.bidiApproximate;
+            text.append(span.text);
+        }
+        starts.add(text.length());
+
+        var base = spans.getFirst().font;
+        return new Paragraph(
+                base,
+                text.toString(),
+                approximate,
+                segments.toArray(Segment[]::new),
+                starts.stream().mapToInt(Integer::intValue).toArray(),
+                fonts.toArray(Font[]::new));
+    }
+
+    /// How many pieces this paragraph was joined from: 1 for one that was not.
+    private int spanCount() {
+        return spanFonts == null ? 1 : spanFonts.length;
+    }
+
+    /// Where piece `k` starts in the text.
+    private int spanStart(int k) {
+        return spanStarts == null ? 0 : spanStarts[k];
+    }
+
+    /// The font piece `k` was shaped in.
+    private Font spanFont(int k) {
+        return spanFonts == null ? font : spanFonts[k];
+    }
+
+    /// The font the character at `offset` was shaped in, or the last piece's
+    /// at the end of the text. The emoji face is not a piece: a picture is
+    /// measured and ruled in the font of the text around it.
+    private Font fontAt(int offset) {
+        var starts = spanStarts;
+        var fonts = spanFonts;
+        if (starts == null || fonts == null) {
+            return font;
+        }
+        for (var k = 0; k < fonts.length; k++) {
+            if (starts[k] <= offset && offset < starts[k + 1]) {
+                return fonts[k];
+            }
+        }
+        return fonts[fonts.length - 1];
+    }
+
+    /// The first offset after `offset` where another piece starts, or the end of
+    /// the text.
+    private int nextSpanStart(int offset) {
+        var starts = spanStarts;
+        if (starts != null) {
+            for (var start : starts) {
+                if (start > offset) {
+                    return start;
+                }
+            }
+        }
+        return text.length();
+    }
+
+    /// How far `line`'s baseline is below its top: the font's ascent, or for a
+    /// joined paragraph the largest ascent of the fonts the line holds.
+    ///
+    /// A blank line takes the font of the piece it stands in.
+    public double ascentOf(TextLine line) {
+        Objects.requireNonNull(line, "line");
+        return uniform ? font.ascent() : lineMetric(line, spanAscents);
+    }
+
+    /// How tall `line` is: the font's line height, or for a joined paragraph the
+    /// largest ascent on the line plus the largest share below the baseline, so
+    /// that a large word neither overlaps the line above it nor the one below.
+    ///
+    /// The sum of these over a layout's lines is its [TextLayout#height()].
+    public double heightOf(TextLine line) {
+        Objects.requireNonNull(line, "line");
+        return uniform ? font.lineHeight() : lineMetric(line, spanAscents) + lineMetric(line, spanBelows);
+    }
+
+    /// The largest of `metric` over the pieces `line` holds text from.
+    private double lineMetric(TextLine line, double @Nullable [] metric) {
+        var starts = spanStarts;
+        if (starts == null || metric == null) {
+            throw new IllegalStateException("only a paragraph joined from several fonts has per-piece metrics");
+        }
+        var largest = 0.0;
+        var found = false;
+        for (var k = 0; k < metric.length; k++) {
+            var start = starts[k];
+            var end = starts[k + 1];
+            if (start == end) {
+                continue;
+            }
+            var holds = line.start() == line.end()
+                    ? start <= line.start() && line.start() < end
+                    : start < line.end() && end > line.start();
+            if (holds) {
+                largest = found ? Math.max(largest, metric[k]) : metric[k];
+                found = true;
+            }
+        }
+        if (found) {
+            return largest;
+        }
+        // A blank line at the very end of the text, after its last newline.
+        var last = fontAt(text.length());
+        return metric == spanAscents ? last.ascent() : last.lineHeight() - last.ascent();
     }
 
     /// Whether this paragraph's text needed bidi and did not get it.
@@ -407,7 +653,15 @@ public final class Paragraph {
             widest = Math.max(widest, line.width());
         }
 
-        var layout = new TextLayout(lines, widest, lines.size() * font.lineHeight());
+        var height = 0.0;
+        if (uniform) {
+            height = lines.size() * font.lineHeight();
+        } else {
+            for (var line : lines) {
+                height += heightOf(line);
+            }
+        }
+        var layout = new TextLayout(lines, widest, height);
         memoWidth = maxWidth;
         memoBreaking = breaking;
         memo = layout;
@@ -499,9 +753,38 @@ public final class Paragraph {
     /// @param argb     a colour as `0xAARRGGBB`, not premultiplied
     /// @param flow     what the cascade said about breaking and marking
     public void paint(Frame frame, double x, double top, double maxWidth, int argb, TextFlow flow) {
+        paint(frame, x, top, maxWidth, argb, flow, List.of());
+    }
+
+    /// The same, with stretches of the text in colours and rules of their own.
+    ///
+    /// Each [SpanPaint] replaces `argb` and `flow`'s decorations over its range,
+    /// and the first one that covers an offset wins. Text outside every range is
+    /// drawn as the forms without spans draw it. A line is drawn piece by piece,
+    /// split wherever a span or a joined piece begins or ends, and each piece's
+    /// rules sit where the font it was shaped in puts them.
+    ///
+    /// With no spans, a paragraph that was not joined from several fonts is
+    /// drawn by exactly the path the other forms take, so a plain paragraph
+    /// passed through here draws the same pixels.
+    ///
+    /// @param spans the stretches drawn differently, in any order; their offsets
+    ///              index [#text()]
+    public void paint(
+            Frame frame, double x, double top, double maxWidth, int argb, TextFlow flow, List<SpanPaint> spans) {
         Objects.requireNonNull(frame, "frame");
         Objects.requireNonNull(flow, "flow");
+        Objects.requireNonNull(spans, "spans");
+        if (uniform && spans.isEmpty()) {
+            paintPlain(frame, x, top, maxWidth, argb, flow);
+        } else {
+            paintStyled(frame, x, top, maxWidth, argb, flow, spans);
+        }
+    }
 
+    /// One font and one colour: how every paragraph was drawn before it could be
+    /// styled, kept as it was so that none of them moves by a pixel.
+    private void paintPlain(Frame frame, double x, double top, double maxWidth, int argb, TextFlow flow) {
         var layout = layout(flow.wraps() ? maxWidth : UNCONSTRAINED, flow);
         var lineHeight = font.lineHeight();
         var ascent = font.ascent();
@@ -565,6 +848,143 @@ public final class Paragraph {
                             start - segment.glyphStart(),
                             end - segment.glyphStart(),
                             argb);
+        }
+    }
+
+    /// Draws every line with its own height, each piece in its own colour.
+    ///
+    /// A uniform paragraph's lines are still one line height apart, counted by
+    /// multiplying as [#paintPlain] does, so a paragraph in one font with a
+    /// coloured word puts its baselines where the uncoloured one does.
+    private void paintStyled(
+            Frame frame, double x, double top, double maxWidth, int argb, TextFlow flow, List<SpanPaint> spans) {
+        var layout = layout(flow.wraps() ? maxWidth : UNCONSTRAINED, flow);
+        var ellipsis = flow.ellipsises();
+        var align = flow.textAlign();
+        var lineTop = 0.0;
+        for (var i = 0; i < layout.lines().size(); i++) {
+            var line = layout.lines().get(i);
+            var offsetDown = uniform ? i * font.lineHeight() : lineTop;
+            lineTop += heightOf(line);
+            if (line.isEmpty()) {
+                continue;
+            }
+            var baseline = top + ascentOf(line) + offsetDown;
+            if (!ellipsis || line.width() <= maxWidth) {
+                var indent = align.indentOf(line.width(), maxWidth);
+                drawPieces(frame, x + indent, baseline, line.start(), visibleEnd(line), argb, flow, spans);
+                continue;
+            }
+            paintTruncatedStyled(frame, x, baseline, maxWidth, argb, flow, spans, line);
+        }
+    }
+
+    /// Draws `[from, to)` of one line as pieces that each have one colour, one
+    /// set of rules and one font, the pen at `lineX` for the line's first
+    /// character.
+    private void drawPieces(
+            Frame frame,
+            double lineX,
+            double baseline,
+            int from,
+            int to,
+            int argb,
+            TextFlow flow,
+            List<SpanPaint> spans) {
+        var lineStart = from;
+        var at = from;
+        while (at < to) {
+            var paint = paintAt(spans, at);
+            var next = Math.min(to, nextSpanStart(at));
+            next = Math.min(next, paint != null ? paint.end() : nextPaintStart(spans, at));
+            var colour = paint != null ? paint.argb() : argb;
+            var pen = lineX + widthOf(lineStart, at);
+            drawGlyphs(frame, pen, baseline, glyphBefore[at], glyphBefore[next], colour);
+            var decorations = paint != null ? paint.decorations() : flow.decorations();
+            rule(frame, pen, baseline, widthOf(at, next), colour, decorations, fontAt(at));
+            at = next;
+        }
+    }
+
+    /// [#paintTruncated] for a styled line: as much as fits, then the mark in
+    /// the colour, the font and the rules of the last character drawn.
+    private void paintTruncatedStyled(
+            Frame frame,
+            double x,
+            double baseline,
+            double maxWidth,
+            int argb,
+            TextFlow flow,
+            List<SpanPaint> spans,
+            TextLine line) {
+        var room = maxWidth - font.ellipsisWidth();
+        var cut = room > 0 ? offsetFitting(line.start(), line.end(), room) : line.start();
+        while (cut > line.start() && Character.isWhitespace(text.charAt(cut - 1))) {
+            cut--;
+        }
+        drawPieces(frame, x, baseline, line.start(), cut, argb, flow, spans);
+
+        var last = cut > line.start() ? cut - 1 : line.start();
+        var paint = paintAt(spans, last);
+        var colour = paint != null ? paint.argb() : argb;
+        var face = fontAt(last);
+        var pen = x + widthOf(line.start(), cut);
+        face.draw(frame, pen, baseline, TextOverflow.MARK, colour);
+        var decorations = paint != null ? paint.decorations() : flow.decorations();
+        rule(frame, pen, baseline, face.ellipsisWidth(), colour, decorations, face);
+    }
+
+    /// The first span that covers `offset`, or null.
+    private static @Nullable SpanPaint paintAt(List<SpanPaint> spans, int offset) {
+        for (var span : spans) {
+            if (span.covers(offset)) {
+                return span;
+            }
+        }
+        return null;
+    }
+
+    /// The first offset after `offset` where a span starts, or past the end.
+    private static int nextPaintStart(List<SpanPaint> spans, int offset) {
+        var next = Integer.MAX_VALUE;
+        for (var span : spans) {
+            if (span.start() > offset && span.start() < span.end()) {
+                next = Math.min(next, span.start());
+            }
+        }
+        return next;
+    }
+
+    /// One past the line's last character that is not trailing whitespace: the
+    /// end of what is drawn, which is where the glyph range of a [TextLine]
+    /// already stops.
+    private int visibleEnd(TextLine line) {
+        var visible = line.end();
+        while (visible > line.start() && Character.isWhitespace(text.charAt(visible - 1))) {
+            visible--;
+        }
+        return visible;
+    }
+
+    /// Draws `decorations` along one piece, at the place and thickness `face`
+    /// gives them. Nothing for no decorations, which asks the face nothing.
+    private static void rule(
+            Frame frame,
+            double x,
+            double baseline,
+            double width,
+            int argb,
+            Set<TextDecoration> decorations,
+            Font face) {
+        if (decorations.isEmpty() || !(width > 0)) {
+            return;
+        }
+        var rules = face.decorations().orElse(face.size(), face.ascent());
+        if (decorations.contains(TextDecoration.UNDERLINE)) {
+            fillRule(frame, x, baseline + rules.underlinePosition(), width, rules.underlineThickness(), argb);
+        }
+        if (decorations.contains(TextDecoration.LINE_THROUGH)) {
+            fillRule(frame, x, baseline + rules.strikethroughPosition(), width, rules.strikethroughThickness(), argb);
         }
     }
 
@@ -685,7 +1105,10 @@ public final class Paragraph {
         return fitting;
     }
 
-    /// The font this paragraph was shaped with.
+    /// The font this paragraph was shaped with, and is measured in.
+    ///
+    /// For a joined paragraph, the first span's: every width is in its design
+    /// units, and the other spans were rescaled into them.
     public Font font() {
         return font;
     }

@@ -14,6 +14,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 import dev.goldberry.RendererRequirement;
+import dev.goldberry.css.Decoration;
 import dev.goldberry.layout.Insets;
 import dev.goldberry.layout.Length;
 import dev.goldberry.layout.Position;
@@ -22,16 +23,14 @@ import dev.goldberry.paint.TestFrames;
 import dev.goldberry.render.DamageRect;
 import dev.goldberry.render.model.LogicalRect;
 
-/// Where an absolutely positioned child actually lands: inside its parent's
-/// padding, as CSS places it.
+/// Where an absolutely positioned child actually lands: against its parent's
+/// padding box, inside the border and outside the padding, as CSS places it.
 ///
 /// `ContainingBlockTest` asserts the arithmetic; this asserts that Yoga does what
-/// the arithmetic was aiming at, against the compiled library. The two Yoga
-/// tests that recorded the disagreement live in `:natives`
-/// (`YogaLayoutTest.absolutePositioningInsidePadding`) and are deliberately left
-/// asserting Yoga's raw answer: they are about the library, and these are about
-/// the toolkit built on it. If Yoga ever fixes its inset path, those fail first
-/// and these say what to do about it.
+/// the arithmetic was aiming at, against the compiled library. Yoga measures an
+/// inset from the node's outer edge, which is the padding box for every box
+/// without a border; the toolkit's border is painted inside the box and never
+/// reaches Yoga, which is the one case the toolkit corrects.
 class AbsolutePlacementTest {
 
     private static final int PARENT = 0xFF2E3440;
@@ -83,17 +82,17 @@ class AbsolutePlacementTest {
     @DisplayName("against the padding box, which is what CSS says")
     class PaddingBox {
 
-        /// The exact case that found the disagreement: Yoga measures an inset
-        /// from the border box and answers (0, 0) for this, CSS answers (12, 12).
-        /// The toolkit answers (12, 12).
+        /// CSS's padding box is bounded by the outer edge of the padding, so in a
+        /// block with padding and no border `left: 0; top: 0` is the block's own
+        /// corner, not its content's.
         @Test
-        @DisplayName("left: 0; top: 0 inside 12px of padding lands at (12, 12)")
+        @DisplayName("left: 0; top: 0 inside 12px of padding lands at (0, 0)")
         void zeroInsets() {
             var placed = laidOut(block(child().position(Position.ABSOLUTE)
                             .inset(new Insets(px(0), Length.UNDEFINED, Length.UNDEFINED, px(0)))))
                     .get(1);
 
-            assertEquals(LogicalRect.of(12f, 12f, 40f, 20f), placed);
+            assertEquals(LogicalRect.of(0f, 0f, 40f, 20f), placed);
         }
 
         @Test
@@ -103,12 +102,9 @@ class AbsolutePlacementTest {
                             .inset(new Insets(px(5), Length.UNDEFINED, Length.UNDEFINED, px(30)))))
                     .get(1);
 
-            assertEquals(LogicalRect.of(42f, 17f, 40f, 20f), placed);
+            assertEquals(LogicalRect.of(30f, 5f, 40f, 20f), placed);
         }
 
-        /// The trailing edge, which is the half nothing in the toolkit writes and
-        /// which would have been wrong in the other direction: `right: 0` has to
-        /// stop at the padding edge, not at the border.
         @Test
         @DisplayName("right: 0; bottom: 0 stops at the far padding edge")
         void trailingInsets() {
@@ -116,13 +112,9 @@ class AbsolutePlacementTest {
                             .inset(new Insets(Length.UNDEFINED, px(0), px(0), Length.UNDEFINED))))
                     .get(1);
 
-            assertEquals(LogicalRect.of(148f, 68f, 40f, 20f), placed);
+            assertEquals(LogicalRect.of(160f, 80f, 40f, 20f), placed);
         }
 
-        /// Why the shift is applied to the style rather than to the answer: with
-        /// both edges given, the child's *width* is derived from them, and a
-        /// correction made after the layout pass could have moved it and not
-        /// resized it. 200 − 12 − 12 = 176.
         @Test
         @DisplayName("left and right together size the child to the padding box")
         void stretchedAcross() {
@@ -132,7 +124,42 @@ class AbsolutePlacementTest {
                             .inset(new Insets(px(0), px(0), Length.UNDEFINED, px(0)))))
                     .get(1);
 
-            assertEquals(LogicalRect.of(12f, 12f, 176f, 20f), placed);
+            assertEquals(LogicalRect.of(0f, 0f, 200f, 20f), placed);
+        }
+    }
+
+    @Nested
+    @DisplayName("inside the border, which the toolkit paints over the padding")
+    class InsideTheBorder {
+
+        /// The case that found the old rule wrong, as it was reported: a
+        /// 300×200 block with `padding: 20px 40px` and a 2px border, and a 30×30
+        /// pin at `top: 0; right: 0`. CSS puts it on the border's inner edge.
+        @Test
+        @DisplayName("top: 0; right: 0 in a bordered, padded block lands inside the border's corner")
+        void pinInTheCorner() {
+            var root = Box.filled(PARENT)
+                    .size(px(300), px(200))
+                    .padding(new Insets(px(20), px(40), px(20), px(40)))
+                    .decoration(Decoration.NONE.border(2, CHILD))
+                    .children(Box.filled(CHILD)
+                            .size(px(30), px(30))
+                            .position(Position.ABSOLUTE)
+                            .inset(new Insets(px(0), px(0), Length.UNDEFINED, Length.UNDEFINED)));
+
+            assertEquals(LogicalRect.of(268f, 2f, 30f, 30f), laidOut(root).get(1));
+        }
+
+        @Test
+        @DisplayName("and filling the block stops at the border on every side")
+        void fillStopsAtTheBorder() {
+            var root = Box.filled(PARENT)
+                    .size(px(200), px(100))
+                    .padding(px(12))
+                    .decoration(Decoration.NONE.border(3, CHILD))
+                    .children(Box.filled(CHILD).position(Position.ABSOLUTE).inset(Insets.all(px(0))));
+
+            assertEquals(LogicalRect.of(3f, 3f, 194f, 94f), laidOut(root).get(1));
         }
     }
 
@@ -140,22 +167,21 @@ class AbsolutePlacementTest {
     @DisplayName("what the shift must not touch")
     class Untouched {
 
-        /// The other half of Yoga's contradiction, and the reason an undefined
-        /// edge is left undefined rather than defined at the padding: this path
-        /// was already right, and it still is.
+        /// An edge with no inset takes the static position, where a child in
+        /// flow would start: inside the padding. Yoga already does that, and
+        /// nothing here defines the edge in order to correct it.
         @Test
-        @DisplayName("no insets at all still lands at the padding edge")
+        @DisplayName("no insets at all lands where flow would start, inside the padding")
         void noInsets() {
             var placed = laidOut(block(child().position(Position.ABSOLUTE))).get(1);
 
             assertEquals(LogicalRect.of(12f, 12f, 40f, 20f), placed);
         }
 
-        /// Flow put the child inside the padding already. A relative inset offsets
-        /// it from there, so shifting it would count the padding twice — which is
-        /// exactly the bug removing `text-input`'s compensation avoids.
+        /// Flow put the child inside the padding already, and a relative inset
+        /// offsets it from there.
         @Test
-        @DisplayName("a relative inset offsets from the flow position, not from the padding twice")
+        @DisplayName("a relative inset offsets from the flow position")
         void relativeIsUnshifted() {
             var placed = laidOut(block(child().position(Position.RELATIVE)
                             .inset(new Insets(px(5), Length.UNDEFINED, Length.UNDEFINED, px(5)))))
@@ -165,7 +191,7 @@ class AbsolutePlacementTest {
         }
 
         @Test
-        @DisplayName("an unpadded block places its child where it always did")
+        @DisplayName("an unpadded, unbordered block places its child where it always did")
         void noPadding() {
             var root = Box.filled(PARENT)
                     .size(px(200), px(100))
@@ -180,10 +206,10 @@ class AbsolutePlacementTest {
     @DisplayName("a child that moved because its parent did not")
     class Damage {
 
-        private Box padded(float padding) {
+        private Box bordered(float border) {
             return Box.filled(PARENT)
                     .size(px(200), px(200))
-                    .padding(px(padding))
+                    .decoration(Decoration.NONE.border(border, CHILD))
                     .children(child().position(Position.ABSOLUTE)
                             .inset(new Insets(px(0), Length.UNDEFINED, Length.UNDEFINED, px(0))));
         }
@@ -193,23 +219,22 @@ class AbsolutePlacementTest {
                     .anyMatch(r -> x >= r.x() && x < r.x() + r.width() && y >= r.y() && y < r.y() + r.height());
         }
 
-        /// The case the fix could plausibly have broken, which is why it is
+        /// The case the rule could plausibly have broken, which is why it is
         /// asserted rather than reasoned about. A child shifted by its containing
-        /// block's padding has an **identical box** when only the parent's
-        /// padding changes, so every comparison in `sameAppearance` says nothing
-        /// happened about the child — and the two things that make it come out
-        /// right are both indirect: the parent's own padding *is* compared, and
-        /// damage is collected by comparing where a node was against where it is
-        /// rather than by asking why it moved. No flag was added for this; this
-        /// is what says none was needed.
+        /// block's border has an **identical box** when only the parent's border
+        /// changes, so every comparison in `sameAppearance` says nothing happened
+        /// about the child — and the two things that make it come out right are
+        /// both indirect: the parent's own decoration *is* compared, and damage
+        /// is collected by comparing where a node was against where it is rather
+        /// than by asking why it moved.
         @Test
-        @DisplayName("a parent that grows padding damages where its absolute child was")
-        void parentPaddingMovesTheChild() {
+        @DisplayName("a parent that grows a border damages where its absolute child was")
+        void parentBorderMovesTheChild() {
             try (var render = RenderTree.create()) {
-                render.update(target.frame(), padded(0));
+                render.update(target.frame(), bordered(0));
                 render.damage(target.frame());
 
-                render.update(target.frame(), padded(40));
+                render.update(target.frame(), bordered(40));
                 var damage = render.damage(target.frame());
 
                 assertFalse(damage.isEmpty(), "the child moved from (0, 0) to (40, 40) and nothing was damaged");
@@ -219,13 +244,13 @@ class AbsolutePlacementTest {
         }
 
         @Test
-        @DisplayName("and a parent whose padding did not change damages nothing")
-        void steadyPaddingIsStillFree() {
+        @DisplayName("and a parent whose border did not change damages nothing")
+        void steadyBorderIsStillFree() {
             try (var render = RenderTree.create()) {
-                render.update(target.frame(), padded(12));
+                render.update(target.frame(), bordered(12));
                 render.damage(target.frame());
 
-                render.update(target.frame(), padded(12));
+                render.update(target.frame(), bordered(12));
 
                 assertEquals(List.of(), render.damage(target.frame()));
             }

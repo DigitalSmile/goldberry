@@ -478,15 +478,16 @@ public record Tab(
         var content = new ArrayList<Box>(4);
         // Child 0 is the indicator, which is out of flow and takes no space.
         //
-        // Widened back to the header's own edges. An absolutely positioned child
-        // is placed against its containing block's **padding** box, which is what
-        // CSS says and what `ContainingBlock` makes true — so the
-        // indicator's `left: 0; right: 0` means 24 points narrower than the tab,
-        // and an underline that stops short of its label is not one. The number
-        // comes from `tab`'s own resolved padding, so `density-compact` moves it
-        // without mentioning it.
+        // Across the tab's own edges, border included. An absolutely positioned
+        // child is placed against its containing block's **padding** box, inside
+        // the border, which is what CSS says and what `ContainingBlock` makes
+        // true — so a tab with a border would draw an underline that stops short
+        // of its edges by the border's width. The number comes from `tab`'s own
+        // resolved border, so a theme that changes it moves this without
+        // mentioning it.
         var indicator = children.getFirst();
-        content.add(indicator.inset(ContainingBlock.acrossBorderBox(indicator.inset(), style.padding())));
+        content.add(indicator.inset(ContainingBlock.acrossBorderBox(
+                indicator.inset(), style.decoration().border())));
         if (icon != null) {
             content.add(Box.icon(icon, style.color()));
         }

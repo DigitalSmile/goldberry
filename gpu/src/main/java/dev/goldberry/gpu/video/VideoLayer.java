@@ -16,6 +16,7 @@ import dev.goldberry.gpu.GpuTexture;
 import dev.goldberry.gpu.GraphicsPipeline;
 import dev.goldberry.gpu.Load;
 import dev.goldberry.gpu.PipelineSpec;
+import dev.goldberry.gpu.RenderTarget;
 import dev.goldberry.gpu.SamplerSpec;
 import dev.goldberry.gpu.Shader;
 import dev.goldberry.gpu.ShaderCode;
@@ -33,7 +34,9 @@ import dev.goldberry.render.model.PhysicalSize;
 ///
 /// The caller [#show]s the picture and the part of it to show, then places the
 /// layer over the rectangle it goes in. Letterboxing is the caller's, by where
-/// it places the layer: the layer covers its box and nothing else.
+/// it places the layer: the layer covers its box and nothing else. Or the
+/// caller renders it itself, into a [RenderTarget] of its own: a texture, or
+/// one level of one layer of one, which a shader then samples.
 ///
 /// **Planes** are uploaded into one texture each (`R8`, `R8G8`, `R16`,
 /// `R16G16`) and converted by `yuv2.frag` or `yuv3.frag` with the picture's
@@ -108,8 +111,27 @@ public final class VideoLayer implements GpuLayer, AutoCloseable {
     /// whole of `target`. Before an image is shown, clears to black.
     @Override
     public void render(GpuFrame frame, GpuTexture target) {
+        render(frame, (RenderTarget) target);
+    }
+
+    /// Uploads the image if it is new to this device, and draws it over the
+    /// whole of `target`: a texture, or one level of one layer of one, at that
+    /// level's size. Before an image is shown, clears to black. What the rest
+    /// of a texture holds, its other layers and levels, is left as it was.
+    ///
+    /// @throws IllegalArgumentException when `target` is not
+    ///                                  [TextureFormat#B8G8R8A8_UNORM], or not
+    ///                                  a colour target of `frame`'s device
+    /// @throws IllegalStateException    when this layer is closed
+    public void render(GpuFrame frame, RenderTarget target) {
+        Objects.requireNonNull(frame, "frame");
+        Objects.requireNonNull(target, "target");
         if (closed) {
             throw new IllegalStateException("this video layer is closed");
+        }
+        if (target.format() != TextureFormat.B8G8R8A8_UNORM) {
+            throw new IllegalArgumentException(
+                    target + " is " + target.format() + ", and a video layer draws " + TextureFormat.B8G8R8A8_UNORM);
         }
         var current = frame.device();
         if (device != current) {

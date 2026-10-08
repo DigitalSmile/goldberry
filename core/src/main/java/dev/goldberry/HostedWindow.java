@@ -22,6 +22,7 @@ import dev.goldberry.input.handler.Selects;
 import dev.goldberry.input.hit.HitTest;
 import dev.goldberry.input.key.Key;
 import dev.goldberry.input.key.Modifiers;
+import dev.goldberry.input.key.Repeat;
 import dev.goldberry.input.key.Shortcut;
 import dev.goldberry.input.tap.ModifierKey;
 import dev.goldberry.motion.Clock;
@@ -1178,6 +1179,16 @@ final class HostedWindow implements WindowHost {
     @Override
     public void shortcut(Shortcut accelerator, Runnable action, Object owner) {
         router.shortcut(accelerator, action, owner);
+    }
+
+    @Override
+    public void shortcut(Shortcut accelerator, Runnable action, Repeat repeat) {
+        router.shortcut(accelerator, action, null, repeat);
+    }
+
+    @Override
+    public void shortcut(Shortcut accelerator, Runnable action, Object owner, Repeat repeat) {
+        router.shortcut(accelerator, action, owner, repeat);
     }
 
     @Override

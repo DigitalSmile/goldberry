@@ -499,6 +499,43 @@ public final class Image {
         }
     }
 
+    /// A **copy** of the pixels inside `region`, as an image of its own.
+    ///
+    /// For code that composes pictures: one sprite out of a sheet, kept and
+    /// drawn many times, or a piece handed to something that takes a whole
+    /// image. A crop that is only going onto a frame needs no copy —
+    /// `frame.drawImage(image, source, …)` takes the rectangle at the blit.
+    ///
+    /// The rectangle is in this image's own pixels and must lie inside it: a
+    /// region that runs off the edge is refused rather than quietly cut down,
+    /// because its numbers came from a manifest that no longer matches the
+    /// sheet. Asking for the whole image returns **this image**, as
+    /// [#scaled(int, int)] does for its own size.
+    ///
+    /// @throws IllegalArgumentException if `region` is empty or not inside
+    ///         [#bounds()]
+    public Image cropped(PhysicalRect region) {
+        Objects.requireNonNull(region, "region");
+        if (region.isEmpty()) {
+            throw new IllegalArgumentException("a crop needs a positive size, and " + region + " has none");
+        }
+        if (!region.fitsWithin(size())) {
+            throw new IllegalArgumentException(
+                    "the region " + region + " is not inside a " + width() + "x" + height() + " image");
+        }
+        if (region.equals(bounds())) {
+            return this;
+        }
+        var buffer = PixelBuffer.allocate(region.size(), FORMAT);
+        var row = region.width() * 4;
+        var from = readable.pixels();
+        var to = buffer.pixels();
+        for (var y = 0; y < region.height(); y++) {
+            to.put(y * buffer.stride(), from, (region.y() + y) * pixels.stride() + region.x() * 4, row);
+        }
+        return new Image(buffer);
+    }
+
     /// The rasterizer's name for a [Resampling].
     ///
     /// A switch and not an ordinal: the two enums agree today and a `:core` type

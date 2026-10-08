@@ -49,10 +49,10 @@ public record Variant(double scale, ImageSource source) {
     ///
     /// @throws IllegalArgumentException for a descriptor that is not `Nx`, or two
     ///         candidates for one scale
-    @SuppressWarnings("StringSplitter") // empty candidates are skipped below
+    @SuppressWarnings("StringSplitter") // a trimmed, non-empty candidate; an empty one is skipped below
     public static List<Variant> parse(String srcset, ClassLoader loader) {
         var variants = new ArrayList<Variant>();
-        for (var candidate : srcset.split(",")) {
+        for (var candidate : candidates(srcset)) {
             var parts = candidate.trim().split("\\s+");
             if (parts.length == 0 || parts[0].isEmpty()) {
                 continue;
@@ -77,5 +77,34 @@ public record Variant(double scale, ImageSource source) {
             variants.add(new Variant(scale, ImageSource.parse(parts[0], loader)));
         }
         return List.copyOf(variants);
+    }
+
+    /// The candidates of a `srcset`, split the way HTML splits them: a path runs
+    /// to the first whitespace, so a comma *inside* it — the ones in a
+    /// `#xywh=x,y,w,h` fragment — is part of the path, and a comma after the
+    /// descriptor, or at the very end of a path with none, ends the candidate.
+    private static List<String> candidates(String srcset) {
+        var candidates = new ArrayList<String>();
+        var at = 0;
+        var length = srcset.length();
+        while (at < length) {
+            while (at < length && (Character.isWhitespace(srcset.charAt(at)) || srcset.charAt(at) == ',')) {
+                at++;
+            }
+            var start = at;
+            while (at < length && !Character.isWhitespace(srcset.charAt(at))) {
+                at++;
+            }
+            var path = srcset.substring(start, at);
+            if (path.endsWith(",")) {
+                candidates.add(path.replaceAll(",+$", ""));
+                continue;
+            }
+            var comma = srcset.indexOf(',', at);
+            var end = comma < 0 ? length : comma;
+            candidates.add(srcset.substring(start, end));
+            at = end;
+        }
+        return candidates;
     }
 }

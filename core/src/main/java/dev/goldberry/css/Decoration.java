@@ -3,12 +3,13 @@ package dev.goldberry.css;
 import java.util.List;
 import java.util.Objects;
 
+import dev.goldberry.css.image.BorderImage;
 import dev.goldberry.css.value.CssColor;
 import dev.goldberry.css.value.Shadow;
 import dev.goldberry.paint.Box;
 
 /// What is drawn *around* a box rather than in it: the corner radius, the border,
-/// the focus ring and the drop shadow.
+/// the focus ring, the drop shadow and the border image.
 ///
 /// One record rather than seven components on [ComputedStyle] and seven more on
 /// [Box], because they are only ever read
@@ -47,17 +48,21 @@ import dev.goldberry.paint.Box;
 /// @param shadows       the `box-shadow` list, first on top: drop shadows cast
 ///                      behind the box and inner ones cast inside it. Empty for
 ///                      the overwhelming majority of boxes
+/// @param borderImage   the `border-image`, drawn in place of the border's
+///                      colours when it has a picture; [BorderImage#NONE] for
+///                      every box that does not
 public record Decoration(
         Corners corners,
         Border border,
         double outlineWidth,
         int outlineColor,
         double outlineOffset,
-        List<Shadow> shadows) {
+        List<Shadow> shadows,
+        BorderImage borderImage) {
 
     /// Square corners, no border, no ring, no shadow — what every box starts as.
     public static final Decoration NONE =
-            new Decoration(Corners.SQUARE, Border.NONE, 0, CssColor.TRANSPARENT, 0, List.of());
+            new Decoration(Corners.SQUARE, Border.NONE, 0, CssColor.TRANSPARENT, 0, List.of(), BorderImage.NONE);
 
     public Decoration {
         // Clamped rather than refused. These arrive from a stylesheet, and the
@@ -67,9 +72,21 @@ public record Decoration(
         Objects.requireNonNull(corners, "corners");
         Objects.requireNonNull(border, "border");
         shadows = List.copyOf(Objects.requireNonNull(shadows, "shadows"));
+        Objects.requireNonNull(borderImage, "borderImage");
         requireFinite(outlineWidth, "outline-width");
         requireFinite(outlineOffset, "outline-offset");
         outlineWidth = Math.max(0, outlineWidth);
+    }
+
+    /// A decoration with no border image.
+    public Decoration(
+            Corners corners,
+            Border border,
+            double outlineWidth,
+            int outlineColor,
+            double outlineOffset,
+            List<Shadow> shadows) {
+        this(corners, border, outlineWidth, outlineColor, outlineOffset, shadows, BorderImage.NONE);
     }
 
     /// A decoration with one shadow, or none when it is [Shadow#NONE].
@@ -132,7 +149,7 @@ public record Decoration(
 
     /// Whether this is [#NONE] in effect — nothing to draw and nothing to round.
     public boolean isPlain() {
-        return corners.isSquare() && !hasBorder() && !hasOutline() && !hasShadow();
+        return corners.isSquare() && !hasBorder() && !hasOutline() && !hasShadow() && !borderImage.isDrawn();
     }
 
     /// The same radius on all four corners — `border-radius: 8px`, which is every
@@ -142,7 +159,7 @@ public record Decoration(
     }
 
     public Decoration corners(Corners value) {
-        return new Decoration(value, border, outlineWidth, outlineColor, outlineOffset, shadows);
+        return new Decoration(value, border, outlineWidth, outlineColor, outlineOffset, shadows, borderImage);
     }
 
     /// The same line on all four sides — `border: 1px solid red`.
@@ -151,7 +168,7 @@ public record Decoration(
     }
 
     public Decoration border(Border value) {
-        return new Decoration(corners, value, outlineWidth, outlineColor, outlineOffset, shadows);
+        return new Decoration(corners, value, outlineWidth, outlineColor, outlineOffset, shadows, borderImage);
     }
 
     /// Every side's width, colours kept — `border-width: 2px`.
@@ -165,19 +182,19 @@ public record Decoration(
     }
 
     public Decoration outline(double width, int argb, double offset) {
-        return new Decoration(corners, border, width, argb, offset, shadows);
+        return new Decoration(corners, border, width, argb, offset, shadows, borderImage);
     }
 
     public Decoration outlineWidth(double value) {
-        return new Decoration(corners, border, value, outlineColor, outlineOffset, shadows);
+        return new Decoration(corners, border, value, outlineColor, outlineOffset, shadows, borderImage);
     }
 
     public Decoration outlineColor(int argb) {
-        return new Decoration(corners, border, outlineWidth, argb, outlineOffset, shadows);
+        return new Decoration(corners, border, outlineWidth, argb, outlineOffset, shadows, borderImage);
     }
 
     public Decoration outlineOffset(double value) {
-        return new Decoration(corners, border, outlineWidth, outlineColor, value, shadows);
+        return new Decoration(corners, border, outlineWidth, outlineColor, value, shadows, borderImage);
     }
 
     /// One shadow in place of the list, or none when it is [Shadow#NONE].
@@ -186,7 +203,13 @@ public record Decoration(
     }
 
     public Decoration shadows(List<Shadow> value) {
-        return new Decoration(corners, border, outlineWidth, outlineColor, outlineOffset, value);
+        return new Decoration(corners, border, outlineWidth, outlineColor, outlineOffset, value, borderImage);
+    }
+
+    /// `border-image`: a picture cut in nine, drawn in place of the border's
+    /// colours.
+    public Decoration borderImage(BorderImage value) {
+        return new Decoration(corners, border, outlineWidth, outlineColor, outlineOffset, shadows, value);
     }
 
     /// This decoration with every colour's alpha scaled by `alpha`.
@@ -205,7 +228,8 @@ public record Decoration(
                 outlineWidth,
                 CssColor.fade(outlineColor, alpha),
                 outlineOffset,
-                shadows.stream().map(shadow -> shadow.fade(alpha)).toList());
+                shadows.stream().map(shadow -> shadow.fade(alpha)).toList(),
+                borderImage.fade(alpha));
     }
 
     private static void requireFinite(double value, String name) {

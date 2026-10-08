@@ -15,6 +15,7 @@ import dev.goldberry.css.cascade.CascadeLayer;
 import dev.goldberry.golden.GoldenImage;
 import dev.goldberry.image.Image;
 import dev.goldberry.paint.BoxPainter;
+import dev.goldberry.render.model.PhysicalRect;
 import dev.goldberry.widget.ElementTree;
 import dev.goldberry.widget.Widget;
 import dev.goldberry.widget.WidgetRenderer;
@@ -109,5 +110,33 @@ class ImageGoldenTest {
     @DisplayName("and the same on light")
     void light() {
         paint("image-light", Theme.NORD_LIGHT);
+    }
+
+    @Test
+    @DisplayName("two sprites read out of one sheet: its red quarter, and its yellow one stretched")
+    void regions() {
+        var sheet = ImageSource.of(banner());
+        var page = new Row(
+                List.of(
+                        ImageView.decorative(ImageSource.region(sheet, PhysicalRect.of(0, 0, 60, 30))),
+                        ImageView.decorative(ImageSource.region(sheet, PhysicalRect.of(60, 30, 60, 30)))
+                                .fit(Fit.FILL)
+                                .withAttributes(classes("tall"))),
+                new Attributes("page", Set.of(), "page"));
+        var renderer = new WidgetRenderer(
+                List.of(
+                        Controls.baseStylesheet(),
+                        Theme.NORD_DARK.load(),
+                        Stylesheet.parse(CascadeLayer.APPLICATION, """
+                                #page { gap: 8px; padding: 8px; background: var(--gb-bg); align-items: flex-start }
+                                image.tall { width: 30px; height: 60px }
+                                """)),
+                TestFont.get());
+        GoldenImage.assertMatches(
+                "image-regions",
+                116,
+                76,
+                1.0f,
+                frame -> BoxPainter.paint(frame, renderer.render(new ElementTree(page))));
     }
 }

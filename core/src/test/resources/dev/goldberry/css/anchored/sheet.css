@@ -1,0 +1,3 @@
+.a { background-image: url("leather.png"); }
+.b { border-image: url("../ui/panel.png") 12 fill / 12px; }
+.c { background-image: url("/abs/x.png"), url("classpath:/kept.png"), linear-gradient(red, blue); }

@@ -61,6 +61,12 @@ module dev.goldberry.widgets {
     exports dev.goldberry.widgets.core.web;
     exports dev.goldberry.widgets.core.image;
 
+    /// The `image` widget's cache, offered to the stylesheet: a `url()` in CSS
+    /// and an `image` showing the same file share one decode. The provider's
+    /// package is not exported; the service is all anybody needs of it.
+    provides dev.goldberry.css.image.StyleImages with
+            dev.goldberry.widgets.core.image.style.SharedStyleImages;
+
     /// `qr-code`. A package of its own beside `image` for the same reason every
     /// widget has one: the cache that makes a rebuild free and the device-pixel
     /// arithmetic that keeps a module whole are parts, and a part is not

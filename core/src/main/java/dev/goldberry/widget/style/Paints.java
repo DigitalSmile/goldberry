@@ -74,6 +74,21 @@ public interface Paints extends Widget {
         ///         which [dev.goldberry.text.Paragraph] refuses
         Paragraph paragraph(ComputedStyle style, String text);
 
+        /// `spans`, each from [#paragraph], joined into one paragraph that wraps
+        /// as one text: a `rich-text`'s runs, each shaped in its own resolved
+        /// font.
+        ///
+        /// **Call this rather than `Paragraph.join`**, for [#paragraph]'s second
+        /// reason: the renderer's answer is the same instance for as long as
+        /// the spans are, and the render tree keeps its measure callback by
+        /// that identity. The default joins every time, which is right for a
+        /// context with no cache to keep it in.
+        ///
+        /// @throws IllegalArgumentException if `spans` is empty
+        default Paragraph join(List<Paragraph> spans) {
+            return Paragraph.join(spans);
+        }
+
         /// What time this frame is, on the renderer's clock: motion is a function
         /// of the frame's timestamp, never of a frame count.
         ///

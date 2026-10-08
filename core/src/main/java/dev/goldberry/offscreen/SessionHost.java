@@ -18,6 +18,7 @@ import dev.goldberry.Window;
 import dev.goldberry.bind.Subscription;
 import dev.goldberry.input.PointerRouter;
 import dev.goldberry.input.hit.HitTest;
+import dev.goldberry.input.key.Repeat;
 import dev.goldberry.input.key.Shortcut;
 import dev.goldberry.input.tap.ModifierKey;
 import dev.goldberry.motion.Clock;
@@ -129,6 +130,16 @@ final class SessionHost implements Host {
     @Override
     public void shortcut(Shortcut accelerator, Runnable action, Object owner) {
         router.shortcut(accelerator, action, owner);
+    }
+
+    @Override
+    public void shortcut(Shortcut accelerator, Runnable action, Repeat repeat) {
+        router.shortcut(accelerator, action, null, repeat);
+    }
+
+    @Override
+    public void shortcut(Shortcut accelerator, Runnable action, Object owner, Repeat repeat) {
+        router.shortcut(accelerator, action, owner, repeat);
     }
 
     @Override

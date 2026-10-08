@@ -6,14 +6,15 @@ import java.util.Locale;
 
 import org.jspecify.annotations.Nullable;
 
+import dev.goldberry.css.image.CssImage;
 import dev.goldberry.css.parse.Token;
 import dev.goldberry.css.parse.TokenType;
 import dev.goldberry.css.value.CssColor;
 import dev.goldberry.css.value.CssLength;
 import dev.goldberry.layout.Length;
 
-/// Reads the `background` properties: the shorthand, `background-image`
-/// and `background-position`.
+/// Reads the `background` properties: the shorthand, `background-image`,
+/// `background-position`, `background-size` and `background-repeat`.
 ///
 /// Every method answers null for a value it cannot read whole, so the cascade
 /// drops the declaration and says so, as it does for every other property.
@@ -25,14 +26,19 @@ public final class BackgroundParser {
 
     private BackgroundParser() {}
 
-    /// The `background` shorthand: a comma list of layers, each a gradient or
-    /// `none`, the last of which may also name the colour.
+    /// The `background` shorthand: a comma list of layers, each a gradient, a
+    /// `url()` or `none` with an optional repeat, the last of which may also name
+    /// the colour.
     ///
-    /// A shorthand resets what it does not name: the colour to transparent and
-    /// the position to zero. `background: none` is no fill at all.
+    /// A shorthand resets what it does not name: the colour to transparent, the
+    /// position to zero, every size to `auto` and every repeat to `repeat`.
+    /// `background: none` is no fill at all. A position and a size are not read
+    /// here; `background-position` and `background-size` set them.
     public static @Nullable Background shorthand(List<Token> value, CssLength.Context context) {
         var entries = commas(value);
-        var layers = new ArrayList<GradientLayer>();
+        var layers = new ArrayList<CssImage>();
+        var repeats = new ArrayList<BackgroundRepeat>();
+        var anyRepeat = false;
         var colour = CssColor.TRANSPARENT;
         for (var i = 0; i < entries.size(); i++) {
             var last = i == entries.size() - 1;
@@ -40,17 +46,22 @@ public final class BackgroundParser {
             if (parts.isEmpty()) {
                 return null;
             }
-            GradientLayer image = null;
+            CssImage image = null;
             var none = false;
             Integer named = null;
+            var words = new ArrayList<List<Token>>();
             for (var part : parts) {
                 if (part.size() == 1 && part.getFirst().isIdent("none") && image == null && !none) {
                     none = true;
                     continue;
                 }
-                var gradient = gradient(part, context);
-                if (gradient != null && image == null && !none) {
-                    image = gradient;
+                var picture = image(part, context);
+                if (picture != null && image == null && !none) {
+                    image = picture;
+                    continue;
+                }
+                if (isRepeatWord(part) && words.size() < 2) {
+                    words.add(part);
                     continue;
                 }
                 var asColour = CssColor.parse(part);
@@ -61,18 +72,128 @@ public final class BackgroundParser {
                 }
                 return null;
             }
+            var repeat = BackgroundRepeat.REPEAT;
+            if (!words.isEmpty()) {
+                var read = repeat(words);
+                if (read == null) {
+                    return null;
+                }
+                repeat = read;
+                anyRepeat = true;
+            }
             if (image != null) {
                 layers.add(image);
+                repeats.add(repeat);
             }
             if (named != null) {
                 colour = named;
             }
         }
-        return Background.of(colour, layers, BackgroundPosition.ZERO);
+        return Background.of(
+                colour, layers, BackgroundPosition.ZERO, Background.AUTO_SIZE, anyRepeat ? repeats : Background.REPEAT);
     }
 
-    /// `background-image`: `none`, or a comma list of gradients, top first.
-    public static @Nullable List<GradientLayer> images(List<Token> value, CssLength.Context context) {
+    /// One layer of `background-image`: a gradient or a `url()`, or null.
+    public static @Nullable CssImage image(List<Token> part, CssLength.Context context) {
+        var url = CssImage.url(part);
+        return url != null ? url : gradient(part, context);
+    }
+
+    /// `background-repeat`: a comma list, one per layer, each `repeat`,
+    /// `no-repeat`, `repeat-x`, `repeat-y`, or two of `repeat` and `no-repeat`
+    /// for the two axes. `space` and `round` are not read.
+    public static @Nullable List<BackgroundRepeat> repeats(List<Token> value) {
+        var list = new ArrayList<BackgroundRepeat>();
+        for (var entry : commas(value)) {
+            var read = repeat(spaces(entry));
+            if (read == null) {
+                return null;
+            }
+            list.add(read);
+        }
+        return List.copyOf(list);
+    }
+
+    /// `background-size`: a comma list, one per layer, each `cover`, `contain`,
+    /// or one or two of a length, a percentage of the box and `auto`. One value
+    /// is the width, and the height follows the picture's shape.
+    public static @Nullable List<BackgroundSize> sizes(List<Token> value, CssLength.Context context) {
+        var list = new ArrayList<BackgroundSize>();
+        for (var entry : commas(value)) {
+            var parts = spaces(entry);
+            if (parts.size() == 1 && parts.getFirst().size() == 1) {
+                var only = parts.getFirst().getFirst();
+                if (only.isIdent("cover")) {
+                    list.add(BackgroundSize.COVER);
+                    continue;
+                }
+                if (only.isIdent("contain")) {
+                    list.add(BackgroundSize.CONTAIN);
+                    continue;
+                }
+            }
+            if (parts.isEmpty() || parts.size() > 2) {
+                return null;
+            }
+            var width = sizeLength(parts.getFirst(), context);
+            var height = parts.size() == 2 ? sizeLength(parts.get(1), context) : Length.AUTO;
+            if (width == null || height == null) {
+                return null;
+            }
+            list.add(new BackgroundSize(BackgroundSize.Kind.LENGTHS, width, height));
+        }
+        return List.copyOf(list);
+    }
+
+    /// One axis of a `background-size`: a length that is not negative, a
+    /// percentage, or `auto`.
+    private static @Nullable Length sizeLength(List<Token> part, CssLength.Context context) {
+        return switch (CssLength.parse(part, context)) {
+            case Length.Points points when points.value() >= 0 -> points;
+            case Length.Percent percent when percent.value() >= 0 -> percent;
+            case Length.Keyword keyword when keyword == Length.AUTO -> keyword;
+            case null, default -> null;
+        };
+    }
+
+    private static boolean isRepeatWord(List<Token> part) {
+        return part.size() == 1
+                && part.getFirst().is(TokenType.IDENT)
+                && BackgroundRepeat.named(part.getFirst().text()) != null;
+    }
+
+    /// One layer's repeat, from one keyword or two.
+    private static @Nullable BackgroundRepeat repeat(List<List<Token>> words) {
+        if (words.isEmpty() || words.size() > 2) {
+            return null;
+        }
+        var values = new ArrayList<BackgroundRepeat>();
+        for (var word : words) {
+            if (word.size() != 1 || !word.getFirst().is(TokenType.IDENT)) {
+                return null;
+            }
+            var named = BackgroundRepeat.named(word.getFirst().text());
+            if (named == null) {
+                return null;
+            }
+            values.add(named);
+        }
+        if (values.size() == 1) {
+            return values.getFirst();
+        }
+        // Two values are an axis each, and only `repeat` and `no-repeat` say one.
+        var across = values.getFirst();
+        var down = values.getLast();
+        if ((across != BackgroundRepeat.REPEAT && across != BackgroundRepeat.NO_REPEAT)
+                || (down != BackgroundRepeat.REPEAT && down != BackgroundRepeat.NO_REPEAT)) {
+            return null;
+        }
+        return BackgroundRepeat.of(across == BackgroundRepeat.REPEAT, down == BackgroundRepeat.REPEAT);
+    }
+
+    /// `background-image`: `none`, or a comma list of gradients and `url()`
+    /// pictures, top first.
+    public static @Nullable List<CssImage> images(List<Token> value, CssLength.Context context) {
         var entries = commas(value);
         if (entries.size() == 1) {
             var only = spaces(entries.getFirst());
@@ -82,17 +203,17 @@ public final class BackgroundParser {
                 return List.of();
             }
         }
-        var layers = new ArrayList<GradientLayer>();
+        var layers = new ArrayList<CssImage>();
         for (var entry : entries) {
             var parts = spaces(entry);
             if (parts.size() != 1) {
                 return null;
             }
-            var gradient = gradient(parts.getFirst(), context);
-            if (gradient == null) {
+            var layer = image(parts.getFirst(), context);
+            if (layer == null) {
                 return null;
             }
-            layers.add(gradient);
+            layers.add(layer);
         }
         return List.copyOf(layers);
     }

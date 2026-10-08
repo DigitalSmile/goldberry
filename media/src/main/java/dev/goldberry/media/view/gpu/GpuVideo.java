@@ -13,9 +13,12 @@ import dev.goldberry.log.Logs;
 /// This module `requires static` `:gpu`: a video plays without it, drawn on the
 /// CPU, and an application that ships no GPU module ships no GPU code. So `:gpu`
 /// is looked for once, by a class of its that this module reads, before any
-/// class that uses it is loaded. [GpuVideoPresenter] is the only class here that
-/// names `:gpu`'s types, and it is loaded only through [#presenter], only when
-/// [#available()] said yes.
+/// class that uses it is loaded. This package is the only one the views reach
+/// `:gpu` through: [GpuVideoPresenter] and [Pictures] name its types, and are
+/// loaded only through [#presenter], only when [#available()] said yes. The
+/// one other package that names them is the exported `…media.gpu`, which no
+/// view loads: an application calls it with a frame of `:gpu`'s in hand, so
+/// `:gpu` is there.
 ///
 /// Public, with [#available()] and [#presenter], for [VideoPresenter]'s reason.
 /// [GpuVideoPresenter] stays package-private: nothing outside this

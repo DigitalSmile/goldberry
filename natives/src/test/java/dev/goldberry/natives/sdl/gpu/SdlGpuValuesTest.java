@@ -19,12 +19,14 @@ import dev.goldberry.natives.sdl.gpu.enums.SdlGpuAddressMode;
 import dev.goldberry.natives.sdl.gpu.enums.SdlGpuBufferUsage;
 import dev.goldberry.natives.sdl.gpu.enums.SdlGpuCompareOp;
 import dev.goldberry.natives.sdl.gpu.enums.SdlGpuCullMode;
+import dev.goldberry.natives.sdl.gpu.enums.SdlGpuFilter;
 import dev.goldberry.natives.sdl.gpu.enums.SdlGpuFrontFace;
 import dev.goldberry.natives.sdl.gpu.enums.SdlGpuIndexSize;
 import dev.goldberry.natives.sdl.gpu.enums.SdlGpuPrimitiveType;
 import dev.goldberry.natives.sdl.gpu.enums.SdlGpuSampleCount;
 import dev.goldberry.natives.sdl.gpu.enums.SdlGpuShaderFormat;
 import dev.goldberry.natives.sdl.gpu.enums.SdlGpuTextureFormat;
+import dev.goldberry.natives.sdl.gpu.enums.SdlGpuTextureType;
 import dev.goldberry.natives.sdl.gpu.enums.SdlGpuTextureUsage;
 import dev.goldberry.natives.sdl.gpu.enums.SdlGpuVertexFormat;
 import dev.goldberry.natives.sdl.gpu.enums.SdlGpuVertexInputRate;
@@ -64,8 +66,52 @@ class SdlGpuValuesTest {
     @EnumSource(SdlGpuTextureFormat.class)
     @DisplayName("every texture format has a size and SDL's name")
     void textureFormats(SdlGpuTextureFormat format) {
-        assertTrue(format.bytesPerPixel() > 0);
+        assertTrue(format.bytesPerBlock() > 0);
+        if (format.isCompressed()) {
+            assertThrows(UnsupportedOperationException.class, format::bytesPerPixel);
+            assertEquals(4, format.blockWidth());
+            assertEquals(4, format.blockHeight());
+        } else {
+            assertEquals(format.bytesPerBlock(), format.bytesPerPixel());
+            assertEquals(1, format.blockWidth());
+        }
         assertTrue(format.nativeName().startsWith("SDL_GPU_TEXTUREFORMAT_"));
+    }
+
+    @Test
+    @DisplayName("compressed formats size regions in whole blocks, and sRGB formats say so")
+    void blocksAndSrgb() {
+        assertEquals(8, SdlGpuTextureFormat.BC1_RGBA_UNORM.bytesPerBlock());
+        assertEquals(16, SdlGpuTextureFormat.BC7_RGBA_UNORM.bytesPerBlock());
+        assertEquals(16, SdlGpuTextureFormat.BC7_RGBA_UNORM.byteSize(4, 4));
+        assertEquals(16, SdlGpuTextureFormat.BC7_RGBA_UNORM.byteSize(1, 2), "a partial block is a block");
+        assertEquals(8 * 3 * 2, SdlGpuTextureFormat.BC1_RGBA_UNORM.byteSize(12, 5));
+        assertEquals(4 * 3 * 2, SdlGpuTextureFormat.R8G8B8A8_UNORM.byteSize(3, 2));
+        assertTrue(SdlGpuTextureFormat.B8G8R8A8_UNORM_SRGB.isSrgb());
+        assertTrue(SdlGpuTextureFormat.ASTC_4x4_UNORM_SRGB.isSrgb());
+        assertFalse(SdlGpuTextureFormat.B8G8R8A8_UNORM.isSrgb());
+        assertFalse(SdlGpuTextureFormat.R8G8B8A8_UNORM_SRGB.isCompressed());
+        assertEquals("SDL_GPU_TEXTURETYPE_2D_ARRAY", SdlGpuTextureType.TWO_D_ARRAY.nativeName());
+        assertEquals("SDL_GPU_TEXTURETYPE_3D", SdlGpuTextureType.THREE_D.nativeName());
+        assertEquals("SDL_GPU_TEXTURETYPE_CUBE", SdlGpuTextureType.CUBE.nativeName());
+    }
+
+    @Test
+    @DisplayName("a sampler description has no anisotropy unless asked, and takes 1 to 16")
+    void samplerAnisotropy() {
+        var plain = SdlGpuSamplerDescription.of(SdlGpuFilter.LINEAR, SdlGpuAddressMode.REPEAT);
+        assertEquals(1f, plain.maxAnisotropy());
+        assertFalse(plain.isAnisotropic());
+        var slanted = new SdlGpuSamplerDescription(
+                SdlGpuFilter.LINEAR, SdlGpuAddressMode.REPEAT, Optional.of(SdlGpuFilter.LINEAR), Optional.empty(), 16f);
+        assertTrue(slanted.isAnisotropic());
+        for (var bad : new float[] {Float.NaN, 0.5f, 16.5f}) {
+            assertThrows(
+                    IllegalArgumentException.class,
+                    () -> new SdlGpuSamplerDescription(
+                            SdlGpuFilter.LINEAR, SdlGpuAddressMode.REPEAT, Optional.empty(), Optional.empty(), bad),
+                    () -> Float.toString(bad));
+        }
     }
 
     @Test

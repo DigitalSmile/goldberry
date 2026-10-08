@@ -49,7 +49,8 @@ module dev.goldberry.gpu {
     /// Video on the GPU: the layer `:media`'s `video-view` shows its pictures
     /// through when this module is present. To `:media`
     /// alone, which `requires static` this module: it is the one caller, and an
-    /// application shows video with `video-view`.
+    /// application shows video with `video-view`, or draws it into a texture of
+    /// its own with `:media`'s `PictureRenderer`.
     exports dev.goldberry.gpu.video to
             dev.goldberry.media;
 

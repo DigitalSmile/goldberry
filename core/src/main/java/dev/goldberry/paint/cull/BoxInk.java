@@ -7,7 +7,7 @@ import dev.goldberry.paint.Box;
 /// What **one** box draws, in its own coordinates, where its border box is
 /// `(0, 0, width, height)`.
 ///
-/// Three things reach outside that rectangle, and each of them is a deliberate
+/// Four things reach outside that rectangle, and each of them is a deliberate
 /// part of what a box is rather than an overflow:
 ///
 /// - the **focus ring**, which CSS draws outside the border box and which takes
@@ -16,6 +16,8 @@ import dev.goldberry.paint.Box;
 ///   `0 8px 32px` reaches 24px below and 8px above, so one outset for four sides
 ///   would either repaint a band nothing drew in or, the day a shadow is offset
 ///   further than it is blurred, miss one;
+/// - a **border image's outsets**, which push its picture past the edge the
+///   way `border-image-outset` says;
 /// - an **icon larger than its slot**, which
 ///   [dev.goldberry.paint.BoxPainter] centres rather than
 ///   corners — a 20px glyph in the 16px lead column of a menu row hangs 2px out
@@ -61,6 +63,13 @@ public final class BoxInk {
             shadowRight = Math.max(shadowRight, shadow.outsetRight());
             shadowBottom = Math.max(shadowBottom, shadow.outsetBottom());
         }
+        // A border image reaches past the box by its outsets, and only when it
+        // has a picture: it is what `border-image-outset` is for.
+        var outsets = decoration.borderImage().outsetsFor(decoration.border());
+        shadowTop = Math.max(shadowTop, outsets[0]);
+        shadowRight = Math.max(shadowRight, outsets[1]);
+        shadowBottom = Math.max(shadowBottom, outsets[2]);
+        shadowLeft = Math.max(shadowLeft, outsets[3]);
         // An icon is centred in its slot, so a glyph wider than the box hangs out
         // by half the difference on each side -- and by nothing at all in the
         // common case, where `Box.icon` sized the box to the glyph.

@@ -14,6 +14,7 @@ import dev.goldberry.Popup;
 import dev.goldberry.Window;
 import dev.goldberry.bind.Subscription;
 import dev.goldberry.input.hit.HitTest;
+import dev.goldberry.input.key.Repeat;
 import dev.goldberry.input.key.Shortcut;
 import dev.goldberry.input.tap.ModifierKey;
 import dev.goldberry.render.backend.headless.HeadlessFileDialogs;
@@ -96,6 +97,12 @@ record DialogsTestHost(HeadlessFileDialogs dialogs) implements Host {
 
     @Override
     public void shortcut(Shortcut accelerator, Runnable action, Object owner) {}
+
+    @Override
+    public void shortcut(Shortcut accelerator, Runnable action, Repeat repeat) {}
+
+    @Override
+    public void shortcut(Shortcut accelerator, Runnable action, Object owner, Repeat repeat) {}
 
     @Override
     public void shortcut(String accelerator, Runnable action) {}

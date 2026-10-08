@@ -19,6 +19,7 @@ import dev.goldberry.css.background.BackgroundParser;
 import dev.goldberry.css.cascade.KeyframeAnimations;
 import dev.goldberry.css.cascade.StyleResolver;
 import dev.goldberry.css.cascade.Transitions;
+import dev.goldberry.css.image.BorderImageParser;
 import dev.goldberry.css.parse.CssSyntaxException;
 import dev.goldberry.css.parse.Token;
 import dev.goldberry.css.parse.TokenType;
@@ -662,6 +663,19 @@ public record ComputedStyle(
                         .map(v -> fill(fill.position(v)))
                         .orElseGet(() -> dropped(property, value));
 
+            // How large a `url()` layer is drawn and whether it is tiled: comma
+            // lists matched to the layers by position, as CSS matches them. A
+            // gradient is the size of its box whatever these say.
+            case "background-size" ->
+                Optional.ofNullable(BackgroundParser.sizes(value, context))
+                        .map(v -> fill(fill.sizes(v)))
+                        .orElseGet(() -> dropped(property, value));
+
+            case "background-repeat" ->
+                Optional.ofNullable(BackgroundParser.repeats(value))
+                        .map(v -> fill(fill.repeats(v)))
+                        .orElseGet(() -> dropped(property, value));
+
             case "color" -> colour(value).map(this::color).orElseGet(() -> dropped(property, value));
 
             case "opacity" ->
@@ -759,6 +773,40 @@ public record ComputedStyle(
                             var line = v.line();
                             return decoration(decoration.border(new Border(line, line, line, line)));
                         })
+                        .orElseGet(() -> dropped(property, value));
+
+            // A picture cut in nine and drawn in place of the border's colours.
+            // Part of the decoration, so `:hover` and `:disabled` pick their
+            // sprite through the cascade. The shorthand resets the four parts it
+            // does not name, as CSS's does.
+            case "border-image" ->
+                Optional.ofNullable(BorderImageParser.shorthand(value, context))
+                        .map(v -> decoration(decoration.borderImage(v)))
+                        .orElseGet(() -> dropped(property, value));
+
+            case "border-image-source" ->
+                Optional.ofNullable(BorderImageParser.source(value, decoration.borderImage()))
+                        .map(v -> decoration(decoration.borderImage(v)))
+                        .orElseGet(() -> dropped(property, value));
+
+            case "border-image-slice" ->
+                Optional.ofNullable(BorderImageParser.slice(value, decoration.borderImage()))
+                        .map(v -> decoration(decoration.borderImage(v)))
+                        .orElseGet(() -> dropped(property, value));
+
+            case "border-image-width" ->
+                Optional.ofNullable(BorderImageParser.widths(value, context, decoration.borderImage()))
+                        .map(v -> decoration(decoration.borderImage(v)))
+                        .orElseGet(() -> dropped(property, value));
+
+            case "border-image-outset" ->
+                Optional.ofNullable(BorderImageParser.outsets(value, context, decoration.borderImage()))
+                        .map(v -> decoration(decoration.borderImage(v)))
+                        .orElseGet(() -> dropped(property, value));
+
+            case "border-image-repeat" ->
+                Optional.ofNullable(BorderImageParser.repeat(value, decoration.borderImage()))
+                        .map(v -> decoration(decoration.borderImage(v)))
                         .orElseGet(() -> dropped(property, value));
 
             // A ring is drawn solid whatever its style says: it is a focus

@@ -3876,13 +3876,12 @@ table-header:focus-visible {
    affordance -- and then the accent, which is `split-divider`'s hover for the
    same gesture.
 
-   `right` is minus the header's padding-x: an absolute box here is placed
-   against the content edge, and the row's 12 is what lies between that and the
-   header's own edge. */
+   `right: 0` is the header's own edge: an absolute box is placed against the
+   header's padding box, which is the outer edge of its padding. */
 table-grip {
   position: absolute;
   top: 0;
-  right: -12px;
+  right: 0;
   bottom: 0;
   width: 6px;
   transition: background-color var(--gb-motion-fast);

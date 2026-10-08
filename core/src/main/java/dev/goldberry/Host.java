@@ -8,6 +8,8 @@ import java.util.function.Consumer;
 import org.jspecify.annotations.Nullable;
 
 import dev.goldberry.bind.Subscription;
+import dev.goldberry.input.key.Repeat;
+import dev.goldberry.input.key.Shortcut;
 import dev.goldberry.motion.Clock;
 import dev.goldberry.render.clipboard.Clipboard;
 import dev.goldberry.render.clipboard.PrimarySelection;
@@ -101,7 +103,7 @@ public interface Host {
     /// exactly, so `Ctrl+S` does not fire on `Ctrl+Shift+S`.
     ///
     /// Read more: [Accelerators](https://goldberry.dev/docs/guide/input.html#accelerators).
-    void shortcut(dev.goldberry.input.key.Shortcut accelerator, Runnable action);
+    void shortcut(Shortcut accelerator, Runnable action);
 
     /// Binds a window accelerator and remembers **who** bound it.
     ///
@@ -109,8 +111,20 @@ public interface Host {
     /// identity and never called. A widget that binds keys while it is mounted —
     /// `menubar` is the one in the toolkit — passes itself, so that giving them
     /// back cannot take somebody else's binding with it.
-    void shortcut(dev.goldberry.input.key.Shortcut accelerator, Runnable action,
+    void shortcut(Shortcut accelerator, Runnable action,
             Object owner);
+
+    /// Binds a window accelerator and says what it does while its key is held
+    /// down: [Repeat#IGNORE] for a toggle, so that holding `Escape` does not open
+    /// and close a menu at the platform's repeat rate; [Repeat#FIRE], which is
+    /// what the other forms bind, for an accelerator that should repeat.
+    ///
+    /// Read more: [Accelerators](https://goldberry.dev/docs/guide/input.html#accelerators).
+    void shortcut(Shortcut accelerator, Runnable action, Repeat repeat);
+
+    /// The same, remembering **who** bound it, as
+    /// [#shortcut(Shortcut, Runnable, Object)] does.
+    void shortcut(Shortcut accelerator, Runnable action, Object owner, Repeat repeat);
 
     /// Binds a window accelerator, written the way a menu prints it — `"Ctrl+S"`.
     ///
@@ -131,7 +145,7 @@ public interface Host {
     /// key means. A widget giving back keys it took should pass an owner, so that
     /// a binding made after its own is left alone
     /// ([#removeShortcut(Shortcut, Object)]).
-    void removeShortcut(dev.goldberry.input.key.Shortcut accelerator);
+    void removeShortcut(Shortcut accelerator);
 
     /// Unbinds a window accelerator **only if `owner` still holds it**.
     ///
@@ -143,7 +157,7 @@ public interface Host {
     ///
     /// Owners are compared by identity. Harmless when nothing was bound, and a
     /// no-op when something else was.
-    void removeShortcut(dev.goldberry.input.key.Shortcut accelerator,
+    void removeShortcut(Shortcut accelerator,
             Object owner);
 
     /// Unbinds a window accelerator written the way a menu prints it.

@@ -72,6 +72,14 @@ module dev.goldberry.core {
     // hand names one.
     exports dev.goldberry.css.background;
 
+    // The pictures a stylesheet names with `url()`, and `border-image`. The
+    // decoded pixels come through a service, because the cache that holds them
+    // is the widget catalogue's, which this module cannot name: the catalogue
+    // provides it, and a picture in CSS and an `image` share one decode.
+    exports dev.goldberry.css.image;
+
+    uses dev.goldberry.css.image.StyleImages;
+
     // `@media`: the condition a rule applies under and the window facts it is
     // asked about. Exported because a rule carries one and a test or a tool
     // reading a parsed sheet meets it.

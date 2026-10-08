@@ -7,6 +7,7 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import dev.goldberry.build.repository.Repository;
 import org.junit.jupiter.api.DisplayName;
@@ -204,16 +205,33 @@ class BookTest {
     @DisplayName("a widget")
     class Widgets {
 
-        /** The chapter each name is documented in, by the heading that is exactly the name in code marks. */
+        /**
+         * The chapter each name is documented in, by the heading that is exactly the name in code marks.
+         *
+         * <p>The parked guide files count as chapters here. The book is not changed
+         * between releases, so a widget added in between has its section written
+         * under {@code docs/snapshot/} and moved into the book in the release
+         * commit. Without this, the widget could not land before its section, and
+         * its section could not land before the release. A name documented both in
+         * the book and in a parked file is documented twice, which is what a
+         * release that forgot to empty the folder looks like.
+         */
         private Map<String, List<String>> headingsByName() {
-            return guide().stream()
+            var inTheBook = guide().stream()
                     .filter(chapter -> CATALOGUE.stream().anyMatch(part -> chapter.path().startsWith(part)))
-                    .flatMap(chapter -> Book.headings(chapter.path()).stream()
-                            .filter(heading -> heading.matches("`[a-z0-9-]+`"))
-                            .map(heading -> Map.entry(
-                                    heading.substring(1, heading.length() - 1), chapter.path())))
+                    .flatMap(chapter -> named(Book.headings(chapter.path()), chapter.path()));
+            var parked = Book.parked().stream()
+                    .flatMap(file -> named(Book.headingsIn(Book.parkedText(file)), file));
+            return Stream.concat(inTheBook, parked)
                     .collect(Collectors.groupingBy(
                             Map.Entry::getKey, Collectors.mapping(Map.Entry::getValue, Collectors.toList())));
+        }
+
+        /** Each heading that is a name in code marks, paired with where it is written. */
+        private static Stream<Map.Entry<String, String>> named(List<String> headings, String where) {
+            return headings.stream()
+                    .filter(heading -> heading.matches("`[a-z0-9-]+`"))
+                    .map(heading -> Map.entry(heading.substring(1, heading.length() - 1), where));
         }
 
         @Test
@@ -238,11 +256,20 @@ class BookTest {
             assertTrue(stale.isEmpty(), () -> "headings in code marks that are not @Markup names: " + stale);
         }
 
+        /**
+         * The catalogue lines a parked file carries count as the catalogue's, for
+         * the reason its headings count as chapters: they are the rows the release
+         * commit adds to {@code components/index.md}, and their links are read as
+         * written there.
+         */
         @Test
         @DisplayName("is listed in the catalogue with a link to its heading")
         void theCatalogueListsEveryName() {
-            var catalogue = Book.text("components/index.md");
-            var links = Book.links("components/index.md").stream()
+            var catalogue = Book.text("components/index.md")
+                    + Book.parked().stream().map(Book::parkedText).collect(Collectors.joining("\n"));
+            var parkedLinks = Book.parked().stream()
+                    .flatMap(file -> Book.parkedLinks(file, "components/index.md").stream());
+            var links = Stream.concat(Book.links("components/index.md").stream(), parkedLinks)
                     .filter(link -> link.fragment().isPresent())
                     .collect(Collectors.toMap(
                             link -> link.fragment().orElseThrow(), Function.identity(), (first, _) -> first));

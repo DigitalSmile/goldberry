@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -16,6 +17,8 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 import dev.goldberry.image.Image;
+import dev.goldberry.render.model.PhysicalRect;
+import dev.goldberry.render.model.PhysicalSize;
 
 /// The shared loader's memory: a source decoded once is handed to every view
 /// that asks for it.
@@ -97,6 +100,64 @@ class ImageCacheTest {
 
         assertTrue(future.isDone());
         assertEquals(1, cache.size());
+    }
+
+    @Nested
+    @DisplayName("regions of one sheet")
+    class Regions {
+
+        @Test
+        @DisplayName("two regions of one sheet share the sheet's one decode")
+        void oneDecodePerSheet() {
+            var cache = cache(1 << 20);
+            var sheet = named("kit");
+
+            var left = cache.load(ImageSource.region(sheet, PhysicalRect.of(0, 0, 4, 4)));
+            var right = cache.load(ImageSource.region(sheet, PhysicalRect.of(4, 0, 4, 4)));
+            pending.get("kit").complete(Image.ofArgb(8, 4, new int[32]));
+
+            assertEquals(List.of("kit"), started, "the sheet is read once, under its own key");
+            assertEquals(new PhysicalSize(4, 4), left.join().size());
+            assertEquals(new PhysicalSize(4, 4), right.join().size());
+            assertSame(right, cache.load(ImageSource.region(sheet, PhysicalRect.of(4, 0, 4, 4))));
+            assertEquals(List.of("kit"), started);
+        }
+
+        @Test
+        @DisplayName("a sheet already decoded hands a region over at once")
+        void sheetAlreadyThere() {
+            var cache = cache(1 << 20);
+            var sheet = named("kit");
+            cache.load(sheet);
+            pending.get("kit").complete(Image.ofArgb(8, 4, new int[32]));
+
+            var region = cache.load(ImageSource.region(sheet, PhysicalRect.of(2, 1, 3, 2)));
+
+            assertTrue(region.isDone());
+            assertEquals(new PhysicalSize(3, 2), region.join().size());
+        }
+
+        @Test
+        @DisplayName("a region off the edge of its sheet fails, and is forgotten")
+        void offTheEdge() {
+            var cache = cache(1 << 20);
+            var sheet = named("kit");
+
+            var region = cache.load(ImageSource.region(sheet, PhysicalRect.of(6, 0, 4, 4)));
+            pending.get("kit").complete(Image.ofArgb(8, 4, new int[32]));
+
+            assertTrue(region.isCompletedExceptionally());
+            assertEquals(1, cache.size(), "the sheet is kept, the bad region is not");
+        }
+
+        @Test
+        @DisplayName("its key is the sheet's and the rectangle, as markup writes it")
+        void key() {
+            assertEquals(
+                    "file:" + Path.of("kit.png").toAbsolutePath().normalize() + "#xywh=29,36,718,306",
+                    ImageSource.region(ImageSource.file(Path.of("kit.png")), PhysicalRect.of(29, 36, 718, 306))
+                            .key());
+        }
     }
 
     @Nested

@@ -19,6 +19,7 @@ import org.junit.jupiter.api.io.TempDir;
 
 import dev.goldberry.image.Image;
 import dev.goldberry.kdl.KdlParser;
+import dev.goldberry.render.model.PhysicalRect;
 import dev.goldberry.widget.Element;
 import dev.goldberry.widget.ElementTree;
 import dev.goldberry.widget.semantics.Role;
@@ -203,6 +204,60 @@ class ImageViewTest {
             assertEquals(
                     List.of(1.0, 2.0),
                     view.variants().stream().map(Variant::scale).toList());
+        }
+
+        @Test
+        @DisplayName("a #xywh= fragment is a region of the sheet, in src and in srcset")
+        void region() {
+            var view = assertInstanceOf(
+                    ImageView.class,
+                    Widgets.inflater().inflate(KdlParser.parse("""
+                    image src="classpath:/ui/kit.png#xywh=29,36,718,306" decorative=#true
+                    """).getFirst()));
+
+            var region = assertInstanceOf(
+                    ImageSource.Region.class, view.variants().getFirst().source());
+            assertEquals(PhysicalRect.of(29, 36, 718, 306), region.rect());
+            var sheet = assertInstanceOf(ImageSource.Resource.class, region.sheet());
+            assertEquals("ui/kit.png", sheet.name());
+
+            var both = assertInstanceOf(
+                    ImageView.class,
+                    Widgets.inflater().inflate(KdlParser.parse("""
+                    image srcset="kit.png#xywh=1,2,3,4 1x, kit@2x.png#xywh=2,4,6,8 2x" decorative=#true
+                    """).getFirst()));
+            assertEquals(
+                    List.of(PhysicalRect.of(1, 2, 3, 4), PhysicalRect.of(2, 4, 6, 8)),
+                    both.variants().stream()
+                            .map(variant -> ((ImageSource.Region) variant.source()).rect())
+                            .toList());
+        }
+
+        @Test
+        @DisplayName("a fragment whose numbers cannot be read fails the document")
+        void malformedRegion() {
+            assertThrows(
+                    RuntimeException.class,
+                    () -> Widgets.inflater()
+                            .inflate(KdlParser.parse("image src=\"kit.png#xywh=1,2,3\" decorative=#true")
+                                    .getFirst()));
+            assertThrows(
+                    RuntimeException.class,
+                    () -> Widgets.inflater()
+                            .inflate(KdlParser.parse("image src=\"kit.png#xywh=1,2,0,4\" decorative=#true")
+                                    .getFirst()));
+        }
+
+        @Test
+        @DisplayName("a region of a picture in hand is cut and drawn on the first frame")
+        void regionOfDecoded() {
+            var sheet = Image.ofArgb(8, 4, new int[32]);
+            var tree = new ElementTree(
+                    ImageView.decorative(ImageSource.region(ImageSource.of(sheet), PhysicalRect.of(4, 0, 4, 4))));
+
+            var box = assertInstanceOf(ImageBox.class, part(tree).widget());
+            var ready = assertInstanceOf(ImageLoad.Ready.class, box.load());
+            assertEquals(4, ready.image().width());
         }
 
         @Test

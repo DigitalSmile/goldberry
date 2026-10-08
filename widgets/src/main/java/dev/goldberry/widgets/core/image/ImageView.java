@@ -23,12 +23,20 @@ import dev.goldberry.widgets.markup.Wiring;
 /// image src="photos/harbour.jpg" alt="The harbour at dusk" fit="cover"
 /// image srcset="classpath:logo.png 1x, classpath:logo@2x.png 2x" alt="Goldberry"
 /// image src="classpath:divider.png" decorative=#true
+/// image src="classpath:/ui/kit.png#xywh=29,36,718,306" decorative=#true
 /// ```
 ///
 /// ```java
 /// new ImageView(ImageSource.file(path), "The harbour at dusk").fit(Fit.COVER)
 /// new ImageView(ImageSource.supplied("avatar:" + id, () -> fetchAvatar(id)), name)
 /// ```
+///
+/// ## One sprite of a sheet
+///
+/// A `#xywh=x,y,width,height` fragment on a path shows that rectangle of the
+/// picture, in its own pixels, and [ImageSource#region] says the same in code.
+/// Every region of one sheet shares the sheet's single decode. A fragment whose
+/// numbers cannot be read is refused when the document is inflated.
 ///
 /// ## Loading is the widget's, and it does not block a frame
 ///
@@ -188,7 +196,11 @@ public record ImageView(
     /// Builds an `image` from markup.
     ///
     /// `src` is one path; `srcset` is several, with `Nx` scales. A path that
-    /// starts `classpath:` is a resource on the application's class loader.
+    /// starts `classpath:` is a resource on the application's class loader, and
+    /// one that ends in `#xywh=x,y,width,height` is that rectangle of it.
+    ///
+    /// @throws IllegalArgumentException for a `#xywh=` fragment that is not four
+    ///         whole numbers with a positive size
     @SuppressWarnings("unused")
     public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
         var loader = Thread.currentThread().getContextClassLoader();

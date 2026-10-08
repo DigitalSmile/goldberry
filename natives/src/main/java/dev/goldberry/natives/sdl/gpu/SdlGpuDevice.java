@@ -25,7 +25,6 @@ import dev.goldberry.natives.sdl.SdlException;
 import dev.goldberry.natives.sdl.SdlSubsystem;
 import dev.goldberry.natives.sdl.SdlWindowHandle;
 import dev.goldberry.natives.sdl.calls.SdlGpuPipelineCalls;
-import dev.goldberry.natives.sdl.calls.SdlGpuResourceCalls;
 import dev.goldberry.natives.sdl.gpu.enums.SdlGpuAddressMode;
 import dev.goldberry.natives.sdl.gpu.enums.SdlGpuBlend;
 import dev.goldberry.natives.sdl.gpu.enums.SdlGpuBufferUsage;
@@ -34,6 +33,7 @@ import dev.goldberry.natives.sdl.gpu.enums.SdlGpuPresentMode;
 import dev.goldberry.natives.sdl.gpu.enums.SdlGpuSampleCount;
 import dev.goldberry.natives.sdl.gpu.enums.SdlGpuShaderFormat;
 import dev.goldberry.natives.sdl.gpu.enums.SdlGpuTextureFormat;
+import dev.goldberry.natives.sdl.gpu.enums.SdlGpuTextureType;
 import dev.goldberry.natives.sdl.gpu.enums.SdlGpuTextureUsage;
 import dev.goldberry.natives.sdl.gpu.enums.SdlGpuTransferUsage;
 
@@ -198,9 +198,15 @@ public final class SdlGpuDevice implements AutoCloseable {
 
     /// Whether this device can make a 2D texture of `format` for `usages`.
     public boolean supports(SdlGpuTextureFormat format, Set<SdlGpuTextureUsage> usages) {
+        return supports(SdlGpuTextureType.TWO_D, format, usages);
+    }
+
+    /// Whether this device can make a texture of `type` and `format` for
+    /// `usages`.
+    public boolean supports(SdlGpuTextureType type, SdlGpuTextureFormat format, Set<SdlGpuTextureUsage> usages) {
         return calls.device()
                 .textureSupportsFormat()
-                .call(handle(), format.value(), SdlGpuResourceCalls.TEXTURETYPE_2D, SdlGpuTextureUsage.mask(usages));
+                .call(handle(), format.value(), type.value(), SdlGpuTextureUsage.mask(usages));
     }
 
     /// Whether this device can make a texture of `format` multisampled at
@@ -223,15 +229,8 @@ public final class SdlGpuDevice implements AutoCloseable {
     /// Creates a 2D texture of `layers` layers (an array when more than one),
     /// `mipLevels` mip levels and `sampleCount` samples per texel.
     ///
-    /// @throws IllegalArgumentException when the size, a count or the usages
-    ///                                  make no texture: more levels than the
-    ///                                  size halves into, or a multisampled
-    ///                                  texture with more than one level or
-    ///                                  layer, or one that is sampled rather
-    ///                                  than a render target
-    /// @throws SdlException             when SDL refuses: a format the device
-    ///                                  cannot make for these usages, or a size
-    ///                                  beyond its limit
+    /// @throws IllegalArgumentException as the form with a type does
+    /// @throws SdlException             as the form with a type does
     public SdlGpuTexture createTexture(
             SdlGpuTextureFormat format,
             int width,
@@ -240,48 +239,118 @@ public final class SdlGpuDevice implements AutoCloseable {
             int mipLevels,
             SdlGpuSampleCount sampleCount,
             Set<SdlGpuTextureUsage> usages) {
+        return createTexture(
+                layers > 1 ? SdlGpuTextureType.TWO_D_ARRAY : SdlGpuTextureType.TWO_D,
+                format,
+                width,
+                height,
+                layers,
+                mipLevels,
+                sampleCount,
+                usages);
+    }
+
+    /// Creates a texture of `type`: `layersOrDepth` is the layers of a 2D
+    /// texture or an array, six for a cube, and the depth of a 3D texture. It
+    /// has `mipLevels` mip levels and `sampleCount` samples per texel.
+    ///
+    /// @throws IllegalArgumentException when the size, a count or the usages
+    ///                                  make no texture: more levels than the
+    ///                                  size halves into; a multisampled
+    ///                                  texture that is not 2D, has more than
+    ///                                  one level, or is sampled rather than a
+    ///                                  render target; a 2D texture of more
+    ///                                  than one layer; a cube that is not
+    ///                                  square or not six layers; a 3D texture
+    ///                                  that is a depth target; or a
+    ///                                  block-compressed texture that is not a
+    ///                                  whole number of blocks, or is anything
+    ///                                  but sampled
+    /// @throws SdlException             when SDL refuses: a format the device
+    ///                                  cannot make for these usages, or a size
+    ///                                  beyond its limit
+    public SdlGpuTexture createTexture(
+            SdlGpuTextureType type,
+            SdlGpuTextureFormat format,
+            int width,
+            int height,
+            int layersOrDepth,
+            int mipLevels,
+            SdlGpuSampleCount sampleCount,
+            Set<SdlGpuTextureUsage> usages) {
+        Objects.requireNonNull(type, "type");
+        Objects.requireNonNull(format, "format");
+        Objects.requireNonNull(sampleCount, "sampleCount");
         if (width <= 0 || height <= 0) {
             throw new IllegalArgumentException("texture " + width + "x" + height);
         }
         if (usages.isEmpty()) {
             throw new IllegalArgumentException("a texture needs at least one usage");
         }
-        if (layers <= 0) {
-            throw new IllegalArgumentException("texture of " + layers + " layers");
+        if (layersOrDepth <= 0) {
+            throw new IllegalArgumentException("texture of " + layersOrDepth + " layers or slices");
         }
-        if (mipLevels <= 0 || mipLevels > maxMipLevels(width, height)) {
+        var depth = type == SdlGpuTextureType.THREE_D ? layersOrDepth : 1;
+        var layers = type == SdlGpuTextureType.THREE_D ? 1 : layersOrDepth;
+        var maxLevels = maxMipLevels(width, height, depth);
+        if (mipLevels <= 0 || mipLevels > maxLevels) {
             throw new IllegalArgumentException(mipLevels + " mip levels; a " + width + "x" + height
-                    + " texture has at most " + maxMipLevels(width, height));
+                    + (depth > 1 ? "x" + depth : "") + " texture has at most " + maxLevels);
         }
-        Objects.requireNonNull(sampleCount, "sampleCount");
+        switch (type) {
+            case TWO_D -> {
+                if (layers != 1) {
+                    throw new IllegalArgumentException("a 2D texture has one layer, not " + layers);
+                }
+            }
+            case TWO_D_ARRAY -> {}
+            case CUBE -> {
+                if (width != height || layers != 6) {
+                    throw new IllegalArgumentException(
+                            "a cube is square with six layers, not " + width + "x" + height + " x" + layers);
+                }
+            }
+            case THREE_D -> {
+                if (usages.contains(SdlGpuTextureUsage.DEPTH_STENCIL_TARGET)) {
+                    throw new IllegalArgumentException("a 3D texture is not a depth target");
+                }
+            }
+        }
         if (sampleCount != SdlGpuSampleCount.ONE) {
-            if (layers > 1 || mipLevels > 1) {
-                throw new IllegalArgumentException("a multisampled texture has one layer and one mip level");
+            if (type != SdlGpuTextureType.TWO_D || mipLevels > 1) {
+                throw new IllegalArgumentException("a multisampled texture is 2D, with one layer and one mip level");
             }
             var targetOnly = EnumSet.of(SdlGpuTextureUsage.COLOR_TARGET, SdlGpuTextureUsage.DEPTH_STENCIL_TARGET);
             if (!targetOnly.containsAll(usages)) {
                 throw new IllegalArgumentException("a multisampled texture is a render target only, not " + usages);
             }
         }
+        if (format.isCompressed()) {
+            if (width % format.blockWidth() != 0 || height % format.blockHeight() != 0) {
+                throw new IllegalArgumentException(format + " is stored in " + format.blockWidth() + "x"
+                        + format.blockHeight() + " blocks, and " + width + "x" + height + " is not whole blocks");
+            }
+            if (!EnumSet.of(SdlGpuTextureUsage.SAMPLER).containsAll(usages)) {
+                throw new IllegalArgumentException(format + " is block-compressed and only sampled, not " + usages);
+            }
+        }
         var info = Layouts.SDL_GPU_TEXTURE_CREATE_INFO;
         try (var arena = Arena.ofConfined()) {
             var createInfo = arena.allocate(info.layout());
-            createInfo.set(
-                    JAVA_INT,
-                    info.offsetOf("type"),
-                    layers > 1 ? SdlGpuResourceCalls.TEXTURETYPE_2D_ARRAY : SdlGpuResourceCalls.TEXTURETYPE_2D);
+            createInfo.set(JAVA_INT, info.offsetOf("type"), type.value());
             createInfo.set(JAVA_INT, info.offsetOf("format"), format.value());
             createInfo.set(JAVA_INT, info.offsetOf("usage"), SdlGpuTextureUsage.mask(usages));
             createInfo.set(JAVA_INT, info.offsetOf("width"), width);
             createInfo.set(JAVA_INT, info.offsetOf("height"), height);
-            createInfo.set(JAVA_INT, info.offsetOf("layer_count_or_depth"), layers);
+            createInfo.set(JAVA_INT, info.offsetOf("layer_count_or_depth"), layersOrDepth);
             createInfo.set(JAVA_INT, info.offsetOf("num_levels"), mipLevels);
             createInfo.set(JAVA_INT, info.offsetOf("sample_count"), sampleCount.value());
             var texture = calls.resources().createGPUTexture().call(handle(), createInfo);
             if (MemorySegment.NULL.equals(texture)) {
                 throw new SdlException("SDL_CreateGPUTexture", Sdl.get().lastError());
             }
-            return new SdlGpuTexture(this, texture, format, width, height, layers, mipLevels, sampleCount, usages);
+            return new SdlGpuTexture(
+                    this, texture, type, format, width, height, depth, layers, mipLevels, sampleCount, usages);
         }
     }
 
@@ -289,6 +358,12 @@ public final class SdlGpuDevice implements AutoCloseable {
     /// halving down to one texel, counting the full-size level.
     public static int maxMipLevels(int width, int height) {
         return 32 - Integer.numberOfLeadingZeros(Math.max(width, height));
+    }
+
+    /// How many mip levels a `width` by `height` by `depth` volume can have:
+    /// one per halving of its longest axis down to one texel.
+    public static int maxMipLevels(int width, int height, int depth) {
+        return maxMipLevels(Math.max(width, depth), height);
     }
 
     /// Creates a transfer buffer of `size` bytes.
@@ -454,6 +529,8 @@ public final class SdlGpuDevice implements AutoCloseable {
                 createInfo.set(
                         JAVA_INT, info.offsetOf(axis), description.addressMode().value());
             }
+            createInfo.set(JAVA_BOOLEAN, info.offsetOf("enable_anisotropy"), description.isAnisotropic());
+            createInfo.set(JAVA_FLOAT, info.offsetOf("max_anisotropy"), description.maxAnisotropy());
             var compare = description.compare();
             createInfo.set(JAVA_BOOLEAN, info.offsetOf("enable_compare"), compare.isPresent());
             if (compare.isPresent()) {

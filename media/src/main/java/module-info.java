@@ -41,7 +41,10 @@ module dev.goldberry.media {
     /// application's module graph, and draws them on the CPU when it is not.
     /// `static`, so an application that ships no GPU module plays video all the
     /// same; `:gpu` exports its video package to this module alone.
-    requires static dev.goldberry.gpu;
+    /// `transitive`, because [dev.goldberry.media.gpu.PictureRenderer]'s
+    /// signatures name `:gpu`'s frame and render target, and a consumer
+    /// compiling against them has to be able to read them.
+    requires transitive static dev.goldberry.gpu;
 
     /// The controls `audio-player` is built from. `transitive` because an
     /// [dev.goldberry.media.view.AudioPlayer] is a widget.
@@ -86,6 +89,11 @@ module dev.goldberry.media {
     /// The widgets: `audio-player`, `video-view`, `media-controls` and
     /// `media-player`.
     exports dev.goldberry.media.view;
+
+    /// A player's pictures drawn into an application's own textures:
+    /// [dev.goldberry.media.gpu.PictureRenderer]. The only exported package that
+    /// names `:gpu`'s types, and loaded only by an application that calls it.
+    exports dev.goldberry.media.gpu;
 
     /// The system decoders, listed for an application that builds its player's
     /// providers itself: [dev.goldberry.media.platform.PlatformDecoders].

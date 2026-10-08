@@ -17,7 +17,9 @@ import dev.goldberry.layout.Wrap;
 import dev.goldberry.layout.Justify;
 import dev.goldberry.layout.Length;
 import dev.goldberry.text.Paragraph;
+import dev.goldberry.text.SpanPaint;
 import dev.goldberry.text.flow.TextFlow;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
@@ -112,13 +114,26 @@ public record Box(
     /// answer depends on `text-overflow`. It rides here rather than as a
     /// component of [Box] because the thing it modifies is the paragraph.
     ///
+    /// `spans` are the stretches of a styled paragraph drawn in a colour or with
+    /// rules of their own, a `rich-text`'s runs. Empty for every other text, and
+    /// then `argb` and `flow` say everything. They ride with the colour rather
+    /// than with the paragraph, so a run that changes colour is a repaint and not
+    /// a shaping.
+    ///
     /// @param paragraph the text, already shaped
     /// @param argb      `0xAARRGGBB`, not premultiplied
     /// @param flow      whether it may break, and what marks it where it does not
-    public record Text(Paragraph paragraph, int argb, TextFlow flow) {
+    /// @param spans     the stretches drawn otherwise, by offset into the text
+    public record Text(Paragraph paragraph, int argb, TextFlow flow, List<SpanPaint> spans) {
         public Text {
             Objects.requireNonNull(paragraph, "paragraph");
             Objects.requireNonNull(flow, "flow");
+            spans = List.copyOf(Objects.requireNonNull(spans, "spans"));
+        }
+
+        /// Text in one colour, which is nearly all of it.
+        public Text(Paragraph paragraph, int argb, TextFlow flow) {
+            this(paragraph, argb, flow, List.of());
         }
 
         /// Text that wraps and marks nothing — CSS's initial values for both.
@@ -128,7 +143,16 @@ public record Box(
 
         /// This, with a different flow.
         public Text flow(TextFlow value) {
-            return new Text(paragraph, argb, value);
+            return new Text(paragraph, argb, value, spans);
+        }
+
+        /// This at `alpha` of its opacity, its spans included.
+        Text fade(double alpha) {
+            var faded = new ArrayList<SpanPaint>(spans.size());
+            for (var span : spans) {
+                faded.add(span.argb(CssColor.fade(span.argb(), alpha)));
+            }
+            return new Text(paragraph, CssColor.fade(argb, alpha), flow, faded);
         }
     }
 
@@ -909,7 +933,7 @@ public record Box(
                 transform,
                 cursor, direction, justifyContent, alignItems, alignSelf, alignContent, wrap, width, height, limits, margin,
                 padding, rowGap, columnGap, flexGrow, flexShrink, flexBasis, position, inset, elevated, overflow,
-                text == null ? null : new Text(text.paragraph(), CssColor.fade(text.argb(), alpha), text.flow()),
+                text == null ? null : text.fade(alpha),
                 icon == null ? null : new Glyph(icon.icon(), CssColor.fade(icon.argb(), alpha)),
                 mark == null ? null : mark.fade(alpha),
                 painting, // Not applied to the children here. The painter walks the tree
@@ -985,7 +1009,7 @@ public record Box(
                 // `white-space` and `text-overflow` reach the paragraph exactly
                 // as `color` does — a `text` element is one box with one style,
                 // and the cascade is where both were resolved.
-                text == null ? null : new Text(text.paragraph(), style.color(), style.textFlow()),
+                text == null ? null : new Text(text.paragraph(), style.color(), style.textFlow(), text.spans()),
                 // `color` reaches an icon exactly as it reaches text: Lucide's
                 // set is drawn to be tinted, and a stylesheet saying `color`
                 // means the same thing to both.

@@ -25,7 +25,9 @@ public enum Position {
     RELATIVE,
 
     /// Taken out of flow entirely and placed against its containing block's
-    /// **padding** box — which is CSS's rule, and not the border box a reader
-    /// might expect.
+    /// **padding** box, which is CSS's rule: inside the border and outside the
+    /// padding, so `top: 0; right: 0` is the inner corner of the border and not
+    /// the corner of the content. An edge given no inset keeps the static
+    /// position, where a child in flow would start.
     ABSOLUTE
 }

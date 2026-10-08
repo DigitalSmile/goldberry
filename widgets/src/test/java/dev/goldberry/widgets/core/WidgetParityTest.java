@@ -318,15 +318,18 @@ class WidgetParityTest {
     /// have noticed the widget next to it going unstyled, because a list contains
     /// what it was written to contain. Asked of the catalog, the same question
     /// covers all 72.
-    /// The four the sweep found: registered widgets the base stylesheet names
-    /// nowhere, and why each one is right to have no rule.
+    /// The ones the sweep found, and the styled paragraph after them: registered
+    /// widgets the base stylesheet names nowhere, and why each one is right to
+    /// have no rule.
     ///
     /// Every one of them paints nothing of its own, so a default rule would be a
     /// colour nobody asked for rather than an appearance. An application can
     /// still select all four; what the toolkit does not do is get there first.
     private static final Map<String, String> UNSTYLED = Map.of(
             "spacer", "a gap: it has a size and no surface",
-            "sparkline", "inherits `color` like text, deliberately — see its own doc comment");
+            "sparkline", "inherits `color` like text, deliberately — see its own doc comment",
+            "rich-text", "a paragraph, which inherits `color` and its font as `text` does",
+            "run", "words in a paragraph: which of them stand out, and how, is the application's");
 
     /// `canvas` left this list, and the reason is worth keeping because the
     /// rationale it left with is still true.

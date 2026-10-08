@@ -7,21 +7,27 @@ import java.util.Set;
 
 import dev.goldberry.natives.sdl.gpu.enums.SdlGpuSampleCount;
 import dev.goldberry.natives.sdl.gpu.enums.SdlGpuTextureFormat;
+import dev.goldberry.natives.sdl.gpu.enums.SdlGpuTextureType;
 import dev.goldberry.natives.sdl.gpu.enums.SdlGpuTextureUsage;
 
-/// A 2D texture on a [SdlGpuDevice]: one or more layers, one or more mip
-/// levels, and one or more samples per texel.
+/// A texture on a [SdlGpuDevice]: one or more layers, one or more mip levels,
+/// and one or more samples per texel, of one [SdlGpuTextureType].
 ///
-/// A texture with more than one layer is SDL's `2D_ARRAY` type. One with more
-/// than one sample is a render target only. Level `n` is half the size of level
-/// `n - 1`, rounded down and never below one texel.
+/// A 2D texture with more than one layer is SDL's `2D_ARRAY` type, and a cube
+/// has six, its faces. A 3D texture has one layer and a depth, and its
+/// sub-resources are its depth slices: where a method takes a `layer`, a
+/// volume takes a slice. One with more than one sample is a render target only.
+/// Level `n` is half the size of level `n - 1` on every axis, rounded down and
+/// never below one texel.
 ///
 /// Read more: [The native boundary](https://goldberry.dev/docs/overview/architecture.html#the-native-boundary).
 public final class SdlGpuTexture extends SdlGpuResource implements SdlGpuTarget {
 
+    private final SdlGpuTextureType type;
     private final SdlGpuTextureFormat format;
     private final int width;
     private final int height;
+    private final int depth;
     private final int layers;
     private final int mipLevels;
     private final SdlGpuSampleCount sampleCount;
@@ -30,21 +36,30 @@ public final class SdlGpuTexture extends SdlGpuResource implements SdlGpuTarget 
     SdlGpuTexture(
             SdlGpuDevice device,
             MemorySegment handle,
+            SdlGpuTextureType type,
             SdlGpuTextureFormat format,
             int width,
             int height,
+            int depth,
             int layers,
             int mipLevels,
             SdlGpuSampleCount sampleCount,
             Set<SdlGpuTextureUsage> usages) {
         super(device, handle);
+        this.type = type;
         this.format = format;
         this.width = width;
         this.height = height;
+        this.depth = depth;
         this.layers = layers;
         this.mipLevels = mipLevels;
         this.sampleCount = sampleCount;
         this.usages = Collections.unmodifiableSet(EnumSet.copyOf(usages));
+    }
+
+    /// What shape it is.
+    public SdlGpuTextureType type() {
+        return type;
     }
 
     /// The pixel format.
@@ -62,7 +77,12 @@ public final class SdlGpuTexture extends SdlGpuResource implements SdlGpuTarget 
         return height;
     }
 
-    /// How many layers it has: one, or more for an array.
+    /// How many slices deep level 0 is: one for every type but 3D.
+    public int depth() {
+        return depth;
+    }
+
+    /// How many layers it has: one, more for an array, and six for a cube.
     public int layers() {
         return layers;
     }
@@ -91,12 +111,24 @@ public final class SdlGpuTexture extends SdlGpuResource implements SdlGpuTarget 
         return Math.max(1, height >> requireLevel(level));
     }
 
-    /// Checks `level` and `layer` name a sub-resource of this texture.
+    /// How many slices deep mip level `level` is: one for every type but 3D.
+    ///
+    /// @throws IllegalArgumentException when there is no such level
+    public int levelDepth(int level) {
+        return Math.max(1, depth >> requireLevel(level));
+    }
+
+    /// Checks `level` and `layer` name a sub-resource of this texture: for a
+    /// 3D texture, `layer` is a depth slice of the level.
     ///
     /// @throws IllegalArgumentException when either is out of range
     public void requireSubresource(int level, int layer) {
         requireLevel(level);
-        if (layer < 0 || layer >= layers) {
+        if (type == SdlGpuTextureType.THREE_D) {
+            if (layer < 0 || layer >= levelDepth(level)) {
+                throw new IllegalArgumentException(this + " has no slice " + layer + " at mip level " + level);
+            }
+        } else if (layer < 0 || layer >= layers) {
             throw new IllegalArgumentException(this + " has no layer " + layer);
         }
     }
@@ -113,9 +145,10 @@ public final class SdlGpuTexture extends SdlGpuResource implements SdlGpuTarget 
         return usages;
     }
 
-    /// How many bytes `region` of this texture takes, packed row after row.
+    /// How many bytes `region` of this texture takes, packed row after row: in
+    /// rows of whole blocks, for a block-compressed format.
     public long byteSize(SdlGpuRegion region) {
-        return (long) region.width() * region.height() * format.bytesPerPixel();
+        return format.byteSize(region.width(), region.height());
     }
 
     @Override
@@ -126,7 +159,8 @@ public final class SdlGpuTexture extends SdlGpuResource implements SdlGpuTarget 
     @Override
     public String toString() {
         return "SdlGpuTexture[" + format + " " + width + "x" + height
-                + (layers > 1 ? " x" + layers + " layers" : "")
+                + (type == SdlGpuTextureType.THREE_D ? "x" + depth : "")
+                + (type == SdlGpuTextureType.CUBE ? " cube" : layers > 1 ? " x" + layers + " layers" : "")
                 + (mipLevels > 1 ? ", " + mipLevels + " levels" : "")
                 + (sampleCount != SdlGpuSampleCount.ONE ? ", " + sampleCount.samples() + " samples" : "")
                 + "]";

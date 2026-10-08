@@ -168,10 +168,40 @@ final class Book {
 
     /** Every heading in a chapter, as written, marks removed. */
     static List<String> headings(String page) {
-        return text(page).lines()
+        return headingsIn(text(page));
+    }
+
+    /** Every heading in a Markdown text, as written, marks removed. */
+    static List<String> headingsIn(String text) {
+        return text.lines()
                 .map(HEADING::matcher)
                 .filter(java.util.regex.Matcher::matches)
                 .map(match -> match.group(2))
+                .toList();
+    }
+
+    /**
+     * Where guide text waits for a release, outside the book: sections written
+     * for a chapter between releases, which the book does not change in. Not
+     * built and not linked; only the widget rules read it.
+     */
+    static final String PARKED = "docs/snapshot/";
+
+    /** The parked guide files, as paths from the repository root; the records in its subfolder are not guide text. */
+    static List<String> parked() {
+        return Repository.files(PARKED + "*.md");
+    }
+
+    /** A parked file's text, by its path from the repository root. */
+    static String parkedText(String file) {
+        return Repository.read(file);
+    }
+
+    /** Every link a parked file writes, read as if it were written in {@code chapter}, where it will go. */
+    static List<Link> parkedLinks(String file, String chapter) {
+        return LINK.matcher(parkedText(file)).results()
+                .map(match -> match.group(1) != null ? match.group(1) : match.group(2))
+                .map(href -> Link.parse(chapter, href))
                 .toList();
     }
 

@@ -2,9 +2,9 @@
 
 The guide and the site are not adjusted between releases. Everything a change
 would have put into `book/` goes here instead, and moves into the book in the
-release commit. This folder holds the two batches that closed the Gwent clone's issue list:
-GB-005 to GB-012, written 2026-10-05 and 2026-10-06, and GB-013 to GB-018,
-written 2026-10-06.
+release commit. This folder holds the three batches that closed the Gwent clone's issue list:
+GB-005 to GB-012, written 2026-10-05 and 2026-10-06, GB-013 to GB-018,
+written 2026-10-06, and GB-019 to GB-031, written 2026-10-08.
 
 ## What is here, and where it goes
 
@@ -18,6 +18,10 @@ written 2026-10-06.
 | `adr/0567-…` | `book/src/adr/` | The guide is neutral: the rewrite itself went into `book/` on 2026-10-06 at the user's request, with the `BookTest` guard; only this record waits here |
 | `adr/0569-…` to `adr/0574-…` | `book/src/adr/` | Six records for GB-013 to GB-018. Contiguous with 0568; renumber with the rest if records landed in between, and fix the references 0571 → 0564, 0573 → 0562 and 0566, 0574 → 0563 |
 | `guide-writing-a-widget.md` | `book/src/guide/writing-a-widget.md`, in `## The three shapes` | One paragraph and a sample: `State.context()` from `initState` |
+| `adr/0575-…` to `adr/0586-…` | `book/src/adr/` | Twelve records for GB-019 to GB-031 (GB-019 and GB-020 share 0577). Contiguous with 0574; renumber with the rest if records landed in between, and fix the references 0575 → 0265 and 0272, 0580 ↔ 0581, 0584 ↔ 0579, 0585 ↔ 0584 |
+| `guide-input-accelerators.md` | `book/src/guide/input.md`, `## Accelerators`, after the owner paragraph | `Repeat.IGNORE` for toggles, and `session.hold` |
+| `components-rich-text.md` | `book/src/components/text.md`, between `## \`text\`` and `## \`link\``; two rows and the card list in `components/index.md`; one sentence in `### Wrapping and cutting`; the `Rich text` row of `overview/limitations.md` | GB-021. `BookTest` reads its headings and catalogue rows from here until it moves, and fails on a name documented in both places, so delete it with the folder. `:example:test` takes `rich-text-{light,dark}.webp` once it is in the book. The doc comments of `RichText` and `Run` switch from `#text` to `#rich-text` then |
+| `styling-images.md` | `book/src/guide/styling.md` (`### Backgrounds and gradients`, end of `### Border, outline and shadow`) and `book/src/components/drawing.md` (`## image`, `src` row) | GB-024 to GB-026, three pieces, each says where it goes: `url()` layers with size and repeat, `border-image`, regions of a sheet |
 
 ## Doc comments that point at the guide
 

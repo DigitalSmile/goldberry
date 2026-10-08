@@ -320,7 +320,7 @@ class VideoOnGpuTest {
         var golden = Image.decode(Path.of(
                 "src", "test", "resources", "golden", "video", fixture.replace('.', '-') + "-" + millis + "ms.png"));
         try (var layer = new dev.goldberry.gpu.video.VideoLayer()) {
-            layer.show(GpuVideoPresenter.image(planes));
+            layer.show(Pictures.image(planes));
             java.util.function.Function<GpuSurface, Image> picture = surface -> Offscreen.of(160, 90)
                     .gpu(surface)
                     .paint((frame, size) -> assertTrue(frame.gpuLayer(layer, 0, 0, size.width(), size.height())));

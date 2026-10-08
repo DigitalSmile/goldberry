@@ -4,10 +4,12 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Supplier;
+import java.util.regex.Pattern;
 
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
@@ -17,6 +19,8 @@ import dev.goldberry.css.parse.CssParser;
 import dev.goldberry.css.parse.CssSyntaxException;
 import dev.goldberry.css.parse.DroppedRule;
 import dev.goldberry.css.parse.ParseMode;
+import dev.goldberry.css.parse.Token;
+import dev.goldberry.css.parse.TokenType;
 import dev.goldberry.log.Logs;
 
 /// A parsed stylesheet and the layer of the cascade it belongs to.
@@ -151,11 +155,127 @@ public record Stylesheet(
             if (in == null) {
                 throw new IllegalStateException(missing(owner, name));
             }
-            return parse(layer, new String(in.readAllBytes(), StandardCharsets.UTF_8), mode, name);
+            return parse(layer, new String(in.readAllBytes(), StandardCharsets.UTF_8), mode, name)
+                    .anchoredAt(owner, name);
         } catch (IOException e) {
             throw new UncheckedIOException("could not read " + name, e);
         }
     }
+
+    /// This sheet with every relative `url("…")` in it made a resource beside
+    /// the sheet: `url("ui/panel.png")` in `app/app.css` is
+    /// `classpath:/app/ui/panel.png`, the way [Class#getResource] reads a name
+    /// beside a class. A name starting with `/` is from the root, and an address
+    /// with a scheme of its own, such as `classpath:`, is left as it is.
+    private Stylesheet anchoredAt(Class<?> owner, String name) {
+        var path = name.startsWith("/")
+                ? name.substring(1)
+                : owner.getPackageName().replace('.', '/') + "/" + name;
+        var slash = path.lastIndexOf('/');
+        var directory = slash < 0 ? "" : path.substring(0, slash + 1);
+        var changed = new boolean[1];
+        var anchoredRules = rules.stream()
+                .map(rule -> {
+                    var declarations = anchored(rule.declarations(), directory, changed);
+                    return declarations == rule.declarations()
+                            ? rule
+                            : new StyleRule(
+                                    rule.selectors(), declarations, rule.order(), rule.starting(), rule.media());
+                })
+                .toList();
+        var anchoredKeyframes = keyframes.stream()
+                .map(block -> new Keyframes(
+                        block.name(),
+                        block.frames().stream()
+                                .map(frame -> new Keyframes.Frame(
+                                        frame.offset(), anchored(frame.declarations(), directory, changed)))
+                                .toList()))
+                .toList();
+        return changed[0] ? new Stylesheet(layer, anchoredRules, anchoredKeyframes, origin, dropped) : this;
+    }
+
+    /// `declarations` with their relative addresses anchored in `directory`, or
+    /// the same list when none has one.
+    private static List<Declaration> anchored(List<Declaration> declarations, String directory, boolean[] changed) {
+        var result = new ArrayList<Declaration>(declarations.size());
+        var any = false;
+        for (var declaration : declarations) {
+            var value = anchored(declaration.value(), directory);
+            if (value != declaration.value()) {
+                any = true;
+                result.add(new Declaration(
+                        declaration.property(),
+                        value,
+                        declaration.important(),
+                        declaration.line(),
+                        declaration.column()));
+            } else {
+                result.add(declaration);
+            }
+        }
+        if (!any) {
+            return declarations;
+        }
+        changed[0] = true;
+        return List.copyOf(result);
+    }
+
+    /// `value` with the string of each relative `url("…")` made a `classpath:`
+    /// name in `directory`, or the same list when it has none.
+    private static List<Token> anchored(List<Token> value, String directory) {
+        @Nullable List<Token> result = null;
+        var inUrl = false;
+        for (var i = 0; i < value.size(); i++) {
+            var token = value.get(i);
+            if (token.is(TokenType.FUNCTION) && token.text().equalsIgnoreCase("url")) {
+                inUrl = true;
+                continue;
+            }
+            if (inUrl && token.is(TokenType.STRING)) {
+                inUrl = false;
+                var href = token.text();
+                if (!href.isEmpty() && !SCHEME.matcher(href).lookingAt()) {
+                    var resolved = href.startsWith("/") ? href.substring(1) : normalize(directory + href);
+                    if (result == null) {
+                        result = new ArrayList<>(value);
+                    }
+                    result.set(
+                            i,
+                            new Token(
+                                    TokenType.STRING,
+                                    "classpath:/" + resolved,
+                                    token.numeric(),
+                                    token.unit(),
+                                    token.line(),
+                                    token.column()));
+                }
+                continue;
+            }
+            if (!token.is(TokenType.WHITESPACE)) {
+                inUrl = false;
+            }
+        }
+        return result == null ? value : List.copyOf(result);
+    }
+
+    /// A resource name with its `.` and `..` segments taken out.
+    private static String normalize(String name) {
+        var segments = new ArrayList<String>();
+        for (var segment : name.split("/", -1)) {
+            if (segment.equals("..")) {
+                if (!segments.isEmpty()) {
+                    segments.removeLast();
+                }
+            } else if (!segment.equals(".") && !segment.isEmpty()) {
+                segments.add(segment);
+            }
+        }
+        return String.join("/", segments);
+    }
+
+    /// The start of an address with a scheme of its own, such as `classpath:`,
+    /// or a drive letter, none of which is relative to a sheet.
+    private static final Pattern SCHEME = Pattern.compile("[A-Za-z][A-Za-z0-9+.-]*:");
 
     /// Parses a stylesheet from a stream the application opens, under
     /// [#defaultMode].

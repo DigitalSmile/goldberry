@@ -4,6 +4,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 import dev.goldberry.image.Image;
 
@@ -17,6 +18,11 @@ import dev.goldberry.image.Image;
 /// **It holds futures, not images**, so two views asking for one file in the
 /// same frame share one decode rather than racing two. A load that fails is
 /// forgotten when it fails, so a file that appears later is read again.
+///
+/// **A region is cut from its sheet's entry.** An [ImageSource.Region] is never
+/// read itself: its sheet is loaded under the sheet's own key, so every sprite
+/// of one sheet shares the sheet's one decode, and the region's cut is kept
+/// under its own key beside it.
 ///
 /// Bounded by bytes rather than by count, because a count treats a 16×16 icon
 /// and a 6000×4000 photograph as the same cost. Least recently used goes first;
@@ -52,6 +58,14 @@ final class ImageCache implements ImageLoader {
             // long as the process runs. See [ImageSource#key()].
             return runner.apply(source);
         }
+        if (source instanceof ImageSource.Region(var sheet, var rect)) {
+            return remember(key, () -> load(sheet).thenApply(image -> image.cropped(rect)));
+        }
+        return remember(key, () -> runner.apply(source));
+    }
+
+    /// The entry under `key`, or a new one started by `work`.
+    private CompletableFuture<Image> remember(String key, Supplier<CompletableFuture<Image>> work) {
         CompletableFuture<Image> started;
         synchronized (this) {
             var existing = entries.get(key);
@@ -61,7 +75,7 @@ final class ImageCache implements ImageLoader {
             started = new CompletableFuture<>();
             entries.put(key, started);
         }
-        var _ = runner.apply(source).whenComplete((image, failure) -> {
+        var _ = work.get().whenComplete((image, failure) -> {
             synchronized (this) {
                 if (failure != null) {
                     entries.remove(key, started);

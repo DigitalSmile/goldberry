@@ -54,6 +54,20 @@ final class TestShaders {
                 ShaderStage.FRAGMENT, DIRECTORY + "shadowed.frag", 2, 1, TestShaders.class::getResourceAsStream);
     }
 
+    /// `cube.frag`: a cube texture sampled along one direction, a `float3` in
+    /// fragment uniform block 0.
+    static ShaderCode cubeFragment() {
+        return ShaderCode.load(
+                ShaderStage.FRAGMENT, DIRECTORY + "cube.frag", 1, 1, TestShaders.class::getResourceAsStream);
+    }
+
+    /// `volume.frag`: a 3D texture sampled at the pixel's texture coordinate
+    /// and a depth, a float in fragment uniform block 0.
+    static ShaderCode volumeFragment() {
+        return ShaderCode.load(
+                ShaderStage.FRAGMENT, DIRECTORY + "volume.frag", 1, 1, TestShaders.class::getResourceAsStream);
+    }
+
     /// `depthonly.frag`: writes nothing, for a pipeline with no colour target.
     static ShaderCode depthOnlyFragment() {
         return ShaderCode.load(

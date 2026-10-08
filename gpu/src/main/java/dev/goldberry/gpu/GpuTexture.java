@@ -5,10 +5,11 @@ import java.util.Set;
 import dev.goldberry.natives.sdl.gpu.SdlGpuTexture;
 import dev.goldberry.render.model.PhysicalRect;
 
-/// A 2D texture on a [GpuDevice], made to a [TextureSpec]: sampled by shaders,
+/// A texture on a [GpuDevice], made to a [TextureSpec]: sampled by shaders,
 /// rendered into, uploaded to, read back, or tested as depth, as its usages
 /// allow. As a [RenderTarget] it is its level 0 of layer 0; [#view], [#level]
-/// and [#layer] name the others.
+/// and [#layer] name the others, [#face] a cube's faces and [#slice] a
+/// volume's slices.
 public final class GpuTexture extends GpuResource implements RenderTarget {
 
     private final SdlGpuTexture sdl;
@@ -38,6 +39,16 @@ public final class GpuTexture extends GpuResource implements RenderTarget {
     @Override
     public int height() {
         return spec.height();
+    }
+
+    /// What shape it is.
+    public TextureType type() {
+        return spec.type();
+    }
+
+    /// How many slices deep level 0 is: one for every type but a volume.
+    public int depth() {
+        return spec.depth();
     }
 
     /// How many layers it has.
@@ -81,6 +92,30 @@ public final class GpuTexture extends GpuResource implements RenderTarget {
         return new TextureView(this, 0, layer);
     }
 
+    /// Face `face` of mip level `level` of a cube: what a render pass draws a
+    /// face into and a [CopyPass] uploads a face to.
+    ///
+    /// @throws IllegalArgumentException when the texture is not a cube, or
+    ///                                  has no such level
+    public TextureView face(CubeFace face, int level) {
+        if (spec.type() != TextureType.CUBE) {
+            throw new IllegalArgumentException(this + " is not a cube, and has no faces");
+        }
+        return new TextureView(this, level, face.layer());
+    }
+
+    /// Depth slice `z` of mip level `level` of a volume: what a [CopyPass]
+    /// uploads a slice to.
+    ///
+    /// @throws IllegalArgumentException when the texture is not a volume, or
+    ///                                  the level or slice does not exist
+    public TextureView slice(int level, int z) {
+        if (spec.type() != TextureType.THREE_D) {
+            throw new IllegalArgumentException(this + " is not a volume, and has no slices");
+        }
+        return new TextureView(this, level, z);
+    }
+
     /// Whether `region` lies inside level 0.
     public boolean contains(PhysicalRect region) {
         return region.x() >= 0
@@ -98,7 +133,12 @@ public final class GpuTexture extends GpuResource implements RenderTarget {
     @Override
     public String toString() {
         return "GpuTexture[" + spec.format() + " " + spec.width() + "x" + spec.height()
-                + (spec.layers() > 1 ? " x" + spec.layers() + " layers" : "")
+                + switch (spec.type()) {
+                    case TWO_D -> "";
+                    case TWO_D_ARRAY -> " x" + spec.layers() + " layers";
+                    case CUBE -> " cube";
+                    case THREE_D -> "x" + spec.depth() + " volume";
+                }
                 + (spec.mipLevels() > 1 ? ", " + spec.mipLevels() + " levels" : "")
                 + (spec.samples() > 1 ? ", " + spec.samples() + " samples" : "")
                 + (isClosed() ? ", closed]" : "]");

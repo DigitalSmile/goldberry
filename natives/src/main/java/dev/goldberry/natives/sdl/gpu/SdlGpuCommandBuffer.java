@@ -26,6 +26,7 @@ import dev.goldberry.natives.sdl.gpu.enums.SdlGpuFilter;
 import dev.goldberry.natives.sdl.gpu.enums.SdlGpuIndexSize;
 import dev.goldberry.natives.sdl.gpu.enums.SdlGpuSampleCount;
 import dev.goldberry.natives.sdl.gpu.enums.SdlGpuTextureFormat;
+import dev.goldberry.natives.sdl.gpu.enums.SdlGpuTextureType;
 import dev.goldberry.natives.sdl.gpu.enums.SdlGpuTextureUsage;
 import dev.goldberry.natives.sdl.gpu.enums.SdlGpuTransferUsage;
 
@@ -1397,13 +1398,16 @@ public final class SdlGpuCommandBuffer {
 
         /// Records a copy of `region`'s pixels, packed row after row from byte
         /// `offset` of `source`, into mip level `level` of layer `layer` of
-        /// `destination`. The region is in the level's texels.
+        /// `destination`: of depth slice `layer`, for a 3D texture. The region
+        /// is in the level's texels. For a block-compressed format the rows are
+        /// rows of blocks, and the region starts on a block and ends on one or
+        /// at the level's edge.
         ///
         /// @param cycle take fresh texture memory if the GPU still reads the old,
         ///              rather than wait for it
         /// @throws IllegalArgumentException when the level or layer does not
         ///                                  exist, or the region is outside the
-        ///                                  level
+        ///                                  level or not on its blocks
         public void upload(
                 SdlGpuTransferBuffer source,
                 int offset,
@@ -1420,7 +1424,7 @@ public final class SdlGpuCommandBuffer {
                         .uploadToGPUTexture()
                         .call(
                                 pass,
-                                transferInfo(arena, source, offset, region),
+                                transferInfo(arena, source, offset, destination, region),
                                 region(arena, destination, level, layer, region),
                                 cycle);
             }
@@ -1457,7 +1461,7 @@ public final class SdlGpuCommandBuffer {
                         .call(
                                 pass,
                                 region(arena, source, level, layer, region),
-                                transferInfo(arena, destination, offset, region));
+                                transferInfo(arena, destination, offset, source, region));
             }
         }
 
@@ -1594,8 +1598,17 @@ public final class SdlGpuCommandBuffer {
                 throw new IllegalStateException(buffer + " is mapped; SDL copies only unmapped buffers");
             }
             texture.requireSubresource(level, layer);
-            if (!region.fitsIn(texture.levelWidth(level), texture.levelHeight(level))) {
+            var levelWidth = texture.levelWidth(level);
+            var levelHeight = texture.levelHeight(level);
+            if (!region.fitsIn(levelWidth, levelHeight)) {
                 throw new IllegalArgumentException(region + " is outside level " + level + " of " + texture);
+            }
+            var format = texture.format();
+            if (!onBlocks(region.x(), region.width(), format.blockWidth(), levelWidth)
+                    || !onBlocks(region.y(), region.height(), format.blockHeight(), levelHeight)) {
+                throw new IllegalArgumentException(region + " of level " + level + " of " + texture
+                        + " does not start and end on its " + format.blockWidth() + "x" + format.blockHeight()
+                        + " blocks");
             }
             if (offset < 0 || offset + texture.byteSize(region) > buffer.size()) {
                 throw new IllegalArgumentException(
@@ -1603,14 +1616,29 @@ public final class SdlGpuCommandBuffer {
             }
         }
 
+        /// Whether a span from `start`, `length` long, starts on a block and
+        /// ends on one or at the edge `extent` away.
+        private static boolean onBlocks(int start, int length, int block, int extent) {
+            return start % block == 0 && (length % block == 0 || start + length == extent);
+        }
+
         private static MemorySegment transferInfo(
-                Arena arena, SdlGpuTransferBuffer buffer, int offset, SdlGpuRegion region) {
+                Arena arena, SdlGpuTransferBuffer buffer, int offset, SdlGpuTexture texture, SdlGpuRegion region) {
             var info = Layouts.SDL_GPU_TEXTURE_TRANSFER_INFO;
             var segment = arena.allocate(info.layout());
+            var format = texture.format();
             segment.set(ADDRESS, info.offsetOf("transfer_buffer"), buffer.handle());
             segment.set(JAVA_INT, info.offsetOf("offset"), offset);
-            segment.set(JAVA_INT, info.offsetOf("pixels_per_row"), region.width());
-            segment.set(JAVA_INT, info.offsetOf("rows_per_layer"), region.height());
+            // In texels, but whole blocks of them: a compressed row is a row of
+            // blocks, and Vulkan takes a row length that is a whole number of them.
+            segment.set(
+                    JAVA_INT,
+                    info.offsetOf("pixels_per_row"),
+                    Math.ceilDiv(region.width(), format.blockWidth()) * format.blockWidth());
+            segment.set(
+                    JAVA_INT,
+                    info.offsetOf("rows_per_layer"),
+                    Math.ceilDiv(region.height(), format.blockHeight()) * format.blockHeight());
             return segment;
         }
 
@@ -1618,11 +1646,15 @@ public final class SdlGpuCommandBuffer {
                 Arena arena, SdlGpuTexture texture, int level, int layer, SdlGpuRegion region) {
             var info = Layouts.SDL_GPU_TEXTURE_REGION;
             var segment = arena.allocate(info.layout());
+            // A 3D texture has one layer, and its sub-resources are depth slices:
+            // the slice is the region's z, and its layer is 0.
+            var volume = texture.type() == SdlGpuTextureType.THREE_D;
             segment.set(ADDRESS, info.offsetOf("texture"), texture.handle());
             segment.set(JAVA_INT, info.offsetOf("mip_level"), level);
-            segment.set(JAVA_INT, info.offsetOf("layer"), layer);
+            segment.set(JAVA_INT, info.offsetOf("layer"), volume ? 0 : layer);
             segment.set(JAVA_INT, info.offsetOf("x"), region.x());
             segment.set(JAVA_INT, info.offsetOf("y"), region.y());
+            segment.set(JAVA_INT, info.offsetOf("z"), volume ? layer : 0);
             segment.set(JAVA_INT, info.offsetOf("w"), region.width());
             segment.set(JAVA_INT, info.offsetOf("h"), region.height());
             segment.set(JAVA_INT, info.offsetOf("d"), 1);

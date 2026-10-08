@@ -4,6 +4,8 @@ import java.util.Objects;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
+import dev.goldberry.css.background.GradientLayer;
+import dev.goldberry.css.image.CssImage;
 import dev.goldberry.css.value.Affine;
 import dev.goldberry.layout.Length;
 import dev.goldberry.natives.blend2d.BlendPath;
@@ -177,17 +179,28 @@ public final class BoxPainter {
             }
         }
 
-        var layers = box.fill().layers();
+        var fill = box.fill();
+        var layers = fill.layers();
         if (!layers.isEmpty() && width > 0 && height > 0) {
             // Over the colour, last first: the first layer written is on top.
             // Each fills the box's own shape, so a gradient on a rounded card
-            // is rounded too. The ramp is placed in the frame's coordinates,
-            // which is where this box is.
-            path.reset();
-            RoundRect.addTo(path, 0, 0, width, height, decoration.corners());
-            var position = box.fill().position();
+            // is rounded too, and so is a picture. The ramp is placed in the
+            // frame's coordinates, which is where this box is.
+            var outlined = false;
+            var position = fill.position();
             for (var i = layers.size() - 1; i >= 0; i--) {
-                frame.fillPath(x, y, path, layers.get(i).resolve(x, y, width, height, position));
+                switch (layers.get(i)) {
+                    case GradientLayer gradient -> {
+                        if (!outlined) {
+                            path.reset();
+                            RoundRect.addTo(path, 0, 0, width, height, decoration.corners());
+                            outlined = true;
+                        }
+                        frame.fillPath(x, y, path, gradient.resolve(x, y, width, height, position));
+                    }
+                    case CssImage.Url url ->
+                        PicturePainter.paint(frame, url, fill, i, x, y, width, height, decoration.corners());
+                }
             }
         }
 
@@ -202,7 +215,11 @@ public final class BoxPainter {
         }
 
         var border = decoration.border();
-        if (decoration.hasBorder() && border.isUniform() && border.isDrawnSolid()) {
+        // A border image takes the border's place when it has a picture to
+        // draw; while the picture is loading, or when it cannot be, the
+        // border's colours are drawn as they would be without one.
+        var pictured = NineSlicePainter.paint(frame, decoration, x, y, width, height);
+        if (!pictured && decoration.hasBorder() && border.isUniform() && border.isDrawnSolid()) {
             // Stroked down the middle of the path, so the path is inset by half
             // the width to put the ink *inside* the border box — which is what
             // `border-box` sizing means and what makes a 1px border on a 32px
@@ -222,7 +239,7 @@ public final class BoxPainter {
                     height - line.width(),
                     decoration.corners().shrunkBy(inset));
             frame.strokePath(x, y, path, line.width(), BlendStrokeCap.BUTT, BlendStrokeJoin.MITER_CLIP, line.argb());
-        } else if (decoration.hasBorder()) {
+        } else if (!pictured && decoration.hasBorder()) {
             // Sides that differ are filled one region each, mitred where they
             // meet — a stroke has one width. A dashed, dotted or double side
             // is drawn there too, whether or not the four agree.
@@ -255,7 +272,10 @@ public final class BoxPainter {
                             // Under `nowrap` this width stops being a wrap point
                             // and becomes a *truncation* point, which is the only
                             // thing the painter has to know about either property.
-                            box.text().flow());
+                            box.text().flow(),
+                            // A `rich-text`'s runs in their own colours; empty,
+                            // and the plain path, for every other text.
+                            box.text().spans());
         }
 
         if (box.icon() != null) {

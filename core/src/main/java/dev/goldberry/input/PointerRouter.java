@@ -25,6 +25,7 @@ import dev.goldberry.input.hit.HitTest;
 import dev.goldberry.input.key.Key;
 import dev.goldberry.input.key.Mod;
 import dev.goldberry.input.key.Modifiers;
+import dev.goldberry.input.key.Repeat;
 import dev.goldberry.input.key.Shortcut;
 import dev.goldberry.render.Cursor;
 import dev.goldberry.render.model.LogicalPoint;
@@ -1305,7 +1306,11 @@ public final class PointerRouter {
         if (key != Key.UNKNOWN) {
             var bound = shortcuts.get(new Shortcut(key, modifiers));
             if (bound != null) {
-                bound.action().run();
+                // A repeat the binding declines is still its key: consumed, so
+                // a held toggle does not fall through to focus navigation.
+                if (bound.repeat().runs(repeat)) {
+                    bound.action().run();
+                }
                 return true;
             }
         }
@@ -1406,7 +1411,9 @@ public final class PointerRouter {
     /// Compared by **identity**: "who bound it" is a question about an object,
     /// not about a value that might be equal to another one. Null is nobody in
     /// particular, which is what an application's own binding is.
-    private record Binding(Runnable action, @Nullable Object owner) {
+    ///
+    /// The [Repeat] is what the binding does while its key is held down.
+    private record Binding(Runnable action, @Nullable Object owner, Repeat repeat) {
 
         boolean ownedBy(Object candidate) {
             return owner == candidate;
@@ -1429,9 +1436,16 @@ public final class PointerRouter {
     /// binding it belongs to. A widget that binds while it is mounted passes
     /// itself.
     public PointerRouter shortcut(Shortcut shortcut, Runnable action, @Nullable Object owner) {
+        return shortcut(shortcut, action, owner, Repeat.FIRE);
+    }
+
+    /// The same, saying what the binding does while its key is held down:
+    /// [Repeat#IGNORE] for a toggle, which must not flip at the platform's
+    /// repeat rate.
+    public PointerRouter shortcut(Shortcut shortcut, Runnable action, @Nullable Object owner, Repeat repeat) {
         shortcuts.put(
                 Objects.requireNonNull(shortcut, "shortcut"),
-                new Binding(Objects.requireNonNull(action, "action"), owner));
+                new Binding(Objects.requireNonNull(action, "action"), owner, Objects.requireNonNull(repeat, "repeat")));
         return this;
     }
 
