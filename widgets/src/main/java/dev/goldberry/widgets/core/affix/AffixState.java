@@ -74,20 +74,17 @@ final class AffixState extends State<Affix> {
         // How far past the edge the affix has gone. Positive means it has
         // scrolled out of view and must be pulled back; zero or less means the
         // layout has it in the right place already and it should not move.
-        var past =
-                switch (edge) {
-                    case TOP -> clip.top() + offset - self.top();
-                    case LEFT -> clip.left() + offset - self.left();
-                    // The far edges are the mirror image: the affix's *bottom* against
-                    // the viewport's, and the shift is negative because pinning up means
-                    // moving the content towards the origin.
-                    case BOTTOM ->
-                        (self.top() + self.size().height())
-                                - (clip.top() + clip.size().height() - offset);
-                    case RIGHT ->
-                        (self.left() + self.size().width())
-                                - (clip.left() + clip.size().width() - offset);
-                };
+        var past = switch (edge) {
+            case TOP -> clip.top() + offset - self.top();
+            case LEFT -> clip.left() + offset - self.left();
+            // The far edges are the mirror image: the affix's *bottom* against
+            // the viewport's, and the shift is negative because pinning up means
+            // moving the content towards the origin.
+            case BOTTOM ->
+                (self.top() + self.size().height()) - (clip.top() + clip.size().height() - offset);
+            case RIGHT ->
+                (self.left() + self.size().width()) - (clip.left() + clip.size().width() - offset);
+        };
         if (past <= 0.5) {
             return 0;
         }
@@ -95,19 +92,18 @@ final class AffixState extends State<Affix> {
         // may travel is the room between the hole's far side and the
         // container's, so a section header is carried out by its own section
         // when the next one arrives rather than sitting over it.
-        var room =
-                switch (edge) {
-                    case TOP ->
-                        container.top()
-                                + container.size().height()
-                                - (self.top() + self.size().height());
-                    case LEFT ->
-                        container.left()
-                                + container.size().width()
-                                - (self.left() + self.size().width());
-                    case BOTTOM -> self.top() - container.top();
-                    case RIGHT -> self.left() - container.left();
-                };
+        var room = switch (edge) {
+            case TOP ->
+                container.top()
+                        + container.size().height()
+                        - (self.top() + self.size().height());
+            case LEFT ->
+                container.left()
+                        + container.size().width()
+                        - (self.left() + self.size().width());
+            case BOTTOM -> self.top() - container.top();
+            case RIGHT -> self.left() - container.left();
+        };
         var travel = Math.min(past, Math.max(0, room));
         return edge.isNear() ? travel : -travel;
     }

@@ -1,31 +1,32 @@
 package dev.goldberry.widgets.controls.toggle;
 
-import dev.goldberry.widget.semantics.Semantics;
-import dev.goldberry.widget.semantics.Role;
-import dev.goldberry.widget.attr.Attributed;
-import dev.goldberry.widget.attr.Bindable;
-import dev.goldberry.widget.attr.Attributes;
-import dev.goldberry.widgets.text.Text;
-
-import dev.goldberry.bind.Observable;
-import dev.goldberry.css.ComputedStyle;
-import dev.goldberry.input.handler.Handles;
-import dev.goldberry.input.key.Key;
-import dev.goldberry.input.event.KeyEvent;
-import dev.goldberry.input.event.PointerEvent;
-import dev.goldberry.paint.Box;
-import dev.goldberry.widget.style.Paints;
-import dev.goldberry.widget.style.Styled;
-import dev.goldberry.widget.Widget;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Consumer;
-import dev.goldberry.kdl.KdlNode;
-import dev.goldberry.widgets.markup.Wiring;
-import dev.goldberry.widgets.markup.Markup;
+
 import org.jspecify.annotations.Nullable;
+
+import dev.goldberry.bind.Observable;
+import dev.goldberry.css.ComputedStyle;
+import dev.goldberry.input.event.KeyEvent;
+import dev.goldberry.input.event.PointerEvent;
+import dev.goldberry.input.handler.Handles;
+import dev.goldberry.input.key.Key;
+import dev.goldberry.kdl.KdlNode;
+import dev.goldberry.paint.Box;
+import dev.goldberry.widget.Widget;
+import dev.goldberry.widget.attr.Attributed;
+import dev.goldberry.widget.attr.Attributes;
+import dev.goldberry.widget.attr.Bindable;
+import dev.goldberry.widget.semantics.Role;
+import dev.goldberry.widget.semantics.Semantics;
+import dev.goldberry.widget.style.Paints;
+import dev.goldberry.widget.style.Styled;
+import dev.goldberry.widgets.markup.Markup;
+import dev.goldberry.widgets.markup.Wiring;
+import dev.goldberry.widgets.text.Text;
 
 /// A switch: a pill with a disc that slides, flipped by a click, `Space` or a
 /// drag of its thumb.
@@ -91,9 +92,13 @@ import org.jspecify.annotations.Nullable;
 /// @param attributes `id` and `class`, exactly as on the primitives
 @Markup("toggle")
 public record Toggle(
-        String label, boolean on, @Nullable Observable<?> source, @Nullable Consumer<Boolean> onChange,
-        boolean disabled, Attributes attributes)
-        implements Widget.Leaf, Styled, Paints, Handles, Attributed<Toggle>, Bindable<Toggle> , Semantics {
+        String label,
+        boolean on,
+        @Nullable Observable<?> source,
+        @Nullable Consumer<Boolean> onChange,
+        boolean disabled,
+        Attributes attributes)
+        implements Widget.Leaf, Styled, Paints, Handles, Attributed<Toggle>, Bindable<Toggle>, Semantics {
 
     /// Half of the thumb's 16px travel: the point at which the thumb has passed
     /// the middle, and therefore the point at which a gesture is a drag rather than a
@@ -102,7 +107,13 @@ public record Toggle(
     private static final float DRAG_THRESHOLD = 8;
 
     /// Written out so that the parameters taking null for a default can say so.
-    public Toggle(String label, boolean on, @Nullable Observable<?> source, @Nullable Consumer<Boolean> onChange, boolean disabled, @Nullable Attributes attributes) {
+    public Toggle(
+            String label,
+            boolean on,
+            @Nullable Observable<?> source,
+            @Nullable Consumer<Boolean> onChange,
+            boolean disabled,
+            @Nullable Attributes attributes) {
         Objects.requireNonNull(label, "label");
         attributes = attributes == null ? Attributes.NONE : attributes;
         this.label = label;
@@ -221,8 +232,7 @@ public record Toggle(
     /// and not zero.
     @Override
     public void onPointer(PointerEvent event) {
-        if (event.kind() != PointerEvent.Kind.RELEASED
-                || event.button() != PointerEvent.Button.PRIMARY) {
+        if (event.kind() != PointerEvent.Kind.RELEASED || event.button() != PointerEvent.Button.PRIMARY) {
             return;
         }
         var drag = event.dragX();
@@ -239,7 +249,9 @@ public record Toggle(
     /// focus was on one.
     @Override
     public void onKey(KeyEvent event) {
-        if (event.kind() != KeyEvent.Kind.PRESSED || event.isRepeat() || !event.modifiers().none()) {
+        if (event.kind() != KeyEvent.Kind.PRESSED
+                || event.isRepeat()
+                || !event.modifiers().none()) {
             return;
         }
         if (event.key() == Key.SPACE) {
@@ -272,9 +284,13 @@ public record Toggle(
     /// particular state and dragging right on a switch already on asks for on.
     @SuppressWarnings("unused")
     public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
-        return new Toggle(Wiring.label(node), node.booleanProperty("on"),
-                wiring.bound(node), wiring.flag(node, "change"),
-                Wiring.disabled(node), Attributes.of(node));
+        return new Toggle(
+                Wiring.label(node),
+                node.booleanProperty("on"),
+                wiring.bound(node),
+                wiring.flag(node, "change"),
+                Wiring.disabled(node),
+                Attributes.of(node));
     }
 
     @Override
@@ -286,5 +302,4 @@ public record Toggle(
     public String accessibleName() {
         return label;
     }
-
 }

@@ -15,9 +15,9 @@ import dev.goldberry.paint.Clip;
 ///
 /// Painting a box that lands entirely outside the clip in force costs a native
 /// call, a path transformation and, for text, a glyph run — and produces nothing.
-/// A window with a long viewport in it is mostly that: the icon sheet is 1544
+/// A window with a long viewport in it is mostly that: the icon sheet is 1870
 /// tiles of which forty are on screen, and without culling every one of the other
-/// 1504 would be submitted to Blend2D to be clipped away.
+/// 1830 would be submitted to Blend2D to be clipped away.
 ///
 /// The **subtree's** extent and not the node's own, because a child may be drawn
 /// outside its parent — flexbox allows a box to overflow, a `transform` moves one

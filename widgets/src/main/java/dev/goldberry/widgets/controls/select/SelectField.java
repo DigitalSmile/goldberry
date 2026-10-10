@@ -199,15 +199,14 @@ record SelectField(
         }
         var plain = event.modifiers().none();
         var alt = event.modifiers().only(dev.goldberry.input.key.Mod.ALT);
-        var opens =
-                switch (event.key()) {
-                    // **Not `Space` in an editable field**, where a space is a character.
-                    // `Space` is a way to open a *closed* control, and a combobox
-                    // is not one.
-                    case SPACE -> plain && editor == null;
-                    case DOWN, UP -> (plain || alt) && !open;
-                    default -> false;
-                };
+        var opens = switch (event.key()) {
+            // **Not `Space` in an editable field**, where a space is a character.
+            // `Space` is a way to open a *closed* control, and a combobox
+            // is not one.
+            case SPACE -> plain && editor == null;
+            case DOWN, UP -> (plain || alt) && !open;
+            default -> false;
+        };
         if (opens) {
             toggle();
             event.consume();

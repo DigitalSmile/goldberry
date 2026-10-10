@@ -1,13 +1,23 @@
 package dev.goldberry.widgets.form.textarea;
 
+import java.time.Duration;
+import java.util.List;
+import java.util.Optional;
+
+import org.jspecify.annotations.Nullable;
+
 import dev.goldberry.Host;
-import dev.goldberry.render.event.EventLoop;
 import dev.goldberry.input.hit.Extent;
+import dev.goldberry.render.event.EventLoop;
 import dev.goldberry.render.model.LogicalRect;
 import dev.goldberry.text.Paragraph;
 import dev.goldberry.text.TextLine;
 import dev.goldberry.text.document.DocumentLines;
 import dev.goldberry.text.document.TextDocument;
+import dev.goldberry.text.edit.EditHistory;
+import dev.goldberry.text.edit.TextEdit;
+import dev.goldberry.text.flow.TextAlign;
+import dev.goldberry.text.flow.TextFlow;
 import dev.goldberry.text.font.Font;
 import dev.goldberry.widget.BuildContext;
 import dev.goldberry.widget.State;
@@ -18,14 +28,6 @@ import dev.goldberry.widgets.core.scroll.ScrollBar;
 import dev.goldberry.widgets.form.parts.Composing;
 import dev.goldberry.widgets.form.parts.MaxLength;
 import dev.goldberry.widgets.form.parts.Preedit;
-import dev.goldberry.text.edit.EditHistory;
-import dev.goldberry.text.edit.TextEdit;
-import dev.goldberry.text.flow.TextAlign;
-import dev.goldberry.text.flow.TextFlow;
-import java.time.Duration;
-import java.util.List;
-import java.util.Optional;
-import org.jspecify.annotations.Nullable;
 
 /// What a [TextArea] holds — `text-input`'s state, with a column to remember.
 ///
@@ -167,7 +169,8 @@ final class TextAreaState extends State<TextArea> implements AreaEditor {
             composing = preedit.composingAt(at);
         }
 
-        var showPlaceholder = edit.isEmpty() && preedit.isEmpty() && !area.placeholder().isEmpty();
+        var showPlaceholder =
+                edit.isEmpty() && preedit.isEmpty() && !area.placeholder().isEmpty();
         return new TextAreaBox(
                 showPlaceholder ? area.placeholder() : shown,
                 showPlaceholder,
@@ -295,7 +298,8 @@ final class TextAreaState extends State<TextArea> implements AreaEditor {
         // indent — and the target line's comes off it again, because the two lines
         // are not indented by the same amount unless they are the same length.
         var column = Double.isNaN(preferredColumn)
-                ? indentOf(layout.get(index)) + shaped.widthBetween(layout.get(index).start(), edit.caret())
+                ? indentOf(layout.get(index))
+                        + shaped.widthBetween(layout.get(index).start(), edit.caret())
                 : preferredColumn;
         var line = layout.get(target);
         var offset = shaped.offsetAt(line.start(), line.end(), column - indentOf(line));
@@ -337,14 +341,12 @@ final class TextAreaState extends State<TextArea> implements AreaEditor {
 
     @Override
     public boolean deleteBefore(boolean byWord) {
-        return apply(byWord ? edit.deleteWordBefore() : edit.backspace(),
-                EditHistory.Kind.DELETING, true);
+        return apply(byWord ? edit.deleteWordBefore() : edit.backspace(), EditHistory.Kind.DELETING, true);
     }
 
     @Override
     public boolean deleteAfter(boolean byWord) {
-        return apply(byWord ? edit.deleteWordAfter() : edit.delete(),
-                EditHistory.Kind.DELETING, true);
+        return apply(byWord ? edit.deleteWordAfter() : edit.delete(), EditHistory.Kind.DELETING, true);
     }
 
     @Override
@@ -532,8 +534,8 @@ final class TextAreaState extends State<TextArea> implements AreaEditor {
         if (shaped == null) {
             return null;
         }
-        return LogicalRect.of(
-                0, (float) padding.top(), bounds.width(), (float) (visibleRows() * shaped.font().lineHeight()));
+        return LogicalRect.of(0, (float) padding.top(), bounds.width(), (float)
+                (visibleRows() * shaped.font().lineHeight()));
     }
 
     /// Where a press or a drag lands.
@@ -657,7 +659,7 @@ final class TextAreaState extends State<TextArea> implements AreaEditor {
                 || (widget().fill() && Math.abs(extent.height() - bounds.height()) > 0.5f);
         bounds = extent;
         if (changed && isMounted()) {
-            setState(() -> { });
+            setState(() -> {});
         }
     }
 
@@ -912,8 +914,7 @@ final class TextAreaState extends State<TextArea> implements AreaEditor {
             return null;
         }
         barOffset = scrollOffset;
-        return new ScrollBar(
-                true, viewport, content, scrollOffset, this::scrollTo, draggingBar, this::dragBar);
+        return new ScrollBar(true, viewport, content, scrollOffset, this::scrollTo, draggingBar, this::dragBar);
     }
 
     private void scrollTo(double offset) {

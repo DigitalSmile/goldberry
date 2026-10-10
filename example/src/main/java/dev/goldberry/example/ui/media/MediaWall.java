@@ -148,25 +148,24 @@ public record MediaWall(
         /// The screen's player, across the top.
         private Widget playerCard() {
             var wall = widget();
-            var card =
-                    switch (wall.kind()) {
-                        case AUDIO ->
-                            new ShowcaseCard(
-                                    "audio-player-card",
-                                    "Audio player",
-                                    "Compact controls over a player: play and pause, the times, a seek bar, mute and"
-                                            + " volume. Pick a source below, then click the player and try Space,"
-                                            + " the arrows, M, and < and > for the speed.",
-                                    MediaDocs.AUDIO_PLAYER);
-                        case VIDEO ->
-                            new ShowcaseCard(
-                                    "video-player-card",
-                                    "Media player",
-                                    "The picture with its controls over it; they fade while it plays and come back"
-                                            + " when the pointer moves. Click the picture to pause, or focus it and"
-                                            + " try , and . to step a picture and F for fullscreen.",
-                                    MediaDocs.MEDIA_PLAYER);
-                    };
+            var card = switch (wall.kind()) {
+                case AUDIO ->
+                    new ShowcaseCard(
+                            "audio-player-card",
+                            "Audio player",
+                            "Compact controls over a player: play and pause, the times, a seek bar, mute and"
+                                    + " volume. Pick a source below, then click the player and try Space,"
+                                    + " the arrows, M, and < and > for the speed.",
+                            MediaDocs.AUDIO_PLAYER);
+                case VIDEO ->
+                    new ShowcaseCard(
+                            "video-player-card",
+                            "Media player",
+                            "The picture with its controls over it; they fade while it plays and come back"
+                                    + " when the pointer moves. Click the picture to pause, or focus it and"
+                                    + " try , and . to step a picture and F for fullscreen.",
+                            MediaDocs.MEDIA_PLAYER);
+            };
             return card.classed("media-card").of(wall.playerPane());
         }
 

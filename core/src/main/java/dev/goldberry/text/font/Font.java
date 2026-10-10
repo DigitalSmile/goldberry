@@ -1,15 +1,17 @@
 package dev.goldberry.text.font;
 
+import java.util.Objects;
+
 import org.jspecify.annotations.Nullable;
-import dev.goldberry.paint.Frame;
-import dev.goldberry.paint.GlyphPen;
+
 import dev.goldberry.assets.BundledFont;
-import dev.goldberry.text.ShapedRun;
-import dev.goldberry.text.TextDirection;
 import dev.goldberry.natives.harfbuzz.ShapedFont;
 import dev.goldberry.natives.harfbuzz.ShapingBuffer;
-import java.util.Objects;
+import dev.goldberry.paint.Frame;
+import dev.goldberry.paint.GlyphPen;
 import dev.goldberry.text.Paragraph;
+import dev.goldberry.text.ShapedRun;
+import dev.goldberry.text.TextDirection;
 import dev.goldberry.text.flow.TextOverflow;
 
 /// One typeface at one size, shaped by HarfBuzz and drawn by Blend2D.
@@ -195,8 +197,7 @@ public final class Font implements AutoCloseable {
     private static void requireUsableSize(double size) {
         if (!Double.isFinite(size) || size <= 0) {
             throw new IllegalArgumentException(
-                    "a font size must be a positive, finite number of logical units, and "
-                            + size + " is not");
+                    "a font size must be a positive, finite number of logical units, and " + size + " is not");
         }
     }
 

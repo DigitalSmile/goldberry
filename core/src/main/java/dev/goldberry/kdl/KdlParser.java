@@ -377,12 +377,11 @@ public final class KdlParser {
                         digits.append(c);
                     }
                 }
-                var base =
-                        switch (radix) {
-                            case 'x' -> 16;
-                            case 'o' -> 8;
-                            default -> 2;
-                        };
+                var base = switch (radix) {
+                    case 'x' -> 16;
+                    case 'o' -> 8;
+                    default -> 2;
+                };
                 try {
                     var magnitude = Long.parseLong(digits.toString(), base);
                     return text.toString().startsWith("-") ? -magnitude : magnitude;

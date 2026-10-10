@@ -42,16 +42,15 @@ record TracksCard(MediaKind kind, MediaPlayer player, PlayerStatus status) imple
                             }
                         },
                         () -> lines.add(MediaLines.caption("Nothing open yet.")));
-        var summary =
-                switch (kind) {
-                    case AUDIO ->
-                        "The probe lists every track in a source, playable or not. Pick Two voices, one file and"
-                                + " switch between them here or in the player's menu; the position is kept.";
-                    case VIDEO ->
-                        "The probe lists every track in a source, playable or not. Pick Two angles, two voices and"
-                                + " switch here or in the player's menus; a new angle comes in on the picture that"
-                                + " covers the position.";
-                };
+        var summary = switch (kind) {
+            case AUDIO ->
+                "The probe lists every track in a source, playable or not. Pick Two voices, one file and"
+                        + " switch between them here or in the player's menu; the position is kept.";
+            case VIDEO ->
+                "The probe lists every track in a source, playable or not. Pick Two angles, two voices and"
+                        + " switch here or in the player's menus; a new angle comes in on the picture that"
+                        + " covers the position.";
+        };
         return new ShowcaseCard(kind.id("tracks"), "Tracks", summary, MediaDocs.TRACKS).of(lines);
     }
 
@@ -76,17 +75,16 @@ record TracksCard(MediaKind kind, MediaPlayer player, PlayerStatus status) imple
         if (!choosable) {
             return text;
         }
-        var chosen =
-                switch (track.type()) {
-                    case AUDIO -> status.audioTrack().equals(Optional.of(track));
-                    case VIDEO -> status.videoTrack().equals(Optional.of(track));
-                    default ->
-                        status.subtitles()
-                                .filter(SubtitleSource.Embedded.class::isInstance)
-                                .map(SubtitleSource.Embedded.class::cast)
-                                .filter(embedded -> embedded.track().equals(track))
-                                .isPresent();
-                };
+        var chosen = switch (track.type()) {
+            case AUDIO -> status.audioTrack().equals(Optional.of(track));
+            case VIDEO -> status.videoTrack().equals(Optional.of(track));
+            default ->
+                status.subtitles()
+                        .filter(SubtitleSource.Embedded.class::isInstance)
+                        .map(SubtitleSource.Embedded.class::cast)
+                        .filter(embedded -> embedded.track().equals(track))
+                        .isPresent();
+        };
         var verb = track.type() == MediaType.SUBTITLE ? (chosen ? "Showing" : "Show") : (chosen ? "Playing" : "Play");
         return new Row(
                 List.of(

@@ -27,17 +27,16 @@ record SourcesCard(MediaKind kind, String chosen, String message, boolean dialog
         var options = kind.samples().stream()
                 .map(sample -> new Option(sample.key(), sample.title()))
                 .toArray(Option[]::new);
-        var summary =
-                switch (kind) {
-                    case AUDIO ->
-                        "open takes a Source of a path or a URI and returns at once. Pick a bundled clip, a live"
-                                + " stream, one served over HTTP or a file from disk; the last two samples fail on"
-                                + " purpose.";
-                    case VIDEO ->
-                        "open takes a Source of a path or a URI and returns at once. Pick a bundled clip, one"
-                                + " served over HTTP or a file from disk. The H.264 file plays only where the"
-                                + " system's own decoders are.";
-                };
+        var summary = switch (kind) {
+            case AUDIO ->
+                "open takes a Source of a path or a URI and returns at once. Pick a bundled clip, a live"
+                        + " stream, one served over HTTP or a file from disk; the last two samples fail on"
+                        + " purpose.";
+            case VIDEO ->
+                "open takes a Source of a path or a URI and returns at once. Pick a bundled clip, one"
+                        + " served over HTTP or a file from disk. The H.264 file plays only where the"
+                        + " system's own decoders are.";
+        };
         return new ShowcaseCard(kind.id("sources"), "Sources", summary, MediaDocs.PLAYER)
                 .of(
                         new Select(chosen, desk::open, options)

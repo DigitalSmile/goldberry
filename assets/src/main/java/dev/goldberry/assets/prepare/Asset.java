@@ -231,16 +231,16 @@ public record Asset(
 
     /// Lucide — the icon set.
     ///
-    /// Nothing is extracted file by file: the 1544 SVGs are compiled into one
+    /// Nothing is extracted file by file: the 1870 SVGs are compiled into one
     /// path table by [IconCompiler].
     public static final Asset LUCIDE = new Asset(
             "lucide",
-            "0.469.0",
-            "https://github.com/lucide-icons/lucide/releases/download/0.469.0/lucide-icons-0.469.0.zip",
-            "a1f58d08afa0f7c12a9e6eb92814b74c6fb763eeb92bf62ead5b38bb7770de7f",
+            "1.54.0",
+            "https://github.com/lucide-icons/lucide/releases/download/1.54.0/lucide-icons-1.54.0.zip",
+            "807a25ed9b525bd15268cf5d10f97996262a9c6c06962f3fec50078087422a57",
             Map.of(),
             Map.of(),
-            "https://raw.githubusercontent.com/lucide-icons/lucide/0.469.0/LICENSE",
+            "https://raw.githubusercontent.com/lucide-icons/lucide/1.54.0/LICENSE",
             "lucide.txt");
 
     /// Everything Goldberry bundles.

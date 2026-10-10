@@ -204,57 +204,35 @@ if (WorkflowCommand.onGithubActions(System.getenv())) {
 // Formatting
 // https://goldberry.dev/docs/contributing/testing.html#static-analysis
 //
-// Spotless with palantir-java-format, over every Java file the formatter can
-// safely read -- which is all but nineteen of them, and the exclusion list below
-// is not a preference.
+// Spotless with palantir-java-format, over every Java file but the module
+// descriptors.
 //
-// **palantir-java-format 2.97.0 corrupts JDK 23+ `///` markdown javadoc.** When a
-// `///` line is too long to fit, it wraps the content onto a new line *without*
-// re-emitting the `///` prefix, so a doc comment becomes a statement and the file
-// stops compiling. This project's doc comments carry guide links whose URLs are
-// single unbreakable tokens of ninety-odd characters, and running the formatter
-// over the whole tree produced eleven corrupted files and eighty compile errors.
-// `formatJavadoc(false)` does not prevent it -- the step treats `///` as a line
-// comment, which that flag does not govern.
+// Up to 2.98.0 the list below held twenty more files. That formatter
+// corrupted JDK 23+ `///` markdown javadoc: a `///` line too long to fit was
+// wrapped onto a new line *without* the `///` prefix, so a doc comment became a
+// statement and the file stopped compiling. 2.102.0 wraps the line and writes
+// the prefix again, and with the list emptied the whole tree formats and
+// compiles, so the twenty are formatted like everything else. If a later
+// version brings the bug back, the files that stop compiling after
+// `spotlessApply --continue` are the list again.
 //
-// The alternative to excluding them was rewriting nineteen doc comments to suit
-// the tool, and the only way to shorten those lines is to shorten the URLs, which
-// are relative paths the book resolves. Prose does not get rewritten to fit a
-// formatter, and links do not get broken to fit one either.
+// The descriptors stay out for a different reason. The formatter breaks
+// `opens <package> to <module>` across two lines and moves the blank lines that
+// group the exports, and `MarkdownStylesTest` and `HtmlStylesTest` read those
+// descriptors from disk.
 //
-// Everything else -- every brace, wrap and blank line in roughly nine hundred
-// files -- is now the formatter's decision rather than an author's, which ends
-// the arguments a formatter exists to end.
+// Everything else -- every brace, wrap and blank line -- is the formatter's
+// decision rather than an author's, which ends the arguments a formatter exists
+// to end.
 // ============================================================================
 
-/// The files palantir-java-format writes invalid Java for. See the note above.
+/// The files palantir-java-format is not run over. See the note above.
 ///
-/// Verified rather than guessed: this is the set `spotlessApply --continue`
-/// reported, and `spotlessCheck` passing is what says the list is still exactly
-/// right. A file added here needs a reason; a file that no longer needs to be
-/// here will make nothing fail, so the list is re-derived when the formatter is
-/// upgraded rather than trusted for ever.
+/// A file added here needs a reason. A file that no longer needs to be here
+/// makes nothing fail, so the list is re-derived when the formatter is
+/// upgraded rather than trusted for ever: empty it, run `spotlessApply
+/// --continue`, compile every source set, and put back what broke.
 def palantirCannotFormat = [
-        '**/goldberry/Host.java',
-        '**/goldberry/paint/Box.java',
-        '**/goldberry/css/select/Selector.java',
-        '**/goldberry/css/value/Transform.java',
-        '**/goldberry/text/font/Font.java',
-        '**/goldberry/widget/style/Paints.java',
-        '**/goldberry/widgets/controls/Scale.java',
-        '**/goldberry/widgets/controls/checkbox/Checkbox.java',
-        '**/goldberry/widgets/controls/knob/Knob.java',
-        '**/goldberry/widgets/controls/knob/KnobTrack.java',
-        '**/goldberry/widgets/controls/knob/KnobGoldenTest.java',
-        '**/goldberry/widgets/controls/option/Option.java',
-        '**/goldberry/widgets/controls/radio/Radio.java',
-        '**/goldberry/widgets/controls/slider/Slider.java',
-        '**/goldberry/widgets/controls/toggle/Toggle.java',
-        '**/goldberry/widgets/form/textarea/TextAreaState.java',
-        '**/goldberry/widgets/overlay/hud/Hud.java',
-        '**/goldberry/widgets/overlay/toast/ToasterBox.java',
-        '**/goldberry/widgets/panel/tabs/TabList.java',
-        '**/goldberry/example/ui/Screen.java',
         'src/main/java/module-info.java',
 ]
 

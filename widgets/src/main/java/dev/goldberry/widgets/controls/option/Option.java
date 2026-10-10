@@ -1,27 +1,29 @@
 package dev.goldberry.widgets.controls.option;
 
-import dev.goldberry.widget.semantics.Semantics;
-import dev.goldberry.widget.semantics.Role;
-import dev.goldberry.css.ComputedStyle;
-import dev.goldberry.icon.Icon;
-import dev.goldberry.input.handler.Handles;
-import dev.goldberry.input.key.Key;
-import dev.goldberry.input.event.KeyEvent;
-import dev.goldberry.input.event.PointerEvent;
-import dev.goldberry.paint.Box;
-import dev.goldberry.widget.attr.Attributed;
-import dev.goldberry.widget.attr.Attributes;
-import dev.goldberry.widget.style.Paints;
-import dev.goldberry.widget.style.Styled;
-import dev.goldberry.widget.Widget;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
-import dev.goldberry.kdl.KdlNode;
-import dev.goldberry.widgets.markup.Wiring;
-import dev.goldberry.widgets.markup.Markup;
+
 import org.jspecify.annotations.Nullable;
+
+import dev.goldberry.css.ComputedStyle;
+import dev.goldberry.icon.Icon;
+import dev.goldberry.input.event.KeyEvent;
+import dev.goldberry.input.event.PointerEvent;
+import dev.goldberry.input.handler.Handles;
+import dev.goldberry.input.key.Key;
+import dev.goldberry.kdl.KdlNode;
+import dev.goldberry.paint.Box;
+import dev.goldberry.widget.Widget;
+import dev.goldberry.widget.attr.Attributed;
+import dev.goldberry.widget.attr.Attributes;
+import dev.goldberry.widget.semantics.Role;
+import dev.goldberry.widget.semantics.Semantics;
+import dev.goldberry.widget.style.Paints;
+import dev.goldberry.widget.style.Styled;
+import dev.goldberry.widgets.markup.Markup;
+import dev.goldberry.widgets.markup.Wiring;
 
 /// One choice in a [dev.goldberry.widgets.controls.segmented.Segmented]
 /// or a [dev.goldberry.widgets.controls.select.Select]: a value, a label and,
@@ -104,18 +106,31 @@ import org.jspecify.annotations.Nullable;
 ///                   `select`'s list. See [#inAList()], which is the argument
 @Markup("option")
 public record Option(
-        String value, String label, @Nullable Icon icon, boolean selected, @Nullable Runnable onSelect,
-        boolean disabled, Attributes attributes, boolean roving)
-        implements Widget.Leaf, Styled, Paints, Handles, Attributed<Option> , Semantics {
+        String value,
+        String label,
+        @Nullable Icon icon,
+        boolean selected,
+        @Nullable Runnable onSelect,
+        boolean disabled,
+        Attributes attributes,
+        boolean roving)
+        implements Widget.Leaf, Styled, Paints, Handles, Attributed<Option>, Semantics {
 
     /// The canonical constructor, written out so that the parameters taking null for a default can say so.
-    public Option(String value, String label, @Nullable Icon icon, boolean selected, @Nullable Runnable onSelect, boolean disabled, @Nullable Attributes attributes, boolean roving) {
+    public Option(
+            String value,
+            String label,
+            @Nullable Icon icon,
+            boolean selected,
+            @Nullable Runnable onSelect,
+            boolean disabled,
+            @Nullable Attributes attributes,
+            boolean roving) {
         Objects.requireNonNull(value, "value");
         Objects.requireNonNull(label, "label");
         if (label.isEmpty() && icon == null) {
             throw new IllegalArgumentException(
-                    "an option with neither a label nor an icon has nothing to click on"
-                            + " and nothing to read out");
+                    "an option with neither a label nor an icon has nothing to click on" + " and nothing to read out");
         }
         attributes = attributes == null ? Attributes.NONE : attributes;
         this.value = value;
@@ -132,7 +147,14 @@ public record Option(
     /// still the one to reach for: an option is [#roving()] unless a control says
     /// otherwise, because that is `segmented`'s and `radio-group`'s shape and
     /// they are two of the three callers.
-    public Option(String value, String label, @Nullable Icon icon, boolean selected, @Nullable Runnable onSelect, boolean disabled, Attributes attributes) {
+    public Option(
+            String value,
+            String label,
+            @Nullable Icon icon,
+            boolean selected,
+            @Nullable Runnable onSelect,
+            boolean disabled,
+            Attributes attributes) {
         this(value, label, icon, selected, onSelect, disabled, attributes, true);
     }
 
@@ -156,8 +178,8 @@ public record Option(
     /// spells out: the application builds it once and keeps it, exactly as it
     /// keeps a `Font`.
     public Option withIcon(Icon icon) {
-        return new Option(value, label, Objects.requireNonNull(icon, "icon"), selected,
-                onSelect, disabled, attributes, roving);
+        return new Option(
+                value, label, Objects.requireNonNull(icon, "icon"), selected, onSelect, disabled, attributes, roving);
     }
 
     /// This segment, disabled or not.
@@ -189,8 +211,7 @@ public record Option(
     ///        caller that really does pass its own: a row of a disabled combobox is
     ///        not pickable and nothing above it is drawn to say so.
     public Option within(boolean isSelected, @Nullable Runnable select, boolean alsoDisabled) {
-        return new Option(value, label, icon, isSelected, select, disabled || alsoDisabled,
-                attributes, roving);
+        return new Option(value, label, icon, isSelected, select, disabled || alsoDisabled, attributes, roving);
     }
 
     @Override
@@ -274,7 +295,9 @@ public record Option(
     /// [#onFocusChanged].
     @Override
     public void onKey(KeyEvent event) {
-        if (event.kind() != KeyEvent.Kind.PRESSED || event.isRepeat() || !event.modifiers().none()) {
+        if (event.kind() != KeyEvent.Kind.PRESSED
+                || event.isRepeat()
+                || !event.modifiers().none()) {
             return;
         }
         // `Enter` for a row in a list and not for a cell in a bar. The catalog's
@@ -338,9 +361,14 @@ public record Option(
     /// which is why neither is an attribute.
     @SuppressWarnings("unused")
     public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
-        return new Option(Wiring.requiredValue("option", node), Wiring.label(node),
-                wiring.icon(node), false, null,
-                Wiring.disabled(node), Attributes.of(node));
+        return new Option(
+                Wiring.requiredValue("option", node),
+                Wiring.label(node),
+                wiring.icon(node),
+                false,
+                null,
+                Wiring.disabled(node),
+                Attributes.of(node));
     }
 
     @Override
@@ -363,5 +391,4 @@ public record Option(
     public @Nullable String accessibleName() {
         return label.isEmpty() ? attributes.name() : label;
     }
-
 }

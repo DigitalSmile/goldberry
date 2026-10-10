@@ -2300,12 +2300,11 @@ public final class PointerRouter {
             return;
         }
         var attributes = attributed.attributes();
-        var action =
-                switch (kind) {
-                    case ENTERED -> attributes.onPointerEnter();
-                    case EXITED -> attributes.onPointerExit();
-                    default -> null;
-                };
+        var action = switch (kind) {
+            case ENTERED -> attributes.onPointerEnter();
+            case EXITED -> attributes.onPointerExit();
+            default -> null;
+        };
         if (action != null) {
             action.run();
         }

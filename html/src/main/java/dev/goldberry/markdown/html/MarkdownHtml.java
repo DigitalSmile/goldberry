@@ -215,13 +215,12 @@ public final class MarkdownHtml {
         // emits for an alignment row: the alignment came from the document rather
         // than from a stylesheet, so a fragment dropped into a page with no CSS of
         // its own still lines up.
-        var alignment =
-                switch (cell.alignment()) {
-                    case CellAlignment.DEFAULT -> null;
-                    case CellAlignment.START -> "left";
-                    case CellAlignment.CENTER -> "center";
-                    case CellAlignment.END -> "right";
-                };
+        var alignment = switch (cell.alignment()) {
+            case CellAlignment.DEFAULT -> null;
+            case CellAlignment.START -> "left";
+            case CellAlignment.CENTER -> "center";
+            case CellAlignment.END -> "right";
+        };
         if (alignment != null) {
             out.append(" style=\"text-align:").append(alignment).append('"');
         }

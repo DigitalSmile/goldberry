@@ -73,14 +73,13 @@ record CompanyCard() implements Widget.Stateful {
         /// which is why the widget does not.
         private List<Walker> sorted() {
             @Nullable
-            Comparator<Walker> by =
-                    switch (sort.column()) {
-                        case "name" -> Comparator.comparing(Walker::name);
-                        case "kindred" -> Comparator.comparing(Walker::kindred);
-                        case "realm" -> Comparator.comparing(Walker::realm);
-                        case "leagues" -> Comparator.comparingInt(Walker::leagues);
-                        default -> null;
-                    };
+            Comparator<Walker> by = switch (sort.column()) {
+                case "name" -> Comparator.comparing(Walker::name);
+                case "kindred" -> Comparator.comparing(Walker::kindred);
+                case "realm" -> Comparator.comparing(Walker::realm);
+                case "leagues" -> Comparator.comparingInt(Walker::leagues);
+                default -> null;
+            };
             if (by == null) {
                 return Walker.COMPANY;
             }

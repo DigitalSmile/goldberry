@@ -129,12 +129,11 @@ record CodeField(
         if (!modifiers.none() && !modifiers.shift()) {
             return;
         }
-        var handled =
-                switch (event.key()) {
-                    case BACKSPACE, DELETE -> editor.backspace();
-                    case ESCAPE -> editor.clear();
-                    default -> false;
-                };
+        var handled = switch (event.key()) {
+            case BACKSPACE, DELETE -> editor.backspace();
+            case ESCAPE -> editor.clear();
+            default -> false;
+        };
         if (handled) {
             event.consume();
         }

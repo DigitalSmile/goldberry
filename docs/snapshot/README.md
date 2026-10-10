@@ -33,6 +33,7 @@ page for a change to `site/` alone (ADR-0590).
 | `guide-input-cursors.md` | `book/src/guide/input.md` (`## The cursor`), `book/src/overview/limitations.md` (the *Custom image cursors* row), `book/src/status.md` (one phrase) | GB-033, three pieces, each says where it goes. The guide's paragraph says custom image cursors are not built, which stopped being true on 2026-10-10 |
 | `adr/0590-…` | `book/src/adr/` | A change to `site/` alone runs `pages.yml` only, which runs `SiteTest`; `book/` is never ignored. Contiguous with 0589; renumber with the rest if records landed in between |
 | `contributing-testing-ci-matrix.md` | `book/src/contributing/testing.md`, `## The CI matrix` | Five trigger cells, the `pages.yml` row, and one paragraph after the per-OS paragraph |
+| `guide-logback-version.md` | `book/src/getting-started/installing.md` and `book/src/guide/logging.md`, the `runtimeOnly` line in each | Logback 1.6.3 → 1.6.5 in the two snippets, for the MDC path-traversal CVE whose 1.6.3 fix was incomplete |
 | (no file) | `book/src/TODO.md` | The entry **The inflater accepts a property nothing reads**, under *The catalog: specified and unbuilt*, moves to *Answered* with a closing paragraph citing ADR-0587. Back the file up first |
 
 ## Doc comments that point at the guide

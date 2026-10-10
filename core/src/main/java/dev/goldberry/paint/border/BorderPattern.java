@@ -153,13 +153,12 @@ public final class BorderPattern {
         var half = border.side(side).width() / 2;
         // Corners are numbered clockwise from the top-left, so a side starts at
         // the corner with its own number and ends at the next.
-        var s =
-                switch (side) {
-                    case TOP -> 0;
-                    case RIGHT -> 1;
-                    case BOTTOM -> 2;
-                    case LEFT -> 3;
-                };
+        var s = switch (side) {
+            case TOP -> 0;
+            case RIGHT -> 1;
+            case BOTTOM -> 2;
+            case LEFT -> 3;
+        };
         var startCorner = s;
         var endCorner = (s + 1) % 4;
         var startRadius = radii[startCorner] - half;

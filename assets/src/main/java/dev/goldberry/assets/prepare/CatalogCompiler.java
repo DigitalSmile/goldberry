@@ -13,7 +13,7 @@ import java.util.regex.Pattern;
 /// tables — what the showcase's sheets are grouped by.
 ///
 /// Neither upstream ships the answer in a shape worth shipping on. Lucide keeps
-/// an icon's categories in a JSON file beside each SVG — 1544 files, most of
+/// an icon's categories in a JSON file beside each SVG — 1870 files, most of
 /// their bytes tags and contributors — and Unicode keeps an emoji's group in
 /// `emoji-test.txt`, 650 KB of sequences the sheet never shows. What a sheet
 /// needs is one line per entry saying where it goes, so that is what this

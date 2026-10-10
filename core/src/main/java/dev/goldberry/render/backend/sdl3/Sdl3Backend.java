@@ -1453,13 +1453,12 @@ public final class Sdl3Backend implements Backend {
     /// the CPU, [#createEmbeddedWebView] put the window there for good, and
     /// where it does not, it is no reason to leave the GPU.
     boolean wantsComposited(Sdl3Window window) {
-        var policy =
-                switch (composition) {
-                    case ALWAYS -> true;
-                    // For its GPU layers, and for a while after.
-                    case AUTO -> window.showsGpuLayers();
-                    case NEVER, OFF -> false;
-                };
+        var policy = switch (composition) {
+            case ALWAYS -> true;
+            // For its GPU layers, and for a while after.
+            case AUTO -> window.showsGpuLayers();
+            case NEVER, OFF -> false;
+        };
         return policy && !(window instanceof Sdl3Popup);
     }
 

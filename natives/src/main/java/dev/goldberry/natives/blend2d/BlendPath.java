@@ -8,7 +8,7 @@ import dev.goldberry.natives.layout.Layouts;
 /// A Blend2D path — a sequence of move, line, curve and close commands.
 ///
 /// The command set is SVG's, one for one, because the thing Goldberry builds
-/// paths out of is SVG path data: Lucide's 1544 icons are strings of exactly
+/// paths out of is SVG path data: Lucide's 1870 icons are strings of exactly
 /// these commands in a 24×24 box. Two of them are worth naming:
 ///
 /// - [#ellipticArcTo] is SVG's `A`, argument for argument, flags included.

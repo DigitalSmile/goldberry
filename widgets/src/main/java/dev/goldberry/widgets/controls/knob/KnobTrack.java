@@ -1,12 +1,13 @@
 package dev.goldberry.widgets.controls.knob;
 
-import dev.goldberry.css.ComputedStyle;
-import dev.goldberry.paint.Box;
-import dev.goldberry.widget.style.Paints;
-import dev.goldberry.widget.style.Styled;
-import dev.goldberry.widget.Widget;
 import java.util.List;
 import java.util.Set;
+
+import dev.goldberry.css.ComputedStyle;
+import dev.goldberry.paint.Box;
+import dev.goldberry.widget.Widget;
+import dev.goldberry.widget.style.Paints;
+import dev.goldberry.widget.style.Styled;
 
 /// The 270° a [Knob]'s value runs along, styled as `knob-track`.
 ///
@@ -57,9 +58,9 @@ record KnobTrack(double fraction, boolean disabled) implements Widget.Leaf, Styl
 
     @Override
     public Box render(ComputedStyle style, List<Box> children, Context context) {
-        return Box.of().style(style)
-                .mark(new Box.Mark(Box.Mark.Kind.ARC, style.color(), THICKNESS,
-                        Knob.ARC_START, Knob.ARC_SWEEP))
+        return Box.of()
+                .style(style)
+                .mark(new Box.Mark(Box.Mark.Kind.ARC, style.color(), THICKNESS, Knob.ARC_START, Knob.ARC_SWEEP))
                 .children(children.toArray(Box[]::new));
     }
 }

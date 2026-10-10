@@ -69,12 +69,11 @@ public sealed interface Structural {
             if (step == 0) {
                 return Integer.toString(offset);
             }
-            var a =
-                    switch (step) {
-                        case 1 -> "";
-                        case -1 -> "-";
-                        default -> Integer.toString(step);
-                    };
+            var a = switch (step) {
+                case 1 -> "";
+                case -1 -> "-";
+                default -> Integer.toString(step);
+            };
             if (offset == 0) {
                 return a + "n";
             }

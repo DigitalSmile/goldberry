@@ -1,5 +1,8 @@
 package dev.goldberry.widgets.overlay.toast;
 
+import java.util.List;
+import java.util.Set;
+
 import dev.goldberry.css.ComputedStyle;
 import dev.goldberry.layout.Length;
 import dev.goldberry.paint.Box;
@@ -7,9 +10,6 @@ import dev.goldberry.widget.Widget;
 import dev.goldberry.widget.style.Corner;
 import dev.goldberry.widget.style.Paints;
 import dev.goldberry.widget.style.Styled;
-
-import java.util.List;
-import java.util.Set;
 
 /// The node a stylesheet calls `toaster`: the column the toasts are stacked in.
 ///
@@ -26,8 +26,7 @@ import java.util.Set;
 /// @param children the toasts, oldest first
 /// @param corner   which corner the stack is in
 /// @param onFrame  told the two numbers only `render` has — see [OnFrame]
-record ToasterBox(List<Widget> children, Corner corner, OnFrame onFrame)
-        implements Widget.Leaf, Styled, Paints {
+record ToasterBox(List<Widget> children, Corner corner, OnFrame onFrame) implements Widget.Leaf, Styled, Paints {
 
     /// What the stack is told on every frame.
     ///
@@ -65,8 +64,7 @@ record ToasterBox(List<Widget> children, Corner corner, OnFrame onFrame)
         // A percentage gap would be a fraction of a column whose height is the
         // sum of its children, which is circular -- so `toaster` writes pixels
         // and anything else reads as none rather than as a guess.
-        onFrame.frame(context.nowMillis(),
-                style.gap() instanceof Length.Points(var points) ? points : 0);
+        onFrame.frame(context.nowMillis(), style.gap() instanceof Length.Points(var points) ? points : 0);
         return Box.of().style(style).children(boxes.toArray(Box[]::new));
     }
 }

@@ -326,30 +326,29 @@ record TextAreaBox(
         if (command == null) {
             return;
         }
-        var handled =
-                switch (command) {
-                    case EditCommand.Simple simple -> simple(simple);
-                    case EditCommand.Move(var motion, var word, var extend) ->
-                        switch (motion) {
-                            case LEFT -> editor.move(AreaEditor.Motion.LEFT, word, extend);
-                            case RIGHT -> editor.move(AreaEditor.Motion.RIGHT, word, extend);
-                            case LINE_START -> editor.move(AreaEditor.Motion.LINE_START, word, extend);
-                            case LINE_END -> editor.move(AreaEditor.Motion.LINE_END, word, extend);
-                            // `Ctrl+Home` and `Ctrl+End` are the whole text, and
-                            // the word flag is spent saying so: passing it on
-                            // would ask for a word move that has already
-                            // happened.
-                            case DOCUMENT_START -> editor.move(AreaEditor.Motion.START, false, extend);
-                            case DOCUMENT_END -> editor.move(AreaEditor.Motion.END, false, extend);
-                        };
-                    case EditCommand.MoveLine(var lines, var byPage, var extend) ->
-                        editor.moveLine(byPage ? lines * Math.max(1, rows) : lines, extend);
-                    case EditCommand.Delete(var before, var word) ->
-                        !readOnly && (before ? editor.deleteBefore(word) : editor.deleteAfter(word));
-                    // Consumed either way when it is taken, so a form's default
-                    // button does not also fire.
-                    case EditCommand.Type(var text) -> !readOnly && editor.type(text);
+        var handled = switch (command) {
+            case EditCommand.Simple simple -> simple(simple);
+            case EditCommand.Move(var motion, var word, var extend) ->
+                switch (motion) {
+                    case LEFT -> editor.move(AreaEditor.Motion.LEFT, word, extend);
+                    case RIGHT -> editor.move(AreaEditor.Motion.RIGHT, word, extend);
+                    case LINE_START -> editor.move(AreaEditor.Motion.LINE_START, word, extend);
+                    case LINE_END -> editor.move(AreaEditor.Motion.LINE_END, word, extend);
+                    // `Ctrl+Home` and `Ctrl+End` are the whole text, and
+                    // the word flag is spent saying so: passing it on
+                    // would ask for a word move that has already
+                    // happened.
+                    case DOCUMENT_START -> editor.move(AreaEditor.Motion.START, false, extend);
+                    case DOCUMENT_END -> editor.move(AreaEditor.Motion.END, false, extend);
                 };
+            case EditCommand.MoveLine(var lines, var byPage, var extend) ->
+                editor.moveLine(byPage ? lines * Math.max(1, rows) : lines, extend);
+            case EditCommand.Delete(var before, var word) ->
+                !readOnly && (before ? editor.deleteBefore(word) : editor.deleteAfter(word));
+            // Consumed either way when it is taken, so a form's default
+            // button does not also fire.
+            case EditCommand.Type(var text) -> !readOnly && editor.type(text);
+        };
         if (handled) {
             event.consume();
         }

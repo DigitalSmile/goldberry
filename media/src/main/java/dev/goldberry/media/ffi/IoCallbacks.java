@@ -114,19 +114,18 @@ final class IoCallbacks {
                 return size.isPresent() ? size.getAsLong() : constants.averrorEio();
             }
             var mode = whence & ~constants.avseekForce();
-            var target =
-                    switch (mode) {
-                        case SEEK_SET -> offset;
-                        case SEEK_CUR -> io.position() + offset;
-                        case SEEK_END -> {
-                            var size = io.size();
-                            if (size.isEmpty()) {
-                                yield -1L;
-                            }
-                            yield size.getAsLong() + offset;
-                        }
-                        default -> -1L;
-                    };
+            var target = switch (mode) {
+                case SEEK_SET -> offset;
+                case SEEK_CUR -> io.position() + offset;
+                case SEEK_END -> {
+                    var size = io.size();
+                    if (size.isEmpty()) {
+                        yield -1L;
+                    }
+                    yield size.getAsLong() + offset;
+                }
+                default -> -1L;
+            };
             if (target < 0) {
                 return constants.averrorEio();
             }

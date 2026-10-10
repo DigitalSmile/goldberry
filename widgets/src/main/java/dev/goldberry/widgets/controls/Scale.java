@@ -49,8 +49,7 @@ public sealed interface Scale {
     /// constructed, so a fader over a range its scale
     /// cannot express fails at inflation rather than drawing a thumb at `NaN`.
     /// The default accepts everything the slider itself accepts.
-    default void validate(double min, double max) {
-    }
+    default void validate(double min, double max) {}
 
     /// Position is the value. What every control has unless it says otherwise.
     ///
@@ -93,8 +92,7 @@ public sealed interface Scale {
         if (token.equals("db")) {
             return decibels();
         }
-        throw new IllegalArgumentException(
-                "unknown slider scale \"" + token + "\"; it is `linear` or `db`");
+        throw new IllegalArgumentException("unknown slider scale \"" + token + "\"; it is `linear` or `db`");
     }
 
     /// The identity scale.
@@ -143,8 +141,7 @@ public sealed interface Scale {
         public Decibels {
             if (!Double.isFinite(floorDb) || floorDb >= 0) {
                 throw new IllegalArgumentException(
-                        "a decibel scale's floor is below its top, so it is negative — not "
-                                + floorDb);
+                        "a decibel scale's floor is below its top, so it is negative — not " + floorDb);
             }
         }
 
@@ -157,8 +154,7 @@ public sealed interface Scale {
             // an application that meant something else.
             if (min < 0 || max <= 0) {
                 throw new IllegalArgumentException(
-                        "a decibel scale needs a gain range with min >= 0 and max > 0, not min="
-                                + min + " max=" + max);
+                        "a decibel scale needs a gain range with min >= 0 and max > 0, not min=" + min + " max=" + max);
             }
         }
 

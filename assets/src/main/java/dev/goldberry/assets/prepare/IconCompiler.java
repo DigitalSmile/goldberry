@@ -17,7 +17,7 @@ import dev.goldberry.assets.svg.SvgShapes;
 
 /// Turns an SVG icon set into one table of path data.
 ///
-/// Shipping 1544 SVGs would put an XML parser on the path that draws a checkbox.
+/// Shipping 1870 SVGs would put an XML parser on the path that draws a checkbox.
 /// Instead every icon is reduced, once at build time, to a single run of SVG path
 /// data — the one thing Blend2D can consume directly.
 ///
@@ -58,7 +58,7 @@ public final class IconCompiler {
     /// fragment continues from wherever the previous one ended, so each one is
     /// put through [SvgPathData#absoluteStart] first: an SVG `<path>` may open
     /// with a *relative* moveto, which its own element reads as absolute and a
-    /// concatenation does not, and 481 of Lucide's 1544 icons do exactly that.
+    /// concatenation does not, and 634 of Lucide's 1870 icons do exactly that.
     ///
     /// The result is then checked rather than assumed. A subpath that still does
     /// not open with an absolute moveto would silently drag the pen from the

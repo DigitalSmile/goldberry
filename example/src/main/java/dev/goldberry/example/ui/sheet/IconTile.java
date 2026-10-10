@@ -33,7 +33,7 @@ import dev.goldberry.widget.style.Styled;
 /// ## The icon is borrowed
 ///
 /// Handed in rather than looked up, exactly as a `button`'s is: a widget is a
-/// value rebuilt every frame and thrown away, and building 1544 of them per frame
+/// value rebuilt every frame and thrown away, and building 1870 of them per frame
 /// would parse 221 KiB of path data per frame. [IconsScreen] keeps the cache.
 ///
 /// ## Pressing it opens the icon's sizes

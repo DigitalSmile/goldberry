@@ -28,23 +28,22 @@ final class OsStatus {
     /// known name, or the number.
     static String describe(int status) {
         @Nullable
-        String name =
-                switch (status) {
-                    case OK -> "noErr";
-                    case -12_900 -> "kVTPropertyNotSupportedErr";
-                    case -12_902 -> "kVTParameterErr";
-                    case VT_INVALID_SESSION -> "kVTInvalidSessionErr";
-                    case -12_904 -> "kVTAllocationFailedErr";
-                    case -12_906 -> "kVTCouldNotFindVideoDecoderErr";
-                    case -12_909 -> "kVTVideoDecoderBadDataErr";
-                    case -12_910 -> "kVTVideoDecoderUnsupportedDataFormatErr";
-                    case -12_911 -> "kVTVideoDecoderMalfunctionErr";
-                    case -12_913 -> "kVTVideoDecoderNotAvailableNowErr";
-                    case -17_694 -> "kVTVideoDecoderReferenceMissingErr";
-                    case -8_969 -> "codecBadDataErr";
-                    case -50 -> "kAudio_ParamError";
-                    default -> null;
-                };
+        String name = switch (status) {
+            case OK -> "noErr";
+            case -12_900 -> "kVTPropertyNotSupportedErr";
+            case -12_902 -> "kVTParameterErr";
+            case VT_INVALID_SESSION -> "kVTInvalidSessionErr";
+            case -12_904 -> "kVTAllocationFailedErr";
+            case -12_906 -> "kVTCouldNotFindVideoDecoderErr";
+            case -12_909 -> "kVTVideoDecoderBadDataErr";
+            case -12_910 -> "kVTVideoDecoderUnsupportedDataFormatErr";
+            case -12_911 -> "kVTVideoDecoderMalfunctionErr";
+            case -12_913 -> "kVTVideoDecoderNotAvailableNowErr";
+            case -17_694 -> "kVTVideoDecoderReferenceMissingErr";
+            case -8_969 -> "codecBadDataErr";
+            case -50 -> "kAudio_ParamError";
+            default -> null;
+        };
         if (name != null) {
             return name + " (" + status + ")";
         }

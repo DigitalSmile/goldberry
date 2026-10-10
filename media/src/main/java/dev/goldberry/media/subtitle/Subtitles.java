@@ -141,19 +141,18 @@ public final class Subtitles {
         if (end.compareTo(start) <= 0) {
             return Optional.empty();
         }
-        var text =
-                switch (codec) {
-                    case SUBRIP, WEBVTT -> CueText.fromMarkup(utf8(payload, 0, payload.length));
-                    case ASS -> CueText.fromAss(assText(utf8(payload, 0, payload.length)));
-                    case MOV_TEXT -> {
-                        if (payload.length < 2) {
-                            yield "";
-                        }
-                        var length = Math.min(((payload[0] & 0xff) << 8) | (payload[1] & 0xff), payload.length - 2);
-                        yield CueText.lines(utf8(payload, 2, length));
-                    }
-                    default -> "";
-                };
+        var text = switch (codec) {
+            case SUBRIP, WEBVTT -> CueText.fromMarkup(utf8(payload, 0, payload.length));
+            case ASS -> CueText.fromAss(assText(utf8(payload, 0, payload.length)));
+            case MOV_TEXT -> {
+                if (payload.length < 2) {
+                    yield "";
+                }
+                var length = Math.min(((payload[0] & 0xff) << 8) | (payload[1] & 0xff), payload.length - 2);
+                yield CueText.lines(utf8(payload, 2, length));
+            }
+            default -> "";
+        };
         return text.isEmpty() ? Optional.empty() : Optional.of(new Cue(start, end, text));
     }
 

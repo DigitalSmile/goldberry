@@ -92,14 +92,13 @@ public final class ParameterSets {
         /// range a frame carries beside its format. Empty for a depth FFmpeg has
         /// no format of.
         public Optional<String> pixelFormat() {
-            var base =
-                    switch (chromaFormat) {
-                        case 0 -> "gray";
-                        case 1 -> "yuv420p";
-                        case 2 -> "yuv422p";
-                        case 3 -> "yuv444p";
-                        default -> null;
-                    };
+            var base = switch (chromaFormat) {
+                case 0 -> "gray";
+                case 1 -> "yuv420p";
+                case 2 -> "yuv422p";
+                case 3 -> "yuv444p";
+                default -> null;
+            };
             if (base == null) {
                 return Optional.empty();
             }
@@ -497,24 +496,23 @@ public final class ParameterSets {
     /// `macroblocks` macroblocks: MaxDpbMbs of Table A-1 over the picture's size,
     /// at most [#MAX_REORDER]. An unknown level allows the most.
     public static int maxDpbFrames(int level, boolean constraintSet3, long macroblocks) {
-        var maxDpbMbs =
-                switch (level) {
-                    case 9, 10 -> 396;
-                    // Level 1b is level_idc 11 with constraint_set3 in the Baseline,
-                    // Main and Extended profiles.
-                    case 11 -> constraintSet3 ? 396 : 900;
-                    case 12, 13, 20 -> 2376;
-                    case 21 -> 4752;
-                    case 22, 30 -> 8100;
-                    case 31 -> 18_000;
-                    case 32 -> 20_480;
-                    case 40, 41 -> 32_768;
-                    case 42 -> 34_816;
-                    case 50 -> 110_400;
-                    case 51, 52 -> 184_320;
-                    case 60, 61, 62 -> 696_320;
-                    default -> -1;
-                };
+        var maxDpbMbs = switch (level) {
+            case 9, 10 -> 396;
+            // Level 1b is level_idc 11 with constraint_set3 in the Baseline,
+            // Main and Extended profiles.
+            case 11 -> constraintSet3 ? 396 : 900;
+            case 12, 13, 20 -> 2376;
+            case 21 -> 4752;
+            case 22, 30 -> 8100;
+            case 31 -> 18_000;
+            case 32 -> 20_480;
+            case 40, 41 -> 32_768;
+            case 42 -> 34_816;
+            case 50 -> 110_400;
+            case 51, 52 -> 184_320;
+            case 60, 61, 62 -> 696_320;
+            default -> -1;
+        };
         if (maxDpbMbs < 0 || macroblocks <= 0) {
             return MAX_REORDER;
         }

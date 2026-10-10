@@ -61,13 +61,12 @@ public final class MediaLines {
     /// A track as the Tracks card lists it: its index, type, codec, shape and
     /// flags.
     static String describe(Track track) {
-        var details =
-                switch (track.params()) {
-                    case TrackParams.Audio audio -> audio.sampleRate() + " Hz, " + audio.channels() + " ch";
-                    case TrackParams.Video video -> video.width() + "×" + video.height();
-                    case TrackParams.Subtitle _ -> "subtitles";
-                    case TrackParams.Other other -> other.type().name().toLowerCase(Locale.ROOT);
-                };
+        var details = switch (track.params()) {
+            case TrackParams.Audio audio -> audio.sampleRate() + " Hz, " + audio.channels() + " ch";
+            case TrackParams.Video video -> video.width() + "×" + video.height();
+            case TrackParams.Subtitle _ -> "subtitles";
+            case TrackParams.Other other -> other.type().name().toLowerCase(Locale.ROOT);
+        };
         var flags = new ArrayList<String>();
         if (track.isDefault()) {
             flags.add("default");

@@ -15,6 +15,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import dev.goldberry.RendererRequirement;
+import dev.goldberry.assets.BundledAssets;
 import dev.goldberry.assets.BundledFont;
 import dev.goldberry.css.Stylesheet;
 import dev.goldberry.css.Theme;
@@ -518,7 +519,7 @@ class FrameBudgetBenchmark {
         }
     }
 
-    /// A settled frame of the **whole** icon sheet: 1544 icons, and a tree the
+    /// A settled frame of the **whole** icon sheet: 1870 icons, and a tree the
     /// size of any other screen's, because a grid is a list of rows.
     ///
     /// This screen had a budget of its own for as long as it was an
@@ -544,16 +545,17 @@ class FrameBudgetBenchmark {
     void theWholeIconSheetCosts() {
         warmUp();
         var cost = measureSheet("");
+        var icons = BundledAssets.iconNames().size();
 
         System.out.printf(
-                "%n  icons (all 1544): %d elements, opened in %.0f ms"
-                        + "%n  icons (all 1544): build %.3f ms, style %.3f ms, layout %.3f ms,"
+                "%n  icons (all %d): %d elements, opened in %.0f ms"
+                        + "%n  icons (all %d): build %.3f ms, style %.3f ms, layout %.3f ms,"
                         + " raster %.3f ms  (settled, median)%n",
-                cost.elements(), cost.opened(), cost.build(), cost.style(), cost.layout(), cost.raster());
+                icons, cost.elements(), cost.opened(), icons, cost.build(), cost.style(), cost.layout(), cost.raster());
 
         assertTrue(
-                cost.elements() < 1544,
-                "the sheet built " + cost.elements() + " elements for 1544 icons, which is not a window onto"
+                cost.elements() < icons,
+                "the sheet built " + cost.elements() + " elements for " + icons + " icons, which is not a window onto"
                         + " the model — it has stopped virtualizing; a grid is a list of rows");
         var styleBudget = allowed(SHEET_STYLE_BUDGET_MS);
         assertTrue(

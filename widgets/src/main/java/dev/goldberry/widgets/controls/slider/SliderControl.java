@@ -152,15 +152,14 @@ record SliderControl(Slider slider, double thumb, DoubleConsumer onSized)
             event.consume();
             return;
         }
-        var dragging =
-                switch (event.kind()) {
-                    case PRESSED -> event.button() == PointerEvent.Button.PRIMARY;
-                    // Only while a button is down. `dragX()` is NaN otherwise, which is
-                    // the router reporting "no gesture" through the arithmetic rather
-                    // than through a flag.
-                    case MOVED -> !Double.isNaN(event.dragX());
-                    default -> false;
-                };
+        var dragging = switch (event.kind()) {
+            case PRESSED -> event.button() == PointerEvent.Button.PRIMARY;
+            // Only while a button is down. `dragX()` is NaN otherwise, which is
+            // the router reporting "no gesture" through the arithmetic rather
+            // than through a flag.
+            case MOVED -> !Double.isNaN(event.dragX());
+            default -> false;
+        };
         if (!dragging) {
             return;
         }
@@ -218,16 +217,15 @@ record SliderControl(Slider slider, double thumb, DoubleConsumer onSized)
         // holding an arrow to run a value up is how a slider is used, while
         // holding Space on a checkbox to flutter it is not.
         var current = slider.resolved();
-        var moved =
-                switch (event.key()) {
-                    case LEFT, DOWN -> slider.stepFrom(current, -1, 0.01);
-                    case RIGHT, UP -> slider.stepFrom(current, 1, 0.01);
-                    case PAGE_DOWN -> slider.stepFrom(current, -1, 0.1);
-                    case PAGE_UP -> slider.stepFrom(current, 1, 0.1);
-                    case HOME -> slider.min();
-                    case END -> slider.max();
-                    default -> Double.NaN;
-                };
+        var moved = switch (event.key()) {
+            case LEFT, DOWN -> slider.stepFrom(current, -1, 0.01);
+            case RIGHT, UP -> slider.stepFrom(current, 1, 0.01);
+            case PAGE_DOWN -> slider.stepFrom(current, -1, 0.1);
+            case PAGE_UP -> slider.stepFrom(current, 1, 0.1);
+            case HOME -> slider.min();
+            case END -> slider.max();
+            default -> Double.NaN;
+        };
         if (Double.isNaN(moved)) {
             return;
         }

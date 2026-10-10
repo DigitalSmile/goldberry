@@ -121,12 +121,11 @@ class SpiValuesTest {
     @DisplayName("received answers are switched over exhaustively")
     void received() {
         for (var answer : List.of(Received.NEEDS_INPUT, Received.ENDED)) {
-            var name =
-                    switch (answer) {
-                        case Received.Decoded _ -> "frame";
-                        case Received.NeedsInput _ -> "input";
-                        case Received.Ended _ -> "end";
-                    };
+            var name = switch (answer) {
+                case Received.Decoded _ -> "frame";
+                case Received.NeedsInput _ -> "input";
+                case Received.Ended _ -> "end";
+            };
             assertTrue(name.equals("input") || name.equals("end"));
         }
     }

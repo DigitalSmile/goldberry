@@ -300,12 +300,11 @@ final class Transport {
         }
         file.ifPresent(loaded ->
                 options.add(new Option(SUBTITLES_FILE, loaded.file().fileName().orElse("Subtitle file"))));
-        var chosen =
-                switch (status.subtitles().orElse(null)) {
-                    case SubtitleSource.Embedded(var track) -> Integer.toString(track.index());
-                    case SubtitleSource.External _ -> SUBTITLES_FILE;
-                    case null -> SUBTITLES_OFF;
-                };
+        var chosen = switch (status.subtitles().orElse(null)) {
+            case SubtitleSource.Embedded(var track) -> Integer.toString(track.index());
+            case SubtitleSource.External _ -> SUBTITLES_FILE;
+            case null -> SUBTITLES_OFF;
+        };
         Consumer<String> choose = value -> {
             if (value.equals(SUBTITLES_OFF)) {
                 player.hideSubtitles();
@@ -366,12 +365,11 @@ final class Transport {
         }
         var status = player.status();
         if (event.modifiers().only(Mod.SHIFT)) {
-            var handled =
-                    switch (event.key()) {
-                        case COMMA -> rateBy(player, status, -1);
-                        case PERIOD -> rateBy(player, status, 1);
-                        default -> false;
-                    };
+            var handled = switch (event.key()) {
+                case COMMA -> rateBy(player, status, -1);
+                case PERIOD -> rateBy(player, status, 1);
+                default -> false;
+            };
             if (handled) {
                 event.consume();
             }
@@ -380,63 +378,62 @@ final class Transport {
         if (!event.modifiers().none()) {
             return;
         }
-        var handled =
-                switch (event.key()) {
-                    case COMMA -> {
-                        player.step(-1);
-                        yield true;
-                    }
-                    case PERIOD -> {
-                        player.step(1);
-                        yield true;
-                    }
-                    case SPACE, K -> {
-                        if (event.isRepeat()) {
-                            yield true;
-                        }
-                        toggle(player);
-                        yield true;
-                    }
-                    case LEFT -> seekBy(player, status, KEY_SEEK.negated());
-                    case RIGHT -> seekBy(player, status, KEY_SEEK);
-                    case UP -> volumeBy(player, status, KEY_VOLUME);
-                    case DOWN -> volumeBy(player, status, -KEY_VOLUME);
-                    case M -> {
-                        if (!event.isRepeat()) {
-                            player.setMuted(!status.muted());
-                        }
-                        yield true;
-                    }
-                    case L -> {
-                        if (!event.isRepeat()) {
-                            player.setLooping(!player.looping());
-                        }
-                        yield true;
-                    }
-                    case HOME -> {
-                        if (status.seekable()) {
-                            player.seek(Duration.ZERO);
-                        }
-                        yield true;
-                    }
-                    case F -> {
-                        if (fullscreen == null) {
-                            yield false;
-                        }
-                        if (!event.isRepeat()) {
-                            fullscreen.toggle().run();
-                        }
-                        yield true;
-                    }
-                    case ESCAPE -> {
-                        if (fullscreen == null || !fullscreen.on()) {
-                            yield false;
-                        }
-                        fullscreen.toggle().run();
-                        yield true;
-                    }
-                    default -> false;
-                };
+        var handled = switch (event.key()) {
+            case COMMA -> {
+                player.step(-1);
+                yield true;
+            }
+            case PERIOD -> {
+                player.step(1);
+                yield true;
+            }
+            case SPACE, K -> {
+                if (event.isRepeat()) {
+                    yield true;
+                }
+                toggle(player);
+                yield true;
+            }
+            case LEFT -> seekBy(player, status, KEY_SEEK.negated());
+            case RIGHT -> seekBy(player, status, KEY_SEEK);
+            case UP -> volumeBy(player, status, KEY_VOLUME);
+            case DOWN -> volumeBy(player, status, -KEY_VOLUME);
+            case M -> {
+                if (!event.isRepeat()) {
+                    player.setMuted(!status.muted());
+                }
+                yield true;
+            }
+            case L -> {
+                if (!event.isRepeat()) {
+                    player.setLooping(!player.looping());
+                }
+                yield true;
+            }
+            case HOME -> {
+                if (status.seekable()) {
+                    player.seek(Duration.ZERO);
+                }
+                yield true;
+            }
+            case F -> {
+                if (fullscreen == null) {
+                    yield false;
+                }
+                if (!event.isRepeat()) {
+                    fullscreen.toggle().run();
+                }
+                yield true;
+            }
+            case ESCAPE -> {
+                if (fullscreen == null || !fullscreen.on()) {
+                    yield false;
+                }
+                fullscreen.toggle().run();
+                yield true;
+            }
+            default -> false;
+        };
         if (handled) {
             event.consume();
         }

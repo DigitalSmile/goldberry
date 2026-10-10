@@ -1,28 +1,29 @@
 package dev.goldberry.widgets.controls.radio;
 
-import dev.goldberry.widget.semantics.Semantics;
-import dev.goldberry.widget.semantics.Role;
-import dev.goldberry.widget.attr.Attributed;
-import dev.goldberry.widget.attr.Attributes;
-import dev.goldberry.widgets.text.Text;
-
-import dev.goldberry.css.ComputedStyle;
-import dev.goldberry.input.handler.Handles;
-import dev.goldberry.input.key.Key;
-import dev.goldberry.input.event.KeyEvent;
-import dev.goldberry.input.event.PointerEvent;
-import dev.goldberry.paint.Box;
-import dev.goldberry.widget.style.Paints;
-import dev.goldberry.widget.style.Styled;
-import dev.goldberry.widget.Widget;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
-import dev.goldberry.kdl.KdlNode;
-import dev.goldberry.widgets.markup.Wiring;
-import dev.goldberry.widgets.markup.Markup;
+
 import org.jspecify.annotations.Nullable;
+
+import dev.goldberry.css.ComputedStyle;
+import dev.goldberry.input.event.KeyEvent;
+import dev.goldberry.input.event.PointerEvent;
+import dev.goldberry.input.handler.Handles;
+import dev.goldberry.input.key.Key;
+import dev.goldberry.kdl.KdlNode;
+import dev.goldberry.paint.Box;
+import dev.goldberry.widget.Widget;
+import dev.goldberry.widget.attr.Attributed;
+import dev.goldberry.widget.attr.Attributes;
+import dev.goldberry.widget.semantics.Role;
+import dev.goldberry.widget.semantics.Semantics;
+import dev.goldberry.widget.style.Paints;
+import dev.goldberry.widget.style.Styled;
+import dev.goldberry.widgets.markup.Markup;
+import dev.goldberry.widgets.markup.Wiring;
+import dev.goldberry.widgets.text.Text;
 
 /// One option in a [RadioGroup]: a value and a label, with the group deciding
 /// whether it is on.
@@ -73,12 +74,22 @@ import org.jspecify.annotations.Nullable;
 /// @param attributes `id` and `class`, exactly as on the primitives
 @Markup("radio")
 public record Radio(
-        String value, String label, boolean selected, @Nullable Runnable onSelect, boolean disabled,
+        String value,
+        String label,
+        boolean selected,
+        @Nullable Runnable onSelect,
+        boolean disabled,
         Attributes attributes)
-        implements Widget.Leaf, Styled, Paints, Handles, Attributed<Radio> , Semantics {
+        implements Widget.Leaf, Styled, Paints, Handles, Attributed<Radio>, Semantics {
 
     /// Written out so that the parameters taking null for a default can say so.
-    public Radio(String value, String label, boolean selected, @Nullable Runnable onSelect, boolean disabled, @Nullable Attributes attributes) {
+    public Radio(
+            String value,
+            String label,
+            boolean selected,
+            @Nullable Runnable onSelect,
+            boolean disabled,
+            @Nullable Attributes attributes) {
         Objects.requireNonNull(value, "value");
         Objects.requireNonNull(label, "label");
         attributes = attributes == null ? Attributes.NONE : attributes;
@@ -110,7 +121,6 @@ public record Radio(
     public Radio disabled(boolean value) {
         return new Radio(this.value, label, selected, onSelect, value, attributes);
     }
-
 
     /// This option as its group sees it: told whether it is on, what picking it
     /// does, and whether anything else makes it unavailable.
@@ -195,7 +205,9 @@ public record Radio(
     /// moves the focus and this widget hears about it in [#onFocusChanged].
     @Override
     public void onKey(KeyEvent event) {
-        if (event.kind() != KeyEvent.Kind.PRESSED || event.isRepeat() || !event.modifiers().none()) {
+        if (event.kind() != KeyEvent.Kind.PRESSED
+                || event.isRepeat()
+                || !event.modifiers().none()) {
             return;
         }
         if (event.key() == Key.SPACE) {
@@ -251,8 +263,13 @@ public record Radio(
     /// selected would break the one invariant a group exists to hold.
     @SuppressWarnings("unused")
     public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
-        return new Radio(Wiring.requiredValue("radio", node), Wiring.label(node),
-                false, null, Wiring.disabled(node), Attributes.of(node));
+        return new Radio(
+                Wiring.requiredValue("radio", node),
+                Wiring.label(node),
+                false,
+                null,
+                Wiring.disabled(node),
+                Attributes.of(node));
     }
 
     @Override
@@ -264,5 +281,4 @@ public record Radio(
     public String accessibleName() {
         return label;
     }
-
 }

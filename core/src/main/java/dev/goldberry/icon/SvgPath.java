@@ -12,7 +12,7 @@ import dev.goldberry.paint.Path;
 /// SvgPath.appendTo(builder, "M3 12h18", 16.0 / 24);
 /// ```
 ///
-/// The bundled icon table is 1544 lines of SVG `d` attributes, and a [Path] has
+/// The bundled icon table is 1870 lines of SVG `d` attributes, and a [Path] has
 /// a verb for every one of SVG's commands, including the elliptic arc, so this
 /// is a reader rather than a geometry library. What is here is the grammar and
 /// nothing else: scan a command letter, scan its numbers, call the corresponding

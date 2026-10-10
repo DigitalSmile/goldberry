@@ -330,39 +330,28 @@ final class BorderPainter {
         var c = radius * KAPPA;
         // Start, two controls, end: from the side before the corner into the
         // side after it.
-        double[] p =
-                switch (corner) {
-                    case 0 ->
-                        new double[] {
-                            left, top + radius, left, top + radius - c, left + radius - c, top, left + radius, top
-                        };
-                    case 1 ->
-                        new double[] {
-                            right - radius, top, right - radius + c, top, right, top + radius - c, right, top + radius
-                        };
-                    case 2 ->
-                        new double[] {
-                            right,
-                            bottom - radius,
-                            right,
-                            bottom - radius + c,
-                            right - radius + c,
-                            bottom,
-                            right - radius,
-                            bottom
-                        };
-                    default ->
-                        new double[] {
-                            left + radius,
-                            bottom,
-                            left + radius - c,
-                            bottom,
-                            left,
-                            bottom - radius + c,
-                            left,
-                            bottom - radius
-                        };
+        double[] p = switch (corner) {
+            case 0 ->
+                new double[] {left, top + radius, left, top + radius - c, left + radius - c, top, left + radius, top};
+            case 1 ->
+                new double[] {right - radius, top, right - radius + c, top, right, top + radius - c, right, top + radius
                 };
+            case 2 ->
+                new double[] {
+                    right,
+                    bottom - radius,
+                    right,
+                    bottom - radius + c,
+                    right - radius + c,
+                    bottom,
+                    right - radius,
+                    bottom
+                };
+            default ->
+                new double[] {
+                    left + radius, bottom, left + radius - c, bottom, left, bottom - radius + c, left, bottom - radius
+                };
+        };
         for (var axis = 0; axis < 2; axis++) {
             // de Casteljau, once: the two halves of a cubic split at `share` are
             // cubics, so the pieces of a corner are exact pieces of the arc.

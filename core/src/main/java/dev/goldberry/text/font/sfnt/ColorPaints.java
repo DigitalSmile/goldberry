@@ -392,14 +392,13 @@ public final class ColorPaints {
 
     private ColorLine colorLine(int at, boolean variable) {
         var table = requireTable();
-        var extend =
-                switch (Byte.toUnsignedInt(table.get(at))) {
-                    case 1 -> Extend.REPEAT;
-                    case 2 -> Extend.REFLECT;
-                    // 0, and anything the specification has not defined yet, which it
-                    // says to treat as PAD.
-                    default -> Extend.PAD;
-                };
+        var extend = switch (Byte.toUnsignedInt(table.get(at))) {
+            case 1 -> Extend.REPEAT;
+            case 2 -> Extend.REFLECT;
+            // 0, and anything the specification has not defined yet, which it
+            // says to treat as PAD.
+            default -> Extend.PAD;
+        };
         var count = Short.toUnsignedInt(table.getShort(at + 1));
         if (count == 0) {
             throw new IllegalStateException("a colour line with no stops");

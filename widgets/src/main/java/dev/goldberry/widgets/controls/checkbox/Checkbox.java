@@ -1,30 +1,31 @@
 package dev.goldberry.widgets.controls.checkbox;
 
-import dev.goldberry.widget.semantics.Semantics;
-import dev.goldberry.widget.semantics.Role;
-import dev.goldberry.widget.attr.Attributed;
-import dev.goldberry.widget.attr.Bindable;
-import dev.goldberry.widget.attr.Attributes;
-import dev.goldberry.widgets.text.Text;
-
-import dev.goldberry.bind.Observable;
-import dev.goldberry.css.ComputedStyle;
-import dev.goldberry.input.handler.Handles;
-import dev.goldberry.input.key.Key;
-import dev.goldberry.input.event.KeyEvent;
-import dev.goldberry.input.event.PointerEvent;
-import dev.goldberry.paint.Box;
-import dev.goldberry.widget.style.Paints;
-import dev.goldberry.widget.style.Styled;
-import dev.goldberry.widget.Widget;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
-import dev.goldberry.kdl.KdlNode;
-import dev.goldberry.widgets.markup.Wiring;
-import dev.goldberry.widgets.markup.Markup;
+
 import org.jspecify.annotations.Nullable;
+
+import dev.goldberry.bind.Observable;
+import dev.goldberry.css.ComputedStyle;
+import dev.goldberry.input.event.KeyEvent;
+import dev.goldberry.input.event.PointerEvent;
+import dev.goldberry.input.handler.Handles;
+import dev.goldberry.input.key.Key;
+import dev.goldberry.kdl.KdlNode;
+import dev.goldberry.paint.Box;
+import dev.goldberry.widget.Widget;
+import dev.goldberry.widget.attr.Attributed;
+import dev.goldberry.widget.attr.Attributes;
+import dev.goldberry.widget.attr.Bindable;
+import dev.goldberry.widget.semantics.Role;
+import dev.goldberry.widget.semantics.Semantics;
+import dev.goldberry.widget.style.Paints;
+import dev.goldberry.widget.style.Styled;
+import dev.goldberry.widgets.markup.Markup;
+import dev.goldberry.widgets.markup.Wiring;
+import dev.goldberry.widgets.text.Text;
 
 /// A tick with a label, in two states or three.
 ///
@@ -70,9 +71,13 @@ import org.jspecify.annotations.Nullable;
 /// @param attributes `id` and `class`, exactly as on the primitives
 @Markup("checkbox")
 public record Checkbox(
-        String label, Value state, @Nullable Observable<?> source, @Nullable Runnable onChange, boolean disabled,
+        String label,
+        Value state,
+        @Nullable Observable<?> source,
+        @Nullable Runnable onChange,
+        boolean disabled,
         Attributes attributes)
-        implements Widget.Leaf, Styled, Paints, Handles, Attributed<Checkbox>, Bindable<Checkbox> , Semantics {
+        implements Widget.Leaf, Styled, Paints, Handles, Attributed<Checkbox>, Bindable<Checkbox>, Semantics {
 
     /// The three states of a tri-state checkbox.
     public enum Value {
@@ -110,7 +115,13 @@ public record Checkbox(
     private static final double MARK_THICKNESS = 2;
 
     /// Written out so that the parameters taking null for a default can say so.
-    public Checkbox(String label, @Nullable Value state, @Nullable Observable<?> source, @Nullable Runnable onChange, boolean disabled, @Nullable Attributes attributes) {
+    public Checkbox(
+            String label,
+            @Nullable Value state,
+            @Nullable Observable<?> source,
+            @Nullable Runnable onChange,
+            boolean disabled,
+            @Nullable Attributes attributes) {
         Objects.requireNonNull(label, "label");
         state = state == null ? Value.UNCHECKED : state;
         attributes = attributes == null ? Attributes.NONE : attributes;
@@ -140,16 +151,14 @@ public record Checkbox(
     /// @param source read-only by construction, so this control cannot write to
     ///               the model even by accident
     public static Checkbox of(String label, Observable<?> source, Runnable onChange) {
-        return new Checkbox(label, Value.UNCHECKED,
-                Objects.requireNonNull(source, "source"), onChange, false,
-                Attributes.NONE);
+        return new Checkbox(
+                label, Value.UNCHECKED, Objects.requireNonNull(source, "source"), onChange, false, Attributes.NONE);
     }
 
     /// This checkbox, disabled or not.
     public Checkbox disabled(boolean value) {
         return new Checkbox(label, state, source, onChange, value, attributes);
     }
-
 
     /// What this checkbox shows **right now** — the bound value, or [#state()].
     ///
@@ -267,7 +276,9 @@ public record Checkbox(
     /// in the same place.
     @Override
     public void onKey(KeyEvent event) {
-        if (event.kind() != KeyEvent.Kind.PRESSED || event.isRepeat() || !event.modifiers().none()) {
+        if (event.kind() != KeyEvent.Kind.PRESSED
+                || event.isRepeat()
+                || !event.modifiers().none()) {
             return;
         }
         if (event.key() == Key.SPACE) {
@@ -301,14 +312,17 @@ public record Checkbox(
         // Both are read before either decides: `checked` beside `indeterminate`
         // is a contradiction the widget resolves, not a property it ignores.
         var checked = node.booleanProperty("checked");
-        return new Checkbox(Wiring.label(node),
+        return new Checkbox(
+                Wiring.label(node),
                 // `indeterminate` wins over `checked`, because a document that
                 // says both has said something contradictory and the mixed state
                 // is the one that cannot be reached any other way -- resolving it
                 // to "checked" would silently discard the more specific claim.
                 node.booleanProperty("indeterminate") ? Value.MIXED : Value.of(checked),
-                wiring.bound(node), wiring.action(node, "change"),
-                Wiring.disabled(node), Attributes.of(node));
+                wiring.bound(node),
+                wiring.action(node, "change"),
+                Wiring.disabled(node),
+                Attributes.of(node));
     }
 
     @Override
@@ -320,5 +334,4 @@ public record Checkbox(
     public String accessibleName() {
         return label;
     }
-
 }

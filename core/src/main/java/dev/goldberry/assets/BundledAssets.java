@@ -34,7 +34,7 @@ public final class BundledAssets {
 
     /// The icon table, parsed on first use and kept.
     ///
-    /// 1544 icons and roughly 220 KiB of path data. Parsing it eagerly at class
+    /// 1870 icons and roughly 300 KiB of path data. Parsing it eagerly at class
     /// load would put that on the start-up path this toolkit makes claims about;
     /// parsing it per icon would re-read the whole table for every checkbox. Once,
     /// lazily, is the middle.

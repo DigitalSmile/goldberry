@@ -71,12 +71,11 @@ public record TextureView(GpuTexture texture, int level, int layer) implements R
 
     @Override
     public String toString() {
-        var which =
-                switch (texture.type()) {
-                    case CUBE -> "face " + CubeFace.ofLayer(layer);
-                    case THREE_D -> "slice " + layer;
-                    case TWO_D, TWO_D_ARRAY -> "layer " + layer;
-                };
+        var which = switch (texture.type()) {
+            case CUBE -> "face " + CubeFace.ofLayer(layer);
+            case THREE_D -> "slice " + layer;
+            case TWO_D, TWO_D_ARRAY -> "layer " + layer;
+        };
         return texture + "[level " + level + ", " + which + "]";
     }
 }

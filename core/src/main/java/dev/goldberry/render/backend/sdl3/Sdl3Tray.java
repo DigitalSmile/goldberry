@@ -45,13 +45,12 @@ final class Sdl3Tray implements BackendTray {
         // The handler crosses as itself. Nothing is wrapped or posted: SDL calls
         // back from inside its own pump, which is the pump this backend is in, so
         // the row's handler runs on the UI thread like every other event handler.
-        var kind =
-                switch (item.kind()) {
-                    case COMMAND -> SdlTrayItem.Kind.COMMAND;
-                    case CHECKBOX -> SdlTrayItem.Kind.CHECKBOX;
-                    case SUBMENU -> SdlTrayItem.Kind.SUBMENU;
-                    case SEPARATOR -> SdlTrayItem.Kind.SEPARATOR;
-                };
+        var kind = switch (item.kind()) {
+            case COMMAND -> SdlTrayItem.Kind.COMMAND;
+            case CHECKBOX -> SdlTrayItem.Kind.CHECKBOX;
+            case SUBMENU -> SdlTrayItem.Kind.SUBMENU;
+            case SEPARATOR -> SdlTrayItem.Kind.SEPARATOR;
+        };
         return new SdlTrayItem(
                 kind,
                 item.label(),

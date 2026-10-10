@@ -55,12 +55,11 @@ public final class ShowcaseCursors {
     /// @throws IllegalArgumentException for a shape the showcase draws no
     ///         picture for
     public static CursorImage at(Cursor shape, int size) {
-        var hand =
-                switch (shape) {
-                    case GRAB -> Hand.OPEN;
-                    case GRABBING -> Hand.CLOSED;
-                    default -> throw new IllegalArgumentException("the showcase draws no " + shape + " cursor");
-                };
+        var hand = switch (shape) {
+            case GRAB -> Hand.OPEN;
+            case GRABBING -> Hand.CLOSED;
+            default -> throw new IllegalArgumentException("the showcase draws no " + shape + " cursor");
+        };
         var unit = size / GRID;
         return new CursorImage(shape, draw(hand, size), (int) Math.round(HOT_X * unit), (int) Math.round(HOT_Y * unit));
     }

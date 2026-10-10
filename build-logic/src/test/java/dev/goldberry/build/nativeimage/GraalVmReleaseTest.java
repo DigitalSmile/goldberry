@@ -20,14 +20,14 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @DisplayName("GraalVmRelease")
 class GraalVmReleaseTest {
 
-    /** The lines of a real GraalVM CE 25.3.4.1 `release` file that matter, in their order. */
+    /** The lines of a real GraalVM CE 25.4.4.1.1 `release` file that matter, in their order. */
     private static final String RELEASE_FILE = """
             IMPLEMENTOR="GraalVM Community"
-            JAVA_RUNTIME_VERSION="25.0.4.1+1-jvmci-25.3-b22"
-            JAVA_VERSION="25.0.4.1"
+            JAVA_RUNTIME_VERSION="25.0.4.1.1+1-jvmci-25.4-b23"
+            JAVA_VERSION="25.0.4.1.1"
             JAVA_VERSION_DATE="2026-08-18"
             OS_NAME="Linux"
-            GRAALVM_VERSION="25.3.4.1"
+            GRAALVM_VERSION="25.4.4.1.1"
             """;
 
     @Nested
@@ -44,6 +44,16 @@ class GraalVmReleaseTest {
                     () -> assertEquals("25.3.4.1", release.toString()));
         }
 
+        @Test
+        @DisplayName("reads a five-part release, which 25.4 is")
+        void readsAFivePartRelease() {
+            var release = GraalVmRelease.parse("25.4.4.1.1");
+            assertAll(
+                    () -> assertEquals(List.of(25, 4, 4, 1, 1), release.components()),
+                    () -> assertEquals("25.4", release.line()),
+                    () -> assertEquals("25.4.4.1.1", release.toString()));
+        }
+
         @ParameterizedTest(name = "refuses \"{0}\"")
         @ValueSource(strings = {"", "25", "25.", "v25.3", "25.3-dev", "jdk-25.0.2"})
         void refusesAnythingElse(String text) {
@@ -58,7 +68,7 @@ class GraalVmReleaseTest {
         @Test
         @DisplayName("gives the GraalVM version, not the JDK's")
         void readsGraalVmVersion() {
-            assertEquals(Optional.of(GraalVmRelease.parse("25.3.4.1")), GraalVmRelease.fromReleaseFile(RELEASE_FILE));
+            assertEquals(Optional.of(GraalVmRelease.parse("25.4.4.1.1")), GraalVmRelease.fromReleaseFile(RELEASE_FILE));
         }
 
         @Test
@@ -76,20 +86,20 @@ class GraalVmReleaseTest {
     class AgainstCi {
 
         @Test
-        @DisplayName("any 25.3 patch is on it, silently")
+        @DisplayName("any 25.4 patch is on it, silently")
         void patchesAreOnTheLine() {
             assertAll(
-                    () -> assertTrue(GraalVmRelease.parse("25.3.4.1").isCiLine()),
-                    () -> assertTrue(GraalVmRelease.parse("25.3.9").mismatchWarning().isEmpty()));
+                    () -> assertTrue(GraalVmRelease.parse("25.4.4.1.1").isCiLine()),
+                    () -> assertTrue(GraalVmRelease.parse("25.4.9").mismatchWarning().isEmpty()));
         }
 
         @Test
         @DisplayName("another line is warned about, naming both")
         void otherLinesWarn() {
-            var warning = GraalVmRelease.parse("25.2.4").mismatchWarning();
+            var warning = GraalVmRelease.parse("25.3.4.1").mismatchWarning();
             assertAll(
-                    () -> assertFalse(GraalVmRelease.parse("25.2.4").isCiLine()),
-                    () -> assertTrue(warning.orElseThrow().contains("25.2.4")),
+                    () -> assertFalse(GraalVmRelease.parse("25.3.4.1").isCiLine()),
+                    () -> assertTrue(warning.orElseThrow().contains("25.3.4.1")),
                     () -> assertTrue(warning.orElseThrow().contains(GraalVmRelease.CI_LINE)));
         }
 

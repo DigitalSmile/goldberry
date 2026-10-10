@@ -703,12 +703,11 @@ public final class Paragraph {
         Objects.requireNonNull(flow, "flow");
         var wraps = flow.wraps();
         return (width, widthMode, height, heightMode) -> {
-            var available =
-                    switch (widthMode) {
-                        // Yoga passes NaN with UNDEFINED, so `width` must not be read.
-                        case UNDEFINED -> UNCONSTRAINED;
-                        case EXACTLY, AT_MOST -> wraps ? (double) width : UNCONSTRAINED;
-                    };
+            var available = switch (widthMode) {
+                // Yoga passes NaN with UNDEFINED, so `width` must not be read.
+                case UNDEFINED -> UNCONSTRAINED;
+                case EXACTLY, AT_MOST -> wraps ? (double) width : UNCONSTRAINED;
+            };
             var layout = layout(available, flow);
             var measured = widthMode == MeasureMode.EXACTLY ? width : (float) layout.width();
             return new MeasuredSize(measured, (float) layout.height());

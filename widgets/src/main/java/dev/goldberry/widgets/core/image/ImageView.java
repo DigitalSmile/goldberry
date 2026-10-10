@@ -163,12 +163,11 @@ public record ImageView(
     /// The document's classes, and `loading` or `error` while the load stands
     /// there.
     static Set<String> classes(ImageLoad load, Attributes attributes) {
-        var word =
-                switch (load) {
-                    case ImageLoad.Loading() -> "loading";
-                    case ImageLoad.Failed(var _) -> "error";
-                    case ImageLoad.Ready(var _, var _) -> null;
-                };
+        var word = switch (load) {
+            case ImageLoad.Loading() -> "loading";
+            case ImageLoad.Failed(var _) -> "error";
+            case ImageLoad.Ready(var _, var _) -> null;
+        };
         if (word == null) {
             return attributes.classes();
         }

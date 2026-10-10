@@ -16,7 +16,7 @@ import java.util.zip.ZipFile;
 /// Run from Gradle, but an ordinary `main` — which means it can be run by hand
 /// when something goes wrong, and its parts can be unit tested. That is the whole
 /// reason `:assets` is a Java project rather than fifty lines of build script:
-/// compiling 1544 SVGs into path data is real logic, and real logic deserves
+/// compiling 1870 SVGs into path data is real logic, and real logic deserves
 /// tests rather than a comment saying it works.
 ///
 /// ```
@@ -182,7 +182,8 @@ public final class PrepareAssets {
 
         try (var writer = Files.newBufferedWriter(target, StandardCharsets.UTF_8)) {
             writer.write("# Lucide " + Asset.LUCIDE.version()
-                    + ", compiled from SVG. ISC licence: licenses/lucide.txt\n");
+                    + ", compiled from SVG. ISC licence, MIT for the icons derived from Feather:"
+                    + " licenses/lucide.txt\n");
             writer.write("# <name>\\t<path data>, in a 24x24 box,"
                     + " stroked at 2px with round caps and joins.\n");
             for (var icon : new TreeMap<>(table).entrySet()) {

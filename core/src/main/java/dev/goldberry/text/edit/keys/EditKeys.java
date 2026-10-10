@@ -65,16 +65,15 @@ public final class EditKeys {
         // chain declining an event before the shortcuts is for. `Alt` excluded:
         // `Ctrl+Alt` is AltGr on a European layout, and AltGr+V is a character.
         if (accelerator && !modifiers.alt()) {
-            var pressed =
-                    switch (event.key()) {
-                        case A -> EditCommand.Simple.SELECT_ALL;
-                        case C -> EditCommand.Simple.COPY;
-                        case X -> EditCommand.Simple.CUT;
-                        case V -> EditCommand.Simple.PASTE;
-                        case Z -> extend ? EditCommand.Simple.REDO : EditCommand.Simple.UNDO;
-                        case Y -> EditCommand.Simple.REDO;
-                        default -> null;
-                    };
+            var pressed = switch (event.key()) {
+                case A -> EditCommand.Simple.SELECT_ALL;
+                case C -> EditCommand.Simple.COPY;
+                case X -> EditCommand.Simple.CUT;
+                case V -> EditCommand.Simple.PASTE;
+                case Z -> extend ? EditCommand.Simple.REDO : EditCommand.Simple.UNDO;
+                case Y -> EditCommand.Simple.REDO;
+                default -> null;
+            };
             if (pressed != null) {
                 return pressed;
             }

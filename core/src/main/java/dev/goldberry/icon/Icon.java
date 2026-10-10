@@ -20,7 +20,7 @@ import dev.goldberry.paint.stroke.Stroke;
 /// Markup never builds one: `icon="plus"` on a widget resolves against the
 /// `Icons` registry the application owns, and the application makes the `Icon`.
 ///
-/// Lucide's 1544 icons are **stroked**, not filled: each is a 24×24 box of 2px
+/// Lucide's 1870 icons are **stroked**, not filled: each is a 24×24 box of 2px
 /// round-capped, round-joined strokes with no fill at all. That is why an icon
 /// carries a [#strokeWidth()] as well as a path, and why drawing one with `fill`
 /// produces a blob rather than a symbol.

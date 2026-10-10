@@ -185,12 +185,11 @@ sealed class Sdl3Window implements BackendWindow permits Sdl3Popup {
     /// system is added to one and not the other.
     private static dev.goldberry.render.window.NativeHandle translate(
             dev.goldberry.natives.sdl.window.NativeWindowHandle handle) {
-        var kind =
-                switch (handle.kind()) {
-                    case X11 -> dev.goldberry.render.window.NativeHandle.Kind.X11;
-                    case WIN32 -> dev.goldberry.render.window.NativeHandle.Kind.WIN32;
-                    case COCOA -> dev.goldberry.render.window.NativeHandle.Kind.COCOA;
-                };
+        var kind = switch (handle.kind()) {
+            case X11 -> dev.goldberry.render.window.NativeHandle.Kind.X11;
+            case WIN32 -> dev.goldberry.render.window.NativeHandle.Kind.WIN32;
+            case COCOA -> dev.goldberry.render.window.NativeHandle.Kind.COCOA;
+        };
         return new dev.goldberry.render.window.NativeHandle(kind, handle.value());
     }
 

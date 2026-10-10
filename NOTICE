@@ -30,7 +30,7 @@ The following assets are embedded in goldberry-core:
 
   Inter                SIL Open Font License 1.1   https://rsms.me/inter/
   JetBrains Mono       SIL Open Font License 1.1   https://www.jetbrains.com/lp/mono/
-  Lucide               ISC license                 https://lucide.dev
+  Lucide               ISC; MIT for Feather icons  https://lucide.dev
 
 And one is embedded in goldberry-emoji, which is an OPTIONAL artifact:
 

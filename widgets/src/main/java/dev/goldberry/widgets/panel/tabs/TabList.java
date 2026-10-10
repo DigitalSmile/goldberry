@@ -1,18 +1,19 @@
 package dev.goldberry.widgets.panel.tabs;
 
-import dev.goldberry.css.ComputedStyle;
-import dev.goldberry.paint.Box;
-import dev.goldberry.widget.style.Paints;
-import dev.goldberry.widget.style.Styled;
-import dev.goldberry.widget.attr.Attributes;
-import dev.goldberry.widget.Widget;
-import dev.goldberry.widgets.core.scroll.Scroll;
-import dev.goldberry.widgets.core.scroll.ScrollController;
-import dev.goldberry.widgets.core.scroll.ScrollAxis;
 import java.util.List;
 import java.util.Set;
 
 import org.jspecify.annotations.Nullable;
+
+import dev.goldberry.css.ComputedStyle;
+import dev.goldberry.paint.Box;
+import dev.goldberry.widget.Widget;
+import dev.goldberry.widget.attr.Attributes;
+import dev.goldberry.widget.style.Paints;
+import dev.goldberry.widget.style.Styled;
+import dev.goldberry.widgets.core.scroll.Scroll;
+import dev.goldberry.widgets.core.scroll.ScrollAxis;
+import dev.goldberry.widgets.core.scroll.ScrollController;
 
 /// The row of headers in a [Tabs] — a **part**, and the thing the bottom rule is
 /// drawn on.

@@ -187,7 +187,7 @@ class SvgPathTest {
     @Test
     @DisplayName("every bundled icon parses")
     void everyBundledIconParses() {
-        // The real assertion of this whole class. 1544 icons compiled by
+        // The real assertion of this whole class. 1870 icons compiled by
         // :assets from a checksummed archive: if any one of them uses a command
         // or a number form the reader does not handle, this is where it says so
         // -- rather than one checkbox in a showcase being mysteriously empty.

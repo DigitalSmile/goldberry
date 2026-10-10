@@ -1,20 +1,22 @@
 package dev.goldberry.widgets.overlay.hud;
 
+import java.util.List;
+import java.util.Objects;
+import java.util.Set;
+
 import org.jspecify.annotations.Nullable;
+
 import dev.goldberry.css.ComputedStyle;
+import dev.goldberry.kdl.KdlNode;
 import dev.goldberry.paint.Box;
 import dev.goldberry.stats.FrameStats;
+import dev.goldberry.widget.Widget;
 import dev.goldberry.widget.attr.Attributed;
 import dev.goldberry.widget.attr.Attributes;
 import dev.goldberry.widget.style.Paints;
 import dev.goldberry.widget.style.Styled;
-import dev.goldberry.widget.Widget;
-import java.util.List;
-import java.util.Objects;
-import java.util.Set;
-import dev.goldberry.kdl.KdlNode;
-import dev.goldberry.widgets.markup.Wiring;
 import dev.goldberry.widgets.markup.Markup;
+import dev.goldberry.widgets.markup.Wiring;
 
 /// What the frame loop is doing, on top of the window it is doing it to: the
 /// rate, the paint time, and where the time went.
@@ -94,8 +96,14 @@ public record Hud(List<Reading> readings, Attributes attributes)
     /// answer: a style cache that has quietly stopped working shows up here and
     /// nowhere else on screen.
     public static final List<Reading> STAGES = List.of(
-            Reading.FPS, Reading.REFRESH, Reading.LATE, Reading.PAINT,
-            Reading.BUILD, Reading.STYLE, Reading.LAYOUT, Reading.RASTER);
+            Reading.FPS,
+            Reading.REFRESH,
+            Reading.LATE,
+            Reading.PAINT,
+            Reading.BUILD,
+            Reading.STYLE,
+            Reading.LAYOUT,
+            Reading.RASTER);
 
     /// The rate, what the display can do, the toolkit's paint, and where a
     /// composited window's present went: `hud readings="present"`.
@@ -104,8 +112,7 @@ public record Hud(List<Reading> readings, Attributes attributes)
     /// through its surface the three present readings are dashes, and the
     /// breakdown most documents ask for should not grow three rows of nothing.
     public static final List<Reading> PRESENT = List.of(
-            Reading.FPS, Reading.REFRESH, Reading.LATE, Reading.PAINT,
-            Reading.UPLOAD, Reading.ACQUIRE, Reading.SUBMIT);
+            Reading.FPS, Reading.REFRESH, Reading.LATE, Reading.PAINT, Reading.UPLOAD, Reading.ACQUIRE, Reading.SUBMIT);
 
     /// A HUD showing [#STAGES].
     public static Hud stages() {

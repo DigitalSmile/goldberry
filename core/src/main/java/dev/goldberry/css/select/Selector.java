@@ -2,6 +2,7 @@ package dev.goldberry.css.select;
 
 import java.util.List;
 import java.util.Objects;
+
 import org.jspecify.annotations.Nullable;
 
 /// A selector: what a rule matches, and how strongly.
@@ -97,11 +98,7 @@ public record Selector(List<Part> parts) {
 
         /// Whether this compound constrains nothing — the `*` of `* > .a`.
         public boolean isUniversal() {
-            return type == null
-                    && id == null
-                    && classes.isEmpty()
-                    && pseudoClasses.isEmpty()
-                    && structural.isEmpty();
+            return type == null && id == null && classes.isEmpty() && pseudoClasses.isEmpty() && structural.isEmpty();
         }
 
         @Override

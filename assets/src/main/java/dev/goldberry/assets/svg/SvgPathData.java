@@ -16,7 +16,7 @@ package dev.goldberry.assets.svg;
 /// **"Of the path"**, not "of the file". Inside its own `<path d="m2 16 …">` the
 /// `m` is measured from the origin; concatenated behind another subpath it is
 /// measured from wherever that one's pen stopped. Lucide writes its icons this
-/// way — 481 of the 1544 bundled ones have a relative `moveto` opening a subpath
+/// way — 634 of the 1870 bundled ones have a relative `moveto` opening a subpath
 /// that is not the first — so without this rewrite a third of the icon set drew
 /// its second half somewhere off the 24×24 viewBox.
 ///

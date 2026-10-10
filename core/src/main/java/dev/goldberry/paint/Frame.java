@@ -1153,33 +1153,32 @@ public final class Frame {
 
     /// A [Gradient] as the rasterizer's own, for the length of one fill.
     private static BlendGradient toBlend(Gradient gradient) {
-        var ramp =
-                switch (gradient) {
-                    case Gradient.Linear linear ->
-                        BlendGradient.linear(
-                                linear.x1(),
-                                linear.y1(),
-                                linear.x2(),
-                                linear.y2(),
-                                toBlend(linear.extend()),
-                                BlendMatrix.IDENTITY);
-                    // Blend2D's radial is a circle, so an ellipse is the circle of its
-                    // horizontal radius squeezed vertically about its own centre.
-                    case Gradient.Radial radial -> {
-                        var squeeze = radial.radiusY() / radial.radiusX();
-                        yield BlendGradient.radial(
-                                radial.cx(),
-                                radial.cy(),
-                                radial.radiusX(),
-                                radial.cx(),
-                                radial.cy(),
-                                radial.start() * radial.radiusX(),
-                                toBlend(radial.extend()),
-                                squeeze == 1
-                                        ? BlendMatrix.IDENTITY
-                                        : new BlendMatrix(1, 0, 0, squeeze, 0, radial.cy() * (1 - squeeze)));
-                    }
-                };
+        var ramp = switch (gradient) {
+            case Gradient.Linear linear ->
+                BlendGradient.linear(
+                        linear.x1(),
+                        linear.y1(),
+                        linear.x2(),
+                        linear.y2(),
+                        toBlend(linear.extend()),
+                        BlendMatrix.IDENTITY);
+            // Blend2D's radial is a circle, so an ellipse is the circle of its
+            // horizontal radius squeezed vertically about its own centre.
+            case Gradient.Radial radial -> {
+                var squeeze = radial.radiusY() / radial.radiusX();
+                yield BlendGradient.radial(
+                        radial.cx(),
+                        radial.cy(),
+                        radial.radiusX(),
+                        radial.cx(),
+                        radial.cy(),
+                        radial.start() * radial.radiusX(),
+                        toBlend(radial.extend()),
+                        squeeze == 1
+                                ? BlendMatrix.IDENTITY
+                                : new BlendMatrix(1, 0, 0, squeeze, 0, radial.cy() * (1 - squeeze)));
+            }
+        };
         try {
             for (var stop : gradient.stops()) {
                 ramp.addStop(stop.offset(), stop.argb());

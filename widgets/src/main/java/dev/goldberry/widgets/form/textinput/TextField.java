@@ -238,25 +238,24 @@ record TextField(
         if (command == null) {
             return;
         }
-        var handled =
-                switch (command) {
-                    case EditCommand.Simple simple -> simple(simple);
-                    case EditCommand.Move(var motion, var word, var extend) ->
-                        switch (motion) {
-                            case LEFT -> editor.move(TextEditor.Motion.LEFT, word, extend);
-                            case RIGHT -> editor.move(TextEditor.Motion.RIGHT, word, extend);
-                            // One line: its start and the text's are the same
-                            // place, and so are its end and the text's.
-                            case LINE_START, DOCUMENT_START -> editor.move(TextEditor.Motion.START, word, extend);
-                            case LINE_END, DOCUMENT_END -> editor.move(TextEditor.Motion.END, word, extend);
-                        };
-                    // Neither can reach a field: `FIELD` is not vertical and takes
-                    // no newline, so the map produces neither.
-                    case EditCommand.MoveLine _ -> false;
-                    case EditCommand.Type _ -> false;
-                    case EditCommand.Delete(var before, var word) ->
-                        !readOnly && (before ? editor.deleteBefore(word) : editor.deleteAfter(word));
+        var handled = switch (command) {
+            case EditCommand.Simple simple -> simple(simple);
+            case EditCommand.Move(var motion, var word, var extend) ->
+                switch (motion) {
+                    case LEFT -> editor.move(TextEditor.Motion.LEFT, word, extend);
+                    case RIGHT -> editor.move(TextEditor.Motion.RIGHT, word, extend);
+                    // One line: its start and the text's are the same
+                    // place, and so are its end and the text's.
+                    case LINE_START, DOCUMENT_START -> editor.move(TextEditor.Motion.START, word, extend);
+                    case LINE_END, DOCUMENT_END -> editor.move(TextEditor.Motion.END, word, extend);
                 };
+            // Neither can reach a field: `FIELD` is not vertical and takes
+            // no newline, so the map produces neither.
+            case EditCommand.MoveLine _ -> false;
+            case EditCommand.Type _ -> false;
+            case EditCommand.Delete(var before, var word) ->
+                !readOnly && (before ? editor.deleteBefore(word) : editor.deleteAfter(word));
+        };
         if (handled) {
             event.consume();
         }

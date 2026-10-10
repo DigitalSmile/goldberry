@@ -32,7 +32,7 @@ rootProject.name = 'goldberry'
 //
 // :assets is a build-time tool, not a published module: it fetches the pinned
 // fonts and icon set and prepares them into resources :core packages. It is
-// ordinary Java rather than build-script code because compiling 1544 SVGs into
+// ordinary Java rather than build-script code because compiling 1870 SVGs into
 // path data is real logic that deserves real tests.
 //
 // :emoji is the Noto Color Emoji face and nothing else. It is its own artifact

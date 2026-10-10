@@ -100,14 +100,13 @@ public final class TimeTicks {
     /// a numeric axis takes its decimals from the step: a column where one label
     /// says `14:00` and the next says `12 Mar` is a column that reads as ragged.
     private static DateTimeFormatter formatFor(Step step) {
-        var pattern =
-                switch (step.unit()) {
-                    case SECONDS -> "HH:mm:ss";
-                    case MINUTES, HOURS -> "HH:mm";
-                    case DAYS -> "d MMM";
-                    case MONTHS -> "MMM yyyy";
-                    default -> "yyyy";
-                };
+        var pattern = switch (step.unit()) {
+            case SECONDS -> "HH:mm:ss";
+            case MINUTES, HOURS -> "HH:mm";
+            case DAYS -> "d MMM";
+            case MONTHS -> "MMM yyyy";
+            default -> "yyyy";
+        };
         return DateTimeFormatter.ofPattern(pattern, Locale.ROOT);
     }
 

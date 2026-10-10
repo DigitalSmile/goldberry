@@ -93,18 +93,17 @@ public sealed interface GradientLayer extends CssImage {
 
         @Override
         public Gradient resolve(double x, double y, double width, double height, BackgroundPosition position) {
-            var angle =
-                    switch (direction) {
-                        case Direction.Angle(var radians) -> radians;
-                        // Perpendicular to the diagonal between the two other corners.
-                        case Direction.Corner(var right, var bottom) -> {
-                            var toTopRight = Math.atan2(height, width);
-                            if (right) {
-                                yield bottom ? Math.PI - toTopRight : toTopRight;
-                            }
-                            yield bottom ? Math.PI + toTopRight : -toTopRight;
-                        }
-                    };
+            var angle = switch (direction) {
+                case Direction.Angle(var radians) -> radians;
+                // Perpendicular to the diagonal between the two other corners.
+                case Direction.Corner(var right, var bottom) -> {
+                    var toTopRight = Math.atan2(height, width);
+                    if (right) {
+                        yield bottom ? Math.PI - toTopRight : toTopRight;
+                    }
+                    yield bottom ? Math.PI + toTopRight : -toTopRight;
+                }
+            };
             var dx = Math.sin(angle);
             var dy = -Math.cos(angle);
             // CSS's gradient line: through the middle, long enough that the

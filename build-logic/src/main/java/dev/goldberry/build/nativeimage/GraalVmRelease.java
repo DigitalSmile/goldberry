@@ -7,11 +7,11 @@ import java.util.regex.Pattern;
 
 /**
  * A GraalVM release, as its {@code release} file names it --
- * {@code GRAALVM_VERSION="25.3.4.1"} -- and the one line of them CI builds native
+ * {@code GRAALVM_VERSION="25.4.4.1.1"} -- and the one line of them CI builds native
  * images with.
  *
  * <p>Since 25.1 GraalVM versions itself apart from the JDK it is built on:
- * GraalVM 25.3.4.1 is JDK 25.0.4.1, and so was not-quite-25.2.4 before it. The Java
+ * GraalVM 25.4.4.1.1 is JDK 25.0.4.1.1, and 25.3.4.1 before it was JDK 25.0.4.1. The Java
  * version therefore says little about which native-image compiled a binary, and a
  * local build on one GraalVM line and a CI build on another can disagree about
  * what an image needs. {@link #CI_LINE} is the pin; {@code showcase.yml} is held to
@@ -23,7 +23,7 @@ import java.util.regex.Pattern;
 public record GraalVmRelease(List<Integer> components) {
 
     /** The GraalVM line {@code showcase.yml} installs, as {@code setup-graalvm}'s {@code version}. */
-    public static final String CI_LINE = "25.3";
+    public static final String CI_LINE = "25.4";
 
     private static final Pattern VERSION = Pattern.compile("\\d+(?:\\.\\d+)+");
 
@@ -60,7 +60,7 @@ public record GraalVmRelease(List<Integer> components) {
                 .map(match -> parse(match.group(1)));
     }
 
-    /** {@code 25.3} of {@code 25.3.4.1}: what {@code setup-graalvm} is pinned to. */
+    /** {@code 25.4} of {@code 25.4.4.1.1}: what {@code setup-graalvm} is pinned to. */
     public String line() {
         return components.get(0) + "." + components.get(1);
     }

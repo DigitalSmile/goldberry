@@ -15,6 +15,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 import dev.goldberry.RendererRequirement;
+import dev.goldberry.assets.BundledAssets;
 import dev.goldberry.css.Stylesheet;
 import dev.goldberry.css.Theme;
 import dev.goldberry.example.Showcase;
@@ -55,6 +56,10 @@ import dev.goldberry.widgets.text.Text;
 /// - **It reflows.** A narrow picture shows four columns, but not that the count
 ///   came from a measurement rather than from a constant somebody changed.
 class IconsScreenTest {
+
+    /// Every bundled icon, which is what the sheet is a window onto. Read from
+    /// the table rather than written down, so a new Lucide is not a test edit.
+    private static final int ICONS = BundledAssets.iconNames().size();
 
     private TestFrames.Target target;
     private RenderTree render;
@@ -325,7 +330,7 @@ class IconsScreenTest {
         /// reader could see; what it costs now follows the viewport.
         ///
         /// Asserted as a ratio against the model rather than against a number,
-        /// so it holds at any window size: 1544 names and a window that shows
+        /// so it holds at any window size: every name and a window that shows
         /// fewer than a tenth of them.
         @Test
         @DisplayName("and only the tiles in the viewport are built")
@@ -334,9 +339,9 @@ class IconsScreenTest {
             var tiles = harness.byType("icon-tile").size();
 
             assertTrue(
-                    tiles * 10 < 1544,
-                    "the sheet built " + tiles + " of 1544 tiles, which is not a window onto the model");
-            // **And the sheet is still as tall as all 1544 of them.** That is what
+                    tiles * 10 < ICONS,
+                    "the sheet built " + tiles + " of " + ICONS + " tiles, which is not a window onto the model");
+            // **And the sheet is still as tall as all of them.** That is what
             // the spacers are for and it is the property a reader
             // actually sees: a virtualized list whose height followed its window
             // would have a thumb that grew as you scrolled into it.
@@ -356,7 +361,7 @@ class IconsScreenTest {
     @DisplayName("the sheet scrolls")
     class Scrolling {
 
-        /// **The evidence a golden cannot give.** 1544 tiles is far taller than
+        /// **The evidence a golden cannot give.** 1870 tiles is far taller than
         /// any window, so the content has to overflow the viewport — and if it
         /// does not, the screen is not scrolling, it is running off the bottom.
         @Test
@@ -506,12 +511,12 @@ class IconsScreenTest {
             var groups = IconsScreen.categories().size();
             // Lucide files most icons under two or three categories, so the
             // grouped sheet has more tile rows than a flat one would — and the
-            // count beside the field still says 1544.
-            var flat = (int) Math.ceil(1544.0 / IconsScreen.DEFAULT_COLUMNS);
+            // count beside the field still says how many icons there are.
+            var flat = (int) Math.ceil((double) ICONS / IconsScreen.DEFAULT_COLUMNS);
             assertTrue(
                     IconsScreen.rowsFor("", "", IconsScreen.DEFAULT_COLUMNS) > flat + groups,
                     "the grouped sheet should repeat icons under each of their categories");
-            assertEquals("1544 icons", new Harness(1200, 900).count());
+            assertEquals(ICONS + " icons", new Harness(1200, 900).count());
         }
     }
 

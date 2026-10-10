@@ -167,18 +167,17 @@ public final class SdlGpuCommandBuffer {
                 colorTarget.set(ADDRESS, info.offsetOf("texture"), resolved.handle());
                 colorTarget.set(JAVA_INT, info.offsetOf("mip_level"), resolved.level());
                 colorTarget.set(JAVA_INT, info.offsetOf("layer_or_depth_plane"), resolved.layer());
-                var loadOp =
-                        switch (load) {
-                            case SdlGpuLoad.Keep _ -> SdlGpuCommandCalls.LOADOP_LOAD;
-                            case SdlGpuLoad.DontCare _ -> SdlGpuCommandCalls.LOADOP_DONT_CARE;
-                            case SdlGpuLoad.Clear(var red, var green, var blue, var alpha) -> {
-                                colorTarget.set(JAVA_FLOAT, clearColor + color.offsetOf("r"), red);
-                                colorTarget.set(JAVA_FLOAT, clearColor + color.offsetOf("g"), green);
-                                colorTarget.set(JAVA_FLOAT, clearColor + color.offsetOf("b"), blue);
-                                colorTarget.set(JAVA_FLOAT, clearColor + color.offsetOf("a"), alpha);
-                                yield SdlGpuCommandCalls.LOADOP_CLEAR;
-                            }
-                        };
+                var loadOp = switch (load) {
+                    case SdlGpuLoad.Keep _ -> SdlGpuCommandCalls.LOADOP_LOAD;
+                    case SdlGpuLoad.DontCare _ -> SdlGpuCommandCalls.LOADOP_DONT_CARE;
+                    case SdlGpuLoad.Clear(var red, var green, var blue, var alpha) -> {
+                        colorTarget.set(JAVA_FLOAT, clearColor + color.offsetOf("r"), red);
+                        colorTarget.set(JAVA_FLOAT, clearColor + color.offsetOf("g"), green);
+                        colorTarget.set(JAVA_FLOAT, clearColor + color.offsetOf("b"), blue);
+                        colorTarget.set(JAVA_FLOAT, clearColor + color.offsetOf("a"), alpha);
+                        yield SdlGpuCommandCalls.LOADOP_CLEAR;
+                    }
+                };
                 colorTarget.set(JAVA_INT, info.offsetOf("load_op"), loadOp);
                 if (resolveTo == null) {
                     colorTarget.set(JAVA_INT, info.offsetOf("store_op"), SdlGpuCommandCalls.STOREOP_STORE);

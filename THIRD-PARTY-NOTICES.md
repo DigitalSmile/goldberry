@@ -115,7 +115,7 @@ vendor's or the distribution's.
 |---|---|---|---|
 | [Inter](licenses/inter.txt) | OFL 1.1 | <https://rsms.me/inter/> | Default UI font |
 | [JetBrains Mono](licenses/jetbrains-mono.txt) | OFL 1.1 | <https://www.jetbrains.com/lp/mono/> | Default monospace font |
-| [Lucide](licenses/lucide.txt) | ISC | <https://lucide.dev> | Icon set, compiled to a binary path table |
+| [Lucide](licenses/lucide.txt) | ISC, with MIT for the icons derived from Feather | <https://lucide.dev> | Icon set, compiled to a binary path table. The licence file lists the Feather-derived icons by name |
 | [Noto Color Emoji](licenses/noto-emoji.txt) | OFL 1.1 | <https://github.com/googlefonts/noto-emoji> | Emoji font — in **`goldberry-emoji`** and not in core, see below |
 
 ### The emoji face is opt-in, and asks for nothing on screen

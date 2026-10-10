@@ -218,12 +218,11 @@ public final class NineSlice {
     /// A slice line in the picture's pixels: a number at the picture's density,
     /// a percentage of `size`, clamped to it.
     private static int line(Length length, int size, int density) {
-        var pixels =
-                switch (length) {
-                    case Length.Points points -> points.value() * density;
-                    case Length.Percent percent -> percent.value() / 100 * size;
-                    default -> 0;
-                };
+        var pixels = switch (length) {
+            case Length.Points points -> points.value() * density;
+            case Length.Percent percent -> percent.value() / 100 * size;
+            default -> 0;
+        };
         return Math.max(0, Math.min(size, Math.round(pixels)));
     }
 

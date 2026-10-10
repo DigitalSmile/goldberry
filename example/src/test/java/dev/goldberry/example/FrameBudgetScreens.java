@@ -20,7 +20,7 @@ public final class FrameBudgetScreens {
     /// the one that found the paragraph cache smaller than one frame.
     public static final String DOCUMENT = "markdown";
 
-    /// The sheet of **1544 icons**, the biggest *model* in the application and,
+    /// The sheet of **1870 icons**, the biggest *model* in the application and,
     /// since a grid became a list of rows, no longer the biggest tree.
     public static final String SHEET = "icons";
 

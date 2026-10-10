@@ -111,15 +111,15 @@ jobs:
       - name: Build libgoldberry
         run: ./gradlew :natives:cmakeBuild --no-daemon
 
-      # GraalVM CE 25.3, pinned by *GraalVM* version rather than Java version.
+      # GraalVM CE 25.4, pinned by *GraalVM* version rather than Java version.
       # Since 25.1 the community builds are tagged `graal-25.x`; `java-version:
       # '25'` alone still resolves through the old `jdk-25.*` tags and lands on
-      # jdk-25.0.2 from January -- two feature releases behind the 25.3.4.1 the
-      # image was built and run with locally. `version: '25.3'`
-      # takes the newest 25.3 patch.
+      # jdk-25.0.2 from January -- three feature releases behind the 25.4.4.1.1 the
+      # image was built and run with locally. `version: '25.4'`
+      # takes the newest 25.4 patch.
       - uses: graalvm/setup-graalvm@v1
         with:
-          version: '25.3'
+          version: '25.4'
           java-version: '25'
           distribution: graalvm-community
           github-token: ${{ secrets.GITHUB_TOKEN }}

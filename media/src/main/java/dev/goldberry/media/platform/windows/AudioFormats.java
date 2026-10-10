@@ -73,12 +73,11 @@ final class AudioFormats {
             rate = index < FREQUENCIES.length ? FREQUENCIES[index] : 0;
         }
         var configuration = bits.read(4);
-        var channels =
-                switch (configuration) {
-                    case 1, 2, 3, 4, 5, 6 -> configuration;
-                    case 7 -> 8;
-                    default -> 0;
-                };
+        var channels = switch (configuration) {
+            case 1, 2, 3, 4, 5, 6 -> configuration;
+            case 7 -> 8;
+            default -> 0;
+        };
         return new AacConfig(Math.max(rate, 0), channels);
     }
 

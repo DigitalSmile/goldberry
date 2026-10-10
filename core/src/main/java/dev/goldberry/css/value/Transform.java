@@ -4,10 +4,12 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
+
+import org.jspecify.annotations.Nullable;
+
+import dev.goldberry.css.Decoration;
 import dev.goldberry.css.parse.Token;
 import dev.goldberry.css.parse.TokenType;
-import dev.goldberry.css.Decoration;
-import org.jspecify.annotations.Nullable;
 
 /// CSS's `transform` and `transform-origin`, as the cascade resolves them.
 ///
@@ -131,7 +133,9 @@ public record Transform(List<Function> functions, Origin origin) {
             // the other side is, so the value grows out of nothing rather than
             // out of a different kind of thing. `length` is the longer list's, so
             // at least one side always has a function at `i` to grow from.
-            var from = i < functions.size() ? functions.get(i) : to.functions.get(i).identity();
+            var from = i < functions.size()
+                    ? functions.get(i)
+                    : to.functions.get(i).identity();
             var target = i < to.functions.size() ? to.functions.get(i) : from.identity();
             if (from.getClass() != target.getClass()) {
                 return t < 0.5 ? this : to;
@@ -174,8 +178,7 @@ public record Transform(List<Function> functions, Origin origin) {
 
         public Length {
             if (!Double.isFinite(value)) {
-                throw new IllegalArgumentException(
-                        "a transform length must be a finite number, not " + value);
+                throw new IllegalArgumentException("a transform length must be a finite number, not " + value);
             }
         }
 
@@ -363,14 +366,12 @@ public record Transform(List<Function> functions, Origin origin) {
             public Function mix(Function to, double t) {
                 var target = (Skew) to;
                 return new Skew(
-                        xRadians + (target.xRadians - xRadians) * t,
-                        yRadians + (target.yRadians - yRadians) * t);
+                        xRadians + (target.xRadians - xRadians) * t, yRadians + (target.yRadians - yRadians) * t);
             }
 
             @Override
             public String toString() {
-                return "skew(" + Math.toDegrees(xRadians) + "deg, "
-                        + Math.toDegrees(yRadians) + "deg)";
+                return "skew(" + Math.toDegrees(xRadians) + "deg, " + Math.toDegrees(yRadians) + "deg)";
             }
         }
 
@@ -440,9 +441,7 @@ public record Transform(List<Function> functions, Origin origin) {
                 return null;
             }
             var function = function(
-                    token.text().toLowerCase(Locale.ROOT),
-                    arguments(tokens.subList(index + 1, close)),
-                    context);
+                    token.text().toLowerCase(Locale.ROOT), arguments(tokens.subList(index + 1, close)), context);
             if (function == null) {
                 return null;
             }
@@ -505,10 +504,7 @@ public record Transform(List<Function> functions, Origin origin) {
                 // not the same as leaving it unset: `translate(10px)` moves
                 // horizontally only.
                 var values = count == 1 || count == 2 ? lengths(arguments, count, context) : null;
-                return values == null
-                        ? null
-                        : new Function.Translate(
-                                values[0], count == 2 ? values[1] : Length.ZERO);
+                return values == null ? null : new Function.Translate(values[0], count == 2 ? values[1] : Length.ZERO);
             }
             case "translatex", "translatey" -> {
                 var values = count == 1 ? lengths(arguments, 1, context) : null;
@@ -526,18 +522,14 @@ public record Transform(List<Function> functions, Origin origin) {
                 // CSS's rule, and the one that makes `scale(0.6)` mean what a
                 // designer means by it.
                 var values = count == 1 || count == 2 ? numbers(arguments, count) : null;
-                return values == null
-                        ? null
-                        : new Function.Scale(values[0], count == 2 ? values[1] : values[0]);
+                return values == null ? null : new Function.Scale(values[0], count == 2 ? values[1] : values[0]);
             }
             case "scalex", "scaley" -> {
                 var values = count == 1 ? numbers(arguments, 1) : null;
                 if (values == null) {
                     return null;
                 }
-                return name.endsWith("x")
-                        ? new Function.Scale(values[0], 1)
-                        : new Function.Scale(1, values[0]);
+                return name.endsWith("x") ? new Function.Scale(values[0], 1) : new Function.Scale(1, values[0]);
             }
 
             case "rotate" -> {
@@ -547,27 +539,22 @@ public record Transform(List<Function> functions, Origin origin) {
 
             case "skew" -> {
                 var values = count == 1 || count == 2 ? angles(arguments, count) : null;
-                return values == null
-                        ? null
-                        : new Function.Skew(values[0], count == 2 ? values[1] : 0);
+                return values == null ? null : new Function.Skew(values[0], count == 2 ? values[1] : 0);
             }
             case "skewx", "skewy" -> {
                 var values = count == 1 ? angles(arguments, 1) : null;
                 if (values == null) {
                     return null;
                 }
-                return name.endsWith("x")
-                        ? new Function.Skew(values[0], 0)
-                        : new Function.Skew(0, values[0]);
+                return name.endsWith("x") ? new Function.Skew(values[0], 0) : new Function.Skew(0, values[0]);
             }
 
             case "matrix" -> {
                 var values = count == 6 ? numbers(arguments, 6) : null;
                 return values == null
                         ? null
-                        : new Function.Matrix(new Affine(
-                                values[0], values[1], values[2],
-                                values[3], values[4], values[5]));
+                        : new Function.Matrix(
+                                new Affine(values[0], values[1], values[2], values[3], values[4], values[5]));
             }
 
             default -> {
@@ -731,7 +718,10 @@ public record Transform(List<Function> functions, Origin origin) {
     }
 
     /// Which axis a `transform-origin` keyword names, or null if it is not one.
-    private enum Axis { HORIZONTAL, VERTICAL }
+    private enum Axis {
+        HORIZONTAL,
+        VERTICAL
+    }
 
     private static @Nullable Axis keyword(List<Token> part) {
         if (part.size() != 1 || !part.getFirst().is(TokenType.IDENT)) {

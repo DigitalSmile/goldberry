@@ -40,12 +40,11 @@ public record FfmpegPlatform(Os os, Arch arch) {
     public FfmpegPlatform {
         Objects.requireNonNull(os, "os");
         Objects.requireNonNull(arch, "arch");
-        var published =
-                switch (os) {
-                    case LINUX -> true;
-                    case MACOS -> arch == Arch.AARCH64;
-                    case WINDOWS -> arch == Arch.X64;
-                };
+        var published = switch (os) {
+            case LINUX -> true;
+            case MACOS -> arch == Arch.AARCH64;
+            case WINDOWS -> arch == Arch.X64;
+        };
         if (!published) {
             throw new UnsupportedOperationException("no FFmpeg natives for " + classifierOf(os, arch)
                     + "; the targets are linux-x64, linux-aarch64, windows-x64 and macos-aarch64");
@@ -74,13 +73,11 @@ public record FfmpegPlatform(Os os, Arch arch) {
         } else {
             throw new UnsupportedOperationException("no FFmpeg natives for os.name=\"" + osName + "\"");
         }
-        var arch =
-                switch (osArch.toLowerCase(Locale.ROOT).trim()) {
-                    case "amd64", "x86_64", "x64" -> Arch.X64;
-                    case "aarch64", "arm64" -> Arch.AARCH64;
-                    default ->
-                        throw new UnsupportedOperationException("no FFmpeg natives for os.arch=\"" + osArch + "\"");
-                };
+        var arch = switch (osArch.toLowerCase(Locale.ROOT).trim()) {
+            case "amd64", "x86_64", "x64" -> Arch.X64;
+            case "aarch64", "arm64" -> Arch.AARCH64;
+            default -> throw new UnsupportedOperationException("no FFmpeg natives for os.arch=\"" + osArch + "\"");
+        };
         return new FfmpegPlatform(os, arch);
     }
 

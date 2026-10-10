@@ -1,21 +1,22 @@
 package dev.goldberry.widgets.controls.slider;
 
-import org.jspecify.annotations.Nullable;
-import dev.goldberry.widget.attr.Attributed;
-import dev.goldberry.widget.attr.Bindable;
-import dev.goldberry.widget.attr.Attributes;
-
-import dev.goldberry.bind.Observable;
-import dev.goldberry.widget.State;
-import dev.goldberry.widget.Widget;
-import dev.goldberry.widgets.controls.Scale;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.function.DoubleConsumer;
+
+import org.jspecify.annotations.Nullable;
+
+import dev.goldberry.bind.Observable;
 import dev.goldberry.kdl.KdlNode;
-import dev.goldberry.widgets.markup.Wiring;
+import dev.goldberry.widget.State;
+import dev.goldberry.widget.Widget;
+import dev.goldberry.widget.attr.Attributed;
+import dev.goldberry.widget.attr.Attributes;
+import dev.goldberry.widget.attr.Bindable;
+import dev.goldberry.widgets.controls.Scale;
 import dev.goldberry.widgets.markup.Markup;
+import dev.goldberry.widgets.markup.Wiring;
 
 /// A thumb on a track whose position is a number between `min` and `max`.
 ///
@@ -142,10 +143,19 @@ import dev.goldberry.widgets.markup.Markup;
 ///                 slider's own units; empty for none
 @Markup("slider")
 public record Slider(
-        double min, double max, double value, double step,
-        int ticks, @Nullable String format, Scale scale,
-        @Nullable Observable<?> source, @Nullable DoubleConsumer onChange,
-        boolean disabled, Attributes attributes, @Nullable DoubleConsumer onCommit, List<Span> spans)
+        double min,
+        double max,
+        double value,
+        double step,
+        int ticks,
+        @Nullable String format,
+        Scale scale,
+        @Nullable Observable<?> source,
+        @Nullable DoubleConsumer onChange,
+        boolean disabled,
+        Attributes attributes,
+        @Nullable DoubleConsumer onCommit,
+        List<Span> spans)
         implements Widget.Stateful, Attributed<Slider>, Bindable<Slider> {
 
     /// A stretch of a slider's range, `from` up to `to`, in the slider's units.
@@ -161,18 +171,30 @@ public record Slider(
     }
 
     /// The canonical constructor, written out so that the parameters taking null for a default can say so.
-    public Slider(double min, double max, double value, double step, int ticks, @Nullable String format, @Nullable Scale scale, @Nullable Observable<?> source, @Nullable DoubleConsumer onChange, boolean disabled, @Nullable Attributes attributes, @Nullable DoubleConsumer onCommit, @Nullable List<Span> spans) {
+    public Slider(
+            double min,
+            double max,
+            double value,
+            double step,
+            int ticks,
+            @Nullable String format,
+            @Nullable Scale scale,
+            @Nullable Observable<?> source,
+            @Nullable DoubleConsumer onChange,
+            boolean disabled,
+            @Nullable Attributes attributes,
+            @Nullable DoubleConsumer onCommit,
+            @Nullable List<Span> spans) {
         if (!Double.isFinite(min) || !Double.isFinite(max) || max <= min) {
-            throw new IllegalArgumentException(
-                    "a slider needs max > min, not min=" + min + " max=" + max);
+            throw new IllegalArgumentException("a slider needs max > min, not min=" + min + " max=" + max);
         }
         if (!Double.isFinite(step) || step < 0) {
             throw new IllegalArgumentException("step must be zero or positive, not " + step);
         }
         if (ticks == 1 || ticks < 0) {
             throw new IllegalArgumentException(
-                    "tick marks are the ends and what is between them, so there are none or at"
-                            + " least two — not " + ticks);
+                    "tick marks are the ends and what is between them, so there are none or at" + " least two — not "
+                            + ticks);
         }
         scale = scale == null ? Scale.LINEAR : scale;
         scale.validate(min, max);
@@ -203,27 +225,50 @@ public record Slider(
 
     /// Every component but [#spans()]: the canonical form before spans existed,
     /// which every slider that marks nothing still uses.
-    public Slider(double min, double max, double value, double step,
-            int ticks, @Nullable String format, Scale scale,
-            @Nullable Observable<?> source, @Nullable DoubleConsumer onChange,
-            boolean disabled, Attributes attributes, @Nullable DoubleConsumer onCommit) {
+    public Slider(
+            double min,
+            double max,
+            double value,
+            double step,
+            int ticks,
+            @Nullable String format,
+            Scale scale,
+            @Nullable Observable<?> source,
+            @Nullable DoubleConsumer onChange,
+            boolean disabled,
+            Attributes attributes,
+            @Nullable DoubleConsumer onCommit) {
         this(min, max, value, step, ticks, format, scale, source, onChange, disabled, attributes, onCommit, List.of());
     }
 
     /// Every component but [#onCommit()]: the canonical form before the commit
     /// hook existed, which every slider that does not need one still uses.
-    public Slider(double min, double max, double value, double step,
-            int ticks, @Nullable String format, Scale scale,
-            @Nullable Observable<?> source, @Nullable DoubleConsumer onChange,
-            boolean disabled, Attributes attributes) {
+    public Slider(
+            double min,
+            double max,
+            double value,
+            double step,
+            int ticks,
+            @Nullable String format,
+            Scale scale,
+            @Nullable Observable<?> source,
+            @Nullable DoubleConsumer onChange,
+            boolean disabled,
+            Attributes attributes) {
         this(min, max, value, step, ticks, format, scale, source, onChange, disabled, attributes, null);
     }
 
     /// The eight-argument form every unlabelled, unticked, linear slider wants —
     /// which is most of them.
-    public Slider(double min, double max, double value, double step,
-            @Nullable Observable<?> source, @Nullable DoubleConsumer onChange,
-            boolean disabled, Attributes attributes) {
+    public Slider(
+            double min,
+            double max,
+            double value,
+            double step,
+            @Nullable Observable<?> source,
+            @Nullable DoubleConsumer onChange,
+            boolean disabled,
+            Attributes attributes) {
         this(min, max, value, step, 0, null, Scale.LINEAR, source, onChange, disabled, attributes);
     }
 
@@ -265,8 +310,7 @@ public record Slider(
     /// application bug, and a thumb rendered off the end of its track is a worse
     /// way to report it than a thumb pinned at the end.
     public double resolved() {
-        var raw = source == null ? value
-                : source.get() instanceof Number number ? number.doubleValue() : value;
+        var raw = source == null ? value : source.get() instanceof Number number ? number.doubleValue() : value;
         return clamp(raw);
     }
 
@@ -294,7 +338,6 @@ public record Slider(
         return String.format(Locale.ROOT, format, value);
     }
 
-
     /// What `PageUp` and `PageDown` move by — ten steps, or a tenth of the range
     /// when the slider is continuous.
     ///
@@ -313,8 +356,8 @@ public record Slider(
     /// This slider with tick marks — a count along the **travel**, not one per
     /// `step`.
     public Slider ticks(int ticks) {
-        return new Slider(min, max, value, step, ticks, format, scale,
-                source, onChange, disabled, attributes, onCommit, spans);
+        return new Slider(
+                min, max, value, step, ticks, format, scale, source, onChange, disabled, attributes, onCommit, spans);
     }
 
     /// This slider with a value label, as a `String.format` pattern.
@@ -322,14 +365,14 @@ public record Slider(
     /// A pattern and not a function, because the Java-built and KDL-built forms
     /// of a control have to be `equals` and two lambdas never are.
     public Slider format(String format) {
-        return new Slider(min, max, value, step, ticks, format, scale,
-                source, onChange, disabled, attributes, onCommit, spans);
+        return new Slider(
+                min, max, value, step, ticks, format, scale, source, onChange, disabled, attributes, onCommit, spans);
     }
 
     /// This slider on a [Scale] — `fader`'s decibel mapping.
     public Slider scale(Scale scale) {
-        return new Slider(min, max, value, step, ticks, format, scale,
-                source, onChange, disabled, attributes, onCommit, spans);
+        return new Slider(
+                min, max, value, step, ticks, format, scale, source, onChange, disabled, attributes, onCommit, spans);
     }
 
     /// This slider, telling `value` what the user settled on each time a drag or a
@@ -337,16 +380,16 @@ public record Slider(
     ///
     /// @param value the handler, or null for none
     public Slider onCommit(@Nullable DoubleConsumer value) {
-        return new Slider(min, max, this.value, step, ticks, format, scale,
-                source, onChange, disabled, attributes, value, spans);
+        return new Slider(
+                min, max, this.value, step, ticks, format, scale, source, onChange, disabled, attributes, value, spans);
     }
 
     /// This slider marking `spans` in its groove, in its own units: a media seek
     /// bar's buffered stretches. Each is clamped to the range when drawn, and one
     /// wholly outside it is not drawn.
     public Slider spans(List<Span> spans) {
-        return new Slider(min, max, value, step, ticks, format, scale,
-                source, onChange, disabled, attributes, onCommit, spans);
+        return new Slider(
+                min, max, value, step, ticks, format, scale, source, onChange, disabled, attributes, onCommit, spans);
     }
 
     /// The spans as fractions of the groove, `0..1`, through the [#scale()],
@@ -422,8 +465,7 @@ public record Slider(
     /// the values on it are theirs rather than the screen's.
     double stepFrom(double current, int direction, double share) {
         if (step <= 0) {
-            return scale.toValue(
-                    scale.toFraction(current, min, max) + direction * share, min, max);
+            return scale.toValue(scale.toFraction(current, min, max) + direction * share, min, max);
         }
         if (share >= 0.1) {
             return current + direction * largeStep();
@@ -432,9 +474,7 @@ public record Slider(
         // fractionally off it by floating-point, which would make one arrow press
         // out of every few do nothing.
         var index = (current - min) / step;
-        var next = direction > 0
-                ? Math.floor(index + 1e-9) + 1
-                : Math.ceil(index - 1e-9) - 1;
+        var next = direction > 0 ? Math.floor(index + 1e-9) + 1 : Math.ceil(index - 1e-9) - 1;
         return min + next * step;
     }
 
@@ -500,14 +540,18 @@ public record Slider(
     public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
         var min = node.numberProperty("min", 0);
         var max = node.numberProperty("max", 1);
-        return new Slider(min, max,
+        return new Slider(
+                min,
+                max,
                 node.numberProperty("value", min),
                 node.numberProperty("step", 0),
                 (int) node.numberProperty("ticks", 0),
                 node.stringProperty("format"),
                 Scale.of(node.stringProperty("scale")),
-                wiring.bound(node), wiring.numeric(node, "change"),
-                Wiring.disabled(node), Attributes.of(node), wiring.numeric(node, "commit"));
+                wiring.bound(node),
+                wiring.numeric(node, "change"),
+                Wiring.disabled(node),
+                Attributes.of(node),
+                wiring.numeric(node, "commit"));
     }
-
 }

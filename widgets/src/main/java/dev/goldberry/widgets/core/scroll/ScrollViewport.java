@@ -334,20 +334,19 @@ record ScrollViewport(
         var viewport = event.bounds();
         var content = event.part();
         var page = Math.max(line, viewport.height() - PAGE_OVERLAP);
-        var moved =
-                switch (event.key()) {
-                    case PAGE_DOWN -> scrollBy(0, page, viewport, content);
-                    case PAGE_UP -> scrollBy(0, -page, viewport, content);
-                    case DOWN -> scrollBy(0, line, viewport, content);
-                    case UP -> scrollBy(0, -line, viewport, content);
-                    case RIGHT -> scrollBy(line, 0, viewport, content);
-                    case LEFT -> scrollBy(-line, 0, viewport, content);
-                    // Absolute rather than a large relative move, so Home reaches the top
-                    // of a document of any length in one press.
-                    case HOME -> scrollTo(0, 0, viewport, content);
-                    case END -> scrollTo(viewport.overflowX(content), viewport.overflowY(content), viewport, content);
-                    default -> false;
-                };
+        var moved = switch (event.key()) {
+            case PAGE_DOWN -> scrollBy(0, page, viewport, content);
+            case PAGE_UP -> scrollBy(0, -page, viewport, content);
+            case DOWN -> scrollBy(0, line, viewport, content);
+            case UP -> scrollBy(0, -line, viewport, content);
+            case RIGHT -> scrollBy(line, 0, viewport, content);
+            case LEFT -> scrollBy(-line, 0, viewport, content);
+            // Absolute rather than a large relative move, so Home reaches the top
+            // of a document of any length in one press.
+            case HOME -> scrollTo(0, 0, viewport, content);
+            case END -> scrollTo(viewport.overflowX(content), viewport.overflowY(content), viewport, content);
+            default -> false;
+        };
         if (moved) {
             event.consume();
         }

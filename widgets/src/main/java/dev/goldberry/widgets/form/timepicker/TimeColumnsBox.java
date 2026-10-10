@@ -84,17 +84,16 @@ record TimeColumnsBox(List<Widget> columns, boolean disabled, TimeKeys keys)
         if (modifiers.control() || modifiers.alt() || modifiers.shift()) {
             return;
         }
-        var handled =
-                switch (event.key()) {
-                    case UP -> keys.step(-1);
-                    case DOWN -> keys.step(1);
-                    case LEFT -> keys.moveColumn(-1);
-                    case RIGHT -> keys.moveColumn(1);
-                    case HOME -> keys.toColumnEdge(true);
-                    case END -> keys.toColumnEdge(false);
-                    case ENTER, SPACE -> keys.commit();
-                    default -> false;
-                };
+        var handled = switch (event.key()) {
+            case UP -> keys.step(-1);
+            case DOWN -> keys.step(1);
+            case LEFT -> keys.moveColumn(-1);
+            case RIGHT -> keys.moveColumn(1);
+            case HOME -> keys.toColumnEdge(true);
+            case END -> keys.toColumnEdge(false);
+            case ENTER, SPACE -> keys.commit();
+            default -> false;
+        };
         if (handled) {
             event.consume();
         }

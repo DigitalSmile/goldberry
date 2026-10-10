@@ -55,7 +55,7 @@ class SvgShapesTest {
         var refused = assertThrows(IllegalArgumentException.class, () -> SvgShapes.points("1,2 x,4"));
 
         // The build runs this over every icon; a message that says only
-        // `For input string: "x"` sends the reader to grep 1544 files.
+        // `For input string: "x"` sends the reader to grep 1870 files.
         assertTrue(refused.getMessage().contains("\"x\""), refused.getMessage());
         assertTrue(refused.getMessage().contains("1,2 x,4"), refused.getMessage());
         assertInstanceOf(NumberFormatException.class, refused.getCause());
@@ -136,7 +136,7 @@ class SvgShapesTest {
     @Test
     @DisplayName("whole numbers lose their decimal point")
     void coordinatesAreFormattedShort() {
-        // 1544 icons of mostly-integer coordinates; ".0" on every one of them is
+        // 1870 icons of mostly-integer coordinates; ".0" on every one of them is
         // a measurable fraction of the table.
         assertEquals("12", SvgShapes.n(12.0));
         assertEquals("-3", SvgShapes.n(-3.0));

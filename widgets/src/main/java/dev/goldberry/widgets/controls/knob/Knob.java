@@ -1,27 +1,28 @@
 package dev.goldberry.widgets.controls.knob;
 
-import org.jspecify.annotations.Nullable;
-import dev.goldberry.widget.semantics.Semantics;
-import dev.goldberry.widget.semantics.Role;
-import dev.goldberry.widget.attr.Attributed;
-import dev.goldberry.widget.attr.Bindable;
-import dev.goldberry.widget.attr.Attributes;
-
-import dev.goldberry.bind.Observable;
-import dev.goldberry.css.ComputedStyle;
-import dev.goldberry.input.handler.Handles;
-import dev.goldberry.input.event.KeyEvent;
-import dev.goldberry.input.event.PointerEvent;
-import dev.goldberry.paint.Box;
-import dev.goldberry.widget.style.Paints;
-import dev.goldberry.widget.style.Styled;
-import dev.goldberry.widget.Widget;
 import java.util.List;
 import java.util.Set;
 import java.util.function.DoubleConsumer;
+
+import org.jspecify.annotations.Nullable;
+
+import dev.goldberry.bind.Observable;
+import dev.goldberry.css.ComputedStyle;
+import dev.goldberry.input.event.KeyEvent;
+import dev.goldberry.input.event.PointerEvent;
+import dev.goldberry.input.handler.Handles;
 import dev.goldberry.kdl.KdlNode;
-import dev.goldberry.widgets.markup.Wiring;
+import dev.goldberry.paint.Box;
+import dev.goldberry.widget.Widget;
+import dev.goldberry.widget.attr.Attributed;
+import dev.goldberry.widget.attr.Attributes;
+import dev.goldberry.widget.attr.Bindable;
+import dev.goldberry.widget.semantics.Role;
+import dev.goldberry.widget.semantics.Semantics;
+import dev.goldberry.widget.style.Paints;
+import dev.goldberry.widget.style.Styled;
 import dev.goldberry.widgets.markup.Markup;
+import dev.goldberry.widgets.markup.Wiring;
 
 /// A rotary control: a dial with a pointer, an arc that fills as the value
 /// rises, and a vertical drag as its gesture.
@@ -93,10 +94,17 @@ import dev.goldberry.widgets.markup.Markup;
 /// @param attributes `id` and `class`; `class="large"` is the 48 px diameter
 @Markup("knob")
 public record Knob(
-        double min, double max, double value, double step, int detents,
-        @Nullable Observable<?> source, @Nullable DoubleConsumer onChange,
-        boolean disabled, boolean circular, Attributes attributes)
-        implements Widget.Leaf, Styled, Paints, Handles, Attributed<Knob>, Bindable<Knob> , Semantics {
+        double min,
+        double max,
+        double value,
+        double step,
+        int detents,
+        @Nullable Observable<?> source,
+        @Nullable DoubleConsumer onChange,
+        boolean disabled,
+        boolean circular,
+        Attributes attributes)
+        implements Widget.Leaf, Styled, Paints, Handles, Attributed<Knob>, Bindable<Knob>, Semantics {
 
     /// How far a drag travels for the full range: 200 logical pixels, so a knob
     /// behaves the same on a hidpi screen as on a 1× one.
@@ -128,7 +136,17 @@ public record Knob(
     private static final float CLICK_SLOP = 8;
 
     /// The canonical constructor, written out so that the parameters taking null for a default can say so.
-    public Knob(double min, double max, double value, double step, int detents, @Nullable Observable<?> source, @Nullable DoubleConsumer onChange, boolean disabled, boolean circular, @Nullable Attributes attributes) {
+    public Knob(
+            double min,
+            double max,
+            double value,
+            double step,
+            int detents,
+            @Nullable Observable<?> source,
+            @Nullable DoubleConsumer onChange,
+            boolean disabled,
+            boolean circular,
+            @Nullable Attributes attributes) {
         if (!Double.isFinite(min) || !Double.isFinite(max) || min >= max) {
             throw new IllegalArgumentException(
                     "a knob needs a range with a low end below a high one, not " + min + ".." + max);
@@ -138,8 +156,7 @@ public record Knob(
         }
         if (detents == 1 || detents < 0) {
             throw new IllegalArgumentException(
-                    "detents are a set of positions, so there are none or at least two — not "
-                            + detents);
+                    "detents are a set of positions, so there are none or at least two — not " + detents);
         }
         attributes = attributes == null ? Attributes.NONE : attributes;
         this.min = min;
@@ -187,13 +204,11 @@ public record Knob(
         return new Knob(min, max, min, step, 0, source, onChange, false, Attributes.NONE);
     }
 
-
     /// The value actually showing: the bound property's if there is one, else
     /// [#value()] — clamped either way, for
     /// [dev.goldberry.widgets.controls.slider.Slider#resolved()]'s reason.
     public double resolved() {
-        var raw = source == null ? value
-                : source.get() instanceof Number number ? number.doubleValue() : value;
+        var raw = source == null ? value : source.get() instanceof Number number ? number.doubleValue() : value;
         return clamp(raw);
     }
 
@@ -558,9 +573,7 @@ public record Knob(
             return current + direction * largeStep();
         }
         var index = (current - min) / step;
-        var next = direction > 0
-                ? Math.floor(index + 1e-9) + 1
-                : Math.ceil(index - 1e-9) - 1;
+        var next = direction > 0 ? Math.floor(index + 1e-9) + 1 : Math.ceil(index - 1e-9) - 1;
         return min + next * step;
     }
 
@@ -614,11 +627,14 @@ public record Knob(
     public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
         var min = node.numberProperty("min", 0);
         var max = node.numberProperty("max", 1);
-        return new Knob(min, max,
+        return new Knob(
+                min,
+                max,
                 node.numberProperty("value", min),
                 node.numberProperty("step", 0),
                 (int) node.numberProperty("detents", 0),
-                wiring.bound(node), wiring.numeric(node, "change"),
+                wiring.bound(node),
+                wiring.numeric(node, "change"),
                 Wiring.disabled(node),
                 "circular".equals(node.stringProperty("drag")),
                 Attributes.of(node));
@@ -634,5 +650,4 @@ public record Knob(
     public @Nullable String accessibleName() {
         return null;
     }
-
 }

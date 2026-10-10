@@ -28,7 +28,7 @@ class BundledAssetsTest {
     @Test
     @DisplayName("the icon table loads and the icons are real path data")
     void iconsAreLoadable() {
-        // 1544 icons in Lucide 0.469.0. An exact count would break on every
+        // 1870 icons in Lucide 1.54.0. An exact count would break on every
         // upstream bump for no benefit; an order of magnitude catches a table
         // that failed to compile.
         assertTrue(

@@ -28,8 +28,8 @@ import dev.goldberry.render.window.BackendWindow;
 import dev.goldberry.render.window.WindowSpec;
 import dev.goldberry.stats.FrameStats;
 import dev.goldberry.text.font.Fonts;
-import dev.goldberry.widget.style.Corner;
 import dev.goldberry.widget.Widget;
+import dev.goldberry.widget.style.Corner;
 
 /// What a running [Application] can ask of the toolkit.
 ///
@@ -111,8 +111,7 @@ public interface Host {
     /// identity and never called. A widget that binds keys while it is mounted —
     /// `menubar` is the one in the toolkit — passes itself, so that giving them
     /// back cannot take somebody else's binding with it.
-    void shortcut(Shortcut accelerator, Runnable action,
-            Object owner);
+    void shortcut(Shortcut accelerator, Runnable action, Object owner);
 
     /// Binds a window accelerator and says what it does while its key is held
     /// down: [Repeat#IGNORE] for a toggle, so that holding `Escape` does not open
@@ -157,8 +156,7 @@ public interface Host {
     ///
     /// Owners are compared by identity. Harmless when nothing was bound, and a
     /// no-op when something else was.
-    void removeShortcut(Shortcut accelerator,
-            Object owner);
+    void removeShortcut(Shortcut accelerator, Object owner);
 
     /// Unbinds a window accelerator written the way a menu prints it.
     ///
@@ -180,8 +178,7 @@ public interface Host {
     /// Reach for this **only** for activation a modifier is the whole gesture of.
     /// Anything with a key in it is an accelerator, and an accelerator is cheaper
     /// to reason about: it cannot be spoiled by what the user did next.
-    void modifierTap(dev.goldberry.input.tap.ModifierKey modifier, Runnable action,
-            Object owner);
+    void modifierTap(dev.goldberry.input.tap.ModifierKey modifier, Runnable action, Object owner);
 
     /// Unbinds a modifier tap **only if `owner` still holds it**.
     ///
@@ -190,8 +187,7 @@ public interface Host {
     /// mounted has to give the binding back, and must not take a later one with it.
     ///
     /// Harmless when nothing was bound, and a no-op when something else was.
-    void removeModifierTap(dev.goldberry.input.tap.ModifierKey modifier,
-            Object owner);
+    void removeModifierTap(dev.goldberry.input.tap.ModifierKey modifier, Object owner);
 
     /// Floats `widget` over the window's content, pinned to `corner`.
     ///
@@ -339,15 +335,11 @@ public interface Host {
     ///                content yet, because measuring a tree needs a surface to
     ///                measure against
     /// @return the popup, or empty if the platform has no popup windows
-    java.util.Optional<Popup> popup(Widget content,
-            LogicalPoint at,
-            LogicalSize size);
+    java.util.Optional<Popup> popup(Widget content, LogicalPoint at, LogicalSize size);
 
     /// [#popup(Widget, LogicalPoint, LogicalSize)] as a tooltip: never focusable,
     /// and treated as a tooltip by the window manager.
-    java.util.Optional<Popup> tooltip(Widget content,
-            LogicalPoint at,
-            LogicalSize size);
+    java.util.Optional<Popup> tooltip(Widget content, LogicalPoint at, LogicalSize size);
 
     /// Opens a popup **against a rectangle**, sized to its own content and moved
     /// to stay on the screen.
@@ -373,8 +365,7 @@ public interface Host {
     ///
     /// Empty for [#popup(Widget, LogicalPoint, LogicalSize)]'s reason: the
     /// platform may have no popup windows.
-    java.util.Optional<Popup> popup(Widget content,
-                                    LogicalRect anchor, Placement placement);
+    java.util.Optional<Popup> popup(Widget content, LogicalRect anchor, Placement placement);
 
     /// [#popup(Widget, LogicalRect, Placement)] with a floor under the width.
     ///
@@ -394,9 +385,7 @@ public interface Host {
     /// the thing it points at.
     ///
     /// @param minimumWidth the least the popup may be, in logical pixels
-    java.util.Optional<Popup> popup(Widget content,
-                                    LogicalRect anchor, Placement placement,
-                                    float minimumWidth);
+    java.util.Optional<Popup> popup(Widget content, LogicalRect anchor, Placement placement, float minimumWidth);
 
     /// [#popup(Widget, LogicalRect, Placement, float)] with a say in what happens
     /// when the content turns out not to fit.
@@ -409,9 +398,8 @@ public interface Host {
     ///
     /// @param fit consulted between the measure and the place, or null for the
     ///            behaviour of the overload above
-    java.util.Optional<Popup> popup(Widget content,
-                                    LogicalRect anchor, Placement placement,
-                                    float minimumWidth, @Nullable Fit fit);
+    java.util.Optional<Popup> popup(
+            Widget content, LogicalRect anchor, Placement placement, float minimumWidth, @Nullable Fit fit);
 
     /// [#popup(Widget, LogicalRect, Placement, float, Fit)] as a panel that hangs
     /// off something the user is **still using**.
@@ -428,9 +416,8 @@ public interface Host {
     /// focusable, and treated as an attached panel by the window manager — while
     /// still being measured, placed and light-dismissed like any other popup. The
     /// arrows reach it because the owner forwards keys to whatever popup is open.
-    java.util.Optional<Popup> attachedPopup(Widget content,
-                                            LogicalRect anchor, Placement placement,
-                                            float minimumWidth, Fit fit);
+    java.util.Optional<Popup> attachedPopup(
+            Widget content, LogicalRect anchor, Placement placement, float minimumWidth, Fit fit);
 
     /// What a caller does with a measurement, between the measure and the place.
     ///
@@ -512,8 +499,7 @@ public interface Host {
         // `painted()` and not `bounds()`: a menu belongs under where its anchor
         // was drawn, and a button inside a `scroll` is laid out where it always
         // was and drawn a long way from there.
-        return anchor(anchorId)
-                .flatMap(region -> popup(content, region.painted(), placement, minimumWidth, fit));
+        return anchor(anchorId).flatMap(region -> popup(content, region.painted(), placement, minimumWidth, fit));
     }
 
     /// What to do when a widget carrying `context-menu="…"` is right-clicked.
@@ -575,8 +561,7 @@ public interface Host {
     /// have to be handed back to it.
     ///
     /// @return a handle that cancels it
-    EventLoop.Timer after(
-            java.time.Duration delay, Runnable action);
+    EventLoop.Timer after(java.time.Duration delay, Runnable action);
 
     /// What the frame loop has been managing lately.
     ///
@@ -680,8 +665,7 @@ public interface Host {
     ///
     /// @param spec the icon, the tooltip and the menu
     /// @return the tray, or empty if this desktop has none
-    java.util.Optional<dev.goldberry.render.tray.BackendTray> tray(
-            dev.goldberry.render.tray.TraySpec spec);
+    java.util.Optional<dev.goldberry.render.tray.BackendTray> tray(dev.goldberry.render.tray.TraySpec spec);
 
     /// Opens a web page in a window of the engine's own: what a `web-view` opens.
     ///
@@ -706,8 +690,7 @@ public interface Host {
     ///
     /// @param spec where the page starts, its title and its window size
     /// @return the page, or empty where no page can be opened here
-    java.util.Optional<dev.goldberry.render.web.BackendWebView> webView(
-            dev.goldberry.render.web.WebViewSpec spec);
+    java.util.Optional<dev.goldberry.render.web.BackendWebView> webView(dev.goldberry.render.web.WebViewSpec spec);
 
     /// Opens a page **inside this window**, at the given rectangle in its own
     /// logical coordinates: a `web-view` as a widget.
@@ -722,8 +705,7 @@ public interface Host {
     /// @param bounds where to put it, in this window's logical coordinates
     /// @return the page, or empty where none can be embedded here
     java.util.Optional<dev.goldberry.render.web.BackendWebView> embeddedWebView(
-            dev.goldberry.render.web.WebViewSpec spec,
-            dev.goldberry.render.model.LogicalRect bounds);
+            dev.goldberry.render.web.WebViewSpec spec, dev.goldberry.render.model.LogicalRect bounds);
 
     /// Asks the platform to start or stop delivering committed text to this
     /// window.

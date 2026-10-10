@@ -590,12 +590,11 @@ public final class CssParser {
                 return new Structural.Nth(0, Integer.parseInt(lone), fromEnd);
             }
             var coefficient = Objects.requireNonNullElse(matcher.group(1), "");
-            var step =
-                    switch (coefficient) {
-                        case "", "+" -> 1;
-                        case "-" -> -1;
-                        default -> Integer.parseInt(coefficient);
-                    };
+            var step = switch (coefficient) {
+                case "", "+" -> 1;
+                case "-" -> -1;
+                default -> Integer.parseInt(coefficient);
+            };
             var offset = matcher.group(2);
             return new Structural.Nth(step, offset == null ? 0 : Integer.parseInt(offset), fromEnd);
         } catch (NumberFormatException e) {

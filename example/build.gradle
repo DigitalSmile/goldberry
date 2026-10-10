@@ -73,7 +73,7 @@ dependencies {
 //
 // Lucide files each icon under its categories in a JSON file beside the SVG, and
 // Unicode files each emoji under a group in `emoji-test.txt`. Neither is worth
-// shipping as it comes -- 1544 JSON files and 650 KB of sequences the sheet never
+// shipping as it comes -- 1870 JSON files and 650 KB of sequences the sheet never
 // shows -- so `:assets` compiles both into one line per entry, the way it
 // compiles the icons themselves.
 //
@@ -508,7 +508,7 @@ tasks.register('nativeImage', Exec) {
                 // JEP 472, the same module the jar names.
                 '--enable-native-access=dev.goldberry.natives',
                 // No `--no-fallback`. It was here because a fallback image is a
-                // JVM in a trench coat, and GraalVM 25.3 -- the line CI pins --
+                // JVM in a trench coat, and GraalVM 25.4 -- the line CI pins --
                 // has no fallback images left to refuse: the flag reports
                 // "deprecated ... No effect, no replacement" and was both of the
                 // build's two warnings. Failing is still what happens.

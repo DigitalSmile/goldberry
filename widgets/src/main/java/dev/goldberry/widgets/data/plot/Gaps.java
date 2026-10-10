@@ -66,12 +66,11 @@ public final class Gaps {
         if (values == null || values.isEmpty()) {
             return new Resolved(List.of(), List.of());
         }
-        var resolved =
-                switch (mode) {
-                    case GAP -> values;
-                    case ZERO -> substituted(values);
-                    case CONNECT -> interpolated(values);
-                };
+        var resolved = switch (mode) {
+            case GAP -> values;
+            case ZERO -> substituted(values);
+            case CONNECT -> interpolated(values);
+        };
         return new Resolved(resolved, runsOf(resolved));
     }
 

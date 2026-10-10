@@ -32,7 +32,7 @@ import dev.goldberry.widgets.panel.list.ListView;
 import dev.goldberry.widgets.panel.list.Selection;
 import dev.goldberry.widgets.text.Text;
 
-/// The **Icons** screen: all 1544 of them, grouped by category, a row of chips
+/// The **Icons** screen: all 1870 of them, grouped by category, a row of chips
 /// to choose one, a field to find one, and a dialog of any of them at five sizes.
 ///
 /// ## Grouped by Lucide's own categories
@@ -60,7 +60,7 @@ import dev.goldberry.widgets.text.Text;
 ///
 /// Every other screen answers "what does this widget do". This one answers a
 /// question a reader has while writing a *document*: `icon="…"` takes a name from
-/// a set of 1544, and until now the only way to find one was to read Lucide's
+/// a set of 1870, and until now the only way to find one was to read Lucide's
 /// website. A sheet of them beside the gallery is the difference between a
 /// bundled asset and a usable one.
 ///
@@ -79,7 +79,7 @@ import dev.goldberry.widgets.text.Text;
 /// The sheet is a **virtualized `list` of rows** — a grid of equal-height tiles
 /// is a list of equal-height rows, and a list builds only the rows a reader can
 /// see. `FrameBudgetBenchmark` measures what that is worth, against a `masonry` of all
-/// 1544 tiles, rather than leaving it to a paragraph like this one:
+/// 1870 tiles, rather than leaving it to a paragraph like this one:
 ///
 /// | | elements | opens in | style | layout | raster |
 /// |---|---|---|---|---|---|
@@ -226,11 +226,13 @@ public record IconsScreen(ShowcaseModel model, ShowcaseModel.Actions actions) im
 
         /// One [Icon] per name, built the first frame a row needs it.
         ///
-        /// A plain `HashMap` and not a bounded cache: 1544 icons at 20 points is
+        /// A plain `HashMap` and not a bounded cache: 1870 icons at 20 points is
         /// a few hundred kilobytes of `double[]`, it is bounded by construction —
-        /// there are only 1544 names — and a sheet a reader has scrolled to the
+        /// there are only 1870 names — and a sheet a reader has scrolled to the
         /// bottom of has paid the whole cost once rather than once per visit.
-        private final Map<String, Icon> icons = new HashMap<>(2048);
+        /// Sized from the table, so it never rehashes while a reader scrolls.
+        private final Map<String, Icon> icons =
+                HashMap.newHashMap(BundledAssets.iconNames().size());
 
         /// How many icons there are, for the count — each counted once, though
         /// most are under several headings.
@@ -316,7 +318,7 @@ public record IconsScreen(ShowcaseModel model, ShowcaseModel.Actions actions) im
         /// The chips, the field and the count.
         ///
         /// The count is prose rather than a `badge`, because it is a sentence
-        /// about a search — "42 of 1544" — and a badge is a number beside the
+        /// about a search — "42 of 1870" — and a badge is a number beside the
         /// thing it counts. It counts **icons**, each once, not tiles: an icon
         /// under three headings is one icon.
         private Widget header(String query) {
@@ -329,7 +331,7 @@ public record IconsScreen(ShowcaseModel model, ShowcaseModel.Actions actions) im
                                             TextInput.of(
                                                             Models.observable(widget().model(), "app.icon-query"),
                                                             widget().actions()::setIconQuery)
-                                                    .placeholder("Search 1544 icons — try \"arrow\"")
+                                                    .placeholder("Search " + total + " icons — try \"arrow\"")
                                                     .id("icon-search"),
                                             new Text(
                                                     count(query, found),
@@ -348,7 +350,7 @@ public record IconsScreen(ShowcaseModel model, ShowcaseModel.Actions actions) im
         /// A `masonry` would be the obvious widget — a count of equal-width
         /// columns is exactly a reflowing grid — and it cannot virtualize,
         /// because placing a card under the shortest column is a decision about
-        /// **every** card. A masonry of all 1544 tiles puts every one in the
+        /// **every** card. A masonry of all 1870 tiles puts every one in the
         /// tree, and every frame pays 4709 elements' worth of box-building,
         /// layout and hit-test snapshot whether or not a reader can see them.
         ///
@@ -400,7 +402,7 @@ public record IconsScreen(ShowcaseModel model, ShowcaseModel.Actions actions) im
                     Attributes.NONE.id("icon-viewport"));
         }
 
-        /// "1544 icons", "200 in Arrows", or "42 of 1544" — what the sheet is
+        /// "1870 icons", "200 in Arrows", or "42 of 1870" — what the sheet is
         /// showing, in the words a reader would use.
         private String count(String query, int found) {
             if (!query.isBlank()) {

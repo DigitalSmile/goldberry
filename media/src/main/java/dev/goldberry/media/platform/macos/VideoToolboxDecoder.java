@@ -339,14 +339,13 @@ final class VideoToolboxDecoder implements Decoder {
             planes.add(cv.planeAddress(buffer, plane).reinterpret((long) stride * rows));
             strides.add(stride);
         }
-        var matrix =
-                switch (cv.matrix(buffer)) {
-                    case BT601 -> VideoFrame.ColorMatrix.BT601;
-                    case BT709 -> VideoFrame.ColorMatrix.BT709;
-                    case BT2020 -> VideoFrame.ColorMatrix.BT2020;
-                    // What the built-in decoder assumes of an untagged picture.
-                    case UNSPECIFIED -> height >= 720 ? VideoFrame.ColorMatrix.BT709 : VideoFrame.ColorMatrix.BT601;
-                };
+        var matrix = switch (cv.matrix(buffer)) {
+            case BT601 -> VideoFrame.ColorMatrix.BT601;
+            case BT709 -> VideoFrame.ColorMatrix.BT709;
+            case BT2020 -> VideoFrame.ColorMatrix.BT2020;
+            // What the built-in decoder assumes of an untagged picture.
+            case UNSPECIFIED -> height >= 720 ? VideoFrame.ColorMatrix.BT709 : VideoFrame.ColorMatrix.BT601;
+        };
         return new VideoFrame(layout, width, height, planes, strides, matrix, fullRange, picture.ptsNanos());
     }
 

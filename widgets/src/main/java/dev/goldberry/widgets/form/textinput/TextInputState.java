@@ -353,13 +353,12 @@ final class TextInputState extends State<TextInput> implements TextEditor {
         // goes to the end it was heading for. Stepping by real words would move
         // the caret by an amount that says how long they are.
         var masked = widget().password();
-        var next =
-                switch (motion) {
-                    case LEFT -> !byWord ? edit.left(extend) : masked ? edit.toStart(extend) : edit.wordLeft(extend);
-                    case RIGHT -> !byWord ? edit.right(extend) : masked ? edit.toEnd(extend) : edit.wordRight(extend);
-                    case START -> edit.toStart(extend);
-                    case END -> edit.toEnd(extend);
-                };
+        var next = switch (motion) {
+            case LEFT -> !byWord ? edit.left(extend) : masked ? edit.toStart(extend) : edit.wordLeft(extend);
+            case RIGHT -> !byWord ? edit.right(extend) : masked ? edit.toEnd(extend) : edit.wordRight(extend);
+            case START -> edit.toStart(extend);
+            case END -> edit.toEnd(extend);
+        };
         var moved = apply(next, EditHistory.Kind.OTHER, false);
         if (moved && extend) {
             // A selection made from the keyboard is finished when the key lands.
@@ -579,17 +578,16 @@ final class TextInputState extends State<TextInput> implements TextEditor {
         var displayOffset = paragraph.offsetAt(0, mask.display().length(), contentX);
         var offset = mask.real(displayOffset);
 
-        var next =
-                switch (Math.min(clickCount, 3)) {
-                    // A triple-click is "select the line", and a single-line field has
-                    // one line -- so it is select-all, which is also what it looks like.
-                    case 3 -> edit.selectAll();
-                    // A masked field has no words to select: every word() call over
-                    // bullets would select the whole run, which is what select-all
-                    // already does and is not what a double-click means.
-                    case 2 -> widget().password() ? edit.selectAll() : edit.wordAt(offset);
-                    default -> edit.caretTo(offset, extend);
-                };
+        var next = switch (Math.min(clickCount, 3)) {
+            // A triple-click is "select the line", and a single-line field has
+            // one line -- so it is select-all, which is also what it looks like.
+            case 3 -> edit.selectAll();
+            // A masked field has no words to select: every word() call over
+            // bullets would select the whole run, which is what select-all
+            // already does and is not what a double-click means.
+            case 2 -> widget().password() ? edit.selectAll() : edit.wordAt(offset);
+            default -> edit.caretTo(offset, extend);
+        };
         apply(next, EditHistory.Kind.OTHER, false);
     }
 

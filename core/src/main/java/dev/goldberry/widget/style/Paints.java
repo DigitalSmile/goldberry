@@ -1,13 +1,14 @@
 package dev.goldberry.widget.style;
 
+import java.util.List;
+
 import dev.goldberry.css.ComputedStyle;
 import dev.goldberry.paint.Box;
 import dev.goldberry.paint.CanvasStyle;
 import dev.goldberry.paint.tree.RenderTree;
 import dev.goldberry.stats.FrameStats;
-import dev.goldberry.text.font.Font;
 import dev.goldberry.text.Paragraph;
-import java.util.List;
+import dev.goldberry.text.font.Font;
 import dev.goldberry.widget.Widget;
 import dev.goldberry.widget.WidgetRenderer;
 

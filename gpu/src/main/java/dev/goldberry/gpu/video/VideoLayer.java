@@ -151,11 +151,10 @@ public final class VideoLayer implements GpuLayer, AutoCloseable {
             upload(frame, current, shown);
             uploaded = shown;
         }
-        var fragment =
-                switch (shown) {
-                    case VideoImage.Planes planes -> planes.layout().yuv().shader();
-                    case VideoImage.Bgra _ -> BuiltInShader.TEXTURE_FRAGMENT;
-                };
+        var fragment = switch (shown) {
+            case VideoImage.Planes planes -> planes.layout().yuv().shader();
+            case VideoImage.Bgra _ -> BuiltInShader.TEXTURE_FRAGMENT;
+        };
         var pipeline = pipeline(current, fragment);
         var linear = sampler(current);
         var quad = Quad.of(
@@ -216,11 +215,10 @@ public final class VideoLayer implements GpuLayer, AutoCloseable {
     /// The textures an image like `shown` goes into: kept while the layout and
     /// size stay the same.
     private List<GpuTexture> texturesFor(GpuDevice on, VideoImage shown) {
-        var key =
-                switch (shown) {
-                    case VideoImage.Planes planes -> List.of(planes.layout(), planes.width(), planes.height());
-                    case VideoImage.Bgra bgra -> List.of("BGRA", bgra.width(), bgra.height());
-                };
+        var key = switch (shown) {
+            case VideoImage.Planes planes -> List.of(planes.layout(), planes.width(), planes.height());
+            case VideoImage.Bgra bgra -> List.of("BGRA", bgra.width(), bgra.height());
+        };
         if (key.equals(texturesKey)) {
             return textures;
         }

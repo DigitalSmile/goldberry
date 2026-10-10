@@ -68,9 +68,14 @@ import dev.goldberry.widgets.panel.tabs.Tabs;
 ///                 `app.hud` and this is what rebuilds when it moves
 /// @param capabilities what the screens say this build can do; see
 ///                 [GalleryContext#capabilities()]
-public record Screen(ShowcaseModel model, ShowcaseModel.Actions actions,
-        KdlInflater<Widget> inflater, Icon plus,
-        Runnable startTour, AppMenu menu, Set<Capability> capabilities)
+public record Screen(
+        ShowcaseModel model,
+        ShowcaseModel.Actions actions,
+        KdlInflater<Widget> inflater,
+        Icon plus,
+        Runnable startTour,
+        AppMenu menu,
+        Set<Capability> capabilities)
         implements Widget.Stateful {
 
     public Screen {
@@ -78,9 +83,13 @@ public record Screen(ShowcaseModel model, ShowcaseModel.Actions actions,
     }
 
     /// The window's screen, saying what the loaded library answers.
-    public Screen(ShowcaseModel model, ShowcaseModel.Actions actions,
-            KdlInflater<Widget> inflater, Icon plus,
-            Runnable startTour, AppMenu menu) {
+    public Screen(
+            ShowcaseModel model,
+            ShowcaseModel.Actions actions,
+            KdlInflater<Widget> inflater,
+            Icon plus,
+            Runnable startTour,
+            AppMenu menu) {
         this(model, actions, inflater, plus, startTour, menu, Goldberry.capabilities());
     }
 
@@ -163,17 +172,18 @@ public record Screen(ShowcaseModel model, ShowcaseModel.Actions actions,
             // and the strip itself are three ways to set one property rather than
             // three copies of a selection.
             var gallery = new Tabs(
-                    null,
-                    Gallery.TABS.stream()
-                            .map(tab -> (Widget) new Tab(tab.name(), tab.title(), screen(tab)))
-                            .toList(),
-                    Models.observable(model, "app.screen"), actions::pickScreen, null, null,
-                    Attributes.NONE)
+                            null,
+                            Gallery.TABS.stream()
+                                    .map(tab -> (Widget) new Tab(tab.name(), tab.title(), screen(tab)))
+                                    .toList(),
+                            Models.observable(model, "app.screen"),
+                            actions::pickScreen,
+                            null,
+                            null,
+                            Attributes.NONE)
                     .id("gallery");
 
-            return new Column(
-                    List.of(widget().menu().bar(model.isHudShown()), bar, gallery),
-                    Attributes.NONE)
+            return new Column(List.of(widget().menu().bar(model.isHudShown()), bar, gallery), Attributes.NONE)
                     .id("root")
                     // `context-menu=` on any widget: right-clicking anywhere
                     // in the window opens the menu the application registered

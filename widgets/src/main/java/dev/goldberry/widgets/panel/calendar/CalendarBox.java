@@ -128,19 +128,18 @@ record CalendarBox(
             return;
         }
         var shift = modifiers.shift();
-        var handled =
-                switch (event.key()) {
-                    case LEFT -> keys.moveDays(-1);
-                    case RIGHT -> keys.moveDays(1);
-                    case UP -> keys.moveDays(-CalendarMonth.DAYS_IN_WEEK);
-                    case DOWN -> keys.moveDays(CalendarMonth.DAYS_IN_WEEK);
-                    case PAGE_UP -> shift ? keys.moveYears(-1) : keys.moveMonths(-1);
-                    case PAGE_DOWN -> shift ? keys.moveYears(1) : keys.moveMonths(1);
-                    case HOME -> keys.moveToWeekEdge(true);
-                    case END -> keys.moveToWeekEdge(false);
-                    case ENTER, SPACE -> keys.choose();
-                    default -> false;
-                };
+        var handled = switch (event.key()) {
+            case LEFT -> keys.moveDays(-1);
+            case RIGHT -> keys.moveDays(1);
+            case UP -> keys.moveDays(-CalendarMonth.DAYS_IN_WEEK);
+            case DOWN -> keys.moveDays(CalendarMonth.DAYS_IN_WEEK);
+            case PAGE_UP -> shift ? keys.moveYears(-1) : keys.moveMonths(-1);
+            case PAGE_DOWN -> shift ? keys.moveYears(1) : keys.moveMonths(1);
+            case HOME -> keys.moveToWeekEdge(true);
+            case END -> keys.moveToWeekEdge(false);
+            case ENTER, SPACE -> keys.choose();
+            default -> false;
+        };
         if (handled) {
             event.consume();
         }

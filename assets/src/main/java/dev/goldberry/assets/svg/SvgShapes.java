@@ -113,7 +113,7 @@ public final class SvgShapes {
     /// One number of a point list, or the token and the list it was found in.
     ///
     /// `NumberFormatException` says `For input string: "1.2.3"` and nothing about
-    /// which icon's `points` attribute held it — and this runs over 1544 icons at
+    /// which icon's `points` attribute held it — and this runs over 1870 icons at
     /// build time, where the failing one is the whole question.
     private static double number(String token, String points) {
         try {
@@ -158,7 +158,7 @@ public final class SvgShapes {
     /// Formats a coordinate as short as it can be without losing it.
     ///
     /// Whole numbers lose their `.0`, which matters more than it looks: the
-    /// icon table is 1544 lines of coordinates, and Lucide's are nearly all
+    /// icon table is 1870 lines of coordinates, and Lucide's are nearly all
     /// integers. `Locale.ROOT` because a decimal comma would turn one coordinate
     /// into two.
     static String n(double value) {
