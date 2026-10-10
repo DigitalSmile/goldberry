@@ -31,3 +31,4 @@ Appended to the index when the records move in, in this order.
 - [ADR-0587 A property nothing reads is refused, as an unknown node is](0587-a-property-nothing-reads-is-refused-as-an-unknown-node-is.md)
 - [ADR-0588 A painter draws a picture cut in nine, by the stylesheet's rules](0588-a-painter-draws-a-picture-cut-in-nine-by-the-stylesheets-rules.md)
 - [ADR-0589 A cursor shape may be the application's picture, and a drag follows its holder's cursor](0589-a-cursor-shape-may-be-the-applications-picture-and-a-drag-follows-its-holders-cursor.md)
+- [ADR-0590 A change to the landing page alone builds only the landing page](0590-a-change-to-the-landing-page-alone-builds-only-the-landing-page.md)

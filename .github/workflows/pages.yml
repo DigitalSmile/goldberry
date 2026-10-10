@@ -6,6 +6,12 @@
 # The version on the landing page is `goldberryVersion` from gradle.properties,
 # so it is never typed twice. sitemap.xml and robots.txt are generated too.
 #
+# The only workflow a change to site/ alone starts. Everything that builds the
+# library ignores site/**, so a landing-page edit costs this and nothing else,
+# and SiteTest runs below rather than in linux.yml. book/ is not ignored
+# anywhere: BookTest and BookMarkupTest hold the book to the code, and the
+# example's tests take its pictures.
+#
 # One-time setup: Settings ▸ Pages ▸ Source = "GitHub Actions", and the custom
 # domain goldberry.dev (site/CNAME carries it too).
 name: Pages
@@ -55,6 +61,19 @@ jobs:
         # Node's own test runner: assets/consent.js loads nothing before the
         # visitor accepts, and deletes Metrika's cookies when they take it back.
         run: node --test "site/test/*.test.mjs"
+
+      # SiteTest, run here because it is the only place a change to site/ alone
+      # still runs it: the per-OS workflows, CodeQL, Qodana and snapshot.yml
+      # ignore site/, so a landing-page edit does not build three platforms and
+      # publish a snapshot. build-logic is a build of its own and needs no
+      # library, so this is a JDK and a few seconds of Gradle.
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Check the landing page against the book
+        run: ./gradlew -p build-logic test --tests 'dev.goldberry.build.site.*' --no-daemon
 
       - name: Assemble the site
         env:

@@ -15,6 +15,9 @@ name: CodeQL
 on:
   pull_request:
     branches: [main, master]
+    # The landing page is pages.yml's alone, and it runs SiteTest itself.
+    paths-ignore:
+      - 'site/**'
   schedule:
     # Early on a Monday, so a week's findings are waiting rather than
     # interrupting.

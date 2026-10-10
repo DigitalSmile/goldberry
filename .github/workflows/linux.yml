@@ -34,6 +34,9 @@ name: Linux
 
 on:
   pull_request:
+    # The landing page is pages.yml's alone, and it runs SiteTest itself.
+    paths-ignore:
+      - 'site/**'
   workflow_call:
   workflow_dispatch:
 

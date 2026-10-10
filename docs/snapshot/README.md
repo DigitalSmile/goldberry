@@ -7,7 +7,8 @@ GB-005 to GB-012, written 2026-10-05 and 2026-10-06, GB-013 to GB-018,
 written 2026-10-06, and GB-019 to GB-031, written 2026-10-08. It also holds the
 unread-property check of 2026-10-10 (ADR-0587), which answers a `TODO.md` entry
 rather than an issue, and GB-032 and GB-033, written 2026-10-10 (ADR-0588 and
-ADR-0589).
+ADR-0589), and the CI change of 2026-10-10 that builds only the landing
+page for a change to `site/` alone (ADR-0590).
 
 ## What is here, and where it goes
 
@@ -30,6 +31,8 @@ ADR-0589).
 | `adr/0588-…` and `adr/0589-…` | `book/src/adr/` | GB-032 (a painter's nine-slice) and GB-033 (cursor pictures, a drag following its holder's cursor, native ABI 22). Contiguous with 0587; renumber with the rest if records landed in between. 0589 links ADR-0057 as a sibling, which resolves once it is in `book/src/adr/` |
 | `components-drawing-nine-slice.md` | `book/src/components/drawing.md`, `### The painter`, after the stroke paragraph | GB-032: `Frame.drawNineSlice` and `NinePatch` |
 | `guide-input-cursors.md` | `book/src/guide/input.md` (`## The cursor`), `book/src/overview/limitations.md` (the *Custom image cursors* row), `book/src/status.md` (one phrase) | GB-033, three pieces, each says where it goes. The guide's paragraph says custom image cursors are not built, which stopped being true on 2026-10-10 |
+| `adr/0590-…` | `book/src/adr/` | A change to `site/` alone runs `pages.yml` only, which runs `SiteTest`; `book/` is never ignored. Contiguous with 0589; renumber with the rest if records landed in between |
+| `contributing-testing-ci-matrix.md` | `book/src/contributing/testing.md`, `## The CI matrix` | Five trigger cells, the `pages.yml` row, and one paragraph after the per-OS paragraph |
 | (no file) | `book/src/TODO.md` | The entry **The inflater accepts a property nothing reads**, under *The catalog: specified and unbuilt*, moves to *Answered* with a closing paragraph citing ADR-0587. Back the file up first |
 
 ## Doc comments that point at the guide

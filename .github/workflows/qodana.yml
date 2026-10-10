@@ -19,8 +19,14 @@ name: Qodana
 on:
   pull_request:
     branches: [main, master]
+    # The landing page is pages.yml's alone, and it runs SiteTest itself.
+    paths-ignore:
+      - 'site/**'
   push:
     branches: [main, master]
+    # The landing page is pages.yml's alone, and it runs SiteTest itself.
+    paths-ignore:
+      - 'site/**'
   workflow_dispatch:
 
 permissions:
