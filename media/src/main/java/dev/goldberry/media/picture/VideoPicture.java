@@ -6,8 +6,10 @@ import java.util.Objects;
 
 import dev.goldberry.media.MediaPlayer;
 
-/// One decoded picture, ready to draw: premultiplied BGRA, opaque, at the size it
-/// was decoded at: what a view that blits on the CPU draws.
+/// One decoded picture, ready to draw: premultiplied BGRA at the size it was
+/// decoded at, what a view that blits on the CPU draws. Opaque, unless the video
+/// carries alpha ([#opaque()]), as a WebM sticker does: then a view blends it over
+/// what is beneath it.
 ///
 /// **Borrowed.** The pixels live in a buffer the Engine reuses. A picture handed
 /// out by [MediaPlayer#currentPicture()] keeps its pixels until two more pictures
@@ -28,8 +30,9 @@ public final class VideoPicture implements Picture {
     private final int stride;
     private final ByteBuffer pixels;
     private final long ptsNanos;
+    private final boolean opaque;
 
-    /// A picture over `pixels`.
+    /// An opaque picture over `pixels`.
     ///
     /// @param width    width in pixels
     /// @param height   height in pixels
@@ -38,6 +41,20 @@ public final class VideoPicture implements Picture {
     ///                 which the picture keeps a read-only view of
     /// @param ptsNanos when the picture is presented, in nanoseconds of stream time
     public VideoPicture(int width, int height, int stride, ByteBuffer pixels, long ptsNanos) {
+        this(width, height, stride, pixels, ptsNanos, true);
+    }
+
+    /// A picture over `pixels`, opaque or with alpha.
+    ///
+    /// @param width    width in pixels
+    /// @param height   height in pixels
+    /// @param stride   bytes from one row to the next; at least `4 × width`
+    /// @param pixels   a direct buffer of at least `stride × height` bytes,
+    ///                 which the picture keeps a read-only view of
+    /// @param ptsNanos when the picture is presented, in nanoseconds of stream time
+    /// @param opaque   whether every pixel's alpha is 255; false for a picture
+    ///                 with alpha, whose colour is premultiplied by it
+    public VideoPicture(int width, int height, int stride, ByteBuffer pixels, long ptsNanos, boolean opaque) {
         Objects.requireNonNull(pixels, "pixels");
         if (width <= 0 || height <= 0) {
             throw new IllegalArgumentException("size " + width + "×" + height);
@@ -56,6 +73,13 @@ public final class VideoPicture implements Picture {
         // B, G, R, A in memory.
         this.pixels = pixels.asReadOnlyBuffer().order(ByteOrder.LITTLE_ENDIAN);
         this.ptsNanos = ptsNanos;
+        this.opaque = opaque;
+    }
+
+    /// Whether every pixel is opaque. A picture that is not came from a video
+    /// with alpha, and is drawn over what is beneath it rather than in its place.
+    public boolean opaque() {
+        return opaque;
     }
 
     /// Width in pixels.

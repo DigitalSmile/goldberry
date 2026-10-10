@@ -78,6 +78,15 @@ $ff -f lavfi -i "$short" -vf "scale=out_color_matrix=bt601:out_range=pc,format=y
     -c:v libvpx-vp9 -b:v 200k -colorspace smpte170m -color_primaries smpte170m -color_trc smpte170m \
     -color_range pc "$out/clip-vp9-full.webm"
 
+# --- A sticker: VP9 with an alpha channel, as Telegram sends one, 64x64 at 10 fps
+# for one second. Red everywhere; the alpha is the picture. In the top half an
+# opaque 16x16 square at x = 4n, y 8..23 in frame n, transparent around it; in
+# the bottom 24 rows half alpha (128); between them transparent. Lossless, so
+# the decoded alpha is exactly that. libvpx encodes the alpha as a second VP9
+# stream in each block's BlockAdditional and marks the track with AlphaMode.
+$ff -f lavfi -i "color=c=red:s=64x64:r=10:d=1,format=rgba,geq=r='255':g='0':b='0':a='if(lt(Y,32),if(between(X,4*N,4*N+15)*between(Y,8,23),255,0),if(gte(Y,40),128,0))'" \
+    -c:v libvpx-vp9 -pix_fmt yuva420p -lossless 1 -auto-alt-ref 0 "$out/sticker-vp9-alpha.webm"
+
 # --- Ten seconds with a single keyframe, at zero, and an Opus sine: a paused
 # accurate seek decodes from there, so the audio before a target 9.5 s in must
 # not fill its queue and stop the demuxer short of the target. 32x18, so it stays

@@ -115,6 +115,14 @@ public final class FrameSequence {
         var builtAt = System.nanoTime();
 
         var boxes = renderer.render(tree);
+        // The drag's ghost goes on after the tree has rendered, so it is drawn
+        // from this frame's boxes, and before layout, so it is laid out with
+        // them. It belongs to no widget: the router knows a drag is on, and the
+        // tree does not.
+        var dragging = router.dragging();
+        if (dragging.isPresent()) {
+            boxes = DragGhost.over(boxes, dragging.get());
+        }
         var styledAt = System.nanoTime();
 
         render.update(frame, boxes);

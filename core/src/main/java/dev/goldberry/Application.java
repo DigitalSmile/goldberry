@@ -10,6 +10,7 @@ import dev.goldberry.render.Cursor;
 import dev.goldberry.render.model.LogicalPoint;
 import dev.goldberry.render.model.LogicalSize;
 import dev.goldberry.render.window.WindowSpec;
+import dev.goldberry.text.font.FallbackSource;
 import dev.goldberry.text.font.FontSource;
 import dev.goldberry.widget.Widget;
 
@@ -228,6 +229,30 @@ public interface Application {
     ///
     /// Empty by default: the bundled faces are the whole design system.
     default List<FontSource> fonts() {
+        return List.of();
+    }
+
+    /// The faces searched, in order, for a character the face a stylesheet
+    /// chose has no glyph for.
+    ///
+    /// ```java
+    /// @Override public List<FallbackSource> fallbacks() {
+    ///     return List.of(FallbackSource.of(FontSource.stream("Noto Sans Arabic", 400, Style.UPRIGHT,
+    ///             () -> MyApp.class.getResourceAsStream("fonts/NotoSansArabic-Regular.ttf")),
+    ///             UnicodeScript.ARABIC));
+    /// }
+    /// ```
+    ///
+    /// A name typed in a script the design system's faces lack is drawn in the
+    /// first of these that has its characters, at the size and on the line of
+    /// the text around it, instead of as `.notdef` boxes. Text the chosen face
+    /// covers never reaches them. A fallback is opened the first time a
+    /// character needs it, and the faces an artifact provides through
+    /// `dev.goldberry.assets.FallbackFont` are searched after these.
+    ///
+    /// Read **once**, with [#fonts()], when the window's book is opened. Empty by
+    /// default, so a character no face has is drawn as `.notdef`.
+    default List<FallbackSource> fallbacks() {
         return List.of();
     }
 

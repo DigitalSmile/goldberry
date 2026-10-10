@@ -468,10 +468,36 @@ public final class RenderTree implements AutoCloseable {
             // rasterization.
             return;
         }
-        // Document order, then whatever asked to be drawn last. Two passes and no
-        // sort: the flag is rare, the lists are short, and a comparator would put
-        // an ordering *among* elevated siblings that is deliberately left
-        // undefined.
+        paintChildren(object, left, top, alpha, transform, clip, state);
+        state.clipTo(parentClip);
+    }
+
+    /// Draws a node's children under `clip` — straight onto the frame, or, for a
+    /// node that clips them to its rounded corners, through a layer of their own.
+    ///
+    /// Document order, then whatever asked to be drawn last. Two passes and no
+    /// sort: the flag is rare, the lists are short, and a comparator would put an
+    /// ordering *among* elevated siblings that is deliberately left undefined.
+    private void paintChildren(
+            RenderObject object, double left, double top, double alpha, Affine transform, Clip clip, Painting state) {
+
+        var box = object.appliedBox();
+        // One comparison for every box with square corners, which is nearly all
+        // of them: nothing is allocated and the walk below is the one it always was.
+        if (box.overflow() != Overflow.VISIBLE && !box.decoration().corners().isSquare()) {
+            var rounded = RoundedClip.of(box, object.layout());
+            if (rounded != null && !(state.frame.hasGpu() && object.clipHoldsGpu())) {
+                if (paintRounded(object, left, top, alpha, transform, clip, rounded, state)) {
+                    return;
+                }
+            }
+        }
+        paintInOrder(object, left, top, alpha, transform, clip, state);
+    }
+
+    /// The children straight onto the frame under `clip`, in paint order.
+    private void paintInOrder(
+            RenderObject object, double left, double top, double alpha, Affine transform, Clip clip, Painting state) {
         for (var child : object.children()) {
             if (!child.appliedBox().elevated()) {
                 paint(child, left, top, alpha, transform, clip, state);
@@ -482,7 +508,99 @@ public final class RenderTree implements AutoCloseable {
                 paint(child, left, top, alpha, transform, clip, state);
             }
         }
-        state.clipTo(parentClip);
+    }
+
+    /// Draws the children of a node that clips them to its `border-radius`.
+    ///
+    /// The rasterizer clips to rectangles only, so the corners are taken off a
+    /// raster instead: the children are drawn into a layer the size of the
+    /// node's content box, the four corners its rounded padding box cuts off are
+    /// cleared out of it ([Frame#cutCorners]), and the layer is composited under
+    /// the same rectangular clip the children would have been drawn under — so
+    /// nothing reaches outside the rectangle, and nothing the curve cuts off
+    /// reaches the frame.
+    ///
+    /// Drawn untransformed, into the layer's own coordinates, with the node's
+    /// matrix applied to the composite: [#compositeThroughLayer]'s arrangement,
+    /// and for its reason. The raster is kept between frames and drawn again
+    /// only when something under the node changed, so a still avatar is a blit.
+    ///
+    /// **A GPU layer inside keeps the rectangle.** A layer's frame has no GPU
+    /// surface to place one on, so a video or a `canvas3d` drawn through the
+    /// raster would show what its painter draws without a GPU. Where the frame
+    /// outside has a GPU surface, a subtree that asks for a GPU layer is drawn
+    /// straight onto the frame under the rectangle clip instead, as before
+    /// rounded clipping existed: the layer is scissored to the clip's bounding
+    /// box, and UI painted over it rounds it. The node remembers this until
+    /// something under it changes ([RenderObject#clipHoldsGpu()]). On a frame with
+    /// no GPU surface, the painters' own drawing is what shows either way, and it
+    /// is cut to the curve.
+    ///
+    /// @return false when the children were not drawn here, because they place a
+    ///         GPU layer the frame outside can show; the caller draws them
+    ///         straight onto the frame
+    private boolean paintRounded(
+            RenderObject object,
+            double left,
+            double top,
+            double alpha,
+            Affine transform,
+            Clip clip,
+            RoundedClip rounded,
+            Painting state) {
+
+        var frame = state.frame;
+        var scale = frame.scale();
+        var content = rounded.content();
+        var l = Math.floor(left + content.left());
+        var t = Math.floor(top + content.top());
+        var bounds = new Bounds(
+                l,
+                t,
+                Math.ceil(left + content.left() + content.width()) - l,
+                Math.ceil(top + content.top() + content.height()) - t);
+        if (!(bounds.width() > 0) || !(bounds.height() > 0)) {
+            return true;
+        }
+        var layer = object.clipLayerFor(bounds, scale, alpha);
+        if (!layer.isValid()) {
+            var dx = left - bounds.left();
+            var dy = top - bounds.top();
+            var askedForGpu = new boolean[1];
+            layer.paint(scale, into -> {
+                var inner = new Painting(into, Clip.NONE);
+                var inside = Clip.of(dx + content.left(), dy + content.top(), content.width(), content.height());
+                for (var child : object.children()) {
+                    if (!child.appliedBox().elevated()) {
+                        paint(child, dx, dy, alpha, Affine.IDENTITY, inside, inner);
+                    }
+                }
+                for (var child : object.children()) {
+                    if (child.appliedBox().elevated()) {
+                        paint(child, dx, dy, alpha, Affine.IDENTITY, inside, inner);
+                    }
+                }
+                inner.clipTo(Clip.NONE);
+                inner.untransform();
+                var outline = rounded.outline();
+                into.cutCorners(
+                        dx + outline.left(), dy + outline.top(), outline.width(), outline.height(), rounded.corners());
+                askedForGpu[0] = into.gpuLayersAsked() > 0;
+            });
+            object.clipHoldsGpu(askedForGpu[0]);
+            if (askedForGpu[0] && frame.hasGpu()) {
+                // Drawn with the GPU layers' fallbacks in it, which this frame
+                // does not need: the raster is not kept.
+                layer.valid(false);
+                return false;
+            }
+            layersRepainted++;
+        }
+        layersComposited++;
+        state.clipTo(clip);
+        state.transform(transform);
+        frame.drawLayer(bounds.left(), bounds.top(), layer, 1.0);
+        return true;
     }
 
     /// The clip a box's children are painted under.
@@ -513,7 +631,7 @@ public final class RenderTree implements AutoCloseable {
     }
 
     /// One padding edge in logical pixels, against the box's own size.
-    private static double edge(Length length, double base) {
+    static double edge(Length length, double base) {
         return switch (length) {
             case Length.Points points -> points.value();
             case Length.Percent percent -> percent.value() / 100.0 * base;
@@ -592,16 +710,7 @@ public final class RenderTree implements AutoCloseable {
         if (clip.isEmpty()) {
             return;
         }
-        for (var child : object.children()) {
-            if (!child.appliedBox().elevated()) {
-                paint(child, left, top, alpha, transform, clip, state);
-            }
-        }
-        for (var child : object.children()) {
-            if (child.appliedBox().elevated()) {
-                paint(child, left, top, alpha, transform, clip, state);
-            }
-        }
+        paintChildren(object, left, top, alpha, transform, clip, state);
     }
 
     /// The rectangle a promoted subtree actually covers, in logical coordinates.

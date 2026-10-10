@@ -267,6 +267,24 @@ class ParagraphFlowTest {
     }
 
     @Test
+    @DisplayName("left and right draw a left-to-right line where start and end do")
+    void physicalSidesPlaceTheLine() {
+        var text = "9%";
+        var box = 200;
+
+        var start = firstInkedColumn(paint(text, box, TextFlow.NORMAL)).orElseThrow();
+        var end = firstInkedColumn(paint(text, box, TextFlow.NORMAL.textAlign(TextAlign.END)))
+                .orElseThrow();
+        var left = firstInkedColumn(paint(text, box, TextFlow.NORMAL.textAlign(TextAlign.LEFT)))
+                .orElseThrow();
+        var right = firstInkedColumn(paint(text, box, TextFlow.NORMAL.textAlign(TextAlign.RIGHT)))
+                .orElseThrow();
+
+        assertEquals(start, left, "left");
+        assertEquals(end, right, "right");
+    }
+
+    @Test
     @DisplayName("a line wider than its box is never pulled left by the alignment")
     void alignmentDoesNotHideTheStart() {
         // `text-align: end` on an overflowing `nowrap` line would otherwise move

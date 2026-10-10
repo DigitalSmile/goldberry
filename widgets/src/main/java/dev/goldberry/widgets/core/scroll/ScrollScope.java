@@ -5,6 +5,7 @@ import java.util.Optional;
 import org.jspecify.annotations.Nullable;
 
 import dev.goldberry.render.model.LogicalRect;
+import dev.goldberry.widget.BuildContext;
 import dev.goldberry.widget.Element;
 
 /// The viewport a widget is inside, found by walking up from the widget itself.
@@ -66,6 +67,37 @@ public final class ScrollScope {
             return Optional.empty();
         }
         return target.findAncestorState(ScrollState.class).map(ScrollScope::new);
+    }
+
+    /// The nearest `scroll` enclosing the widget `context` belongs to, or empty
+    /// when it is in none.
+    ///
+    /// The form a widget's own state reaches for, since what it holds is its
+    /// [BuildContext] rather than an element.
+    public static Optional<ScrollScope> enclosing(BuildContext context) {
+        return context.findAncestorState(ScrollState.class).map(ScrollScope::new);
+    }
+
+    /// Whether the enclosing viewport keeps its reader's line itself when the
+    /// content above it changes height — [Scroll#preservesOnPrepend()].
+    ///
+    /// What a widget that corrects for its own changes asks first: a viewport
+    /// that preserves has already measured the move, and a second correction
+    /// would count it twice.
+    public boolean preservesOnPrepend() {
+        return viewport.preservesOnPrepend();
+    }
+
+    /// Moves the offset by `dx`, `dy` **without moving what is on screen** —
+    /// content above the reader's line came out taller or shorter than it was
+    /// counted, and the offset follows it by exactly as much.
+    ///
+    /// Neither a [#nudge] nor a [ScrollController#scrollBy]: nothing glides, the
+    /// bars stay asleep and the controller hears no move the user made, because
+    /// the user made none. An `END` viewport that is at its end ignores it, since
+    /// staying at the end has already put it where the content now ends.
+    public void shift(double dx, double dy) {
+        viewport.shiftBy(dx, dy);
     }
 
     /// Which way the enclosing viewport moves.

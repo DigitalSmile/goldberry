@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
@@ -45,12 +46,18 @@ class PicturesTest {
     }
 
     @Test
-    @DisplayName("every pixel format has a layout of the same name")
+    @DisplayName("every opaque pixel format has a layout of the same name, and the one with alpha has none")
     void everyPixelFormat() {
+        var opaque = 0;
         for (var format : PixelFormat.values()) {
+            if (format.hasAlpha()) {
+                assertThrows(IllegalArgumentException.class, () -> Pictures.layout(format), format.name());
+                continue;
+            }
+            opaque++;
             assertEquals(PlaneLayout.valueOf(format.name()), Pictures.layout(format), format.name());
         }
-        assertEquals(PixelFormat.values().length, PlaneLayout.values().length, "and no layout is left over");
+        assertEquals(opaque, PlaneLayout.values().length, "and no layout is left over");
     }
 
     @Test
@@ -66,6 +73,10 @@ class PicturesTest {
     @DisplayName("maps planes to the layer's vocabulary, layout, colour and all")
     void mapsPlanes() {
         for (var format : PixelFormat.values()) {
+            if (format.hasAlpha()) {
+                // Never handed out as planes: the queue converts it.
+                continue;
+            }
             var picture = planes(format, VideoFrame.ColorMatrix.BT709, false);
             var image = assertInstanceOf(VideoImage.Planes.class, Pictures.image(picture));
             assertEquals(PlaneLayout.valueOf(format.name()), image.layout());

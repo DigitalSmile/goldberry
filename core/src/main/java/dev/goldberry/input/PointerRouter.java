@@ -6,12 +6,16 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.function.Consumer;
 
 import org.jspecify.annotations.Nullable;
 
 import dev.goldberry.bind.Subscription;
 import dev.goldberry.css.select.Selector.PseudoClass;
+import dev.goldberry.input.drop.Dragging;
+import dev.goldberry.input.drop.Drop;
+import dev.goldberry.input.drop.DropTarget;
 import dev.goldberry.input.event.KeyEvent;
 import dev.goldberry.input.event.PointerEvent;
 import dev.goldberry.input.event.PreeditEvent;
@@ -55,7 +59,9 @@ import dev.goldberry.widget.style.Styled;
 /// it. A press captures the pointer until the release, so a drag keeps its
 /// target when it wanders off it. Tab, the roving arrow keys of a composite, the
 /// focus trap of a modal and the window's accelerators are all handled here,
-/// because each is a property of the tree rather than of any one node.
+/// because each is a property of the tree rather than of any one node. So is a
+/// drag from a `draggable` node onto a drop target, which crosses from one
+/// widget to another and so belongs to neither.
 ///
 /// Holds the small amount of state that input needs between frames — who is
 /// hovered, who is pressed, who has focus — and it holds it against
@@ -173,6 +179,7 @@ public final class PointerRouter {
         modal = deepestModal(focusRoot);
         refocus();
         rehover();
+        redrag();
         notifyMeasured();
         notifyLocated();
         // After the two above, and after the extents in particular: a viewport
@@ -908,6 +915,16 @@ public final class PointerRouter {
         var under = elementAt(x, y);
         updateHover(under, x, y);
         updateCursor(x, y);
+        if (pickable != null && drag == null && captured != null && travelled(x, y) >= DRAG_THRESHOLD) {
+            beginDrag();
+        }
+        if (drag != null && !drag.fromKeyboard) {
+            // The drag has the pointer now. Its source heard the press and will
+            // hear the release; the moves in between are the router's, and
+            // what they are for is finding where the drop would land.
+            dragOver(under, x, y);
+            return;
+        }
         var target = captured != null ? captured : under;
         if (target != null) {
             dispatch(new PointerEvent(
@@ -954,6 +971,12 @@ public final class PointerRouter {
     /// The same, with modifiers.
     public void pointerPressed(
             float x, float y, PointerEvent.@Nullable Button button, int clickCount, Modifiers modifiers) {
+        // A press puts down whatever the keyboard was carrying: the user has
+        // reached for the mouse, and a drag that went on in the background
+        // would drop where they are no longer looking.
+        if (drag != null && drag.fromKeyboard) {
+            cancelDrag();
+        }
         pointerAt(x, y);
         var target = elementAt(x, y);
         updateHover(target, x, y);
@@ -985,6 +1008,9 @@ public final class PointerRouter {
         focusFromPress(target);
         dispatch(new PointerEvent(
                 PointerEvent.Kind.PRESSED, x, y, button, clickCount, pressOriginX, pressOriginY, modifiers, target));
+        if (button == PointerEvent.Button.PRIMARY && drag == null) {
+            arm(target);
+        }
     }
 
     /// A button came up.
@@ -1002,6 +1028,15 @@ public final class PointerRouter {
             float x, float y, PointerEvent.@Nullable Button button, int clickCount, Modifiers modifiers) {
         pointerAt(x, y);
         var under = elementAt(x, y);
+        // A drag ends before anything else is said about the release, so the
+        // source hears its release with the drag already over and the target's
+        // hooks run last, against a router that has finished with the gesture.
+        // A press that became a drag is not a click wherever it is let go, back
+        // on the source included.
+        var landed = drag != null && !drag.fromKeyboard ? land(under, x, y) : null;
+        var dragged = dragSpent;
+        pickable = null;
+        dragSpent = false;
         var target = captured != null ? captured : under;
         // Read before `setPressed(null)` clears it: whether this was a click is a
         // question about who the press went to.
@@ -1034,6 +1069,7 @@ public final class PointerRouter {
             // the sequence: the press recorded an anchor and no event will ever
             // spend it.
             endGesture();
+            runLanded(landed);
             return;
         }
         dispatch(new PointerEvent(
@@ -1049,12 +1085,14 @@ public final class PointerRouter {
         // inside it -- releasing on a button's own label is a click on the
         // button.
         if (button == PointerEvent.Button.PRIMARY
+                && !dragged
                 && wasPressed != null
                 && chain(under).contains(wasPressed)) {
             dispatch(new PointerEvent(
                     PointerEvent.Kind.CLICKED, x, y, button, clickCount, originX, originY, modifiers, wasPressed));
         }
         endGesture();
+        runLanded(landed);
     }
 
     /// Forgets what the press sampled, now that the last event of the gesture has
@@ -1291,6 +1329,19 @@ public final class PointerRouter {
     /// **from the keyboard**, so `:focus-visible` comes on and the focus ring
     /// appears, which is the distinction between the two pseudo-classes.
     public boolean keyPressed(Key key, Modifiers modifiers, boolean repeat) {
+        // A drag hears the keyboard before anything in the tree does. Escape
+        // puts it back, which no dialog under it should also take as its own
+        // Escape; a keyboard drag steers and drops with its own few keys.
+        if (drag != null && key == Key.ESCAPE) {
+            cancelDrag();
+            return true;
+        }
+        if (drag != null && drag.fromKeyboard && steer(key, modifiers)) {
+            return true;
+        }
+        if (drag == null && key == Key.SPACE && modifiers.none() && !repeat && liftFocused()) {
+            return true;
+        }
         var event = new KeyEvent(KeyEvent.Kind.PRESSED, key, modifiers, repeat, focused);
         dispatchKey(event);
         if (event.isConsumed()) {
@@ -1901,6 +1952,465 @@ public final class PointerRouter {
         }
     }
 
+    // --- dragging from one widget onto another -------------------------------
+
+    /// How far, in logical pixels, a press on a draggable travels before it is
+    /// a drag.
+    ///
+    /// Below it the press is still a press, so a click on a draggable card opens
+    /// the card: a hand never holds still to the pixel, and a drag that began on
+    /// the first pixel of tremor would turn every click into a drop.
+    public static final float DRAG_THRESHOLD = 4;
+
+    /// A draggable that was pressed and has not moved far enough to be dragged,
+    /// or null. Cleared by the release.
+    private @Nullable Element pickable;
+
+    private @Nullable Object pickPayload;
+
+    private @Nullable LogicalRect pickFrom;
+
+    /// The drag in progress, or null.
+    private @Nullable Drag drag;
+
+    /// Whether the press now being held became a drag, so its release is no
+    /// click. Outlives the drag itself: a drag cancelled with Escape while the
+    /// button is still down was not a click either.
+    private boolean dragSpent;
+
+    /// One drag, from the moment it began to the moment it was dropped or put
+    /// back. Mutable, and the router's alone; [#dragging()] hands out snapshots.
+    private static final class Drag {
+
+        final Element source;
+        final Object payload;
+        final LogicalRect from;
+        final LogicalPoint grab;
+        final boolean fromKeyboard;
+
+        @Nullable
+        Element target;
+
+        @Nullable
+        DropTarget accepted;
+
+        /// The targets a keyboard drag steps through, in document order, and
+        /// which of them it is on. Empty for the pointer's.
+        List<Element> choices = List.of();
+        int chosen;
+
+        Drag(Element source, Object payload, LogicalRect from, LogicalPoint grab, boolean fromKeyboard) {
+            this.source = source;
+            this.payload = payload;
+            this.from = from;
+            this.grab = grab;
+            this.fromKeyboard = fromKeyboard;
+        }
+    }
+
+    /// The drag in progress, if there is one.
+    ///
+    /// What the frame reads to draw the ghost that follows the pointer — the
+    /// source's own box, faded — and what a test reads to know that a press
+    /// became a drag. A snapshot: the next move makes another.
+    public Optional<Dragging> dragging() {
+        var current = drag;
+        if (current == null) {
+            return Optional.empty();
+        }
+        var pointer = current.fromKeyboard
+                ? new LogicalPoint(current.from.left() + current.grab.x(), current.from.top() + current.grab.y())
+                : new LogicalPoint(pointerX, pointerY);
+        return Optional.of(new Dragging(
+                current.source,
+                current.payload,
+                current.from,
+                current.grab,
+                pointer,
+                current.target,
+                current.fromKeyboard));
+    }
+
+    /// Readies `target`'s draggable to be picked up, if the press just
+    /// dispatched leaves it free to be.
+    ///
+    /// **A control inside the draggable that consumed the press keeps it.** A
+    /// slider in a draggable card consumes its press to drag its thumb, and a
+    /// card that also lifted off under it would be two gestures on one hand.
+    /// The draggable itself, or anything above it, consuming the press does not
+    /// stop it: a `pressable` card hears its press and is still a card the user
+    /// can carry.
+    private void arm(Element target) {
+        var source = draggableOn(target);
+        if (source == null) {
+            return;
+        }
+        var taken = consumer;
+        if (taken != null && taken != source && within(taken, source)) {
+            return;
+        }
+        var region = regionOf(source);
+        var payload = payloadOf(source);
+        if (region == null || payload == null) {
+            return;
+        }
+        pickable = source;
+        pickPayload = payload;
+        pickFrom = region.painted();
+    }
+
+    /// How far the pointer is from where the button went down.
+    private double travelled(float x, float y) {
+        return Math.hypot(x - pressOriginX, y - pressOriginY);
+    }
+
+    /// Turns the armed press into a drag.
+    private void beginDrag() {
+        var source = Objects.requireNonNull(pickable, "a drag begins from an armed press");
+        var from = Objects.requireNonNull(pickFrom, "armed with the rectangle it was painted in");
+        var payload = Objects.requireNonNull(pickPayload, "armed with a payload");
+        drag = new Drag(
+                source, payload, from, new LogicalPoint(pressOriginX - from.left(), pressOriginY - from.top()), false);
+        pickable = null;
+        pickPayload = null;
+        pickFrom = null;
+        dragSpent = true;
+        stylesDirty = true;
+    }
+
+    /// Finds the target under the pointer and tells it where the drag is.
+    private void dragOver(@Nullable Element under, float x, float y) {
+        var current = Objects.requireNonNull(drag, "only asked during a drag");
+        aimAt(current, under);
+        var accepted = current.accepted;
+        var target = current.target;
+        var over = accepted == null ? null : accepted.whileOver();
+        if (over != null && target != null) {
+            over.accept(new Drop(current.payload, contentPoint(target, x, y), false));
+        }
+        // The ghost follows the pointer, so every move is a frame even when no
+        // pseudo-class changed.
+        stylesDirty = true;
+    }
+
+    /// Moves the drag's target to the nearest accepting target on `under`'s
+    /// chain.
+    ///
+    /// **Up the chain, past a target that refuses.** A card dragged over
+    /// another card that takes only files is still over the column holding
+    /// both, and the column is where it would land. The source and everything
+    /// inside it are skipped, since a thing cannot be dropped on itself; what
+    /// contains it is not, so a card let go over its own column is a drop the
+    /// application decides about.
+    private void aimAt(Drag current, @Nullable Element under) {
+        Element found = null;
+        DropTarget accepted = null;
+        for (var element = under; element != null; element = parentOf(element)) {
+            if (within(element, current.source)) {
+                continue;
+            }
+            var spec = dropTargetOf(element);
+            if (spec != null && !isDisabled(element) && spec.accepts().test(current.payload)) {
+                found = element;
+                accepted = spec;
+                break;
+            }
+        }
+        retarget(current, found, accepted);
+    }
+
+    /// Points the drag at `next`, moving `:drag-over` and telling the target it
+    /// leaves.
+    private void retarget(Drag current, @Nullable Element next, @Nullable DropTarget accepted) {
+        if (current.target == next) {
+            current.accepted = accepted;
+            return;
+        }
+        leave(current);
+        current.target = next;
+        current.accepted = accepted;
+        if (next != null) {
+            mark(next, PseudoClass.DRAG_OVER, true);
+        }
+    }
+
+    /// Takes `:drag-over` off the current target and runs its `onLeave`.
+    private void leave(Drag current) {
+        var target = current.target;
+        var accepted = current.accepted;
+        current.target = null;
+        current.accepted = null;
+        if (target == null) {
+            return;
+        }
+        mark(target, PseudoClass.DRAG_OVER, false);
+        var gone = accepted == null ? null : accepted.onLeave();
+        if (gone != null) {
+            gone.run();
+        }
+    }
+
+    /// Ends a pointer drag at a release over `under`, and returns what the
+    /// target has to be told, or null when it landed on nothing that takes it.
+    ///
+    /// The router's state is cleared here and the target is told afterwards, so
+    /// an `onDrop` that rebuilds the window, or starts another gesture, finds a
+    /// router with no drag in it.
+    private @Nullable Runnable land(@Nullable Element under, float x, float y) {
+        var current = Objects.requireNonNull(drag, "only asked during a drag");
+        aimAt(current, under);
+        var target = current.target;
+        var accepted = current.accepted;
+        var at = target == null ? null : contentPoint(target, x, y);
+        endDrag(false);
+        if (target == null || accepted == null || at == null) {
+            return null;
+        }
+        return deliver(accepted, new Drop(current.payload, at, false));
+    }
+
+    /// What a target that took `drop` is told: that the drag is no longer over
+    /// it, and then the drop itself.
+    private static Runnable deliver(DropTarget accepted, Drop drop) {
+        return () -> {
+            var gone = accepted.onLeave();
+            if (gone != null) {
+                gone.run();
+            }
+            accepted.onDrop().accept(drop);
+        };
+    }
+
+    private static void runLanded(@Nullable Runnable landed) {
+        if (landed != null) {
+            landed.run();
+        }
+    }
+
+    /// Puts the drag back: nothing is dropped, and the target it was over is
+    /// told it is no longer.
+    private void cancelDrag() {
+        endDrag(true);
+    }
+
+    private void endDrag(boolean tellTarget) {
+        var current = drag;
+        if (current == null) {
+            return;
+        }
+        if (tellTarget) {
+            leave(current);
+        } else {
+            var target = current.target;
+            if (target != null) {
+                mark(target, PseudoClass.DRAG_OVER, false);
+            }
+        }
+        drag = null;
+        stylesDirty = true;
+    }
+
+    /// Keeps the drag honest about the tree just painted: **the router never
+    /// holds an element that is not in the tree**, [#rehover]'s rule.
+    ///
+    /// A source that left the tree puts the drag back, since there is nothing
+    /// left to carry a ghost of or to hear the release. A target that left it is
+    /// let go of, and the next move finds what is under the pointer now.
+    private void redrag() {
+        if (pickable != null && !pickable.isMounted()) {
+            pickable = null;
+            pickPayload = null;
+            pickFrom = null;
+        }
+        var current = drag;
+        if (current == null) {
+            return;
+        }
+        if (!current.source.isMounted()) {
+            cancelDrag();
+            return;
+        }
+        var target = current.target;
+        if (target != null && !target.isMounted()) {
+            leave(current);
+        }
+        if (current.fromKeyboard) {
+            current.choices =
+                    current.choices.stream().filter(Element::isMounted).toList();
+        }
+    }
+
+    /// Picks the focused element up from the keyboard, when it is draggable and
+    /// something will take it.
+    ///
+    /// **`Space` on the draggable itself**, the key a keyboard user of a board
+    /// already knows for lifting a card. Asked before the focused widget hears
+    /// the key, so a draggable `pressable` is lifted by `Space` and still
+    /// activated by `Enter`; a draggable *around* a focused control leaves that
+    /// control its `Space`. A draggable nothing in the window accepts is not
+    /// lifted, and the key goes on as if this were not here.
+    private boolean liftFocused() {
+        var source = focused;
+        if (source == null || isDisabled(source)) {
+            return false;
+        }
+        var payload = payloadOf(source);
+        var region = payload == null ? null : regionOf(source);
+        if (payload == null || region == null) {
+            return false;
+        }
+        var choices = new ArrayList<Element>();
+        collectTargets(traversalRoot(), source, payload, choices);
+        if (choices.isEmpty()) {
+            return false;
+        }
+        var from = region.painted();
+        var lifted = new Drag(source, payload, from, new LogicalPoint(from.width() / 2, from.height() / 2), true);
+        lifted.choices = List.copyOf(choices);
+        drag = lifted;
+        choose(lifted, 0);
+        return true;
+    }
+
+    /// Steers a keyboard drag: the arrows and `Tab` step between the targets
+    /// that accept it, `Space` and `Enter` drop it on the one it is over.
+    ///
+    /// @return whether the key was the drag's
+    private boolean steer(Key key, Modifiers modifiers) {
+        var current = Objects.requireNonNull(drag, "only asked during a drag");
+        var step = switch (key) {
+            case TAB -> modifiers.shift() ? -1 : 1;
+            case RIGHT, DOWN -> 1;
+            case LEFT, UP -> -1;
+            default -> 0;
+        };
+        if (step != 0) {
+            if (!current.choices.isEmpty()) {
+                choose(current, Math.floorMod(current.chosen + step, current.choices.size()));
+            }
+            return true;
+        }
+        if (key == Key.SPACE || key == Key.ENTER) {
+            var target = current.target;
+            var accepted = current.accepted;
+            var region = target == null ? null : regionOf(target);
+            if (accepted == null || region == null) {
+                cancelDrag();
+                return true;
+            }
+            var drop = new Drop(
+                    current.payload,
+                    new LogicalPoint(
+                            region.content().width() / 2, region.content().height() / 2),
+                    true);
+            endDrag(false);
+            deliver(accepted, drop).run();
+            return true;
+        }
+        return false;
+    }
+
+    /// Puts a keyboard drag over its `index`th choice and tells that target
+    /// where it is: the centre of its content box, which is where the drop
+    /// would land.
+    private void choose(Drag current, int index) {
+        if (current.choices.isEmpty()) {
+            return;
+        }
+        current.chosen = index;
+        var next = current.choices.get(index);
+        retarget(current, next, dropTargetOf(next));
+        var accepted = current.accepted;
+        var region = regionOf(next);
+        var over = accepted == null ? null : accepted.whileOver();
+        if (over != null && region != null) {
+            over.accept(new Drop(
+                    current.payload,
+                    new LogicalPoint(
+                            region.content().width() / 2, region.content().height() / 2),
+                    true));
+        }
+        stylesDirty = true;
+    }
+
+    /// Every painted target under `element` that would take `payload`, in
+    /// document order, leaving out `source` and what is inside it.
+    private void collectTargets(@Nullable Element element, Element source, Object payload, List<Element> out) {
+        if (element == null || element == source) {
+            return;
+        }
+        var spec = dropTargetOf(element);
+        if (spec != null
+                && !isDisabled(element)
+                && !isHidden(element)
+                && regionOf(element) != null
+                && spec.accepts().test(payload)) {
+            out.add(element);
+        }
+        for (var child : element.children()) {
+            collectTargets(child, source, payload, out);
+        }
+    }
+
+    /// The nearest element on `target`'s chain that is draggable, or null when
+    /// none is or the one that is is disabled.
+    private static @Nullable Element draggableOn(Element target) {
+        for (var element = target; element != null; element = parentOf(element)) {
+            if (payloadOf(element) != null) {
+                return isDisabled(element) ? null : element;
+            }
+        }
+        return null;
+    }
+
+    private static @Nullable Object payloadOf(Element element) {
+        return element.widget() instanceof Attributed<?> attributed
+                ? attributed.attributes().draggable()
+                : null;
+    }
+
+    private static @Nullable DropTarget dropTargetOf(Element element) {
+        return element.widget() instanceof Attributed<?> attributed
+                ? attributed.attributes().dropTarget()
+                : null;
+    }
+
+    /// Whether `node` is `ancestor` or somewhere under it.
+    private static boolean within(Element node, Element ancestor) {
+        for (var current = node; current != null; current = parentOf(current)) {
+            if (current == ancestor) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /// The topmost region `element` painted, or null when it painted none.
+    private HitTest.@Nullable Region regionOf(Element element) {
+        for (var i = regions.size() - 1; i >= 0; i--) {
+            var region = regions.get(i);
+            if (region.owner() == element) {
+                return region;
+            }
+        }
+        return null;
+    }
+
+    /// `(x, y)` from the corner of `element`'s content box, through the inverse
+    /// a press is mapped through — [#contentOf]'s arithmetic — or the point
+    /// itself when it painted no box.
+    private LogicalPoint contentPoint(Element element, float x, float y) {
+        var region = regionOf(element);
+        if (region == null) {
+            return new LogicalPoint(x, y);
+        }
+        var inverse = region.inverse();
+        var localX = inverse == null ? x : (float) inverse.mapX(x, y);
+        var localY = inverse == null ? y : (float) inverse.mapY(x, y);
+        return new LogicalPoint(
+                localX - region.content().left(), localY - region.content().top());
+    }
+
     // --- internals ---------------------------------------------------------
 
     /// The topmost painted region's element at `(x, y)`, or null.
@@ -2345,6 +2855,7 @@ public final class PointerRouter {
 
         // Capture is root-first, so the chain -- which is deepest-first -- is
         // walked backwards.
+        consumer = null;
         for (var i = chain.size() - 1; i >= 0; i--) {
             if (event.isConsumed()) {
                 return;
@@ -2354,6 +2865,9 @@ public final class PointerRouter {
                 event.contentTo(contentOf(chain.get(i), event));
                 measure(chain.get(i), handles, event::measuredAs);
                 handles.onPointerCapture(event);
+                if (event.isConsumed()) {
+                    consumer = chain.get(i);
+                }
             }
         }
         for (var element : chain) {
@@ -2369,9 +2883,16 @@ public final class PointerRouter {
                 event.contentTo(contentOf(element, event));
                 measure(element, handles, event::measuredAs);
                 handles.onPointer(event);
+                if (event.isConsumed()) {
+                    consumer = element;
+                }
             }
         }
     }
+
+    /// Who consumed the event [#dispatch] last sent, or null when nothing did:
+    /// what decides whether a press on a draggable may still become a drag.
+    private @Nullable Element consumer;
 
     /// Tells `sink` how big `element` and the part it names were last painted.
     ///

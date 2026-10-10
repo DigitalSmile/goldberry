@@ -60,7 +60,7 @@ public final class Path {
     /// 90° and an order of magnitude worse over 180°, which is why every sweep
     /// below is cut into quarters rather than drawn as one curve — the difference
     /// between invisible and visible on a 16px ring.
-    private static final double KAPPA = 0.5522847498307933;
+    static final double KAPPA = 0.5522847498307933;
 
     private static final byte MOVE_TO = 0;
     private static final byte LINE_TO = 1;

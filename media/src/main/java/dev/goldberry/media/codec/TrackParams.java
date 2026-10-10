@@ -46,6 +46,9 @@ public sealed interface TrackParams {
     ///                    codec says: the average rate, else the rate the
     ///                    codec's headers state, else the base rate FFmpeg
     ///                    finds the timestamps on
+    /// @param alpha       whether the container says the pictures carry alpha
+    ///                    beside them, as a WebM track with `AlphaMode` does in
+    ///                    each packet's [Packet#alpha()]
     record Video(
             int width,
             int height,
@@ -53,7 +56,8 @@ public sealed interface TrackParams {
             OptionalInt profile,
             OptionalInt level,
             OptionalLong bitRate,
-            Optional<FrameRate> frameRate)
+            Optional<FrameRate> frameRate,
+            boolean alpha)
             implements TrackParams {
 
         public Video {
@@ -67,7 +71,20 @@ public sealed interface TrackParams {
             Objects.requireNonNull(frameRate, "frameRate");
         }
 
-        /// A video track whose frame rate is not known: every component but that.
+        /// An opaque video track: every component but [#alpha()].
+        public Video(
+                int width,
+                int height,
+                Optional<String> pixelFormat,
+                OptionalInt profile,
+                OptionalInt level,
+                OptionalLong bitRate,
+                Optional<FrameRate> frameRate) {
+            this(width, height, pixelFormat, profile, level, bitRate, frameRate, false);
+        }
+
+        /// An opaque video track whose frame rate is not known: every component
+        /// but those two.
         public Video(
                 int width,
                 int height,
@@ -75,7 +92,7 @@ public sealed interface TrackParams {
                 OptionalInt profile,
                 OptionalInt level,
                 OptionalLong bitRate) {
-            this(width, height, pixelFormat, profile, level, bitRate, Optional.empty());
+            this(width, height, pixelFormat, profile, level, bitRate, Optional.empty(), false);
         }
 
         @Override

@@ -1,6 +1,7 @@
 package dev.goldberry.media;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -632,6 +633,34 @@ class VideoPlaybackTest {
         assertEquals(matrix, planes.matrix());
         assertEquals(fullRange, planes.fullRange());
         PictureGolden.assertExact(golden, converted(planes));
+    }
+
+    @Test
+    @DisplayName("a sticker's pictures carry its alpha, premultiplied, and are converted even for a view of planes")
+    void stickerWithAlpha() {
+        attachAs = PictureForm.PLANES;
+        var now = new AtomicLong(1_000_000_000L);
+        open("sticker-vp9-alpha.webm", false, now::get, List.of());
+        await(status -> status.state() == PlaybackState.PLAYING);
+        // Picture 5, 500 ms in, at 10 fps: the square is at x 20 to 35.
+        now.addAndGet(550_000_000L);
+        var picture = awaitShown(500_000_000L, VideoPicture.class);
+        assertFalse(picture.opaque(), "not opaque");
+        assertEquals(0xFF, picture.argb(24, 16) >>> 24, "the square");
+        assertEquals(0, picture.argb(4, 16), "transparent where the square was");
+        var half = picture.pixels().getInt(50 * picture.stride() + 10 * 4);
+        assertEquals(128, half >>> 24, "half alpha");
+        assertEquals(126, (half >>> 16) & 0xFF, 2, "half the red: premultiplied");
+        assertEquals(PictureForm.PLANES, player.pictureForm(), "the view still asks for planes");
+    }
+
+    @Test
+    @DisplayName("a video without alpha is handed out opaque")
+    void opaqueWithoutAlpha() {
+        var now = new AtomicLong(1_000_000_000L);
+        open("clip-vp9-10bit.webm", false, now::get, List.of());
+        await(status -> status.state() == PlaybackState.PLAYING);
+        assertTrue(awaitPicture(0).opaque());
     }
 
     @Test

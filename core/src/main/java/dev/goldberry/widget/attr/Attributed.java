@@ -1,10 +1,16 @@
 package dev.goldberry.widget.attr;
 
+import java.util.function.Consumer;
+import java.util.function.Predicate;
+
+import dev.goldberry.input.drop.Drop;
+import dev.goldberry.input.drop.DropTarget;
 import dev.goldberry.widget.Widget;
 
 /// A widget that carries [Attributes] and can hand back a copy carrying
 /// different ones: the chainable `id`, `styled`, `keyed`, `tooltip`,
-/// `contextMenu`, `onPointerEnter` and `onPointerExit` steps.
+/// `contextMenu`, `onPointerEnter`, `onPointerExit`, `draggable` and `dropTarget`
+/// steps.
 ///
 /// ```java
 /// new Row(
@@ -86,5 +92,23 @@ public interface Attributed<W extends Widget> extends Widget {
     /// unmounted under the pointer.
     default W onPointerExit(Runnable action) {
         return withAttributes(attributes().onPointerExit(action));
+    }
+
+    /// This widget able to be dragged onto a drop target elsewhere in the
+    /// window, carrying `payload`; see [Attributes#draggable].
+    default W draggable(Object payload) {
+        return withAttributes(attributes().draggable(payload));
+    }
+
+    /// This widget taking what is dragged onto it when `accepts` says yes; see
+    /// [Attributes#dropTarget(Predicate, Consumer)].
+    default W dropTarget(Predicate<Object> accepts, Consumer<Drop> onDrop) {
+        return withAttributes(attributes().dropTarget(accepts, onDrop));
+    }
+
+    /// This widget taking drags as `target` says; see
+    /// [Attributes#dropTarget(DropTarget)].
+    default W dropTarget(DropTarget target) {
+        return withAttributes(attributes().dropTarget(target));
     }
 }

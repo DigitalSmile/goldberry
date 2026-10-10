@@ -16,6 +16,11 @@ import org.jspecify.annotations.Nullable;
 /// Timestamps count ticks of [#timeBase()]. [#NO_TIMESTAMP] marks one the
 /// container did not give.
 ///
+/// A packet of a picture with transparency may carry its [#alpha()] beside the
+/// data: in WebM, a VP9 track's alpha is a second VP9 stream, one frame of it in
+/// each block's BlockAdditional, which the built-in decoder decodes beside the
+/// picture.
+///
 /// Read more: [Bringing a codec](https://goldberry.dev/docs/components/media.html#bringing-a-codec).
 public final class Packet implements AutoCloseable {
 
@@ -29,10 +34,12 @@ public final class Packet implements AutoCloseable {
     private final long duration;
     private final boolean keyframe;
     private final Rational timeBase;
+    private final MemorySegment alpha;
     private final AtomicReference<@Nullable Runnable> release;
 
     private Packet(
             MemorySegment data,
+            MemorySegment alpha,
             int streamIndex,
             long pts,
             long dts,
@@ -41,6 +48,7 @@ public final class Packet implements AutoCloseable {
             Rational timeBase,
             @Nullable Runnable release) {
         this.data = Objects.requireNonNull(data, "data");
+        this.alpha = Objects.requireNonNull(alpha, "alpha");
         this.streamIndex = streamIndex;
         this.pts = pts;
         this.dts = dts;
@@ -59,7 +67,7 @@ public final class Packet implements AutoCloseable {
             long duration,
             boolean keyframe,
             Rational timeBase) {
-        return new Packet(data, streamIndex, pts, dts, duration, keyframe, timeBase, null);
+        return new Packet(data, MemorySegment.NULL, streamIndex, pts, dts, duration, keyframe, timeBase, null);
     }
 
     /// A packet that frees its memory with `release` when it is closed: what a
@@ -74,12 +82,37 @@ public final class Packet implements AutoCloseable {
             Rational timeBase,
             Runnable release) {
         return new Packet(
-                data, streamIndex, pts, dts, duration, keyframe, timeBase, Objects.requireNonNull(release, "release"));
+                data,
+                MemorySegment.NULL,
+                streamIndex,
+                pts,
+                dts,
+                duration,
+                keyframe,
+                timeBase,
+                Objects.requireNonNull(release, "release"));
+    }
+
+    /// This packet carrying `alpha` as well: the same data, timing and owner.
+    ///
+    /// What this packet would have freed on [#close()], the packet returned frees
+    /// instead, so `alpha` may be memory this packet owns. This packet is spent:
+    /// closing it frees nothing.
+    public Packet withAlpha(MemorySegment alpha) {
+        Objects.requireNonNull(alpha, "alpha");
+        return new Packet(data, alpha, streamIndex, pts, dts, duration, keyframe, timeBase, release.getAndSet(null));
     }
 
     /// The compressed bytes.
     public MemorySegment data() {
         return data;
+    }
+
+    /// The alpha of this packet's picture, compressed as a stream of its own in
+    /// the picture's codec, or [MemorySegment#NULL] when the packet has none.
+    /// It lives as long as [#data()].
+    public MemorySegment alpha() {
+        return alpha;
     }
 
     /// The container stream this packet belongs to.

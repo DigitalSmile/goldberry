@@ -11,6 +11,7 @@ import java.util.Objects;
 import org.jspecify.annotations.Nullable;
 
 import dev.goldberry.Window;
+import dev.goldberry.css.Corners;
 import dev.goldberry.css.value.Affine;
 import dev.goldberry.image.Image;
 import dev.goldberry.natives.blend2d.BlendContext;
@@ -127,6 +128,9 @@ public final class Frame {
 
     /// How this frame shows GPU layers, or null when it cannot. See [#gpuLayer].
     private @Nullable GpuSurface gpu;
+
+    /// See [#gpuLayersAsked()].
+    private int gpuLayersAsked;
 
     /// The GPU layers placed so far, in paint order.
     private final List<GpuPlacement> placements = new ArrayList<>();
@@ -656,6 +660,80 @@ public final class Frame {
         }
     }
 
+    /// Clears to transparent what this frame has drawn in the four corners a
+    /// rounded rectangle cuts off `(x, y, width, height)` — inside the rectangle
+    /// and outside its rounded outline — and leaves everything else as it was.
+    ///
+    /// What clips a box's children to its `border-radius`. The children are
+    /// drawn into a [Layer] whole and this takes the corners off it before it is
+    /// composited, so the rasterizer needs no clip that is not a rectangle. The
+    /// outline is [Path#roundRect]'s, point for point, so the cut follows the
+    /// curve the box's own background was filled with, antialiasing included:
+    /// a pixel the curve half covers keeps half of what was drawn in it.
+    ///
+    /// Square corners cut nothing and cost nothing.
+    public void cutCorners(double x, double y, double width, double height, Corners corners) {
+        requireOpen();
+        Objects.requireNonNull(corners, "corners");
+        if (corners.isSquare() || !(width > 0) || !(height > 0)) {
+            return;
+        }
+        var fitted = corners.fittedTo(width, height);
+        var right = x + width;
+        var bottom = y + height;
+        var scratch = borrowPath();
+        try {
+            // One closed wedge per rounded corner: the corner point, along the
+            // edge to where the curve starts, and back along the same cubic
+            // `Path.roundRect` draws. They do not overlap, so the winding of
+            // each is immaterial.
+            var r = fitted.topLeft();
+            if (r > 0) {
+                var c = r * Path.KAPPA;
+                scratch.moveTo(x, y);
+                scratch.lineTo(x, y + r);
+                scratch.cubicTo(x, y + r - c, x + r - c, y, x + r, y);
+                scratch.closeSubPath();
+            }
+            r = fitted.topRight();
+            if (r > 0) {
+                var c = r * Path.KAPPA;
+                scratch.moveTo(right, y);
+                scratch.lineTo(right - r, y);
+                scratch.cubicTo(right - r + c, y, right, y + r - c, right, y + r);
+                scratch.closeSubPath();
+            }
+            r = fitted.bottomRight();
+            if (r > 0) {
+                var c = r * Path.KAPPA;
+                scratch.moveTo(right, bottom);
+                scratch.lineTo(right, bottom - r);
+                scratch.cubicTo(right, bottom - r + c, right - r + c, bottom, right - r, bottom);
+                scratch.closeSubPath();
+            }
+            r = fitted.bottomLeft();
+            if (r > 0) {
+                var c = r * Path.KAPPA;
+                scratch.moveTo(x, bottom);
+                scratch.lineTo(x + r, bottom);
+                scratch.cubicTo(x + r - c, bottom, x, bottom - r + c, x, bottom - r);
+                scratch.closeSubPath();
+            }
+            // Copied in as transparent: Blend2D composites only where the shape
+            // covers and blends a copy by the coverage, so a pixel the curve
+            // half covers keeps half of itself, and nothing outside the four
+            // wedges is touched.
+            context.compOp(BlendCompOp.SRC_COPY);
+            try {
+                context.fillPath(0, 0, scratch, 0x00000000);
+            } finally {
+                context.compOp(BlendCompOp.SRC_OVER);
+            }
+        } finally {
+            releasePath();
+        }
+    }
+
     /// Draws `image` at its natural size, with its top-left corner at logical
     /// `(x, y)`.
     ///
@@ -959,6 +1037,7 @@ public final class Frame {
             throw new IllegalArgumentException("a GPU layer is placed at finite coordinates, not " + width + "x"
                     + height + " at (" + x + ", " + y + ")");
         }
+        gpuLayersAsked++;
         var surface = gpu;
         if (surface == null) {
             return false;
@@ -1006,6 +1085,16 @@ public final class Frame {
     /// true, [#gpuLayer] can still fail, when the GPU cannot render the layer.
     public boolean hasGpu() {
         return gpu != null;
+    }
+
+    /// How many times a painter has asked this frame for a GPU layer, whether
+    /// or not one was placed.
+    ///
+    /// A frame nested in a layer, which can place none, answers whether what was
+    /// drawn into it would have placed one on the window's frame. A subtree that
+    /// would is drawn there rather than through the layer.
+    public int gpuLayersAsked() {
+        return gpuLayersAsked;
     }
 
     /// The GPU layers [#gpuLayer] placed on this frame, in paint order. Readable

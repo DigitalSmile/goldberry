@@ -550,7 +550,8 @@ panel.surface-demo {
 }
 
 /* The image widget's card: three square boxes, so contain, cover and fill each
-   show what they do with a 3:2 picture, and one with no size at all. */
+   show what they do with a 3:2 picture, one with no size at all, and a round
+   face. */
 #image-row {
   gap: 16px;
   align-items: flex-start;
@@ -560,6 +561,21 @@ image.framed {
   width: 96px;
   height: 96px;
   outline: 1px solid var(--gb-border);
+}
+
+/* A face: the picture covers a round box, and the box clips it to its own
+   curve rather than to its rectangle. */
+#image-face {
+  width: 96px;
+  height: 96px;
+  border-radius: 48px;
+  overflow: hidden;
+}
+
+#image-face image {
+  width: 96px;
+  height: 96px;
+  flex-shrink: 0;
 }
 
 /* The QR card: three codes side by side, small enough that a wall card holds

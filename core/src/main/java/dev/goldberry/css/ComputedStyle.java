@@ -628,10 +628,19 @@ public record ComputedStyle(
                 keyword(value, TextOverflow.class).map(this::textOverflow).orElseGet(() -> dropped(property, value));
             // The paragraph knows its lines' widths and the box does not, so it
             // is the paint that places them and `Box` is untouched. `left` and
-            // `right` are refused: they are not the same as `start`/`end` under
-            // RTL.
+            // `right` are constants of their own rather than aliases of
+            // `start`/`end`, which they stop being under RTL. `justify` is a
+            // CSS value this engine cannot do, and the warning says so.
             case "text-align" ->
-                keyword(value, TextAlign.class).map(this::textAlign).orElseGet(() -> dropped(property, value));
+                keyword(value, TextAlign.class)
+                        .map(this::textAlign)
+                        .orElseGet(() -> isKeyword(value, "justify")
+                                ? dropped(
+                                        property,
+                                        value,
+                                        "is not supported: a line is placed, never respaced,"
+                                                + " so it keeps the alignment it inherited")
+                                : dropped(property, value));
             // The shorthand and the one longhand of it that exists here. CSS's
             // shorthand also carries a colour and a style, and a declaration that
             // names either is dropped whole rather than half-applied: a rule that
@@ -979,6 +988,12 @@ public record ComputedStyle(
     private static final int REPORT_LIMIT = 512;
 
     private ComputedStyle dropped(String property, List<Token> value) {
+        return dropped(property, value, "is not a valid value");
+    }
+
+    /// The same, saying why: for a value CSS defines and this engine does not
+    /// do, where "not a valid value" would send the author looking for a typo.
+    private ComputedStyle dropped(String property, List<Token> value, String why) {
         if (PROBE.get() != null) {
             // [#isProperty] asking, with a value made to fail: not a drop.
             return this;
@@ -986,7 +1001,7 @@ public record ComputedStyle(
         var text = text(value);
         // `add` returns false when it was already there, which is the whole test.
         if (REPORTED.size() >= REPORT_LIMIT || REPORTED.add(property + ':' + text)) {
-            LOG.warn("dropping \"{}\": {} is not a valid value", property, text);
+            LOG.warn("dropping \"{}\": {} {}", property, text, why);
         }
         return this;
     }
@@ -3428,6 +3443,14 @@ public record ComputedStyle(
             return Optional.of(Overflow.SCROLL);
         }
         return keyword(value, Overflow.class);
+    }
+
+    /// Whether `value` is the one keyword `word`, in any case.
+    private static boolean isKeyword(List<Token> value, String word) {
+        var tokens = value.stream().filter(t -> !t.is(TokenType.WHITESPACE)).toList();
+        return tokens.size() == 1
+                && tokens.getFirst().is(TokenType.IDENT)
+                && tokens.getFirst().text().equalsIgnoreCase(word);
     }
 
     private static String text(List<Token> value) {

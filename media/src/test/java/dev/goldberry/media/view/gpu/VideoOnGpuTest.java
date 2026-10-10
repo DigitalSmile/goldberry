@@ -11,6 +11,7 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Function;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
@@ -321,7 +322,7 @@ class VideoOnGpuTest {
                 "src", "test", "resources", "golden", "video", fixture.replace('.', '-') + "-" + millis + "ms.png"));
         try (var layer = new dev.goldberry.gpu.video.VideoLayer()) {
             layer.show(Pictures.image(planes));
-            java.util.function.Function<GpuSurface, Image> picture = surface -> Offscreen.of(160, 90)
+            Function<GpuSurface, Image> picture = surface -> Offscreen.of(160, 90)
                     .gpu(surface)
                     .paint((frame, size) -> assertTrue(frame.gpuLayer(layer, 0, 0, size.width(), size.height())));
             var readBack = harness.readBack(picture);
@@ -334,6 +335,53 @@ class VideoOnGpuTest {
             assertTrue(
                     difference <= CPU_TOLERANCE,
                     fixture + " at " + millis + " ms differs from CPU present by " + difference + " levels");
+        }
+    }
+
+    @Test
+    @DisplayName("a sticker's picture with alpha is drawn on the CPU over the background, where a frame shows layers")
+    void stickerStaysOnTheCpu() {
+        FfmpegRequirement.enforce();
+        byte[] data;
+        try (var in = getClass().getResourceAsStream("/dev/goldberry/media/fixtures/sticker-vp9-alpha.webm")) {
+            data = in.readAllBytes();
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+        player = MediaPlayer.builder()
+                .hardwareDecoding(HardwareDecoding.OFF)
+                .sink(() -> new VirtualSink(AudioFormat.DEFAULT, false))
+                .ioProviders(List.of(new Memory(data)))
+                .decoderProviders(List.of())
+                .build();
+        player.open(Source.of(URI.create("mem:///sticker-vp9-alpha.webm")));
+        awaitShown(picture -> picture instanceof VideoPicture);
+        player.pause();
+        var sheets = new ArrayList<Stylesheet>(Controls.stylesheets(Theme.NORD_DARK, Density.REGULAR));
+        sheets.add(MediaStyles.stylesheet());
+        sheets.add(Stylesheet.parse(
+                CascadeLayer.APPLICATION,
+                "video-view { width: 64px; height: 64px; flex-grow: 0; background-color: transparent; }"));
+        var tree = new ElementTree(new Column(List.of(new VideoView(player, Fit.FILL)), Attributes.NONE));
+        var renderer = new WidgetRenderer(sheets, font);
+        var blue = 0xFF0000FF;
+        Function<GpuSurface, Image> picture = surface -> Offscreen.of(64, 64)
+                .background(blue)
+                .gpu(surface)
+                .paint((frame, logical) -> BoxPainter.paint(frame, renderer.render(tree)));
+        try {
+            var composited = harness.composited(picture);
+            assertEquals(List.of(), composited.placed(), "no layer: the video layer would replace the background");
+            var drawn = harness.readBack(picture);
+            // Row 35 is transparent in every picture of the clip, and from row 40
+            // down it is red at half alpha.
+            assertEquals(blue, drawn.argb(10, 35), "the background through the transparent");
+            var blended = drawn.argb(10, 50);
+            assertEquals(126, (blended >>> 16) & 0xFF, 3, "half red");
+            assertEquals(127, blended & 0xFF, 3, "over half blue");
+            assertEquals(PictureForm.CONVERTED, player.pictureForm(), "the view kept asking for converted pictures");
+        } finally {
+            tree.unmount();
         }
     }
 

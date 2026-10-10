@@ -3778,6 +3778,16 @@ list-row.selected {
   background: var(--gb-selection);
 }
 
+/* A row of a list virtualized over measured heights, whose rows are not all one
+   height -- a chat timeline's. The token's height would make them all the same,
+   which is the one thing such a list is not; so the row is as tall as what is in
+   it, and never shorter than an ordinary row, which keeps a one-line item the same
+   furniture as it is in any other list. */
+list-row.measured {
+  height: auto;
+  min-height: var(--gb-list-row-height);
+}
+
 /* The rows a virtual list is not building, as a height and nothing else.
   It draws nothing and must not be given anything to draw: a border
    or a background here would be a band of paint where the model says there are
@@ -5221,10 +5231,13 @@ masonry-cell {
  * that row, and the one behaviour it does not mention -- what the current crumb
  * looks like -- is the navigation specification's sentence rather than a choice made here.
  *
- * The row does not wrap and does not shrink its crumbs. A path that wrapped to
+ * The row does not wrap, and it shrinks one crumb only. A path that wrapped to
  * two lines would put "where you are" under "where you started", which is the
- * one arrangement a trail must not have; the answer to a narrow window is the
- * overflow menu, which is why there is one.
+ * one arrangement a trail must not have; the answer to too many crumbs is the
+ * overflow menu, which is why there is one. The answer to one crumb too wide is
+ * that crumb's ellipsis: the **current** crumb -- the last, and the only one the
+ * menu can never take -- gives way and is cut with a `…`, and every crumb before
+ * it keeps its whole name, because a shortened folder name looks like a name.
  */
 breadcrumbs {
   height: 24px;
@@ -5250,6 +5263,11 @@ crumb {
   align-items: center;
   gap: 4px;
   flex-shrink: 0;
+  /* One line, cut where it does not fit. Only the current crumb is ever
+     narrower than its label (below); `Crumb` passes these two down to its label,
+     which is an anonymous child no style reaches -- `item`'s arrangement. */
+  white-space: nowrap;
+  text-overflow: ellipsis;
   color: var(--gb-text-muted);
   cursor: pointer;
   transition: background var(--gb-motion-fast), color var(--gb-motion-fast);
@@ -5273,6 +5291,12 @@ crumb:checked {
   font-weight: var(--gb-weight-strong);
   background: none;
   cursor: default;
+  /* The one crumb that gives way when the trail is wider than its row: a title
+     too long for the header ends in a `…` rather than painting past the trail's
+     edge. The overflow menu cannot answer it -- it counts crumbs, and this is one
+     crumb too wide -- and the crumbs before it keep their width. */
+  flex-shrink: 1;
+  min-width: 0;
 }
 
 crumb:checked:hover {

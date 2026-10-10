@@ -172,6 +172,17 @@ public record Selector(List<Part> parts) {
         /// other way: no selector can say "this node is currently over another one".
         AFFIXED,
 
+        /// A drop target with a drag over it that it accepts — `column:drag-over`
+        /// for the kanban column a card would land in.
+        ///
+        /// The router's, like `:hover`, and set on the **target alone** rather
+        /// than its ancestors: a column inside a board that is itself a target
+        /// lights up, and the board does not, because only one of them would
+        /// take the drop. A target whose `accepts` refused the payload never
+        /// matches it, so a stylesheet that colours `:drag-over` shows the user
+        /// where a drop would land and nowhere else.
+        DRAG_OVER,
+
         /// The root element — `:root { --gb-accent: … }`.
         ///
         /// Structural rather than a state: it never changes for an element, so

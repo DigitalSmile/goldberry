@@ -52,6 +52,19 @@ import dev.goldberry.widgets.markup.Wiring;
 /// "where does this tree start" is the question a deep path makes hardest, and
 /// the tail stays because that is where you are.
 ///
+/// ## One crumb too wide is the current crumb's ellipsis
+///
+/// The menu counts crumbs, so it cannot answer a trail of two whose last name is
+/// longer than the row — `Chat › #platform-announcements` in a narrow header.
+/// That one case is answered by the **current** crumb alone: it is the one crumb
+/// that may be narrower than its label, and it is cut with a `…` before the trail
+/// would paint past its own edge. The rule above still holds for every crumb
+/// before it, which keeps its whole name; the current crumb can be shortened
+/// because it is never hidden in the menu, and the page under the trail
+/// carries its name in full anyway. It is the stylesheet's
+/// (`crumb:checked { flex-shrink: 1 }`), so an application that would rather
+/// clip, or shrink another crumb, says so in CSS.
+///
 /// The `…` opens a [dev.goldberry.widgets.menu.Menu] of what
 /// it is hiding, in order, each row doing what that crumb's `press` does. It
 /// needs a window to open a popup in, which is the whole reason this widget is

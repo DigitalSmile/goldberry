@@ -186,9 +186,16 @@ public record Crumb(
     public Box render(ComputedStyle style, List<Box> children, Context context) {
         var content = new ArrayList<Box>(2);
         if (icon != null) {
-            content.add(Box.icon(icon, style.color()));
+            // Whole or not at all: a crumb that gives way spends its missing
+            // pixels on the label, which has an ellipsis to say so.
+            content.add(Box.icon(icon, style.color()).shrink(0));
         }
-        content.add(Box.text(context.paragraph(style, label), style.color()));
+        // The crumb's own flow, passed down by hand because the label is an
+        // anonymous box no style is applied to: the stylesheet writes `nowrap`
+        // and `ellipsis` on `crumb`, and the current crumb is the one that may be
+        // narrower than its label -- a too-long title is cut with a `…` instead
+        // of painting past the trail.
+        content.add(Box.text(context.paragraph(style, label), style.color(), style.textFlow()));
         return Box.of().style(style).children(content.toArray(Box[]::new));
     }
 

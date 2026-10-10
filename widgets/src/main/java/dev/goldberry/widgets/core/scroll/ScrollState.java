@@ -293,7 +293,7 @@ final class ScrollState extends State<Scroll> {
     ///
     /// Not a [#scrollBy]: that one glides, wakes the bars and reports a move.
     /// Nothing moved.
-    private void shiftBy(double dx, double dy) {
+    void shiftBy(double dx, double dy) {
         var end = widget().anchor() == ScrollAnchor.END;
         var x = widget().axis().isHorizontal() && !(end && stick.atEndX())
                 ? clamp(offsetX + dx, viewport.overflowX(content))
@@ -372,6 +372,11 @@ final class ScrollState extends State<Scroll> {
         }
         moveTo(x, y);
         return true;
+    }
+
+    /// Whether this viewport preserves its offset when content is inserted above.
+    boolean preservesOnPrepend() {
+        return widget().preservesOnPrepend();
     }
 
     /// Which way this viewport moves — [State#widget()] is `protected`, so a

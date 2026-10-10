@@ -276,7 +276,7 @@ final class Launcher {
         // face per frame would put font parsing on the frame path.
         // With the application's own faces added after the bundled ones, read
         // here and never again.
-        fonts = Fonts.bundled(application.fonts());
+        fonts = Fonts.bundled(application.fonts(), application.fallbacks());
 
         main = new HostedWindow(this, window, null, false);
         main.afterPaint(this::afterMainPaint);

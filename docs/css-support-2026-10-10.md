@@ -50,7 +50,7 @@ confirmed by the probe or by the source.
 | Angles, times | `deg` `rad` `grad` `turn`; `ms` `s` |
 | Colours | `#rgb` `#rgba` `#rrggbb` `#rrggbbaa`; `rgb()`/`rgba()` in the comma and the space form (`rgb(0 0 0 / 50%)`); `transparent`; the 16 CSS 1 named colours. Interpolated in OKLCH |
 | Layout (Yoga) | `flex-direction` `flex-wrap` `flex` `flex-grow` `flex-shrink` `flex-basis` `justify-content` `align-items` `align-self` `align-content` `gap` `row-gap` `column-gap` `padding(-*)` `margin(-*)` `width` `height` `min-/max-width/height` `position` (`static` `relative` `absolute`) `inset` `top` `right` `bottom` `left` `overflow` (`visible` `hidden` `scroll` `auto`) |
-| Text flow | `white-space` (`normal` `nowrap` `pre` `pre-wrap` `pre-line`), `overflow-wrap`/`word-wrap`, `word-break` (`normal` `break-all`), `text-overflow` (`clip` `ellipsis`), `text-align` (`start` `center` `end`), `text-decoration(-line)` (`none` `underline` `line-through`) |
+| Text flow | `white-space` (`normal` `nowrap` `pre` `pre-wrap` `pre-line`), `overflow-wrap`/`word-wrap`, `word-break` (`normal` `break-all`), `text-overflow` (`clip` `ellipsis`), `text-align` (`start` `center` `end` `left` `right`, since GB-034), `text-decoration(-line)` (`none` `underline` `line-through`) |
 | Typography | `font-family` (first name of a list), `font-size` (lengths), `font-weight` (1–1000, `normal`, `bold`), `font-style` (`normal` `italic`), `line-height` (length or number) |
 | Paint | `color`, `opacity` (number or %), `background` (layers of `linear-`/`radial-gradient`, their `repeating-` forms and quoted `url()`), `background-color`, `background-image`, `background-position` (lengths), `background-size`, `background-repeat` |
 | Border | `border`, `border-{side}`, `border-width`, `border-color`, `border-{side}-width/-color`, `border-radius` (1–4 lengths); styles `solid` `dashed` `dotted` `double` `none` |
@@ -152,7 +152,7 @@ have. *By design* marks a gap the guide or an ADR already argues for keeping.
 | `font` shorthand | unknown property | small | |
 | `font-variant*`, `font-feature-settings`, `font-variation-settings`, `font-stretch`, `font-optical-sizing`, `font-synthesis` | unknown property | moderate to large | Variable weights are *not scheduled* in the limitations page: a weight is a face |
 | `font-style: oblique` | dropped | by design | Nothing shears a glyph |
-| `text-align: left`/`right`/`justify` | dropped | by design / large | `left`/`right` because they differ from `start`/`end` under RTL; `justify` because a line is not a shaped run in every case |
+| `text-align: justify` | dropped, with a warning that names the reason | large | A line is placed, never respaced. `left`/`right` are read since GB-034 (ADR-0598), as constants of their own rather than aliases |
 | `@font-face` | refused | moderate | Fonts are registered from Java (`Host.fonts()`); a sheet cannot ship its own face |
 | Font fallback lists | the first family is used, the rest discarded | moderate | Per-glyph fallback down the list is what CSS does |
 

@@ -47,6 +47,7 @@ public final class FontFace implements AutoCloseable {
     private final ShapedFont shaper;
     private final GlyphFace painter;
     private final int unitsPerEm;
+    private final Coverage coverage;
 
     private boolean closed;
 
@@ -65,6 +66,9 @@ public final class FontFace implements AutoCloseable {
             shaper.close();
             throw e;
         }
+        // Read here because the bytes are here: neither library keeps them where
+        // Java can see them, and a face is opened once and kept.
+        this.coverage = Coverage.of(data);
     }
 
     /// Parses a typeface from the bytes of a font file.
@@ -92,6 +96,17 @@ public final class FontFace implements AutoCloseable {
     public int unitsPerEm() {
         requireUsable();
         return unitsPerEm;
+    }
+
+    /// The characters this face has glyphs for, read from its `cmap` when it was
+    /// opened.
+    ///
+    /// What a paragraph asks before shaping, when its font has fallback faces:
+    /// text this covers is shaped here and nowhere else. Empty for a face whose
+    /// `cmap` could not be read, which a paragraph takes as covering everything,
+    /// so such a face draws exactly what it drew before fallbacks existed.
+    public Coverage coverage() {
+        return coverage;
     }
 
     /// Whether the face has been closed.

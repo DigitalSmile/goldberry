@@ -8,6 +8,7 @@ import org.jspecify.annotations.Nullable;
 import dev.goldberry.gpu.video.VideoImage;
 import dev.goldberry.gpu.video.VideoLayer;
 import dev.goldberry.media.picture.Picture;
+import dev.goldberry.media.picture.VideoPicture;
 import dev.goldberry.paint.Frame;
 import dev.goldberry.widgets.core.image.Fit;
 
@@ -20,6 +21,11 @@ import dev.goldberry.widgets.core.image.Fit;
 /// identity. Planes are shown as planes, and converted pictures -- the ones
 /// queued before the player's form changed, or all of them while another view
 /// on the player draws on the CPU -- as BGRA.
+///
+/// A picture with alpha is declined, and the surface draws it on the CPU,
+/// blended over what is beneath it. The layer replaces the pixels under its
+/// rectangle, which for an opaque picture is the same thing and for a sticker is
+/// not.
 final class GpuVideoPresenter implements VideoPresenter {
 
     private final VideoLayer layer = new VideoLayer();
@@ -34,17 +40,26 @@ final class GpuVideoPresenter implements VideoPresenter {
 
     @Override
     public boolean place(Frame frame, Picture shown, Fit.Placement placement) {
+        if (shown instanceof VideoPicture converted && !converted.opaque()) {
+            report(false);
+            return false;
+        }
         if (shown != picture) {
             picture = shown;
             image = Pictures.image(shown);
         }
         layer.show(Objects.requireNonNull(image), placement.source());
         var placed = frame.gpuLayer(layer, placement.x(), placement.y(), placement.width(), placement.height());
+        report(placed);
+        return placed;
+    }
+
+    /// Tells the view whether pictures are on the GPU, when that has changed.
+    private void report(boolean placed) {
         if (!Boolean.valueOf(placed).equals(onGpu)) {
             onGpu = placed;
             shownOnGpu.accept(placed);
         }
-        return placed;
     }
 
     /// The image the layer shows now, for the tests.

@@ -79,6 +79,47 @@ public final class SyntheticFont {
         return of(tables);
     }
 
+    /// A `cmap` of one format 12 subtable for Unicode's full repertoire, mapping
+    /// each code point to its glyph: what a face needs to claim characters it
+    /// did not have.
+    ///
+    /// One group per code point, ascending, which is legal and is what a shaper
+    /// bisects.
+    public static byte[] cmap(Map<Integer, Integer> glyphs) {
+        var sorted = new TreeMap<>(glyphs);
+        var subtable = 16 + sorted.size() * 12;
+        var out = ByteBuffer.allocate(12 + subtable).order(ByteOrder.BIG_ENDIAN);
+        out.putShort((short) 0);
+        out.putShort((short) 1);
+        out.putShort((short) 3);
+        out.putShort((short) 10);
+        out.putInt(12);
+        out.putShort((short) 12);
+        out.putShort((short) 0);
+        out.putInt(subtable);
+        out.putInt(0);
+        out.putInt(sorted.size());
+        for (var entry : sorted.entrySet()) {
+            out.putInt(entry.getKey());
+            out.putInt(entry.getKey());
+            out.putInt(entry.getValue());
+        }
+        return out.array();
+    }
+
+    /// `font`'s `head` table with its units per em replaced: the same outlines on
+    /// a different grid, which draws them larger or smaller at one size.
+    public static byte[] headWithUnitsPerEm(byte[] font, int unitsPerEm) {
+        var head = TableDirectory.table(font, TableDirectory.tag('h', 'e', 'a', 'd'));
+        if (head == null) {
+            throw new IllegalArgumentException("the font has no head table");
+        }
+        var bytes = new byte[head.remaining()];
+        head.get(0, bytes);
+        ByteBuffer.wrap(bytes).order(ByteOrder.BIG_ENDIAN).putShort(18, (short) unitsPerEm);
+        return bytes;
+    }
+
     /// One palette of `colours`, each `0xAARRGGBB`, written in the file's BGRA.
     public static byte[] cpal(int... colours) {
         var out = ByteBuffer.allocate(14 + colours.length * 4).order(ByteOrder.BIG_ENDIAN);

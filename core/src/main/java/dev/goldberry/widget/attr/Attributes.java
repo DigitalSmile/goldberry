@@ -2,16 +2,20 @@ package dev.goldberry.widget.attr;
 
 import java.util.LinkedHashSet;
 import java.util.Set;
+import java.util.function.Consumer;
+import java.util.function.Predicate;
 
 import org.jspecify.annotations.Nullable;
 
+import dev.goldberry.input.drop.Drop;
+import dev.goldberry.input.drop.DropTarget;
 import dev.goldberry.kdl.KdlNode;
 import dev.goldberry.widget.Widget;
 import dev.goldberry.widget.style.Styled;
 
 /// `id`, `class` and the reconciler's key — what every widget carries and no
-/// widget decides — together with the tooltip, context menu, accessible name
-/// and hover hooks that attach to any node the same way.
+/// widget decides — together with the tooltip, context menu, accessible name,
+/// hover hooks and drag and drop that attach to any node the same way.
 ///
 /// Shared by every widget in the toolkit: the names markup gives a node, in one
 /// value. A record cannot extend a class, so this is the one piece of boilerplate
@@ -45,11 +49,14 @@ public record Attributes(
         @Nullable String contextMenu,
         @Nullable String name,
         @Nullable Runnable onPointerEnter,
-        @Nullable Runnable onPointerExit) {
+        @Nullable Runnable onPointerExit,
+        @Nullable Object draggable,
+        @Nullable DropTarget dropTarget) {
 
     /// No id, no classes, no key, no tooltip, no name — what a widget built in
     /// Java gets unless it says otherwise.
-    public static final Attributes NONE = new Attributes(null, Set.of(), null, null, null, null, null, null);
+    public static final Attributes NONE =
+            new Attributes(null, Set.of(), null, null, null, null, null, null, null, null);
 
     /// Written out so that the parameters taking null for a default can say so.
     public Attributes(
@@ -60,7 +67,9 @@ public record Attributes(
             @Nullable String contextMenu,
             @Nullable String name,
             @Nullable Runnable onPointerEnter,
-            @Nullable Runnable onPointerExit) {
+            @Nullable Runnable onPointerExit,
+            @Nullable Object draggable,
+            @Nullable DropTarget dropTarget) {
         classes = Set.copyOf(classes == null ? Set.of() : classes);
         this.id = id;
         this.classes = classes;
@@ -70,6 +79,21 @@ public record Attributes(
         this.name = name;
         this.onPointerEnter = onPointerEnter;
         this.onPointerExit = onPointerExit;
+        this.draggable = draggable;
+        this.dropTarget = dropTarget;
+    }
+
+    /// The eight without a drag, kept for the reason the three-argument form is.
+    public Attributes(
+            @Nullable String id,
+            @Nullable Set<String> classes,
+            @Nullable Object key,
+            @Nullable String tooltip,
+            @Nullable String contextMenu,
+            @Nullable String name,
+            @Nullable Runnable onPointerEnter,
+            @Nullable Runnable onPointerExit) {
+        this(id, classes, key, tooltip, contextMenu, name, onPointerEnter, onPointerExit, null, null);
     }
 
     /// The six without the hover hooks, kept for the reason the three-argument
@@ -114,7 +138,16 @@ public record Attributes(
     /// Read more: [Tooltips](https://goldberry.dev/docs/components/overlays.html#tooltips).
     public Attributes tooltip(String text) {
         return new Attributes(
-                id, classes, key, text.isBlank() ? null : text, contextMenu, name, onPointerEnter, onPointerExit);
+                id,
+                classes,
+                key,
+                text.isBlank() ? null : text,
+                contextMenu,
+                name,
+                onPointerEnter,
+                onPointerExit,
+                draggable,
+                dropTarget);
     }
 
     /// This, with the name of the menu a right-click should open — markup's
@@ -127,7 +160,16 @@ public record Attributes(
     /// Read more: [Context menus](https://goldberry.dev/docs/guide/input.html#context-menus).
     public Attributes contextMenu(String menuId) {
         return new Attributes(
-                id, classes, key, tooltip, menuId.isBlank() ? null : menuId, name, onPointerEnter, onPointerExit);
+                id,
+                classes,
+                key,
+                tooltip,
+                menuId.isBlank() ? null : menuId,
+                name,
+                onPointerEnter,
+                onPointerExit,
+                draggable,
+                dropTarget);
     }
 
     /// This, with a different `id` — **and the same id as the key**.
@@ -140,18 +182,30 @@ public record Attributes(
     ///
     /// Null clears both.
     public Attributes id(@Nullable String id) {
-        return new Attributes(id, classes, id, tooltip, contextMenu, name, onPointerEnter, onPointerExit);
+        return new Attributes(
+                id, classes, id, tooltip, contextMenu, name, onPointerEnter, onPointerExit, draggable, dropTarget);
     }
 
     /// This, with a different set of classes.
     public Attributes classes(String... names) {
-        return new Attributes(id, Set.of(names), key, tooltip, contextMenu, name, onPointerEnter, onPointerExit);
+        return new Attributes(
+                id,
+                Set.of(names),
+                key,
+                tooltip,
+                contextMenu,
+                name,
+                onPointerEnter,
+                onPointerExit,
+                draggable,
+                dropTarget);
     }
 
     /// This, with a key that is not the id — for a list item whose identity is a
     /// row of a model rather than a name in a document.
     public Attributes key(Object key) {
-        return new Attributes(id, classes, key, tooltip, contextMenu, name, onPointerEnter, onPointerExit);
+        return new Attributes(
+                id, classes, key, tooltip, contextMenu, name, onPointerEnter, onPointerExit, draggable, dropTarget);
     }
 
     /// This, with the text a reader should announce it as — markup's `name="…"`,
@@ -181,7 +235,9 @@ public record Attributes(
                 contextMenu,
                 text == null || text.isBlank() ? null : text,
                 onPointerEnter,
-                onPointerExit);
+                onPointerExit,
+                draggable,
+                dropTarget);
     }
 
     /// This, with something to run when the pointer **enters** this node's
@@ -215,7 +271,8 @@ public record Attributes(
     ///
     /// @param action what to run, or null to carry none
     public Attributes onPointerEnter(@Nullable Runnable action) {
-        return new Attributes(id, classes, key, tooltip, contextMenu, name, action, onPointerExit);
+        return new Attributes(
+                id, classes, key, tooltip, contextMenu, name, action, onPointerExit, draggable, dropTarget);
     }
 
     /// This, with something to run when the pointer **leaves** this node's
@@ -231,7 +288,54 @@ public record Attributes(
     /// closing takes its tree with it and nobody is told. A caller holding a timer
     /// cancels it on dispose as well, which is what a `tooltip` already does.
     public Attributes onPointerExit(@Nullable Runnable action) {
-        return new Attributes(id, classes, key, tooltip, contextMenu, name, onPointerEnter, action);
+        return new Attributes(
+                id, classes, key, tooltip, contextMenu, name, onPointerEnter, action, draggable, dropTarget);
+    }
+
+    /// This, able to be picked up and dragged onto a [#dropTarget] elsewhere in
+    /// the window, carrying `payload` there.
+    ///
+    /// ```java
+    /// new Card(ticket.title()).draggable(ticket)
+    /// ```
+    ///
+    /// The pointer router does the rest. A press on the node becomes a drag once
+    /// the pointer has moved a few logical pixels with the button down, so a
+    /// press that does not move is still a click. A control inside the node that
+    /// consumes the press keeps it: a slider in a draggable card drags its thumb,
+    /// and the card is picked up from anywhere else. While the drag lasts the
+    /// node's own painted box follows the pointer, faded, and `Escape` puts it
+    /// back. With the keyboard, `Space` on a focused draggable picks it up.
+    ///
+    /// The payload is the object itself, handed to the target as it is: the drag
+    /// never leaves the application, and is not the platform's drag and drop.
+    ///
+    /// Read more: [Input and focus](https://goldberry.dev/docs/guide/input.html#dropped-files-and-text).
+    ///
+    /// @param payload what a target is handed, or null to make the node not draggable
+    public Attributes draggable(@Nullable Object payload) {
+        return new Attributes(
+                id, classes, key, tooltip, contextMenu, name, onPointerEnter, onPointerExit, payload, dropTarget);
+    }
+
+    /// This, taking what is dragged onto it when `accepts` says yes, and doing
+    /// `onDrop` with it.
+    ///
+    /// The node matches `:drag-over` while a drag it accepts is over it, and a
+    /// drag it refuses passes it by on the way to an ancestor that takes it.
+    /// [Drop#at()] is measured from the corner of the node's content box, which
+    /// for a `canvas` is where its painter draws from.
+    public Attributes dropTarget(Predicate<Object> accepts, Consumer<Drop> onDrop) {
+        return dropTarget(DropTarget.of(accepts, onDrop));
+    }
+
+    /// This, taking drags as `target` says — the form with the `whileOver` and
+    /// `onLeave` hooks, which a `canvas` drawing its own drop indicator wants.
+    ///
+    /// @param target what to accept and what to do, or null to take nothing
+    public Attributes dropTarget(@Nullable DropTarget target) {
+        return new Attributes(
+                id, classes, key, tooltip, contextMenu, name, onPointerEnter, onPointerExit, draggable, target);
     }
 
     /// Parses `id` and `class` off a KDL node, `class` being space-separated as

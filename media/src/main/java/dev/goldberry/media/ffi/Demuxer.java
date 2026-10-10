@@ -3,9 +3,12 @@ package dev.goldberry.media.ffi;
 import static java.lang.foreign.MemoryLayout.PathElement.groupElement;
 import static java.lang.foreign.ValueLayout.ADDRESS;
 import static java.lang.foreign.ValueLayout.JAVA_BYTE;
+import static java.lang.foreign.ValueLayout.JAVA_LONG;
 
 import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
+import java.lang.foreign.ValueLayout;
+import java.nio.ByteOrder;
 import java.util.ArrayList;
 import java.util.Optional;
 import java.util.OptionalInt;
@@ -45,10 +48,26 @@ import dev.goldberry.media.io.Source;
 /// 4. `avformat_find_stream_info` reads the first packets to fill in the rest.
 /// 5. On close: `avformat_close_input`, then the bridge.
 ///
+/// **Alpha.** A Matroska block may carry a BlockAdditional, which FFmpeg hands
+/// over as packet side data: an 8-byte big-endian BlockAddID, then the bytes. ID
+/// 1 is where WebM keeps a VP9 or VP8 picture's alpha, and a track that does
+/// says so with `AlphaMode`, which FFmpeg reports as the stream's `alpha_mode`
+/// metadata. [#read()] puts those bytes on the packet as [Packet#alpha()], and
+/// the track's parameters say [TrackParams.Video#alpha()].
+///
 /// **One thread** reads, seeks and closes: the demux thread. [#abort()] is the
 /// exception. It may be called from any thread, and it ends a read that is
 /// blocked in the `MediaIO`.
 public final class Demuxer implements AutoCloseable {
+
+    /// The BlockAddID WebM keeps a picture's alpha under.
+    static final long ALPHA_BLOCK_ADD_ID = 1;
+
+    /// The big-endian BlockAddID FFmpeg writes before a BlockAdditional's bytes.
+    private static final long BLOCK_ADD_ID_BYTES = 8;
+
+    private static final ValueLayout.OfLong JAVA_LONG_BIG_ENDIAN =
+            JAVA_LONG.withOrder(ByteOrder.BIG_ENDIAN).withByteAlignment(1);
 
     private final Ffmpeg ffmpeg;
     private final Source source;
@@ -58,6 +77,8 @@ public final class Demuxer implements AutoCloseable {
     private final MemorySegment holder;
     private final MemorySegment context;
     private final MediaInfo info;
+    /// Where `av_packet_get_side_data` writes a size; the demux thread's alone.
+    private final MemorySegment sideDataSize;
     private @Nullable Set<Integer> selected;
     private boolean closed;
 
@@ -76,6 +97,7 @@ public final class Demuxer implements AutoCloseable {
         this.arena = arena;
         this.holder = holder;
         this.context = context;
+        this.sideDataSize = arena.allocate(JAVA_LONG);
         this.info = describe();
     }
 
@@ -175,7 +197,7 @@ public final class Demuxer implements AutoCloseable {
         var owned = packet;
         var size = AvPacketView.size(view);
         var data = size <= 0 ? MemorySegment.NULL : Pointers.array(AvPacketView.data(view), JAVA_BYTE, size);
-        return Packet.owning(
+        var read = Packet.owning(
                 data,
                 stream,
                 timestamp(AvPacketView.pts(view)),
@@ -184,6 +206,25 @@ public final class Demuxer implements AutoCloseable {
                 (AvPacketView.flags(view) & ffmpeg.constants().pktFlagKey()) != 0,
                 timeBase(stream),
                 () -> free(owned));
+        var alpha = alpha(owned);
+        return alpha.equals(MemorySegment.NULL) ? read : read.withAlpha(alpha);
+    }
+
+    /// The BlockAdditional with BlockAddID 1 that the demuxer attached to
+    /// `packet`, past its ID, or null when there is none: a WebM picture's alpha.
+    private MemorySegment alpha(MemorySegment packet) {
+        sideDataSize.set(JAVA_LONG, 0, 0);
+        var side = ffmpeg.codec()
+                .packetGetSideData()
+                .call(packet, ffmpeg.constants().pktDataMatroskaBlockAdditional(), sideDataSize);
+        var size = sideDataSize.get(JAVA_LONG, 0);
+        if (side.equals(MemorySegment.NULL) || size <= BLOCK_ADD_ID_BYTES) {
+            return MemorySegment.NULL;
+        }
+        var additional = Pointers.array(side, JAVA_BYTE, size);
+        return additional.get(JAVA_LONG_BIG_ENDIAN, 0) == ALPHA_BLOCK_ADD_ID
+                ? additional.asSlice(BLOCK_ADD_ID_BYTES, size - BLOCK_ADD_ID_BYTES)
+                : MemorySegment.NULL;
     }
 
     /// Moves to the last keyframe at or before `positionNanos`, so that decoding
@@ -334,7 +375,8 @@ public final class Demuxer implements AutoCloseable {
                     profile,
                     known(AvCodecParametersView.level(parameters), constants.levelUnknown()),
                     knownBitRate,
-                    frameRate(stream, parameters));
+                    frameRate(stream, parameters),
+                    metadata(stream, "alpha_mode").filter("1"::equals).isPresent());
         }
         if (type == constants.mediaTypeAudio()) {
             return new TrackParams.Audio(

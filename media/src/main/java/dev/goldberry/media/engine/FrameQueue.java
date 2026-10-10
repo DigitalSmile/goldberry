@@ -95,9 +95,12 @@ final class FrameQueue {
         }
 
         /// What `frame` becomes in `form`: its size, and its planes' layout for
-        /// [PictureForm#PLANES].
+        /// [PictureForm#PLANES]. A picture with alpha is converted whatever the
+        /// form: the GPU's video layer draws opaque planes, and a view that asks
+        /// for planes draws a converted picture too.
         static Shape of(VideoFrame frame, PictureForm form) {
-            return new Shape(form == PictureForm.PLANES ? frame.format() : null, frame.width(), frame.height());
+            var planes = form == PictureForm.PLANES && !frame.format().hasAlpha();
+            return new Shape(planes ? frame.format() : null, frame.width(), frame.height());
         }
 
         /// The form a picture of this shape is handed out in.
@@ -118,6 +121,7 @@ final class FrameQueue {
         private final List<MemorySegment> segments;
         private VideoFrame.ColorMatrix matrix = VideoFrame.ColorMatrix.BT709;
         private boolean fullRange;
+        private boolean opaque = true;
         private @Nullable Picture picture;
         /// Whether the picture it holds has been handed out to a view.
         private boolean handedOutOnce;
@@ -187,6 +191,12 @@ final class FrameQueue {
             this.fullRange = fullRange;
         }
 
+        /// Records whether the converted picture this slot holds is opaque, or has
+        /// alpha a view blends it with.
+        void opaque(boolean value) {
+            this.opaque = value;
+        }
+
         /// Copies `frame`'s planes into this slot's, row by row, and its colour:
         /// the [PictureForm#PLANES] preparation, which costs a copy where
         /// converting would cost a pass of swscale.
@@ -231,7 +241,8 @@ final class FrameQueue {
         private Picture picture(long ptsNanos) {
             var layout = shape.planes();
             return layout == null
-                    ? new VideoPicture(shape.width(), shape.height(), strides.getFirst(), planes.getFirst(), ptsNanos)
+                    ? new VideoPicture(
+                            shape.width(), shape.height(), strides.getFirst(), planes.getFirst(), ptsNanos, opaque)
                     : new VideoPlanes(
                             layout, shape.width(), shape.height(), planes, strides, matrix, fullRange, ptsNanos);
         }

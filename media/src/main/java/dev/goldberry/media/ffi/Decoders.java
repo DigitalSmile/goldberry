@@ -12,6 +12,7 @@ import dev.goldberry.media.MediaError;
 import dev.goldberry.media.MediaException;
 import dev.goldberry.media.codec.Decoder;
 import dev.goldberry.media.codec.DecoderProvider;
+import dev.goldberry.media.codec.TrackParams;
 
 /// Codec resolution: which decoder plays a track.
 ///
@@ -26,6 +27,12 @@ import dev.goldberry.media.codec.DecoderProvider;
 /// has a hardware path: FFmpeg on the device, then FFmpeg in
 /// software. A mid-stream failure on the device walks one rung down, like a
 /// provider's.
+///
+/// A video track whose pictures carry alpha beside them
+/// ([TrackParams.Video#alpha()]) has no hardware rung: the built-in decoder
+/// decodes it and its alpha in software, which a device cannot do for it. The
+/// providers are asked first all the same, and see the flag in the request; the
+/// system decoders claim H.264 and HEVC, which carry no alpha this way.
 ///
 /// Nothing supports it → [MediaError.UnsupportedCodec], naming the codec.
 public final class Decoders {
@@ -127,7 +134,8 @@ public final class Decoders {
             }
         }
         var parameters = demuxer.codecParameters(stream);
-        if (FfmpegDecoder.hardwareCandidate(ffmpeg, parameters, hardware)) {
+        var alpha = request.params() instanceof TrackParams.Video video && video.alpha();
+        if (!alpha && FfmpegDecoder.hardwareCandidate(ffmpeg, parameters, hardware)) {
             if (remaining == 0) {
                 // A device that will not open is software already, and says so. One
                 // that opens and fails to start the decoder is the next rung's.
@@ -145,7 +153,8 @@ public final class Decoders {
             }
         }
         if (remaining == 0 && FfmpegDecoder.supports(ffmpeg, parameters)) {
-            return new Resolved(FfmpegDecoder.open(ffmpeg, parameters, demuxer.timeBase(stream)), BUILT_IN);
+            return new Resolved(
+                    FfmpegDecoder.open(ffmpeg, parameters, demuxer.timeBase(stream), Hardware.OFF, alpha), BUILT_IN);
         }
         throw new MediaException(new MediaError.UnsupportedCodec(List.of(request.codecName())));
     }

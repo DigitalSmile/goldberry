@@ -1805,6 +1805,52 @@ public record Box(
                 value);
     }
 
+    /// This box and everything under it as scenery: drawn exactly as before, but
+    /// owned by nobody and asking for no particular cursor.
+    ///
+    /// Hit testing passes over a box with no owner, so scenery can sit on top of
+    /// everything and still never take a press. What a drag's ghost is made
+    /// of: the source's own box, drawn again under the pointer, which must not
+    /// become the thing the pointer is over.
+    public Box scenery() {
+        var bare = new ArrayList<Box>(children.size());
+        for (var child : children) {
+            bare.add(child.scenery());
+        }
+        return new Box(
+                fill,
+                decoration,
+                opacity,
+                transform,
+                Cursor.DEFAULT,
+                direction,
+                justifyContent,
+                alignItems,
+                alignSelf,
+                alignContent,
+                wrap,
+                width,
+                height,
+                limits,
+                margin,
+                padding,
+                rowGap,
+                columnGap,
+                flexGrow,
+                flexShrink,
+                flexBasis,
+                position,
+                inset,
+                elevated,
+                overflow,
+                text,
+                icon,
+                mark,
+                painting,
+                bare,
+                null);
+    }
+
     public Box children(Box... value) {
         return new Box(
                 fill,

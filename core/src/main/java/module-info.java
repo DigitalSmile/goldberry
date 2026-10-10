@@ -54,6 +54,11 @@ module dev.goldberry.core {
     // catalog uses to announce itself.
     uses dev.goldberry.assets.EmojiFont;
 
+    // Fallback faces, for the characters the faces a stylesheet names lack, by the
+    // same route: a face of several megabytes is something an application adds
+    // on purpose, as an artifact that provides this.
+    uses dev.goldberry.assets.FallbackFont;
+
     // The CSS engine: stylesheets, the cascade, and the ComputedStyle a render
     // object is styled by. Exported because loading a stylesheet and choosing a
     // theme are things an application does.

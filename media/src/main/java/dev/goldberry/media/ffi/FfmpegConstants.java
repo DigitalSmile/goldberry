@@ -49,6 +49,9 @@ import dev.goldberry.media.codec.VideoFrame;
 /// @param seekFlagAny            `AVSEEK_FLAG_ANY`: seek to any frame, not only
 ///                               a keyframe
 /// @param pktFlagKey             `AV_PKT_FLAG_KEY`
+/// @param pktDataMatroskaBlockAdditional `AV_PKT_DATA_MATROSKA_BLOCKADDITIONAL`:
+///                               the packet side data that holds a Matroska
+///                               block's BlockAdditional, a WebM track's alpha
 /// @param sampleFormats          every `AV_SAMPLE_FMT_*` the Engine converts,
 ///                               by Goldberry's name for it
 /// @param video                  what video decode and CPU present compare
@@ -80,6 +83,7 @@ public record FfmpegConstants(
         int seekFlagBackward,
         int seekFlagAny,
         int pktFlagKey,
+        int pktDataMatroskaBlockAdditional,
         Map<SampleFormat, Integer> sampleFormats,
         Video video) {
 
@@ -96,6 +100,7 @@ public record FfmpegConstants(
     /// @param pixFmtNv12        `AV_PIX_FMT_NV12`: [PixelFormat#NV12]
     /// @param pixFmtP010le      `AV_PIX_FMT_P010LE`: [PixelFormat#P010]
     /// @param pixFmtYuv420p10le `AV_PIX_FMT_YUV420P10LE`: [PixelFormat#I010]
+    /// @param pixFmtYuva420p    `AV_PIX_FMT_YUVA420P`: [PixelFormat#I420A]
     /// @param pixFmtBgra        `AV_PIX_FMT_BGRA`: what CPU present converts to,
     ///                          which on a little-endian machine is the toolkit's
     ///                          `0xAARRGGBB` in memory
@@ -127,6 +132,7 @@ public record FfmpegConstants(
             int pixFmtNv12,
             int pixFmtP010le,
             int pixFmtYuv420p10le,
+            int pixFmtYuva420p,
             int pixFmtBgra,
             int spcBt709,
             int spcUnspecified,
@@ -152,6 +158,7 @@ public record FfmpegConstants(
                 case NV12 -> pixFmtNv12;
                 case P010 -> pixFmtP010le;
                 case I010 -> pixFmtYuv420p10le;
+                case I420A -> pixFmtYuva420p;
             };
         }
 
@@ -239,6 +246,7 @@ public record FfmpegConstants(
                 read.integer("AVSEEK_FLAG_BACKWARD"),
                 read.integer("AVSEEK_FLAG_ANY"),
                 read.integer("AV_PKT_FLAG_KEY"),
+                read.integer("AV_PKT_DATA_MATROSKA_BLOCKADDITIONAL"),
                 sampleFormats(read),
                 new Video(
                         read.integer("AV_PIX_FMT_NONE"),
@@ -246,6 +254,7 @@ public record FfmpegConstants(
                         read.integer("AV_PIX_FMT_NV12"),
                         read.integer("AV_PIX_FMT_P010LE"),
                         read.integer("AV_PIX_FMT_YUV420P10LE"),
+                        read.integer("AV_PIX_FMT_YUVA420P"),
                         read.integer("AV_PIX_FMT_BGRA"),
                         read.integer("AVCOL_SPC_BT709"),
                         read.integer("AVCOL_SPC_UNSPECIFIED"),

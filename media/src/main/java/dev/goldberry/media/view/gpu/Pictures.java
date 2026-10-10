@@ -52,12 +52,18 @@ public final class Pictures {
     }
 
     /// The layer's layout for a decoder's pixel format.
+    ///
+    /// @throws IllegalArgumentException for [PixelFormat#I420A]: the layer draws
+    ///         opaque planes, and a picture with alpha is converted instead
     static PlaneLayout layout(PixelFormat format) {
         return switch (format) {
             case NV12 -> PlaneLayout.NV12;
             case I420 -> PlaneLayout.I420;
             case P010 -> PlaneLayout.P010;
             case I010 -> PlaneLayout.I010;
+            case I420A ->
+                throw new IllegalArgumentException(
+                        "the video layer draws no alpha; an I420A picture is converted and drawn on the CPU");
         };
     }
 

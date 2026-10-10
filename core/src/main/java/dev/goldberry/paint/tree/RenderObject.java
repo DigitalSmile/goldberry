@@ -603,6 +603,62 @@ public final class RenderObject implements AutoCloseable {
         return layer;
     }
 
+    /// The raster of this node's **children**, cut to its rounded corners, kept
+    /// between frames while it is valid.
+    ///
+    /// Null unless this node clips its children to a `border-radius`, which
+    /// almost none do: a box with square corners, or one that clips nothing,
+    /// never allocates it.
+    private @Nullable Layer clipLayer;
+
+    /// The bounds and the opacity the current [#clipLayer] was drawn with.
+    private RenderTree.@Nullable Bounds clipLayerBounds;
+
+    private double clipLayerAlpha = Double.NaN;
+
+    /// The layer the children are drawn into when this node clips them to its
+    /// rounded corners, reused while it still fits and nothing under it changed.
+    ///
+    /// [#layerFor]'s rules, with one difference: the children are drawn at the
+    /// opacity accumulated above them, which is baked into the raster rather
+    /// than applied to the composite, so a change in it is a change in the
+    /// raster.
+    Layer clipLayerFor(RenderTree.Bounds bounds, DisplayScale scale, double alpha) {
+        var size = new PhysicalSize(Math.max(1, (int) Math.ceil(bounds.width() * scale.factor())), Math.max(1, (int)
+                Math.ceil(bounds.height() * scale.factor())));
+        if (clipLayer == null || clipLayer.isClosed() || !clipLayer.size().equals(size)) {
+            if (clipLayer != null) {
+                clipLayer.close();
+            }
+            clipLayer = Layer.of(size);
+        }
+        if (contentChanged || !bounds.equals(clipLayerBounds) || alpha != clipLayerAlpha) {
+            clipLayer.valid(false);
+        }
+        clipLayerBounds = bounds;
+        clipLayerAlpha = alpha;
+        return clipLayer;
+    }
+
+    /// Whether the children asked for a GPU layer the last time they were drawn
+    /// through [#clipLayer]. Such a subtree is clipped to the rectangle instead.
+    private boolean clipHoldsGpu;
+
+    /// Whether this node's children are known to place a GPU layer, as of the
+    /// last time they were drawn and with nothing under the node changed since.
+    ///
+    /// A change under the node clears the answer for one frame. The children are
+    /// then tried through the rounded layer again, because the GPU content may
+    /// have left the subtree.
+    boolean clipHoldsGpu() {
+        return clipHoldsGpu && !contentChanged;
+    }
+
+    /// See [#clipHoldsGpu()].
+    void clipHoldsGpu(boolean value) {
+        clipHoldsGpu = value;
+    }
+
     /// Whether this subtree changed on the last update — diagnostics, and what a
     /// test asserts when it wants to know a layer was reused.
     boolean hasChanged() {
@@ -808,6 +864,10 @@ public final class RenderObject implements AutoCloseable {
         if (layer != null) {
             layer.close();
             layer = null;
+        }
+        if (clipLayer != null) {
+            clipLayer.close();
+            clipLayer = null;
         }
         if (node.isClosed()) {
             forget();

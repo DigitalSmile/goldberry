@@ -431,6 +431,7 @@ final class VideoWorker {
             throw new IllegalStateException("no converter");
         }
         converter.toBgra(frame, slot.segment(0), slot.stride(0));
+        slot.opaque(!frame.format().hasAlpha());
     }
 
     /// Shows what is queued, then reports the end of the picture: the last one has

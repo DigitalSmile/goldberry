@@ -44,6 +44,8 @@ import dev.goldberry.media.io.MediaIOProvider;
 import dev.goldberry.media.io.MemoryIO;
 import dev.goldberry.media.io.Source;
 import dev.goldberry.media.picture.PictureForm;
+import dev.goldberry.media.picture.VideoPicture;
+import dev.goldberry.offscreen.Offscreen;
 import dev.goldberry.widget.Element;
 import dev.goldberry.widget.ElementTree;
 import dev.goldberry.widget.Widget;
@@ -400,6 +402,27 @@ class MediaWidgetsTest {
             var click = new PointerEvent(PointerEvent.Kind.CLICKED, 1, 1, PointerEvent.Button.PRIMARY, 1, 1, 1, null);
             surface.onPointer(click);
             assertEquals(PlaybackState.PAUSED, player.status().state());
+        }
+
+        @Test
+        @DisplayName(
+                "draws a sticker's picture over what is beneath it: through the transparent, blended with the half")
+        void blendsAlpha() {
+            open(fixture("sticker-vp9-alpha.webm"), "sticker-vp9-alpha.webm");
+            await(status -> player.shownPicture().isPresent());
+            player.pause();
+            var picture =
+                    assertInstanceOf(VideoPicture.class, player.shownPicture().orElseThrow());
+            assertFalse(picture.opaque(), "a picture with alpha says so");
+            var blue = 0xFF0000FF;
+            var drawn = Offscreen.of(64, 64).background(blue).paint(VideoSurface.painter(picture, Fit.FILL, null));
+            // Row 35 is transparent in every picture of the clip, and from row 40
+            // down it is red at half alpha.
+            assertEquals(blue, drawn.argb(10, 35), "the background through the transparent");
+            var blended = drawn.argb(10, 50);
+            assertEquals(0xFF, blended >>> 24);
+            assertEquals(126, (blended >>> 16) & 0xFF, 3, "half red");
+            assertEquals(127, blended & 0xFF, 3, "over half blue");
         }
 
         @Test

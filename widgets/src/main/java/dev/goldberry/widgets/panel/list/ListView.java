@@ -82,8 +82,8 @@ import dev.goldberry.widgets.text.Text;
 /// └── list-spacer      the rows below it, likewise
 /// ```
 ///
-/// The two spacers are absent entirely unless [#virtualized(double)] is on, in
-/// which case the window is every row.
+/// The two spacers are absent entirely unless the list is virtualized; without
+/// them the window is every row.
 ///
 /// Stateful and unstyled for [dev.goldberry.widgets.core.scroll.Scroll]'s
 /// reason: a stateful widget that also carried the CSS type would put two `list`
@@ -100,6 +100,10 @@ import dev.goldberry.widgets.text.Text;
 /// `--gb-list-row-height` for the cascade and no widget can read a resolved
 /// custom property. A caller that styles its rows to a different height passes
 /// that height here, and one that does not virtualize passes nothing.
+///
+/// Rows that are **not** one height — a chat timeline's — are virtualized
+/// through [#virtualized(RowHeights)] instead: measured as they are built, and
+/// counted at an estimate until then.
 ///
 /// Either way a list taller than its box is a
 /// [dev.goldberry.widgets.core.scroll.Scroll]'s to scroll,
@@ -118,6 +122,10 @@ import dev.goldberry.widgets.text.Text;
 /// @param selection   how many rows may be chosen at once
 /// @param rowHeight   how tall a row is, in logical pixels — the number that
 ///                    turns virtualization on; zero builds every row
+/// @param rowHeightFromToken whether the row height is `--gb-list-row-height`,
+///                    read from the cascade, rather than `rowHeight`
+/// @param rowHeights  the estimate a list of rows that vary in height
+///                    virtualizes with, or null; see [#virtualized(RowHeights)]
 /// @param attributes  `id` and `class`, exactly as on the primitives
 ///
 /// Read more: [Collections](https://goldberry.dev/docs/components/collections.html#list).
@@ -133,6 +141,7 @@ public record ListView<T>(
         Selection selection,
         double rowHeight,
         boolean rowHeightFromToken,
+        @Nullable RowHeights rowHeights,
         Attributes attributes)
         implements Widget.Stateful, Attributed<ListView<T>> {
 
@@ -148,6 +157,7 @@ public record ListView<T>(
             @Nullable Selection selection,
             double rowHeight,
             boolean rowHeightFromToken,
+            @Nullable RowHeights rowHeights,
             @Nullable Attributes attributes) {
         items = List.copyOf(items == null ? List.of() : items);
         Objects.requireNonNull(identity, "identity");
@@ -172,7 +182,37 @@ public record ListView<T>(
         this.selection = selection;
         this.rowHeight = rowHeight;
         this.rowHeightFromToken = rowHeightFromToken;
+        this.rowHeights = rowHeights;
         this.attributes = attributes;
+    }
+
+    /// The same, for a list whose rows are all one height or are all built —
+    /// the form every caller wrote before a list could measure its rows.
+    public ListView(
+            @Nullable List<T> items,
+            Function<T, String> identity,
+            Function<T, Widget> factory,
+            @Nullable Function<T, String> text,
+            @Nullable Function<T, @Nullable String> itemMenu,
+            Set<String> selected,
+            @Nullable Consumer<Set<String>> onSelect,
+            @Nullable Selection selection,
+            double rowHeight,
+            boolean rowHeightFromToken,
+            @Nullable Attributes attributes) {
+        this(
+                items,
+                identity,
+                factory,
+                text,
+                itemMenu,
+                selected,
+                onSelect,
+                selection,
+                rowHeight,
+                rowHeightFromToken,
+                null,
+                attributes);
     }
 
     private static Set<String> unmodifiableOrdered(Set<String> values) {
@@ -236,6 +276,7 @@ public record ListView<T>(
                 selection,
                 rowHeight,
                 rowHeightFromToken,
+                rowHeights,
                 attributes);
     }
 
@@ -269,6 +310,7 @@ public record ListView<T>(
                 value,
                 rowHeight,
                 rowHeightFromToken,
+                rowHeights,
                 attributes);
     }
 
@@ -286,6 +328,7 @@ public record ListView<T>(
                 selection,
                 rowHeight,
                 rowHeightFromToken,
+                rowHeights,
                 attributes);
     }
 
@@ -300,9 +343,10 @@ public record ListView<T>(
     /// stylesheet resolves `--gb-list-row-height` and no widget can read a
     /// resolved custom property, so a number nobody states is a number nobody
     /// has. A list whose rows are styled to some other height passes that
-    /// instead, and a list whose rows vary in height must not virtualize at all
-    /// — the arithmetic is index × height and there is no other way to know where
-    /// row 4,000 begins without building the 3,999 above it.
+    /// instead. A list whose rows vary in height must not use this form — the
+    /// arithmetic is index × height, and there is no other way to know where
+    /// row 4,000 begins without building the 3,999 above it — and uses
+    /// [#virtualized(RowHeights)], which measures them.
     ///
     /// Everything else is unchanged: the same item-factory is called with the
     /// same items, so it is a performance upgrade and not an API break. `Home`,
@@ -311,7 +355,18 @@ public record ListView<T>(
     /// @param height a row's height in logical pixels, or zero to build them all
     public ListView<T> virtualized(double height) {
         return new ListView<>(
-                items, identity, factory, text, itemMenu, selected, onSelect, selection, height, false, attributes);
+                items,
+                identity,
+                factory,
+                text,
+                itemMenu,
+                selected,
+                onSelect,
+                selection,
+                height,
+                false,
+                null,
+                attributes);
     }
 
     /// This list virtualized at **the height the stylesheet says** —
@@ -329,11 +384,46 @@ public record ListView<T>(
     /// A number nobody has to repeat is a number nobody can get wrong.
     ///
     /// Still opt-in, because virtualization is not free of meaning: it assumes
-    /// every row is the same height, and a list whose rows vary must not use
-    /// either form.
+    /// every row is the same height, and a list whose rows vary uses
+    /// [#virtualized(RowHeights)] instead.
     public ListView<T> virtualized() {
         return new ListView<>(
-                items, identity, factory, text, itemMenu, selected, onSelect, selection, 0, true, attributes);
+                items, identity, factory, text, itemMenu, selected, onSelect, selection, 0, true, null, attributes);
+    }
+
+    /// This list virtualized over rows that are **not all one height** — a chat
+    /// timeline, a feed, a log with stack traces in it.
+    ///
+    /// ```java
+    /// ListView.of(messages).virtualized(RowHeights.estimating(64))
+    /// ```
+    ///
+    /// The list builds the rows its viewport can see, measures each one as it is
+    /// laid out, and counts every row it has never built at the estimate. So
+    /// the cost of a frame is the window's, whether the model holds fifty items
+    /// or five thousand, and the scroll extent converges on the true one as
+    /// rows are measured.
+    ///
+    /// **Nothing the reader is looking at moves when an estimate turns out
+    /// wrong.** A row above the reader's line that comes out taller than it was
+    /// counted moves the enclosing `scroll` by the difference, on the frame after
+    /// it was laid out — the same bargain `preserve-on-prepend` makes. A
+    /// `scroll` that already preserves its reader's line does the correcting
+    /// itself and the list leaves it alone, so the two never count one
+    /// difference twice.
+    ///
+    /// The rows carry the class `measured`, and the stylesheet gives
+    /// `list-row.measured` an automatic height with the row token as its
+    /// minimum — the fixed pitch of [#virtualized()] would make every row the
+    /// same height and defeat the point. Each item needs a stable [#identity]:
+    /// a height is remembered by it, so rows prepended above keep every height
+    /// measured below them.
+    ///
+    /// @param heights the estimate for a row that has not been built
+    public ListView<T> virtualized(RowHeights heights) {
+        Objects.requireNonNull(heights, "heights");
+        return new ListView<>(
+                items, identity, factory, text, itemMenu, selected, onSelect, selection, 0, false, heights, attributes);
     }
 
     /// This list with a context menu per item.
@@ -358,6 +448,7 @@ public record ListView<T>(
                 selection,
                 rowHeight,
                 rowHeightFromToken,
+                rowHeights,
                 attributes);
     }
 
@@ -374,6 +465,7 @@ public record ListView<T>(
                 selection,
                 rowHeight,
                 rowHeightFromToken,
+                rowHeights,
                 value);
     }
 

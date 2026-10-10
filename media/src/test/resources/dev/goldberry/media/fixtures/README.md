@@ -29,6 +29,7 @@ is our own content and carries no third-party licence:
 | `clip-vp9-709.webm` | WebM | VP9, tagged BT.709, limited range, 0.2 s, silent | GPU present's parity for the HD matrix (ADR-0484) |
 | `clip-vp9-2020-10bit.webm` | WebM | VP9 profile 2, tagged BT.2020 (non-constant luminance), limited range, 0.2 s, silent | GPU present's parity for the UHD matrix in 10 bits |
 | `clip-vp9-full.webm` | WebM | VP9, tagged BT.601 (SMPTE 170M), full range, 0.2 s, silent | GPU present's parity for full-range pictures |
+| `sticker-vp9-alpha.webm` | WebM | VP9 lossless with an alpha stream (`AlphaMode`, BlockAdditional), 64×64 at 10 fps, one second, silent: red, an opaque square moving 4 px a frame in the top half, half alpha in the bottom 24 rows | the video sticker: the side data, the alpha plane, premultiplied pictures, and a loop |
 | `tones-two-tracks.mkv` | Matroska | FLAC twice: 440 Hz tagged `eng` and titled "Concert pitch", 880 Hz tagged `fra`; two seconds each | track selection: a switch lands on the new track's sample, and a track menu's labels |
 | `clip-two-angles.mkv` | Matroska | VP9 `testsrc2` at 160×90 titled "Wide" (default), VP8 SMPTE bars at 96×54 titled "Close", Opus tone; one second | video track switching: which track shows is the picture's size |
 | `clip-vp9-subs.mkv` | Matroska | the VP9 of `clip-vp9.webm`, a SubRip track tagged `eng` (two cues, one in `<i>`), an ASS track tagged `fra` (one cue with `{\i1}` overrides and a `\N` break) | subtitles: a track's cues at their times, markup taken out |

@@ -2,6 +2,7 @@ package dev.goldberry.text.flow;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -41,6 +42,18 @@ class TextFlowTest {
         assertEquals(0.0, TextAlign.START.fractionOfSlack());
         assertEquals(0.5, TextAlign.CENTER.fractionOfSlack());
         assertEquals(1.0, TextAlign.END.fractionOfSlack());
+    }
+
+    @Test
+    @DisplayName(
+            "left and right are the box's sides, and coincide with start and end while every line runs left to right")
+    void physicalSides() {
+        assertEquals(TextAlign.START.fractionOfSlack(), TextAlign.LEFT.fractionOfSlack());
+        assertEquals(TextAlign.END.fractionOfSlack(), TextAlign.RIGHT.fractionOfSlack());
+        assertEquals(0.0, TextAlign.LEFT.indentOf(40, 100), "left never indents");
+        assertEquals(60.0, TextAlign.RIGHT.indentOf(40, 100));
+        assertEquals(0.0, TextAlign.RIGHT.indentOf(140, 100), "an overflowing line keeps its beginning");
+        assertNotEquals(TextAlign.END, TextAlign.RIGHT, "two constants, so a right-to-left line can tell them apart");
     }
 
     @Test

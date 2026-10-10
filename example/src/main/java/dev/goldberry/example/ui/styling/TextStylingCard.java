@@ -200,6 +200,10 @@ public record TextStylingCard() implements Widget.Stateful {
                 }
                 case CENTER -> names.add("align-center");
                 case END -> names.add("align-end");
+                case LEFT, RIGHT -> {
+                    // Not offered: the card's segments are the three logical
+                    // placements, and `align` is only ever set from them.
+                }
             }
             if (scale != Scale.BODY) {
                 names.add("size-" + scale.token);

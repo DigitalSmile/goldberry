@@ -31,6 +31,7 @@ public record AvCodecCalls(
         FreeContext freeContext,
         PacketAlloc packetAlloc,
         PacketFree packetFree,
+        PacketGetSideData packetGetSideData,
         GetHwConfig getHwConfig,
         DefaultGetFormat defaultGetFormat) {
 
@@ -53,6 +54,7 @@ public record AvCodecCalls(
                 new FreeContext(lookup),
                 new PacketAlloc(lookup),
                 new PacketFree(lookup),
+                new PacketGetSideData(lookup),
                 new GetHwConfig(lookup),
                 new DefaultGetFormat(lookup));
     }
@@ -366,6 +368,31 @@ public record AvCodecCalls(
                 FD_av_packet_free.invokeExact(address, packetPointer);
             } catch (Throwable t) {
                 throw FfmpegDowncalls.failure("av_packet_free", t);
+            }
+        }
+    }
+
+    /// `uint8_t *av_packet_get_side_data(const AVPacket *pkt, enum AVPacketSideDataType type, size_t *size)`
+    ///
+    /// The side data of one type a demuxer attached to a packet, and its size, or
+    /// null when it attached none: how a WebM block's BlockAdditional, a VP9
+    /// track's alpha, is found.
+    public static final class PacketGetSideData {
+
+        private static final MethodHandle FD_av_packet_get_side_data =
+                FfmpegDowncalls.link(FunctionDescriptor.of(ADDRESS, ADDRESS, JAVA_INT, ADDRESS));
+
+        private final MemorySegment address;
+
+        PacketGetSideData(SymbolLookup lookup) {
+            this.address = FfmpegDowncalls.symbol(lookup, FfmpegLibrary.AVCODEC, "av_packet_get_side_data");
+        }
+
+        public MemorySegment call(MemorySegment packet, int type, MemorySegment size) {
+            try {
+                return (MemorySegment) FD_av_packet_get_side_data.invokeExact(address, packet, type, size);
+            } catch (Throwable t) {
+                throw FfmpegDowncalls.failure("av_packet_get_side_data", t);
             }
         }
     }

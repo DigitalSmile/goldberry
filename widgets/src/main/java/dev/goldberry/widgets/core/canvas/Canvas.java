@@ -3,6 +3,7 @@ package dev.goldberry.widgets.core.canvas;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.function.Predicate;
 
 import org.jspecify.annotations.Nullable;
@@ -14,11 +15,17 @@ import dev.goldberry.input.event.PreeditEvent;
 import dev.goldberry.input.event.TextEvent;
 import dev.goldberry.input.handler.Handles;
 import dev.goldberry.kdl.KdlNode;
+import dev.goldberry.layout.Insets;
+import dev.goldberry.layout.Length;
+import dev.goldberry.layout.Overflow;
+import dev.goldberry.layout.Position;
 import dev.goldberry.paint.Box;
 import dev.goldberry.paint.CanvasStyle;
 import dev.goldberry.paint.Painter;
 import dev.goldberry.paint.StyledPainter;
+import dev.goldberry.paint.tree.ContainingBlock;
 import dev.goldberry.render.model.LogicalRect;
+import dev.goldberry.render.model.LogicalSize;
 import dev.goldberry.widget.Widget;
 import dev.goldberry.widget.attr.Attributed;
 import dev.goldberry.widget.attr.Attributes;
@@ -109,6 +116,33 @@ import dev.goldberry.widgets.markup.Wiring;
 /// A timer calling `host.repaint()` would do it too, and would repaint the whole
 /// window on a clock the frame pacer cannot see.
 ///
+/// ## It can carry real widgets where the painter put things
+///
+/// A painted rectangle has no focus ring, no accessible name and no place in
+/// the Tab order. Where something on the drawing has to be each of those, a
+/// week grid's events or a board's handles, [#overlay(Function)] places a
+/// widget over it:
+///
+/// ```java
+/// new Canvas(week::paint).overlay(size -> week.layout(size).blocks().stream()
+///         .map(block -> new Positioned(eventButton(block).keyed(block.id()), block.rect()))
+///         .toList())
+/// ```
+///
+/// The function is handed the size of the canvas's content box and answers
+/// with [Positioned] widgets, each at a rectangle in the painter's own
+/// coordinates. They are ordinary widgets inside the canvas's box: drawn over
+/// the painting and clipped to the content box, scrolled with the canvas when
+/// a `scroll` moves it, hit-tested before it, so a press on one goes to it and
+/// a press beside it reaches [Input], focusable in the order of the list, and
+/// listed in the semantics tree under the canvas. The list is asked for again
+/// whenever the content box changes size and whenever the canvas is rebuilt.
+/// Give each widget a key: a widget whose key comes back keeps its element, and
+/// with it its focus and its state.
+///
+/// The widgets arrive a frame after the canvas is first laid out, because the
+/// size they are placed by is the one the last frame measured.
+///
 /// ## Markup names no painter yet
 ///
 /// A `canvas` node inflates to a styled, sized surface that draws nothing. The
@@ -126,12 +160,15 @@ import dev.goldberry.widgets.markup.Wiring;
 /// @param attributes `id` and `class`, exactly as on the other primitives
 /// @param animating  whether the canvas wants another frame after this one, or
 ///                   null for a still drawing — [#animating(Predicate)]
+/// @param overlay    the widgets to place over the drawing, given the content
+///                   box's size, or null for none — [#overlay(Function)]
 @Markup("canvas")
 public record Canvas(
         @Nullable Painter painter,
         @Nullable Input input,
         Attributes attributes,
-        @Nullable Predicate<CanvasStyle> animating)
+        @Nullable Predicate<CanvasStyle> animating,
+        @Nullable Function<LogicalSize, List<Positioned>> overlay)
         implements Widget.Leaf, Styled, Paints, Attributed<Canvas>, Handles, Semantics {
 
     /// Written out so that the parameters taking null for a default can say so.
@@ -139,12 +176,24 @@ public record Canvas(
             @Nullable Painter painter,
             @Nullable Input input,
             @Nullable Attributes attributes,
-            @Nullable Predicate<CanvasStyle> animating) {
+            @Nullable Predicate<CanvasStyle> animating,
+            @Nullable Function<LogicalSize, List<Positioned>> overlay) {
         attributes = attributes == null ? Attributes.NONE : attributes;
         this.painter = painter;
         this.input = input;
         this.attributes = attributes;
         this.animating = animating;
+        this.overlay = overlay;
+    }
+
+    /// A canvas with no widgets over it — every canvas written before
+    /// [#overlay(Function)] existed.
+    public Canvas(
+            @Nullable Painter painter,
+            @Nullable Input input,
+            @Nullable Attributes attributes,
+            @Nullable Predicate<CanvasStyle> animating) {
+        this(painter, input, attributes, animating, null);
     }
 
     /// A canvas that draws a still picture — every canvas written before
@@ -203,7 +252,7 @@ public record Canvas(
     /// a state machine over a *sequence* of events, and five callbacks that have
     /// to share state between them is five closures over the same mutable object.
     public Canvas input(Input value) {
-        return new Canvas(painter, value, attributes, animating);
+        return new Canvas(painter, value, attributes, animating, overlay);
     }
 
     /// This canvas, asking for another frame for as long as `value` says so.
@@ -220,7 +269,29 @@ public record Canvas(
     ///
     /// @param value the question, or null for a still drawing
     public Canvas animating(@Nullable Predicate<CanvasStyle> value) {
-        return new Canvas(painter, input, attributes, value);
+        return new Canvas(painter, input, attributes, value, overlay);
+    }
+
+    /// This canvas, with the widgets `value` places over its drawing — see the
+    /// class note.
+    ///
+    /// Called with the size of the content box, the rectangle the painter is
+    /// told about, once that is known and again whenever it changes or the
+    /// canvas is rebuilt. It answers in the painter's coordinates, so the
+    /// arithmetic that placed a block in the painting places its widget too.
+    /// The order of the list is the Tab order; a caller whose list is in
+    /// visual order has a canvas whose focus moves in visual order.
+    ///
+    /// @param value the widgets for a size, or null for none
+    public Canvas overlay(@Nullable Function<LogicalSize, List<Positioned>> value) {
+        return new Canvas(painter, input, attributes, animating, value);
+    }
+
+    /// The layer that holds the [Positioned] widgets, or nothing when this
+    /// canvas has none.
+    @Override
+    public List<Widget> children() {
+        return overlay == null ? List.of() : List.of(new CanvasLayer(overlay));
     }
 
     @Override
@@ -245,7 +316,7 @@ public record Canvas(
 
     @Override
     public Canvas withAttributes(Attributes value) {
-        return new Canvas(painter, input, value, animating);
+        return new Canvas(painter, input, value, animating, overlay);
     }
 
     @Override
@@ -343,14 +414,30 @@ public record Canvas(
     /// during the paint pass would answer for whichever node rendered last.
     @Override
     public Box render(ComputedStyle style, List<Box> children, Context context) {
-        // No children: a canvas is a leaf that draws. Boxes inside it would be
-        // laid out by Yoga and painted *over* whatever the painter drew, which is
-        // a `stack` and not a canvas.
         var painting = painter instanceof StyledPainter styled ? styled.bound(context.canvasStyle(style)) : painter;
         var box = Box.of().style(style);
         // A box paints nothing until told otherwise, so a canvas with no painter
         // (one from markup) is that box -- `Box.painting` does not take null yet.
-        return painting == null ? box : box.painting(painting);
+        box = painting == null ? box : box.painting(painting);
+        if (children.isEmpty()) {
+            return box;
+        }
+        // The overlay's layer, and nothing else: a canvas lays out no children
+        // of its own. It is pinned to the content box, out of flow, so the
+        // canvas is still sized by its stylesheet alone, and it clips there, as
+        // the painter is clipped. A box's children are painted after its own
+        // content, so the widgets are drawn over the painting and hit first.
+        var layer = new Box[children.size()];
+        for (var i = 0; i < layer.length; i++) {
+            layer[i] = children.get(i)
+                    .position(Position.ABSOLUTE)
+                    .inset(ContainingBlock.inContentBox(
+                            Insets.all(Length.points(0)),
+                            style.padding(),
+                            style.decoration().border()))
+                    .overflow(Overflow.HIDDEN);
+        }
+        return box.children(layer);
     }
 
     /// Whether [#animating(Predicate)] asks for another frame.

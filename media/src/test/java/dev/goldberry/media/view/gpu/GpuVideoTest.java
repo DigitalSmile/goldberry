@@ -17,6 +17,7 @@ import dev.goldberry.RendererRequirement;
 import dev.goldberry.gpu.video.VideoImage;
 import dev.goldberry.media.codec.PixelFormat;
 import dev.goldberry.media.codec.VideoFrame;
+import dev.goldberry.media.picture.VideoPicture;
 import dev.goldberry.media.picture.VideoPlanes;
 import dev.goldberry.offscreen.Offscreen;
 import dev.goldberry.render.model.PhysicalRect;
@@ -73,6 +74,21 @@ class GpuVideoTest {
             assertFalse(presenter.place(frame, picture, placement));
         });
         assertEquals(List.of(false), calls, "reported when it changed, not on every paint");
+        presenter.close();
+    }
+
+    @Test
+    @DisplayName("declines a picture with alpha before it reaches the layer, which would replace what is beneath it")
+    void declinesAlpha() {
+        assumeTrue(GpuVideo.available());
+        RendererRequirement.enforce();
+        var calls = new ArrayList<Boolean>();
+        var presenter = new GpuVideoPresenter(calls::add);
+        var sticker = new VideoPicture(4, 2, 16, ByteBuffer.allocateDirect(32), 0, false);
+        var placement = Fit.FILL.place(4, 2, 4, 2, 8, 4);
+        Offscreen.of(8, 4).paint((frame, size) -> assertFalse(presenter.place(frame, sticker, placement)));
+        assertNull(presenter.layerImage(), "the layer never saw it");
+        assertEquals(List.of(false), calls, "and the view draws it on the CPU");
         presenter.close();
     }
 

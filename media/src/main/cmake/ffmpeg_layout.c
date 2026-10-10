@@ -205,6 +205,8 @@ int main(int argc, char **argv) {
     CONST("AV_PIX_FMT_P010LE", AV_PIX_FMT_P010LE);
     CONST("AV_PIX_FMT_BGRA", AV_PIX_FMT_BGRA);
     CONST("AV_PIX_FMT_YUV420P10LE", AV_PIX_FMT_YUV420P10LE);
+    /* A picture with an alpha plane: VP9 colour and its alpha stream, put together. */
+    CONST("AV_PIX_FMT_YUVA420P", AV_PIX_FMT_YUVA420P);
     /* What CPU present converts with (phase 3): the colour a decoder tagged a
      * frame with, and the swscale flags and coefficient tables that honour it. */
     CONST("AVCOL_SPC_BT709", AVCOL_SPC_BT709);
@@ -240,6 +242,9 @@ int main(int argc, char **argv) {
     CONST("AV_CHANNEL_ORDER_NATIVE", AV_CHANNEL_ORDER_NATIVE);
     CONST("AVFMT_FLAG_CUSTOM_IO", AVFMT_FLAG_CUSTOM_IO);
     CONST("AV_PKT_FLAG_KEY", AV_PKT_FLAG_KEY);
+    /* A Matroska BlockAdditional, which av_packet_get_side_data hands back: an
+     * 8-byte big-endian BlockAddID, then the bytes. ID 1 is a WebM track's alpha. */
+    CONST("AV_PKT_DATA_MATROSKA_BLOCKADDITIONAL", AV_PKT_DATA_MATROSKA_BLOCKADDITIONAL);
     CONST("AVSEEK_FLAG_BACKWARD", AVSEEK_FLAG_BACKWARD);
     CONST("AVSEEK_FLAG_ANY", AVSEEK_FLAG_ANY);
     CONST("AVMEDIA_TYPE_DATA", AVMEDIA_TYPE_DATA);

@@ -1,5 +1,6 @@
 package dev.goldberry.text.font;
 
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -15,6 +16,7 @@ import org.slf4j.Logger;
 import dev.goldberry.assets.BundledAssets;
 import dev.goldberry.assets.BundledFont;
 import dev.goldberry.assets.Face;
+import dev.goldberry.assets.FallbackFont;
 import dev.goldberry.css.Typography;
 import dev.goldberry.log.Logs;
 
@@ -55,7 +57,10 @@ import dev.goldberry.log.Logs;
 /// or parsed, is reported once and drawn in the UI face from then on.
 /// When the emoji artifact is on the module path, every font the book opens is
 /// joined to the emoji face at the same size, so a paragraph's emoji have a
-/// face to be shaped in.
+/// face to be shaped in. [#bundled(List, List)] adds fallback faces the same
+/// way: every font the book opens draws a character its own face has no glyph
+/// for in the first fallback that has one, opened when a character first
+/// needs it.
 ///
 /// A book is an ordinary object an application opens and closes, normally for
 /// the life of the window that renders through it, rather than a global cache:
@@ -87,21 +92,37 @@ public final class Fonts implements AutoCloseable {
     /// frame.
     private final Set<FontSource> unusable = new HashSet<>();
 
+    /// The faces searched for characters a font's own face lacks: the
+    /// application's, then the ones artifacts provide.
+    private final List<FallbackSource> fallbacks;
+
+    /// [#fallbacks] by family, in the order each family first appears: one
+    /// entry per family, because a family's weights are one fallback.
+    private final List<List<FallbackSource>> fallbackFamilies;
+
     private boolean closed;
 
     private record Key(Face face, long size) {}
 
-    private Fonts(List<FontSource> shipped) {
+    private Fonts(List<FontSource> shipped, List<FallbackSource> fallbacks) {
         this.shipped = shipped;
+        this.fallbacks = fallbacks;
+        var families = new LinkedHashMap<String, List<FallbackSource>>();
+        for (var fallback : fallbacks) {
+            families.computeIfAbsent(fallback.face().family().toLowerCase(Locale.ROOT), _ -> new ArrayList<>())
+                    .add(fallback);
+        }
+        this.fallbackFamilies = families.values().stream().map(List::copyOf).toList();
     }
 
-    /// A book over the faces bundled in `goldberry-core`.
+    /// A book over the faces bundled in `goldberry-core`, and the fallback faces
+    /// an artifact on the module path provides.
     ///
     /// Opens nothing yet: a face is parsed the first time something asks for it,
     /// so an application that never draws code text never pays for JetBrains
     /// Mono, and the start-up path stays short.
     public static Fonts bundled() {
-        return new Fonts(List.of());
+        return bundled(List.of(), List.of());
     }
 
     /// A book over the bundled faces and the ones an application ships.
@@ -124,7 +145,34 @@ public final class Fonts implements AutoCloseable {
     ///         weight and style; one of them would never be drawn, and nothing
     ///         could say which
     public static Fonts bundled(List<FontSource> shipped) {
+        return bundled(shipped, List.of());
+    }
+
+    /// A book over the bundled faces, the ones an application ships, and the
+    /// faces searched for the characters those lack.
+    ///
+    /// ```java
+    /// var fonts = Fonts.bundled(List.of(), List.of(
+    ///         FallbackSource.of(cjk, UnicodeScript.HAN),
+    ///         FallbackSource.of(arabic, UnicodeScript.ARABIC)));
+    /// ```
+    ///
+    /// Every font the book opens draws a character its own face lacks in the
+    /// first of `fallbacks` that has it, then in the first face an artifact
+    /// provides through [dev.goldberry.assets.FallbackFont], at the same size.
+    /// A fallback is opened the first time a character needs it, not before,
+    /// and its file is looked for now, as a shipped face's is.
+    ///
+    /// @param shipped   the application's faces, in no particular order
+    /// @param fallbacks the application's fallback faces, in the order they are
+    ///                  searched
+    /// @throws IllegalArgumentException if two shipped sources claim the same
+    ///         family, weight and style
+    public static Fonts bundled(List<FontSource> shipped, List<FallbackSource> fallbacks) {
         Objects.requireNonNull(shipped, "shipped");
+        Objects.requireNonNull(fallbacks, "fallbacks");
+        var searched = new ArrayList<>(fallbacks);
+        searched.addAll(FallbackFont.provided());
         var sources = List.copyOf(shipped);
         var seen = new HashSet<String>();
         for (var source : sources) {
@@ -141,7 +189,7 @@ public final class Fonts implements AutoCloseable {
                         source.family());
             }
         }
-        var book = new Fonts(sources);
+        var book = new Fonts(sources, List.copyOf(searched));
         for (var source : sources) {
             source.problem().ifPresent(problem -> {
                 book.unusable.add(source);
@@ -156,7 +204,27 @@ public final class Fonts implements AutoCloseable {
                 }
             });
         }
+        for (var fallback : book.fallbacks) {
+            var source = fallback.face();
+            source.problem().ifPresent(problem -> {
+                book.unusable.add(source);
+                if (firstReport(source)) {
+                    LOG.warn(
+                            "the fallback font {} {} {} cannot be read, so it is not searched: {}",
+                            source.family(),
+                            source.weight(),
+                            source.style().cssName(),
+                            problem);
+                }
+            });
+        }
         return book;
+    }
+
+    /// The faces searched, in order, for a character a font's own face has no
+    /// glyph for: the application's, then the ones artifacts provide.
+    public List<FallbackSource> fallbacks() {
+        return fallbacks;
     }
 
     /// The shipped faces whose files were not there when this book opened, or
@@ -190,12 +258,13 @@ public final class Fonts implements AutoCloseable {
 
     /// The font a resolved style asks for.
     ///
-    /// Falls back to the UI face when the family names nothing bundled or shipped.
-    /// There is no fallback cascade for glyphs, since a missing glyph is `.notdef`
-    /// on purpose, but a missing family is a stylesheet naming a font that was
-    /// never shipped, and drawing that in Inter is better than a window with no
-    /// text in it. The cascade logs a name that fails to parse; a name that
-    /// merely does not match is silent here.
+    /// Falls back to the UI face when the family names nothing bundled or shipped:
+    /// a missing family is a stylesheet naming a font that was never shipped, and
+    /// drawing that in Inter is better than a window with no text in it. The
+    /// cascade logs a name that fails to parse; a name that merely does not match
+    /// is silent here. A missing **glyph** is the other kind of fallback, and is
+    /// [#bundled(List, List)]'s: a character the face lacks is drawn in a
+    /// fallback face that has it, or as `.notdef` when the book has none.
     public Font of(Typography typography) {
         Objects.requireNonNull(typography, "typography");
         Face face = typography.face();
@@ -242,8 +311,100 @@ public final class Fonts implements AutoCloseable {
         // this used to be.
         var sibling = usable == BundledFont.EMOJI ? null : emojiAt(quantized);
         var font = Font.on(faceFor(usable), quantized / SIZE_QUANTUM).emoji(sibling);
+        if (!fallbackFamilies.isEmpty() && usable != BundledFont.EMOJI) {
+            // Opens nothing: a fallback face is opened by the first character
+            // that needs it, through the same get-then-put as above.
+            font.fallbacks(new Chain(usable.weight(), usable.style(), quantized));
+        }
         fonts.put(key, font);
         return font;
+    }
+
+    /// The fallbacks of every font this book opens at one weight, style and
+    /// size: the application's families, then the provided ones, each at the
+    /// weight and style nearest the font's own.
+    ///
+    /// Belongs to the book, because it opens faces into the book's maps and is
+    /// confined to the book's thread with them.
+    private final class Chain implements Fallbacks {
+
+        private final int weight;
+        private final BundledFont.Style style;
+        private final long quantized;
+
+        /// One source per family, nearest the font's weight and style; matched
+        /// the first time a character asks, because most fonts never do.
+        private @Nullable List<FallbackSource> nearest;
+
+        Chain(int weight, BundledFont.Style style, long quantized) {
+            this.weight = weight;
+            this.style = style;
+            this.quantized = quantized;
+        }
+
+        @Override
+        public @Nullable Font fontFor(CharSequence text, int start, int end) {
+            Objects.checkFromToIndex(start, end, text.length());
+            requireUsable();
+            if (start == end) {
+                return null;
+            }
+            var first = Character.codePointAt(text, start);
+            Font firstOnly = null;
+            for (var fallback : nearest()) {
+                // The hint, before the face is opened: an Arabic name does not
+                // parse a CJK face to learn that it has no Arabic.
+                if (!fallback.mayCover(first) || !opens(fallback.face())) {
+                    continue;
+                }
+                var font = fontOf(fallback.face(), quantized / SIZE_QUANTUM);
+                var coverage = font.face().coverage();
+                if (coverage.isEmpty()) {
+                    // A collection, or a face with no `cmap` this can read: the
+                    // shaper would open it and nothing could ever route to it.
+                    if (firstReport(fallback.face())) {
+                        LOG.warn(
+                                "the fallback font {} has no characters this toolkit can read from it, so it is"
+                                        + " never drawn; a font collection (.ttc) is not read, ship one face of it",
+                                fallback.face());
+                    }
+                    continue;
+                }
+                if (coverage.coversAll(text, start, end)) {
+                    return font;
+                }
+                if (firstOnly == null && coverage.covers(first)) {
+                    firstOnly = font;
+                }
+            }
+            return firstOnly;
+        }
+
+        private List<FallbackSource> nearest() {
+            var held = nearest;
+            if (held == null) {
+                var picked = new ArrayList<FallbackSource>(fallbackFamilies.size());
+                for (var family : fallbackFamilies) {
+                    var faces = family.stream().map(FallbackSource::face).toList();
+                    var face = Face.match(faces, faces.getFirst().family(), weight, style);
+                    for (var fallback : family) {
+                        if (fallback.face() == face) {
+                            picked.add(fallback);
+                            break;
+                        }
+                    }
+                }
+                held = List.copyOf(picked);
+                nearest = held;
+            }
+            return held;
+        }
+
+        @Override
+        public String toString() {
+            return "Fallbacks[" + fallbackFamilies.size() + " famil" + (fallbackFamilies.size() == 1 ? "y" : "ies")
+                    + ", " + weight + " " + style.cssName() + "]";
+        }
     }
 
     /// The emoji face at one size, or null when nobody brought it.

@@ -81,6 +81,10 @@ public final class Font implements AutoCloseable {
     /// both; see [#emoji(Font)].
     private @Nullable Font emoji;
 
+    /// Where characters this font's face lacks are drawn instead; see
+    /// [#fallbacks(Fallbacks)].
+    private Fallbacks fallbacks = Fallbacks.NONE;
+
     /// [#ellipsisWidth()]'s memo. NaN is "not asked yet", which no width can be.
     private double ellipsisWidth = Double.NaN;
 
@@ -191,6 +195,33 @@ public final class Font implements AutoCloseable {
             throw new IllegalArgumentException("a font cannot be its own emoji face");
         }
         this.emoji = value;
+        return this;
+    }
+
+    /// Where the characters this font's face has no glyph for are drawn:
+    /// [Fallbacks#NONE] unless something attached fallback faces.
+    ///
+    /// [Paragraph] asks this once per string. Text the face covers is shaped
+    /// here as it always was; a cluster it does not cover is shaped in the
+    /// fallback that has it, and measured in this font's units and line box.
+    public Fallbacks fallbacks() {
+        return fallbacks;
+    }
+
+    /// Searches `value` for the characters this font's face lacks, and returns
+    /// this font.
+    ///
+    /// Set rather than given to a constructor for the emoji face's reason: a
+    /// [Fonts] book attaches the application's fallback faces to every font it
+    /// opens, and opens each one the first time a character needs it. Set it
+    /// before anything is shaped, for the same reason too: a [Paragraph]
+    /// decides its faces when it is built and is held by a cache keyed on this
+    /// font.
+    ///
+    /// @param value the fallbacks, or [Fallbacks#NONE] for none
+    public Font fallbacks(Fallbacks value) {
+        requireUsable();
+        this.fallbacks = Objects.requireNonNull(value, "value");
         return this;
     }
 

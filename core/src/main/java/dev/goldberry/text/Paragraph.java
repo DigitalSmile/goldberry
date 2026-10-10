@@ -19,9 +19,12 @@ import dev.goldberry.text.flow.TextDecoration;
 import dev.goldberry.text.flow.TextFlow;
 import dev.goldberry.text.flow.TextOverflow;
 import dev.goldberry.text.flow.WordBreak;
+import dev.goldberry.text.font.Fallbacks;
 import dev.goldberry.text.font.Font;
+import dev.goldberry.text.itemize.FaceChoice;
 import dev.goldberry.text.itemize.Itemizer;
 import dev.goldberry.text.itemize.Slot;
+import dev.goldberry.text.itemize.TextRun;
 
 /// A run of text in one font that wraps itself at any width, measures itself for
 /// layout, and paints its lines.
@@ -48,12 +51,15 @@ import dev.goldberry.text.itemize.Slot;
 /// pass, so the answer has to be that cheap.
 ///
 /// One direction, and one font unless it was joined. Text that Unicode draws as
-/// a picture is shaped in the emoji face when [Font#emoji()] names one, and
-/// everything else in the face the cascade chose. The split is by presentation
-/// and not by script, so a paragraph of Han text in a Latin face is still one
-/// run of `.notdef`. Measurements are prefix sums in logical order over one
-/// array of advances, concatenated from the shapings with the second rescaled
-/// into the first's design units.
+/// a picture is shaped in the emoji face when [Font#emoji()] names one. A
+/// cluster the font's face has no glyph for is shaped in the first of
+/// [Font#fallbacks()] that has it, so a name in Han or Arabic in a Latin face
+/// is drawn in letters rather than in `.notdef` boxes, and a run of one script
+/// stays in one face so it shapes and joins as a word. Everything else is in
+/// the face the cascade chose. Measurements are prefix sums in logical order
+/// over one array of advances, concatenated from the shapings with each
+/// rescaled into the font's design units. The line box is the font's own: a
+/// glyph from another face may reach above or below it, as it may in a browser.
 ///
 /// ## Styled paragraphs
 ///
@@ -95,16 +101,17 @@ public final class Paragraph {
 
     /// The whole paragraph, shaped once, in the base font's design units.
     ///
-    /// One run even when it took two faces to shape: an emoji run's advances are
-    /// scaled into this font's grid as they are appended, so every measurement
-    /// below stays a prefix sum over one array.
+    /// One run even when it took several faces to shape: an emoji or a
+    /// fallback run's advances are scaled into this font's grid as they are
+    /// appended, so every measurement below stays a prefix sum over one array.
     private final ShapedRun run;
 
     /// The pieces [#run] was concatenated from, each with the face that shaped it.
     ///
     /// One element for the paragraph that took one face, which is nearly every
     /// paragraph. More than one only when the text has emoji in it and something
-    /// attached an emoji face to [#font].
+    /// attached an emoji face to [#font], or has characters its face lacks and
+    /// something attached fallbacks, or when it was joined.
     private final Segment[] segments;
 
     /// `advanceBeforeGlyph[g]` is the advance, in [#font]'s design units, of every
@@ -265,33 +272,99 @@ public final class Paragraph {
 
     /// Shapes `text` by runs, each in the face that should draw it.
     ///
-    /// One segment and one shaping unless there is an emoji face attached **and**
-    /// the text has emoji in it, so a paragraph of prose costs exactly what it
-    /// cost before this existed: one `Itemizer` pass over the string, which is a
-    /// scan without allocation for text that has no pictures in it.
+    /// One segment and one shaping unless the text has emoji in it and an emoji
+    /// face is attached, or has characters the font's face lacks and fallbacks
+    /// are attached. A paragraph of prose costs what it cost before either
+    /// existed: one `Itemizer` pass over the string when there is an emoji face,
+    /// and one coverage scan when there are fallbacks, neither of which
+    /// allocates for text that needs neither.
     private static Segment[] shapeSegments(Font font, String text, @Nullable TextDirection direction) {
         var emoji = font.emoji();
-        if (emoji == null || text.isEmpty()) {
+        var fallbacks = font.fallbacks();
+        var length = text.length();
+        if (text.isEmpty() || (emoji == null && (fallbacks.isEmpty() || covers(font, text, 0, length)))) {
             return new Segment[] {new Segment(font, font.shape(text, direction), 0, 0)};
         }
-        var pieces = Itemizer.runs(text);
-        if (pieces.size() == 1 && pieces.getFirst().slot() == Slot.TEXT) {
+        var pieces = emoji == null ? List.of(new TextRun(0, length, Slot.TEXT)) : Itemizer.runs(text);
+        if (pieces.size() == 1
+                && pieces.getFirst().slot() == Slot.TEXT
+                && (fallbacks.isEmpty() || covers(font, text, 0, length))) {
             return new Segment[] {new Segment(font, font.shape(text, direction), 0, 0)};
         }
 
-        var segments = new Segment[pieces.size()];
+        var segments = new ArrayList<Segment>(pieces.size());
+        var choice = fallbacks.isEmpty() ? null : new ByCoverage(fallbacks);
         var glyph = 0;
-        for (var i = 0; i < pieces.size(); i++) {
-            var piece = pieces.get(i);
-            var face = piece.slot() == Slot.EMOJI ? emoji : font;
-            // The run is shaped on its own, so a kern across the seam is lost.
-            // That seam is between a word and a picture, where there was never a
-            // kerning pair to lose.
-            var shaped = face.shape(text.subSequence(piece.start(), piece.end()), direction);
-            segments[i] = new Segment(face, shaped, glyph, piece.start());
-            glyph += shaped.length();
+        for (var piece : pieces) {
+            if (piece.slot() == Slot.EMOJI && emoji != null) {
+                glyph = shapeInto(segments, emoji, text, piece.start(), piece.end(), glyph, direction);
+            } else if (choice == null || covers(font, text, piece.start(), piece.end())) {
+                glyph = shapeInto(segments, font, text, piece.start(), piece.end(), glyph, direction);
+            } else {
+                for (var run : Itemizer.byCoverage(text, piece.start(), piece.end(), font, choice)) {
+                    glyph = shapeInto(segments, run.face(), text, run.start(), run.end(), glyph, direction);
+                }
+            }
         }
-        return segments;
+        return segments.toArray(Segment[]::new);
+    }
+
+    /// Shapes `[start, end)` of `text` in `face`, appends it as a segment, and
+    /// answers the glyph count so far.
+    ///
+    /// The run is shaped on its own, so a kern across the seam is lost. That seam
+    /// is between a word and a picture, or between two scripts, where there was
+    /// never a kerning pair to lose.
+    private static int shapeInto(
+            List<Segment> segments,
+            Font face,
+            String text,
+            int start,
+            int end,
+            int glyph,
+            @Nullable TextDirection direction) {
+        var shaped = face.shape(text.subSequence(start, end), direction);
+        segments.add(new Segment(face, shaped, glyph, start));
+        return glyph + shaped.length();
+    }
+
+    /// Whether `font`'s face has every character of `[start, end)` that needs a
+    /// glyph. A face whose `cmap` could not be read covers everything, so it
+    /// draws what it drew before fallbacks existed.
+    private static boolean covers(Font font, String text, int start, int end) {
+        var coverage = font.face().coverage();
+        return coverage.isEmpty() || coverage.coversAll(text, start, end);
+    }
+
+    /// The itemizer's question about faces, answered from the faces' coverage and
+    /// the font's fallbacks.
+    private record ByCoverage(Fallbacks fallbacks) implements FaceChoice<Font> {
+
+        @Override
+        public boolean covers(Font face, String text, int start, int end) {
+            return Paragraph.covers(face, text, start, end);
+        }
+
+        @Override
+        public @Nullable Font fallback(String text, int start, int end) {
+            return fallbacks.fontFor(text, start, end);
+        }
+    }
+
+    /// The font the character at `offset` was shaped in: the paragraph's own,
+    /// the emoji face, a fallback, or a joined piece's.
+    ///
+    /// @throws IndexOutOfBoundsException if `offset` is not a character of the text
+    Font shapedIn(int offset) {
+        Objects.checkIndex(offset, text.length());
+        var found = segments[0];
+        for (var segment : segments) {
+            if (segment.textStart() > offset) {
+                break;
+            }
+            found = segment;
+        }
+        return found.font();
     }
 
     /// The segments as one run, in `base`'s design units and the text's offsets.
@@ -474,8 +547,9 @@ public final class Paragraph {
     }
 
     /// The font the character at `offset` was shaped in, or the last piece's
-    /// at the end of the text. The emoji face is not a piece: a picture is
-    /// measured and ruled in the font of the text around it.
+    /// at the end of the text. The emoji face and a fallback are not pieces: a
+    /// picture or a borrowed glyph is measured and ruled in the font of the text
+    /// around it.
     private Font fontAt(int offset) {
         var starts = spanStarts;
         var fonts = spanFonts;
@@ -1121,13 +1195,13 @@ public final class Paragraph {
     ///
     /// A [TextLine]'s glyph range indexes into this.
     ///
-    /// Its glyph ids may not all belong to [#font()]. A paragraph with emoji in
-    /// it was shaped by two faces, and this is the two concatenated: the
-    /// advances, offsets and clusters are all in one coordinate system and are
-    /// what every measurement here is built on, but a glyph id is only meaningful
-    /// to the face that produced it. Drawing from this directly would draw the
-    /// emoji face's glyph numbers out of the prose face; [#paint] is what knows
-    /// which is which.
+    /// Its glyph ids may not all belong to [#font()]. A paragraph with emoji or
+    /// fallback text in it was shaped by several faces, and this is them
+    /// concatenated: the advances, offsets and clusters are all in one
+    /// coordinate system and are what every measurement here is built on, but a
+    /// glyph id is only meaningful to the face that produced it. Drawing from
+    /// this directly would draw another face's glyph numbers out of the prose
+    /// face; [#paint] is what knows which is which.
     public ShapedRun glyphs() {
         return run;
     }

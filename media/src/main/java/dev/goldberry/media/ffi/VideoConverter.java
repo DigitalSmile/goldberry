@@ -2,9 +2,12 @@ package dev.goldberry.media.ffi;
 
 import static java.lang.foreign.ValueLayout.ADDRESS;
 import static java.lang.foreign.ValueLayout.JAVA_INT;
+import static java.lang.foreign.ValueLayout.JAVA_INT_UNALIGNED;
 
 import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
+import java.lang.foreign.ValueLayout;
+import java.nio.ByteOrder;
 import java.util.List;
 import java.util.Objects;
 
@@ -26,23 +29,37 @@ import dev.goldberry.media.codec.VideoFrame;
 /// `SWS_BITEXACT | SWS_ACCURATE_RND`, which turns off the SIMD paths whose
 /// rounding differs between CPUs. The cost is a slower conversion. What it buys
 /// is a golden of a decoded frame that holds on x64 and on ARM, which
-/// the software decoders already guarantee for their half.
+/// the software decoders already guarantee for their half. A converter made
+/// with `exact` false keeps the SIMD paths and swscale's default chroma, and is
+/// five times faster at 512×512: what a sticker that converts on the UI thread
+/// uses, and differs from the exact one by a level or two.
 ///
 /// The picture's colour is honoured: the matrix and range it was tagged with
 /// become swscale's source coefficients, and RGB is always full range.
 ///
+/// **Alpha is premultiplied here.** swscale writes a picture's alpha
+/// ([dev.goldberry.media.codec.PixelFormat#I420A]) straight, and the toolkit
+/// blits premultiplied BGRA, so each pixel's colour is then multiplied by its
+/// alpha, rounded as the toolkit's own images round it.
+///
 /// One context, remade only when the conversion changes (size, format, matrix or
-/// range), so a stream pays for `sws_getContext` once. **Confined to one thread**,
-/// the video decode thread that owns it, which is swscale's own rule for a
-/// context.
+/// range), so a stream pays for `sws_getContext` once. **Used by one thread at
+/// a time**, which is swscale's own rule for a context: the video decode thread
+/// that owns it, or whoever holds the lock of a sticker that converts with it.
+/// Its memory is shared, so the thread that closes it need not be the one that
+/// made it.
 public final class VideoConverter implements AutoCloseable {
 
     /// Neutral brightness, contrast and saturation, in swscale's 16.16 fixed
     /// point.
     private static final int UNITY = 1 << 16;
 
+    /// One BGRA pixel read as `0xAARRGGBB`, wherever it starts.
+    private static final ValueLayout.OfInt PIXEL = JAVA_INT_UNALIGNED.withOrder(ByteOrder.LITTLE_ENDIAN);
+
     private final Ffmpeg ffmpeg;
-    private final Arena arena = Arena.ofConfined();
+    private final boolean exact;
+    private final Arena arena = Arena.ofShared();
     private final MemorySegment srcPlanes = arena.allocate(ADDRESS, 4);
     private final MemorySegment srcStrides = arena.allocate(JAVA_INT, 4);
     private final MemorySegment dstPlanes = arena.allocate(ADDRESS, 4);
@@ -56,14 +73,22 @@ public final class VideoConverter implements AutoCloseable {
         static final Key NONE = new Key(0, 0, -1, -1, -1, false);
     }
 
-    /// A converter over `ffmpeg`'s swscale. Nothing is allocated natively until
-    /// the first picture.
+    /// A converter over `ffmpeg`'s swscale that writes the same bytes on every
+    /// machine. Nothing is allocated natively until the first picture.
     public VideoConverter(Ffmpeg ffmpeg) {
-        this.ffmpeg = Objects.requireNonNull(ffmpeg, "ffmpeg");
+        this(ffmpeg, true);
     }
 
-    /// Converts `frame` to premultiplied BGRA at its own size: opaque, so
-    /// premultiplied and straight are the same bytes.
+    /// A converter over `ffmpeg`'s swscale, bit-exact or, with `exact` false,
+    /// as fast as this CPU converts.
+    public VideoConverter(Ffmpeg ffmpeg, boolean exact) {
+        this.ffmpeg = Objects.requireNonNull(ffmpeg, "ffmpeg");
+        this.exact = exact;
+    }
+
+    /// Converts `frame` to premultiplied BGRA at its own size. A picture without
+    /// alpha is opaque, so premultiplied and straight are the same bytes; one
+    /// with alpha is premultiplied after the conversion.
     ///
     /// @param target       at least `stride × height` bytes
     /// @param targetStride the bytes from one row of `target` to the next; at
@@ -93,6 +118,35 @@ public final class VideoConverter implements AutoCloseable {
                 video.pixFmtBgra(),
                 List.of(target),
                 List.of(targetStride));
+        if (frame.format().hasAlpha()) {
+            premultiply(target, targetStride, frame.width(), frame.height());
+        }
+    }
+
+    /// Multiplies the colour of each straight-alpha BGRA pixel in the
+    /// `width × height` picture at `pixels` by its alpha, `(c × a + 127) / 255`,
+    /// the rounding the toolkit's images use. A transparent pixel becomes all
+    /// zeroes; an opaque one is left as it is.
+    static void premultiply(MemorySegment pixels, int stride, int width, int height) {
+        for (var y = 0; y < height; y++) {
+            var row = (long) y * stride;
+            for (var x = 0; x < width; x++) {
+                var at = row + 4L * x;
+                var argb = pixels.get(PIXEL, at);
+                var a = argb >>> 24;
+                if (a == 0xFF) {
+                    continue;
+                }
+                if (a == 0) {
+                    pixels.set(PIXEL, at, 0);
+                    continue;
+                }
+                var r = (((argb >> 16) & 0xFF) * a + 127) / 255;
+                var g = (((argb >> 8) & 0xFF) * a + 127) / 255;
+                var b = ((argb & 0xFF) * a + 127) / 255;
+                pixels.set(PIXEL, at, a << 24 | r << 16 | g << 8 | b);
+            }
+        }
     }
 
     /// Converts any picture swscale reads into any format it writes, at the same
@@ -159,7 +213,9 @@ public final class VideoConverter implements AutoCloseable {
             }
         }
         var video = ffmpeg.constants().video();
-        var flags = video.swsBilinear() | video.swsAccurateRnd() | video.swsBitexact() | video.swsFullChrHInt();
+        var flags = exact
+                ? video.swsBilinear() | video.swsAccurateRnd() | video.swsBitexact() | video.swsFullChrHInt()
+                : video.swsBilinear();
         var made = ffmpeg.swScale()
                 .getContext()
                 .call(

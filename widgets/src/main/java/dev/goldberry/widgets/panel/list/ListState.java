@@ -11,10 +11,12 @@ import org.jspecify.annotations.Nullable;
 
 import dev.goldberry.Host;
 import dev.goldberry.input.key.Modifiers;
+import dev.goldberry.render.model.LogicalRect;
 import dev.goldberry.widget.BuildContext;
 import dev.goldberry.widget.State;
 import dev.goldberry.widget.Widget;
 import dev.goldberry.widget.attr.Attributes;
+import dev.goldberry.widgets.core.scroll.ScrollScope;
 
 /// The two things a list remembers, and neither is its value.
 ///
@@ -106,6 +108,11 @@ final class ListState<T> extends State<ListView<T>> {
         // and runs from the router with no context at all. Build runs
         // before `located` in every frame, so the banked value is never older
         // than the geometry it is measured against.
+        var measuring = list.rowHeights();
+        if (measuring != null) {
+            return buildMeasured(list, measuring, selectable, typeahead);
+        }
+        measured = null;
         rowHeight = list.rowHeightFromToken() ? context.token(ROW_HEIGHT_TOKEN, ROW_HEIGHT) : list.rowHeight();
         var virtual = rowHeight > 0;
         var from = virtual ? Math.min(first, items.size()) : 0;
@@ -145,6 +152,137 @@ final class ListState<T> extends State<ListView<T>> {
             children.add(new ListBox.ListSpacer((items.size() - to) * rowHeight));
         }
         return new ListBox(children, virtual ? this::located : null, list.attributes());
+    }
+
+    /// The rows a list virtualized over [RowHeights] has measured and the window
+    /// it builds, or null for every other list.
+    private @Nullable MeasuredWindow measured;
+
+    /// Where the frame last put a measured list and what clipped it, for a reach
+    /// that has to scroll from there.
+    private @Nullable LogicalRect lastSelf;
+
+    private @Nullable LogicalRect lastClip;
+
+    /// A list whose rows are not all one height: the window's rows, each saying
+    /// what height it came out as, between two spacers that are the sums of the
+    /// rows they stand for.
+    private Widget buildMeasured(ListView<T> list, RowHeights heights, boolean selectable, boolean typeahead) {
+        var window = measured;
+        if (window == null) {
+            window = new MeasuredWindow();
+            measured = window;
+        }
+        rowHeight = 0;
+        var items = list.items();
+        window.sync(items, list.identity(), heights.estimate());
+        var tops = window.tops();
+        var from = window.first();
+        var to = window.last();
+        var children = new ArrayList<Widget>(to - from + 2);
+        if (from > 0) {
+            children.add(new ListBox.ListSpacer(tops[from]));
+        }
+        for (var index = from; index < to; index++) {
+            var item = items.get(index);
+            var id = window.id(index);
+            children.add(new MeasuredRow(
+                    new ListRow(
+                            rowId(id),
+                            selectable,
+                            list.selected().contains(id),
+                            list.factory().apply(item),
+                            menuOf(item),
+                            modifiers -> select(id, modifiers),
+                            this::moveToEnd,
+                            typeahead ? text -> typeahead(id, text) : null,
+                            0),
+                    height -> heightOf(id, height)));
+        }
+        if (to < items.size()) {
+            children.add(new ListBox.ListSpacer(tops[items.size()] - tops[to]));
+        }
+        return new ListBox(children, this::locatedMeasured, list.attributes());
+    }
+
+    /// A row came out `height` tall. Remembered, and when the row is above the
+    /// reader's line, the enclosing `scroll` is moved by the difference so the
+    /// line stays where it was drawn.
+    private void heightOf(String id, double height) {
+        var window = measured;
+        if (window == null) {
+            return;
+        }
+        follow(window.measured(id, height));
+    }
+
+    /// Moves the enclosing `scroll` by `dy` without moving what is on screen —
+    /// unless that `scroll` keeps its reader's line itself, in which case it has
+    /// already seen the move and a second correction would count it twice.
+    private void follow(double dy) {
+        if (dy == 0 || !isMounted()) {
+            return;
+        }
+        ScrollScope.enclosing(context())
+                .filter(scope -> !scope.preservesOnPrepend())
+                .ifPresent(scope -> scope.shift(0, dy));
+    }
+
+    /// [#located]'s twin for a measured list: the same two rectangles, read
+    /// through where each row begins rather than through one pitch.
+    private void locatedMeasured(LogicalRect self, LogicalRect clip) {
+        var window = measured;
+        if (window == null || widget().items().isEmpty()) {
+            return;
+        }
+        lastSelf = self;
+        lastClip = clip;
+        follow(window.widthIs(self.size().width()));
+        var scope = ScrollScope.enclosing(context());
+        var preserving = scope.map(ScrollScope::preservesOnPrepend).orElse(false);
+        if (window.fit(clip.top() - self.top(), clip.size().height(), reaching, preserving)) {
+            setState(() -> {});
+        }
+        var shown = revealing;
+        if (shown != null && window.isMeasured(shown)) {
+            revealing = null;
+            var index = window.index(shown);
+            var tops = window.tops();
+            if (index >= 0) {
+                var top = self.top() + tops[index];
+                var dy = distance(
+                        top,
+                        self.top() + tops[index + 1],
+                        clip.top(),
+                        clip.top() + clip.size().height());
+                if (dy != 0) {
+                    scope.ifPresent(viewport -> viewport.nudge(0, dy));
+                }
+            }
+        }
+    }
+
+    /// The row a reach scrolled to, until it has been measured and can be shown
+    /// whole; null otherwise.
+    ///
+    /// A reach puts the row's top where its estimate said it was, which is right
+    /// for the top and says nothing about the bottom: the last row of the model,
+    /// put at the bottom edge at an estimate of 64 and measured at 120, would
+    /// hang 56 pixels below the viewport. So once its height is known it is
+    /// brought the rest of the way, by the least that shows all of it.
+    private @Nullable String revealing;
+
+    /// How far `near`..`far` has to move to lie inside `clipNear`..`clipFar` —
+    /// the least it can, with the near edge winning for a row taller than the
+    /// viewport, which is a reveal's rule everywhere in the toolkit.
+    private static double distance(double near, double far, double clipNear, double clipFar) {
+        if (near < clipNear) {
+            return near - clipNear;
+        }
+        if (far > clipFar) {
+            return Math.min(far - clipFar, near - clipNear);
+        }
+        return 0;
     }
 
     /// Told where the frame put the list and what clips it — the whole of the
@@ -223,6 +361,12 @@ final class ListState<T> extends State<ListView<T>> {
         if (host == null) {
             return;
         }
+        var window = measured;
+        if (window != null) {
+            // By the window's own index rather than a walk over the model.
+            reachMeasured(window, id, window.index(id));
+            return;
+        }
         var index = indexOf(id);
         if (rowHeight <= 0 || (index >= first && index < last)) {
             host.focus(rowId(id), true);
@@ -233,6 +377,39 @@ final class ListState<T> extends State<ListView<T>> {
             first = Math.min(first, index);
             last = Math.max(last, index + 1);
         });
+        reachAgain(id, REACH_ATTEMPTS);
+    }
+
+    /// [#reach] for a measured list, which **scrolls** to the row as well.
+    ///
+    /// The fixed-height path widens its window to take in the row; here that
+    /// would build every row between the viewport and the one reached, which on
+    /// a long timeline is the whole model. So the window moves to the row
+    /// instead, and the enclosing `scroll` is moved to put the row's top at its
+    /// top edge — where the row begins is known, measured or estimated, without
+    /// building anything above it. The row is the reader's line from then on, so
+    /// the rows built above it as the window settles move the viewport and not
+    /// the row.
+    private void reachMeasured(MeasuredWindow window, String id, int index) {
+        var focusing = Objects.requireNonNull(host, "reach() goes on only with a host");
+        if (index < 0) {
+            return;
+        }
+        if (index >= window.first() && index < window.last()) {
+            focusing.focus(rowId(id), true);
+            return;
+        }
+        var self = lastSelf;
+        var clip = lastClip;
+        var tops = window.tops();
+        var viewport = clip == null ? 0 : clip.size().height();
+        reaching = index;
+        revealing = id;
+        setState(() -> window.jumpTo(index, viewport));
+        if (self != null && clip != null && isMounted()) {
+            var dy = self.top() + tops[index] - clip.top();
+            ScrollScope.enclosing(context()).ifPresent(scope -> scope.nudge(0, dy));
+        }
         reachAgain(id, REACH_ATTEMPTS);
     }
 

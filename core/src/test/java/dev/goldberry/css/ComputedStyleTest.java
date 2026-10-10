@@ -1243,7 +1243,7 @@ class ComputedStyleTest {
         }
 
         @Test
-        @DisplayName("text-align is read, and `left` / `right` are refused because they are not `start` under RTL")
+        @DisplayName("text-align reads CSS's five placements, and refuses `justify`")
         void alignmentKeywords() {
             assertEquals(TextAlign.END, compute("button { text-align: end }").textAlign());
             assertEquals(
@@ -1251,16 +1251,23 @@ class ComputedStyleTest {
             assertEquals(
                     TextAlign.START, compute("button { text-align: start }").textAlign());
 
-            // Not aliases. They coincide with `start`/`end` under LTR and part
-            // company under RTL, so accepting them would write down an answer
-            // that is right today and silently wrong later. `justify` is refused
-            // for a different reason: it is a respacing, and a paragraph shaped
-            // once has nowhere to put the extra advance.
+            // Constants of their own, not aliases of `start`/`end`: the two pairs
+            // place a line alike under LTR and part company under RTL.
             assertEquals(
-                    TextAlign.START, compute("button { text-align: right }").textAlign());
-            assertEquals(TextAlign.START, compute("button { text-align: left }").textAlign());
+                    TextAlign.RIGHT, compute("button { text-align: right }").textAlign());
+            assertEquals(TextAlign.LEFT, compute("button { text-align: left }").textAlign());
+            assertEquals(
+                    TextAlign.RIGHT, compute("button { text-align: RIGHT }").textAlign(), "keywords ignore case");
+
+            // A respacing, and a paragraph shaped once has nowhere to put the
+            // extra advance: dropped, so the inherited or initial value stands.
             assertEquals(
                     TextAlign.START, compute("button { text-align: justify }").textAlign());
+            assertEquals(
+                    TextAlign.END,
+                    computeChild("window { text-align: end } button { text-align: justify }")
+                            .textAlign(),
+                    "a dropped justify leaves the inherited value in force");
         }
 
         /// The one thing that makes them two properties rather than one value.

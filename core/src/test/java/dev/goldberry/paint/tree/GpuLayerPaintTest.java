@@ -11,6 +11,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import dev.goldberry.RendererRequirement;
+import dev.goldberry.css.Decoration;
 import dev.goldberry.css.value.Transform;
 import dev.goldberry.layout.FlexDirection;
 import dev.goldberry.layout.Insets;
@@ -148,5 +149,55 @@ class GpuLayerPaintTest {
         }
         assertTrue(frame.gpuPlacements().isEmpty());
         assertEquals(0x80, pixel(30, 30) >>> 24, "the fallback, faded with its group");
+    }
+
+    /// A 120x90 box at (20, 15) with corners of 16 that clips `child`.
+    private static Box roundedAround(Box child) {
+        var clip = Box.filled(GREY)
+                .decoration(Decoration.NONE.radius(16))
+                .size(Length.points(120), Length.points(90))
+                .overflow(Overflow.HIDDEN)
+                .position(Position.ABSOLUTE)
+                .inset(new Insets(Length.points(15), Length.UNDEFINED, Length.UNDEFINED, Length.points(20)))
+                .children(child);
+        return Box.filled(GREY).size(Length.points(200), Length.points(200)).children(clip);
+    }
+
+    @Test
+    @DisplayName("places a layer under a rounded clip, scissored to the clip's bounding box, rather than its fallback")
+    void roundedClipKeepsTheLayer() {
+        try (var tree = RenderTree.create()) {
+            for (var pass = 0; pass < 2; pass++) {
+                var frame = frame();
+                try {
+                    tree.update(frame, roundedAround(layer(120, 90)));
+                    tree.paint(frame);
+                } finally {
+                    frame.end();
+                }
+                var where = "pass " + pass;
+                assertEquals(
+                        List.of(new GpuPlacement(
+                                LAYER, PhysicalRect.of(20, 15, 120, 90), PhysicalRect.of(20, 15, 120, 90))),
+                        frame.gpuPlacements(),
+                        where);
+                assertEquals(0, pixel(80, 60), where + ": a hole, not the fallback");
+                assertEquals(0, tree.layersComposited(), where + ": no corner-cutting raster");
+            }
+        }
+    }
+
+    @Test
+    @DisplayName("cuts the fallback to the curve where the frame has no GPU surface to place a layer on")
+    void roundedClipWithoutAGpuCutsTheFallback() {
+        var frame = Frame.over(buffer, DisplayScale.ONE);
+        try (var tree = RenderTree.create()) {
+            tree.update(frame, roundedAround(layer(120, 90)));
+            tree.paint(frame);
+        } finally {
+            frame.end();
+        }
+        assertEquals(FALLBACK, pixel(80, 60), "the painter's own drawing shows");
+        assertEquals(GREY, pixel(21, 16), "and the corner the curve takes off is the box beneath");
     }
 }

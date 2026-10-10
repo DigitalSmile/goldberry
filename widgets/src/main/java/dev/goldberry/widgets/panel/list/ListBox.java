@@ -96,8 +96,9 @@ record ListBox(
     /// The rows outside the window, as a height and nothing else.
     ///
     /// What makes the arithmetic terminate: a spacer's height is
-    /// `rowCount × rowHeight`, so however the window moves the column adds up to
-    /// the same total and the node that was measured does not move.
+    /// `rowCount × rowHeight`, or for rows that vary the heights counted for
+    /// them, so however the window moves the column adds up to the same total
+    /// and the node that was measured does not move.
     ///
     /// Two of them rather than one padded box, because the one above and the one
     /// below answer different questions — how far down the window starts, and how

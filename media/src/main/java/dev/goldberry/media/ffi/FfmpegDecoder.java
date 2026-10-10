@@ -6,9 +6,12 @@ import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 import org.jspecify.annotations.Nullable;
+import org.slf4j.Logger;
 
+import dev.goldberry.log.Logs;
 import dev.goldberry.media.MediaError;
 import dev.goldberry.media.MediaException;
 import dev.goldberry.media.codec.AudioFrame;
@@ -58,10 +61,23 @@ import dev.goldberry.media.codec.VideoFrame;
 /// failure before the first hardware picture also tells the [Hardware] that
 /// this device cannot decode this codec.
 ///
+/// **Alpha.** A track whose container says its pictures carry alpha
+/// ([dev.goldberry.media.codec.TrackParams.Video#alpha()]) is opened with a
+/// second decoder of the same codec, which decodes each packet's
+/// [Packet#alpha()]: a stream of its own, as WebM keeps a VP9 sticker's alpha.
+/// Its luma is the alpha, and the picture is lent as [PixelFormat#I420A], its
+/// colour converted to I420 first when it is anything else. Both decoders run
+/// one thread and in software, so a picture and its alpha come out of the same
+/// packet together. A picture whose alpha is missing or does not decode is lent
+/// opaque, as it would be without the track's flag. FFmpeg's own `vp9` decoder
+/// reads no alpha, and libvpx, which does, is not in the build.
+///
 /// Video decoders are opened with FFmpeg's automatic thread count, one per core,
 /// and with one thread on a device, which does the work itself. That changes
 /// when frames arrive and never what is in them.
 public final class FfmpegDecoder implements Decoder {
+
+    private static final Logger LOG = Logs.of(FfmpegDecoder.class);
 
     /// Rows of the fallback conversion's planes start on this boundary, which is
     /// what swscale's vector paths like best.
@@ -74,6 +90,12 @@ public final class FfmpegDecoder implements Decoder {
     private final Rational timeBase;
     private final boolean video;
     private final @Nullable HardwareDecoder hardware;
+    /// The decoder of the alpha stream and the picture it lends, or null for a
+    /// track without one.
+    private final @Nullable MemorySegment alphaContext;
+    private final @Nullable MemorySegment alphaFrame;
+    /// Whether an alpha picture the build cannot use has been logged.
+    private boolean alphaRefusalLogged;
     /// What [#describe()] answers when the pictures come from the device.
     private final String hardwareName;
     private final Arena arena = Arena.ofShared();
@@ -92,7 +114,9 @@ public final class FfmpegDecoder implements Decoder {
             MemorySegment frame,
             Rational timeBase,
             boolean video,
-            @Nullable HardwareDecoder hardware) {
+            @Nullable HardwareDecoder hardware,
+            @Nullable MemorySegment alphaContext,
+            @Nullable MemorySegment alphaFrame) {
         this.ffmpeg = ffmpeg;
         this.context = context;
         this.packet = packet;
@@ -100,6 +124,8 @@ public final class FfmpegDecoder implements Decoder {
         this.timeBase = timeBase;
         this.video = video;
         this.hardware = hardware;
+        this.alphaContext = alphaContext;
+        this.alphaFrame = alphaFrame;
         this.hardwareName = hardware == null ? Decoders.BUILT_IN : describe(hardware.deviceName());
         this.hardwareFrames = hardware != null;
     }
@@ -145,10 +171,23 @@ public final class FfmpegDecoder implements Decoder {
     ///
     /// @throws MediaException as [#open(Ffmpeg, MemorySegment, Rational)]
     static FfmpegDecoder open(Ffmpeg ffmpeg, MemorySegment parameters, Rational timeBase, Hardware policy) {
+        return open(ffmpeg, parameters, timeBase, policy, false);
+    }
+
+    /// Opens a decoder as [#open(Ffmpeg, MemorySegment, Rational, Hardware)] does,
+    /// and, for a video track whose pictures carry `alpha` beside them, a second
+    /// one for the alpha, both in software whatever `policy` says.
+    ///
+    /// @throws MediaException as [#open(Ffmpeg, MemorySegment, Rational)]
+    static FfmpegDecoder open(
+            Ffmpeg ffmpeg, MemorySegment parameters, Rational timeBase, Hardware policy, boolean alpha) {
         var codecId = AvCodecParametersView.codecId(parameters);
         var isVideo = AvCodecParametersView.codecType(parameters)
                 == ffmpeg.constants().mediaTypeVideo();
-        var choice = isVideo && policy.enabled() ? HardwareDecoder.choose(ffmpeg, codecId, policy, true) : null;
+        var withAlpha = isVideo && alpha;
+        var choice = isVideo && !withAlpha && policy.enabled()
+                ? HardwareDecoder.choose(ffmpeg, codecId, policy, true)
+                : null;
         var hardware = choice == null ? null : HardwareDecoder.open(ffmpeg, policy, choice);
         var codec = hardware != null
                 ? hardware.codec()
@@ -165,6 +204,8 @@ public final class FfmpegDecoder implements Decoder {
         }
         var packet = MemorySegment.NULL;
         var frame = MemorySegment.NULL;
+        var alphaContext = MemorySegment.NULL;
+        var alphaFrame = MemorySegment.NULL;
         try {
             check(
                     ffmpeg,
@@ -174,6 +215,10 @@ public final class FfmpegDecoder implements Decoder {
             AvCodecContextView.packetTimeBase(view, timeBase);
             if (hardware != null) {
                 hardware.attachTo(view);
+                AvCodecContextView.threadCount(view, 1);
+            } else if (withAlpha) {
+                // One thread, so that the picture comes out of the packet that
+                // brought it, beside its alpha.
                 AvCodecContextView.threadCount(view, 1);
             } else if (isVideo) {
                 AvCodecContextView.threadCount(view, 0);
@@ -189,9 +234,26 @@ public final class FfmpegDecoder implements Decoder {
             if (packet.equals(MemorySegment.NULL) || frame.equals(MemorySegment.NULL)) {
                 throw new OutOfMemoryError("av_packet_alloc or av_frame_alloc failed");
             }
+            if (withAlpha) {
+                alphaContext = openAlpha(ffmpeg, codec, parameters, timeBase);
+                alphaFrame = ffmpeg.util().frameAlloc().call();
+                if (alphaFrame.equals(MemorySegment.NULL)) {
+                    throw new OutOfMemoryError("av_frame_alloc failed");
+                }
+            }
             return new FfmpegDecoder(
-                    ffmpeg, context, AvPacketView.of(packet), AvFrameView.of(frame), timeBase, isVideo, hardware);
+                    ffmpeg,
+                    context,
+                    AvPacketView.of(packet),
+                    AvFrameView.of(frame),
+                    timeBase,
+                    isVideo,
+                    hardware,
+                    withAlpha ? alphaContext : null,
+                    withAlpha ? AvFrameView.of(alphaFrame) : null);
         } catch (RuntimeException | Error e) {
+            Pointers.freeThrough(alphaFrame, ffmpeg.util().frameFree()::call);
+            Pointers.freeThrough(alphaContext, ffmpeg.codec().freeContext()::call);
             Pointers.freeThrough(frame, ffmpeg.util().frameFree()::call);
             Pointers.freeThrough(packet, ffmpeg.codec().packetFree()::call);
             Pointers.freeThrough(context, ffmpeg.codec().freeContext()::call);
@@ -203,20 +265,59 @@ public final class FfmpegDecoder implements Decoder {
         }
     }
 
+    /// Opens the second decoder, which decodes a track's alpha stream: the same
+    /// codec and parameters as the picture's, one thread, in software.
+    private static MemorySegment openAlpha(
+            Ffmpeg ffmpeg, MemorySegment codec, MemorySegment parameters, Rational timeBase) {
+        var context = ffmpeg.codec().allocContext3().call(codec);
+        if (context.equals(MemorySegment.NULL)) {
+            throw new OutOfMemoryError("avcodec_alloc_context3 failed");
+        }
+        try {
+            check(
+                    ffmpeg,
+                    "avcodec_parameters_to_context",
+                    ffmpeg.codec().parametersToContext().call(context, parameters));
+            var view = AvCodecContextView.of(context);
+            AvCodecContextView.packetTimeBase(view, timeBase);
+            AvCodecContextView.threadCount(view, 1);
+            check(ffmpeg, "avcodec_open2", ffmpeg.codec().open2().call(context, codec, MemorySegment.NULL));
+            return context;
+        } catch (RuntimeException | Error e) {
+            Pointers.freeThrough(context, ffmpeg.codec().freeContext()::call);
+            throw e;
+        }
+    }
+
     @Override
     public boolean send(Packet input) {
         ensureOpen();
+        var result = sendTo(context, input, input.data());
+        if (result == ffmpeg.constants().averrorEagain()) {
+            return false;
+        }
+        checkDecode("avcodec_send_packet", result);
+        var alphaDecoder = alphaContext;
+        if (alphaDecoder != null && !input.alpha().equals(MemorySegment.NULL)) {
+            sendAlpha(alphaDecoder, input);
+        }
+        return true;
+    }
+
+    /// Hands `data`, with `input`'s timing, to the decoder `to`, through the
+    /// scratch packet.
+    private int sendTo(MemorySegment to, Packet input, MemorySegment data) {
         var flags = input.keyframe() ? ffmpeg.constants().pktFlagKey() : 0;
         AvPacketView.set(
                 packet,
-                input.data(),
-                Math.toIntExact(input.data().byteSize()),
+                data,
+                Math.toIntExact(data.byteSize()),
                 input.streamIndex(),
                 ffmpegTimestamp(input.pts()),
                 ffmpegTimestamp(input.dts()),
                 input.duration(),
                 flags);
-        var result = ffmpeg.codec().sendPacket().call(context, packet);
+        var result = ffmpeg.codec().sendPacket().call(to, packet);
         // The scratch packet must not keep pointing at memory the caller frees.
         AvPacketView.set(
                 packet,
@@ -227,11 +328,23 @@ public final class FfmpegDecoder implements Decoder {
                 ffmpeg.constants().noPtsValue(),
                 0,
                 0);
+        return result;
+    }
+
+    /// Decodes `input`'s alpha beside its picture. An alpha picture that was never
+    /// taken, because its own picture did not decode, is dropped to make room. A
+    /// damaged alpha stream leaves its pictures opaque, and does not stop them.
+    private void sendAlpha(MemorySegment alphaDecoder, Packet input) {
+        var result = sendTo(alphaDecoder, input, input.alpha());
         if (result == ffmpeg.constants().averrorEagain()) {
-            return false;
+            ffmpeg.util().frameUnref().call(Objects.requireNonNull(alphaFrame));
+            ffmpeg.codec().receiveFrame().call(alphaDecoder, alphaFrame);
+            result = sendTo(alphaDecoder, input, input.alpha());
         }
-        checkDecode("avcodec_send_packet", result);
-        return true;
+        if (result < 0 && !alphaRefusalLogged) {
+            alphaRefusalLogged = true;
+            LOG.debug("the alpha stream did not decode ({}); its pictures are opaque", ffmpeg.describe(result));
+        }
     }
 
     @Override
@@ -241,6 +354,11 @@ public final class FfmpegDecoder implements Decoder {
         // EOF: already draining. Sending the end twice is not an error here.
         if (result != ffmpeg.constants().averrorEof()) {
             checkDecode("avcodec_send_packet", result);
+        }
+        var alphaDecoder = alphaContext;
+        if (alphaDecoder != null) {
+            // Draining the alpha too; its answer changes nothing about the picture's.
+            ffmpeg.codec().sendPacket().call(alphaDecoder, MemorySegment.NULL);
         }
     }
 
@@ -257,7 +375,78 @@ public final class FfmpegDecoder implements Decoder {
             return Received.ENDED;
         }
         checkDecode("avcodec_receive_frame", result);
-        return new Received.Decoded(video ? videoFrame(pictureSource()) : audioFrame());
+        if (!video) {
+            return new Received.Decoded(audioFrame());
+        }
+        var picture = pictureSource();
+        var alpha = alphaContext == null ? MemorySegment.NULL : alphaFor(picture);
+        return new Received.Decoded(alpha.equals(MemorySegment.NULL) ? videoFrame(picture) : withAlpha(picture, alpha));
+    }
+
+    /// The alpha decoder's picture for `picture`: the one it decoded from the same
+    /// packet, as an `AVFrame` whose luma is the alpha, or null when it has none
+    /// that fits.
+    private MemorySegment alphaFor(MemorySegment picture) {
+        var alphaDecoder = Objects.requireNonNull(alphaContext);
+        var alpha = Objects.requireNonNull(alphaFrame);
+        ffmpeg.util().frameUnref().call(alpha);
+        if (ffmpeg.codec().receiveFrame().call(alphaDecoder, alpha) < 0) {
+            return MemorySegment.NULL;
+        }
+        var fits = AvFrameView.width(alpha) == AvFrameView.width(picture)
+                && AvFrameView.height(alpha) == AvFrameView.height(picture)
+                && AvFrameView.pts(alpha) == AvFrameView.pts(picture)
+                && AvFrameView.lineSize(alpha, 0) > 0;
+        if (!fits) {
+            return MemorySegment.NULL;
+        }
+        if (AvFrameView.format(alpha) != ffmpeg.constants().video().pixFmtYuv420p()) {
+            if (!alphaRefusalLogged) {
+                alphaRefusalLogged = true;
+                LOG.debug(
+                        "the alpha stream is {}, and only 8-bit alpha is read; its pictures are opaque",
+                        ffmpeg.pixelFormatName(AvFrameView.format(alpha)).orElse("unknown"));
+            }
+            return MemorySegment.NULL;
+        }
+        return alpha;
+    }
+
+    /// `picture` with `alpha`'s luma as its fourth plane: [PixelFormat#I420A],
+    /// the colour lent as it is when it is I420 and converted to I420 otherwise.
+    private VideoFrame withAlpha(MemorySegment picture, MemorySegment alpha) {
+        var lent = videoFrame(picture);
+        var colour = lent.format() == PixelFormat.I420
+                ? lent
+                : convertedFrame(
+                        picture,
+                        AvFrameView.format(picture),
+                        lent.width(),
+                        lent.height(),
+                        lent.matrix(),
+                        lent.fullRange(),
+                        lent.ptsNanos());
+        var width = colour.width();
+        var height = colour.height();
+        var stride = AvFrameView.lineSize(alpha, 0);
+        var plane = Pointers.array(
+                AvFrameView.data(alpha, 0),
+                JAVA_BYTE,
+                (long) stride * (PixelFormat.I420A.planeRows(3, height) - 1)
+                        + PixelFormat.I420A.planeRowBytes(3, width));
+        var planes = new ArrayList<>(colour.planes());
+        planes.add(plane);
+        var strides = new ArrayList<>(colour.strides());
+        strides.add(stride);
+        return new VideoFrame(
+                PixelFormat.I420A,
+                width,
+                height,
+                planes,
+                strides,
+                colour.matrix(),
+                colour.fullRange(),
+                colour.ptsNanos());
     }
 
     /// What this decoder is: [Decoders#BUILT_IN], or `ffmpeg (videotoolbox)` and
@@ -311,6 +500,11 @@ public final class FfmpegDecoder implements Decoder {
         ensureOpen();
         ffmpeg.util().frameUnref().call(frame);
         ffmpeg.codec().flushBuffers().call(context);
+        var alphaDecoder = alphaContext;
+        if (alphaDecoder != null) {
+            ffmpeg.util().frameUnref().call(Objects.requireNonNull(alphaFrame));
+            ffmpeg.codec().flushBuffers().call(alphaDecoder);
+        }
     }
 
     @Override
@@ -322,6 +516,12 @@ public final class FfmpegDecoder implements Decoder {
         Pointers.freeThrough(frame, ffmpeg.util().frameFree()::call);
         Pointers.freeThrough(packet, ffmpeg.codec().packetFree()::call);
         Pointers.freeThrough(context, ffmpeg.codec().freeContext()::call);
+        if (alphaFrame != null) {
+            Pointers.freeThrough(alphaFrame, ffmpeg.util().frameFree()::call);
+        }
+        if (alphaContext != null) {
+            Pointers.freeThrough(alphaContext, ffmpeg.codec().freeContext()::call);
+        }
         // After the context, which may call the stub while it is freed.
         if (hardware != null) {
             hardware.close();

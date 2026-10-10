@@ -254,6 +254,43 @@ public final class Session implements AutoCloseable {
         return this;
     }
 
+    /// Drags from the centre of the node called `from` to the centre of the node
+    /// called `to` with the primary button, and lets go there.
+    ///
+    /// [#drag(float, float, float, float)] between the two points [#click(String)]
+    /// would press, so a `draggable` is carried onto a drop target as a user
+    /// carries it.
+    ///
+    /// @throws NoSuchElementException if either was not drawn
+    public Session drag(String from, String to) {
+        var start = pointOn(element(from));
+        var end = pointOn(element(to));
+        return drag(start.x(), start.y(), end.x(), end.y());
+    }
+
+    /// Presses the primary button at `(fromX, fromY)`, moves the pointer to
+    /// `(toX, toY)` with it held, and lets go there, with a frame after each
+    /// step.
+    ///
+    /// The pointer stops halfway, so the gesture has a middle: a drop target
+    /// passed over on the way is passed over, and the ghost is drawn at least
+    /// once before the drop.
+    public Session drag(float fromX, float fromY, float toX, float toY) {
+        settle();
+        var router = router();
+        router.pointerMoved(fromX, fromY);
+        settle();
+        router.pointerPressed(fromX, fromY, PointerEvent.Button.PRIMARY, 1);
+        settle();
+        router.pointerMoved((fromX + toX) / 2, (fromY + toY) / 2);
+        settle();
+        router.pointerMoved(toX, toY);
+        settle();
+        router.pointerReleased(toX, toY, PointerEvent.Button.PRIMARY, 1);
+        settle();
+        return this;
+    }
+
     /// Turns the wheel at `(x, y)` by `(dx, dy)` notches.
     public Session wheel(float x, float y, float dx, float dy) {
         settle();

@@ -14,6 +14,7 @@ import dev.goldberry.render.model.PhysicalRect;
 import dev.goldberry.text.Paragraph;
 import dev.goldberry.widget.Widget;
 import dev.goldberry.widget.attr.Attributes;
+import dev.goldberry.widgets.core.Column;
 import dev.goldberry.widgets.core.Row;
 import dev.goldberry.widgets.core.canvas.Canvas;
 import dev.goldberry.widgets.core.image.Fit;
@@ -38,7 +39,8 @@ final class ImageCards {
                         "The image widget",
                         "An image loads off the frame and is its own size until a stylesheet sizes it. In a box"
                                 + " of another shape, fit decides: contain, cover, fill, or none. The first three"
-                                + " boxes here are square.",
+                                + " boxes here are square, and the last is round and clips the picture to its"
+                                + " curve.",
                         DocLink.to("components/drawing", "image"))
                 .of(new Row(
                         List.of(
@@ -56,7 +58,11 @@ final class ImageCards {
                                         .withAttributes(
                                                 Attributes.NONE.id("image-fill").classes("framed")),
                                 new ImageView(Samples.JPEG, "The sample, at its own size")
-                                        .withAttributes(Attributes.NONE.id("image-natural"))),
+                                        .withAttributes(Attributes.NONE.id("image-natural")),
+                                new Column(
+                                        List.of(new ImageView(Samples.JPEG, "The sample, in a round face")
+                                                .fit(Fit.COVER)),
+                                        Attributes.NONE.id("image-face"))),
                         Attributes.NONE.id("image-row")));
     }
 

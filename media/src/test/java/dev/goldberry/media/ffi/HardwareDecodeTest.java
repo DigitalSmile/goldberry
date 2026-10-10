@@ -143,7 +143,7 @@ class HardwareDecodeTest {
         for (var y = 0; y < frame.height(); y++) {
             for (var x = 0; x < frame.width(); x++) {
                 var value = switch (frame.format()) {
-                    case I420, NV12 -> plane.get(JAVA_BYTE, (long) y * stride + x) & 0xFF;
+                    case I420, NV12, I420A -> plane.get(JAVA_BYTE, (long) y * stride + x) & 0xFF;
                     case I010 -> (plane.get(JAVA_SHORT_UNALIGNED, (long) y * stride + 2L * x) & 0x3FF) >> 2;
                     case P010 -> (plane.get(JAVA_SHORT_UNALIGNED, (long) y * stride + 2L * x) & 0xFFFF) >> 8;
                 };

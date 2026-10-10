@@ -11,15 +11,16 @@ package dev.goldberry.text.flow;
 /// per line, in the paint, because a line already knows its own width there and
 /// the paint knows the box's.
 ///
-/// `left` and `right` are refused. `start` and `end` mean "whichever edge text
-/// begins at" and "whichever edge it ends at", while `left` and `right` name
-/// sides of the screen. The two coincide under left-to-right text and part
-/// company under right-to-left, so accepting `right` as a synonym for [#END]
-/// would be an answer that is right today and silently wrong once bidi line
-/// placement lands. A stylesheet that writes one gets the usual dropped-value
-/// warning. `justify` is absent because it is a respacing rather than a
-/// placement, and a paragraph here is shaped once and sliced into lines, so
-/// there is nowhere to put the extra advance without re-shaping.
+/// `start` and `end` mean "whichever edge text begins at" and "whichever edge it
+/// ends at". [#LEFT] and [#RIGHT] name sides of the box. The two pairs are
+/// separate constants rather than aliases. They place a line the same way while
+/// every line is set left to right, which is all the toolkit does today, and
+/// they part company once a right-to-left line is placed from the right: a
+/// `start` line moves to the right edge, and a `left` line stays where it is.
+///
+/// `justify` is refused, with a warning that says so. It respaces a line rather
+/// than placing it, and a paragraph here is shaped once and sliced into lines,
+/// so there is nowhere to put the extra advance without shaping it again.
 ///
 /// Read more: [Text flow](https://goldberry.dev/docs/guide/styling.html#text-flow).
 public enum TextAlign {
@@ -33,7 +34,14 @@ public enum TextAlign {
 
     /// The edge text ends at, which is what a column of numbers beside a row of
     /// faders wants.
-    END;
+    END,
+
+    /// The box's left edge, whichever way the text runs.
+    LEFT,
+
+    /// The box's right edge, whichever way the text runs: the keyword a
+    /// stylesheet written for the web reaches for.
+    RIGHT;
 
     /// How far into the slack a line starts: 0, a half, or all of it.
     ///
@@ -41,9 +49,9 @@ public enum TextAlign {
     /// available is the one place that measures it.
     public double fractionOfSlack() {
         return switch (this) {
-            case START -> 0;
+            case START, LEFT -> 0;
             case CENTER -> 0.5;
-            case END -> 1;
+            case END, RIGHT -> 1;
         };
     }
 
@@ -65,7 +73,7 @@ public enum TextAlign {
     /// @param lineWidth what the line measured
     /// @param available the width it was laid out in, which is what layout gave the box
     /// @return a non-negative distance in the same units, and exactly `0` for
-    ///         [#START]
+    ///         [#START] and [#LEFT]
     public double indentOf(double lineWidth, double available) {
         var fraction = fractionOfSlack();
         if (fraction == 0 || !Double.isFinite(available)) {
