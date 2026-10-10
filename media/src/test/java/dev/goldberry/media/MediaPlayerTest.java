@@ -202,6 +202,10 @@ class MediaPlayerTest {
             assertEquals(Wav.sineSample(FORMAT.sampleRate(), i, 440, 12_000) / 32768f, captured[2 * i], 0f);
         }
         assertEquals(Duration.ofMillis(500), ended.position());
+        // status() says ENDED as soon as the Engine sets it, and the listeners
+        // hear it after, on the Engine's thread. Polling can win that race, as it
+        // did on the Windows runner, so wait for the listener to have it too.
+        awaitTrue(() -> states.contains(PlaybackState.ENDED));
         assertEquals(
                 List.of(PlaybackState.OPENING, PlaybackState.BUFFERING, PlaybackState.PLAYING, PlaybackState.ENDED),
                 List.copyOf(states));
