@@ -6,7 +6,8 @@ release commit. This folder holds the three batches that closed the Gwent clone'
 GB-005 to GB-012, written 2026-10-05 and 2026-10-06, GB-013 to GB-018,
 written 2026-10-06, and GB-019 to GB-031, written 2026-10-08. It also holds the
 unread-property check of 2026-10-10 (ADR-0587), which answers a `TODO.md` entry
-rather than an issue.
+rather than an issue, and GB-032 and GB-033, written 2026-10-10 (ADR-0588 and
+ADR-0589).
 
 ## What is here, and where it goes
 
@@ -26,6 +27,9 @@ rather than an issue.
 | `styling-images.md` | `book/src/guide/styling.md` (`### Backgrounds and gradients`, end of `### Border, outline and shadow`) and `book/src/components/drawing.md` (`## image`, `src` row) | GB-024 to GB-026, three pieces, each says where it goes: `url()` layers with size and repeat, `border-image`, regions of a sheet |
 | `adr/0587-…` | `book/src/adr/` | The inflater refuses a property nothing reads. Contiguous with 0586; renumber with the rest if records landed in between |
 | `guide-markup-unread-properties.md` | `book/src/guide/markup.md`, end of `### Strict by default`; `book/src/layout/row-and-column.md`, the `> [!WARNING]` box under the `row` table | Two pieces, each says where it goes. The warning box says `row gap=8` "parses and does nothing", which stopped being true on 2026-10-10 |
+| `adr/0588-…` and `adr/0589-…` | `book/src/adr/` | GB-032 (a painter's nine-slice) and GB-033 (cursor pictures, a drag following its holder's cursor, native ABI 22). Contiguous with 0587; renumber with the rest if records landed in between. 0589 links ADR-0057 as a sibling, which resolves once it is in `book/src/adr/` |
+| `components-drawing-nine-slice.md` | `book/src/components/drawing.md`, `### The painter`, after the stroke paragraph | GB-032: `Frame.drawNineSlice` and `NinePatch` |
+| `guide-input-cursors.md` | `book/src/guide/input.md` (`## The cursor`), `book/src/overview/limitations.md` (the *Custom image cursors* row), `book/src/status.md` (one phrase) | GB-033, three pieces, each says where it goes. The guide's paragraph says custom image cursors are not built, which stopped being true on 2026-10-10 |
 | (no file) | `book/src/TODO.md` | The entry **The inflater accepts a property nothing reads**, under *The catalog: specified and unbuilt*, moves to *Answered* with a closing paragraph citing ADR-0587. Back the file up first |
 
 ## Doc comments that point at the guide

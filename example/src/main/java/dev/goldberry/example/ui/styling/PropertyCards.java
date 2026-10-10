@@ -198,7 +198,8 @@ final class PropertyCards {
                         "styling-cursor",
                         "Cursor",
                         "cursor rides on the painted box and inherits down whatever is under the pointer. Hover"
-                                + " each box to see the desktop's own cursor; grab and grabbing fall back to move.",
+                                + " each box to see the desktop's own cursor; grab and grabbing are the showcase's own"
+                                + " pictures, since no desktop has either.",
                         DocLink.to(CHAPTER, "cursor"))
                 .of(Demo.row("cursor-boxes", boxes));
     }

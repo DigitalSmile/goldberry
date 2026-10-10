@@ -331,4 +331,24 @@ public final class HitTest {
         }
         return Cursor.DEFAULT;
     }
+
+    /// The shape `owner`'s own box asks for, or null when no box of it was
+    /// painted.
+    ///
+    /// The topmost rectangle `owner` owns, scanned backwards like [#at]; its
+    /// shape is answered whatever it is, [Cursor#DEFAULT] included, because the
+    /// question is what this box says and not what the pointer would show over
+    /// it. What a drag follows: the box holding the pointer changing its own
+    /// `cursor` mid-gesture, a grab that becomes a grabbing hand.
+    public static @Nullable Cursor cursorOf(List<Region> regions, Object owner) {
+        Objects.requireNonNull(regions, "regions");
+        Objects.requireNonNull(owner, "owner");
+        for (var i = regions.size() - 1; i >= 0; i--) {
+            var region = regions.get(i);
+            if (region.owner() == owner) {
+                return region.cursor();
+            }
+        }
+        return null;
+    }
 }

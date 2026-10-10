@@ -21,6 +21,7 @@ import dev.goldberry.render.BackendException;
 import dev.goldberry.render.backend.sdl3.Sdl3Backend;
 import dev.goldberry.render.clipboard.PrimarySelection;
 import dev.goldberry.render.composite.Compositor;
+import dev.goldberry.render.cursor.CursorPictures;
 import dev.goldberry.render.desktop.SystemTheme;
 import dev.goldberry.render.display.Display;
 import dev.goldberry.render.event.BackendEvent;
@@ -483,6 +484,21 @@ public final class HeadlessBackend implements Backend {
     /// What [#openUrl] was asked for, in order.
     public List<String> openedUrls() {
         return List.copyOf(openedUrls);
+    }
+
+    /// The pictures the last [#setCursorPictures] gave, empty until one does.
+    private List<CursorPictures> cursorPictures = List.of();
+
+    /// Recorded, because there is no pointer to show them on.
+    @Override
+    public void setCursorPictures(List<CursorPictures> pictures) {
+        requireUiThread();
+        cursorPictures = List.copyOf(Objects.requireNonNull(pictures, "pictures"));
+    }
+
+    /// What [#setCursorPictures] was last given.
+    public List<CursorPictures> cursorPictures() {
+        return cursorPictures;
     }
 
     @Override

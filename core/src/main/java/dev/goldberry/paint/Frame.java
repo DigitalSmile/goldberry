@@ -25,6 +25,7 @@ import dev.goldberry.natives.blend2d.enums.BlendExtendMode;
 import dev.goldberry.natives.blend2d.enums.BlendStrokeCap;
 import dev.goldberry.natives.blend2d.enums.BlendStrokeJoin;
 import dev.goldberry.paint.geom.Dasher;
+import dev.goldberry.paint.slice.NinePatch;
 import dev.goldberry.paint.stroke.Cap;
 import dev.goldberry.paint.stroke.Join;
 import dev.goldberry.paint.stroke.Stroke;
@@ -757,6 +758,45 @@ public final class Frame {
                 }
             }
         }
+    }
+
+    /// Draws `image` cut in nine as `patch` says over the logical rectangle
+    /// `(x, y, width, height)`: its corners whole, its edges and middle
+    /// stretched or tiled between them.
+    ///
+    /// ```java
+    /// frame.drawNineSlice(namePlate, NinePatch.of(22, 64, 22, 64), 0, 0, 300, 40);
+    /// ```
+    ///
+    /// The stylesheet's `border-image` is drawn by the same code, so the seams
+    /// fall where they do for a box: each piece's edges on whole device pixels,
+    /// a corner and the edge beside it sharing theirs exactly.
+    ///
+    /// @throws IllegalArgumentException if the rectangle is not positive
+    public void drawNineSlice(Image image, NinePatch patch, double x, double y, double width, double height) {
+        drawNineSlice(image, patch, x, y, width, height, 1);
+    }
+
+    /// The same, faded to `alpha`.
+    ///
+    /// @param alpha 0 to 1
+    /// @throws IllegalArgumentException if the rectangle is not positive
+    public void drawNineSlice(
+            Image image, NinePatch patch, double x, double y, double width, double height, double alpha) {
+        requireOpen();
+        Objects.requireNonNull(image, "image");
+        Objects.requireNonNull(patch, "patch");
+        if (!(alpha <= 1)) {
+            throw new IllegalArgumentException("an alpha is between 0 and 1, and " + alpha + " is not");
+        }
+        if (!(width > 0) || !(height > 0)) {
+            throw new IllegalArgumentException(
+                    "a picture is cut in nine over a positive rectangle, and " + width + "x" + height + " is not one");
+        }
+        if (alpha <= 0) {
+            return;
+        }
+        NineSlicePainter.draw(this, image, patch.pieces(image.width(), image.height(), width, height), x, y, alpha);
     }
 
     /// Restricts everything drawn afterwards to `(x, y, width, height)`, in

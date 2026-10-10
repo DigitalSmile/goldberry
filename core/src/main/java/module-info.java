@@ -165,6 +165,11 @@ module dev.goldberry.core {
     // handed is the assembled value rather than any of them.
     exports dev.goldberry.input.drop;
 
+    // The application's own cursor pictures, for `input.drop`'s reason: what an
+    // application hands over is a value of its own, gathered by shape before a
+    // backend sees it.
+    exports dev.goldberry.input.cursor;
+
     // The frame clock, the three easing curves, and the per-node animation
     // overlay CSS transitions run through. Exported because an application
     // supplies the clock (a test drives a virtual one so a golden image can
@@ -286,6 +291,8 @@ module dev.goldberry.core {
     /// `:widgets` puts the door on top of it.
     exports dev.goldberry.render.web;
     exports dev.goldberry.render.window;
+    // The pixels a cursor shape is shown with, when the application drew one.
+    exports dev.goldberry.render.cursor;
     /// The compositor seam: what the sdl3 backend asks of `:gpu` to present a
     /// window through the GPU, found by `ServiceLoader` below. Exported to `:gpu`
     /// alone, because its signatures name `:natives`' window handle and nothing in
@@ -331,5 +338,9 @@ module dev.goldberry.core {
     // The pen: width, caps, joins and dashes. Values with no native handle, for
     // `css.value`'s reason.
     exports dev.goldberry.paint.stroke;
+    // A picture cut in nine for a painter, for `paint.stroke`'s reason: a value
+    // a `Frame` draws, with no native handle, and the arithmetic of where its
+    // pieces go is the stylesheet's own.
+    exports dev.goldberry.paint.slice;
     exports dev.goldberry.paint;
 }

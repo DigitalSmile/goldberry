@@ -5,6 +5,8 @@ import java.util.Optional;
 
 import dev.goldberry.css.Stylesheet;
 import dev.goldberry.image.Image;
+import dev.goldberry.input.cursor.CursorImage;
+import dev.goldberry.render.Cursor;
 import dev.goldberry.render.model.LogicalPoint;
 import dev.goldberry.render.model.LogicalSize;
 import dev.goldberry.render.window.WindowSpec;
@@ -173,6 +175,31 @@ public interface Application {
     /// a compositor without `xdg-toplevel-icon` shows the desktop file's. Installer
     /// packaging covers both.
     default List<Image> icon() {
+        return List.of();
+    }
+
+    /// The application's own cursors: a picture for a shape, at each size it
+    /// was drawn at.
+    ///
+    /// ```java
+    /// @Override public List<CursorImage> cursors() {
+    ///     return Stream.of(32, 48, 64, 96)
+    ///             .map(size -> new CursorImage(Cursor.GRAB,
+    ///                     Image.decode(read("cursors/grab-" + size + ".png")), size * 3 / 8, size / 8))
+    ///             .toList();
+    /// }
+    /// ```
+    ///
+    /// The shapes stay CSS's, so `cursor: grab` in a stylesheet, a widget's
+    /// own `pointer` and [Window#cursor(Cursor)] all show the application's
+    /// picture for the shape they name, and a shape with no picture shows the
+    /// platform's. The smallest size of a shape is the shape at 100%, and the
+    /// toolkit shows the one the display's scale wants.
+    ///
+    /// Read once, as the first window opens and before [#start]. Empty by
+    /// default, which leaves every shape to the platform. A backend with no
+    /// pointer, or none that can show a picture, keeps the platform's shapes.
+    default List<CursorImage> cursors() {
         return List.of();
     }
 

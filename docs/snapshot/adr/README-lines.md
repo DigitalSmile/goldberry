@@ -29,3 +29,5 @@ Appended to the index when the records move in, in this order.
 - [ADR-0585 A border may be a picture cut in nine](0585-a-border-may-be-a-picture-cut-in-nine.md)
 - [ADR-0586 A paragraph is joined from styled runs, and wraps as one](0586-a-paragraph-is-joined-from-styled-runs-and-wraps-as-one.md)
 - [ADR-0587 A property nothing reads is refused, as an unknown node is](0587-a-property-nothing-reads-is-refused-as-an-unknown-node-is.md)
+- [ADR-0588 A painter draws a picture cut in nine, by the stylesheet's rules](0588-a-painter-draws-a-picture-cut-in-nine-by-the-stylesheets-rules.md)
+- [ADR-0589 A cursor shape may be the application's picture, and a drag follows its holder's cursor](0589-a-cursor-shape-may-be-the-applications-picture-and-a-drag-follows-its-holders-cursor.md)

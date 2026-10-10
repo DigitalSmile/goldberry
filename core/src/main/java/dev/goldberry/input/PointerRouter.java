@@ -768,6 +768,11 @@ public final class PointerRouter {
 
     /// The shape the pointer is currently showing.
     private Cursor cursor = Cursor.DEFAULT;
+
+    /// The shape the captured element's own box asked for when it was last
+    /// looked at, or null with no capture or no box: what a frame painted during
+    /// a drag is compared with.
+    private @Nullable Cursor captureShape;
     private Consumer<Cursor> cursorSink = c -> {};
 
     /// Where to send the cursor shape when it changes.
@@ -975,8 +980,7 @@ public final class PointerRouter {
         if (captured == null) {
             // Implicit capture: from here until the button comes up, this
             // element gets the pointer wherever it goes.
-            captured = target;
-            capturedImplicitly = true;
+            capture(target, true);
         }
         focusFromPress(target);
         dispatch(new PointerEvent(
@@ -1120,14 +1124,14 @@ public final class PointerRouter {
     /// capture implicitly, so this is for a widget that wants to keep it past the
     /// release — a drag that continues until Escape, say.
     public void capturePointer(Element element) {
-        captured = Objects.requireNonNull(element, "element");
-        capturedImplicitly = false;
+        capture(Objects.requireNonNull(element, "element"), false);
     }
 
     /// Ends capture. Harmless when nothing has it.
     public void releasePointer() {
         captured = null;
         capturedImplicitly = false;
+        captureShape = null;
     }
 
     /// Who has the pointer, or null.
@@ -1951,15 +1955,33 @@ public final class PointerRouter {
 
     /// Recomputes the cursor from the rectangles under the pointer.
     ///
-    /// **Frozen during a capture.** A drag decides what the pointer looks like
-    /// when it starts, and a cursor that flickered as the pointer crossed the
-    /// widgets underneath would be telling the user about things they cannot
-    /// currently interact with.
+    /// **Frozen during a capture, except by the capture itself.** A drag
+    /// decides what the pointer looks like when it starts, and a cursor that
+    /// flickered as the pointer crossed the widgets underneath would be telling
+    /// the user about things they cannot currently interact with. The box
+    /// holding the pointer is the exception: when its own `cursor` changes in
+    /// a frame painted during the drag — `grab` becoming `grabbing` once a card
+    /// is lifted — the pointer takes the new shape, because that box is the one
+    /// thing the user is interacting with.
     private void updateCursor(float x, float y) {
-        if (captured != null) {
+        var holder = captured;
+        if (holder != null) {
+            var own = HitTest.cursorOf(regions, holder);
+            if (own != null && own != captureShape) {
+                captureShape = own;
+                setCursor(own);
+            }
             return;
         }
         setCursor(HitTest.cursorAt(regions, x, y));
+    }
+
+    /// Takes the pointer for `element`, remembering the shape its own box asks
+    /// for now, so that only a change to it moves the cursor during the drag.
+    private void capture(Element element, boolean implicitly) {
+        captured = element;
+        capturedImplicitly = implicitly;
+        captureShape = HitTest.cursorOf(regions, element);
     }
 
     private void setCursor(Cursor next) {

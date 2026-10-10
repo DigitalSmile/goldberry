@@ -13,7 +13,6 @@ import dev.goldberry.log.Logs;
 import dev.goldberry.natives.sdl.SdlException;
 import dev.goldberry.natives.sdl.SdlVideo;
 import dev.goldberry.natives.sdl.SdlWindowHandle;
-import dev.goldberry.natives.sdl.desktop.SdlSystemCursor;
 import dev.goldberry.natives.sdl.window.SdlFlashOperation;
 import dev.goldberry.natives.sdl.window.SdlIconImage;
 import dev.goldberry.render.BackendException;
@@ -552,31 +551,7 @@ sealed class Sdl3Window implements BackendWindow permits Sdl3Popup {
         if (!open) {
             return;
         }
-        backend.setCursor(toSdl(Objects.requireNonNull(cursor, "cursor")));
-    }
-
-    /// The platform shape for a toolkit one.
-    ///
-    /// Two of the toolkit's shapes have no system cursor anywhere: `grab` and `grabbing`
-    /// are a CSS invention that X11's cursor font, Win32's `IDC_*` set and
-    /// `SDL_SystemCursor` all lack. They fall back to `move`, which says "this can
-    /// be dragged" less precisely rather than saying nothing — until custom image
-    /// cursors ship and the fallback can become the real thing.
-    private static SdlSystemCursor toSdl(Cursor cursor) {
-        return switch (cursor) {
-            case DEFAULT -> SdlSystemCursor.DEFAULT;
-            case POINTER -> SdlSystemCursor.POINTER;
-            case TEXT -> SdlSystemCursor.TEXT;
-            case MOVE, GRAB, GRABBING -> SdlSystemCursor.MOVE;
-            case WAIT -> SdlSystemCursor.WAIT;
-            case PROGRESS -> SdlSystemCursor.PROGRESS;
-            case CROSSHAIR -> SdlSystemCursor.CROSSHAIR;
-            case NOT_ALLOWED -> SdlSystemCursor.NOT_ALLOWED;
-            case EW_RESIZE -> SdlSystemCursor.EW_RESIZE;
-            case NS_RESIZE -> SdlSystemCursor.NS_RESIZE;
-            case NESW_RESIZE -> SdlSystemCursor.NESW_RESIZE;
-            case NWSE_RESIZE -> SdlSystemCursor.NWSE_RESIZE;
-        };
+        backend.setCursor(Objects.requireNonNull(cursor, "cursor"), scale().factor());
     }
 
     @Override

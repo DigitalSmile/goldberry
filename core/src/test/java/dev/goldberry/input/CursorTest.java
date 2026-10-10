@@ -447,20 +447,86 @@ class CursorTest {
                     Cursor.POINTER, router.cursor(), "and the release recomputes it from what is under the pointer");
         }
 
+        /// One frame, with each rectangle drawn under its own shape.
+        private void paint(Cursor outerShape, Cursor innerShape) {
+            router.updateRegions(List.of(
+                    new HitTest.Region(outer, outerShape, 0, 0, 100, 100),
+                    new HitTest.Region(inner, innerShape, 20, 20, 40, 40)));
+        }
+
         @Test
-        @DisplayName("a repaint during a drag does not thaw the frozen shape")
+        @DisplayName("a repaint under a drag does not thaw the frozen shape")
         void captureStillWins() {
             router.pointerMoved(30, 30);
             router.pointerPressed(30, 30, PointerEvent.Button.PRIMARY, 1);
+            router.pointerMoved(5, 5);
             seen.clear();
 
-            paint(Cursor.NOT_ALLOWED);
+            paint(Cursor.NOT_ALLOWED, Cursor.POINTER);
 
             // The freeze is `updateCursor`'s own rule and this must not reach
             // around it: a drag decides the shape when it starts, and a list that
             // repaints under a drag would otherwise change it mid-gesture.
             assertEquals(Cursor.POINTER, router.cursor());
             assertTrue(seen.isEmpty(), () -> "seen was " + seen);
+        }
+
+        /// The other half of the rule, and the reason it has one: a card picked
+        /// up says `grab` before the press and `grabbing` once it is held, and
+        /// the box holding the pointer is the one thing the user is touching.
+        @Test
+        @DisplayName("the box holding the pointer changing its own cursor changes the shape")
+        void theCaptureChangesItsOwnShape() {
+            paint(Cursor.DEFAULT, Cursor.GRAB);
+            router.pointerMoved(30, 30);
+            router.pointerPressed(30, 30, PointerEvent.Button.PRIMARY, 1);
+            assertEquals(Cursor.GRAB, router.cursor());
+            seen.clear();
+
+            paint(Cursor.DEFAULT, Cursor.GRABBING);
+            assertEquals(Cursor.GRABBING, router.cursor(), "the held box's own shape is followed");
+
+            // Still a drag: what is under the pointer does not count.
+            router.pointerMoved(5, 5);
+            paint(Cursor.NOT_ALLOWED, Cursor.GRABBING);
+            assertEquals(Cursor.GRABBING, router.cursor());
+            assertEquals(List.of(Cursor.GRABBING), seen);
+
+            router.pointerReleased(5, 5, PointerEvent.Button.PRIMARY, 1);
+            assertEquals(Cursor.NOT_ALLOWED, router.cursor(), "and the release thaws it");
+        }
+
+        /// A label inside a button inherits the button's `pointer` by the
+        /// stack of rectangles, and its own box says `default`. Holding the label
+        /// must not turn that `default` into the shape on the first frame.
+        @Test
+        @DisplayName("a held box that says nothing new keeps the shape the drag began with")
+        void anInheritedShapeIsKept() {
+            paint(Cursor.POINTER, Cursor.DEFAULT);
+            router.pointerMoved(30, 30);
+            router.pointerPressed(30, 30, PointerEvent.Button.PRIMARY, 1);
+            seen.clear();
+
+            paint(Cursor.POINTER, Cursor.DEFAULT);
+            router.pointerMoved(31, 31);
+
+            assertEquals(Cursor.POINTER, router.cursor());
+            assertTrue(seen.isEmpty(), () -> "seen was " + seen);
+        }
+
+        @Test
+        @DisplayName("an explicit capture follows its own box's shape the same way")
+        void explicitCapture() {
+            paint(Cursor.DEFAULT, Cursor.GRAB);
+            router.pointerMoved(30, 30);
+            router.capturePointer(inner);
+
+            paint(Cursor.DEFAULT, Cursor.GRABBING);
+            assertEquals(Cursor.GRABBING, router.cursor());
+
+            router.releasePointer();
+            router.pointerMoved(5, 5);
+            assertEquals(Cursor.DEFAULT, router.cursor());
         }
     }
 

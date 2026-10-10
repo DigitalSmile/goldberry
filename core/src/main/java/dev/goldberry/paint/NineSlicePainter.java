@@ -1,12 +1,15 @@
 package dev.goldberry.paint;
 
+import java.util.List;
+
 import dev.goldberry.css.Decoration;
 import dev.goldberry.css.image.NineSlice;
 import dev.goldberry.css.image.StyleImages;
 import dev.goldberry.image.Image;
 
-/// Draws a box's `border-image`: the nine pieces [NineSlice] places, each
-/// stretched into its rectangle or tiled along it.
+/// Draws a picture cut in nine: a box's `border-image`, or a painter's
+/// [dev.goldberry.paint.slice.NinePatch], as the nine pieces [NineSlice]
+/// places, each stretched into its rectangle or tiled along it.
 ///
 /// Every edge is placed on a whole device pixel, so a corner and the edge
 /// beside it share their seam exactly and nothing of the box behind shows
@@ -45,6 +48,15 @@ final class NineSlicePainter {
         }
         var pieces = NineSlice.pieces(
                 borderImage, image.width(), image.height(), picture.density(), decoration.border(), width, height);
+        draw(frame, image, pieces, x, y, alpha);
+        return true;
+    }
+
+    /// Draws `pieces` of `image` over the rectangle at `(x, y)`, faded to
+    /// `alpha`: what a box's border image and a painter's
+    /// [dev.goldberry.paint.slice.NinePatch] both come down to.
+    static void draw(Frame frame, Image image, List<NineSlice.Piece> pieces, double x, double y, double alpha) {
+        var scale = frame.scale().factor();
         for (var piece : pieces) {
             var left = snap(x + piece.x(), scale);
             var top = snap(y + piece.y(), scale);
@@ -67,7 +79,6 @@ final class NineSlicePainter {
                 frame.restore();
             }
         }
-        return true;
     }
 
     private static void tile(

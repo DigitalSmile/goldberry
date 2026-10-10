@@ -18,6 +18,7 @@ import dev.goldberry.input.key.Key;
 import dev.goldberry.input.key.Mod;
 import dev.goldberry.input.key.Modifiers;
 import dev.goldberry.offscreen.Offscreen;
+import dev.goldberry.render.Cursor;
 
 /// The Input screen: built the way the window builds it, then card by card,
 /// driven through the router the way a user drives it.
@@ -47,6 +48,7 @@ class InputChapterTest {
                     "input-focus",
                     "input-composite",
                     "input-cursor",
+                    "input-cursor-pictures",
                     "input-drop",
                     "input-context",
                     "input-custom")) {
@@ -135,6 +137,36 @@ class InputChapterTest {
             var readout = card.text("drag-readout");
             assertTrue(readout.contains("fractionX 0.75"), readout);
             assertTrue(readout.contains("dragY +0"), readout);
+        }
+    }
+
+    /// The strip says `grab`, and `grabbing` while it holds the card. The second
+    /// shape arrives during the drag, because the box holding the pointer is the
+    /// one whose own cursor changed.
+    @Test
+    @DisplayName("picking the card up closes the hand mid-drag, and letting go opens it")
+    void pickingUpClosesTheHand() {
+        try (var card = new CardSession(new CursorPicturesCard())) {
+            var strip = card.rect(CursorPicturesCard.STRIP);
+            var router = card.session.router();
+            var y = strip.top() + strip.height() / 2;
+            var x = strip.left() + 20;
+            router.pointerMoved(x, y);
+            assertEquals(Cursor.GRAB, router.cursor());
+
+            router.pointerPressed(x, y, PointerEvent.Button.PRIMARY, 1);
+            card.session.frame();
+            assertEquals(Cursor.GRABBING, router.cursor(), "the held strip's own cursor is followed");
+            assertTrue(card.text("pick-readout").startsWith("Held"), card.text("pick-readout"));
+
+            router.pointerMoved(strip.right() + 60, y);
+            card.session.frame();
+            assertEquals(Cursor.GRABBING, router.cursor(), "off the strip, still the drag's shape");
+
+            router.pointerReleased(strip.right() + 60, y, PointerEvent.Button.PRIMARY, 1);
+            card.session.frame();
+            router.pointerMoved(x, y);
+            assertEquals(Cursor.GRAB, router.cursor(), "back over the strip, the open hand again");
         }
     }
 

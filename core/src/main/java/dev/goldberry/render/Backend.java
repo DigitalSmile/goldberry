@@ -6,6 +6,7 @@ import java.util.Optional;
 
 import dev.goldberry.render.clipboard.Clipboard;
 import dev.goldberry.render.clipboard.PrimarySelection;
+import dev.goldberry.render.cursor.CursorPictures;
 import dev.goldberry.render.desktop.SystemTheme;
 import dev.goldberry.render.desktop.menubar.BackendMenuBar;
 import dev.goldberry.render.desktop.notify.BackendNotifier;
@@ -290,6 +291,20 @@ public interface Backend extends AutoCloseable {
     default BackendMenuBar menuBar() {
         return BackendMenuBar.NONE;
     }
+
+    /// Gives cursor shapes the application's own pictures, replacing any given
+    /// before.
+    ///
+    /// Process-global, as the cursor is: from here on, a window asked for one
+    /// of these shapes through [BackendWindow#setCursor] shows its picture at
+    /// the size its display's scale wants, and a shape with no picture shows
+    /// the platform's own. An empty list gives every shape back to the
+    /// platform.
+    ///
+    /// Default: does nothing, which is right for a backend that cannot show a
+    /// picture under the pointer; its windows keep showing the platform's
+    /// shapes.
+    default void setCursorPictures(List<CursorPictures> pictures) {}
 
     /// Waits for platform events and delivers them, then returns.
     ///

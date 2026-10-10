@@ -25,17 +25,17 @@ import dev.goldberry.natives.sdl.SdlException;
 import dev.goldberry.natives.sdl.SdlLog;
 import dev.goldberry.natives.sdl.SdlSubsystem;
 import dev.goldberry.natives.sdl.SdlVideo;
-import dev.goldberry.natives.sdl.desktop.SdlCursors;
-import dev.goldberry.natives.sdl.desktop.SdlSystemCursor;
 import dev.goldberry.natives.sdl.event.SdlEventType;
 import dev.goldberry.natives.sdl.window.SdlWindowFlag;
 import dev.goldberry.platform.Capability;
 import dev.goldberry.platform.PlatformCapabilities;
 import dev.goldberry.render.Backend;
 import dev.goldberry.render.BackendException;
+import dev.goldberry.render.Cursor;
 import dev.goldberry.render.clipboard.Clipboard;
 import dev.goldberry.render.clipboard.PrimarySelection;
 import dev.goldberry.render.composite.Compositor;
+import dev.goldberry.render.cursor.CursorPictures;
 import dev.goldberry.render.desktop.SystemTheme;
 import dev.goldberry.render.desktop.menubar.BackendMenuBar;
 import dev.goldberry.render.desktop.menubar.MacMenuBarProjection;
@@ -158,14 +158,9 @@ public final class Sdl3Backend implements Backend {
     /// path. Remembered, so the service catalogue is read once.
     private boolean compositorAbsent;
 
-    /// The system cursors, created on first use.
-    ///
-    /// Lazy and optional, for the reason `SdlVideo.optionalDowncall` is: a
-    /// `libgoldberry` built before the cursor symbols were exported would
-    /// otherwise stop opening windows at all, to enable a nicety. An application
-    /// that never sets a cursor never creates one either.
-    private @Nullable SdlCursors cursors;
-    private boolean cursorsUnavailable;
+    /// The pointer's shapes and the application's pictures for them, made the
+    /// first time either is asked for, once SDL knows its video driver.
+    private @Nullable Sdl3Cursors cursors;
 
     /// Draws while the platform is holding the thread. See [#drawDuringModalLoop].
     /// Null when `libgoldberry` does not export the watch calls.
@@ -1789,25 +1784,32 @@ public final class Sdl3Backend implements Backend {
         return video;
     }
 
-    /// Shows a system cursor.
+    /// Shows `shape` at a display scale of `scale`: the application's picture
+    /// for it when there is one, the platform's own shape otherwise.
     ///
     /// SDL's cursor is process-global — one pointer, one shape — so this lives on
     /// the backend rather than on a window, and the window that asks is by
     /// definition the one the pointer is in.
-    void setCursor(SdlSystemCursor shape) {
-        if (cursorsUnavailable) {
-            return;
-        }
+    void setCursor(Cursor shape, double scale) {
+        cursors().show(shape, scale);
+    }
+
+    @Override
+    public void setCursorPictures(List<CursorPictures> pictures) {
+        requireUiThread();
+        cursors().pictures(pictures);
+    }
+
+    /// The cursors, for a test to read what is shown.
+    Sdl3Cursors cursorsForTest() {
+        return cursors();
+    }
+
+    private Sdl3Cursors cursors() {
         if (cursors == null) {
-            try {
-                cursors = new SdlCursors();
-            } catch (UnsatisfiedLinkError e) {
-                cursorsUnavailable = true;
-                LOG.debug("libgoldberry exports no cursor calls; the pointer keeps its" + " default shape", e);
-                return;
-            }
+            cursors = new Sdl3Cursors(Sdl.get().videoDriver());
         }
-        cursors.set(shape);
+        return cursors;
     }
 
     void forget(Sdl3Window window) {

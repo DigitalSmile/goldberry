@@ -11,13 +11,14 @@ import java.lang.invoke.MethodHandle;
 
 import dev.goldberry.natives.Downcalls;
 
-/// SDL's cursors — the shapes, and showing or hiding them.
+/// SDL's cursors — the shapes, the pictures, and showing or hiding them.
 ///
 /// One holder per function: its handle, its address, and a `call` whose
 /// parameters are the C prototype’s. See [Downcalls] for why the handle is a
 /// `static final` constant and why these live in a package of their own.
 public record SdlCursorCalls(
         CreateSystemCursor createSystemCursor,
+        CreateColorCursor createColorCursor,
         SetCursor setCursor,
         DestroyCursor destroyCursor,
         ShowCursor showCursor,
@@ -29,6 +30,7 @@ public record SdlCursorCalls(
     public static SdlCursorCalls bind(SymbolLookup lookup) {
         return new SdlCursorCalls(
                 new CreateSystemCursor(lookup),
+                new CreateColorCursor(lookup),
                 new SetCursor(lookup),
                 new DestroyCursor(lookup),
                 new ShowCursor(lookup),
@@ -61,6 +63,39 @@ public record SdlCursorCalls(
                 return (MemorySegment) FD_SDL_CreateSystemCursor.invokeExact(address, shape);
             } catch (Throwable t) {
                 throw Downcalls.failure("SDL_CreateSystemCursor", t);
+            }
+        }
+    }
+
+    /// Makes a cursor from a picture.
+    ///
+    /// SDL takes its own copy of the surface, and of the alternates hung off it,
+    /// so the surface can be destroyed as soon as this returns.
+    ///
+    /// `void* SDL_CreateColorCursor(void*, int, int)`
+    public static final class CreateColorCursor {
+
+        private static final MethodHandle FD_SDL_CreateColorCursor =
+                Downcalls.link(FunctionDescriptor.of(ADDRESS, ADDRESS, JAVA_INT, JAVA_INT));
+
+        private final MemorySegment address;
+
+        CreateColorCursor(SymbolLookup lookup) {
+            this.address = Downcalls.symbol(lookup, "SDL_CreateColorCursor");
+        }
+
+        /// Calls `SDL_CreateColorCursor`.
+        ///
+        /// @param surface the picture at 100%, with any larger sizes as its
+        ///        alternates
+        /// @param hotX    the hot spot's column in `surface`
+        /// @param hotY    its row
+        /// @return an `SDL_Cursor*`, or NULL
+        public MemorySegment call(MemorySegment surface, int hotX, int hotY) {
+            try {
+                return (MemorySegment) FD_SDL_CreateColorCursor.invokeExact(address, surface, hotX, hotY);
+            } catch (Throwable t) {
+                throw Downcalls.failure("SDL_CreateColorCursor", t);
             }
         }
     }

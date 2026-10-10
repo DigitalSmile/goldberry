@@ -15,6 +15,10 @@ import dev.goldberry.render.model.PixelFormat;
 /// translation table, and it is the same trick the layout properties already use
 /// to reach Yoga (`space-between` is `SPACE_BETWEEN`).
 ///
+/// Each shape is the platform's own unless the application drew it: a shape
+/// given a picture through [dev.goldberry.Application#cursors()] shows that
+/// picture wherever the shape is asked for.
+///
 /// In the SPI rather than in `input`, alongside [PixelFormat] and [DisplayScale],
 /// because it is a thing the backend has to map onto something native — and
 /// because both the render tree and the input router name it, and neither should
@@ -66,11 +70,12 @@ public enum Cursor {
     ///
     /// **No platform system cursor matches** — SDL has none, and neither X11's
     /// cursor font nor Win32's `IDC_*` set has an open hand as a standard shape.
-    /// It falls back to [#MOVE], which says the same thing less precisely, until
-    /// custom image cursors ship.
+    /// It is shown as the application's picture when
+    /// [dev.goldberry.Application#cursors()] gives it one, and falls back to
+    /// [#MOVE], which says the same thing less precisely, when it does not.
     GRAB,
 
-    /// A closed hand: this is being dragged. Falls back to [#MOVE] for the
-    /// reason [#GRAB] does.
+    /// A closed hand: this is being dragged. Falls back to [#MOVE] without a
+    /// picture, for the reason [#GRAB] does.
     GRABBING
 }

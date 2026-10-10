@@ -22,6 +22,7 @@ import dev.goldberry.css.image.StyleImages;
 import dev.goldberry.css.lint.StyleLint;
 import dev.goldberry.drive.FrameBudgetException;
 import dev.goldberry.drive.ResizeWalk;
+import dev.goldberry.input.cursor.CursorImage;
 import dev.goldberry.motion.Clock;
 import dev.goldberry.render.desktop.notify.NotificationCenter;
 import dev.goldberry.render.model.LogicalSize;
@@ -264,6 +265,7 @@ final class Launcher {
         // Straight after opening, so the taskbar never shows the generic icon for
         // longer than the first frame takes.
         applyIcon(window);
+        applyCursors();
         if (options.resize() != null) {
             resizeWalk = new ResizeWalk(size, options.resize());
             LOG.info("walking the window's size a pixel a frame: {}", resizeWalk);
@@ -332,6 +334,15 @@ final class Launcher {
         var icon = application.icon();
         if (!icon.isEmpty() && !window.icon(icon)) {
             LOG.debug("the platform kept its own window icon");
+        }
+    }
+
+    /// The application's cursor pictures, given to the backend once: the
+    /// cursor is process-global, so every window of the application shows them.
+    private void applyCursors() {
+        var cursors = application.cursors();
+        if (!cursors.isEmpty()) {
+            GoldberryRuntime.get().backend().setCursorPictures(CursorImage.byShape(cursors));
         }
     }
 

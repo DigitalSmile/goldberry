@@ -17,6 +17,7 @@ import dev.goldberry.Overlay;
 import dev.goldberry.Popup;
 import dev.goldberry.bind.runtime.Models;
 import dev.goldberry.css.Stylesheet;
+import dev.goldberry.example.brand.ShowcaseCursors;
 import dev.goldberry.example.brand.ShowcaseIcon;
 import dev.goldberry.example.ui.AppMenu;
 import dev.goldberry.example.ui.Screen;
@@ -24,6 +25,7 @@ import dev.goldberry.example.ui.overlays.ShowcaseTour;
 import dev.goldberry.html.view.HtmlStyles;
 import dev.goldberry.icon.Icon;
 import dev.goldberry.image.Image;
+import dev.goldberry.input.cursor.CursorImage;
 import dev.goldberry.input.key.Key;
 import dev.goldberry.input.key.Mod;
 import dev.goldberry.input.key.Shortcut;
@@ -207,6 +209,14 @@ public final class Showcase implements Application {
     @Override
     public List<Image> icon() {
         return ShowcaseIcon.sizes();
+    }
+
+    /// The showcase's own hands for `grab` and `grabbing`, which no platform
+    /// has, each drawn at 100%, 150%, 200% and 300%. Every other shape stays the
+    /// desktop's.
+    @Override
+    public List<CursorImage> cursors() {
+        return ShowcaseCursors.all();
     }
 
     /// The toolkit's sheets for the current theme and density, then this window's.

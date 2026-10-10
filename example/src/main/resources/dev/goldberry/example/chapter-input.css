@@ -36,6 +36,25 @@
   cursor: ew-resize;
 }
 
+/* The showcase's own hands: an open one over the strip, a closed one while the
+   strip holds the card. Pictures from `Application.cursors()`, not the desktop's. */
+#pick-strip {
+  height: 80px;
+  flex-grow: 0;
+  flex-shrink: 0;
+  background: var(--gb-surface);
+  border: 1px solid var(--gb-border);
+  border-radius: 8px;
+  cursor: grab;
+}
+
+#pick-strip.held {
+  cursor: grabbing;
+}
+
+#pick-grab { cursor: grab; }
+#pick-grabbing { cursor: grabbing; }
+
 /* A line the demonstration reports into: the code face, so numbers line up. */
 #screen-input .readout {
   flex-shrink: 0;
