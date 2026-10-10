@@ -4,7 +4,9 @@ The guide and the site are not adjusted between releases. Everything a change
 would have put into `book/` goes here instead, and moves into the book in the
 release commit. This folder holds the three batches that closed the Gwent clone's issue list:
 GB-005 to GB-012, written 2026-10-05 and 2026-10-06, GB-013 to GB-018,
-written 2026-10-06, and GB-019 to GB-031, written 2026-10-08.
+written 2026-10-06, and GB-019 to GB-031, written 2026-10-08. It also holds the
+unread-property check of 2026-10-10 (ADR-0587), which answers a `TODO.md` entry
+rather than an issue.
 
 ## What is here, and where it goes
 
@@ -22,6 +24,9 @@ written 2026-10-06, and GB-019 to GB-031, written 2026-10-08.
 | `guide-input-accelerators.md` | `book/src/guide/input.md`, `## Accelerators`, after the owner paragraph | `Repeat.IGNORE` for toggles, and `session.hold` |
 | `components-rich-text.md` | `book/src/components/text.md`, between `## \`text\`` and `## \`link\``; two rows and the card list in `components/index.md`; one sentence in `### Wrapping and cutting`; the `Rich text` row of `overview/limitations.md` | GB-021. `BookTest` reads its headings and catalogue rows from here until it moves, and fails on a name documented in both places, so delete it with the folder. `:example:test` takes `rich-text-{light,dark}.webp` once it is in the book. The doc comments of `RichText` and `Run` switch from `#text` to `#rich-text` then |
 | `styling-images.md` | `book/src/guide/styling.md` (`### Backgrounds and gradients`, end of `### Border, outline and shadow`) and `book/src/components/drawing.md` (`## image`, `src` row) | GB-024 to GB-026, three pieces, each says where it goes: `url()` layers with size and repeat, `border-image`, regions of a sheet |
+| `adr/0587-…` | `book/src/adr/` | The inflater refuses a property nothing reads. Contiguous with 0586; renumber with the rest if records landed in between |
+| `guide-markup-unread-properties.md` | `book/src/guide/markup.md`, end of `### Strict by default`; `book/src/layout/row-and-column.md`, the `> [!WARNING]` box under the `row` table | Two pieces, each says where it goes. The warning box says `row gap=8` "parses and does nothing", which stopped being true on 2026-10-10 |
+| (no file) | `book/src/TODO.md` | The entry **The inflater accepts a property nothing reads**, under *The catalog: specified and unbuilt*, moves to *Answered* with a closing paragraph citing ADR-0587. Back the file up first |
 
 ## Doc comments that point at the guide
 

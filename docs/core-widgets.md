@@ -68,7 +68,7 @@ so a widget appearing here has passed the first two gates and not the third.
   - Semantics: transparent. It is an arrangement, and announcing "wall of nine things" would put a group between a reader and every card in the showcase.
 
   ```kdl
-  masonry min-column-width=320 gap=16 {
+  masonry min-column-width=320 {
     card { text "…" }
     card { text "…" }
   }
@@ -89,7 +89,7 @@ qr-code value="tg://login?token=…" level="M" quiet-zone=4 \
 - **`affix`** — pins its single child to an edge of the nearest `scroll` once the child would have scrolled past it: `edge="top|bottom|left|right"`, `offset` in px. The child keeps its place in layout — `affix` leaves a same-sized hole behind, so nothing below it jumps when it detaches. `:affixed` is a pseudo-class, so a sticky header can gain a shadow the moment it lifts. Not `position: sticky`: §8's CSS subset has no `position` at all, and this is a widget precisely so the subset does not have to grow one. Semantics: transparent — it adds no role, it only moves its child. **It stays inside the box it is in** ([ADR-0360](../book/src/adr/0360-an-affix-stays-inside-its-container.md)), which is CSS's rule for `sticky` and how a section's header gives way to the next section's. `edge="top left"` pins to one edge on each axis ([ADR-0371](../book/src/adr/0371-an-affix-pins-to-one-edge-per-axis.md)).
 
 ```kdl
-row gap=8 class="toolbar" {
+row class="toolbar" {
   icon name="search"
   spacer
   button icon="plus" "New"

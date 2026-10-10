@@ -6,6 +6,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.function.Supplier;
+
+import org.slf4j.Logger;
+
+import dev.goldberry.log.Logs;
 
 /// Turns markup into objects, through a registry of node name to factory.
 ///
@@ -24,6 +29,14 @@ import java.util.Optional;
 /// reflective handler lookup, and it belongs with the widget tree that has
 /// actions to bind.
 ///
+/// ## Properties nothing read
+///
+/// A property no factory asks for has no effect, so a misspelt one is a widget
+/// that silently ignores what its author wrote. The inflater notes every
+/// property asked for while a document is built and, once the whole tree is
+/// built, does what its [UnreadPolicy] says with the rest: by default it refuses
+/// the document, as it refuses an unknown node.
+///
 /// Read more: [Markup](https://goldberry.dev/docs/guide/markup.html#parsing-and-inflating).
 ///
 /// @param <T> what nodes inflate into
@@ -40,7 +53,10 @@ public final class KdlInflater<T> {
         T create(KdlNode node, List<T> children);
     }
 
+    private static final Logger LOG = Logs.of(KdlInflater.class);
+
     private final Map<String, Factory<T>> factories = new LinkedHashMap<>();
+    private UnreadPolicy unread = UnreadPolicy.REFUSE;
 
     /// An inflater that knows nothing yet. Built-ins and application widgets
     /// both arrive through [#register].
@@ -72,6 +88,18 @@ public final class KdlInflater<T> {
         return this;
     }
 
+    /// Sets what happens to a property nothing read; [UnreadPolicy#REFUSE] until
+    /// this is called.
+    public KdlInflater<T> unread(UnreadPolicy policy) {
+        unread = Objects.requireNonNull(policy, "policy");
+        return this;
+    }
+
+    /// What happens to a property nothing read.
+    public UnreadPolicy unread() {
+        return unread;
+    }
+
     /// The names this inflater knows, in registration order.
     public List<String> registered() {
         return List.copyOf(factories.keySet());
@@ -79,14 +107,17 @@ public final class KdlInflater<T> {
 
     /// Inflates every node in a document.
     ///
-    /// @throws KdlSyntaxException if any node names something unregistered
+    /// @throws KdlSyntaxException if any node names something unregistered, or
+    ///         under [UnreadPolicy#REFUSE] carries a property nothing read
     public List<T> inflateAll(List<KdlNode> nodes) {
         Objects.requireNonNull(nodes, "nodes");
-        var built = new ArrayList<T>(nodes.size());
-        for (var node : nodes) {
-            built.add(inflate(node));
-        }
-        return List.copyOf(built);
+        return checked(nodes, () -> {
+            var built = new ArrayList<T>(nodes.size());
+            for (var node : nodes) {
+                built.add(build(node));
+            }
+            return List.copyOf(built);
+        });
     }
 
     /// Inflates one node and its subtree.
@@ -94,9 +125,14 @@ public final class KdlInflater<T> {
     /// Depth first, so a factory is handed children that are already built and
     /// never has to inflate anything itself.
     ///
-    /// @throws KdlSyntaxException if this node or any below it is unregistered
+    /// @throws KdlSyntaxException if this node or any below it is unregistered,
+    ///         or under [UnreadPolicy#REFUSE] carries a property nothing read
     public T inflate(KdlNode node) {
         Objects.requireNonNull(node, "node");
+        return checked(List.of(node), () -> build(node));
+    }
+
+    private T build(KdlNode node) {
         var factory = factories.get(node.name());
         if (factory == null) {
             throw new KdlSyntaxException(
@@ -106,9 +142,46 @@ public final class KdlInflater<T> {
         }
         var children = new ArrayList<T>(node.children().size());
         for (var child : node.children()) {
-            children.add(inflate(child));
+            children.add(build(child));
         }
         return factory.create(node, List.copyOf(children));
+    }
+
+    /// Builds `nodes` with reads being noted, then deals with what was not read.
+    ///
+    /// The check waits for the whole tree because a factory is not the only
+    /// reader of its node: a parent may read its children's properties after
+    /// their own factories have run.
+    private <R> R checked(List<KdlNode> nodes, Supplier<R> building) {
+        if (unread == UnreadPolicy.IGNORE) {
+            return building.get();
+        }
+        var reads = new PropertyReads();
+        var built = ScopedValue.where(PropertyReads.CURRENT, reads).call(building::get);
+        var ignored = reads.unread(nodes);
+        if (ignored.isEmpty()) {
+            return built;
+        }
+        switch (unread) {
+            case REFUSE -> throw refusal(ignored);
+            case WARN -> ignored.forEach(property -> LOG.warn("{}", property.describe()));
+            case IGNORE -> throw new AssertionError("an ignoring inflater notes nothing");
+        }
+        return built;
+    }
+
+    private static KdlSyntaxException refusal(List<UnreadProperty> ignored) {
+        var first = ignored.getFirst();
+        var message = new StringBuilder(first.describe());
+        if (ignored.size() > 1) {
+            message.append("; also ");
+            message.append(String.join(
+                    "; ",
+                    ignored.subList(1, ignored.size()).stream()
+                            .map(UnreadProperty::describe)
+                            .toList()));
+        }
+        return new KdlSyntaxException(message.toString(), first.line(), first.column());
     }
 
     /// Finds a node by its `id` property, anywhere in the document.

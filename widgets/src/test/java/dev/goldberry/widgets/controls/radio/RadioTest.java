@@ -31,6 +31,7 @@ import dev.goldberry.input.event.PointerEvent;
 import dev.goldberry.input.key.Key;
 import dev.goldberry.input.key.Modifiers;
 import dev.goldberry.kdl.KdlParser;
+import dev.goldberry.kdl.KdlSyntaxException;
 import dev.goldberry.paint.Box;
 import dev.goldberry.widget.Element;
 import dev.goldberry.widget.ElementTree;
@@ -196,17 +197,17 @@ class RadioTest {
         @DisplayName("markup cannot mark an option selected, so it cannot mark two")
         void markupCannotSelect() {
             // `selected` is not an attribute at all: the invariant is the group's
-            // and a document that could set it per option could break it.
-            var group = (RadioGroup) inflate("""
+            // and a document that could set it per option could break it. Nothing
+            // reads it, so the inflater refuses it rather than dropping it.
+            var refused = assertThrows(KdlSyntaxException.class, () -> inflate("""
                     radio-group {
                         radio value="light" selected=#true "Light"
                         radio value="dark" selected=#true "Dark"
                     }
-                    """).getFirst();
+                    """));
 
-            assertEquals(
-                    List.of(false, false),
-                    options(group).stream().map(Radio::selected).toList());
+            assertTrue(refused.getMessage().startsWith("radio at 2:5 ignores selected=#true"), refused.getMessage());
+            assertTrue(refused.getMessage().contains("also radio at 3:5 ignores selected=#true"), refused.getMessage());
         }
 
         @Test

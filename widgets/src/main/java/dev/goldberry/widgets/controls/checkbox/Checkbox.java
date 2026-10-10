@@ -298,14 +298,15 @@ public record Checkbox(
     /// Builds a `checkbox` from markup.
     @SuppressWarnings("unused")
     public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
+        // Both are read before either decides: `checked` beside `indeterminate`
+        // is a contradiction the widget resolves, not a property it ignores.
+        var checked = node.booleanProperty("checked");
         return new Checkbox(Wiring.label(node),
                 // `indeterminate` wins over `checked`, because a document that
                 // says both has said something contradictory and the mixed state
                 // is the one that cannot be reached any other way -- resolving it
                 // to "checked" would silently discard the more specific claim.
-                node.booleanProperty("indeterminate")
-                        ? Value.MIXED
-                        : Value.of(node.booleanProperty("checked")),
+                node.booleanProperty("indeterminate") ? Value.MIXED : Value.of(checked),
                 wiring.bound(node), wiring.action(node, "change"),
                 Wiring.disabled(node), Attributes.of(node));
     }

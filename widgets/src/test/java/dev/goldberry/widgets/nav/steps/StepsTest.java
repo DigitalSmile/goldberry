@@ -29,6 +29,7 @@ import dev.goldberry.input.event.PointerEvent;
 import dev.goldberry.input.key.Key;
 import dev.goldberry.input.key.Modifiers;
 import dev.goldberry.kdl.KdlParser;
+import dev.goldberry.kdl.KdlSyntaxException;
 import dev.goldberry.widget.Element;
 import dev.goldberry.widget.ElementTree;
 import dev.goldberry.widget.Widget;
@@ -386,12 +387,13 @@ class StepsTest {
         @Test
         @DisplayName("a document cannot write a step's state")
         void stateIsNotAnAttribute() {
-            var written = (Step) Widgets.inflater()
-                    .inflateAll(KdlParser.parse("step current=#true \"Home\""))
-                    .getFirst();
+            // A step's state is its list's to decide; nothing reads `current`,
+            // so the inflater refuses it rather than dropping it.
+            var refused = assertThrows(
+                    KdlSyntaxException.class,
+                    () -> Widgets.inflater().inflateAll(KdlParser.parse("step current=#true \"Home\"")));
 
-            assertEquals(StepState.UPCOMING, written.state());
-            assertFalse(written.isChecked());
+            assertTrue(refused.getMessage().startsWith("step at 1:1 ignores current=#true"), refused.getMessage());
         }
 
         @Test

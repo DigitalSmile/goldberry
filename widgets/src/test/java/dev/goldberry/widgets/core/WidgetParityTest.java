@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
@@ -23,6 +24,7 @@ import dev.goldberry.css.cascade.CascadeLayer;
 import dev.goldberry.css.cascade.StyleResolver;
 import dev.goldberry.css.value.CssLength;
 import dev.goldberry.kdl.KdlParser;
+import dev.goldberry.kdl.KdlSyntaxException;
 import dev.goldberry.widget.Element;
 import dev.goldberry.widget.ElementTree;
 import dev.goldberry.widget.Widget;
@@ -85,10 +87,10 @@ class WidgetParityTest {
     ///
     /// `series` and `point` inflate to `ChartSeries` and `ChartPoint`, which are
     /// a chart's data — numbers and a name — and implement none of [Attributed].
-    /// So `series id="cpu" class="warn"` parses, builds and silently drops both:
-    /// the one place in the catalog where markup accepts an attribute and throws
-    /// it away. They are checked by their **type** below like everything else,
-    /// and the `#id`/`.class` half is the part that has nothing to land on.
+    /// Nothing reads an `id` or a `class` on them, so `series id="cpu" class="warn"`
+    /// is refused by the inflater rather than built with both dropped. They are
+    /// checked by their **type** below like everything else, and the
+    /// `#id`/`.class` half is the part that has nothing to land on.
     ///
     /// Recorded rather than fixed: both live under `data/`, and whether a value
     /// that is never drawn on its own should carry an id is a question for
@@ -205,7 +207,14 @@ class WidgetParityTest {
     @MethodSource("builtIns")
     @DisplayName("every built-in is selectable by its type, id and class")
     void styleable(String type) {
-        var markup = CatalogMarkup.markup(type, " id=\"x\" class=\"a\"");
+        var named = CatalogMarkup.markup(type, " id=\"x\" class=\"a\"");
+        if (NO_ATTRIBUTES.containsKey(type)) {
+            var refused = assertThrows(
+                    KdlSyntaxException.class,
+                    () -> Widgets.inflater().inflate(KdlParser.parse(named).getFirst()));
+            assertTrue(refused.getMessage().contains("ignores id=\"x\""), refused.getMessage());
+        }
+        var markup = NO_ATTRIBUTES.containsKey(type) ? CatalogMarkup.markup(type, "") : named;
         var widget = Widgets.inflater().inflate(KdlParser.parse(markup).getFirst());
         var root = new ElementTree(widget).root();
         // For a composite, the styled node is the one it builds -- and `id` and

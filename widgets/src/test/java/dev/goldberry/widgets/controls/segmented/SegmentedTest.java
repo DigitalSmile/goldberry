@@ -39,6 +39,7 @@ import dev.goldberry.input.event.PointerEvent;
 import dev.goldberry.input.key.Key;
 import dev.goldberry.input.key.Modifiers;
 import dev.goldberry.kdl.KdlParser;
+import dev.goldberry.kdl.KdlSyntaxException;
 import dev.goldberry.layout.Length;
 import dev.goldberry.paint.Box;
 import dev.goldberry.paint.TestFrames;
@@ -204,16 +205,16 @@ class SegmentedTest {
         @Test
         @DisplayName("markup cannot mark a segment selected, so it cannot mark two")
         void markupCannotSelect() {
-            var bar = (Segmented) inflate("""
+            // Nothing reads `selected`, so the inflater refuses it rather than
+            // dropping it.
+            var refused = assertThrows(KdlSyntaxException.class, () -> inflate("""
                     segmented {
                         option value="list" selected=#true "List"
                         option value="grid" selected=#true "Grid"
                     }
-                    """).getFirst();
+                    """));
 
-            assertEquals(
-                    List.of(false, false),
-                    options(bar).stream().map(Option::selected).toList());
+            assertTrue(refused.getMessage().startsWith("option at 2:5 ignores selected=#true"), refused.getMessage());
         }
 
         @Test

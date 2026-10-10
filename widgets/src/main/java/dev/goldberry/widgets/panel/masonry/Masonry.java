@@ -15,7 +15,7 @@ import dev.goldberry.widgets.markup.Wiring;
 /// Cards in columns, each card under the shortest one — a masonry wall.
 ///
 /// ```kdl
-/// masonry min-column-width=320 gap=12 {
+/// masonry min-column-width=320 {
 ///     card { statistic label="Downloads" value="12,480" }
 ///     card { line-chart { … } }
 /// }

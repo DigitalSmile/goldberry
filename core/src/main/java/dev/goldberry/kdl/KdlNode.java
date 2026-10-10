@@ -1,5 +1,6 @@
 package dev.goldberry.kdl;
 
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -36,9 +37,24 @@ public record KdlNode(
         // Copied into a LinkedHashMap rather than Map.copyOf: source order is
         // what an error message should list attributes in, and Map.copyOf does
         // not keep it.
-        properties = java.util.Collections.unmodifiableMap(
-                new LinkedHashMap<>(Objects.requireNonNull(properties, "properties")));
+        properties = Collections.unmodifiableMap(new LinkedHashMap<>(Objects.requireNonNull(properties, "properties")));
         children = List.copyOf(Objects.requireNonNull(children, "children"));
+    }
+
+    /// The `key=value` pairs, in source order.
+    ///
+    /// While a [KdlInflater] is building a document, a lookup in this map counts
+    /// as reading that property, and walking it counts as reading all of them;
+    /// see [UnreadPolicy].
+    @Override
+    public Map<String, KdlValue> properties() {
+        return PropertyReads.view(this, properties);
+    }
+
+    /// The properties without noting a read: what the inflater compares the
+    /// reads against.
+    Map<String, KdlValue> propertiesUnnoted() {
+        return properties;
     }
 
     /// The first argument, which is the node's primary content — the
@@ -49,6 +65,7 @@ public record KdlNode(
 
     /// A property by name.
     public Optional<KdlValue> property(String key) {
+        PropertyReads.note(this, key);
         return Optional.ofNullable(properties.get(key));
     }
 
@@ -57,6 +74,7 @@ public record KdlNode(
     /// Attributes are overwhelmingly strings — `class`, `id`, `icon`, `action` —
     /// so this is the accessor an inflater reaches for.
     public @Nullable String stringProperty(String key) {
+        PropertyReads.note(this, key);
         var value = properties.get(key);
         return value == null ? null : value.asString();
     }
@@ -72,6 +90,7 @@ public record KdlNode(
     /// same reason an unparseable declaration is dropped rather than fatal: a
     /// document being edited is broken more often than it is whole.
     public boolean booleanProperty(String key) {
+        PropertyReads.note(this, key);
         return properties.get(key) instanceof KdlValue.Bool bool && bool.value();
     }
 
@@ -88,6 +107,7 @@ public record KdlNode(
     /// than it is whole, and a half-typed attribute should leave the default
     /// alone rather than invert it.
     public @Nullable Boolean flagProperty(String key) {
+        PropertyReads.note(this, key);
         return properties.get(key) instanceof KdlValue.Bool bool ? bool.value() : null;
     }
 
@@ -105,6 +125,7 @@ public record KdlNode(
     /// a negative `step`, are still refused at construction, because those are
     /// not a half-typed number but a contradiction.
     public double numberProperty(String key, double fallback) {
+        PropertyReads.note(this, key);
         return properties.get(key) instanceof KdlValue.Num number ? number.value() : fallback;
     }
 

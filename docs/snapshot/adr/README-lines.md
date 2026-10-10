@@ -28,3 +28,4 @@ Appended to the index when the records move in, in this order.
 - [ADR-0584 A background layer may be a picture, sized and tiled, and the stylesheet reads it through the image cache](0584-a-background-layer-may-be-a-picture-sized-and-tiled-and-the-stylesheet-reads-it-through-the-image-cache.md)
 - [ADR-0585 A border may be a picture cut in nine](0585-a-border-may-be-a-picture-cut-in-nine.md)
 - [ADR-0586 A paragraph is joined from styled runs, and wraps as one](0586-a-paragraph-is-joined-from-styled-runs-and-wraps-as-one.md)
+- [ADR-0587 A property nothing reads is refused, as an unknown node is](0587-a-property-nothing-reads-is-refused-as-an-unknown-node-is.md)

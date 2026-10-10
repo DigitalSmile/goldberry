@@ -211,6 +211,8 @@ Code first, documents after.
 
 - `KdlInflater` accepts a property nothing reads, so `row gap=8` draws a row
   with no gap. Recorded in `TODO.md` under *The catalog* (ADR-0511).
+  **Fixed 2026-10-10:** the inflater refuses it (ADR-0587, parked in
+  `docs/snapshot/`); status in `docs/unread-properties-2026-10-10.md`.
 - `MediaPlayerView`, `VideoView`, `AudioPlayer`, `MediaControls` and `Canvas3d`
   wrap `wiring.handle(...)` in `requireNonNull`, so a `player=` or `renderer=`
   node refuses a preview with nothing bound, unlike `form` without a
