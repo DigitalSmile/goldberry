@@ -79,11 +79,6 @@ final class Registry {
         return pixels == null ? null : new StyleImage(pixels, 1);
     }
 
-    /// Forgets what failed, for a test that makes a missing file appear.
-    static void forgetFailures() {
-        FAILED.clear();
-    }
-
     /// Puts `value` in front of the service loader's answer, for a test that
     /// answers loads by hand; null goes back to the service loader.
     static void use(@Nullable StyleImages value) {

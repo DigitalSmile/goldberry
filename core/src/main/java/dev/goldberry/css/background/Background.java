@@ -222,6 +222,10 @@ public sealed interface Background {
 
         /// A colour with gradients over it, every one at its initial size and
         /// repeat.
+        ///
+        /// The record's whole shape before layers had a size and a repeat, kept
+        /// so code written against that shape still compiles; nothing here calls it.
+        @SuppressWarnings("unused")
         public Layers(int colour, List<? extends CssImage> layers, BackgroundPosition position) {
             this(colour, List.copyOf(layers), position, AUTO_SIZE, REPEAT);
         }

@@ -123,6 +123,10 @@ public interface Host {
 
     /// The same, remembering **who** bound it, as
     /// [#shortcut(Shortcut, Runnable, Object)] does.
+    ///
+    /// Nothing in the toolkit binds an owned key that must not repeat, so this
+    /// has no caller here; it is for an application's widget that does.
+    @SuppressWarnings("unused")
     void shortcut(Shortcut accelerator, Runnable action, Object owner, Repeat repeat);
 
     /// Binds a window accelerator, written the way a menu prints it — `"Ctrl+S"`.
