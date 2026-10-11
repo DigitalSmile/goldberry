@@ -5782,7 +5782,7 @@ link.visited {
    These are component defaults rather than something an application writes,
    because without them the widget does not work at all: the page is sized from
    the box this widget is painted at, and a `canvas` has no intrinsic size
-   (`book/src/TODO.md`, "a canvas has no intrinsic size"). A web-view that did
+   (`docs/TODO.md`, "a canvas has no intrinsic size"). A web-view that did
    not grow would be a zero-height strip with a page asked to be 0 pixels tall,
    which is a blank tab and no error anywhere.
 

@@ -166,7 +166,7 @@ import java.util.List;
 
 import dev.goldberry.Application;
 import dev.goldberry.Goldberry;
-import dev.goldberry.css.CascadeLayer;
+import dev.goldberry.css.cascade.CascadeLayer;
 import dev.goldberry.css.Stylesheet;
 import dev.goldberry.css.Theme;
 import dev.goldberry.kdl.KdlParser;
@@ -233,8 +233,8 @@ first and the line counts. Nothing in the application repainted: assigning
 - The inflater is built from `models()` and not from a second list, so the two
   cannot disagree. A name the document uses that no model declares fails when
   the document is inflated, naming the text, rather than on the first click.
-- On the JVM the model is bound reflectively. The same class, woven, is what a
-  native image runs ([Model weaving](../weaving.md)).
+- On the JVM the model is bound reflectively. In a native image the same class
+  is bound ahead of time ([Ahead-of-time binding](../ahead-of-time-binding.md)).
 
 ## Change it while it runs
 
@@ -307,5 +307,5 @@ switches.
 > [!TIP]
 > `Goldberry.launch` reads `--frames=N` and `--size=WxH` from the arguments,
 > and `-Dgoldberry.backend.videoDriver=dummy` runs without a display. Together
-> they are how an application paints three frames on a CI runner and exits.
+> they are how an application paints three frames on a build server and exits.
 > [Testing an application](../guide/testing.md) has the rest.

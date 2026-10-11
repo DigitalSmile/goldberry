@@ -12,14 +12,14 @@
 | `:natives` | `goldberry-natives`, plus a classifier jar per platform | The FFM bindings and the CMake superbuild that produces `libgoldberry` | Required |
 | `:core` | `goldberry-core` | The widget model, style, layout, text, paint and the backend SPI | Required |
 | `:widgets` | `goldberry-widgets` | The widget catalogue, charts included | Required |
-| `:html` | `goldberry-html` | Markdown through md4c, and HTML in Java | Optional |
+| `:html` | `goldberry-html` | Markdown through the native library, and HTML in Java | Optional |
 | `:emoji` | `goldberry-emoji` | The Noto Color Emoji face and nothing else, 5 MB of paint graphs | Optional |
 | `:gpu` | `goldberry-gpu` | `canvas3d` and the GPU composition path | Optional |
-| `:media` | `goldberry-media`, plus `ffmpeg-<target>` and `ffmpeg-sources` classifiers | Audio and video over FFmpeg, and the operating system's own decoders behind the same SPI | Optional |
+| `:media` | `goldberry-media`, plus `ffmpeg-<target>` and `ffmpeg-sources` classifiers | Audio and video over the bundled media engine, and the operating system's own decoders behind the same SPI | Optional |
 | `:bom` | `goldberry-bom` | A `java-platform` pinning every published artifact | Yes |
 | `:toolkit` | `goldberry` | The umbrella: no code, the required modules as dependencies, the optional ones listed `<optional>` | Yes |
 | `:assets` | none | A build-time tool that fetches the pinned fonts and icon set and compiles them into resources `:core` packages | No |
-| `:weaver` | none | A build-time tool that runs over compiled classes: it collects `@Markup` widgets into a catalog, and weaves `@Bind` and `@Action` for a native image | No |
+| `:weaver` | none | A build-time tool that runs over compiled classes: it collects `@Markup` widgets into a catalog, and binds `@Bind` and `@Action` ahead of time for a native image | No |
 | `:example` | none | The showcase. A subproject so Gradle and every IDE see it | No. A native image of it is attached to each release |
 
 A new optional module is one line in `PublishedModules` in build-logic plus `id 'goldberry.publish'` in its build script. The BOM and the umbrella pick it up, and `PublishedModulesTest` holds each module's build script to the list.
@@ -37,7 +37,7 @@ A new optional module is one line in `PublishedModules` in build-logic plus `id 
 
 | Path | What it is |
 |---|---|
-| `docs/` | The design documents. `ARCHITECTURE.md` is the system layer by layer. `core-widgets.md`, `design-system.md`, `content-widgets.md` and `charts.md` are the specifications. `testing.md` and `releasing.md` are the runbooks, and `book.md` is the guide's style guide |
+| `docs/` | The design documents. `ARCHITECTURE.md` is the system layer by layer. `core-widgets.md`, `design-system.md`, `content-widgets.md` and `charts.md` are the specifications. `testing.md` and `releasing.md` are the runbooks, `book.md` is the guide's style guide, and `status.md` and `TODO.md` say what is built and what is not |
 | `book/` | This guide, and the decision log under `book/src/adr/` |
 | `site/` | The landing page at goldberry.dev. `build.mjs` prerenders it and `content.js` is what it says |
 | `build-logic/` | The convention plugins, and the drift guards in its tests |
@@ -50,7 +50,7 @@ A new optional module is one line in `PublishedModules` in build-logic plus `id 
 | `licenses/` | The verbatim upstream licence texts, vendored by hand |
 | `tools/` | Scripts: the nullness sweep, and `move_package.py` for a package move |
 
-**Which document wins.** `design-system.md` and `core-widgets.md` are the authority on what a widget is. `ARCHITECTURE.md` is a summary of them and says where it departs from them, in its §17.1. The decision log is the authority on why, and a design document describes what. [Status](../status.md) says what is built and [TODO](../TODO.md) what is not, and the two are kept apart on purpose.
+**Which document wins.** `design-system.md` and `core-widgets.md` are the authority on what a widget is. `ARCHITECTURE.md` is a summary of them and says where it departs from them, in its §17.1. The decision log is the authority on why, and a design document describes what. [Status](https://github.com/DigitalSmile/goldberry/blob/master/docs/status.md) says what is built and [TODO](https://github.com/DigitalSmile/goldberry/blob/master/docs/TODO.md) what is not, and the two are kept apart on purpose.
 
 **The convention plugins** are seven precompiled Groovy script plugins under `build-logic/src/main/groovy/`, thin over the Java beside them, which carries the logic and its unit tests:
 

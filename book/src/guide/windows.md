@@ -167,7 +167,7 @@ or `Escape`, closes it. `popup.close()`, `isOpen()`, `lightDismiss(false)`,
 
 > [!IMPORTANT]
 > `Optional.empty()` is a normal answer. Popup support belongs to the video
-> driver, and SDL's `dummy` driver has none. A caller that gets empty falls
+> driver, and the `dummy` driver has none. A caller that gets empty falls
 > back to an overlay at the cost of being clipped to the window.
 > `Menus.open(host, "menu-button", menu)` does the measuring, placing,
 > opening and the submenus for a `Menu`.
@@ -216,7 +216,7 @@ clicks the notification, and the window repaints after it.
 
 | Platform | Shown by | A click | Needs |
 |---|---|---|---|
-| Linux | The `org.freedesktop.Notifications` service, over D-Bus | Reported | A notification daemon on the session bus |
+| Linux | The `org.freedesktop.Notifications` service, over the session bus | Reported | A notification daemon on the session bus |
 | macOS | `UNUserNotificationCenter` | Reported | An `.app` bundle, and the user's permission |
 | Windows | The notification area's balloon, shown as a toast | Not reported | Nothing |
 
@@ -393,12 +393,12 @@ says whether you are on it, and `host.repaint()` is safe from anywhere.
 
 A write to a model from a background continuation is not a write the toolkit
 was watching for. `Models.refresh(model)` after it sweeps the fields, and is
-a no-op once the model is woven
-([Model weaving](../weaving.md#the-sweep-and-the-one-line-it-sometimes-costs)).
+a no-op once the model is bound ahead of time
+([Ahead-of-time binding](../ahead-of-time-binding.md#without-it-the-sweep)).
 
 > [!CAUTION]
 > On macOS the JVM must start on the process's first thread, because AppKit
-> requires it. Run with `-XstartOnFirstThread`. Without it SDL reports
+> requires it. Run with `-XstartOnFirstThread`. Without it the windowing layer reports
 > `No available video device`, and the toolkit's message says which flag is
 > missing.
 

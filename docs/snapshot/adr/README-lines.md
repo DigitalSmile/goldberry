@@ -41,3 +41,4 @@ Appended to the index when the records move in, in this order.
 - [ADR-0597 A list whose rows vary measures them as it builds them, and keeps the reader's line](0597-a-list-whose-rows-vary-measures-them-as-it-builds-them-and-keeps-the-readers-line.md)
 - [ADR-0598 `text-align` reads `left` and `right` as sides of the box](0598-text-align-reads-left-and-right-as-sides-of-the-box.md)
 - [ADR-0599 A WebM sticker's alpha is a second VP9 stream, decoded beside the picture and drawn on the CPU](0599-a-webm-stickers-alpha-is-a-second-vp9-stream-decoded-beside-the-picture-and-drawn-on-the-cpu.md)
+- [ADR-0605 The site is user documentation, and the development record stays in the repository](0605-the-site-is-user-documentation-the-record-stays-in-the-repository.md)

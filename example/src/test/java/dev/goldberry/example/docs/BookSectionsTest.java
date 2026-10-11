@@ -46,7 +46,7 @@ class BookSectionsTest {
         assertAll(
                 () -> assertTrue(required.contains(DocLink.to("components/buttons", "button")), "a widget heading"),
                 () -> assertTrue(required.contains(DocLink.to("guide/windows", "the-badge")), "a feature subheading"),
-                () -> assertTrue(required.contains(DocLink.page("weaving")), "a chapter with nothing to click"),
+                () -> assertTrue(required.contains(DocLink.page("ahead-of-time-binding")), "a chapter with nothing to click"),
                 () -> assertFalse(
                         required.contains(DocLink.to("components/choices", "option")),
                         "a child node is shown on its parent's card"),
@@ -57,10 +57,10 @@ class BookSectionsTest {
     @Test
     @DisplayName("count a chapter that needs a link as shown by any link into it")
     void aPageLinkCoversItsChapter() {
-        var links = Set.of(DocLink.to("weaving", "the-two-halves"));
+        var links = Set.of(DocLink.to("ahead-of-time-binding", "widget-catalogues"));
 
         assertAll(
-                () -> assertTrue(BookSections.covers(links, DocLink.page("weaving"))),
-                () -> assertFalse(BookSections.covers(links, DocLink.to("weaving", "known-limits"))));
+                () -> assertTrue(BookSections.covers(links, DocLink.page("ahead-of-time-binding"))),
+                () -> assertFalse(BookSections.covers(links, DocLink.to("ahead-of-time-binding", "what-it-refuses"))));
     }
 }

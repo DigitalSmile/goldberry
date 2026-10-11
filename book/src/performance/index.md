@@ -29,19 +29,19 @@ The table below says what each number measures, and how.
 
 ## The frame loop
 
-One UI thread runs the loop. Blend2D's workers rasterize the bands. This is
+One UI thread runs the loop. Paint workers rasterize the bands. This is
 the pipeline, in the order a frame runs it:
 
 ```text
 input events → dispatch (hit-test on render tree)
 → rebuild dirty widgets → diff → update elements/render objects
-→ style resolution (invalidated nodes) → Yoga layout (incremental)
-→ paint recording (dirty layers only) → Blend2D raster (banded)
+→ style resolution (invalidated nodes) → layout (incremental)
+→ paint recording (dirty layers only) → raster (banded)
 → present(buffer, damage) / GPU composite
 ```
 
 Three trees take part. Widgets are immutable records that describe. Elements
-persist and hold state. Render objects own the Yoga nodes and are kept
+persist and hold state. Render objects own the layout nodes and are kept
 between frames, so a frame diffs a new description against a retained tree
 rather than building one. The [architecture overview](../overview/architecture.md)
 has the full picture.
@@ -54,7 +54,7 @@ present are the frame.
 | Stage | Cost | Note |
 |---|---|---|
 | Everything but rasterization, nothing changed | 3.5 µs | against 354 µs with nothing retained or cached |
-| Rasterization on one thread | about 320 µs | the whole frame, with Blend2D pinned to one thread |
+| Rasterization on one thread | about 320 µs | the whole frame, with the rasterizer pinned to one thread |
 | Paint in a live window, four workers | 2.146 ms | against 2.856 ms synchronous |
 | Present, unpaced | about 6.4 ms | 4.8 ms of it blocks on the swapchain and 43 µs is the toolkit's own code |
 | Present, paced to the display | 1.20 ms | paint falls to 1.61 ms beside it |

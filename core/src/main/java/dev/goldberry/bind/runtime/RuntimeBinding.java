@@ -81,7 +81,7 @@ import dev.goldberry.bind.registry.BindingRegistry;
 /// of class Settings" does not.
 ///
 /// Read more:
-/// [The sweep](https://goldberry.dev/docs/weaving.html#the-sweep-and-the-one-line-it-sometimes-costs).
+/// [Without it: the sweep](https://goldberry.dev/docs/ahead-of-time-binding.html#without-it-the-sweep).
 final class RuntimeBinding implements BoundModel {
 
     /// The reflection done once per class rather than once per instance:

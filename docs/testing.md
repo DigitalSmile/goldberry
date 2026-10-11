@@ -174,7 +174,7 @@ is a number to read rather than a gate to pass.
 ## 6. What is built
 
 This section tracks the gap between the plan above and the repository. It is the
-same discipline `book/src/status.md` applies to the toolkit: a plan with no
+same discipline `docs/status.md` applies to the toolkit: a plan with no
 status beside it reads as a description of what exists.
 
 ### Built

@@ -10,5 +10,5 @@
 /// convention plugin, which asks for the two halves separately: only a
 /// native image needs the models woven, and every build needs the catalog.
 ///
-/// Read more: [Model weaving](https://goldberry.dev/docs/weaving.html).
+/// Read more: [Ahead-of-time binding](https://goldberry.dev/docs/ahead-of-time-binding.html).
 package dev.goldberry.weaver;

@@ -42,8 +42,14 @@ class BookTest {
     /** The parts of the guide a widget may be documented in. */
     private static final Set<String> CATALOGUE = Set.of("layout/", "components/");
 
-    /** The reference pages that are the development record by design: a status table and a list of what is not built. */
+    /**
+     * The development record, a status table and a list of what is not built. It
+     * is kept in the repository under {@code docs/} and is not a page of the site.
+     */
     private static final Set<String> RECORD_PAGES = Set.of("status.md", "TODO.md");
+
+    /** The part of the guide that describes how the toolkit is built, and may name what it is built on. */
+    private static final String OVERVIEW = "overview/";
 
     /** The chapters that describe the repository itself, where the decision log and the working documents are the subject. */
     private static final String CONTRIBUTING = "contributing/";
@@ -60,9 +66,13 @@ class BookTest {
     /** A gap id from a review, or a working document under {@code docs/}. */
     private static final Pattern WORKING = Pattern.compile("\\bG\\d{1,2}\\b|\\bGB-\\d{3}\\b|\\bdocs/[a-z0-9-]+\\.md\\b");
 
-    /** The chapters that describe the toolkit rather than its development: the guide without its record pages. */
-    private static List<Book.Chapter> neutral() {
-        return guide().stream().filter(chapter -> !RECORD_PAGES.contains(chapter.path())).toList();
+    /** The prose lines of {@code chapters} on which {@code kind} finds a word, as {@code page:line: words}. */
+    private static List<String> found(List<Book.Chapter> chapters, GuideVocabulary kind) {
+        return chapters.stream()
+                .flatMap(chapter -> Book.prose(chapter.path()).stream())
+                .filter(line -> !kind.in(line.text()).isEmpty())
+                .map(line -> line.chapter() + ":" + line.number() + ": " + kind.in(line.text()))
+                .toList();
     }
 
     /** The prose lines of {@code chapters} on which {@code pattern} is found, as {@code page:line: text}. */
@@ -109,6 +119,16 @@ class BookTest {
                     .toList();
             assertTrue(disagreeing.isEmpty(), () -> "the sidebar and the page disagree: " + disagreeing);
         }
+
+        @Test
+        @DisplayName("holds no development record, which is kept in the repository and not published")
+        void holdsNoRecord() {
+            var listed = Book.chapters().stream().map(Book.Chapter::path).filter(RECORD_PAGES::contains).toList();
+            var written = Book.pages().stream().filter(RECORD_PAGES::contains).toList();
+            assertAll(
+                    () -> assertTrue(listed.isEmpty(), () -> "SUMMARY.md lists the record: " + listed),
+                    () -> assertTrue(written.isEmpty(), () -> "the record is a page of the book: " + written));
+        }
     }
 
     @Nested
@@ -118,14 +138,14 @@ class BookTest {
         @Test
         @DisplayName("cites no record, so it reads as what the toolkit is and not as how it came to be")
         void citesNoRecord() {
-            var citing = found(neutral(), RECORD);
+            var citing = found(guide(), RECORD);
             assertTrue(citing.isEmpty(), () -> citing.size() + " lines cite a record: " + citing);
         }
 
         @Test
         @DisplayName("names the decision log only where contributing is the subject")
         void namesTheLogOnlyWhenContributing() {
-            var readers = neutral().stream().filter(chapter -> !chapter.path().startsWith(CONTRIBUTING)).toList();
+            var readers = guide().stream().filter(chapter -> !chapter.path().startsWith(CONTRIBUTING)).toList();
             var naming = found(readers, THE_LOG);
             assertTrue(naming.isEmpty(), () -> naming.size() + " lines name the log: " + naming);
         }
@@ -133,16 +153,31 @@ class BookTest {
         @Test
         @DisplayName("strikes nothing through, because a reader is told what is and not what was")
         void strikesNothingThrough() {
-            var struck = found(neutral(), STRUCK);
+            var struck = found(guide(), STRUCK);
             assertTrue(struck.isEmpty(), () -> struck.size() + " lines strike something through: " + struck);
         }
 
         @Test
         @DisplayName("names no gap and no working document, which only the repository can follow")
         void namesNoGapOrWorkingDocument() {
-            var readers = neutral().stream().filter(chapter -> !chapter.path().startsWith(CONTRIBUTING)).toList();
+            var readers = guide().stream().filter(chapter -> !chapter.path().startsWith(CONTRIBUTING)).toList();
             var working = found(readers, WORKING);
             assertTrue(working.isEmpty(), () -> working.size() + " lines name a gap or a working document: " + working);
+        }
+
+        @Test
+        @DisplayName("reports no verification state, because it is documentation and not a log")
+        void reportsNoVerificationState() {
+            var reporting = found(guide(), GuideVocabulary.VERIFICATION);
+            assertTrue(reporting.isEmpty(), () -> reporting.size() + " lines report a check: " + reporting);
+        }
+
+        @Test
+        @DisplayName("names a library the toolkit is built on only in the overview")
+        void namesLibrariesOnlyInTheOverview() {
+            var readers = guide().stream().filter(chapter -> !chapter.path().startsWith(OVERVIEW)).toList();
+            var naming = found(readers, GuideVocabulary.LIBRARY);
+            assertTrue(naming.isEmpty(), () -> naming.size() + " lines name a library: " + naming);
         }
     }
 
@@ -310,7 +345,6 @@ class BookTest {
                 "affix-pinned.png", // the showcase after seven lines of wheel
                 "gallery-drawing.png", // pinned at one scale: a decoded bitmap and a QR code
                 "gallery-gpu.png", // the GPU lane's picture
-                "media-player-subtitles.png", // a player mid-stream
                 "toast-dark.png"); // three toasts in flight
 
         private List<Book.Shot> shots() {
@@ -506,11 +540,20 @@ class BookTest {
         }
 
         @Test
-        @DisplayName("loads the script that builds the landing page's header, and the file exists")
-        void loadsTheHeader() {
+        @DisplayName("loads the header script and the screenshot viewer, and both files exist")
+        void loadsTheScripts() {
             assertAll(
-                    () -> assertTrue(config.contains("additional-js = [\"theme/goldberry.js\"]")),
-                    () -> assertTrue(Repository.exists("book/theme/goldberry.js")));
+                    () -> assertTrue(config.contains(
+                            "additional-js = [\"theme/goldberry.js\", \"theme/lightbox.js\"]")),
+                    () -> assertTrue(Repository.exists("book/theme/goldberry.js")),
+                    () -> assertTrue(Repository.exists("book/theme/lightbox.js")),
+                    () -> assertTrue(Repository.exists("book/test/lightbox.test.mjs")));
+        }
+
+        @Test
+        @DisplayName("lists chapters by title, without section numbers")
+        void noSectionNumbers() {
+            assertEquals(1, config.lines().filter(line -> line.equals("no-section-label = true")).count());
         }
 
         @Test

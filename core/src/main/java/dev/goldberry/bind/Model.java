@@ -48,7 +48,7 @@ import dev.goldberry.bind.runtime.Models;
 /// [Models], and notices a change at the next sweep rather than at the write.
 ///
 /// Read more: [Values](https://goldberry.dev/docs/applications.html#values) and
-/// [Model weaving](https://goldberry.dev/docs/weaving.html).
+/// [Ahead-of-time binding](https://goldberry.dev/docs/ahead-of-time-binding.html).
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.TYPE)
 public @interface Model {}

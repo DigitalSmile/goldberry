@@ -26,7 +26,7 @@ A dependency named in one and not the other fails the build.
 | Error Prone and NullAway | `src/main` compiles with no finding, and every package is `@NullMarked` | Reading the finding |
 | PMD | The hand-picked rules in `config/pmd/ruleset.xml` | Reading the finding |
 | SpotBugs | Reports only. `build/reports/spotbugs/main.html` per module | Nothing. It does not gate |
-| Tests, twice | The suite passes bound reflectively and again woven | The test, or the code |
+| Tests, twice | The suite passes bound reflectively and again bound ahead of time | The test, or the code |
 | Goldens | Every reference image matches what the code draws | `./gradlew blessGoldens`, then review the diff |
 | Export list | Every symbol bound in Java is exported, and nothing exported is unbound | Editing `goldberry.symbols` |
 | `package-info` | Every package has one, with a doc comment and `@NullMarked` | Writing it |
@@ -49,7 +49,7 @@ A new widget is not done when it draws. Before review, it arrives with:
 4. semantics assertions, so the sweep finds a role and a name;
 5. golden images, in both themes and at both densities.
 
-The gallery is the demo, the visual-regression corpus and the accessibility sweep at once, so a widget that is not in it is not tested. The gallery has a screen per chapter of this guide and a card per section, and `GalleryDocsTest` fails on a section with no card, a card with no link, or a link to a heading that does not exist. [Writing a widget](../guide/writing-a-widget.md) walks through the code. The sweeps that read the registry are in [Tests and gates](testing.md#accessibility-sweeps).
+The gallery is the demo, the visual-regression corpus and the accessibility sweep at once, so a widget that is not in it has no visual or accessibility test. The gallery has a screen per chapter of this guide and a card per section, and `GalleryDocsTest` fails on a section with no card, a card with no link, or a link to a heading that does not exist. [Writing a widget](../guide/writing-a-widget.md) walks through the code. The sweeps that read the registry are in [Tests and gates](testing.md#accessibility-sweeps).
 
 ## Decisions are recorded
 
@@ -70,4 +70,4 @@ A change that chooses between designs gets an architecture decision record besid
 
 Open an issue at <https://github.com/DigitalSmile/goldberry/issues>. A bug report is most useful with the platform, the display scale, and the start-up timeline the toolkit logs at `TRACE`. [Logging and diagnostics](../guide/logging.md) says how to turn that on.
 
-[Status](../status.md) says what is built, and [TODO](../TODO.md) says what is deferred and why. A question that one of those answers is answered there first.
+[Status](https://github.com/DigitalSmile/goldberry/blob/master/docs/status.md) says what is built, and [TODO](https://github.com/DigitalSmile/goldberry/blob/master/docs/TODO.md) says what is left out and why. A question that one of those answers is answered there first.

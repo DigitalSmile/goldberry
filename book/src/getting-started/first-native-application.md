@@ -12,9 +12,8 @@ most of what an image needs. Four things are yours:
 3. **Trace one run**, for what depends on your application.
 4. **Run `native-image`.**
 
-The recipe below is the showcase's own, and the showcase is built with it on
-all three platforms. [Native image](../native.md) explains every flag and
-every trap in depth.
+The recipe below is the showcase's own. [Native image](../native.md) explains
+every flag and every trap in depth.
 
 ## Before you start
 
@@ -37,7 +36,7 @@ last step with `cannot find -lz`.
 to a `@Bind` field calls a synthesized setter that notifies. It is one jar
 with no dependencies and a `main` that takes a directory of classes. The task
 needs the classes and everything they were compiled against, because it
-regenerates stack-map frames ([Model weaving](../weaving.md#gradle)).
+regenerates stack-map frames ([Ahead-of-time binding](../ahead-of-time-binding.md#gradle)).
 
 ```groovy
 configurations { goldberryWeaver }
@@ -217,6 +216,6 @@ The counter is a much smaller application and starts no slower.
 
 <div class="gb-cards">
 <a class="gb-card" href="../native.html"><strong>Native image</strong><span>Every flag, both metadata directories, and why the library is carried rather than linked.</span></a>
-<a class="gb-card" href="../weaving.html"><strong>Model weaving</strong><span>What the weaver does to a class, and what it refuses.</span></a>
+<a class="gb-card" href="../ahead-of-time-binding.html"><strong>Ahead-of-time binding</strong><span>What the weaver does to a class, and what it refuses.</span></a>
 <a class="gb-card" href="../performance/startup.html"><strong>Starting fast</strong><span>Where the first half second goes, on the JVM and in an image.</span></a>
 </div>

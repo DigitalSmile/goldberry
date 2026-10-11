@@ -240,12 +240,13 @@ class SiteTest {
         }
 
         @Test
-        @DisplayName("tests the consent script before it builds, and does not deploy the tests")
-        void testsTheConsentScript() {
+        @DisplayName("tests the consent script and the book's screenshot viewer before it builds, and does not deploy the tests")
+        void testsTheScripts() {
             assertAll(
-                    () -> assertTrue(text.contains("run: node --test \"site/test/*.test.mjs\"")),
+                    () -> assertTrue(text.contains("run: node --test \"site/test/*.test.mjs\" \"book/test/*.test.mjs\"")),
                     () -> assertTrue(text.contains("rm -rf _site/test")),
-                    () -> assertTrue(Repository.exists("site/test/consent.test.mjs")));
+                    () -> assertTrue(Repository.exists("site/test/consent.test.mjs")),
+                    () -> assertTrue(Repository.exists("book/test/lightbox.test.mjs")));
         }
 
         @Test

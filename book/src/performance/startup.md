@@ -32,7 +32,7 @@ duration in parentheses is how long that one phase took:
 ```text
    70.1ms   runtime starting            (about 50 ms of it an mDNS host lookup)
    86.6ms   SDL video subsystem up      (14.1ms)
-  113.1ms   libgoldberry ABI 17 verified (26 ms of loading WebKitGTK before it)
+  113.1ms   libgoldberry ABI 17 verified (26 ms of loading the web engine before it)
   116.2ms   window "Goldberry — showcase" open
   365.3ms   GPU device created          (190.1ms on NVIDIA's driver)
   511.0ms   first frame presented
@@ -41,7 +41,7 @@ duration in parentheses is how long that one phase took:
 The window is open at 116.2 ms. Creating the GPU device takes 190.1 ms of
 what follows, and the first frame comes after it. Three things in that
 listing are not the toolkit's own work: a host-name lookup before `main`,
-WebKitGTK loaded to answer a capability question, and the driver's device
+the platform's web engine loaded to answer a capability question, and the driver's device
 creation.
 
 The same timeline on the JVM, under `gradle run`:
@@ -59,7 +59,7 @@ start-up timeline (866.6ms to here):
 
 The first row is the JVM and Gradle's launcher. Everything after it is the
 toolkit, and the deltas sum to about 330 ms: the library is mapped in under
-2 ms, SDL's video subsystem takes 99 ms, and the first frame 117 ms.
+2 ms, the windowing layer's video subsystem takes 99 ms, and the first frame 117 ms.
 
 ## The TRACE timeline and how to read it
 
@@ -143,8 +143,8 @@ Sixty frames of the showcase, headless:
 | Without the `--initialize-at-build-time` lines | 2.55 s | 42.5 ms |
 | With them | 0.061 s | 1.0 ms |
 
-The image builds and paints correctly either way, so the number is written
-down rather than caught. [Native image](../native.md#the-one-flag-the-frame-rate-depends-on)
+The image builds and paints correctly either way, so only the frame time
+shows the difference. [Native image](../native.md#the-one-flag-the-frame-rate-depends-on)
 explains the mechanism.
 
 ## The GPU device at the first frame
@@ -214,6 +214,6 @@ public void start(Host host) {
 ```
 
 > [!TIP]
-> Measure before guessing. The JVM timeline above shows SDL's video subsystem
+> Measure before guessing. The JVM timeline above shows the video subsystem
 > at 99 ms and the four-megabyte native library at under 2 ms, which is the
 > opposite of what most people would guess.

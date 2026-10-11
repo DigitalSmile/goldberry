@@ -61,7 +61,7 @@ The model is plain Java: a class of fields marked `@Bind`, and methods marked
 `@Action`. On the JVM the toolkit binds them reflectively at run time. For a
 native image a build step rewrites the compiled class so that every assignment
 notifies directly, with no reflection anywhere.
-[Model weaving](../weaving.md) is the whole story.
+[Ahead-of-time binding](../ahead-of-time-binding.md) is the whole story.
 
 ## Real CSS, real flexbox
 
@@ -107,6 +107,6 @@ jar under `META-INF/`.
 
 <div class="gb-cards">
 <a class="gb-card" href="architecture.html"><strong>Architecture</strong><span>The layers, the three trees, the frame loop and the module graph.</span></a>
-<a class="gb-card" href="limitations.html"><strong>Limitations</strong><span>What is not built, what is deliberately out, and why.</span></a>
+<a class="gb-card" href="limitations.html"><strong>Limitations</strong><span>What the toolkit does not do, and why.</span></a>
 <a class="gb-card" href="../getting-started/requirements.html"><strong>Getting started</strong><span>Install it and open a window.</span></a>
 </div>

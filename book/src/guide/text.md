@@ -161,7 +161,7 @@ row {
 }
 ```
 
-Lucide's 1544 icons ship in `goldberry-core` as path data on a 24 by 24 grid.
+The bundled icon set's 1544 icons ship in `goldberry-core` as path data on a 24 by 24 grid.
 They are strokes, not fills: 2 px round-capped outlines, so an `Icon` carries
 a stroke width as well as a shape, and it is built pre-scaled to one size so
 nothing is transformed at draw time.
@@ -252,7 +252,7 @@ byte[] png = logo.scaled(64, 64).encodePng();
 ```
 
 Encoded bytes become an `Image`: PNG, JPEG and QOI through the rasterizer's
-codecs, WebP through libwebp, and GIF through a decoder written in Java. The
+codecs, WebP through the native library, and GIF through a decoder written in Java. The
 format comes from the bytes, never from a file name: `ImageFormat.of(bytes)`
 says which. `Image.decodeAnimation(bytes)` returns every frame of an animated
 GIF or WebP with its delay; `decode` returns the first.
@@ -262,7 +262,7 @@ Java-owned buffer before `decode` returns, so an image is a value to keep in
 a field, a record or a cache. Natural size is one image pixel per device
 pixel, so a 96 by 64 image is 96 logical points wide at 100% and 48 at 200%.
 `encodePng()` writes one back out in `java.base`, and `encodeWebp(quality)`
-through libwebp.
+through the native library.
 
 In markup an `image` node takes `src=`, `srcset=`, `alt=`, `decorative=` and
 `fit=`, and is in [Canvas, images and QR codes](../components/drawing.md).
@@ -290,8 +290,8 @@ byte[] png = Offscreen.of(1200, 900)                     // physical pixels
         .encodePng();
 ```
 
-`Offscreen` runs the window's own sequence with no display, no SDL and no
-compositor: mount, lay out, tell each widget what size it came out as,
+`Offscreen` runs the window's own sequence with no display, no windowing
+layer and no compositor: mount, lay out, tell each widget what size it came out as,
 advance a virtual clock past the arrival transitions, and paint what settled.
 Two renders of one document are the same bytes. It is what
 [Testing an application](testing.md) builds on.

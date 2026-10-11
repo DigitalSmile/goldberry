@@ -42,7 +42,7 @@ import java.util.Objects;
 /// not re-serialised, not touched — so the task is incremental in the only way
 /// that matters and a build that changes nothing changes no timestamps.
 ///
-/// Read more: [Model weaving](https://goldberry.dev/docs/weaving.html#adding-it-to-a-project).
+/// Read more: [Ahead-of-time binding](https://goldberry.dev/docs/ahead-of-time-binding.html#adding-it-to-a-build).
 public final class WeaverMain {
 
     private WeaverMain() {

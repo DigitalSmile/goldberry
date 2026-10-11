@@ -15,7 +15,7 @@
 /// `html-view` is a parser in Java over a model of records, folded into `column`,
 /// `row`, `text` and `button` by the same code that draws a note. litehtml is still
 /// the only way to get real inline layout and is still waiting on a wider native
-/// paint surface (`book/src/TODO.md`); what it is no longer holding up is HTML on
+/// paint surface (`docs/TODO.md`); what it is no longer holding up is HTML on
 /// screen.
 ///
 /// Read more:

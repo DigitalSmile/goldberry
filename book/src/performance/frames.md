@@ -14,14 +14,14 @@ from an application.
 
 | Mechanism | What it does | Scene | Measured |
 |---|---|---|---|
-| Retained render tree | Render objects keep their Yoga nodes between frames and are reconciled against each frame's description. Every Yoga setter is guarded by a comparison, because Yoga dirties a node when a style is set, not when it differs | Layout and walk at 960×640 | 9.1 µs retained and 7.2 µs with a fresh box tree every frame, against 190 µs rebuilt every frame |
+| Retained render tree | Render objects keep their layout nodes between frames and are reconciled against each frame's description. Every write to a layout node is guarded by a comparison, because the layout engine dirties a node when a style is set, not when it differs | Layout and walk at 960×640 | 9.1 µs retained and 7.2 µs with a fresh box tree every frame, against 190 µs rebuilt every frame |
 | Cascade invalidation | A node's resolved style is cached on its element and checked by identity against the resolver and the inherited style. Invalidation is a subtree | Frame CPU before rasterization | 3.5 µs, against 354 µs with nothing retained or cached |
 | A rebuild is not a restyle | An identical widget stops the walk. A re-description that keeps `type`, `id` and `classes` keeps its subtree's styles | A wheel notch on the icon sheet | 4 elements re-resolved against 1556, and 4.2 ms of cascade against 66.6 |
 | Damage | A changed node damages where it was and where it is. The frame is painted only inside that union where the backend promises to keep last frame's pixels | One small box changed | 117 µs inside the damage, against 367 µs for a full repaint |
 | Layers | A translucent group is rasterized once at full strength, untransformed, and its alpha and matrix go on the blit. A group that only fades or moves keeps its raster | A frame of a fade | 199 µs with the raster reused, against 554 µs rebuilt |
 | Culling | Each render object carries the ink its subtree draws. A subtree whose ink cannot touch the clip is neither drawn nor walked | The icon sheet, 1544 tiles with forty visible | a settled frame 9.0 ms against 22.2, the raster 4.4 ms against 18.0 |
-| Banded raster | Blend2D splits a frame into bands and up to four workers rasterize them on any surface over 400×300 | A live 960×640 frame, and a 3840×2160 paint | 2.146 ms with four workers against 2.856 ms synchronous, and 2.3 ms against 6.0 ms |
-| Pacing to the display | SDL is asked to hold each present until vertical blank. Where that is ignored, the loop paces itself to the rate read off the window's display | Present and paint in a live window | present 1.20 ms against 5.51, paint 1.61 ms against 2.25, and 165 ms of each second in the frame path instead of 862 |
+| Banded raster | The rasterizer splits a frame into bands and up to four workers rasterize them on any surface over 400×300 | A live 960×640 frame, and a 3840×2160 paint | 2.146 ms with four workers against 2.856 ms synchronous, and 2.3 ms against 6.0 ms |
+| Pacing to the display | The windowing layer is asked to hold each present until vertical blank. Where that is ignored, the loop paces itself to the rate read off the window's display | Present and paint in a live window | present 1.20 ms against 5.51, paint 1.61 ms against 2.25, and 165 ms of each second in the frame path instead of 862 |
 | Idle loop | The loop parks until an event or a frame request. A static window costs nothing and nothing polls | A repaint request | wakes the loop once, through a pushed event |
 | Deep trees | A node copies the custom-property map only when it declares one | First-frame resolve at element depth 101 | 1168 µs, against 2651 µs with the map copied at every node |
 
@@ -45,7 +45,7 @@ each in `Application.start` and keep it in a field. The
 [start-up chapter](startup.md#what-an-application-keeps-out-of-start)
 shows the shape.
 
-A model write is cheap too. A woven field costs 2.5 ns to write with no
+A model write is cheap too. A field bound ahead of time costs 2.5 ns to write with no
 listeners and 12.9 ns with one, and each write asks for one frame. Set a
 field, and the toolkit rebuilds.
 

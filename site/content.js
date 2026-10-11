@@ -137,8 +137,8 @@ window.SITE = {
         { value: "9", unit: "µs", label: "a frame where nothing changed", note: "layout and tree walk on the retained element tree" }
       ]
     },
-    caveat: "Measured on one Linux machine. The three-platform run of the same benchmarks is in progress.",
-    caveatHref: "docs/status.html"
+    caveat: "Measured on a Linux desktop with the benchmarks in the repository.",
+    caveatHref: "docs/performance/measuring.html"
   },
 
   // Quick start. Group "deps" is the build-file card, "jvm" the plain-Java card, "native" the GraalVM card.
@@ -264,7 +264,7 @@ window.SITE = {
     licenseHref: "https://github.com/DigitalSmile/goldberry/blob/master/LICENSE",
     note: "Open source.",
     columns: [
-      { title: "Docs", links: [["Introduction", "docs/"], ["Getting started", "docs/getting-started/requirements.html"], ["Components", "docs/components/index.html"], ["Status", "docs/status.html"], ["Decision log", "https://github.com/DigitalSmile/goldberry/tree/master/book/src/adr"], ["Testing", "docs/guide/testing.html"], ["Native image", "docs/native.html"]] },
+      { title: "Docs", links: [["Introduction", "docs/"], ["Getting started", "docs/getting-started/requirements.html"], ["Components", "docs/components/index.html"], ["Performance", "docs/performance/index.html"], ["Decision log", "https://github.com/DigitalSmile/goldberry/tree/master/book/src/adr"], ["Testing", "docs/guide/testing.html"], ["Native image", "docs/native.html"]] },
       { title: "Project", links: [["GitHub", "https://github.com/DigitalSmile/goldberry"], ["Issues", "https://github.com/DigitalSmile/goldberry/issues"], ["Releases", "https://github.com/DigitalSmile/goldberry/releases"], ["Licence", "https://github.com/DigitalSmile/goldberry/blob/master/LICENSE"], ["Privacy", "privacy.html"], ["Cookie settings", "privacy.html#cookies"]] },
       { title: "Page", links: [["Features", "#features"], ["Quick start", "#quickstart"], ["Performance", "#performance"], ["Compare", "#compare"], ["FAQ", "#faq"], ["llms.txt", "llms.txt"]] }
     ]

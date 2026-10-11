@@ -15,7 +15,7 @@ package dev.goldberry.layout;
 /// toolkit that shared one constant between them would be relying on a
 /// coincidence that is not true.
 ///
-/// Read more: [How layout works](https://goldberry.dev/docs/layout/index.html#flexbox-from-yoga).
+/// Read more: [How layout works](https://goldberry.dev/docs/layout/index.html#flexbox).
 public enum Align {
 
     /// Take the parent's `align-items`. Only meaningful for `align-self`, where

@@ -39,7 +39,7 @@ import dev.goldberry.bind.registry.BindingRegistry;
 /// listener rebuilds a widget, and the widget tree belongs to that thread.
 ///
 /// Read more:
-/// [What the weaver actually does](https://goldberry.dev/docs/weaving.html#what-the-weaver-actually-does).
+/// [What it does](https://goldberry.dev/docs/ahead-of-time-binding.html#what-it-does).
 public final class FieldListeners {
 
     /// One list per woven field, allocated when something first subscribes.

@@ -270,4 +270,4 @@ own commands live on a record of `Runnable`s beside the view model
 
 ## Read more
 
-- [Model weaving](../weaving.md): what the build does to a model
+- [Ahead-of-time binding](../ahead-of-time-binding.md): what the build does to a model

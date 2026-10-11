@@ -41,7 +41,7 @@ Not in the subset: `display`, `box-sizing`, `aspect-ratio`, `row-gap` and `colum
 | `0` | Unitless zero is accepted. Any other unitless number is dropped |
 | `auto` | Where the property takes it: `width`, `height`, `margin`, `flex-basis` and `align-self` |
 
-`em` and `rem` are resolved when the declaration is read, because Yoga has no concept of a font size. `em` is the element's own computed size and `rem` is the root element's. `vh`, `vw`, `pt` and `cm` are not units here.
+`em` and `rem` are resolved when the declaration is read, because the layout engine has no concept of a font size. `em` is the element's own computed size and `rem` is the root element's. `vh`, `vw`, `pt` and `cm` are not units here.
 
 A percentage width is of the parent's width, a percentage height of its height, and a percentage `flex-basis` of the parent's main axis.
 

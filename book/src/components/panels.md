@@ -361,8 +361,7 @@ new Row(
 </div>
 
 The value is a string. Formatting is the application's, because a number
-formatted inside the toolkit makes a golden image that depends on the
-machine's locale.
+formatted inside the toolkit would depend on the machine's locale.
 
 **Attributes**
 

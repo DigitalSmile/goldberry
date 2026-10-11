@@ -154,7 +154,7 @@ progress*, not *The catalogue*.
 | `dev.goldberry.media.*` | [Audio and video](../components/media.md) |
 | `dev.goldberry.gpu.*` | [The GPU canvas](../components/gpu.md) |
 | `dev.goldberry.natives.*` | [Architecture](../overview/architecture.md#the-native-boundary), [Native image](../native.md) |
-| `dev.goldberry.weaver` | [Model weaving](../weaving.md) |
+| `dev.goldberry.weaver` | [Ahead-of-time binding](../ahead-of-time-binding.md) |
 | `dev.goldberry.log.*` | [Logging and diagnostics](../guide/logging.md) |
 | `dev.goldberry.emoji` | [Text, fonts and icons](../guide/text.md#emoji) |
 | `dev.goldberry.assets.*` (the build-time preparer) | [Building from source](building.md) |

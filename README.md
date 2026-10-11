@@ -3,41 +3,61 @@
        alt="Goldberry — Modern Java UI toolkit" width="100%">
 </p>
 
+<p align="center">
+  <b>A fast and modern UI toolkit for Java.</b><br>
+  Declarative widgets, real CSS, flexbox layout and GraalVM native images, on Linux, Windows and macOS.
+</p>
+
+<div align="center">
+
 [![Maven Central](https://img.shields.io/maven-central/v/dev.goldberry/goldberry?label=Maven%20Central)](https://central.sonatype.com/artifact/dev.goldberry/goldberry)
-[![Snapshot](https://github.com/digitalsmile/goldberry/actions/workflows/snapshot.yml/badge.svg)](https://github.com/digitalsmile/goldberry/actions/workflows/snapshot.yml)
-[![Showcase](https://github.com/digitalsmile/goldberry/actions/workflows/showcase.yml/badge.svg)](https://github.com/digitalsmile/goldberry/actions/workflows/showcase.yml)
-[![Release](https://github.com/digitalsmile/goldberry/actions/workflows/release.yml/badge.svg)](https://github.com/digitalsmile/goldberry/actions/workflows/release.yml)
+![Java 25 or newer](https://img.shields.io/badge/Java-25%2B-orange)
+[![Documentation](https://img.shields.io/badge/docs-goldberry.dev-EBCB8B)](https://goldberry.dev/docs/)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 
-**A fast and modern UI toolkit for Java.**
+</div>
 
-Website: **[goldberry.dev](https://goldberry.dev)** · Documentation: **[goldberry.dev/docs](https://goldberry.dev/docs/)**
+<p align="center">
+  <a href="https://goldberry.dev"><b>Website</b></a> ·
+  <a href="https://goldberry.dev/docs/"><b>Documentation</b></a> ·
+  <a href="https://goldberry.dev/docs/getting-started/first-java-application.html"><b>Tutorial</b></a> ·
+  <a href="https://goldberry.dev/docs/components/index.html"><b>Widgets</b></a>
+</p>
 
-Goldberry is a declarative desktop UI toolkit written in pure Java over a small
-set of native C libraries bound through the Foreign Function & Memory API. No
-JNI, no bundled web engine, no platform widget wrapping.
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="book/src/images/screen-forms-dark.webp">
+    <img src="book/src/images/screen-forms-light.webp" alt="The Goldberry showcase: a settings form with text fields, selects, a date picker, toggles and validation messages" width="100%">
+  </picture>
+</p>
 
-- **Starts in milliseconds.** CPU rasterization, GraalVM native-image as a
-  first-class target, and the GPU only when `goldberry-gpu` is on the module
-  path.
-- **Declarative.** Immutable widgets with a pure `build()`, written as Java
-  records or as KDL markup. Markup and stylesheets hot-reload at runtime.
-- **Real layout and real styling.** Flexbox via Yoga, and a genuine CSS subset
-  with variables, cascade and transitions.
-- **Cross-platform.** Linux (Wayland/X11), Windows and macOS are peer platforms
-  behind one SPI.
+Goldberry is a desktop UI toolkit written in pure Java. It draws every pixel
+itself, binds a small native library through the Foreign Function & Memory
+API, and needs no JNI, no bundled browser and no platform widgets.
 
-> **Releases are on Maven Central.** The current release is `2026.2`, and every
-> push to `master` publishes a `-SNAPSHOT` of the next version. There is no
-> screen-reader support on any platform. [Status](book/src/status.md) says what
-> is built, and [TODO](book/src/TODO.md) what is not.
+## Why Goldberry
 
-## Quick start
+- **Starts in milliseconds.** The first frame is on screen in a few hundred
+  milliseconds on the JVM, and faster as a GraalVM native image.
+- **Declarative.** A widget is an immutable value with a pure `build()`. Write
+  the tree in Java or in KDL markup, and edit markup and stylesheets while the
+  application runs.
+- **Real layout, real styling.** Flexbox, and a CSS subset with custom
+  properties, the cascade, transitions and keyframe animations. Light and dark
+  Nord themes are built in.
+- **A full catalogue.** Over 80 widgets: buttons, forms, date pickers, tables,
+  trees, tabs, menus, dialogs, toasts, charts, Markdown and HTML views, a web
+  view, audio and video players, and a GPU canvas.
+- **Testable without a display.** Render a tree to pixels in a plain JUnit
+  test, click and type through the real input router, and compare against
+  golden images.
+- **Cross-platform.** Linux (Wayland and X11), Windows and macOS, x64 and
+  ARM64, from one codebase.
 
-Requires **JDK 25**. Add the BOM for the version, the umbrella artifact for the
-toolkit, and one natives jar per platform you run on —
-[Installing](book/src/getting-started/installing.md) has the Maven form, the
-optional modules and the snapshots of `master`:
+## Install
+
+Goldberry needs **JDK 25** or newer. Add the BOM, the toolkit, and the native
+library for each platform you ship:
 
 ```groovy
 dependencies {
@@ -47,21 +67,107 @@ dependencies {
 }
 ```
 
-A window is three lines:
+<details>
+<summary>Maven</summary>
 
-```java
-var window = Window.open("Hello", 960, 640);
-window.onPaint(frame -> frame.fill(0xFF2E3440));
-Goldberry.run();
+```xml
+<dependencyManagement>
+  <dependencies>
+    <dependency>
+      <groupId>dev.goldberry</groupId>
+      <artifactId>goldberry-bom</artifactId>
+      <version>2026.2</version>
+      <type>pom</type>
+      <scope>import</scope>
+    </dependency>
+  </dependencies>
+</dependencyManagement>
+<dependencies>
+  <dependency>
+    <groupId>dev.goldberry</groupId>
+    <artifactId>goldberry</artifactId>
+  </dependency>
+  <dependency>
+    <groupId>dev.goldberry</groupId>
+    <artifactId>goldberry-natives</artifactId>
+    <classifier>linux-x64</classifier>
+    <scope>runtime</scope>
+  </dependency>
+</dependencies>
 ```
 
-[Your first Java application](book/src/getting-started/first-java-application.md)
-goes on from there to a widget tree, a KDL document and a stylesheet.
+</details>
 
-## Testing an application
+Markdown and HTML views, audio and video, and the GPU canvas are optional
+modules. [Installing](https://goldberry.dev/docs/getting-started/installing.html)
+lists them.
 
-A test renders a widget tree to pixels with no display, drives it through the
-real input router, and compares the picture with a golden image:
+## Hello, Goldberry
+
+A model holds the values and the actions:
+
+```java
+@Model
+public final class Counter {
+
+    @Bind("counter.label") private String label = "Presses: 0";
+    private int presses;
+
+    @Actions
+    public record Commands(Counter values) {
+
+        @Action("counter.press")
+        public void press() {
+            values.presses++;
+            values.label = "Presses: " + values.presses;
+        }
+    }
+}
+```
+
+A document lays out the screen and names them:
+
+```kdl
+column id="hello" {
+  text class="heading" "Hello, Goldberry"
+  text bind="counter.label" "Presses: 0"
+  button class="primary" press="counter.press" "Press me"
+}
+```
+
+The application opens the window:
+
+```java
+public final class Hello implements Application {
+
+    private final Counter counter = new Counter();
+
+    @Override public List<Object> models() {
+        return List.of(counter, new Counter.Commands(counter));
+    }
+
+    @Override public Widget root() {
+        return Widgets.inflater(models().toArray())
+                .inflate(KdlParser.resource(Hello.class, "hello.kdl").getFirst());
+    }
+
+    @Override public List<Stylesheet> stylesheets() {
+        return Controls.stylesheets(Theme.NORD_DARK);
+    }
+
+    public static void main(String[] args) {
+        Goldberry.launch(new Hello(), args);
+    }
+}
+```
+
+Assigning `label` updates the text. There are no listeners and no repaint
+calls. [Your first Java application](https://goldberry.dev/docs/getting-started/first-java-application.html)
+builds this step by step, and
+[Your first native application](https://goldberry.dev/docs/getting-started/first-native-application.html)
+turns it into a single executable.
+
+## Test it like any other code
 
 ```java
 @Test
@@ -72,46 +178,43 @@ void applyingSavesTheSettings() {
         session.focus("name");
         session.type("Deploy Orc");
         session.click(session.byRole(Role.BUTTON, "Apply").orElseThrow());
-        session.advance(Duration.ofMillis(300));   // the virtual clock, past the animation
+        session.advance(Duration.ofMillis(300));   // a virtual clock, past the animation
         assertEquals(1, settings.saves());
-        assertEquals(List.of(), session.overruns());
     }
 }
 ```
 
 Documents inflate against the real models, so a `press=` or a `bind=` that
-names nothing fails the test. A virtual clock makes every frame the same on
-every machine, and one set of golden images serves all platforms with a
-tolerance that absorbs antialiasing. [Testing an
-application](book/src/guide/testing.md) has the whole of it.
+names nothing fails the test. [Testing an application](https://goldberry.dev/docs/guide/testing.html)
+covers golden images, accessibility queries and the virtual clock.
 
-## Build from source
+## See it run
+
+The showcase has a screen for every chapter of the documentation:
 
 ```sh
-./gradlew build                                # every module, and libgoldberry for this machine
-./gradlew build -Pgoldberry.skipNative=true    # Java only; tests that need the library skip
-./gradlew run                                  # the showcase: a screen per chapter of the guide
+git clone https://github.com/DigitalSmile/goldberry.git
+cd goldberry
+./gradlew run
 ```
 
-The native build needs CMake 3.28 or newer, Ninja and a C/C++ toolchain;
-`./gradlew :natives:checkToolchain` names what is missing.
-[Building from source](book/src/contributing/building.md) has every build
-property, and [Tests and gates](book/src/contributing/testing.md) the CI lanes.
+Building from source needs CMake 3.28 or newer, Ninja and a C/C++ toolchain.
+[Building from source](https://goldberry.dev/docs/contributing/building.html)
+has the details, including a Java-only build.
 
 ## Documentation
 
-| Where | What |
+| | |
 |---|---|
-| [goldberry.dev/docs](https://goldberry.dev/docs/), from [`book/`](book/src/introduction.md) | The guide: overview, getting started, layout, components, performance, developer guide |
-| [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | The design, layer by layer |
-| [`book/src/adr/`](book/src/adr/README.md) | The decision log: why each significant choice was made |
-| [`book/src/status.md`](book/src/status.md) | What is built |
-| [`book/src/TODO.md`](book/src/TODO.md) | What is not built, and why |
-
-The book is [mdBook](https://rust-lang.github.io/mdBook/): `mdbook serve book`.
+| [Overview](https://goldberry.dev/docs/overview/concept.html) | What Goldberry is and how it is built |
+| [Getting started](https://goldberry.dev/docs/getting-started/requirements.html) | Requirements, installing, a first JVM and native application |
+| [Layout](https://goldberry.dev/docs/layout/index.html) and [Components](https://goldberry.dev/docs/components/index.html) | Every widget, with markup, Java and pictures |
+| [Developer guide](https://goldberry.dev/docs/applications.html) | Markup, styling, input, windows, testing, native images |
+| [Performance](https://goldberry.dev/docs/performance/index.html) | What start-up and a frame cost, and how to measure them |
+| [Contributing](https://goldberry.dev/docs/contributing/index.html) | Building, the repository layout, tests and releases |
 
 ## License
 
-[Apache License 2.0](LICENSE). Third-party software and assets are disclosed in
+[Apache License 2.0](LICENSE). Third-party software and assets are listed in
 [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md) and [`licenses/`](licenses/),
 and shipped inside every jar under `META-INF/`.

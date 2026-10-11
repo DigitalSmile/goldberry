@@ -348,8 +348,7 @@ frame: each phase from process start, so you can see which part is yours.
 
 ## What the build does to all this
 
-Your model is plain Java; the build makes assignments to it observable, using the
-JDK's class-file API on the compiled class. That is one Gradle plugin or one
-Maven `<execution>`, and it is the subject of [its own page](weaving.md) —
-including what happens when you forget it, which is a loud error naming the
-missing step rather than a control that renders perfectly and never moves.
+Your model is plain Java. An ordinary jar binds it at run time, with no build
+step. A native image binds it ahead of time, through one Gradle plugin or one
+Maven `<execution>`. [Ahead-of-time binding](ahead-of-time-binding.md) says when
+you need it and how to add it.

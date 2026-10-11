@@ -36,6 +36,6 @@ and `grabbing` fall back to `move`.
 
 | Cursors from a stylesheet `url()` | <span class="gb-pill partial">deferred</span> | An application gives a shape its picture through `Application.cursors()`. `cursor: url(…)` is not read, and an animated cursor is not built |
 
-<!-- 3. Destination: book/src/status.md, the line "Still to come: `select`
+<!-- 3. Destination: docs/status.md, the line "Still to come: `select`
      and custom image cursors". Replace "and custom image cursors" with
      "and a cursor from a stylesheet `url()`". -->

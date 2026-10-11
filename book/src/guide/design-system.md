@@ -151,7 +151,7 @@ that wants a frosted panel gets an opaque raised one.
 
 ## Icons
 
-Lucide, 1544 icons on a 24 by 24 grid with a 2 px round-capped stroke,
+The bundled icon set: 1544 icons on a 24 by 24 grid with a 2 px round-capped stroke,
 compiled into `goldberry-core` as path data. Display sizes are 16, 20 and 24,
 and an icon in a button's lead slot is 16. An icon is tinted by `color`, like
 text. An icon-only control needs an accessible name

@@ -2049,7 +2049,7 @@ out of it is usually worth more than the fact that it is fixed.
 - ~~**Layout verification has not yet passed in CI.**~~ **It has, since the first
   all-green snapshot.** The verify legs on all three runners ran the layout probe
   against the downloaded artifact at `d478ecfe`, which is the run
-  `book/src/status.md` records as twelve green jobs. —
+  `docs/status.md` records as twelve green jobs. —
   [ADR-0016](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0016-verify-the-artifact-and-never-skip-the-check.md)
 - ~~**AsmJit's W^X handling on Apple Silicon is now reachable.**~~ **Reached, and
   green.** The showcase painted frames on `macos-14` on all three legs and the

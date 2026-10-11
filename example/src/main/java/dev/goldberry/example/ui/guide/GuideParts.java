@@ -135,11 +135,11 @@ public final class GuideParts {
                                             + " it needs and annotate it with its node name.",
                                     "guide/writing-a-widget"),
                             new Chapter(
-                                    "guide-weaving",
-                                    "Model weaving",
-                                    "A model is plain Java, and the build makes assignments to it observable. A jar"
-                                            + " needs no build step; a native image is built from a woven model.",
-                                    "weaving"),
+                                    "guide-ahead-of-time-binding",
+                                    "Ahead-of-time binding",
+                                    "A jar binds its models while it runs. A native image, or a library that ships"
+                                            + " widgets, adds one build step: the weaver.",
+                                    "ahead-of-time-binding"),
                             new Chapter(
                                     "guide-native",
                                     "Native image",
@@ -190,21 +190,7 @@ public final class GuideParts {
                                     "Writing a doc comment",
                                     "What the object is, how to use it and how it works, then a link to the chapter"
                                             + " of the guide that says more.",
-                                    "contributing/doc-comments"))),
-            new Part(
-                    "Reference",
-                    List.of(
-                            new Chapter(
-                                    "guide-status",
-                                    "Status",
-                                    "What is built, milestone by milestone, and what it cost to find out.",
-                                    "status"),
-                            new Chapter(
-                                    "guide-todo",
-                                    "Not done yet",
-                                    "What is deferred, known to be broken, or specified and unbuilt, with what each"
-                                            + " gap is waiting on.",
-                                    "TODO"))));
+                                    "contributing/doc-comments"))));
 
     private GuideParts() {}
 }

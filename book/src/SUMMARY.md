@@ -65,7 +65,7 @@
 - [Testing an application](guide/testing.md)
 - [Logging and diagnostics](guide/logging.md)
 - [Writing a widget](guide/writing-a-widget.md)
-- [Model weaving](weaving.md)
+- [Ahead-of-time binding](ahead-of-time-binding.md)
 - [Native image](native.md)
 - [Contributing](contributing/index.md)
   - [Building from source](contributing/building.md)
@@ -74,8 +74,3 @@
   - [Releasing](contributing/releasing.md)
   - [Recording a decision](contributing/decisions.md)
   - [Writing a doc comment](contributing/doc-comments.md)
-
-# Reference
-
-- [Status](status.md)
-- [TODO](TODO.md)

@@ -101,8 +101,8 @@ selection with it.
 Wheel deltas are in lines, fractional, positive down and right. A touchpad
 sends a fraction of a detent per frame and the fraction is preserved in
 `deltaY()`, and a mouse's whole detents are in `ticksY()`.
-Natural scrolling and SDL's away-from-the-user sign are both undone at the
-boundary, so a widget never sees either. `--gb-scroll-line` in the theme
+Natural scrolling and the windowing layer's away-from-the-user sign are both
+undone at the boundary, so a widget never sees either. `--gb-scroll-line` in the theme
 says how far one line moves a viewport.
 
 ## Keys and text are different events

@@ -13,8 +13,11 @@ src = "src"
 default-theme = "light"
 preferred-dark-theme = "navy"
 additional-css = ["theme/goldberry.css"]
-# The landing page's header, built into the menu bar at load.
-additional-js = ["theme/goldberry.js"]
+# The landing page's header, built into the menu bar at load, and the
+# full-size view of a screenshot.
+additional-js = ["theme/goldberry.js", "theme/lightbox.js"]
+# The sidebar lists chapters by title, without numbers.
+no-section-label = true
 git-repository-url = "https://github.com/DigitalSmile/goldberry"
 # Each page links to its own source on GitHub.
 edit-url-template = "https://github.com/DigitalSmile/goldberry/edit/master/book/{path}"

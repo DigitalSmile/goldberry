@@ -22,7 +22,7 @@ import dev.goldberry.bind.registry.BindingRegistry;
 /// [BindingRegistry]. Nothing else has any reason to create one.
 ///
 /// Read more:
-/// [What the weaver actually does](https://goldberry.dev/docs/weaving.html#what-the-weaver-actually-does).
+/// [What it does](https://goldberry.dev/docs/ahead-of-time-binding.html#what-it-does).
 ///
 /// @param <T> the value type
 public final class BoundField<T extends @Nullable Object> implements Observable<T> {

@@ -58,4 +58,4 @@ With an inset, the child goes where the inset says. Zero pins it to the stack's 
 #avatar badge { top: 0; right: 0; }
 ```
 
-The difference between "no inset" and "an inset of zero" only shows on an absolute child, and `stack` is the widget that shows it. An inset is measured from the stack's border box rather than its padding box. That is Yoga's rule.
+The difference between "no inset" and "an inset of zero" only shows on an absolute child, and `stack` is the widget that shows it. An inset is measured from the stack's border box rather than its padding box. That is the layout engine's rule.

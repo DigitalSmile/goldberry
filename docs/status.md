@@ -1166,7 +1166,7 @@ window, so it was built with M3's overlays and is written up there.
   and unwoven output cannot be consumed. **Maven has no first-class plugin**:
   `exec-maven-plugin` bound to `process-classes` runs it as it stands, which is the
   phase that exists for class post-processing, and [the weaving
-  page](weaving.md) carries the XML. A real Mojo would be one `<plugin>` block
+  page](../book/src/ahead-of-time-binding.md) carries the XML. A real Mojo would be one `<plugin>` block
   instead of two `<execution>`s and is small work whose awkward part is that this
   repository builds with Gradle and would have to write `META-INF/maven/plugin.xml`
   itself — not built, and said plainly rather than implied
@@ -1246,7 +1246,7 @@ window, so it was built with M3's overlays and is written up there.
   itself — which is a useful proof that multi-model wiring is not a special case.
   The split costs `private` on the values' fields, and that is stated rather than
   glossed: it is available, not required, and a three-field model should not
-  bother. [The guide](applications.md) is the deliverable — the four kinds of class,
+  bother. [The guide](../book/src/applications.md) is the deliverable — the four kinds of class,
   what each may know, widget state versus application state, and a "where does it
   go?" table — and it is deliberately **not** enforced by a test, because
   mechanically enforcing a recommendation turns it into a rule nobody agreed to
@@ -2117,7 +2117,7 @@ backwards a pixel at a time survived; it has four. —
 
 ### `scroll`, and the geometry it needed
 
-The one widget `book/src/TODO.md` named three times in three unrelated entries: a
+The one widget `docs/TODO.md` named three times in three unrelated entries: a
 menu taller than the work area loses its bottom, a tab strip wider than its
 window overflows it, and `select` over a realistic option list cannot be written
 at all. Built as three nodes, each one idea — a `scroll` viewport that clips and
@@ -2444,7 +2444,7 @@ is the `scroll` box's.
   directory now, `goldberry-example-manual`, for what a human writes; the traced
   one is never edited because the next trace overwrites it
   ([ADR-0156](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0156-the-image-s-metadata-is-traced-not-written.md),
-  [the native-image page](native.md))
+  [the native-image page](../book/src/native.md))
 
 - **A layer is blitted into its own size, and every disabled control on a Mac
   stopped being twice as big.** Reported from a 2x display. `opacity` is the only
@@ -2567,7 +2567,7 @@ is the `scroll` box's.
   correctly and is forty times slower — so `DowncallsTest` pins the naming scheme,
   `DowncallBenchmark` prints both numbers, and the control is written down
   ([ADR-0161](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0161-a-downcall-handle-is-a-constant-or-it-is-not-a-call.md),
-  [the native-image page](native.md))
+  [the native-image page](../book/src/native.md))
 
 - **`-Dgoldberry.trace.frames=all` printed nothing at all.** Found while measuring
   the above. `ENABLED` was `Boolean.getBoolean`, which is false for anything but

@@ -59,7 +59,7 @@ public record GpuChapter(GalleryContext context) implements Widget.Stateless {
                         "Built and measured on Metal; on Linux the composited path has run under X11 on one"
                                 + " machine, and Direct3D 12 waits for a host. A device lost mid-render shows black"
                                 + " rather than falling back.",
-                        DocLink.to("components/gpu", "what-is-measured-and-what-is-not-yet"))
+                        DocLink.to("components/gpu", "what-it-costs"))
                 .reference();
     }
 }

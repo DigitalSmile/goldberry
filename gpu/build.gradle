@@ -170,7 +170,7 @@ nativeTests.gpuTests('dev.goldberry.gpu')
 // The video measurement: a 4K picture's planes uploaded, converted and
 // composited under the UI every frame, on a real window. Run on purpose and
 // read by a person; not part of `check`.
-// https://goldberry.dev/docs/components/gpu.html#what-is-measured-and-what-is-not-yet
+// https://goldberry.dev/docs/components/gpu.html#what-it-costs
 nativeTests.probe('gpuVideoProbe', 'dev.goldberry.gpu.render.GpuVideoProbe',
         'Measures a composited frame with a 4K video layer on a real window.')
 

@@ -87,7 +87,7 @@ import dev.goldberry.widgets.markup.Wiring;
 ///
 /// **Nothing is clickable.** A word does not hear a pointer, so a link is a colour
 /// and not a destination. Following one needs hover state per run, which is
-/// `html-view`'s work and is recorded in `book/src/TODO.md`.
+/// `html-view`'s work and is recorded in `docs/TODO.md`.
 ///
 /// Read more: [Markdown view](https://goldberry.dev/docs/components/content.html#markdown-view).
 ///
@@ -341,7 +341,7 @@ public record MarkdownView(
     /// widget may touch the filesystem while a document is being inflated — three
     /// answers `Icons` and the stylesheets each needed a resolver for. An
     /// application reads the file and passes the text, which is one line, until
-    /// there is a resource resolver worth the name (`book/src/TODO.md`).
+    /// there is a resource resolver worth the name (`docs/TODO.md`).
     ///
     /// Children are refused rather than ignored: a document has content of its own,
     /// and a `markdown-view` with widgets inside it is a document that says

@@ -214,7 +214,7 @@
       var seo = S.seo || {}, v = version || S.version;
       var lines = ["# Goldberry", "", "> " + seo.description, "",
         "- Version: " + v + " (calendar versions, YEAR.RELEASE)", "- Licence: Apache License 2.0", "- Source: " + (S.links || {}).github,
-        "- Documentation: " + seo.url + "docs/", "- Status (what works today): " + seo.url + "docs/status.html", "- Decision log (ADRs): " + seo.url + "docs/adr/",
+        "- Documentation: " + seo.url + "docs/", "- Limitations: " + seo.url + "docs/overview/limitations.html", "- Decision log (ADRs): " + (S.links || {}).github + "/tree/master/book/src/adr",
         "- Java: 25 or newer; optional GraalVM native image", "- Platforms: Linux (Wayland, X11), Windows, macOS; headless backend for tests",
         "- Maven coordinates: dev.goldberry:goldberry-bom:" + v + " (BOM), dev.goldberry:goldberry, dev.goldberry:goldberry-natives (classifiers linux-x64, linux-aarch64, macos-aarch64, windows-x64)", "",
         "## Facts", ""];

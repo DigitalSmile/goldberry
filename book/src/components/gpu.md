@@ -14,9 +14,9 @@ GPU.
 
 ## What the module does to a window
 
-The UI is painted by Blend2D on the CPU whatever the window presents through.
+The UI is painted on the CPU whatever the window presents through.
 `goldberry-gpu` changes the last step. Put it on the module path and every
-window presents its frame through SDL_GPU: the frame's damage is uploaded to a
+window presents its frame through the GPU: the frame's damage is uploaded to a
 texture and drawn onto the window's swapchain, on Metal, Vulkan or Direct3D 12.
 Where that cannot be done, with no device, a refused claim or a popup, the
 window presents on the CPU exactly as it does without the module. The window
@@ -152,11 +152,11 @@ as every GPU layer is.
 ### Shaders
 
 Shaders are written in HLSL and compiled offline. The sources live in
-`src/main/shaders/*.hlsl`, and `./gradlew :gpu:compileShaders` runs DXC for
-SPIR-V and DXIL and SPIRV-Cross for MSL, then writes the bytecode as resources
-beside the code that loads them.
-It is a task run on purpose, not part of `build`, because DXC and SPIRV-Cross
-come with the Vulkan SDK and are too much to ask of every build. The task also
+`src/main/shaders/*.hlsl`, and `./gradlew :gpu:compileShaders` compiles them to
+SPIR-V, DXIL and MSL, then writes the bytecode as resources beside the code that
+loads them.
+It is a task run on purpose, not part of `build`, because its compilers come
+with the Vulkan SDK, which is too much to ask of every build. The task also
 compiles the showcase's own `cube.vert.hlsl` and `cube.frag.hlsl`.
 `ShaderCode.load(stage, name, samplers, uniformBuffers, lookup)` reads
 `name.spv`, `name.dxil` and `name.msl` through the caller's own resource lookup,
@@ -187,14 +187,13 @@ it, and a clip cuts it to a rectangle. Without a GPU the box is filled with
 
 None. A `canvas3d` is not focusable.
 
-## What is measured, and what is not yet
+## What it costs
 
-The figures are measured on Metal, on an M1 Pro, except where another driver
-is named. Creating the device costs about 20 ms at the first frame there, and
-190 to 320 ms on NVIDIA's Vulkan driver on Linux. A whole 2560 by 1600 frame
+The figures are for Metal on an M1 Pro, except where another driver is named.
+Creating the device costs about 20 ms at the first frame there, and 190 to
+320 ms on NVIDIA's Vulkan driver on Linux. A whole 2560 by 1600 frame
 costs 1.1 ms of CPU to composite against 2.65 ms for the window-surface present
 of the same frame, and a minute of 4K60 VP9 through a GPU layer shows all 3600
 pictures where CPU present drops 1581.
 
-On Linux the composited path is measured under X11 only. Direct3D 12 on Windows
-is not measured. A device lost mid-render shows black and does not fall back.
+A device lost mid-render shows black and does not fall back.

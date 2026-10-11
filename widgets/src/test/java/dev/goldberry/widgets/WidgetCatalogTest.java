@@ -32,7 +32,7 @@ import dev.goldberry.widgets.markup.Wiring;
 /// fixture rather than the thing that ships.
 ///
 /// Read more:
-/// [Model weaving](https://goldberry.dev/docs/weaving.html).
+/// [Ahead-of-time binding](https://goldberry.dev/docs/ahead-of-time-binding.html).
 @DisplayName("a widget module announces itself")
 class WidgetCatalogTest {
 

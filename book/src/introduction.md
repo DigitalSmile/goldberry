@@ -6,10 +6,10 @@ Goldberry is a declarative desktop UI toolkit written in pure Java over a small
 set of native C libraries, bound through the Foreign Function & Memory API.
 There is no JNI, no bundled web engine and no wrapping of platform widgets.
 Widgets are immutable records with a pure `build()`, or the same tree as KDL
-markup. They are styled with a real CSS subset and laid out by Yoga's flexbox.
-Frames are rasterized on the CPU by Blend2D, and presented through the GPU when
-the optional GPU module is present. Linux, Windows and macOS are peer platforms
-behind one SDL3 backend.
+markup. They are styled with a real CSS subset and laid out by flexbox. Frames
+are rasterized on the CPU, and presented through the GPU when the optional GPU
+module is present. Linux, Windows and macOS are peer platforms behind one
+backend.
 
 <div class="gb-shot">
 <img class="gb-light" src="images/screen-buttons-light.webp" alt="The Goldberry showcase on its Buttons screen: every button variant, badges and chips, each card with a link to its section of this guide"><img class="gb-dark" src="images/screen-buttons-dark.webp" alt="The Goldberry showcase on its Buttons screen: every button variant, badges and chips, each card with a link to its section of this guide">
@@ -21,7 +21,7 @@ behind one SDL3 backend.
 <div class="gb-cards">
 <a class="gb-card" href="overview/concept.html"><strong>Overview</strong><span>What Goldberry is, how it is built, and what it does not do.</span></a>
 <a class="gb-card" href="getting-started/requirements.html"><strong>Getting started</strong><span>Requirements, the dependencies, a first window on the JVM, and the same window as a native binary.</span></a>
-<a class="gb-card" href="layout/index.html"><strong>Layout</strong><span>Flexbox from Yoga. Rows, columns, stacks, scrolling, split panes and masonry, each with an example.</span></a>
+<a class="gb-card" href="layout/index.html"><strong>Layout</strong><span>Flexbox. Rows, columns, stacks, scrolling, split panes and masonry, each with an example.</span></a>
 <a class="gb-card" href="components/index.html"><strong>Components</strong><span>Every widget in the catalogue: markup, Java, attributes, styling and keyboard.</span></a>
 <a class="gb-card" href="performance/index.html"><strong>Performance</strong><span>What start-up and a frame cost, what the toolkit does to keep them cheap, and how to measure.</span></a>
 <a class="gb-card" href="applications.html"><strong>Developer guide</strong><span>Models and binding, markup, styling, input, windows, testing, diagnostics, native image, and contributing.</span></a>
@@ -85,8 +85,7 @@ part.
 Releases are on Maven Central. The current release is `2026.2`, and every push
 to `master` publishes a `-SNAPSHOT` of the next version. The catalogue has 82
 markup names. The optional modules are Markdown and HTML, emoji, media and the
-GPU. [Status](status.md) records what is built and [TODO](TODO.md) what is
-not.
+GPU.
 
 > [!IMPORTANT]
 > There is no screen-reader support on any platform. The rest of the

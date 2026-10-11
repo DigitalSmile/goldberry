@@ -76,7 +76,7 @@ import dev.goldberry.widgets.core.Row;
 ///
 /// - **A line of mixed faces is a row of words, not a shaped run**, so there is no
 ///   justification and no hyphenation. This is the one an engine would close, and it
-///   is what `book/src/TODO.md` still tracks. Selecting text across those words does
+///   is what `docs/TODO.md` still tracks. Selecting text across those words does
 ///   work — the words say where they landed.
 ///
 /// **A table's rules between its cells were on that list and are not any more**:

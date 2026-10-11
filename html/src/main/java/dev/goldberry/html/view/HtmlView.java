@@ -223,7 +223,7 @@ public record HtmlView(
     /// touch the filesystem while a document is being inflated — three answers `Icons`
     /// and the stylesheets each needed a resolver for. An application reads the file and
     /// passes the text, which is one line, until there is a resource resolver worth the
-    /// name (`book/src/TODO.md`).
+    /// name (`docs/TODO.md`).
     ///
     /// Children are refused rather than ignored: a page has content of its own, and an
     /// `html-view` with widgets inside it is a document saying something its author did

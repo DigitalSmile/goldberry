@@ -41,7 +41,7 @@ class GuideChapterTest {
     @DisplayName("is grouped as the book's parts are")
     void parts() {
         assertEquals(
-                List.of("Overview", "Getting started", "Performance", "Developer guide", "Contributing", "Reference"),
+                List.of("Overview", "Getting started", "Performance", "Developer guide", "Contributing"),
                 GuideParts.PARTS.stream().map(GuideParts.Part::title).toList());
     }
 

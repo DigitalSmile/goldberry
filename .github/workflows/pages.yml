@@ -57,10 +57,11 @@ jobs:
             | tar -xz -C "$HOME/bin"
           echo "$HOME/bin" >> "$GITHUB_PATH"
 
-      - name: Test the consent script
+      - name: Test the consent script and the screenshot viewer
         # Node's own test runner: assets/consent.js loads nothing before the
-        # visitor accepts, and deletes Metrika's cookies when they take it back.
-        run: node --test "site/test/*.test.mjs"
+        # visitor accepts, and deletes Metrika's cookies when they take it back;
+        # the book's lightbox.js opens a screenshot and puts it away.
+        run: node --test "site/test/*.test.mjs" "book/test/*.test.mjs"
 
       # SiteTest, run here because it is the only place a change to site/ alone
       # still runs it: the per-OS workflows, CodeQL, Qodana and snapshot.yml

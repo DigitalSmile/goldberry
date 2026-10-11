@@ -67,7 +67,7 @@ import dev.goldberry.widgets.core.Row;
 ///   content renderer; an `<input>` folds to an empty box rather than to a
 ///   `text-input` that would write somewhere nobody asked for.
 ///
-/// All of it is in `book/src/TODO.md` as well as here.
+/// All of it is in `docs/TODO.md` as well as here.
 final class HtmlWidgets {
 
     /// The `html-word` / `html-token` namespace — see [Words], which the Markdown

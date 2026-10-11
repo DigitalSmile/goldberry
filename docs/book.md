@@ -7,7 +7,7 @@ runbook, the style guide and the status of the documentation itself.
 
 | Path | What it is |
 |---|---|
-| `book/src/SUMMARY.md` | The table of contents: the guide's six parts, then the reference |
+| `book/src/SUMMARY.md` | The table of contents: the guide's six parts |
 | `book/src/<part>/*.md` | The guide. One directory per part; the first chapter of a part is its `index.md` where the part has an overview |
 | `book/src/adr/` | The decision log. Not listed in `SUMMARY.md`, so not built: it is read on GitHub, and `adr/README.md` is its index (ADR-0512) |
 | `book/src/images/` | Pictures the guide shows: `<name>-light.webp` and `-dark.webp` per widget, `screen-<name>-*` per showcase screen, `diagram-<name>-*` per scheme, each at 2×. Taken by the tests below, not drawn by hand (ADR-0513, ADR-0515) |
@@ -15,11 +15,15 @@ runbook, the style guide and the status of the documentation itself.
 | `tools/book/visuals.py` | Places a widget's pictures under its heading and wraps a sample pair in `gb-tabs`; safe to run twice |
 | `book/theme/goldberry.css` | The landing page's tokens over mdBook's `light` and `navy` themes, the header, and the few HTML blocks the guide uses. Sizes are in px: mdBook scales the root to 10 px, so a `rem` here is a tenth of what it looks |
 | `book/theme/goldberry.js` | Builds the landing page's header into mdBook's menu bar at load: the leaf, the six parts, GitHub. Turns every `gb-tabs` block into tabs and remembers the reader's language (ADR-0514) |
+| `book/theme/lightbox.js` | Opens a `gb-shot` picture at full size on a click, Enter or Space; Escape, a click or the close button puts it away (ADR-0605) |
+| `book/test/lightbox.test.mjs` | `lightbox.js` against a fake document: `node --test "book/test/*.test.mjs"`, run by `pages.yml` |
 | `book/theme/favicon.{svg,png}` | The leaf mark |
 | `book/book.toml` | mdBook 0.5, which refuses an unknown key |
 | `build-logic/.../site/BookTest.java` | The drift guards, in `./gradlew :build-logic:test` |
 | `example/src/test/.../BookMarkupTest.java` | Every `kdl` sample in the guide inflates against the real catalogue |
 | `example/src/test/.../book/pictures/` | `BookPicturesTest` renders every widget's sample in both themes and holds the pictures to the code; `ScreenPicturesTest` does the same for nine showcase screens. `-Dgoldberry.golden.update=true` retakes them |
+| `media/src/test/.../view/pictures/MediaPicturesTest.java` | The `media-player` and `audio-player` pictures, from `guide-clip.mkv` (`media/src/test/fixtures/make-guide-clip.sh`), which a sample cannot render alone |
+| `docs/status.md`, `docs/TODO.md` | The development record: what is built, and what is not and why. Read on GitHub, not published (ADR-0605) |
 
 ## Preview locally
 
@@ -47,9 +51,8 @@ part their question belongs to and should not need the others first.
 | Performance | what start-up and a frame cost, and how to measure them | `performance/index.md` |
 | Developer guide | markup, styling, input, windows, testing, diagnostics, writing a widget, weaving, native image, contributing | `applications.md` |
 
-The three pages the landing page links by name keep their paths: `status.md`,
-`native.md` and `adr/index.md`. `SiteTest` fails if they move without
-`site/content.js` moving with them.
+The pages the landing page links by name keep their paths, `native.md` among
+them. `SiteTest` fails if one moves without `site/content.js` moving with it.
 
 ## Style
 
@@ -71,10 +74,23 @@ describes the toolkit as a reader finds it. It does not narrate a change
 item through, does not cite a record, a review, a gap, a milestone, a run or
 a date, and does not name a working document under `docs/`. Where the toolkit
 does not do something, the chapter says so in one sentence, in the present
-tense, and gives the reason in words when it has one. The reference pages
-`status.md` and `TODO.md` are the record by design and are exempt, and the
-contributing chapters may describe the decision log and the working documents
-because those are their subject. `BookTest` holds every other chapter to this.
+tense, and gives the reason in words when it has one. The contributing
+chapters may describe the decision log and the working documents because those
+are their subject. `BookTest` holds every chapter to this.
+
+**The guide is user documentation, not a log** (ADR-0605). It does not say
+what has or has not been verified, tested, measured or proven, on which
+machine, or what is in progress. `GuideVocabulary.VERIFICATION` lists the
+phrases `BookTest` refuses. The development record, `status.md` and `TODO.md`,
+lives under `docs/` and is not a page of the site.
+
+**Only the overview names what the toolkit is built on.** A chapter says "the
+layout engine", "the rasterizer", "the windowing layer", "the media engine" or
+"the bundled icon set", not Yoga, Blend2D, SDL, FFmpeg or Lucide.
+`GuideVocabulary.LIBRARY` lists the names `BookTest` refuses outside
+`overview/`. Inline code, link targets and HTML tags are not read, so a Maven
+classifier or a quoted log line may contain one. What the reader installs or
+binds, GraalVM, a system package, SLF4J and Logback, is named.
 
 **Every claim comes from the repository.** A KDL attribute is one the widget's
 `inflate` reads. A Java constructor is one the record declares. A number is one
@@ -155,14 +171,21 @@ the section's own `kdl` sample at 2×, taken by `BookPicturesTest`
 (ADR-0513), and `width` is the logical width, half the file's pixels, so the
 widget is drawn at its own size. The alt text says what is in the picture,
 not that it is a picture; `tools/book/visuals.py` carries one per widget and
-writes the block. A whole screen has no `width` and fills the column. Five
-pictures stay in one theme at 1× because they are states no sample reaches;
-`BookTest` names them and refuses a sixth.
+writes the block. A whole screen has no `width` and shrinks to the column; no
+picture is stretched past its own pixels. Four pictures stay in one theme at
+1× because they are states no sample reaches; `BookTest` names them and
+refuses a fifth.
+
+On the page a `gb-shot` is framed as a window: a title bar with three lights
+and the word *Screenshot*, then the picture, then the caption. The frame hugs
+the picture and sits at the start of the column, and `lightbox.js` opens the
+picture at full size.
 
 To retake every picture after a change to a stylesheet or a sample:
 
 ```bash
 ./gradlew :example:test --tests '*PicturesTest*' -Dgoldberry.golden.update=true
+./gradlew :media:test --tests 'dev.goldberry.media.view.pictures.*' -Dgoldberry.golden.update=true
 python3 tools/book/visuals.py        # places the pictures of any new widget
 ```
 
@@ -267,7 +290,7 @@ Code first, documents after.
   plugin.
 - `docs/ARCHITECTURE.md` §1 gives the GPU device as 20 ms; ADR-0506 has
   190–320 ms on NVIDIA's Vulkan driver.
-- `book/src/status.md` credits the 3.13 ms median and 4.28 ms p95 to ADR-0047,
+- `docs/status.md` credits the 3.13 ms median and 4.28 ms p95 to ADR-0047,
   which has neither figure.
 - `.github/workflows/release.yml` cites ADR-0426 for the bump job; it is ADR-0421.
 - `Row`'s and `Column`'s javadoc samples write `gap=8`, which nothing reads.
@@ -316,3 +339,4 @@ Code first, documents after.
 | Compiled Java samples | not built. A sample is a fragment; compiling one means a harness that supplies its imports and its surrounding class, and the names in it are checked by reading, not by `javac` |
 | Links inside the book checked on the built site (`lychee`) | not built; `BookTest` checks the sources, which is the same set of links |
 | The guide neutral: no record citations, no change narrative, no struck items, no gaps or working documents in a reader chapter; `BookTest` holds it | done 2026-10-06 (ADR-0567): notes in `doc-neutral-2026-10-06.md` |
+| User documentation only: status and TODO out to `docs/`, no verification talk, library names only in the overview, *Ahead-of-time binding*, framed screenshots with a full-size view, the media pictures at 2×, a calmer theme, the README for a release | done 2026-10-11 (ADR-0605, parked): notes and status in `doc-polish-2026-10-11.md` |

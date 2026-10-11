@@ -22,7 +22,7 @@ import dev.goldberry.bind.registry.BindingRegistry;
 /// it, not because it is an API.
 ///
 /// Read more:
-/// [What the weaver actually does](https://goldberry.dev/docs/weaving.html#what-the-weaver-actually-does).
+/// [What it does](https://goldberry.dev/docs/ahead-of-time-binding.html#what-it-does).
 public interface BoundModel {
 
     /// The current value of the woven field in `slot`, boxed.

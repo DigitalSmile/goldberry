@@ -68,7 +68,7 @@ import java.util.regex.Pattern;
 /// generated at run time. That last part is what lets the result go into a
 /// GraalVM native image at all: an image cannot load a class generated after the build.
 ///
-/// Read more: [Model weaving](https://goldberry.dev/docs/weaving.html#what-the-weaver-actually-does).
+/// Read more: [Ahead-of-time binding](https://goldberry.dev/docs/ahead-of-time-binding.html#what-it-does).
 public final class ModelWeaver {
 
     private static final String BIND_PACKAGE = "dev.goldberry.bind.";

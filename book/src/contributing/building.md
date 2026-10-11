@@ -14,7 +14,7 @@ That compiles and tests every Java module. It also builds `libgoldberry` for thi
 
 ## The native superbuild
 
-`libgoldberry` is one shared library per platform. A CMake superbuild statically links Blend2D, AsmJit, Yoga, HarfBuzz, SDL3, md4c and libwebp into it. Building it needs CMake 3.28 or newer, Ninja and a C/C++ toolchain.
+`libgoldberry` is one shared library per platform. A CMake superbuild statically links the native dependencies into it: the rasterizer, the layout engine, the text shaper, the windowing layer, the Markdown parser and the WebP codec. Building it needs CMake 3.28 or newer, Ninja and a C/C++ toolchain.
 
 Check for them first:
 
@@ -22,7 +22,7 @@ Check for them first:
 ./gradlew :natives:checkToolchain
 ```
 
-The task prints the absolute path and version of each tool it will use, and names the packages to install if anything is absent. On Linux it also names the desktop development headers SDL needs, in terms of `apt` or `dnf`.
+The task prints the absolute path and version of each tool it will use, and names the packages to install if anything is absent. On Linux it also names the desktop development headers the windowing layer needs, in terms of `apt` or `dnf`.
 
 The tools are searched for on the `PATH` first and then in the usual install directories. A Homebrew, MacPorts, `CMake.app` or `pip install --user` toolchain is found even from a Gradle daemon that an IDE started with a bare `PATH`. To point at a tool somewhere else:
 
@@ -31,7 +31,7 @@ The tools are searched for on the `PATH` first and then in the usual install dir
 ```
 
 > [!CAUTION]
-> The first native build downloads about 330 MB. The superbuild clones its upstreams, and HarfBuzz and SDL3 are most of it. Git reports its progress as it goes, so a configure step that looks idle is a slow connection rather than a stuck build.
+> The first native build downloads about 330 MB. The superbuild clones the upstream sources of the native dependencies. Git reports its progress as it goes, so a configure step that looks idle is a slow connection rather than a stuck build.
 
 The clones land in `natives/.deps/<target>`, outside `build/`, so `./gradlew clean` does not throw them away. To discard them on purpose:
 
@@ -63,12 +63,12 @@ Everything the build reads, in one place:
 | `-Pgoldberry.allowDegradedPlatform=true` | Builds the library without the desktop-integration headers, on a machine that has none. The library it produces reports no capabilities |
 | `-Pgoldberry.depsDir=<path>` | Where the superbuild's upstream checkouts live, instead of `natives/.deps/<target>` |
 | `-Pgoldberry.cmake=<path>`, `-Pgoldberry.ninja=<path>` | A tool somewhere the search does not look. Taken at its word |
-| `-Pgoldberry.nativeImage=true` | Weaves `@Bind` and `@Action` into the compiled classes, which is what a native image runs |
+| `-Pgoldberry.nativeImage=true` | Binds `@Bind` and `@Action` ahead of time, into the compiled classes, which is what a native image runs |
 | `-Pgoldberry.lenient` | Turns Error Prone off. For triage only, never for a green build |
 | `-Pgoldberry.nullaway=warn` | Demotes NullAway from error to warning, for a sweep |
 | `-Pgoldberry.golden.update=true` | What `blessGoldens` passes: rewrites the reference images from what the code draws |
 | `-Pgoldberry.example.frames=N`, `-Pgoldberry.example.size=WxH` | Runs the showcase for N frames, at a size, and exits |
-| `-Pgoldberry.backend.videoDriver=dummy` | Runs the showcase against SDL's dummy driver, with no compositor |
+| `-Pgoldberry.backend.videoDriver=dummy` | Runs the showcase against the dummy video driver, with no compositor |
 | `-Pgoldberry.gpu.videoDriver=offscreen`, `-Pgoldberry.gpu.required=true` | The GPU tests' driver, and whether a missing device is a failure |
 
 ### A library built somewhere else
@@ -110,7 +110,7 @@ To drive it without touching the real compositor:
 > `SDL_VIDEODRIVER=dummy` in the environment does not reliably reach the application. A Gradle `JavaExec` fork inherits the daemon's environment rather than the shell's. Use the property.
 
 > [!CAUTION]
-> GNOME Shell 46 segfaults in its own `wl_client_destroy` path when this client disconnects. An accidental real run on that desktop costs a session. [Status](../status.md) has the details.
+> GNOME Shell 46 segfaults in its own `wl_client_destroy` path when this client disconnects. An accidental real run on that desktop costs a session. [Status](https://github.com/DigitalSmile/goldberry/blob/master/docs/status.md) has the details.
 
 ## The native image
 
@@ -127,15 +127,15 @@ The showcase also builds as a GraalVM native image, one file with `libgoldberry`
 
 ### macOS
 
-AppKit has to be driven from the process's first thread, so any Goldberry application needs `-XstartOnFirstThread`. `./gradlew run` passes it for you. An application of your own passes it itself, as it would for LWJGL or SWT. Without it `SDL_Init` fails with "No available video device", which says nothing about threads.
+AppKit has to be driven from the process's first thread, so any Goldberry application needs `-XstartOnFirstThread`. `./gradlew run` passes it for you. An application of your own passes it itself, as any JVM application that drives AppKit does. Without it the windowing layer fails to start with "No available video device", which says nothing about threads.
 
 Only `macos-aarch64` is built.
 
 ### Linux
 
-SDL compiles its X11 and Wayland drivers in only where the development headers are present, and several of the X11 ones are hard stops: the configure fails at the first one it cannot find. `checkToolchain` names every package before CMake runs. The table it reads is `LinuxDependencies` in build-logic, and a test holds it to what CI installs.
+The windowing layer compiles its X11 and Wayland drivers in only where the development headers are present, and several of the X11 ones are hard stops: the configure fails at the first one it cannot find. `checkToolchain` names every package before CMake runs. The table it reads is `LinuxDependencies` in build-logic, and a test holds it to what CI installs.
 
-SDL's D-Bus, IBus and udev support is different. It compiles out silently, into calls that succeed and answer nothing. The superbuild probes for those headers and stops rather than shipping a library that cannot ask the desktop anything. On a machine that has none:
+Its desktop-bus, input-method and device-hotplug support is different. It compiles out silently, into calls that succeed and answer nothing. The superbuild probes for those headers and stops rather than shipping a library that cannot ask the desktop anything. On a machine that has none:
 
 ```sh
 ./gradlew build -Pgoldberry.allowDegradedPlatform=true

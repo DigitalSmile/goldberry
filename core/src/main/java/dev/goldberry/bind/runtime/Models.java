@@ -41,7 +41,7 @@ import dev.goldberry.bind.registry.BindingRegistry;
 /// next frame, or wherever [#refresh] is called.
 ///
 /// Read more: [Values](https://goldberry.dev/docs/applications.html#values) and
-/// [Model weaving](https://goldberry.dev/docs/weaving.html#you-probably-do-not-need-to-run-any-of-this).
+/// [Ahead-of-time binding](https://goldberry.dev/docs/ahead-of-time-binding.html#when-you-need-it).
 public final class Models {
 
     private Models() {}

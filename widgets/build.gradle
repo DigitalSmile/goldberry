@@ -4,7 +4,7 @@ plugins {
     id 'goldberry.publish'
     // Collects this module's @Markup widgets into a WidgetCatalog and declares
     // it in the module descriptor.
-    // https://goldberry.dev/docs/weaving.html#the-two-halves
+    // https://goldberry.dev/docs/ahead-of-time-binding.html#widget-catalogues
     id 'goldberry.weave'
     // A control's tests shape text, and shaping is HarfBuzz: they run against
     // the library this build just produced, not a stale one and not none.

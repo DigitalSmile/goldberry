@@ -30,7 +30,8 @@ import dev.goldberry.text.font.Fonts;
 /// Not every screen: the ones whose subject a picture can show. The Web screen
 /// is a picture of a page that is not there, the GPU screen needs a
 /// device, the Canvas screen is pinned at one scale, and the media screens are
-/// stills of a player at rest, which the chapter's own golden shows better.
+/// stills of a player at rest, which `MediaPicturesTest` in `:media` takes of a
+/// real clip instead.
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class ScreenPicturesTest {
 

@@ -36,7 +36,7 @@ import dev.goldberry.text.font.Font;
 /// `top: 20px; left: 16px; max-width: 220px` in a 300 by 160 window, holding a
 /// line that wraps and one that does not.
 ///
-/// Read more: [How layout works](https://goldberry.dev/docs/layout/index.html#flexbox-from-yoga).
+/// Read more: [How layout works](https://goldberry.dev/docs/layout/index.html#flexbox).
 @DisplayName("shrink-to-fit")
 class ShrinkToFitTest {
 

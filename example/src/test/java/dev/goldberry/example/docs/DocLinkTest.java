@@ -23,8 +23,8 @@ class DocLinkTest {
                         "https://goldberry.dev/docs/components/buttons.html#button",
                         DocLink.to("components/buttons", "button").url()),
                 () -> assertEquals(
-                        "https://goldberry.dev/docs/weaving.html",
-                        DocLink.page("weaving").url()),
+                        "https://goldberry.dev/docs/ahead-of-time-binding.html",
+                        DocLink.page("ahead-of-time-binding").url()),
                 () -> assertEquals(
                         "components/buttons.md",
                         DocLink.page("components/buttons").source()));
@@ -38,8 +38,8 @@ class DocLinkTest {
         assertAll(
                 () -> assertEquals(Optional.of(link), DocLink.parse(link.url())),
                 () -> assertEquals(
-                        Optional.of(DocLink.page("TODO")),
-                        DocLink.parse(DocLink.page("TODO").url())),
+                        Optional.of(DocLink.page("native")),
+                        DocLink.parse(DocLink.page("native").url())),
                 () -> assertEquals(Optional.empty(), DocLink.parse("https://example.org/docs/a.html")),
                 () -> assertEquals(Optional.empty(), DocLink.parse(DocLink.SITE + "components/buttons.md")));
     }

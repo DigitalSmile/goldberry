@@ -38,7 +38,7 @@ class GpuChapterTest {
         CARDS.put("gpu-frames-card", DocLink.to("components/gpu", "what-the-module-does-to-a-window"));
         CARDS.put("gpu-spinning-card", DocLink.to("components/gpu", "canvas3d"));
         CARDS.put("gpu-turned-card", DocLink.to("components/gpu", "canvas3d"));
-        CARDS.put("gpu-measured-card", DocLink.to("components/gpu", "what-is-measured-and-what-is-not-yet"));
+        CARDS.put("gpu-measured-card", DocLink.to("components/gpu", "what-it-costs"));
     }
 
     @BeforeEach

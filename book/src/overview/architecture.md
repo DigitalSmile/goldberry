@@ -95,7 +95,7 @@ make an assignment observable, and they are interchangeable:
 | a change notifies | at the next sweep | inside the assignment |
 
 The same model, the same paths and the same refusals both ways.
-[Model weaving](../weaving.md) explains the mechanism and
+[Ahead-of-time binding](../ahead-of-time-binding.md) explains the mechanism and
 [Native image](../native.md) what an image needs.
 
 ## The modules

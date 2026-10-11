@@ -11,7 +11,7 @@
 /// Null-marked: every reference is non-null unless annotated `@Nullable`.
 ///
 /// Read more:
-/// [Model weaving](https://goldberry.dev/docs/weaving.html#you-probably-do-not-need-to-run-any-of-this).
+/// [Ahead-of-time binding](https://goldberry.dev/docs/ahead-of-time-binding.html#when-you-need-it).
 @NullMarked
 package dev.goldberry.bind.runtime;
 

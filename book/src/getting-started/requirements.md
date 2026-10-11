@@ -15,19 +15,20 @@
 
 > [!IMPORTANT]
 > **On macOS the UI thread must be the process's first thread.** Launch with
-> `-XstartOnFirstThread`, exactly as for LWJGL or SWT. Without it `SDL_Init`
-> fails with *No available video device*, which says nothing about threads.
+> `-XstartOnFirstThread`. Without it the window fails to open with *No
+> available video device*, which says nothing about threads.
 
 ### What the desktop provides at run time
 
-SDL opens the platform's own libraries when it needs them, so a desktop that
-can show a window already has what a window needs. Two integrations are worth
-knowing about on Linux:
+The native library opens the platform's own libraries when it needs them, so a
+desktop that can show a window already has what a window needs. Two
+integrations are worth knowing about on Linux:
 
-- **Audio** comes through PulseAudio, PipeWire's PulseAudio layer included, or
-  ALSA. A machine with no audio device plays silently rather than failing.
-- **The desktop's theme, file dialogs and input method** are asked over D-Bus,
-  IBus and udev. A build of the toolkit says what it can ask through
+- **Audio** goes through the system's sound server, or straight to the sound
+  card where none runs. A machine with no audio device plays silently rather
+  than failing.
+- **The desktop's theme, file dialogs and input method** are asked through the
+  desktop's own services. A build of the toolkit says what it can ask through
   `Goldberry.capabilities()`, so an application can tell *this desktop has no
   such setting* from *this build cannot ask*.
 
@@ -41,7 +42,7 @@ toolkit.
 |---|---|
 | GraalVM | GraalVM Community for JDK 25, the 25.3 line. A stock JDK has no `native-image` |
 | A C toolchain | `native-image` links with the system compiler. On Linux it also needs zlib's development package: `build-essential zlib1g-dev` on Debian and Ubuntu, `gcc glibc-devel zlib-devel libstdc++-static` on Fedora. Without it the build runs for a minute and fails at the last step with `cannot find -lz` |
-| The weaver | A build step over your compiled classes, one Gradle plugin or one Maven execution. [Model weaving](../weaving.md) explains why an image needs it and a jar does not |
+| Ahead-of-time binding | A build step over your compiled classes, one Gradle plugin or one Maven execution. [Ahead-of-time binding](../ahead-of-time-binding.md) explains why an image needs it and a jar does not |
 
 ## To build the toolkit itself
 

@@ -4,9 +4,9 @@ A Goldberry application can be built as a GraalVM native image: no class loading
 no reflection on the binding path, and a start-up measured against the process
 rather than against a JVM. The binding schema is designed for that.
 
-> **Built and run in CI on linux-x64, macOS and Windows.** One 41 MiB file with nothing beside
-> it, starting in well under a second and painting at about 1 ms a frame
-> headless — faster than the JVM build over a short run, because there is nothing
+> **One file on linux-x64, macOS and Windows.** It is 41 MiB with nothing beside
+> it, starts in well under a second and paints a headless frame in about 1 ms.
+> That is faster than the JVM build over a short run, because there is nothing
 > to warm up.
 > The FFM downcalls, the six upcalls, the fonts, the icons, the stylesheets, the
 > KDL, the `WidgetCatalog` service and `libgoldberry` itself all travel inside it.
@@ -56,10 +56,8 @@ A closed world has to know every foreign function the program will call before i
 runs, and Goldberry's are not knowable from the source: a binding class takes a
 `SymbolLookup` obtained at run time and builds its handles from it, which is what
 lets an application choose which `libgoldberry` it loads. `libgoldberry` exports
-**246 symbols** — SDL3 75, Yoga 69, Blend2D 56, HarfBuzz 25, libwebp 11, and 10
-of the shim's own, md4c reaching Java through those rather than through exports
-of its own — plus **six upcalls**, from five owners: `SdlEventWatch`,
-`SdlFileDialogs`, `SdlTray`, Yoga's `MeasureCallback` and `SdlClipboard`.
+**246 symbols**, plus **six upcalls** from five owners: the event watch, the file
+dialogs, the tray, the layout engine's measure callback and the clipboard.
 The list and the bindings agree in both directions: an exported
 symbol nothing binds is dead weight in every artifact, and a bound symbol nothing
 exports is a link error at the first call.
@@ -101,10 +99,10 @@ holder and every upcall owner and writes the `foreign` section itself, into the 
 ## The image is woven, the jar is not
 
 `nativeImage` depends on `weaveModels`, and the build orders it before `jar`.
-That is not a detail: an image built from unwoven classes would bind its models
-by reflection, which is the one thing an image must not do. Everything on
-[the weaving page](weaving.md) about `-Pgoldberry.nativeImage=true` applies to
-building the modules by hand; `nativeImage` arranges it for you.
+That is not a detail: an image built from classes the weaver has not run over would bind its models
+by reflection, which is the one thing an image must not do. `nativeImage` arranges
+it for you. [Ahead-of-time binding](ahead-of-time-binding.md) covers an image
+built without this task.
 
 ## What the flags are for
 
@@ -126,11 +124,11 @@ naming the two classes that have an opinion, and they are opposite opinions:
 | the `…calls` **packages** | **build time** | A downcall handle is only a call if it is a compile-time constant, and only a build-time initializer makes it one |
 
 They are **packages** and they have to be. A holder is a nested class, and naming
-its enclosing class does not reach it — measured at 4538 ns/call against 8, and
+its enclosing class does not reach it. The call then costs 4538 ns against 8,
 silently, because the image builds and runs. Naming a hundred and thirty-four
 nested classes in a flag is not a list anyone can maintain, and naming the
-*binding* packages instead would build-time initialize `Sdl` and `Blend2D`, whose
-holder idiom `dlopen`s the library in the builder. So the holders live in
+*binding* packages instead would build-time initialize the binding classes
+themselves, whose holder idiom `dlopen`s the library in the builder. So the holders live in
 packages that contain nothing else.
 
 All of them travel in the jar, so an application building its own image gets them
@@ -175,15 +173,14 @@ added to the module and not to the file is invisible in every way but the
 measurement above. The **shipped resource** is held to
 `ForeignSurface.holderClassNames()`, with one deliberate exception:
 `desktop.calls` stays out, because `PortalSettings` binds a
-dozen libdbus functions in a *static* initialiser and build-time initialising it
+dozen desktop-bus functions in a *static* initialiser. Build-time initialising it
 either fails the image with a `MemorySegment` in the image heap or bakes the
-build machine's D-Bus into it.
+build machine's session bus into it.
 
 **Nothing fails when it is missing.** The image builds, runs, paints correctly
-and is forty times slower, which is why the number is written down here. (It is
-silent only because the generated metadata registers the descriptors anyway; a
-descriptor registered *nowhere* raises `MissingForeignRegistrationError` and
-names itself.) To check it, move the properties file aside and rebuild passing
+and is forty times slower. It is silent because the generated metadata registers
+the descriptors anyway. A descriptor registered *nowhere* raises
+`MissingForeignRegistrationError` and names itself. To see the difference, move the properties file aside and rebuild passing
 the run-time half by hand:
 
 ```
@@ -224,7 +221,7 @@ belongs in that application's hand-written directory too.
 The trace records no widget class, neither the toolkit's nor an application's.
 The element tree asks the two widgets for their `restyle` answer and compares
 them, so no widget class is reflected on, and every class in
-`dev.goldberry.widget` is in a closed list, as a woven model is.
+`dev.goldberry.widget` is in a closed list, as a model bound ahead of time is.
 
 ## The natives jar is a module
 
@@ -255,12 +252,9 @@ outright — *"anonymous version tag cannot be combined with other version tags"
 
 ## What is not built
 
-**No image task in `build`.** Every `showcase.yml` leg installs GraalVM Community,
-builds the image, runs it for 300 frames with the window resized a pixel a
-frame, and uploads it. On a `v*` tag the three go on the tag's GitHub Release.
-The workflow runs only on a tag or by hand. Linux builds from the checked-in
-trace. macOS and Windows trace first, and those traces are not reviewed. Neither
-task is wired into `build`, because a local build has no GraalVM to count on.
+**No image task in `build`.** Neither task is wired into `build`, because a
+local build has no GraalVM to count on. A release of the showcase carries an
+image for each of the three platforms on its GitHub Release.
 
 **No image of the toolkit on its own.** `:core` and `:widgets` are libraries; an
 image is a property of an application, and `:example` is the application here.

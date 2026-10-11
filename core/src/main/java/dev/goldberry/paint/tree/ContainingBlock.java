@@ -59,7 +59,7 @@ import dev.goldberry.layout.Position;
 /// in terms of the style the widget resolved, so the numbers are never repeated
 /// in a stylesheet.
 ///
-/// Read more: [How layout works](https://goldberry.dev/docs/layout/index.html#flexbox-from-yoga).
+/// Read more: [How layout works](https://goldberry.dev/docs/layout/index.html#flexbox).
 public final class ContainingBlock {
 
     private ContainingBlock() {}

@@ -91,10 +91,10 @@ Not *Versioning*, and not *Use calendar versions*. The sentence is the decision,
 
 ## Status and TODO
 
-Two pages beside the log are updated when a record lands:
+Two pages in `docs/` are updated when a record lands:
 
-- [Status](../status.md) says what is built. A record that completes a piece moves its row.
-- [TODO](../TODO.md) says what is deferred, known-broken, or specified and unbuilt. An entry leaves the top half when a record answers it and moves to *Answered* rather than being deleted, because each one records a trap somebody hit and the reasoning that got out of it. A record that closes an entry says so in its status.
+- [Status](https://github.com/DigitalSmile/goldberry/blob/master/docs/status.md) says what is built. A record that completes a piece moves its row.
+- [TODO](https://github.com/DigitalSmile/goldberry/blob/master/docs/TODO.md) says what is left for later, what is broken, and what is specified and unbuilt. An entry leaves the top half when a record answers it and moves to *Answered* rather than being deleted, because each one records a trap somebody hit and the reasoning that got out of it. A record that closes an entry says so in its status.
 
 `docs/ARCHITECTURE.md` §17.1 lists where the design documents disagree with each other, and a record that settles one strikes the entry through rather than deleting it.
 

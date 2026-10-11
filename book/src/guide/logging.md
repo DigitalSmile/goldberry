@@ -81,7 +81,7 @@ per element per frame would be measuring itself:
 
 ## The platform's own libraries
 
-What GLib and SDL log is an ordinary SLF4J event, on
+What GLib and the windowing layer log is an ordinary SLF4J event, on
 `native.<library>.<subsystem>`: `native.glib.libayatana-appindicator`,
 `native.sdl.video`. Nothing of theirs reaches stderr past your configuration.
 Level, route or switch them off by name like anything else.
@@ -120,21 +120,21 @@ starts.
 
 | Property | Values | What it does |
 |---|---|---|
-| `goldberry.backend.videoDriver` | an SDL driver: `x11`, `wayland`, `dummy`, … | overrides the video driver. On a Linux Wayland session the toolkit asks for `x11,wayland` by default. `dummy` opens no window and has no popups |
+| `goldberry.backend.videoDriver` | a video driver: `x11`, `wayland`, `dummy`, … | overrides the video driver. On a Linux Wayland session the toolkit asks for `x11,wayland` by default. `dummy` opens no window and has no popups |
 | `goldberry.backend.vsync` | `false` | turns the frame loop's pacing to the display off |
 | `goldberry.frame.rate` | a number; `0` | holds the loop to that many frames a second instead of the display's rate; `0` measures the unthrottled loop |
-| `goldberry.paint.threads` | a count; `0` | pins Blend2D's worker count; `0` paints synchronously |
+| `goldberry.paint.threads` | a count; `0` | pins the painter's worker count; `0` paints synchronously |
 | `goldberry.gpu` | `off`, `auto` | whether any GPU is used at all |
 | `goldberry.gpu.composite` | `never`, `auto`, `always` | whether a window presents through the GPU: never, while it shows GPU layers, or from its first frame. `always` is the default |
 | `goldberry.gpu.driver` | `metal`, `vulkan`, `direct3d12` | names the GPU driver, with `goldberry-gpu` on the path |
 | `goldberry.gpu.debug` | `true` | the GPU driver's validation layer |
 | `goldberry.input.primary` | `ctrl`, `meta` | what `Primary` resolves to, instead of reading `os.name` |
 | `goldberry.motion.reduced` | `reduce`, `full` | overrides the desktop's reduced-motion answer; anything else asks the desktop |
-| `goldberry.popup.settle` | milliseconds | how long to disbelieve a focus-lost after a popup opens, for a compositor nobody has run against |
+| `goldberry.popup.settle` | milliseconds | how long to disbelieve a focus-lost after a popup opens |
 | `goldberry.native.library` | a path | loads `libgoldberry` from there instead of the natives jar |
 | `goldberry.webview.library` | a path | the same for `libgoldberry-webview` |
-| `goldberry.media.libdir` | a directory | loads FFmpeg from there, with `goldberry-media` on the path |
-| `goldberry.media.ffmpegLog` | `true` | lets FFmpeg's own warnings through to stderr |
+| `goldberry.media.libdir` | a directory | loads the media engine's libraries from there, with `goldberry-media` on the path |
+| `goldberry.media.ffmpegLog` | `true` | lets the media engine's own warnings through to stderr |
 | `goldberry.log.native` | `false` | no bridge: native libraries write to stderr again |
 | `goldberry.log.glib.writer` | `true` | also catches GLib's structured messages |
 | `goldberry.trace.frames` | `true`, `all` | counts what each frame did to the element tree |
@@ -154,7 +154,7 @@ and do nothing in an application.
 | `nothing is bound to "app.gian". Bound: …` | the same, for a `bind=` | [Markup](markup.md#strict-by-default) |
 | `"!prefs.frost" is not a binding path` | a `bind=` holds an expression. Only dotted paths are allowed | [Markup](markup.md#bind-is-a-path-and-nothing-else) |
 | `unknown node "buton"; registered: …` | the node name is not in any catalogue on the path | [Markup](markup.md#parsing-and-inflating) |
-| `… its package is not open to this module. Add opens com.example.app to dev.goldberry.core;` | a `@Model` in a named module, bound at run time, needs its package opened | [Model weaving](../weaving.md#a-model-in-a-named-module-opens-its-package) |
+| `… its package is not open to this module. Add opens com.example.app to dev.goldberry.core;` | a `@Model` in a named module, bound at run time, needs its package opened | [Ahead-of-time binding](../ahead-of-time-binding.md#without-it-the-sweep) |
 | `libgoldberry not found at …` | the natives jar for this platform is not on the path, or the library was not built | [Native image](../native.md), and `-Dgoldberry.native.library` above |
 | `cannot find -lz` while building the native library | the linker needs `zlib1g-dev`, not only `zlib1g` | [Native image](../native.md) |
 | `the emoji face is not on the module path …` | `Font.bundled(BundledFont.EMOJI, …)` without `goldberry-emoji` | [Text, fonts and icons](text.md#emoji) |

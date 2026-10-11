@@ -199,15 +199,14 @@ for `bind=`, `wiring.action(node, "press")` for a `Runnable`,
 `wiring.icon(node)` for `icon=`, and `wiring.handle(node, "controller",
 FormController.class)` for a named object.
 
-The catalogue is written by the weaver's `--catalog` half, which every build
-of a widget module runs. In Gradle that is one line:
+The build of a widget module writes the catalogue. In Gradle that is one line:
 
 ```groovy
 plugins { id 'goldberry.weave' }
 ```
 
-The rest of that plugin, and the Maven form, is in
-[Model weaving](../weaving.md#the-two-halves).
+The Maven form is in
+[Ahead-of-time binding](../ahead-of-time-binding.md#widget-catalogues).
 
 ## Input and focus
 
@@ -328,4 +327,4 @@ the wall clock in `render` is not.
 ## Read more
 
 - [Building an application](../applications.md#shipping-a-widget): where a widget goes in an application
-- [Model weaving](../weaving.md): the build step that writes the catalogue
+- [Ahead-of-time binding](../ahead-of-time-binding.md): the build step that writes the catalogue

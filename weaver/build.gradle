@@ -20,7 +20,7 @@ description = 'Goldberry weaver: the widget catalog, and the models a native ima
 // @Action call sites, and only a GraalVM native image needs it -- an ordinary jar
 // binds the same annotations reflectively, so this is a dependency of the image
 // build rather than of the toolkit.
-// https://goldberry.dev/docs/weaving.html#the-two-halves
+// https://goldberry.dev/docs/ahead-of-time-binding.html#widget-catalogues
 group = 'dev.goldberry'
 version = providers.gradleProperty('goldberryVersion').get()
 

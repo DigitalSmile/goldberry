@@ -6,18 +6,13 @@ By the end of this chapter you can open a file or a URL in a player, show it wit
 its controls from markup or Java, switch tracks and subtitles, and know which
 codecs a build decodes.
 
-<div class="gb-shot">
-<img src="../images/media-player-subtitles.png" alt="A media-player showing a test picture with two subtitle lines over its foot, and below it the controls: play, the elapsed and remaining times around a seek bar, a subtitles menu reading French, and mute with a volume slider">
-<p>A <code>media-player</code> with a subtitle track chosen, from the module's golden images.</p>
-</div>
-
 ## The module
 
-The widgets are in `goldberry-media`. FFmpeg is driven from Java through the
-Foreign Function and Memory API, with no libVLC and no JNI. The natives are
+The widgets are in `goldberry-media`. Its native media engine is driven from
+Java through the Foreign Function and Memory API, with no JNI. The natives are
 published as classifier jars of the same artifact, one per target:
 `ffmpeg-linux-x64`, `ffmpeg-linux-aarch64`, `ffmpeg-windows-x64` and
-`ffmpeg-macos-aarch64`. An application names the ones it ships, and FFmpeg's
+`ffmpeg-macos-aarch64`. An application names the ones it ships, and the natives'
 source is published beside them as the `ffmpeg-sources` classifier.
 
 Add the stylesheet beside the controls' own:
@@ -103,7 +98,7 @@ With no audio device, media plays silently.
 
 H.264, HEVC, AAC, AC-3 and E-AC-3 are not in the published natives. They play
 through the operating system's own decoders, which are `DecoderProvider`s
-found by `ServiceLoader` and consulted before FFmpeg's:
+found by `ServiceLoader` and consulted before the built-in ones:
 
 | Provider | Codecs | System |
 |---|---|---|
@@ -130,6 +125,8 @@ and applied from the next source opened.
 
 A `video-view` with `media-controls` laid over its foot: the picture, the
 transport, the error, the stream's title and the subtitles in one box.
+
+<div class="gb-shot"><img class="gb-light" src="../images/media-player-light.webp" width="664" alt="A media-player paused on a lake at dusk, two subtitle lines over the picture, and the controls along its foot: play, the elapsed and remaining times around a seek bar, a subtitles menu reading English, and mute with a volume slider"><img class="gb-dark" src="../images/media-player-dark.webp" width="664" alt="A media-player paused on a lake at dusk, two subtitle lines over the picture, and the controls along its foot: play, the elapsed and remaining times around a seek bar, a subtitles menu reading English, and mute with a volume slider"><p>A <code>media-player</code> paused, with a subtitle track chosen.</p></div>
 
 <div class="gb-tabs">
 
@@ -237,6 +234,8 @@ None of its own. Put a `media-controls` beside it.
 
 Compact controls over a player: play and pause, the times, a seek bar, mute and
 volume, with the stream's title above and an error below.
+
+<div class="gb-shot"><img class="gb-light" src="../images/audio-player-light.webp" width="664" alt="An audio-player: play, the elapsed time, a seek bar a third of the way along, the remaining time, and mute with a volume slider"><img class="gb-dark" src="../images/audio-player-dark.webp" width="664" alt="An audio-player: play, the elapsed time, a seek bar a third of the way along, the remaining time, and mute with a volume slider"><p>An <code>audio-player</code> over the same player.</p></div>
 
 <div class="gb-tabs">
 

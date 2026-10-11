@@ -2,7 +2,7 @@ import org.gradle.api.artifacts.VersionCatalogsExtension
 
 // ============================================================================
 // The weaver, in its two halves
-// https://goldberry.dev/docs/weaving.html#the-two-halves
+// https://goldberry.dev/docs/ahead-of-time-binding.html#widget-catalogues
 //
 // The weaver does two unrelated things to a module's compiled classes, and a
 // build wants them at different times:

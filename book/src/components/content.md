@@ -26,8 +26,7 @@ node names, and the inflater finds them when the module is on the module path.
 
 ## `markdown-view`
 
-A rendered Markdown document: GitHub's dialect by default, parsed by md4c and
-folded into `column`, `row` and `text`.
+A rendered Markdown document: GitHub's dialect by default, folded into `column`, `row` and `text`.
 
 <div class="gb-shot"><img class="gb-light" src="../images/markdown-view-light.webp" width="566" alt="A split pane: Markdown source in a monospace text area on the left and the rendered document on the right, with a heading, a paragraph and a task list"><img class="gb-dark" src="../images/markdown-view-dark.webp" width="566" alt="A split pane: Markdown source in a monospace text area on the left and the rendered document on the right, with a heading, a paragraph and a task list"><p>The source and the document it renders, side by side.</p></div>
 
@@ -244,9 +243,8 @@ returns empty where no page can be opened.
 
 ### Ask before offering one
 
-The engine is WebKitGTK, WebView2 or WKWebView, driven through a separate
-optional library so that GTK and WebKit are never load-time dependencies of the
-toolkit. Most machines cannot open a page, so an application asks first:
+The engine is the platform's own, driven through a separate optional library,
+so the toolkit loads without it. Most machines cannot open a page, so an application asks first:
 
 ```java
 if (Goldberry.capabilities().contains(Capability.WEB_VIEW)) {
@@ -257,12 +255,12 @@ return new Button("Open the handbook", () -> Desktop.browse(HANDBOOK));
 
 `WebViews.isAvailable()` is the same question.
 
-| Platform | What the page is | Status |
-|---|---|---|
-| X11, and XWayland | A GTK window reparented into this one | Works |
-| macOS | A `WKWebView`, a subview of the window's content view | Works |
-| Windows | A WebView2 child window | Written, unverified |
-| Wayland | Nothing | Refused, and says why |
+| Platform | What the page is |
+|---|---|
+| X11, and XWayland | The engine's window, reparented into this one |
+| macOS | The engine's view, a subview of the window's content view |
+| Windows | The engine's child window |
+| Wayland | Nothing. The widget refuses and says why |
 
 ### Wayland refuses it
 
@@ -270,7 +268,7 @@ Embedding means putting the engine's window inside the application's. Wayland
 does not allow a client to reparent a foreign surface, and no protocol proposes
 it. On a Wayland session the widget opens nothing and paints a message saying
 why, rather than dropping a loose window on the desktop.
-An application that wants a page there can ask SDL for the X11 driver with
+An application that wants a page there can ask for the X11 driver with
 `-Dgoldberry.backend.videoDriver=x11`, which runs the window under XWayland.
 
 ### What a page cannot share the screen with
@@ -278,7 +276,7 @@ An application that wants a page there can ask SDL for the X11 driver with
 The page is a window above the frame, not a raster in it. Nothing painted can
 cover it: a `popover`, a `tooltip` or a `toast` that overlaps the page is
 invisible where they meet. A `scroll` does not clip it. `opacity`, `transform`
-and the frost material do not reach it. No golden image contains one. A `dialog`
+and the frost material do not reach it. A `dialog`
 is the exception: while a modal is up the widget parks its page off the side of
 the window and brings it back when the dialog closes. A page is also opened
 parked and shown only once it reports itself loaded, with a `spinner` in its box
@@ -287,7 +285,7 @@ until then.
 Input is the page's. The window system delivers clicks and keys to the engine
 directly, and on macOS the backend drops key events while a page holds the
 keyboard. Under X11 a window keeps presenting through the GPU with a page in it.
-A page is taken down on WebKit's thread, and its context outlives the
+A page is taken down on the engine's thread, and its context outlives the
 application's exit.
 
 ### Signing in through a page
@@ -330,9 +328,9 @@ has opened, and asking it then gives a stage that has already failed.
 
 | Platform | Cookies from | Navigations asked about |
 |---|---|---|
-| Linux | WebKitGTK's cookie manager | Every frame's: WebKitGTK does not say which frame |
-| macOS | `WKHTTPCookieStore`, matched to the URL by the toolkit | The main frame's; written, unverified |
-| Windows | WebView2's cookie manager | The main frame's (`NavigationStarting`); written, unverified |
+| Linux | The engine's cookie manager | Every frame's: the engine does not say which frame |
+| macOS | The engine's cookie store, matched to the URL by the toolkit | The main frame's |
+| Windows | The engine's cookie manager | The main frame's |
 
 On Linux and macOS every page in the process shares one cookie jar, so a
 session signed in to in one page can be read from any other.

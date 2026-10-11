@@ -37,12 +37,12 @@ The group is `dev.goldberry`, and the artifact ids are `goldberry-<module>`.
 | The same, released | Maven Central | A `v*` tag |
 | `goldberry-natives` classifiers `linux-x64`, `linux-aarch64`, `macos-aarch64`, `windows-x64` | Beside `goldberry-natives` | With it |
 | `goldberry-media` classifiers `ffmpeg-<target>`, one per target the Media workflow built | Beside `goldberry-media` | With it |
-| `goldberry-media` classifier `ffmpeg-sources`: FFmpeg's and dav1d's complete source at the pinned tags, the superbuild, and how to rebuild | Beside `goldberry-media` | With the `ffmpeg-<target>` classifiers |
+| `goldberry-media` classifier `ffmpeg-sources`: the media engine's complete source at the pinned tags, the superbuild, and how to rebuild | Beside `goldberry-media` | With the `ffmpeg-<target>` classifiers |
 | `goldberry-showcase-native-{linux-x64,macos-aarch64}.tar.gz`, `goldberry-showcase-native-windows-x64.exe` | The tag's GitHub Release, created as a draft | A `v*` tag. A manual run leaves them as the run's artifacts |
 
 The BOM knows versions and not platforms, so an application adds the `goldberry-natives` classifier jars itself. All four is the default worth writing, because `NativeLibrary` picks the right one at run time. [Installing](../getting-started/installing.md) has the dependency block.
 
-**FFmpeg's binaries do not go without their source.** The `ffmpeg-<target>` jars carry an LGPL library in object form, so the same publication carries `ffmpeg-sources` beside them. Every publication that carries a target refuses to go without it, snapshots too, and both the superbuild and the sources jar refuse a tag that does not name the pinned commit. A release needs all four targets' FFmpeg and refuses without them.
+**The media engine's binaries do not go without their source.** The `ffmpeg-<target>` jars carry an LGPL library in object form, so the same publication carries `ffmpeg-sources` beside them. Every publication that carries a target refuses to go without it, snapshots too, and both the superbuild and the sources jar refuse a tag that does not name the pinned commit. A release needs the media engine for all four targets and refuses without it.
 
 ## Snapshots
 

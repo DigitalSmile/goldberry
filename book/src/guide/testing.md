@@ -20,7 +20,7 @@ void theSettingsScreenRenders() {
 ```
 
 Nothing opens. `Offscreen` runs the window's own sequence into memory: no
-backend, no SDL, no compositor.
+backend, no windowing layer, no compositor.
 
 ## What ships, and what is test-scope
 
@@ -72,7 +72,7 @@ a picture cacheable and a golden image possible.
 
 One reference set serves every platform when it is compared with a
 per-channel tolerance of 2 in 256 and a cap of 2% of pixels allowed to differ
-at all. Blend2D
+at all. The rasterizer
 compiles its pipelines for the CPU it finds, and AVX2, SSE2 and NEON agree on
 what they draw and not on the last bit of a blended edge. The tolerance
 absorbs antialiased edges and nothing else: a colour that changed or a box in
@@ -195,8 +195,8 @@ assertEquals("deleted", screen.answer());
 draws, so the dialog is painted over the content, takes the pointer, and is
 taken off by its own handle. `after` is a timer on the session's virtual
 clock. Focus by id, accelerators and `isModal()` are the router's.
-There are no popup windows, which is the real answer under SDL's `dummy`
-driver, and no tray, web view, clipboard or file dialogs. `window()`
+There are no popup windows, which is the real answer under the `dummy`
+video driver, and no tray, web view, clipboard or file dialogs. `window()`
 throws. `session.host()` is the same host, for a test that opens something
 itself.
 
@@ -246,7 +246,7 @@ insets, and a pixel or two of rounding.
 ## Running the launcher without a display
 
 `Goldberry.launch(app, new String[] {"--frames=3"})` paints three frames and
-exits. With `-Dgoldberry.backend.videoDriver=dummy` SDL opens no window, so
+exits. With `-Dgoldberry.backend.videoDriver=dummy` nothing opens a window, so
 that is a smoke test of the whole front door: the window spec, `start`,
 `root`, the first frames and `stop`. It needs the native library, and under
 `dummy` every `host.popup(...)` answers empty.

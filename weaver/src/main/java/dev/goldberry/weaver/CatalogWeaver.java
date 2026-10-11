@@ -47,7 +47,7 @@ import java.util.Set;
 /// `LambdaMetafactory`, exactly like an `@Action`'s call site — one shape, one
 /// mechanism, and one that a closed world resolves when it builds the image.
 ///
-/// Read more: [Model weaving](https://goldberry.dev/docs/weaving.html#the-two-halves).
+/// Read more: [Ahead-of-time binding](https://goldberry.dev/docs/ahead-of-time-binding.html#widget-catalogues).
 public final class CatalogWeaver {
 
     /// The package of the markup contract -- the annotation, the catalog and the

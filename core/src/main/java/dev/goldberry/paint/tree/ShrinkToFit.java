@@ -56,7 +56,7 @@ import dev.goldberry.paint.Box;
 /// which can change size without dirtying the box, and a pin would then hold
 /// a width the block no longer allows.
 ///
-/// Read more: [How layout works](https://goldberry.dev/docs/layout/index.html#flexbox-from-yoga).
+/// Read more: [How layout works](https://goldberry.dev/docs/layout/index.html#flexbox).
 final class ShrinkToFit {
 
     /// How far under its cap a laid-out box may come and still count as capped.

@@ -32,7 +32,7 @@ import dev.goldberry.markdown.model.Document;
 /// under it either. What is still open is what an engine would buy, which
 /// is real inline layout; and a raw `<div>` *inside* a Markdown document is drawn as
 /// the markup it is, because a `html_block` is one of md4c's blocks and not a second
-/// parse (`book/src/TODO.md`).
+/// parse (`docs/TODO.md`).
 ///
 /// **Not a resolver.** A link's href and a wiki link's target are strings. Whether
 /// one may be followed, what a relative path is relative to, and which note

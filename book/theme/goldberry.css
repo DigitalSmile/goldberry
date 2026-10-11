@@ -11,12 +11,14 @@
 
 :root {
     /* mdBook sets html to 62.5%, so 1rem is 10px. Sizes below are in px. */
-    --content-max-width: 100%;
+    /* A reading column: about 80 characters of body text. */
+    --content-max-width: 860px;
     --sidebar-target-width: 320px;
     --mono-font: "JetBrains Mono", ui-monospace, "Cascadia Code", Menlo, "DejaVu Sans Mono", monospace;
     --sans-font: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
     --code-font-size: 0.86em;
     --gb-radius: 12px;
+    --gb-radius-small: 8px;
 }
 
 /* ---------- the two themes ---------- */
@@ -31,8 +33,11 @@
     --gb-gold-ink: #2E3440;
     --gb-leaf: #C79A3B;
     --gb-water: #5E81AC;
+    --gb-code-bg: #F8F9FB;
+    --gb-shadow: 0 1px 2px rgba(31, 37, 48, 0.06), 0 12px 32px -18px rgba(31, 37, 48, 0.28);
+    --gb-chrome: #E6E9EF;
 
-    --sidebar-bg: #EAEDF2;
+    --sidebar-bg: #EEF0F4;
     --sidebar-fg: #3A4252;
     --sidebar-non-existant: #AAB2C0;
     --sidebar-active: #1F2530;
@@ -81,6 +86,9 @@
     --gb-gold-ink: #2E3440;
     --gb-leaf: #EBCB8B;
     --gb-water: #88C0D0;
+    --gb-code-bg: #2A303B;
+    --gb-shadow: 0 1px 2px rgba(0, 0, 0, 0.25), 0 16px 40px -20px rgba(0, 0, 0, 0.6);
+    --gb-chrome: #353C4A;
 
     --sidebar-bg: #272C36;
     --sidebar-fg: #C3CBD9;
@@ -135,14 +143,25 @@ html, body, .menu-title, .sidebar {
 }
 body {
     -webkit-font-smoothing: antialiased;
-    font-size: 17px;
+    font-size: 16.5px;
+    text-rendering: optimizeLegibility;
 }
 .content main {
-    line-height: 1.65;
+    line-height: 1.7;
     padding-inline: 8px;
+    padding-block-end: 48px;
+}
+.content main > p,
+.content main > ul,
+.content main > ol {
+    color: color-mix(in srgb, var(--fg) 92%, var(--bg));
+}
+.content ::selection {
+    background: color-mix(in srgb, var(--gb-gold) 55%, transparent);
 }
 .content h1 {
-    font-size: 38px;
+    margin-block-start: 0.6em;
+    font-size: 40px;
     font-weight: 700;
     letter-spacing: -0.035em;
     line-height: 1.1;
@@ -158,12 +177,26 @@ body {
     background: var(--gb-gold);
 }
 .content h2 {
-    font-size: 27px;
-    font-weight: 650;
-    letter-spacing: -0.02em;
-    margin-block-start: 2.2em;
-    padding-block-end: 0.3em;
-    border-bottom: 1px solid var(--gb-line);
+    font-size: 28px;
+    font-weight: 680;
+    letter-spacing: -0.022em;
+    line-height: 1.25;
+    margin-block-start: 2.4em;
+    padding-block-start: 1.1em;
+    border-top: 1px solid var(--gb-line);
+}
+.content h1 + h2,
+.content .gb-lede + h2 {
+    border-top: 0;
+    padding-block-start: 0;
+}
+.content :is(h2, h3, h4) a.header {
+    color: inherit;
+}
+.content :is(h2, h3) a.header:hover::after {
+    content: " #";
+    color: var(--gb-leaf);
+    font-weight: 500;
 }
 .content h3 {
     font-size: 21px;
@@ -221,7 +254,13 @@ body {
 .content pre {
     border-radius: var(--gb-radius);
     border: 1px solid var(--gb-line);
-    line-height: 1.5;
+    background: var(--gb-code-bg);
+    line-height: 1.55;
+}
+.content pre > code.hljs,
+.content pre > code {
+    background: transparent;
+    font-size: 14px;
 }
 .content pre > code {
     padding: 18px 20px;
@@ -237,6 +276,8 @@ body {
 /* ---------- tables ---------- */
 
 .content table {
+    font-size: 15px;
+    background: var(--gb-card);
     border-collapse: separate;
     border-spacing: 0;
     border: 1px solid var(--gb-line);
@@ -253,10 +294,17 @@ body {
     vertical-align: top;
     line-height: 1.5;
 }
+.content table td > code {
+    white-space: nowrap;
+}
 .content table thead th {
     border-top: 0;
     background: var(--table-header-bg);
+    font-size: 13px;
     font-weight: 650;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--gb-muted);
     text-align: left;
 }
 .content table tbody tr:nth-child(2n) {
@@ -275,6 +323,15 @@ body {
 }
 .content blockquote p {
     margin-block: 0.4em;
+}
+.content blockquote .blockquote-tag-title {
+    font-weight: 650;
+    font-size: 14px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+.content blockquote.blockquote-tag {
+    background: color-mix(in srgb, var(--quote-bg) 88%, var(--gb-line));
 }
 .content blockquote.note      { border-inline-start-color: var(--blockquote-note-color); }
 .content blockquote.tip       { border-inline-start-color: var(--blockquote-tip-color); }
@@ -299,8 +356,11 @@ body {
 
 /* ---------- the sidebar ---------- */
 
+.sidebar {
+    font-size: 15px;
+}
 .sidebar .chapter li.part-title {
-    margin-top: 1.4em;
+    margin-top: 1.6em;
     font-size: 12px;
     font-weight: 650;
     letter-spacing: 0.12em;
@@ -321,7 +381,23 @@ body {
 .sidebar .chapter li a.active {
     font-weight: 650;
     color: var(--sidebar-active);
-    background: color-mix(in srgb, var(--gb-gold) 35%, transparent);
+    background: color-mix(in srgb, var(--gb-gold) 30%, transparent);
+    box-shadow: inset 3px 0 0 var(--gb-leaf);
+}
+/* The headings of the open chapter: quieter than the chapters around them. */
+.sidebar .chapter li.header-item {
+    font-size: 14px;
+    margin-block-end: 0.15em;
+}
+.sidebar .chapter li.header-item a {
+    color: var(--gb-muted);
+}
+.sidebar .chapter li.header-item a.current-header {
+    color: var(--sidebar-active);
+}
+.sidebar .on-this-page {
+    margin-left: 12px;
+    border-inline-start-width: 2px;
 }
 .sidebar .chapter .section {
     margin-inline-start: 0.4em;
@@ -483,29 +559,71 @@ body {
      <img class="gb-dark" src="../images/button-dark.webp" width="640" alt="...">
      <p>caption</p>
    </div>
+   A screenshot of the toolkit's own UI, framed as a window: a title bar with
+   the three lights, the picture, then the caption. The frame hugs the picture
+   and sits at the start of the column, like the text around it.
+
    Two pictures, one per theme, and the page shows the one that matches: mdBook
    puts the theme's name on <html>, and `navy` is the dark one. A picture is
    taken at 2x and carries its logical width, so it is drawn at the size the
    widget has on screen and stays sharp on a dense display. A picture with no
-   width -- a whole screen -- fills the column. */
+   width -- a whole screen -- shrinks to the column and is never stretched past
+   its own pixels. lightbox.js opens either at full size on a click. */
 .gb-shot {
-    margin-block: 1.6em;
+    position: relative;
+    width: fit-content;
+    min-width: min(320px, 100%);
+    max-width: 100%;
+    margin: 1.8em 0;
     border-radius: var(--gb-radius);
     overflow: hidden;
     border: 1px solid var(--gb-line);
     background: var(--bg);
-    box-shadow: 0 30px 80px -40px rgba(31, 37, 48, 0.45);
+    box-shadow: var(--gb-shadow);
+}
+.gb-shot::before {
+    content: "Screenshot";
+    display: block;
+    height: 30px;
+    padding-inline-start: 66px;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    line-height: 30px;
+    color: var(--gb-muted);
+    border-bottom: 1px solid var(--gb-line);
+    background:
+        radial-gradient(circle at 16px 50%, #BF616A 0 5px, transparent 5.5px),
+        radial-gradient(circle at 33px 50%, #EBCB8B 0 5px, transparent 5.5px),
+        radial-gradient(circle at 50px 50%, #A3BE8C 0 5px, transparent 5.5px),
+        var(--gb-chrome);
+}
+.gb-shot.gb-zoomable::after {
+    content: "Click to enlarge";
+    position: absolute;
+    top: 0;
+    right: 12px;
+    height: 30px;
+    line-height: 30px;
+    font-size: 12px;
+    color: var(--gb-muted);
+    pointer-events: none;
 }
 .gb-shot img {
     display: block;
-    margin: 0 auto;
+    margin: 0;
     max-width: 100%;
     height: auto;
     border: 0;
     border-radius: 0;
 }
-.gb-shot img:not([width]) {
-    width: 100%;
+.gb-shot.gb-zoomable img {
+    cursor: zoom-in;
+}
+.gb-shot.gb-zoomable img:focus-visible {
+    outline: 3px solid var(--gb-water);
+    outline-offset: -3px;
 }
 .gb-shot .gb-dark {
     display: none;
@@ -519,10 +637,81 @@ html.navy .gb-shot .gb-dark {
 .gb-shot p {
     margin: 0;
     padding: 10px 14px;
-    font-size: 15px;
+    font-size: 14.5px;
+    line-height: 1.5;
     color: var(--gb-muted);
     background: var(--gb-card);
     border-top: 1px solid var(--gb-line);
+}
+
+/* The full-size view lightbox.js opens over the page. */
+html.gb-lightbox-open {
+    overflow: hidden;
+}
+.gb-lightbox {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    display: grid;
+    place-items: center;
+    padding: 32px;
+    background: color-mix(in srgb, #1B1F27 82%, transparent);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    cursor: zoom-out;
+    animation: gb-fade 0.16s ease-out;
+}
+.gb-lightbox figure {
+    margin: 0;
+    max-width: 100%;
+    max-height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+}
+.gb-lightbox img {
+    display: block;
+    max-width: calc(100vw - 64px);
+    max-height: calc(100vh - 120px);
+    width: auto;
+    height: auto;
+    border-radius: var(--gb-radius-small);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    box-shadow: 0 30px 80px -20px rgba(0, 0, 0, 0.7);
+    background: var(--bg);
+}
+.gb-lightbox figcaption {
+    max-width: 70ch;
+    font-size: 15px;
+    color: #D8DEE9;
+    text-align: center;
+}
+.gb-lightbox button {
+    position: fixed;
+    top: 16px;
+    right: 16px;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: rgba(46, 52, 64, 0.85);
+    color: #ECEFF4;
+    font: inherit;
+    font-size: 22px;
+    line-height: 1;
+    cursor: pointer;
+}
+.gb-lightbox button:focus-visible {
+    outline: 2px solid var(--gb-gold);
+    outline-offset: 2px;
+}
+@keyframes gb-fade {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .gb-lightbox { animation: none; }
 }
 
 /* <span class="gb-pill">status</span> */
@@ -682,6 +871,7 @@ html.navy .gb-shot .gb-dark {
 
 @media print {
     .gb-card, .gb-shot, .gb-stats > div { box-shadow: none; }
+    .gb-shot.gb-zoomable::after { content: none; }
 }
 
 /* ---------- the foot of every page ---------- */

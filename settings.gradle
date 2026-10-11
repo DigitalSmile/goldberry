@@ -45,7 +45,7 @@ rootProject.name = 'goldberry'
 // own natives. Markdown is what it ships today -- md4c, through the four
 // `goldberry_md_*` symbols on the export list -- and `html-view` is not built:
 // litehtml needs a paint surface the export list does not have yet, and
-// `book/src/TODO.md` says which symbols. An application opts in; nothing in
+// `docs/TODO.md` says which symbols. An application opts in; nothing in
 // :core or :widgets depends on it.
 //
 // :media is `goldberry-media`: audio and video over FFmpeg driven from Java,
@@ -66,7 +66,7 @@ rootProject.name = 'goldberry'
 // only a GraalVM native image needs -- an ordinary jar binds the same annotations
 // reflectively, so weaving a jar buys a direct field write and costs every
 // consumer a build step.
-// https://goldberry.dev/docs/weaving.html#the-two-halves
+// https://goldberry.dev/docs/ahead-of-time-binding.html#widget-catalogues
 include ':common',
         ':natives',
         ':core',

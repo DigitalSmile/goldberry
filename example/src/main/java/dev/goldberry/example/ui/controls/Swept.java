@@ -11,7 +11,7 @@ import dev.goldberry.bind.runtime.Models;
 /// next frame's sweep, or for none where nothing asks for frames. One call to
 /// [Models#refresh] says it now.
 ///
-/// Read more: [The sweep](https://goldberry.dev/docs/weaving.html#the-sweep-and-the-one-line-it-sometimes-costs).
+/// Read more: [Without it: the sweep](https://goldberry.dev/docs/ahead-of-time-binding.html#without-it-the-sweep).
 final class Swept {
 
     private Swept() {}

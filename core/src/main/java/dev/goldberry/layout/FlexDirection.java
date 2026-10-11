@@ -15,7 +15,7 @@ package dev.goldberry.layout;
 /// [dev.goldberry.paint.Box#of()] are where that is written
 /// down.
 ///
-/// Read more: [How layout works](https://goldberry.dev/docs/layout/index.html#flexbox-from-yoga).
+/// Read more: [How layout works](https://goldberry.dev/docs/layout/index.html#flexbox).
 public enum FlexDirection {
 
     /// Top to bottom.

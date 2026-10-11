@@ -185,7 +185,7 @@ with a value it cannot read is dropped with a warning that quotes the text.
 `align-content`, `gap`, `row-gap`, `column-gap`,
 `padding` and its four sides, `margin` and its four sides, `width`, `height`,
 `min-width`, `max-width`, `min-height`, `max-height`, `position`, `inset`,
-`top`, `right`, `bottom`, `left`, `overflow`. These compile to Yoga.
+`top`, `right`, `bottom`, `left`, `overflow`. These compile to the layout engine.
 `flex` expands as CSS says: `flex: 1` is `1 1 0%`, `flex: auto` is
 `1 1 auto`, `flex: none` is `0 0 auto`, and `flex: 120px` is `1 1 120px`.
 `margin: auto` centres on the main axis.
@@ -513,7 +513,7 @@ private void follow(SystemTheme theme) {
 
 `host.systemTheme()` answers `LIGHT`, `DARK`, or empty where the desktop has
 no such setting, and empty is a different answer from light.
-The toolkit chooses nothing with the answer. A Linux build without the D-Bus
+The toolkit chooses nothing with the answer. A Linux build without the desktop bus
 headers cannot ask at all, and says so through
 `Goldberry.capabilities().contains(Capability.SYSTEM_THEME)`.
 

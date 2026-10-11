@@ -169,8 +169,8 @@ an `Image` already decoded with `of(image)`, or `supplied(key, supplier)` for a
 thumbnail generator or an HTTP fetch run on a virtual thread. The shared loader
 decodes each source once per process, so ten thumbnails of one file decode
 once. While the pixels are on their way the box carries `.loading`. When they
-cannot be decoded it carries `.error` and shows Lucide's `image-off` with the
-alt text.
+cannot be decoded it carries `.error` and shows a broken-image icon with
+the alt text.
 
 The record is `ImageView`. The Java name differs from the markup name because
 `Image` is the decoded value in `dev.goldberry.image`, which an application
@@ -313,9 +313,9 @@ icon.warn { color: var(--gb-warning); }
 
 Inside a `button` an icon is drawn at the size it was built at. Here the box
 decides: `width` and `height`, 16 by default, and the outline is scaled to the
-smaller of the two and centred along the other. Lucide is drawn on a 24-unit
-grid with a 2-unit stroke and the stroke scales with it, so an 11 px icon is
-the same drawing as a 24 px one, thinner. `width: 1em; height: 1em` sizes an
+smaller of the two and centred along the other. The bundled set is drawn on a
+24-unit grid with a 2-unit stroke, and the stroke scales with it, so an 11 px
+icon is the same drawing as a 24 px one, thinner. `width: 1em; height: 1em` sizes an
 icon to the text beside it. Nothing native is held, so a document reloaded on
 every keystroke builds nothing that has to be closed.
 
@@ -337,7 +337,7 @@ throws.
 
 | Attribute | Type | Default | What it does |
 |---|---|---|---|
-| argument | string | none | The icon's name: a registered one, or a bundled Lucide name |
+| argument | string | none | The icon's name: a registered one, or one from the bundled set |
 | `name` | string | none | What a reader is told. Without one the icon is decorative |
 | `id`, `class` | string | | The usual |
 

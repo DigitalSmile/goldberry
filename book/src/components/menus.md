@@ -342,6 +342,6 @@ are dropped with a warning, because the shell draws the rows and takes neither.
 The menu cannot be changed in place. Close the tray and show a new one.
 
 > [!NOTE]
-> The tray is SDL3's. Nothing in it is painted by Goldberry: the menu is a GTK
-> menu under AppIndicator on Linux, an `NSMenu` on macOS and a Win32 popup on
+> The tray is the desktop's. Nothing in it is painted by Goldberry: the desktop
+> shell draws the menu on Linux, an `NSMenu` on macOS and a Win32 popup on
 > Windows.

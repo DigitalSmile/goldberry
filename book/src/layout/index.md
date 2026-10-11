@@ -36,31 +36,31 @@ var toolbar = new Row(
 
 The `row` says which way its children go. The stylesheet says everything else: the gap between them, the padding at the ends, and how they line up across the row. The `spacer` takes the space nobody else asked for, so the button sits at the far end.
 
-## Flexbox, from Yoga
+## Flexbox
 
-Goldberry does not implement a layout algorithm. It binds Yoga, the flexbox engine, and the CSS subset compiles to Yoga's properties. The vocabulary an application sees is the toolkit's own. `Length`, `Insets`, `Limits`, `FlexDirection`, `Justify`, `Align`, `Wrap`, `Position` and `Overflow` live in `dev.goldberry.layout`, and Yoga is translated in one file nothing else touches.
+Layout is done by a native flexbox engine, and the CSS subset compiles to its properties. The vocabulary an application sees is the toolkit's own. `Length`, `Insets`, `Limits`, `FlexDirection`, `Justify`, `Align`, `Wrap`, `Position` and `Overflow` live in `dev.goldberry.layout`.
 
-Yoga runs with CSS's defaults rather than its own. A box shrinks when its row is too narrow, because `flex-shrink` is 1 unless a rule says otherwise. Keep that in mind when a control looks squashed. [Sizing with CSS](sizing.md) lists every property the subset accepts.
+The engine runs with CSS's defaults. A box shrinks when its row is too narrow, because `flex-shrink` is 1 unless a rule says otherwise. Keep that in mind when a control looks squashed. [Sizing with CSS](sizing.md) lists every property the subset accepts.
 
 ## Logical pixels
 
 A `px` in a stylesheet is a logical pixel. The window's display scale is applied once, as a transform on the painting context, and nothing above it does arithmetic in device pixels. `8px` of padding is the same distance on a 100% display and a 200% one.
 
-Edges land on whole device pixels. The render tree hands Yoga the window's scale as its point scale factor, and Yoga rounds every edge to the device grid. At 1x a row of 101 points splits 51 and 50. At 2x it splits 50.5 and 50.5, which is the same tree on a finer grid.
+Edges land on whole device pixels. The render tree hands the layout engine the window's scale, and the engine rounds every edge to the device grid. At 1x a row of 101 points splits 51 and 50. At 2x it splits 50.5 and 50.5, which is the same tree on a finer grid.
 
 ## The box model
 
-A box has a width and a height, padding inside its edge, a margin outside it, and a border drawn on the edge. `min-width`, `max-width`, `min-height` and `max-height` bound it. An absolutely positioned child is placed from its parent's border box rather than its padding box, which is where Yoga and CSS differ.
+A box has a width and a height, padding inside its edge, a margin outside it, and a border drawn on the edge. `min-width`, `max-width`, `min-height` and `max-height` bound it. An absolutely positioned child is placed from its parent's border box rather than its padding box, which is where this layout differs from CSS.
 
 ## Three trees
 
-A widget is an immutable record describing what should be on screen. Building it produces an element, which persists across rebuilds and holds state and focus. The element produces a render object, which owns a Yoga node, is laid out, and is painted. Layout runs on the third tree, so a rebuild that re-describes a node with the same type, id and classes keeps its computed style and its Yoga node.
+A widget is an immutable record describing what should be on screen. Building it produces an element, which persists across rebuilds and holds state and focus. The element produces a render object, which owns a layout node, is laid out, and is painted. Layout runs on the third tree, so a rebuild that re-describes a node with the same type, id and classes keeps its computed style and its layout node.
 
 ## Text is a measured leaf
 
-Yoga knows nothing about glyphs. A box with text in it carries a measure function. Yoga proposes a width, the paragraph wraps at it and reports a height, and the flexbox algorithm sizes everything around that answer. The paragraph is shaped once, and every re-wrap is arithmetic over the glyphs it already has. That is what makes the callback cheap enough to answer inside a layout pass.
+The layout engine knows nothing about glyphs. A box with text in it carries a measure function. The engine proposes a width, the paragraph wraps at it and reports a height, and the flexbox algorithm sizes everything around that answer. The paragraph is shaped once, and every re-wrap is arithmetic over the glyphs it already has. That is what makes the callback cheap enough to answer inside a layout pass.
 
-A box therefore has text or children, never both. Yoga asks a measured node for its size and never lays its children out.
+A box therefore has text or children, never both. The engine asks a measured node for its size and never lays its children out.
 
 ## What a widget owns and what CSS owns
 
