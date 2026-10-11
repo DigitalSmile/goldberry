@@ -146,10 +146,6 @@ final class MeasuredWindow {
         return tops;
     }
 
-    int size() {
-        return ids.length;
-    }
-
     String id(int index) {
         return ids[index];
     }
@@ -287,6 +283,6 @@ final class MeasuredWindow {
                 high = mid - 1;
             }
         }
-        return Math.max(0, low);
+        return low;
     }
 }

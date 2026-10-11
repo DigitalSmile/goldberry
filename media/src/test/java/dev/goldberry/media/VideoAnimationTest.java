@@ -13,6 +13,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import dev.goldberry.RendererRequirement;
 import dev.goldberry.css.Theme;
 import dev.goldberry.image.Image;
 import dev.goldberry.offscreen.Offscreen;
@@ -79,6 +80,8 @@ class VideoAnimationTest {
             assertEquals(1000, sticker.durationMillis());
             assertTrue(sticker.hasAlpha());
             assertTrue(sticker.isEndless());
+            assertEquals(0, sticker.loopCount(), "0 is for ever");
+            assertEquals(3, sticker.loops(3).loopCount());
             assertFalse(sticker.isDoneAt(60_000));
         }
         try (var clip = VideoAnimation.of(ByteBuffer.wrap(fixture("clip-vp9.webm")))) {
@@ -110,6 +113,7 @@ class VideoAnimationTest {
     @Test
     @DisplayName("an AnimationView draws it over the background: through the transparent, blended with the half")
     void drawsOverTheBackground() {
+        RendererRequirement.enforce();
         try (var sticker = sticker();
                 var strip = Offscreen.of(64, 64)
                         .stylesheets(Controls.stylesheets(Theme.NORD_DARK))
@@ -130,6 +134,7 @@ class VideoAnimationTest {
     @Test
     @DisplayName("moves on the frame clock, and loops after one second")
     void loopsOnTheVirtualClock() {
+        RendererRequirement.enforce();
         try (var sticker = sticker();
                 var strip = Offscreen.of(64, 64)
                         .stylesheets(Controls.stylesheets(Theme.NORD_DARK))
@@ -146,6 +151,7 @@ class VideoAnimationTest {
     @Test
     @DisplayName("played once, it holds its last picture and stops asking for frames")
     void playsOnce() {
+        RendererRequirement.enforce();
         try (var sticker = sticker();
                 var strip = Offscreen.of(64, 64)
                         .stylesheets(Controls.stylesheets(Theme.NORD_DARK))
@@ -162,6 +168,7 @@ class VideoAnimationTest {
     @Test
     @DisplayName("with autoplay off, stands on its first picture and asks for nothing")
     void autoplayOff() {
+        RendererRequirement.enforce();
         try (var sticker = sticker();
                 var strip = Offscreen.of(64, 64)
                         .stylesheets(Controls.stylesheets(Theme.NORD_DARK))
@@ -176,6 +183,7 @@ class VideoAnimationTest {
     @Test
     @DisplayName("closed, it draws nothing and gives no picture")
     void closed() {
+        RendererRequirement.enforce();
         var sticker = sticker();
         sticker.close();
         sticker.close();

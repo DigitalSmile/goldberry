@@ -24,6 +24,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
+import dev.goldberry.RendererRequirement;
 import dev.goldberry.css.ComputedStyle;
 import dev.goldberry.input.event.KeyEvent;
 import dev.goldberry.input.event.PointerEvent;
@@ -408,6 +409,7 @@ class MediaWidgetsTest {
         @DisplayName(
                 "draws a sticker's picture over what is beneath it: through the transparent, blended with the half")
         void blendsAlpha() {
+            RendererRequirement.enforce();
             open(fixture("sticker-vp9-alpha.webm"), "sticker-vp9-alpha.webm");
             await(status -> player.shownPicture().isPresent());
             player.pause();

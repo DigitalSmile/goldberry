@@ -2163,7 +2163,7 @@ public final class PointerRouter {
         var accepted = current.accepted;
         var at = target == null ? null : contentPoint(target, x, y);
         endDrag(false);
-        if (target == null || accepted == null || at == null) {
+        if (accepted == null || at == null) {
             return null;
         }
         return deliver(accepted, new Drop(current.payload, at, false));

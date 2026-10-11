@@ -17,7 +17,10 @@ sealed interface ShapeProperty permits ShapeProperty.Fixed, ShapeProperty.Keyed 
     /// One path for all time.
     record Fixed(Bezier path) implements ShapeProperty {
 
+        // Public because an interface's members are; ShapeProperty is package-private,
+        // so a Bezier is seen nowhere outside this package.
         @Override
+        @SuppressWarnings("ClassEscapesDefinedScope")
         public Bezier at(double frame) {
             return path;
         }
@@ -44,7 +47,10 @@ sealed interface ShapeProperty permits ShapeProperty.Fixed, ShapeProperty.Keyed 
             keys = List.copyOf(keys);
         }
 
+        // Public because an interface's members are; ShapeProperty is package-private,
+        // so a Bezier is seen nowhere outside this package.
         @Override
+        @SuppressWarnings("ClassEscapesDefinedScope")
         public Bezier at(double frame) {
             var first = keys.getFirst();
             if (frame <= first.time()) {

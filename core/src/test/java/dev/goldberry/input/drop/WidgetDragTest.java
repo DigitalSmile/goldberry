@@ -252,6 +252,27 @@ class WidgetDragTest {
         }
 
         @Test
+        @DisplayName("a widget's dropTarget(accepts, onDrop) takes a drop as a DropTarget does")
+        void twoArgumentTarget() {
+            var board = new Tile(
+                    "root",
+                    List.of(
+                            tile("a").draggable("card-a"),
+                            tile("b").dropTarget(payload -> payload.equals("card-a"), drops::add)),
+                    Attributes.NONE.id("root"),
+                    false,
+                    false,
+                    log);
+            try (var session = open(board)) {
+                session.drag("a", "b");
+
+                assertEquals(1, drops.size(), log::toString);
+                assertEquals("card-a", drops.getFirst().payload());
+                assertFalse(byId(session, "b").hasState(PseudoClass.DRAG_OVER));
+            }
+        }
+
+        @Test
         @DisplayName("a target that refuses passes the drag to an ancestor that accepts")
         void refusedGoesUp() {
             try (var session = open(board())) {

@@ -67,6 +67,9 @@ sealed interface Shape {
     sealed interface Paint extends Shape {
 
         /// 0 to 100.
+        // Public because an interface's members are; Shape is package-private, so a
+        // Property is seen nowhere outside this package.
+        @SuppressWarnings("ClassEscapesDefinedScope")
         Property opacity();
     }
 

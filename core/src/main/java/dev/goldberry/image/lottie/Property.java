@@ -22,9 +22,6 @@ sealed interface Property permits Property.Fixed, Property.Keyed {
         return value.length == 0 ? 0 : value[0];
     }
 
-    /// Whether this never changes.
-    boolean isFixed();
-
     /// A property that is always `value`.
     static Property of(double... value) {
         return new Fixed(value);
@@ -43,11 +40,6 @@ sealed interface Property permits Property.Fixed, Property.Keyed {
         public double[] at(double frame) {
             return value;
         }
-
-        @Override
-        public boolean isFixed() {
-            return true;
-        }
     }
 
     /// Values at moments, and how to get from one to the next.
@@ -61,11 +53,6 @@ sealed interface Property permits Property.Fixed, Property.Keyed {
                 throw new IllegalArgumentException("an animated property needs a keyframe");
             }
             this.keys = List.copyOf(keys);
-        }
-
-        @Override
-        public boolean isFixed() {
-            return false;
         }
 
         @Override

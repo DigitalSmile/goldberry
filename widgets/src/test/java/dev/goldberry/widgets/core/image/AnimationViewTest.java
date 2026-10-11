@@ -2,6 +2,7 @@ package dev.goldberry.widgets.core.image;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -11,6 +12,7 @@ import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import dev.goldberry.RendererRequirement;
 import dev.goldberry.css.Theme;
 import dev.goldberry.image.Image;
 import dev.goldberry.image.anim.MovingPicture;
@@ -50,6 +52,7 @@ class AnimationViewTest {
     @Test
     @DisplayName("moves with the frame clock, and keeps asking for frames while it does")
     void advances() {
+        RendererRequirement.enforce();
         try (var strip = Offscreen.of(100, 100)
                 .stylesheets(Controls.stylesheets(Theme.NORD_DARK))
                 .strip(new AnimationView(DOT, "a dot"))) {
@@ -68,6 +71,7 @@ class AnimationViewTest {
     @Test
     @DisplayName("with autoplay off, stands on its first frame and asks for nothing")
     void autoplayOff() {
+        RendererRequirement.enforce();
         try (var strip = Offscreen.of(100, 100)
                 .stylesheets(Controls.stylesheets(Theme.NORD_DARK))
                 .strip(new AnimationView(DOT, "a dot").autoplay(false))) {
@@ -84,6 +88,7 @@ class AnimationViewTest {
     @Test
     @DisplayName("stops asking once a finite animation has played")
     void finishes() {
+        RendererRequirement.enforce();
         try (var strip = Offscreen.of(100, 100)
                 .stylesheets(Controls.stylesheets(Theme.NORD_DARK))
                 .strip(AnimationView.decorative(DOT.loops(1)))) {
@@ -142,6 +147,20 @@ class AnimationViewTest {
     }
 
     @Test
+    @DisplayName("source and fit each change one thing and keep the rest")
+    void copies() {
+        var view = new AnimationView(DOT, "a dot").autoplay(false);
+        var twice = DOT.loops(2);
+        var other = view.source(twice).fit(Fit.COVER);
+        assertSame(twice, other.source());
+        assertEquals(Fit.COVER, other.fit());
+        assertEquals("a dot", other.alt());
+        assertFalse(other.autoplay());
+        assertSame(DOT, view.source(), "the original is untouched");
+        assertEquals(Fit.CONTAIN, view.fit());
+    }
+
+    @Test
     @DisplayName("a new source starts from its first frame")
     void newSource() {
         var clock = Clock.virtual();
@@ -182,6 +201,7 @@ class AnimationViewTest {
     @Test
     @DisplayName("plays any moving picture, sized by it, and stops when it says it is done")
     void anyMovingPicture() {
+        RendererRequirement.enforce();
         try (var strip = Offscreen.of(10, 10)
                 .stylesheets(Controls.stylesheets(Theme.NORD_DARK))
                 .strip(AnimationView.decorative(new Blink()))) {

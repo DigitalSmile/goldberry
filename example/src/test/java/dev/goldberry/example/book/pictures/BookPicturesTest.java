@@ -43,9 +43,13 @@ class BookPicturesTest {
     /// longer has fails too.
     private static final Map<String, String> NOT_PICTURED = Map.ofEntries(
             Map.entry("canvas3d", "draws through a renderer= the application binds; the GPU screen pictures it"),
-            Map.entry("media-player", "plays through a player= the application binds; MediaPicturesTest in :media pictures it"),
+            Map.entry(
+                    "media-player",
+                    "plays through a player= the application binds; MediaPicturesTest in :media pictures it"),
             Map.entry("video-view", "plays through a player= the application binds"),
-            Map.entry("audio-player", "plays through a player= the application binds; MediaPicturesTest in :media pictures it"),
+            Map.entry(
+                    "audio-player",
+                    "plays through a player= the application binds; MediaPicturesTest in :media pictures it"),
             Map.entry("media-controls", "drive a player= the application binds"),
             Map.entry("canvas", "paints through a painter the application writes; the Canvas screen pictures it"),
             Map.entry("action", "drawn by its dialog; the dialog's picture shows three"),

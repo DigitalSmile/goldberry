@@ -11,10 +11,12 @@ import java.io.UncheckedIOException;
 import java.nio.ByteBuffer;
 import java.util.Objects;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
+import dev.goldberry.RendererRequirement;
 import dev.goldberry.golden.GoldenImage;
 import dev.goldberry.image.Image;
 import dev.goldberry.image.ImageDecodeException;
@@ -77,10 +79,12 @@ class VectorAnimationTest {
         void endless() {
             var rect = load("static-rect.json");
             assertTrue(rect.isEndless());
+            assertEquals(0, rect.loopCount(), "0 is for ever");
             assertEquals(-1, rect.totalMillis());
             assertFalse(rect.isDoneAt(Long.MAX_VALUE));
 
             var twice = rect.loops(2);
+            assertEquals(2, twice.loopCount());
             assertFalse(twice.isEndless());
             assertEquals(2000, twice.totalMillis());
             assertFalse(twice.isDoneAt(1999));
@@ -103,6 +107,11 @@ class VectorAnimationTest {
     @Nested
     @DisplayName("pictures")
     class Pictures {
+
+        @BeforeEach
+        void requireRenderer() {
+            RendererRequirement.enforce();
+        }
 
         @Test
         @DisplayName("a still rectangle, at two sizes")
@@ -309,6 +318,7 @@ class VectorAnimationTest {
     @Test
     @DisplayName("the sticker, halfway through, is the golden")
     void golden() {
+        RendererRequirement.enforce();
         var sticker = load("sticker.json");
         GoldenImage.assertMatches("lottie-sticker", 128, 128, 1f, frame -> sticker.paint(frame, 1500, 0, 0, 128, 128));
     }

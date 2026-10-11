@@ -46,7 +46,8 @@ class BookSectionsTest {
         assertAll(
                 () -> assertTrue(required.contains(DocLink.to("components/buttons", "button")), "a widget heading"),
                 () -> assertTrue(required.contains(DocLink.to("guide/windows", "the-badge")), "a feature subheading"),
-                () -> assertTrue(required.contains(DocLink.page("ahead-of-time-binding")), "a chapter with nothing to click"),
+                () -> assertTrue(
+                        required.contains(DocLink.page("ahead-of-time-binding")), "a chapter with nothing to click"),
                 () -> assertFalse(
                         required.contains(DocLink.to("components/choices", "option")),
                         "a child node is shown on its parent's card"),
