@@ -69,3 +69,5 @@ Appended to the index when the records move in, in this order.
 - [ADR-0625 Showcase search runs over an index a test writes](0625-showcase-search-runs-over-an-index-a-test-writes.md)
 - [ADR-0626 The showcase reads at 15px, and the reader picks the size](0626-the-showcase-reads-at-15px-and-the-reader-picks-the-size.md)
 - [ADR-0627 A masonry that is a frame stale wraps rather than squeezes](0627-a-masonry-that-is-a-frame-stale-wraps-rather-than-squeezes.md)
+- [ADR-0628 A transparent popup on X11 is given the screen's 32-bit visual](0628-a-transparent-popup-on-x11-is-given-the-screens-32-bit-visual.md)
+- [ADR-0629 The overlay scroll bar is a 4px thumb on an 8px bar](0629-the-overlay-scroll-bar-is-a-4px-thumb-on-an-8px-bar.md)

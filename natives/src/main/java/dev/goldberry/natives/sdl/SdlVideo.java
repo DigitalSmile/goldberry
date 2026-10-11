@@ -8,6 +8,7 @@ import java.nio.ByteBuffer;
 import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
+import java.util.OptionalLong;
 
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
@@ -28,6 +29,7 @@ import dev.goldberry.natives.sdl.window.SdlFlashOperation;
 import dev.goldberry.natives.sdl.window.SdlIconImage;
 import dev.goldberry.natives.sdl.window.SdlPixelFormat;
 import dev.goldberry.natives.sdl.window.SdlWindowFlag;
+import dev.goldberry.natives.x11.XlibVisuals;
 
 /// SDL3's windowing, event and CPU presentation calls.
 ///
@@ -151,6 +153,13 @@ public final class SdlVideo {
     /// exception, because "this platform has no popup windows" is a fact about
     /// the platform and not a failure.
     ///
+    /// **A transparent popup on X11 is given the screen's 32-bit visual.** SDL's
+    /// X11 driver keeps [SdlWindowFlag#TRANSPARENT] for OpenGL windows. A
+    /// window-surface window like this one otherwise gets the display's default
+    /// 24-bit visual, and its rounded corners reach the compositor as black. The
+    /// visual is named through [Sdl#X11_WINDOW_VISUALID_HINT] for this one
+    /// creation and cleared after it. See `XlibVisuals`.
+    ///
     /// @param parent  the window this popup belongs to
     /// @param offsetX x, in the parent's logical coordinates
     /// @param offsetY y, in the parent's logical coordinates
@@ -162,9 +171,21 @@ public final class SdlVideo {
             SdlWindowHandle parent, int offsetX, int offsetY, int width, int height, Collection<SdlWindowFlag> flags) {
 
         Objects.requireNonNull(parent, "parent");
-        var pointer = sdlWindowCalls
-                .createPopupWindow()
-                .call(parent.pointer(), offsetX, offsetY, width, height, SdlWindowFlag.mask(flags));
+        var visual = flags.contains(SdlWindowFlag.TRANSPARENT) ? alphaVisual(parent) : OptionalLong.empty();
+        visual.ifPresent(id -> Sdl.get().setHint(Sdl.X11_WINDOW_VISUALID_HINT, XlibVisuals.hintValue(id)));
+        MemorySegment pointer;
+        try {
+            pointer = sdlWindowCalls
+                    .createPopupWindow()
+                    .call(parent.pointer(), offsetX, offsetY, width, height, SdlWindowFlag.mask(flags));
+        } finally {
+            // Empty rather than unset: SDL reads the hint only when it is
+            // non-empty, and the next window -- a top-level one, a tooltip of a
+            // window on another screen -- must not inherit this one's visual.
+            if (visual.isPresent()) {
+                Sdl.get().setHint(Sdl.X11_WINDOW_VISUALID_HINT, "");
+            }
+        }
         if (MemorySegment.NULL.equals(pointer)) {
             var error = Sdl.get().lastError();
             // SDL's own word for "the driver cannot do this", set by
@@ -178,6 +199,35 @@ public final class SdlVideo {
         }
         var id = sdlWindowCalls.getWindowId().call(pointer);
         return java.util.Optional.of(new SdlWindowHandle(pointer, id));
+    }
+
+    /// The visual with alpha for a popup of `parent`, or empty: off X11, where
+    /// the server has no such visual, or where the environment already names
+    /// one, which SDL would let win over the hint anyway.
+    private OptionalLong alphaVisual(SdlWindowHandle parent) {
+        if (System.getenv(Sdl.X11_WINDOW_VISUALID_HINT) != null) {
+            return OptionalLong.empty();
+        }
+        var properties = sdlWindowCalls.getWindowProperties().call(parent.pointer());
+        if (properties == 0) {
+            return OptionalLong.empty();
+        }
+        try (var arena = Arena.ofConfined()) {
+            var display = sdlWindowCalls
+                    .getPointerProperty()
+                    .call(properties, arena.allocateFrom("SDL.window.x11.display"), MemorySegment.NULL);
+            if (MemorySegment.NULL.equals(display)) {
+                return OptionalLong.empty();
+            }
+            var screen = (int) sdlWindowCalls
+                    .getNumberProperty()
+                    .call(properties, arena.allocateFrom("SDL.window.x11.screen"), 0L);
+            var visual = XlibVisuals.alphaVisual(display, screen);
+            if (visual.isEmpty()) {
+                LOG.debug("this X server has no 32-bit TrueColor visual; a popup's rounded corners will be black");
+            }
+            return visual;
+        }
     }
 
     /// Where the window's top-left is, in the desktop's coordinates.
@@ -804,12 +854,11 @@ public final class SdlVideo {
         var view = reinterpretSurface(surface);
 
         var format = view.get(ValueLayout.JAVA_INT, SURFACE_FORMAT);
-        if (!SdlPixelFormat.isBlittable(format)) {
-            throw new SdlException(
-                    "SDL_GetWindowSurface",
-                    "the window surface is format 0x" + Integer.toHexString(format)
-                            + ", which is not a 32-bit BGRA-order format Goldberry can paint into");
-        }
+        var known = SdlPixelFormat.of(format)
+                .orElseThrow(() -> new SdlException(
+                        "SDL_GetWindowSurface",
+                        "the window surface is format 0x" + Integer.toHexString(format)
+                                + ", which is not a 32-bit BGRA-order format Goldberry can paint into"));
 
         var width = view.get(ValueLayout.JAVA_INT, SURFACE_WIDTH);
         var height = view.get(ValueLayout.JAVA_INT, SURFACE_HEIGHT);
@@ -822,7 +871,8 @@ public final class SdlVideo {
         // A ByteBuffer over SDL's memory, not a copy of it -- and a ByteBuffer
         // rather than the segment itself, because a MemorySegment must not leave
         // this module (sec. 3.1).
-        return new SurfaceBuffer(resizePixels(pixels, (long) pitch * height).asByteBuffer(), width, height, pitch);
+        return new SurfaceBuffer(
+                resizePixels(pixels, (long) pitch * height).asByteBuffer(), width, height, pitch, known);
     }
 
     /// Presents a surface that was painted into directly, with no copy.
@@ -1005,8 +1055,9 @@ public final class SdlVideo {
     /// SDL's own drawing surface, borrowed.
     ///
     /// `pixels` is SDL's memory, not a copy. It stops being valid when the window
-    /// is resized or presented.
-    public record SurfaceBuffer(ByteBuffer pixels, int width, int height, int stride) {}
+    /// is resized or presented. `format` says whether its fourth byte is alpha,
+    /// which is whether the window can be see-through at all.
+    public record SurfaceBuffer(ByteBuffer pixels, int width, int height, int stride, SdlPixelFormat format) {}
 
     /// A point in SDL's window coordinates.
     public record SdlPoint(int x, int y) {}

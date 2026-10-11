@@ -1,5 +1,7 @@
 package dev.goldberry.natives.sdl.window;
 
+import java.util.Optional;
+
 /// The `SDL_PixelFormat` values the CPU present path accepts for a window
 /// surface.
 ///
@@ -33,13 +35,25 @@ public enum SdlPixelFormat {
         return "SDL_PIXELFORMAT_" + name();
     }
 
-    /// Whether a surface in this format can be blitted into directly.
-    public static boolean isBlittable(int format) {
+    /// Whether the fourth byte is alpha rather than padding: whether a window
+    /// with a surface in this format can be see-through anywhere.
+    public boolean hasAlpha() {
+        return this == ARGB8888;
+    }
+
+    /// The constant SDL reports as `format`, or empty for one the CPU present
+    /// path cannot blit into.
+    public static Optional<SdlPixelFormat> of(int format) {
         for (var candidate : values()) {
             if (candidate.value == format) {
-                return true;
+                return Optional.of(candidate);
             }
         }
-        return false;
+        return Optional.empty();
+    }
+
+    /// Whether a surface in this format can be blitted into directly.
+    public static boolean isBlittable(int format) {
+        return of(format).isPresent();
     }
 }

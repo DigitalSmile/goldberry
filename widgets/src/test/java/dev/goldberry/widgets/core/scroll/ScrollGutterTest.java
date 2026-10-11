@@ -116,6 +116,15 @@ class ScrollGutterTest {
     }
 
     @Test
+    @DisplayName("an overlay bar is 8px across, and its thumb 4px at rest")
+    void overlaySize() {
+        var placed = paint(Scrollbars.OVERLAY);
+
+        assertEquals(8, first(placed, "scrollbar").width(), 0.5f);
+        assertEquals(4, first(placed, "scroll-thumb").width(), 0.5f, "the hover widens it to the bar's 8");
+    }
+
+    @Test
     @DisplayName("always-shown bars reserve a 12px gutter beside the content and are drawn at rest")
     void always() {
         var placed = paint(Scrollbars.ALWAYS);

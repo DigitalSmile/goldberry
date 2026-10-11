@@ -69,14 +69,15 @@ public final class ForeignSurface {
             MacNotifier.class);
 
     /// The classes that bind a system library outside a `…calls` package —
-    /// libdbus, libobjc, shell32 — and declare every shape they send as a
+    /// libdbus, libobjc, shell32, libX11 — and declare every shape they send as a
     /// constant, so that initialising them records the shapes wherever the
     /// library is missing. Their libraries are opened by nested holders, which
     /// this does not touch.
     static final List<String> SYSTEM_LIBRARY_SHAPES = List.of(
             "dev.goldberry.natives.desktop.notify.Dbus",
             "dev.goldberry.natives.desktop.notify.WindowsNotifier",
-            "dev.goldberry.natives.desktop.macos.ObjC");
+            "dev.goldberry.natives.desktop.macos.ObjC",
+            "dev.goldberry.natives.x11.XlibVisuals");
 
     private ForeignSurface() {}
 

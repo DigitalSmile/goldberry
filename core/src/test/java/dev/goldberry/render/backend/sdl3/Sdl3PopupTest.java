@@ -15,6 +15,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import dev.goldberry.RendererRequirement;
+import dev.goldberry.natives.sdl.Sdl;
 import dev.goldberry.render.DamageRect;
 import dev.goldberry.render.PixelBuffer;
 import dev.goldberry.render.model.DisplayScale;
@@ -136,6 +137,36 @@ class Sdl3PopupTest {
             // not if TOOLTIP and POPUP_MENU are both set or neither is.
             assertEquals(PopupKind.TOOLTIP, opened.get().kind());
             opened.get().close();
+        });
+    }
+
+    /// A menu's panel has rounded corners, and what is outside them is painted
+    /// transparent. That only reaches the screen as transparent if the window
+    /// has an alpha channel, which SDL's X11 driver gives a window-surface
+    /// window only when it is told which visual to use. Without that the
+    /// corners were black.
+    @Test
+    @DisplayName("on X11 a popup's surface has alpha, and the next window does not inherit its visual")
+    void popupIsSeeThroughOnX11() {
+        assumeADisplay();
+        withBackend(null, (backend, window) -> {
+            Assumptions.assumeTrue(
+                    "x11".equals(Sdl.get().videoDriver()),
+                    "the visual is an X11 matter; other drivers honour the transparent flag themselves");
+            var opened = backend.createPopup(window, PopupSpec.of(LogicalPoint.of(20, 20), LogicalSize.of(120, 90)));
+            Assumptions.assumeTrue(opened.isPresent(), "this video driver has no popup windows");
+            var popup = (Sdl3Popup) opened.get();
+
+            assertTrue(
+                    popup.video().acquireSurface(popup.handle()).format().hasAlpha(),
+                    "a 24-bit visual drops the transparent corners' alpha, and the compositor shows them black");
+
+            var next = (Sdl3Window) backend.createWindow(WindowSpec.of("next", SIZE));
+            assertFalse(
+                    next.video().acquireSurface(next.handle()).format().hasAlpha(),
+                    "the visual was named for the popup alone; an ordinary window keeps the default");
+            next.close();
+            popup.close();
         });
     }
 

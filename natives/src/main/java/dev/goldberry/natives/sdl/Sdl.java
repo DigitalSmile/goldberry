@@ -101,6 +101,16 @@ public final class Sdl {
     /// Read once per video initialisation, when the first surface is made.
     public static final String FRAMEBUFFER_ACCELERATION_HINT = "SDL_FRAMEBUFFER_ACCELERATION";
 
+    /// The hint naming the X11 visual the next window is created with:
+    /// `SDL_VIDEO_X11_WINDOW_VISUALID`, a visual id, read with `strtol` so `0x`
+    /// means hexadecimal.
+    ///
+    /// The only way to give a window that is not an OpenGL one an alpha
+    /// channel on X11, which is what a popup with rounded corners needs. Read
+    /// when a window is created, so it is set around one creation and cleared
+    /// after it.
+    public static final String X11_WINDOW_VISUALID_HINT = "SDL_VIDEO_X11_WINDOW_VISUALID";
+
     /// Sets an SDL hint.
     ///
     /// Hints are SDL's configuration channel; most must be set before the
