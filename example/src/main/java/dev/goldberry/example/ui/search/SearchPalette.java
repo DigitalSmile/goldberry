@@ -60,11 +60,6 @@ public final class SearchPalette {
         }
     }
 
-    /// The keys picked lately, most recent first.
-    public List<String> recent() {
-        return recent.keys();
-    }
-
     private void closed() {
         open = null;
     }

@@ -71,3 +71,4 @@ Appended to the index when the records move in, in this order.
 - [ADR-0627 A masonry that is a frame stale wraps rather than squeezes](0627-a-masonry-that-is-a-frame-stale-wraps-rather-than-squeezes.md)
 - [ADR-0628 A transparent popup on X11 is given the screen's 32-bit visual](0628-a-transparent-popup-on-x11-is-given-the-screens-32-bit-visual.md)
 - [ADR-0629 The overlay scroll bar is a 4px thumb on an 8px bar](0629-the-overlay-scroll-bar-is-a-4px-thumb-on-an-8px-bar.md)
+- [ADR-0630 A golden admits a few stroke pixels in a hundred thousand](0630-a-golden-admits-a-few-stroke-pixels-in-a-hundred-thousand.md)

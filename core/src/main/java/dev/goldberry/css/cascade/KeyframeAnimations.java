@@ -62,18 +62,6 @@ public record KeyframeAnimations(
             List.of(FillMode.NONE),
             List.of(PlayState.RUNNING));
 
-    /// Animations that all run.
-    public KeyframeAnimations(
-            List<String> names,
-            List<Double> durations,
-            List<Easing> easings,
-            List<Double> delays,
-            List<Double> iterations,
-            List<Direction> directions,
-            List<FillMode> fillModes) {
-        this(names, durations, easings, delays, iterations, directions, fillModes, List.of(PlayState.RUNNING));
-    }
-
     public KeyframeAnimations {
         names = List.copyOf(names);
         durations = nonEmpty(durations, "animation-duration");

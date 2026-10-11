@@ -121,7 +121,7 @@ public final class FilterParser {
         if (words.isEmpty()) {
             return null;
         }
-        Integer colour = null;
+        Integer colour;
         if (pixels(words.getFirst(), context) == null) {
             colour = CssColor.parse(words.getFirst());
             words = words.subList(1, words.size());

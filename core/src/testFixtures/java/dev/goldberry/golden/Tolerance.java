@@ -23,9 +23,19 @@ public record Tolerance(int channel, double differing, double stray) {
     /// lands at one, and a colour that actually changed is nowhere near this
     /// close. At most 2% of the image may differ at all, because antialiased edges
     /// are where the pipelines disagree and an edge is a small fraction of a
-    /// frame. No pixel may stray beyond that: Blend2D's coverage is analytic, so
-    /// nothing flips.
-    public static final Tolerance RASTER = new Tolerance(2, 0.02, 0);
+    /// frame.
+    ///
+    /// One pixel in 100,000 may stray beyond the two levels. Blend2D's coverage
+    /// is analytic, so a fill never flips, but a **stroke** is outlined by
+    /// compiled code before it is filled, and an arm64 build and an x86-64 one
+    /// can place a vertex of that outline a hair apart. Two of the showcase's
+    /// stroked icons came out of Apple Silicon 4 levels from their x86-64
+    /// goldens on 2 to 4 pixels of a 1200x900 frame, and 14 levels on 10 to 13
+    /// pixels at 2x; every other pixel of those frames was identical. The share
+    /// admits 10 such pixels in a 1200x900 frame and none in a widget-sized
+    /// golden under 100,000 pixels, so a missing line, caret or focus ring still
+    /// fails.
+    public static final Tolerance RASTER = new Tolerance(2, 0.02, 0.00001);
 
     /// A picture a **GPU** rasterized and shaded, compared across drivers.
     ///

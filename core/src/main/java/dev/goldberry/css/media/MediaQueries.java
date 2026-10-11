@@ -241,7 +241,8 @@ public final class MediaQueries {
         }
         index++;
         var lower = condition(name, flipped(lowComparison), low);
-        if (peek() == null || peek().is(TokenType.CLOSE_PAREN)) {
+        var next = peek();
+        if (next == null || next.is(TokenType.CLOSE_PAREN)) {
             return lower;
         }
         var highComparison = comparison();

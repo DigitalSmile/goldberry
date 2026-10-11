@@ -10,7 +10,6 @@ import org.jspecify.annotations.Nullable;
 
 import dev.goldberry.css.value.Affine;
 import dev.goldberry.css.value.TransformBox;
-import dev.goldberry.layout.Length;
 import dev.goldberry.layout.Overflow;
 import dev.goldberry.natives.yoga.YogaConfig;
 import dev.goldberry.paint.Box;
@@ -618,16 +617,6 @@ public final class RenderTree implements AutoCloseable {
                 layout.width() - content.horizontal(),
                 layout.height() - content.vertical());
         return parent.intersect(own.map(transform));
-    }
-
-    /// One padding edge in logical pixels, against the box's own size.
-    static double edge(Length length, double base) {
-        return switch (length) {
-            case Length.Points points -> points.value();
-            case Length.Percent percent -> percent.value() / 100.0 * base;
-            case Length.Mixed mixed -> mixed.points() + mixed.percent() / 100.0 * base;
-            case Length.Keyword _ -> 0;
-        };
     }
 
     /// Renders a promoted subtree into its own raster and composites it back.

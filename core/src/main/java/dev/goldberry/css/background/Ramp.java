@@ -22,12 +22,6 @@ record Ramp(double from, double to, List<Gradient.Stop> stops) {
     /// not a straight sRGB line: a hint's curve, or another colour space.
     static final int SAMPLES = 16;
 
-    /// Places `stops` along a line `length` long, by CSS's rules, blended in
-    /// sRGB.
-    static Ramp of(List<GradientLayer.ColorStop> stops, double length) {
-        return of(stops, length, GradientLayer.Interpolation.SRGB);
-    }
-
     /// Places `stops` along a line `length` long, by CSS's rules, blended as
     /// `interpolation` says.
     static Ramp of(List<GradientLayer.ColorStop> stops, double length, GradientLayer.Interpolation interpolation) {

@@ -27,7 +27,7 @@ The `headless` backend renders to `BLImage` and pumps synthetic events through t
 
 ### 1.3 Golden-image tests
 - **Corpus:** the gallery matrix — every widget × every state (rest/hover/active/focus-visible/disabled/checked/invalid) × light+dark × regular+compact density × text scale 100% and 150%. Plus content modules: HTML documents, PDF pages, chart types, animation keyframes.
-- **Comparison:** **one** reference set, shared by every platform, compared with a per-channel tolerance of 2/256 and a cap of 2% of pixels allowed to differ at all (`GoldenImage`, ADR-0050).
+- **Comparison:** **one** reference set, shared by every platform, compared with a per-channel tolerance of 2/256, a cap of 2% of pixels allowed to differ at all, and one pixel in 100,000 allowed beyond the 2/256 (`GoldenImage`, `Tolerance.RASTER`, ADR-0050, ADR-0630).
 
   This is the reverse of the obvious design, and the reason is Blend2D: it compiles its rasterizer pipelines at run time with AsmJit, specialized to the CPU it finds — AVX2 on one runner, SSE2 on another, NEON on an Apple Silicon one. Those pipelines agree on what they draw and are *not* required to agree on the last bit of a blended subpixel. Byte-exactness would therefore fail on whichever architecture the goldens were not generated on, and the fix would be per-platform sets: three references that can each rot separately, and three diffs a reviewer has to read to approve one visual change.
 

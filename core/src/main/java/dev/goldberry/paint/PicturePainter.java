@@ -244,19 +244,6 @@ final class PicturePainter {
             int columns,
             int rows) {
 
-        /// The tiles, or null when there are none to draw.
-        static @Nullable Tiles of(
-                double originX,
-                double originY,
-                double tileWidth,
-                double tileHeight,
-                double width,
-                double height,
-                boolean across,
-                boolean down) {
-            return of(originX, originY, tileWidth, tileHeight, tileWidth, tileHeight, width, height, across, down);
-        }
-
         /// The tiles one every `stepX` and `stepY`, or null when there are none
         /// to draw.
         static @Nullable Tiles of(

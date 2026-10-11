@@ -92,7 +92,7 @@ public final class SearchRanking {
                     .flatMap(Optional::stream)
                     .mapToInt(Match::score)
                     .max();
-            var titleScore = inTitle.map(match -> match.score() * TITLE_WEIGHT).orElse(0);
+            int titleScore = inTitle.map(match -> match.score() * TITLE_WEIGHT).orElse(0);
             var contextScore = elsewhere.orElse(0);
             if (titleScore == 0 && contextScore == 0) {
                 return Optional.empty();

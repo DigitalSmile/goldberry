@@ -60,13 +60,7 @@ public enum TextTransform {
         for (var i = 0; i < text.length(); ) {
             var codePoint = text.codePointAt(i);
             var count = Character.charCount(codePoint);
-            var mapped = switch (this) {
-                case UPPERCASE -> Character.toUpperCase(codePoint);
-                case LOWERCASE -> Character.toLowerCase(codePoint);
-                case CAPITALIZE ->
-                    wordStart && Character.isLetter(codePoint) ? Character.toTitleCase(codePoint) : codePoint;
-                case NONE -> codePoint;
-            };
+            var mapped = map(codePoint, wordStart);
             // A mapping that would change the length keeps the character.
             out.appendCodePoint(Character.charCount(mapped) == count ? mapped : codePoint);
             if (Character.isLetterOrDigit(codePoint)) {
@@ -77,6 +71,18 @@ public enum TextTransform {
             i += count;
         }
         return out.toString();
+    }
+
+    /// One code point as this transform draws it, `wordStart` saying whether it
+    /// opens a word.
+    private int map(int codePoint, boolean wordStart) {
+        return switch (this) {
+            case UPPERCASE -> Character.toUpperCase(codePoint);
+            case LOWERCASE -> Character.toLowerCase(codePoint);
+            case CAPITALIZE ->
+                wordStart && Character.isLetter(codePoint) ? Character.toTitleCase(codePoint) : codePoint;
+            case NONE -> codePoint;
+        };
     }
 
     /// Punctuation that starts a word after it: a dash, a slash or an opening

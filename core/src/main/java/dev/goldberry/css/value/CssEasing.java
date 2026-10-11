@@ -176,38 +176,42 @@ public final class CssEasing {
         if (outputs.size() < 2) {
             throw new IllegalArgumentException("linear() needs two points");
         }
-        if (inputs.getFirst() == null) {
-            inputs.set(0, 0.0);
+        // NaN for a missing input from here on: primitives, so nothing unboxes
+        // a stop that has not been filled in yet.
+        var at = new double[inputs.size()];
+        for (var i = 0; i < at.length; i++) {
+            var input = inputs.get(i);
+            at[i] = input == null ? Double.NaN : input;
         }
-        if (inputs.getLast() == null) {
-            inputs.set(inputs.size() - 1, 1.0);
+        if (Double.isNaN(at[0])) {
+            at[0] = 0;
+        }
+        if (Double.isNaN(at[at.length - 1])) {
+            at[at.length - 1] = 1;
         }
         var largest = Double.NEGATIVE_INFINITY;
-        for (var i = 0; i < inputs.size(); i++) {
-            var input = inputs.get(i);
-            if (input != null) {
-                largest = Math.max(largest, input);
-                inputs.set(i, largest);
+        for (var i = 0; i < at.length; i++) {
+            if (!Double.isNaN(at[i])) {
+                largest = Math.max(largest, at[i]);
+                at[i] = largest;
             }
         }
-        for (var i = 1; i < inputs.size(); i++) {
-            if (inputs.get(i) != null) {
+        for (var i = 1; i < at.length; i++) {
+            if (!Double.isNaN(at[i])) {
                 continue;
             }
             var from = i - 1;
             var to = i;
-            while (inputs.get(to) == null) {
+            while (Double.isNaN(at[to])) {
                 to++;
             }
-            double start = inputs.get(from);
-            double end = inputs.get(to);
             for (var k = i; k < to; k++) {
-                inputs.set(k, start + (end - start) * (k - from) / (to - from));
+                at[k] = at[from] + (at[to] - at[from]) * (k - from) / (to - from);
             }
         }
         var points = new ArrayList<PiecewiseLinear.Point>(outputs.size());
         for (var i = 0; i < outputs.size(); i++) {
-            points.add(new PiecewiseLinear.Point(outputs.get(i), inputs.get(i)));
+            points.add(new PiecewiseLinear.Point(outputs.get(i), at[i]));
         }
         return new PiecewiseLinear(points);
     }

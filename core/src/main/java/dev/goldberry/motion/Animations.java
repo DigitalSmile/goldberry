@@ -245,7 +245,7 @@ public final class Animations {
         var anyRunning = false;
         for (var entry : entries) {
             names.add(entry.name());
-            var start = keyframeStarts.computeIfAbsent(entry.name(), name -> now);
+            double start = keyframeStarts.computeIfAbsent(entry.name(), name -> now);
             var stopped = pausedAt.get(entry.name());
             if (entry.isPaused() && stopped == null) {
                 stopped = now;

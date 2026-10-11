@@ -644,7 +644,7 @@ public final class Showcase implements Application {
     /// is scrolled to and ringed, and a command runs.
     private void go(SearchEntry entry) {
         switch (entry) {
-            case SearchEntry.Screen screen -> actions.pickScreen(screen.tab().name());
+            case SearchEntry.Screen chosen -> actions.pickScreen(chosen.tab().name());
             case SearchEntry.Card card -> {
                 actions.pickScreen(card.screen().name());
                 // After the frame that builds the screen, so the card exists to

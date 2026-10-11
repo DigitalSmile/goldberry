@@ -112,7 +112,7 @@ final class PositionParser {
                 : new BackgroundPosition(0, axis.pixels(), 0, axis.percent());
     }
 
-    private static @Nullable BackgroundPosition one(Word word) {
+    private static BackgroundPosition one(Word word) {
         if (word.vertical()) {
             return position(Axis.CENTRE, keyword(word));
         }

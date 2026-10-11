@@ -31,6 +31,7 @@ import dev.goldberry.layout.FlexDirection;
 import dev.goldberry.layout.Insets;
 import dev.goldberry.layout.Justify;
 import dev.goldberry.layout.Length;
+import dev.goldberry.layout.Overflow;
 import dev.goldberry.motion.Easing;
 import dev.goldberry.text.flow.OverflowWrap;
 import dev.goldberry.text.flow.TextAlign;
@@ -1474,5 +1475,15 @@ class ComputedStyleTest {
 
             assertEquals(Set.of(TextDecoration.UNDERLINE), style.textDecoration());
         }
+    }
+
+    @Test
+    @DisplayName("overflow with one value sets both axes")
+    void overflowSetsBothAxes() {
+        var clipped = ComputedStyle.INITIAL.overflow(Overflow.HIDDEN);
+
+        assertEquals(Overflow.HIDDEN, clipped.overflowX());
+        assertEquals(Overflow.HIDDEN, clipped.overflowY());
+        assertEquals(Overflow.HIDDEN, clipped.overflow());
     }
 }

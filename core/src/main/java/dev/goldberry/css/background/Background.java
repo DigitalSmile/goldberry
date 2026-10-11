@@ -103,20 +103,6 @@ public sealed interface Background {
         return of(argb, layers, List.of(position), AUTO_SIZE, REPEAT, PADDING_BOX, BORDER_BOX);
     }
 
-    /// A colour with `layers` over it, moved, sized and tiled — or a plain
-    /// [Colour] when every one of those is at its initial value.
-    ///
-    /// The lists are kept when there are no layers, so a `background-size`
-    /// applied before the `background-image` it sizes is not lost.
-    static Background of(
-            int argb,
-            List<? extends CssImage> layers,
-            BackgroundPosition position,
-            List<BackgroundSize> sizes,
-            List<BackgroundRepeat> repeats) {
-        return of(argb, layers, List.of(position), sizes, repeats, PADDING_BOX, BORDER_BOX);
-    }
-
     /// A colour with `layers` over it, each placed, sized, tiled and cut as the
     /// lists say — or a plain [Colour] when every list is at its initial value.
     static Background of(

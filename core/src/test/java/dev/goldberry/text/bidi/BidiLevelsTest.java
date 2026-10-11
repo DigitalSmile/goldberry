@@ -238,4 +238,11 @@ class BidiLevelsTest {
             assertThrows(IllegalArgumentException.class, () -> new LevelRun(0, 1, -1));
         }
     }
+
+    @Test
+    @DisplayName("knows the length of the text it is the levels of")
+    void length() {
+        assertEquals(16, BidiLevels.of("Goldberry, 2026!", Directionality.LTR).length());
+        assertEquals(0, BidiLevels.of("", Directionality.AUTO).length());
+    }
 }

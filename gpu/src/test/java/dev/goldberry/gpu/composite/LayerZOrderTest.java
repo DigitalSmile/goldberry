@@ -125,7 +125,7 @@ class LayerZOrderTest {
     }
 
     @Test
-    @DisplayName("a layer under a rounded clip is cut to its bounding box, and rounded by the UI over it")
+    @DisplayName("a layer under a rounded clip is cut to its padding box, and rounded by the UI over it")
     void layerUnderARoundedClip() {
         var layer = new TestLayer(WHITE, 0xFF0000FF).moveTo(0.4, 0.3);
         var rounded = Decoration.NONE.radius(16).border(3, DARK);
@@ -139,7 +139,9 @@ class LayerZOrderTest {
         var corners = at(Box.of().decoration(Decoration.NONE.radius(32).border(16, GREY)), 4, -1, 152, 122);
         var ring = at(Box.of().decoration(rounded), 20, 15, 120, 90);
         var placed = assertSameBothWays("gpu-layer-rounded", 1f, root(clip, corners, ring));
-        assertEquals(PhysicalRect.of(20, 15, 120, 90), placed.getFirst().scissor(), "the clip's bounding box");
+        // Inside the 3px border, where `overflow: hidden` clips: a border takes
+        // room, so the clip's padding box is its bounding box less the border.
+        assertEquals(PhysicalRect.of(23, 18, 114, 84), placed.getFirst().scissor(), "the clip's padding box");
     }
 
     @Test

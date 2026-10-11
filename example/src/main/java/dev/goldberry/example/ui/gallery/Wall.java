@@ -91,13 +91,6 @@ public record Wall(
         return new Wall(id, title, summary, doc, Masonry.UNSET, WIDE_COLUMN_WIDTH, List.copyOf(cards));
     }
 
-    /// A wall of exactly `columns` columns, for cards that need the width: a table
-    /// whose columns are fixed, or a strip of steps that does not wrap.
-    public static Wall inColumns(
-            String id, String title, String summary, DocLink doc, int columns, List<? extends Widget> cards) {
-        return new Wall(id, title, summary, doc, columns, Masonry.UNSET, List.copyOf(cards));
-    }
-
     /// A wall built from a document's cards, plus whatever Java had to add.
     ///
     /// The order matters and is the caller's: a masonry places each card under

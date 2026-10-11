@@ -16,6 +16,7 @@ import dev.goldberry.assets.BundledFont;
 import dev.goldberry.css.ComputedStyle;
 import dev.goldberry.css.Stylesheet;
 import dev.goldberry.css.cascade.CascadeLayer;
+import dev.goldberry.css.media.MediaContext;
 import dev.goldberry.paint.Box;
 import dev.goldberry.render.desktop.SystemTheme;
 import dev.goldberry.text.font.Font;
@@ -96,5 +97,22 @@ class MediaRestyleTest {
         public Box render(ComputedStyle style, List<Box> boxes, Context context) {
             return Box.of().style(style);
         }
+    }
+
+    @Test
+    @DisplayName("a touch screen reaches pointer: coarse")
+    void touchInput() {
+        var renderer =
+                new WidgetRenderer(List.of(Stylesheet.parse(CascadeLayer.APPLICATION, """
+                                group { background: red }
+                                @media (pointer: coarse) { group { background: blue } }
+                                """)), font).viewport(800, 600);
+        var tree = new ElementTree(new Group());
+        assertEquals(RED, renderer.render(tree).background(), "a mouse until told otherwise");
+
+        renderer.input(MediaContext.Input.TOUCH);
+
+        assertEquals(MediaContext.Input.TOUCH, renderer.media().input());
+        assertEquals(BLUE, renderer.render(tree).background());
     }
 }

@@ -37,9 +37,4 @@ public record Import(
             throw new IllegalArgumentException("an @import names a sheet");
         }
     }
-
-    /// An import into no layer.
-    public Import(String href, MediaCondition media, int line, int column) {
-        this(href, media, null, line, column);
-    }
 }

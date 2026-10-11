@@ -21,6 +21,7 @@ import org.junit.jupiter.api.Timeout;
 import dev.goldberry.render.BackendException;
 import dev.goldberry.render.DamageRect;
 import dev.goldberry.render.PixelBuffer;
+import dev.goldberry.render.desktop.DisplayPreferences;
 import dev.goldberry.render.event.BackendEvent;
 import dev.goldberry.render.model.DisplayScale;
 import dev.goldberry.render.model.LogicalSize;
@@ -492,5 +493,17 @@ class HeadlessBackendTest {
         window.setTitle("Goldberry — untitled");
 
         assertEquals("Goldberry — untitled", window.title());
+    }
+
+    @Test
+    @DisplayName("the display preferences are what a test sets, and nothing until it does")
+    void displayPreferences() {
+        assertEquals(DisplayPreferences.NONE, backend.displayPreferences());
+
+        var contrast = new DisplayPreferences(true, false, false);
+        backend.displayPreferences(contrast);
+
+        assertEquals(contrast, backend.displayPreferences());
+        assertThrows(NullPointerException.class, () -> backend.displayPreferences(null));
     }
 }

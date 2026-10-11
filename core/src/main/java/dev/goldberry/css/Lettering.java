@@ -46,16 +46,6 @@ public record Lettering(
         }
     }
 
-    /// Spacing in the case it is written.
-    public Lettering(double letterSpacing, double wordSpacing) {
-        this(letterSpacing, wordSpacing, TextTransform.NONE, List.of(), TextJustify.AUTO);
-    }
-
-    /// Spacing, a case and shadows, justified at the word gaps.
-    public Lettering(double letterSpacing, double wordSpacing, TextTransform transform, List<Shadow> shadows) {
-        this(letterSpacing, wordSpacing, transform, shadows, TextJustify.AUTO);
-    }
-
     /// This, with `letter-spacing` at `value`.
     public Lettering letterSpacing(double value) {
         return new Lettering(value, wordSpacing, transform, shadows, justify);
