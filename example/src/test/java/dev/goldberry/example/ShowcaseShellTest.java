@@ -71,9 +71,10 @@ class ShowcaseShellTest {
 
     // --- the gallery ---------------------------------------------------------
 
-    /// A screen per chapter of the guide, in the guide's order, and a Guide screen
-    /// last. Ten have a digit, which are the first ten in strip order; the rest
-    /// are reached by the strip, the arrows inside it, and Edit ▸ Go to.
+    /// A screen per chapter of the guide, in the guide's order, then the
+    /// Lookalike screen, and a Guide screen last. Ten have a digit, which are the
+    /// first ten in strip order; the rest are reached by the strip, the arrows
+    /// inside it, and Edit ▸ Go to.
     ///
     /// Written out rather than read from [dev.goldberry.example.ui.gallery.Gallery],
     /// because what this pins is the order a reader of the guide meets: a screen
@@ -112,6 +113,7 @@ class ShowcaseShellTest {
                         "windows",
                         "diagnostics",
                         "application",
+                        "lookalike",
                         "guide"),
                 Screen.GALLERY);
         assertEquals("navigation", Screen.GALLERY.get(9), "Ctrl+0 is the tenth screen");

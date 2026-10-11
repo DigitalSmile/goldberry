@@ -23,6 +23,7 @@ import dev.goldberry.example.ui.guide.GuideChapter;
 import dev.goldberry.example.ui.input.InputChapter;
 import dev.goldberry.example.ui.layout.LayoutChapter;
 import dev.goldberry.example.ui.layout.ScrollingChapter;
+import dev.goldberry.example.ui.lookalike.LookalikeChapter;
 import dev.goldberry.example.ui.media.AudioChapter;
 import dev.goldberry.example.ui.media.VideoChapter;
 import dev.goldberry.example.ui.menus.MenusChapter;
@@ -43,8 +44,9 @@ import dev.goldberry.example.ui.windows.WindowsChapter;
 /// what it names. A screen added here arrives in all four places.
 ///
 /// The order is the book's: the layout part, then the components chapter by
-/// chapter, then the developer guide's chapters, then a screen of reference cards
-/// for the chapters with nothing to click. A reader who has a chapter of the guide
+/// chapter, then the developer guide's chapters, then a familiar product rebuilt
+/// from the stock widgets, then a screen of reference cards for the chapters
+/// with nothing to click. A reader who has a chapter of the guide
 /// open finds the same screen one tab along from the last.
 ///
 /// Read more: [The catalogue](https://goldberry.dev/docs/components/index.html).
@@ -80,6 +82,7 @@ public final class Gallery {
             new GalleryTab("windows", "Windows", Fit.SCROLLED, WindowsChapter::new),
             new GalleryTab("diagnostics", "Diagnostics", Fit.SCROLLED, DiagnosticsChapter::new),
             new GalleryTab("application", "Application", Fit.SCROLLED, ApplicationChapter::new),
+            new GalleryTab("lookalike", "Lookalike", Fit.FILLS, LookalikeChapter::new),
             new GalleryTab("guide", "Guide", Fit.SCROLLED, GuideChapter::new));
 
     private static final Map<String, GalleryTab> BY_NAME =

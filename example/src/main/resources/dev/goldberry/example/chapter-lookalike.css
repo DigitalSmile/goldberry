@@ -1,0 +1,791 @@
+/* The rules of the screens in `dev.goldberry.example.ui.lookalike`, loaded after
+   `showcase.css` by `ShowcaseStyles`. A rule every screen shares belongs in
+   `showcase.css`; a rule about one screen's cards belongs here.
+
+   The Lookalike screen is a music streaming app, so this sheet does what an
+   application's own sheet does: it sets its own palette under one id and leaves
+   the theme alone everywhere else. Every widget under `#stream-app` is a stock
+   row, column, text, icon, pressable or slider. */
+
+/* --- The window ------------------------------------------------------------ */
+
+#stream-app {
+  --stream-black: #000000;
+  --stream-base: #121212;
+  --stream-raised: #1f1f1f;
+  --stream-hover: #2a2a2a;
+  --stream-press: #333333;
+  --stream-text: #ffffff;
+  --stream-muted: #b3b3b3;
+  --stream-faint: #727272;
+  --stream-green: #1ed760;
+  --stream-green-dark: #1db954;
+
+  flex-direction: column;
+  flex-grow: 1;
+  min-height: 0;
+  gap: 8px;
+  padding: 8px;
+  border-radius: 10px;
+  background: var(--stream-black);
+  color: var(--stream-text);
+  font-size: 13px;
+  line-height: 18px;
+}
+
+#stream-app .stream-body {
+  flex-direction: row;
+  flex-grow: 1;
+  min-height: 0;
+  gap: 8px;
+}
+
+#stream-app .one-line {
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+}
+
+#stream-app text {
+  color: var(--stream-text);
+}
+
+#stream-app icon {
+  width: 20px;
+  height: 20px;
+  color: var(--stream-muted);
+}
+
+/* An icon that does something: muted, white under the pointer, green when on. */
+#stream-app pressable.icon-button {
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 16px;
+}
+
+#stream-app pressable.icon-button:hover icon {
+  color: var(--stream-text);
+}
+
+#stream-app pressable.icon-button.on icon,
+#stream-app pressable.icon-button.liked icon {
+  color: var(--stream-green);
+}
+
+#stream-app pressable.icon-button:active {
+  opacity: 0.7;
+}
+
+/* --- Covers ---------------------------------------------------------------- */
+
+#stream-app .cover {
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border-radius: 4px;
+}
+
+#stream-app .cover-sm {
+  width: 48px;
+  height: 48px;
+}
+
+#stream-app .cover-lg {
+  width: 148px;
+  height: 148px;
+  border-radius: 6px;
+}
+
+#stream-app .cover-xl {
+  width: 192px;
+  height: 192px;
+  border-radius: 6px;
+  box-shadow: 0 8px 24px #00000080;
+}
+
+#stream-app .cover icon.cover-icon {
+  width: 40%;
+  height: 40%;
+  color: var(--stream-text);
+}
+
+#stream-app .cover-liked {
+  background: linear-gradient(135deg, #450af5, #c4efd9);
+}
+
+#stream-app .cover-ember {
+  background: linear-gradient(135deg, #e8115b, #f59b23);
+}
+
+#stream-app .cover-lagoon {
+  background: linear-gradient(135deg, #0d73ec, #27c4b5);
+}
+
+#stream-app .cover-moss {
+  background: linear-gradient(135deg, #1e3264, #4f9a5a);
+}
+
+#stream-app .cover-dusk {
+  background: linear-gradient(135deg, #3b1a6b, #e05a8a);
+}
+
+#stream-app .cover-gold {
+  background: linear-gradient(135deg, #b4730f, #f4d35e);
+}
+
+#stream-app .cover-slate {
+  background: linear-gradient(135deg, #283044, #8d99ae);
+}
+
+#stream-app .cover-rose {
+  background: linear-gradient(135deg, #7a1f3d, #f2a7b8);
+}
+
+/* --- The sidebar ----------------------------------------------------------- */
+
+#stream-sidebar {
+  flex-direction: column;
+  width: 288px;
+  flex-shrink: 0;
+  gap: 8px;
+}
+
+#stream-app .stream-panel {
+  border-radius: 8px;
+  background: var(--stream-base);
+}
+
+#stream-app .stream-nav {
+  flex-direction: column;
+  padding: 8px 12px;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+#stream-app .nav-item {
+  flex-direction: row;
+  align-items: center;
+  gap: 18px;
+  height: 40px;
+  padding: 0 12px;
+}
+
+#stream-app .nav-item icon.nav-icon,
+#stream-app .library-head icon.nav-icon {
+  width: 24px;
+  height: 24px;
+}
+
+#stream-app .nav-label {
+  color: var(--stream-muted);
+  font-size: 15px;
+  font-weight: 700;
+}
+
+#stream-app .nav-item.active .nav-label,
+#stream-app .nav-item.active icon {
+  color: var(--stream-text);
+}
+
+#stream-app .stream-library {
+  flex-direction: column;
+  flex-grow: 1;
+  min-height: 0;
+  padding: 8px 8px 0 8px;
+  gap: 8px;
+}
+
+#stream-app .library-head {
+  flex-direction: row;
+  align-items: center;
+  gap: 12px;
+  padding: 4px 4px 4px 16px;
+  flex-shrink: 0;
+}
+
+/* Wrapping rather than shrinking: a chip is a word, and a larger text size
+   moves the last chip to a second line instead of cutting it. */
+#stream-app .library-filters {
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 4px 8px;
+  flex-shrink: 0;
+}
+
+#stream-app .filter-chip {
+  flex-shrink: 0;
+  padding: 6px 12px;
+  border-radius: 16px;
+  background: var(--stream-raised);
+  color: var(--stream-text);
+}
+
+#stream-app .filter-chip.on {
+  background: var(--stream-text);
+  color: var(--stream-black);
+}
+
+#stream-library-list {
+  flex-grow: 1;
+}
+
+#stream-app .library-rows {
+  flex-direction: column;
+}
+
+#stream-app pressable.library-row {
+  flex-direction: row;
+  border-radius: 6px;
+  padding: 8px;
+}
+
+#stream-app pressable.library-row:hover {
+  background: var(--stream-raised);
+}
+
+#stream-app pressable.library-row.selected {
+  background: var(--stream-hover);
+}
+
+#stream-app .library-row-body {
+  flex-direction: row;
+  align-items: center;
+  flex-grow: 1;
+  min-width: 0;
+  gap: 12px;
+}
+
+#stream-app .row-text {
+  flex-direction: column;
+  flex-grow: 1;
+  min-width: 0;
+  gap: 2px;
+}
+
+#stream-app .row-title {
+  font-size: 14px;
+}
+
+#stream-app .row-detail {
+  color: var(--stream-muted);
+}
+
+#stream-app .now,
+#stream-app text.now {
+  color: var(--stream-green);
+}
+
+#stream-app icon.now-icon {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  color: var(--stream-green);
+}
+
+/* --- The playlist page ----------------------------------------------------- */
+
+/* The page fades from its cover's colour into the window's black a third of
+   the way down -- the one flourish that makes a player look like this one. */
+#stream-main {
+  flex-grow: 1;
+  min-width: 0;
+  border-radius: 8px;
+  background: var(--stream-base);
+}
+
+#stream-main.tint-liked {
+  background: linear-gradient(to bottom, #3f2a84, var(--stream-base) 420px);
+}
+
+#stream-main.tint-ember {
+  background: linear-gradient(to bottom, #8a2a2a, var(--stream-base) 420px);
+}
+
+#stream-main.tint-lagoon {
+  background: linear-gradient(to bottom, #145a7a, var(--stream-base) 420px);
+}
+
+#stream-main.tint-moss {
+  background: linear-gradient(to bottom, #284a3c, var(--stream-base) 420px);
+}
+
+#stream-main.tint-dusk {
+  background: linear-gradient(to bottom, #5a2b62, var(--stream-base) 420px);
+}
+
+#stream-main.tint-gold {
+  background: linear-gradient(to bottom, #7a5a1a, var(--stream-base) 420px);
+}
+
+#stream-main.tint-slate {
+  background: linear-gradient(to bottom, #3a4256, var(--stream-base) 420px);
+}
+
+#stream-main.tint-rose {
+  background: linear-gradient(to bottom, #7a3a50, var(--stream-base) 420px);
+}
+
+#stream-app .stream-page {
+  flex-direction: column;
+  padding: 24px 24px 32px 24px;
+  gap: 20px;
+}
+
+#stream-app .stream-hero {
+  flex-direction: row;
+  align-items: flex-end;
+  gap: 24px;
+}
+
+#stream-app .hero-text {
+  flex-direction: column;
+  flex-grow: 1;
+  min-width: 0;
+  gap: 8px;
+}
+
+#stream-app .hero-kind {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+#stream-app .hero-title {
+  font-size: 56px;
+  line-height: 64px;
+  font-weight: 800;
+}
+
+#stream-app .hero-description {
+  color: var(--stream-muted);
+  font-size: 14px;
+}
+
+#stream-app .hero-facts {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+#stream-app .stream-actions {
+  flex-direction: row;
+  align-items: center;
+  gap: 16px;
+}
+
+#stream-app pressable.big-play {
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 28px;
+  background: var(--stream-green);
+  box-shadow: 0 8px 8px #0000004d;
+}
+
+#stream-app pressable.big-play:hover {
+  background: #3be477;
+}
+
+#stream-app pressable.big-play icon {
+  width: 24px;
+  height: 24px;
+  color: var(--stream-black);
+}
+
+#stream-app pressable.action-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 20px;
+}
+
+#stream-app pressable.action-icon icon {
+  width: 28px;
+  height: 28px;
+}
+
+#stream-app .action-label {
+  color: var(--stream-muted);
+}
+
+#stream-app icon.action-label-icon {
+  width: 16px;
+  height: 16px;
+}
+
+/* The table: a fixed number column, a growing title, an album column, then
+   the heart and the length at the right edge. The header row uses the same
+   classes as the rows, so the columns line up without a table. */
+#stream-app .stream-tracks {
+  flex-direction: column;
+}
+
+#stream-app .track-head {
+  flex-direction: row;
+  align-items: center;
+  height: 36px;
+  padding: 0 16px 0 0;
+  margin-bottom: 8px;
+  border-bottom: 1px solid #ffffff1a;
+}
+
+#stream-app .track-head text {
+  color: var(--stream-muted);
+}
+
+#stream-app icon.head-clock {
+  width: 16px;
+  height: 16px;
+  margin-left: 32px;
+  margin-right: 8px;
+}
+
+#stream-app .track-row {
+  flex-direction: row;
+  align-items: center;
+  height: 56px;
+  padding: 0 16px 0 0;
+  border-radius: 4px;
+}
+
+#stream-app .track-row:hover {
+  background: #ffffff1a;
+}
+
+#stream-app .track-row.current {
+  background: #ffffff0d;
+}
+
+#stream-app pressable.track-body {
+  flex-direction: row;
+  flex-grow: 1;
+  min-width: 0;
+  height: 56px;
+  border-radius: 4px;
+}
+
+#stream-app .track-body-row {
+  flex-direction: row;
+  align-items: center;
+  flex-grow: 1;
+  min-width: 0;
+}
+
+#stream-app .track-lead {
+  flex-direction: row;
+  justify-content: flex-end;
+  width: 32px;
+  padding-right: 16px;
+  flex-shrink: 0;
+  color: var(--stream-muted);
+}
+
+#stream-app text.track-number {
+  color: var(--stream-muted);
+  font-size: 15px;
+}
+
+#stream-app text.track-number.now {
+  color: var(--stream-green);
+}
+
+#stream-app .track-name {
+  flex-direction: column;
+  flex-grow: 3;
+  flex-basis: 0;
+  min-width: 0;
+  gap: 2px;
+}
+
+#stream-app .track-title {
+  font-size: 15px;
+}
+
+#stream-app .track-artist,
+#stream-app .track-album {
+  color: var(--stream-muted);
+}
+
+#stream-app .track-album {
+  flex-grow: 2;
+  flex-basis: 0;
+  min-width: 0;
+  padding-left: 16px;
+}
+
+#stream-app pressable.track-heart icon {
+  width: 16px;
+  height: 16px;
+}
+
+#stream-app .track-length {
+  width: 48px;
+  text-align: right;
+  color: var(--stream-muted);
+}
+
+#stream-app .stream-empty {
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 48px 0;
+}
+
+#stream-app .empty-title {
+  font-size: 24px;
+  line-height: 32px;
+  font-weight: 700;
+}
+
+#stream-app .empty-detail {
+  color: var(--stream-muted);
+}
+
+/* The shelf: a row of cards that each lights up under the pointer. */
+#stream-app .stream-shelf {
+  flex-direction: column;
+  gap: 12px;
+  padding-top: 16px;
+}
+
+#stream-app .shelf-head {
+  flex-direction: row;
+  align-items: flex-end;
+}
+
+#stream-app .shelf-title {
+  font-size: 22px;
+  line-height: 28px;
+  font-weight: 700;
+}
+
+#stream-app .shelf-more {
+  color: var(--stream-muted);
+  font-weight: 700;
+}
+
+#stream-app .shelf-cards {
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+#stream-app .album-card {
+  flex-direction: column;
+  width: 164px;
+  padding: 8px;
+  gap: 6px;
+  border-radius: 6px;
+}
+
+#stream-app .album-card:hover {
+  background: var(--stream-raised);
+}
+
+#stream-app .album-title {
+  font-size: 14px;
+}
+
+#stream-app .album-detail {
+  color: var(--stream-muted);
+}
+
+/* --- The now-playing panel ------------------------------------------------- */
+
+#stream-now-panel {
+  width: 300px;
+  flex-shrink: 0;
+}
+
+#stream-app .panel-page {
+  flex-direction: column;
+  padding: 16px;
+  gap: 16px;
+}
+
+#stream-app .panel-head {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+}
+
+#stream-app .panel-title {
+  font-size: 15px;
+  font-weight: 700;
+  flex-shrink: 1;
+  min-width: 0;
+}
+
+#stream-app .panel-body {
+  flex-direction: column;
+  gap: 8px;
+}
+
+#stream-app .panel-body .cover-xl {
+  width: 268px;
+  height: 268px;
+}
+
+#stream-app .panel-track {
+  font-size: 22px;
+  line-height: 28px;
+  font-weight: 700;
+  margin-top: 8px;
+}
+
+#stream-app .panel-artist {
+  color: var(--stream-muted);
+  font-size: 15px;
+}
+
+#stream-app .panel-card {
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 12px;
+  padding: 16px;
+  border-radius: 8px;
+  background: var(--stream-raised);
+}
+
+#stream-app .panel-card-title {
+  font-weight: 700;
+}
+
+#stream-app .panel-card-name {
+  font-size: 16px;
+  font-weight: 700;
+}
+
+#stream-app .panel-card-detail {
+  color: var(--stream-muted);
+}
+
+/* --- The player bar -------------------------------------------------------- */
+
+#stream-bar {
+  flex-direction: row;
+  align-items: center;
+  height: 72px;
+  flex-shrink: 0;
+  padding: 0 8px;
+}
+
+#stream-app .bar-now {
+  flex-direction: row;
+  align-items: center;
+  width: 30%;
+  min-width: 0;
+  gap: 12px;
+}
+
+#stream-app .bar-now-text {
+  flex-direction: column;
+  flex-shrink: 1;
+  min-width: 0;
+  gap: 2px;
+}
+
+#stream-app .bar-title {
+  font-size: 14px;
+}
+
+#stream-app .bar-artist {
+  color: var(--stream-muted);
+  font-size: 12px;
+}
+
+#stream-app pressable.bar-heart icon {
+  width: 16px;
+  height: 16px;
+}
+
+#stream-app .bar-transport {
+  flex-direction: column;
+  align-items: center;
+  flex-grow: 1;
+  flex-basis: 0;
+  gap: 4px;
+}
+
+#stream-app .bar-buttons {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+}
+
+#stream-app pressable.bar-icon icon {
+  width: 16px;
+  height: 16px;
+}
+
+#stream-app pressable.bar-play {
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  margin: 0 8px;
+  border-radius: 16px;
+  background: var(--stream-text);
+}
+
+#stream-app pressable.bar-play:hover {
+  transform: scale(1.06);
+}
+
+#stream-app pressable.bar-play icon {
+  width: 16px;
+  height: 16px;
+  color: var(--stream-black);
+}
+
+#stream-app .bar-progress {
+  flex-direction: row;
+  align-items: center;
+  align-self: stretch;
+  gap: 8px;
+}
+
+#stream-app .bar-time {
+  width: 40px;
+  color: var(--stream-muted);
+  font-size: 11px;
+  text-align: center;
+}
+
+/* The two sliders: a thin white bar on grey that turns green under the
+   pointer, with the thumb shown only then. The theme's tokens, set here, so
+   the slider draws itself and nothing about its structure is overridden. */
+#stream-app slider {
+  --gb-slider-track-bg: #4d4d4d;
+  --gb-slider-fill-bg: var(--stream-text);
+  --gb-slider-thumb-bg: #00000000;
+  --gb-slider-thumb-bg-hover: var(--stream-text);
+  --gb-slider-thumb-bg-active: var(--stream-text);
+  --gb-slider-thumb-border: #00000000;
+  --gb-slider-thumb-size: 12px;
+  height: 16px;
+}
+
+#stream-app slider:hover {
+  --gb-slider-fill-bg: var(--stream-green);
+}
+
+#stream-app slider.bar-seek {
+  flex-grow: 1;
+}
+
+#stream-app slider.bar-volume {
+  width: 96px;
+}
+
+#stream-app .bar-extras {
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-end;
+  width: 30%;
+  gap: 4px;
+}

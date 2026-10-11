@@ -64,3 +64,4 @@ Appended to the index when the records move in, in this order.
 - [ADR-0620 A border takes room, and `box-sizing` is `border-box`](0620-a-border-takes-room-and-box-sizing-is-border-box.md)
 - [ADR-0621 Container queries are answered by a second layout, at most](0621-container-queries-are-answered-by-a-second-layout-at-most.md)
 - [ADR-0622 A paragraph is split into directional runs and placed in visual order](0622-a-paragraph-is-split-into-directional-runs-and-placed-in-visual-order.md)
+- [ADR-0623 The showcase rebuilds a familiar product from the stock widgets](0623-the-showcase-rebuilds-a-familiar-product-from-the-stock-widgets.md)

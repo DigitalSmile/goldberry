@@ -1934,6 +1934,13 @@ second.
   `spinner` on it, whose rotation is a function of the frame clock, so against the
   system clock the image failed by 113 pixels and a channel delta of 144. The
   renderer takes a virtual clock now.
+- **A screen that mirrors no chapter** (2026-10-11, ADR-0623, parked in
+  `docs/snapshot/adr/`). Lookalike rebuilds a music streaming app — sidebar,
+  tinted playlist page, track table, album shelf, now-playing panel, player bar
+  — from stock rows, pressables, icons and sliders and one scoped stylesheet.
+  Its rules are one immutable `Session` answering a sealed set of `Command`s,
+  tested without a window; the tab is golden-imaged and passes the 150% text
+  check. Notes and status in `docs/lookalike-screen.md`.
 
 ### Five faults in one window, and none of them was the same bug
 

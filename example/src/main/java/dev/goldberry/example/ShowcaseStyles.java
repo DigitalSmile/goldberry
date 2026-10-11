@@ -38,6 +38,7 @@ public final class ShowcaseStyles {
             "windows",
             "diagnostics",
             "application",
+            "lookalike",
             "guide");
 
     private ShowcaseStyles() {}
