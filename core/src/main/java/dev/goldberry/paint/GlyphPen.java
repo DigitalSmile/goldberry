@@ -104,6 +104,11 @@ public final class GlyphPen implements AutoCloseable {
         return metrics().descent();
     }
 
+    /// The height of a lower-case `x`, or zero when the face does not say.
+    public double xHeight() {
+        return metrics().xHeight();
+    }
+
     /// The face's recommended distance between two baselines.
     public double lineHeight() {
         return metrics().lineHeight();

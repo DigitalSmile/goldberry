@@ -99,7 +99,7 @@ class MediaCascadeTest {
     @Test
     @DisplayName("an unsupported feature never applies in an application's sheet, and refuses the toolkit's")
     void unsupportedFeature() {
-        var css = "@media (hover: hover) { panel { color: blue } }";
+        var css = "@media (scripting: enabled) { panel { color: blue } }";
         var lenient = CssParser.parseSheet(css, ParseMode.LENIENT, "app.css");
         assertEquals(1, lenient.dropped().size(), "reported once, as a value");
         assertFalse(lenient.rules().getFirst().media().matches(MediaContext.UNKNOWN.size(800, 600)));
@@ -109,11 +109,37 @@ class MediaCascadeTest {
     }
 
     @Test
-    @DisplayName("@keyframes inside @media is outside the subset")
+    @DisplayName("@keyframes inside @media is declared while its condition holds, the last that holds winning")
     void keyframesInsideMedia() {
         var parsed = CssParser.parseSheet(
-                "@media (min-width: 1px) { @keyframes pulse { from { opacity: 0 } } }", ParseMode.LENIENT, "app.css");
-        assertTrue(parsed.keyframes().isEmpty());
-        assertEquals(1, parsed.dropped().size());
+                "@media (min-width: 1px) { @keyframes pulse { from { opacity: 0 } } }", ParseMode.STRICT, "app.css");
+        assertEquals(1, parsed.keyframes().size());
+        assertTrue(parsed.keyframes().getFirst().isConditional());
+
+        var resolver = resolver("""
+                @keyframes pulse { to { opacity: 0.1 } }
+                @media (min-width: 600px) { @keyframes pulse { to { opacity: 0.6 } } }
+                """);
+        var narrow = resolver.under(MediaContext.UNKNOWN.size(400, 300));
+        var wide = resolver.under(MediaContext.UNKNOWN.size(800, 300));
+
+        assertNotSame(resolver, wide, "a keyframe's condition is one the resolver asks about");
+        assertEquals(1, narrow.keyframes("pulse").frames().size());
+        assertTrue(narrow.keyframes("pulse")
+                .frames()
+                .getFirst()
+                .declarations()
+                .getFirst()
+                .value()
+                .toString()
+                .contains("0.1"));
+        assertTrue(wide.keyframes("pulse")
+                .frames()
+                .getFirst()
+                .declarations()
+                .getFirst()
+                .value()
+                .toString()
+                .contains("0.6"));
     }
 }

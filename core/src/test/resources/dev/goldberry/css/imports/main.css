@@ -1,0 +1,5 @@
+@import "parts/tokens.css";
+@import url(narrow.css) (max-width: 600px);
+@import url("missing.css");
+
+main { color: var(--accent) }

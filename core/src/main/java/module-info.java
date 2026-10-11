@@ -72,10 +72,23 @@ module dev.goldberry.core {
     exports dev.goldberry.css.cascade;
     exports dev.goldberry.css.value;
 
+    // The colour spaces a gradient and `color-mix()` blend in. Exported because
+    // a gradient layer an application builds by hand names its space.
+    exports dev.goldberry.css.value.colour;
+
     // `background`: a colour and the gradient layers over it, as the cascade
     // carries them to a `Box`. Exported because a box an application builds by
     // hand names one.
     exports dev.goldberry.css.background;
+
+    // `clip-path`, `mix-blend-mode` and `isolation`, which a box's presence
+    // carries: what part of it is drawn, and how it is drawn over what is under
+    // it.
+    exports dev.goldberry.css.compositing;
+
+    // Container queries: what a box is as a container, the query an
+    // `@container` rule carries, and the laid-out size a query reads.
+    exports dev.goldberry.css.container;
 
     // The pictures a stylesheet names with `url()`, and `border-image`. The
     // decoded pixels come through a service, because the cache that holds them
@@ -182,6 +195,11 @@ module dev.goldberry.core {
     // `transition` a stylesheet writes.
     exports dev.goldberry.motion;
 
+    // The kinds of curve an `Easing` is: a Bézier, steps, a piecewise linear
+    // function. Exported because `Easing` is sealed over them, and a reader
+    // that switches over a curve names them.
+    exports dev.goldberry.motion.easing;
+
     // A decoded image, and the PNG encoder that writes one back out. Its own
     // package rather than a class in `paint`, because `paint` is not the only
     // thing that wants the value: a frame draws one, an offscreen render produces
@@ -268,6 +286,13 @@ module dev.goldberry.core {
     // properties an application's stylesheet may write, and because a widget
     // building its own label box names the value.
     exports dev.goldberry.text.flow;
+
+    // Which way a paragraph's runs read and in what order a line places them:
+    // the base direction a paragraph is given and the levels the bidirectional
+    // algorithm resolves under it. Exported because `unicode-bidi` and
+    // `direction` are properties a stylesheet writes, and an application
+    // shaping text on a `canvas` asks the same question a paragraph does.
+    exports dev.goldberry.text.bidi;
 
     // The backend SPI, and the one backend that needs no platform under it.
     // `sdl3` is what makes this module `requires` the natives module; `headless`

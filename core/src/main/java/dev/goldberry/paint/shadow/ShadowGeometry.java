@@ -91,7 +91,8 @@ public final class ShadowGeometry {
         if (!(w > 0) || !(h > 0)) {
             return Path.EMPTY;
         }
-        return Path.roundRect(shadow.offsetX() - grow, shadow.offsetY() - grow, w, h, grown(corners, grow));
+        return Path.roundRect(
+                shadow.offsetX() - grow, shadow.offsetY() - grow, w, h, grown(corners.resolvedOn(width, height), grow));
     }
 
     /// The hole every band is cut with — the **border box itself**.
@@ -149,10 +150,9 @@ public final class ShadowGeometry {
     /// The padding box: the border box less each side's border width, which is
     /// where an inner shadow is drawn.
     ///
-    /// Its corners are the box's less the wider of the two sides beside each,
-    /// the same circle-for-an-ellipse approximation the border painter makes, so
-    /// an inner shadow meets the inside of a rounded border where the border
-    /// ends.
+    /// Its corners are the box's less each side's width on that side's axis,
+    /// the inner edge the border painter draws, so an inner shadow meets the
+    /// inside of a rounded border where the border ends.
     ///
     /// @return the outline, or [Path#EMPTY] when the border fills the box
     public static Path paddingBox(double width, double height, Corners corners, Border border) {
@@ -221,16 +221,12 @@ public final class ShadowGeometry {
     }
 
     private static Corners innerCorners(double width, double height, Corners corners, Border border) {
-        var outer = corners.fittedTo(width, height);
-        var top = border.top().width();
-        var right = border.right().width();
-        var bottom = border.bottom().width();
-        var left = border.left().width();
-        return new Corners(
-                Math.max(0, outer.topLeft() - Math.max(top, left)),
-                Math.max(0, outer.topRight() - Math.max(top, right)),
-                Math.max(0, outer.bottomRight() - Math.max(bottom, right)),
-                Math.max(0, outer.bottomLeft() - Math.max(bottom, left)));
+        return corners.fittedTo(width, height)
+                .inset(
+                        border.top().width(),
+                        border.right().width(),
+                        border.bottom().width(),
+                        border.left().width());
     }
 
     /// `corners` moved out by `by`, which is [Corners#grownBy] one way and

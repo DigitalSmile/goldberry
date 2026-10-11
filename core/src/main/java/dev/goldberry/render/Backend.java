@@ -7,6 +7,7 @@ import java.util.Optional;
 import dev.goldberry.render.clipboard.Clipboard;
 import dev.goldberry.render.clipboard.PrimarySelection;
 import dev.goldberry.render.cursor.CursorPictures;
+import dev.goldberry.render.desktop.DisplayPreferences;
 import dev.goldberry.render.desktop.SystemTheme;
 import dev.goldberry.render.desktop.menubar.BackendMenuBar;
 import dev.goldberry.render.desktop.notify.BackendNotifier;
@@ -196,6 +197,15 @@ public interface Backend extends AutoCloseable {
     ///         does not say"
     default Optional<Boolean> reducedMotion() {
         return Optional.empty();
+    }
+
+    /// The desktop's display accessibility switches: more contrast, forced
+    /// colours, less transparency.
+    ///
+    /// Process-global and asked once, as [#reducedMotion()] is, and for its
+    /// reasons; a switch the desktop does not have reads as off.
+    default DisplayPreferences displayPreferences() {
+        return DisplayPreferences.NONE;
     }
 
     /// Hands a URL to the desktop's own handler for its scheme — the browser

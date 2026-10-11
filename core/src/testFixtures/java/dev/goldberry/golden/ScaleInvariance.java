@@ -125,7 +125,13 @@ public final class ScaleInvariance {
     private static final int GROSS_DELTA = 72;
 
     /// The share of pixels allowed to be that far out.
-    private static final double MAX_GROSS_FRACTION = 0.012;
+    ///
+    /// Measured too. The worst honest case is a stack of banners whose text
+    /// line height is fractional: once a border took room in layout, one
+    /// banner's edge landed past a half pixel, so 2x rounds it half a logical
+    /// pixel lower than 1x does and everything to the next banner shifts with
+    /// it, 1.4% of the picture. A geometry fault moves several times that.
+    private static final double MAX_GROSS_FRACTION = 0.015;
 
     /// How far away a pixel may look for its match. One pixel: the differences
     /// being forgiven are sub-pixel, and a radius of two would start forgiving

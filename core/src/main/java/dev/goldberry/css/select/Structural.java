@@ -13,7 +13,9 @@ import org.jspecify.annotations.Nullable;
 /// ```
 ///
 /// `:first-child`, `:last-child`, `:only-child`, `:nth-child(An+B)` and
-/// `:nth-last-child(An+B)`, with `odd` and `even`. Unlike the widget states in
+/// `:nth-last-child(An+B)`, with `odd` and `even`, and the same five counted
+/// among siblings of the element's own type: `:first-of-type` and the rest
+/// ([OfType]). Unlike the widget states in
 /// [Selector.PseudoClass], these are answered from the element tree's shape,
 /// so an element's answer changes when its parent's children are added,
 /// removed or reordered, and the element tree invalidates exactly the
@@ -27,6 +29,13 @@ import org.jspecify.annotations.Nullable;
 ///
 /// Read more: [Selectors](https://goldberry.dev/docs/guide/styling.html#selectors).
 public sealed interface Structural {
+
+    /// Whether this holds for an element at `position`.
+    ///
+    /// Counted among all the siblings, unless this is an [OfType].
+    default boolean matches(SiblingPosition position) {
+        return matches(position.index(), position.count());
+    }
 
     /// Whether this holds for the element at `index` of `count` siblings.
     ///
@@ -82,6 +91,34 @@ public sealed interface Structural {
     }
 
     /// `:only-child`: the one child of its parent.
+    /// One of the others, counted among the siblings of the element's own type:
+    /// `:first-of-type` is `OfType(firstChild())`.
+    ///
+    /// @param position what holds within that count; never an `OfType` itself
+    record OfType(Structural position) implements Structural {
+
+        public OfType {
+            if (position instanceof OfType) {
+                throw new IllegalArgumentException("already counted by type");
+            }
+        }
+
+        @Override
+        public boolean matches(SiblingPosition siblings) {
+            return position.matches(siblings.indexOfType(), siblings.typeCount());
+        }
+
+        @Override
+        public boolean matches(int index, int count) {
+            return position.matches(index, count);
+        }
+
+        @Override
+        public String cssName() {
+            return position.cssName().replace("child", "of-type");
+        }
+    }
+
     record OnlyChild() implements Structural {
 
         @Override
@@ -116,6 +153,9 @@ public sealed interface Structural {
             case "first-child" -> firstChild();
             case "last-child" -> lastChild();
             case "only-child" -> onlyChild();
+            case "first-of-type" -> new OfType(firstChild());
+            case "last-of-type" -> new OfType(lastChild());
+            case "only-of-type" -> new OfType(onlyChild());
             default -> null;
         };
     }

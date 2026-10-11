@@ -24,6 +24,8 @@ import dev.goldberry.css.cascade.CascadeLayer;
 import dev.goldberry.css.cascade.StyleResolver;
 import dev.goldberry.css.parse.Token;
 import dev.goldberry.css.value.CssLength;
+import dev.goldberry.css.value.colour.ColourMixing;
+import dev.goldberry.css.value.colour.ColourSpace;
 import dev.goldberry.layout.Length;
 
 /// The `background` properties: what each reads, and what each refuses.
@@ -114,12 +116,102 @@ class BackgroundParserTest {
                     "linear-gradient(red)",
                     "linear-gradient(to middle, red, blue)",
                     "linear-gradient(to left right, red, blue)",
-                    "linear-gradient(red, 30%, blue)",
                     "linear-gradient(45px, red, blue)",
                     "linear-gradient(red auto, blue)",
-                    "conic-gradient(red, blue)"
+                    "linear-gradient(30%, red, blue)",
+                    "linear-gradient(red, blue, 30%)",
+                    "linear-gradient(red, 30%, 40%, blue)",
+                    "linear-gradient(in cmyk, red, blue)",
+                    "linear-gradient(in srgb longer hue, red, blue)",
+                    "linear-gradient(to in oklch right, red, blue)",
+                    "linear-gradient(in oklch nearest hue, red, blue)"
                 })
         @DisplayName("what is not a linear gradient here is refused whole")
+        void refused(String value) {
+            assertNull(gradient(value), value);
+        }
+    }
+
+    @Nested
+    @DisplayName("hints and colour spaces")
+    class Interpolated {
+
+        @Test
+        @DisplayName("a position alone between two colours is a hint")
+        void hint() {
+            var layer = assertInstanceOf(GradientLayer.class, gradient("linear-gradient(red, 30%, blue)"));
+
+            assertEquals(
+                    GradientLayer.ColorStop.hint(Length.percent(30)),
+                    layer.stops().get(1));
+            assertEquals(3, layer.stops().size());
+        }
+
+        @ParameterizedTest
+        @CsvSource(
+                delimiter = '|',
+                value = {
+                    "linear-gradient(in oklch, red, blue) | OKLCH | SHORTER",
+                    "linear-gradient(to right in lab, red, blue) | LAB | SHORTER",
+                    "linear-gradient(in hsl longer hue 90deg, red, blue) | HSL | LONGER",
+                    "radial-gradient(in display-p3, red, blue) | DISPLAY_P3 | SHORTER",
+                    "radial-gradient(circle in oklch decreasing hue, red, blue) | OKLCH | DECREASING",
+                    "conic-gradient(from 90deg in srgb-linear, red, blue) | SRGB_LINEAR | SHORTER"
+                })
+        @DisplayName("`in` names the space, before or after the rest of the first argument")
+        void spaces(String value, ColourSpace space, ColourMixing.HueMethod hue) {
+            var layer = assertInstanceOf(GradientLayer.class, gradient(value), value);
+
+            assertEquals(new GradientLayer.Interpolation(space, hue), layer.interpolation());
+        }
+
+        @Test
+        @DisplayName("with no `in` it is sRGB")
+        void srgb() {
+            var layer = assertInstanceOf(GradientLayer.class, gradient("linear-gradient(red, blue)"));
+            assertEquals(GradientLayer.Interpolation.SRGB, layer.interpolation());
+        }
+    }
+
+    @Nested
+    @DisplayName("conic-gradient")
+    class Conic {
+
+        @Test
+        @DisplayName("turns from the top round the middle, its stops a share of a turn")
+        void plain() {
+            var layer = assertInstanceOf(GradientLayer.Conic.class, gradient("conic-gradient(red, blue 90deg)"));
+
+            assertEquals(0, layer.from());
+            assertEquals(Length.percent(50), layer.centreX());
+            assertEquals(Length.percent(25), layer.stops().getLast().position());
+            assertFalse(layer.repeating());
+        }
+
+        @Test
+        @DisplayName("reads `from`, `at` and a repeating form")
+        void configured() {
+            var layer = assertInstanceOf(
+                    GradientLayer.Conic.class,
+                    gradient("repeating-conic-gradient(from 0.25turn at left 20px, red 0 10%, blue 10% 20%)"));
+
+            assertEquals(Math.PI / 2, layer.from(), 1e-9);
+            assertEquals(Length.percent(0), layer.centreX());
+            assertEquals(Length.points(20), layer.centreY());
+            assertEquals(4, layer.stops().size());
+            assertTrue(layer.repeating());
+        }
+
+        @ParameterizedTest
+        @ValueSource(
+                strings = {
+                    "conic-gradient(red 10px, blue)",
+                    "conic-gradient(from red, blue)",
+                    "conic-gradient(from 10px, red, blue)",
+                    "conic-gradient(at, red, blue)",
+                    "conic-gradient(red)"
+                })
+        @DisplayName("refuses lengths, and a prelude it cannot read")
         void refused(String value) {
             assertNull(gradient(value), value);
         }
@@ -279,23 +371,70 @@ class BackgroundParserTest {
 
         @ParameterizedTest
         @CsvSource({
-            "'10px 4px', 10, 4",
-            "'10px', 10, 0",
-            "'top', 0, 0",
-            "'50% 20px', 0, 20",
-            "'right bottom', 0, 0",
-            "'1em 0', 16, 0"
+            "'10px 4px', 10, 4, 0, 0",
+            "'10px', 10, 0, 0, 50",
+            "'top', 0, 0, 50, 0",
+            "'50% 20px', 0, 20, 50, 0",
+            "'right bottom', 0, 0, 100, 100",
+            "'bottom right', 0, 0, 100, 100",
+            "'center left', 0, 0, 0, 50",
+            "'1em 0', 16, 0, 0, 0",
+            "'right 10px top', -10, 0, 100, 0",
+            "'left 5px bottom 6px', 5, -6, 0, 100",
+            "'center bottom 20%', 0, 0, 50, 80",
+            "'calc(50% + 4px) 0', 4, 0, 50, 0"
         })
-        @DisplayName("only a length moves a layer the size of its box")
-        void lengths(String value, double x, double y) {
+        @DisplayName(
+                "a length moves, a percentage and a keyword are a share of the room left, and a side takes an offset")
+        void read(String value, double x, double y, double xPercent, double yPercent) {
             var position = BackgroundParser.position(positionTokens(value), CONTEXT);
 
-            assertNotNull(position);
-            assertEquals(new BackgroundPosition(x, y), position);
+            assertNotNull(position, value);
+            assertEquals(new BackgroundPosition(x, y, xPercent, yPercent), position);
+        }
+
+        @Test
+        @DisplayName("a percentage is of the room the layer leaves, so it moves a layer its box's size nothing")
+        void offset() {
+            var position = new BackgroundPosition(-10, 0, 100, 50);
+            var picture = position.offset(200, 100, 40, 20);
+            assertEquals(150, picture[0], 1e-9);
+            assertEquals(40, picture[1], 1e-9);
+            var gradient = position.offset(200, 100, 200, 100);
+            assertEquals(-10, gradient[0], 1e-9);
+            assertEquals(0, gradient[1], 1e-9);
+        }
+
+        @Test
+        @DisplayName("is a list, one per layer, and -x and -y each set one axis of it")
+        void lists() {
+            var fill = compute("background-position: 1px 2px, right; background-position-y: bottom 3px")
+                    .fill();
+
+            assertEquals(
+                    List.of(new BackgroundPosition(1, -3, 0, 100), new BackgroundPosition(0, -3, 100, 100)),
+                    fill.positions());
+            assertEquals(
+                    List.of(new BackgroundPosition(4, 0, 0, 0)),
+                    compute("background-position-x: 4px").fill().positions());
+            assertEquals(
+                    List.of(new BackgroundPosition(0, 0, 50, 0), new BackgroundPosition(0, 0, 100, 0)),
+                    compute("background-position-x: center, right").fill().positions());
         }
 
         @ParameterizedTest
-        @ValueSource(strings = {"1px 2px 3px", "left left", "nonsense", "top bottom"})
+        @ValueSource(
+                strings = {
+                    "1px 2px 3px",
+                    "left left",
+                    "nonsense",
+                    "top bottom",
+                    "top 10px",
+                    "10px left",
+                    "center 5px left",
+                    "left 5px right 6px",
+                    "1px 2px 3px 4px 5px"
+                })
         @DisplayName("what is not a position is refused")
         void refused(String value) {
             assertNull(BackgroundParser.position(positionTokens(value), CONTEXT), value);

@@ -15,13 +15,17 @@ import java.util.Locale;
 ///
 /// Nothing about a length is native. It is a number, a unit and two keywords.
 ///
-/// ## Four kinds, and why the interface is sealed
+/// ## Five kinds, and why the interface is sealed
 ///
 /// CSS writes one property with four possible values; the engine underneath
 /// exports up to three separate functions per property and spells the fourth by
 /// passing a NaN to the first of them. That shape belongs at the boundary, not
 /// in the vocabulary — so the value is modelled once here and translated in one
 /// place.
+///
+/// The fifth kind, [Mixed], is a length and a percentage at once, which is what
+/// a `calc()` mixing the two folds to. The engine has no spelling for it at all,
+/// so it is for painted properties only.
 ///
 /// Sealed, so the translation is an exhaustive `switch` with no default arm: a
 /// kind added here fails to compile everywhere it is not handled, rather than
@@ -53,6 +57,25 @@ public sealed interface Length {
         return new Percent(value);
     }
 
+    /// A length plus a percentage — what `calc(100% - 8px)` folds to.
+    ///
+    /// Only a painted property can take one: a radius, a background position,
+    /// a translation are resolved against a box that has been laid out. The
+    /// layout engine takes a length or a percentage and never both, so a
+    /// stylesheet drops one written for `width` or `margin`, and the layout
+    /// bridge refuses one handed to it directly.
+    ///
+    /// Folds to [#points] when the percentage is zero and to [#percent] when the
+    /// points are, so that a [Mixed] always has both.
+    ///
+    /// @throws IllegalArgumentException if either value is NaN or infinite
+    static Length mixed(float points, float percent) {
+        if (percent == 0) {
+            return points(points);
+        }
+        return points == 0 ? percent(percent) : new Mixed(points, percent);
+    }
+
     /// This length as a number of logical pixels, against the dimension a
     /// percentage would be a percentage *of*.
     ///
@@ -75,6 +98,7 @@ public sealed interface Length {
         return switch (length) {
             case Points points -> points.value();
             case Percent percent -> percent.value() / 100 * base;
+            case Mixed mixed -> mixed.points() + mixed.percent() / 100 * base;
             case Keyword _ -> 0;
         };
     }
@@ -102,6 +126,23 @@ public sealed interface Length {
         @Override
         public String toString() {
             return value + "%";
+        }
+    }
+
+    /// A length plus a percentage. See [Length#mixed].
+    ///
+    /// @param points  the logical pixels
+    /// @param percent the percentage of the basis, `50` meaning 50%
+    record Mixed(float points, float percent) implements Length {
+
+        public Mixed {
+            requireFinite(points, "points");
+            requireFinite(percent, "percent");
+        }
+
+        @Override
+        public String toString() {
+            return "calc(" + percent + "% + " + points + "px)";
         }
     }
 

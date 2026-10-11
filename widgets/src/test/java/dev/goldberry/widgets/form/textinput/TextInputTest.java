@@ -1160,10 +1160,9 @@ class TextInputTest {
 
         /// Every part is measured from the start of the text, which is the
         /// content box, and an absolute child is placed against the padding box,
-        /// outside the padding. So the field writes each `left` as its padding
-        /// less its border, which the containing block adds back: a `left` of
-        /// zero would draw the first character under the padding, where the
-        /// field's clip hides it.
+        /// inside the border and outside the padding. So the field writes each
+        /// `left` as its padding: a `left` of zero would draw the first
+        /// character under the padding, where the field's clip hides it.
         @Test
         @DisplayName("each part's left carries the field's padding, so the text starts at it")
         void partsAreInContentBoxCoordinates() {
@@ -1174,19 +1173,15 @@ class TextInputTest {
             var parts = parts(tree);
             var style = style(tree);
             var padding = points(style.padding().left());
-            var border = style.decoration().border();
 
-            assertEquals(
-                    padding - border.left().width(), points(parts.get(1).inset().left()), 0.01, "the text");
-            assertEquals(
-                    padding - border.left().width(),
-                    points(parts.get(2).inset().left()),
-                    0.01,
-                    "the caret at offset 0");
+            assertEquals(padding, points(parts.get(1).inset().left()), 0.01, "the text");
+            assertEquals(padding, points(parts.get(2).inset().left()), 0.01, "the caret at offset 0");
             assertEquals(
                     padding,
                     points(ContainingBlock.insetFor(
-                                    Position.ABSOLUTE, parts.get(1).inset(), border)
+                                    Position.ABSOLUTE,
+                                    parts.get(1).inset(),
+                                    style.decoration().border())
                             .left()),
                     0.01,
                     "the text does not start at the field's padding");
@@ -1419,15 +1414,13 @@ class TextInputTest {
         }
 
         /// Where part `index` starts, measured from the start of the text: its
-        /// written `left` less the field's padding and plus its border, which is
-        /// what the field adds to place a part in its content box.
+        /// written `left` less the field's padding, which is what the field adds
+        /// to place a part in its content box.
         private double textLeft(ElementTree tree, String alignment, int index) {
             var sheet = rule(alignment);
             var style = style(tree, sheet);
             var written = points(parts(tree, sheet).get(index).inset().left());
-            return written
-                    - points(style.padding().left())
-                    + style.decoration().border().left().width();
+            return written - points(style.padding().left());
         }
 
         @Test

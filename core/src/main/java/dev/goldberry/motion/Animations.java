@@ -110,6 +110,10 @@ public final class Animations {
     /// there, so a later rule that changes only its delay does not restart it.
     private final Map<String, Double> keyframeStarts = new LinkedHashMap<>();
 
+    /// When each paused animation's clock stopped, by name. Running again moves
+    /// its start on by how long it was held, so it goes on from where it was.
+    private final Map<String, Double> pausedAt = new HashMap<>();
+
     /// The blocks resolved against [#tracksTarget], by name.
     private final Map<String, KeyframeTrack> tracks = new HashMap<>();
 
@@ -225,6 +229,7 @@ public final class Animations {
         var declared = target.animations();
         if (declared.isEmpty()) {
             keyframeStarts.clear();
+            pausedAt.clear();
             tracks.clear();
             tracksTarget = null;
             keyframesRunning = false;
@@ -241,8 +246,19 @@ public final class Animations {
         for (var entry : entries) {
             names.add(entry.name());
             var start = keyframeStarts.computeIfAbsent(entry.name(), name -> now);
-            var elapsed = now - start;
-            anyRunning |= KeyframeTrack.isRunning(entry, elapsed);
+            var stopped = pausedAt.get(entry.name());
+            if (entry.isPaused() && stopped == null) {
+                stopped = now;
+                pausedAt.put(entry.name(), now);
+            } else if (!entry.isPaused() && stopped != null) {
+                start += now - stopped;
+                keyframeStarts.put(entry.name(), start);
+                pausedAt.remove(entry.name());
+                stopped = null;
+            }
+            var elapsed = (stopped == null ? now : stopped) - start;
+            // A held animation needs no frames until it runs again.
+            anyRunning |= !entry.isPaused() && KeyframeTrack.isRunning(entry, elapsed);
             var progress = KeyframeTrack.progress(entry, elapsed);
             if (progress == null) {
                 continue;
@@ -258,6 +274,7 @@ public final class Animations {
             styled = track.apply(styled, progress, entry.easing());
         }
         keyframeStarts.keySet().retainAll(names);
+        pausedAt.keySet().retainAll(names);
         tracks.keySet().retainAll(names);
         keyframesRunning = anyRunning;
         return styled;

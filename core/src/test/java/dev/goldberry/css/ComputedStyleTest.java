@@ -514,8 +514,7 @@ class ComputedStyleTest {
             // The subset's property list is longer than this record; a stylesheet naming
             // a property the engine has not grown yet must not stop a window
             // opening. This was `box-shadow` for a long time and is
-            // `backdrop-filter` now -- what is left of that list is
-            // that and `letter-spacing`.
+            // `backdrop-filter` now.
             var style = compute("button { backdrop-filter: blur(24px); color: red }");
             assertEquals(0xFFFF0000, style.color());
         }
@@ -691,17 +690,37 @@ class ComputedStyleTest {
         }
 
         @Test
-        @DisplayName("a percentage is refused, because the box has no size yet")
+        @DisplayName("a percentage is kept until the box has a size, of its width across and its height down")
         void percentage() {
             // The cascade runs before Yoga, so "half of this box" is a number
-            // nobody has. The shorthand kept the answer the single radius gave.
-            assertEquals(Corners.SQUARE, corners("50%"));
+            // nobody has yet. The painter resolves it.
+            var half = corners("50%");
+            assertEquals(Corners.all(new Corners.Radius(0, 0, 50, 50)), half);
+            assertEquals(Corners.all(Corners.Radius.of(50, 20)), half.fittedTo(100, 40));
         }
 
         @Test
-        @DisplayName("the elliptical form is refused, because a corner here is a circle")
+        @DisplayName("after a slash come the vertical radii, filled in by the same rule")
         void elliptical() {
-            assertEquals(Corners.SQUARE, corners("10px / 20px"));
+            assertEquals(Corners.all(Corners.Radius.of(10, 20)), corners("10px / 20px"));
+            assertEquals(
+                    new Corners(
+                            Corners.Radius.of(1, 5),
+                            Corners.Radius.of(2, 6),
+                            Corners.Radius.of(1, 5),
+                            Corners.Radius.of(2, 6)),
+                    corners("1px 2px / 5px 6px"));
+            assertEquals(Corners.SQUARE, corners("1px / 2px / 3px"));
+            assertEquals(Corners.SQUARE, corners("1px /"));
+        }
+
+        @Test
+        @DisplayName("a calc() of a percentage and a length is a radius")
+        void mixed() {
+            assertEquals(Corners.all(new Corners.Radius(-2, -2, 50, 50)), corners("calc(50% - 2px)"));
+            assertEquals(
+                    Corners.all(Corners.Radius.of(48, 18)),
+                    corners("calc(50% - 2px)").fittedTo(100, 40));
         }
     }
 
@@ -859,7 +878,7 @@ class ComputedStyleTest {
                     1e-9);
             assertEquals(
                     ComputedStyle.INITIAL.typography().size(),
-                    compute("button { font-size: 50% }").typography().size(),
+                    compute("button { font-size: -50% }").typography().size(),
                     1e-9);
         }
     }
@@ -966,29 +985,24 @@ class ComputedStyleTest {
         }
 
         @Test
-        @DisplayName("CSS's own ease keywords are read onto the system curves")
+        @DisplayName("CSS's own ease keywords run as CSS's curves in an application's sheet")
         void cssEasingKeywords() {
-            for (var keyword : List.of("ease", "ease-out", "ease-in-out")) {
+            for (var keyword : List.of("ease", "ease-in", "ease-out", "ease-in-out", "step-start", "step-end")) {
                 assertEquals(
-                        Easing.EASE_ENTER,
+                        Easing.parse(keyword),
                         compute("button { transition: color 100ms " + keyword + " }")
                                 .transitions()
                                 .get(Transitions.Animatable.COLOR)
                                 .easing(),
                         keyword);
+                assertTrue(Easing.isCssKeyword(keyword), keyword);
             }
-            assertEquals(
-                    Easing.EASE_EXIT,
-                    compute("button { transition: color 100ms ease-in }")
-                            .transitions()
-                            .get(Transitions.Animatable.COLOR)
-                            .easing());
         }
 
         @Test
-        @DisplayName("a curve outside the subset drops itself and keeps the transition on the default curve")
-        void foreignEasingDropsOnlyItself() {
-            var timing = compute("button { transition: color 100ms cubic-bezier(0.4, 0, 0.2, 1) 20ms }")
+        @DisplayName("a curve that cannot be read drops itself and keeps the transition on the default curve")
+        void unreadableEasingDropsOnlyItself() {
+            var timing = compute("button { transition: color 100ms cubic-bezier(1.4, 0, 0.2, 1) 20ms }")
                     .transitions()
                     .get(Transitions.Animatable.COLOR);
             assertEquals(Easing.EASE_ENTER, timing.easing());
@@ -996,10 +1010,20 @@ class ComputedStyleTest {
             assertEquals(20, timing.delayMillis());
             assertEquals(
                     Easing.EASE_ENTER,
-                    compute("button { transition: color 100ms steps(4) }")
+                    compute("button { transition: color 100ms steps(0) }")
                             .transitions()
                             .get(Transitions.Animatable.COLOR)
                             .easing());
+        }
+
+        @Test
+        @DisplayName("an application's sheet runs the curve it wrote")
+        void cssCurves() {
+            var timing = compute("button { transition: color 100ms cubic-bezier(0.4, 0, 0.2, 1) 20ms }")
+                    .transitions()
+                    .get(Transitions.Animatable.COLOR);
+            assertEquals("cubic-bezier(0.4, 0, 0.2, 1)", timing.easing().cssName());
+            assertEquals(20, timing.delayMillis());
         }
 
         @Test
@@ -1243,7 +1267,7 @@ class ComputedStyleTest {
         }
 
         @Test
-        @DisplayName("text-align reads CSS's five placements, and refuses `justify`")
+        @DisplayName("text-align reads CSS's five placements, and `justify`")
         void alignmentKeywords() {
             assertEquals(TextAlign.END, compute("button { text-align: end }").textAlign());
             assertEquals(
@@ -1259,15 +1283,18 @@ class ComputedStyleTest {
             assertEquals(
                     TextAlign.RIGHT, compute("button { text-align: RIGHT }").textAlign(), "keywords ignore case");
 
-            // A respacing, and a paragraph shaped once has nowhere to put the
-            // extra advance: dropped, so the inherited or initial value stands.
+            // A respacing at the word gaps, and `text-justify: none` turns it
+            // off, leaving the line at its start.
             assertEquals(
-                    TextAlign.START, compute("button { text-align: justify }").textAlign());
+                    TextAlign.JUSTIFY, compute("button { text-align: justify }").textAlign());
             assertEquals(
-                    TextAlign.END,
-                    computeChild("window { text-align: end } button { text-align: justify }")
-                            .textAlign(),
-                    "a dropped justify leaves the inherited value in force");
+                    TextAlign.START,
+                    compute("button { text-align: justify; text-justify: none }")
+                            .lineAlign());
+            assertEquals(
+                    TextAlign.JUSTIFY,
+                    computeChild("window { text-align: justify } button { }").textAlign(),
+                    "justify inherits, as the other keywords do");
         }
 
         /// The one thing that makes them two properties rather than one value.

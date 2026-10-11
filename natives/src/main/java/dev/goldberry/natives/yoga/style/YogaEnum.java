@@ -25,6 +25,7 @@ import dev.goldberry.natives.yoga.measure.MeasureMode;
 /// Read more: [The native boundary](https://goldberry.dev/docs/overview/architecture.html#the-native-boundary).
 public sealed interface YogaEnum
         permits Align,
+                BoxSizing,
                 Direction,
                 Display,
                 Edge,
@@ -46,6 +47,7 @@ public sealed interface YogaEnum
     static List<YogaEnum> all() {
         return Stream.<YogaEnum[]>of(
                         Align.values(),
+                        BoxSizing.values(),
                         Direction.values(),
                         Display.values(),
                         Edge.values(),

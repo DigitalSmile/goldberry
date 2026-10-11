@@ -185,7 +185,7 @@ class BackgroundPictureParserTest {
         }
 
         @ParameterizedTest
-        @ValueSource(strings = {"space", "round", "repeat-x repeat", "repeat repeat repeat", "tile"})
+        @ValueSource(strings = {"repeat-x repeat", "space repeat-y", "repeat repeat repeat", "tile"})
         @DisplayName("what is not read is refused")
         void refused(String value) {
             assertNull(BackgroundParser.repeats(tokens("background-repeat", value)), value);
@@ -231,7 +231,10 @@ class BackgroundPictureParserTest {
                 strings = {
                     "url(\"a.png\") url(\"b.png\")",
                     "repeat url(\"a.png\") repeat repeat",
-                    "url(\"a.png\") space"
+                    "url(\"a.png\") fixed",
+                    "url(\"a.png\") border-box padding-box content-box",
+                    "url(\"a.png\") 3px / 4px / 5px",
+                    "url(\"a.png\") / 4px"
                 })
         @DisplayName("what is not a layer is refused whole")
         void refused(String value) {

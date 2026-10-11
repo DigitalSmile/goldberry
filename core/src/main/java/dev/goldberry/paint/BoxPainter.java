@@ -4,13 +4,15 @@ import java.util.Objects;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
+import dev.goldberry.css.Border;
+import dev.goldberry.css.background.BackgroundBox;
 import dev.goldberry.css.background.GradientLayer;
 import dev.goldberry.css.image.CssImage;
 import dev.goldberry.css.value.Affine;
-import dev.goldberry.layout.Length;
 import dev.goldberry.natives.blend2d.BlendPath;
 import dev.goldberry.natives.blend2d.enums.BlendStrokeCap;
 import dev.goldberry.natives.blend2d.enums.BlendStrokeJoin;
+import dev.goldberry.paint.shadow.TextShadows;
 import dev.goldberry.paint.tree.RenderTree;
 import dev.goldberry.render.model.LogicalRect;
 
@@ -166,7 +168,17 @@ public final class BoxPainter {
             }
         }
 
-        if ((box.background() >>> 24) != 0) {
+        var fill = box.fill();
+        var colourClip = fill.colourClip();
+        if ((box.background() >>> 24) != 0 && colourClip != BackgroundBox.BORDER_BOX) {
+            // `background-clip` keeps the colour inside the border or the padding.
+            var area = BackgroundArea.of(box, colourClip, x, y, width, height);
+            if (!area.isEmpty()) {
+                path.reset();
+                RoundRect.addTo(path, 0, 0, area.width(), area.height(), area.corners());
+                frame.fillPath(area.x(), area.y(), path, box.background());
+            }
+        } else if ((box.background() >>> 24) != 0) {
             if (!decoration.corners().isSquare()) {
                 path.reset();
                 RoundRect.addTo(path, 0, 0, width, height, decoration.corners());
@@ -179,27 +191,31 @@ public final class BoxPainter {
             }
         }
 
-        var fill = box.fill();
         var layers = fill.layers();
         if (!layers.isEmpty() && width > 0 && height > 0) {
             // Over the colour, last first: the first layer written is on top.
-            // Each fills the box's own shape, so a gradient on a rounded card
-            // is rounded too, and so is a picture. The ramp is placed in the
+            // Each is placed in its origin's rectangle and cut to its clip's,
+            // in that rectangle's shape, so a gradient on a rounded card is
+            // rounded too, and so is a picture. The ramp is placed in the
             // frame's coordinates, which is where this box is.
-            var outlined = false;
-            var position = fill.position();
             for (var i = layers.size() - 1; i >= 0; i--) {
+                var origin = BackgroundArea.of(box, fill.origin(i), x, y, width, height);
+                var clip = BackgroundArea.of(box, fill.clip(i), x, y, width, height);
+                if (clip.isEmpty()) {
+                    continue;
+                }
                 switch (layers.get(i)) {
                     case GradientLayer gradient -> {
-                        if (!outlined) {
-                            path.reset();
-                            RoundRect.addTo(path, 0, 0, width, height, decoration.corners());
-                            outlined = true;
-                        }
-                        frame.fillPath(x, y, path, gradient.resolve(x, y, width, height, position));
+                        path.reset();
+                        RoundRect.addTo(path, 0, 0, clip.width(), clip.height(), clip.corners());
+                        frame.fillPath(
+                                clip.x(),
+                                clip.y(),
+                                path,
+                                gradient.resolve(
+                                        origin.x(), origin.y(), origin.width(), origin.height(), fill.position(i)));
                     }
-                    case CssImage.Url url ->
-                        PicturePainter.paint(frame, url, fill, i, x, y, width, height, decoration.corners());
+                    case CssImage.Url url -> PicturePainter.paint(frame, url, fill, i, origin, clip);
                 }
             }
         }
@@ -237,7 +253,7 @@ public final class BoxPainter {
                     inset,
                     width - line.width(),
                     height - line.width(),
-                    decoration.corners().shrunkBy(inset));
+                    decoration.corners().resolvedOn(width, height).shrunkBy(inset));
             frame.strokePath(x, y, path, line.width(), BlendStrokeCap.BUTT, BlendStrokeJoin.MITER_CLIP, line.argb());
         } else if (!pictured && decoration.hasBorder()) {
             // Sides that differ are filled one region each, mitred where they
@@ -257,9 +273,13 @@ public final class BoxPainter {
             // the same width the measure function was last asked about, so the
             // paragraph's memo answers without re-wrapping and the lines drawn
             // are exactly the lines that were measured.
-            var left = resolve(box.padding().left(), width);
-            var top = resolve(box.padding().top(), height);
-            var right = resolve(box.padding().right(), width);
+            // Inside the border and the padding: the content box.
+            var edges = BoxEdges.content(box, width, height);
+            var left = edges.left();
+            var top = edges.top();
+            var right = edges.right();
+            // Under the glyphs, the last of the list first, as CSS stacks them.
+            TextShadows.paint(frame, box.text(), x + left, y + top, Math.max(0, width - left - right));
             box.text()
                     .paragraph()
                     .paint(
@@ -308,7 +328,21 @@ public final class BoxPainter {
             paintCanvas(frame, box, painter, x, y, width, height, ambient);
         }
 
-        if (decoration.hasOutline()) {
+        if (decoration.hasOutline() && decoration.outlineStyle() != Border.Style.SOLID) {
+            // A styled ring is a border around the box: the band from the
+            // offset out to the offset plus the width, its corners concentric
+            // with the box's, drawn by the painter that draws every styled side.
+            var reach = decoration.outlineOffset() + decoration.outlineWidth();
+            BorderPainter.paint(
+                    frame,
+                    path,
+                    Border.all(decoration.outlineWidth(), decoration.outlineColor(), decoration.outlineStyle()),
+                    x - reach,
+                    y - reach,
+                    width + reach * 2,
+                    height + reach * 2,
+                    decoration.corners().resolvedOn(width, height).grownBy(reach));
+        } else if (decoration.hasOutline()) {
             // Outward by the offset plus half the width, so the *inside* edge of
             // the ring sits exactly `outline-offset` from the border box —
             // which is what a 2px ring at a 2px offset means, and what makes two
@@ -325,7 +359,7 @@ public final class BoxPainter {
                     // its radius grows by the same distance it moved out. A
                     // square corner stays square: a ring that rounded itself
                     // around a sharp box would not follow the control.
-                    decoration.corners().grownBy(out));
+                    decoration.corners().resolvedOn(width, height).grownBy(out));
             frame.strokePath(
                     x,
                     y,
@@ -535,19 +569,6 @@ public final class BoxPainter {
         frame.strokePath(x, y, path, mark.thickness(), BlendStrokeCap.ROUND, BlendStrokeJoin.ROUND, mark.argb());
     }
 
-    /// A padding edge in pixels.
-    ///
-    /// Percentages are resolved against `base`, which is CSS's rule for padding —
-    /// *every* edge is a percentage of the containing block's **width**, and the
-    /// caller passes the right base rather than this guessing. Anything that is
-    /// not a number is nothing: `auto` padding does not exist and `undefined`
-    /// means none.
-    /// Delegates to [Length#resolve], so the hit-test snapshot gets the same
-    /// answer.
-    private static double resolve(Length length, double base) {
-        return Length.resolve(length, (float) base);
-    }
-
     /// Hands the frame to an application's own painter — a `canvas`.
     ///
     /// Three things happen around the call and each is load-bearing.
@@ -572,10 +593,11 @@ public final class BoxPainter {
     private static void paintCanvas(
             Frame frame, Box box, Painter painter, double x, double y, double width, double height, Affine ambient) {
 
-        var left = resolve(box.padding().left(), width);
-        var top = resolve(box.padding().top(), height);
-        var right = resolve(box.padding().right(), width);
-        var bottom = resolve(box.padding().bottom(), height);
+        var edges = BoxEdges.content(box, width, height);
+        var left = edges.left();
+        var top = edges.top();
+        var right = edges.right();
+        var bottom = edges.bottom();
         var contentWidth = width - left - right;
         var contentHeight = height - top - bottom;
         if (!(contentWidth > 0) || !(contentHeight > 0)) {

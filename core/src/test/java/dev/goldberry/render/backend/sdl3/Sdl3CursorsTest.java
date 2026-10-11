@@ -75,6 +75,19 @@ class Sdl3CursorsTest {
         }
     }
 
+    @Test
+    @DisplayName("CSS's other keywords fall back to the nearest platform shape")
+    void cssKeywords() {
+        assertEquals(SdlSystemCursor.NS_RESIZE, Sdl3Cursors.systemShape(Cursor.N_RESIZE));
+        assertEquals(SdlSystemCursor.NS_RESIZE, Sdl3Cursors.systemShape(Cursor.ROW_RESIZE));
+        assertEquals(SdlSystemCursor.EW_RESIZE, Sdl3Cursors.systemShape(Cursor.W_RESIZE));
+        assertEquals(SdlSystemCursor.NESW_RESIZE, Sdl3Cursors.systemShape(Cursor.NE_RESIZE));
+        assertEquals(SdlSystemCursor.NWSE_RESIZE, Sdl3Cursors.systemShape(Cursor.SE_RESIZE));
+        assertEquals(SdlSystemCursor.NOT_ALLOWED, Sdl3Cursors.systemShape(Cursor.NO_DROP));
+        assertEquals(SdlSystemCursor.TEXT, Sdl3Cursors.systemShape(Cursor.VERTICAL_TEXT));
+        assertEquals(SdlSystemCursor.DEFAULT, Sdl3Cursors.systemShape(Cursor.HELP));
+    }
+
     /// Against the real SDL under its `dummy` driver, which makes a picture
     /// cursor out of any surface and no system cursor at all: the binding
     /// links, each shape's picture is made and shown, and taking the pictures

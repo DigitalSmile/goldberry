@@ -3,6 +3,7 @@ package dev.goldberry.css.background;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.function.Function;
 
 import org.jspecify.annotations.Nullable;
 
@@ -11,6 +12,10 @@ import dev.goldberry.css.parse.Token;
 import dev.goldberry.css.parse.TokenType;
 import dev.goldberry.css.value.CssColor;
 import dev.goldberry.css.value.CssLength;
+import dev.goldberry.css.value.calc.Maths;
+import dev.goldberry.css.value.calc.Quantity;
+import dev.goldberry.css.value.colour.ColourMixing;
+import dev.goldberry.css.value.colour.ColourSpace;
 import dev.goldberry.layout.Length;
 
 /// Reads the `background` properties: the shorthand, `background-image`,
@@ -27,70 +32,210 @@ public final class BackgroundParser {
     private BackgroundParser() {}
 
     /// The `background` shorthand: a comma list of layers, each a gradient, a
-    /// `url()` or `none` with an optional repeat, the last of which may also name
-    /// the colour.
+    /// `url()` or `none` with an optional position and size
+    /// (`<position> [/ <size>]`), repeat, attachment and one or two boxes; the
+    /// last may also name the colour.
     ///
     /// A shorthand resets what it does not name: the colour to transparent, the
-    /// position to zero, every size to `auto` and every repeat to `repeat`.
-    /// `background: none` is no fill at all. A position and a size are not read
-    /// here; `background-position` and `background-size` set them.
+    /// position to the top left, every size to `auto`, every repeat to
+    /// `repeat`, the origin to the padding box and the clip to the border box.
+    /// One box is both the origin and the clip; two are the origin, then the
+    /// clip. `background: none` is no fill at all. The only attachment is
+    /// `scroll`, which is what a box does anyway.
     public static @Nullable Background shorthand(List<Token> value, CssLength.Context context) {
         var entries = commas(value);
         var layers = new ArrayList<CssImage>();
+        var positions = new ArrayList<BackgroundPosition>();
+        var sizes = new ArrayList<BackgroundSize>();
         var repeats = new ArrayList<BackgroundRepeat>();
-        var anyRepeat = false;
+        var origins = new ArrayList<BackgroundBox>();
+        var clips = new ArrayList<BackgroundBox>();
         var colour = CssColor.TRANSPARENT;
+        Layer last = null;
         for (var i = 0; i < entries.size(); i++) {
-            var last = i == entries.size() - 1;
-            var parts = spaces(entries.get(i));
-            if (parts.isEmpty()) {
+            var layer = layer(entries.get(i), i == entries.size() - 1, context);
+            if (layer == null) {
                 return null;
             }
-            CssImage image = null;
-            var none = false;
-            Integer named = null;
-            var words = new ArrayList<List<Token>>();
-            for (var part : parts) {
-                if (part.size() == 1 && part.getFirst().isIdent("none") && image == null && !none) {
-                    none = true;
-                    continue;
-                }
-                var picture = image(part, context);
-                if (picture != null && image == null && !none) {
-                    image = picture;
-                    continue;
-                }
-                if (isRepeatWord(part) && words.size() < 2) {
-                    words.add(part);
-                    continue;
-                }
-                var asColour = CssColor.parse(part);
-                // Only the last layer has a colour, which is CSS's rule.
-                if (asColour != null && last && named == null) {
-                    named = asColour;
-                    continue;
-                }
-                return null;
+            last = layer;
+            if (layer.image() != null) {
+                layers.add(layer.image());
+                positions.add(layer.position());
+                sizes.add(layer.size());
+                repeats.add(layer.repeat());
+                origins.add(layer.origin());
+                clips.add(layer.clip());
             }
-            var repeat = BackgroundRepeat.REPEAT;
-            if (!words.isEmpty()) {
-                var read = repeat(words);
-                if (read == null) {
-                    return null;
-                }
-                repeat = read;
-                anyRepeat = true;
-            }
-            if (image != null) {
-                layers.add(image);
-                repeats.add(repeat);
-            }
-            if (named != null) {
-                colour = named;
+            if (layer.colour() != null) {
+                colour = layer.colour();
             }
         }
+        if (layers.isEmpty() && last != null) {
+            // No picture at all: the last layer's clip still cuts the colour.
+            clips.add(last.clip());
+        }
         return Background.of(
-                colour, layers, BackgroundPosition.ZERO, Background.AUTO_SIZE, anyRepeat ? repeats : Background.REPEAT);
+                colour,
+                layers,
+                collapse(positions, Background.ZERO),
+                collapse(sizes, Background.AUTO_SIZE),
+                collapse(repeats, Background.REPEAT),
+                collapse(origins, Background.PADDING_BOX),
+                collapse(clips, Background.BORDER_BOX));
+    }
+
+    /// One layer of the shorthand, its parts at their initial values where it
+    /// does not name them.
+    private record Layer(
+            @Nullable CssImage image,
+            BackgroundPosition position,
+            BackgroundSize size,
+            BackgroundRepeat repeat,
+            BackgroundBox origin,
+            BackgroundBox clip,
+            @Nullable Integer colour) {}
+
+    private static @Nullable Layer layer(List<Token> entry, boolean last, CssLength.Context context) {
+        var parts = slashes(spaces(entry));
+        if (parts.isEmpty()) {
+            return null;
+        }
+        CssImage image = null;
+        var none = false;
+        Integer named = null;
+        BackgroundPosition position = null;
+        BackgroundSize size = null;
+        var attached = false;
+        var boxes = new ArrayList<BackgroundBox>();
+        var words = new ArrayList<List<Token>>();
+        var i = 0;
+        while (i < parts.size()) {
+            var part = parts.get(i);
+            if (part.size() == 1 && part.getFirst().isIdent("none") && image == null && !none) {
+                none = true;
+                i++;
+                continue;
+            }
+            var picture = image(part, context);
+            if (picture != null && image == null && !none) {
+                image = picture;
+                i++;
+                continue;
+            }
+            if (position == null && PositionParser.isWord(part, context)) {
+                // The position's words run until something else; a `/` after
+                // them is the size.
+                var end = i;
+                while (end < parts.size() && end - i < 4 && PositionParser.isWord(parts.get(end), context)) {
+                    end++;
+                }
+                position = PositionParser.read(parts.subList(i, end), context);
+                if (position == null) {
+                    return null;
+                }
+                i = end;
+                if (i < parts.size() && isSlash(parts.get(i))) {
+                    var sizeEnd = i + 1;
+                    while (sizeEnd < parts.size() && sizeEnd - i <= 2 && isSizeWord(parts.get(sizeEnd), context)) {
+                        sizeEnd++;
+                    }
+                    size = size(parts.subList(i + 1, sizeEnd), context);
+                    if (size == null) {
+                        return null;
+                    }
+                    i = sizeEnd;
+                }
+                continue;
+            }
+            if (isRepeatWord(part) && words.size() < 2) {
+                words.add(part);
+                i++;
+                continue;
+            }
+            if (part.size() == 1 && part.getFirst().isIdent("scroll") && !attached) {
+                attached = true;
+                i++;
+                continue;
+            }
+            var box = part.size() == 1 && part.getFirst().is(TokenType.IDENT)
+                    ? BackgroundBox.named(part.getFirst().text())
+                    : null;
+            if (box != null && boxes.size() < 2) {
+                boxes.add(box);
+                i++;
+                continue;
+            }
+            var asColour = CssColor.parse(part);
+            // Only the last layer has a colour, which is CSS's rule.
+            if (asColour != null && last && named == null) {
+                named = asColour;
+                i++;
+                continue;
+            }
+            return null;
+        }
+        var repeat = BackgroundRepeat.REPEAT;
+        if (!words.isEmpty()) {
+            var read = repeat(words);
+            if (read == null) {
+                return null;
+            }
+            repeat = read;
+        }
+        return new Layer(
+                image,
+                position == null ? BackgroundPosition.ZERO : position,
+                size == null ? BackgroundSize.AUTO : size,
+                repeat,
+                boxes.isEmpty() ? BackgroundBox.PADDING_BOX : boxes.getFirst(),
+                boxes.isEmpty() ? BackgroundBox.BORDER_BOX : boxes.getLast(),
+                named);
+    }
+
+    /// `list`, or `initial` when every entry is `initial`'s one: so a
+    /// shorthand that names nothing compares equal to one never written.
+    private static <T> List<T> collapse(List<T> list, List<T> initial) {
+        for (var entry : list) {
+            if (!entry.equals(initial.getFirst())) {
+                return List.copyOf(list);
+            }
+        }
+        return initial;
+    }
+
+    /// `parts` with every `/` its own part, so `3px/10px` reads as `3px / 10px`.
+    private static List<List<Token>> slashes(List<List<Token>> parts) {
+        var split = new ArrayList<List<Token>>();
+        for (var part : parts) {
+            var current = new ArrayList<Token>();
+            var depth = 0;
+            for (var token : part) {
+                depth = depth(token, depth);
+                if (depth == 0 && token.isDelim('/')) {
+                    if (!current.isEmpty()) {
+                        split.add(List.copyOf(current));
+                        current.clear();
+                    }
+                    split.add(List.of(token));
+                } else {
+                    current.add(token);
+                }
+            }
+            if (!current.isEmpty()) {
+                split.add(List.copyOf(current));
+            }
+        }
+        return split;
+    }
+
+    private static boolean isSlash(List<Token> part) {
+        return part.size() == 1 && part.getFirst().isDelim('/');
+    }
+
+    private static boolean isSizeWord(List<Token> part, CssLength.Context context) {
+        return (part.size() == 1
+                        && (part.getFirst().isIdent("cover") || part.getFirst().isIdent("contain")))
+                || sizeLength(part, context) != null;
     }
 
     /// One layer of `background-image`: a gradient or a `url()`, or null.
@@ -100,8 +245,8 @@ public final class BackgroundParser {
     }
 
     /// `background-repeat`: a comma list, one per layer, each `repeat`,
-    /// `no-repeat`, `repeat-x`, `repeat-y`, or two of `repeat` and `no-repeat`
-    /// for the two axes. `space` and `round` are not read.
+    /// `no-repeat`, `repeat-x`, `repeat-y`, `space` or `round`, or two of
+    /// `repeat`, `no-repeat`, `space` and `round` for the two axes.
     public static @Nullable List<BackgroundRepeat> repeats(List<Token> value) {
         var list = new ArrayList<BackgroundRepeat>();
         for (var entry : commas(value)) {
@@ -120,29 +265,35 @@ public final class BackgroundParser {
     public static @Nullable List<BackgroundSize> sizes(List<Token> value, CssLength.Context context) {
         var list = new ArrayList<BackgroundSize>();
         for (var entry : commas(value)) {
-            var parts = spaces(entry);
-            if (parts.size() == 1 && parts.getFirst().size() == 1) {
-                var only = parts.getFirst().getFirst();
-                if (only.isIdent("cover")) {
-                    list.add(BackgroundSize.COVER);
-                    continue;
-                }
-                if (only.isIdent("contain")) {
-                    list.add(BackgroundSize.CONTAIN);
-                    continue;
-                }
-            }
-            if (parts.isEmpty() || parts.size() > 2) {
+            var size = size(spaces(entry), context);
+            if (size == null) {
                 return null;
             }
-            var width = sizeLength(parts.getFirst(), context);
-            var height = parts.size() == 2 ? sizeLength(parts.get(1), context) : Length.AUTO;
-            if (width == null || height == null) {
-                return null;
-            }
-            list.add(new BackgroundSize(BackgroundSize.Kind.LENGTHS, width, height));
+            list.add(size);
         }
         return List.copyOf(list);
+    }
+
+    /// One layer's size, from its words.
+    private static @Nullable BackgroundSize size(List<List<Token>> parts, CssLength.Context context) {
+        if (parts.size() == 1 && parts.getFirst().size() == 1) {
+            var only = parts.getFirst().getFirst();
+            if (only.isIdent("cover")) {
+                return BackgroundSize.COVER;
+            }
+            if (only.isIdent("contain")) {
+                return BackgroundSize.CONTAIN;
+            }
+        }
+        if (parts.isEmpty() || parts.size() > 2) {
+            return null;
+        }
+        var width = sizeLength(parts.getFirst(), context);
+        var height = parts.size() == 2 ? sizeLength(parts.get(1), context) : Length.AUTO;
+        if (width == null || height == null) {
+            return null;
+        }
+        return new BackgroundSize(BackgroundSize.Kind.LENGTHS, width, height);
     }
 
     /// One axis of a `background-size`: a length that is not negative, a
@@ -181,14 +332,13 @@ public final class BackgroundParser {
         if (values.size() == 1) {
             return values.getFirst();
         }
-        // Two values are an axis each, and only `repeat` and `no-repeat` say one.
+        // Two values are an axis each, and `repeat-x` and `repeat-y` say both.
         var across = values.getFirst();
         var down = values.getLast();
-        if ((across != BackgroundRepeat.REPEAT && across != BackgroundRepeat.NO_REPEAT)
-                || (down != BackgroundRepeat.REPEAT && down != BackgroundRepeat.NO_REPEAT)) {
+        if (across.x() != across.y() || down.x() != down.y()) {
             return null;
         }
-        return BackgroundRepeat.of(across == BackgroundRepeat.REPEAT, down == BackgroundRepeat.REPEAT);
+        return new BackgroundRepeat(across.x(), down.y());
     }
 
     /// `background-image`: `none`, or a comma list of gradients and `url()`
@@ -218,68 +368,78 @@ public final class BackgroundParser {
         return List.copyOf(layers);
     }
 
-    /// `background-position`: one or two components, each a length, a
-    /// percentage or a keyword.
-    ///
-    /// Only a length moves anything — see [BackgroundPosition] for why a
-    /// percentage and a keyword resolve to zero. One component is the
-    /// horizontal one, or the vertical one when it is `top` or `bottom`.
+    /// One `background-position`: one to four words, keywords, lengths and
+    /// percentages, as CSS reads them.
     public static @Nullable BackgroundPosition position(List<Token> value, CssLength.Context context) {
-        var parts = spaces(value);
-        if (parts.isEmpty() || parts.size() > 2) {
-            return null;
-        }
-        var first = component(parts.getFirst(), context);
-        if (first == null) {
-            return null;
-        }
-        if (parts.size() == 1) {
-            return first.vertical()
-                    ? new BackgroundPosition(0, first.offset())
-                    : new BackgroundPosition(first.offset(), 0);
-        }
-        var second = component(parts.get(1), context);
-        if (second == null) {
-            return null;
-        }
-        // `top left` is written either way round; a keyword says which axis.
-        if (first.vertical() || second.horizontal()) {
-            if (first.horizontal() || second.vertical()) {
-                return null;
-            }
-            return new BackgroundPosition(second.offset(), first.offset());
-        }
-        return new BackgroundPosition(first.offset(), second.offset());
+        return PositionParser.read(spaces(value), context);
     }
 
-    /// One `background-position` component.
-    ///
-    /// @param offset     how far it moves a layer, which only a length does
-    /// @param horizontal whether it is `left` or `right`
-    /// @param vertical   whether it is `top` or `bottom`
-    private record Component(double offset, boolean horizontal, boolean vertical) {}
-
-    private static @Nullable Component component(List<Token> part, CssLength.Context context) {
-        if (part.size() == 1 && part.getFirst().is(TokenType.IDENT)) {
-            return switch (part.getFirst().text().toLowerCase(Locale.ROOT)) {
-                case "left", "right" -> new Component(0, true, false);
-                case "top", "bottom" -> new Component(0, false, true);
-                case "center" -> new Component(0, false, false);
-                default -> null;
-            };
+    /// `background-position`: a comma list, one per layer.
+    public static @Nullable List<BackgroundPosition> positions(List<Token> value, CssLength.Context context) {
+        var list = new ArrayList<BackgroundPosition>();
+        for (var entry : commas(value)) {
+            var position = PositionParser.read(spaces(entry), context);
+            if (position == null) {
+                return null;
+            }
+            list.add(position);
         }
-        return switch (CssLength.parse(part, context)) {
-            case Length.Points(var points) -> new Component(points, false, false);
-            case Length.Percent _ -> new Component(0, false, false);
-            case null, default -> null;
-        };
+        return List.copyOf(list);
+    }
+
+    /// `background-position-x` or `-y`: a comma list, one per layer, each with
+    /// only the one axis set.
+    public static @Nullable List<BackgroundPosition> axis(
+            List<Token> value, boolean horizontal, CssLength.Context context) {
+        var list = new ArrayList<BackgroundPosition>();
+        for (var entry : commas(value)) {
+            var position = PositionParser.axis(spaces(entry), horizontal, context);
+            if (position == null) {
+                return null;
+            }
+            list.add(position);
+        }
+        return List.copyOf(list);
+    }
+
+    /// `background-origin` or `background-clip`: a comma list of
+    /// `border-box`, `padding-box` and `content-box`.
+    public static @Nullable List<BackgroundBox> boxes(List<Token> value) {
+        var list = new ArrayList<BackgroundBox>();
+        for (var entry : commas(value)) {
+            var parts = spaces(entry);
+            var box = parts.size() == 1
+                            && parts.getFirst().size() == 1
+                            && parts.getFirst().getFirst().is(TokenType.IDENT)
+                    ? BackgroundBox.named(parts.getFirst().getFirst().text())
+                    : null;
+            if (box == null) {
+                return null;
+            }
+            list.add(box);
+        }
+        return List.copyOf(list);
+    }
+
+    /// `positions` with each entry's one axis replaced by `axis`'s, entry by
+    /// entry, the shorter list repeated.
+    public static List<BackgroundPosition> withAxis(
+            List<BackgroundPosition> positions, List<BackgroundPosition> axis, boolean horizontal) {
+        var count = Math.max(positions.size(), axis.size());
+        var list = new ArrayList<BackgroundPosition>(count);
+        for (var i = 0; i < count; i++) {
+            var position = positions.get(i % positions.size());
+            var from = axis.get(i % axis.size());
+            list.add(horizontal ? position.withX(from) : position.withY(from));
+        }
+        return List.copyOf(list);
     }
 
     /// One gradient function, or null if `part` is not one this reads.
     ///
-    /// `linear-gradient`, `radial-gradient` and their `repeating-` forms.
-    /// A transition hint (a bare position between two stops) and the colour
-    /// interpolation methods of CSS Images 4 are not read.
+    /// `linear-gradient`, `radial-gradient`, `conic-gradient` and their
+    /// `repeating-` forms, with transition hints between the stops and an
+    /// `in <colour-space> [<method> hue]` in the first argument.
     public static @Nullable GradientLayer gradient(List<Token> part, CssLength.Context context) {
         if (part.size() < 2
                 || !part.getFirst().is(TokenType.FUNCTION)
@@ -294,6 +454,7 @@ public final class BackgroundParser {
             return switch (kind) {
                 case "linear-gradient" -> linear(arguments, repeating, context);
                 case "radial-gradient" -> radial(arguments, repeating, context);
+                case "conic-gradient" -> conic(arguments, repeating, context);
                 default -> null;
             };
         } catch (IllegalArgumentException e) {
@@ -305,9 +466,14 @@ public final class BackgroundParser {
 
     private static GradientLayer.@Nullable Linear linear(
             List<List<Token>> arguments, boolean repeating, CssLength.Context context) {
-        var first = spaces(arguments.getFirst());
+        var words = spaces(arguments.getFirst());
+        var interpolation = interpolation(words);
+        if (interpolation == null) {
+            return null;
+        }
+        var first = interpolation.rest();
         GradientLayer.Direction direction = new GradientLayer.Direction.Angle(Math.PI);
-        var from = 0;
+        var from = interpolation.named() && first.isEmpty() ? 1 : 0;
         var radians = first.size() == 1 ? angle(first.getFirst()) : null;
         if (!first.isEmpty()
                 && first.getFirst().size() == 1
@@ -320,9 +486,13 @@ public final class BackgroundParser {
         } else if (radians != null) {
             direction = new GradientLayer.Direction.Angle(radians);
             from = 1;
+        } else if (!first.isEmpty() && interpolation.named()) {
+            return null;
         }
-        var stops = stops(arguments.subList(from, arguments.size()), context);
-        return stops == null ? null : new GradientLayer.Linear(direction, stops, repeating);
+        var stops = stops(arguments.subList(from, arguments.size()), part -> length(part, context));
+        return stops == null
+                ? null
+                : new GradientLayer.Linear(direction, stops, repeating, interpolation.interpolation());
     }
 
     /// `to <side>` or `to <side> <side>`, read as a direction.
@@ -359,8 +529,13 @@ public final class BackgroundParser {
 
     private static GradientLayer.@Nullable Radial radial(
             List<List<Token>> arguments, boolean repeating, CssLength.Context context) {
-        var first = spaces(arguments.getFirst());
-        var from = 0;
+        var words = spaces(arguments.getFirst());
+        var interpolation = interpolation(words);
+        if (interpolation == null) {
+            return null;
+        }
+        var first = interpolation.rest();
+        var from = interpolation.named() ? 1 : 0;
         Boolean circle = null;
         GradientLayer.Extent extent = null;
         var sizes = new ArrayList<Length>();
@@ -428,10 +603,142 @@ public final class BackgroundParser {
         } else if (extent == null) {
             extent = GradientLayer.Extent.FARTHEST_CORNER;
         }
-        var stops = stops(arguments.subList(from, arguments.size()), context);
+        var stops = stops(arguments.subList(from, arguments.size()), part -> length(part, context));
         return stops == null
                 ? null
-                : new GradientLayer.Radial(circle, extent, radiusX, radiusY, centreX, centreY, stops, repeating);
+                : new GradientLayer.Radial(
+                        circle,
+                        extent,
+                        radiusX,
+                        radiusY,
+                        centreX,
+                        centreY,
+                        stops,
+                        repeating,
+                        interpolation.interpolation());
+    }
+
+    /// `conic-gradient([from <angle>] [at <position>] [in <space>], stops)`,
+    /// its stops placed by angle or by percentage of a turn.
+    private static GradientLayer.@Nullable Conic conic(
+            List<List<Token>> arguments, boolean repeating, CssLength.Context context) {
+        var words = spaces(arguments.getFirst());
+        var interpolation = interpolation(words);
+        if (interpolation == null) {
+            return null;
+        }
+        var first = interpolation.rest();
+        var from = interpolation.named() ? 1 : 0;
+        var start = 0.0;
+        var centreX = CENTRE;
+        var centreY = CENTRE;
+        if (!first.isEmpty()
+                && (first.getFirst().size() == 1)
+                && (first.getFirst().getFirst().isIdent("from")
+                        || first.getFirst().getFirst().isIdent("at"))) {
+            from = 1;
+            var at = first.size();
+            for (var i = 0; i < first.size(); i++) {
+                if (first.get(i).size() == 1 && first.get(i).getFirst().isIdent("at")) {
+                    at = i;
+                    break;
+                }
+            }
+            if (at > 0) {
+                if (at != 2) {
+                    return null;
+                }
+                var radians = angle(first.get(1));
+                if (radians == null) {
+                    return null;
+                }
+                start = radians;
+            }
+            if (at < first.size()) {
+                var centre = centre(first.subList(at + 1, first.size()), context);
+                if (centre == null) {
+                    return null;
+                }
+                centreX = centre[0];
+                centreY = centre[1];
+            }
+        } else if (!first.isEmpty() && interpolation.named()) {
+            return null;
+        }
+        var stops = stops(arguments.subList(from, arguments.size()), BackgroundParser::turn);
+        return stops == null
+                ? null
+                : new GradientLayer.Conic(start, centreX, centreY, stops, repeating, interpolation.interpolation());
+    }
+
+    /// A conic stop's position: an angle, as a percentage of a turn, or a
+    /// percentage. Never a length.
+    private static @Nullable Length turn(List<Token> part) {
+        var radians = angle(part);
+        if (radians != null) {
+            return Length.percent((float) (Math.toDegrees(radians) / 3.6));
+        }
+        var percent = CssLength.parse(part, CssLength.Context.DEFAULT);
+        return percent instanceof Length.Percent ? percent : null;
+    }
+
+    /// A linear or radial stop's position: a length or a percentage.
+    private static @Nullable Length length(List<Token> part, CssLength.Context context) {
+        var length = CssLength.parse(part, context);
+        return length instanceof Length.Points || length instanceof Length.Percent ? length : null;
+    }
+
+    /// The first argument's words with any `in <space> [<method> hue]` taken
+    /// out, at its start or its end.
+    ///
+    /// @param rest          the other words, in order
+    /// @param interpolation what was named, or sRGB
+    /// @param named         whether there was an `in` at all
+    private record Interpolated(List<List<Token>> rest, GradientLayer.Interpolation interpolation, boolean named) {}
+
+    private static @Nullable Interpolated interpolation(List<List<Token>> words) {
+        var in = -1;
+        for (var i = 0; i < words.size(); i++) {
+            if (words.get(i).size() == 1 && words.get(i).getFirst().isIdent("in")) {
+                in = i;
+                break;
+            }
+        }
+        if (in < 0) {
+            return new Interpolated(words, GradientLayer.Interpolation.SRGB, false);
+        }
+        if (in + 1 >= words.size() || !isWord(words.get(in + 1))) {
+            return null;
+        }
+        var space = ColourSpace.parse(words.get(in + 1).getFirst().text());
+        if (space == null) {
+            return null;
+        }
+        var end = in + 2;
+        var hue = ColourMixing.HueMethod.SHORTER;
+        if (end + 1 < words.size()
+                && isWord(words.get(end))
+                && words.get(end + 1).size() == 1
+                && words.get(end + 1).getFirst().isIdent("hue")) {
+            var method = ColourMixing.HueMethod.parse(words.get(end).getFirst().text());
+            // Only a space with a hue has a way round it.
+            if (method == null || space.hue() < 0) {
+                return null;
+            }
+            hue = method;
+            end += 2;
+        }
+        // At the start or the end of the argument, never in the middle of it.
+        if (in != 0 && end != words.size()) {
+            return null;
+        }
+        var rest = new ArrayList<List<Token>>(words.subList(0, in));
+        rest.addAll(words.subList(end, words.size()));
+        return new Interpolated(List.copyOf(rest), new GradientLayer.Interpolation(space, hue), true);
+    }
+
+    private static boolean isWord(List<Token> part) {
+        return part.size() == 1 && part.getFirst().is(TokenType.IDENT);
     }
 
     /// The `at <position>` of a radial gradient, as two lengths.
@@ -491,9 +798,12 @@ public final class BackgroundParser {
     }
 
     /// The colour stops: each `<colour> [<position> [<position>]]`, two
-    /// positions being two stops of one colour.
+    /// positions being two stops of one colour, or a hint, a position alone
+    /// between two of them.
+    ///
+    /// @param positions reads a position, or answers null for one it refuses
     private static @Nullable List<GradientLayer.ColorStop> stops(
-            List<List<Token>> arguments, CssLength.Context context) {
+            List<List<Token>> arguments, Function<List<Token>, @Nullable Length> positions) {
         var stops = new ArrayList<GradientLayer.ColorStop>();
         for (var argument : arguments) {
             var parts = spaces(argument);
@@ -502,25 +812,39 @@ public final class BackgroundParser {
             }
             var colour = CssColor.parse(parts.getFirst());
             if (colour == null) {
-                return null;
+                var hint = parts.size() == 1 ? positions.apply(parts.getFirst()) : null;
+                // A hint sits between two colours, never first or after another.
+                if (hint == null || stops.isEmpty() || stops.getLast().hint()) {
+                    return null;
+                }
+                stops.add(GradientLayer.ColorStop.hint(hint));
+                continue;
             }
             if (parts.size() == 1) {
                 stops.add(new GradientLayer.ColorStop(colour, null));
                 continue;
             }
             for (var position : parts.subList(1, parts.size())) {
-                var length = CssLength.parse(position, context);
-                if (!(length instanceof Length.Points) && !(length instanceof Length.Percent)) {
+                var length = positions.apply(position);
+                if (length == null) {
                     return null;
                 }
                 stops.add(new GradientLayer.ColorStop(colour, length));
             }
         }
-        return stops.size() < 2 ? null : List.copyOf(stops);
+        if (stops.size() < 2 || stops.getLast().hint()) {
+            return null;
+        }
+        return List.copyOf(stops);
     }
 
-    /// An angle in radians, or null; a bare zero is an angle, as CSS allows.
+    /// An angle in radians, or null; a bare zero is an angle, as CSS allows, and
+    /// so is a math function that folds to one.
     private static @Nullable Double angle(List<Token> part) {
+        if (Maths.isMath(part)) {
+            var math = Maths.fold(part, CssLength.Context.DEFAULT);
+            return math != null && math.kind() == Quantity.Kind.ANGLE ? Math.toRadians(math.value()) : null;
+        }
         if (part.size() != 1) {
             return null;
         }

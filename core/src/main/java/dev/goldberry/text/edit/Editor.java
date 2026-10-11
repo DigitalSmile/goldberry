@@ -493,8 +493,10 @@ public final class Editor {
     private boolean perform(EditCommand command) {
         return switch (command) {
             case EditCommand.Simple simple -> simple(simple);
-            case EditCommand.Move(var motion, var word, var extend) ->
-                switch (motion) {
+            case EditCommand.Move(var key, var word, var extend) ->
+                // Logical movement, mirrored where the caret's paragraph runs
+                // right to left.
+                switch (key.in(document().directionAt(edit.caret()))) {
                     case LEFT -> move(word ? edit.wordLeft(extend) : edit.left(extend));
                     case RIGHT -> move(word ? edit.wordRight(extend) : edit.right(extend));
                     case LINE_START -> move(toLineEdge(true, extend));

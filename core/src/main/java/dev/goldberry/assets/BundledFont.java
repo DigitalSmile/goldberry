@@ -17,12 +17,13 @@ import org.jspecify.annotations.Nullable;
 /// because a cascade across arbitrary system fonts is what makes text look
 /// different on every machine.
 ///
-/// A weight is a face here, not an axis. Inter and JetBrains Mono are variable
-/// files, and instancing `wght` at runtime would be the general answer, but the
-/// design system ships exactly two weights, so the second one is a second face.
-/// A stylesheet may ask for any CSS weight; [Face#match] answers with the
-/// nearest face the way a browser does, so 500 is Inter's 400 and 700 is its
-/// 600. An application that wants 500 to be a 500 ships that face.
+/// The design system's two weights are two faces: the upright 400 is Inter's
+/// variable file at its default, and the 600 a static SemiBold, so neither is
+/// pinned at run time. Upright Inter and JetBrains Mono are variable along
+/// `wght`, and any other weight a stylesheet asks of them is drawn at that
+/// weight: the font book pins the variable file into a face of its own, once.
+/// The italics are static, and [Face#match] answers them with the nearest face
+/// the way a browser does, so a 500 italic is the 400.
 ///
 /// An italic is a face too. Inter's italic is **drawn**, with different
 /// letterforms, so it is a file rather than a transform; shearing the upright

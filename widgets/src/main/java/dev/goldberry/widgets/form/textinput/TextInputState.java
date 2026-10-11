@@ -6,6 +6,7 @@ import org.jspecify.annotations.Nullable;
 
 import dev.goldberry.Host;
 import dev.goldberry.input.hit.Extent;
+import dev.goldberry.layout.Direction;
 import dev.goldberry.render.event.EventLoop;
 import dev.goldberry.text.Paragraph;
 import dev.goldberry.text.edit.EditHistory;
@@ -352,10 +353,15 @@ final class TextInputState extends State<TextInput> implements TextEditor {
         // A row of bullets has no words in it, so `Ctrl+Left` in a masked field
         // goes to the end it was heading for. Stepping by real words would move
         // the caret by an amount that says how long they are.
+        //
+        // Logical movement, mirrored when the field's text runs right to left:
+        // the text goes on to the left there.
         var masked = widget().password();
+        var shaped = paragraph;
+        var rtl = shaped != null && shaped.directionAt(0) == Direction.RTL;
         var next = switch (motion) {
-            case LEFT -> !byWord ? edit.left(extend) : masked ? edit.toStart(extend) : edit.wordLeft(extend);
-            case RIGHT -> !byWord ? edit.right(extend) : masked ? edit.toEnd(extend) : edit.wordRight(extend);
+            case LEFT -> rtl ? forward(byWord, masked, extend) : back(byWord, masked, extend);
+            case RIGHT -> rtl ? back(byWord, masked, extend) : forward(byWord, masked, extend);
             case START -> edit.toStart(extend);
             case END -> edit.toEnd(extend);
         };
@@ -365,6 +371,14 @@ final class TextInputState extends State<TextInput> implements TextEditor {
             publishSelection();
         }
         return moved;
+    }
+
+    private TextEdit back(boolean byWord, boolean masked, boolean extend) {
+        return !byWord ? edit.left(extend) : masked ? edit.toStart(extend) : edit.wordLeft(extend);
+    }
+
+    private TextEdit forward(boolean byWord, boolean masked, boolean extend) {
+        return !byWord ? edit.right(extend) : masked ? edit.toEnd(extend) : edit.wordRight(extend);
     }
 
     /// `Ctrl+A`, which publishes even when everything was already selected: a
@@ -488,9 +502,8 @@ final class TextInputState extends State<TextInput> implements TextEditor {
         if (shaped == null) {
             return 0;
         }
-        return shaped.widthBetween(
-                        0, Math.clamp(displayCaret(), 0, shaped.text().length()))
-                - shift();
+        var length = shaped.text().length();
+        return shaped.caretX(0, length, Math.clamp(displayCaret(), 0, length)) - shift();
     }
 
     /// The caret's offset into what is **drawn** — inside the composition while
@@ -691,8 +704,10 @@ final class TextInputState extends State<TextInput> implements TextEditor {
         rightPadding = right;
 
         var display = mask.display();
-        var caretAt = paragraph.widthBetween(0, Math.clamp(mask.display(edit.caret()), 0, display.length()));
+        var caretAt =
+                paragraph.caretX(0, display.length(), Math.clamp(mask.display(edit.caret()), 0, display.length()));
         var textWidth = paragraph.widthBetween(0, display.length());
+        var rtl = paragraph.directionAt(0) == Direction.RTL;
         // The last frame's width, less each side's own padding. Zero before
         // anything has been measured, which reads as "no room" and leaves the
         // offset alone rather than snapping it to the caret.
@@ -704,12 +719,13 @@ final class TextInputState extends State<TextInput> implements TextEditor {
         // here as it does in a `text-area`: the value box is absolutely positioned
         // and sized by its content, and a paragraph with no slack indents by
         // nothing. What moves is the box, and the caret and the highlight with it.
-        indent = align.indentOf(textWidth, room);
+        indent = align.placing(paragraph.directionAt(0)).indentOf(textWidth, room);
 
-        var offset = scrollOffset;
         // The caret is only chased once this field has been touched -- see
         // [#caretMatters]. An untouched field shows the head of its value, which
-        // is the part that says what the value *is*.
+        // is the part that says what the value *is*: its left end, or its right
+        // end when the value runs right to left.
+        var offset = !caretMatters && rtl ? Math.max(0, textWidth - room) : scrollOffset;
         if (caretMatters) {
             // Move as little as possible: only when the caret has left the window.
             // A caret at the very end needs **its own width** of room, or the

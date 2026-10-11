@@ -206,6 +206,14 @@ public record Shadow(double offsetX, double offsetY, double blur, double spread,
     /// @return the shadows, first on top; empty for `none`; null if these tokens
     ///         are not a list of shadows
     public static @Nullable List<Shadow> parse(List<Token> value, CssLength.Context context) {
+        return parse(value, context, null);
+    }
+
+    /// The same, with an entry that names no colour drawn in `fallback`: the
+    /// element's own colour, which is what CSS gives a shadow that names none.
+    /// With a null fallback such an entry is not a shadow.
+    public static @Nullable List<Shadow> parse(
+            List<Token> value, CssLength.Context context, @Nullable Integer fallback) {
         var entries = commaSeparated(value);
         if (entries.size() == 1) {
             var only = withoutWhitespace(entries.getFirst());
@@ -215,7 +223,7 @@ public record Shadow(double offsetX, double offsetY, double blur, double spread,
         }
         var shadows = new ArrayList<Shadow>(entries.size());
         for (var entry : entries) {
-            var shadow = one(entry, context);
+            var shadow = one(entry, context, fallback);
             if (shadow == null) {
                 return null;
             }
@@ -229,7 +237,7 @@ public record Shadow(double offsetX, double offsetY, double blur, double spread,
     }
 
     /// One entry of the list.
-    private static @Nullable Shadow one(List<Token> entry, CssLength.Context context) {
+    private static @Nullable Shadow one(List<Token> entry, CssLength.Context context, @Nullable Integer fallback) {
         var lengths = new ArrayList<Double>();
         Integer argb = null;
         var inset = false;
@@ -263,7 +271,10 @@ public record Shadow(double offsetX, double offsetY, double blur, double spread,
         if (lengths.size() < 2) {
             return null;
         }
-        // No `currentColor` in the subset, and no guess: see the class note.
+        if (argb == null) {
+            argb = fallback;
+        }
+        // A box shadow names its colour: see the class note.
         if (argb == null) {
             LOG.warn("dropping box-shadow: it names no colour, and there is no `currentColor` to fall back on");
             return null;

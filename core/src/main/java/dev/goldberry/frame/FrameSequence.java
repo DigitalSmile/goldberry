@@ -5,6 +5,7 @@ import java.util.Objects;
 
 import dev.goldberry.input.PointerRouter;
 import dev.goldberry.input.hit.HitTest;
+import dev.goldberry.paint.Box;
 import dev.goldberry.paint.Frame;
 import dev.goldberry.paint.tree.RenderTree;
 import dev.goldberry.render.model.LogicalRect;
@@ -108,27 +109,36 @@ public final class FrameSequence {
         // The window's size first, so an `@media` breakpoint it crosses has
         // swapped the resolver before the build asks it anything.
         renderer.viewport(frame.size().width(), frame.size().height());
+        renderer.resolution(frame.scale().factor());
         renderer.prepare(tree);
         if (tree.needsBuild()) {
             tree.flush();
         }
         var builtAt = System.nanoTime();
 
-        var boxes = renderer.render(tree);
-        // The drag's ghost goes on after the tree has rendered, so it is drawn
-        // from this frame's boxes, and before layout, so it is laid out with
-        // them. It belongs to no widget: the router knows a drag is on, and the
-        // tree does not.
-        var dragging = router.dragging();
-        if (dragging.isPresent()) {
-            boxes = DragGhost.over(boxes, dragging.get());
-        }
+        var boxes = withGhost(renderer.render(tree));
         var styledAt = System.nanoTime();
 
         render.update(frame, boxes);
+        // `@container`: a container laid out at a size its descendants were not
+        // styled for restyles them, and the frame is laid out once more. Never
+        // a third time.
+        if (renderer.settleContainers(render)) {
+            render.update(frame, withGhost(renderer.render(tree)));
+        }
         var laidOutAt = System.nanoTime();
         laidOut = true;
         return new Stages(beganAt, builtAt, styledAt, laidOutAt);
+    }
+
+    /// `boxes` with the drag's ghost on them while a drag is on.
+    ///
+    /// After the tree has rendered, so it is drawn from this frame's boxes, and
+    /// before layout, so it is laid out with them. It belongs to no widget: the
+    /// router knows a drag is on, and the tree does not.
+    private Box withGhost(Box boxes) {
+        var dragging = router.dragging();
+        return dragging.isPresent() ? DragGhost.over(boxes, dragging.get()) : boxes;
     }
 
     /// Captures the laid-out rectangles and gives them to the router.

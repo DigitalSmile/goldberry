@@ -39,13 +39,14 @@ class LenientParseTest {
                     "a pseudo-element              | a::before { color: red }",
                     "an attribute selector         | [aria-current] { color: red }",
                     "an attribute on a type        | a[href] { color: red }",
-                    "a sibling combinator          | a + b { color: red }",
-                    "a general sibling combinator  | a ~ b { color: red }",
                     "an unknown pseudo-class       | a:hovered { color: red }",
-                    "a functional pseudo-class     | lane:has(input:checked) { color: red }",
-                    "an unsupported at-rule        | @supports (display: grid) { a { color: red } }",
+                    "a functional pseudo-class     | lane:lang(en) { color: red }",
+                    "an unsupported at-rule        | @scope (.card) { a { color: red } }",
                     "a font face                   | '@font-face { font-family: X; src: url(x.woff) }'",
                     "an import                     | @import url(other.css);",
+                    "a nested pseudo-element       | a { &::before { color: red } }",
+                    "a nested at-rule              | a { @scope (.b) { color: red } }",
+                    "an attribute inside :is()     | :is(a[x]) { color: red }",
                 })
         @DisplayName("drops only the rule asking for what the subset lacks, and keeps the rest")
         void dropsTheRuleAndKeepsTheRest(String what, String rule) {
@@ -66,11 +67,10 @@ class LenientParseTest {
         @Test
         @DisplayName("names the selector it dropped, as it was written")
         void namesTheSelector() {
-            var dropped = lenient("lane:has(input:checked), lane.open { color: red }")
-                    .dropped()
-                    .getFirst();
-            assertEquals("lane:has(input:checked), lane.open", dropped.text());
-            assertTrue(dropped.reason().contains(":has()"), dropped.reason());
+            var dropped =
+                    lenient("lane:lang(en), lane.open { color: red }").dropped().getFirst();
+            assertEquals("lane:lang(en), lane.open", dropped.text());
+            assertTrue(dropped.reason().contains(":lang()"), dropped.reason());
         }
 
         @Test
@@ -88,6 +88,35 @@ class LenientParseTest {
             var parsed = lenient(".acct-step > :last-child { margin-bottom: 0 }");
             assertEquals(1, parsed.rules().size());
             assertTrue(parsed.dropped().isEmpty());
+        }
+
+        @Test
+        @DisplayName("drops a nested rule outside the subset inside @media and keeps the block's other rules")
+        void nestedInsideMedia() {
+            var parsed = lenient("@media (min-width: 600px) { a { &::before { color: red } } c { color: blue } }");
+            assertEquals(
+                    List.of("c"),
+                    parsed.rules().stream()
+                            .map(r -> r.selectors().getFirst().key().type())
+                            .toList());
+            assertEquals("&::before", parsed.dropped().getFirst().text());
+            assertTrue(
+                    parsed.dropped().getFirst().reason().contains("pseudo-elements"),
+                    parsed.dropped().getFirst().reason());
+        }
+
+        @ParameterizedTest(name = "{0}")
+        @ValueSource(
+                strings = {
+                    "a { background: url(\"x{y}.png\"); color: red }",
+                    "a { content: \"{\"; color: red }",
+                    "a:nth-child(2n+1) { color: red }"
+                })
+        @DisplayName("does not mistake a brace in a string or a url for a nested rule")
+        void bracesThatAreNotRules(String css) {
+            var parsed = lenient(css);
+            assertTrue(parsed.dropped().isEmpty(), () -> parsed.dropped().toString());
+            assertEquals(1, parsed.rules().size());
         }
 
         @ParameterizedTest
@@ -110,6 +139,16 @@ class LenientParseTest {
                     CssSyntaxException.class,
                     () -> CssParser.parseSheet("a::before { color: red }", ParseMode.STRICT, "controls.css"));
             assertTrue(thrown.isUnsupportedFeature());
+        }
+
+        @Test
+        @DisplayName("refuses a nested rule outside the subset, and says which construct")
+        void refusesNestedByName() {
+            var thrown = assertThrows(
+                    CssSyntaxException.class,
+                    () -> CssParser.parseSheet("a { &[x] { color: red } }", ParseMode.STRICT, "controls.css"));
+            assertTrue(thrown.isUnsupportedFeature());
+            assertTrue(thrown.getMessage().contains("attribute selectors"), thrown.getMessage());
         }
 
         @Test

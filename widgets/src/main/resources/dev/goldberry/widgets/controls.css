@@ -1108,15 +1108,15 @@ slider-span {
   background: var(--gb-slider-span-bg);
 }
 
-/* The row's thumb 16 at `full` radius -- `border-radius: 8px` on a 16px box, through
-   the four cubics the painter already ships, so no native symbol and no new drawing
-   code. It carries no transform at all, which is the whole difference from
+/* The row's thumb 16 at `full` radius -- `border-radius: 50%` of whatever size the
+   token gives it, through the four cubics the painter already ships, so no native
+   symbol and no new drawing code. It carries no transform at all, which is the whole difference from
    `toggle-thumb`: a switch has two positions a stylesheet can name and a slider
    has a continuum it cannot. */
 slider-thumb {
   width: var(--gb-slider-thumb-size);
   height: var(--gb-slider-thumb-size);
-  border-radius: 8px;
+  border-radius: 50%;
   border: 1px solid var(--gb-slider-thumb-border);
   background: var(--gb-slider-thumb-bg);
 }
@@ -1152,12 +1152,10 @@ slider-thumb {
    2 + 16 + 16 + 2 = 36 is one with its travel -- change the thumb and this
    follows.
 
-   It cannot be written as half of the token, because the CSS subset has no `calc()`.
-   So it is the one number here that an author moving the thumb has to
-   move too, and `SliderTest.theHalvesOfAThumb` is what makes forgetting it a
-   failure rather than a pointer that is eight pixels out. It is also the number
-   the *pointer* now agrees with: the marks were never wrong, and until the
-   pointer was mapped over the thumb's travel, the finger was. */
+   So it is written as half of the token, and a theme that moves the thumb moves the
+   marks with it. It is also the number the *pointer* agrees with: the marks were
+   never wrong, and until the pointer was mapped over the thumb's travel, the
+   finger was. */
 slider-ticks {
   /* **Zero-height, and that is the load-bearing number.** The track centres its
      column, so anything the scale contributes to that column pushes the groove
@@ -1170,7 +1168,7 @@ slider-ticks {
      top of a mark is 10 - 2 = 8 below the groove, and the thumb reaches 8 below
      the groove's centre and 6 below its edge. Two pixels of air. */
   height: 0;
-  padding: 0 8px;
+  padding: 0 calc(var(--gb-slider-thumb-size) / 2);
   justify-content: space-between;
   align-items: center;
 }
@@ -2156,12 +2154,9 @@ select-value {
   text-overflow: ellipsis;
 }
 
-/* Nothing chosen reads as `--gb-text-muted`, which is the colour rule's rank for text that
-   is standing in for content rather than being it. A class rather than a
-   pseudo-class for `select.open`'s reason. */
-select-value.placeholder {
-  color: var(--gb-text-placeholder);
-}
+/* Nothing chosen reads as `--gb-text-placeholder`, the colour rule's rank for text
+   that is standing in for content rather than being it. The part is
+   `::placeholder` while it does, and `text-value`'s rule below colours both. */
 
 /* --------------------------------------------------------- form & field --
  *
@@ -2366,15 +2361,19 @@ text-input:hover {
   border-color: var(--gb-text-muted);
 }
 
-/* An empty field is standing in for content rather than being it. A class rather
-   than a pseudo-class for `select-value.placeholder`'s reason: the CSS subset has
-   none that means this.
+/* An empty field is standing in for content rather than being it: its value
+   part is `::placeholder` (and carries the class `placeholder`), and so is a
+   `select`'s when nothing is chosen.
+
+   Written as the pseudo-element alone, the least specific selector that names
+   it, so that an application's `text-input::placeholder` or `::placeholder`
+   wins over it in the later layer rather than losing on specificity.
 
    `--gb-text-placeholder` and not `--gb-text-muted`, which was the first answer
    and did apply -- it was simply too small a step to see. Muted and text are two
    rungs apart on the Nord ramp, so a placeholder inside a filled field looked
    exactly like a value somebody had typed. */
-text-value.placeholder {
+::placeholder {
   color: var(--gb-text-placeholder);
 }
 

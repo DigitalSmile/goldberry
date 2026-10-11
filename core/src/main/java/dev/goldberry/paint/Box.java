@@ -10,6 +10,7 @@ import dev.goldberry.css.ComputedStyle;
 import dev.goldberry.css.Decoration;
 import dev.goldberry.css.background.Background;
 import dev.goldberry.css.value.CssColor;
+import dev.goldberry.css.value.Shadow;
 import dev.goldberry.css.value.Transform;
 import dev.goldberry.icon.Icon;
 import dev.goldberry.layout.Align;
@@ -20,6 +21,7 @@ import dev.goldberry.layout.Length;
 import dev.goldberry.layout.Limits;
 import dev.goldberry.layout.Overflow;
 import dev.goldberry.layout.Position;
+import dev.goldberry.layout.Presence;
 import dev.goldberry.layout.Wrap;
 import dev.goldberry.render.Cursor;
 import dev.goldberry.text.Paragraph;
@@ -84,8 +86,11 @@ public record Box(
         Length flexBasis,
         Position position,
         Insets inset,
-        boolean elevated,
         Overflow overflow,
+        // `aspect-ratio`, which Yoga reads, and whether the box is drawn, hit
+        // by the pointer and selected: `visibility`, `pointer-events` and
+        // `user-select`. `display` is the renderer's and is always a box here.
+        Presence presence,
         @Nullable Text text,
         @Nullable Glyph icon,
         @Nullable Mark mark,
@@ -125,11 +130,19 @@ public record Box(
     /// @param argb      `0xAARRGGBB`, not premultiplied
     /// @param flow      whether it may break, and what marks it where it does not
     /// @param spans     the stretches drawn otherwise, by offset into the text
-    public record Text(Paragraph paragraph, int argb, TextFlow flow, List<SpanPaint> spans) {
+    /// @param shadows   the `text-shadow` list, first on top, drawn under the
+    ///                  glyphs; empty for nearly all text
+    public record Text(Paragraph paragraph, int argb, TextFlow flow, List<SpanPaint> spans, List<Shadow> shadows) {
         public Text {
             Objects.requireNonNull(paragraph, "paragraph");
             Objects.requireNonNull(flow, "flow");
             spans = List.copyOf(Objects.requireNonNull(spans, "spans"));
+            shadows = List.copyOf(Objects.requireNonNull(shadows, "shadows"));
+        }
+
+        /// Text with no shadow.
+        public Text(Paragraph paragraph, int argb, TextFlow flow, List<SpanPaint> spans) {
+            this(paragraph, argb, flow, spans, List.of());
         }
 
         /// Text in one colour, which is nearly all of it.
@@ -144,7 +157,7 @@ public record Box(
 
         /// This, with a different flow.
         public Text flow(TextFlow value) {
-            return new Text(paragraph, argb, value, spans);
+            return new Text(paragraph, argb, value, spans, shadows);
         }
 
         /// This at `alpha` of its opacity, its spans included.
@@ -153,7 +166,12 @@ public record Box(
             for (var span : spans) {
                 faded.add(span.argb(CssColor.fade(span.argb(), alpha)));
             }
-            return new Text(paragraph, CssColor.fade(argb, alpha), flow, faded);
+            return new Text(
+                    paragraph,
+                    CssColor.fade(argb, alpha),
+                    flow,
+                    faded,
+                    shadows.stream().map(shadow -> shadow.fade(alpha)).toList());
         }
     }
 
@@ -386,8 +404,8 @@ public record Box(
             Length flexBasis,
             Position position,
             Insets inset,
-            boolean elevated,
             Overflow overflow,
+            Presence presence,
             @Nullable Text text,
             @Nullable Glyph icon,
             @Nullable Mark mark,
@@ -414,6 +432,7 @@ public record Box(
         }
         Objects.requireNonNull(alignContent, "alignContent");
         Objects.requireNonNull(flexBasis, "flexBasis");
+        Objects.requireNonNull(presence, "presence");
         if (!Double.isFinite(opacity) || opacity < 0 || opacity > 1) {
             throw new IllegalArgumentException("opacity must be between 0 and 1, not " + opacity);
         }
@@ -464,8 +483,8 @@ public record Box(
         this.flexBasis = flexBasis;
         this.position = position;
         this.inset = inset;
-        this.elevated = elevated;
         this.overflow = overflow;
+        this.presence = presence;
         this.text = text;
         this.icon = icon;
         this.mark = mark;
@@ -503,8 +522,8 @@ public record Box(
             Length flexBasis,
             Position position,
             Insets inset,
-            boolean elevated,
             Overflow overflow,
+            Presence presence,
             @Nullable Text text,
             @Nullable Glyph icon,
             @Nullable Mark mark,
@@ -535,8 +554,8 @@ public record Box(
                 flexBasis,
                 position,
                 inset,
-                elevated,
                 overflow,
+                presence,
                 text,
                 icon,
                 mark,
@@ -587,14 +606,12 @@ public record Box(
                 // its container's edge, which is not "no inset at all".
                 Position.RELATIVE,
                 Insets.all(Length.UNDEFINED),
-                // In document order, which is where every box is until a widget
-                // says otherwise.
-                false,
                 // Content spills rather than being cut off, which is CSS's
                 // initial value and Yoga's. A box that never mentions `overflow`
                 // must not clip, or a control whose focus ring is drawn outside
                 // its border box would lose it.
                 Overflow.VISIBLE,
+                Presence.NORMAL,
                 null,
                 null,
                 null,
@@ -603,55 +620,27 @@ public record Box(
                 null);
     }
 
-    /// This box painted **after** its siblings, without moving in the layout.
+    /// This box painted **after** its siblings, without moving in the layout:
+    /// `z-index: 1` when it said less, and its own `z-index` when it is not
+    /// raised.
     ///
-    /// The one place the box tree has an order other than document order, and it
-    /// is CSS's rule rather than a new idea: a positioned element paints above
-    /// its non-positioned siblings, which is exactly why a `position: sticky`
-    /// header in a browser is not scrolled over by the rows below it.
-    ///
-    /// The box tree has no z-order, and this is not one. There is no stacking
-    /// context, no `z-index` and no ordering *among* elevated siblings: they keep
-    /// document order relative to each other. It is a single bit meaning "draw me
-    /// last", which is the whole of what a pinned header needs and considerably
-    /// less than a layer.
+    /// For a widget that pins itself, as a stuck `affix` does: a positioned
+    /// element paints above its non-positioned siblings, which is why a
+    /// `position: sticky` header in a browser is not scrolled over by the rows
+    /// below it. A stylesheet's `z-index` above 1 is kept, so a rule can still
+    /// put something over a pinned header.
     ///
     /// **Layout is untouched.** Yoga sees the children in the order they were
     /// given; only the painter and the hit test reorder, and they reorder
     /// together — a box drawn on top must also be clicked first.
     public Box elevated(boolean value) {
-        return new Box(
-                fill,
-                decoration,
-                opacity,
-                transform,
-                cursor,
-                direction,
-                justifyContent,
-                alignItems,
-                alignSelf,
-                alignContent,
-                wrap,
-                width,
-                height,
-                limits,
-                margin,
-                padding,
-                rowGap,
-                columnGap,
-                flexGrow,
-                flexShrink,
-                flexBasis,
-                position,
-                inset,
-                value,
-                overflow,
-                text,
-                icon,
-                mark,
-                painting,
-                children,
-                owner);
+        return value && presence.zIndex() < 1 ? presence(presence.zIndex(1)) : this;
+    }
+
+    /// Whether this box is drawn after siblings that said nothing: its
+    /// `z-index` is above `auto`.
+    public boolean elevated() {
+        return presence.zIndex() > 0;
     }
 
     /// A box whose size comes from the text in it.
@@ -703,8 +692,8 @@ public record Box(
                 flexBasis,
                 position,
                 inset,
-                elevated,
                 overflow,
+                presence,
                 value,
                 icon,
                 mark,
@@ -750,8 +739,8 @@ public record Box(
                 flexBasis,
                 position,
                 inset,
-                elevated,
                 overflow,
+                presence,
                 text,
                 value,
                 mark,
@@ -790,8 +779,8 @@ public record Box(
                 flexBasis,
                 position,
                 inset,
-                elevated,
                 overflow,
+                presence,
                 text,
                 icon,
                 mark,
@@ -831,8 +820,8 @@ public record Box(
                 flexBasis,
                 position,
                 inset,
-                elevated,
                 overflow,
+                presence,
                 text,
                 icon,
                 value,
@@ -877,8 +866,8 @@ public record Box(
                 flexBasis,
                 position,
                 inset,
-                elevated,
                 overflow,
+                presence,
                 text,
                 icon,
                 mark,
@@ -929,8 +918,8 @@ public record Box(
                 flexBasis,
                 position,
                 inset,
-                elevated,
                 overflow,
+                presence,
                 text,
                 icon,
                 mark,
@@ -969,8 +958,8 @@ public record Box(
                 flexBasis,
                 position,
                 inset,
-                elevated,
                 overflow,
+                presence,
                 text,
                 icon,
                 mark,
@@ -1016,8 +1005,8 @@ public record Box(
                 flexBasis,
                 position,
                 inset,
-                elevated,
                 overflow,
+                presence,
                 text,
                 icon,
                 mark,
@@ -1052,8 +1041,8 @@ public record Box(
                 flexBasis,
                 position,
                 inset,
-                elevated,
                 overflow,
+                presence,
                 text,
                 icon,
                 mark,
@@ -1087,8 +1076,8 @@ public record Box(
                 flexBasis,
                 position,
                 inset,
-                elevated,
                 overflow,
+                presence,
                 text,
                 icon,
                 mark,
@@ -1122,8 +1111,8 @@ public record Box(
                 flexBasis,
                 position,
                 inset,
-                elevated,
                 overflow,
+                presence,
                 text,
                 icon,
                 mark,
@@ -1157,8 +1146,8 @@ public record Box(
                 flexBasis,
                 position,
                 inset,
-                elevated,
                 overflow,
+                presence,
                 text,
                 icon,
                 mark,
@@ -1197,8 +1186,8 @@ public record Box(
                 flexBasis,
                 position,
                 inset,
-                elevated,
                 overflow,
+                presence,
                 text,
                 icon,
                 mark,
@@ -1237,8 +1226,8 @@ public record Box(
                 flexBasis,
                 position,
                 inset,
-                elevated,
                 overflow,
+                presence,
                 text,
                 icon,
                 mark,
@@ -1272,8 +1261,8 @@ public record Box(
                 flexBasis,
                 position,
                 inset,
-                elevated,
                 overflow,
+                presence,
                 text,
                 icon,
                 mark,
@@ -1319,8 +1308,8 @@ public record Box(
                 flexBasis,
                 position,
                 inset,
-                elevated,
                 overflow,
+                presence,
                 text,
                 icon,
                 mark,
@@ -1354,8 +1343,8 @@ public record Box(
                 flexBasis,
                 position,
                 inset,
-                elevated,
                 overflow,
+                presence,
                 text,
                 icon,
                 mark,
@@ -1395,8 +1384,8 @@ public record Box(
                 flexBasis,
                 position,
                 inset,
-                elevated,
                 overflow,
+                presence,
                 text,
                 icon,
                 mark,
@@ -1443,8 +1432,8 @@ public record Box(
                 flexBasis,
                 Objects.requireNonNull(value, "position"),
                 inset,
-                elevated,
                 overflow,
+                presence,
                 text,
                 icon,
                 mark,
@@ -1485,8 +1474,8 @@ public record Box(
                 flexBasis,
                 position,
                 Objects.requireNonNull(value, "inset"),
-                elevated,
                 overflow,
+                presence,
                 text,
                 icon,
                 mark,
@@ -1527,8 +1516,8 @@ public record Box(
                 flexBasis,
                 position,
                 inset,
-                elevated,
                 overflow,
+                presence,
                 text,
                 icon,
                 mark,
@@ -1563,8 +1552,8 @@ public record Box(
                 flexBasis,
                 position,
                 inset,
-                elevated,
                 overflow,
+                presence,
                 text,
                 icon,
                 mark,
@@ -1599,8 +1588,8 @@ public record Box(
                 flexBasis,
                 position,
                 inset,
-                elevated,
                 overflow,
+                presence,
                 text,
                 icon,
                 mark,
@@ -1635,8 +1624,8 @@ public record Box(
                 flexBasis,
                 position,
                 inset,
-                elevated,
                 overflow,
+                presence,
                 text,
                 icon,
                 mark,
@@ -1677,8 +1666,8 @@ public record Box(
                 Objects.requireNonNull(value, "flex-basis"),
                 position,
                 inset,
-                elevated,
                 overflow,
+                presence,
                 text,
                 icon,
                 mark,
@@ -1714,8 +1703,8 @@ public record Box(
                 flexBasis,
                 position,
                 inset,
-                elevated,
                 overflow,
+                presence,
                 text,
                 icon,
                 mark,
@@ -1756,8 +1745,8 @@ public record Box(
                 flexBasis,
                 position,
                 inset,
-                elevated,
                 overflow,
+                presence,
                 text,
                 icon,
                 mark,
@@ -1795,8 +1784,8 @@ public record Box(
                 flexBasis,
                 position,
                 inset,
-                elevated,
                 overflow,
+                presence,
                 text,
                 icon,
                 mark,
@@ -1841,8 +1830,8 @@ public record Box(
                 flexBasis,
                 position,
                 inset,
-                elevated,
                 overflow,
+                presence,
                 text,
                 icon,
                 mark,
@@ -1876,8 +1865,8 @@ public record Box(
                 flexBasis,
                 position,
                 inset,
-                elevated,
                 overflow,
+                presence,
                 text,
                 icon,
                 mark,
@@ -1940,8 +1929,8 @@ public record Box(
                 flexBasis,
                 position,
                 inset,
-                elevated,
                 overflow,
+                presence,
                 text == null ? null : text.fade(alpha),
                 icon == null ? null : new Glyph(icon.icon(), CssColor.fade(icon.argb(), alpha)),
                 mark == null ? null : mark.fade(alpha),
@@ -1987,14 +1976,63 @@ public record Box(
                 flexBasis,
                 position,
                 inset,
-                elevated,
                 Objects.requireNonNull(value, "overflow"),
+                presence,
                 text,
                 icon,
                 mark,
                 painting,
                 children,
                 owner);
+    }
+
+    /// This box with its presence replaced: its `aspect-ratio`, which Yoga
+    /// reads, and whether it is drawn, hit and selected. `display` is not read
+    /// here: a box that exists is displayed.
+    public Box presence(Presence value) {
+        return new Box(
+                fill,
+                decoration,
+                opacity,
+                transform,
+                cursor,
+                direction,
+                justifyContent,
+                alignItems,
+                alignSelf,
+                alignContent,
+                wrap,
+                width,
+                height,
+                limits,
+                margin,
+                padding,
+                rowGap,
+                columnGap,
+                flexGrow,
+                flexShrink,
+                flexBasis,
+                position,
+                inset,
+                overflow,
+                Objects.requireNonNull(value, "presence"),
+                text,
+                icon,
+                mark,
+                painting,
+                children,
+                owner);
+    }
+
+    /// This box with its `aspect-ratio` replaced: width over height, or NaN
+    /// for `auto`. Yoga reads it, and sizes the axis the box does not fix.
+    public Box aspectRatio(double value) {
+        return presence(presence.aspectRatio(value));
+    }
+
+    /// Width over height, or NaN for `auto`: `aspect-ratio`.
+    public double aspectRatio() {
+        return presence.aspectRatio();
     }
 
     /// This box with every property a [ComputedStyle] carries applied to it.
@@ -2040,14 +2078,19 @@ public record Box(
                 style.flexBasis(),
                 style.position(),
                 style.inset(),
-                // Not the cascade's: no declaration says this, and a widget that
-                // pins itself sets it after the style.
-                elevated,
                 style.overflow(),
+                style.presence(),
                 // `white-space` and `text-overflow` reach the paragraph exactly
                 // as `color` does — a `text` element is one box with one style,
                 // and the cascade is where both were resolved.
-                text == null ? null : new Text(text.paragraph(), style.color(), style.textFlow(), text.spans()),
+                text == null
+                        ? null
+                        : new Text(
+                                text.paragraph(),
+                                style.color(),
+                                style.textFlow(),
+                                text.spans(),
+                                style.typography().lettering().shadows()),
                 // `color` reaches an icon exactly as it reaches text: Lucide's
                 // set is drawn to be tinted, and a stylesheet saying `color`
                 // means the same thing to both.

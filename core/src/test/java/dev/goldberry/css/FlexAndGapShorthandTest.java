@@ -164,7 +164,7 @@ class FlexAndGapShorthandTest {
         @Test
         @DisplayName("and a property the subset has not got is not, which is what a sheet warns about once")
         void unknownProperties() {
-            for (var property : List.of("letter-spacing", "backdrop-filter", "z-index", "--gb-accent")) {
+            for (var property : List.of("float", "backdrop-filter", "--gb-accent")) {
                 assertFalse(ComputedStyle.isProperty(property), property);
             }
         }

@@ -4,6 +4,7 @@ import org.jspecify.annotations.Nullable;
 
 import dev.goldberry.css.Corners;
 import dev.goldberry.paint.Box;
+import dev.goldberry.paint.BoxEdges;
 import dev.goldberry.render.model.LogicalRect;
 
 /// What a box with `overflow` and a `border-radius` clips its children to,
@@ -43,36 +44,18 @@ record RoundedClip(Area content, Area outline, Corners corners) {
         var bottom = border.bottom().width();
         var left = border.left().width();
         var outer = box.decoration().corners().fittedTo(width, height);
-        // A corner's inner radius is the outer one less the border it meets.
-        // CSS shrinks each axis by its own side and draws an ellipse; the
-        // toolkit's corners are circles, so each shrinks by the wider of its two
-        // sides, which keeps the clip inside the border wherever they differ.
-        var corners = new Corners(
-                Math.max(0, outer.topLeft() - Math.max(top, left)),
-                Math.max(0, outer.topRight() - Math.max(top, right)),
-                Math.max(0, outer.bottomRight() - Math.max(bottom, right)),
-                Math.max(0, outer.bottomLeft() - Math.max(bottom, left)));
+        // A corner's inner radius is the outer one less the border it meets,
+        // each axis by its own side, as CSS draws it: an ellipse where the two
+        // sides differ.
+        var corners = outer.inset(top, right, bottom, left);
         var outline = new Area(left, top, width - left - right, height - top - bottom);
         if (corners.isSquare() || !(outline.width() > 0) || !(outline.height() > 0)) {
             return null;
         }
-        // The same arithmetic as the rectangle `RenderTree` clips to, so the two
-        // cannot disagree about where the content box is.
-        var padding = box.padding();
-        var padLeft = RenderTree.edge(padding.left(), width);
-        var padTop = RenderTree.edge(padding.top(), height);
-        var padRight = RenderTree.edge(padding.right(), width);
-        var padBottom = RenderTree.edge(padding.bottom(), height);
-        // Inside both: the toolkit's rectangle, and CSS's padding box. The
-        // toolkit lays children out over the border -- a stylesheet pads a box at
-        // least as wide as its border -- so a box with a border and no padding
-        // would otherwise let its children paint over the border's straight
-        // edges, which CSS's clip never does.
-        var contentLeft = Math.max(padLeft, left);
-        var contentTop = Math.max(padTop, top);
-        var contentRight = Math.min(width - padRight, width - right);
-        var contentBottom = Math.min(height - padBottom, height - bottom);
-        var content = new Area(contentLeft, contentTop, contentRight - contentLeft, contentBottom - contentTop);
+        // The same rectangle `RenderTree` clips to, so the two cannot disagree
+        // about where the content box is: inside the border and the padding.
+        var edges = BoxEdges.content(box, width, height);
+        var content = new Area(edges.left(), edges.top(), width - edges.horizontal(), height - edges.vertical());
         if (!(content.width() > 0) || !(content.height() > 0) || !reachesACorner(content, outline, corners)) {
             return null;
         }
@@ -91,17 +74,13 @@ record RoundedClip(Area content, Area outline, Corners corners) {
         var bottom = outline.top() + outline.height();
         var contentRight = content.left() + content.width();
         var contentBottom = content.top() + content.height();
-        return (corners.topLeft() > 0
-                        && content.left() < outline.left() + corners.topLeft()
-                        && content.top() < outline.top() + corners.topLeft())
-                || (corners.topRight() > 0
-                        && contentRight > right - corners.topRight()
-                        && content.top() < outline.top() + corners.topRight())
-                || (corners.bottomRight() > 0
-                        && contentRight > right - corners.bottomRight()
-                        && contentBottom > bottom - corners.bottomRight())
-                || (corners.bottomLeft() > 0
-                        && content.left() < outline.left() + corners.bottomLeft()
-                        && contentBottom > bottom - corners.bottomLeft());
+        var tl = corners.topLeftRadius();
+        var tr = corners.topRightRadius();
+        var br = corners.bottomRightRadius();
+        var bl = corners.bottomLeftRadius();
+        return (!tl.isSquare() && content.left() < outline.left() + tl.x() && content.top() < outline.top() + tl.y())
+                || (!tr.isSquare() && contentRight > right - tr.x() && content.top() < outline.top() + tr.y())
+                || (!br.isSquare() && contentRight > right - br.x() && contentBottom > bottom - br.y())
+                || (!bl.isSquare() && content.left() < outline.left() + bl.x() && contentBottom > bottom - bl.y());
     }
 }

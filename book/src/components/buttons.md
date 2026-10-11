@@ -155,7 +155,7 @@ None.
 A `chip` is a badge you can press: a filter that is on or off, a tag you can
 take off, a token in a recipient row.
 
-<div class="gb-shot"><img class="gb-light" src="../images/chip-light.webp" width="267" alt="Four chips: Unread filled because it is selected, Live outlined with a green dot, java with a tag icon and a dismiss cross, and Sealed greyed out"><img class="gb-dark" src="../images/chip-dark.webp" width="267" alt="Four chips: Unread filled because it is selected, Live outlined with a green dot, java with a tag icon and a dismiss cross, and Sealed greyed out"><p>A selected chip, an outlined one with a dot, one with an icon and a dismiss, and a disabled one.</p></div>
+<div class="gb-shot"><img class="gb-light" src="../images/chip-light.webp" width="271" alt="Four chips: Unread filled because it is selected, Live outlined with a green dot, java with a tag icon and a dismiss cross, and Sealed greyed out"><img class="gb-dark" src="../images/chip-dark.webp" width="271" alt="Four chips: Unread filled because it is selected, Live outlined with a green dot, java with a tag icon and a dismiss cross, and Sealed greyed out"><p>A selected chip, an outlined one with a dot, one with an icon and a dismiss, and a disabled one.</p></div>
 
 <div class="gb-tabs">
 

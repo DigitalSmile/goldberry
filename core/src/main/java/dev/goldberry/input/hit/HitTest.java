@@ -7,12 +7,14 @@ import java.util.Optional;
 
 import org.jspecify.annotations.Nullable;
 
+import dev.goldberry.css.compositing.ClipPath;
 import dev.goldberry.css.value.Affine;
-import dev.goldberry.layout.Length;
 import dev.goldberry.paint.Box;
+import dev.goldberry.paint.BoxEdges;
 import dev.goldberry.paint.BoxPainter;
 import dev.goldberry.paint.Clip;
 import dev.goldberry.paint.Frame;
+import dev.goldberry.paint.clip.ClipShapes;
 import dev.goldberry.paint.tree.RenderTree;
 import dev.goldberry.render.Cursor;
 import dev.goldberry.render.model.LogicalRect;
@@ -70,6 +72,9 @@ public final class HitTest {
     ///                painter's own origin is, and where its input has to land.
     ///                The same as the box's own rectangle for a box with no
     ///                padding, which is most of them
+    /// @param shape   what a `clip-path` keeps of the box, asked in the
+    ///                coordinates it was laid out in; null when it keeps all of
+    ///                it, which is nearly every box
     public record Region(
             @Nullable Object owner,
             Cursor cursor,
@@ -79,7 +84,8 @@ public final class HitTest {
             float height,
             @Nullable Affine inverse,
             Clip clip,
-            LogicalRect content) {
+            LogicalRect content,
+            @Nullable Shape shape) {
 
         /// Written out so that the parameters taking null for a default can say so.
         public Region(
@@ -91,7 +97,8 @@ public final class HitTest {
                 float height,
                 @Nullable Affine inverse,
                 Clip clip,
-                @Nullable LogicalRect content) {
+                @Nullable LogicalRect content,
+                @Nullable Shape shape) {
             Objects.requireNonNull(cursor, "cursor");
             Objects.requireNonNull(clip, "clip");
             content = content == null ? LogicalRect.of(left, top, width, height) : content;
@@ -104,6 +111,21 @@ public final class HitTest {
             this.inverse = inverse;
             this.clip = clip;
             this.content = content;
+            this.shape = shape;
+        }
+
+        /// A region kept whole.
+        public Region(
+                @Nullable Object owner,
+                Cursor cursor,
+                float left,
+                float top,
+                float width,
+                float height,
+                @Nullable Affine inverse,
+                Clip clip,
+                @Nullable LogicalRect content) {
+            this(owner, cursor, left, top, width, height, inverse, clip, content, null);
         }
 
         /// A region whose content box is its whole rectangle.
@@ -216,15 +238,23 @@ public final class HitTest {
             if (!clip.isNone() && !clip.contains(x, y)) {
                 return false;
             }
-            if (inverse == null) {
-                return x >= left && x < left + width && y >= top && y < top + height;
-            }
             // Back into the coordinates the box was laid out in, where it is
             // still the axis-aligned rectangle Yoga produced.
-            var localX = inverse.mapX(x, y);
-            var localY = inverse.mapY(x, y);
-            return localX >= left && localX < left + width && localY >= top && localY < top + height;
+            var localX = inverse == null ? x : inverse.mapX(x, y);
+            var localY = inverse == null ? y : inverse.mapY(x, y);
+            return localX >= left
+                    && localX < left + width
+                    && localY >= top
+                    && localY < top + height
+                    && (shape == null || shape.contains(localX, localY));
         }
+    }
+
+    /// What a `clip-path` keeps of a box: whether a point, in the coordinates
+    /// the box was laid out in, is inside it.
+    @FunctionalInterface
+    public interface Shape {
+        boolean contains(double x, double y);
     }
 
     /// Lays `root` out against `frame` and records every box's rectangle.
@@ -261,6 +291,12 @@ public final class HitTest {
     }
 
     private static void collect(List<Region> regions, BoxPainter.Placed placed) {
+        // Hidden, or `pointer-events: none`: the pointer finds what is under
+        // it. Its children are placed boxes of their own and answer for
+        // themselves.
+        if (!placed.box().presence().isHit()) {
+            return;
+        }
         var layout = placed.layout();
         Affine inverse = null;
         if (!placed.isPlain()) {
@@ -272,14 +308,20 @@ public final class HitTest {
         // The content box, resolved exactly as `BoxPainter.paintCanvas` resolves
         // it -- through `Length.resolve`, which is where that arithmetic lives so
         // that the painter and this cannot drift.
-        var padding = placed.box().padding();
-        var left = Length.resolve(padding.left(), layout.width());
-        var top = Length.resolve(padding.top(), layout.height());
-        var right = Length.resolve(padding.right(), layout.width());
-        var bottom = Length.resolve(padding.bottom(), layout.height());
+        var edges = BoxEdges.content(placed.box(), layout.width(), layout.height());
+        var left = (float) edges.left();
+        var top = (float) edges.top();
+        var right = (float) edges.right();
+        var bottom = (float) edges.bottom();
+        var box = placed.box();
+        var clipPath = box.presence().compositing().clip();
+        Shape shape = clipPath instanceof ClipPath.None
+                ? null
+                : (x, y) -> ClipShapes.contains(
+                        clipPath, box, layout.width(), layout.height(), x - layout.left(), y - layout.top());
         regions.add(new Region(
-                placed.box().owner(),
-                placed.box().cursor(),
+                box.owner(),
+                box.cursor(),
                 layout.left(),
                 layout.top(),
                 layout.width(),
@@ -290,7 +332,8 @@ public final class HitTest {
                         layout.left() + left,
                         layout.top() + top,
                         Math.max(0, layout.width() - left - right),
-                        Math.max(0, layout.height() - top - bottom))));
+                        Math.max(0, layout.height() - top - bottom)),
+                shape));
     }
 
     /// The topmost node containing `(x, y)`, in logical coordinates.

@@ -3,6 +3,8 @@ package dev.goldberry.text.font;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Supplier;
@@ -134,6 +136,35 @@ public record FontSource(String family, int weight, BundledFont.Style style, Sup
     /// What the book asks when it opens: a resource or a stream is looked for
     /// and closed, and bytes from anywhere else are taken on trust until the
     /// face is drawn.
+    /// A face at a stylesheet's address: `classpath:/…` for a resource on the
+    /// application's class loader, which is what a sheet read as a resource
+    /// anchors its `src` to, and a file path otherwise.
+    public static FontSource address(String family, int weight, BundledFont.Style style, String address) {
+        Objects.requireNonNull(address, "address");
+        if (address.startsWith(CLASSPATH)) {
+            var name = address.substring(CLASSPATH.length());
+            var resource = name.startsWith("/") ? name.substring(1) : name;
+            return stream(family, weight, style, () -> {
+                var loader = Thread.currentThread().getContextClassLoader();
+                if (loader == null) {
+                    loader = FontSource.class.getClassLoader();
+                }
+                return loader.getResourceAsStream(resource);
+            });
+        }
+        var file = Path.of(address);
+        return stream(family, weight, style, () -> {
+            try {
+                return Files.newInputStream(file);
+            } catch (IOException e) {
+                return null;
+            }
+        });
+    }
+
+    /// What a resource address starts with.
+    private static final String CLASSPATH = "classpath:";
+
     Optional<String> problem() {
         return bytes instanceof Probed probed ? probed.problem() : Optional.empty();
     }

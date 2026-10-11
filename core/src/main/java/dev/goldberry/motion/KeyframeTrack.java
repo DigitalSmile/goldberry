@@ -17,6 +17,8 @@ import dev.goldberry.css.Keyframes;
 import dev.goldberry.css.cascade.KeyframeAnimations;
 import dev.goldberry.css.cascade.Transitions.Animatable;
 import dev.goldberry.css.parse.Token;
+import dev.goldberry.css.parse.TokenType;
+import dev.goldberry.css.value.CssEasing;
 import dev.goldberry.css.value.CssLength;
 import dev.goldberry.log.Logs;
 
@@ -34,10 +36,12 @@ import dev.goldberry.log.Logs;
 ///
 /// ## The whitelist
 ///
-/// A keyframe may declare anything, and only the seven
-/// [Animatable] properties move, for one reason: a keyframed `width` is a
-/// layout pass on every frame. The rest are dropped, and each is named once in
-/// a warning per block and property, not once per frame.
+/// A keyframe may declare anything, and only the [Animatable] properties
+/// move, for one reason: a keyframed `width` is a layout pass on every frame.
+/// The rest are dropped, and each is named once in a warning per block and
+/// property, not once per frame. `animation-timing-function` is the one
+/// exception that is not a property at all: it is the curve from its keyframe
+/// to the next.
 ///
 /// Read more: [The design system](https://goldberry.dev/docs/guide/design-system.html#motion).
 public final class KeyframeTrack {
@@ -51,8 +55,13 @@ public final class KeyframeTrack {
 
     private static final int REPORT_LIMIT = 512;
 
-    /// One property's value at one keyframe.
-    private record Stop(double offset, Object value) {}
+    /// One property's value at one keyframe, and the curve from there to the
+    /// next keyframe when that keyframe names one.
+    private record Stop(
+            double offset, Object value, @Nullable Easing easing) {}
+
+    /// The property a keyframe names its own curve with.
+    private static final String TIMING = "animation-timing-function";
 
     private final Map<Animatable, List<Stop>> stops;
 
@@ -77,15 +86,25 @@ public final class KeyframeTrack {
         var stops = new EnumMap<Animatable, List<Stop>>(Animatable.class);
         for (var frame : block.frames()) {
             var declared = declarations.apply(frame);
+            // A keyframe's own curve runs from it to the next keyframe, and is
+            // not a property that moves.
+            var timing = declared.get(TIMING);
+            var easing = timing == null ? null : CssEasing.parse(trimmed(timing));
             var styled = target.applied(declared, context);
             for (var property : declared.keySet()) {
+                if (property.equals(TIMING)) {
+                    if (easing == null) {
+                        report(block.name(), property);
+                    }
+                    continue;
+                }
                 var animatable = Animatable.parse(property);
                 if (animatable == null) {
                     report(block.name(), property);
                     continue;
                 }
                 stops.computeIfAbsent(animatable, key -> new ArrayList<>())
-                        .add(new Stop(frame.offset(), Animatables.valueOf(styled, animatable)));
+                        .add(new Stop(frame.offset(), Animatables.valueOf(styled, animatable), easing));
             }
         }
         return new KeyframeTrack(stops);
@@ -118,8 +137,8 @@ public final class KeyframeTrack {
     }
 
     private static Object valueAt(List<Stop> stops, Object own, double progress, Easing easing, Animatable property) {
-        var from = new Stop(0, own);
-        var to = new Stop(1, own);
+        var from = new Stop(0, own, null);
+        var to = new Stop(1, own, null);
         for (var stop : stops) {
             if (stop.offset() <= progress && stop.offset() >= from.offset()) {
                 from = stop;
@@ -135,7 +154,8 @@ public final class KeyframeTrack {
         if (span <= 0) {
             return from.value();
         }
-        var local = easing.at((progress - from.offset()) / span);
+        var curve = from.easing() == null ? easing : from.easing();
+        var local = curve.at((progress - from.offset()) / span);
         return Animatables.interpolate(property, from.value(), to.value(), local);
     }
 
@@ -188,6 +208,19 @@ public final class KeyframeTrack {
         }
         var duration = entry.durationMillis();
         return duration > 0 && local < duration * entry.iterations();
+    }
+
+    /// `tokens` without the whitespace at either end.
+    private static List<Token> trimmed(List<Token> tokens) {
+        var from = 0;
+        var to = tokens.size();
+        while (from < to && tokens.get(from).is(TokenType.WHITESPACE)) {
+            from++;
+        }
+        while (to > from && tokens.get(to - 1).is(TokenType.WHITESPACE)) {
+            to--;
+        }
+        return tokens.subList(from, to);
     }
 
     private static void report(String block, String property) {

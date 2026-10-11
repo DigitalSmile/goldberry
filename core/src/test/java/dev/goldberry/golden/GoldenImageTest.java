@@ -231,7 +231,7 @@ class GoldenImageTest {
         // the third is two widths in one colour, which must have no seam down
         // its mitres; the fourth is four colours and four widths, mitred from
         // each outer corner to its inner one; the fifth is the same with a
-        // radius, which is where the drawing is an approximation.
+        // radius, whose inner corners are ellipses where the sides differ.
         var css = Stylesheet.parse(CascadeLayer.APPLICATION, """
                 root { background: #eceff4; flex-direction: row; padding: 12px; gap: 10px }
                 cell { background: #d8dee9; width: 44px; height: 60px }

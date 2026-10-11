@@ -116,15 +116,16 @@ class BorderStyleTest {
             "inset, INSET",
             "outset, OUTSET"
         })
-        @DisplayName("every CSS style keyword is carried, and the bevelled four are drawn solid")
+        @DisplayName("every CSS style keyword is carried, and only solid is drawn as a plain band")
         void everyStyle(String keyword, Border.Style style) {
             var border = declared("border: 2px " + keyword + " #ff0000");
 
             assertEquals(Border.all(2, RED, style), border);
+            assertEquals(keyword.equals("solid"), style.isDrawnSolid(), keyword);
             assertEquals(
-                    !List.of("dashed", "dotted", "double").contains(keyword),
-                    style.isDrawnSolid(),
-                    keyword + " is drawn as a plain band only if the painter has no drawing of its own for it");
+                    List.of("groove", "ridge", "inset", "outset").contains(keyword),
+                    style.isBevelled(),
+                    keyword + " is lit in two tones");
         }
 
         @Test
@@ -282,12 +283,10 @@ class BorderStyleTest {
         }
 
         @ParameterizedTest
-        @ValueSource(strings = {"border-style: dashed", "border-left-style: dashed"})
-        @DisplayName("a `-style` longhand is not a property: style is a word inside a shorthand")
-        void noStyleLonghands(String declaration) {
-            var property = declaration.substring(0, declaration.indexOf(':'));
-
-            assertEquals(List.of(property), dead(declaration));
+        @ValueSource(strings = {"border-style: dashed", "border-left-style: dashed", "border-style: none hidden"})
+        @DisplayName("a `-style` longhand is a property, and a style the engine has passes the lint")
+        void styleLonghands(String declaration) {
+            assertEquals(List.of(), dead(declaration));
         }
 
         @Test

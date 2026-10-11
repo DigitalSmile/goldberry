@@ -36,8 +36,8 @@ final class SheetCards {
     static final String UNKNOWN_PROPERTIES = """
             .note {
               font-style: italic;
-              letter-spacing: 2px;
-              text-align: justify;
+              float: left;
+              writing-mode: vertical-rl;
             }""";
 
     private SheetCards() {}

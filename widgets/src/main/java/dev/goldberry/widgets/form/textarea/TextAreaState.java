@@ -8,6 +8,7 @@ import org.jspecify.annotations.Nullable;
 
 import dev.goldberry.Host;
 import dev.goldberry.input.hit.Extent;
+import dev.goldberry.layout.Direction;
 import dev.goldberry.render.event.EventLoop;
 import dev.goldberry.render.model.LogicalRect;
 import dev.goldberry.text.Paragraph;
@@ -260,9 +261,13 @@ final class TextAreaState extends State<TextArea> implements AreaEditor {
 
     @Override
     public boolean move(Motion motion, boolean byWord, boolean extend) {
+        // Logical movement, mirrored where the caret's paragraph runs right to
+        // left: the text goes on to the left there.
+        var shaped = document;
+        var rtl = shaped != null && shaped.directionAt(edit.caret()) == Direction.RTL;
         var next = switch (motion) {
-            case LEFT -> byWord ? edit.wordLeft(extend) : edit.left(extend);
-            case RIGHT -> byWord ? edit.wordRight(extend) : edit.right(extend);
+            case LEFT -> rtl ? forward(byWord, extend) : back(byWord, extend);
+            case RIGHT -> rtl ? back(byWord, extend) : forward(byWord, extend);
             // The **soft** line's ends, which is what a reader means by "this
             // line" — `TextEdit`'s are the hard ones, and a wrapped paragraph has
             // more of the former than the latter.
@@ -272,6 +277,14 @@ final class TextAreaState extends State<TextArea> implements AreaEditor {
             case END -> edit.toEnd(extend);
         };
         return published(apply(next, EditHistory.Kind.OTHER, false), extend);
+    }
+
+    private TextEdit back(boolean byWord, boolean extend) {
+        return byWord ? edit.wordLeft(extend) : edit.left(extend);
+    }
+
+    private TextEdit forward(boolean byWord, boolean extend) {
+        return byWord ? edit.wordRight(extend) : edit.right(extend);
     }
 
     @Override
@@ -299,7 +312,8 @@ final class TextAreaState extends State<TextArea> implements AreaEditor {
         // are not indented by the same amount unless they are the same length.
         var column = Double.isNaN(preferredColumn)
                 ? indentOf(layout.get(index))
-                        + shaped.widthBetween(layout.get(index).start(), edit.caret())
+                        + shaped.caretX(
+                                layout.get(index).start(), layout.get(index).end(), edit.caret())
                 : preferredColumn;
         var line = layout.get(target);
         var offset = shaped.offsetAt(line.start(), line.end(), column - indentOf(line));
@@ -426,7 +440,7 @@ final class TextAreaState extends State<TextArea> implements AreaEditor {
         // Relative to [#caretArea]'s left edge, which is the line's own start —
         // so the indent is in the area's origin rather than in this offset, and
         // adding it here would count it twice.
-        return shaped.widthBetween(line.start(), Math.clamp(at, line.start(), line.end()));
+        return shaped.caretX(line.start(), line.end(), at);
     }
 
     /// The caret's offset into what is **drawn** — inside the composition while
@@ -769,7 +783,10 @@ final class TextAreaState extends State<TextArea> implements AreaEditor {
     /// [TextAlign#indentOf] and not a rule of its own: the paint indents each line
     /// by that method, so a second implementation here would drift from the paint.
     private double indentOf(TextLine line) {
-        return textAlign.indentOf(line.width(), contentWidth());
+        var shaped = document;
+        return shaped == null
+                ? textAlign.indentOf(line.width(), contentWidth())
+                : shaped.indentOf(line, textAlign, contentWidth());
     }
 
     @Override

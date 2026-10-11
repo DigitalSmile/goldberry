@@ -203,6 +203,29 @@ class StyleIdentityTest {
                         + " handing down a new instance is what disabled the cache");
     }
 
+    /// `transform: inherit` reads a property nothing inherits, so the
+    /// hand-down cannot stop at the inherited half for a sheet that writes it:
+    /// a child keyed on last frame's instance would keep last frame's
+    /// transform while its parent moved.
+    @Test
+    @DisplayName("a child that inherits a property that does not inherit sees it move")
+    void explicitInheritanceSeesTheWholeParent() {
+        var painted = new ArrayList<ComputedStyle>();
+        var seen = new ArrayList<ComputedStyle>();
+        var tree = new ElementTree(new Scroller(List.of(new Recorder(seen)), painted, new double[1]));
+        var renderer = new WidgetRenderer(
+                List.of(Stylesheet.parse(
+                        CascadeLayer.APPLICATION, "poisoner { color: #d8dee9 }\nrecorder { transform: inherit }\n")),
+                font);
+
+        renderer.render(tree);
+        renderer.render(tree);
+
+        assertNotEquals(painted.get(0).transform(), painted.get(1).transform(), "the parent moved");
+        assertEquals(
+                painted.get(1).transform().functions(), seen.get(1).transform().functions());
+    }
+
     /// **A state invalidates what a rule can reach, and no more.**
     ///
     /// The hover and active chains run from the deepest node to the root, so a

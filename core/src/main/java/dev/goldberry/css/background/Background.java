@@ -30,17 +30,17 @@ import dev.goldberry.css.value.CssColor;
 /// `url()` picture, drawn at its [BackgroundSize] and tiled as its
 /// [BackgroundRepeat] says. Either is clipped to the box's corners.
 ///
-/// `background-size` and `background-repeat` are comma lists matched to the
-/// layers by position, and a list shorter than the layers is repeated, as CSS
-/// repeats it: [#size(int)] and [#repeat(int)] answer for one layer.
+/// `background-position`, `-size`, `-repeat`, `-origin` and `-clip` are comma
+/// lists matched to the layers by position, and a list shorter than the layers
+/// is repeated, as CSS repeats it: [#position(int)], [#size(int)],
+/// [#repeat(int)], [#origin(int)] and [#clip(int)] answer for one layer. A
+/// layer is placed in its origin's [BackgroundBox] and cut to its clip's; the
+/// colour is cut to the last layer's clip.
 ///
 /// ## What is not here
 ///
-/// There is no `background-clip`, `background-origin` or
-/// `background-attachment`: a layer is placed in and clipped to the border box,
-/// which is what each says at its initial value. `background-position` is one
-/// offset for every layer, and only a length moves one: a percentage or a
-/// keyword is the top left corner.
+/// There is no `background-attachment`: a layer scrolls with its box, which is
+/// what `scroll`, the initial value, says.
 ///
 /// Read more: [Styling](https://goldberry.dev/docs/guide/styling.html#backgrounds-and-gradients).
 public sealed interface Background {
@@ -50,6 +50,15 @@ public sealed interface Background {
 
     /// Every layer tiled: CSS's initial `background-repeat`.
     List<BackgroundRepeat> REPEAT = List.of(BackgroundRepeat.REPEAT);
+
+    /// Every layer at the top left: CSS's initial `background-position`.
+    List<BackgroundPosition> ZERO = List.of(BackgroundPosition.ZERO);
+
+    /// Every layer placed inside the border: CSS's initial `background-origin`.
+    List<BackgroundBox> PADDING_BOX = List.of(BackgroundBox.PADDING_BOX);
+
+    /// Every layer drawn under the border too: CSS's initial `background-clip`.
+    List<BackgroundBox> BORDER_BOX = List.of(BackgroundBox.BORDER_BOX);
 
     /// No fill at all — what every box starts as.
     static Background none() {
@@ -62,14 +71,26 @@ public sealed interface Background {
     /// The layers, top first; empty for a plain colour.
     List<CssImage> layers();
 
-    /// How far `background-position` moves every layer.
-    BackgroundPosition position();
+    /// The `background-position` list, matched to the layers by
+    /// [#position(int)].
+    List<BackgroundPosition> positions();
+
+    /// The first layer's position: all of them, unless a list says otherwise.
+    default BackgroundPosition position() {
+        return positions().getFirst();
+    }
 
     /// The `background-size` list, matched to the layers by [#size(int)].
     List<BackgroundSize> sizes();
 
     /// The `background-repeat` list, matched to the layers by [#repeat(int)].
     List<BackgroundRepeat> repeats();
+
+    /// The `background-origin` list, matched to the layers by [#origin(int)].
+    List<BackgroundBox> origins();
+
+    /// The `background-clip` list, matched to the layers by [#clip(int)].
+    List<BackgroundBox> clips();
 
     /// A plain colour.
     static Background of(int argb) {
@@ -79,7 +100,7 @@ public sealed interface Background {
     /// A colour with `layers` over it, moved by `position` — or a plain
     /// [Colour] when there are no layers and nothing is moved.
     static Background of(int argb, List<? extends CssImage> layers, BackgroundPosition position) {
-        return of(argb, layers, position, AUTO_SIZE, REPEAT);
+        return of(argb, layers, List.of(position), AUTO_SIZE, REPEAT, PADDING_BOX, BORDER_BOX);
     }
 
     /// A colour with `layers` over it, moved, sized and tiled — or a plain
@@ -93,13 +114,28 @@ public sealed interface Background {
             BackgroundPosition position,
             List<BackgroundSize> sizes,
             List<BackgroundRepeat> repeats) {
+        return of(argb, layers, List.of(position), sizes, repeats, PADDING_BOX, BORDER_BOX);
+    }
+
+    /// A colour with `layers` over it, each placed, sized, tiled and cut as the
+    /// lists say — or a plain [Colour] when every list is at its initial value.
+    static Background of(
+            int argb,
+            List<? extends CssImage> layers,
+            List<BackgroundPosition> positions,
+            List<BackgroundSize> sizes,
+            List<BackgroundRepeat> repeats,
+            List<BackgroundBox> origins,
+            List<BackgroundBox> clips) {
         if (layers.isEmpty()
-                && position.equals(BackgroundPosition.ZERO)
+                && positions.equals(ZERO)
                 && sizes.equals(AUTO_SIZE)
-                && repeats.equals(REPEAT)) {
+                && repeats.equals(REPEAT)
+                && origins.equals(PADDING_BOX)
+                && clips.equals(BORDER_BOX)) {
             return new Colour(argb);
         }
-        return new Layers(argb, List.copyOf(layers), position, sizes, repeats);
+        return new Layers(argb, List.copyOf(layers), positions, sizes, repeats, origins, clips);
     }
 
     /// Whether anything would be drawn.
@@ -131,30 +167,71 @@ public sealed interface Background {
         return list.get(index % list.size());
     }
 
+    /// Where layer `index` is placed: the list's entry, repeated when the list
+    /// is shorter than the layers.
+    default BackgroundPosition position(int index) {
+        var list = positions();
+        return list.get(index % list.size());
+    }
+
+    /// The rectangle layer `index` is placed in.
+    default BackgroundBox origin(int index) {
+        var list = origins();
+        return list.get(index % list.size());
+    }
+
+    /// The rectangle layer `index` is cut to.
+    default BackgroundBox clip(int index) {
+        var list = clips();
+        return list.get(index % list.size());
+    }
+
+    /// The rectangle the colour is cut to: the last layer's clip, or the
+    /// first entry when there are no layers.
+    default BackgroundBox colourClip() {
+        return clip(Math.max(0, layers().size() - 1));
+    }
+
     /// This background with its colour replaced and its layers kept — what
     /// `background-color` does.
     default Background colour(int argb) {
-        return of(argb, layers(), position(), sizes(), repeats());
+        return of(argb, layers(), positions(), sizes(), repeats(), origins(), clips());
     }
 
     /// This background with its layers replaced — `background-image`.
     default Background layers(List<? extends CssImage> value) {
-        return of(colour(), value, position(), sizes(), repeats());
+        return of(colour(), value, positions(), sizes(), repeats(), origins(), clips());
     }
 
-    /// This background moved — `background-position`.
+    /// This background with every layer at one place.
     default Background position(BackgroundPosition value) {
-        return of(colour(), layers(), value, sizes(), repeats());
+        return positions(List.of(value));
+    }
+
+    /// This background with its layers placed — `background-position`.
+    default Background positions(List<BackgroundPosition> value) {
+        return of(colour(), layers(), value, sizes(), repeats(), origins(), clips());
     }
 
     /// This background with its layers sized — `background-size`.
     default Background sizes(List<BackgroundSize> value) {
-        return of(colour(), layers(), position(), value, repeats());
+        return of(colour(), layers(), positions(), value, repeats(), origins(), clips());
     }
 
     /// This background with its layers tiled — `background-repeat`.
     default Background repeats(List<BackgroundRepeat> value) {
-        return of(colour(), layers(), position(), sizes(), value);
+        return of(colour(), layers(), positions(), sizes(), value, origins(), clips());
+    }
+
+    /// This background with its layers placed in other boxes —
+    /// `background-origin`.
+    default Background origins(List<BackgroundBox> value) {
+        return of(colour(), layers(), positions(), sizes(), repeats(), value, clips());
+    }
+
+    /// This background with its layers cut to other boxes — `background-clip`.
+    default Background clips(List<BackgroundBox> value) {
+        return of(colour(), layers(), positions(), sizes(), repeats(), origins(), value);
     }
 
     /// This background with every colour's alpha scaled by `alpha`, which is
@@ -175,8 +252,18 @@ public sealed interface Background {
         }
 
         @Override
-        public BackgroundPosition position() {
-            return BackgroundPosition.ZERO;
+        public List<BackgroundPosition> positions() {
+            return ZERO;
+        }
+
+        @Override
+        public List<BackgroundBox> origins() {
+            return PADDING_BOX;
+        }
+
+        @Override
+        public List<BackgroundBox> clips() {
+            return BORDER_BOX;
         }
 
         @Override
@@ -197,26 +284,32 @@ public sealed interface Background {
 
     /// A colour with gradients and pictures over it.
     ///
-    /// @param colour   painted first, under every layer
-    /// @param layers   top first
-    /// @param position how far every layer is moved
-    /// @param sizes    `background-size`, one or more, matched to the layers
-    /// @param repeats  `background-repeat`, one or more, matched to the layers
+    /// @param colour    painted first, under every layer
+    /// @param layers    top first
+    /// @param positions `background-position`, one or more, matched to the layers
+    /// @param sizes     `background-size`, one or more, matched to the layers
+    /// @param repeats   `background-repeat`, one or more, matched to the layers
+    /// @param origins   `background-origin`, one or more, matched to the layers
+    /// @param clips     `background-clip`, one or more, matched to the layers
     record Layers(
             int colour,
             List<CssImage> layers,
-            BackgroundPosition position,
+            List<BackgroundPosition> positions,
             List<BackgroundSize> sizes,
-            List<BackgroundRepeat> repeats)
+            List<BackgroundRepeat> repeats,
+            List<BackgroundBox> origins,
+            List<BackgroundBox> clips)
             implements Background {
 
         public Layers {
             layers = List.copyOf(Objects.requireNonNull(layers, "layers"));
-            Objects.requireNonNull(position, "position");
+            positions = List.copyOf(Objects.requireNonNull(positions, "positions"));
             sizes = List.copyOf(Objects.requireNonNull(sizes, "sizes"));
             repeats = List.copyOf(Objects.requireNonNull(repeats, "repeats"));
-            if (sizes.isEmpty() || repeats.isEmpty()) {
-                throw new IllegalArgumentException("a background has one size and one repeat at least");
+            origins = List.copyOf(Objects.requireNonNull(origins, "origins"));
+            clips = List.copyOf(Objects.requireNonNull(clips, "clips"));
+            if (positions.isEmpty() || sizes.isEmpty() || repeats.isEmpty() || origins.isEmpty() || clips.isEmpty()) {
+                throw new IllegalArgumentException("a background has one of each list at least");
             }
         }
 
@@ -227,7 +320,7 @@ public sealed interface Background {
         /// so code written against that shape still compiles; nothing here calls it.
         @SuppressWarnings("unused")
         public Layers(int colour, List<? extends CssImage> layers, BackgroundPosition position) {
-            this(colour, List.copyOf(layers), position, AUTO_SIZE, REPEAT);
+            this(colour, List.copyOf(layers), List.of(position), AUTO_SIZE, REPEAT, PADDING_BOX, BORDER_BOX);
         }
 
         @Override
@@ -238,9 +331,11 @@ public sealed interface Background {
             return new Layers(
                     CssColor.fade(colour, alpha),
                     layers.stream().map(layer -> layer.fade(alpha)).toList(),
-                    position,
+                    positions,
                     sizes,
-                    repeats);
+                    repeats,
+                    origins,
+                    clips);
         }
     }
 }

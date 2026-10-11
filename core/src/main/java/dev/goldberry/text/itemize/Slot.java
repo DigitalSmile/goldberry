@@ -9,10 +9,10 @@ package dev.goldberry.text.itemize;
 ///
 /// An enum rather than a boolean because the list may grow. Splitting text by
 /// script is the same operation with more answers, since a Han run and a Latin
-/// run want different faces for the same reason an emoji run does, and so is
-/// splitting it by direction, which is the bidi work a paragraph still
-/// approximates. A `boolean emoji` would have to be replaced on the day either
-/// lands; an enumerator is added to.
+/// run want different faces for the same reason an emoji run does. Splitting
+/// it by direction is a different question, answered by a paragraph's levels
+/// rather than by a face. A `boolean emoji` would have to be replaced on the
+/// day script splitting lands; an enumerator is added to.
 ///
 /// Read more: [Emoji](https://goldberry.dev/docs/guide/text.html#emoji).
 public enum Slot {

@@ -1,11 +1,16 @@
 package dev.goldberry.text.document;
 
 import java.util.Arrays;
+import java.util.List;
 import java.util.Objects;
 
 import org.jspecify.annotations.Nullable;
 
+import dev.goldberry.layout.Direction;
 import dev.goldberry.text.Paragraph;
+import dev.goldberry.text.Stretch;
+import dev.goldberry.text.TextLine;
+import dev.goldberry.text.flow.TextAlign;
 import dev.goldberry.text.flow.TextFlow;
 import dev.goldberry.text.font.Font;
 
@@ -328,5 +333,51 @@ public final class TextDocument {
         var a = Math.clamp(lineStart, start, end) - start;
         var b = Math.clamp(lineEnd, start, end) - start;
         return start + shaped[k].offsetAt(Math.min(a, b), Math.max(a, b), x);
+    }
+
+    /// Where the caret before `offset` stands on the visual line `[lineStart,
+    /// lineEnd)`, from the line's left edge, all three offsets into the whole
+    /// text: [Paragraph#caretX] on the hard line the visual line is in.
+    public double caretX(int lineStart, int lineEnd, int offset) {
+        var k = hardLineAt(lineStart);
+        var start = starts[k];
+        var end = endOf(k);
+        var a = Math.clamp(lineStart, start, end) - start;
+        var b = Math.clamp(lineEnd, start, end) - start;
+        var at = Math.clamp(offset, start, end) - start;
+        return shaped[k].caretX(Math.min(a, b), Math.max(a, b), at);
+    }
+
+    /// The stretches of the visual line `[lineStart, lineEnd)` that `[from,
+    /// to)` covers, left to right: [Paragraph#stretchesOf] on its hard line.
+    public List<Stretch> stretchesOf(int lineStart, int lineEnd, int from, int to) {
+        var k = hardLineAt(lineStart);
+        var start = starts[k];
+        var end = endOf(k);
+        var a = Math.clamp(lineStart, start, end) - start;
+        var b = Math.clamp(lineEnd, start, end) - start;
+        return shaped[k].stretchesOf(
+                Math.min(a, b),
+                Math.max(a, b),
+                Math.clamp(from, start, end) - start,
+                Math.clamp(to, start, end) - start);
+    }
+
+    /// The base direction of the hard line `offset` is in.
+    public Direction directionAt(int offset) {
+        var k = hardLineAt(offset);
+        return shaped[k].directionAt(Math.clamp(offset - starts[k], 0, endOf(k) - starts[k]));
+    }
+
+    /// How far in from the box's left edge the visual line `line`, in the
+    /// whole text's offsets, starts under `align` in a box `available` wide:
+    /// [Paragraph#indentOf] on its hard line.
+    public double indentOf(TextLine line, TextAlign align, double available) {
+        Objects.requireNonNull(line, "line");
+        var k = hardLineAt(line.start());
+        var start = starts[k];
+        var local = new TextLine(
+                line.start() - start, line.end() - start, line.glyphStart(), line.glyphEnd(), line.width());
+        return shaped[k].indentOf(local, align, available);
     }
 }

@@ -158,7 +158,8 @@ public final class Path {
         return roundRect(x, y, width, height, Corners.all(radius));
     }
 
-    /// A rectangle with **a radius per corner** — CSS's `border-radius: 7px 7px 0 0`.
+    /// A rectangle with **a radius per corner** — CSS's `border-radius: 7px 7px 0 0`,
+    /// each corner a quarter ellipse when its two radii differ.
     ///
     /// One drawing for both cases rather than a rounded path and a square one:
     /// the uniform case emits exactly the point sequence the single-radius
@@ -179,31 +180,41 @@ public final class Path {
 
         var right = x + width;
         var bottom = y + height;
-        var topLeft = fitted.topLeft();
-        var topRight = fitted.topRight();
-        var bottomRight = fitted.bottomRight();
-        var bottomLeft = fitted.bottomLeft();
+        var topLeft = fitted.topLeftRadius();
+        var topRight = fitted.topRightRadius();
+        var bottomRight = fitted.bottomRightRadius();
+        var bottomLeft = fitted.bottomLeftRadius();
 
-        var builder = builder().moveTo(x + topLeft, y).lineTo(right - topRight, y);
-        if (topRight > 0) {
-            var c = topRight * KAPPA;
-            builder.cubicTo(right - topRight + c, y, right, y + topRight - c, right, y + topRight);
+        var builder = builder().moveTo(x + topLeft.x(), y).lineTo(right - topRight.x(), y);
+        if (!topRight.isSquare()) {
+            var cx = topRight.x() * KAPPA;
+            var cy = topRight.y() * KAPPA;
+            builder.cubicTo(right - topRight.x() + cx, y, right, y + topRight.y() - cy, right, y + topRight.y());
         }
-        builder.lineTo(right, bottom - bottomRight);
-        if (bottomRight > 0) {
-            var c = bottomRight * KAPPA;
+        builder.lineTo(right, bottom - bottomRight.y());
+        if (!bottomRight.isSquare()) {
+            var cx = bottomRight.x() * KAPPA;
+            var cy = bottomRight.y() * KAPPA;
             builder.cubicTo(
-                    right, bottom - bottomRight + c, right - bottomRight + c, bottom, right - bottomRight, bottom);
+                    right,
+                    bottom - bottomRight.y() + cy,
+                    right - bottomRight.x() + cx,
+                    bottom,
+                    right - bottomRight.x(),
+                    bottom);
         }
-        builder.lineTo(x + bottomLeft, bottom);
-        if (bottomLeft > 0) {
-            var c = bottomLeft * KAPPA;
-            builder.cubicTo(x + bottomLeft - c, bottom, x, bottom - bottomLeft + c, x, bottom - bottomLeft);
+        builder.lineTo(x + bottomLeft.x(), bottom);
+        if (!bottomLeft.isSquare()) {
+            var cx = bottomLeft.x() * KAPPA;
+            var cy = bottomLeft.y() * KAPPA;
+            builder.cubicTo(
+                    x + bottomLeft.x() - cx, bottom, x, bottom - bottomLeft.y() + cy, x, bottom - bottomLeft.y());
         }
-        builder.lineTo(x, y + topLeft);
-        if (topLeft > 0) {
-            var c = topLeft * KAPPA;
-            builder.cubicTo(x, y + topLeft - c, x + topLeft - c, y, x + topLeft, y);
+        builder.lineTo(x, y + topLeft.y());
+        if (!topLeft.isSquare()) {
+            var cx = topLeft.x() * KAPPA;
+            var cy = topLeft.y() * KAPPA;
+            builder.cubicTo(x, y + topLeft.y() - cy, x + topLeft.x() - cx, y, x + topLeft.x(), y);
         }
         return builder.close().build();
     }

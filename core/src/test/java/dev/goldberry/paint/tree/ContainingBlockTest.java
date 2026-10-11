@@ -15,8 +15,10 @@ import dev.goldberry.layout.Length;
 import dev.goldberry.layout.Position;
 
 /// The containing-block rule on its own: an absolute child's inset is measured
-/// from the padding box, which starts inside the border, so the border is
-/// added before Yoga sees it, and the padding is not.
+/// from the padding box, which starts inside the border. A border takes room in
+/// layout and Yoga measures the inset from there itself, so nothing is added
+/// before Yoga sees it; what is left is the arithmetic for parts a widget
+/// writes in another box's coordinates.
 ///
 /// No Yoga node, no frame and no widget, because the arithmetic is the part that
 /// can be wrong in a way no picture would show: an inset shifted on the wrong
@@ -46,94 +48,20 @@ class ContainingBlockTest {
     }
 
     @Nested
-    @DisplayName("what shifts")
-    class Shifts {
+    @DisplayName("what Yoga is given")
+    class Given {
 
-        @Test
-        @DisplayName("an absolute child moves by the containing block's border, per edge")
-        void everyDeclaredEdge() {
-            var shifted = ContainingBlock.insetFor(Position.ABSOLUTE, new Insets(px(1), px(2), px(3), px(4)), uneven());
-
-            assertEquals(new Insets(px(2), px(4), px(6), px(8)), shifted);
-        }
-
-        /// The entry that found the old rule wrong: `top: 0; right: 0` inside a
-        /// 2px border lands on the border's inner edge, not on the content.
-        @Test
-        @DisplayName("left: 0 in a bordered block becomes left: border")
-        void zeroIsInsideTheBorder() {
-            assertEquals(leftTop(2, 2), ContainingBlock.insetFor(Position.ABSOLUTE, leftTop(0, 0), BORDER));
-        }
-
-        /// Both edges of an axis, which is the case a correction applied *after*
-        /// the layout pass could not have handled: Yoga derives the child's width
-        /// from the two insets, so shifting both is what makes that width the
-        /// padding box's rather than the border box's.
-        @Test
-        @DisplayName("both edges of an axis shift, so the derived size is the padding box's")
-        void bothEdgesOfAnAxis() {
-            var stretched = new Insets(Length.UNDEFINED, px(0), Length.UNDEFINED, px(0));
-
-            assertEquals(
-                    new Insets(Length.UNDEFINED, px(2), Length.UNDEFINED, px(2)),
-                    ContainingBlock.insetFor(Position.ABSOLUTE, stretched, BORDER));
-        }
-
-        @Test
-        @DisplayName("a negative inset shifts too, and may end up negative still")
-        void negativeInset() {
-            assertEquals(leftTop(-18, 4), ContainingBlock.insetFor(Position.ABSOLUTE, leftTop(-20, 2), BORDER));
-        }
-    }
-
-    @Nested
-    @DisplayName("what does not")
-    class Holds {
-
-        /// CSS's padding box is bounded by the outer edge of the padding, so
-        /// padding alone moves no absolute child.
-        @Test
-        @DisplayName("a padded block with no border shifts nothing")
-        void paddingIsNotAShift() {
-            var inset = leftTop(0, 0);
-
-            assertSame(inset, ContainingBlock.insetFor(Position.ABSOLUTE, inset, Border.NONE));
-        }
-
-        /// Flow already placed a relative or static box inside the padding;
-        /// shifting it again would move it twice.
+        /// Yoga measures an absolute inset from the padding box, inside the
+        /// border, which is where CSS measures it: the declared inset is the
+        /// one to give it, whatever the border.
         @ParameterizedTest
-        @EnumSource(
-                value = Position.class,
-                names = {"RELATIVE", "STATIC"})
-        @DisplayName("a box flow already placed keeps its inset")
-        void flowPlacedKeepsItsInset(Position position) {
-            var inset = leftTop(4, 4);
+        @EnumSource(Position.class)
+        @DisplayName("the declared inset, itself, whatever the border")
+        void declared(Position position) {
+            var inset = new Insets(px(1), px(2), px(3), px(4));
 
-            assertSame(inset, ContainingBlock.insetFor(position, inset, BORDER));
-        }
-
-        /// The edge Yoga already gets right. Defining it in order to correct it
-        /// would replace the static position with a placement the box never
-        /// asked for.
-        @Test
-        @DisplayName("an undefined edge stays undefined")
-        void undefinedEdge() {
-            var inset = new Insets(Length.UNDEFINED, Length.UNDEFINED, Length.UNDEFINED, px(0));
-
-            assertEquals(
-                    new Insets(Length.UNDEFINED, Length.UNDEFINED, Length.UNDEFINED, px(2)),
-                    ContainingBlock.insetFor(Position.ABSOLUTE, inset, BORDER));
-        }
-
-        /// A percentage resolves against a size the layout pass has not produced
-        /// yet, so there is nothing to add it to.
-        @Test
-        @DisplayName("a percentage inset is left where Yoga puts it")
-        void percentInset() {
-            var inset = new Insets(Length.percent(50), Length.UNDEFINED, Length.UNDEFINED, Length.percent(50));
-
-            assertSame(inset, ContainingBlock.insetFor(Position.ABSOLUTE, inset, BORDER));
+            assertSame(inset, ContainingBlock.insetFor(position, inset, uneven()));
+            assertSame(inset, ContainingBlock.insetFor(position, inset, Border.NONE));
         }
     }
 
@@ -141,28 +69,36 @@ class ContainingBlockTest {
     @DisplayName("parts written in another box's coordinates")
     class OtherBoxes {
 
-        /// The inverse, which is what makes a tab's underline span the whole
-        /// tab: written through it and shifted back, the inset is what was
-        /// asked for.
+        /// What makes a tab's underline span the whole tab: the padding box's
+        /// inset, moved out by the border on each side.
         @Test
-        @DisplayName("across the border box, the shift cancels")
-        void acrossBorderBoxCancels() {
+        @DisplayName("across the border box, each edge moves out by its border")
+        void acrossBorderBox() {
             var wanted = new Insets(Length.UNDEFINED, px(0), px(0), px(0));
-            var written = ContainingBlock.acrossBorderBox(wanted, uneven());
 
-            assertEquals(new Insets(Length.UNDEFINED, px(-2), px(-3), px(-4)), written);
-            assertEquals(wanted, ContainingBlock.insetFor(Position.ABSOLUTE, written, uneven()));
+            assertEquals(
+                    new Insets(Length.UNDEFINED, px(-2), px(-3), px(-4)),
+                    ContainingBlock.acrossBorderBox(wanted, uneven()));
+        }
+
+        /// The edge Yoga places by flow, and a percentage of a size layout has
+        /// not produced, are left alone.
+        @Test
+        @DisplayName("an undefined edge and a percentage stay as they are")
+        void undefinedAndPercent() {
+            var inset = new Insets(Length.UNDEFINED, Length.percent(50), Length.UNDEFINED, px(0));
+
+            assertEquals(
+                    new Insets(Length.UNDEFINED, Length.percent(50), Length.UNDEFINED, px(-4)),
+                    ContainingBlock.acrossBorderBox(inset, uneven()));
         }
 
         /// A text field's caret at the start of its text: the padding is where
-        /// that is, and the border is already counted by the rule.
+        /// that is, from the padding box Yoga measures from.
         @Test
-        @DisplayName("in the content box, the padding is added and the border is not counted twice")
+        @DisplayName("in the content box, the padding is added and the border is not")
         void inContentBoxLandsOnThePadding() {
-            var written = ContainingBlock.inContentBox(leftTop(5, 0), PADDING, BORDER);
-
-            assertEquals(leftTop(15, 10), written);
-            assertEquals(leftTop(17, 12), ContainingBlock.insetFor(Position.ABSOLUTE, written, BORDER));
+            assertEquals(leftTop(17, 12), ContainingBlock.inContentBox(leftTop(5, 0), PADDING, BORDER));
         }
 
         /// A percentage padding cannot be resolved before layout; the text it
@@ -170,7 +106,7 @@ class ContainingBlockTest {
         @Test
         @DisplayName("a percentage padding reads as zero")
         void percentPaddingIsZero() {
-            var written = ContainingBlock.inContentBox(leftTop(5, 0), Insets.all(Length.percent(10)), Border.NONE);
+            var written = ContainingBlock.inContentBox(leftTop(5, 0), Insets.all(Length.percent(10)), BORDER);
 
             assertEquals(leftTop(5, 0), written);
         }
@@ -189,9 +125,8 @@ class ContainingBlockTest {
         void sameInstanceWhenNothingShifts() {
             var inset = leftTop(4, 4);
 
-            assertSame(inset, ContainingBlock.insetFor(Position.ABSOLUTE, inset, Border.NONE));
             assertSame(inset, ContainingBlock.acrossBorderBox(inset, Border.NONE));
-            assertSame(inset, ContainingBlock.inContentBox(inset, Insets.ZERO, Border.NONE));
+            assertSame(inset, ContainingBlock.inContentBox(inset, Insets.ZERO, BORDER));
         }
     }
 }

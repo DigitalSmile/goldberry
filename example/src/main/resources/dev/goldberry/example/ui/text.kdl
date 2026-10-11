@@ -75,13 +75,13 @@ one parse of Inter at four sizes: a second size over a face costs microseconds a
       link class="card-docs" href="https://goldberry.dev/docs/guide/text.html#the-bundled-faces" "Docs"
     }
     text class="card-summary" "Inter in two weights and their italics, and JetBrains Mono, ship inside the toolkit. A \
-weight is any number: the nearest face answers it, so 500 draws the 400 and 700 the 600."
+weight is any number: upright Inter is variable and draws it, and an italic draws the nearest of its two."
     text id="face-regular" class="face-regular" "Inter 400: Three rings for the Elven-kings"
     text id="face-strong" class="face-strong" "Inter 600: Seven for the Dwarf-lords"
     text id="face-italic" class="face-italic" "Inter 400 italic: Nine for mortal men"
     text id="face-strong-italic" class="face-strong-italic" "Inter 600 italic: One for the Dark Lord"
     text id="face-mono" class="face-mono" "JetBrains Mono: ring.bind(\"Mordor\") != null"
-    text id="face-500" class="face-500" "font-weight: 500, which draws the 400"
-    text id="face-700" class="face-700" "font-weight: 700, which draws the 600"
+    text id="face-500" class="face-500" "font-weight: 500, drawn at 500"
+    text id="face-700" class="face-700" "font-weight: 700, drawn at 700"
   }
 }

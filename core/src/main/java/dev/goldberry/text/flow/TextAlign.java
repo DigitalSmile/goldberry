@@ -1,5 +1,7 @@
 package dev.goldberry.text.flow;
 
+import dev.goldberry.layout.Direction;
+
 /// Where a line sits in a box wider than it is: CSS's `text-align`.
 ///
 /// ```css
@@ -13,19 +15,20 @@ package dev.goldberry.text.flow;
 ///
 /// `start` and `end` mean "whichever edge text begins at" and "whichever edge it
 /// ends at". [#LEFT] and [#RIGHT] name sides of the box. The two pairs are
-/// separate constants rather than aliases. They place a line the same way while
-/// every line is set left to right, which is all the toolkit does today, and
-/// they part company once a right-to-left line is placed from the right: a
-/// `start` line moves to the right edge, and a `left` line stays where it is.
+/// separate constants rather than aliases. They place a line the same way in a
+/// left-to-right box, and part company in a right-to-left one
+/// (`direction: rtl`): a `start` line moves to the right edge, and a `left`
+/// line stays where it is. [#in] makes that turn.
 ///
-/// `justify` is refused, with a warning that says so. It respaces a line rather
-/// than placing it, and a paragraph here is shaped once and sliced into lines,
-/// so there is nowhere to put the extra advance without shaping it again.
+/// [#JUSTIFY] respaces a line rather than placing it: the paragraph is shaped
+/// once and sliced into lines, and a justified line is drawn word by word with
+/// the slack shared among its gaps. The last line of a paragraph, and one that
+/// ends at a newline, is not respaced and sits at the left.
 ///
 /// Read more: [Text flow](https://goldberry.dev/docs/guide/styling.html#text-flow).
 public enum TextAlign {
 
-    /// The edge text begins at: the left, until there is right-to-left layout.
+    /// The edge text begins at: the left, or the right in a right-to-left box.
     /// CSS's initial value.
     START,
 
@@ -41,7 +44,37 @@ public enum TextAlign {
 
     /// The box's right edge, whichever way the text runs: the keyword a
     /// stylesheet written for the web reaches for.
-    RIGHT;
+    RIGHT,
+
+    /// Both edges: the room left on a line goes into its word gaps. A line
+    /// that is not respaced, the last of its paragraph or one without a gap,
+    /// sits at the left.
+    JUSTIFY;
+
+    /// This alignment as a line is placed in a box running `direction`: in a
+    /// right-to-left box, [#START] is the right side and [#END] the left; every
+    /// other value, and every value in a left-to-right box, is itself.
+    ///
+    /// The keyword is what inherits, and this is asked per box, so a
+    /// left-to-right child of a right-to-left parent starts at the left.
+    public TextAlign in(Direction direction) {
+        if (direction == Direction.LTR) {
+            return this;
+        }
+        return switch (this) {
+            case START -> RIGHT;
+            case END -> LEFT;
+            case CENTER, LEFT, RIGHT, JUSTIFY -> this;
+        };
+    }
+
+    /// The side a line is placed at in a paragraph running `direction`, when
+    /// it is placed rather than respaced: [#in(Direction)], with [#JUSTIFY]
+    /// read as [#START], since a justified line that is not respaced, the last
+    /// of its paragraph, starts at the start.
+    public TextAlign placing(Direction direction) {
+        return (this == JUSTIFY ? START : this).in(direction);
+    }
 
     /// How far into the slack a line starts: 0, a half, or all of it.
     ///
@@ -49,7 +82,7 @@ public enum TextAlign {
     /// available is the one place that measures it.
     public double fractionOfSlack() {
         return switch (this) {
-            case START, LEFT -> 0;
+            case START, LEFT, JUSTIFY -> 0;
             case CENTER -> 0.5;
             case END, RIGHT -> 1;
         };

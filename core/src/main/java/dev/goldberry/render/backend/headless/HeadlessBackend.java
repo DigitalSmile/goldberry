@@ -22,6 +22,7 @@ import dev.goldberry.render.backend.sdl3.Sdl3Backend;
 import dev.goldberry.render.clipboard.PrimarySelection;
 import dev.goldberry.render.composite.Compositor;
 import dev.goldberry.render.cursor.CursorPictures;
+import dev.goldberry.render.desktop.DisplayPreferences;
 import dev.goldberry.render.desktop.SystemTheme;
 import dev.goldberry.render.display.Display;
 import dev.goldberry.render.event.BackendEvent;
@@ -519,6 +520,20 @@ public final class HeadlessBackend implements Backend {
     }
 
     private @Nullable Boolean reducedMotion;
+
+    private DisplayPreferences displayPreferences = DisplayPreferences.NONE;
+
+    /// What this backend says about the display switches: none on, until a
+    /// test sets them.
+    @Override
+    public DisplayPreferences displayPreferences() {
+        return displayPreferences;
+    }
+
+    /// Sets them. No event follows, as none follows on a real desktop.
+    public void displayPreferences(DisplayPreferences value) {
+        this.displayPreferences = Objects.requireNonNull(value, "value");
+    }
 
     /// Sets the setting and posts the change **to every open window**, which is
     /// what a real desktop does: the appearance is the session's, and a

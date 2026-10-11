@@ -8,6 +8,7 @@ import java.lang.foreign.ValueLayout;
 import dev.goldberry.natives.NativeLibrary;
 import dev.goldberry.natives.harfbuzz.calls.BufferCalls;
 import dev.goldberry.natives.harfbuzz.calls.FontCalls;
+import dev.goldberry.natives.harfbuzz.calls.InstanceCalls;
 import dev.goldberry.natives.harfbuzz.calls.ShapingCalls;
 import dev.goldberry.natives.harfbuzz.calls.VersionCalls;
 import dev.goldberry.natives.harfbuzz.enums.MemoryMode;
@@ -45,12 +46,14 @@ final class HarfBuzz {
     private final FontCalls fontCalls;
     private final BufferCalls bufferCalls;
     private final ShapingCalls shapingCalls;
+    private final InstanceCalls instanceCalls;
 
     private HarfBuzz(SymbolLookup lookup) {
         this.versionCalls = VersionCalls.bind(lookup);
         this.fontCalls = FontCalls.bind(lookup);
         this.bufferCalls = BufferCalls.bind(lookup);
         this.shapingCalls = ShapingCalls.bind(lookup);
+        this.instanceCalls = InstanceCalls.bind(lookup);
     }
 
     static HarfBuzz get() {
@@ -124,6 +127,28 @@ final class HarfBuzz {
 
     void fontScale(MemorySegment font, int xScale, int yScale) {
         fontCalls.fontSetScale().call(font, xScale, yScale);
+    }
+
+    /// A blob holding the static instance of the variable face in `blob`, or
+    /// NULL. See [Instancer].
+    MemorySegment instance(MemorySegment blob, MemorySegment tags, MemorySegment values, int count) {
+        return instanceCalls.instance().call(blob, tags, values, count);
+    }
+
+    /// A copy of the bytes `blob` holds, made before the blob can go.
+    ///
+    /// The pointer HarfBuzz hands back has no size, and is given the length it
+    /// reported beside it: the one reinterpretation here, bounded by HarfBuzz's
+    /// own answer.
+    @SuppressWarnings("restricted")
+    byte[] blobBytes(MemorySegment blob, Arena arena) {
+        var length = arena.allocate(ValueLayout.JAVA_INT);
+        var data = instanceCalls.blobGetData().call(blob, length);
+        var size = Integer.toUnsignedLong(length.get(ValueLayout.JAVA_INT, 0));
+        if (data.equals(MemorySegment.NULL) || size == 0) {
+            return new byte[0];
+        }
+        return data.reinterpret(size).toArray(ValueLayout.JAVA_BYTE);
     }
 
     // --- buffers -----------------------------------------------------------

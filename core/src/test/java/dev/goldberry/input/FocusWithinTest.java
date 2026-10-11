@@ -1,6 +1,7 @@
 package dev.goldberry.input;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
@@ -11,6 +12,10 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
+import dev.goldberry.css.Stylesheet;
+import dev.goldberry.css.cascade.CascadeLayer;
+import dev.goldberry.css.cascade.StyleResolver;
+import dev.goldberry.css.select.Selector.PseudoClass;
 import dev.goldberry.input.handler.Handles;
 import dev.goldberry.widget.Element;
 import dev.goldberry.widget.ElementTree;
@@ -205,6 +210,55 @@ class FocusWithinTest {
             // but *both* are reported, because a field validates on blur however
             // the user left it.
             assertTrue(log.contains("field-one entered"));
+        }
+    }
+
+    @Nested
+    @DisplayName("as a pseudo-class")
+    class PseudoClassState {
+
+        private List<String> within() {
+            var names = new ArrayList<String>();
+            for (var type : List.of("form", "field-one", "input-a", "input-b", "field-two", "input-c")) {
+                if (find(type).hasState(PseudoClass.FOCUS_WITHIN)) {
+                    names.add(type);
+                }
+            }
+            return names;
+        }
+
+        @Test
+        @DisplayName("is on the focused node and every ancestor, and moves with the focus")
+        void followsTheFocus() {
+            var router = new PointerRouter();
+            twoFields();
+
+            router.focus(find("input-a"), false);
+            assertEquals(List.of("form", "field-one", "input-a"), within());
+
+            router.focus(find("input-b"), true);
+            assertEquals(List.of("form", "field-one", "input-b"), within());
+
+            router.focus(find("input-c"), true);
+            assertEquals(List.of("form", "field-two", "input-c"), within());
+
+            router.focus(null, true);
+            assertEquals(List.of(), within());
+        }
+
+        @Test
+        @DisplayName("a rule on a container's :focus-within reaches what is under it")
+        void selects() {
+            var router = new PointerRouter();
+            twoFields();
+            var resolver = new StyleResolver(List.of(
+                    Stylesheet.parse(CascadeLayer.APPLICATION, "field-one:focus-within input-b { opacity: 0.5 }")));
+            tree.styleResolver(resolver);
+
+            assertFalse(resolver.resolve(find("input-b")).containsKey("opacity"));
+            router.focus(find("input-a"), true);
+            assertTrue(resolver.resolve(find("input-b")).containsKey("opacity"));
+            assertTrue(resolver.reachesDescendants(PseudoClass.FOCUS_WITHIN, "field-one"));
         }
     }
 }

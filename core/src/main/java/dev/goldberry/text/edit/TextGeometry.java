@@ -4,8 +4,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
+import dev.goldberry.layout.Direction;
 import dev.goldberry.render.model.LogicalRect;
 import dev.goldberry.text.Paragraph;
+import dev.goldberry.text.Stretch;
 import dev.goldberry.text.TextLayout;
 import dev.goldberry.text.TextLine;
 import dev.goldberry.text.document.DocumentLines;
@@ -45,8 +47,13 @@ import dev.goldberry.text.flow.TextAlign;
 /// `Paragraph.paint` indents every line by its share of the box's slack, and
 /// these forms measure from the same edge, so under `text-align: center` the
 /// caret sits on the glyphs. The short forms mean [TextAlign#START]. The indent
-/// is [TextAlign#indentOf(double, double)], shared with the paint, so there is
-/// one answer to where a line starts.
+/// is [Paragraph#indentOf], shared with the paint, so there is one answer to
+/// where a line starts.
+///
+/// A line with right-to-left text in it is placed in visual order, and the
+/// answers follow: the caret is [Paragraph#caretX], a click is the nearest
+/// caret, and a selection across two directions is a rectangle per run it
+/// covers rather than one per line.
 ///
 /// The same four questions have a form over a [TextDocument] and its
 /// [DocumentLines], for an editor over text shaped one hard line at a time: such
@@ -61,10 +68,15 @@ public final class TextGeometry {
     private TextGeometry() {}
 
     /// How far in `line` was drawn — the one place this class turns an alignment
-    /// into a distance, and it does not compute it: [TextAlign#indentOf] is the
+    /// into a distance, and it does not compute it: [Paragraph#indentOf] is the
     /// rule, shared with the paint.
-    private static double indentOf(TextLine line, double wrapWidth, TextAlign align) {
-        return align.indentOf(line.width(), wrapWidth);
+    private static double indentOf(Paragraph paragraph, TextLine line, double wrapWidth, TextAlign align) {
+        return paragraph.indentOf(line, align, wrapWidth);
+    }
+
+    /// The same, for a line of a document.
+    private static double indentOf(TextDocument document, TextLine line, double wrapWidth, TextAlign align) {
+        return document.indentOf(line, align, wrapWidth);
     }
 
     /// Where a caret goes, in the paragraph's own coordinates.
@@ -130,12 +142,12 @@ public final class TextGeometry {
         var index = lineOf(layout, offset);
         var line = layout.lines().get(index);
         var lineHeight = paragraph.font().lineHeight();
-        // `widthBetween` is the one measurement a caret may be built on: it
-        // subtracts two prefix widths of the *same* shaping rather than
-        // re-measuring a substring, so a caret in the middle of a ligature or a
-        // kerned pair lands where the glyphs actually are.
-        var x = paragraph.widthBetween(line.start(), Math.max(line.start(), offset));
-        return new Caret(indentOf(line, wrapWidth, align) + x, index * lineHeight, lineHeight, index);
+        // `caretX` subtracts two prefix widths of the *same* shaping rather
+        // than re-measuring a substring, so a caret in the middle of a ligature
+        // or a kerned pair lands where the glyphs actually are, and places them
+        // in the line's visual order.
+        var x = paragraph.caretX(line.start(), line.end(), offset);
+        return new Caret(indentOf(paragraph, line, wrapWidth, align) + x, index * lineHeight, lineHeight, index);
     }
 
     /// The offset a point lands on — a click, or a drag.
@@ -169,7 +181,7 @@ public final class TextGeometry {
         var index = (int) Math.floor(y / lineHeight);
         index = Math.clamp(index, 0, lines.size() - 1);
         var line = lines.get(index);
-        return paragraph.offsetAt(line.start(), line.end(), x - indentOf(line, wrapWidth, align));
+        return paragraph.offsetAt(line.start(), line.end(), x - indentOf(paragraph, line, wrapWidth, align));
     }
 
     /// `Up`, `Down`, `PageUp`, `PageDown` — `lines` visual lines from `offset`,
@@ -226,10 +238,11 @@ public final class TextGeometry {
                 ? caretAt(paragraph, layout, offset, wrapWidth, align).x()
                 : desiredX;
         var line = all.get(target);
-        return paragraph.offsetAt(line.start(), line.end(), column - indentOf(line, wrapWidth, align));
+        return paragraph.offsetAt(line.start(), line.end(), column - indentOf(paragraph, line, wrapWidth, align));
     }
 
-    /// The rectangles covering `start`..`end`, one per visual line.
+    /// The rectangles covering `start`..`end`, one per visual line, or one per
+    /// run on a line with both directions in it.
     ///
     /// Empty when the two are equal: a caret is not a selection, and a caller
     /// painting a zero-width highlight would draw a second caret in the
@@ -238,7 +251,8 @@ public final class TextGeometry {
     /// A line whose selection runs past its last character is extended by a
     /// space's width, so that a selected newline is visible as the end of a line
     /// rather than as nothing at all — which is what every editor draws and what
-    /// nobody can name until it is missing.
+    /// nobody can name until it is missing. The extension is at the end the
+    /// line's paragraph reads towards: its right, or its left right to left.
     public static List<LogicalRect> selectionRects(Paragraph paragraph, TextLayout layout, int start, int end) {
         return selectionRects(paragraph, layout, start, end, Paragraph.UNCONSTRAINED, TextAlign.START);
     }
@@ -277,19 +291,17 @@ public final class TextGeometry {
             lineFrom = Math.clamp(lineFrom, line.start(), line.end());
             lineTo = Math.clamp(lineTo, line.start(), line.end());
 
-            var indent = indentOf(line, wrapWidth, align);
-            var left = indent + paragraph.widthBetween(line.start(), lineFrom);
-            var right = indent + paragraph.widthBetween(line.start(), lineTo);
+            var stretches = paragraph.stretchesOf(line.start(), line.end(), lineFrom, lineTo);
             if (to > line.end()) {
                 // The selection continues past this line, so the break itself is
                 // inside it.
-                right += paragraph.font().widthOf(" ");
+                stretches = withBreak(
+                        stretches,
+                        paragraph.caretX(line.start(), line.end(), line.end()),
+                        paragraph.font().widthOf(" "),
+                        paragraph.directionAt(line.start()));
             }
-            if (right <= left) {
-                continue;
-            }
-            rects.add(
-                    LogicalRect.of((float) left, (float) (i * lineHeight), (float) (right - left), (float) lineHeight));
+            addRects(rects, stretches, indentOf(paragraph, line, wrapWidth, align), i * lineHeight, lineHeight);
         }
         return List.copyOf(rects);
     }
@@ -316,8 +328,8 @@ public final class TextGeometry {
         var index = lines.indexOf(offset);
         var line = lines.get(index);
         var lineHeight = document.font().lineHeight();
-        var x = document.widthBetween(line.start(), Math.max(line.start(), offset));
-        return new Caret(indentOf(line, wrapWidth, align) + x, index * lineHeight, lineHeight, index);
+        var x = document.caretX(line.start(), line.end(), offset);
+        return new Caret(indentOf(document, line, wrapWidth, align) + x, index * lineHeight, lineHeight, index);
     }
 
     /// The offset a point lands on, in a text shaped a hard line at a time.
@@ -339,7 +351,7 @@ public final class TextGeometry {
         }
         var index = Math.clamp((int) Math.floor(y / lineHeight), 0, lines.size() - 1);
         var line = lines.get(index);
-        return document.offsetAt(line.start(), line.end(), x - indentOf(line, wrapWidth, align));
+        return document.offsetAt(line.start(), line.end(), x - indentOf(document, line, wrapWidth, align));
     }
 
     /// `Up`, `Down`, `PageUp`, `PageDown` in a text shaped a hard line at a time.
@@ -374,7 +386,7 @@ public final class TextGeometry {
                 ? caretAt(document, lines, offset, wrapWidth, align).x()
                 : desiredX;
         var line = lines.get(target);
-        return document.offsetAt(line.start(), line.end(), column - indentOf(line, wrapWidth, align));
+        return document.offsetAt(line.start(), line.end(), column - indentOf(document, line, wrapWidth, align));
     }
 
     /// The rectangles covering `start`..`end` in a text shaped a hard line at a
@@ -414,21 +426,40 @@ public final class TextGeometry {
             lineFrom = Math.clamp(lineFrom, line.start(), line.end());
             lineTo = Math.clamp(lineTo, line.start(), line.end());
 
-            var indent = indentOf(line, wrapWidth, align);
-            var left = indent + document.widthBetween(line.start(), lineFrom);
-            var right = indent + document.widthBetween(line.start(), lineTo);
+            var stretches = document.stretchesOf(line.start(), line.end(), lineFrom, lineTo);
             if (to > line.end()) {
                 // The selection continues past this line, so the break itself is
                 // inside it — a space's width, so that a selected newline is
                 // visible as the end of a line rather than as nothing at all.
-                right += space;
+                stretches = withBreak(
+                        stretches,
+                        document.caretX(line.start(), line.end(), line.end()),
+                        space,
+                        document.directionAt(line.start()));
             }
-            if (right <= left) {
-                continue;
-            }
-            rects.add(
-                    LogicalRect.of((float) left, (float) (i * lineHeight), (float) (right - left), (float) lineHeight));
+            addRects(rects, stretches, indentOf(document, line, wrapWidth, align), i * lineHeight, lineHeight);
         }
         return List.copyOf(rects);
+    }
+
+    /// `stretches` with a selected line break added: a space's width at the
+    /// line's end, `endX`, on the side its paragraph reads towards.
+    private static List<Stretch> withBreak(List<Stretch> stretches, double endX, double space, Direction direction) {
+        var all = new ArrayList<>(stretches);
+        all.add(direction == Direction.RTL ? new Stretch(endX - space, endX) : new Stretch(endX, endX + space));
+        return Stretch.joined(all);
+    }
+
+    /// A rectangle a line tall at `top` for each of `stretches`, moved in by
+    /// `indent`; nothing for an empty one.
+    private static void addRects(
+            List<LogicalRect> rects, List<Stretch> stretches, double indent, double top, double lineHeight) {
+        for (var stretch : stretches) {
+            if (stretch.right() <= stretch.left()) {
+                continue;
+            }
+            rects.add(LogicalRect.of(
+                    (float) (indent + stretch.left()), (float) top, (float) stretch.width(), (float) lineHeight));
+        }
     }
 }

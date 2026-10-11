@@ -55,12 +55,13 @@ class StyleLintTest {
         void unsupportedProperty() {
             // `border-bottom` was this example -- the one that shipped in
             // `table-head`, drew nothing, and left one debug line among thousands
-            // -- until per-side borders made it a property. `border-style` is
-            // one the subset still refuses by design: style is a word inside a shorthand.
-            var findings = dead("table-head { border-style: dashed }");
+            // -- until per-side borders made it a property, and `border-style`
+            // after it, until the style longhands did, and `letter-spacing`
+            // until it was read. `float` is one the subset leaves out on purpose.
+            var findings = dead("table-head { float: left }");
 
             assertEquals(1, findings.size(), () -> findings.toString());
-            assertEquals("border-style", findings.getFirst().property());
+            assertEquals("float", findings.getFirst().property());
             assertEquals("table-head", findings.getFirst().selector());
         }
 
@@ -154,7 +155,7 @@ class StyleLintTest {
             // engine through an element that matches — so a rule whose *second*
             // selector is the live one would go unchecked if only the first were
             // built.
-            var findings = dead("button, table-head { border-style: dashed }");
+            var findings = dead("button, table-head { float: left }");
 
             assertEquals(2, findings.size(), () -> findings.toString());
             assertEquals(
@@ -165,7 +166,7 @@ class StyleLintTest {
         @Test
         @DisplayName("a finding says where it was written")
         void findingsCarryTheirPosition() {
-            var findings = dead("button {\n  color: red;\n  border-style: dashed;\n}");
+            var findings = dead("button {\n  color: red;\n  float: left;\n}");
 
             assertEquals(1, findings.size());
             assertEquals(3, findings.getFirst().line(), "the line the parser saw it at");
@@ -216,7 +217,7 @@ class StyleLintTest {
         @Test
         @DisplayName("only what was asked about is reported")
         void inForceIsNotLinted() {
-            var broken = sheet("table-head { border-style: dashed }");
+            var broken = sheet("table-head { float: left }");
             var mine = sheet("button { color: #ff0000 }");
 
             var findings = new StyleLint(List.of(broken, mine)).check(mine);
@@ -283,12 +284,12 @@ class StyleLintTest {
         @Test
         @DisplayName("a finding reads as something an author could act on")
         void findingsAreLegible() {
-            var finding = dead("table-head { border-style: dashed }").getFirst();
+            var finding = dead("table-head { float: left }").getFirst();
 
             var text = finding.toString();
             assertTrue(text.contains("table-head"), text);
-            assertTrue(text.contains("border-style"), text);
-            assertTrue(text.contains("dashed"), text);
+            assertTrue(text.contains("float"), text);
+            assertTrue(text.contains("left"), text);
         }
 
         @Test
@@ -485,7 +486,7 @@ class StyleLintTest {
         @Test
         @DisplayName("and an @media block that can never apply is one too")
         void unanswerableMedia() {
-            var findings = check("@media (hover: hover) { a { color: red } }");
+            var findings = check("@media (scripting: enabled) { a { color: red } }");
             assertEquals(1, findings.size());
             assertEquals(Finding.Kind.DROPPED_RULE, findings.getFirst().kind());
         }
@@ -498,15 +499,15 @@ class StyleLintTest {
         @Test
         @DisplayName("lints nothing unless asked")
         void offByDefault() {
-            assertTrue(StyleLint.reportIfAsked(List.of(sheet("a { letter-spacing: 1px }")))
-                    .isEmpty());
+            assertTrue(
+                    StyleLint.reportIfAsked(List.of(sheet("a { float: left }"))).isEmpty());
         }
 
         @Test
         @DisplayName("when asked, lints each application sheet once, and the toolkit's never")
         void onWhenAsked() {
-            var mine = sheet("a { letter-spacing: 1px }");
-            var toolkit = Stylesheet.parse(CascadeLayer.TOOLKIT_BASE, "b { letter-spacing: 1px }");
+            var mine = sheet("a { float: left }");
+            var toolkit = Stylesheet.parse(CascadeLayer.TOOLKIT_BASE, "b { float: left }");
             var previous = System.getProperty(StyleLint.PROPERTY);
             System.setProperty(StyleLint.PROPERTY, "true");
             try {

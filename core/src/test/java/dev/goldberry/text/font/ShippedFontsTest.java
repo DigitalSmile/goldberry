@@ -191,14 +191,31 @@ class ShippedFontsTest {
         @Test
         @DisplayName("`font-weight: 500` draws the 500 an application shipped, and 700 the nearest heavier")
         void numericWeightReachesItsFace() {
-            var medium = FontSource.of("Forum", 500, Style.UPRIGHT, BundledAssets.font(BundledFont.CODE));
-            var heavy = FontSource.of("Forum", 800, Style.UPRIGHT, BundledAssets.font(BundledFont.CODE));
+            // Static bytes: a variable face draws the weight asked of it, which
+            // `aVariableFaceDrawsTheWeight` holds.
+            var medium = FontSource.of("Forum", 500, Style.UPRIGHT, BundledAssets.font(BundledFont.UI_STRONG));
+            var heavy = FontSource.of("Forum", 800, Style.UPRIGHT, BundledAssets.font(BundledFont.UI_STRONG));
             try (var fonts = Fonts.bundled(List.of(medium, heavy))) {
                 var forum = Typography.INITIAL.family("Forum");
 
                 assertSame(fonts.of(medium, 13), fonts.of(forum.weight(500)));
                 assertSame(fonts.of(heavy, 13), fonts.of(forum.weight(700)));
                 assertSame(fonts.of(medium, 13), fonts.of(forum), "400 tries heavier up to 500 first");
+            }
+        }
+
+        @Test
+        @DisplayName("a shipped variable face draws the weight asked of it, within its axis")
+        void aVariableFaceDrawsTheWeight() {
+            // JetBrains Mono is variable along `wght`, so a family shipped as it
+            // draws 300, 500 and 700 rather than snapping to the one it declares.
+            var mono = FontSource.of("Forum", 400, Style.UPRIGHT, BundledAssets.font(BundledFont.CODE));
+            try (var fonts = Fonts.bundled(List.of(mono))) {
+                var forum = Typography.INITIAL.family("Forum");
+                assertSame(fonts.of(mono, 13), fonts.of(forum), "its own weight is the face as it is");
+                var faces = fonts.openFaces();
+                assertNotSame(fonts.of(forum.weight(700)), fonts.of(forum));
+                assertEquals(faces + 1, fonts.openFaces(), "the 700 is a face of its own, pinned from the file");
             }
         }
 

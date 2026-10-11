@@ -6,9 +6,12 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.BiConsumer;
+import java.util.stream.Stream;
 
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
@@ -22,9 +25,16 @@ import dev.goldberry.css.media.MediaCondition;
 import dev.goldberry.css.media.MediaContext;
 import dev.goldberry.css.parse.Token;
 import dev.goldberry.css.parse.TokenType;
+import dev.goldberry.css.property.GlobalKeyword;
+import dev.goldberry.css.property.Properties;
+import dev.goldberry.css.select.Functional;
+import dev.goldberry.css.select.PseudoElement;
 import dev.goldberry.css.select.Selector;
 import dev.goldberry.css.select.SelectorMatcher;
+import dev.goldberry.css.select.SiblingPosition;
 import dev.goldberry.css.select.Structural;
+import dev.goldberry.css.value.CssLength;
+import dev.goldberry.css.value.Viewport;
 import dev.goldberry.log.Logs;
 
 /// Runs the cascade for one element and substitutes `var()`.
@@ -157,10 +167,10 @@ public final class StyleResolver {
 
     private final List<Candidate> startingUntyped = new java.util.ArrayList<>();
 
-    /// Every `@keyframes` block by name. A later sheet's block replaces an
-    /// earlier one's whole, and so does a later block in the same sheet, which is
-    /// CSS's rule. Keyframes do not merge.
-    private final java.util.Map<String, Keyframes> keyframes = new java.util.HashMap<>();
+    /// Every `@keyframes` block by name, in the order declared. The last one
+    /// whose `@media` holds replaces every earlier one whole, which is CSS's
+    /// rule. Keyframes do not merge.
+    private final java.util.Map<String, List<Keyframes>> keyframes = new java.util.HashMap<>();
 
     /// The window and desktop facts the `@media` conditions are asked about.
     private final MediaContext media;
@@ -182,6 +192,48 @@ public final class StyleResolver {
     /// ancestor position, which reaches below every element.
     private final boolean untypedStructuralAncestor;
 
+    /// Whether any declaration here writes `inherit` on a property that does
+    /// not inherit. See [#inheritsExplicitly()].
+    private final boolean inheritsExplicitly;
+
+    /// Whether any declaration or keyframe here writes a viewport unit, which
+    /// makes a resize a restyle. See [#under].
+    private final boolean viewportUnits;
+
+    /// Whether any rule here is inside `@container` or writes a container
+    /// unit. See [#readsContainers()].
+    private final boolean containerQueries;
+
+    /// Whether any selector reads an element's siblings: counts them through a
+    /// filter, `:nth-child(An+B of S)`, or joins two with `+` or `~`. See
+    /// [#siblingsMatter()].
+    private final boolean siblingsMatter;
+
+    /// Where the sheets' `:has()` sits, or null when no selector writes one.
+    /// See [#hasReach].
+    private final @Nullable HasIndex hasIndex;
+
+    /// The compounds that carry a `:has()`.
+    ///
+    /// @param types              the types they name
+    /// @param untyped            whether one names no type
+    /// @param ancestorTypes      the types of those in an ancestor position,
+    ///                           `card:has(.x) text`, whose subtree reads them
+    /// @param untypedAncestor    whether one in an ancestor position names no
+    ///                           type
+    /// @param looksAtSiblings    whether an argument starts at a sibling,
+    ///                           `:has(+ x)`
+    private record HasIndex(
+            Set<String> types,
+            boolean untyped,
+            Set<String> ancestorTypes,
+            boolean untypedAncestor,
+            boolean looksAtSiblings) {}
+
+    /// The rank of each `@layer` in the application's sheets, lowest first;
+    /// a rule in none ranks above them all. See [#CASCADE].
+    private final Map<String, Integer> sublayers;
+
     public StyleResolver(List<Stylesheet> stylesheets) {
         this.stylesheets = List.copyOf(Objects.requireNonNull(stylesheets, "stylesheets"));
         this.media = MediaContext.UNKNOWN;
@@ -189,38 +241,181 @@ public final class StyleResolver {
         indexByType();
         for (var sheet : this.stylesheets) {
             for (var block : sheet.keyframes()) {
-                keyframes.put(block.name(), block);
+                keyframes
+                        .computeIfAbsent(block.name(), _ -> new java.util.ArrayList<>())
+                        .add(block);
             }
         }
         var distinct = new java.util.LinkedHashSet<MediaCondition>();
         var positions = new java.util.LinkedHashSet<Structural>();
         var ancestorTypes = new HashSet<String>();
-        var untypedAncestor = false;
+        // Arrays, because the walk is a lambda and these are what it reports.
+        var filtered = new boolean[1];
+        var untypedAncestorPosition = new boolean[1];
+        var hasTypes = new HashSet<String>();
+        var hasAncestorTypes = new HashSet<String>();
+        // Untyped subject, untyped in an ancestor position, starts at a sibling.
+        var hasFlags = new boolean[3];
+        var anyHas = new boolean[1];
         for (var sheet : this.stylesheets) {
+            for (var block : sheet.keyframes()) {
+                if (block.isConditional()) {
+                    distinct.add(block.media());
+                }
+            }
             for (var rule : sheet.rules()) {
                 if (rule.isConditional()) {
                     distinct.add(rule.media());
                 }
                 for (var selector : rule.selectors()) {
-                    var parts = selector.parts();
-                    for (var i = 0; i < parts.size(); i++) {
-                        var compound = parts.get(i).compound();
+                    eachCompound(selector, false, (part, ancestor) -> {
+                        var compound = part.compound();
                         positions.addAll(compound.structural());
-                        if (i > 0 && !compound.structural().isEmpty()) {
+                        var counts = !compound.structural().isEmpty();
+                        if (part.combinator().isSibling()) {
+                            // `a + b`: b's match reads its siblings.
+                            filtered[0] = true;
+                            counts = true;
+                        }
+                        for (var functional : compound.functional()) {
+                            switch (functional) {
+                                case Functional.NthOf _ -> {
+                                    filtered[0] = true;
+                                    counts = true;
+                                }
+                                case Functional.Has has -> {
+                                    anyHas[0] = true;
+                                    hasFlags[2] |= has.looksAtSiblings();
+                                    if (compound.type() == null) {
+                                        hasFlags[0] = true;
+                                        hasFlags[1] |= ancestor;
+                                    } else {
+                                        hasTypes.add(compound.type());
+                                        if (ancestor) {
+                                            hasAncestorTypes.add(compound.type());
+                                        }
+                                    }
+                                }
+                                case Functional.Is _, Functional.Where _, Functional.Not _ -> {}
+                            }
+                        }
+                        if (ancestor && counts) {
                             if (compound.type() == null) {
-                                untypedAncestor = true;
+                                untypedAncestorPosition[0] = true;
                             } else {
                                 ancestorTypes.add(compound.type());
                             }
                         }
-                    }
+                    });
                 }
             }
         }
         this.conditions = List.copyOf(distinct);
         this.structural = List.copyOf(positions);
         this.structuralAncestorTypes = Set.copyOf(ancestorTypes);
-        this.untypedStructuralAncestor = untypedAncestor;
+        this.untypedStructuralAncestor = untypedAncestorPosition[0];
+        this.siblingsMatter = filtered[0];
+        this.hasIndex = anyHas[0]
+                ? new HasIndex(
+                        Set.copyOf(hasTypes), hasFlags[0], Set.copyOf(hasAncestorTypes), hasFlags[1], hasFlags[2])
+                : null;
+        this.inheritsExplicitly = this.stylesheets.stream()
+                .flatMap(sheet -> sheet.rules().stream())
+                .flatMap(rule -> rule.declarations().stream())
+                .anyMatch(StyleResolver::readsParentBeyondInheritance);
+        this.viewportUnits = this.stylesheets.stream().anyMatch(StyleResolver::writesViewportUnits);
+        this.containerQueries = this.stylesheets.stream().anyMatch(StyleResolver::readsContainers);
+        var names = new ArrayList<String>();
+        for (var sheet : this.stylesheets) {
+            if (sheet.layer() == CascadeLayer.APPLICATION) {
+                names.addAll(sheet.layers());
+            }
+        }
+        this.sublayers = ranks(names);
+    }
+
+    /// Ranks for `names`, in the order first met: a layer's own sublayers rank
+    /// below its rules that are in none of them, as in CSS, so `a.b` is below
+    /// `a`, and `a` and everything in it below a layer first met after `a`.
+    static Map<String, Integer> ranks(List<String> names) {
+        var root = new Level();
+        for (var name : names) {
+            var level = root;
+            for (var segment : name.split("\\.", -1)) {
+                level = level.children.computeIfAbsent(segment, _ -> new Level());
+            }
+        }
+        var ranks = new HashMap<String, Integer>();
+        root.rank("", ranks);
+        return Map.copyOf(ranks);
+    }
+
+    /// One level of the layer tree, its children in the order first met.
+    private static final class Level {
+
+        private final Map<String, Level> children = new LinkedHashMap<>();
+
+        /// Ranks every layer under this one, each after its own sublayers.
+        void rank(String prefix, Map<String, Integer> ranks) {
+            for (var entry : children.entrySet()) {
+                var full = prefix.isEmpty() ? entry.getKey() : prefix + "." + entry.getKey();
+                entry.getValue().rank(full, ranks);
+                ranks.put(full, ranks.size());
+            }
+        }
+    }
+
+    /// Where a rule in `layer` of the cascade ranks among the application's
+    /// `@layer`s: [#UNLAYERED] outside the application layer and for a rule in
+    /// none.
+    private int sublayerOf(CascadeLayer layer, StyleRule rule) {
+        if (layer != CascadeLayer.APPLICATION || rule.layer() == null) {
+            return UNLAYERED;
+        }
+        return sublayers.getOrDefault(rule.layer(), UNLAYERED);
+    }
+
+    /// The rank of a rule in no `@layer`, above every layer.
+    private static final int UNLAYERED = Integer.MAX_VALUE;
+
+    /// Whether a declaration anywhere in `sheet`, a keyframe's included, holds
+    /// a viewport unit. Custom properties count: `--gutter: 2vw` is read
+    /// wherever `var(--gutter)` is.
+    /// Whether `sheet` has an `@container` rule or writes a container unit,
+    /// which make a container's laid-out size something a style reads.
+    private static boolean readsContainers(Stylesheet sheet) {
+        if (sheet.rules().stream().anyMatch(StyleRule::isContained)) {
+            return true;
+        }
+        return sheet.rules().stream()
+                .flatMap(rule -> rule.declarations().stream())
+                .flatMap(declaration -> declaration.value().stream())
+                .anyMatch(token -> token.is(TokenType.DIMENSION)
+                        && CssLength.isContainerUnit(token.unit().toLowerCase(Locale.ROOT)));
+    }
+
+    private static boolean writesViewportUnits(Stylesheet sheet) {
+        var declarations = Stream.concat(
+                sheet.rules().stream().flatMap(rule -> rule.declarations().stream()),
+                sheet.keyframes().stream()
+                        .flatMap(block -> block.frames().stream())
+                        .flatMap(frame -> frame.declarations().stream()));
+        return declarations
+                .flatMap(declaration -> declaration.value().stream())
+                .anyMatch(token -> token.is(TokenType.DIMENSION)
+                        && Viewport.isUnit(token.unit().toLowerCase(Locale.ROOT)));
+    }
+
+    /// `property: inherit`, where `property` has a longhand that does not
+    /// inherit on its own.
+    private static boolean readsParentBeyondInheritance(Declaration declaration) {
+        if (GlobalKeyword.of(declaration.value()) != GlobalKeyword.INHERIT) {
+            return false;
+        }
+        if (Properties.find(declaration.property()).isEmpty()) {
+            return false;
+        }
+        return Properties.expand(declaration.property()).stream().anyMatch(longhand -> !longhand.inherited());
     }
 
     /// `base` under another media context: every index shared, one field new.
@@ -239,6 +434,33 @@ public final class StyleResolver {
         this.structural = base.structural;
         this.structuralAncestorTypes = base.structuralAncestorTypes;
         this.untypedStructuralAncestor = base.untypedStructuralAncestor;
+        this.inheritsExplicitly = base.inheritsExplicitly;
+        this.viewportUnits = base.viewportUnits;
+        this.containerQueries = base.containerQueries;
+        this.siblingsMatter = base.siblingsMatter;
+        this.hasIndex = base.hasIndex;
+        this.sublayers = base.sublayers;
+    }
+
+    /// Calls `visit` with every part in `selector` and in the selectors its
+    /// functional pseudo-classes hold, at any depth, and whether it stands in
+    /// an **ancestor** position: left of a combinator, or inside an argument of
+    /// a compound that does.
+    ///
+    /// `:is(a:hover b) c` puts `a:hover` and `b` in ancestor positions, and
+    /// `x:not(a:hover b)` puts `a:hover` in one and `b` in the subject's.
+    private static void eachCompound(Selector selector, boolean ancestor, BiConsumer<Selector.Part, Boolean> visit) {
+        var parts = selector.parts();
+        for (var i = 0; i < parts.size(); i++) {
+            var compound = parts.get(i).compound();
+            var here = ancestor || i > 0;
+            visit.accept(parts.get(i), here);
+            for (var functional : compound.functional()) {
+                for (var argument : functional.arguments()) {
+                    eachCompound(argument, here, visit);
+                }
+            }
+        }
     }
 
     /// This resolver, as it would cascade under `context`.
@@ -252,10 +474,19 @@ public final class StyleResolver {
     /// Otherwise a new resolver sharing every index with this one. Every cached
     /// style misses against it at once, which is the whole invalidation: the
     /// same route a theme swap takes.
+    ///
+    /// A sheet that writes a viewport unit (`50vw`, `100dvh`) gets a new
+    /// resolver for every change of the window's size, since every such length
+    /// has moved. One that writes none keeps this one through a resize.
     public StyleResolver under(MediaContext context) {
         Objects.requireNonNull(context, "context");
         if (context.equals(media)) {
             return this;
+        }
+        if (viewportUnits
+                && (Double.compare(context.width(), media.width()) != 0
+                        || Double.compare(context.height(), media.height()) != 0)) {
+            return new StyleResolver(this, context);
         }
         for (var condition : conditions) {
             if (condition.matches(context) != condition.matches(media)) {
@@ -279,13 +510,73 @@ public final class StyleResolver {
     /// under sheets that only say `:first-child` it invalidates nothing. With no
     /// structural pseudo-class anywhere, which is the toolkit's own sheets, the
     /// answer is always no and costs one empty loop.
-    public boolean positionMatters(int oldIndex, int oldCount, int index, int count) {
+    public boolean positionMatters(SiblingPosition before, SiblingPosition after) {
+        if (siblingsMatter) {
+            return true;
+        }
         for (var position : structural) {
-            if (position.matches(oldIndex, oldCount) != position.matches(index, count)) {
+            if (position.matches(before) != position.matches(after)) {
                 return true;
             }
         }
         return false;
+    }
+
+    /// Whether some selector reads an element's siblings: counts them through
+    /// a filter, `:nth-child(An+B of S)`, or joins two with `+` or `~`, so
+    /// that a sibling's classes or state decide what matches an element.
+    ///
+    /// When true, a parent that rebuilds its children restyles every one of
+    /// them, and a child whose state changes restyles its siblings: which of
+    /// them match may have changed, and nothing cheaper says which. With no
+    /// such selector, which is the toolkit's own sheets, it costs nothing.
+    public boolean siblingsMatter() {
+        return siblingsMatter;
+    }
+
+    /// Whether any rule is inside `@container` or writes a container unit
+    /// (`cqw` and the rest), so that a container's laid-out size decides a
+    /// style. With none, which is the toolkit's own sheets, a frame is laid out
+    /// once; with some, the renderer restyles under a container whose size
+    /// changed and lays the frame out once more.
+    public boolean readsContainers() {
+        return containerQueries;
+    }
+
+    /// Whether any selector writes `:has()`, so that a change to an element
+    /// can change what matches above it. With none, which is the toolkit's own
+    /// sheets, the element tree never walks up.
+    public boolean hasMatters() {
+        return hasIndex != null;
+    }
+
+    /// Whether some `:has()` starts at a sibling, `:has(+ x)` or `:has(~ x)`,
+    /// so that an element's earlier siblings read it too.
+    public boolean hasLooksAtSiblings() {
+        return hasIndex != null && hasIndex.looksAtSiblings();
+    }
+
+    /// What a change below or after an element of `type` restyles on it,
+    /// through the sheets' `:has()`.
+    ///
+    /// [HasReach#NONE] when no `:has()` sits on a compound that could match
+    /// it, which narrows the walk the element tree makes up from a change to
+    /// the types the sheets name: `card:has(:checked)` restyles the `card`s
+    /// above a checkbox, and nothing else on the way to the root.
+    /// [HasReach#SUBTREE] when such a compound stands left of a combinator,
+    /// `card:has(.x) text`, since what is below it then reads it too.
+    public HasReach hasReach(@Nullable String type) {
+        var index = hasIndex;
+        if (index == null) {
+            return HasReach.NONE;
+        }
+        if (index.untypedAncestor() || (type != null && index.ancestorTypes().contains(type))) {
+            return HasReach.SUBTREE;
+        }
+        if (index.untyped() || (type != null && index.types().contains(type))) {
+            return HasReach.OWN;
+        }
+        return HasReach.NONE;
     }
 
     /// Whether a change in position on an element of `type` can change what
@@ -311,12 +602,16 @@ public final class StyleResolver {
                 var typed = rule.starting() ? startingByType : byType;
                 var everywhere = false;
                 for (var selector : rule.selectors()) {
-                    var subject = selector.parts().getFirst().compound().type();
-                    if (subject == null) {
+                    var subjects = subjectTypes(selector.key());
+                    if (subjects == null) {
                         everywhere = true;
                     } else {
-                        typed.computeIfAbsent(subject, key -> new java.util.ArrayList<>())
-                                .add(candidate);
+                        for (var subject : subjects) {
+                            var bucket = typed.computeIfAbsent(subject, key -> new java.util.ArrayList<>());
+                            if (bucket.isEmpty() || bucket.getLast() != candidate) {
+                                bucket.add(candidate);
+                            }
+                        }
                     }
                 }
                 if (everywhere) {
@@ -326,13 +621,77 @@ public final class StyleResolver {
         }
     }
 
+    /// The types an element must have for `compound` to match it, or null when
+    /// it may have any. A pseudo-element counts as a type of its own, see
+    /// [#bucketOf].
+    ///
+    /// Its own type when it names one. Otherwise an `:is()` or `:where()` whose
+    /// every argument's subject names types narrows it to those:
+    /// `:is(button, toggle):hover` can only match a `button` or a `toggle`, and
+    /// is bucketed under both rather than tested against every element.
+    private static @Nullable Set<String> subjectTypes(Selector.Compound compound) {
+        if (compound.type() != null) {
+            return Set.of(compound.type());
+        }
+        if (compound.pseudoElement() != null) {
+            return Set.of(bucketOf(compound.pseudoElement()));
+        }
+        for (var functional : compound.functional()) {
+            var arguments = switch (functional) {
+                case Functional.Is(var held) -> held;
+                case Functional.Where(var held) -> held;
+                case Functional.Not _, Functional.NthOf _, Functional.Has _ -> null;
+            };
+            if (arguments == null) {
+                continue;
+            }
+            var types = new HashSet<String>();
+            var narrowed = true;
+            for (var argument : arguments) {
+                var inner = subjectTypes(argument.key());
+                if (inner == null) {
+                    narrowed = false;
+                    break;
+                }
+                types.addAll(inner);
+            }
+            if (narrowed) {
+                return types;
+            }
+        }
+        return null;
+    }
+
     /// The rules that could match an element of this type.
     ///
     /// **Null is the case this exists for**, not a defensive branch: a
     /// composition node has no CSS type ([StyleElement#type()]), and the rules
     /// that can match it are exactly the ones naming no type either.
-    private List<Candidate> candidatesFor(@Nullable String type) {
-        return candidatesFor(type, byType, untyped);
+    private List<Candidate> candidatesFor(StyleElement element) {
+        return candidatesFor(element, byType, untyped);
+    }
+
+    /// The rules that could match `element`: those for its type, and those for
+    /// the pseudo-element it stands for when it stands for one.
+    private static List<Candidate> candidatesFor(
+            StyleElement element, java.util.Map<String, List<Candidate>> byType, List<Candidate> untyped) {
+        var typed = candidatesFor(element.type(), byType, untyped);
+        var pseudo = element.pseudoElement();
+        var parts = pseudo == null ? null : byType.get(bucketOf(pseudo));
+        if (parts == null) {
+            return typed;
+        }
+        var all = new java.util.ArrayList<Candidate>(typed.size() + parts.size());
+        all.addAll(typed);
+        all.addAll(parts);
+        return all;
+    }
+
+    /// The bucket a rule whose subject is `::placeholder` goes in: a key no
+    /// element type can be, so the rule is tried on the parts that stand for
+    /// the pseudo-element and on nothing else.
+    private static String bucketOf(PseudoElement pseudo) {
+        return "::" + pseudo.cssName();
     }
 
     private static List<Candidate> candidatesFor(
@@ -362,11 +721,16 @@ public final class StyleResolver {
         for (var sheet : stylesheets) {
             for (var rule : sheet.rules()) {
                 for (var selector : rule.selectors()) {
-                    var parts = selector.parts();
-                    // Rightmost first, so everything past index 0 is an ancestor.
-                    for (var i = 1; i < parts.size(); i++) {
-                        var compound = parts.get(i).compound();
-                        for (var state : compound.pseudoClasses()) {
+                    eachCompound(selector, false, (part, ancestor) -> {
+                        if (!ancestor) {
+                            return;
+                        }
+                        var compound = part.compound();
+                        for (var written : compound.pseudoClasses()) {
+                            // `:enabled` is answered from `:disabled`, so it is
+                            // a change to that state that reaches below.
+                            var state =
+                                    written == Selector.PseudoClass.ENABLED ? Selector.PseudoClass.DISABLED : written;
                             if (compound.type() == null) {
                                 untypedAncestorStates.add(state);
                             } else {
@@ -375,7 +739,7 @@ public final class StyleResolver {
                                         .add(compound.type());
                             }
                         }
-                    }
+                    });
                 }
             }
         }
@@ -424,6 +788,17 @@ public final class StyleResolver {
         return substituted(element, declared, customPropertiesFor(element, declared));
     }
 
+    /// Whether a child styled here may read more of its parent than the
+    /// inherited half: true when some sheet writes `inherit` on a property that
+    /// does not inherit, such as `padding: inherit`.
+    ///
+    /// The renderer keys a child's cached style on its parent's style, and
+    /// normally compares parents on the inherited half alone. With this true it
+    /// compares them whole.
+    public boolean inheritsExplicitly() {
+        return inheritsExplicitly;
+    }
+
     /// Whether any sheet here has an `@starting-style` rule at all — the check
     /// that keeps an element's first frame from running a second cascade in the
     /// overwhelmingly common case of a sheet with none.
@@ -446,11 +821,13 @@ public final class StyleResolver {
         if (!hasStartingStyles()) {
             return null;
         }
-        var starting = candidatesFor(element.type(), startingByType, startingUntyped);
+        var starting = candidatesFor(element, startingByType, startingUntyped);
         var matched = false;
         for (var candidate : starting) {
             var rule = candidate.rule();
-            if ((!rule.isConditional() || rule.media().matches(media)) && matchesAny(rule, element)) {
+            if ((!rule.isConditional() || rule.media().matches(media))
+                    && (!rule.isContained() || holds(rule, element))
+                    && matchesAny(rule, element)) {
                 matched = true;
                 break;
             }
@@ -458,7 +835,7 @@ public final class StyleResolver {
         if (!matched) {
             return null;
         }
-        var all = new ArrayList<Candidate>(candidatesFor(element.type()));
+        var all = new ArrayList<Candidate>(candidatesFor(element));
         all.addAll(starting);
         // The element's own custom properties, not the starting cascade's: a
         // starting rule that declared one would otherwise be cached as the
@@ -468,7 +845,17 @@ public final class StyleResolver {
 
     /// The `@keyframes` block called `name`, or null when no sheet declares one.
     public @Nullable Keyframes keyframes(String name) {
-        return keyframes.get(Objects.requireNonNull(name, "name"));
+        var blocks = keyframes.get(Objects.requireNonNull(name, "name"));
+        if (blocks == null) {
+            return null;
+        }
+        for (var i = blocks.size() - 1; i >= 0; i--) {
+            var block = blocks.get(i);
+            if (!block.isConditional() || block.media().matches(media)) {
+                return block;
+            }
+        }
+        return null;
     }
 
     /// One keyframe's declarations, with `var()` resolved **for `element`**, in
@@ -631,7 +1018,7 @@ public final class StyleResolver {
 
     /// The winning declaration for each property on `element`, before `var()`.
     private Map<String, List<Token>> cascade(StyleElement element) {
-        return cascade(element, candidatesFor(element.type()));
+        return cascade(element, candidatesFor(element));
     }
 
     private Map<String, List<Token>> cascade(StyleElement element, List<Candidate> candidates) {
@@ -645,6 +1032,9 @@ public final class StyleResolver {
             if (rule.isConditional() && !rule.media().matches(media)) {
                 continue;
             }
+            if (rule.isContained() && !holds(rule, element)) {
+                continue;
+            }
             // The most specific *matching* selector in the list is the one
             // that represents the rule, per the cascade.
             var best = -1;
@@ -656,8 +1046,9 @@ public final class StyleResolver {
             if (best < 0) {
                 continue;
             }
+            var sublayer = sublayerOf(candidate.layer(), rule);
             for (var declaration : rule.declarations()) {
-                matches.add(new Match(declaration, candidate.layer(), best, candidate.sheet(), rule.order()));
+                matches.add(new Match(declaration, candidate.layer(), sublayer, best, candidate.sheet(), rule.order()));
             }
         }
 
@@ -679,12 +1070,99 @@ public final class StyleResolver {
         // `padding-left` again -- must end with the longhand last, and without
         // the remove it would sit where the first, losing one was.
         var winners = new LinkedHashMap<String, List<Token>>();
+        var reverts = false;
         for (var match : matches) {
             var property = match.declaration().property();
             winners.remove(property);
             winners.put(property, match.declaration().value());
+            reverts |= isRevert(match.declaration().value());
+        }
+        if (reverts) {
+            revert(winners, matches);
         }
         return winners;
+    }
+
+    private static boolean isRevert(List<Token> value) {
+        var keyword = GlobalKeyword.of(value);
+        return keyword == GlobalKeyword.REVERT || keyword == GlobalKeyword.REVERT_LAYER;
+    }
+
+    /// Replaces each winning `revert` or `revert-layer` with the declaration it
+    /// rolls back to, or removes the property when there is none, which leaves
+    /// it unset.
+    ///
+    /// The layers here break ties after specificity rather than ranking above
+    /// it, so "the layers below" means the declarations that lost to this one
+    /// from a lower layer, and the strongest of them wins. `revert` treats the
+    /// toolkit's base sheets as CSS treats the browser's own: it rolls back to
+    /// the strongest of their declarations, and in a base sheet it unsets.
+    /// Reverting a longhand reaches only declarations of that same name, not a
+    /// shorthand that would also have set it.
+    ///
+    /// @param matches every match, weakest first, as [#cascade] sorted them
+    private static void revert(Map<String, List<Token>> winners, List<Match> matches) {
+        var iterator = winners.entrySet().iterator();
+        while (iterator.hasNext()) {
+            var entry = iterator.next();
+            if (!isRevert(entry.getValue())) {
+                continue;
+            }
+            var at = matches.size();
+            List<Token> value = null;
+            Match below = null;
+            boolean toBase = false;
+            // Walk down from the winner, which is the strongest match of this
+            // property, until a declaration that is not itself a revert.
+            while (true) {
+                at = previous(matches, entry.getKey(), at, below, toBase);
+                if (at < 0) {
+                    break;
+                }
+                var match = matches.get(at);
+                var keyword = GlobalKeyword.of(match.declaration().value());
+                if (keyword == GlobalKeyword.REVERT_LAYER) {
+                    below = match;
+                    toBase = false;
+                } else if (keyword == GlobalKeyword.REVERT) {
+                    if (match.layer() == CascadeLayer.TOOLKIT_BASE) {
+                        break;
+                    }
+                    below = null;
+                    toBase = true;
+                } else {
+                    value = match.declaration().value();
+                    break;
+                }
+            }
+            if (value == null) {
+                iterator.remove();
+            } else {
+                entry.setValue(value);
+            }
+        }
+    }
+
+    /// The index of the strongest match of `property` before `before` that is
+    /// in a layer below `below`'s (when given), an application `@layer`
+    /// counting as a layer of its own, or in the toolkit's base layer (when
+    /// `toBase`), or -1.
+    private static int previous(
+            List<Match> matches, String property, int before, @Nullable Match below, boolean toBase) {
+        for (var i = before - 1; i >= 0; i--) {
+            var match = matches.get(i);
+            if (!match.declaration().property().equals(property)) {
+                continue;
+            }
+            if (toBase && match.layer() != CascadeLayer.TOOLKIT_BASE) {
+                continue;
+            }
+            if (below != null && LAYER_ORDER.compare(match, below) >= 0) {
+                continue;
+            }
+            return i;
+        }
+        return -1;
     }
 
     /// The cascade order, weakest first.
@@ -705,16 +1183,40 @@ public final class StyleResolver {
     /// The sheet index goes between layer and rule order, which is where "later
     /// source wins" belongs: it leaves every layer comparison above it and every
     /// specificity comparison above that untouched.
+    ///
+    /// **An application's `@layer`s order after the four layers, before the
+    /// sheet**, the same kind of key: a later layer wins at equal specificity,
+    /// and a rule in no layer wins over every layered one. `!important` turns
+    /// the order round, as CSS does, so an important declaration in an earlier
+    /// layer wins over one in a later layer or in none. They do not rank above
+    /// specificity as CSS's do: inside the application layer they could, but a
+    /// cascade where the application layer ranked by layer and the others by
+    /// specificity would have no consistent order between the two.
+    /// Which layer a match is in, the four and the application's `@layer`s
+    /// together: what `revert-layer` rolls back below.
+    private static final Comparator<Match> LAYER_ORDER =
+            Comparator.comparing(Match::layer).thenComparingInt(Match::sublayerKey);
+
     private static final Comparator<Match> CASCADE = Comparator.<Match, Boolean>comparing(
                     m -> m.declaration().important())
             .thenComparingInt(Match::specificity)
             .thenComparing(Match::layer)
+            .thenComparingInt(Match::sublayerKey)
             .thenComparingInt(Match::sheet)
             .thenComparingInt(Match::order);
 
-    /// @param sheet the sheet's index in this resolver's list — see [Candidate]
-    /// @param order the rule's index inside that sheet
-    private record Match(Declaration declaration, CascadeLayer layer, int specificity, int sheet, int order) {}
+    /// @param sublayer the rule's `@layer` rank, [#UNLAYERED] for none
+    /// @param sheet    the sheet's index in this resolver's list — see [Candidate]
+    /// @param order    the rule's index inside that sheet
+    private record Match(
+            Declaration declaration, CascadeLayer layer, int sublayer, int specificity, int sheet, int order) {
+
+        /// The `@layer` rank as the cascade sorts it: as it is for a normal
+        /// declaration, and the other way round for an important one.
+        int sublayerKey() {
+            return declaration.important() ? -sublayer : sublayer;
+        }
+    }
 
     /// Replaces every `var()` in `value`.
     ///
@@ -886,5 +1388,15 @@ public final class StyleResolver {
     /// would be a dependency bought for one assertion.
     int reportedDrops() {
         return reported.size();
+    }
+
+    /// Whether every `@container` query `rule` is inside holds for `element`.
+    private static boolean holds(StyleRule rule, StyleElement element) {
+        for (var query : rule.containers()) {
+            if (!query.holds(element)) {
+                return false;
+            }
+        }
+        return true;
     }
 }

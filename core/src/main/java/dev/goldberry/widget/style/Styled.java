@@ -5,6 +5,7 @@ import java.util.Set;
 import org.jspecify.annotations.Nullable;
 
 import dev.goldberry.css.ComputedStyle;
+import dev.goldberry.css.select.PseudoElement;
 import dev.goldberry.stats.FrameStats;
 import dev.goldberry.widget.Widget;
 import dev.goldberry.widget.WidgetRenderer;
@@ -67,6 +68,16 @@ public interface Styled extends Widget {
     /// The `.class` names.
     default Set<String> classes() {
         return Set.of();
+    }
+
+    /// The pseudo-element this part stands for, so that
+    /// `text-input::placeholder` selects it, or null for a widget that stands
+    /// for none.
+    ///
+    /// A part answers this, never a control: `::placeholder` is the text a
+    /// field shows while empty, which is a node of its own below the field.
+    default @Nullable PseudoElement pseudoElement() {
+        return null;
     }
 
     /// The widget's last word on its own style — the cascade's answer, with

@@ -110,13 +110,47 @@ class BorderStylePaintTest {
     }
 
     @Test
-    @DisplayName("a groove is drawn solid, the same as `solid`")
-    void bevelledIsSolid() {
-        var groove = painted(Corners.SQUARE, Border.all(2, RED, Style.GROOVE));
+    @DisplayName("an inset side is darker on the top and left, lighter on the bottom and right; outset the reverse")
+    void insetAndOutset() {
+        var inset = painted(Corners.SQUARE, Border.all(4, GREY, Style.INSET));
+        assertTrue(lightness(inset.pixel(30, 1)) < lightness(GREY), "the top is darker");
+        assertTrue(lightness(inset.pixel(1, 20)) < lightness(GREY), "and the left");
+        assertTrue(lightness(inset.pixel(30, 38)) > lightness(GREY), "the bottom is lighter");
+        assertTrue(lightness(inset.pixel(58, 20)) > lightness(GREY), "and the right");
+        assertEquals(0, inset.alphaAt(30, 20), "nothing inside");
 
-        assertEquals(RED, groove.pixel(30, 0));
-        assertEquals(RED, groove.pixel(8, 0), "no gap where a dash's would be");
+        var outset = painted(Corners.SQUARE, Border.all(4, GREY, Style.OUTSET));
+        assertTrue(lightness(outset.pixel(30, 1)) > lightness(GREY));
+        assertTrue(lightness(outset.pixel(30, 38)) < lightness(GREY));
+    }
+
+    @Test
+    @DisplayName("a groove is two bands, the outer dark and the inner light on the top; a ridge the reverse")
+    void grooveAndRidge() {
+        var groove = painted(Corners.SQUARE, Border.all(6, GREY, Style.GROOVE));
+        assertTrue(lightness(groove.pixel(30, 1)) < lightness(GREY), "the outer band on the top is dark");
+        assertTrue(lightness(groove.pixel(30, 4)) > lightness(GREY), "the inner one light");
+        assertTrue(lightness(groove.pixel(30, 38)) > lightness(GREY), "the bottom's outer band is light");
         assertEquals(0, groove.alphaAt(30, 20));
+
+        var ridge = painted(Corners.SQUARE, Border.all(6, GREY, Style.RIDGE));
+        assertTrue(lightness(ridge.pixel(30, 1)) > lightness(GREY));
+        assertTrue(lightness(ridge.pixel(30, 4)) < lightness(GREY));
+    }
+
+    @Test
+    @DisplayName("a black bevel still shows both tones")
+    void blackBevel() {
+        var inset = painted(Corners.SQUARE, Border.all(4, 0xFF000000, Style.INSET));
+        assertEquals(0xFF000000, inset.pixel(30, 1));
+        assertTrue(lightness(inset.pixel(30, 38)) > 0, "the light side of black is grey");
+    }
+
+    private static final int GREY = 0xFF808080;
+
+    /// The mean of the three channels: enough to say lighter or darker.
+    private static int lightness(int argb) {
+        return (((argb >>> 16) & 0xFF) + ((argb >>> 8) & 0xFF) + (argb & 0xFF)) / 3;
     }
 
     @Test

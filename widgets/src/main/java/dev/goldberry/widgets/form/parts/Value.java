@@ -3,7 +3,10 @@ package dev.goldberry.widgets.form.parts;
 import java.util.List;
 import java.util.Set;
 
+import org.jspecify.annotations.Nullable;
+
 import dev.goldberry.css.ComputedStyle;
+import dev.goldberry.css.select.PseudoElement;
 import dev.goldberry.paint.Box;
 import dev.goldberry.widget.Widget;
 import dev.goldberry.widget.style.Paints;
@@ -64,6 +67,12 @@ public record Value(String text, boolean placeholder, boolean carrier) implement
     @Override
     public Set<String> classes() {
         return placeholder ? Set.of("placeholder") : Set.of();
+    }
+
+    /// `::placeholder` while it is standing in for a value.
+    @Override
+    public @Nullable PseudoElement pseudoElement() {
+        return placeholder ? PseudoElement.PLACEHOLDER : null;
     }
 
     @Override

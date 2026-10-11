@@ -14,6 +14,7 @@ import org.junit.jupiter.api.Test;
 
 import dev.goldberry.RendererRequirement;
 import dev.goldberry.assets.BundledFont;
+import dev.goldberry.layout.Direction;
 import dev.goldberry.layout.MeasureMode;
 import dev.goldberry.text.font.Font;
 
@@ -256,27 +257,27 @@ class ParagraphTest {
     /// pasted Arabic into took the whole window down on the next frame, because
     /// nothing between the paste and the paint was going to catch it.
     @Test
-    @DisplayName("right-to-left text is approximated rather than refused")
-    void rightToLeftIsApproximated() {
+    @DisplayName("right-to-left text is split into runs rather than refused")
+    void rightToLeftIsSplitIntoRuns() {
         var paragraph = Paragraph.of(font, ARABIC);
 
-        assertTrue(paragraph.isBidiApproximate(), "it says so, rather than pretending");
+        assertTrue(paragraph.isBidirectional(), "it is placed in visual order");
+        assertEquals(Direction.RTL, paragraph.directionAt(0), "and with no direction given, it reads from the right");
         assertFalse(
-                Paragraph.of(font, "Goldberry").isBidiApproximate(),
+                Paragraph.of(font, "Goldberry").isBidirectional(),
                 "and text that never needed bidi is shaped exactly as it always was");
     }
 
-    /// The approximation's one promise: the glyphs are in **logical** order, so
-    /// every measurement in this class measures the glyphs it thinks it does.
+    /// The measurements stay in **logical** order: a right-to-left run is
+    /// shaped visually and held reversed, so every width in this class
+    /// measures the glyphs it thinks it does.
     ///
-    /// What is wrong is the reading order on screen, and nothing here can see
-    /// that. What would be wrong *without* the forced direction is this test:
-    /// HarfBuzz would return the run visually ordered, the prefix sums are built
-    /// by walking clusters forward, and a run whose clusters count *down* leaves
-    /// every width at zero — an invisible, zero-width field.
+    /// Without the reversal this is the test that fails: the prefix sums are
+    /// built by walking clusters forward, and a run whose clusters count
+    /// *down* leaves every width at zero — an invisible, zero-width field.
     @Test
-    @DisplayName("and what it measures agrees with what it draws")
-    void approximateMeasurementsAreConsistent() {
+    @DisplayName("and what it measures is in logical order")
+    void rightToLeftMeasurementsAreLogical() {
         var paragraph = Paragraph.of(font, ARABIC);
         var layout = paragraph.layout(Paragraph.UNCONSTRAINED);
 
@@ -295,16 +296,16 @@ class ParagraphTest {
         }
     }
 
-    /// And a click lands where the caret is drawn, which is the other half of
-    /// "self-consistent": a field whose hit testing disagreed with its painting
-    /// would be unusable in a way an exception at least made obvious.
+    /// And a click lands where the caret is drawn: a field whose hit testing
+    /// disagreed with its painting would be unusable in a way an exception at
+    /// least made obvious.
     @Test
-    @DisplayName("a caret in approximated text round-trips through the same widths")
-    void approximateCaretRoundTrips() {
+    @DisplayName("a caret in right-to-left text round-trips through the same place")
+    void rightToLeftCaretRoundTrips() {
         var paragraph = Paragraph.of(font, ARABIC);
         var space = ARABIC.indexOf(' ') + 1;
 
-        assertEquals(space, paragraph.offsetAt(0, ARABIC.length(), paragraph.widthBetween(0, space)));
+        assertEquals(space, paragraph.offsetAt(0, ARABIC.length(), paragraph.caretX(0, ARABIC.length(), space)));
     }
 
     @Test

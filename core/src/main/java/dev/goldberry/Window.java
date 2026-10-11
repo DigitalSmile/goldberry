@@ -26,6 +26,7 @@ import dev.goldberry.render.Cursor;
 import dev.goldberry.render.DamageRect;
 import dev.goldberry.render.GpuPlacement;
 import dev.goldberry.render.PixelBuffer;
+import dev.goldberry.render.desktop.DisplayPreferences;
 import dev.goldberry.render.desktop.SystemTheme;
 import dev.goldberry.render.display.Display;
 import dev.goldberry.render.display.DisplayLayout;
@@ -566,6 +567,15 @@ public final class Window implements AutoCloseable {
     /// [dev.goldberry.render.Backend#reducedMotion()].
     public java.util.Optional<Boolean> reducedMotion() {
         return runtime.backend().reducedMotion();
+    }
+
+    /// The desktop's display accessibility switches: more contrast, forced
+    /// colours, less transparency, each off where the desktop does not say.
+    ///
+    /// [Goldberry#launch]'s renderer is told them, which is what
+    /// `@media (prefers-contrast: more)` and the rest answer from.
+    public DisplayPreferences displayPreferences() {
+        return runtime.backend().displayPreferences();
     }
 
     /// Called after the desktop's light-or-dark setting changes, on the UI thread.

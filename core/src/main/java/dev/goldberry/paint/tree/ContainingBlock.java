@@ -12,43 +12,17 @@ import dev.goldberry.layout.Position;
 /// width.
 ///
 /// CSS puts the padding box at the *outer* edge of the padding, just inside the
-/// border. `left: 0; top: 0` in a box with `padding: 12px` and no border is
-/// therefore the box's own corner, (0, 0), and not the corner of its content,
-/// which is where a child in flow starts. Yoga already measures an inset from
-/// the outer edge of the node, and that is right for every box except one with
-/// a border.
+/// border. `left: 0; top: 0` in a box with `padding: 12px` is therefore the
+/// corner just inside the border, and not the corner of its content, which is
+/// where a child in flow starts.
 ///
-/// A border is the exception because it never reaches Yoga. The toolkit paints
-/// it over the padding, inside the box (see [Border]), so the node's outer edge
-/// is the border's outer edge and an inset of zero would put the child on top
-/// of the border. CSS puts it inside. So the correction is the border width on
-/// each side the box named, and it is applied where the inset is put onto the
-/// node rather than where the layout comes back: with `left` and `right` both
-/// given, Yoga derives the child's *width* from the containing block's width
-/// less the two insets, and shifting both insets makes that width the padding
-/// box's. A correction applied after the layout pass could move the child and
-/// could not resize it.
+/// A border takes room in layout, outside the padding, and Yoga measures an
+/// absolute inset from the padding box itself, so [#insetFor] has nothing to
+/// correct: it hands the inset back. What is left here are the insets a widget
+/// writes for its own parts in other coordinates.
 ///
 /// The padding box here is the same rectangle [dev.goldberry.paint.shadow.ShadowGeometry]
 /// draws an inner shadow in.
-///
-/// ## Which edges shift
-///
-/// Only the ones the box actually named. Yoga's fallback for an edge with no
-/// inset is the static position, which is inside the padding and already
-/// right, so defining an edge in order to correct it would replace a right
-/// answer with a placement the box never asked for.
-///
-/// ## Which do not
-///
-/// A **percentage** inset, because it resolves against the containing block's
-/// size, and adding a length in points to a percentage of an unknown width is
-/// not arithmetic that can be done before the layout pass that produces the
-/// width. Percentages are left where Yoga puts them, which differs from CSS by
-/// the border width alone.
-///
-/// A **relative** box is not corrected either. Its inset offsets it from where
-/// flow put it, and flow already placed it inside the padding.
 ///
 /// ## Parts placed in other coordinates
 ///
@@ -65,15 +39,12 @@ public final class ContainingBlock {
     private ContainingBlock() {}
 
     /// The inset to put on a Yoga node, given the one its box declared and the
-    /// border of the box that owns it.
+    /// border of the box that owns it: the declared one, **itself**. Yoga
+    /// measures an absolute inset from the padding box, which is where CSS
+    /// measures it, now that a border takes room.
     ///
-    /// Returns `inset` **itself**, not an equal copy, whenever nothing shifts —
-    /// which is the overwhelming majority of nodes, since almost nothing is
-    /// absolutely positioned and most containing blocks have no border. The
-    /// identity matters: [RenderObject] compares the result against the inset
-    /// already on the node to decide whether to call Yoga at all, and a fresh
-    /// equal instance every frame would cost an allocation to reach the same
-    /// answer.
+    /// Kept as the one place [RenderObject] asks, so that a correction, should
+    /// one ever be needed again, has a home.
     ///
     /// @param position    the child's `position`
     /// @param inset       the child's declared `inset`
@@ -84,33 +55,23 @@ public final class ContainingBlock {
         Objects.requireNonNull(position, "position");
         Objects.requireNonNull(inset, "inset");
         Objects.requireNonNull(blockBorder, "blockBorder");
-
-        if (position != Position.ABSOLUTE) {
-            return inset;
-        }
-        return shifted(
-                inset,
-                blockBorder.top().width(),
-                blockBorder.right().width(),
-                blockBorder.bottom().width(),
-                blockBorder.left().width());
+        return inset;
     }
 
     /// The inset to **write** when a child means its containing block's
-    /// *border* box: the exact inverse of [#insetFor], so that the two cancel.
+    /// *border* box: the padding box's inset moved out by the border.
     ///
     /// A rule drawn across a control is the case: `tab`'s underline spans the
     /// whole tab, border included, and an overlay pinned to a window's corner
     /// means the corner of the window. Each says so in terms of the border its
     /// own style resolved rather than by repeating the number.
     ///
-    /// Edges that [#insetFor] would not shift are left alone here for the same
-    /// reasons, which is what makes the round trip exact.
+    /// A percentage edge is left alone: it resolves against a size this cannot
+    /// know before layout.
     ///
     /// @param inset       the inset the child wants, measured from the border box
     /// @param blockBorder the containing block's border
-    /// @return the inset to put on the child's box, which [#insetFor] will shift
-    ///         back to what was asked for
+    /// @return the inset to put on the child's box
     public static Insets acrossBorderBox(Insets inset, Border blockBorder) {
         Objects.requireNonNull(inset, "inset");
         Objects.requireNonNull(blockBorder, "blockBorder");
@@ -135,9 +96,9 @@ public final class ContainingBlock {
     ///
     /// @param inset        the inset the child wants, measured from the content box
     /// @param blockPadding the containing block's `padding`
-    /// @param blockBorder  the containing block's border
-    /// @return the inset to put on the child's box, which [#insetFor] will shift
-    ///         onto the content box
+    /// @param blockBorder  the containing block's border, which Yoga already
+    ///                     measures the padding box inside
+    /// @return the inset to put on the child's box
     public static Insets inContentBox(Insets inset, Insets blockPadding, Border blockBorder) {
         Objects.requireNonNull(inset, "inset");
         Objects.requireNonNull(blockPadding, "blockPadding");
@@ -145,10 +106,10 @@ public final class ContainingBlock {
 
         return shifted(
                 inset,
-                points(blockPadding.top()) - blockBorder.top().width(),
-                points(blockPadding.right()) - blockBorder.right().width(),
-                points(blockPadding.bottom()) - blockBorder.bottom().width(),
-                points(blockPadding.left()) - blockBorder.left().width());
+                points(blockPadding.top()),
+                points(blockPadding.right()),
+                points(blockPadding.bottom()),
+                points(blockPadding.left()));
     }
 
     /// `inset` with each named edge in points moved by the amount for its side.

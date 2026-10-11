@@ -106,7 +106,7 @@ class CssColorTest {
                 "#12", // no such hex length
                 "#12345",
                 "#gggggg", // not hex digits
-                "papayawhip", // outside the Level 1 set, on purpose
+                "papayawhit", // not one of the 148 names
                 "rgb(1, 2)", // too few channels
                 "rgb(1, 2, 3, 4, 5)",
                 "4px",

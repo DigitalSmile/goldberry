@@ -12,6 +12,7 @@ import org.jspecify.annotations.Nullable;
 
 import dev.goldberry.Window;
 import dev.goldberry.css.Corners;
+import dev.goldberry.css.compositing.BlendMode;
 import dev.goldberry.css.value.Affine;
 import dev.goldberry.image.Image;
 import dev.goldberry.natives.blend2d.BlendContext;
@@ -37,6 +38,7 @@ import dev.goldberry.render.model.DisplayScale;
 import dev.goldberry.render.model.LogicalSize;
 import dev.goldberry.render.model.PhysicalRect;
 import dev.goldberry.render.model.PhysicalSize;
+import dev.goldberry.render.model.PixelFormat;
 import dev.goldberry.render.window.BackendWindow;
 import dev.goldberry.render.window.GpuSurface;
 
@@ -687,36 +689,40 @@ public final class Frame {
             // edge to where the curve starts, and back along the same cubic
             // `Path.roundRect` draws. They do not overlap, so the winding of
             // each is immaterial.
-            var r = fitted.topLeft();
-            if (r > 0) {
-                var c = r * Path.KAPPA;
+            var r = fitted.topLeftRadius();
+            if (!r.isSquare()) {
+                var cx = r.x() * Path.KAPPA;
+                var cy = r.y() * Path.KAPPA;
                 scratch.moveTo(x, y);
-                scratch.lineTo(x, y + r);
-                scratch.cubicTo(x, y + r - c, x + r - c, y, x + r, y);
+                scratch.lineTo(x, y + r.y());
+                scratch.cubicTo(x, y + r.y() - cy, x + r.x() - cx, y, x + r.x(), y);
                 scratch.closeSubPath();
             }
-            r = fitted.topRight();
-            if (r > 0) {
-                var c = r * Path.KAPPA;
+            r = fitted.topRightRadius();
+            if (!r.isSquare()) {
+                var cx = r.x() * Path.KAPPA;
+                var cy = r.y() * Path.KAPPA;
                 scratch.moveTo(right, y);
-                scratch.lineTo(right - r, y);
-                scratch.cubicTo(right - r + c, y, right, y + r - c, right, y + r);
+                scratch.lineTo(right - r.x(), y);
+                scratch.cubicTo(right - r.x() + cx, y, right, y + r.y() - cy, right, y + r.y());
                 scratch.closeSubPath();
             }
-            r = fitted.bottomRight();
-            if (r > 0) {
-                var c = r * Path.KAPPA;
+            r = fitted.bottomRightRadius();
+            if (!r.isSquare()) {
+                var cx = r.x() * Path.KAPPA;
+                var cy = r.y() * Path.KAPPA;
                 scratch.moveTo(right, bottom);
-                scratch.lineTo(right, bottom - r);
-                scratch.cubicTo(right, bottom - r + c, right - r + c, bottom, right - r, bottom);
+                scratch.lineTo(right, bottom - r.y());
+                scratch.cubicTo(right, bottom - r.y() + cy, right - r.x() + cx, bottom, right - r.x(), bottom);
                 scratch.closeSubPath();
             }
-            r = fitted.bottomLeft();
-            if (r > 0) {
-                var c = r * Path.KAPPA;
+            r = fitted.bottomLeftRadius();
+            if (!r.isSquare()) {
+                var cx = r.x() * Path.KAPPA;
+                var cy = r.y() * Path.KAPPA;
                 scratch.moveTo(x, bottom);
-                scratch.lineTo(x + r, bottom);
-                scratch.cubicTo(x + r - c, bottom, x, bottom - r + c, x, bottom - r);
+                scratch.lineTo(x + r.x(), bottom);
+                scratch.cubicTo(x + r.x() - cx, bottom, x, bottom - r.y() + cy, x, bottom - r.y());
                 scratch.closeSubPath();
             }
             // Copied in as transparent: Blend2D composites only where the shape
@@ -732,6 +738,91 @@ public final class Frame {
         } finally {
             releasePath();
         }
+    }
+
+    /// Clears everything this frame holds outside `shape`, keeping what is
+    /// inside it: what a `clip-path` does to the raster a box was drawn into.
+    ///
+    /// The shape is filled into a mask the size of this frame, with its own fill
+    /// rule, and the frame is composited by the mask's coverage. A pixel the edge
+    /// half covers keeps half of itself, and a shape whose contours cross itself
+    /// keeps what its rule says is inside, which a cut-out path filled even-odd
+    /// would not.
+    ///
+    /// @param shape   in this frame's logical coordinates
+    /// @param evenOdd whether `evenodd` decides what is inside, rather than
+    ///                `nonzero`
+    public void keepInside(Path shape, boolean evenOdd) {
+        requireOpen();
+        Objects.requireNonNull(shape, "shape");
+        var size = buffer.size();
+        var mask = PixelBuffer.allocate(size, PixelFormat.BGRA32_PREMULTIPLIED);
+        var masking = Frame.over(mask, scale, 0);
+        try {
+            if (!shape.isEmpty()) {
+                var scratch = masking.borrowPath();
+                try {
+                    shape.replayInto(scratch);
+                    if (evenOdd) {
+                        masking.fillPathEvenOdd(0, 0, scratch, 0xFF000000);
+                    } else {
+                        masking.context.fillPath(0, 0, scratch, 0xFF000000);
+                    }
+                } finally {
+                    masking.releasePath();
+                }
+            }
+        } finally {
+            masking.end();
+        }
+        var factor = scale.factor();
+        try (var view = BlendImage.wrapping(mask.pixels(), size.width(), size.height(), mask.stride())) {
+            context.compOp(BlendCompOp.DST_IN);
+            try {
+                context.blitScaled(0, 0, size.width() / factor, size.height() / factor, view);
+            } finally {
+                context.compOp(BlendCompOp.SRC_OVER);
+            }
+        }
+    }
+
+    /// Composites a kept layer at `alpha`, combined with what is under it by
+    /// `mode`: what a box with `mix-blend-mode` is drawn with. `normal` is
+    /// [#drawLayer(double, double, Layer, double)].
+    ///
+    /// @param alpha 0 to 1
+    public void drawLayer(double x, double y, Layer layer, double alpha, BlendMode mode) {
+        Objects.requireNonNull(mode, "mode");
+        if (mode == BlendMode.NORMAL) {
+            drawLayer(x, y, layer, alpha);
+            return;
+        }
+        requireOpen();
+        context.compOp(compOpOf(mode));
+        try {
+            drawLayer(x, y, layer, alpha);
+        } finally {
+            context.compOp(BlendCompOp.SRC_OVER);
+        }
+    }
+
+    /// The rasterizer's operator for a blend mode; each separable mode is one.
+    private static BlendCompOp compOpOf(BlendMode mode) {
+        return switch (mode) {
+            case NORMAL -> BlendCompOp.SRC_OVER;
+            case MULTIPLY -> BlendCompOp.MULTIPLY;
+            case SCREEN -> BlendCompOp.SCREEN;
+            case OVERLAY -> BlendCompOp.OVERLAY;
+            case DARKEN -> BlendCompOp.DARKEN;
+            case LIGHTEN -> BlendCompOp.LIGHTEN;
+            case COLOR_DODGE -> BlendCompOp.COLOR_DODGE;
+            case COLOR_BURN -> BlendCompOp.COLOR_BURN;
+            case HARD_LIGHT -> BlendCompOp.HARD_LIGHT;
+            case SOFT_LIGHT -> BlendCompOp.SOFT_LIGHT;
+            case DIFFERENCE -> BlendCompOp.DIFFERENCE;
+            case EXCLUSION -> BlendCompOp.EXCLUSION;
+            case PLUS_LIGHTER -> BlendCompOp.PLUS;
+        };
     }
 
     /// Draws `image` at its natural size, with its top-left corner at logical
@@ -1267,6 +1358,14 @@ public final class Frame {
                                 ? BlendMatrix.IDENTITY
                                 : new BlendMatrix(1, 0, 0, squeeze, 0, radial.cy() * (1 - squeeze)));
             }
+            case Gradient.Conic conic ->
+                BlendGradient.conic(
+                        conic.cx(),
+                        conic.cy(),
+                        conic.angle(),
+                        conic.repeat(),
+                        BlendExtendMode.PAD,
+                        BlendMatrix.IDENTITY);
         };
         try {
             for (var stop : gradient.stops()) {

@@ -90,8 +90,14 @@ class RecordWitherTest {
                 length(88),
                 dev.goldberry.layout.Position.ABSOLUTE,
                 new dev.goldberry.layout.Insets(length(61), length(62), length(63), length(64)),
-                true,
                 dev.goldberry.layout.Overflow.HIDDEN,
+                new dev.goldberry.layout.Presence(
+                        dev.goldberry.layout.Display.FLEX,
+                        1.25,
+                        dev.goldberry.layout.Presence.Visibility.HIDDEN,
+                        dev.goldberry.layout.Presence.PointerEvents.NONE,
+                        dev.goldberry.layout.Presence.UserSelect.ALL,
+                        3),
                 null,
                 null,
                 new Box.Mark(Box.Mark.Kind.CHECK, 0xFF445566, 2),
@@ -125,7 +131,8 @@ class RecordWitherTest {
                 .flexBasis(length(88))
                 .position(dev.goldberry.layout.Position.ABSOLUTE)
                 .inset(new dev.goldberry.layout.Insets(length(61), length(62), length(63), length(64)))
-                .overflow(dev.goldberry.layout.Overflow.HIDDEN)
+                .overflowX(dev.goldberry.layout.Overflow.HIDDEN)
+                .overflowY(dev.goldberry.layout.Overflow.SCROLL)
                 .overflowWrap(dev.goldberry.text.flow.OverflowWrap.ANYWHERE)
                 .wordBreak(dev.goldberry.text.flow.WordBreak.BREAK_ALL)
                 .background(0xFF102030)

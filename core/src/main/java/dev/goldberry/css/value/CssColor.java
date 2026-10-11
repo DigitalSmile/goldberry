@@ -2,13 +2,16 @@ package dev.goldberry.css.value;
 
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 
 import org.jspecify.annotations.Nullable;
 
 import dev.goldberry.css.parse.CssTokenizer;
 import dev.goldberry.css.parse.Token;
 import dev.goldberry.css.parse.TokenType;
+import dev.goldberry.css.value.colour.ColourFunctions;
+import dev.goldberry.css.value.colour.ColourMix;
+import dev.goldberry.css.value.colour.NamedColours;
+import dev.goldberry.css.value.colour.RelativeColour;
 
 /// Reads a CSS colour into the `0xAARRGGBB` int the paint layer takes, and mixes
 /// two of them.
@@ -25,13 +28,12 @@ import dev.goldberry.css.parse.TokenType;
 /// ## What is supported
 ///
 /// `#rgb`, `#rgba`, `#rrggbb`, `#rrggbbaa`, `rgb()`/`rgba()` in both the legacy
-/// comma form and the modern space form, `transparent`, and the sixteen named
-/// colours of CSS Level 1.
+/// comma form and the modern space form, `transparent`, the 148 named colours
+/// of CSS Color 4, and CSS Color 4's functions: `hsl()`, `hwb()`, `lab()`,
+/// `lch()`, `oklab()`, `oklch()` and `color()` ([ColourFunctions]).
 ///
-/// The full 148-name CSS colour list is deliberately not here. Goldberry's
-/// palette comes from Nord through custom properties; a stylesheet reaching for
-/// `papayawhip` is not doing what the theming mechanism is for, and 148 names is
-/// 148 chances for `grey`/`gray` confusion to look like a toolkit bug.
+/// The toolkit's own palette still comes from Nord through custom properties.
+/// The names and functions are for sheets written elsewhere, which use them.
 ///
 /// Read more: [Styling](https://goldberry.dev/docs/guide/styling.html#colour).
 public final class CssColor {
@@ -41,26 +43,6 @@ public final class CssColor {
     /// Fully transparent, and what an unparseable colour is never silently
     /// turned into.
     public static final int TRANSPARENT = 0x00000000;
-
-    /// The CSS Level 1 names, plus the two spellings of grey.
-    private static final Map<String, Integer> NAMED = Map.ofEntries(
-            Map.entry("black", 0xFF000000),
-            Map.entry("silver", 0xFFC0C0C0),
-            Map.entry("gray", 0xFF808080),
-            Map.entry("grey", 0xFF808080),
-            Map.entry("white", 0xFFFFFFFF),
-            Map.entry("maroon", 0xFF800000),
-            Map.entry("red", 0xFFFF0000),
-            Map.entry("purple", 0xFF800080),
-            Map.entry("fuchsia", 0xFFFF00FF),
-            Map.entry("green", 0xFF008000),
-            Map.entry("lime", 0xFF00FF00),
-            Map.entry("olive", 0xFF808000),
-            Map.entry("yellow", 0xFFFFFF00),
-            Map.entry("navy", 0xFF000080),
-            Map.entry("blue", 0xFF0000FF),
-            Map.entry("teal", 0xFF008080),
-            Map.entry("aqua", 0xFF00FFFF));
 
     /// `argb` with its alpha multiplied by `alpha`.
     ///
@@ -97,12 +79,10 @@ public final class CssColor {
     }
 
     /// Parses a colour written the way a stylesheet writes one — `#3b4252`,
-    /// `rgb(59 66 82)`, `rgba(…)`, `transparent`, a named colour.
+    /// `rgb(59 66 82)`, `oklch(62.8% 0.26 29)`, `transparent`, a named colour.
     ///
-    /// **Not `oklch(…)`.** OKLCH is the space colours are *mixed* in ([#mix]),
-    /// and there is no syntax for writing one: every colour in the toolkit's own
-    /// stylesheets is a hex or an `rgb()`, and a space a value cannot be
-    /// expressed in is one the parser has no reason to carry.
+    /// A colour outside sRGB, which `oklch()`, `lab()` and `color(display-p3 …)`
+    /// can write, is clamped into it.
     ///
     /// For the values that arrive as a **string** rather than as a parsed
     /// declaration: an attribute in a markup document, or an application handing
@@ -128,6 +108,17 @@ public final class CssColor {
     ///
     /// @return the colour as `0xAARRGGBB`, or null if these tokens are not one
     public static @Nullable Integer parse(List<Token> value) {
+        // A colour made of colours keeps its spaces until it has read them:
+        // `calc(l + 0.1)` needs the ones round its `+`.
+        var trimmed = trim(value);
+        if (!trimmed.isEmpty() && trimmed.getFirst().is(TokenType.FUNCTION)) {
+            if (trimmed.getFirst().text().equalsIgnoreCase("color-mix")) {
+                return ColourMix.parse(trimmed, CssColor::parse);
+            }
+            if (RelativeColour.isRelative(trimmed)) {
+                return RelativeColour.parse(trimmed, CssColor::parse);
+            }
+        }
         var tokens = withoutWhitespace(value);
         if (tokens.isEmpty()) {
             return null;
@@ -142,12 +133,15 @@ public final class CssColor {
             if (name.equals("transparent")) {
                 return TRANSPARENT;
             }
-            return NAMED.get(name);
+            return NamedColours.get(name);
         }
         if (first.is(TokenType.FUNCTION)) {
             var name = first.text().toLowerCase(Locale.ROOT);
             if (name.equals("rgb") || name.equals("rgba")) {
                 return fromRgb(tokens);
+            }
+            if (ColourFunctions.reads(name)) {
+                return ColourFunctions.parse(tokens);
             }
         }
         return null;
@@ -233,6 +227,18 @@ public final class CssColor {
     /// clearly meant "as much red as there is".
     private static int clamp255(double value) {
         return (int) Math.round(Math.max(0, Math.min(255, value)));
+    }
+
+    private static List<Token> trim(List<Token> value) {
+        var from = 0;
+        var to = value.size();
+        while (from < to && value.get(from).is(TokenType.WHITESPACE)) {
+            from++;
+        }
+        while (to > from && value.get(to - 1).is(TokenType.WHITESPACE)) {
+            to--;
+        }
+        return value.subList(from, to);
     }
 
     private static List<Token> withoutWhitespace(List<Token> value) {

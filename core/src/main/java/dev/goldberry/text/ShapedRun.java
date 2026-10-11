@@ -79,6 +79,19 @@ public final class ShapedRun {
     }
 
     /// How many glyphs the run produced. Not the number of characters shaped.
+    /// This run with `advances` in place of its horizontal advances: how a
+    /// paragraph adds `letter-spacing` and `word-spacing` to what the shaper
+    /// set.
+    ///
+    /// @throws IllegalArgumentException if there is not one advance per glyph
+    ShapedRun withXAdvances(int[] advances) {
+        if (advances.length != glyphIds.length) {
+            throw new IllegalArgumentException(
+                    "a run of " + glyphIds.length + " glyphs takes as many advances, not " + advances.length);
+        }
+        return new ShapedRun(glyphIds, clusters, advances.clone(), yAdvances, xOffsets, yOffsets);
+    }
+
     public int length() {
         return glyphIds.length;
     }

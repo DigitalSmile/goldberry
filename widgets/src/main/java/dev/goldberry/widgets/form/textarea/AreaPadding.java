@@ -3,7 +3,8 @@ package dev.goldberry.widgets.form.textarea;
 import dev.goldberry.css.ComputedStyle;
 import dev.goldberry.layout.Length;
 
-/// A `text-area`'s padding, in logical pixels, on all four edges.
+/// How far a `text-area`'s text starts from its outer edge, in logical pixels,
+/// on all four edges: its border, then its padding.
 ///
 /// All four, because the wrap comes off the left **and** the right, and
 /// they are not the same number. Doubling the left edge was right for every
@@ -26,8 +27,12 @@ record AreaPadding(double left, double top, double right, double bottom) {
     /// What the cascade resolved for this control.
     static AreaPadding of(ComputedStyle style) {
         var padding = style.padding();
+        var border = style.decoration().border();
         return new AreaPadding(
-                points(padding.left()), points(padding.top()), points(padding.right()), points(padding.bottom()));
+                points(padding.left()) + border.left().width(),
+                points(padding.top()) + border.top().width(),
+                points(padding.right()) + border.right().width(),
+                points(padding.bottom()) + border.bottom().width());
     }
 
     /// Both horizontal edges together — what comes off the width a line wraps at.

@@ -194,8 +194,14 @@ public final class MediaQueries {
         return result;
     }
 
-    /// `name: value`, or `name op value` for a size.
+    /// One feature inside parentheses: `name: value`, `name` alone in a
+    /// boolean context, `name op value`, `value op name`, or
+    /// `value op name op value`.
     private MediaCondition feature() {
+        var first = peek();
+        if (first != null && !first.is(TokenType.IDENT)) {
+            return valueFirst();
+        }
         var name = lower(expectIdent("a media feature"));
         var next = peek();
         if (next != null && next.is(TokenType.COLON)) {
@@ -204,14 +210,101 @@ public final class MediaQueries {
         }
         if (next != null && next.is(TokenType.DELIM)) {
             var comparison = comparison();
-            var px = length();
-            return switch (name) {
-                case "width" -> new MediaCondition.Width(comparison, px);
-                case "height" -> new MediaCondition.Height(comparison, px);
-                default -> throw new Unreadable("\"" + name + "\" is not a feature this toolkit can compare");
-            };
+            return condition(name, comparison, value(name));
+        }
+        if (next == null || next.is(TokenType.CLOSE_PAREN)) {
+            return bool(name);
         }
         throw new Unreadable("the media feature \"" + name + "\" needs a value");
+    }
+
+    /// `400px <= width` and `400px <= width <= 800px`: a value, a comparison
+    /// and a name, read as the name's comparison turned round, and a second
+    /// comparison after it when there is one.
+    private MediaCondition valueFirst() {
+        // The value's kind is the name's, which comes after it: find the name,
+        // then read from the start.
+        var start = index;
+        var at = index;
+        while (at < tokens.size() && !tokens.get(at).is(TokenType.IDENT)) {
+            at++;
+        }
+        if (at >= tokens.size()) {
+            throw new Unreadable("a range names a feature");
+        }
+        var name = lower(tokens.get(at));
+        index = start;
+        var low = value(name);
+        var lowComparison = comparison();
+        if (!isKeyword(peek(), name)) {
+            throw new Unreadable("expected \"" + name + "\" in the range");
+        }
+        index++;
+        var lower = condition(name, flipped(lowComparison), low);
+        if (peek() == null || peek().is(TokenType.CLOSE_PAREN)) {
+            return lower;
+        }
+        var highComparison = comparison();
+        if (isLess(lowComparison) != isLess(highComparison) || lowComparison == MediaCondition.Comparison.EQUAL) {
+            throw new Unreadable("a range runs one way: both comparisons are < or both are >");
+        }
+        var upper = condition(name, highComparison, value(name));
+        return new MediaCondition.And(List.of(lower, upper));
+    }
+
+    private static boolean isLess(MediaCondition.Comparison comparison) {
+        return comparison == MediaCondition.Comparison.LESS || comparison == MediaCondition.Comparison.AT_MOST;
+    }
+
+    /// The comparison that says the same thing with its two sides swapped:
+    /// `400px <= width` is `width >= 400px`.
+    private static MediaCondition.Comparison flipped(MediaCondition.Comparison comparison) {
+        return switch (comparison) {
+            case LESS -> MediaCondition.Comparison.GREATER;
+            case AT_MOST -> MediaCondition.Comparison.AT_LEAST;
+            case EQUAL -> MediaCondition.Comparison.EQUAL;
+            case AT_LEAST -> MediaCondition.Comparison.AT_MOST;
+            case GREATER -> MediaCondition.Comparison.LESS;
+        };
+    }
+
+    /// A range feature compared with `value`.
+    private static MediaCondition condition(String name, MediaCondition.Comparison comparison, double value) {
+        return switch (name) {
+            case "width" -> new MediaCondition.Width(comparison, value);
+            case "height" -> new MediaCondition.Height(comparison, value);
+            case "aspect-ratio" -> new MediaCondition.AspectRatio(comparison, value);
+            case "resolution" -> new MediaCondition.Resolution(comparison, value);
+            default -> throw new Unreadable("\"" + name + "\" is not a feature this toolkit can compare");
+        };
+    }
+
+    /// A range feature's value: a length for a size, a ratio for
+    /// `aspect-ratio`, a resolution for `resolution`.
+    private double value(String name) {
+        return switch (name) {
+            case "width", "height" -> length();
+            case "aspect-ratio" -> ratio();
+            case "resolution" -> resolution();
+            default -> throw new Unreadable("\"" + name + "\" is not a feature this toolkit can compare");
+        };
+    }
+
+    /// A feature in a boolean context, `(hover)`: true unless its value would
+    /// be the one that means "none".
+    private static MediaCondition bool(String name) {
+        return switch (name) {
+            case "hover" -> new MediaCondition.HoverQuery(true, false);
+            case "any-hover" -> new MediaCondition.HoverQuery(true, true);
+            case "pointer" -> new MediaCondition.PointerQuery(null, false);
+            case "any-pointer" -> new MediaCondition.PointerQuery(null, true);
+            case "prefers-contrast" -> new MediaCondition.ContrastQuery(null, false);
+            case "forced-colors" -> new MediaCondition.ForcedColors(true);
+            case "prefers-reduced-transparency" -> new MediaCondition.ReducedTransparency(true);
+            case "prefers-reduced-motion" -> new MediaCondition.ReducedMotion(true);
+            case "width", "height", "aspect-ratio", "resolution" -> MediaCondition.ALWAYS;
+            default -> throw new Unreadable("\"" + name + "\" is not a media feature this toolkit reads alone");
+        };
     }
 
     /// `name: value`.
@@ -241,9 +334,61 @@ public final class MediaQueries {
                     case "no-preference" -> new MediaCondition.ReducedMotion(false);
                     default -> throw new Unreadable("prefers-reduced-motion is reduce or no-preference");
                 };
+            case "aspect-ratio" -> new MediaCondition.AspectRatio(MediaCondition.Comparison.EQUAL, ratio());
+            case "min-aspect-ratio" -> new MediaCondition.AspectRatio(MediaCondition.Comparison.AT_LEAST, ratio());
+            case "max-aspect-ratio" -> new MediaCondition.AspectRatio(MediaCondition.Comparison.AT_MOST, ratio());
+            case "resolution" -> new MediaCondition.Resolution(MediaCondition.Comparison.EQUAL, resolution());
+            case "min-resolution" -> new MediaCondition.Resolution(MediaCondition.Comparison.AT_LEAST, resolution());
+            case "max-resolution" -> new MediaCondition.Resolution(MediaCondition.Comparison.AT_MOST, resolution());
+            case "pointer", "any-pointer" ->
+                new MediaCondition.PointerQuery(
+                        switch (lower(expectIdent("none, coarse or fine"))) {
+                            case "none" -> MediaContext.Pointer.NONE;
+                            case "coarse" -> MediaContext.Pointer.COARSE;
+                            case "fine" -> MediaContext.Pointer.FINE;
+                            default -> throw new Unreadable(name + " is none, coarse or fine");
+                        },
+                        name.startsWith("any-"));
+            case "hover", "any-hover" ->
+                new MediaCondition.HoverQuery(
+                        switch (lower(expectIdent("hover or none"))) {
+                            case "hover" -> true;
+                            case "none" -> false;
+                            default -> throw new Unreadable(name + " is hover or none");
+                        },
+                        name.startsWith("any-"));
+            case "prefers-contrast" ->
+                switch (lower(expectIdent("no-preference, more, less or custom"))) {
+                    case "no-preference" ->
+                        new MediaCondition.ContrastQuery(MediaContext.Contrast.NO_PREFERENCE, false);
+                    case "more" -> new MediaCondition.ContrastQuery(MediaContext.Contrast.MORE, false);
+                    case "less" -> new MediaCondition.ContrastQuery(MediaContext.Contrast.LESS, false);
+                    case "custom" -> new MediaCondition.ContrastQuery(null, true);
+                    default -> throw new Unreadable("prefers-contrast is no-preference, more, less or custom");
+                };
+            case "forced-colors" ->
+                switch (lower(expectIdent("none or active"))) {
+                    case "none" -> new MediaCondition.ForcedColors(false);
+                    case "active" -> new MediaCondition.ForcedColors(true);
+                    default -> throw new Unreadable("forced-colors is none or active");
+                };
+            case "prefers-reduced-transparency" ->
+                switch (lower(expectIdent("reduce or no-preference"))) {
+                    case "reduce" -> new MediaCondition.ReducedTransparency(true);
+                    case "no-preference" -> new MediaCondition.ReducedTransparency(false);
+                    default -> throw new Unreadable("prefers-reduced-transparency is reduce or no-preference");
+                };
+            case "color-gamut" ->
+                switch (lower(expectIdent("srgb, p3 or rec2020"))) {
+                    case "srgb" -> new MediaCondition.ColorGamut(true);
+                    case "p3", "rec2020" -> new MediaCondition.ColorGamut(false);
+                    default -> throw new Unreadable("color-gamut is srgb, p3 or rec2020");
+                };
             default ->
                 throw new Unreadable("\"" + name + "\" is not a media feature this toolkit has; it has width,"
-                        + " height, orientation, prefers-color-scheme and prefers-reduced-motion");
+                        + " height, aspect-ratio, orientation, resolution, pointer, any-pointer, hover, any-hover,"
+                        + " prefers-color-scheme, prefers-reduced-motion, prefers-contrast, forced-colors,"
+                        + " prefers-reduced-transparency and color-gamut");
         };
     }
 
@@ -293,6 +438,42 @@ public final class MediaQueries {
             }
         }
         throw new Unreadable(token.describe() + " is not a length in px, em or rem");
+    }
+
+    /// A ratio: `16/9`, `16 / 9`, or one number, which is that over 1.
+    private double ratio() {
+        var first = peek();
+        if (first == null || !first.is(TokenType.NUMBER) || !(first.numeric() > 0)) {
+            throw new Unreadable("expected a ratio, a positive number or two");
+        }
+        index++;
+        var slash = peek();
+        if (slash != null && slash.isDelim('/')) {
+            index++;
+            var second = peek();
+            if (second == null || !second.is(TokenType.NUMBER) || !(second.numeric() > 0)) {
+                throw new Unreadable("a ratio's second number is positive");
+            }
+            index++;
+            return first.numeric() / second.numeric();
+        }
+        return first.numeric();
+    }
+
+    /// A resolution, as device pixels per logical pixel: `2dppx`, `2x`,
+    /// `192dpi`, `75.6dpcm`.
+    private double resolution() {
+        var token = peek();
+        if (token == null || !token.is(TokenType.DIMENSION)) {
+            throw new Unreadable("expected a resolution in dppx, x, dpi or dpcm");
+        }
+        index++;
+        return switch (token.unit().toLowerCase(Locale.ROOT)) {
+            case "dppx", "x" -> token.numeric();
+            case "dpi" -> token.numeric() / 96;
+            case "dpcm" -> token.numeric() * 2.54 / 96;
+            default -> throw new Unreadable(token.describe() + " is not a resolution");
+        };
     }
 
     private Token expectIdent(String what) {

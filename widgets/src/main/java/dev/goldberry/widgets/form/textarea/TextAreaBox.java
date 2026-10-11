@@ -24,6 +24,7 @@ import dev.goldberry.paint.Box;
 import dev.goldberry.paint.tree.ContainingBlock;
 import dev.goldberry.render.Cursor;
 import dev.goldberry.render.model.LogicalRect;
+import dev.goldberry.text.Stretch;
 import dev.goldberry.text.document.DocumentLines;
 import dev.goldberry.text.document.TextDocument;
 import dev.goldberry.text.edit.TextEdit;
@@ -557,7 +558,11 @@ record TextAreaBox(
         // `text-value` resolved the ink and the flow and drew nothing, which is
         // what [Value#carrier] is for.
         var value = children.get(maxRows).text();
-        var flow = value == null ? style.textFlow() : value.flow();
+        var cascaded = value == null ? style.textFlow() : value.flow();
+        // Not respaced: a caret is placed by the line's natural advances, and a
+        // justified paint would draw the glyphs somewhere else. `justify` sits
+        // at the start, as the last line of a justified paragraph does.
+        var flow = cascaded.textAlign() == TextAlign.JUSTIFY ? cascaded.textAlign(TextAlign.START) : cascaded;
         var offset = editor.laidOut(document, padding, gutterWidth, flow);
 
         var lineHeight = font.lineHeight();
@@ -584,14 +589,14 @@ record TextAreaBox(
         var washStart = composing.hasClause() ? composing.clauseStart() : edit.start();
         var washEnd = composing.hasClause() ? composing.clauseEnd() : edit.end();
         var drawWash = composing.hasClause() || (!composing.isActive() && edit.hasSelection());
-        var align = style.textAlign();
+        var align = style.lineAlign();
         var rects = drawWash
                 ? spanRects(document, lines, washStart, washEnd, offset, lineHeight, align, width)
                 : List.<Rect>of();
         for (var i = 0; i < maxRows; i++) {
             if (i < rects.size()) {
                 var rect = rects.get(i);
-                boxes.add(children.get(i)
+                boxes.add(Highlight.over(children.get(i), rect.pieces(), Length.points((float) lineHeight))
                         .position(Position.ABSOLUTE)
                         .inset(leftTop(gutterWidth + rect.x(), rect.y()))
                         .size(Length.points((float) rect.width()), Length.points((float) lineHeight)));
@@ -736,12 +741,9 @@ record TextAreaBox(
         var top = border.top().width();
         var bottom = border.bottom().width();
         var left = border.left().width();
-        var corners = style.decoration().corners();
+        var inner = style.decoration().corners().inset(top, 0, bottom, left);
         var fitted = new Corners(
-                Math.max(0, corners.topLeft() - Math.max(top, left)),
-                0,
-                0,
-                Math.max(0, corners.bottomLeft() - Math.max(bottom, left)));
+                inner.topLeftRadius(), Corners.Radius.SQUARE, Corners.Radius.SQUARE, inner.bottomLeftRadius());
         return part.position(Position.ABSOLUTE)
                 .inset(new Insets(ZERO, Length.UNDEFINED, ZERO, ZERO))
                 .size(Length.points((float) Math.max(0, gutterWidth + padding.left() - left)), Length.UNDEFINED)
@@ -811,10 +813,16 @@ record TextAreaBox(
             if (left >= right) {
                 continue;
             }
+            // A stretch per run on a line with both directions in it: the
+            // rectangle is their hull, and holds a piece over each.
+            var pieces = document.stretchesOf(line.start(), line.end(), left, right);
+            var at = document.caretX(line.start(), line.end(), left);
+            var hull = Highlight.hull(pieces, new Stretch(at, at));
             rects.add(new Rect(
-                    align.indentOf(line.width(), width) + document.widthBetween(line.start(), left),
+                    document.indentOf(line, align, width) + hull.left(),
                     i * lineHeight - offset,
-                    Math.max(1, document.widthBetween(left, right))));
+                    Math.max(1, hull.width()),
+                    pieces));
         }
         return rects;
     }
@@ -844,16 +852,17 @@ record TextAreaBox(
         // it under `center` and by all of it under `end`.
         var x = line == null
                 ? align.indentOf(0, width)
-                : align.indentOf(line.width(), width) + document.widthBetween(line.start(), Math.max(at, line.start()));
-        return new Rect(x, index * lineHeight - offset, caretWidth);
+                : document.indentOf(line, align, width) + document.caretX(line.start(), line.end(), at);
+        return new Rect(x, index * lineHeight - offset, caretWidth, List.of());
     }
 
     private static Insets leftTop(double left, double top) {
         return new Insets(Length.points((float) top), Length.UNDEFINED, Length.UNDEFINED, Length.points((float) left));
     }
 
-    /// A placed rectangle, one line tall.
-    private record Rect(double x, double y, double width) {}
+    /// A placed rectangle, one line tall, and the stretches inside it a
+    /// highlight covers, measured from the line's left edge.
+    private record Rect(double x, double y, double width, List<Stretch> pieces) {}
 
     @Override
     public Role role() {

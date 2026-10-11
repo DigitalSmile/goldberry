@@ -247,9 +247,10 @@ public record Table<T>(
     /// gives: a box one pixel tall with a background.
     ///
     /// It is a node rather than a `border-bottom` on `table-head` because the
-    /// two are different drawings: a border takes no room, so it would sit
-    /// inside the header's 36 rather than under it, and every row would move a
-    /// pixel for a picture that is already right.
+    /// header is 36 tall by its token, and a border on a box of a fixed size
+    /// takes its room from inside it: the rule would sit inside the 36 rather
+    /// than under it, and the header's text would move up half a pixel for a
+    /// picture that is already right.
     record TableRule() implements Widget.Leaf, Styled, Paints {
 
         @Override

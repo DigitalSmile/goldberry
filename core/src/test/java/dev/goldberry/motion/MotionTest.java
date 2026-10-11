@@ -24,6 +24,8 @@ import dev.goldberry.css.cascade.Transitions.Timing;
 import dev.goldberry.css.value.CssColor;
 import dev.goldberry.css.value.Shadow;
 import dev.goldberry.css.value.Transform;
+import dev.goldberry.motion.easing.CubicBezier;
+import dev.goldberry.motion.easing.Steps;
 
 /// The frame clock, the curves, and the overlay: motion is an overlay on a
 /// frame clock.
@@ -75,7 +77,7 @@ class MotionTest {
         @Test
         @DisplayName("every curve starts at 0 and ends at 1")
         void endpoints() {
-            for (var easing : Easing.values()) {
+            for (var easing : Easing.BUILT_IN) {
                 assertEquals(0, easing.at(0), 1e-9, easing.toString());
                 assertEquals(1, easing.at(1), 1e-9, easing.toString());
                 assertEquals(0, easing.at(-5), 1e-9, "clamped below");
@@ -90,7 +92,7 @@ class MotionTest {
             // exceeded 1 or dipped below 0 would be an overshoot nobody asked
             // for -- and the solver's Newton step is exactly what would produce
             // one if it were not bounded.
-            for (var easing : Easing.values()) {
+            for (var easing : Easing.BUILT_IN) {
                 var previous = -1.0;
                 for (var i = 0; i <= 200; i++) {
                     var value = easing.at(i / 200.0);
@@ -115,24 +117,24 @@ class MotionTest {
         }
 
         @Test
-        @DisplayName("the three keywords parse, CSS's four are read onto them, and nothing else does")
+        @DisplayName("the three keywords parse, CSS's keywords are CSS's curves, and nothing else is")
         void parsing() {
             assertEquals(Easing.EASE_ENTER, Easing.parse("ease-enter"));
             assertEquals(Easing.EASE_EXIT, Easing.parse("ease-exit"));
             assertEquals(Easing.LINEAR, Easing.parse("linear"));
 
-            // CSS's keywords keep a browser stylesheet's motion: the
-            // decelerating three are an arrival, `ease-in` is a departure.
-            assertEquals(Easing.EASE_ENTER, Easing.parse("ease"));
-            assertEquals(Easing.EASE_ENTER, Easing.parse("ease-out"));
-            assertEquals(Easing.EASE_ENTER, Easing.parse("ease-in-out"));
-            assertEquals(Easing.EASE_EXIT, Easing.parse("EASE-IN"));
+            // CSS's keywords are the curves CSS defines for them.
+            assertEquals(new CubicBezier(0.25, 0.1, 0.25, 1), Easing.parse("ease"));
+            assertEquals(new CubicBezier(0, 0, 0.58, 1), Easing.parse("ease-out"));
+            assertEquals(new CubicBezier(0.42, 0, 0.58, 1), Easing.parse("ease-in-out"));
+            assertEquals(new CubicBezier(0.42, 0, 1, 1), Easing.parse("EASE-IN"));
+            assertEquals(new Steps(1, Steps.Position.JUMP_END), Easing.parse("step-end"));
             assertTrue(Easing.isCssKeyword("ease-in-out"));
             assertFalse(Easing.isCssKeyword("ease-enter"));
 
-            // Anything else is still nobody's curve.
+            // A function is a stylesheet's to read, and a misspelling nobody's.
             assertEquals(null, Easing.parse("cubic-bezier"));
-            assertEquals(null, Easing.parse("step-end"));
+            assertEquals(null, Easing.parse("ease-wobble"));
         }
     }
 

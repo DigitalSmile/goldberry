@@ -3,7 +3,10 @@ package dev.goldberry.widgets.controls.select;
 import java.util.List;
 import java.util.Set;
 
+import org.jspecify.annotations.Nullable;
+
 import dev.goldberry.css.ComputedStyle;
+import dev.goldberry.css.select.PseudoElement;
 import dev.goldberry.layout.Length;
 import dev.goldberry.paint.Box;
 import dev.goldberry.widget.Widget;
@@ -57,6 +60,12 @@ record SelectValue(String text, boolean placeholder, List<String> widths) implem
     @Override
     public Set<String> classes() {
         return placeholder ? Set.of("placeholder") : Set.of();
+    }
+
+    /// `::placeholder` while nothing is chosen.
+    @Override
+    public @Nullable PseudoElement pseudoElement() {
+        return placeholder ? PseudoElement.PLACEHOLDER : null;
     }
 
     @Override

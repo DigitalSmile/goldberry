@@ -24,11 +24,12 @@ import dev.goldberry.css.value.CssColor;
 /// as one stroked rounded rectangle; the per-side drawing is only reached by a
 /// box whose sides actually differ.
 ///
-/// A border takes no room. It is drawn inside the box's own edge, over its
-/// padding, and never handed to the layout engine, which every bordered widget's
-/// padding already accounts for. A side is no different: `border-left: 4px` on a
-/// cell with `padding: 6px 8px` is a 4px bar over the first 4 of those 8 pixels,
-/// and the cell's text does not move.
+/// A border takes room, outside the padding, as in CSS: it is drawn at the
+/// box's own edge, and the layout engine starts the box's content inside it
+/// and then inside the padding. A side is no different: `border-left: 4px` on
+/// a cell with `padding: 6px 8px` puts the cell's text 12 pixels in. A box
+/// given a size keeps it (`box-sizing: border-box`, the initial value here),
+/// and its content gives way.
 ///
 /// Read more: [Styling](https://goldberry.dev/docs/guide/styling.html#border-outline-and-shadow).
 ///
@@ -78,9 +79,16 @@ public record Border(Line top, Line right, Line bottom, Line left) {
 
         /// Whether the painter draws this style as a plain band of colour.
         public boolean isDrawnSolid() {
+            return this == SOLID;
+        }
+
+        /// Whether this is one of the four styles drawn in two tones of the
+        /// side's colour, as if lit from the top left: `groove`, `ridge`,
+        /// `inset` and `outset`.
+        public boolean isBevelled() {
             return switch (this) {
-                case DASHED, DOTTED, DOUBLE -> false;
-                case SOLID, GROOVE, RIDGE, INSET, OUTSET -> true;
+                case GROOVE, RIDGE, INSET, OUTSET -> true;
+                case SOLID, DASHED, DOTTED, DOUBLE -> false;
             };
         }
 

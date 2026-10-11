@@ -9,12 +9,16 @@ import java.util.Set;
 
 import org.jspecify.annotations.Nullable;
 
+import dev.goldberry.layout.Direction;
 import dev.goldberry.layout.Measure;
 import dev.goldberry.layout.MeasureMode;
 import dev.goldberry.layout.MeasuredSize;
-import dev.goldberry.log.Logs;
 import dev.goldberry.paint.Frame;
+import dev.goldberry.text.bidi.BidiLevels;
+import dev.goldberry.text.bidi.Directionality;
+import dev.goldberry.text.bidi.LevelRun;
 import dev.goldberry.text.flow.OverflowWrap;
+import dev.goldberry.text.flow.TextAlign;
 import dev.goldberry.text.flow.TextDecoration;
 import dev.goldberry.text.flow.TextFlow;
 import dev.goldberry.text.flow.TextOverflow;
@@ -50,7 +54,7 @@ import dev.goldberry.text.itemize.TextRun;
 /// wrapped to. The layout engine asks for a paragraph's size several times a
 /// pass, so the answer has to be that cheap.
 ///
-/// One direction, and one font unless it was joined. Text that Unicode draws as
+/// One font unless it was joined. Text that Unicode draws as
 /// a picture is shaped in the emoji face when [Font#emoji()] names one. A
 /// cluster the font's face has no glyph for is shaped in the first of
 /// [Font#fallbacks()] that has it, so a name in Han or Arabic in a Latin face
@@ -70,14 +74,18 @@ import dev.goldberry.text.itemize.TextRun;
 /// The colour each stretch is drawn in is not part of the paragraph: it is a
 /// [SpanPaint] handed to the painter, so a colour can change without a shaping.
 ///
-/// Text that needs bidi, any right-to-left character, is shaped with the
-/// direction forced to `LTR`, so the glyphs come back in the order the
-/// measurements assume. Every width, caret position and hit test is then
-/// self-consistent, and the text is drawn mirrored rather than reordered.
-/// [#isBidiApproximate()] says when that happened. It is an approximation
-/// that says so rather than a refusal, because a paragraph that threw meant a
-/// field a user pasted Arabic into took the window down with it. Splitting text
-/// into directional runs is not built.
+/// ## Right-to-left text
+///
+/// A paragraph has a base direction, from the [Directionality] it was made
+/// with, and text with right-to-left script in it is split into runs by the
+/// bidirectional algorithm ([BidiLevels]). Each run is shaped in its own
+/// direction. Measurement stays in logical order: a right-to-left run's glyphs
+/// are held reversed in [#glyphs()], so a width is still one subtraction and
+/// wrapping does not know the runs exist. Each line is then placed in visual
+/// order, its runs left to right as rule L2 orders them, and [#caretX],
+/// [#offsetAt] and [#stretchesOf] answer in that order. A paragraph with nothing
+/// right to left in it under a left-to-right base has no levels at all and is
+/// shaped, measured and drawn exactly as before bidi existed.
 ///
 /// Breaks are not re-shaped. Each line is a slice of the whole paragraph's
 /// shaping, so a kern between the last character of one line and the first of
@@ -90,8 +98,6 @@ import dev.goldberry.text.itemize.TextRun;
 ///
 /// Read more: [Text, fonts and icons](https://goldberry.dev/docs/guide/text.html#paragraphs).
 public final class Paragraph {
-
-    private static final org.slf4j.Logger LOG = Logs.of(Paragraph.class);
 
     /// What [#layout] is passed when there is no width constraint at all.
     public static final double UNCONSTRAINED = Double.POSITIVE_INFINITY;
@@ -143,8 +149,12 @@ public final class Paragraph {
     /// same text in the same font, so two boxes may ask with different flows.
     private int memoBreaking = -1;
 
-    /// Whether the text was shaped in logical order because it needed bidi.
-    private final boolean bidiApproximate;
+    /// The embedding levels, or null when every character is at level 0
+    /// under a left-to-right base, which is nearly every paragraph.
+    private final @Nullable BidiLevels bidi;
+
+    /// What this paragraph's base direction came from, kept for [#join].
+    private final Directionality directionality;
 
     /// Where each joined piece starts in [#text], and one past the last: null for
     /// a paragraph that was shaped in one font and never joined, which is nearly
@@ -169,26 +179,78 @@ public final class Paragraph {
     /// before joining existed, one line height per line.
     private final boolean uniform;
 
-    private Paragraph(Font font, String text, boolean bidiApproximate) {
-        // Forced to logical order when the text would otherwise come back
-        // visually ordered. Guessed as usual when it would not, so every
-        // paragraph the toolkit has ever drawn is shaped exactly as before.
-        var direction = bidiApproximate ? TextDirection.LTR : null;
-        this(font, text, bidiApproximate, shapeSegments(font, text, direction), null, null);
+    private Paragraph(Font font, String text, Directionality directionality, double letterSpacing, double wordSpacing) {
+        var levels = BidiLevels.of(text, directionality);
+        var bidi = levels.isLeftToRight() ? null : levels;
+        this(
+                font,
+                text,
+                directionality,
+                bidi,
+                spaced(shapeSegments(font, text, bidi), text, letterSpacing, wordSpacing),
+                null,
+                null);
+    }
+
+    /// `segments` with `letterSpacing` added after every character and
+    /// `wordSpacing` to every space, in each segment's own design units.
+    ///
+    /// After shaping and before anything is measured, so line breaking, the
+    /// caret, hit testing and the painter all see one set of advances. Added to
+    /// the last glyph of each cluster, so a ligature or a letter with its
+    /// combining mark takes the spacing once, after itself, as CSS says.
+    private static Segment[] spaced(Segment[] segments, String text, double letterSpacing, double wordSpacing) {
+        if (letterSpacing == 0 && wordSpacing == 0) {
+            return segments;
+        }
+        var spaced = new Segment[segments.length];
+        for (var s = 0; s < segments.length; s++) {
+            var segment = segments[s];
+            var run = segment.run();
+            var font = segment.font();
+            var perPixel = font.unitsPerEm() / font.size();
+            var letter = (int) Math.round(letterSpacing * perPixel);
+            var word = (int) Math.round(wordSpacing * perPixel);
+            var advances = new int[run.length()];
+            for (var i = 0; i < run.length(); i++) {
+                var advance = run.xAdvance(i);
+                if (i == run.length() - 1 || run.cluster(i + 1) != run.cluster(i)) {
+                    advance += letter;
+                    var at = segment.textStart() + run.cluster(i);
+                    if (at < text.length() && isWordSeparator(text.charAt(at))) {
+                        advance += word;
+                    }
+                }
+                advances[i] = advance;
+            }
+            spaced[s] = new Segment(
+                    font, run.withXAdvances(advances), segment.glyphStart(), segment.textStart(), segment.rtl());
+        }
+        return spaced;
+    }
+
+    /// CSS's word-separator characters that a desktop text meets: the space
+    /// and the no-break space.
+    private static boolean isWordSeparator(char c) {
+        return c == ' ' || c == '\u00A0';
     }
 
     private Paragraph(
             Font font,
             String text,
-            boolean bidiApproximate,
+            Directionality directionality,
+            @Nullable BidiLevels bidi,
             Segment[] segments,
             int @Nullable [] spanStarts,
             Font @Nullable [] spanFonts) {
         this.font = font;
         this.text = text;
-        this.bidiApproximate = bidiApproximate;
+        this.directionality = directionality;
+        this.bidi = bidi;
         this.segments = segments;
-        this.run = segments.length == 1 && segments[0].font() == font ? segments[0].run() : concatenate(font, segments);
+        this.run = segments.length == 1 && segments[0].font() == font && !segments[0].rtl()
+                ? segments[0].run()
+                : concatenate(font, segments);
         this.advanceBeforeGlyph = segments.length == 1 ? EMPTY_PREFIX : glyphPrefix(run);
         this.spanStarts = spanStarts;
         this.spanFonts = spanFonts;
@@ -212,8 +274,9 @@ public final class Paragraph {
         this.advanceBefore = new int[length + 1];
         this.glyphBefore = new int[length + 1];
 
-        // Glyphs are in logical order here -- guaranteed, because the shaping
-        // above forced `LTR` for anything HarfBuzz would have ordered visually.
+        // Glyphs are in logical order here -- guaranteed, because a run shaped
+        // right to left was reversed into it, and a paragraph with no levels
+        // forced `LTR` on anything HarfBuzz would have ordered visually.
         // Several glyphs can share a cluster (a mark over a base) and a cluster
         // can span several characters (a ligature, a surrogate pair), so this
         // walks glyphs and fills the offsets each one covers.
@@ -266,55 +329,121 @@ public final class Paragraph {
     /// measured. Two representations of one shaping, each in the units of the
     /// thing that reads it.
     ///
+    /// A right-to-left segment's `run` is in the order HarfBuzz returns it,
+    /// visual, which is what drawing wants; its glyphs in [#run] are the same
+    /// ones reversed into logical order.
+    ///
     /// @param glyphStart where this segment's glyphs start in the concatenated run
     /// @param textStart  where its text starts, for rebasing the clusters
-    private record Segment(Font font, ShapedRun run, int glyphStart, int textStart) {}
+    /// @param rtl        whether it was shaped right to left
+    private record Segment(Font font, ShapedRun run, int glyphStart, int textStart, boolean rtl) {}
 
-    /// Shapes `text` by runs, each in the face that should draw it.
+    /// Shapes `text` by runs, each in the face that should draw it and the
+    /// direction its level says.
     ///
     /// One segment and one shaping unless the text has emoji in it and an emoji
     /// face is attached, or has characters the font's face lacks and fallbacks
-    /// are attached. A paragraph of prose costs what it cost before either
-    /// existed: one `Itemizer` pass over the string when there is an emoji face,
-    /// and one coverage scan when there are fallbacks, neither of which
-    /// allocates for text that needs neither.
+    /// are attached, or has levels. A paragraph of prose costs what it cost
+    /// before any of them existed: one `Itemizer` pass over the string when
+    /// there is an emoji face, and one coverage scan when there are fallbacks,
+    /// neither of which allocates for text that needs neither.
+    ///
+    /// With no levels, text that HarfBuzz would order visually, under
+    /// `bidi-override: ltr`, is forced left to right, and anything else is
+    /// guessed as it always was, so every paragraph the toolkit drew before
+    /// bidi is shaped exactly as before.
+    private static Segment[] shapeSegments(Font font, String text, @Nullable BidiLevels bidi) {
+        if (bidi == null) {
+            var direction = Bidi.requiresBidi(text.toCharArray(), 0, text.length()) ? TextDirection.LTR : null;
+            return shapeSegments(font, text, direction);
+        }
+        var segments = new ArrayList<Segment>();
+        var glyph = 0;
+        for (var run : bidi.runs(0, text.length())) {
+            var direction = run.isRightToLeft() ? TextDirection.RTL : TextDirection.LTR;
+            glyph = shapeRange(segments, font, text, run.start(), run.end(), glyph, direction);
+        }
+        if (segments.isEmpty()) {
+            segments.add(new Segment(font, ShapedRun.EMPTY, 0, 0, false));
+        }
+        return segments.toArray(Segment[]::new);
+    }
+
+    /// [#shapeSegments(Font, String, BidiLevels)] for a paragraph with no
+    /// levels: the whole text in one direction.
     private static Segment[] shapeSegments(Font font, String text, @Nullable TextDirection direction) {
         var emoji = font.emoji();
         var fallbacks = font.fallbacks();
         var length = text.length();
         if (text.isEmpty() || (emoji == null && (fallbacks.isEmpty() || covers(font, text, 0, length)))) {
-            return new Segment[] {new Segment(font, font.shape(text, direction), 0, 0)};
+            return new Segment[] {new Segment(font, font.shape(text, direction), 0, 0, false)};
         }
         var pieces = emoji == null ? List.of(new TextRun(0, length, Slot.TEXT)) : Itemizer.runs(text);
         if (pieces.size() == 1
                 && pieces.getFirst().slot() == Slot.TEXT
                 && (fallbacks.isEmpty() || covers(font, text, 0, length))) {
-            return new Segment[] {new Segment(font, font.shape(text, direction), 0, 0)};
+            return new Segment[] {new Segment(font, font.shape(text, direction), 0, 0, false)};
         }
 
         var segments = new ArrayList<Segment>(pieces.size());
-        var choice = fallbacks.isEmpty() ? null : new ByCoverage(fallbacks);
         var glyph = 0;
         for (var piece : pieces) {
-            if (piece.slot() == Slot.EMOJI && emoji != null) {
-                glyph = shapeInto(segments, emoji, text, piece.start(), piece.end(), glyph, direction);
-            } else if (choice == null || covers(font, text, piece.start(), piece.end())) {
-                glyph = shapeInto(segments, font, text, piece.start(), piece.end(), glyph, direction);
-            } else {
-                for (var run : Itemizer.byCoverage(text, piece.start(), piece.end(), font, choice)) {
-                    glyph = shapeInto(segments, run.face(), text, run.start(), run.end(), glyph, direction);
-                }
-            }
+            glyph = shapePiece(segments, font, text, piece, 0, glyph, direction);
         }
         return segments.toArray(Segment[]::new);
+    }
+
+    /// Shapes `[start, end)` of `text`, one level run, in `direction`: split
+    /// into the faces that draw it as [#shapeSegments(Font, String, TextDirection)]
+    /// splits a whole text, and appended. Answers the glyph count so far.
+    private static int shapeRange(
+            List<Segment> segments, Font font, String text, int start, int end, int glyph, TextDirection direction) {
+        var emoji = font.emoji();
+        var fallbacks = font.fallbacks();
+        if (emoji == null && (fallbacks.isEmpty() || covers(font, text, start, end))) {
+            return shapeInto(segments, font, text, start, end, glyph, direction);
+        }
+        var pieces = emoji == null
+                ? List.of(new TextRun(0, end - start, Slot.TEXT))
+                : Itemizer.runs(text.substring(start, end));
+        for (var piece : pieces) {
+            glyph = shapePiece(segments, font, text, piece, start, glyph, direction);
+        }
+        return glyph;
+    }
+
+    /// Shapes one itemized piece, whose offsets count from `base`, in the
+    /// emoji face, the font, or the fallbacks that cover it.
+    private static int shapePiece(
+            List<Segment> segments,
+            Font font,
+            String text,
+            TextRun piece,
+            int base,
+            int glyph,
+            @Nullable TextDirection direction) {
+        var start = base + piece.start();
+        var end = base + piece.end();
+        var emoji = font.emoji();
+        var fallbacks = font.fallbacks();
+        if (piece.slot() == Slot.EMOJI && emoji != null) {
+            return shapeInto(segments, emoji, text, start, end, glyph, direction);
+        }
+        if (fallbacks.isEmpty() || covers(font, text, start, end)) {
+            return shapeInto(segments, font, text, start, end, glyph, direction);
+        }
+        for (var run : Itemizer.byCoverage(text, start, end, font, new ByCoverage(fallbacks))) {
+            glyph = shapeInto(segments, run.face(), text, run.start(), run.end(), glyph, direction);
+        }
+        return glyph;
     }
 
     /// Shapes `[start, end)` of `text` in `face`, appends it as a segment, and
     /// answers the glyph count so far.
     ///
     /// The run is shaped on its own, so a kern across the seam is lost. That seam
-    /// is between a word and a picture, or between two scripts, where there was
-    /// never a kerning pair to lose.
+    /// is between a word and a picture, between two scripts, or between two
+    /// directions, where there was never a kerning pair to lose.
     private static int shapeInto(
             List<Segment> segments,
             Font face,
@@ -324,7 +453,7 @@ public final class Paragraph {
             int glyph,
             @Nullable TextDirection direction) {
         var shaped = face.shape(text.subSequence(start, end), direction);
-        segments.add(new Segment(face, shaped, glyph, start));
+        segments.add(new Segment(face, shaped, glyph, start, direction == TextDirection.RTL));
         return glyph + shaped.length();
     }
 
@@ -367,9 +496,10 @@ public final class Paragraph {
         return found.font();
     }
 
-    /// The segments as one run, in `base`'s design units and the text's offsets.
+    /// The segments as one run, in `base`'s design units and the text's offsets,
+    /// in logical order.
     ///
-    /// Two corrections, both of them the reason this is not an array copy:
+    /// Three corrections, all of them the reason this is not an array copy:
     ///
     /// - **The clusters are rebased.** Each face shaped a *substring*, so its
     ///   clusters count from that substring's start and every offset here counts
@@ -380,6 +510,8 @@ public final class Paragraph {
     ///   an emoji half as wide as it is. Every measurement in this class is a prefix sum
     ///   over this array, and a prefix sum needs one unit. A joined piece at
     ///   another size is rescaled by the ratio of the two sizes as well.
+    /// - **A right-to-left segment is reversed**, from the visual order it was
+    ///   shaped in into the logical order the prefix sums are taken in.
     ///
     /// The rounding is to the nearest design unit, which at 2048 to the em is a
     /// thousandth of a pixel at any size anybody reads text at.
@@ -409,7 +541,11 @@ public final class Paragraph {
                 // joined is measured exactly as before.
                 scale = scale * segment.font().size() / base.size();
             }
-            for (var i = 0; i < piece.length(); i++, at++) {
+            var count = piece.length();
+            for (var k = 0; k < count; k++, at++) {
+                // A right-to-left segment is in visual order; reversed, its
+                // clusters ascend as every measurement here needs.
+                var i = segment.rtl() ? count - 1 - k : k;
                 glyphIds[at] = piece.glyphId(i);
                 clusters[at] = piece.cluster(i) + segment.textStart();
                 xAdvances[at] = rescaled(piece.xAdvance(i), scale);
@@ -436,27 +572,40 @@ public final class Paragraph {
 
     /// Shapes `text` with `font`, ready to be wrapped.
     ///
-    /// Never refuses. Text that needs bidi is shaped in logical order and drawn
-    /// mirrored rather than throwing, and logs a warning once per distinct
-    /// string; [#isBidiApproximate()] says when that happened.
+    /// Each paragraph of it, each hard line, takes the direction of its first
+    /// strong character, left to right when it has none: [Directionality#AUTO].
+    /// A label of Arabic drawn with no stylesheet then reads from the right.
     public static Paragraph of(Font font, String text) {
-        Objects.requireNonNull(font, "font");
-        Objects.requireNonNull(text, "text");
+        return of(font, text, 0, 0, Directionality.AUTO);
+    }
 
-        var approximate = Bidi.requiresBidi(text.toCharArray(), 0, text.length());
-        if (approximate) {
-            // Once per distinct string, because a paragraph is shaped once and
-            // held by `ParagraphCache`. Loud, because what it says is that
-            // something on screen is drawn in the wrong order -- and quiet
-            // enough not to be a per-frame log, because nothing here runs per
-            // frame.
-            LOG.warn(
-                    "drawing \"{}\" in logical order: it contains right-to-left text, and bidi"
-                            + " run splitting is not built — the glyphs are shaped correctly and their"
-                            + " order is mirrored",
-                    text);
+    /// Shapes `text` with `font`, with `letterSpacing` added after every
+    /// character and `wordSpacing` to every space, in logical pixels:
+    /// `letter-spacing` and `word-spacing`.
+    ///
+    /// The spacing is part of every advance, so the paragraph wraps, measures
+    /// and is hit-tested with it, as it is drawn. The base direction is the
+    /// first strong character's, as [#of(Font, String)] has it.
+    public static Paragraph of(Font font, String text, double letterSpacing, double wordSpacing) {
+        return of(font, text, letterSpacing, wordSpacing, Directionality.AUTO);
+    }
+
+    /// Shapes `text` with `font` and the spacing, its base direction from
+    /// `directionality`: what a box's `direction` and `unicode-bidi` say.
+    ///
+    /// ```java
+    /// var label = Paragraph.of(font, "שלום, world", 0, 0, Directionality.RTL);
+    /// ```
+    public static Paragraph of(
+            Font font, String text, double letterSpacing, double wordSpacing, Directionality directionality) {
+        Objects.requireNonNull(font, "font");
+        if (!Double.isFinite(letterSpacing) || !Double.isFinite(wordSpacing)) {
+            throw new IllegalArgumentException(
+                    "a spacing is a finite length, not " + letterSpacing + " or " + wordSpacing);
         }
-        return new Paragraph(font, text, approximate);
+        Objects.requireNonNull(text, "text");
+        Objects.requireNonNull(directionality, "directionality");
+        return new Paragraph(font, text, directionality, letterSpacing, wordSpacing);
     }
 
     /// `spans`, end to end, as one paragraph that wraps as one text.
@@ -481,6 +630,11 @@ public final class Paragraph {
     /// Spans that are themselves joined are flattened. A list of one span answers
     /// that span itself, so a styled paragraph with one style is the plain one.
     ///
+    /// The joined text is one paragraph to the bidirectional algorithm, under
+    /// the first span's [Directionality]: a bold Arabic word inside an Arabic
+    /// sentence is placed among its neighbours as one text. Each span keeps the
+    /// directions it was shaped in.
+    ///
     /// A widget joins through `Paints.Context.join`, which keeps the result for
     /// as long as the spans are the same instances, for the reason
     /// [ParagraphCache] keeps a shaping: the render tree keeps a measure callback
@@ -503,29 +657,35 @@ public final class Paragraph {
         var starts = new ArrayList<Integer>();
         var fonts = new ArrayList<Font>();
         var glyph = 0;
-        var approximate = false;
         for (var span : spans) {
             Objects.requireNonNull(span, "span");
             var offset = text.length();
             for (var segment : span.segments) {
                 segments.add(new Segment(
-                        segment.font(), segment.run(), glyph + segment.glyphStart(), offset + segment.textStart()));
+                        segment.font(),
+                        segment.run(),
+                        glyph + segment.glyphStart(),
+                        offset + segment.textStart(),
+                        segment.rtl()));
             }
             for (var k = 0; k < span.spanCount(); k++) {
                 starts.add(offset + span.spanStart(k));
                 fonts.add(span.spanFont(k));
             }
             glyph += span.run.length();
-            approximate |= span.bidiApproximate;
             text.append(span.text);
         }
         starts.add(text.length());
 
         var base = spans.getFirst().font;
+        var joined = text.toString();
+        var directionality = spans.getFirst().directionality;
+        var levels = BidiLevels.of(joined, directionality);
         return new Paragraph(
                 base,
-                text.toString(),
-                approximate,
+                joined,
+                directionality,
+                levels.isLeftToRight() ? null : levels,
                 segments.toArray(Segment[]::new),
                 starts.stream().mapToInt(Integer::intValue).toArray(),
                 fonts.toArray(Font[]::new));
@@ -627,15 +787,45 @@ public final class Paragraph {
         return metric == spanAscents ? last.ascent() : last.lineHeight() - last.ascent();
     }
 
-    /// Whether this paragraph's text needed bidi and did not get it.
+    /// What this paragraph's base direction came from.
+    public Directionality directionality() {
+        return directionality;
+    }
+
+    /// The base direction of the paragraph, the hard line, `offset` is in:
+    /// which side its lines start at.
     ///
-    /// True means the glyphs are right and their **order** is not: the text was
-    /// shaped left-to-right because every measurement here is a prefix sum in
-    /// logical order. Measurements, carets and hit tests all agree with what is
-    /// drawn — they are consistent with each other and with a reading order the
-    /// text does not have.
-    public boolean isBidiApproximate() {
-        return bidiApproximate;
+    /// @throws IndexOutOfBoundsException if `offset` is outside `[0, length]`
+    public Direction directionAt(int offset) {
+        Objects.checkIndex(offset, text.length() + 1);
+        var levels = bidi;
+        return levels == null ? Direction.LTR : levels.directionAt(offset);
+    }
+
+    /// Whether any character runs right to left or the base direction is
+    /// right to left anywhere: whether lines are placed in an order other
+    /// than the text's.
+    public boolean isBidirectional() {
+        return bidi != null;
+    }
+
+    /// How far in from the box's left edge `line` starts when it is drawn under
+    /// `align` in a box `available` wide.
+    ///
+    /// `start` and `end` are the sides of the line's own paragraph, which under
+    /// `unicode-bidi: plaintext` is each hard line's. A justified line that is
+    /// placed rather than respaced, the last of its paragraph, starts at the
+    /// start. This is the indent the paint uses, so a caret built on it sits
+    /// on the glyphs.
+    public double indentOf(TextLine line, TextAlign align, double available) {
+        Objects.requireNonNull(line, "line");
+        Objects.requireNonNull(align, "align");
+        return placed(align, line).indentOf(line.width(), available);
+    }
+
+    /// `align` as the side `line` is placed at.
+    private TextAlign placed(TextAlign align, TextLine line) {
+        return align.placing(directionAt(line.start()));
     }
 
     /// Breaks the text into lines that fit in `maxWidth` logical units, between
@@ -784,8 +974,34 @@ public final class Paragraph {
             };
             var layout = layout(available, flow);
             var measured = widthMode == MeasureMode.EXACTLY ? width : (float) layout.width();
-            return new MeasuredSize(measured, (float) layout.height());
+            return new MeasuredSize(measured, (float) keptHeight(layout, flow));
         };
+    }
+
+    /// How many of `layout`'s lines `flow` keeps: all of them, or its
+    /// `line-clamp`.
+    private static int kept(TextLayout layout, TextFlow flow) {
+        var lines = layout.lines().size();
+        return flow.clamps() ? Math.min(flow.maxLines(), lines) : lines;
+    }
+
+    /// The height of the lines `flow` keeps of `layout`: what a clamped
+    /// paragraph is measured at, so the box ends under its last kept line.
+    public double keptHeight(TextLayout layout, TextFlow flow) {
+        Objects.requireNonNull(layout, "layout");
+        Objects.requireNonNull(flow, "flow");
+        var kept = kept(layout, flow);
+        if (kept == layout.lines().size()) {
+            return layout.height();
+        }
+        if (uniform) {
+            return kept * font.lineHeight();
+        }
+        var height = 0.0;
+        for (var i = 0; i < kept; i++) {
+            height += heightOf(layout.lines().get(i));
+        }
+        return height;
     }
 
     /// Draws the paragraph with its first line's **top** at `(x, top)`.
@@ -868,17 +1084,43 @@ public final class Paragraph {
         // when nothing is decorated, which is nearly every paragraph.
         var rules = flow.isDecorated() ? font.decorations().orElse(font.size(), ascent) : null;
 
-        for (var i = 0; i < layout.lines().size(); i++) {
+        var kept = kept(layout, flow);
+        for (var i = 0; i < kept; i++) {
             var line = layout.lines().get(i);
+            var baseline = top + ascent + i * lineHeight;
+            if (i == kept - 1 && kept < layout.lines().size()) {
+                // The last line `line-clamp` keeps, marked because more were cut,
+                // whether or not it was full.
+                paintTruncated(frame, x, baseline, maxWidth, argb, line);
+                decorate(frame, x, baseline, maxWidth, argb, flow, rules);
+                continue;
+            }
             if (line.isEmpty()) {
                 // And therefore undecorated: a blank line between two paragraphs is
                 // not a rule a reader can explain.
                 continue;
             }
-            var baseline = top + ascent + i * lineHeight;
             if (!ellipsis || line.width() <= maxWidth) {
-                var indent = align.indentOf(line.width(), maxWidth);
-                drawGlyphs(frame, x + indent, baseline, line.glyphStart(), line.glyphEnd(), argb);
+                var room = gapRoom(line, align, maxWidth);
+                if (room > 0) {
+                    eachFragment(
+                            line.start(),
+                            visibleEnd(line),
+                            x,
+                            room,
+                            (from, to, pen, rtl) ->
+                                    drawGlyphs(frame, pen, baseline, glyphBefore[from], glyphBefore[to], argb));
+                    decorate(frame, x, baseline, maxWidth, argb, flow, rules);
+                    continue;
+                }
+                var indent = indentOf(line, align, maxWidth);
+                eachFragment(
+                        line.start(),
+                        visibleEnd(line),
+                        x + indent,
+                        0,
+                        (from, to, pen, rtl) ->
+                                drawGlyphs(frame, pen, baseline, glyphBefore[from], glyphBefore[to], argb));
                 decorate(frame, x + indent, baseline, line.width(), argb, flow, rules);
                 continue;
             }
@@ -893,16 +1135,24 @@ public final class Paragraph {
     }
 
     /// Draws glyphs `[from, to)` of the paragraph, each in the face that shaped
-    /// it, with `(x, baseline)` on the baseline.
+    /// it, with `(x, baseline)` on the baseline at the range's left.
     ///
-    /// One call for the paragraph that took one face. For the one that took two,
-    /// a call per segment the range touches, each with its pen moved along by the
-    /// advances of everything before it on this line — which is why
-    /// [#advanceBeforeGlyph] exists at all.
+    /// The range is logical and runs one way, which a fragment from
+    /// [#eachFragment] does. One call for the paragraph that took one face. For
+    /// the one that took two, a call per segment the range touches, each with
+    /// its pen moved along by the advances of everything left of it in the
+    /// range — which is why [#advanceBeforeGlyph] exists at all. A right-to-left
+    /// segment's glyphs for a logical range are one stretch of its own visual
+    /// run, counted from its far end.
     private void drawGlyphs(Frame frame, double x, double baseline, int from, int to, int argb) {
         if (segments.length == 1) {
             var only = segments[0];
-            only.font().draw(frame, x, baseline, only.run(), from, to, argb);
+            var count = only.run().length();
+            if (only.rtl()) {
+                only.font().draw(frame, x, baseline, only.run(), count - to, count - from, argb);
+            } else {
+                only.font().draw(frame, x, baseline, only.run(), from, to, argb);
+            }
             return;
         }
         for (var segment : segments) {
@@ -911,16 +1161,16 @@ public final class Paragraph {
             if (start >= end) {
                 continue;
             }
-            var pen = x + font.toLogical(advanceBeforeGlyph[start] - advanceBeforeGlyph[from]);
-            segment.font()
-                    .draw(
-                            frame,
-                            pen,
-                            baseline,
-                            segment.run(),
-                            start - segment.glyphStart(),
-                            end - segment.glyphStart(),
-                            argb);
+            var count = segment.run().length();
+            var local = start - segment.glyphStart();
+            var localEnd = end - segment.glyphStart();
+            if (segment.rtl()) {
+                var pen = x + font.toLogical(advanceBeforeGlyph[to] - advanceBeforeGlyph[end]);
+                segment.font().draw(frame, pen, baseline, segment.run(), count - localEnd, count - local, argb);
+            } else {
+                var pen = x + font.toLogical(advanceBeforeGlyph[start] - advanceBeforeGlyph[from]);
+                segment.font().draw(frame, pen, baseline, segment.run(), local, localEnd, argb);
+            }
         }
     }
 
@@ -935,43 +1185,55 @@ public final class Paragraph {
         var ellipsis = flow.ellipsises();
         var align = flow.textAlign();
         var lineTop = 0.0;
-        for (var i = 0; i < layout.lines().size(); i++) {
+        var kept = kept(layout, flow);
+        for (var i = 0; i < kept; i++) {
             var line = layout.lines().get(i);
             var offsetDown = uniform ? i * font.lineHeight() : lineTop;
             lineTop += heightOf(line);
+            var baseline = top + ascentOf(line) + offsetDown;
+            if (i == kept - 1 && kept < layout.lines().size()) {
+                paintTruncatedStyled(frame, x, baseline, maxWidth, argb, flow, spans, line);
+                continue;
+            }
             if (line.isEmpty()) {
                 continue;
             }
-            var baseline = top + ascentOf(line) + offsetDown;
             if (!ellipsis || line.width() <= maxWidth) {
-                var indent = align.indentOf(line.width(), maxWidth);
-                drawPieces(frame, x + indent, baseline, line.start(), visibleEnd(line), argb, flow, spans);
+                var room = gapRoom(line, align, maxWidth);
+                var indent = room > 0 ? 0 : indentOf(line, align, maxWidth);
+                eachFragment(
+                        line.start(),
+                        visibleEnd(line),
+                        x + indent,
+                        room,
+                        (from, to, pen, rtl) -> drawPieces(frame, pen, baseline, from, to, rtl, argb, flow, spans));
                 continue;
             }
             paintTruncatedStyled(frame, x, baseline, maxWidth, argb, flow, spans, line);
         }
     }
 
-    /// Draws `[from, to)` of one line as pieces that each have one colour, one
-    /// set of rules and one font, the pen at `lineX` for the line's first
-    /// character.
+    /// Draws `[from, to)`, a fragment that runs one way, as pieces that each
+    /// have one colour, one set of rules and one font, the pen at `x` for the
+    /// fragment's left edge: its first character's when it runs left to right,
+    /// its last's when it runs right to left.
     private void drawPieces(
             Frame frame,
-            double lineX,
+            double x,
             double baseline,
             int from,
             int to,
+            boolean rtl,
             int argb,
             TextFlow flow,
             List<SpanPaint> spans) {
-        var lineStart = from;
         var at = from;
         while (at < to) {
             var paint = paintAt(spans, at);
             var next = Math.min(to, nextSpanStart(at));
             next = Math.min(next, paint != null ? paint.end() : nextPaintStart(spans, at));
             var colour = paint != null ? paint.argb() : argb;
-            var pen = lineX + widthOf(lineStart, at);
+            var pen = rtl ? x + widthOf(next, to) : x + widthOf(from, at);
             drawGlyphs(frame, pen, baseline, glyphBefore[at], glyphBefore[next], colour);
             var decorations = paint != null ? paint.decorations() : flow.decorations();
             rule(frame, pen, baseline, widthOf(at, next), colour, decorations, fontAt(at));
@@ -995,13 +1257,21 @@ public final class Paragraph {
         while (cut > line.start() && Character.isWhitespace(text.charAt(cut - 1))) {
             cut--;
         }
-        drawPieces(frame, x, baseline, line.start(), cut, argb, flow, spans);
+        var kept = widthOf(line.start(), cut);
+        var rtl = endsLeft(line, maxWidth);
+        var left = rtl ? x + maxWidth - kept : x;
+        eachFragment(
+                line.start(),
+                cut,
+                left,
+                0,
+                (from, to, pen, runsLeft) -> drawPieces(frame, pen, baseline, from, to, runsLeft, argb, flow, spans));
 
         var last = cut > line.start() ? cut - 1 : line.start();
         var paint = paintAt(spans, last);
         var colour = paint != null ? paint.argb() : argb;
         var face = fontAt(last);
-        var pen = x + widthOf(line.start(), cut);
+        var pen = rtl ? left - face.ellipsisWidth() : left + kept;
         face.draw(frame, pen, baseline, TextOverflow.MARK, colour);
         var decorations = paint != null ? paint.decorations() : flow.decorations();
         rule(frame, pen, baseline, face.ellipsisWidth(), colour, decorations, face);
@@ -1031,12 +1301,136 @@ public final class Paragraph {
     /// One past the line's last character that is not trailing whitespace: the
     /// end of what is drawn, which is where the glyph range of a [TextLine]
     /// already stops.
-    private int visibleEnd(TextLine line) {
-        var visible = line.end();
-        while (visible > line.start() && Character.isWhitespace(text.charAt(visible - 1))) {
-            visible--;
+    /// The room each word gap on `line` takes when `align` justifies it in a
+    /// box `maxWidth` wide, or 0 when the line is placed rather than respaced:
+    /// it is not justified, it is the last line of its paragraph (the last of
+    /// the text, or one a newline ends), it has no gap, or it has no slack.
+    private double gapRoom(TextLine line, TextAlign align, double maxWidth) {
+        if (align != TextAlign.JUSTIFY || !Double.isFinite(maxWidth)) {
+            return 0;
         }
-        return visible;
+        var end = line.end();
+        if (end >= text.length() || text.charAt(end) == '\n') {
+            return 0;
+        }
+        var slack = maxWidth - line.width();
+        var gaps = gaps(line);
+        return gaps == 0 || !(slack > 0) ? 0 : slack / gaps;
+    }
+
+    /// How many word gaps `line` has between its first word and its last
+    /// visible character. Spaces before the first word are not gaps.
+    private int gaps(TextLine line) {
+        var count = 0;
+        var seenWord = false;
+        for (var i = line.start(); i < visibleEnd(line); i++) {
+            var separator = isWordSeparator(text.charAt(i));
+            if (separator && seenWord) {
+                count++;
+            }
+            seenWord |= !separator;
+        }
+        return count;
+    }
+
+    /// Hands `draw` the stretches of `[from, to)`, part of one line, in the
+    /// order they are placed from left to right, each with the pen at its left
+    /// edge, starting at `x`, and `room` added at every word gap.
+    ///
+    /// A stretch runs one way: a level run of the line, cut after every word
+    /// gap when `room` is not 0. A paragraph with no levels hands over the
+    /// whole range at `x` when there is no room, which is the one call it
+    /// always made.
+    ///
+    /// A gap is a word separator after the line's first word, as [#gaps]
+    /// counts them, and its room goes on the side of it the line reads
+    /// towards: after it in a left-to-right run, before it in a right-to-left
+    /// one, so the room is always between the separator and the next word.
+    private void eachFragment(int from, int to, double x, double room, Fragment draw) {
+        if (from >= to) {
+            return;
+        }
+        var firstWord = room == 0 ? to : firstWord(from, to);
+        var levels = bidi;
+        if (levels == null) {
+            if (room == 0) {
+                draw.at(from, to, x, false);
+            } else {
+                eachWord(from, to, firstWord, false, x, room, draw);
+            }
+            return;
+        }
+        var pen = x;
+        for (var run : levels.visualRuns(from, to)) {
+            if (room == 0) {
+                draw.at(run.start(), run.end(), pen, run.isRightToLeft());
+                pen += widthOf(run.start(), run.end());
+                continue;
+            }
+            eachWord(run.start(), run.end(), firstWord, run.isRightToLeft(), pen, room, draw);
+            pen += widthOf(run.start(), run.end()) + room * gapsIn(run.start(), run.end(), firstWord);
+        }
+    }
+
+    /// One level run of a justified line, `[start, end)`, its left edge at
+    /// `x`: each word with the gap after it, at its pen, past the words and
+    /// gaps left of it — which in a right-to-left run are the ones after it in
+    /// the text.
+    private void eachWord(int start, int end, int firstWord, boolean rtl, double x, double room, Fragment draw) {
+        var gaps = rtl ? gapsIn(start, end, firstWord) : 0;
+        var gapsBefore = 0;
+        var from = start;
+        for (var i = start; i <= end; i++) {
+            var cut = i == end ? from < end : isGap(i, firstWord);
+            if (!cut) {
+                continue;
+            }
+            var to = Math.min(i + 1, end);
+            var pen = rtl
+                    ? x + widthOf(to, end) + room * (gaps - gapsBefore)
+                    : x + widthOf(start, from) + room * gapsBefore;
+            draw.at(from, to, pen, rtl);
+            gapsBefore++;
+            from = to;
+        }
+    }
+
+    /// The first character of `[from, to)` that is not a word separator, or
+    /// `to`: the line's first word, before which a separator is no gap.
+    private int firstWord(int from, int to) {
+        var i = from;
+        while (i < to && isWordSeparator(text.charAt(i))) {
+            i++;
+        }
+        return i;
+    }
+
+    /// Whether the character at `i` is a word gap: a separator after the
+    /// line's first word.
+    private boolean isGap(int i, int firstWord) {
+        return i > firstWord && isWordSeparator(text.charAt(i));
+    }
+
+    /// How many word gaps `[start, end)` holds.
+    private int gapsIn(int start, int end, int firstWord) {
+        var count = 0;
+        for (var i = start; i < end; i++) {
+            if (isGap(i, firstWord)) {
+                count++;
+            }
+        }
+        return count;
+    }
+
+    /// One stretch of a line that runs one way: its text range, its pen at its
+    /// left edge, and whether it runs right to left.
+    @FunctionalInterface
+    private interface Fragment {
+        void at(int from, int to, double pen, boolean rtl);
+    }
+
+    private int visibleEnd(TextLine line) {
+        return visibleEnd(line.start(), line.end());
     }
 
     /// Draws `decorations` along one piece, at the place and thickness `face`
@@ -1108,6 +1502,10 @@ public final class Paragraph {
     /// **A line with no room even for the mark still draws the mark.** The
     /// alternative is a cell that goes blank as it narrows, which reads as a
     /// missing value rather than as a truncated one.
+    ///
+    /// What is kept is the start of the text, in logical order, placed as a
+    /// line is. In a right-to-left paragraph it sits at the right of the box
+    /// and the mark at its left, where the text would have gone on.
     private void paintTruncated(Frame frame, double x, double baseline, double maxWidth, int argb, TextLine line) {
         var mark = font.ellipsisWidth();
         var room = maxWidth - mark;
@@ -1121,10 +1519,23 @@ public final class Paragraph {
             cut--;
         }
 
-        if (cut > line.start()) {
-            drawGlyphs(frame, x, baseline, line.glyphStart(), glyphBefore[cut], argb);
-        }
-        font.draw(frame, x + widthOf(line.start(), cut), baseline, TextOverflow.MARK, argb);
+        var kept = widthOf(line.start(), cut);
+        var rtl = endsLeft(line, maxWidth);
+        var left = rtl ? x + maxWidth - kept : x;
+        eachFragment(
+                line.start(),
+                cut,
+                left,
+                0,
+                (from, to, pen, runsLeft) ->
+                        drawGlyphs(frame, pen, baseline, glyphBefore[from], glyphBefore[to], argb));
+        font.draw(frame, rtl ? left - mark : left + kept, baseline, TextOverflow.MARK, argb);
+    }
+
+    /// Whether a cut `line` ends at its left: its paragraph runs right to left
+    /// and the box has a right edge to start from.
+    private boolean endsLeft(TextLine line, double maxWidth) {
+        return bidi != null && Double.isFinite(maxWidth) && directionAt(line.start()) == Direction.RTL;
     }
 
     /// The last grapheme boundary in `[lineStart, lineEnd]` whose prefix is no
@@ -1319,13 +1730,12 @@ public final class Paragraph {
 
     /// The width of the text in `[start, end)`, in logical units.
     ///
-    /// The public form of the subtraction wrapping is built on, and **the only
-    /// thing a caret needs**: a caret sitting before offset `o` on a line is
-    /// `widthBetween(line.start(), o)` from that line's left edge, and a
-    /// selection highlight from `a` to `b` is a rectangle between those two
-    /// numbers. There is no `caretX(offset)` here because it would be this
-    /// method with one argument fixed, and a paragraph that wrapped has no single
-    /// left edge to fix it to.
+    /// The public form of the subtraction wrapping is built on. A width is the
+    /// same whichever way the text's runs are placed, so this is what sizes a
+    /// box; where a caret or a highlight goes on a line is [#caretX] and
+    /// [#stretchesOf], which agree with this on a line that runs left to right
+    /// throughout: a caret before offset `o` is `widthBetween(line.start(), o)`
+    /// from the line's left edge there.
     ///
     /// Offsets inside a ligature or a surrogate pair report the width up to the
     /// cluster's start, which is the same answer wrapping gets and for the same
@@ -1343,9 +1753,121 @@ public final class Paragraph {
         return widthOf(start, end);
     }
 
+    /// Where the caret before `offset` stands on the line `[lineStart,
+    /// lineEnd)`, from the line's left edge as the paint places it, before any
+    /// alignment indent.
+    ///
+    /// On a line that runs left to right throughout this is
+    /// `widthBetween(lineStart, offset)`. On a line with runs in both
+    /// directions the caret is at the edge of the character after it, the side
+    /// that character's run reads from: its left in a left-to-right run, its
+    /// right in a right-to-left one. At the end of the visible text it is the
+    /// last character's other edge. Past it, in the trailing whitespace, the
+    /// caret moves on the side the paragraph reads towards, which in a
+    /// right-to-left paragraph is left of the line's left edge, a negative x.
+    ///
+    /// An offset outside the line is clamped to it.
+    ///
+    /// @throws IndexOutOfBoundsException if either line offset is outside the text
+    /// @throws IllegalArgumentException  if `lineEnd` is before `lineStart`
+    public double caretX(int lineStart, int lineEnd, int offset) {
+        checkLine(lineStart, lineEnd);
+        var at = Math.clamp(offset, lineStart, lineEnd);
+        var levels = bidi;
+        if (levels == null) {
+            return widthOf(lineStart, at);
+        }
+        var visible = visibleEnd(lineStart, lineEnd);
+        return caretX(levels.visualRuns(lineStart, visible), lineStart, visible, at);
+    }
+
+    /// [#caretX(int, int, int)] over runs already placed.
+    private double caretX(List<LevelRun> runs, int lineStart, int visible, int offset) {
+        if (offset > visible) {
+            var beyond = widthOf(visible, offset);
+            return directionAt(lineStart) == Direction.RTL ? -beyond : widthOf(lineStart, visible) + beyond;
+        }
+        if (visible == lineStart) {
+            return 0;
+        }
+        var probe = offset < visible ? offset : offset - 1;
+        var left = 0.0;
+        for (var run : runs) {
+            if (run.start() <= probe && probe < run.end()) {
+                return left + (run.isRightToLeft() ? widthOf(offset, run.end()) : widthOf(run.start(), offset));
+            }
+            left += widthOf(run.start(), run.end());
+        }
+        return left;
+    }
+
+    /// The stretches of the line `[lineStart, lineEnd)` that the text `[from,
+    /// to)` covers, left to right, from the line's left edge as [#caretX]
+    /// measures it: what a selection highlights.
+    ///
+    /// One stretch on a line that runs one way; one for each run the range
+    /// touches on a line that does not, since a logical range over two
+    /// directions is two pieces on screen. Touching stretches are joined. The
+    /// range is clamped to the line, and empty when nothing of it is left.
+    ///
+    /// @throws IndexOutOfBoundsException if either line offset is outside the text
+    /// @throws IllegalArgumentException  if `lineEnd` is before `lineStart`
+    public List<Stretch> stretchesOf(int lineStart, int lineEnd, int from, int to) {
+        checkLine(lineStart, lineEnd);
+        var a = Math.clamp(Math.min(from, to), lineStart, lineEnd);
+        var b = Math.clamp(Math.max(from, to), lineStart, lineEnd);
+        if (a == b) {
+            return List.of();
+        }
+        var levels = bidi;
+        if (levels == null) {
+            return List.of(new Stretch(widthOf(lineStart, a), widthOf(lineStart, b)));
+        }
+        var visible = visibleEnd(lineStart, lineEnd);
+        var stretches = new ArrayList<Stretch>();
+        var left = 0.0;
+        for (var run : levels.visualRuns(lineStart, visible)) {
+            var s = Math.max(a, run.start());
+            var e = Math.min(b, run.end());
+            if (s < e) {
+                stretches.add(
+                        run.isRightToLeft()
+                                ? new Stretch(left + widthOf(e, run.end()), left + widthOf(s, run.end()))
+                                : new Stretch(left + widthOf(run.start(), s), left + widthOf(run.start(), e)));
+            }
+            left += widthOf(run.start(), run.end());
+        }
+        var s = Math.max(a, visible);
+        if (s < b) {
+            stretches.add(
+                    directionAt(lineStart) == Direction.RTL
+                            ? new Stretch(-widthOf(visible, b), -widthOf(visible, s))
+                            : new Stretch(left + widthOf(visible, s), left + widthOf(visible, b)));
+        }
+        return Stretch.joined(stretches);
+    }
+
+    private void checkLine(int lineStart, int lineEnd) {
+        Objects.checkIndex(lineStart, text.length() + 1);
+        Objects.checkIndex(lineEnd, text.length() + 1);
+        if (lineEnd < lineStart) {
+            throw new IllegalArgumentException("a line cannot end before it starts: " + lineStart + ".." + lineEnd);
+        }
+    }
+
+    /// One past the last character of `[lineStart, lineEnd)` that is not
+    /// trailing whitespace.
+    private int visibleEnd(int lineStart, int lineEnd) {
+        var visible = lineEnd;
+        while (visible > lineStart && Character.isWhitespace(text.charAt(visible - 1))) {
+            visible--;
+        }
+        return visible;
+    }
+
     /// The offset in `[lineStart, lineEnd]` whose caret sits nearest `x`.
     ///
-    /// The other direction of [#widthBetween], and what a click in a text field
+    /// The other direction of [#caretX], and what a click in a text field
     /// asks: `x` is measured from the **line's** left edge, and the answer is a
     /// text offset the caret can legally occupy.
     ///
@@ -1369,6 +1891,9 @@ public final class Paragraph {
     ///
     /// An `x` left of the line is `lineStart` and one right of it is `lineEnd`,
     /// which is what dragging a selection off the end of a field should do.
+    /// On a line with runs in both directions the walk is over every boundary
+    /// and the nearest [#caretX] wins, so an `x` past either edge is the offset
+    /// whose caret is at that edge.
     ///
     /// @param lineStart the first offset of the line, from [TextLine#start()]
     /// @param lineEnd   one past its last, from [TextLine#end()]
@@ -1381,9 +1906,15 @@ public final class Paragraph {
         if (lineEnd < lineStart) {
             throw new IllegalArgumentException("a line cannot end before it starts: " + lineStart + ".." + lineEnd);
         }
-        if (lineStart == lineEnd || !(x > 0)) {
-            // NaN lands here too, which is the right home for it: a click at an
-            // unknown position is a click at the start.
+        if (lineStart == lineEnd || Double.isNaN(x)) {
+            // A click at an unknown position is a click at the start.
+            return lineStart;
+        }
+        var levels = bidi;
+        if (levels != null) {
+            return nearestCaret(levels, lineStart, lineEnd, x);
+        }
+        if (!(x > 0)) {
             return lineStart;
         }
 
@@ -1406,6 +1937,27 @@ public final class Paragraph {
             }
             bestDistance = distance;
             best = offset;
+        }
+        return best;
+    }
+
+    /// [#offsetAt] on a line placed in visual order: every grapheme boundary,
+    /// and the one whose caret is nearest. The first wins a tie.
+    private int nearestCaret(BidiLevels levels, int lineStart, int lineEnd, double x) {
+        var visible = visibleEnd(lineStart, lineEnd);
+        var runs = levels.visualRuns(lineStart, visible);
+        var graphemes = BreakIterator.getCharacterInstance();
+        graphemes.setText(text);
+        var best = lineStart;
+        var bestDistance = Math.abs(x - caretX(runs, lineStart, visible, lineStart));
+        for (var offset = graphemes.following(lineStart);
+                offset != BreakIterator.DONE && offset <= lineEnd;
+                offset = graphemes.next()) {
+            var distance = Math.abs(x - caretX(runs, lineStart, visible, offset));
+            if (distance < bestDistance) {
+                bestDistance = distance;
+                best = offset;
+            }
         }
         return best;
     }

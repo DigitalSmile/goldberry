@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
+import dev.goldberry.text.bidi.Directionality;
 import dev.goldberry.text.font.Font;
 
 /// Shaped paragraphs, kept so the same text is not shaped twice.
@@ -58,22 +59,38 @@ public final class ParagraphCache {
     /// that grows until something else runs out.
     public static final int MAX_CAPACITY = 8192;
 
-    private record Key(Font font, String text) {
+    private record Key(
+            Font font, String text, double letterSpacing, double wordSpacing, Directionality directionality) {
 
-        // Identity on the font, equality on the text. Overridden rather than
-        // left to the record's own equals, which would compare fonts with
-        // Font.equals -- and Font does not define one, so it would be identity
-        // anyway, by accident rather than by decision.
+        // Identity on the font, equality on the text, the spacing and the
+        // base direction.
+        // Overridden rather than left to the record's own equals, which would
+        // compare fonts with Font.equals -- and Font does not define one, so it
+        // would be identity anyway, by accident rather than by decision.
         @Override
         public boolean equals(Object other) {
-            return other instanceof Key(Font otherFont, String otherText)
+            return other
+                            instanceof
+                            Key(
+                                    Font otherFont,
+                                    String otherText,
+                                    double letter,
+                                    double word,
+                                    Directionality otherDirectionality)
                     && font == otherFont
-                    && text.equals(otherText);
+                    && text.equals(otherText)
+                    && Double.compare(letterSpacing, letter) == 0
+                    && Double.compare(wordSpacing, word) == 0
+                    && directionality.equals(otherDirectionality);
         }
 
         @Override
         public int hashCode() {
-            return System.identityHashCode(font) * 31 + text.hashCode();
+            return ((System.identityHashCode(font) * 31 + text.hashCode()) * 31
+                                    + Double.hashCode(letterSpacing) * 7
+                                    + Double.hashCode(wordSpacing))
+                            * 31
+                    + directionality.hashCode();
         }
     }
 
@@ -188,16 +205,31 @@ public final class ParagraphCache {
     /// which is what its memo is for, and it must not be held past the life of
     /// its font, which is true of any paragraph.
     ///
-    /// Text that needs bidi is held like any other: [Paragraph#of] approximates
-    /// it rather than refusing it, so there is no string this cache can be asked
-    /// for and cannot answer.
+    /// Its base direction is its first strong character's, as
+    /// [Paragraph#of(Font, String)] has it.
     public Paragraph paragraph(Font font, String text) {
+        return paragraph(font, text, 0, 0);
+    }
+
+    /// The paragraph for `text` in `font` with `letterSpacing` and
+    /// `wordSpacing` added, in logical pixels — `letter-spacing` and
+    /// `word-spacing` — shaping it only if it is not held.
+    public Paragraph paragraph(Font font, String text, double letterSpacing, double wordSpacing) {
+        return paragraph(font, text, letterSpacing, wordSpacing, Directionality.AUTO);
+    }
+
+    /// The same, its base direction from `directionality`: what a box's
+    /// `direction` and `unicode-bidi` say. The same text under two base
+    /// directions is two paragraphs, since its runs may be shaped differently.
+    public Paragraph paragraph(
+            Font font, String text, double letterSpacing, double wordSpacing, Directionality directionality) {
         requireOwner();
         Objects.requireNonNull(font, "font");
         Objects.requireNonNull(text, "text");
+        Objects.requireNonNull(directionality, "directionality");
 
         requestsThisFrame++;
-        var key = new Key(font, text);
+        var key = new Key(font, text, letterSpacing, wordSpacing, directionality);
         var held = entries.get(key);
         if (held != null) {
             hits++;
@@ -207,7 +239,7 @@ public final class ParagraphCache {
         // crosses into HarfBuzz, and a mapping function that threw -- an
         // unusable font, a closed buffer -- would leave the map in a state
         // `LinkedHashMap` promises nothing about.
-        var shaped = Paragraph.of(font, text);
+        var shaped = Paragraph.of(font, text, letterSpacing, wordSpacing, directionality);
         misses++;
         shapedCharacters += text.length();
         entries.put(key, shaped);

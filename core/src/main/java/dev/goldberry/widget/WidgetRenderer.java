@@ -5,25 +5,34 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.Supplier;
 
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 
 import dev.goldberry.css.ComputedStyle;
 import dev.goldberry.css.Stylesheet;
+import dev.goldberry.css.Typography;
 import dev.goldberry.css.cascade.StyleResolver;
+import dev.goldberry.css.container.ContainerQuery;
 import dev.goldberry.css.media.MediaContext;
 import dev.goldberry.css.select.Selector.PseudoClass;
 import dev.goldberry.css.value.CssLength;
+import dev.goldberry.css.value.FontUnits;
+import dev.goldberry.layout.Display;
 import dev.goldberry.log.Logs;
 import dev.goldberry.motion.Clock;
 import dev.goldberry.motion.KeyframeTrack;
 import dev.goldberry.paint.Box;
+import dev.goldberry.paint.BoxEdges;
+import dev.goldberry.paint.tree.RenderTree;
 import dev.goldberry.render.desktop.SystemTheme;
 import dev.goldberry.stats.FrameStats;
 import dev.goldberry.text.Paragraph;
 import dev.goldberry.text.ParagraphCache;
 import dev.goldberry.text.font.Font;
+import dev.goldberry.text.font.FontMeasures;
+import dev.goldberry.text.font.FontSource;
 import dev.goldberry.text.font.Fonts;
 import dev.goldberry.widget.style.Paints;
 import dev.goldberry.widget.style.Styled;
@@ -123,10 +132,18 @@ public final class WidgetRenderer {
 
     public WidgetRenderer(List<Stylesheet> stylesheets, Fonts fonts, CssLength.Context lengths) {
         this.resolver = new StyleResolver(Objects.requireNonNull(stylesheets, "stylesheets"));
-        this.lengths = Objects.requireNonNull(lengths, "lengths");
-        this.lengthsBelowRoot = this.lengths;
         Objects.requireNonNull(fonts, "fonts");
+        this.lengths = measured(
+                Objects.requireNonNull(lengths, "lengths"),
+                () -> FontMeasures.of(fonts).face(Typography.INITIAL.family(), Typography.INITIAL.weight()));
+        this.lengthsBelowRoot = this.lengths;
         this.paintContext = context(style -> fonts.of(style.typography().scaled(textScale)));
+        // The faces the sheets ship, added before anything is shaped with them.
+        for (var sheet : stylesheets) {
+            for (var face : sheet.fontFaces()) {
+                fonts.register(FontSource.address(face.family(), face.weight(), face.style(), face.src()));
+            }
+        }
     }
 
     /// A renderer that draws every node with one font, whatever the cascade said.
@@ -137,10 +154,16 @@ public final class WidgetRenderer {
     /// at the same weight as the prose beside it.
     public WidgetRenderer(List<Stylesheet> stylesheets, Font font, CssLength.Context lengths) {
         this.resolver = new StyleResolver(Objects.requireNonNull(stylesheets, "stylesheets"));
-        this.lengths = Objects.requireNonNull(lengths, "lengths");
-        this.lengthsBelowRoot = this.lengths;
         Objects.requireNonNull(font, "font");
+        this.lengths = measured(Objects.requireNonNull(lengths, "lengths"), () -> FontMeasures.of(font));
+        this.lengthsBelowRoot = this.lengths;
         this.paintContext = context(style -> font);
+    }
+
+    /// `lengths` measuring `ch` and `ex` in the fonts this renderer draws with,
+    /// unless the caller handed in measures of its own.
+    private static CssLength.Context measured(CssLength.Context lengths, Supplier<FontUnits> units) {
+        return lengths.fontUnits() == FontUnits.FALLBACK ? lengths.withFontUnits(units.get()) : lengths;
     }
 
     /// The shaping cache the paint context is built over, for the frame trace —
@@ -168,9 +191,20 @@ public final class WidgetRenderer {
                 return fonts.apply(style);
             }
 
+            /// With the style's `letter-spacing` and `word-spacing`, scaled as the
+            /// font is, so the text-scale token moves the spacing with the size,
+            /// in the case its `text-transform` draws, which keeps every
+            /// offset the widget's own text has, and in the base direction its
+            /// `direction` and `unicode-bidi` give it.
             @Override
             public Paragraph paragraph(ComputedStyle style, String text) {
-                return cache.paragraph(fonts.apply(style), text);
+                var lettering = style.typography().scaled(textScale).lettering();
+                return cache.paragraph(
+                        fonts.apply(style),
+                        lettering.transform().apply(text),
+                        lettering.letterSpacing(),
+                        lettering.wordSpacing(),
+                        style.directionality());
             }
 
             @Override
@@ -375,6 +409,28 @@ public final class WidgetRenderer {
         return media(media.size(width, height));
     }
 
+    /// Device pixels per logical pixel, which `@media (resolution: …)` is asked
+    /// about. Told on every frame beside the size, so a window dragged to a
+    /// denser display restyles the frame it arrives in.
+    public WidgetRenderer resolution(double dppx) {
+        return media(media.resolution(dppx));
+    }
+
+    /// The pointing devices, which `pointer`, `hover` and their `any-` forms
+    /// are asked about. A mouse until told otherwise, which is what a desktop
+    /// has; an application on a touch screen says
+    /// `input(MediaContext.Input.TOUCH)`.
+    public WidgetRenderer input(MediaContext.Input value) {
+        return media(media.input(Objects.requireNonNull(value, "value")));
+    }
+
+    /// The desktop's display preferences, which `prefers-contrast`,
+    /// `forced-colors` and `prefers-reduced-transparency` are asked about. None
+    /// until told; the launcher tells it what the desktop says.
+    public WidgetRenderer preferences(MediaContext.Preferences value) {
+        return media(media.preferences(Objects.requireNonNull(value, "value")));
+    }
+
     /// The desktop's theme, which `@media (prefers-color-scheme: …)` is asked
     /// about. Light until told otherwise, which is also what a desktop that does
     /// not say is read as.
@@ -461,11 +517,16 @@ public final class WidgetRenderer {
         // rather than left from last frame, so a root whose `font-size` changed
         // cannot leave the tree below it resolving against the old number for a
         // frame -- and so the value is never a fact about a render that is over.
-        lengthsBelowRoot = lengths;
+        // And the viewport units mean this frame's window, which `viewport`
+        // was told before the tree was prepared.
+        lengthsBelowRoot = lengths.withViewport(media.width(), media.height());
         var cache =
                 Objects.requireNonNull(this.paragraphs, "every constructor builds the cache with the paint context");
         var textHitsBefore = FrameTrace.ENABLED ? cache.hits() : 0;
         var textMissesBefore = FrameTrace.ENABLED ? cache.misses() : 0;
+        if (resolver.siblingsMatter() || resolver.hasMatters()) {
+            mirrorAhead(tree.root(), false);
+        }
         var boxes = render(tree.root(), null, false, now);
         if (FrameTrace.ENABLED) {
             tree.trace().text((int) (cache.hits() - textHitsBefore), (int) (cache.misses() - textMissesBefore));
@@ -484,6 +545,79 @@ public final class WidgetRenderer {
         }
         // A root that described several siblings needs something to hold them.
         return Box.of().children(boxes.toArray(Box[]::new));
+    }
+
+    /// Records the size every query container in `render` was just laid out
+    /// at, and throws away the styles under each one whose size changed: the
+    /// cascade's second run for `@container`.
+    ///
+    /// The caller lays the frame out once more when this says so, and never a
+    /// third time: a container whose size depends on what its own queries
+    /// decide settles over the next frames rather than inside this one. With
+    /// no `@container` and no container unit in the sheets, which is the
+    /// toolkit's own, it asks one question and returns.
+    ///
+    /// @return whether anything was restyled, so the frame has to be rendered
+    ///         and laid out again
+    public boolean settleContainers(RenderTree render) {
+        Objects.requireNonNull(render, "render");
+        if (!resolver.readsContainers()) {
+            return false;
+        }
+        var changed = new boolean[1];
+        render.forEachPlacedBox(placed -> {
+            if (placed.box().owner() instanceof Element element && element.isQueryContainer()) {
+                var layout = placed.layout();
+                var content = BoxEdges.content(placed.box(), layout.width(), layout.height());
+                if (element.laidOutAs(
+                        Math.max(0, layout.width() - content.horizontal()),
+                        Math.max(0, layout.height() - content.vertical()))) {
+                    element.invalidateStyleBelow();
+                    changed[0] = true;
+                }
+            }
+        });
+        return changed[0];
+    }
+
+    /// Puts what a widget says about itself onto its element before the
+    /// cascade is asked: the classes it computes from the frame, and the
+    /// pseudo-classes it owns rather than the router.
+    private void mirror(Element element, boolean disabledAbove) {
+        if (element.widget() instanceof Styled styled) {
+            // What the widget computes from the frame, before the cascade is
+            // asked — the same mirroring the pseudo-classes below get, for the
+            // same reason, with the frame added.
+            element.frameClasses(styled.classes(frames));
+            // Its own, **or** an ancestor's. A button inside a disabled `form`
+            // says nothing about itself and is drawn disabled all the same,
+            // which is the rule the router enforces for input — it walks up to
+            // find it, and this walks down because the styles already resolve
+            // that way.
+            element.setPseudoClass(PseudoClass.DISABLED, disabledAbove || styled.isDisabled());
+            element.setPseudoClass(PseudoClass.CHECKED, styled.isChecked());
+            element.setPseudoClass(PseudoClass.INDETERMINATE, styled.isIndeterminate());
+            element.setPseudoClass(PseudoClass.INVALID, styled.isInvalid());
+            element.setPseudoClass(PseudoClass.AFFIXED, styled.isAffixed());
+        }
+    }
+
+    /// [#mirror] over the whole tree, ahead of the walk that styles it.
+    ///
+    /// For sheets in which an element reads another one that the walk reaches
+    /// later: a later sibling (`:nth-child(2 of :checked)`) or a descendant
+    /// (`form:has(:invalid)`). Mirrored on the way down, the walk would style
+    /// the reader before the state it reads had changed and leave it a frame
+    /// behind. Idempotent, so the walk mirroring again costs a comparison.
+    private void mirrorAhead(Element element, boolean disabledAbove) {
+        if (element.widget() instanceof Styled hidden && hidden.isHidden()) {
+            return;
+        }
+        mirror(element, disabledAbove);
+        var below = disabledAbove || (element.widget() instanceof Styled owner && owner.isDisabled());
+        for (var child : element.children()) {
+            mirrorAhead(child, below);
+        }
     }
 
     /// The shaped paragraphs this renderer is keeping, for a diagnostic or a test.
@@ -570,22 +704,7 @@ public final class WidgetRenderer {
         if (trace != null) {
             trace.countWalk();
         }
-        if (element.widget() instanceof Styled styled) {
-            // What the widget computes from the frame, before the cascade is
-            // asked — the same mirroring the pseudo-classes below get, for the
-            // same reason, with the frame added.
-            element.frameClasses(styled.classes(frames));
-            // Its own, **or** an ancestor's. A button inside a disabled `form`
-            // says nothing about itself and is drawn disabled all the same,
-            // which is the rule the router enforces for input — it walks up to
-            // find it, and this walks down because the styles already resolve
-            // that way.
-            element.setPseudoClass(PseudoClass.DISABLED, disabledAbove || styled.isDisabled());
-            element.setPseudoClass(PseudoClass.CHECKED, styled.isChecked());
-            element.setPseudoClass(PseudoClass.INDETERMINATE, styled.isIndeterminate());
-            element.setPseudoClass(PseudoClass.INVALID, styled.isInvalid());
-            element.setPseudoClass(PseudoClass.AFFIXED, styled.isAffixed());
-        }
+        mirror(element, disabledAbove);
 
         // A node the cascade can reach resolves a style; one it cannot passes its
         // ancestor's straight through. A widget that is neither `Styled` nor
@@ -606,7 +725,13 @@ public final class WidgetRenderer {
             self = element.cachedStyle(resolver, inherited);
             if (self == null) {
                 var began = trace == null ? 0L : System.nanoTime();
-                self = ComputedStyle.of(resolver.resolve(element), lengthsBelowRoot, inherited);
+                // The container units are a percentage of the nearest
+                // container's size, which only sheets that write them ask for.
+                var lengths = resolver.readsContainers()
+                        ? lengthsBelowRoot.withContainer(
+                                ContainerQuery.unitsBasis(element, lengthsBelowRoot.viewport()))
+                        : lengthsBelowRoot;
+                self = ComputedStyle.of(resolver.resolve(element), lengths, inherited);
                 element.cacheStyle(resolver, inherited, self);
                 if (trace != null) {
                     trace.countResolve();
@@ -638,7 +763,10 @@ public final class WidgetRenderer {
             // and what its children key on only has to agree about `color` and
             // `typography`. Folding the two together would paint a stale
             // transform the moment the comparison stopped being `equals`.
-            handDown = element.stableStyle(self);
+            // A sheet that writes `inherit` on a property that does not inherit
+            // makes a child read more than the inherited half, so the hand-down
+            // has to agree about the whole style for those sheets.
+            handDown = element.stableStyle(self, resolver.inheritsExplicitly());
             if (trace != null) {
                 trace.identity(System.nanoTime() - identityBegan);
             }
@@ -665,7 +793,16 @@ public final class WidgetRenderer {
         // there is none to be the root's.
         if (element.parent() == null && self != null) {
             lengthsBelowRoot =
-                    lengths.withRootFontSize((float) self.typography().size());
+                    lengthsBelowRoot.withRootFontSize((float) self.typography().size());
+        }
+
+        // `display: none` is a hidden node that a stylesheet chose: no box,
+        // nothing under it rendered, and every element kept, as `isHidden` does
+        // for a widget that hides itself. The style was resolved first, because
+        // it is the style that says so, and the router reads it to keep the
+        // keyboard out.
+        if (self != null && self.presence().display() == Display.NONE) {
+            return List.of();
         }
 
         // The target the cascade just produced, and the values actually in
@@ -728,6 +865,12 @@ public final class WidgetRenderer {
         if (!(element.widget() instanceof Paints paints)) {
             // A composition node: it has no box of its own, so its children
             // become its parent's directly.
+            return children;
+        }
+        // `display: contents` makes any node one: its box goes, with whatever
+        // the widget would have drawn in it, and its children are laid out as
+        // its parent's.
+        if (self != null && self.presence().display() == Display.CONTENTS) {
             return children;
         }
 

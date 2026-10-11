@@ -418,7 +418,10 @@ set(HB_HAVE_GLIB OFF CACHE BOOL "" FORCE)
 set(HB_HAVE_ICU OFF CACHE BOOL "" FORCE)
 set(HB_HAVE_CORETEXT OFF CACHE BOOL "" FORCE)
 set(HB_HAVE_DIRECTWRITE OFF CACHE BOOL "" FORCE)
-set(HB_BUILD_SUBSET OFF CACHE BOOL "" FORCE)
+# The subsetter, for its instancer alone: a variable face is pinned to a static
+# instance before Blend2D sees it, since Blend2D draws a variable face's default
+# instance whatever it is told (ABI 23).
+set(HB_BUILD_SUBSET ON CACHE BOOL "" FORCE)
 set(HB_BUILD_UTILS OFF CACHE BOOL "" FORCE)
 set(HB_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 set(SKIP_INSTALL_ALL ON CACHE BOOL "" FORCE)
@@ -789,6 +792,9 @@ set_target_properties(goldberry PROPERTIES
 target_link_libraries(goldberry PRIVATE
     blend2d::blend2d
     yogacore
+    # Before `harfbuzz`: it links it, and a static link line is read left to
+    # right.
+    harfbuzz-subset
     harfbuzz
     SDL3::SDL3-static
     # The demuxer first: it links `webp`, and a static link line is read left to

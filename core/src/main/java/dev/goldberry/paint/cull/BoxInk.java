@@ -3,6 +3,7 @@ package dev.goldberry.paint.cull;
 import java.util.Objects;
 
 import dev.goldberry.paint.Box;
+import dev.goldberry.paint.shadow.TextShadows;
 
 /// What **one** box draws, in its own coordinates, where its border box is
 /// `(0, 0, width, height)`.
@@ -63,6 +64,19 @@ public final class BoxInk {
             shadowRight = Math.max(shadowRight, shadow.outsetRight());
             shadowBottom = Math.max(shadowBottom, shadow.outsetBottom());
         }
+        // A text shadow is cast from the glyphs, which fill the box at most, by
+        // its offset and the whole of its blur.
+        if (box.text() != null) {
+            for (var shadow : box.text().shadows()) {
+                if (shadow.hasInk()) {
+                    var fade = TextShadows.extent(shadow);
+                    shadowLeft = Math.max(shadowLeft, fade - shadow.offsetX());
+                    shadowTop = Math.max(shadowTop, fade - shadow.offsetY());
+                    shadowRight = Math.max(shadowRight, fade + shadow.offsetX());
+                    shadowBottom = Math.max(shadowBottom, fade + shadow.offsetY());
+                }
+            }
+        }
         // A border image reaches past the box by its outsets, and only when it
         // has a picture: it is what `border-image-outset` is for.
         var outsets = decoration.borderImage().outsetsFor(decoration.border());
@@ -70,6 +84,12 @@ public final class BoxInk {
         shadowRight = Math.max(shadowRight, outsets[1]);
         shadowBottom = Math.max(shadowBottom, outsets[2]);
         shadowLeft = Math.max(shadowLeft, outsets[3]);
+        // A `filter`'s blur and drop shadow reach past the box by their fade.
+        var reach = box.presence().compositing().reach();
+        shadowLeft = Math.max(shadowLeft, reach[0]);
+        shadowTop = Math.max(shadowTop, reach[1]);
+        shadowRight = Math.max(shadowRight, reach[2]);
+        shadowBottom = Math.max(shadowBottom, reach[3]);
         // An icon is centred in its slot, so a glyph wider than the box hangs out
         // by half the difference on each side -- and by nothing at all in the
         // common case, where `Box.icon` sized the box to the glyph.

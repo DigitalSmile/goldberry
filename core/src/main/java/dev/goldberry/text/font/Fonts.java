@@ -8,6 +8,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.jspecify.annotations.Nullable;
@@ -19,6 +20,8 @@ import dev.goldberry.assets.Face;
 import dev.goldberry.assets.FallbackFont;
 import dev.goldberry.css.Typography;
 import dev.goldberry.log.Logs;
+import dev.goldberry.natives.harfbuzz.Instancer;
+import dev.goldberry.text.font.sfnt.VariationAxes;
 
 /// Every face and size a window draws with, opened once and kept: the book the
 /// cascade's resolved typography is looked up in.
@@ -84,8 +87,18 @@ public final class Fonts implements AutoCloseable {
     private final Map<Face, FontFace> faces = new LinkedHashMap<>();
     private final Map<Key, Font> fonts = new LinkedHashMap<>();
 
+    /// Variable faces pinned to a weight, a width or the axes a stylesheet
+    /// named, opened once each; see [#of(Typography)].
+    private final Map<Instance, FontFace> instances = new LinkedHashMap<>();
+
+    /// Instances the instancer refused, drawn as their face is, and asked for
+    /// once.
+    private final Set<Instance> uninstanced = new HashSet<>();
+
     /// What the application ships, searched after the bundled faces.
-    private final List<FontSource> shipped;
+    /// Replaced, never edited, when a stylesheet registers a face: a caller
+    /// holding [#shipped()] keeps the list it was handed.
+    private List<FontSource> shipped;
 
     /// Shipped faces that could not be opened: asked for once, reported once,
     /// and answered with the UI face after that rather than read again every
@@ -102,7 +115,12 @@ public final class Fonts implements AutoCloseable {
 
     private boolean closed;
 
-    private record Key(Face face, long size) {}
+    /// A font: a face, the axes it is pinned at (none for the face as it is),
+    /// and a size.
+    private record Key(Face face, List<Instancer.Axis> axes, long size) {}
+
+    /// A variable face pinned at `axes`, which is a face of its own.
+    private record Instance(Face face, List<Instancer.Axis> axes) {}
 
     private Fonts(List<FontSource> shipped, List<FallbackSource> fallbacks) {
         this.shipped = shipped;
@@ -251,9 +269,49 @@ public final class Fonts implements AutoCloseable {
         }
     }
 
-    /// The faces this book was given beyond the bundled ones.
+    /// The faces this book was given beyond the bundled ones, those a
+    /// stylesheet's `@font-face` registered among them.
     public List<FontSource> shipped() {
         return shipped;
+    }
+
+    /// Adds `source` to the faces this book draws with, as if it had been
+    /// shipped from the start: what a stylesheet's `@font-face` does when a
+    /// renderer over this book is built.
+    ///
+    /// A face whose family, weight and style a face here already has is not
+    /// added, so registering the same sheet twice, as a theme switch does,
+    /// changes nothing. A face whose file cannot be read is kept and drawn in
+    /// the UI face, as a shipped one is, and said so once.
+    ///
+    /// @return whether the face was added
+    public boolean register(FontSource source) {
+        requireUsable();
+        Objects.requireNonNull(source, "source");
+        for (var held : shipped) {
+            if (held.family().equalsIgnoreCase(source.family())
+                    && held.weight() == source.weight()
+                    && held.style() == source.style()) {
+                return false;
+            }
+        }
+        var grown = new ArrayList<>(shipped);
+        grown.add(source);
+        shipped = List.copyOf(grown);
+        source.problem().ifPresent(problem -> {
+            unusable.add(source);
+            if (firstReport(source)) {
+                LOG.warn(
+                        "the font {} {} {} an @font-face names cannot be read, so text asking for it is drawn in {}"
+                                + " instead: {}",
+                        source.family(),
+                        source.weight(),
+                        source.style().cssName(),
+                        BundledFont.UI.family(),
+                        problem);
+            }
+        });
+        return true;
     }
 
     /// The font a resolved style asks for.
@@ -265,13 +323,91 @@ public final class Fonts implements AutoCloseable {
     /// is silent here. A missing **glyph** is the other kind of fallback, and is
     /// [#bundled(List, List)]'s: a character the face lacks is drawn in a
     /// fallback face that has it, or as `.notdef` when the book has none.
+    ///
+    /// A **variable** face is set where the typography says: its `wght` at the
+    /// weight, its `wdth` at `font-stretch`, and the axes
+    /// `font-variation-settings` names, each brought inside the face's range.
+    /// A weight no face of the family has exactly is drawn from a variable face
+    /// of the family and style when there is one, so `font-weight: 500` over
+    /// Inter's upright faces is a real 500 rather than the 400. Each distinct
+    /// setting is pinned once into a static face of its own, which is what both
+    /// the shaper and the rasterizer then read; a static face ignores all of it.
     public Font of(Typography typography) {
+        requireUsable();
         Objects.requireNonNull(typography, "typography");
         Face face = typography.face();
         if (face == null && !shipped.isEmpty()) {
             face = Face.match(shipped, typography.family(), typography.weight(), typography.style());
         }
-        return fontOf(face == null ? BundledFont.UI : face, typography.size());
+        var usable = usable(face == null ? BundledFont.UI : face);
+        var variable = variableFor(usable, typography);
+        return fontOf(variable, axesFor(variable, typography), typography.size());
+    }
+
+    /// `face`, or a variable face of its family and style whose `wght` axis
+    /// reaches the weight asked for, when `face` is not at that weight.
+    private Face variableFor(Face face, Typography typography) {
+        var weight = typography.weight();
+        if (face.weight() == weight || reaches(face, weight)) {
+            return face;
+        }
+        var family = new ArrayList<Face>();
+        for (var bundled : BundledFont.values()) {
+            if (bundled != BundledFont.EMOJI) {
+                family.add(bundled);
+            }
+        }
+        family.addAll(shipped);
+        for (var candidate : family) {
+            if (candidate.family().equalsIgnoreCase(face.family())
+                    && candidate.style() == face.style()
+                    && usable(candidate) == candidate
+                    && reaches(candidate, weight)) {
+                return candidate;
+            }
+        }
+        return face;
+    }
+
+    /// Whether `face` has a `wght` axis that reaches `weight`.
+    private boolean reaches(Face face, int weight) {
+        return VariationAxes.find(faceFor(face).axes(), "wght")
+                .filter(axis -> axis.min() <= weight && weight <= axis.max())
+                .isPresent();
+    }
+
+    /// Where `face` is pinned for `typography`: its `wght` at the weight, its
+    /// `wdth` at the stretch, then each axis a setting names, each brought into
+    /// the face's range, and only those that are not already the face's
+    /// default, by tag. Empty for a static face and for one drawn as it is.
+    private List<Instancer.Axis> axesFor(Face face, Typography typography) {
+        var axes = faceFor(face).axes();
+        if (axes.isEmpty()) {
+            return List.of();
+        }
+        var pinned = new TreeMap<String, Double>();
+        VariationAxes.find(axes, "wght").ifPresent(axis -> pinned.put("wght", axis.clamp(typography.weight())));
+        VariationAxes.find(axes, "wdth")
+                .ifPresent(axis ->
+                        pinned.put("wdth", axis.clamp(typography.variation().stretch())));
+        for (var setting : typography.variation().settings()) {
+            VariationAxes.find(axes, setting.tag())
+                    .ifPresent(axis -> pinned.put(axis.tag(), axis.clamp(setting.value())));
+        }
+        var out = new ArrayList<Instancer.Axis>(pinned.size());
+        for (var entry : pinned.entrySet()) {
+            var axis = VariationAxes.find(axes, entry.getKey()).orElseThrow();
+            if (entry.getValue() != axis.defaultValue()) {
+                out.add(new Instancer.Axis(entry.getKey(), entry.getValue().floatValue()));
+            }
+        }
+        return List.copyOf(out);
+    }
+
+    /// `face`, or the UI face when `face` is a shipped one that cannot be
+    /// opened.
+    private Face usable(Face face) {
+        return face instanceof FontSource source && !opens(source) ? BundledFont.UI : face;
     }
 
     /// The font for one bundled face at one size.
@@ -292,14 +428,18 @@ public final class Fonts implements AutoCloseable {
     }
 
     private Font fontOf(Face face, double size) {
+        return fontOf(face, List.of(), size);
+    }
+
+    private Font fontOf(Face face, List<Instancer.Axis> axes, double size) {
         requireUsable();
         Objects.requireNonNull(face, "face");
         if (!Double.isFinite(size) || size <= 0) {
             throw new IllegalArgumentException("a font size must be positive, not " + size);
         }
-        var usable = face instanceof FontSource source && !opens(source) ? BundledFont.UI : face;
+        var usable = usable(face);
         var quantized = Math.round(size * SIZE_QUANTUM);
-        var key = new Key(usable, quantized);
+        var key = new Key(usable, usable == face ? axes : List.of(), quantized);
         var held = fonts.get(key);
         if (held != null) {
             return held;
@@ -310,7 +450,8 @@ public final class Fonts implements AutoCloseable {
         // promises nothing about. Hence the get-then-put rather than the compute
         // this used to be.
         var sibling = usable == BundledFont.EMOJI ? null : emojiAt(quantized);
-        var font = Font.on(faceFor(usable), quantized / SIZE_QUANTUM).emoji(sibling);
+        var font =
+                Font.on(faceFor(usable, key.axes()), quantized / SIZE_QUANTUM).emoji(sibling);
         if (!fallbackFamilies.isEmpty() && usable != BundledFont.EMOJI) {
             // Opens nothing: a fallback face is opened by the first character
             // that needs it, through the same get-then-put as above.
@@ -422,7 +563,7 @@ public final class Fonts implements AutoCloseable {
         if (!BundledAssets.hasEmojiFont()) {
             return null;
         }
-        var key = new Key(BundledFont.EMOJI, quantized);
+        var key = new Key(BundledFont.EMOJI, List.of(), quantized);
         var held = fonts.get(key);
         if (held != null) {
             return held;
@@ -462,6 +603,39 @@ public final class Fonts implements AutoCloseable {
         });
     }
 
+    /// `face` pinned at `axes`, opened the first time it is asked for; `face`
+    /// itself for no axes, or when the instancer refuses it, which is said once.
+    private FontFace faceFor(Face face, List<Instancer.Axis> axes) {
+        if (axes.isEmpty()) {
+            return faceFor(face);
+        }
+        var instance = new Instance(face, axes);
+        var held = instances.get(instance);
+        if (held != null) {
+            return held;
+        }
+        if (uninstanced.contains(instance)) {
+            return faceFor(face);
+        }
+        var bytes = Instancer.instance(bytesOf(face), axes);
+        if (bytes.isEmpty()) {
+            uninstanced.add(instance);
+            LOG.warn("{} could not be set at {}, so it is drawn at its default", face, axes);
+            return faceFor(face);
+        }
+        var opened = FontFace.of(face.family(), bytes.get());
+        instances.put(instance, opened);
+        return opened;
+    }
+
+    /// The bytes of `face`'s file.
+    private static byte[] bytesOf(Face face) {
+        return switch (face) {
+            case BundledFont bundled -> BundledAssets.font(bundled);
+            case FontSource source -> source.bytes().get();
+        };
+    }
+
     /// Whether the missing emoji face has been mentioned: one line per `Fonts`,
     /// not one per element per frame. An application with two books says it
     /// twice.
@@ -498,7 +672,7 @@ public final class Fonts implements AutoCloseable {
 
     /// How many typefaces are open.
     public int openFaces() {
-        return faces.size();
+        return faces.size() + instances.size();
     }
 
     public boolean isClosed() {
@@ -528,6 +702,10 @@ public final class Fonts implements AutoCloseable {
             failure = closeQuietly(font, failure);
         }
         fonts.clear();
+        for (var face : instances.values()) {
+            failure = closeQuietly(face, failure);
+        }
+        instances.clear();
         for (var face : faces.values()) {
             failure = closeQuietly(face, failure);
         }

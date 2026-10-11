@@ -1,8 +1,8 @@
 package dev.goldberry.css.parse;
 
 /// What the parser does with a construct the subset has not got: an unknown
-/// pseudo-class, a pseudo-element, an attribute selector, a sibling combinator,
-/// an at-rule other than `@media`, `@starting-style` and `@keyframes`.
+/// pseudo-class, a pseudo-element, an attribute selector, an at-rule the
+/// parser does not read.
 ///
 /// ```java
 /// CssParser.parseSheet(css, ParseMode.LENIENT, "app.css");

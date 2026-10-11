@@ -90,9 +90,9 @@ final class PropertyCards {
         return new ShowcaseCard(
                         "styling-colour",
                         "Colour and opacity",
-                        "A colour is hex, rgb(), rgba(), transparent or a var(). Opacity on a box with children"
-                                + " draws them as one layer, so the left pair does not show through each other;"
-                                + " the right pair is two translucent leaves.",
+                        "A colour is hex, a name, rgb() with an alpha, currentcolor or a var(). Opacity on a box"
+                                + " with children draws them as one layer, so the left pair does not show through"
+                                + " each other; the right pair is two translucent leaves.",
                         DocLink.to(CHAPTER, "colour"))
                 .of(
                         Demo.row(
@@ -136,9 +136,9 @@ final class PropertyCards {
         return new ShowcaseCard(
                         "styling-borders",
                         "Borders, outlines and shadows",
-                        "A border is drawn inside the box and takes no room: solid, dashed, dotted or double, side"
-                                + " by side. An outline sits outside. box-shadow is a list, first on top, and a"
-                                + " shadow may be cast inside.",
+                        "A border takes room inside the box's width: solid, dashed, dotted, double, groove or"
+                                + " ridge, a side at a time, round corners elliptical. An outline sits outside."
+                                + " box-shadow is a list, first on top, and a shadow may be cast inside.",
                         DocLink.to(CHAPTER, "border-outline-and-shadow"))
                 .of(Demo.row(
                         "border-plates",
@@ -146,6 +146,9 @@ final class PropertyCards {
                         Demo.box("3px dotted", "border-dotted"),
                         Demo.box("6px double", "border-double"),
                         Demo.box("border-left: 4px", "border-side"),
+                        Demo.box("4px groove", "border-groove"),
+                        Demo.box("4px ridge", "border-ridge"),
+                        Demo.box("border-radius: 50% / 30%", "border-elliptical"),
                         Demo.box("outline, offset 4px", "border-outline"),
                         Demo.box("three shadows", "shadow-list"),
                         Demo.box("inset shadow", "shadow-inset")));

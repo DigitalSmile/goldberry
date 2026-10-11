@@ -257,11 +257,11 @@ public final class Font implements AutoCloseable {
     /// characters, and Arabic joins whichever way the glyphs are then ordered.
     /// What the direction changes is the order the run comes back in.
     ///
-    /// [Paragraph] asks for `LTR` on text HarfBuzz would have guessed `RTL` for,
-    /// because its measurements are prefix sums in logical order and a visually
-    /// ordered run would make every one of them measure the wrong glyphs. That
-    /// is an approximation, and the paragraph says so through
-    /// `isBidiApproximate()`; real bidi is run splitting, and this is not it.
+    /// [Paragraph] splits its text into level runs and asks for each run's own
+    /// direction; a right-to-left run comes back in visual order, which the
+    /// paragraph reverses into the logical order its prefix sums are taken in.
+    /// Text forced left to right (`unicode-bidi: bidi-override`) is shaped
+    /// `LTR` whatever its script.
     ///
     /// @param direction the direction to shape in, or null to guess
     public ShapedRun shape(CharSequence text, @Nullable TextDirection direction) {
@@ -424,6 +424,13 @@ public final class Font implements AutoCloseable {
     public double descent() {
         requireUsable();
         return painter.descent();
+    }
+
+    /// The height of a lower-case `x`, in logical units, or zero when the face
+    /// does not say. What CSS's `ex` unit is.
+    public double xHeight() {
+        requireUsable();
+        return painter.xHeight();
     }
 
     /// The distance from one baseline to the next, as the font itself specifies

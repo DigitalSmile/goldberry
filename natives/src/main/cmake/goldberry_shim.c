@@ -65,6 +65,13 @@
 #include <hb.h>
 
 /*
+ * For pinning a variable face's axes into a static instance (ABI 23): Blend2D
+ * draws the default instance of a variable face whatever it is told, so a
+ * weight or a width between the masters has to arrive as a face of its own.
+ */
+#include <hb-subset.h>
+
+/*
  * For md4c's parser, and for the HTML5 named-entity table beside it. Both are
  * compiled into this translation unit's target rather than linked as a library
  * (see the CMakeLists), because the only caller of either is the code at the
@@ -101,7 +108,7 @@
 #endif
 
 /* Bumped whenever the exported surface changes shape. */
-#define GOLDBERRY_ABI_VERSION 22u
+#define GOLDBERRY_ABI_VERSION 24u
 
 GOLDBERRY_EXPORT uint32_t goldberry_abi_version(void) {
     return GOLDBERRY_ABI_VERSION;
@@ -912,6 +919,9 @@ static const goldberry_layout_entry_t GOLDBERRY_LAYOUTS[] = {
     GB_CONSTANT("YGAlignSpaceBetween", YGAlignSpaceBetween),
     GB_CONSTANT("YGAlignSpaceAround", YGAlignSpaceAround),
     GB_CONSTANT("YGAlignSpaceEvenly", YGAlignSpaceEvenly),
+
+    GB_CONSTANT("YGBoxSizingBorderBox", YGBoxSizingBorderBox),
+    GB_CONSTANT("YGBoxSizingContentBox", YGBoxSizingContentBox),
 
     GB_CONSTANT("YGDirectionInherit", YGDirectionInherit),
     GB_CONSTANT("YGDirectionLTR", YGDirectionLTR),
@@ -2042,6 +2052,45 @@ GOLDBERRY_EXPORT hb_language_t goldberry_hb_language_from_string(const char *str
 GOLDBERRY_EXPORT void goldberry_hb_shape(
         hb_font_t *font, hb_buffer_t *buffer, const hb_feature_t *features, unsigned int num_features) {
     hb_shape(font, buffer, features, num_features);
+}
+
+/*
+ * ABI 23: a variable face pinned to one point of its design space, as the bytes
+ * of a static font. Every axis is pinned -- to its default, then to the
+ * `count` values given -- so what comes back has no variations left and draws
+ * the same through Blend2D as it shapes through HarfBuzz. Everything else is
+ * kept: every glyph, every table, every name.
+ *
+ * NULL when the face cannot be instanced (not a font, or a table the
+ * instancer refuses); the caller then keeps the face as it is.
+ */
+GOLDBERRY_EXPORT hb_blob_t *goldberry_hb_instance(
+        hb_blob_t *blob, const uint32_t *tags, const float *values, unsigned int count) {
+    hb_face_t *face = hb_face_create(blob, 0);
+    hb_subset_input_t *input = hb_subset_input_create_or_fail();
+    if (input == NULL) {
+        hb_face_destroy(face);
+        return NULL;
+    }
+    hb_subset_input_keep_everything(input);
+    hb_subset_input_pin_all_axes_to_default(input, face);
+    for (unsigned int i = 0; i < count; i++) {
+        hb_subset_input_pin_axis_location(input, face, (hb_tag_t) tags[i], values[i]);
+    }
+    hb_face_t *instance = hb_subset_or_fail(face, input);
+    hb_subset_input_destroy(input);
+    hb_face_destroy(face);
+    if (instance == NULL) {
+        return NULL;
+    }
+    hb_blob_t *out = hb_face_reference_blob(instance);
+    hb_face_destroy(instance);
+    return out;
+}
+
+/* The bytes a blob holds, and how many: what an instance is read back with. */
+GOLDBERRY_EXPORT const char *goldberry_hb_blob_get_data(hb_blob_t *blob, unsigned int *length) {
+    return hb_blob_get_data(blob, length);
 }
 
 /// Asks GTK to use the same window system SDL chose.

@@ -153,12 +153,12 @@ class ParagraphFallbackTest {
     }
 
     @Test
-    @DisplayName("an Arabic name is one run in one face, in logical order, beside the bidi approximation")
+    @DisplayName("an Arabic name is one run in one face, measured in logical order")
     void arabic() {
         var text = "Ann " + StandInFace.ARABIC;
         var paragraph = Paragraph.of(font, text);
 
-        assertTrue(paragraph.isBidiApproximate());
+        assertTrue(paragraph.isBidirectional());
         assertNoNotdef(paragraph);
         var fallback = paragraph.shapedIn(4);
         assertNotSame(font, fallback);
@@ -168,7 +168,7 @@ class ParagraphFallbackTest {
             assertSame(fallback, paragraph.shapedIn(i), "offset " + i);
         }
         // Logical order, which is what every measurement here assumes: the
-        // approximation the paragraph already makes, unchanged by the face.
+        // right-to-left run is held reversed, whichever face shaped it.
         var glyphs = paragraph.glyphs();
         for (var i = 1; i < glyphs.length(); i++) {
             assertTrue(glyphs.cluster(i) >= glyphs.cluster(i - 1), "cluster order at glyph " + i);

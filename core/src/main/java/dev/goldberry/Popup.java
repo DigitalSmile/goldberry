@@ -337,6 +337,10 @@ public final class Popup implements AutoCloseable {
         // shrinking popup leaving the previous frame in the margin.
         frame.fill(0x00000000);
         render.update(frame, current.render(tree));
+        // `@container`, as a window's frame does it: once more at most.
+        if (current.settleContainers(render)) {
+            render.update(frame, current.render(tree));
+        }
         // Full-frame, unlike the owner window's: a popup is small, it is repainted
         // only when something in it changed, and damage tracking would be
         // machinery for a saving nobody can measure on a 180×132 menu.

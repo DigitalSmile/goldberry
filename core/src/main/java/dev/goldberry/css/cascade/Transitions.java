@@ -1,6 +1,8 @@
 package dev.goldberry.css.cascade;
 
+import java.util.ArrayList;
 import java.util.EnumMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
@@ -33,17 +35,123 @@ import dev.goldberry.motion.Easing;
 /// it, not a rule that silently never fires.
 ///
 /// Read more: [Styling](https://goldberry.dev/docs/guide/styling.html#transition-and-animation).
-public record Transitions(Map<Animatable, Timing> byProperty) {
+public record Transitions(Map<Animatable, Timing> byProperty, Lists lists) {
 
     /// Nothing moves, which is what every node starts as: motion carries meaning,
     /// and a toolkit where everything animates by default has decided that nothing
     /// means anything.
     public static final Transitions NONE = new Transitions(Map.of());
 
-    /// Written out so the parameter can say that null, like empty, means no transitions.
+    public Transitions {
+        byProperty = byProperty.isEmpty() ? Map.of() : Map.copyOf(byProperty);
+        Objects.requireNonNull(lists, "lists");
+    }
+
+    /// The transitions in `byProperty`, with the longhands' lists written as the
+    /// `transition` shorthand would have written them. Null, like empty, means
+    /// no transitions.
     public Transitions(@Nullable Map<Animatable, Timing> byProperty) {
-        byProperty = byProperty == null || byProperty.isEmpty() ? Map.of() : Map.copyOf(byProperty);
-        this.byProperty = byProperty;
+        this(byProperty == null ? Map.of() : byProperty, Lists.of(byProperty == null ? Map.of() : byProperty));
+    }
+
+    /// The transitions the four longhands' `lists` describe.
+    public static Transitions of(Lists lists) {
+        return new Transitions(lists.timings(), lists);
+    }
+
+    /// `transition-property`, `-duration`, `-timing-function` and `-delay` as
+    /// written: four lists, paired up by position, the shorter three repeated
+    /// to the length of the first, as CSS pairs them.
+    ///
+    /// Kept beside the timings because the longhands arrive one at a time: a
+    /// rule that sets only `transition-duration` changes the durations of the
+    /// properties another rule named, and only the lists can say which.
+    ///
+    /// The initial property list is empty, where CSS's is `all`: a duration on
+    /// its own animates nothing here until a property is named, for [#NONE]'s
+    /// reason.
+    ///
+    /// @param properties the names, each an [Animatable]'s or `all`; empty for
+    ///                   `none`
+    /// @param durations  in milliseconds, at least one
+    /// @param easings    at least one
+    /// @param delays     in milliseconds, at least one
+    public record Lists(List<String> properties, List<Double> durations, List<Easing> easings, List<Double> delays) {
+
+        /// No property, and CSS's initial duration and delay, on the default
+        /// curve.
+        public static final Lists NONE = new Lists(List.of(), List.of(0.0), List.of(Easing.EASE_ENTER), List.of(0.0));
+
+        public Lists {
+            properties = List.copyOf(properties);
+            durations = List.copyOf(durations);
+            easings = List.copyOf(easings);
+            delays = List.copyOf(delays);
+            if (durations.isEmpty() || easings.isEmpty() || delays.isEmpty()) {
+                throw new IllegalArgumentException("a transition longhand's list has at least one entry");
+            }
+        }
+
+        /// The lists the timings in `byProperty` came from, one entry each.
+        static Lists of(Map<Animatable, Timing> byProperty) {
+            if (byProperty.isEmpty()) {
+                return NONE;
+            }
+            var names = new ArrayList<String>();
+            var durations = new ArrayList<Double>();
+            var easings = new ArrayList<Easing>();
+            var delays = new ArrayList<Double>();
+            for (var property : Animatable.values()) {
+                var timing = byProperty.get(property);
+                if (timing != null) {
+                    names.add(property.cssName());
+                    durations.add(timing.durationMillis());
+                    easings.add(timing.easing());
+                    delays.add(timing.delayMillis());
+                }
+            }
+            return new Lists(names, durations, easings, delays);
+        }
+
+        public Lists properties(List<String> value) {
+            return new Lists(value, durations, easings, delays);
+        }
+
+        public Lists durations(List<Double> value) {
+            return new Lists(properties, value, easings, delays);
+        }
+
+        public Lists easings(List<Easing> value) {
+            return new Lists(properties, durations, value, delays);
+        }
+
+        public Lists delays(List<Double> value) {
+            return new Lists(properties, durations, easings, value);
+        }
+
+        /// The timing each property ends up with. A later entry for the same
+        /// property, or an `all` after it, wins.
+        Map<Animatable, Timing> timings() {
+            var timings = new EnumMap<Animatable, Timing>(Animatable.class);
+            for (var i = 0; i < properties.size(); i++) {
+                var timing = new Timing(
+                        durations.get(i % durations.size()),
+                        easings.get(i % easings.size()),
+                        delays.get(i % delays.size()));
+                var name = properties.get(i);
+                if (name.equalsIgnoreCase("all")) {
+                    for (var property : Animatable.values()) {
+                        timings.put(property, timing);
+                    }
+                } else {
+                    var property = Animatable.parse(name);
+                    if (property != null) {
+                        timings.put(property, timing);
+                    }
+                }
+            }
+            return timings;
+        }
     }
 
     /// The properties a transition may name.
@@ -84,7 +192,26 @@ public record Transitions(Map<Animatable, Timing> byProperty) {
         /// Position, scale, rotation and skew: the compositor-cheap way to move
         /// something, and the reason a width can be refused without forbidding
         /// movement. A checkbox tick's `scale 0.6→1` is this one.
-        TRANSFORM("transform");
+        TRANSFORM("transform"),
+
+        /// The `translate` property, apart from `transform`: a hover's lift.
+        TRANSLATE("translate"),
+
+        /// The `rotate` property: a disclosure chevron turning.
+        ROTATE("rotate"),
+
+        /// The `scale` property: a press shrinking a button a little.
+        SCALE("scale"),
+
+        /// The corners, each radius and percentage by itself: a square button
+        /// rounding into a pill. Paint only, as every one here is.
+        BORDER_RADIUS("border-radius"),
+
+        /// The focus ring's colour.
+        OUTLINE_COLOR("outline-color"),
+
+        /// How far out the focus ring sits: a ring that settles onto its box.
+        OUTLINE_OFFSET("outline-offset");
 
         private final String cssName;
 
@@ -119,7 +246,8 @@ public record Transitions(Map<Animatable, Timing> byProperty) {
     /// How long one property takes, on what curve, after what wait.
     ///
     /// @param durationMillis how long the move takes; zero means it snaps
-    /// @param easing         the curve: `ease-enter`, `ease-exit` or `linear`
+    /// @param easing         the curve: one of the design system's three in the
+    ///                       toolkit's own sheets, any CSS curve in an application's
     /// @param delayMillis    how long to wait before starting
     public record Timing(double durationMillis, Easing easing, double delayMillis) {
 
@@ -179,6 +307,6 @@ public record Transitions(Map<Animatable, Timing> byProperty) {
         }
         var next = new EnumMap<Animatable, Timing>(Animatable.class);
         byProperty.keySet().forEach(property -> next.put(property, Timing.INSTANT));
-        return new Transitions(next);
+        return new Transitions(next, lists);
     }
 }

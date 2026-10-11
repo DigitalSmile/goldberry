@@ -6,8 +6,10 @@ import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import java.util.function.Supplier;
 import java.util.regex.Pattern;
 
@@ -18,6 +20,7 @@ import dev.goldberry.css.cascade.CascadeLayer;
 import dev.goldberry.css.parse.CssParser;
 import dev.goldberry.css.parse.CssSyntaxException;
 import dev.goldberry.css.parse.DroppedRule;
+import dev.goldberry.css.parse.Import;
 import dev.goldberry.css.parse.ParseMode;
 import dev.goldberry.css.parse.Token;
 import dev.goldberry.css.parse.TokenType;
@@ -56,12 +59,19 @@ import dev.goldberry.log.Logs;
 ///                  `a stylesheet` for text with no name
 /// @param dropped   the rules a lenient parse left out, in source order; empty
 ///                  for a strict sheet, which would have thrown instead
+/// @param fontFaces the faces its `@font-face` rules ship, which a renderer
+///                  adds to its book of fonts
+/// @param layers    its `@layer` names in the order it first mentions them,
+///                  which is the order they rank in, nested ones as
+///                  `outer.inner`
 public record Stylesheet(
         CascadeLayer layer,
         List<StyleRule> rules,
         List<Keyframes> keyframes,
         String origin,
-        List<DroppedRule> dropped) {
+        List<DroppedRule> dropped,
+        List<FontFaceRule> fontFaces,
+        List<String> layers) {
 
     private static final Logger LOG = Logs.of(Stylesheet.class);
 
@@ -74,6 +84,18 @@ public record Stylesheet(
         keyframes = List.copyOf(Objects.requireNonNull(keyframes, "keyframes"));
         Objects.requireNonNull(origin, "origin");
         dropped = List.copyOf(Objects.requireNonNull(dropped, "dropped"));
+        fontFaces = List.copyOf(Objects.requireNonNull(fontFaces, "fontFaces"));
+        layers = List.copyOf(Objects.requireNonNull(layers, "layers"));
+    }
+
+    /// A stylesheet that ships no face and names no layer.
+    public Stylesheet(
+            CascadeLayer layer,
+            List<StyleRule> rules,
+            List<Keyframes> keyframes,
+            String origin,
+            List<DroppedRule> dropped) {
+        this(layer, rules, keyframes, origin, dropped, List.of(), List.of());
     }
 
     /// A stylesheet of rules and keyframes that dropped nothing.
@@ -118,9 +140,33 @@ public record Stylesheet(
     public static Stylesheet parse(CascadeLayer layer, String css, ParseMode mode, String origin) {
         Objects.requireNonNull(layer, "layer");
         var parsed = CssParser.parseSheet(css, mode, origin);
-        var sheet = new Stylesheet(layer, parsed.rules(), parsed.keyframes(), origin, parsed.dropped());
+        var dropped = new ArrayList<>(parsed.dropped());
+        for (var skipped : parsed.imports()) {
+            // Text has no place of its own to look beside.
+            refuseImport(
+                    skipped,
+                    mode,
+                    origin,
+                    dropped,
+                    "an @import is resolved only in a sheet read with"
+                            + " Stylesheet.resource, beside which it is looked for");
+        }
+        var sheet = new Stylesheet(
+                layer, parsed.rules(), parsed.keyframes(), origin, dropped, parsed.fontFaces(), parsed.layers());
         sheet.warnUnknownProperties();
         return sheet;
+    }
+
+    /// Refuses `skipped` in a strict sheet, and drops it with a warning in a
+    /// lenient one.
+    private static void refuseImport(
+            Import skipped, ParseMode mode, String origin, List<DroppedRule> dropped, String reason) {
+        if (mode == ParseMode.STRICT) {
+            throw CssSyntaxException.unsupportedFeature(
+                    "@import \"" + skipped.href() + "\": " + reason, skipped.line(), skipped.column());
+        }
+        dropped.add(new DroppedRule("@import " + skipped.href(), reason, skipped.line(), skipped.column()));
+        LOG.warn("{}, line {}: dropping \"@import {}\": {}", origin, skipped.line(), skipped.href(), reason);
     }
 
     /// Parses a stylesheet from a resource beside `owner`, under [#defaultMode].
@@ -151,15 +197,114 @@ public record Stylesheet(
     public static Stylesheet resource(CascadeLayer layer, Class<?> owner, String name, ParseMode mode) {
         Objects.requireNonNull(owner, "owner");
         Objects.requireNonNull(name, "name");
-        try (var in = owner.getResourceAsStream(name)) {
-            if (in == null) {
-                throw new IllegalStateException(missing(owner, name));
+        var text = read(owner, name);
+        if (text == null) {
+            throw new IllegalStateException(missing(owner, name));
+        }
+        var path = pathOf(owner, name);
+        var visiting = new LinkedHashSet<String>();
+        visiting.add(path);
+        return load(layer, owner, path, name, text, mode, visiting);
+    }
+
+    /// The sheet `text`, read from `path`, with its imports loaded beside it
+    /// and placed before its own rules.
+    ///
+    /// @param visiting the sheets being loaded on the way here, which an import
+    ///                 may not name again
+    private static Stylesheet load(
+            CascadeLayer layer,
+            Class<?> owner,
+            String path,
+            String origin,
+            String text,
+            ParseMode mode,
+            Set<String> visiting) {
+        var parsed = CssParser.parseSheet(text, mode, origin);
+        var dropped = new ArrayList<>(parsed.dropped());
+        var own = new Stylesheet(
+                layer, parsed.rules(), parsed.keyframes(), origin, List.of(), parsed.fontFaces(), parsed.layers());
+        own.warnUnknownProperties();
+        own = own.anchoredAt(path);
+        if (parsed.imports().isEmpty()) {
+            return new Stylesheet(layer, own.rules, own.keyframes, origin, dropped, own.fontFaces, own.layers);
+        }
+        var directory = directoryOf(path);
+        var rules = new ArrayList<StyleRule>();
+        var keyframes = new ArrayList<Keyframes>();
+        var faces = new ArrayList<FontFaceRule>();
+        var names = new ArrayList<String>();
+        for (var imported : parsed.imports()) {
+            var href = imported.href();
+            var target = href.startsWith("classpath:/")
+                    ? normalize(href.substring("classpath:/".length()))
+                    : href.startsWith("/") ? normalize(href.substring(1)) : normalize(directory + href);
+            if (SCHEME.matcher(href).lookingAt() && !href.startsWith("classpath:/")) {
+                refuseImport(
+                        imported,
+                        mode,
+                        origin,
+                        dropped,
+                        "only a sheet beside this one, or a classpath: one," + " is imported");
+                continue;
             }
-            return parse(layer, new String(in.readAllBytes(), StandardCharsets.UTF_8), mode, name)
-                    .anchoredAt(owner, name);
+            if (visiting.contains(target)) {
+                refuseImport(imported, mode, origin, dropped, "it imports a sheet that is importing this one");
+                continue;
+            }
+            var importedText = read(owner, "/" + target);
+            if (importedText == null) {
+                refuseImport(imported, mode, origin, dropped, "there is no " + target + " beside it");
+                continue;
+            }
+            visiting.add(target);
+            var sheet = load(layer, owner, target, target, importedText, mode, visiting);
+            visiting.remove(target);
+            var into = imported.layer();
+            for (var rule : sheet.rules) {
+                var under = rule.under(imported.media());
+                rules.add(into == null ? under : under.inLayer(into));
+            }
+            for (var name : sheet.layers) {
+                names.add(into == null ? name : into + "." + name);
+            }
+            for (var block : sheet.keyframes) {
+                keyframes.add(block.under(imported.media()));
+            }
+            faces.addAll(sheet.fontFaces);
+            dropped.addAll(sheet.dropped);
+        }
+        rules.addAll(own.rules);
+        keyframes.addAll(own.keyframes);
+        faces.addAll(own.fontFaces);
+        names.addAll(own.layers);
+        var ordered = new ArrayList<StyleRule>(rules.size());
+        for (var i = 0; i < rules.size(); i++) {
+            ordered.add(rules.get(i).ordered(i));
+        }
+        return new Stylesheet(
+                layer, ordered, keyframes, origin, dropped, faces, List.copyOf(new LinkedHashSet<>(names)));
+    }
+
+    /// The text of the resource `name` beside `owner`, or null when there is
+    /// none.
+    private static @Nullable String read(Class<?> owner, String name) {
+        try (var in = owner.getResourceAsStream(name)) {
+            return in == null ? null : new String(in.readAllBytes(), StandardCharsets.UTF_8);
         } catch (IOException e) {
             throw new UncheckedIOException("could not read " + name, e);
         }
+    }
+
+    /// The resource path of `name` beside `owner`, from the root.
+    private static String pathOf(Class<?> owner, String name) {
+        return name.startsWith("/") ? name.substring(1) : owner.getPackageName().replace('.', '/') + "/" + name;
+    }
+
+    /// The directory a resource path is in, with its trailing slash.
+    private static String directoryOf(String path) {
+        var slash = path.lastIndexOf('/');
+        return slash < 0 ? "" : path.substring(0, slash + 1);
     }
 
     /// This sheet with every relative `url("…")` in it made a resource beside
@@ -167,20 +312,13 @@ public record Stylesheet(
     /// `classpath:/app/ui/panel.png`, the way [Class#getResource] reads a name
     /// beside a class. A name starting with `/` is from the root, and an address
     /// with a scheme of its own, such as `classpath:`, is left as it is.
-    private Stylesheet anchoredAt(Class<?> owner, String name) {
-        var path = name.startsWith("/")
-                ? name.substring(1)
-                : owner.getPackageName().replace('.', '/') + "/" + name;
-        var slash = path.lastIndexOf('/');
-        var directory = slash < 0 ? "" : path.substring(0, slash + 1);
+    private Stylesheet anchoredAt(String path) {
+        var directory = directoryOf(path);
         var changed = new boolean[1];
         var anchoredRules = rules.stream()
                 .map(rule -> {
                     var declarations = anchored(rule.declarations(), directory, changed);
-                    return declarations == rule.declarations()
-                            ? rule
-                            : new StyleRule(
-                                    rule.selectors(), declarations, rule.order(), rule.starting(), rule.media());
+                    return declarations == rule.declarations() ? rule : rule.declarations(declarations);
                 })
                 .toList();
         var anchoredKeyframes = keyframes.stream()
@@ -189,9 +327,21 @@ public record Stylesheet(
                         block.frames().stream()
                                 .map(frame -> new Keyframes.Frame(
                                         frame.offset(), anchored(frame.declarations(), directory, changed)))
-                                .toList()))
+                                .toList(),
+                        block.media()))
                 .toList();
-        return changed[0] ? new Stylesheet(layer, anchoredRules, anchoredKeyframes, origin, dropped) : this;
+        var anchoredFaces = fontFaces.stream()
+                .map(face -> {
+                    var src = anchoredHref(face.src(), directory);
+                    if (!src.equals(face.src())) {
+                        changed[0] = true;
+                    }
+                    return face.src(src);
+                })
+                .toList();
+        return changed[0]
+                ? new Stylesheet(layer, anchoredRules, anchoredKeyframes, origin, dropped, anchoredFaces, layers)
+                : this;
     }
 
     /// `declarations` with their relative addresses anchored in `directory`, or
@@ -256,6 +406,15 @@ public record Stylesheet(
             }
         }
         return result == null ? value : List.copyOf(result);
+    }
+
+    /// `href` made a `classpath:` name in `directory` when it is relative, and
+    /// as it is otherwise.
+    private static String anchoredHref(String href, String directory) {
+        if (href.isEmpty() || SCHEME.matcher(href).lookingAt()) {
+            return href;
+        }
+        return "classpath:/" + (href.startsWith("/") ? href.substring(1) : normalize(directory + href));
     }
 
     /// A resource name with its `.` and `..` segments taken out.

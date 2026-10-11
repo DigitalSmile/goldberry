@@ -5,6 +5,6 @@
 `text-align: start | center | end | left | right`, and `text-decoration` or
 `text-decoration-line: none | underline | line-through`. `start` and `end` are
 the edges a line begins and ends at, and `left` and `right` are the sides of
-the box. Every line is set left to right, so the two pairs place a line the
-same way. `justify` is refused with a warning, and the line keeps the alignment
-it inherited.
+the box. Under `direction: ltr` the two pairs place a line the same way; under
+`rtl`, `start` is the right. `justify` is described in
+`guide-styling-css-subset.md` piece 31.

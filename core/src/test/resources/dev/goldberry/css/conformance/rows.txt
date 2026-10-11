@@ -1,0 +1,348 @@
+# The CSS conformance table: what the stylesheet engine does with each probe.
+#
+# kind | css | outcome | plan [| reference]
+#
+#   kind      decl (one declaration) or sheet (a whole sheet's text)
+#   outcome   decl:  APPLIED, IGNORED, DROPPED, UNKNOWN
+#             sheet: PARSED, REFUSED
+#             either: MALFORMED
+#   plan      - for what the subset has; the docs/css-plan.md item that changes
+#             the row (CSS-NN); by-design; or unplanned
+#   reference an IGNORED row's declaration that it comes out equal to
+#
+# Grouped as docs/css-support-2026-10-10.md groups its gaps. When a plan item
+# lands, move its rows to their new outcome, and their plan column to - once
+# the feature is whole.
+
+# --- What there is --------------------------------------------------------------
+
+decl | color: red | APPLIED | -
+decl | color: navy | APPLIED | -
+decl | color: #abc | APPLIED | -
+decl | color: #11223344 | APPLIED | -
+decl | color: rgba(1, 2, 3, 0.5) | APPLIED | -
+decl | color: rgb(0 0 0 / 50%) | APPLIED | -
+decl | color: transparent | APPLIED | -
+decl | opacity: 0.5 | APPLIED | -
+decl | opacity: 50% | APPLIED | -
+decl | flex-direction: row | APPLIED | -
+decl | flex-wrap: wrap | APPLIED | -
+decl | flex: 1 | APPLIED | -
+decl | flex: 1 1 0 | APPLIED | -
+decl | justify-content: space-between | APPLIED | -
+decl | align-items: center | APPLIED | -
+decl | align-self: auto | APPLIED | -
+decl | gap: 4px 8px | APPLIED | -
+decl | padding: 0 12px | APPLIED | -
+decl | padding-left: 3px | APPLIED | -
+decl | margin: 0 auto | APPLIED | -
+decl | margin-top: -4px | APPLIED | -
+decl | width: 2em | APPLIED | -
+decl | width: 50% | APPLIED | -
+decl | height: 1.5rem | APPLIED | -
+decl | min-width: 10px | APPLIED | -
+decl | max-height: 300px | APPLIED | -
+decl | position: absolute | APPLIED | -
+decl | inset: 4px | APPLIED | -
+decl | overflow: hidden | APPLIED | -
+decl | overflow: auto | APPLIED | -
+decl | white-space: pre-wrap | APPLIED | -
+decl | overflow-wrap: anywhere | APPLIED | -
+decl | word-break: break-all | APPLIED | -
+decl | text-overflow: ellipsis | APPLIED | -
+decl | text-align: center | APPLIED | -
+decl | text-align: left | APPLIED | -
+decl | text-decoration: underline | APPLIED | -
+decl | font-family: Inter, sans-serif | APPLIED | -
+decl | font-size: 20px | APPLIED | -
+decl | font-weight: 650 | APPLIED | -
+decl | font-style: italic | APPLIED | -
+decl | line-height: 1.4 | APPLIED | -
+decl | background-color: #123456 | APPLIED | -
+decl | background: linear-gradient(red, blue) | APPLIED | -
+decl | background: repeating-radial-gradient(red, blue 10px) | APPLIED | -
+decl | background-size: 10px 20px | APPLIED | -
+decl | background-repeat: no-repeat | APPLIED | -
+decl | border: 1px dashed red | APPLIED | -
+decl | border-left: 2px solid blue | APPLIED | -
+decl | border-width: 3px | APPLIED | -
+decl | border-radius: 4px 8px | APPLIED | -
+decl | outline: 2px solid blue | APPLIED | -
+decl | outline-offset: 2px | APPLIED | -
+decl | box-shadow: inset 0 1px 2px 1px red | APPLIED | -
+decl | box-shadow: 0 1px 2px red, 0 4px 8px blue | APPLIED | -
+decl | transform: translate(4px, 8px) rotate(10deg) | APPLIED | -
+decl | transform: skew(10deg) | APPLIED | -
+decl | transform: matrix(1, 0, 0, 1, 4, 4) | APPLIED | -
+decl | transform: rotate(0.25turn) | APPLIED | -
+decl | transition: opacity 200ms ease-enter | APPLIED | -
+decl | transition: background 0.2s linear 50ms | APPLIED | -
+decl | animation: spin 1s linear infinite | APPLIED | -
+decl | animation-duration: 2s | APPLIED | -
+decl | cursor: grab | APPLIED | -
+
+sheet | a { color: red } | PARSED | -
+sheet | .a, #b, * { color: red } | PARSED | -
+sheet | a b > c { color: red } | PARSED | -
+sheet | a:hover:focus-visible { color: red } | PARSED | -
+sheet | a:indeterminate, a:invalid, a:affixed { color: red } | PARSED | -
+sheet | :root { --x: 4px } | PARSED | -
+sheet | a:first-child, a:last-child, a:only-child { color: red } | PARSED | -
+sheet | a:nth-child(2n+1), a:nth-last-child(-n+3), a:nth-child(even) { color: red } | PARSED | -
+sheet | a { color: red !important } | PARSED | -
+sheet | @media (min-width: 600px) and (prefers-color-scheme: dark) { a { color: red } } | PARSED | -
+sheet | @media (width >= 400px) and (height < 800px) { a { color: red } } | PARSED | -
+sheet | @media print, (orientation: landscape) { a { color: red } } | PARSED | -
+sheet | @media not (prefers-reduced-motion: reduce) { a { color: red } } | PARSED | -
+sheet | @starting-style { a { opacity: 0 } } | PARSED | -
+sheet | @keyframes spin { from { opacity: 0 } 50% { opacity: 0.5 } to { opacity: 1 } } | PARSED | -
+
+# --- 1. Cascade, values and syntax ---------------------------------------------
+
+decl | padding: inherit | APPLIED | -
+decl | background-color: inherit | APPLIED | -
+decl | color: initial | APPLIED | -
+decl | color: unset | APPLIED | -
+decl | color: revert | APPLIED | -
+decl | all: unset | APPLIED | -
+decl | width: calc(100% - 8px) | DROPPED | by-design
+decl | width: calc(2px + 1em) | APPLIED | -
+decl | width: calc(2 * (1px + 1em) / 4) | APPLIED | -
+decl | margin: calc(1em - 2px) auto | APPLIED | -
+decl | padding: clamp(4px, 1em, 12px) | APPLIED | -
+decl | height: round(up, 17px, 4px) | APPLIED | -
+decl | transform: rotate(calc(45deg * 2)) | APPLIED | -
+decl | transform: translate(calc(-50% + 4px)) | APPLIED | -
+decl | transition-duration: calc(100ms * 2) | APPLIED | -
+decl | opacity: calc(1 / 2) | APPLIED | -
+decl | color: rgb(calc(255 / 2) 0 0) | DROPPED | unplanned
+decl | width: min(100px, 50%) | DROPPED | by-design
+decl | width: min(100px, 2em) | APPLIED | -
+decl | border-color: currentcolor | APPLIED | -
+decl | padding: env(safe-area-inset-top) | DROPPED | unplanned
+
+sheet | @property --x { syntax: "<length>"; inherits: false; initial-value: 0px } | REFUSED | unplanned
+sheet | @layer base { a { color: red } } | PARSED | -
+sheet | @layer base, theme; | PARSED | -
+sheet | @import url(other.css); | PARSED | -
+sheet | @import "x.css" layer(base); | PARSED | -
+sheet | @scope (.card) { a { color: red } } | REFUSED | unplanned
+sheet | @namespace svg url(http://www.w3.org/2000/svg); | REFUSED | by-design
+sheet | a { color: red; &:hover { color: blue } } | PARSED | -
+sheet | a { b { color: red } } | PARSED | -
+sheet | a { .b { color: red } } | PARSED | -
+sheet | a { > b { color: red } } | PARSED | -
+sheet | a { + b { color: red } } | PARSED | -
+sheet | a { ~ b { color: red } } | PARSED | -
+sheet | a { @media (min-width: 600px) { color: red } } | PARSED | -
+
+# --- 2. Selectors ----------------------------------------------------------------
+
+sheet | a:not(.b) { color: red } | PARSED | -
+sheet | :is(a, b) { color: red } | PARSED | -
+sheet | :where(a) { color: red } | PARSED | -
+sheet | :is(a + b) { color: red } | PARSED | -
+sheet | a:nth-child(2n of .b) { color: red } | PARSED | -
+sheet | a:has(b) { color: red } | PARSED | -
+sheet | a:has(> b, + c, ~ d) { color: red } | PARSED | -
+sheet | a:has(b:has(c)) { color: red } | REFUSED | by-design
+sheet | a:focus-within { color: red } | PARSED | -
+sheet | a:enabled { color: red } | PARSED | -
+sheet | a:read-only { color: red } | REFUSED | unplanned
+sheet | a:required { color: red } | REFUSED | unplanned
+sheet | a:placeholder-shown { color: red } | REFUSED | unplanned
+sheet | a:empty { color: red } | REFUSED | unplanned
+sheet | a:lang(en) { color: red } | REFUSED | unplanned
+sheet | a:first-of-type { color: red } | PARSED | -
+sheet | a:only-of-type { color: red } | PARSED | -
+sheet | a:nth-of-type(2n) { color: red } | PARSED | -
+sheet | [href] { color: red } | REFUSED | by-design
+sheet | a[href="x"] { color: red } | REFUSED | by-design
+sheet | a + b { color: red } | PARSED | -
+sheet | a ~ b { color: red } | PARSED | -
+sheet | ns|a { color: red } | REFUSED | by-design
+sheet | a::before { color: red } | REFUSED | by-design
+sheet | a::placeholder { color: red } | PARSED | -
+sheet | a::selection { color: red } | PARSED | -
+sheet | a::placeholder:hover { color: red } | REFUSED | by-design
+
+# --- 3. Units and colours -------------------------------------------------------
+
+decl | width: 50vw | APPLIED | -
+decl | width: 10vmin | APPLIED | -
+decl | height: 100dvh | APPLIED | -
+decl | width: 10cqw | APPLIED | -
+decl | container-type: inline-size | APPLIED | -
+decl | width: 20ch | APPLIED | -
+decl | width: 2ex | APPLIED | -
+decl | width: 1in | APPLIED | -
+decl | padding: 12pt | APPLIED | -
+decl | font-size: 150% | APPLIED | -
+decl | font-size: small | APPLIED | -
+decl | font-size: larger | APPLIED | -
+decl | border-radius: 50% | APPLIED | -
+decl | border-radius: calc(50% - 2px) | APPLIED | -
+decl | border-radius: 10px / 5px | APPLIED | -
+decl | border-top-left-radius: 10px 20% | APPLIED | -
+decl | color: hsl(120 50% 50%) | APPLIED | -
+decl | color: hsla(120, 50%, 50%, 0.5) | APPLIED | -
+decl | color: hwb(120 10% 10%) | APPLIED | -
+decl | color: oklch(70% 0.1 200) | APPLIED | -
+decl | color: oklab(0.7 0.1 0.1) | APPLIED | -
+decl | color: lab(50% 40 30) | APPLIED | -
+decl | color: color(srgb 1 0 0) | APPLIED | -
+decl | color: orange | APPLIED | -
+decl | color: rebeccapurple | APPLIED | -
+decl | color: color-mix(in oklch, red, blue) | APPLIED | -
+decl | color: rgb(from red r g b) | APPLIED | -
+decl | color: CanvasText | DROPPED | unplanned
+
+# --- 4. Layout -------------------------------------------------------------------
+
+decl | display: none | APPLIED | -
+decl | display: contents | APPLIED | -
+decl | display: grid | DROPPED | CSS-42
+decl | display: block | DROPPED | by-design
+decl | grid-template-columns: 1fr 1fr | UNKNOWN | CSS-42
+decl | float: left | UNKNOWN | by-design
+decl | aspect-ratio: 16 / 9 | APPLIED | -
+decl | box-sizing: border-box | APPLIED | -
+decl | box-sizing: padding-box | DROPPED | by-design
+decl | order: 2 | APPLIED | -
+decl | z-index: 2 | APPLIED | -
+decl | z-index: auto | APPLIED | -
+decl | visibility: hidden | APPLIED | -
+decl | position: fixed | DROPPED | by-design
+decl | position: sticky | DROPPED | by-design
+decl | overflow-x: hidden | APPLIED | -
+decl | overflow: clip | APPLIED | -
+decl | justify-content: stretch | APPLIED | -
+decl | place-items: center | APPLIED | -
+decl | justify-self: center | IGNORED | by-design | justify-self: auto
+decl | width: fit-content | DROPPED | unplanned
+decl | margin-inline: 4px | APPLIED | -
+decl | padding-block: 4px | APPLIED | -
+decl | direction: rtl | APPLIED | -
+decl | unicode-bidi: plaintext | APPLIED | -
+decl | unicode-bidi: bidi-override | APPLIED | -
+decl | writing-mode: vertical-rl | UNKNOWN | by-design
+decl | vertical-align: middle | UNKNOWN | unplanned
+decl | columns: 2 | UNKNOWN | by-design
+decl | list-style: none | UNKNOWN | by-design
+
+# --- 5. Text and fonts --------------------------------------------------------
+
+decl | letter-spacing: 1px | APPLIED | -
+decl | letter-spacing: 0.1em | APPLIED | -
+decl | word-spacing: 2px | APPLIED | -
+decl | word-spacing: 10% | DROPPED | unplanned
+decl | text-transform: uppercase | APPLIED | -
+decl | text-transform: full-width | DROPPED | unplanned
+decl | text-shadow: 0 1px 2px red | APPLIED | -
+decl | text-shadow: 1px 1px 2px 3px red | DROPPED | by-design
+decl | line-clamp: 2 | APPLIED | -
+decl | -webkit-line-clamp: 2 | APPLIED | -
+decl | text-indent: 1em | UNKNOWN | unplanned
+decl | hyphens: auto | UNKNOWN | unplanned
+decl | text-wrap: balance | UNKNOWN | unplanned
+decl | line-height: normal | APPLIED | -
+decl | text-decoration: underline red | DROPPED | unplanned
+decl | text-decoration-color: red | UNKNOWN | unplanned
+decl | white-space: break-spaces | DROPPED | unplanned
+decl | font: 12px Inter | APPLIED | -
+decl | font-family: Mono, Inter | IGNORED | unplanned | font-family: Mono
+decl | font-variant: small-caps | UNKNOWN | unplanned
+decl | font-feature-settings: "tnum" | UNKNOWN | unplanned
+decl | font-variation-settings: "wght" 500 | APPLIED | -
+decl | font-stretch: condensed | APPLIED | -
+decl | font-stretch: 250% | DROPPED | by-design
+decl | font-style: oblique | DROPPED | by-design
+decl | text-align: justify | APPLIED | -
+decl | text-justify: inter-word | APPLIED | -
+decl | text-justify: inter-character | DROPPED | by-design
+
+sheet | @font-face { font-family: X; src: url(x.woff) } | REFUSED | by-design
+sheet | @font-face { font-family: X; src: url(x.ttf) } | PARSED | -
+
+# --- 6. Backgrounds and borders -----------------------------------------------
+
+decl | border-style: dashed | APPLIED | -
+decl | border-top-style: dotted | APPLIED | -
+decl | outline-style: dashed | APPLIED | -
+decl | outline: 2px dotted red | APPLIED | -
+decl | border-top-left-radius: 4px | APPLIED | -
+decl | background-clip: padding-box | APPLIED | -
+decl | background-origin: content-box | APPLIED | -
+decl | background-position-x: 4px | APPLIED | -
+decl | background-repeat: space | APPLIED | -
+decl | background: url("a.png") 3px 4px / 10px 20px no-repeat | APPLIED | -
+decl | background-attachment: fixed | UNKNOWN | unplanned
+decl | background-blend-mode: multiply | UNKNOWN | unplanned
+decl | background: conic-gradient(red, blue) | APPLIED | -
+decl | background: linear-gradient(red, 30%, blue) | APPLIED | -
+decl | background: linear-gradient(in oklch, red, blue) | APPLIED | -
+decl | background-image: image-set("a.png" 1x) | DROPPED | unplanned
+
+# --- 7. Effects and transforms ------------------------------------------------
+
+decl | filter: blur(2px) | APPLIED | -
+decl | filter: url(#soften) | DROPPED | by-design
+decl | backdrop-filter: blur(2px) | UNKNOWN | by-design
+decl | mix-blend-mode: multiply | APPLIED | -
+decl | mix-blend-mode: hue | DROPPED | by-design
+decl | isolation: isolate | APPLIED | -
+decl | clip-path: circle(50%) | APPLIED | -
+decl | clip-path: url(#mask) | DROPPED | by-design
+decl | mask-image: linear-gradient(red, transparent) | UNKNOWN | by-design
+decl | transform: rotateX(10deg) | DROPPED | by-design
+decl | transform: translate3d(1px, 2px, 3px) | DROPPED | by-design
+decl | perspective: 100px | UNKNOWN | by-design
+decl | translate: 4px 4px | APPLIED | -
+decl | transform-box: fill-box | APPLIED | -
+decl | will-change: transform | UNKNOWN | by-design
+
+# --- 8. Motion ---------------------------------------------------------------------
+
+decl | transition: opacity 200ms cubic-bezier(0.1, 0.7, 1, 0.1) | APPLIED | -
+decl | transition: opacity 200ms steps(4) | APPLIED | -
+decl | transition: opacity 200ms ease | APPLIED | -
+decl | transition: opacity 200ms ease-in | APPLIED | -
+decl | transition: all 200ms | APPLIED | -
+decl | transition-duration: 200ms | APPLIED | -
+decl | transition-property: opacity | APPLIED | -
+decl | animation-play-state: paused | APPLIED | -
+decl | transition: border-radius 200ms | APPLIED | -
+decl | offset-path: path("M0 0") | UNKNOWN | unplanned
+
+sheet | @media (min-width: 600px) { @keyframes k { to { opacity: 0 } } } | PARSED | -
+
+# --- 9. Media and container queries ------------------------------------------
+
+sheet | @media (400px <= width) { a { color: red } } | PARSED | -
+sheet | @media (400px <= width <= 800px) { a { color: red } } | PARSED | -
+sheet | @media (hover: hover) { a { color: red } } | PARSED | -
+sheet | @media (pointer: fine) { a { color: red } } | PARSED | -
+sheet | @media (min-resolution: 2dppx) { a { color: red } } | PARSED | -
+sheet | @media (aspect-ratio: 16/9) { a { color: red } } | PARSED | -
+sheet | @media (prefers-contrast: more) { a { color: red } } | PARSED | -
+sheet | @media (forced-colors: active) { a { color: red } } | PARSED | -
+sheet | @media (color-gamut: p3) { a { color: red } } | PARSED | -
+sheet | @media (prefers-reduced-transparency: reduce) { a { color: red } } | PARSED | -
+sheet | @container (min-width: 400px) { a { color: red } } | PARSED | -
+sheet | @container (hover: hover) { a { color: red } } | REFUSED | by-design
+sheet | @supports (display: grid) { a { color: red } } | PARSED | -
+sheet | @supports selector(a:is(b)) { a { color: red } } | PARSED | -
+
+# --- 10. Interaction and UI --------------------------------------------------------
+
+decl | pointer-events: none | APPLIED | -
+decl | user-select: none | APPLIED | -
+decl | caret-color: red | UNKNOWN | unplanned
+decl | accent-color: red | UNKNOWN | unplanned
+decl | scrollbar-width: thin | UNKNOWN | unplanned
+decl | scroll-behavior: smooth | UNKNOWN | unplanned
+decl | touch-action: none | UNKNOWN | unplanned
+decl | cursor: help | APPLIED | -
+decl | cursor: none | APPLIED | -
+decl | cursor: zoom-in | APPLIED | -
+decl | cursor: url("x.png"), auto | DROPPED | unplanned

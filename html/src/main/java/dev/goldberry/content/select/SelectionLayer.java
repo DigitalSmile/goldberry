@@ -4,6 +4,8 @@ import java.util.List;
 import java.util.Set;
 
 import dev.goldberry.css.ComputedStyle;
+import dev.goldberry.css.select.PseudoElement;
+import dev.goldberry.css.value.CssColor;
 import dev.goldberry.input.handler.Located;
 import dev.goldberry.layout.Insets;
 import dev.goldberry.layout.Length;
@@ -41,6 +43,9 @@ import dev.goldberry.widget.style.Styled;
 ///
 /// The colour is the cascade's: `selection-layer { color: var(--gb-selection) }`, so a
 /// theme decides what a selection looks like and an application can override it.
+/// It is also `::selection`, and a `background` there, which is how CSS colours a
+/// selection, is the wash in place of the colour: the layer fills the whole
+/// document, so a background drawn as one would cover it.
 record SelectionLayer(Selection selection, WordGeometry geometry) implements Widget.Leaf, Styled, Paints, Located {
 
     @Override
@@ -53,6 +58,12 @@ record SelectionLayer(Selection selection, WordGeometry geometry) implements Wid
         return Set.of();
     }
 
+    /// `::selection`.
+    @Override
+    public PseudoElement pseudoElement() {
+        return PseudoElement.SELECTION;
+    }
+
     @Override
     public void located(LogicalRect self, LogicalRect clip) {
         selection.layerAt(self);
@@ -60,9 +71,11 @@ record SelectionLayer(Selection selection, WordGeometry geometry) implements Wid
 
     @Override
     public Box render(ComputedStyle style, List<Box> children, Context context) {
-        var wash = style.color();
+        var background = style.background();
+        var washed = (background >>> 24) != 0;
+        var wash = washed ? background : style.color();
         return Box.of()
-                .style(style)
+                .style(washed ? style.background(CssColor.TRANSPARENT) : style)
                 .position(Position.ABSOLUTE)
                 .inset(Insets.all(Length.points(0)))
                 .painting((frame, size) -> {

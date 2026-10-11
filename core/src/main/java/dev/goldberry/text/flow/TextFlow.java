@@ -32,13 +32,16 @@ import java.util.Set;
 /// @param decorations  the rules drawn along it, and usually none
 /// @param overflowWrap whether a word wider than the whole line is broken
 /// @param wordBreak    whether a line may break between any two graphemes
+/// @param maxLines     how many lines are kept, the last marked with an
+///                     ellipsis when more were cut: `line-clamp`. 0 keeps all
 public record TextFlow(
         WhiteSpace whiteSpace,
         TextOverflow textOverflow,
         TextAlign textAlign,
         Set<TextDecoration> decorations,
         OverflowWrap overflowWrap,
-        WordBreak wordBreak) {
+        WordBreak wordBreak,
+        int maxLines) {
 
     /// Wraps, marks nothing, sits at the leading edge, is undecorated, breaks
     /// only between words: CSS's initial values for all six.
@@ -59,6 +62,20 @@ public record TextFlow(
         decorations = Set.copyOf(Objects.requireNonNull(decorations, "decorations"));
         Objects.requireNonNull(overflowWrap, "overflowWrap");
         Objects.requireNonNull(wordBreak, "wordBreak");
+        if (maxLines < 0) {
+            throw new IllegalArgumentException("a paragraph keeps a number of lines, not " + maxLines);
+        }
+    }
+
+    /// A flow that keeps every line.
+    public TextFlow(
+            WhiteSpace whiteSpace,
+            TextOverflow textOverflow,
+            TextAlign textAlign,
+            Set<TextDecoration> decorations,
+            OverflowWrap overflowWrap,
+            WordBreak wordBreak) {
+        this(whiteSpace, textOverflow, textAlign, decorations, overflowWrap, wordBreak, 0);
     }
 
     /// A flow that breaks lines only between words.
@@ -79,32 +96,42 @@ public record TextFlow(
 
     /// This, with a different `white-space`.
     public TextFlow whiteSpace(WhiteSpace value) {
-        return new TextFlow(value, textOverflow, textAlign, decorations, overflowWrap, wordBreak);
+        return new TextFlow(value, textOverflow, textAlign, decorations, overflowWrap, wordBreak, maxLines);
     }
 
     /// This, with a different `text-overflow`.
     public TextFlow textOverflow(TextOverflow value) {
-        return new TextFlow(whiteSpace, value, textAlign, decorations, overflowWrap, wordBreak);
+        return new TextFlow(whiteSpace, value, textAlign, decorations, overflowWrap, wordBreak, maxLines);
     }
 
     /// This, with a different `text-align`.
     public TextFlow textAlign(TextAlign value) {
-        return new TextFlow(whiteSpace, textOverflow, value, decorations, overflowWrap, wordBreak);
+        return new TextFlow(whiteSpace, textOverflow, value, decorations, overflowWrap, wordBreak, maxLines);
     }
 
     /// This, with a different set of decorations.
     public TextFlow decorations(Set<TextDecoration> value) {
-        return new TextFlow(whiteSpace, textOverflow, textAlign, value, overflowWrap, wordBreak);
+        return new TextFlow(whiteSpace, textOverflow, textAlign, value, overflowWrap, wordBreak, maxLines);
     }
 
     /// This, with a different `overflow-wrap`.
     public TextFlow overflowWrap(OverflowWrap value) {
-        return new TextFlow(whiteSpace, textOverflow, textAlign, decorations, value, wordBreak);
+        return new TextFlow(whiteSpace, textOverflow, textAlign, decorations, value, wordBreak, maxLines);
     }
 
     /// This, with a different `word-break`.
     public TextFlow wordBreak(WordBreak value) {
-        return new TextFlow(whiteSpace, textOverflow, textAlign, decorations, overflowWrap, value);
+        return new TextFlow(whiteSpace, textOverflow, textAlign, decorations, overflowWrap, value, maxLines);
+    }
+
+    /// This, keeping `value` lines: `line-clamp`. 0 keeps every line.
+    public TextFlow maxLines(int value) {
+        return new TextFlow(whiteSpace, textOverflow, textAlign, decorations, overflowWrap, wordBreak, value);
+    }
+
+    /// Whether lines past [#maxLines] are cut.
+    public boolean clamps() {
+        return maxLines > 0;
     }
 
     /// This, decorated with the lines named: `flow.decorations(UNDERLINE)`, or
@@ -153,7 +180,8 @@ public record TextFlow(
                 + textAlign.name().toLowerCase(java.util.Locale.ROOT) + ", "
                 + decorationNames()
                 + (overflowWrap == OverflowWrap.NORMAL ? "" : ", overflow-wrap anywhere")
-                + (wordBreak == WordBreak.NORMAL ? "" : ", word-break break-all") + "]";
+                + (wordBreak == WordBreak.NORMAL ? "" : ", word-break break-all")
+                + (maxLines == 0 ? "" : ", line-clamp " + maxLines) + "]";
     }
 
     /// The decorations as CSS writes them: `none`, or `underline line-through` in

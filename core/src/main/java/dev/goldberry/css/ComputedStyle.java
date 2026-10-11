@@ -1,6 +1,7 @@
 package dev.goldberry.css;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -19,15 +20,32 @@ import dev.goldberry.css.background.BackgroundParser;
 import dev.goldberry.css.cascade.KeyframeAnimations;
 import dev.goldberry.css.cascade.StyleResolver;
 import dev.goldberry.css.cascade.Transitions;
+import dev.goldberry.css.compositing.BlendMode;
+import dev.goldberry.css.compositing.ClipPathParser;
+import dev.goldberry.css.compositing.FilterParser;
+import dev.goldberry.css.container.ContainerType;
+import dev.goldberry.css.container.Containment;
 import dev.goldberry.css.image.BorderImageParser;
 import dev.goldberry.css.parse.CssSyntaxException;
 import dev.goldberry.css.parse.Token;
 import dev.goldberry.css.parse.TokenType;
+import dev.goldberry.css.property.GlobalKeyword;
+import dev.goldberry.css.property.LogicalProperties;
+import dev.goldberry.css.property.Properties;
 import dev.goldberry.css.value.CssColor;
+import dev.goldberry.css.value.CssEasing;
 import dev.goldberry.css.value.CssLength;
+import dev.goldberry.css.value.IndividualTransform;
 import dev.goldberry.css.value.Shadow;
 import dev.goldberry.css.value.Transform;
+import dev.goldberry.css.value.TransformBox;
+import dev.goldberry.css.value.calc.Maths;
+import dev.goldberry.css.value.calc.Quantity;
+import dev.goldberry.css.value.colour.CurrentColour;
 import dev.goldberry.layout.Align;
+import dev.goldberry.layout.BoxSizing;
+import dev.goldberry.layout.Direction;
+import dev.goldberry.layout.Display;
 import dev.goldberry.layout.FlexDirection;
 import dev.goldberry.layout.Insets;
 import dev.goldberry.layout.Justify;
@@ -35,16 +53,21 @@ import dev.goldberry.layout.Length;
 import dev.goldberry.layout.Limits;
 import dev.goldberry.layout.Overflow;
 import dev.goldberry.layout.Position;
+import dev.goldberry.layout.Presence;
 import dev.goldberry.layout.Wrap;
 import dev.goldberry.log.Logs;
 import dev.goldberry.motion.Easing;
 import dev.goldberry.paint.Box;
 import dev.goldberry.render.Cursor;
+import dev.goldberry.text.bidi.Directionality;
+import dev.goldberry.text.bidi.UnicodeBidi;
 import dev.goldberry.text.flow.OverflowWrap;
 import dev.goldberry.text.flow.TextAlign;
 import dev.goldberry.text.flow.TextDecoration;
 import dev.goldberry.text.flow.TextFlow;
+import dev.goldberry.text.flow.TextJustify;
 import dev.goldberry.text.flow.TextOverflow;
+import dev.goldberry.text.flow.TextTransform;
 import dev.goldberry.text.flow.WhiteSpace;
 import dev.goldberry.text.flow.WordBreak;
 
@@ -141,8 +164,13 @@ public record ComputedStyle(
         Insets inset,
         // Yoga reads `overflow` for *sizing* — a HIDDEN parent does not stretch
         // to fit a child — and the painter reads it for the clip, which are two
-        // different jobs from one keyword.
-        Overflow overflow,
+        // different jobs from one keyword. One per axis, `overflow-x` and
+        // `overflow-y`; the box gets the two joined, see [#overflow()].
+        Overflow overflowX,
+        Overflow overflowY,
+        // `display` and `aspect-ratio`: whether the node has a box, and the shape
+        // it keeps.
+        Presence presence,
         // --- text: read by the paragraph, which is both engines at once ---
         // `white-space` **inherits** and `text-overflow` does not, which is CSS's
         // rule and the only reason these are two components rather than one
@@ -150,6 +178,11 @@ public record ComputedStyle(
         // back together for everything below the cascade.
         WhiteSpace whiteSpace,
         TextOverflow textOverflow,
+        // `line-clamp`: how many lines a paragraph keeps, the last one marked
+        // when more were cut; 0 for all of them. Not inherited, as
+        // `text-overflow` is not, and beside it because it is the same mark on
+        // a different line.
+        int lineClamp,
         // The too-narrow half of the same question, and the third property on
         // the same value. It inherits, like `white-space` and unlike
         // `text-overflow`, which is CSS's split and the reason these are three
@@ -242,6 +275,9 @@ public record ComputedStyle(
             // content spill rather than cutting it off, because a clip nobody
             // asked for is content that vanishes with no rule to blame.
             Overflow.VISIBLE,
+            Overflow.VISIBLE,
+            // A flex box with no ratio of its own, which is every node.
+            Presence.NORMAL,
             // CSS's initial values for both. `normal` rather than `nowrap`
             // because prose is what a paragraph usually is, and `clip` rather
             // than `ellipsis` because a mark on a box nobody asked to truncate
@@ -249,6 +285,8 @@ public record ComputedStyle(
             // `overflow` at `visible`.
             WhiteSpace.NORMAL,
             TextOverflow.CLIP,
+            // Every line kept: `line-clamp: none`.
+            0,
             // The leading edge, which is CSS's initial value and where every
             // line in the toolkit sat before the property existed.
             TextAlign.START,
@@ -278,7 +316,9 @@ public record ComputedStyle(
         Objects.requireNonNull(columnGap, "columnGap");
         Objects.requireNonNull(position, "position");
         Objects.requireNonNull(inset, "inset");
-        Objects.requireNonNull(overflow, "overflow");
+        Objects.requireNonNull(overflowX, "overflowX");
+        Objects.requireNonNull(overflowY, "overflowY");
+        Objects.requireNonNull(presence, "presence");
         Objects.requireNonNull(whiteSpace, "whiteSpace");
         Objects.requireNonNull(textOverflow, "textOverflow");
         Objects.requireNonNull(textAlign, "textAlign");
@@ -338,10 +378,21 @@ public record ComputedStyle(
         var parentSize = parent == null
                 ? context.fontSize()
                 : (float) parent.typography().size();
-        var fontSize = declarations.get("font-size");
-        if (fontSize != null) {
-            style = style.with("font-size", fontSize, new CssLength.Context(parentSize, context.rootFontSize()));
+        // `font` sets the size too, so both are read here, in the cascade's
+        // order, which leaves the later of the two in force.
+        // `ch` and `ex` in `font-size` are the parent's face, as `em` is its size.
+        var parentLengths = parent == null
+                ? context.withFontSize(parentSize)
+                : context.withFontSize(parentSize)
+                        .withFace(
+                                parent.typography().family(),
+                                parent.typography().weight());
+        for (var entry : declarations.entrySet()) {
+            if (READ_FIRST.contains(entry.getKey())) {
+                style = style.declare(entry.getKey(), entry.getValue(), parentLengths, parent);
+            }
         }
+        var readFirst = readWithTheSize(declarations);
         // Undeclared is the ordinary case and needs no branch: the size is
         // whatever was inherited, which is exactly what `em` should resolve
         // against.
@@ -360,13 +411,86 @@ public record ComputedStyle(
         // its parent's style and not the root's, and only the walk down the tree
         // knows which style the root's was.
         var rootSize = parent == null ? (float) style.typography().size() : context.rootFontSize();
-        var own = new CssLength.Context((float) style.typography().size(), rootSize);
+        var own = context.withFontSize((float) style.typography().size())
+                .withRootFontSize(rootSize)
+                .withFace(style.typography().family(), style.typography().weight());
+        // `color` second, and for the same kind of reason: `currentcolor` in
+        // every other value means the colour this element ends up with, so that
+        // colour has to be known before they are read. In `color` itself it
+        // means the inherited colour, which is what the style holds until then.
+        style = withColourFirst(style, declarations, own, parent);
         for (var entry : declarations.entrySet()) {
-            if (!"font-size".equals(entry.getKey())) {
-                style = style.with(entry.getKey(), entry.getValue(), own);
+            var property = entry.getKey();
+            if (!readFirst.contains(property) && !"color".equals(property)) {
+                style = style.declare(property, entry.getValue(), own, parent);
             }
         }
         return style;
+    }
+
+    /// The font's longhands, which a `font` read first has already set.
+    private static final Set<String> FONT_LONGHANDS =
+            Set.of("font-style", "font-weight", "font-size", "line-height", "font-family");
+
+    /// What [#of] reads before anything else, in the cascade's order: the size,
+    /// and the face, since `ch` and `ex` everywhere else are measured in it,
+    /// and the direction, since a logical property names a side by it.
+    private static final Set<String> READ_FIRST =
+            Set.of("font", "font-size", "font-family", "font-weight", "font-style", "direction");
+
+    /// What the loop in [#of] must not apply again once the size was read with
+    /// the parent's: what [#READ_FIRST] names, and when there is a `font`, every
+    /// longhand of it the cascade put before it, which it overrides.
+    private static Set<String> readWithTheSize(Map<String, List<Token>> declarations) {
+        if (!declarations.containsKey("font")) {
+            return READ_FIRST;
+        }
+        var read = new HashSet<String>(READ_FIRST);
+        for (var property : declarations.keySet()) {
+            if (property.equals("font")) {
+                break;
+            }
+            if (FONT_LONGHANDS.contains(property)) {
+                read.add(property);
+            }
+        }
+        return read;
+    }
+
+    /// `style` with the `color` declaration among `declarations` applied, if
+    /// there is one, `currentcolor` in it read as the colour `style` has now.
+    private static ComputedStyle withColourFirst(
+            ComputedStyle style,
+            Map<String, List<Token>> declarations,
+            CssLength.Context context,
+            @Nullable ComputedStyle parent) {
+        var colour = declarations.get("color");
+        return colour == null ? style : style.declare("color", colour, context, parent);
+    }
+
+    /// One declaration applied: a global keyword through the property table,
+    /// anything else through [#with] with `currentcolor` read as this style's
+    /// colour.
+    ///
+    /// @param parent what `inherit` reads; null at the root
+    private ComputedStyle declare(
+            String property, List<Token> value, CssLength.Context context, @Nullable ComputedStyle parent) {
+        var keyword = GlobalKeyword.of(value);
+        if (keyword != null && LogicalProperties.isLogical(property)) {
+            // The sides this box's direction names, not the table's left to
+            // right: `margin-inline-start: inherit` in a right-to-left box
+            // inherits the right margin.
+            var style = this;
+            for (var physical : Objects.requireNonNull(
+                    LogicalProperties.physical(property, value, presence.direction()), "a keyword is one value")) {
+                style = keyword.apply(physical.property(), style, parent);
+            }
+            return style;
+        }
+        if (keyword != null) {
+            return keyword.apply(property, this, parent);
+        }
+        return with(property, CurrentColour.substitute(value, color), context);
     }
 
     /// This style with `declarations` applied **on top of it** — what a keyframe
@@ -381,10 +505,22 @@ public record ComputedStyle(
     public ComputedStyle applied(Map<String, List<Token>> declarations, CssLength.Context context) {
         Objects.requireNonNull(declarations, "declarations");
         Objects.requireNonNull(context, "context");
-        var own = new CssLength.Context((float) typography.size(), context.rootFontSize());
-        var style = this;
+        var own = context.withFontSize((float) typography.size()).withFace(typography.family(), typography.weight());
+        // A keyframe has no parent to hand: `inherit` in one keeps the element's
+        // own value, which is what it inherited unless a rule of its own said
+        // otherwise.
+        var style = withColourFirst(this, declarations, own, this);
+        // The direction before the rest, as in [#of]: a logical property names a
+        // side by it.
+        var direction = declarations.get("direction");
+        if (direction != null) {
+            style = style.declare("direction", direction, own, this);
+        }
         for (var entry : declarations.entrySet()) {
-            style = style.with(entry.getKey(), entry.getValue(), own);
+            var property = entry.getKey();
+            if (!"color".equals(property) && !"direction".equals(property)) {
+                style = style.declare(property, entry.getValue(), own, this);
+            }
         }
         return style;
     }
@@ -412,7 +548,11 @@ public record ComputedStyle(
                 && textAlign == other.textAlign
                 && textDecoration.equals(other.textDecoration)
                 && overflowWrap == other.overflowWrap
-                && wordBreak == other.wordBreak;
+                && wordBreak == other.wordBreak
+                && presence.visibility() == other.presence.visibility()
+                && presence.pointerEvents() == other.presence.pointerEvents()
+                && presence.userSelect() == other.presence.userSelect()
+                && presence.direction() == other.presence.direction();
     }
 
     /// [#INITIAL] with every inherited property taken from `parent`.
@@ -463,7 +603,11 @@ public record ComputedStyle(
                 // reason it inherits `white-space`: `.log { overflow-wrap:
                 // anywhere }` is about the lines inside, not the box.
                 .overflowWrap(parent.overflowWrap())
-                .wordBreak(parent.wordBreak());
+                .wordBreak(parent.wordBreak())
+                // And whether a box is seen, hit and selected, which CSS
+                // inherits so that `visibility: hidden` on a panel hides what
+                // is in it unless a child says `visible`.
+                .presence(INITIAL.presence().inheritingFrom(parent.presence()));
     }
 
     /// One declaration applied, or this style unchanged if it does not apply.
@@ -472,8 +616,19 @@ public record ComputedStyle(
             case "flex-direction" ->
                 keyword(value, FlexDirection.class).map(this::direction).orElseGet(() -> dropped(property, value));
 
+            // `stretch` is CSS's word for a flex container's start: there is
+            // nothing to stretch along the main axis.
             case "justify-content" ->
-                keyword(value, Justify.class).map(this::justifyContent).orElseGet(() -> dropped(property, value));
+                justify(value).map(this::justifyContent).orElseGet(() -> dropped(property, value));
+
+            // Read and checked, and nothing more: CSS ignores both on a flex
+            // item, and every box here is one. A value CSS would refuse still
+            // drops, so a typo is still caught.
+            case "justify-items", "justify-self" ->
+                selfAlignment(value, property.equals("justify-self")) ? read() : dropped(property, value);
+
+            // `<align> [<justify>]`, the one value being both when it is alone.
+            case "place-content", "place-items", "place-self" -> place(property, value);
 
             case "align-items" ->
                 keyword(value, Align.class).map(this::alignItems).orElseGet(() -> dropped(property, value));
@@ -603,7 +758,171 @@ public record ComputedStyle(
             // `hidden`, so the keyword is how a stylesheet says which of the
             // two a box is. `auto` resolves to SCROLL and is told
             // apart by the widget, not by the box.
-            case "overflow" -> overflow(value).map(this::overflow).orElseGet(() -> dropped(property, value));
+            case "overflow" -> overflows(value).orElseGet(() -> dropped(property, value));
+
+            case "overflow-x" -> overflow(value).map(this::overflowX).orElseGet(() -> dropped(property, value));
+
+            case "overflow-y" -> overflow(value).map(this::overflowY).orElseGet(() -> dropped(property, value));
+
+            // One writing mode, horizontal and left to right, so each logical
+            // property is the physical one it names: the inline start is the
+            // left and the block start the top.
+            case "margin-inline",
+                    "margin-block",
+                    "margin-inline-start",
+                    "margin-inline-end",
+                    "margin-block-start",
+                    "margin-block-end",
+                    "padding-inline",
+                    "padding-block",
+                    "padding-inline-start",
+                    "padding-inline-end",
+                    "padding-block-start",
+                    "padding-block-end",
+                    "inset-inline",
+                    "inset-block",
+                    "inset-inline-start",
+                    "inset-inline-end",
+                    "inset-block-start",
+                    "inset-block-end",
+                    "inline-size",
+                    "block-size",
+                    "min-inline-size",
+                    "max-inline-size",
+                    "min-block-size",
+                    "max-block-size" -> logical(property, value, context);
+
+            // `flex`, `none` and `contents`, the three that mean something when
+            // every box is a flex container. `block` and the rest are refused:
+            // a stylesheet that asked for flow layout would get a flex box
+            // laid out differently from what it wrote.
+            case "display" ->
+                keyword(value, Display.class)
+                        .map(v -> presence(presence.display(v)))
+                        .orElseGet(() -> dropped(property, value));
+
+            // `auto`, a number, or `width / height`.
+            case "aspect-ratio" ->
+                aspectRatio(value)
+                        .map(v -> presence(presence.aspectRatio(v)))
+                        .orElseGet(() -> dropped(property, value));
+
+            // Where the box is drawn among its siblings: later for a higher
+            // number, document order among equals, `auto` as 0. Not inherited.
+            case "z-index" ->
+                zIndex(value).map(v -> presence(presence.zIndex(v))).orElseGet(() -> dropped(property, value));
+
+            // Whether the box answers `@container` queries, and by which names.
+            // Neither inherits. `container` is `name [/ type]`.
+            case "container-type" ->
+                singleIdent(value)
+                        .map(ContainerType::parse)
+                        .map(v -> presence(
+                                presence.containment(presence.containment().type(v))))
+                        .orElseGet(() -> dropped(property, value));
+
+            case "container-name" ->
+                containerNames(value)
+                        .map(v -> presence(
+                                presence.containment(presence.containment().names(v))))
+                        .orElseGet(() -> dropped(property, value));
+
+            case "container" -> containerShorthand(value).orElseGet(() -> dropped(property, value));
+
+            // What `width` and `height` measure. A border takes room outside the
+            // padding, and `border-box`, the initial value here, keeps a
+            // fixed-size box that size. Not inherited.
+            case "box-sizing" ->
+                singleIdent(value)
+                        .map(BoxSizing::parse)
+                        .map(v -> presence(presence.boxSizing(v)))
+                        .orElseGet(() -> dropped(property, value));
+
+            // Where the box is laid out and drawn among its siblings: lower
+            // first, document order among equals. Focus keeps document order.
+            // Not inherited.
+            case "order" ->
+                order(value).map(v -> presence(presence.order(v))).orElseGet(() -> dropped(property, value));
+
+            // What part of the box is drawn, and how it is drawn over what is
+            // under it. None of the three inherits, and any of them makes the
+            // box a group drawn through a raster of its own.
+            // Filters applied, in order, to the box and its children drawn as
+            // one picture. `drop-shadow()` without a colour is in this
+            // element's `color`, which is known by now.
+            case "filter", "-webkit-filter" ->
+                FilterParser.parse(value, context, color)
+                        .map(v -> presence(
+                                presence.compositing(presence.compositing().filter(v))))
+                        .orElseGet(() -> dropped(property, value));
+
+            case "clip-path" ->
+                ClipPathParser.parse(value, context)
+                        .map(v -> presence(
+                                presence.compositing(presence.compositing().clip(v))))
+                        .orElseGet(() -> dropped(property, value));
+
+            case "mix-blend-mode" -> {
+                var name = singleIdent(value);
+                if (name.isPresent() && BlendMode.isNonSeparable(name.get())) {
+                    yield dropped(
+                            property,
+                            value,
+                            "is not supported: it mixes colour channels across each other, which no compositing"
+                                    + " operator here does");
+                }
+                yield name.map(BlendMode::parse)
+                        .map(v -> presence(
+                                presence.compositing(presence.compositing().blend(v))))
+                        .orElseGet(() -> dropped(property, value));
+            }
+
+            case "isolation" ->
+                singleIdent(value)
+                        .map(v -> v.toLowerCase(Locale.ROOT))
+                        .filter(v -> v.equals("auto") || v.equals("isolate"))
+                        .map(v -> presence(
+                                presence.compositing(presence.compositing().isolate(v.equals("isolate")))))
+                        .orElseGet(() -> dropped(property, value));
+
+            // Which way the inline axis runs. Inherited, and read before
+            // everything else, since a logical property means a side only once
+            // it is known.
+            case "direction" ->
+                singleIdent(value)
+                        .map(Direction::parse)
+                        .map(v -> presence(presence.direction(v)))
+                        .orElseGet(() -> dropped(property, value));
+
+            // Where the box's text takes its base direction from: its
+            // `direction`, each paragraph's first strong character, or every
+            // character forced its way. Not inherited.
+            case "unicode-bidi" ->
+                singleIdent(value)
+                        .map(UnicodeBidi::parse)
+                        .map(v -> presence(presence.unicodeBidi(v)))
+                        .orElseGet(() -> dropped(property, value));
+
+            // Whether the box is drawn, hit and focused; it keeps its room
+            // either way, which is the difference from `display: none`. All
+            // three inherit, and a child may say otherwise.
+            case "visibility" ->
+                singleIdent(value)
+                        .map(Presence.Visibility::parse)
+                        .map(v -> presence(presence.visibility(v)))
+                        .orElseGet(() -> dropped(property, value));
+
+            case "pointer-events" ->
+                singleIdent(value)
+                        .map(Presence.PointerEvents::parse)
+                        .map(v -> presence(presence.pointerEvents(v)))
+                        .orElseGet(() -> dropped(property, value));
+
+            case "user-select", "-webkit-user-select" ->
+                singleIdent(value)
+                        .map(Presence.UserSelect::parse)
+                        .map(v -> presence(presence.userSelect(v)))
+                        .orElseGet(() -> dropped(property, value));
             // A box with text is a measured leaf, so narrowing it *wraps* the
             // text instead of overflowing it. A menu row, an `option`, a
             // `select-value` and a segment all want to be cut instead:
@@ -632,15 +951,16 @@ public record ComputedStyle(
             // `start`/`end`, which they stop being under RTL. `justify` is a
             // CSS value this engine cannot do, and the warning says so.
             case "text-align" ->
-                keyword(value, TextAlign.class)
-                        .map(this::textAlign)
-                        .orElseGet(() -> isKeyword(value, "justify")
-                                ? dropped(
-                                        property,
-                                        value,
-                                        "is not supported: a line is placed, never respaced,"
-                                                + " so it keeps the alignment it inherited")
-                                : dropped(property, value));
+                keyword(value, TextAlign.class).map(this::textAlign).orElseGet(() -> dropped(property, value));
+
+            // Where a justified line takes its room: its word gaps, or nowhere.
+            // Inherited, with the rest of how letters are set.
+            case "text-justify" ->
+                singleIdent(value)
+                        .map(TextJustify::parse)
+                        .map(v -> typography(
+                                typography.lettering(typography.lettering().justify(v))))
+                        .orElseGet(() -> dropped(property, value));
             // The shorthand and the one longhand of it that exists here. CSS's
             // shorthand also carries a colour and a style, and a declaration that
             // names either is dropped whole rather than half-applied: a rule that
@@ -668,8 +988,27 @@ public record ComputedStyle(
                         .orElseGet(() -> dropped(property, value));
 
             case "background-position" ->
-                Optional.ofNullable(BackgroundParser.position(value, context))
-                        .map(v -> fill(fill.position(v)))
+                Optional.ofNullable(BackgroundParser.positions(value, context))
+                        .map(v -> fill(fill.positions(v)))
+                        .orElseGet(() -> dropped(property, value));
+
+            case "background-position-x", "background-position-y" ->
+                Optional.ofNullable(BackgroundParser.axis(value, property.endsWith("x"), context))
+                        .map(v -> fill(
+                                fill.positions(BackgroundParser.withAxis(fill.positions(), v, property.endsWith("x")))))
+                        .orElseGet(() -> dropped(property, value));
+
+            // Which of the box's three rectangles a layer is placed in and cut
+            // to: the border box, the box less its border, and less its
+            // padding too.
+            case "background-origin" ->
+                Optional.ofNullable(BackgroundParser.boxes(value))
+                        .map(v -> fill(fill.origins(v)))
+                        .orElseGet(() -> dropped(property, value));
+
+            case "background-clip" ->
+                Optional.ofNullable(BackgroundParser.boxes(value))
+                        .map(v -> fill(fill.clips(v)))
                         .orElseGet(() -> dropped(property, value));
 
             // How large a `url()` layer is drawn and whether it is tiled: comma
@@ -758,6 +1097,36 @@ public record ComputedStyle(
                         })
                         .orElseGet(() -> dropped(property, value));
 
+            // The style on its own, one side or all four. `none` and `hidden`
+            // are a side with no width, which is how a border without a style
+            // is carried here.
+            case "border-style" ->
+                sides(value, ComputedStyle::sideStyle)
+                        .map(v -> decoration(decoration.border(new Border(
+                                styled(decoration.border().top(), v.get(0)),
+                                styled(decoration.border().right(), v.get(1)),
+                                styled(decoration.border().bottom(), v.get(2)),
+                                styled(decoration.border().left(), v.get(3))))))
+                        .orElseGet(() -> dropped(property, value));
+
+            case "border-top-style", "border-right-style", "border-bottom-style", "border-left-style" ->
+                sideStyle(value)
+                        .map(v -> {
+                            var side = sideOf(property);
+                            var border = decoration.border();
+                            return decoration(decoration.border(border.side(side, styled(border.side(side), v))));
+                        })
+                        .orElseGet(() -> dropped(property, value));
+
+            // One corner of `border-radius`.
+            case "border-top-left-radius",
+                    "border-top-right-radius",
+                    "border-bottom-right-radius",
+                    "border-bottom-left-radius" ->
+                cornerRadius(value, context)
+                        .map(v -> decoration(decoration.corners(corner(decoration.corners(), property, v))))
+                        .orElseGet(() -> dropped(property, value));
+
             case "outline-width" ->
                 points(value, context)
                         .map(v -> decoration(decoration.outlineWidth(v)))
@@ -822,7 +1191,19 @@ public record ComputedStyle(
             // indicator, and the design system pins it solid.
             case "outline" ->
                 stroke(value, context)
-                        .map(v -> decoration(decoration.outline(v.width(), v.argb(), decoration.outlineOffset())))
+                        .map(v -> decoration(
+                                decoration.outline(v.width(), v.argb(), v.style(), decoration.outlineOffset())))
+                        .orElseGet(() -> dropped(property, value));
+
+            // How the ring is drawn: any style a border side may be, `auto` as
+            // `solid`. `none` takes the ring away, which CSS says by computing
+            // its width to zero.
+            case "outline-style" ->
+                outlineStyle(value)
+                        .map(v -> decoration(
+                                v.isEmpty()
+                                        ? decoration.outlineWidth(0)
+                                        : decoration.outlineStyle(Objects.requireNonNull(Border.Style.parse(v)))))
                         .orElseGet(() -> dropped(property, value));
 
             // A shadow paints outside the box's own rectangle, as the focus ring
@@ -846,9 +1227,12 @@ public record ComputedStyle(
             case "font-family" ->
                 family(value).map(v -> typography(typography.family(v))).orElseGet(() -> dropped(property, value));
 
+            // A length, a percentage of the parent's size, or a keyword: the
+            // absolute sizes are steps from the root's size, which is what
+            // `medium` means here, and `smaller` and `larger` a step from the
+            // parent's. The context is the parent's here; see [#of].
             case "font-size" ->
-                points(value, context)
-                        .filter(v -> v > 0)
+                fontSize(value, context)
                         .map(v -> typography(typography.size(v)))
                         .orElseGet(() -> dropped(property, value));
 
@@ -862,6 +1246,23 @@ public record ComputedStyle(
             case "font-style" ->
                 fontStyle(value).map(v -> typography(typography.style(v))).orElseGet(() -> dropped(property, value));
 
+            // How wide a face with a `wdth` axis is drawn: a percentage or one of
+            // CSS's nine keywords. A face without the axis ignores it.
+            case "font-stretch", "font-width" ->
+                FontValues.stretch(value)
+                        .map(v -> typography(
+                                typography.variation(typography.variation().stretch(v))))
+                        .orElseGet(() -> dropped(property, value));
+
+            // Where a variable face is set along its own axes: `normal`, or
+            // `"tag" number` pairs. Applied after the weight and the stretch, so
+            // it has the last word on `wght` and `wdth` too, as in CSS.
+            case "font-variation-settings" ->
+                FontValues.variationSettings(value)
+                        .map(v -> typography(
+                                typography.variation(typography.variation().settings(v))))
+                        .orElseGet(() -> dropped(property, value));
+
             // A bare number is a multiple of the font size -- `line-height: 1.4`
             // -- which is the form that survives a font-size change on a
             // descendant. A length is absolute. Both are CSS's.
@@ -869,6 +1270,52 @@ public record ComputedStyle(
                 lineHeight(value, context)
                         .map(v -> typography(typography.lineHeight(v)))
                         .orElseGet(() -> dropped(property, value));
+
+            // Added to what the face sets, after every character and to every
+            // space: `normal` is nothing, and a length may be negative, which
+            // tightens. Resolved here against the element's own size, so a
+            // child inherits the pixels.
+            case "letter-spacing" ->
+                spacing(value, context)
+                        .map(v -> typography(
+                                typography.lettering(typography.lettering().letterSpacing(v))))
+                        .orElseGet(() -> dropped(property, value));
+
+            case "word-spacing" ->
+                spacing(value, context)
+                        .map(v -> typography(
+                                typography.lettering(typography.lettering().wordSpacing(v))))
+                        .orElseGet(() -> dropped(property, value));
+
+            // How many lines a paragraph keeps, the last marked when more were
+            // cut. `-webkit-line-clamp` is the spelling most sheets have, and
+            // means the same here: a browser also wants a `-webkit-box`, which
+            // is a layout this toolkit does not have and does not need for it.
+            case "line-clamp", "-webkit-line-clamp" ->
+                lineClampCount(value).map(this::lineClamp).orElseGet(() -> dropped(property, value));
+
+            // Shadows under the glyphs, first on top, each an offset, a blur and
+            // a colour, the element's own when none is written. No spread and no
+            // `inset`, which CSS's text shadow does not have either.
+            case "text-shadow" ->
+                Optional.ofNullable(Shadow.parse(value, context, color))
+                        .filter(list -> list.stream().noneMatch(s -> s.inset() || s.spread() != 0))
+                        .map(v -> typography(
+                                typography.lettering(typography.lettering().shadows(v))))
+                        .orElseGet(() -> dropped(property, value));
+
+            // The case the text is drawn in, never the text a widget holds; one
+            // character for one, so a field's caret still lands where it did.
+            case "text-transform" ->
+                keyword(value, TextTransform.class)
+                        .map(v -> typography(
+                                typography.lettering(typography.lettering().transform(v))))
+                        .orElseGet(() -> dropped(property, value));
+
+            // `[style] [weight] size[/line-height] family`. Every part it does not
+            // name goes back to its initial value, as CSS's shorthands do: the
+            // style and weight to normal, the line height to `normal`.
+            case "font" -> font(value, context).orElseGet(() -> dropped(property, value));
 
             // --- motion: transitions and keyframe animations ------------------
             //
@@ -915,12 +1362,41 @@ public record ComputedStyle(
                         .map(v -> animations(animations.fillModes(v)))
                         .orElseGet(() -> dropped(property, value));
 
+            // A paused animation holds where its clock stopped, and goes on
+            // from there when it runs again.
+            case "animation-play-state" ->
+                eachOf(value, part -> single(part, KeyframeAnimations.PlayState::parse))
+                        .map(v -> animations(animations.playStates(v)))
+                        .orElseGet(() -> dropped(property, value));
+
             case "transition" ->
                 transitionList(value)
                         // A lambda and not `this::transitions`: the accessor and the
                         // wither share a name, and a method reference cannot say
                         // which.
                         .map(v -> transitions(v))
+                        .orElseGet(() -> dropped(property, value));
+
+            // The shorthand's four parts, each a list. They pair up by position
+            // with `transition-property`, which is why the lists are kept.
+            case "transition-property" ->
+                transitionProperties(value)
+                        .map(v -> transitions(Transitions.of(transitions.lists().properties(v))))
+                        .orElseGet(() -> dropped(property, value));
+
+            case "transition-duration" ->
+                eachOf(value, part -> nonNegative(milliseconds(part)))
+                        .map(v -> transitions(Transitions.of(transitions.lists().durations(v))))
+                        .orElseGet(() -> dropped(property, value));
+
+            case "transition-timing-function" ->
+                eachOf(value, ComputedStyle::easing)
+                        .map(v -> transitions(Transitions.of(transitions.lists().easings(v))))
+                        .orElseGet(() -> dropped(property, value));
+
+            case "transition-delay" ->
+                eachOf(value, ComputedStyle::milliseconds)
+                        .map(v -> transitions(Transitions.of(transitions.lists().delays(v))))
                         .orElseGet(() -> dropped(property, value));
 
             // Unlike every other property here, these two are resolved but not
@@ -933,7 +1409,7 @@ public record ComputedStyle(
             // the origin first should not lose it.
             case "transform" -> {
                 var parsed = Transform.parse(value, transform.origin(), context);
-                yield parsed == null ? dropped(property, value) : transform(parsed);
+                yield parsed == null ? dropped(property, value) : transform(transform.functions(parsed.functions()));
             }
 
             case "transform-origin" -> {
@@ -941,11 +1417,44 @@ public record ComputedStyle(
                 yield parsed == null ? dropped(property, value) : transform(transform.origin(parsed));
             }
 
+            // The three a rule sets apart from `transform`, applied before it:
+            // translate, then rotate, then scale.
+            case "translate" -> {
+                var parsed = IndividualTransform.parseTranslate(value, context);
+                yield parsed == null
+                        ? dropped(property, value)
+                        : transform(transform.individual(transform.individual().translate(parsed.function())));
+            }
+
+            case "rotate" -> {
+                var parsed = IndividualTransform.parseRotate(value, context);
+                yield parsed == null
+                        ? dropped(property, value)
+                        : transform(transform.individual(transform.individual().rotate(parsed.function())));
+            }
+
+            case "scale" -> {
+                var parsed = IndividualTransform.parseScale(value, context);
+                yield parsed == null
+                        ? dropped(property, value)
+                        : transform(transform.individual(transform.individual().scale(parsed.function())));
+            }
+
+            case "transform-box" ->
+                Optional.ofNullable(single(value, TransformBox::named))
+                        .map(v -> transform(transform.box(v)))
+                        .orElseGet(() -> dropped(property, value));
+
             // Resolved here and read by neither engine: the cursor is carried
             // through the cascade to the box tree, where hit testing picks it
             // up. The enum's names are CSS's, so `ew-resize` maps onto
             // `EW_RESIZE` by the same rule `space-between` maps onto Yoga.
             case "cursor" -> keyword(value, Cursor.class).map(this::cursor).orElseGet(() -> dropped(property, value));
+
+            // `all` takes nothing but the global keywords, which never reach
+            // this switch: [#declare] applies them first. Anything else is not
+            // a value it has.
+            case "all" -> dropped(property, value);
 
             // Not an error. CSS has more properties than this record, and a
             // stylesheet naming one the toolkit does not implement should not
@@ -988,7 +1497,13 @@ public record ComputedStyle(
     private static final int REPORT_LIMIT = 512;
 
     private ComputedStyle dropped(String property, List<Token> value) {
-        return dropped(property, value, "is not a valid value");
+        return dropped(
+                property,
+                value,
+                CssLength.parse(value, CssLength.Context.DEFAULT) instanceof Length.Mixed
+                        ? "mixes a percentage with a length, which only a painted property can take: the layout"
+                                + " engine sizes a box by one or the other"
+                        : "is not a valid value");
     }
 
     /// The same, saying why: for a value CSS defines and this engine does not
@@ -1044,7 +1559,10 @@ public record ComputedStyle(
         Objects.requireNonNull(property, "property");
         Objects.requireNonNull(value, "value");
         Objects.requireNonNull(context, "context");
-        return INITIAL.with(property, value, context) != INITIAL;
+        if (GlobalKeyword.of(value) != null) {
+            return Properties.isReadable(property);
+        }
+        return INITIAL.with(property, CurrentColour.substitute(value, INITIAL.color()), context) != INITIAL;
     }
 
     /// Whether `property` is one the engine has at all, whatever its value.
@@ -1131,9 +1649,12 @@ public record ComputedStyle(
                 flexBasis,
                 position,
                 inset,
-                overflow,
+                overflowX,
+                overflowY,
+                presence,
                 whiteSpace,
                 textOverflow,
+                lineClamp,
                 textAlign,
                 textDecoration,
                 overflowWrap,
@@ -1169,9 +1690,12 @@ public record ComputedStyle(
                 flexBasis,
                 position,
                 inset,
-                overflow,
+                overflowX,
+                overflowY,
+                presence,
                 whiteSpace,
                 textOverflow,
+                lineClamp,
                 textAlign,
                 textDecoration,
                 overflowWrap,
@@ -1207,9 +1731,12 @@ public record ComputedStyle(
                 flexBasis,
                 position,
                 inset,
-                overflow,
+                overflowX,
+                overflowY,
+                presence,
                 whiteSpace,
                 textOverflow,
+                lineClamp,
                 textAlign,
                 textDecoration,
                 overflowWrap,
@@ -1248,9 +1775,12 @@ public record ComputedStyle(
                 flexBasis,
                 position,
                 inset,
-                overflow,
+                overflowX,
+                overflowY,
+                presence,
                 whiteSpace,
                 textOverflow,
+                lineClamp,
                 textAlign,
                 textDecoration,
                 overflowWrap,
@@ -1286,9 +1816,12 @@ public record ComputedStyle(
                 flexBasis,
                 position,
                 inset,
-                overflow,
+                overflowX,
+                overflowY,
+                presence,
                 whiteSpace,
                 textOverflow,
+                lineClamp,
                 textAlign,
                 textDecoration,
                 overflowWrap,
@@ -1324,9 +1857,12 @@ public record ComputedStyle(
                 flexBasis,
                 position,
                 inset,
-                overflow,
+                overflowX,
+                overflowY,
+                presence,
                 whiteSpace,
                 textOverflow,
+                lineClamp,
                 textAlign,
                 textDecoration,
                 overflowWrap,
@@ -1362,9 +1898,12 @@ public record ComputedStyle(
                 flexBasis,
                 position,
                 inset,
-                overflow,
+                overflowX,
+                overflowY,
+                presence,
                 whiteSpace,
                 textOverflow,
+                lineClamp,
                 textAlign,
                 textDecoration,
                 overflowWrap,
@@ -1400,9 +1939,12 @@ public record ComputedStyle(
                 flexBasis,
                 position,
                 inset,
-                overflow,
+                overflowX,
+                overflowY,
+                presence,
                 whiteSpace,
                 textOverflow,
+                lineClamp,
                 textAlign,
                 textDecoration,
                 overflowWrap,
@@ -1438,9 +1980,12 @@ public record ComputedStyle(
                 flexBasis,
                 position,
                 inset,
-                overflow,
+                overflowX,
+                overflowY,
+                presence,
                 whiteSpace,
                 textOverflow,
+                lineClamp,
                 textAlign,
                 textDecoration,
                 overflowWrap,
@@ -1476,9 +2021,12 @@ public record ComputedStyle(
                 flexBasis,
                 position,
                 inset,
-                overflow,
+                overflowX,
+                overflowY,
+                presence,
                 whiteSpace,
                 textOverflow,
+                lineClamp,
                 textAlign,
                 textDecoration,
                 overflowWrap,
@@ -1516,9 +2064,12 @@ public record ComputedStyle(
                 flexBasis,
                 position,
                 inset,
-                overflow,
+                overflowX,
+                overflowY,
+                presence,
                 whiteSpace,
                 textOverflow,
+                lineClamp,
                 textAlign,
                 textDecoration,
                 overflowWrap,
@@ -1564,9 +2115,12 @@ public record ComputedStyle(
                 flexBasis,
                 position,
                 inset,
-                overflow,
+                overflowX,
+                overflowY,
+                presence,
                 whiteSpace,
                 textOverflow,
+                lineClamp,
                 textAlign,
                 textDecoration,
                 overflowWrap,
@@ -1603,9 +2157,12 @@ public record ComputedStyle(
                 flexBasis,
                 position,
                 inset,
-                overflow,
+                overflowX,
+                overflowY,
+                presence,
                 whiteSpace,
                 textOverflow,
+                lineClamp,
                 textAlign,
                 textDecoration,
                 overflowWrap,
@@ -1642,9 +2199,12 @@ public record ComputedStyle(
                 flexBasis,
                 position,
                 inset,
-                overflow,
+                overflowX,
+                overflowY,
+                presence,
                 whiteSpace,
                 textOverflow,
+                lineClamp,
                 textAlign,
                 textDecoration,
                 overflowWrap,
@@ -1680,9 +2240,12 @@ public record ComputedStyle(
                 flexBasis,
                 position,
                 inset,
-                overflow,
+                overflowX,
+                overflowY,
+                presence,
                 whiteSpace,
                 textOverflow,
+                lineClamp,
                 textAlign,
                 textDecoration,
                 overflowWrap,
@@ -1721,9 +2284,12 @@ public record ComputedStyle(
                 v,
                 position,
                 inset,
-                overflow,
+                overflowX,
+                overflowY,
+                presence,
                 whiteSpace,
                 textOverflow,
+                lineClamp,
                 textAlign,
                 textDecoration,
                 overflowWrap,
@@ -1759,9 +2325,12 @@ public record ComputedStyle(
                 flexBasis,
                 position,
                 inset,
-                overflow,
+                overflowX,
+                overflowY,
+                presence,
                 whiteSpace,
                 textOverflow,
+                lineClamp,
                 textAlign,
                 textDecoration,
                 overflowWrap,
@@ -1797,9 +2366,12 @@ public record ComputedStyle(
                 flexBasis,
                 v,
                 inset,
-                overflow,
+                overflowX,
+                overflowY,
+                presence,
                 whiteSpace,
                 textOverflow,
+                lineClamp,
                 textAlign,
                 textDecoration,
                 overflowWrap,
@@ -1835,9 +2407,12 @@ public record ComputedStyle(
                 flexBasis,
                 position,
                 v,
-                overflow,
+                overflowX,
+                overflowY,
+                presence,
                 whiteSpace,
                 textOverflow,
+                lineClamp,
                 textAlign,
                 textDecoration,
                 overflowWrap,
@@ -1853,6 +2428,8 @@ public record ComputedStyle(
                 cursor);
     }
 
+    /// This style with both axes' overflow replaced: `overflow` with one
+    /// value.
     public ComputedStyle overflow(Overflow v) {
         return new ComputedStyle(
                 direction,
@@ -1874,8 +2451,146 @@ public record ComputedStyle(
                 position,
                 inset,
                 v,
+                v,
+                presence,
                 whiteSpace,
                 textOverflow,
+                lineClamp,
+                textAlign,
+                textDecoration,
+                overflowWrap,
+                wordBreak,
+                fill,
+                color,
+                opacity,
+                decoration,
+                typography,
+                transitions,
+                animations,
+                transform,
+                cursor);
+    }
+
+    /// This style with the horizontal overflow replaced: `overflow-x`.
+    public ComputedStyle overflowX(Overflow v) {
+        return new ComputedStyle(
+                direction,
+                justifyContent,
+                alignItems,
+                alignSelf,
+                alignContent,
+                wrap,
+                width,
+                height,
+                limits,
+                margin,
+                padding,
+                rowGap,
+                columnGap,
+                flexGrow,
+                flexShrink,
+                flexBasis,
+                position,
+                inset,
+                v,
+                overflowY,
+                presence,
+                whiteSpace,
+                textOverflow,
+                lineClamp,
+                textAlign,
+                textDecoration,
+                overflowWrap,
+                wordBreak,
+                fill,
+                color,
+                opacity,
+                decoration,
+                typography,
+                transitions,
+                animations,
+                transform,
+                cursor);
+    }
+
+    /// This style with the vertical overflow replaced: `overflow-y`.
+    public ComputedStyle overflowY(Overflow v) {
+        return new ComputedStyle(
+                direction,
+                justifyContent,
+                alignItems,
+                alignSelf,
+                alignContent,
+                wrap,
+                width,
+                height,
+                limits,
+                margin,
+                padding,
+                rowGap,
+                columnGap,
+                flexGrow,
+                flexShrink,
+                flexBasis,
+                position,
+                inset,
+                overflowX,
+                v,
+                presence,
+                whiteSpace,
+                textOverflow,
+                lineClamp,
+                textAlign,
+                textDecoration,
+                overflowWrap,
+                wordBreak,
+                fill,
+                color,
+                opacity,
+                decoration,
+                typography,
+                transitions,
+                animations,
+                transform,
+                cursor);
+    }
+
+    /// The two axes joined, which is what the box gets: the one that cuts
+    /// most, `scroll` over `hidden` over `clip` over `visible`. Yoga and the
+    /// clip are one value each, so an axis left `visible` beside a clipped one
+    /// is clipped too, which is also what CSS computes for every pair but
+    /// `visible` beside `clip`.
+    public Overflow overflow() {
+        return overflowX.compareTo(overflowY) >= 0 ? overflowX : overflowY;
+    }
+
+    /// This style with `display` and `aspect-ratio` replaced.
+    public ComputedStyle presence(Presence v) {
+        return new ComputedStyle(
+                direction,
+                justifyContent,
+                alignItems,
+                alignSelf,
+                alignContent,
+                wrap,
+                width,
+                height,
+                limits,
+                margin,
+                padding,
+                rowGap,
+                columnGap,
+                flexGrow,
+                flexShrink,
+                flexBasis,
+                position,
+                inset,
+                overflowX,
+                overflowY,
+                v,
+                whiteSpace,
+                textOverflow,
+                lineClamp,
                 textAlign,
                 textDecoration,
                 overflowWrap,
@@ -1911,9 +2626,12 @@ public record ComputedStyle(
                 flexBasis,
                 position,
                 inset,
-                overflow,
+                overflowX,
+                overflowY,
+                presence,
                 v,
                 textOverflow,
+                lineClamp,
                 textAlign,
                 textDecoration,
                 overflowWrap,
@@ -1949,8 +2667,58 @@ public record ComputedStyle(
                 flexBasis,
                 position,
                 inset,
-                overflow,
+                overflowX,
+                overflowY,
+                presence,
                 whiteSpace,
+                v,
+                lineClamp,
+                textAlign,
+                textDecoration,
+                overflowWrap,
+                wordBreak,
+                fill,
+                color,
+                opacity,
+                decoration,
+                typography,
+                transitions,
+                animations,
+                transform,
+                cursor);
+    }
+
+    /// `line-clamp`: keep `v` lines, 0 for all of them.
+    ///
+    /// @throws IllegalArgumentException if `v` is negative
+    public ComputedStyle lineClamp(int v) {
+        if (v < 0) {
+            throw new IllegalArgumentException("a paragraph keeps a number of lines, not " + v);
+        }
+        return new ComputedStyle(
+                direction,
+                justifyContent,
+                alignItems,
+                alignSelf,
+                alignContent,
+                wrap,
+                width,
+                height,
+                limits,
+                margin,
+                padding,
+                rowGap,
+                columnGap,
+                flexGrow,
+                flexShrink,
+                flexBasis,
+                position,
+                inset,
+                overflowX,
+                overflowY,
+                presence,
+                whiteSpace,
+                textOverflow,
                 v,
                 textAlign,
                 textDecoration,
@@ -1987,9 +2755,12 @@ public record ComputedStyle(
                 flexBasis,
                 position,
                 inset,
-                overflow,
+                overflowX,
+                overflowY,
+                presence,
                 whiteSpace,
                 textOverflow,
+                lineClamp,
                 v,
                 textDecoration,
                 overflowWrap,
@@ -2027,9 +2798,12 @@ public record ComputedStyle(
                 flexBasis,
                 position,
                 inset,
-                overflow,
+                overflowX,
+                overflowY,
+                presence,
                 whiteSpace,
                 textOverflow,
+                lineClamp,
                 textAlign,
                 v,
                 overflowWrap,
@@ -2066,9 +2840,12 @@ public record ComputedStyle(
                 flexBasis,
                 position,
                 inset,
-                overflow,
+                overflowX,
+                overflowY,
+                presence,
                 whiteSpace,
                 textOverflow,
+                lineClamp,
                 textAlign,
                 textDecoration,
                 v,
@@ -2105,9 +2882,12 @@ public record ComputedStyle(
                 flexBasis,
                 position,
                 inset,
-                overflow,
+                overflowX,
+                overflowY,
+                presence,
                 whiteSpace,
                 textOverflow,
+                lineClamp,
                 textAlign,
                 textDecoration,
                 overflowWrap,
@@ -2137,7 +2917,27 @@ public record ComputedStyle(
     /// [Box#text(dev.goldberry.text.Paragraph, int,
     /// TextFlow)].
     public TextFlow textFlow() {
-        return new TextFlow(whiteSpace, textOverflow, textAlign, textDecoration, overflowWrap, wordBreak);
+        return new TextFlow(whiteSpace, textOverflow, lineAlign(), textDecoration, overflowWrap, wordBreak, lineClamp);
+    }
+
+    /// `text-align` as a line is placed in this box: `start` and `end` turned
+    /// into the sides they are for its `direction`. [#textAlign()] is the
+    /// keyword, which is what a child inherits.
+    ///
+    /// Under `unicode-bidi: plaintext` each paragraph has its own direction, so
+    /// `start` and `end` are left as they are for the paragraph to place.
+    public TextAlign lineAlign() {
+        var align = textAlign == TextAlign.JUSTIFY && typography.lettering().justify() == TextJustify.NONE
+                ? TextAlign.START
+                : textAlign;
+        return presence.unicodeBidi() == UnicodeBidi.PLAINTEXT ? align : align.in(presence.direction());
+    }
+
+    /// Where this box's text takes its base direction from: its `direction`
+    /// and `unicode-bidi`, which is what a paragraph of its text is shaped
+    /// under.
+    public Directionality directionality() {
+        return Directionality.of(presence.direction(), presence.unicodeBidi());
     }
 
     /// The background's colour, under any gradient layers on it — what a
@@ -2172,9 +2972,12 @@ public record ComputedStyle(
                 flexBasis,
                 position,
                 inset,
-                overflow,
+                overflowX,
+                overflowY,
+                presence,
                 whiteSpace,
                 textOverflow,
+                lineClamp,
                 textAlign,
                 textDecoration,
                 overflowWrap,
@@ -2210,9 +3013,12 @@ public record ComputedStyle(
                 flexBasis,
                 position,
                 inset,
-                overflow,
+                overflowX,
+                overflowY,
+                presence,
                 whiteSpace,
                 textOverflow,
+                lineClamp,
                 textAlign,
                 textDecoration,
                 overflowWrap,
@@ -2248,9 +3054,12 @@ public record ComputedStyle(
                 flexBasis,
                 position,
                 inset,
-                overflow,
+                overflowX,
+                overflowY,
+                presence,
                 whiteSpace,
                 textOverflow,
+                lineClamp,
                 textAlign,
                 textDecoration,
                 overflowWrap,
@@ -2286,9 +3095,12 @@ public record ComputedStyle(
                 flexBasis,
                 position,
                 inset,
-                overflow,
+                overflowX,
+                overflowY,
+                presence,
                 whiteSpace,
                 textOverflow,
+                lineClamp,
                 textAlign,
                 textDecoration,
                 overflowWrap,
@@ -2324,9 +3136,12 @@ public record ComputedStyle(
                 flexBasis,
                 position,
                 inset,
-                overflow,
+                overflowX,
+                overflowY,
+                presence,
                 whiteSpace,
                 textOverflow,
+                lineClamp,
                 textAlign,
                 textDecoration,
                 overflowWrap,
@@ -2362,9 +3177,12 @@ public record ComputedStyle(
                 flexBasis,
                 position,
                 inset,
-                overflow,
+                overflowX,
+                overflowY,
+                presence,
                 whiteSpace,
                 textOverflow,
+                lineClamp,
                 textAlign,
                 textDecoration,
                 overflowWrap,
@@ -2401,9 +3219,12 @@ public record ComputedStyle(
                 flexBasis,
                 position,
                 inset,
-                overflow,
+                overflowX,
+                overflowY,
+                presence,
                 whiteSpace,
                 textOverflow,
+                lineClamp,
                 textAlign,
                 textDecoration,
                 overflowWrap,
@@ -2439,9 +3260,12 @@ public record ComputedStyle(
                 flexBasis,
                 position,
                 inset,
-                overflow,
+                overflowX,
+                overflowY,
+                presence,
                 whiteSpace,
                 textOverflow,
+                lineClamp,
                 textAlign,
                 textDecoration,
                 overflowWrap,
@@ -2477,9 +3301,12 @@ public record ComputedStyle(
                 flexBasis,
                 position,
                 inset,
-                overflow,
+                overflowX,
+                overflowY,
+                presence,
                 whiteSpace,
                 textOverflow,
+                lineClamp,
                 textAlign,
                 textDecoration,
                 overflowWrap,
@@ -2541,7 +3368,7 @@ public record ComputedStyle(
     /// family has.
     private static Optional<Integer> weight(List<Token> value) {
         var tokens = value.stream().filter(t -> !t.is(TokenType.WHITESPACE)).toList();
-        if (tokens.size() != 1) {
+        if (tokens.size() != 1 && !Maths.isMath(value)) {
             return Optional.empty();
         }
         var token = tokens.getFirst();
@@ -2575,11 +3402,130 @@ public record ComputedStyle(
         };
     }
 
-    /// A `line-height`: a length, or a bare number meaning a multiple of the size.
+    /// What `line-height: normal` is: 1.2 times the size, which is within a
+    /// pixel of what a browser gives Inter from its own metrics. The face's
+    /// metrics are the text engine's and are not known when a style is
+    /// computed.
+    private static final double NORMAL_LINE_HEIGHT = 1.2;
+
+    /// The ratio CSS's absolute size keywords stand at from `medium`.
+    private static final Map<String, Double> FONT_SIZE_KEYWORDS = Map.of(
+            "xx-small", 3.0 / 5,
+            "x-small", 3.0 / 4,
+            "small", 8.0 / 9,
+            "medium", 1.0,
+            "large", 6.0 / 5,
+            "x-large", 3.0 / 2,
+            "xx-large", 2.0,
+            "xxx-large", 3.0);
+
+    /// How much `larger` grows a size by, and `smaller` shrinks it.
+    private static final double RELATIVE_SIZE_STEP = 1.2;
+
+    /// A `font-size`, in logical pixels: a length, a percentage of
+    /// `context`'s font size, an absolute keyword stepped from `context`'s
+    /// root size, or `smaller` and `larger`. Above zero.
+    private static Optional<Double> fontSize(List<Token> value, CssLength.Context context) {
+        var tokens = value.stream().filter(t -> !t.is(TokenType.WHITESPACE)).toList();
+        if (tokens.size() == 1 && tokens.getFirst().is(TokenType.PERCENTAGE)) {
+            return Optional.of(tokens.getFirst().numeric() / 100 * context.fontSize())
+                    .filter(v -> v > 0);
+        }
+        if (tokens.size() == 1 && tokens.getFirst().is(TokenType.IDENT)) {
+            var word = tokens.getFirst().text().toLowerCase(Locale.ROOT);
+            var step = FONT_SIZE_KEYWORDS.get(word);
+            if (step != null) {
+                return Optional.of(step * context.rootFontSize());
+            }
+            return switch (word) {
+                case "larger" -> Optional.of(context.fontSize() * RELATIVE_SIZE_STEP);
+                case "smaller" -> Optional.of(context.fontSize() / RELATIVE_SIZE_STEP);
+                default -> Optional.empty();
+            };
+        }
+        return points(value, context).filter(v -> v > 0);
+    }
+
+    /// The `font` shorthand applied, or empty when it is not one.
+    ///
+    /// The style and the weight come first, in either order, then the size,
+    /// then an optional `/line-height`, and the family last. A system font name
+    /// (`caption`, `menu`) is not one, since the desktop's fonts are not the
+    /// toolkit's.
+    private Optional<ComputedStyle> font(List<Token> value, CssLength.Context context) {
+        var tokens = value.stream().filter(t -> !t.is(TokenType.WHITESPACE)).toList();
+        var style = BundledFont.Style.UPRIGHT;
+        var weight = 400;
+        var index = 0;
+        Double size = null;
+        while (index < tokens.size() && size == null) {
+            var token = List.of(tokens.get(index));
+            var asSize = fontSize(token, context);
+            if (asSize.isPresent() && !tokens.get(index).isIdent("normal")) {
+                size = asSize.get();
+            } else if (tokens.get(index).isIdent("normal")) {
+                // `normal` is the style's word and the weight's, and both are
+                // their defaults already.
+            } else if (fontStyle(token).isPresent()) {
+                style = fontStyle(token).get();
+            } else if (weight(token).isPresent()) {
+                weight = weight(token).get();
+            } else {
+                return Optional.empty();
+            }
+            index++;
+        }
+        if (size == null) {
+            return Optional.empty();
+        }
+        double lineHeight = -NORMAL_LINE_HEIGHT;
+        if (index < tokens.size() && tokens.get(index).isDelim('/')) {
+            if (index + 1 >= tokens.size()) {
+                return Optional.empty();
+            }
+            // Against the size this declaration sets, which is what `em` in a
+            // line height means.
+            var own = context.withFontSize(size.floatValue());
+            var height = lineHeight(List.of(tokens.get(index + 1)), own);
+            if (height.isEmpty()) {
+                return Optional.empty();
+            }
+            lineHeight = height.get();
+            index += 2;
+        }
+        var family = family(value.subList(indexOf(value, tokens, index), value.size()));
+        if (index >= tokens.size() || family.isEmpty()) {
+            return Optional.empty();
+        }
+        // The spacing is not the font's, and `font` leaves it where it was.
+        return Optional.of(
+                typography(new Typography(family.get(), size, weight, style, lineHeight, typography.lettering())));
+    }
+
+    /// Where the `index`th of `tokens`, the non-whitespace ones, sits in
+    /// `value`.
+    private static int indexOf(List<Token> value, List<Token> tokens, int index) {
+        if (index >= tokens.size()) {
+            return value.size();
+        }
+        var target = tokens.get(index);
+        for (var i = 0; i < value.size(); i++) {
+            if (value.get(i) == target) {
+                return i;
+            }
+        }
+        return value.size();
+    }
+
+    /// A `line-height`: `normal`, a length, or a bare number meaning a multiple
+    /// of the size.
     ///
     /// Returned already negated in the ratio case, which is how [Typography]
     /// carries both forms in one field.
     private static Optional<Double> lineHeight(List<Token> value, CssLength.Context context) {
+        if (isKeyword(value, "normal")) {
+            return Optional.of(-NORMAL_LINE_HEIGHT);
+        }
 
         var absolute = points(value, context);
         if (absolute.isPresent()) {
@@ -2601,8 +3547,10 @@ public record ComputedStyle(
     /// `none` is the whole list turned off, which is how a rule cancels a
     /// transition an earlier one declared.
     ///
-    /// A timing function outside the subset is skipped with a warning and the
-    /// entry keeps the default curve; see [#isForeignEasing].
+    /// `all` names every animatable property, and a later entry for one of
+    /// them wins over it, as CSS says. A timing function that cannot be read is
+    /// skipped with a warning and the entry keeps the default curve; see
+    /// [#unreadableEasing].
     ///
     /// **The whole declaration is dropped if any entry is bad**, and the
     /// property that made it bad is named. Half a transition list is worse than
@@ -2623,33 +3571,43 @@ public record ComputedStyle(
             return Optional.of(Transitions.NONE);
         }
 
-        var parsed = new java.util.EnumMap<Transitions.Animatable, Transitions.Timing>(Transitions.Animatable.class);
+        var names = new ArrayList<String>();
+        var durations = new ArrayList<Double>();
+        var easings = new ArrayList<Easing>();
+        var delays = new ArrayList<Double>();
         for (var entry : entries) {
             var parts = split(entry);
             if (parts.isEmpty()) {
                 return Optional.empty();
             }
 
-            Transitions.Animatable property = null;
+            String property = null;
             Easing easing = null;
             Double duration = null;
             Double delay = null;
 
             for (var part : parts) {
-                if (isForeignEasing(part)) {
-                    ignoredEasing("transition", part);
+                if (CssEasing.looksLikeEasing(part)) {
+                    var curve = CssEasing.parse(part);
+                    if (curve == null) {
+                        unreadableEasing("transition", part);
+                        continue;
+                    }
+                    if (easing != null) {
+                        return Optional.empty();
+                    }
+                    easing = curve;
                     continue;
                 }
                 if (part.size() == 1 && part.getFirst().is(TokenType.IDENT)) {
                     var name = part.getFirst().text();
-                    var asProperty = Transitions.Animatable.parse(name);
-                    if (asProperty != null && property == null) {
-                        property = asProperty;
+                    if (property == null && name.equalsIgnoreCase("all")) {
+                        property = "all";
                         continue;
                     }
-                    var asEasing = Easing.parse(name);
-                    if (asEasing != null && easing == null) {
-                        easing = asEasing;
+                    var asProperty = Transitions.Animatable.parse(name);
+                    if (asProperty != null && property == null) {
+                        property = asProperty.cssName();
                         continue;
                     }
                     return Optional.empty();
@@ -2670,19 +3628,49 @@ public record ComputedStyle(
                 }
             }
 
-            if (property == null || duration == null) {
+            if (property == null || duration == null || duration < 0) {
                 return Optional.empty();
             }
-            parsed.put(
-                    property,
-                    new Transitions.Timing(
-                            duration,
-                            // The default for anything that does not say: an enter
-                            // curve, because most transitions are something arriving.
-                            easing == null ? Easing.EASE_ENTER : easing,
-                            delay == null ? 0 : delay));
+            names.add(property);
+            durations.add(duration);
+            // The default for anything that does not say: an enter curve,
+            // because most transitions are something arriving.
+            easings.add(easing == null ? Easing.EASE_ENTER : easing);
+            delays.add(delay == null ? 0 : delay);
         }
-        return Optional.of(new Transitions(parsed));
+        return Optional.of(Transitions.of(new Transitions.Lists(names, durations, easings, delays)));
+    }
+
+    /// `transition-property`: `none`, or a comma-separated list of animatable
+    /// properties and `all`. A name that is not one is the whole declaration
+    /// dropped, as in the shorthand.
+    private static Optional<List<String>> transitionProperties(List<Token> value) {
+        var entries = splitOnCommas(value);
+        if (entries.size() == 1
+                && entries.getFirst().size() == 1
+                && entries.getFirst().getFirst().isIdent("none")) {
+            return Optional.of(List.of());
+        }
+        var names = new ArrayList<String>();
+        for (var entry : entries) {
+            var parts = split(entry);
+            if (parts.size() != 1
+                    || parts.getFirst().size() != 1
+                    || !parts.getFirst().getFirst().is(TokenType.IDENT)) {
+                return Optional.empty();
+            }
+            var name = parts.getFirst().getFirst().text();
+            if (name.equalsIgnoreCase("all")) {
+                names.add("all");
+                continue;
+            }
+            var property = Transitions.Animatable.parse(name);
+            if (property == null) {
+                return Optional.empty();
+            }
+            names.add(property.cssName());
+        }
+        return Optional.of(names);
     }
 
     /// An `animation` shorthand: a comma-separated list of
@@ -2696,8 +3684,8 @@ public record ComputedStyle(
     /// `animation-name`.
     ///
     /// All or nothing, like `transition`: a list with one bad entry is dropped
-    /// whole. A timing function outside the subset is the exception, for the
-    /// reason [#isForeignEasing] gives.
+    /// whole. A timing function that cannot be read is the exception, for the
+    /// reason [#unreadableEasing] gives.
     private static Optional<KeyframeAnimations> animationList(List<Token> value) {
         var entries = splitOnCommas(value);
         if (entries.size() == 1
@@ -2712,6 +3700,7 @@ public record ComputedStyle(
         var counts = new ArrayList<Double>();
         var directions = new ArrayList<KeyframeAnimations.Direction>();
         var fills = new ArrayList<KeyframeAnimations.FillMode>();
+        var states = new ArrayList<KeyframeAnimations.PlayState>();
         for (var entry : entries) {
             String name = null;
             Double duration = null;
@@ -2720,9 +3709,15 @@ public record ComputedStyle(
             Easing easing = null;
             KeyframeAnimations.Direction direction = null;
             KeyframeAnimations.FillMode fill = null;
+            KeyframeAnimations.PlayState state = null;
             for (var part : split(entry)) {
-                if (isForeignEasing(part)) {
-                    ignoredEasing("animation", part);
+                if (easing == null && CssEasing.looksLikeEasing(part)) {
+                    var curve = CssEasing.parse(part);
+                    if (curve == null) {
+                        unreadableEasing("animation", part);
+                    } else {
+                        easing = curve;
+                    }
                     continue;
                 }
                 if (part.size() != 1) {
@@ -2763,11 +3758,6 @@ public record ComputedStyle(
                         count = Double.POSITIVE_INFINITY;
                         continue;
                     }
-                    var asEasing = Easing.parse(word);
-                    if (easing == null && asEasing != null) {
-                        easing = asEasing;
-                        continue;
-                    }
                     var asDirection = KeyframeAnimations.Direction.parse(word);
                     if (direction == null && asDirection != null) {
                         direction = asDirection;
@@ -2776,6 +3766,11 @@ public record ComputedStyle(
                     var asFill = KeyframeAnimations.FillMode.parse(word);
                     if (fill == null && asFill != null && !word.equalsIgnoreCase("none")) {
                         fill = asFill;
+                        continue;
+                    }
+                    var asState = KeyframeAnimations.PlayState.parse(word);
+                    if (state == null && asState != null) {
+                        state = asState;
                         continue;
                     }
                 }
@@ -2794,11 +3789,13 @@ public record ComputedStyle(
             counts.add(count == null ? 1 : count);
             directions.add(direction == null ? KeyframeAnimations.Direction.NORMAL : direction);
             fills.add(fill == null ? KeyframeAnimations.FillMode.NONE : fill);
+            states.add(state == null ? KeyframeAnimations.PlayState.RUNNING : state);
         }
         if (durations.contains(-1.0)) {
             return Optional.empty();
         }
-        return Optional.of(new KeyframeAnimations(names, durations, easings, delays, counts, directions, fills));
+        return Optional.of(
+                new KeyframeAnimations(names, durations, easings, delays, counts, directions, fills, states));
     }
 
     /// `animation-name`: `none`, or a comma-separated list of names.
@@ -2848,42 +3845,23 @@ public record ComputedStyle(
     }
 
     private static @Nullable Easing easing(List<Token> part) {
-        return single(part, Easing::parse);
+        return CssEasing.parse(part);
     }
 
-    /// Whether `part` of a `transition` or `animation` shorthand is a timing
-    /// function the subset does not have: `cubic-bezier(…)`, `steps(…)`,
-    /// `linear(…)`, `step-start`, `step-end`, or a word starting `ease` that is
-    /// not one of the curves [Easing#parse] reads.
+    /// Warns, once per text, that a timing function in `property` was skipped:
+    /// one that looks like a curve and cannot be read, such as
+    /// `cubic-bezier(2, 0, 0, 1)` or `steps(0)`.
     ///
     /// **Such a part drops itself, not the declaration.** The curve is the least
     /// of what a shorthand says; dropping `orc-pulse 900ms … infinite alternate`
     /// whole over its curve leaves a node that never moves, where skipping the
     /// curve leaves one that moves on the default.
-    private static boolean isForeignEasing(List<Token> part) {
-        if (part.isEmpty()) {
-            return false;
-        }
-        var first = part.getFirst();
-        if (first.is(TokenType.FUNCTION)) {
-            var function = first.text().toLowerCase(Locale.ROOT);
-            return function.equals("cubic-bezier") || function.equals("steps") || function.equals("linear");
-        }
-        if (part.size() != 1 || !first.is(TokenType.IDENT)) {
-            return false;
-        }
-        var word = first.text().toLowerCase(Locale.ROOT);
-        return (word.startsWith("ease") || word.equals("step-start") || word.equals("step-end"))
-                && Easing.parse(word) == null;
-    }
-
-    /// Warns, once per text, that a timing function in `property` was skipped.
-    private static void ignoredEasing(String property, List<Token> part) {
+    private static void unreadableEasing(String property, List<Token> part) {
         var text = text(part);
         if (REPORTED.size() >= REPORT_LIMIT || REPORTED.add(property + ":easing:" + text)) {
             LOG.warn(
-                    "ignoring the timing function {} in \"{}\": the subset has ease-enter, ease-exit, linear and"
-                            + " CSS's ease keywords, so the default ease-enter runs instead",
+                    "ignoring the timing function {} in \"{}\": it is not one CSS can read, so the default"
+                            + " ease-enter runs instead",
                     text,
                     property);
         }
@@ -2930,7 +3908,7 @@ public record ComputedStyle(
         return parsed == null ? OptionalDouble.empty() : OptionalDouble.of(parsed);
     }
 
-    /// A time in `ms` or `s`, as milliseconds.
+    /// A time in `ms` or `s`, or a math function of times, as milliseconds.
     ///
     /// Unitless zero is accepted, because `0` has no duration to be wrong about
     /// — the same allowance [CssLength] makes for a zero length. Anything else
@@ -2938,6 +3916,10 @@ public record ComputedStyle(
     /// milliseconds, and guessing would make the one stylesheet that meant
     /// seconds silently wrong.
     private static @Nullable Double milliseconds(List<Token> part) {
+        if (Maths.isMath(part)) {
+            var math = Maths.fold(part, CssLength.Context.DEFAULT);
+            return math != null && math.kind() == Quantity.Kind.TIME ? math.value() : null;
+        }
         if (part.size() != 1) {
             return null;
         }
@@ -2985,23 +3967,9 @@ public record ComputedStyle(
     /// `outline:` shorthand.
     private record Stroke(double width, int argb, Border.Style style) {
 
-        /// The side this stroke draws, saying once if its style is one the
-        /// painter draws solid.
+        /// The side this stroke draws.
         Border.Line line() {
-            if (style.isDrawnSolid() && style != Border.Style.SOLID) {
-                reportOnce(
-                        "border-style:" + style,
-                        "drawing border style \"{}\" as solid: the bevelled styles are not drawn",
-                        style.name().toLowerCase(Locale.ROOT));
-            }
             return new Border.Line(width, argb, style);
-        }
-    }
-
-    /// Logs `message` at warn the first time `key` is seen — see [#REPORTED].
-    private static void reportOnce(String key, String message, Object argument) {
-        if (REPORTED.size() >= REPORT_LIMIT || REPORTED.add(key)) {
-            LOG.warn(message, argument);
         }
     }
 
@@ -3052,8 +4020,10 @@ public record ComputedStyle(
         return Optional.ofNullable(CssColor.parse(value));
     }
 
+    /// A length the layout engine can take: not a [Length.Mixed], which it has
+    /// no spelling for.
     private static Optional<Length> length(List<Token> value, CssLength.Context context) {
-        return Optional.ofNullable(CssLength.parse(value, context));
+        return Optional.ofNullable(CssLength.parse(value, context)).filter(v -> !(v instanceof Length.Mixed));
     }
 
     /// [#length] for a property the layout engine has **no `auto` function
@@ -3136,8 +4106,8 @@ public record ComputedStyle(
         Length basis = null;
         for (var part : parts) {
             var asNumber = part.size() == 1 && part.getFirst().is(TokenType.NUMBER)
-                    ? part.getFirst().numeric()
-                    : null;
+                    ? (Double) part.getFirst().numeric()
+                    : mathNumber(part);
             if (asNumber != null && basis == null && (grow == null || shrink == null)) {
                 if (asNumber < 0) {
                     return Optional.empty();
@@ -3181,7 +4151,7 @@ public record ComputedStyle(
         var parts = new ArrayList<Length>();
         for (var token : split(value)) {
             var length = CssLength.parse(token, context);
-            if (length == null || (!auto && length == Length.AUTO)) {
+            if (length == null || length instanceof Length.Mixed || (!auto && length == Length.AUTO)) {
                 return Optional.empty();
             }
             parts.add(length);
@@ -3221,40 +4191,163 @@ public record ComputedStyle(
                 });
     }
 
+    /// One `border-style` keyword: a style, or `none` and `hidden`, which are
+    /// the empty string here and a side with no width once applied.
+    private static Optional<String> sideStyle(List<Token> value) {
+        var tokens = value.stream().filter(t -> !t.is(TokenType.WHITESPACE)).toList();
+        if (tokens.size() != 1 || !tokens.getFirst().is(TokenType.IDENT)) {
+            return Optional.empty();
+        }
+        var word = tokens.getFirst().text();
+        if (word.equalsIgnoreCase("none") || word.equalsIgnoreCase("hidden")) {
+            return Optional.of("");
+        }
+        return Border.Style.parse(word) == null ? Optional.empty() : Optional.of(word);
+    }
+
+    /// An `outline-style` keyword: a border style's name, `solid` for `auto`,
+    /// or empty for `none`.
+    private static Optional<String> outlineStyle(List<Token> value) {
+        var tokens = value.stream().filter(t -> !t.is(TokenType.WHITESPACE)).toList();
+        if (tokens.size() == 1 && tokens.getFirst().isIdent("auto")) {
+            return Optional.of("solid");
+        }
+        return tokens.size() == 1 && tokens.getFirst().isIdent("hidden") ? Optional.empty() : sideStyle(value);
+    }
+
+    /// `line` in the style `keyword` names, as [#sideStyle] read it.
+    private static Border.Line styled(Border.Line line, String keyword) {
+        var style = Border.Style.parse(keyword);
+        return style == null ? line.width(0) : line.style(style);
+    }
+
+    /// `corners` with the one `property` names set to `radius`.
+    private static Corners corner(Corners corners, String property, Corners.Radius radius) {
+        return switch (property) {
+            case "border-top-left-radius" ->
+                new Corners(radius, corners.topRightRadius(), corners.bottomRightRadius(), corners.bottomLeftRadius());
+            case "border-top-right-radius" ->
+                new Corners(corners.topLeftRadius(), radius, corners.bottomRightRadius(), corners.bottomLeftRadius());
+            case "border-bottom-right-radius" ->
+                new Corners(corners.topLeftRadius(), corners.topRightRadius(), radius, corners.bottomLeftRadius());
+            default ->
+                new Corners(corners.topLeftRadius(), corners.topRightRadius(), corners.bottomRightRadius(), radius);
+        };
+    }
+
+    /// One corner's longhand: a radius for both axes, or a horizontal and then
+    /// a vertical one, each a length, a percentage or a `calc()` of both.
+    private static Optional<Corners.Radius> cornerRadius(List<Token> value, CssLength.Context context) {
+        var parts = split(value);
+        if (parts.isEmpty() || parts.size() > 2) {
+            return Optional.empty();
+        }
+        var x = radiusLength(parts.getFirst(), context);
+        var y = parts.size() == 1 ? x : radiusLength(parts.get(1), context);
+        if (x == null || y == null) {
+            return Optional.empty();
+        }
+        return Optional.of(radius(x, y));
+    }
+
+    /// A radius as a length: pixels, a percentage, or both; never negative,
+    /// never `auto`.
+    private static @Nullable Length radiusLength(List<Token> part, CssLength.Context context) {
+        return switch (CssLength.parse(part, context)) {
+            case Length.Points points when points.value() >= 0 -> points;
+            case Length.Percent percent when percent.value() >= 0 -> percent;
+            case Length.Mixed mixed when mixed.percent() >= 0 -> mixed;
+            case null, default -> null;
+        };
+    }
+
+    /// The corner whose horizontal radius is `x` and vertical `y`.
+    private static Corners.Radius radius(Length x, Length y) {
+        return new Corners.Radius(pixelsOf(x), pixelsOf(y), percentOf(x), percentOf(y));
+    }
+
+    private static double pixelsOf(Length length) {
+        return switch (length) {
+            case Length.Points points -> points.value();
+            case Length.Mixed mixed -> mixed.points();
+            case Length.Percent _, Length.Keyword _ -> 0;
+        };
+    }
+
+    private static double percentOf(Length length) {
+        return switch (length) {
+            case Length.Percent percent -> percent.value();
+            case Length.Mixed mixed -> mixed.percent();
+            case Length.Points _, Length.Keyword _ -> 0;
+        };
+    }
+
     /// Which side a border longhand names: the second word of `border-top` and
     /// of `border-top-width`.
     private static Border.Side sideOf(String property) {
         return Border.Side.valueOf(property.split("-", 3)[1].toUpperCase(Locale.ROOT));
     }
 
-    /// CSS's 1-4 value corner shorthand, in CSS's order.
+    /// CSS's 1-4 value corner shorthand, in CSS's order, and after a `/` the
+    /// same again for the vertical radii.
     ///
     /// The order is the one CSS names the corners in — top-left, top-right,
     /// bottom-right, bottom-left, clockwise from the top-left — and the fill-in
     /// rule is CSS's own: one value is every corner, two are the two diagonals,
-    /// and three name the fourth as the opposite of the second.
+    /// and three name the fourth as the opposite of the second. With no `/` the
+    /// vertical radii are the horizontal ones, and every corner is circular.
+    ///
+    /// Each radius is a length, a percentage of the box's width (horizontal)
+    /// or height (vertical), or a `calc()` of both, resolved when the box is
+    /// painted.
     ///
     /// Empty if any part fails to parse, for [#insets]'s reason: a half-applied
-    /// shorthand is harder to see than one that did nothing. That is also what
-    /// refuses the elliptical form — `10px / 20px` has a `/` in it, which is not
-    /// a length, and `RoundRect` draws circles.
-    private static Optional<Corners> corners(List<Token> value, CssLength.Context context) {
-        var parts = new ArrayList<Double>();
-        for (var token : split(value)) {
-            var radius = points(token, context);
-            if (radius.isEmpty()) {
-                return Optional.empty();
+    /// shorthand is harder to see than one that did nothing.
+    static Optional<Corners> corners(List<Token> value, CssLength.Context context) {
+        var slash = -1;
+        var depth = 0;
+        for (var i = 0; i < value.size(); i++) {
+            var token = value.get(i);
+            if (token.is(TokenType.OPEN_PAREN) || token.is(TokenType.FUNCTION)) {
+                depth++;
+            } else if (token.is(TokenType.CLOSE_PAREN)) {
+                depth = Math.max(0, depth - 1);
+            } else if (depth == 0 && token.isDelim('/')) {
+                if (slash >= 0) {
+                    return Optional.empty();
+                }
+                slash = i;
             }
-            parts.add(radius.get());
         }
-        return Optional.ofNullable(
-                switch (parts.size()) {
-                    case 1 -> Corners.all(parts.getFirst());
-                    case 2 -> new Corners(parts.get(0), parts.get(1), parts.get(0), parts.get(1));
-                    case 3 -> new Corners(parts.get(0), parts.get(1), parts.get(2), parts.get(1));
-                    case 4 -> new Corners(parts.get(0), parts.get(1), parts.get(2), parts.get(3));
-                    default -> null;
-                });
+        var horizontal = cornerLengths(slash < 0 ? value : value.subList(0, slash), context);
+        var vertical = slash < 0 ? horizontal : cornerLengths(value.subList(slash + 1, value.size()), context);
+        if (horizontal == null || vertical == null) {
+            return Optional.empty();
+        }
+        return Optional.of(new Corners(
+                radius(horizontal[0], vertical[0]),
+                radius(horizontal[1], vertical[1]),
+                radius(horizontal[2], vertical[2]),
+                radius(horizontal[3], vertical[3])));
+    }
+
+    /// One to four radii, filled in to four by CSS's rule, or null.
+    private static Length @Nullable [] cornerLengths(List<Token> value, CssLength.Context context) {
+        var parts = new ArrayList<Length>();
+        for (var token : split(value)) {
+            var radius = radiusLength(token, context);
+            if (radius == null) {
+                return null;
+            }
+            parts.add(radius);
+        }
+        return switch (parts.size()) {
+            case 1 -> new Length[] {parts.getFirst(), parts.getFirst(), parts.getFirst(), parts.getFirst()};
+            case 2 -> new Length[] {parts.get(0), parts.get(1), parts.get(0), parts.get(1)};
+            case 3 -> new Length[] {parts.get(0), parts.get(1), parts.get(2), parts.get(1)};
+            case 4 -> new Length[] {parts.get(0), parts.get(1), parts.get(2), parts.get(3)};
+            default -> null;
+        };
     }
 
     /// Splits a value on whitespace into the component values of a shorthand.
@@ -3324,6 +4417,107 @@ public record ComputedStyle(
         LEFT
     }
 
+    /// `letter-spacing` or `word-spacing`: `normal`, or a length in pixels,
+    /// which may be negative. A percentage is not a spacing here: CSS reads
+    /// one for `word-spacing` as a share of a space's advance, which only the
+    /// shaper knows.
+    private static Optional<Double> spacing(List<Token> value, CssLength.Context context) {
+        if (isKeyword(value, "normal")) {
+            return Optional.of(0.0);
+        }
+        return Optional.ofNullable(CssLength.parse(value, context))
+                .filter(Length.Points.class::isInstance)
+                .map(v -> (double) ((Length.Points) v).value());
+    }
+
+    /// `line-clamp`: `none`, which is 0, or a whole number of lines from 1.
+    private static Optional<Integer> lineClampCount(List<Token> value) {
+        if (isKeyword(value, "none")) {
+            return Optional.of(0);
+        }
+        return Optional.ofNullable(CssLength.parseNumber(value))
+                .filter(n -> n >= 1 && n == Math.rint(n) && n <= Integer.MAX_VALUE)
+                .map(Double::intValue);
+    }
+
+    /// `z-index`: `auto`, which is 0, or a whole number, negative allowed.
+    private static Optional<Integer> zIndex(List<Token> value) {
+        if (isKeyword(value, "auto")) {
+            return Optional.of(0);
+        }
+        return Optional.ofNullable(CssLength.parseNumber(value))
+                .filter(n -> n == Math.rint(n) && Math.abs(n) <= Integer.MAX_VALUE)
+                .filter(n -> value.stream().noneMatch(t -> t.is(TokenType.PERCENTAGE)))
+                .map(Double::intValue);
+    }
+
+    /// `container-name`: `none`, or one or more names.
+    private static Optional<List<String>> containerNames(List<Token> value) {
+        var tokens = value.stream().filter(t -> !t.is(TokenType.WHITESPACE)).toList();
+        if (tokens.isEmpty() || !tokens.stream().allMatch(t -> t.is(TokenType.IDENT))) {
+            return Optional.empty();
+        }
+        if (tokens.size() == 1 && tokens.getFirst().isIdent("none")) {
+            return Optional.of(List.of());
+        }
+        var names = new ArrayList<String>();
+        for (var token : tokens) {
+            var name = token.text();
+            switch (name.toLowerCase(Locale.ROOT)) {
+                case "none", "and", "or", "not", "initial", "inherit", "unset", "default" -> {
+                    return Optional.empty();
+                }
+                default -> names.add(name);
+            }
+        }
+        return Optional.of(List.copyOf(names));
+    }
+
+    /// `container: <name> [/ <type>]`, which resets the type to `normal` when
+    /// none is written.
+    private Optional<ComputedStyle> containerShorthand(List<Token> value) {
+        var slash = -1;
+        for (var i = 0; i < value.size(); i++) {
+            if (value.get(i).isDelim('/')) {
+                slash = i;
+                break;
+            }
+        }
+        var names = containerNames(slash < 0 ? value : value.subList(0, slash));
+        var type = slash < 0
+                ? Optional.of(ContainerType.NORMAL)
+                : singleIdent(value.subList(slash + 1, value.size())).map(ContainerType::parse);
+        if (names.isEmpty() || type.isEmpty()) {
+            return Optional.empty();
+        }
+        return Optional.of(presence(presence.containment(new Containment(type.get(), names.get()))));
+    }
+
+    /// `order`: a whole number, negative allowed.
+    private static Optional<Integer> order(List<Token> value) {
+        return Optional.ofNullable(CssLength.parseNumber(value))
+                .filter(n -> n == Math.rint(n) && Math.abs(n) <= Integer.MAX_VALUE)
+                .filter(n -> value.stream().noneMatch(t -> t.is(TokenType.PERCENTAGE)))
+                .map(Double::intValue);
+    }
+
+    /// The one identifier `value` is, or empty.
+    private static Optional<String> singleIdent(List<Token> value) {
+        var tokens = value.stream().filter(t -> !t.is(TokenType.WHITESPACE)).toList();
+        return tokens.size() == 1 && tokens.getFirst().is(TokenType.IDENT)
+                ? Optional.of(tokens.getFirst().text())
+                : Optional.empty();
+    }
+
+    /// A math function that folds to a plain number, or null.
+    private static @Nullable Double mathNumber(List<Token> part) {
+        if (!Maths.isMath(part)) {
+            return null;
+        }
+        var folded = Maths.fold(part, CssLength.Context.DEFAULT);
+        return folded != null && folded.kind() == Quantity.Kind.NUMBER ? folded.value() : null;
+    }
+
     private static Optional<Double> number(List<Token> value) {
         return Optional.ofNullable(CssLength.parseNumber(value));
     }
@@ -3345,9 +4539,9 @@ public record ComputedStyle(
     /// full CSS and identical to the flex pair in a subset with one writing mode
     /// and no grid, which is what makes the mapping exact rather than
     /// approximate. `left` and `right` are deliberately absent: they are
-    /// `justify-content` only, they are *not* the same as `start`/`end` under
-    /// RTL, and a paragraph approximates bidi rather than refusing it, so the
-    /// toolkit cannot promise they would stay equivalent.
+    /// `justify-content` only, and they are *not* the same as `start`/`end`
+    /// under `direction: rtl`, so the toolkit cannot promise they would stay
+    /// equivalent.
     private static final java.util.Map<String, String> KEYWORD_ALIASES = java.util.Map.of(
             "START", "FLEX_START",
             "END", "FLEX_END");
@@ -3435,6 +4629,121 @@ public record ComputedStyle(
     /// rule can act on.
     ///
     /// Read more: [Scrollbars](https://goldberry.dev/docs/guide/styling.html#themes-density-and-scrollbars).
+    /// `overflow`: one value for both axes, or the horizontal then the vertical.
+    private Optional<ComputedStyle> overflows(List<Token> value) {
+        var words = split(value);
+        if (words.isEmpty() || words.size() > 2) {
+            return Optional.empty();
+        }
+        var x = overflow(words.getFirst());
+        var y = overflow(words.getLast());
+        if (x.isEmpty() || y.isEmpty()) {
+            return Optional.empty();
+        }
+        return Optional.of(overflowX(x.get()).overflowY(y.get()));
+    }
+
+    /// A style equal to this one and not this one: what an arm answers for a
+    /// declaration it read and that changes nothing, since a dropped one is
+    /// told apart by being answered with this very style.
+    private ComputedStyle read() {
+        return justifyContent(justifyContent);
+    }
+
+    /// `justify-content`, with `stretch` read as the start.
+    private static Optional<Justify> justify(List<Token> value) {
+        var tokens = value.stream().filter(t -> !t.is(TokenType.WHITESPACE)).toList();
+        if (tokens.size() == 1 && tokens.getFirst().isIdent("stretch")) {
+            return Optional.of(Justify.FLEX_START);
+        }
+        return keyword(value, Justify.class);
+    }
+
+    /// The positions `safe` and `unsafe` may come before.
+    private static final Set<String> POSITIONS =
+            Set.of("center", "start", "end", "self-start", "self-end", "flex-start", "flex-end", "left", "right");
+
+    /// Whether `value` is one CSS reads for `justify-items`, or with `auto`
+    /// for `justify-self`.
+    private static boolean selfAlignment(List<Token> value, boolean self) {
+        var words = value.stream()
+                .filter(t -> !t.is(TokenType.WHITESPACE))
+                .map(t -> t.is(TokenType.IDENT) ? t.text().toLowerCase(Locale.ROOT) : "")
+                .toList();
+        return switch (words.size()) {
+            case 1 ->
+                switch (words.getFirst()) {
+                    case "auto" -> self;
+                    case "legacy" -> !self;
+                    case "normal",
+                            "stretch",
+                            "baseline",
+                            "center",
+                            "start",
+                            "end",
+                            "self-start",
+                            "self-end",
+                            "flex-start",
+                            "flex-end",
+                            "left",
+                            "right" -> true;
+                    default -> false;
+                };
+            case 2 -> {
+                var first = words.getFirst();
+                var second = words.getLast();
+                if ((first.equals("first") || first.equals("last")) && second.equals("baseline")) {
+                    yield true;
+                }
+                if (first.equals("safe") || first.equals("unsafe")) {
+                    yield POSITIONS.contains(second);
+                }
+                // `legacy left` and `left legacy`, for `justify-items` only.
+                yield !self
+                        && words.contains("legacy")
+                        && (words.contains("left") || words.contains("right") || words.contains("center"));
+            }
+            default -> false;
+        };
+    }
+
+    /// `place-content`, `place-items` or `place-self`: the alignment, then the
+    /// justification, one value being both.
+    private ComputedStyle place(String property, List<Token> value) {
+        var words = split(value);
+        if (words.isEmpty() || words.size() > 2) {
+            return dropped(property, value);
+        }
+        var axis = property.substring("place-".length());
+        var align = words.getFirst();
+        var justify = words.getLast();
+        var aligned = switch (axis) {
+            case "content" -> keyword(align, Align.class).map(this::alignContent);
+            case "items" -> keyword(align, Align.class).map(this::alignItems);
+            default -> keyword(align, Align.class).map(this::alignSelf);
+        };
+        if (aligned.isEmpty()) {
+            return dropped(property, value);
+        }
+        if (axis.equals("content")) {
+            return justify(justify).map(v -> aligned.get().justifyContent(v)).orElseGet(() -> dropped(property, value));
+        }
+        return selfAlignment(justify, axis.equals("self")) ? aligned.get() : dropped(property, value);
+    }
+
+    /// A logical property, applied as the physical ones it is here.
+    private ComputedStyle logical(String property, List<Token> value, CssLength.Context context) {
+        var physical = LogicalProperties.physical(property, value, presence.direction());
+        if (physical == null) {
+            return dropped(property, value);
+        }
+        var style = this;
+        for (var declaration : physical) {
+            style = style.with(declaration.property(), declaration.value(), context);
+        }
+        return style;
+    }
+
     private static Optional<Overflow> overflow(List<Token> value) {
         var tokens = value.stream().filter(t -> !t.is(TokenType.WHITESPACE)).toList();
         if (tokens.size() == 1
@@ -3443,6 +4752,32 @@ public record ComputedStyle(
             return Optional.of(Overflow.SCROLL);
         }
         return keyword(value, Overflow.class);
+    }
+
+    /// `aspect-ratio`: `auto` (NaN), a number, or `width / height`, both above
+    /// zero. CSS's `auto 16 / 9`, a fallback ratio for a box with content of
+    /// its own, is read as the ratio alone.
+    private static Optional<Double> aspectRatio(List<Token> value) {
+        var tokens = new ArrayList<>(
+                value.stream().filter(t -> !t.is(TokenType.WHITESPACE)).toList());
+        if (tokens.size() == 1 && tokens.getFirst().isIdent("auto")) {
+            return Optional.of(Double.NaN);
+        }
+        tokens.removeIf(t -> t.isIdent("auto"));
+        if (tokens.size() == 1
+                && tokens.getFirst().is(TokenType.NUMBER)
+                && tokens.getFirst().numeric() > 0) {
+            return Optional.of(tokens.getFirst().numeric());
+        }
+        if (tokens.size() == 3
+                && tokens.get(0).is(TokenType.NUMBER)
+                && tokens.get(1).isDelim('/')
+                && tokens.get(2).is(TokenType.NUMBER)
+                && tokens.get(0).numeric() > 0
+                && tokens.get(2).numeric() > 0) {
+            return Optional.of(tokens.get(0).numeric() / tokens.get(2).numeric());
+        }
+        return Optional.empty();
     }
 
     /// Whether `value` is the one keyword `word`, in any case.

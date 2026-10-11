@@ -209,11 +209,11 @@ class ParagraphCacheTest {
         var cache = ParagraphCache.create();
 
         // It used to throw here, and nothing is refused any more: the
-        // paragraph approximates right-to-left text rather than declining it, so
-        // there is no string this cache can be asked for and cannot answer.
+        // paragraph splits right-to-left text into runs, so there is no string
+        // this cache can be asked for and cannot answer.
         var held = cache.paragraph(font, "مرحبا بالعالم");
 
-        assertTrue(held.isBidiApproximate(), "and it is honest about what it did");
+        assertTrue(held.isBidirectional(), "placed in visual order");
         assertEquals(1, cache.size());
         assertEquals(1, cache.misses());
         assertSame(held, cache.paragraph(font, "مرحبا بالعالم"), "cached like any other");

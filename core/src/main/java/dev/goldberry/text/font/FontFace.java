@@ -1,11 +1,13 @@
 package dev.goldberry.text.font;
 
+import java.util.List;
 import java.util.Objects;
 
 import dev.goldberry.assets.BundledAssets;
 import dev.goldberry.assets.BundledFont;
 import dev.goldberry.natives.harfbuzz.ShapedFont;
 import dev.goldberry.paint.GlyphFace;
+import dev.goldberry.text.font.sfnt.VariationAxes;
 
 /// One typeface: everything about a font except the size.
 ///
@@ -48,6 +50,7 @@ public final class FontFace implements AutoCloseable {
     private final GlyphFace painter;
     private final int unitsPerEm;
     private final Coverage coverage;
+    private final List<VariationAxes.Axis> axes;
 
     private boolean closed;
 
@@ -69,6 +72,7 @@ public final class FontFace implements AutoCloseable {
         // Read here because the bytes are here: neither library keeps them where
         // Java can see them, and a face is opened once and kept.
         this.coverage = Coverage.of(data);
+        this.axes = VariationAxes.of(data);
     }
 
     /// Parses a typeface from the bytes of a font file.
@@ -107,6 +111,13 @@ public final class FontFace implements AutoCloseable {
     /// so such a face draws exactly what it drew before fallbacks existed.
     public Coverage coverage() {
         return coverage;
+    }
+
+    /// The axes this face can be set along, read from its `fvar` table when it
+    /// was opened: empty for a static face, which is what an instance of a
+    /// variable one is too.
+    public List<VariationAxes.Axis> axes() {
+        return axes;
     }
 
     /// Whether the face has been closed.

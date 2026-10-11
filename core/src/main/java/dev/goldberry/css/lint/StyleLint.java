@@ -16,6 +16,7 @@ import dev.goldberry.css.Stylesheet;
 import dev.goldberry.css.cascade.CascadeLayer;
 import dev.goldberry.css.cascade.StyleResolver;
 import dev.goldberry.css.parse.Token;
+import dev.goldberry.css.select.PseudoElement;
 import dev.goldberry.css.select.Selector;
 import dev.goldberry.css.value.CssLength;
 import dev.goldberry.log.Logs;
@@ -62,13 +63,15 @@ import dev.goldberry.log.Logs;
 /// [Logging and diagnostics](https://goldberry.dev/docs/guide/logging.html#failure-messages-and-what-they-mean).
 public final class StyleLint {
 
-    /// What `em` and `rem` resolve against.
+    /// What `em`, `rem` and the viewport units resolve against.
     ///
-    /// Any context will do. The question is whether the *declaration* is one the
-    /// engine applies, and a length that resolves to a different number is
-    /// applied either way; a length that will not resolve at all fails under
-    /// every context.
-    private static final CssLength.Context CONTEXT = CssLength.Context.DEFAULT;
+    /// Any context will do, as long as it has a window: the question is whether
+    /// the *declaration* is one the engine applies, and a length that resolves
+    /// to a different number is applied either way; a length that will not
+    /// resolve at all fails under every context. Without a window a viewport
+    /// unit is not yet a length, which is a fact about the moment and not about
+    /// the sheet.
+    private static final CssLength.Context CONTEXT = CssLength.Context.DEFAULT.withViewport(1280, 800);
 
     private final List<Stylesheet> inForce;
     private final StyleResolver resolver;
@@ -299,28 +302,60 @@ public final class StyleLint {
     /// a `var()` is not a value the engine has ever been asked to understand.
     ///
     /// One probe per compound of the selector, chained by [Probe#parent], so
-    /// `select text-input` is a `text-input` inside a `select`. Both combinators
-    /// are satisfied by a direct parent, and the leftmost probe has none — which
-    /// is what makes it the root, and is how the theme's custom properties reach
-    /// the rest of the chain.
+    /// `select text-input` is a `text-input` inside a `select`. Both ancestor
+    /// combinators are satisfied by a direct parent, and both sibling ones by
+    /// the sibling just before, `a + b` being an `a` and then a `b` under one
+    /// parent. The leftmost probe has no parent — which is what makes it the
+    /// root, and is how the theme's custom properties reach the rest of the
+    /// chain.
     private static StyleElement probeFor(Selector selector) {
-        StyleElement element = null;
+        Probe element = null;
         // `parts` is rightmost first, so walking it backwards builds the chain
         // from the root down and ends holding the element the rule is *about*.
         var parts = selector.parts();
         for (var i = parts.size() - 1; i >= 0; i--) {
-            element = new Probe(parts.get(i).compound(), element);
+            var compound = parts.get(i).compound();
+            element = element != null && parts.get(i).combinator().isSibling()
+                    ? new Probe(compound, element.parent(), element)
+                    : new Probe(compound, element, null);
         }
         // A selector always has at least one part, so this is never null -- and
         // saying so here is cheaper than making every caller wonder.
         return Objects.requireNonNull(element, "a selector with no parts");
     }
 
-    /// @param parent the probe to the left, or **null** for the leftmost — which
-    ///               is what makes it the root, so `:root`'s custom properties
-    ///               reach the rest of the chain
+    /// @param parent   the probe to the left, or **null** for the leftmost —
+    ///                 which is what makes it the root, so `:root`'s custom
+    ///                 properties reach the rest of the chain
+    /// @param previous the sibling probe just before this one, or null
     private record Probe(
-            Selector.Compound compound, @Nullable StyleElement parent) implements StyleElement {
+            Selector.Compound compound,
+            @Nullable StyleElement parent,
+            @Nullable Probe previous) implements StyleElement {
+
+        @Override
+        public @Nullable PseudoElement pseudoElement() {
+            return compound.pseudoElement();
+        }
+
+        @Override
+        public List<? extends StyleElement> siblings() {
+            var siblings = new ArrayList<StyleElement>();
+            for (var at = this; at != null; at = at.previous()) {
+                siblings.addFirst(at);
+            }
+            return siblings;
+        }
+
+        @Override
+        public int indexInParent() {
+            return siblings().size() - 1;
+        }
+
+        @Override
+        public int siblingCount() {
+            return siblings().size();
+        }
 
         @Override
         public @Nullable String type() {

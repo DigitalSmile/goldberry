@@ -30,10 +30,10 @@ import java.util.Objects;
 /// the same RGB with a zero alpha, which is what [#fade] builds and why it
 /// exists rather than being left to each caller to remember.
 ///
-/// ## Sealed, with two shapes
+/// ## Sealed, with three shapes
 ///
-/// [Linear] along a line and [Radial] out from a centre, which are the two a
-/// CSS `background` names. Sealing means a third is a new record and an
+/// [Linear] along a line, [Radial] out from a centre and [Conic] round one,
+/// which are the three a CSS `background` names. Sealing means a third is a new record and an
 /// exhaustive `switch` that stops compiling until every consumer handles it,
 /// rather than a silent default branch that draws the wrong thing.
 ///
@@ -133,6 +133,35 @@ public sealed interface Gradient {
             }
             Objects.requireNonNull(extend, "extend");
             stops = sorted(stops);
+        }
+    }
+
+    /// A ramp turning round `(cx, cy)`, clockwise on the screen, `repeat` times
+    /// per turn.
+    ///
+    /// Offset 0 is at `angle`, in radians from the positive x axis towards the
+    /// positive y one, and the ramp ends a `1 / repeat` of a turn later, where
+    /// it starts again: a turn has no ends to hold, so [#extend()] is always
+    /// [Extend#REPEAT].
+    ///
+    /// @param repeat how many times the ramp runs in one turn, 1 or more
+    record Conic(double cx, double cy, double angle, double repeat, List<Stop> stops) implements Gradient {
+
+        public Conic {
+            if (!Double.isFinite(cx) || !Double.isFinite(cy) || !Double.isFinite(angle)) {
+                throw new IllegalArgumentException("a conic gradient turns round a finite point from a finite angle, "
+                        + "and (" + cx + "," + cy + ") from " + angle + " is not that");
+            }
+            if (!(repeat >= 1) || !Double.isFinite(repeat)) {
+                throw new IllegalArgumentException(
+                        "a conic gradient runs once or more per turn, and " + repeat + " is not that");
+            }
+            stops = sorted(stops);
+        }
+
+        @Override
+        public Extend extend() {
+            return Extend.REPEAT;
         }
     }
 

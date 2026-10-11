@@ -77,5 +77,74 @@ public enum Cursor {
 
     /// A closed hand: this is being dragged. Falls back to [#MOVE] without a
     /// picture, for the reason [#GRAB] does.
-    GRABBING
+    GRABBING,
+
+    /// No pointer at all while it is over the box: a game's own crosshair, a
+    /// video playing full-screen.
+    NONE,
+
+    // The rest of CSS's keywords. Each falls back to the nearest platform shape
+    // without a picture, since none of them is one SDL draws on every platform:
+    // the four edges and four corners are the two-headed arrows, as SDL's own
+    // per-edge shapes say they may be anywhere, and the others a near cousin.
+
+    /// Help is available: the arrow without a picture.
+    HELP,
+
+    /// A context menu is available: the arrow without a picture.
+    CONTEXT_MENU,
+
+    /// A cell or a set of them can be selected: the crosshair without a picture.
+    CELL,
+
+    /// Vertical text can be selected: the I-beam without a picture.
+    VERTICAL_TEXT,
+
+    /// A drop makes a link or a shortcut: the arrow without a picture.
+    ALIAS,
+
+    /// A drop makes a copy: the arrow without a picture.
+    COPY,
+
+    /// A drop is not possible here: [#NOT_ALLOWED] without a picture.
+    NO_DROP,
+
+    /// Scrolling in any direction: [#MOVE] without a picture.
+    ALL_SCROLL,
+
+    /// A column can be resized: [#EW_RESIZE] without a picture.
+    COL_RESIZE,
+
+    /// A row can be resized: [#NS_RESIZE] without a picture.
+    ROW_RESIZE,
+
+    /// The top edge moves: [#NS_RESIZE] without a picture.
+    N_RESIZE,
+
+    /// The right edge moves: [#EW_RESIZE] without a picture.
+    E_RESIZE,
+
+    /// The bottom edge moves: [#NS_RESIZE] without a picture.
+    S_RESIZE,
+
+    /// The left edge moves: [#EW_RESIZE] without a picture.
+    W_RESIZE,
+
+    /// The top right corner moves: [#NESW_RESIZE] without a picture.
+    NE_RESIZE,
+
+    /// The top left corner moves: [#NWSE_RESIZE] without a picture.
+    NW_RESIZE,
+
+    /// The bottom right corner moves: [#NWSE_RESIZE] without a picture.
+    SE_RESIZE,
+
+    /// The bottom left corner moves: [#NESW_RESIZE] without a picture.
+    SW_RESIZE,
+
+    /// Zooming in: the crosshair without a picture.
+    ZOOM_IN,
+
+    /// Zooming out: the crosshair without a picture.
+    ZOOM_OUT
 }

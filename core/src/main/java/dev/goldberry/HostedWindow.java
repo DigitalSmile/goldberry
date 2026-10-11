@@ -15,6 +15,7 @@ import org.slf4j.LoggerFactory;
 import dev.goldberry.bind.Property;
 import dev.goldberry.bind.Subscription;
 import dev.goldberry.bind.runtime.Models;
+import dev.goldberry.css.media.MediaContext;
 import dev.goldberry.frame.FrameSequence;
 import dev.goldberry.input.PointerRouter;
 import dev.goldberry.input.event.PointerEvent;
@@ -30,6 +31,7 @@ import dev.goldberry.paint.Frame;
 import dev.goldberry.paint.tree.RenderTree;
 import dev.goldberry.render.clipboard.Clipboard;
 import dev.goldberry.render.clipboard.PrimarySelection;
+import dev.goldberry.render.desktop.DisplayPreferences;
 import dev.goldberry.render.desktop.SystemTheme;
 import dev.goldberry.render.desktop.menubar.AppMenuItem;
 import dev.goldberry.render.desktop.notify.Notification;
@@ -612,6 +614,14 @@ final class HostedWindow implements WindowHost {
     /// which live on the elements a restyle does not touch, so a transition in
     /// flight when the theme changes carries on into the new colours rather than
     /// snapping.
+    /// The desktop's switches as the media queries read them.
+    private static MediaContext.Preferences preferences(DisplayPreferences desktop) {
+        return new MediaContext.Preferences(
+                desktop.increasedContrast() ? MediaContext.Contrast.MORE : MediaContext.Contrast.NO_PREFERENCE,
+                desktop.forcedColors(),
+                desktop.reducedTransparency());
+    }
+
     private WidgetRenderer renderer() {
         if (stylesDirty || renderer == null) {
             renderer = new WidgetRenderer(app.stylesheets(), app.fonts())
@@ -626,7 +636,10 @@ final class HostedWindow implements WindowHost {
                     // What `@media (prefers-color-scheme: …)` is asked about.
                     // Light where the desktop does not say, which is CSS's
                     // reading of "no preference".
-                    .colorScheme(window.systemTheme().orElse(SystemTheme.LIGHT));
+                    .colorScheme(window.systemTheme().orElse(SystemTheme.LIGHT))
+                    // What `prefers-contrast`, `forced-colors` and
+                    // `prefers-reduced-transparency` are asked about.
+                    .preferences(preferences(window.displayPreferences()));
             stylesDirty = false;
             app.lintStylesheets();
         }

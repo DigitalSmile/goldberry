@@ -6,11 +6,14 @@ import java.util.WeakHashMap;
 
 import org.jspecify.annotations.Nullable;
 
-import dev.goldberry.css.Corners;
 import dev.goldberry.css.background.Background;
+import dev.goldberry.css.background.BackgroundPosition;
+import dev.goldberry.css.background.BackgroundRepeat;
+import dev.goldberry.css.background.BackgroundSize;
 import dev.goldberry.css.image.CssImage;
 import dev.goldberry.css.image.StyleImages;
 import dev.goldberry.image.Image;
+import dev.goldberry.layout.Length;
 import dev.goldberry.natives.blend2d.enums.BlendCompOp;
 import dev.goldberry.render.PixelBuffer;
 import dev.goldberry.render.model.PhysicalSize;
@@ -48,54 +51,61 @@ final class PicturePainter {
 
     private PicturePainter() {}
 
-    /// Paints layer `index` of `fill`, which is `url`, over the box at `(x, y)`.
+    /// Paints layer `index` of `fill`, which is `url`: placed and sized in
+    /// `origin`, tiled across `clip` and cut to its outline.
     static void paint(
-            Frame frame,
-            CssImage.Url url,
-            Background fill,
-            int index,
-            double x,
-            double y,
-            double width,
-            double height,
-            Corners corners) {
+            Frame frame, CssImage.Url url, Background fill, int index, BackgroundArea origin, BackgroundArea clip) {
         var picture = StyleImages.resolve(url, frame.scale().factor());
-        if (picture == null || !(width > 0) || !(height > 0) || url.alpha() <= 0) {
+        if (picture == null || origin.isEmpty() || clip.isEmpty() || url.alpha() <= 0) {
             return;
         }
-        var size = fill.size(index).resolve(width, height, picture.naturalWidth(), picture.naturalHeight());
+        var size = fill.size(index)
+                .resolve(origin.width(), origin.height(), picture.naturalWidth(), picture.naturalHeight());
         var repeat = fill.repeat(index);
+        var placed = Placement.of(fill.size(index), repeat, fill.position(index), origin, size[0], size[1]);
+        // The tiles are counted from the clip's corner, which is where they
+        // are drawn from.
         var tiles = Tiles.of(
-                fill.position().x(),
-                fill.position().y(),
-                size[0],
-                size[1],
-                width,
-                height,
-                repeat.across(),
-                repeat.down());
+                placed.x() + origin.x() - clip.x(),
+                placed.y() + origin.y() - clip.y(),
+                placed.width(),
+                placed.height(),
+                placed.stepX(),
+                placed.stepY(),
+                clip.width(),
+                clip.height(),
+                placed.across(),
+                placed.down());
         if (tiles == null) {
             return;
         }
         var image = picture.image();
-        if (tiles.count() > MAX_TILES) {
+        var spaced = placed.stepX() != placed.width() || placed.stepY() != placed.height();
+        if (tiles.count() > MAX_TILES && !spaced) {
             var factor = (int) Math.ceil(Math.sqrt((double) tiles.count() / MAX_TILES));
-            var across = repeat.across() ? factor : 1;
-            var down = repeat.down() ? factor : 1;
+            var across = placed.across() ? factor : 1;
+            var down = placed.down() ? factor : 1;
             image = repeated(image, across, down);
             tiles = Tiles.of(
-                    fill.position().x(),
-                    fill.position().y(),
-                    size[0] * across,
-                    size[1] * down,
-                    width,
-                    height,
-                    repeat.across(),
-                    repeat.down());
+                    placed.x() + origin.x() - clip.x(),
+                    placed.y() + origin.y() - clip.y(),
+                    placed.width() * across,
+                    placed.height() * down,
+                    placed.width() * across,
+                    placed.height() * down,
+                    clip.width(),
+                    clip.height(),
+                    placed.across(),
+                    placed.down());
             if (tiles == null) {
                 return;
             }
         }
+        var x = clip.x();
+        var y = clip.y();
+        var width = clip.width();
+        var height = clip.height();
+        var corners = clip.corners();
         var scale = frame.scale().factor();
         if (corners.isSquare()) {
             frame.save();
@@ -118,7 +128,7 @@ final class PicturePainter {
             return;
         }
         var drawn = image;
-        var placed = tiles;
+        var laid = tiles;
         try (var outline = Layer.of(pixels);
                 var layer = Layer.of(pixels)) {
             // The outline as a mask, and the tiles kept only where it is: a
@@ -134,21 +144,90 @@ final class PicturePainter {
                 }
             });
             layer.paint(frame.scale(), inner -> {
-                placed.draw(inner, drawn, x - left, y - top, scale, 1);
+                laid.draw(inner, drawn, x - left, y - top, scale, 1);
                 inner.drawLayer(0, 0, outline, BlendCompOp.DST_IN);
             });
             frame.drawLayer(left, top, layer, url.alpha());
         }
     }
 
-    /// Which tiles of a picture `tileWidth` × `tileHeight`, starting at
-    /// `(originX, originY)` in a box's own coordinates, touch a box `width` ×
-    /// `height`.
+    /// Where one layer's tiles go in its origin's rectangle: the first tile's
+    /// corner, a tile's size, and how far apart two tiles are on each axis,
+    /// which is the tile's size unless `space` spreads them.
+    ///
+    /// @param x      the first tile's left edge, from the origin's
+    /// @param y      its top edge
+    /// @param across whether the picture is tiled across
+    /// @param down   whether it is tiled down
+    record Placement(
+            double x, double y, double width, double height, double stepX, double stepY, boolean across, boolean down) {
+
+        /// The placement of a picture drawn `width` by `height` under `size`,
+        /// tiled as `repeat` says from `position` in `origin`.
+        static Placement of(
+                BackgroundSize size,
+                BackgroundRepeat repeat,
+                BackgroundPosition position,
+                BackgroundArea origin,
+                double width,
+                double height) {
+            var w = width;
+            var h = height;
+            // `round` stretches a tile until a whole number fit; an axis whose
+            // size was left to the picture's shape keeps that shape.
+            var roundX = repeat.x() == BackgroundRepeat.Tiling.ROUND && w > 0;
+            var roundY = repeat.y() == BackgroundRepeat.Tiling.ROUND && h > 0;
+            var autoWidth = size.kind() == BackgroundSize.Kind.LENGTHS && size.width() == Length.AUTO;
+            var autoHeight = size.kind() == BackgroundSize.Kind.LENGTHS && size.height() == Length.AUTO;
+            if (roundX) {
+                var rounded = origin.width() / Math.max(1, Math.round(origin.width() / w));
+                if (!roundY && autoHeight) {
+                    h *= rounded / w;
+                }
+                w = rounded;
+            }
+            if (roundY) {
+                var rounded = origin.height() / Math.max(1, Math.round(origin.height() / h));
+                if (!roundX && autoWidth) {
+                    w *= rounded / h;
+                }
+                h = rounded;
+            }
+            var offset = position.offset(origin.width(), origin.height(), w, h);
+            var x = Axis.of(repeat.x(), offset[0], w, origin.width());
+            var y = Axis.of(repeat.y(), offset[1], h, origin.height());
+            return new Placement(x.start(), y.start(), w, h, x.step(), y.step(), x.tiled(), y.tiled());
+        }
+    }
+
+    /// One axis of a placement: where the first tile starts, the distance
+    /// between two, and whether there is more than one.
+    private record Axis(double start, double step, boolean tiled) {
+
+        static Axis of(BackgroundRepeat.Tiling tiling, double offset, double tile, double room) {
+            if (tiling == BackgroundRepeat.Tiling.SPACE) {
+                var count = tile > 0 ? Math.floor(room / tile) : 0;
+                // Two or more fit: the first and last touch the edges and the
+                // rest share the room left over. One or none: placed once.
+                if (count >= 2) {
+                    return new Axis(0, tile + (room - count * tile) / (count - 1), true);
+                }
+                return new Axis(offset, tile, false);
+            }
+            return new Axis(offset, tile, tiling != BackgroundRepeat.Tiling.NO_REPEAT);
+        }
+    }
+
+    /// Which tiles of a picture `tileWidth` × `tileHeight`, one every `stepX`
+    /// across and `stepY` down from `(originX, originY)` in a box's own
+    /// coordinates, touch a box `width` × `height`.
     ///
     /// @param originX     where the origin tile's left edge is
     /// @param originY     where its top edge is
     /// @param tileWidth   how wide a tile is drawn
     /// @param tileHeight  how tall
+    /// @param stepX       from one tile's left edge to the next's
+    /// @param stepY       from one tile's top edge to the next's
     /// @param firstColumn the first column, counted from the origin tile's 0
     /// @param firstRow    the first row, the same way
     /// @param columns     how many columns
@@ -158,6 +237,8 @@ final class PicturePainter {
             double originY,
             double tileWidth,
             double tileHeight,
+            double stepX,
+            double stepY,
             int firstColumn,
             int firstRow,
             int columns,
@@ -173,13 +254,31 @@ final class PicturePainter {
                 double height,
                 boolean across,
                 boolean down) {
+            return of(originX, originY, tileWidth, tileHeight, tileWidth, tileHeight, width, height, across, down);
+        }
+
+        /// The tiles one every `stepX` and `stepY`, or null when there are none
+        /// to draw.
+        static @Nullable Tiles of(
+                double originX,
+                double originY,
+                double tileWidth,
+                double tileHeight,
+                double stepX,
+                double stepY,
+                double width,
+                double height,
+                boolean across,
+                boolean down) {
             if (!(tileWidth > 0) || !(tileHeight > 0) || !(width > 0) || !(height > 0)) {
                 return null;
             }
-            var firstColumn = across ? (int) Math.floor(-originX / tileWidth) : 0;
-            var lastColumn = across ? (int) Math.ceil((width - originX) / tileWidth) : 1;
-            var firstRow = down ? (int) Math.floor(-originY / tileHeight) : 0;
-            var lastRow = down ? (int) Math.ceil((height - originY) / tileHeight) : 1;
+            // A tile reaches `tileWidth` past where it starts, so the first one
+            // that touches the box may start before it by that much.
+            var firstColumn = across ? (int) Math.floor((-originX - tileWidth) / stepX) + 1 : 0;
+            var lastColumn = across ? (int) Math.ceil((width - originX) / stepX) : 1;
+            var firstRow = down ? (int) Math.floor((-originY - tileHeight) / stepY) + 1 : 0;
+            var lastRow = down ? (int) Math.ceil((height - originY) / stepY) : 1;
             if (lastColumn <= firstColumn || lastRow <= firstRow) {
                 return null;
             }
@@ -195,6 +294,8 @@ final class PicturePainter {
                     originY,
                     tileWidth,
                     tileHeight,
+                    stepX,
+                    stepY,
                     firstColumn,
                     firstRow,
                     lastColumn - firstColumn,
@@ -209,14 +310,14 @@ final class PicturePainter {
         /// edge on a whole device pixel at `scale`.
         void draw(Frame frame, Image image, double x, double y, double scale, double alpha) {
             for (var row = firstRow; row < firstRow + rows; row++) {
-                var top = snap(y + originY + row * tileHeight, scale);
-                var bottom = snap(y + originY + (row + 1) * tileHeight, scale);
+                var top = snap(y + originY + row * stepY, scale);
+                var bottom = snap(y + originY + row * stepY + tileHeight, scale);
                 if (!(bottom > top)) {
                     continue;
                 }
                 for (var column = firstColumn; column < firstColumn + columns; column++) {
-                    var left = snap(x + originX + column * tileWidth, scale);
-                    var right = snap(x + originX + (column + 1) * tileWidth, scale);
+                    var left = snap(x + originX + column * stepX, scale);
+                    var right = snap(x + originX + column * stepX + tileWidth, scale);
                     if (right > left) {
                         frame.drawImage(image, left, top, right - left, bottom - top, alpha);
                     }

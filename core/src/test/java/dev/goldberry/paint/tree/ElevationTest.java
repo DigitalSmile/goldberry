@@ -15,7 +15,7 @@ import dev.goldberry.layout.Length;
 import dev.goldberry.paint.Box;
 import dev.goldberry.paint.TestFrames;
 
-/// `Box.elevated` — one bit meaning "draw me last": a pinned box paints after
+/// `Box.elevated` — `z-index: 1` for a box that pins itself: it paints after
 /// its siblings, so what comes later in the tree does not cover it.
 class ElevationTest {
 
@@ -64,8 +64,7 @@ class ElevationTest {
     @Test
     @DisplayName("elevated siblings keep document order among themselves")
     void amongThemselves() {
-        // Deliberately not a z-order: there is no ordering *between* elevated
-        // boxes to define, so they stay in the order they were written.
+        // Equal `z-index`, so they stay in the order they were written.
         assertEquals(
                 List.of("c", "a", "b"),
                 paintOrder(Box.of().children(row("a").elevated(true), row("b").elevated(true), row("c"))));

@@ -230,10 +230,13 @@ description had no effect.
   that is the seam a painter should use too. Nothing has measured a painter that
   needs it.
 ## Editing text
-- **No bidi caret.** `Paragraph.isBidiApproximate` already says the shaping does
-  not promise visual order for mixed-direction text, and a caret in it needs a
-  walk the toolkit does not have. Latin, Cyrillic and CJK are exact; Arabic and
-  Hebrew are approximate in the same way the paragraph is.
+- ~~**No bidi caret.**~~ **There is one** (2026-10-11, CSS-50 of
+  `docs/css-plan.md`, ADR-0622 parked in `docs/snapshot/adr`). A paragraph is
+  split into level runs, each shaped its own way and placed in visual order;
+  `Paragraph.caretX`, `offsetAt` and `stretchesOf` answer in that order, the
+  editors draw a selection across a change of direction as a piece on each
+  side, and the arrow keys move logically, mirrored in a right-to-left
+  paragraph. `isBidiApproximate` is gone.
 - **An `Editor` does not scroll.** It draws where it is told and does not know it
   has been clipped. A canvas with a long document moves its own transform, which
   it is already doing for everything else on it; a *widget* wanting this is
@@ -3231,7 +3234,10 @@ out of it is usually worth more than the fact that it is fixed.
   that knows which run it is in and which side of it. That last part is why the
   half-measure of handling *uniformly* right-to-left paragraphs was not taken —
   it changes what `widthBetween` means to every caller, which is the same change
-  full bidi needs. M5, with the IME preedit it sits beside. —
+  full bidi needs. M5, with the IME preedit it sits beside. **The real thing
+  is built** (2026-10-11, CSS-50, ADR-0622 parked in `docs/snapshot/adr`):
+  `widthBetween` kept its meaning, since the prefix sums stay logical, and the
+  caret moved to `caretX`. —
   [ADR-0218](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0218-a-paragraph-approximates-bidi-rather-than-refusing-it.md),
   [ADR-0167](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0167-a-field-owns-its-caret-and-the-model-is-told.md)
 - ~~**Markup cannot hand a controller to a widget.**~~ **It can, through a
@@ -3957,11 +3963,12 @@ out of it is usually worth more than the fact that it is fixed.
   [ADR-0044](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0044-one-face-many-sizes.md)
 - ~~**Nothing measures text for layout yet.**~~ **It does.** A `Paragraph` shapes once
   and wraps with arithmetic, and its measure function reports a height to Yoga through
-  the `YGSize` upcall. What is still ahead is bidi run splitting — right-to-left text is
-  shaped in **logical** order and therefore drawn mirrored, because HarfBuzz returns
-  those glyphs in visual order and prefix sums taken in logical order would otherwise
-  measure the wrong ones (it was refused outright until ADR-0218, which cost a window
-  every time somebody pasted Arabic into a field). Font fallback between the UI and
+  the `YGSize` upcall. Bidi run splitting is built too (2026-10-11, CSS-50,
+  ADR-0622 parked in `docs/snapshot/adr`): each level run is shaped in its own
+  direction and a right-to-left one is held reversed, so the prefix sums stay in
+  logical order while the line is drawn in visual order (right-to-left text was
+  refused outright until ADR-0218, which cost a window every time somebody pasted
+  Arabic into a field, and then drawn mirrored until CSS-50). Font fallback between the UI and
   emoji slots — the thing that makes a paragraph several runs rather than one — **is
   built**: the itemizer splits emoji out by UTS #51's sequence rules and a paragraph
   takes one measurement over up to two shapings, with the emoji face's advances

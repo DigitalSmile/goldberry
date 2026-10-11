@@ -1,6 +1,7 @@
 package dev.goldberry.widget;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Objects;
@@ -13,7 +14,12 @@ import dev.goldberry.bind.Subscription;
 import dev.goldberry.css.ComputedStyle;
 import dev.goldberry.css.StyleElement;
 import dev.goldberry.css.cascade.StyleResolver;
+import dev.goldberry.css.container.QueryContainer;
+import dev.goldberry.css.select.PseudoElement;
 import dev.goldberry.css.select.Selector;
+import dev.goldberry.css.select.SiblingPosition;
+import dev.goldberry.layout.Display;
+import dev.goldberry.layout.Presence;
 import dev.goldberry.motion.Animations;
 import dev.goldberry.stats.FrameStats;
 import dev.goldberry.widget.style.Styled;
@@ -59,6 +65,12 @@ public final class Element implements BuildContext, StyleElement {
     private int indexInParent;
 
     private int siblingCount = 1;
+
+    /// This element's position among its siblings of its own type, and how
+    /// many there are, for `:first-of-type` and the rest.
+    private int indexOfType;
+
+    private int typeCount = 1;
     private final Set<Selector.PseudoClass> states = new LinkedHashSet<>();
 
     /// Live for as long as this element describes a widget with a [Widget#binding].
@@ -90,6 +102,12 @@ public final class Element implements BuildContext, StyleElement {
     /// What the cascade last resolved for this node, or null if it must be asked
     /// again.
     private @Nullable ComputedStyle style;
+
+    /// The content box this element was last laid out at, when it is a query
+    /// container; NaN before it has been. What `@container` below it reads.
+    private double containerWidth = Double.NaN;
+
+    private double containerHeight = Double.NaN;
 
     /// The resolver that produced [#style].
     ///
@@ -144,10 +162,39 @@ public final class Element implements BuildContext, StyleElement {
         this.customProperties = resolved;
     }
 
+    /// Whether the style this node last resolved says `display: none`.
+    ///
+    /// The router asks, walking up as it does for a hidden widget, so that
+    /// nothing under a node a stylesheet took out can take the focus.
+    public boolean isDisplayNone() {
+        return presence.display() == Display.NONE;
+    }
+
+    /// Whether the style this node last resolved says `visibility: hidden`.
+    ///
+    /// Not walked up: visibility inherits, so a node under a hidden one is
+    /// hidden by its own style unless it said `visible`, and then it may take
+    /// the focus.
+    public boolean isInvisible() {
+        return !presence.isVisible();
+    }
+
+    /// The presence of the style this node last resolved, kept when the style
+    /// itself is invalidated.
+    ///
+    /// The router asks [#isDisplayNone] and [#isInvisible] between frames, and
+    /// a pseudo-class it sets in the meantime, `:focus-within` on every
+    /// ancestor of what it just focused, throws those ancestors' styles away
+    /// until the next frame. The answer has to outlive that: a second Tab in
+    /// the same frame must not land on a hidden panel because its style is
+    /// being recomputed.
+    private Presence presence = Presence.NORMAL;
+
     void cacheStyle(StyleResolver resolver, @Nullable ComputedStyle inherited, ComputedStyle resolved) {
         this.styleResolver = resolver;
         this.styleInherited = inherited;
         this.style = resolved;
+        this.presence = resolved.presence();
     }
 
     /// What this node last handed its children, kept so that an equal style can
@@ -176,8 +223,13 @@ public final class Element implements BuildContext, StyleElement {
     /// inherits and which a `scroll` moves on every frame of a gesture: every
     /// node inside a scrolling viewport would re-resolve for a change no child
     /// could see.
-    ComputedStyle stableStyle(ComputedStyle candidate) {
-        if (handedDown != null && handedDown.inheritsSameAs(candidate)) {
+    ///
+    /// @param whole compare the whole style rather than its inherited half:
+    ///              asked when a sheet writes `inherit` on a property that does
+    ///              not inherit, so that a child reads every property it may
+    ///              copy at its current value
+    ComputedStyle stableStyle(ComputedStyle candidate, boolean whole) {
+        if (handedDown != null && (whole ? handedDown.equals(candidate) : handedDown.inheritsSameAs(candidate))) {
             return handedDown;
         }
         handedDown = candidate;
@@ -215,6 +267,7 @@ public final class Element implements BuildContext, StyleElement {
         if (!frameClasses.equals(classes)) {
             frameClasses = Set.copyOf(classes);
             invalidateOwnStyle();
+            restyleReaders(tree.styleResolver());
         }
     }
 
@@ -249,6 +302,15 @@ public final class Element implements BuildContext, StyleElement {
     /// Conservative on purpose. Working out which descendants a rule could reach
     /// is real machinery, and this walk is pointer-chasing against a cascade pass
     /// that costs hundreds of times more.
+    /// Throws away the styles of everything below this element, keeping its
+    /// own: what a query container whose size changed does to what its
+    /// `@container` rules and container units reach.
+    public void invalidateStyleBelow() {
+        for (var child : children) {
+            child.invalidateStyle();
+        }
+    }
+
     void invalidateStyle() {
         if (FrameTrace.ENABLED && style != null) {
             tree.trace().countInvalidation();
@@ -293,6 +355,7 @@ public final class Element implements BuildContext, StyleElement {
         return Optional.ofNullable(state);
     }
 
+    @Override
     public List<Element> children() {
         return children;
     }
@@ -381,6 +444,12 @@ public final class Element implements BuildContext, StyleElement {
         // it -- see [#stableStyle].
         if (matchesDiffer(previous, next)) {
             invalidateStyle();
+            var resolver = tree.styleResolver();
+            if (resolver != null) {
+                // Its siblings are restyled by the parent's `position`, which
+                // follows; what is above it is not.
+                restyleHasAnchors(resolver, false);
+            }
         } else if (restyleDiffers(previous, next)) {
             // Selectors match the same, so the *cascade* produced the same thing;
             // what is left is `Styled.restyle`, which reads the widget and is the
@@ -454,6 +523,7 @@ public final class Element implements BuildContext, StyleElement {
         }
         return !Objects.equals(before.cssType(), after.cssType())
                 || !Objects.equals(before.id(), after.id())
+                || before.pseudoElement() != after.pseudoElement()
                 || !before.classes().equals(after.classes());
     }
 
@@ -493,8 +563,26 @@ public final class Element implements BuildContext, StyleElement {
         }
         needsBuild = false;
         var described = describe();
+        var before = children;
         children = reconcile(children, described);
         position(children);
+        var resolver = tree.styleResolver();
+        if (resolver != null && resolver.hasMatters() && !sameElements(before, children)) {
+            restyleHasAnchors(resolver, true);
+        }
+    }
+
+    /// Whether two child lists hold the same elements in the same order.
+    private static boolean sameElements(List<Element> before, List<Element> after) {
+        if (before.size() != after.size()) {
+            return false;
+        }
+        for (var i = 0; i < before.size(); i++) {
+            if (before.get(i) != after.get(i)) {
+                return false;
+            }
+        }
+        return true;
     }
 
     /// Tells each child where it now sits, and throws away the styles of the
@@ -515,18 +603,36 @@ public final class Element implements BuildContext, StyleElement {
     private void position(List<Element> next) {
         var count = next.size();
         var resolver = tree.styleResolver();
+        // Counted by type first, since a child's count of its own type is known
+        // only once every sibling has been seen. A null type is a type: the
+        // untyped siblings count among themselves.
+        var ofType = new HashMap<@Nullable String, Integer>();
+        var typeIndex = new int[count];
+        for (var i = 0; i < count; i++) {
+            var seen = ofType.getOrDefault(next.get(i).type(), 0);
+            typeIndex[i] = seen;
+            ofType.put(next.get(i).type(), seen + 1);
+        }
+        // A rule that counts siblings through a filter, `:nth-child(2 of
+        // .done)`, can change its answer when a sibling's classes do, with no
+        // index moving: under one, every child of a rebuilt parent is
+        // restyled.
+        var siblingsMatter = resolver != null && resolver.siblingsMatter();
         for (var i = 0; i < count; i++) {
             var child = next.get(i);
-            var oldIndex = child.indexInParent;
-            var oldCount = child.siblingCount;
-            if (oldIndex == i && oldCount == count) {
+            var before =
+                    new SiblingPosition(child.indexInParent, child.siblingCount, child.indexOfType, child.typeCount);
+            var after = new SiblingPosition(i, count, typeIndex[i], ofType.getOrDefault(child.type(), 1));
+            if (before.equals(after) && !siblingsMatter) {
                 continue;
             }
             child.indexInParent = i;
             child.siblingCount = count;
+            child.indexOfType = after.indexOfType();
+            child.typeCount = after.typeCount();
             if (resolver == null) {
                 child.invalidateStyle();
-            } else if (resolver.positionMatters(oldIndex, oldCount, i, count)) {
+            } else if (resolver.positionMatters(before, after)) {
                 if (resolver.positionReachesDescendants(child.type())) {
                     child.invalidateStyle();
                 } else {
@@ -735,6 +841,41 @@ public final class Element implements BuildContext, StyleElement {
     }
 
     @Override
+    public @Nullable QueryContainer queryContainer() {
+        var own = style;
+        if (own == null || Double.isNaN(containerWidth)) {
+            return null;
+        }
+        var containment = own.presence().containment();
+        return containment.isContainer()
+                ? new QueryContainer(containment.type(), containment.names(), containerWidth, containerHeight)
+                : null;
+    }
+
+    /// Whether this element's resolved style makes it a query container.
+    public boolean isQueryContainer() {
+        var own = style;
+        return own != null && own.presence().containment().isContainer();
+    }
+
+    /// Records the content box this element was laid out at, as a query
+    /// container, and answers whether it differs from the one its descendants'
+    /// styles were resolved against.
+    public boolean laidOutAs(double width, double height) {
+        if (Double.compare(width, containerWidth) == 0 && Double.compare(height, containerHeight) == 0) {
+            return false;
+        }
+        containerWidth = width;
+        containerHeight = height;
+        return true;
+    }
+
+    @Override
+    public @Nullable PseudoElement pseudoElement() {
+        return widget instanceof Styled css ? css.pseudoElement() : null;
+    }
+
+    @Override
     public Set<String> classes() {
         var own = widget instanceof Styled css ? css.classes() : Set.<String>of();
         if (frameClasses.isEmpty()) {
@@ -812,6 +953,21 @@ public final class Element implements BuildContext, StyleElement {
         return siblingCount;
     }
 
+    @Override
+    public int indexOfType() {
+        return indexOfType;
+    }
+
+    @Override
+    public int typeCount() {
+        return typeCount;
+    }
+
+    @Override
+    public List<Element> siblings() {
+        return parent == null ? List.of(this) : parent.children;
+    }
+
     /// Sets or clears a pseudo-class on this element.
     ///
     /// What input will call when the pointer enters a node or focus moves. Kept
@@ -841,6 +997,7 @@ public final class Element implements BuildContext, StyleElement {
             // screen.
             var resolver = tree.styleResolver();
             invalidateOwnStyle();
+            restyleReaders(resolver);
             if (resolver == null || resolver.reachesDescendants(pseudoClass, type())) {
                 if (FrameTrace.ENABLED) {
                     tree.trace()
@@ -854,6 +1011,97 @@ public final class Element implements BuildContext, StyleElement {
             }
         }
         return changed;
+    }
+
+    /// Restyles the elements that read this one through another: its siblings
+    /// under sheets that read siblings (`a + b`, `:nth-child(2 of .a)`), and
+    /// the elements above it or before it whose `:has()` may now answer
+    /// differently. The caller has invalidated this element's own style.
+    ///
+    /// With neither kind of selector in the sheets, which is the toolkit's
+    /// own, it asks two questions and returns.
+    private void restyleReaders(@Nullable StyleResolver resolver) {
+        if (resolver == null) {
+            return;
+        }
+        if (resolver.siblingsMatter() && parent != null) {
+            // Whether this one matches what a sibling is placed after, or a
+            // filter siblings are counted by, may have changed.
+            for (var sibling : parent.children) {
+                if (sibling != this) {
+                    sibling.invalidateAsSibling(resolver);
+                }
+            }
+        }
+        restyleHasAnchors(resolver, false);
+    }
+
+    /// Restyles the elements whose `:has()` can see a change at this element:
+    /// its ancestors, and when an argument starts at a sibling, the siblings
+    /// before it and before each ancestor. Each is narrowed by its type through
+    /// [StyleResolver#hasReach], so a sheet that writes `card:has(:checked)`
+    /// restyles the cards on the way up and nothing else.
+    ///
+    /// @param childrenChanged whether this element's children were added,
+    ///                        removed or reordered, which this element's own
+    ///                        `:has()` sees, and its children's `:has(+ x)`
+    private void restyleHasAnchors(StyleResolver resolver, boolean childrenChanged) {
+        if (!resolver.hasMatters()) {
+            return;
+        }
+        var siblings = resolver.hasLooksAtSiblings();
+        if (childrenChanged) {
+            restyleAsAnchor(resolver);
+            if (siblings) {
+                for (var child : children) {
+                    child.restyleAsAnchor(resolver);
+                }
+            }
+        }
+        for (var node = this; node != null; node = node.parent) {
+            if (node != this) {
+                node.restyleAsAnchor(resolver);
+            }
+            if (siblings && node.parent != null) {
+                for (var sibling : node.parent.children) {
+                    if (sibling == node) {
+                        break;
+                    }
+                    sibling.restyleAsAnchor(resolver);
+                }
+            }
+        }
+    }
+
+    /// Throws away what a `:has()` on this element may now answer differently.
+    private void restyleAsAnchor(StyleResolver resolver) {
+        switch (resolver.hasReach(type())) {
+            case NONE -> {}
+            case OWN -> invalidateOwnStyle();
+            case SUBTREE -> {
+                invalidateStyle();
+                if (resolver.siblingsMatter() && parent != null) {
+                    // `a:has(.x) + b`: what follows it reads it too.
+                    var after = false;
+                    for (var sibling : parent.children) {
+                        if (after) {
+                            sibling.invalidateAsSibling(resolver);
+                        }
+                        after |= sibling == this;
+                    }
+                }
+            }
+        }
+    }
+
+    /// Throws away this element's style because a sibling changed, with its
+    /// subtree when a rule reads its place in an ancestor position.
+    private void invalidateAsSibling(StyleResolver resolver) {
+        if (resolver.positionReachesDescendants(type())) {
+            invalidateStyle();
+        } else {
+            invalidateOwnStyle();
+        }
     }
 
     @Override

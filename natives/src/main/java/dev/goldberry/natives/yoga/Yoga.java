@@ -9,6 +9,7 @@ import dev.goldberry.natives.yoga.calls.LayoutCalls;
 import dev.goldberry.natives.yoga.calls.NodeCalls;
 import dev.goldberry.natives.yoga.calls.StyleCalls;
 import dev.goldberry.natives.yoga.style.Align;
+import dev.goldberry.natives.yoga.style.BoxSizing;
 import dev.goldberry.natives.yoga.style.Direction;
 import dev.goldberry.natives.yoga.style.Display;
 import dev.goldberry.natives.yoga.style.Edge;
@@ -236,6 +237,10 @@ final class Yoga {
 
     void styleDisplay(MemorySegment node, Display value) {
         styleCalls.styleSetDisplay().call(node, value.nativeValue());
+    }
+
+    void styleBoxSizing(MemorySegment node, BoxSizing value) {
+        styleCalls.styleSetBoxSizing().call(node, value.nativeValue());
     }
 
     void styleFlexGrow(MemorySegment node, float value) {

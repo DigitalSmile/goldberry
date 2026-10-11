@@ -30,7 +30,8 @@ public record StyleCalls(
         StyleSetFlexGrow styleSetFlexGrow,
         StyleSetFlexShrink styleSetFlexShrink,
         StyleSetAspectRatio styleSetAspectRatio,
-        StyleSetBorder styleSetBorder) {
+        StyleSetBorder styleSetBorder,
+        StyleSetBoxSizing styleSetBoxSizing) {
 
     /// Binds every function above, failing if the library exports none of them.
     ///
@@ -50,7 +51,34 @@ public record StyleCalls(
                 new StyleSetFlexGrow(lookup),
                 new StyleSetFlexShrink(lookup),
                 new StyleSetAspectRatio(lookup),
-                new StyleSetBorder(lookup));
+                new StyleSetBorder(lookup),
+                new StyleSetBoxSizing(lookup));
+    }
+
+    /// Sets what the node's width and height measure — CSS's `box-sizing`.
+    ///
+    /// `void YGNodeStyleSetBoxSizing(void*, int)`
+    public static final class StyleSetBoxSizing {
+
+        private static final MethodHandle FD_YGNodeStyleSetBoxSizing =
+                Downcalls.link(FunctionDescriptor.ofVoid(ADDRESS, JAVA_INT));
+
+        private final MemorySegment address;
+
+        StyleSetBoxSizing(SymbolLookup lookup) {
+            this.address = Downcalls.symbol(lookup, "YGNodeStyleSetBoxSizing");
+        }
+
+        /// Calls `YGNodeStyleSetBoxSizing`.
+        ///
+        /// @param boxSizing a `YGBoxSizing`
+        public void call(MemorySegment node, int boxSizing) {
+            try {
+                FD_YGNodeStyleSetBoxSizing.invokeExact(address, node, boxSizing);
+            } catch (Throwable t) {
+                throw Downcalls.failure("YGNodeStyleSetBoxSizing", t);
+            }
+        }
     }
 
     /// Sets which way the node reads — LTR, RTL, or inherit.

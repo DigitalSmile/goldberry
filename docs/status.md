@@ -7442,6 +7442,15 @@ one of them**: Central's secrets are set, and snapshots have gone out since run
 17 (2026-09-19). What is left is a tag, and the release's own preconditions
 below.
 
+**Right-to-left text is built** (2026-10-11, CSS-50 of `docs/css-plan.md`,
+ADR-0622 parked in `docs/snapshot/adr`). A paragraph resolves its embedding
+levels per hard line, shapes each level run in its own direction, and places
+each line in visual order; the caret, a click and a selection follow, in the
+core `Editor`, `text-input` and `text-area` alike. A box's text takes its base
+direction from `direction`, and `unicode-bidi: plaintext` gives each paragraph
+its first strong character's. Text with no right-to-left character in it takes
+exactly the path it took before, so no left-to-right picture moved.
+
 ### The frame evidence — built, run, and asserting no budget
 
 [ADR-0342](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0342-a-window-is-resized-from-outside-and-the-run-says-what-it-cost.md).

@@ -38,14 +38,13 @@ with:
 > rounded card is rounded. A gradient is filled over the whole box whatever
 > `background-size` says. A picture is decoded off the frame, the same decode
 > an `image` of that file uses, and drawn from the frame after it arrives;
-> until then the colour and the gradients show. There is no
-> `background-clip`, `background-origin` or `background-attachment`, and
-> `space` and `round` are not read. `background-position` moves every layer by
+> until then the colour and the gradients show. `background-clip` and
+> `background-origin` are read, as `guide-styling-css-subset.md` piece 20
+> says; there is no `background-attachment`. `background-position` moves every layer by
 > the lengths it names. A percentage or a keyword moves nothing, so a picture
 > that is not tiled sits at the top left unless a length moves it. It is
-> animatable, which is how the stripe above marches. Transition hints (a bare
-> position between two stops) and colour interpolation methods are not read,
-> and drop the declaration.
+> animatable, which is how the stripe above marches. Hints and colour
+> interpolation methods are read, as `guide-styling-css-subset.md` says.
 
 ## 2. `book/src/guide/styling.md`, at the end of `### Border, outline and shadow`
 

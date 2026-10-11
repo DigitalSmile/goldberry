@@ -145,7 +145,9 @@ public final class BorderPattern {
         Objects.requireNonNull(side, "side");
         Objects.requireNonNull(corners, "corners");
         var fitted = corners.fittedTo(width, height);
-        var radii = new double[] {fitted.topLeft(), fitted.topRight(), fitted.bottomRight(), fitted.bottomLeft()};
+        var corner = fitted.clockwise();
+        var rx = new double[] {corner[0].x(), corner[1].x(), corner[2].x(), corner[3].x()};
+        var ry = new double[] {corner[0].y(), corner[1].y(), corner[2].y(), corner[3].y()};
         var top = border.top().width();
         var right = border.right().width();
         var bottom = border.bottom().width();
@@ -161,10 +163,12 @@ public final class BorderPattern {
         };
         var startCorner = s;
         var endCorner = (s + 1) % 4;
-        var startRadius = radii[startCorner] - half;
-        var endRadius = radii[endCorner] - half;
-        var roundStart = startRadius > EPSILON;
-        var roundEnd = endRadius > EPSILON;
+        var startX = rx[startCorner] - half;
+        var startY = ry[startCorner] - half;
+        var endX = rx[endCorner] - half;
+        var endY = ry[endCorner] - half;
+        var roundStart = Math.min(startX, startY) > EPSILON;
+        var roundEnd = Math.min(endX, endY) > EPSILON;
 
         // The straight part, from where the start corner gives it up to where
         // the end corner takes it over.
@@ -175,23 +179,23 @@ public final class BorderPattern {
         switch (side) {
             case TOP -> {
                 y0 = y1 = half;
-                x0 = roundStart ? radii[0] : toCentre ? left / 2 : 0;
-                x1 = roundEnd ? width - radii[1] : toCentre ? width - right / 2 : width;
+                x0 = roundStart ? rx[0] : toCentre ? left / 2 : 0;
+                x1 = roundEnd ? width - rx[1] : toCentre ? width - right / 2 : width;
             }
             case RIGHT -> {
                 x0 = x1 = width - half;
-                y0 = roundStart ? radii[1] : toCentre ? top / 2 : top;
-                y1 = roundEnd ? height - radii[2] : toCentre ? height - bottom / 2 : height - bottom;
+                y0 = roundStart ? ry[1] : toCentre ? top / 2 : top;
+                y1 = roundEnd ? height - ry[2] : toCentre ? height - bottom / 2 : height - bottom;
             }
             case BOTTOM -> {
                 y0 = y1 = height - half;
-                x0 = roundStart ? width - radii[2] : toCentre ? width - right / 2 : width;
-                x1 = roundEnd ? radii[3] : toCentre ? left / 2 : 0;
+                x0 = roundStart ? width - rx[2] : toCentre ? width - right / 2 : width;
+                x1 = roundEnd ? rx[3] : toCentre ? left / 2 : 0;
             }
             case LEFT -> {
                 x0 = x1 = half;
-                y0 = roundStart ? height - radii[3] : toCentre ? height - bottom / 2 : height - bottom;
-                y1 = roundEnd ? radii[0] : toCentre ? top / 2 : top;
+                y0 = roundStart ? height - ry[3] : toCentre ? height - bottom / 2 : height - bottom;
+                y1 = roundEnd ? ry[0] : toCentre ? top / 2 : top;
             }
             default -> throw new IllegalStateException("a box has four sides, and " + side + " is not one");
         }
@@ -201,16 +205,16 @@ public final class BorderPattern {
         // the angle at which both corner arcs touch the straight part.
         var normal = 270 + 90 * s;
         if (roundStart) {
-            var centre = centre(startCorner, radii, width, height);
-            var from = point(centre, startRadius, normal - 45);
+            var centre = centre(startCorner, rx, ry, width, height);
+            var from = point(centre, startX, startY, normal - 45);
             builder.moveTo(from[0], from[1]);
-            arc(builder, centre, startRadius, normal - 45);
+            arc(builder, centre, startX, startY, normal - 45);
         } else {
             builder.moveTo(x0, y0);
         }
         builder.lineTo(x1, y1);
         if (roundEnd) {
-            arc(builder, centre(endCorner, radii, width, height), endRadius, normal);
+            arc(builder, centre(endCorner, rx, ry, width, height), endX, endY, normal);
         }
         var path = builder.build();
         // Measured on the flattened path, which is what the dasher walks, so a
@@ -244,36 +248,40 @@ public final class BorderPattern {
 
     /// The centre of corner `corner`'s arc, corners numbered clockwise from the
     /// top-left.
-    private static double[] centre(int corner, double[] radii, double width, double height) {
-        var r = radii[corner];
+    private static double[] centre(int corner, double[] rx, double[] ry, double width, double height) {
+        var x = rx[corner];
+        var y = ry[corner];
         return switch (corner) {
-            case 0 -> new double[] {r, r};
-            case 1 -> new double[] {width - r, r};
-            case 2 -> new double[] {width - r, height - r};
-            default -> new double[] {r, height - r};
+            case 0 -> new double[] {x, y};
+            case 1 -> new double[] {width - x, y};
+            case 2 -> new double[] {width - x, height - y};
+            default -> new double[] {x, height - y};
         };
     }
 
-    private static double[] point(double[] centre, double radius, double degrees) {
+    private static double[] point(double[] centre, double rx, double ry, double degrees) {
         var radians = Math.toRadians(degrees);
-        return new double[] {centre[0] + radius * Math.cos(radians), centre[1] + radius * Math.sin(radians)};
+        return new double[] {centre[0] + rx * Math.cos(radians), centre[1] + ry * Math.sin(radians)};
     }
 
-    /// Appends the 45° of arc clockwise from `fromDegrees` as one cubic.
-    private static void arc(Path.Builder builder, double[] centre, double radius, double fromDegrees) {
+    /// Appends the 45° of arc clockwise from `fromDegrees` as one cubic: a
+    /// circle's, scaled to the ellipse, which is exact because an ellipse is a
+    /// scaled circle and a cubic scales with it.
+    private static void arc(Path.Builder builder, double[] centre, double rx, double ry, double fromDegrees) {
         var from = Math.toRadians(fromDegrees);
         var to = Math.toRadians(fromDegrees + 45);
-        var control = KAPPA_45 * radius;
-        var x0 = centre[0] + radius * Math.cos(from);
-        var y0 = centre[1] + radius * Math.sin(from);
-        var x3 = centre[0] + radius * Math.cos(to);
-        var y3 = centre[1] + radius * Math.sin(to);
+        var controlX = KAPPA_45 * rx;
+        var controlY = KAPPA_45 * ry;
+        var x0 = centre[0] + rx * Math.cos(from);
+        var y0 = centre[1] + ry * Math.sin(from);
+        var x3 = centre[0] + rx * Math.cos(to);
+        var y3 = centre[1] + ry * Math.sin(to);
         // The tangent at an angle, travelling clockwise on screen: (-sin, cos).
         builder.cubicTo(
-                x0 - control * Math.sin(from),
-                y0 + control * Math.cos(from),
-                x3 + control * Math.sin(to),
-                y3 - control * Math.cos(to),
+                x0 - controlX * Math.sin(from),
+                y0 + controlY * Math.cos(from),
+                x3 + controlX * Math.sin(to),
+                y3 - controlY * Math.cos(to),
                 x3,
                 y3);
     }

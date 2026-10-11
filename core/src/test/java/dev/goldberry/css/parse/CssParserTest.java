@@ -300,9 +300,9 @@ class CssParserTest {
         @ParameterizedTest(name = "{0}")
         @CsvSource({
             "an attribute selector is outside the subset,    'a[href] { color: red }'",
-            "and so is a sibling combinator,                 'a + b { color: red }'",
+            "and so is a namespace,                          'ns|a { color: red }'",
             "and a pseudo-element,                           'a::before { color: red }'",
-            "and an at-rule that is not @media,              '@supports (x) { }'",
+            "and an at-rule outside the subset,              '@scope (x) { }'",
             "a numeric hash is not an id,                    '#123456 { color: red }'",
             "an unclosed block,                              'a { color: red'",
             "a declaration with no value,                    'a { color: }'",

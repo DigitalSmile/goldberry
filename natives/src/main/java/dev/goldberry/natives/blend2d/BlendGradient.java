@@ -183,7 +183,22 @@ public final class BlendGradient implements AutoCloseable {
     ///
     /// @throws IllegalArgumentException if any number is not finite
     public static BlendGradient conic(double x, double y, double angle, BlendExtendMode extend, BlendMatrix transform) {
-        requireFinite("a conic gradient turns around a finite point from a finite angle", x, y, angle);
+        return conic(x, y, angle, 1, extend, transform);
+    }
+
+    /// A ramp `repeat` times around `(x, y)`, starting at `angle` radians and
+    /// turning from the positive x axis towards the positive y axis: what a
+    /// CSS `repeating-conic-gradient()` is, its period a `1 / repeat` of a turn.
+    ///
+    /// @throws IllegalArgumentException if any number is not finite, or
+    ///         `repeat` is not positive
+    public static BlendGradient conic(
+            double x, double y, double angle, double repeat, BlendExtendMode extend, BlendMatrix transform) {
+        requireFinite("a conic gradient turns around a finite point from a finite angle", x, y, angle, repeat);
+        if (repeat <= 0) {
+            throw new IllegalArgumentException(
+                    "a conic gradient runs a positive number of times, and " + repeat + " is not positive");
+        }
         Objects.requireNonNull(extend, "extend");
         Objects.requireNonNull(transform, "transform");
         return new BlendGradient("conic", (calls, arena, gradient) -> {
@@ -191,7 +206,7 @@ public final class BlendGradient implements AutoCloseable {
             values.set(ValueLayout.JAVA_DOUBLE, CONIC_X0, x);
             values.set(ValueLayout.JAVA_DOUBLE, CONIC_Y0, y);
             values.set(ValueLayout.JAVA_DOUBLE, CONIC_ANGLE, angle);
-            values.set(ValueLayout.JAVA_DOUBLE, CONIC_REPEAT, 1.0);
+            values.set(ValueLayout.JAVA_DOUBLE, CONIC_REPEAT, repeat);
             calls.gradientInitConic(gradient, values, extend, transform.toNative(arena));
         });
     }

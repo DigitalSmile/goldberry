@@ -130,12 +130,12 @@ class BorderPaintTest {
         }
     }
 
-    /// Layout is the other half of the decision: a border is drawn over the
-    /// padding and never reaches Yoga, which is what every bordered widget's
-    /// padding already assumes — so a side must not move a child either.
+    /// A side takes room, outside the padding, as in CSS: the child of a box
+    /// with a 10px left border starts 10px in, and a box of a fixed size keeps
+    /// it, its content giving way (`box-sizing: border-box`, the initial value).
     @Test
-    @DisplayName("a side takes no room: the child of a box with a 10px left border does not move")
-    void takesNoRoom() {
+    @DisplayName("a side takes room: the child of a box with a 10px left border starts inside it")
+    void takesRoom() {
         var target = TestFrames.of(100, 40, 1f);
         var bordered = Box.of()
                 .direction(FlexDirection.ROW)
@@ -146,7 +146,8 @@ class BorderPaintTest {
         BoxPainter.forEachBox(target.frame(), bordered, (box, layout) -> placed.add(layout));
         target.end();
 
-        assertEquals(0, placed.get(1).left(), 1e-6, "Yoga was not told about the border");
+        assertEquals(100, placed.get(0).width(), 1e-6, "the box keeps the width it was given");
+        assertEquals(10, placed.get(1).left(), 1e-6, "Yoga was told about the border");
         assertEquals(0, placed.get(1).top(), 1e-6);
         assertEquals(20, placed.get(1).width(), 1e-6);
     }

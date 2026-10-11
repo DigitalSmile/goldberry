@@ -26,7 +26,7 @@ import dev.goldberry.motion.Easing;
 /// change only the delay of an animation an earlier rule named; that is what a
 /// stagger is.
 ///
-/// A keyframe may declare anything, and only [Transitions.Animatable]'s seven
+/// A keyframe may declare anything, and only [Transitions.Animatable]'s
 /// properties move. The rest are dropped when a keyframe is resolved, with a
 /// warning that names the property, because a keyframed `width` would be a
 /// layout pass on every frame.
@@ -40,6 +40,7 @@ import dev.goldberry.motion.Easing;
 /// @param iterations  how many times; [Double#POSITIVE_INFINITY] is `infinite`
 /// @param directions  never empty
 /// @param fillModes   never empty
+/// @param playStates  whether each runs or is held where it is; never empty
 public record KeyframeAnimations(
         List<String> names,
         List<Double> durations,
@@ -47,7 +48,8 @@ public record KeyframeAnimations(
         List<Double> delays,
         List<Double> iterations,
         List<Direction> directions,
-        List<FillMode> fillModes) {
+        List<FillMode> fillModes,
+        List<PlayState> playStates) {
 
     /// Nothing runs — CSS's initial value for every longhand.
     public static final KeyframeAnimations NONE = new KeyframeAnimations(
@@ -57,7 +59,20 @@ public record KeyframeAnimations(
             List.of(0.0),
             List.of(1.0),
             List.of(Direction.NORMAL),
-            List.of(FillMode.NONE));
+            List.of(FillMode.NONE),
+            List.of(PlayState.RUNNING));
+
+    /// Animations that all run.
+    public KeyframeAnimations(
+            List<String> names,
+            List<Double> durations,
+            List<Easing> easings,
+            List<Double> delays,
+            List<Double> iterations,
+            List<Direction> directions,
+            List<FillMode> fillModes) {
+        this(names, durations, easings, delays, iterations, directions, fillModes, List.of(PlayState.RUNNING));
+    }
 
     public KeyframeAnimations {
         names = List.copyOf(names);
@@ -67,6 +82,7 @@ public record KeyframeAnimations(
         iterations = nonEmpty(iterations, "animation-iteration-count");
         directions = nonEmpty(directions, "animation-direction");
         fillModes = nonEmpty(fillModes, "animation-fill-mode");
+        playStates = nonEmpty(playStates, "animation-play-state");
     }
 
     private static <T> List<T> nonEmpty(List<T> values, String property) {
@@ -135,6 +151,23 @@ public record KeyframeAnimations(
         }
     }
 
+    /// Whether an animation runs or is held — `animation-play-state`.
+    public enum PlayState {
+        /// Its clock runs. The initial value.
+        RUNNING,
+        /// Its clock stops where it is, and starts again from there.
+        PAUSED;
+
+        /// The value for a CSS keyword, or null.
+        public static @Nullable PlayState parse(String keyword) {
+            return switch (keyword.toLowerCase(Locale.ROOT)) {
+                case "running" -> RUNNING;
+                case "paused" -> PAUSED;
+                default -> null;
+            };
+        }
+    }
+
     /// One animation, with every longhand's value for it.
     ///
     /// @param name           the `@keyframes` block it runs
@@ -144,6 +177,7 @@ public record KeyframeAnimations(
     /// @param iterations     how many; infinite for a loop
     /// @param direction      which way each iteration plays
     /// @param fillMode       what is held before and after
+    /// @param playState      whether its clock runs
     public record Entry(
             String name,
             double durationMillis,
@@ -151,7 +185,25 @@ public record KeyframeAnimations(
             double delayMillis,
             double iterations,
             Direction direction,
-            FillMode fillMode) {
+            FillMode fillMode,
+            PlayState playState) {
+
+        /// An animation that runs.
+        public Entry(
+                String name,
+                double durationMillis,
+                Easing easing,
+                double delayMillis,
+                double iterations,
+                Direction direction,
+                FillMode fillMode) {
+            this(name, durationMillis, easing, delayMillis, iterations, direction, fillMode, PlayState.RUNNING);
+        }
+
+        /// Whether its clock is stopped.
+        public boolean isPaused() {
+            return playState == PlayState.PAUSED;
+        }
 
         /// The whole active span, delay excluded — infinite for a loop.
         public double activeMillis() {
@@ -175,37 +227,42 @@ public record KeyframeAnimations(
                     delays.get(i % delays.size()),
                     iterations.get(i % iterations.size()),
                     directions.get(i % directions.size()),
-                    fillModes.get(i % fillModes.size())));
+                    fillModes.get(i % fillModes.size()),
+                    playStates.get(i % playStates.size())));
         }
         return entries;
     }
 
     public KeyframeAnimations names(List<String> value) {
-        return new KeyframeAnimations(value, durations, easings, delays, iterations, directions, fillModes);
+        return new KeyframeAnimations(value, durations, easings, delays, iterations, directions, fillModes, playStates);
     }
 
     public KeyframeAnimations durations(List<Double> value) {
-        return new KeyframeAnimations(names, value, easings, delays, iterations, directions, fillModes);
+        return new KeyframeAnimations(names, value, easings, delays, iterations, directions, fillModes, playStates);
     }
 
     public KeyframeAnimations easings(List<Easing> value) {
-        return new KeyframeAnimations(names, durations, value, delays, iterations, directions, fillModes);
+        return new KeyframeAnimations(names, durations, value, delays, iterations, directions, fillModes, playStates);
     }
 
     public KeyframeAnimations delays(List<Double> value) {
-        return new KeyframeAnimations(names, durations, easings, value, iterations, directions, fillModes);
+        return new KeyframeAnimations(names, durations, easings, value, iterations, directions, fillModes, playStates);
     }
 
     public KeyframeAnimations iterations(List<Double> value) {
-        return new KeyframeAnimations(names, durations, easings, delays, value, directions, fillModes);
+        return new KeyframeAnimations(names, durations, easings, delays, value, directions, fillModes, playStates);
     }
 
     public KeyframeAnimations directions(List<Direction> value) {
-        return new KeyframeAnimations(names, durations, easings, delays, iterations, value, fillModes);
+        return new KeyframeAnimations(names, durations, easings, delays, iterations, value, fillModes, playStates);
     }
 
     public KeyframeAnimations fillModes(List<FillMode> value) {
-        return new KeyframeAnimations(names, durations, easings, delays, iterations, directions, value);
+        return new KeyframeAnimations(names, durations, easings, delays, iterations, directions, value, playStates);
+    }
+
+    public KeyframeAnimations playStates(List<PlayState> value) {
+        return new KeyframeAnimations(names, durations, easings, delays, iterations, directions, fillModes, value);
     }
 
     /// Every animation turned off, which is what reduced motion does to them.

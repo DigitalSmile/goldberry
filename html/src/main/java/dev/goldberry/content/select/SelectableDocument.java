@@ -13,6 +13,7 @@ import dev.goldberry.input.event.PointerEvent;
 import dev.goldberry.input.handler.Handles;
 import dev.goldberry.input.handler.Located;
 import dev.goldberry.input.key.Key;
+import dev.goldberry.layout.Presence;
 import dev.goldberry.paint.Box;
 import dev.goldberry.render.clipboard.Clipboard;
 import dev.goldberry.render.clipboard.PrimarySelection;
@@ -132,6 +133,10 @@ public record SelectableDocument(Fold fold) implements Widget.Stateful {
         /// worth publishing.
         private boolean selecting;
 
+        /// What `user-select` said on the last frame: `none` keeps a press from
+        /// selecting, and `all` makes any press select the whole document.
+        private Presence.UserSelect userSelect = Presence.UserSelect.AUTO;
+
         /// The viewport this document is in, carried on while a drag is held at its
         /// edge — and the clamp that keeps a pointer past the edge asking about the
         /// words at it rather than about nothing.
@@ -163,8 +168,18 @@ public record SelectableDocument(Fold fold) implements Widget.Stateful {
         /// geometry is in, because [dev.goldberry.input.handler.Located]
         /// reports where a word was **painted**.
         void onPointer(PointerEvent event) {
+            if (userSelect == Presence.UserSelect.NONE) {
+                return;
+            }
             switch (event.kind()) {
                 case PRESSED -> {
+                    if (userSelect == Presence.UserSelect.ALL) {
+                        selection.select(new Caret(0, 0), geometry.end());
+                        selecting = true;
+                        repaint(event);
+                        event.consume();
+                        return;
+                    }
                     // A second or third click of the same gesture selects more rather
                     // than starting again -- `clickCount` is the router's count of a
                     // run, which is the same one `text-input` reads.
@@ -252,6 +267,11 @@ public record SelectableDocument(Fold fold) implements Widget.Stateful {
         /// its viewport, and the rectangle every word here is clipped to.
         void located(LogicalRect clip) {
             edge.viewport(clip);
+        }
+
+        /// What `user-select` resolved to on the host, read every frame.
+        void userSelect(Presence.UserSelect value) {
+            userSelect = value;
         }
 
         void onKey(KeyEvent event) {
@@ -447,6 +467,13 @@ public record SelectableDocument(Fold fold) implements Widget.Stateful {
         @Override
         public Box render(ComputedStyle style, List<Box> children, Context context) {
             state.frame(context.nowMillis());
+            // The document's own, which inherited the host's: a rule on the
+            // `markdown-view` or the `html-view` lands on the document under
+            // this host, not on the host.
+            state.userSelect(
+                    children.isEmpty()
+                            ? style.presence().userSelect()
+                            : children.getFirst().presence().userSelect());
             return Box.of().style(style).children(children.toArray(Box[]::new));
         }
     }

@@ -51,6 +51,8 @@ import dev.goldberry.paint.Box;
 /// @param borderImage   the `border-image`, drawn in place of the border's
 ///                      colours when it has a picture; [BorderImage#NONE] for
 ///                      every box that does not
+/// @param outlineStyle  how the ring is drawn: solid, or any style a border
+///                      side may have
 public record Decoration(
         Corners corners,
         Border border,
@@ -58,7 +60,8 @@ public record Decoration(
         int outlineColor,
         double outlineOffset,
         List<Shadow> shadows,
-        BorderImage borderImage) {
+        BorderImage borderImage,
+        Border.Style outlineStyle) {
 
     /// Square corners, no border, no ring, no shadow — what every box starts as.
     public static final Decoration NONE =
@@ -73,9 +76,22 @@ public record Decoration(
         Objects.requireNonNull(border, "border");
         shadows = List.copyOf(Objects.requireNonNull(shadows, "shadows"));
         Objects.requireNonNull(borderImage, "borderImage");
+        Objects.requireNonNull(outlineStyle, "outlineStyle");
         requireFinite(outlineWidth, "outline-width");
         requireFinite(outlineOffset, "outline-offset");
         outlineWidth = Math.max(0, outlineWidth);
+    }
+
+    /// A decoration with a solid ring.
+    public Decoration(
+            Corners corners,
+            Border border,
+            double outlineWidth,
+            int outlineColor,
+            double outlineOffset,
+            List<Shadow> shadows,
+            BorderImage borderImage) {
+        this(corners, border, outlineWidth, outlineColor, outlineOffset, shadows, borderImage, Border.Style.SOLID);
     }
 
     /// A decoration with no border image.
@@ -159,7 +175,8 @@ public record Decoration(
     }
 
     public Decoration corners(Corners value) {
-        return new Decoration(value, border, outlineWidth, outlineColor, outlineOffset, shadows, borderImage);
+        return new Decoration(
+                value, border, outlineWidth, outlineColor, outlineOffset, shadows, borderImage, outlineStyle);
     }
 
     /// The same line on all four sides — `border: 1px solid red`.
@@ -168,7 +185,8 @@ public record Decoration(
     }
 
     public Decoration border(Border value) {
-        return new Decoration(corners, value, outlineWidth, outlineColor, outlineOffset, shadows, borderImage);
+        return new Decoration(
+                corners, value, outlineWidth, outlineColor, outlineOffset, shadows, borderImage, outlineStyle);
     }
 
     /// Every side's width, colours kept — `border-width: 2px`.
@@ -182,19 +200,29 @@ public record Decoration(
     }
 
     public Decoration outline(double width, int argb, double offset) {
-        return new Decoration(corners, border, width, argb, offset, shadows, borderImage);
+        return new Decoration(corners, border, width, argb, offset, shadows, borderImage, outlineStyle);
+    }
+
+    /// The whole ring — `outline: 2px dashed red`, at `offset`.
+    public Decoration outline(double width, int argb, Border.Style style, double offset) {
+        return new Decoration(corners, border, width, argb, offset, shadows, borderImage, style);
     }
 
     public Decoration outlineWidth(double value) {
-        return new Decoration(corners, border, value, outlineColor, outlineOffset, shadows, borderImage);
+        return new Decoration(corners, border, value, outlineColor, outlineOffset, shadows, borderImage, outlineStyle);
     }
 
     public Decoration outlineColor(int argb) {
-        return new Decoration(corners, border, outlineWidth, argb, outlineOffset, shadows, borderImage);
+        return new Decoration(corners, border, outlineWidth, argb, outlineOffset, shadows, borderImage, outlineStyle);
     }
 
     public Decoration outlineOffset(double value) {
-        return new Decoration(corners, border, outlineWidth, outlineColor, value, shadows, borderImage);
+        return new Decoration(corners, border, outlineWidth, outlineColor, value, shadows, borderImage, outlineStyle);
+    }
+
+    /// `outline-style`: how the ring is drawn.
+    public Decoration outlineStyle(Border.Style value) {
+        return new Decoration(corners, border, outlineWidth, outlineColor, outlineOffset, shadows, borderImage, value);
     }
 
     /// One shadow in place of the list, or none when it is [Shadow#NONE].
@@ -203,13 +231,14 @@ public record Decoration(
     }
 
     public Decoration shadows(List<Shadow> value) {
-        return new Decoration(corners, border, outlineWidth, outlineColor, outlineOffset, value, borderImage);
+        return new Decoration(
+                corners, border, outlineWidth, outlineColor, outlineOffset, value, borderImage, outlineStyle);
     }
 
     /// `border-image`: a picture cut in nine, drawn in place of the border's
     /// colours.
     public Decoration borderImage(BorderImage value) {
-        return new Decoration(corners, border, outlineWidth, outlineColor, outlineOffset, shadows, value);
+        return new Decoration(corners, border, outlineWidth, outlineColor, outlineOffset, shadows, value, outlineStyle);
     }
 
     /// This decoration with every colour's alpha scaled by `alpha`.
@@ -229,7 +258,8 @@ public record Decoration(
                 CssColor.fade(outlineColor, alpha),
                 outlineOffset,
                 shadows.stream().map(shadow -> shadow.fade(alpha)).toList(),
-                borderImage.fade(alpha));
+                borderImage.fade(alpha),
+                outlineStyle);
     }
 
     private static void requireFinite(double value, String name) {

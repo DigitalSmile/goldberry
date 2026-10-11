@@ -1,9 +1,12 @@
 package dev.goldberry.css.media;
 
 import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
+
+import org.jspecify.annotations.Nullable;
 
 import dev.goldberry.render.desktop.SystemTheme;
 
@@ -293,6 +296,173 @@ public sealed interface MediaCondition {
         @Override
         public String toString() {
             return "(prefers-reduced-motion: " + (reduce ? "reduce" : "no-preference") + ")";
+        }
+    }
+
+    /// `(aspect-ratio: 16/9)`, `(min-aspect-ratio: 1)`, `(4/3 < aspect-ratio)`:
+    /// the window's width over its height.
+    ///
+    /// @param ratio the limit, width over height
+    record AspectRatio(Comparison comparison, double ratio) implements MediaCondition {
+
+        public AspectRatio {
+            Objects.requireNonNull(comparison, "comparison");
+        }
+
+        @Override
+        public boolean matches(MediaContext context) {
+            if (!(context.height() > 0)) {
+                return false;
+            }
+            // Compared to six places, so 16/9 written equals a 1600x900 window.
+            var actual = Math.round(context.width() / context.height() * 1e6) / 1e6;
+            return comparison.holds(actual, Math.round(ratio * 1e6) / 1e6);
+        }
+
+        @Override
+        public String toString() {
+            return "(aspect-ratio " + comparison.symbol() + " " + ratio + ")";
+        }
+    }
+
+    /// `(resolution: 2dppx)`, `(min-resolution: 192dpi)`: device pixels per
+    /// logical pixel, which is the window's scale.
+    ///
+    /// @param dppx the limit, in device pixels per logical pixel
+    record Resolution(Comparison comparison, double dppx) implements MediaCondition {
+
+        public Resolution {
+            Objects.requireNonNull(comparison, "comparison");
+        }
+
+        @Override
+        public boolean matches(MediaContext context) {
+            return comparison.holds(context.resolution(), dppx);
+        }
+
+        @Override
+        public String toString() {
+            return "(resolution " + comparison.symbol() + " " + dppx + "dppx)";
+        }
+    }
+
+    /// `(pointer: fine)`, `(any-pointer: coarse)`, and `(pointer)` for "there is
+    /// one".
+    ///
+    /// @param pointer the precision asked about, or null for `(pointer)` alone
+    /// @param any     whether any device is asked about, rather than the primary
+    record PointerQuery(MediaContext.@Nullable Pointer pointer, boolean any) implements MediaCondition {
+
+        @Override
+        public boolean matches(MediaContext context) {
+            var input = context.input();
+            if (!any) {
+                return pointer == null ? input.pointer() != MediaContext.Pointer.NONE : input.pointer() == pointer;
+            }
+            return switch (pointer) {
+                case null -> input.anyFine() || input.anyCoarse();
+                case FINE -> input.anyFine();
+                case COARSE -> input.anyCoarse();
+                case NONE -> !input.anyFine() && !input.anyCoarse();
+            };
+        }
+
+        @Override
+        public String toString() {
+            return "(" + (any ? "any-" : "") + "pointer"
+                    + (pointer == null ? "" : ": " + pointer.name().toLowerCase(Locale.ROOT)) + ")";
+        }
+    }
+
+    /// `(hover: hover)`, `(hover: none)`, `(any-hover: hover)`, and `(hover)`.
+    ///
+    /// @param hover whether hovering is asked for
+    /// @param any   whether any device is asked about, rather than the primary
+    record HoverQuery(boolean hover, boolean any) implements MediaCondition {
+
+        @Override
+        public boolean matches(MediaContext context) {
+            var can = any ? context.input().anyHover() : context.input().hover();
+            return can == hover;
+        }
+
+        @Override
+        public String toString() {
+            return "(" + (any ? "any-" : "") + "hover: " + (hover ? "hover" : "none") + ")";
+        }
+    }
+
+    /// `(prefers-contrast: more)`, and `(prefers-contrast)` for any preference.
+    /// `custom` is what a desktop forcing its colours means.
+    ///
+    /// @param contrast the preference asked about, or null for "any"
+    record ContrastQuery(MediaContext.@Nullable Contrast contrast, boolean custom) implements MediaCondition {
+
+        @Override
+        public boolean matches(MediaContext context) {
+            var preferences = context.preferences();
+            if (custom) {
+                return preferences.forcedColors();
+            }
+            if (contrast == null) {
+                return preferences.contrast() != MediaContext.Contrast.NO_PREFERENCE || preferences.forcedColors();
+            }
+            return preferences.contrast() == contrast;
+        }
+
+        @Override
+        public String toString() {
+            var value = custom
+                    ? "custom"
+                    : contrast == null
+                            ? ""
+                            : contrast.name().toLowerCase(Locale.ROOT).replace('_', '-');
+            return "(prefers-contrast" + (value.isEmpty() ? "" : ": " + value) + ")";
+        }
+    }
+
+    /// `(forced-colors: active)`, or `none`.
+    record ForcedColors(boolean active) implements MediaCondition {
+
+        @Override
+        public boolean matches(MediaContext context) {
+            return context.preferences().forcedColors() == active;
+        }
+
+        @Override
+        public String toString() {
+            return "(forced-colors: " + (active ? "active" : "none") + ")";
+        }
+    }
+
+    /// `(prefers-reduced-transparency: reduce)`, or `no-preference`.
+    record ReducedTransparency(boolean reduce) implements MediaCondition {
+
+        @Override
+        public boolean matches(MediaContext context) {
+            return context.preferences().reducedTransparency() == reduce;
+        }
+
+        @Override
+        public String toString() {
+            return "(prefers-reduced-transparency: " + (reduce ? "reduce" : "no-preference") + ")";
+        }
+    }
+
+    /// `(color-gamut: srgb)`: everything here is drawn to an sRGB surface, so
+    /// `srgb` holds and `p3` and `rec2020` do not.
+    ///
+    /// @param srgb whether the gamut asked about is sRGB
+    record ColorGamut(boolean srgb) implements MediaCondition {
+
+        @Override
+        public boolean matches(MediaContext context) {
+            return srgb;
+        }
+
+        @Override
+        public String toString() {
+            return "(color-gamut: " + (srgb ? "srgb" : "wider than srgb") + ")";
         }
     }
 }

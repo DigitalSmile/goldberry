@@ -16,6 +16,7 @@ import org.slf4j.Logger;
 
 import dev.goldberry.log.Logs;
 import dev.goldberry.log.Startup;
+import dev.goldberry.natives.desktop.DesktopAccessibility;
 import dev.goldberry.natives.desktop.DesktopMotion;
 import dev.goldberry.natives.glib.GlibLog;
 import dev.goldberry.natives.sdl.Sdl;
@@ -36,6 +37,7 @@ import dev.goldberry.render.clipboard.Clipboard;
 import dev.goldberry.render.clipboard.PrimarySelection;
 import dev.goldberry.render.composite.Compositor;
 import dev.goldberry.render.cursor.CursorPictures;
+import dev.goldberry.render.desktop.DisplayPreferences;
 import dev.goldberry.render.desktop.SystemTheme;
 import dev.goldberry.render.desktop.menubar.BackendMenuBar;
 import dev.goldberry.render.desktop.menubar.MacMenuBarProjection;
@@ -1364,6 +1366,17 @@ public final class Sdl3Backend implements Backend {
             case FULL -> Optional.of(false);
             case UNKNOWN -> Optional.empty();
         };
+    }
+
+    @Override
+    public DisplayPreferences displayPreferences() {
+        // Not SDL's either: the portal, `user32` and `NSWorkspace`, as for
+        // reduced motion, asked once per process and cached there.
+        var settings = DesktopAccessibility.settings();
+        return new DisplayPreferences(
+                settings.increasedContrast().isOn(),
+                settings.forcedColors().isOn(),
+                settings.reducedTransparency().isOn());
     }
 
     @Override

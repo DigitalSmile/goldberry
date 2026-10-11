@@ -700,6 +700,9 @@ YGNodeStyleSetDisplay
 YGNodeStyleSetFlexGrow
 YGNodeStyleSetFlexShrink
 YGNodeStyleSetAspectRatio
+# ABI 24 (CSS-47): what a width and a height measure, so a border can take
+# room without a fixed-size box growing by it.
+YGNodeStyleSetBoxSizing
 YGNodeStyleSetBorder
 
 # Style: lengths. Yoga splits each property into points, percent and -- where
@@ -781,6 +784,12 @@ goldberry_hb_language_from_string
 
 # The one call the rest of it exists for.
 goldberry_hb_shape
+
+# A variable face pinned to one instance, and its bytes read back (ABI 23,
+# CSS-49): Blend2D draws a variable face's default instance, so a weight between
+# the masters arrives as a static face of its own.
+goldberry_hb_instance
+goldberry_hb_blob_get_data
 
 
 # --- Markdown (ADR-0294) -----------------------------------------------------

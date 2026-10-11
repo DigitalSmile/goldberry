@@ -131,19 +131,12 @@ public record Asset(
     /// The variable file **and** the SemiBold static instance, which is two
     /// weights rather than one axis.
     ///
-    /// Instancing `wght` at runtime would be the smaller download and the more
-    /// general answer, and it needs symbols bound in *both* libraries —
-    /// HarfBuzz's `hb_font_set_variations` and Blend2D's variation settings —
-    /// which means a new struct layout and three export branches, the ELF version
-    /// script, the MSVC `.def` and the Mach-O list. That machinery has caught the
-    /// same class of local-symbol bug three times and is only ever answered by a
-    /// CI run across four targets.
-    ///
-    /// The design system ships **exactly two weights**, 400 and 600, and a
-    /// screen that needs a third extends the system rather than improvising one.
-    /// Two static instances therefore cover the whole
-    /// shipped scale for 400 KB and no native change, and the axis stays a real
-    /// optimisation for the day an intermediate weight is actually specified.
+    /// The design system ships **exactly two weights**, 400 and 600, so the
+    /// SemiBold stays a static file: the weight every heading and button draws
+    /// is opened as it is, with no instancing pass. Any other weight is pinned
+    /// from the variable file at run time, once per weight, by HarfBuzz's
+    /// instancer; Blend2D reads no `gvar` and would draw a variable face's
+    /// default whatever it was told.
     ///
     /// ## And the italics, which are two more files for the same reason
     ///

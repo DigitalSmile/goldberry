@@ -10,6 +10,7 @@ import org.jspecify.annotations.Nullable;
 
 import dev.goldberry.natives.yoga.measure.MeasureFunction;
 import dev.goldberry.natives.yoga.style.Align;
+import dev.goldberry.natives.yoga.style.BoxSizing;
 import dev.goldberry.natives.yoga.style.Direction;
 import dev.goldberry.natives.yoga.style.Display;
 import dev.goldberry.natives.yoga.style.Edge;
@@ -401,6 +402,13 @@ public final class YogaNode implements AutoCloseable {
     public void setDirection(Direction value) {
         requireUsable();
         yoga.styleDirection(pointer, Objects.requireNonNull(value, "direction"));
+    }
+
+    /// CSS `box-sizing`: whether the width and height include the padding and
+    /// the border.
+    public void setBoxSizing(BoxSizing value) {
+        requireUsable();
+        yoga.styleBoxSizing(pointer, Objects.requireNonNull(value, "box-sizing"));
     }
 
     /// CSS `flex-direction`.

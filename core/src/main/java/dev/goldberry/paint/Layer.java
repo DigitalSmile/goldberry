@@ -1,8 +1,11 @@
 package dev.goldberry.paint;
 
+import java.util.List;
 import java.util.Objects;
 import java.util.function.Consumer;
 
+import dev.goldberry.css.compositing.FilterFunction;
+import dev.goldberry.paint.filter.Filters;
 import dev.goldberry.paint.tree.RenderTree;
 import dev.goldberry.render.PixelBuffer;
 import dev.goldberry.render.model.DisplayScale;
@@ -119,6 +122,29 @@ public final class Layer implements AutoCloseable {
             frame.end();
         }
         valid = true;
+    }
+
+    /// Draws more over what this layer holds, without clearing it: what a
+    /// `clip-path` is cut with after the subtree was painted.
+    public void amend(DisplayScale scale, Consumer<Frame> painter) {
+        Objects.requireNonNull(scale, "scale");
+        Objects.requireNonNull(painter, "painter");
+        requireUsable();
+        var frame = new Frame(pixels, scale);
+        try {
+            painter.accept(frame);
+        } finally {
+            frame.end();
+        }
+    }
+
+    /// Applies `filters` to what this layer holds, in order: what a `filter`
+    /// does to the raster its box was painted into.
+    public void filter(List<FilterFunction> filters, DisplayScale scale) {
+        Objects.requireNonNull(filters, "filters");
+        Objects.requireNonNull(scale, "scale");
+        requireUsable();
+        Filters.apply(pixels, filters, scale.factor());
     }
 
     /// The buffer, for [Frame#drawLayer].

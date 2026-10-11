@@ -1,6 +1,8 @@
 package dev.goldberry.paint.tree;
 
 import dev.goldberry.layout.Align;
+import dev.goldberry.layout.BoxSizing;
+import dev.goldberry.layout.Direction;
 import dev.goldberry.layout.FlexDirection;
 import dev.goldberry.layout.Insets;
 import dev.goldberry.layout.Justify;
@@ -63,6 +65,11 @@ final class Yoga {
         return switch (length) {
             case Length.Points points -> StyleLength.points(points.value());
             case Length.Percent percent -> StyleLength.percent(percent.value());
+            // A stylesheet drops one before it gets here; a widget that built
+            // one has asked for something the engine cannot say.
+            case Length.Mixed mixed ->
+                throw new IllegalArgumentException("the layout engine takes a length or a percentage, not " + mixed
+                        + "; a mixed length is for painted properties only");
             case Length.Keyword.AUTO -> StyleLength.AUTO;
             case Length.Keyword.UNDEFINED -> StyleLength.UNDEFINED;
         };
@@ -116,6 +123,23 @@ final class Yoga {
         };
     }
 
+    /// CSS `box-sizing` as Yoga's.
+    static dev.goldberry.natives.yoga.style.BoxSizing sizing(BoxSizing sizing) {
+        return switch (sizing) {
+            case BORDER_BOX -> dev.goldberry.natives.yoga.style.BoxSizing.BORDER_BOX;
+            case CONTENT_BOX -> dev.goldberry.natives.yoga.style.BoxSizing.CONTENT_BOX;
+        };
+    }
+
+    /// CSS `direction` as Yoga's, which a node sets on itself rather than
+    /// inheriting, so a box's own answer is the one laid out.
+    static dev.goldberry.natives.yoga.style.Direction writing(Direction direction) {
+        return switch (direction) {
+            case LTR -> dev.goldberry.natives.yoga.style.Direction.LTR;
+            case RTL -> dev.goldberry.natives.yoga.style.Direction.RTL;
+        };
+    }
+
     static dev.goldberry.natives.yoga.style.Justify justify(Justify justify) {
         return switch (justify) {
             case FLEX_START -> dev.goldberry.natives.yoga.style.Justify.FLEX_START;
@@ -160,7 +184,7 @@ final class Yoga {
     static dev.goldberry.natives.yoga.style.Overflow overflow(Overflow overflow) {
         return switch (overflow) {
             case VISIBLE -> dev.goldberry.natives.yoga.style.Overflow.VISIBLE;
-            case HIDDEN -> dev.goldberry.natives.yoga.style.Overflow.HIDDEN;
+            case CLIP, HIDDEN -> dev.goldberry.natives.yoga.style.Overflow.HIDDEN;
             case SCROLL -> dev.goldberry.natives.yoga.style.Overflow.SCROLL;
         };
     }

@@ -2,6 +2,7 @@ package dev.goldberry.css;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -144,6 +145,80 @@ class CornersTest {
         void degenerateBox() {
             assertEquals(Corners.SQUARE, Corners.all(8).fittedTo(0, 40));
             assertEquals(Corners.SQUARE, Corners.all(8).fittedTo(40, -1));
+        }
+    }
+
+    @Nested
+    @DisplayName("ellipses and percentages")
+    class Ellipses {
+
+        @Test
+        @DisplayName("a corner with either radius zero is square, as CSS says")
+        void eitherZeroIsSquare() {
+            assertEquals(Corners.Radius.SQUARE, Corners.Radius.of(10, 0));
+            assertTrue(new Corners(
+                            Corners.Radius.of(0, 7),
+                            Corners.Radius.SQUARE,
+                            Corners.Radius.SQUARE,
+                            Corners.Radius.SQUARE)
+                    .isSquare());
+        }
+
+        @Test
+        @DisplayName("a percentage is of the width across and of the height down")
+        void percentages() {
+            var half = Corners.all(new Corners.Radius(0, 0, 50, 50));
+            assertTrue(half.isRelative());
+            var fitted = half.fittedTo(200, 80);
+            assertEquals(Corners.all(Corners.Radius.of(100, 40)), fitted);
+            assertFalse(fitted.isRelative());
+            assertEquals(Corners.Radius.of(3, 3), new Corners.Radius(-2, -2, 5, 5).resolved(100, 100));
+            assertEquals(Corners.Radius.SQUARE, new Corners.Radius(-9, -9, 5, 5).resolved(100, 100));
+        }
+
+        @Test
+        @DisplayName("fitting scales every radius by the tightest edge, each axis against its own")
+        void fitting() {
+            // Across the top: 60 + 60 on a 100 wide box needs 5/6; down the
+            // left: 10 + 10 on 40 fits. The tightest wins for all eight radii.
+            var corners = Corners.all(Corners.Radius.of(60, 10)).fittedTo(100, 40);
+            assertEquals(Corners.all(Corners.Radius.of(50, 10.0 * 5 / 6)), corners);
+        }
+
+        @Test
+        @DisplayName("an inner edge loses each side's width on that side's axis")
+        void inset() {
+            var inner = Corners.all(14).inset(2, 4, 6, 8);
+            assertEquals(Corners.Radius.of(6, 12), inner.topLeftRadius());
+            assertEquals(Corners.Radius.of(10, 12), inner.topRightRadius());
+            assertEquals(Corners.Radius.of(10, 8), inner.bottomRightRadius());
+            assertEquals(Corners.Radius.of(6, 8), inner.bottomLeftRadius());
+            assertEquals(Corners.all(2), Corners.all(4).shrunkBy(2));
+        }
+
+        @Test
+        @DisplayName("a ring resolves a percentage against the box before it grows")
+        void resolvedOn() {
+            var half = Corners.all(new Corners.Radius(0, 0, 50, 50));
+            assertEquals(
+                    Corners.all(Corners.Radius.of(22, 12)),
+                    half.resolvedOn(40, 20).grownBy(2));
+            var pixels = Corners.all(9999);
+            assertSame(pixels, pixels.resolvedOn(40, 20));
+        }
+
+        @Test
+        @DisplayName("the horizontal radius is what the four-number accessors answer")
+        void accessors() {
+            var corners = new Corners(
+                    Corners.Radius.of(1, 5), Corners.Radius.of(2, 6), Corners.Radius.of(3, 7), Corners.Radius.of(4, 8));
+            assertEquals(1, corners.topLeft());
+            assertEquals(2, corners.topRight());
+            assertEquals(3, corners.bottomRight());
+            assertEquals(4, corners.bottomLeft());
+            assertEquals(Corners.Radius.of(3, 7), corners.clockwise()[2]);
+            assertFalse(corners.isUniform());
+            assertEquals(corners, corners.inRow(true, true));
         }
     }
 }

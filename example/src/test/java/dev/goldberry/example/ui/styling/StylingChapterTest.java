@@ -3,6 +3,7 @@ package dev.goldberry.example.ui.styling;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
@@ -106,19 +107,27 @@ class StylingChapterTest {
                             "styling-sheets",
                             "styling-cascade",
                             "styling-selectors",
+                            "styling-selectors-more",
                             "styling-parts",
                             "styling-properties",
                             "styling-box",
+                            "styling-lengths",
+                            "styling-layering",
+                            "styling-direction",
                             "styling-text-flow",
                             "styling-card",
+                            "styling-lettering",
                             "styling-colour",
+                            "styling-colour-functions",
                             "styling-gradients",
                             "styling-borders",
+                            "styling-compositing",
                             "styling-transform",
                             "motion-floor-card",
                             "motion-keyframes-card",
                             "motion-entering-card",
                             "styling-media",
+                            "styling-containers",
                             "styling-cursor",
                             "styling-custom-properties",
                             "styling-inheritance",
@@ -221,6 +230,20 @@ class StylingChapterTest {
     }
 
     @Test
+    @DisplayName("the two query containers are laid out at the two widths their rules ask about")
+    void containers() {
+        try (var session = open("styling")) {
+            var narrow = session.byId("cq-narrow").orElseThrow().queryContainer();
+            var wide = session.byId("cq-wide").orElseThrow().queryContainer();
+
+            assertNotNull(narrow, "the narrow box is a container");
+            assertNotNull(wide, "and so is the wide one");
+            assertTrue(narrow.width() < 280, "the narrow one keeps its column: " + narrow.width());
+            assertTrue(wide.width() >= 280, "the wide one turns its body into a row: " + wide.width());
+        }
+    }
+
+    @Test
     @DisplayName("the sheet probe drops two rules when lenient and refuses the sheet when strict")
     void sheetProbe() {
         try (var session = open("styling")) {
@@ -245,8 +268,8 @@ class StylingChapterTest {
     void propertiesProbe() {
         var lines = SheetProbe.read(SheetCards.UNKNOWN_PROPERTIES, ParseMode.LENIENT);
         assertEquals("Kept 1 rule.", lines.getFirst(), lines.toString());
-        assertTrue(lines.stream().anyMatch(line -> line.contains("letter-spacing")), lines.toString());
-        assertTrue(lines.stream().anyMatch(line -> line.contains("justify")), lines.toString());
+        assertTrue(lines.stream().anyMatch(line -> line.contains("float")), lines.toString());
+        assertTrue(lines.stream().anyMatch(line -> line.contains("writing-mode")), lines.toString());
         assertTrue(lines.stream().noneMatch(line -> line.contains("font-style")), lines.toString());
     }
 

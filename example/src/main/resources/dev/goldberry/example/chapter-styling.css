@@ -315,6 +315,19 @@ column.probe-result {
   border-left: 4px solid #bf616a;
 }
 
+#styling-borders panel.border-groove {
+  border: 4px groove #88c0d0;
+}
+
+#styling-borders panel.border-ridge {
+  border: 4px ridge #b48ead;
+}
+
+#styling-borders panel.border-elliptical {
+  border: 2px solid #ebcb8b;
+  border-radius: 50% / 30%;
+}
+
 #styling-borders panel.border-outline {
   outline: 2px solid var(--gb-focus);
   outline-offset: 4px;
@@ -465,6 +478,277 @@ column.probe-result {
   font-style: italic;
   border: 1px dashed var(--gb-border-strong);
   border-radius: 8px;
+}
+
+/* --- Styling: selectors that look around ------------------------------------ */
+
+/* Nested, as an application's sheet may write it: `&` is the rule it sits in. */
+#styling-selectors-more {
+  & panel.sib-tile {
+    min-width: 40px;
+    align-items: center;
+  }
+
+  /* The tile right after the picked one, then every tile after it. */
+  & panel.picked + panel.sib-tile {
+    background: var(--gb-button-primary-bg);
+    color: var(--gb-button-primary-text);
+  }
+
+  & panel.picked ~ panel.sib-tile:not(.picked + .sib-tile) {
+    opacity: 0.45;
+  }
+
+  & panel.picked {
+    border: 2px solid var(--gb-accent);
+  }
+
+  & panel.has-host {
+    border: 1px solid transparent;
+  }
+
+  & panel.has-host:has(.has-flag) {
+    border: 1px solid #a3be8c;
+  }
+
+  & text.has-flag {
+    color: #a3be8c;
+  }
+
+  & panel#within-host {
+    border: 1px dashed var(--gb-border-strong);
+  }
+
+  & panel#within-host:focus-within {
+    border: 1px solid var(--gb-focus);
+    background: color-mix(in oklch, var(--gb-surface-sunken), var(--gb-focus) 12%);
+  }
+}
+
+/* --- Styling: colour functions ---------------------------------------------- */
+
+#styling-colour-functions panel.fn-hsl { background: hsl(350 60% 60%); }
+#styling-colour-functions panel.fn-hwb { background: hwb(90 20% 30%); }
+#styling-colour-functions panel.fn-lab { background: lab(60% 40 -30); }
+#styling-colour-functions panel.fn-oklch { background: oklch(70% 0.14 200); }
+#styling-colour-functions panel.fn-named { background: rebeccapurple; }
+#styling-colour-functions panel.fn-accent { background: var(--gb-accent); }
+#styling-colour-functions panel.fn-mix { background: color-mix(in oklch, var(--gb-accent), #bf616a); }
+#styling-colour-functions panel.fn-relative { background: oklch(from var(--gb-accent) calc(l - 0.15) c h); }
+#styling-colour-functions panel.fn-lighter { background: oklch(from var(--gb-accent) calc(l + 0.12) c h); }
+
+#styling-colour-functions panel.fn-ramp {
+  background: linear-gradient(to right in oklch, #bf616a, #88c0d0);
+  color: #2e3440;
+}
+
+/* --- Styling: lengths that resolve late ------------------------------------- */
+
+#styling-lengths panel.length-bar {
+  border-left: 3px solid var(--gb-accent);
+  overflow: hidden;
+}
+
+#styling-lengths panel.length-bar text {
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+#styling-lengths panel.length-calc { width: calc(240px - 2em); }
+#styling-lengths panel.length-clamp { width: clamp(120px, 20vw, 300px); }
+#styling-lengths panel.length-ch { width: 28ch; }
+#styling-lengths panel.length-min { width: min(300px, 12em); }
+#styling-lengths panel.length-vw { width: 12vw; }
+
+/* --- Styling: stacking, ratio and sizing ------------------------------------ */
+
+#styling-layering row#z-stack {
+  gap: 0;
+  padding: 4px 0;
+}
+
+#styling-layering panel.z-plate {
+  width: 96px;
+  height: 44px;
+  border: 1px solid var(--gb-border-strong);
+}
+
+/* Each plate reaches under its neighbours, and the middle one is drawn last. */
+#styling-layering panel.z-low { background: #5e81ac; }
+#styling-layering panel.z-high {
+  background: #b48ead;
+  margin: 0 -24px;
+  z-index: 1;
+}
+#styling-layering panel.z-last { background: #88c0d0; color: #2e3440; }
+
+#styling-layering panel.order-late {
+  order: 1;
+  border: 1px solid var(--gb-accent);
+}
+
+#styling-layering panel.ratio-wide {
+  width: 96px;
+  aspect-ratio: 16 / 9;
+  background: linear-gradient(135deg, #5e81ac, #88c0d0);
+}
+
+#styling-layering panel.ratio-square {
+  width: 54px;
+  aspect-ratio: 1;
+  background: linear-gradient(135deg, #b48ead, #bf616a);
+}
+
+#styling-layering panel.sizing-box {
+  width: 120px;
+  padding: 6px;
+  border: 8px solid #d08770;
+}
+
+#styling-layering panel.sizing-content {
+  box-sizing: content-box;
+}
+
+/* --- Styling: clip, blend and filter ---------------------------------------- */
+
+#styling-compositing panel.clip-plate,
+#styling-compositing panel.filter-plate {
+  width: 56px;
+  height: 56px;
+  border: none;
+  background: linear-gradient(135deg, #88c0d0, #b48ead 60%, #bf616a);
+}
+
+#styling-compositing panel.clip-circle { clip-path: circle(45%); }
+#styling-compositing panel.clip-ellipse { clip-path: ellipse(50% 32%); }
+#styling-compositing panel.clip-diamond { clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%); }
+#styling-compositing panel.clip-inset { clip-path: inset(8px round 12px); }
+
+#styling-compositing panel.filter-plate {
+  border: 4px solid #2e3440;
+  border-radius: 12px;
+}
+
+#styling-compositing panel.filter-blur { filter: blur(2px); }
+#styling-compositing panel.filter-grey { filter: grayscale(1); }
+#styling-compositing panel.filter-hue { filter: hue-rotate(120deg); }
+#styling-compositing panel.filter-drop { filter: drop-shadow(0 4px 4px rgba(0, 0, 0, 0.6)); }
+
+/* The stripes are what the plates blend with; isolation keeps the blend
+   inside this row rather than with the card behind it. */
+#styling-compositing row#blend-group {
+  isolation: isolate;
+  padding: 8px;
+  border-radius: 6px;
+  background: repeating-linear-gradient(45deg, #5e81ac 0, #5e81ac 8px, #a3be8c 8px, #a3be8c 16px);
+}
+
+#styling-compositing panel.blend-plate {
+  background: #ebcb8b;
+  color: #2e3440;
+}
+
+#styling-compositing panel.blend-multiply { mix-blend-mode: multiply; }
+#styling-compositing panel.blend-screen { mix-blend-mode: screen; }
+#styling-compositing panel.blend-difference { mix-blend-mode: difference; }
+
+/* --- Styling: lettering ----------------------------------------------------- */
+
+#styling-lettering text#letter-spaced {
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+}
+
+#styling-lettering text#word-spaced {
+  word-spacing: 12px;
+}
+
+#styling-lettering text#text-shadowed {
+  font-size: 18px;
+  text-shadow: 0 2px 3px rgba(0, 0, 0, 0.55), 0 0 1px var(--gb-accent);
+}
+
+#styling-lettering text#text-clamped {
+  line-clamp: 2;
+}
+
+#styling-lettering text#text-justified {
+  text-align: justify;
+}
+
+#styling-lettering row#weight-row {
+  gap: 10px;
+}
+
+#styling-lettering text.weight-sample { font-size: 16px; }
+#styling-lettering text.weight-200 { font-weight: 200; }
+#styling-lettering text.weight-300 { font-weight: 300; }
+#styling-lettering text.weight-400 { font-weight: 400; }
+#styling-lettering text.weight-500 { font-weight: 500; }
+#styling-lettering text.weight-600 { font-weight: 600; }
+#styling-lettering text.weight-700 { font-weight: 700; }
+#styling-lettering text.weight-800 { font-weight: 800; }
+#styling-lettering text.weight-900 { font-weight: 900; }
+
+/* --- Styling: right to left -------------------------------------------------- */
+
+#styling-direction row#rtl-row {
+  direction: rtl;
+}
+
+#styling-direction panel.rtl-first {
+  margin-inline-start: 24px;
+  border: 1px solid var(--gb-accent);
+}
+
+/* The trailing `!` is the paragraph's own: right to left, it goes left. */
+#styling-direction text#rtl-line {
+  direction: rtl;
+  text-align: start;
+}
+
+#styling-direction text#rtl-override {
+  direction: rtl;
+  unicode-bidi: bidi-override;
+  text-align: left;
+}
+
+#styling-direction text-input#rtl-field {
+  direction: rtl;
+}
+
+/* --- Styling: container queries ---------------------------------------------- */
+
+#styling-containers panel.cq-host {
+  container-type: inline-size;
+}
+
+#styling-containers panel.cq-plate {
+  border: none;
+  background: linear-gradient(135deg, #88c0d0, #b48ead);
+}
+
+#styling-containers panel#cq-narrow {
+  width: 180px;
+}
+
+#styling-containers panel.cq-body {
+  gap: 8px;
+  padding: 0;
+  border: none;
+  background: transparent;
+}
+
+#styling-containers text.cq-title {
+  font-size: clamp(13px, 7cqw, 22px);
+  font-weight: 600;
+}
+
+@container (min-width: 280px) {
+  #styling-containers panel.cq-body {
+    flex-direction: row;
+    align-items: center;
+  }
 }
 
 /* --- Design system: colour and alias tokens -------------------------------- */

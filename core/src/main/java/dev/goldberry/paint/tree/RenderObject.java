@@ -1,6 +1,7 @@
 package dev.goldberry.paint.tree;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 
@@ -248,6 +249,16 @@ public final class RenderObject implements AutoCloseable {
         for (var child : children) {
             union = union.union(child.settle());
         }
+        if (applied != null) {
+            // A `filter` blurs or shadows the whole subtree, so it reaches past
+            // what the children drew as well as past the box.
+            var reach = applied.presence().compositing().reach();
+            union = new Ink(
+                    union.left() - reach[0],
+                    union.top() - reach[1],
+                    union.right() + reach[2],
+                    union.bottom() + reach[3]);
+        }
         ink = union;
         // Laid out again, so the children's rectangles against this one are
         // news -- and they have all just been read. A subtree skipped above was
@@ -263,7 +274,7 @@ public final class RenderObject implements AutoCloseable {
             return shifted;
         }
         return shifted.mappedBy(RenderTree.compose(
-                Affine.IDENTITY, applied.transform(), layout.left(), layout.top(), layout.width(), layout.height()));
+                Affine.IDENTITY, applied, layout.left(), layout.top(), layout.width(), layout.height()));
     }
 
     /// Puts `box` on the Yoga node, touching only what changed.
@@ -280,6 +291,12 @@ public final class RenderObject implements AutoCloseable {
 
         if (previous == null || previous.direction() != box.direction()) {
             node.setFlexDirection(Yoga.direction(box.direction()));
+        }
+        // Which side a row starts at. Set on every node rather than left to
+        // Yoga's inheritance: the cascade has already inherited it.
+        if (previous == null
+                || previous.presence().direction() != box.presence().direction()) {
+            node.setDirection(Yoga.writing(box.presence().direction()));
         }
         if (previous == null || previous.justifyContent() != box.justifyContent()) {
             node.setJustifyContent(Yoga.justify(box.justifyContent()));
@@ -344,6 +361,19 @@ public final class RenderObject implements AutoCloseable {
             node.setPadding(Edge.BOTTOM, Yoga.length(padding.bottom()));
             node.setPadding(Edge.LEFT, Yoga.length(padding.left()));
         }
+        // The border takes room outside the padding, as in CSS: the painter
+        // draws it at the box's edge and the content starts inside both.
+        var border = box.decoration().border();
+        if (previous == null || !sameBorderWidths(previous.decoration().border(), border)) {
+            node.setBorder(Edge.TOP, (float) border.top().width());
+            node.setBorder(Edge.RIGHT, (float) border.right().width());
+            node.setBorder(Edge.BOTTOM, (float) border.bottom().width());
+            node.setBorder(Edge.LEFT, (float) border.left().width());
+        }
+        if (previous == null
+                || previous.presence().boxSizing() != box.presence().boxSizing()) {
+            node.setBoxSizing(Yoga.sizing(box.presence().boxSizing()));
+        }
         // Per gutter rather than `Gutter.ALL`, because `row-gap` and
         // `column-gap` may differ; `gap: 8px` simply sets both the same.
         if (previous == null || !previous.rowGap().equals(box.rowGap())) {
@@ -370,6 +400,11 @@ public final class RenderObject implements AutoCloseable {
         // clip in the painter hides the overflow, and this is what *creates* it.
         if (previous == null || previous.overflow() != box.overflow()) {
             node.setOverflow(Yoga.overflow(box.overflow()));
+        }
+        // `Double.compare`, since `auto` is a NaN and a NaN is never `==` itself:
+        // the plain comparison would write it to the node on every frame.
+        if (previous == null || Double.compare(previous.aspectRatio(), box.aspectRatio()) != 0) {
+            node.setAspectRatio((float) box.aspectRatio());
         }
         // Against `appliedInset` rather than against `previous.inset()`, because
         // the value on the node is the box's inset shifted by the containing
@@ -443,6 +478,30 @@ public final class RenderObject implements AutoCloseable {
     ///
     /// @return whether the child list changed, so the caller can avoid touching
     ///         Yoga's child list — which dirties the node — when it did not
+    /// `children` in `order`: a stable sort, so equal orders keep document
+    /// order, and the list itself when every child has the same order, which
+    /// is nearly always.
+    ///
+    /// Layout, paint and the hit test all read the render tree's children, so
+    /// they all see this order. Focus moves through the element tree and keeps
+    /// document order, as CSS has it.
+    static List<Box> inOrder(List<Box> children) {
+        if (children.size() < 2) {
+            return children;
+        }
+        var first = children.getFirst().presence().order();
+        var reordered = false;
+        for (var child : children) {
+            reordered |= child.presence().order() != first;
+        }
+        if (!reordered) {
+            return children;
+        }
+        var sorted = new ArrayList<>(children);
+        sorted.sort(Comparator.comparingInt(child -> child.presence().order()));
+        return sorted;
+    }
+
     boolean reconcileChildren(List<Box> next, Box parent, YogaConfig config, ShrinkToFit shrink) {
         var changed = false;
 
@@ -569,7 +628,14 @@ public final class RenderObject implements AutoCloseable {
     /// Fully transparent is not promoted either: there is nothing to composite,
     /// and the ordinary path already draws nothing.
     boolean isPromoted() {
-        return applied != null && applied.opacity() < 1 && applied.opacity() > 0 && !children.isEmpty();
+        if (applied == null) {
+            return false;
+        }
+        // `clip-path`, `mix-blend-mode` and `isolation` make a group of any
+        // box, a leaf included: the clip is cut out of the raster and the
+        // blend is how the raster is composited.
+        return applied.presence().compositing().needsLayer()
+                || (applied.opacity() < 1 && applied.opacity() > 0 && !children.isEmpty());
     }
 
     /// The layer for `bounds`, reused if the one held still fits and is good.
@@ -724,7 +790,7 @@ public final class RenderObject implements AutoCloseable {
         if (!box.children().isEmpty() || !children.isEmpty()) {
             // This box's own padding box is the containing block for every
             // absolutely positioned child of it.
-            var childrenChanged = reconcileChildren(box.children(), box, config, shrink);
+            var childrenChanged = reconcileChildren(inOrder(box.children()), box, config, shrink);
             changed |= childrenChanged;
             // A descendant's own opacity and transform *are* baked into this
             // node's raster, so a child changing anything invalidates it.
@@ -812,19 +878,21 @@ public final class RenderObject implements AutoCloseable {
                 // it: a row that starts wrapping puts its third child on a second
                 // line without changing a single field of that child's box, so a
                 // subtree "unchanged" by this comparison had every rectangle in
-                // it move. `overflow` and `elevated` change what is
-                // drawn rather than where -- a box that starts clipping, and one
-                // that starts painting over its siblings.
+                // it move. `overflow` and the presence change what is
+                // drawn rather than where -- a box that starts clipping, one
+                // that starts painting over its siblings, and one that is
+                // hidden or shown.
                 && a.alignSelf() == b.alignSelf()
                 && a.alignContent() == b.alignContent()
                 && a.wrap() == b.wrap()
                 && a.limits().equals(b.limits())
                 && a.overflow() == b.overflow()
-                && a.elevated() == b.elevated()
+                && a.presence().equals(b.presence())
                 && a.width().equals(b.width())
                 && a.height().equals(b.height())
                 && a.margin().equals(b.margin())
                 && a.padding().equals(b.padding())
+                && sameBorderWidths(a.decoration().border(), b.decoration().border())
                 && a.rowGap().equals(b.rowGap())
                 && a.columnGap().equals(b.columnGap())
                 && a.flexGrow() == b.flexGrow()
@@ -895,5 +963,14 @@ public final class RenderObject implements AutoCloseable {
     @Override
     public String toString() {
         return "RenderObject[" + (leaf ? "text" : children.size() + " children") + "]";
+    }
+
+    /// Whether two borders take the same room: their colours and styles are
+    /// paint, their widths are layout.
+    private static boolean sameBorderWidths(Border a, Border b) {
+        return a.top().width() == b.top().width()
+                && a.right().width() == b.right().width()
+                && a.bottom().width() == b.bottom().width()
+                && a.left().width() == b.left().width();
     }
 }

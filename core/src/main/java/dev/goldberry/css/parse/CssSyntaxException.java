@@ -32,8 +32,14 @@ public final class CssSyntaxException extends RuntimeException {
         this.unsupported = unsupported;
     }
 
+    /// A construct outside the subset, found after the parse: an `@import` that
+    /// cannot be resolved where the sheet was read from.
+    public static CssSyntaxException unsupportedFeature(String message, int line, int column) {
+        return new CssSyntaxException(message, line, column, true);
+    }
+
     /// Whether this is a construct the subset has not got, such as `::before`
-    /// or `@supports`, rather than a mistake such as an unclosed block.
+    /// or `@scope`, rather than a mistake such as an unclosed block.
     ///
     /// The difference [ParseMode#LENIENT] turns on: the first drops one rule
     /// with a warning there, and the second refuses the sheet in either mode.

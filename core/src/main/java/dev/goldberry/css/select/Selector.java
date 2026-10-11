@@ -12,14 +12,14 @@ import org.jspecify.annotations.Nullable;
 /// card > heading { font-weight: 600 }
 /// ```
 ///
-/// The subset is type, `.class`, `#id`, the descendant and child combinators,
-/// the pseudo-classes that describe widget state, and the [Structural] ones
-/// that describe where an element sits among its siblings: `:first-child`,
-/// `:last-child`, `:only-child` and `:nth-child(An+B)`. Those read an index the
-/// element already has, so matching is still a walk up the ancestor chain.
-/// Sibling combinators, attribute selectors, `:has()` and pseudo-elements are
-/// not in it: each would make one element's match depend on another element's
-/// content rather than on its own position.
+/// The subset is type, `.class`, `#id`, the four combinators (descendant,
+/// child, `+` and `~`), the pseudo-classes that describe widget state, the
+/// [Structural] ones that describe where an element sits among its siblings
+/// (`:first-child`, `:nth-child(An+B)` and the rest), the [Functional] ones
+/// that take selectors, `:has()` among them, and the two [PseudoElement]s a
+/// part stands for. Attribute selectors and the other pseudo-elements are not
+/// in it: a widget's markup properties stay out of the cascade, and a part type
+/// stands where CSS has `::before`.
 ///
 /// A selector is a chain of [Compound]s joined by [Combinator]s, stored
 /// **rightmost first**. That is the order matching reads them in: find the
@@ -38,8 +38,33 @@ public record Selector(List<Part> parts) {
         DESCENDANT,
         /// `.a > .b` — directly below.
         CHILD,
+        /// `.a + .b` — the sibling just after.
+        NEXT_SIBLING,
+        /// `.a ~ .b` — any sibling after.
+        SUBSEQUENT_SIBLING,
+        /// `.a::placeholder` — the part below `.a` that stands for a
+        /// [PseudoElement]. Matched as a descendant, and written with no space.
+        PART,
         /// The leftmost compound, which has nothing to its left.
-        NONE
+        NONE;
+
+        /// Whether this joins two siblings rather than an element to an
+        /// ancestor.
+        public boolean isSibling() {
+            return this == NEXT_SIBLING || this == SUBSEQUENT_SIBLING;
+        }
+
+        /// The combinator as written between two compounds, spaces included:
+        /// `" > "`, `" + "`, or one space for a descendant.
+        public String cssText() {
+            return switch (this) {
+                case DESCENDANT, NONE -> " ";
+                case PART -> "";
+                case CHILD -> " > ";
+                case NEXT_SIBLING -> " + ";
+                case SUBSEQUENT_SIBLING -> " ~ ";
+            };
+        }
     }
 
     /// One compound and the combinator tying it to what precedes it.
@@ -63,12 +88,19 @@ public record Selector(List<Part> parts) {
     /// @param classes      the `.class` names, in source order
     /// @param pseudoClasses the `:state` names
     /// @param structural   the `:first-child`-like conditions on its position
+    /// @param functional   the pseudo-classes that take a selector list:
+    ///                     `:is()`, `:where()`, `:not()`, `:has()`,
+    ///                     `:nth-child(… of S)`
+    /// @param pseudoElement the pseudo-element the matched part stands for, or
+    ///                     null; only on a selector's last compound
     public record Compound(
             @Nullable String type,
             @Nullable String id,
             List<String> classes,
             List<PseudoClass> pseudoClasses,
-            List<Structural> structural) {
+            List<Structural> structural,
+            List<Functional> functional,
+            @Nullable PseudoElement pseudoElement) {
 
         /// Written out so that the parameters taking null for a default can say so.
         public Compound(
@@ -76,15 +108,47 @@ public record Selector(List<Part> parts) {
                 @Nullable String id,
                 @Nullable List<String> classes,
                 @Nullable List<PseudoClass> pseudoClasses,
-                @Nullable List<Structural> structural) {
+                @Nullable List<Structural> structural,
+                @Nullable List<Functional> functional,
+                @Nullable PseudoElement pseudoElement) {
             classes = List.copyOf(classes == null ? List.of() : classes);
             pseudoClasses = List.copyOf(pseudoClasses == null ? List.of() : pseudoClasses);
             structural = List.copyOf(structural == null ? List.of() : structural);
+            functional = List.copyOf(functional == null ? List.of() : functional);
             this.type = type;
             this.id = id;
             this.classes = classes;
             this.pseudoClasses = pseudoClasses;
             this.structural = structural;
+            this.functional = functional;
+            this.pseudoElement = pseudoElement;
+        }
+
+        /// A compound that stands for no pseudo-element.
+        public Compound(
+                @Nullable String type,
+                @Nullable String id,
+                @Nullable List<String> classes,
+                @Nullable List<PseudoClass> pseudoClasses,
+                @Nullable List<Structural> structural,
+                @Nullable List<Functional> functional) {
+            this(type, id, classes, pseudoClasses, structural, functional, null);
+        }
+
+        /// The part that stands for `pseudoElement`, and nothing else about it:
+        /// what `::placeholder` reads as.
+        public static Compound of(PseudoElement pseudoElement) {
+            return new Compound(null, null, null, null, null, null, pseudoElement);
+        }
+
+        /// A compound with no functional pseudo-class.
+        public Compound(
+                @Nullable String type,
+                @Nullable String id,
+                @Nullable List<String> classes,
+                @Nullable List<PseudoClass> pseudoClasses,
+                @Nullable List<Structural> structural) {
+            this(type, id, classes, pseudoClasses, structural, null);
         }
 
         /// A compound with no structural condition.
@@ -93,12 +157,18 @@ public record Selector(List<Part> parts) {
                 @Nullable String id,
                 @Nullable List<String> classes,
                 @Nullable List<PseudoClass> pseudoClasses) {
-            this(type, id, classes, pseudoClasses, null);
+            this(type, id, classes, pseudoClasses, null, null);
         }
 
         /// Whether this compound constrains nothing — the `*` of `* > .a`.
         public boolean isUniversal() {
-            return type == null && id == null && classes.isEmpty() && pseudoClasses.isEmpty() && structural.isEmpty();
+            return type == null
+                    && id == null
+                    && classes.isEmpty()
+                    && pseudoClasses.isEmpty()
+                    && structural.isEmpty()
+                    && functional.isEmpty()
+                    && pseudoElement == null;
         }
 
         @Override
@@ -113,6 +183,10 @@ public record Selector(List<Part> parts) {
             classes.forEach(c -> text.append('.').append(c));
             pseudoClasses.forEach(p -> text.append(':').append(p.cssName()));
             structural.forEach(p -> text.append(':').append(p.cssName()));
+            functional.forEach(f -> text.append(f.cssText()));
+            if (pseudoElement != null) {
+                text.append("::").append(pseudoElement.cssName());
+            }
             return text.isEmpty() ? "*" : text.toString();
         }
     }
@@ -133,6 +207,14 @@ public record Selector(List<Part> parts) {
         ACTIVE,
         FOCUS,
         FOCUS_VISIBLE,
+
+        /// The element has the keyboard focus, or something under it does —
+        /// `field:focus-within label`.
+        ///
+        /// Set by the router on the focused element and every ancestor of it,
+        /// and taken off only those the focus left: a move between two controls
+        /// in one `field` leaves the field's answer alone.
+        FOCUS_WITHIN,
         DISABLED,
         CHECKED,
 
@@ -183,6 +265,13 @@ public record Selector(List<Part> parts) {
         /// where a drop would land and nowhere else.
         DRAG_OVER,
 
+        /// Not [#DISABLED] — `button:enabled`.
+        ///
+        /// No state of its own: it holds exactly when `:disabled` does not, so the
+        /// matcher answers it from that one and a change to `:disabled` is the
+        /// change that moves it.
+        ENABLED,
+
         /// The root element — `:root { --gb-accent: … }`.
         ///
         /// Structural rather than a state: it never changes for an element, so
@@ -228,6 +317,10 @@ public record Selector(List<Part> parts) {
     /// 10 bits caps each count at 1023. A selector with 1024 classes is not a
     /// thing that happens, and the alternative — saturating arithmetic on a hot
     /// path — costs more than it protects.
+    ///
+    /// A functional pseudo-class adds what [Functional#specificity()] says, field
+    /// by field: `:is()` and `:not()` their most specific argument, `:where()`
+    /// nothing, and `:nth-child(… of S)` a pseudo-class plus `S`.
     public int specificity() {
         var ids = 0;
         var classes = 0;
@@ -243,6 +336,15 @@ public record Selector(List<Part> parts) {
             if (compound.type() != null) {
                 types++;
             }
+            if (compound.pseudoElement() != null) {
+                types++;
+            }
+            for (var functional : compound.functional()) {
+                var added = functional.specificity();
+                ids += added >>> 20;
+                classes += (added >>> 10) & 1023;
+                types += added & 1023;
+            }
         }
         return (Math.min(ids, 1023) << 20) | (Math.min(classes, 1023) << 10) | Math.min(types, 1023);
     }
@@ -256,7 +358,7 @@ public record Selector(List<Part> parts) {
             var part = parts.get(i);
             text.append(part.compound());
             if (i > 0) {
-                text.append(parts.get(i - 1).combinator() == Combinator.CHILD ? " > " : " ");
+                text.append(parts.get(i - 1).combinator().cssText());
             }
         }
         return text.toString();

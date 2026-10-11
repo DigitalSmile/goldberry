@@ -100,7 +100,8 @@ class CursorTest {
             // style is still perfectly good.
             assertEquals(
                     Cursor.DEFAULT,
-                    resolve("button { cursor: zoom-in; }", new Node("button")).cursor());
+                    resolve("button { cursor: zoom-sideways; }", new Node("button"))
+                            .cursor());
         }
 
         @Test

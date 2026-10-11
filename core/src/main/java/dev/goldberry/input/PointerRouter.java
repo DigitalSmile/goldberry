@@ -2,6 +2,7 @@ package dev.goldberry.input;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -1253,7 +1254,39 @@ public final class PointerRouter {
         if (focused != null) {
             notifyFocus(focused, true, fromKeyboard);
         }
+        markFocusWithin(lost, focused);
         notifyFocusWithin(lost, focused, fromKeyboard);
+    }
+
+    /// `:focus-within`, as a pseudo-class: on `gained` and every ancestor of
+    /// it, and off the ancestors of `lost` that are not also `gained`'s.
+    ///
+    /// Before [#notifyFocusWithin], so a container told the keyboard arrived
+    /// already matches the rules that say so. Not through [#mark], which keeps
+    /// `:hover` off a disabled widget: a disabled container still holds the
+    /// focus of whatever enabled control is inside it.
+    private void markFocusWithin(@Nullable Element lost, @Nullable Element gained) {
+        if (lost == gained) {
+            return;
+        }
+        var entered = gained == null ? List.<Element>of() : chain(gained);
+        var staying = new HashSet<>(entered);
+        if (lost != null) {
+            for (var element : chain(lost)) {
+                if (!staying.contains(element)) {
+                    focusWithin(element, false);
+                }
+            }
+        }
+        for (var element : entered) {
+            focusWithin(element, true);
+        }
+    }
+
+    private void focusWithin(Element element, boolean active) {
+        if (element.isMounted() && element.setPseudoClass(PseudoClass.FOCUS_WITHIN, active)) {
+            stylesDirty = true;
+        }
     }
 
     /// Asks whatever has the focus whether it is typed into, and tells the window
@@ -2609,14 +2642,18 @@ public final class PointerRouter {
         return element.widget() instanceof Handles handles
                 && handles.isFocusable()
                 && !isDisabled(element)
-                && !isHidden(element);
+                && !isHidden(element)
+                && !element.isInvisible();
     }
 
     /// Whether `element` is kept but hidden — by itself or by any ancestor
-    /// ([Styled#isHidden()]). Walked up for [#isDisabled]'s reason.
+    /// ([Styled#isHidden()]), or by a stylesheet's `display: none`. Walked up for [#isDisabled]'s reason.
     private static boolean isHidden(Element element) {
         for (var current = element; current != null; current = parentOf(current)) {
             if (current.widget() instanceof Styled styled && styled.isHidden()) {
+                return true;
+            }
+            if (current.isDisplayNone()) {
                 return true;
             }
         }

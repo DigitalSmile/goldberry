@@ -148,8 +148,8 @@ class PointerRouterTest {
             // The design system gives :disabled one appearance. A
             // control that still lightened under the pointer would be saying it
             // can be used. Enforced in the router rather than per variant per
-            // state in a stylesheet -- CSS would write `:not(:disabled):hover`,
-            // and `:not()` is not in the supported subset.
+            // state in a stylesheet, where every rule would have to remember to
+            // write `:not(:disabled):hover`.
             innerWidget.disabled = true;
             router.pointerMoved(30, 30);
 

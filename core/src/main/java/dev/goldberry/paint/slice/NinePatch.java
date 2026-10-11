@@ -141,6 +141,8 @@ public record NinePatch(Insets slice, Insets widths, boolean fill, Repeat across
         return switch (width) {
             case Length.Points points -> new Extent(Extent.Kind.LENGTH, points.value());
             case Length.Percent percent -> new Extent(Extent.Kind.PERCENT, percent.value());
+            // The constructor refuses one.
+            case Length.Mixed mixed -> throw new IllegalStateException("a nine-patch side of " + mixed);
             case Length.Keyword _ -> Extent.AUTO;
         };
     }

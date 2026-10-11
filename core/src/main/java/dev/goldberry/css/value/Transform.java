@@ -10,6 +10,8 @@ import org.jspecify.annotations.Nullable;
 import dev.goldberry.css.Decoration;
 import dev.goldberry.css.parse.Token;
 import dev.goldberry.css.parse.TokenType;
+import dev.goldberry.css.value.calc.Maths;
+import dev.goldberry.css.value.calc.Quantity;
 
 /// CSS's `transform` and `transform-origin`, as the cascade resolves them.
 ///
@@ -54,17 +56,43 @@ import dev.goldberry.css.parse.TokenType;
 /// @param functions in the order they were written, which is the **reverse** of
 ///                  the order they apply — CSS's `transform: a b c` runs `c`
 ///                  first
-/// @param origin    the point they are applied about; `50% 50%` by default,
-///                  which is CSS's and is why `scale()` grows a control from its
-///                  middle
-public record Transform(List<Function> functions, Origin origin) {
+/// @param origin     the point they are applied about; `50% 50%` by default,
+///                   which is CSS's and is why `scale()` grows a control from its
+///                   middle
+/// @param individual the `translate`, `rotate` and `scale` properties, applied
+///                   before the functions
+/// @param box        what the origin and the percentages are measured against
+public record Transform(List<Function> functions, Origin origin, IndividualTransform individual, TransformBox box) {
 
     /// No transform. The value every box starts at and almost every box keeps.
-    public static final Transform NONE = new Transform(List.of(), Origin.CENTER);
+    public static final Transform NONE =
+            new Transform(List.of(), Origin.CENTER, IndividualTransform.NONE, TransformBox.BORDER_BOX);
 
     public Transform {
         functions = List.copyOf(Objects.requireNonNull(functions, "functions"));
         Objects.requireNonNull(origin, "origin");
+        Objects.requireNonNull(individual, "individual");
+        Objects.requireNonNull(box, "box");
+    }
+
+    /// `functions` about `origin`, with none of the individual properties.
+    public Transform(List<Function> functions, Origin origin) {
+        this(functions, origin, IndividualTransform.NONE, TransformBox.BORDER_BOX);
+    }
+
+    /// This transform with other functions, its origin and the rest kept.
+    public Transform functions(List<Function> value) {
+        return new Transform(value, origin, individual, box);
+    }
+
+    /// This transform with other individual properties.
+    public Transform individual(IndividualTransform value) {
+        return new Transform(functions, origin, value, box);
+    }
+
+    /// This transform measured against another box.
+    public Transform box(TransformBox value) {
+        return new Transform(functions, origin, individual, value);
     }
 
     /// A transform with the default origin.
@@ -74,7 +102,7 @@ public record Transform(List<Function> functions, Origin origin) {
 
     /// This transform applied about a different point.
     public Transform origin(Origin value) {
-        return new Transform(functions, value);
+        return new Transform(functions, value, individual, box);
     }
 
     /// Whether this transform would move anything.
@@ -82,7 +110,7 @@ public record Transform(List<Function> functions, Origin origin) {
     /// Asked once per box per frame. An empty list is the answer for every box in
     /// an ordinary frame, and it costs a field read.
     public boolean isNone() {
-        return functions.isEmpty();
+        return functions.isEmpty() && individual.isNone();
     }
 
     /// The matrix for a border box of `width` × `height` logical pixels.
@@ -92,14 +120,32 @@ public record Transform(List<Function> functions, Origin origin) {
     /// `transform: translate(10px) scale(2)` the box is scaled and *then* moved,
     /// so the point nearest the box is the rightmost one written.
     public Affine matrix(double width, double height) {
-        if (functions.isEmpty()) {
+        return matrix(width, height, 0, 0, 0, 0);
+    }
+
+    /// The matrix for a border box of `width` × `height` whose content box is
+    /// inset by `top`, `right`, `bottom` and `left`: what [#box()] measures
+    /// against when it is the content box.
+    ///
+    /// `translate`, `rotate` and `scale` come first, in that order, and the
+    /// functions after them, as if they had been written at the front of the
+    /// list.
+    public Affine matrix(double width, double height, double top, double right, double bottom, double left) {
+        if (isNone()) {
             return Affine.IDENTITY;
         }
+        var content = box == TransformBox.CONTENT_BOX;
+        var w = content ? Math.max(0, width - left - right) : width;
+        var h = content ? Math.max(0, height - top - bottom) : height;
+        var all = individual.functions();
+        all.addAll(functions);
         var matrix = Affine.IDENTITY;
-        for (var i = functions.size() - 1; i >= 0; i--) {
-            matrix = matrix.then(functions.get(i).resolve(width, height));
+        for (var i = all.size() - 1; i >= 0; i--) {
+            matrix = matrix.then(all.get(i).resolve(w, h));
         }
-        return matrix.about(origin.x().resolve(width), origin.y().resolve(height));
+        return matrix.about(
+                (content ? left : 0) + origin.x().resolve(w),
+                (content ? top : 0) + origin.y().resolve(h));
     }
 
     /// This transform `t` of the way to `to`.
@@ -142,7 +188,7 @@ public record Transform(List<Function> functions, Origin origin) {
             }
             mixed.add(from.mix(target, t));
         }
-        return new Transform(mixed, origin.mix(to.origin, t));
+        return new Transform(mixed, origin.mix(to.origin, t), individual.mix(to.individual, t), t < 0.5 ? box : to.box);
     }
 
     @Override
@@ -169,7 +215,9 @@ public record Transform(List<Function> functions, Origin origin) {
     /// @param value      the number
     /// @param percentage whether it is a proportion of the box rather than
     ///                   logical pixels; `50` means 50%, not 0.5
-    public record Length(double value, boolean percentage) {
+    /// @param offset     logical pixels added to a percentage, which is what
+    ///                   `calc(-50% + 4px)` folds to; zero otherwise
+    public record Length(double value, boolean percentage, double offset) {
 
         public static final Length ZERO = new Length(0, false);
 
@@ -177,9 +225,25 @@ public record Transform(List<Function> functions, Origin origin) {
         public static final Length HALF = new Length(50, true);
 
         public Length {
-            if (!Double.isFinite(value)) {
-                throw new IllegalArgumentException("a transform length must be a finite number, not " + value);
+            if (!Double.isFinite(value) || !Double.isFinite(offset)) {
+                throw new IllegalArgumentException(
+                        "a transform length must be a finite number, not " + value + " and " + offset);
             }
+            if (!percentage && offset != 0) {
+                // Pixels plus pixels is one number of pixels.
+                value += offset;
+                offset = 0;
+            }
+        }
+
+        /// A length with no offset.
+        public Length(double value, boolean percentage) {
+            this(value, percentage, 0);
+        }
+
+        /// A percentage of the box plus `pixels`.
+        public static Length percentPlus(double percent, double pixels) {
+            return new Length(percent, true, pixels);
         }
 
         public static Length px(double value) {
@@ -192,7 +256,7 @@ public record Transform(List<Function> functions, Origin origin) {
 
         /// This length in logical pixels, against a box dimension of `basis`.
         public double resolve(double basis) {
-            return percentage ? value * basis / 100 : value;
+            return percentage ? value * basis / 100 + offset : value;
         }
 
         Length mix(Length to, double t) {
@@ -202,12 +266,15 @@ public record Transform(List<Function> functions, Origin origin) {
             if (percentage != to.percentage) {
                 return t < 0.5 ? this : to;
             }
-            return new Length(value + (to.value - value) * t, percentage);
+            return new Length(value + (to.value - value) * t, percentage, offset + (to.offset - offset) * t);
         }
 
         @Override
         public String toString() {
-            return percentage ? value + "%" : value + "px";
+            if (!percentage) {
+                return value + "px";
+            }
+            return offset == 0 ? value + "%" : "calc(" + value + "% + " + offset + "px)";
         }
     }
 
@@ -421,7 +488,7 @@ public record Transform(List<Function> functions, Origin origin) {
     /// Public because the computed style that calls it lives in `css` and a value
     /// type lives here.
     public static @Nullable Transform parse(List<Token> value, Origin origin, CssLength.Context context) {
-        var tokens = value.stream().filter(t -> !t.is(TokenType.WHITESPACE)).toList();
+        var tokens = outsideFunctions(value);
         if (tokens.isEmpty()) {
             return null;
         }
@@ -451,6 +518,25 @@ public record Transform(List<Function> functions, Origin origin) {
         return functions.isEmpty() ? null : new Transform(functions, origin);
     }
 
+    /// `value` with the whitespace between functions taken out and the
+    /// whitespace inside them kept, since a `calc()` argument needs it to tell a
+    /// subtraction from a negative number.
+    private static List<Token> outsideFunctions(List<Token> value) {
+        var kept = new ArrayList<Token>(value.size());
+        var depth = 0;
+        for (var token : value) {
+            if (token.is(TokenType.FUNCTION) || token.is(TokenType.OPEN_PAREN)) {
+                depth++;
+            } else if (token.is(TokenType.CLOSE_PAREN)) {
+                depth = Math.max(0, depth - 1);
+            }
+            if (depth > 0 || !token.is(TokenType.WHITESPACE)) {
+                kept.add(token);
+            }
+        }
+        return kept;
+    }
+
     /// The index of the `)` closing the function that starts at `open`.
     ///
     /// Counted rather than searched for, because a `var()` substituted into an
@@ -472,22 +558,42 @@ public record Transform(List<Function> functions, Origin origin) {
         return -1;
     }
 
-    /// A function's arguments split on commas.
+    /// A function's arguments split on the commas between them, each trimmed
+    /// of whitespace. A comma inside a nested function, `min(1px, 2px)`, is
+    /// that function's.
     private static List<List<Token>> arguments(List<Token> tokens) {
         var parts = new ArrayList<List<Token>>();
         var current = new ArrayList<Token>();
+        var depth = 0;
         for (var token : tokens) {
-            if (token.is(TokenType.COMMA)) {
-                parts.add(List.copyOf(current));
+            if (token.is(TokenType.FUNCTION) || token.is(TokenType.OPEN_PAREN)) {
+                depth++;
+            } else if (token.is(TokenType.CLOSE_PAREN)) {
+                depth = Math.max(0, depth - 1);
+            }
+            if (depth == 0 && token.is(TokenType.COMMA)) {
+                parts.add(trimmed(current));
                 current.clear();
             } else {
                 current.add(token);
             }
         }
         if (!current.isEmpty() || !parts.isEmpty()) {
-            parts.add(List.copyOf(current));
+            parts.add(trimmed(current));
         }
         return parts;
+    }
+
+    private static List<Token> trimmed(List<Token> tokens) {
+        var from = 0;
+        var to = tokens.size();
+        while (from < to && tokens.get(from).is(TokenType.WHITESPACE)) {
+            from++;
+        }
+        while (to > from && tokens.get(to - 1).is(TokenType.WHITESPACE)) {
+            to--;
+        }
+        return List.copyOf(tokens.subList(from, to));
     }
 
     // RefactorSwitch wants this turned into a switch *expression*. It would be
@@ -496,7 +602,7 @@ public record Transform(List<Function> functions, Origin origin) {
     // method gets longer to satisfy a preference. The suggestion is about style
     // and there is no defect under it.
     @SuppressWarnings("RefactorSwitch")
-    private static @Nullable Function function(String name, List<List<Token>> arguments, CssLength.Context context) {
+    static @Nullable Function function(String name, List<List<Token>> arguments, CssLength.Context context) {
         var count = arguments.size();
         switch (name) {
             case "translate" -> {
@@ -521,11 +627,11 @@ public record Transform(List<Function> functions, Origin origin) {
                 // repeats the first rather than defaulting to the identity —
                 // CSS's rule, and the one that makes `scale(0.6)` mean what a
                 // designer means by it.
-                var values = count == 1 || count == 2 ? numbers(arguments, count) : null;
+                var values = count == 1 || count == 2 ? numbers(arguments, count, context) : null;
                 return values == null ? null : new Function.Scale(values[0], count == 2 ? values[1] : values[0]);
             }
             case "scalex", "scaley" -> {
-                var values = count == 1 ? numbers(arguments, 1) : null;
+                var values = count == 1 ? numbers(arguments, 1, context) : null;
                 if (values == null) {
                     return null;
                 }
@@ -533,16 +639,16 @@ public record Transform(List<Function> functions, Origin origin) {
             }
 
             case "rotate" -> {
-                var values = count == 1 ? angles(arguments, 1) : null;
+                var values = count == 1 ? angles(arguments, 1, context) : null;
                 return values == null ? null : new Function.Rotate(values[0]);
             }
 
             case "skew" -> {
-                var values = count == 1 || count == 2 ? angles(arguments, count) : null;
+                var values = count == 1 || count == 2 ? angles(arguments, count, context) : null;
                 return values == null ? null : new Function.Skew(values[0], count == 2 ? values[1] : 0);
             }
             case "skewx", "skewy" -> {
-                var values = count == 1 ? angles(arguments, 1) : null;
+                var values = count == 1 ? angles(arguments, 1, context) : null;
                 if (values == null) {
                     return null;
                 }
@@ -550,7 +656,7 @@ public record Transform(List<Function> functions, Origin origin) {
             }
 
             case "matrix" -> {
-                var values = count == 6 ? numbers(arguments, 6) : null;
+                var values = count == 6 ? numbers(arguments, 6, context) : null;
                 return values == null
                         ? null
                         : new Function.Matrix(
@@ -575,38 +681,32 @@ public record Transform(List<Function> functions, Origin origin) {
         return values;
     }
 
+    /// A length argument: any length [CssLength] reads, a math function
+    /// included, and a percentage of the box plus pixels as one.
+    ///
+    /// The layout engine's length is spelled out: its simple name is this
+    /// class's own.
     private static @Nullable Length length(List<Token> argument, CssLength.Context context) {
-        if (argument.size() != 1) {
-            return null;
-        }
-        var token = argument.getFirst();
-        if (token.is(TokenType.PERCENTAGE)) {
-            return Length.percent(token.numeric());
-        }
-        if (token.is(TokenType.NUMBER)) {
-            // Unitless zero only — the same allowance CSS makes everywhere a
-            // length is expected, and for the same reason: zero has no unit to
-            // be wrong about.
-            return token.numeric() == 0 ? Length.ZERO : null;
-        }
-        if (!token.is(TokenType.DIMENSION)) {
-            return null;
-        }
-        return switch (token.unit()) {
-            case "px" -> Length.px(token.numeric());
-            // Against the node's own computed font-size, which the caller hands
-            // in: `translate(1em)` on a 13px label is 13 and on a 28px heading is
-            // 28, because `em` is the element's own size.
-            case "em" -> Length.px(token.numeric() * context.fontSize());
-            case "rem" -> Length.px(token.numeric() * context.rootFontSize());
-            default -> null;
+        return switch (CssLength.parse(argument, context)) {
+            case dev.goldberry.layout.Length.Points(var points) -> Length.px(points);
+            case dev.goldberry.layout.Length.Percent(var percent) -> Length.percent(percent);
+            case dev.goldberry.layout.Length.Mixed(var points, var percent) -> Length.percentPlus(percent, points);
+            case null, default -> null;
         };
     }
 
-    private static double @Nullable [] numbers(List<List<Token>> arguments, int count) {
+    private static double @Nullable [] numbers(List<List<Token>> arguments, int count, CssLength.Context context) {
         var values = new double[count];
         for (var i = 0; i < count; i++) {
             var argument = arguments.get(i);
+            var math = Maths.fold(argument, context);
+            if (math != null) {
+                if (math.kind() != Quantity.Kind.NUMBER) {
+                    return null;
+                }
+                values[i] = math.value();
+                continue;
+            }
             if (argument.size() != 1) {
                 return null;
             }
@@ -625,10 +725,18 @@ public record Transform(List<Function> functions, Origin origin) {
 
     /// Angles as radians. CSS's four units, because refusing three of them would
     /// be refusing valid CSS to save a `switch` arm.
-    private static double @Nullable [] angles(List<List<Token>> arguments, int count) {
+    private static double @Nullable [] angles(List<List<Token>> arguments, int count, CssLength.Context context) {
         var values = new double[count];
         for (var i = 0; i < count; i++) {
             var argument = arguments.get(i);
+            var math = Maths.fold(argument, context);
+            if (math != null) {
+                if (math.kind() != Quantity.Kind.ANGLE) {
+                    return null;
+                }
+                values[i] = Math.toRadians(math.value());
+                continue;
+            }
             if (argument.size() != 1) {
                 return null;
             }

@@ -19,6 +19,8 @@ import dev.goldberry.layout.Position;
 import dev.goldberry.paint.Box;
 import dev.goldberry.paint.tree.ContainingBlock;
 import dev.goldberry.render.Cursor;
+import dev.goldberry.text.Paragraph;
+import dev.goldberry.text.Stretch;
 import dev.goldberry.text.edit.TextEdit;
 import dev.goldberry.text.edit.keys.EditCommand;
 import dev.goldberry.text.edit.keys.EditKeys;
@@ -338,7 +340,9 @@ record TextField(
         // Stashed for the pointer, which arrives outside a render pass and cannot
         // shape anything for itself. The same move `scroll` makes with the clock:
         // render is the only place a widget is handed what it needs to measure.
-        var padding = padding(style.padding().left());
+        // From the field's outer edge to its text: the border, then the padding.
+        var border = style.decoration().border();
+        var padding = padding(style.padding().left()) + border.left().width();
         // Read once and used three times: the caret's box, the room the scroll
         // offset must leave for it, and nothing else. A caret three pixels wide
         // whose field reserved one would be clipped at the end of the text.
@@ -347,15 +351,19 @@ record TextField(
         // The alignment goes down with the paragraph, because the editor places the
         // caret and the highlight from it and the `Value` beside them draws from the
         // same resolved style.
-        var offset =
-                editor.laidOut(paragraph, padding, padding(style.padding().right()), caretWidth, style.textAlign());
+        var offset = editor.laidOut(
+                paragraph,
+                padding,
+                padding(style.padding().right()) + border.right().width(),
+                caretWidth,
+                style.lineAlign());
 
         // Every part is measured from the start of the text, which is the
         // content box, and an absolutely positioned child is placed against the
-        // padding box, outside the padding. So each `left` goes through
-        // `ContainingBlock.inContentBox`, which adds the field's own padding
-        // less its border: without it the first character would be drawn under
-        // the left padding, where the field's clip hides it.
+        // padding box, inside the border and outside the padding. So each `left`
+        // goes through `ContainingBlock.inContentBox`, which adds the field's own
+        // padding: without it the first character would be drawn under the left
+        // padding, where the field's clip hides it.
 
         // A line tall, and centred by the field's `align-items` like the text is —
         // **not** pinned top and bottom. A caret that filled a 32-point control
@@ -373,17 +381,21 @@ record TextField(
         // The highlight covers the selection, or the clause an input method is
         // converting when there is one -- never both, because there is never
         // both.
+        //
+        // A stretch per run the range covers, which is one unless the text has
+        // both directions in it: the box is placed over all of them, and holds
+        // a piece over each when there are several.
         var washStart = composing.hasClause() ? composing.clauseStart() : edit.start();
         var washEnd = composing.hasClause() ? composing.clauseEnd() : edit.end();
-        var selection = children.get(0)
+        var washed = paragraph.stretchesOf(0, length, clamp(washStart, length), clamp(washEnd, length));
+        var wash = Highlight.hull(washed, at(paragraph, washStart, length));
+        var selection = Highlight.over(children.get(0), washed, line)
                 .position(Position.ABSOLUTE)
                 .inset(inContent(
                         new Insets(Length.UNDEFINED, Length.UNDEFINED, Length.UNDEFINED, Length.points((float)
-                                (paragraph.widthBetween(0, clamp(washStart, length)) - offset))),
+                                (wash.left() - offset))),
                         style))
-                .size(
-                        Length.points((float) paragraph.widthBetween(clamp(washStart, length), clamp(washEnd, length))),
-                        line);
+                .size(Length.points((float) wash.width()), line);
 
         // Only the left edge is pinned. An absolute box with no top or bottom is
         // placed by its parent's alignment, so `align-items: center` on the field
@@ -402,7 +414,7 @@ record TextField(
                 .position(Position.ABSOLUTE)
                 .inset(inContent(
                         new Insets(Length.UNDEFINED, Length.UNDEFINED, Length.UNDEFINED, Length.points((float)
-                                (paragraph.widthBetween(0, clamp(edit.caret(), length)) - offset))),
+                                (paragraph.caretX(0, length, clamp(edit.caret(), length)) - offset))),
                         style))
                 .size(Length.points((float) caretWidth), line);
 
@@ -410,16 +422,18 @@ record TextField(
         // rather than filling it: `bottom` is pinned instead of nothing, so the
         // field's `align-items` still decides where the line is and this sits at
         // the foot of it.
+        // One rule under the whole composition, which an input method writes in
+        // one script and so in one direction.
+        var composed = Highlight.hull(
+                paragraph.stretchesOf(0, length, clamp(composing.start(), length), clamp(composing.end(), length)),
+                at(paragraph, composing.start(), length));
         var underline = children.get(3)
                 .position(Position.ABSOLUTE)
                 .inset(inContent(
                         new Insets(Length.UNDEFINED, Length.UNDEFINED, Length.UNDEFINED, Length.points((float)
-                                (paragraph.widthBetween(0, clamp(composing.start(), length)) - offset))),
+                                (composed.left() - offset))),
                         style))
-                .size(
-                        Length.points((float) paragraph.widthBetween(
-                                clamp(composing.start(), length), clamp(composing.end(), length))),
-                        Length.points((float) Underline.THICKNESS));
+                .size(Length.points((float) composed.width()), Length.points((float) Underline.THICKNESS));
 
         return Box.of()
                 .style(style)
@@ -451,6 +465,13 @@ record TextField(
     /// it reads as zero rather than as a guess.
     private static double padding(Length edge) {
         return edge instanceof Length.Points points ? points.value() : 0;
+    }
+
+    /// No stretch, at the caret before `offset`: where an empty highlight or
+    /// rule is placed.
+    private static Stretch at(Paragraph paragraph, int offset, int length) {
+        var x = paragraph.caretX(0, length, clamp(offset, length));
+        return new Stretch(x, x);
     }
 
     private static int clamp(int offset, int length) {

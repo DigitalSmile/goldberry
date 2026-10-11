@@ -9,6 +9,7 @@ import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
 import dev.goldberry.css.cascade.CascadeLayer;
@@ -18,6 +19,7 @@ import dev.goldberry.css.cascade.KeyframeAnimations.FillMode;
 import dev.goldberry.css.cascade.StyleResolver;
 import dev.goldberry.css.value.CssLength;
 import dev.goldberry.motion.Easing;
+import dev.goldberry.motion.easing.CubicBezier;
 
 /// `animation` and its seven longhands, resolved.
 ///
@@ -146,23 +148,42 @@ class AnimationPropertyTest {
     }
 
     @Test
-    @DisplayName("the shorthand the report quoted runs, with `ease-in-out` read as ease-enter")
+    @DisplayName("the shorthand the report quoted runs, with `ease-in-out` as CSS's own curve")
     void reportedPulseRuns() {
         var entry = resolve("animation: orc-pulse 900ms ease-in-out infinite alternate both")
                 .entries()
                 .getFirst();
         assertEquals("orc-pulse", entry.name());
         assertEquals(900.0, entry.durationMillis());
-        assertEquals(Easing.EASE_ENTER, entry.easing());
+        assertEquals(new CubicBezier(0.42, 0, 0.58, 1), entry.easing());
         assertEquals(Double.POSITIVE_INFINITY, entry.iterations());
         assertEquals(KeyframeAnimations.Direction.ALTERNATE, entry.direction());
         assertEquals(KeyframeAnimations.FillMode.BOTH, entry.fillMode());
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"cubic-bezier(0.2, 0, 0, 1)", "steps(3, end)", "step-start", "ease-wobble"})
-    @DisplayName("a timing function outside the subset drops itself, not the animation")
-    void foreignEasingDropsOnlyItself(String easing) {
+    @CsvSource(
+            delimiter = '|',
+            value = {
+                "cubic-bezier(0.1, 0.7, 1, 0.1) | cubic-bezier(0.1, 0.7, 1, 0.1)",
+                "steps(3, end)                  | steps(3, jump-end)",
+                "step-start                     | steps(1, jump-start)",
+                "linear(0, 0.25 75%, 1)         | linear(0 0%, 0.25 75%, 1 100%)",
+                "ease-exit                      | ease-exit",
+            })
+    @DisplayName("an application's sheet runs any curve CSS has")
+    void cssCurves(String written, String read) {
+        var entry = resolve("animation: pulse 1s " + written + " infinite")
+                .entries()
+                .getFirst();
+        assertEquals(read, entry.easing().cssName());
+        assertEquals(Double.POSITIVE_INFINITY, entry.iterations());
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"cubic-bezier(2, 0, 0, 1)", "steps(0, end)", "linear(1)", "ease-wobble"})
+    @DisplayName("a timing function that cannot be read drops itself, not the animation")
+    void unreadableEasingDropsOnlyItself(String easing) {
         var entry =
                 resolve("animation: pulse 1s " + easing + " infinite").entries().getFirst();
         assertEquals("pulse", entry.name());

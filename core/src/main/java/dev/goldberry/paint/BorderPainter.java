@@ -25,6 +25,16 @@ import dev.goldberry.paint.stroke.Stroke;
 /// as two thinner borders. The solid sides around them are still the regions
 /// below, with the styled sides' widths kept so the corners divide as before.
 ///
+/// ## Bevelled sides
+///
+/// `inset`, `outset`, `groove` and `ridge` are lit from the top left. An `inset`
+/// side is solid in a darker tone of its colour on the top and the left and a
+/// lighter one on the bottom and the right, and `outset` the other way round.
+/// A `groove` is two bands of half the width each, the outer one as `inset` and
+/// the inner one as `outset`, and a `ridge` the reverse. The tones are the
+/// colour mixed a third of the way to black and a quarter of the way to white,
+/// in OKLCH, so a black border still shows both.
+///
 /// ## Each side is a region
 ///
 /// A side is the band between the box's outer edge and its inner edge — the
@@ -34,14 +44,12 @@ import dev.goldberry.paint.stroke.Stroke;
 /// 1px top against a 4px left meets it on the diagonal from `(0, 0)` to
 /// `(4, 1)`, and a side with no neighbour ink is a plain rectangle.
 ///
-/// ## With a radius, an approximation
+/// ## With a radius
 ///
-/// The outer corner is the box's own arc and the inner one is concentric-ish: a
-/// circle of the outer radius less the **wider** of the two sides beside it.
-/// CSS makes the inner corner an ellipse, with the outer radius less each side's
-/// own width on its own axis; [Corners] are circles and so is this.
-/// The two agree exactly when the sides agree, and differ by at most the
-/// difference between the widths where they do not.
+/// The outer corner is the box's own arc, a quarter ellipse when its two radii
+/// differ, and the inner one is CSS's: the outer radii less each side's own
+/// width on its own axis, so a corner between a thick side and a thin one has
+/// an elliptical inside.
 ///
 /// The arc is divided between its two sides **in proportion to their widths**,
 /// by parameter along the cubic: a 4px left and a 1px top give the left side
@@ -92,6 +100,7 @@ final class BorderPainter {
         // they would be with every side solid.
         paintRegions(frame, path, inkOnly(border, Border.Style::isDrawnSolid), x, y, width, height, corners);
         paintDouble(frame, path, border, x, y, width, height, corners);
+        paintBevelled(frame, path, border, x, y, width, height, corners);
         for (var side : Border.Side.values()) {
             var line = border.side(side);
             if (!line.hasInk()) {
@@ -147,17 +156,91 @@ final class BorderPainter {
         paintRegions(frame, path, third, x, y, width, height, corners);
         // The inner band is the same drawing on the box inset by two thirds of
         // each side, its corners pulled in to stay concentric.
-        var fitted = corners.fittedTo(width, height);
-        var inner = new Corners(
-                Math.max(0, fitted.topLeft() - Math.max(top, left) * 2 / 3),
-                Math.max(0, fitted.topRight() - Math.max(top, right) * 2 / 3),
-                Math.max(0, fitted.bottomRight() - Math.max(bottom, right) * 2 / 3),
-                Math.max(0, fitted.bottomLeft() - Math.max(bottom, left) * 2 / 3));
+        var inner = corners.fittedTo(width, height).inset(top * 2 / 3, right * 2 / 3, bottom * 2 / 3, left * 2 / 3);
         var innerWidth = width - (left + right) * 2 / 3;
         var innerHeight = height - (top + bottom) * 2 / 3;
         if (innerWidth > 0 && innerHeight > 0) {
             paintRegions(frame, path, third, x + left * 2 / 3, y + top * 2 / 3, innerWidth, innerHeight, inner);
         }
+    }
+
+    /// The bevelled sides: `inset` and `outset` as one band each, `groove` and
+    /// `ridge` as two of half the width. See the type's note for the tones.
+    private static void paintBevelled(
+            Frame frame,
+            BlendPath path,
+            Border border,
+            double x,
+            double y,
+            double width,
+            double height,
+            Corners corners) {
+        var bevelled = inkOnly(border, Border.Style::isBevelled);
+        if (!bevelled.hasInk()) {
+            return;
+        }
+        // The outer band: all of an inset or outset side, half of a groove or
+        // a ridge. Every side's width is kept, halved where the side is in two,
+        // so the corners divide as they would.
+        var outer = new Border(
+                outerBand(bevelled.top(), Border.Side.TOP),
+                outerBand(bevelled.right(), Border.Side.RIGHT),
+                outerBand(bevelled.bottom(), Border.Side.BOTTOM),
+                outerBand(bevelled.left(), Border.Side.LEFT));
+        paintRegions(frame, path, outer, x, y, width, height, corners);
+        var inner = new Border(
+                innerBand(bevelled.top(), Border.Side.TOP),
+                innerBand(bevelled.right(), Border.Side.RIGHT),
+                innerBand(bevelled.bottom(), Border.Side.BOTTOM),
+                innerBand(bevelled.left(), Border.Side.LEFT));
+        if (!inner.hasInk()) {
+            return;
+        }
+        // The inner band is the same drawing on the box inset by the outer
+        // band, its corners pulled in to stay concentric.
+        var ot = outer.top().width();
+        var or = outer.right().width();
+        var ob = outer.bottom().width();
+        var ol = outer.left().width();
+        var innerCorners = corners.fittedTo(width, height).inset(ot, or, ob, ol);
+        var innerWidth = width - ol - or;
+        var innerHeight = height - ot - ob;
+        if (innerWidth > 0 && innerHeight > 0) {
+            paintRegions(frame, path, inner, x + ol, y + ot, innerWidth, innerHeight, innerCorners);
+        }
+    }
+
+    /// A bevelled side's outer band: its whole width for `inset` and `outset`,
+    /// half for `groove` and `ridge`, in the tone the style lights it with.
+    /// A side that is not bevelled keeps its width with no ink.
+    private static Border.Line outerBand(Border.Line line, Border.Side side) {
+        var style = line.style();
+        if (!style.isBevelled()) {
+            return line;
+        }
+        var split = style == Border.Style.GROOVE || style == Border.Style.RIDGE;
+        var darkOnTopLeft = style == Border.Style.INSET || style == Border.Style.GROOVE;
+        return new Border.Line(split ? line.width() / 2 : line.width(), tone(line.argb(), side, darkOnTopLeft));
+    }
+
+    /// The inner half of a `groove` or `ridge` side, lit the other way from its
+    /// outer half; nothing for every other side.
+    private static Border.Line innerBand(Border.Line line, Border.Side side) {
+        var style = line.style();
+        if (style != Border.Style.GROOVE && style != Border.Style.RIDGE) {
+            return new Border.Line(0, CssColor.TRANSPARENT);
+        }
+        return new Border.Line(line.width() / 2, tone(line.argb(), side, style == Border.Style.RIDGE));
+    }
+
+    /// `argb` darker on the top and left sides when `darkOnTopLeft`, and on the
+    /// bottom and right ones otherwise; lighter on the other two.
+    static int tone(int argb, Border.Side side, boolean darkOnTopLeft) {
+        var topLeft = side == Border.Side.TOP || side == Border.Side.LEFT;
+        var alpha = argb & 0xFF000000;
+        return topLeft == darkOnTopLeft
+                ? CssColor.mix(argb, alpha, 1.0 / 3)
+                : CssColor.mix(argb, alpha | 0xFFFFFF, 1.0 / 4);
     }
 
     /// One `dashed` side: its run stroked with a pattern that starts and ends
@@ -281,16 +364,11 @@ final class BorderPainter {
         var outer = corners.fittedTo(width, height);
         var innerWidth = Math.max(0, width - left - right);
         var innerHeight = Math.max(0, height - top - bottom);
-        var inner = new Corners(
-                        Math.max(0, outer.topLeft() - Math.max(top, left)),
-                        Math.max(0, outer.topRight() - Math.max(top, right)),
-                        Math.max(0, outer.bottomRight() - Math.max(bottom, right)),
-                        Math.max(0, outer.bottomLeft() - Math.max(bottom, left)))
-                .fittedTo(innerWidth, innerHeight);
+        var inner = outer.inset(top, right, bottom, left).fittedTo(innerWidth, innerHeight);
 
         var widths = new double[] {top, right, bottom, left};
-        var outerRadii = new double[] {outer.topLeft(), outer.topRight(), outer.bottomRight(), outer.bottomLeft()};
-        var innerRadii = new double[] {inner.topLeft(), inner.topRight(), inner.bottomRight(), inner.bottomLeft()};
+        var outerRadii = outer.clockwise();
+        var innerRadii = inner.clockwise();
         var arcs = new double[8 * ARC];
         for (var corner = 0; corner < 4; corner++) {
             var from = widths[(corner + 3) % 4];
@@ -312,7 +390,7 @@ final class BorderPainter {
         return arcs;
     }
 
-    /// One corner's quarter circle, clockwise, split at `share` and written at
+    /// One corner's quarter ellipse, clockwise, split at `share` and written at
     /// `at` as seven points.
     ///
     /// A square corner is seven copies of the corner point, which is what lets
@@ -325,32 +403,21 @@ final class BorderPainter {
             double top,
             double right,
             double bottom,
-            double radius,
+            Corners.Radius radius,
             double share) {
-        var c = radius * KAPPA;
+        var rx = radius.x();
+        var ry = radius.y();
+        var cx = rx * KAPPA;
+        var cy = ry * KAPPA;
         // Start, two controls, end: from the side before the corner into the
         // side after it.
         double[] p = switch (corner) {
-            case 0 ->
-                new double[] {left, top + radius, left, top + radius - c, left + radius - c, top, left + radius, top};
-            case 1 ->
-                new double[] {right - radius, top, right - radius + c, top, right, top + radius - c, right, top + radius
-                };
+            case 0 -> new double[] {left, top + ry, left, top + ry - cy, left + rx - cx, top, left + rx, top};
+            case 1 -> new double[] {right - rx, top, right - rx + cx, top, right, top + ry - cy, right, top + ry};
             case 2 ->
-                new double[] {
-                    right,
-                    bottom - radius,
-                    right,
-                    bottom - radius + c,
-                    right - radius + c,
-                    bottom,
-                    right - radius,
-                    bottom
-                };
+                new double[] {right, bottom - ry, right, bottom - ry + cy, right - rx + cx, bottom, right - rx, bottom};
             default ->
-                new double[] {
-                    left + radius, bottom, left + radius - c, bottom, left, bottom - radius + c, left, bottom - radius
-                };
+                new double[] {left + rx, bottom, left + rx - cx, bottom, left, bottom - ry + cy, left, bottom - ry};
         };
         for (var axis = 0; axis < 2; axis++) {
             // de Casteljau, once: the two halves of a cubic split at `share` are

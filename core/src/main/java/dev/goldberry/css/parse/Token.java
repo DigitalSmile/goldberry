@@ -50,6 +50,12 @@ public record Token(TokenType type, String text, double numeric, String unit, in
         return CssTokenizer.isIdentifier(text);
     }
 
+    /// Whether this is an at-keyword equal to `name`, ignoring case:
+    /// `isAtKeyword("import")` for `@import`.
+    public boolean isAtKeyword(String name) {
+        return type == TokenType.AT_KEYWORD && text.equalsIgnoreCase(name);
+    }
+
     /// Whether this is an ident equal to `name`, ignoring case.
     ///
     /// CSS keywords are case-insensitive; the values of custom properties are

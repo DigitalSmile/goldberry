@@ -1,6 +1,7 @@
 package dev.goldberry.paint.tree;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Consumer;
@@ -8,14 +9,16 @@ import java.util.function.Consumer;
 import org.jspecify.annotations.Nullable;
 
 import dev.goldberry.css.value.Affine;
-import dev.goldberry.css.value.Transform;
+import dev.goldberry.css.value.TransformBox;
 import dev.goldberry.layout.Length;
 import dev.goldberry.layout.Overflow;
 import dev.goldberry.natives.yoga.YogaConfig;
 import dev.goldberry.paint.Box;
+import dev.goldberry.paint.BoxEdges;
 import dev.goldberry.paint.BoxPainter;
 import dev.goldberry.paint.Clip;
 import dev.goldberry.paint.Frame;
+import dev.goldberry.paint.clip.ClipShapes;
 import dev.goldberry.paint.cull.BoxInk;
 import dev.goldberry.paint.overflow.Overrun;
 import dev.goldberry.render.DamageRect;
@@ -419,7 +422,7 @@ public final class RenderTree implements AutoCloseable {
         var layout = object.layout();
         var left = parentLeft + layout.left();
         var top = parentTop + layout.top();
-        var transform = compose(parentTransform, box.transform(), left, top, layout.width(), layout.height());
+        var transform = compose(parentTransform, box, left, top, layout.width(), layout.height());
 
         // **Nothing under here can land inside the clip**, so none of it is
         // drawn and none of it is walked. The test is against the
@@ -448,12 +451,16 @@ public final class RenderTree implements AutoCloseable {
 
         var alpha = parentAlpha * box.opacity();
         state.transform(transform);
-        boxesPainted++;
-        BoxPainter.paintOne(
-                state.frame,
-                box.fade(alpha),
-                LogicalRect.of((float) left, (float) top, layout.width(), layout.height()),
-                transform);
+        // `visibility: hidden` leaves the box's own drawing out and walks on:
+        // a child that says `visible` is drawn, which is CSS's rule.
+        if (box.presence().isVisible()) {
+            boxesPainted++;
+            BoxPainter.paintOne(
+                    state.frame,
+                    box.fade(alpha),
+                    LogicalRect.of((float) left, (float) top, layout.width(), layout.height()),
+                    transform);
+        }
 
         // The box itself is drawn under its *parent's* clip and the children
         // under this one's. That order is what CSS means: `overflow: hidden`
@@ -475,9 +482,7 @@ public final class RenderTree implements AutoCloseable {
     /// Draws a node's children under `clip` — straight onto the frame, or, for a
     /// node that clips them to its rounded corners, through a layer of their own.
     ///
-    /// Document order, then whatever asked to be drawn last. Two passes and no
-    /// sort: the flag is rare, the lists are short, and a comparator would put an
-    /// ordering *among* elevated siblings that is deliberately left undefined.
+    /// In [#paintOrder]: by `z-index`, document order among equals.
     private void paintChildren(
             RenderObject object, double left, double top, double alpha, Affine transform, Clip clip, Painting state) {
 
@@ -498,15 +503,8 @@ public final class RenderTree implements AutoCloseable {
     /// The children straight onto the frame under `clip`, in paint order.
     private void paintInOrder(
             RenderObject object, double left, double top, double alpha, Affine transform, Clip clip, Painting state) {
-        for (var child : object.children()) {
-            if (!child.appliedBox().elevated()) {
-                paint(child, left, top, alpha, transform, clip, state);
-            }
-        }
-        for (var child : object.children()) {
-            if (child.appliedBox().elevated()) {
-                paint(child, left, top, alpha, transform, clip, state);
-            }
+        for (var child : paintOrder(object.children())) {
+            paint(child, left, top, alpha, transform, clip, state);
         }
     }
 
@@ -570,15 +568,8 @@ public final class RenderTree implements AutoCloseable {
             layer.paint(scale, into -> {
                 var inner = new Painting(into, Clip.NONE);
                 var inside = Clip.of(dx + content.left(), dy + content.top(), content.width(), content.height());
-                for (var child : object.children()) {
-                    if (!child.appliedBox().elevated()) {
-                        paint(child, dx, dy, alpha, Affine.IDENTITY, inside, inner);
-                    }
-                }
-                for (var child : object.children()) {
-                    if (child.appliedBox().elevated()) {
-                        paint(child, dx, dy, alpha, Affine.IDENTITY, inside, inner);
-                    }
+                for (var child : paintOrder(object.children())) {
+                    paint(child, dx, dy, alpha, Affine.IDENTITY, inside, inner);
                 }
                 inner.clipTo(Clip.NONE);
                 inner.untransform();
@@ -609,24 +600,23 @@ public final class RenderTree implements AutoCloseable {
     /// what keeps this free: an ordinary frame allocates nothing here and
     /// changes no context state.
     ///
-    /// The rectangle is the box's **content box**: the box less its padding,
-    /// and so less its border, which the toolkit paints over the padding. That
-    /// is narrower than CSS, which clips to the padding box and lets content
-    /// show in the padding; here content scrolls under the padding and the
-    /// border alike, which is what makes a viewport with a 1px edge keep that
-    /// edge crisp while the rows inside it slide past, and what a text field's
-    /// parts are clipped to.
+    /// The rectangle is the box's **content box**: the box less its border and
+    /// its padding ([BoxEdges#content]). That is narrower than CSS, which clips
+    /// to the padding box and lets content show in the padding; here content
+    /// scrolls under the padding and the border alike, which is what makes a
+    /// viewport with a 1px edge keep that edge crisp while the rows inside it
+    /// slide past, and what a text field's parts are clipped to.
     private static Clip clipFor(Box box, Affine transform, Clip parent, double left, double top, LogicalRect layout) {
 
         if (box.overflow() == Overflow.VISIBLE) {
             return parent;
         }
-        var padding = box.padding();
+        var content = BoxEdges.content(box, layout.width(), layout.height());
         var own = Clip.of(
-                left + edge(padding.left(), layout.width()),
-                top + edge(padding.top(), layout.height()),
-                layout.width() - edge(padding.left(), layout.width()) - edge(padding.right(), layout.width()),
-                layout.height() - edge(padding.top(), layout.height()) - edge(padding.bottom(), layout.height()));
+                left + content.left(),
+                top + content.top(),
+                layout.width() - content.horizontal(),
+                layout.height() - content.vertical());
         return parent.intersect(own.map(transform));
     }
 
@@ -635,6 +625,7 @@ public final class RenderTree implements AutoCloseable {
         return switch (length) {
             case Length.Points points -> points.value();
             case Length.Percent percent -> percent.value() / 100.0 * base;
+            case Length.Mixed mixed -> mixed.points() + mixed.percent() / 100.0 * base;
             case Length.Keyword _ -> 0;
         };
     }
@@ -678,17 +669,38 @@ public final class RenderTree implements AutoCloseable {
                     // passed here.
                     var inner = new Painting(into, Clip.NONE);
                     paintIntoLayer(object, left - bounds.left(), top - bounds.top(), 1.0, Affine.IDENTITY, inner);
+                    inner.clipTo(Clip.NONE);
                     inner.untransform();
                 }
             });
+            // Then CSS's order: the filters, the clip, and last, below, the
+            // opacity and the blend the raster is composited with.
+            var box = object.appliedBox();
+            var compositing = box.presence().compositing();
+            if (!compositing.filter().isEmpty()) {
+                layer.filter(compositing.filter(), scale);
+            }
+            var layout = object.layout();
+            var outline = ClipShapes.of(compositing.clip(), box, layout.width(), layout.height());
+            if (outline != null) {
+                // What is outside the outline is cleared, the box's own drawing
+                // and its children's alike.
+                layer.amend(
+                        scale,
+                        into -> into.keepInside(
+                                outline.path().transformed(Affine.translate(left - bounds.left(), top - bounds.top())),
+                                outline.evenOdd()));
+            }
         }
 
         state.transform(transform);
+        var box = object.appliedBox();
         frame.drawLayer(
                 bounds.left(),
                 bounds.top(),
                 layer,
-                parentAlpha * object.appliedBox().opacity());
+                parentAlpha * box.opacity(),
+                box.presence().compositing().blend());
     }
 
     /// The same walk, inside a layer: the promoted node itself is drawn here
@@ -701,8 +713,10 @@ public final class RenderTree implements AutoCloseable {
         var layout = object.layout();
         state.transform(transform);
         var computed = LogicalRect.of((float) left, (float) top, layout.width(), layout.height());
-        boxesPainted++;
-        BoxPainter.paintOne(state.frame, box.fade(alpha), computed, transform);
+        if (box.presence().isVisible()) {
+            boxesPainted++;
+            BoxPainter.paintOne(state.frame, box.fade(alpha), computed, transform);
+        }
 
         // The promoted node's own `overflow` still clips its children, inside
         // the layer and in the layer's coordinates.
@@ -756,6 +770,13 @@ public final class RenderTree implements AutoCloseable {
         if (box[0] > box[2] || box[1] > box[3]) {
             return null;
         }
+        // A `filter` on the node blurs or shadows everything in the layer, so
+        // the layer reaches past the subtree by as far as the filter draws.
+        var reach = object.appliedBox().presence().compositing().reach();
+        box[0] -= reach[0];
+        box[1] -= reach[1];
+        box[2] += reach[2];
+        box[3] += reach[3];
         var l = Math.floor(box[0]);
         var t = Math.floor(box[1]);
         return new Bounds(l, t, Math.ceil(box[2]) - l, Math.ceil(box[3]) - t);
@@ -770,7 +791,7 @@ public final class RenderTree implements AutoCloseable {
 
         var box = object.appliedBox();
         var layout = object.layout();
-        var matrix = root ? transform : compose(transform, box.transform(), left, top, layout.width(), layout.height());
+        var matrix = root ? transform : compose(transform, box, left, top, layout.width(), layout.height());
 
         // Outward by the ring's offset and width, which is where `outline` is
         // drawn, and by the shadow's reach, which is where `box-shadow` is --
@@ -861,7 +882,7 @@ public final class RenderTree implements AutoCloseable {
         var left = parentLeft + layout.left();
         var top = parentTop + layout.top();
         var alpha = parentAlpha * box.opacity();
-        var transform = compose(parentTransform, box.transform(), left, top, layout.width(), layout.height());
+        var transform = compose(parentTransform, box, left, top, layout.width(), layout.height());
 
         var computed = LogicalRect.of((float) left, (float) top, layout.width(), layout.height());
         visitor.accept(new BoxPainter.Placed(box.fade(alpha), computed, transform, parentClip));
@@ -882,16 +903,37 @@ public final class RenderTree implements AutoCloseable {
         // The *unfaded* box is what the children were built from, so the
         // accumulated alpha travels as a number rather than being applied twice on
         // the way down.
-        for (var child : object.children()) {
-            if (!child.appliedBox().elevated()) {
-                visit(child, left, top, alpha, transform, clip, visitor);
-            }
+        for (var child : paintOrder(object.children())) {
+            visit(child, left, top, alpha, transform, clip, visitor);
         }
-        for (var child : object.children()) {
-            if (child.appliedBox().elevated()) {
-                visit(child, left, top, alpha, transform, clip, visitor);
+    }
+
+    /// `children` in the order they are drawn and hit: by `z-index`, lowest
+    /// first, and in document order among equal ones, which a stable sort
+    /// keeps.
+    ///
+    /// The same list, unsorted and unallocated, when every child is at `auto`,
+    /// which is nearly every list. The order is among siblings only: a box's
+    /// children are drawn with it, so a `z-index` cannot lift a box above its
+    /// parent's siblings.
+    static List<RenderObject> paintOrder(List<RenderObject> children) {
+        var ordered = true;
+        var previous = Integer.MIN_VALUE;
+        for (var child : children) {
+            var z = child.appliedBox().presence().zIndex();
+            if (z < previous) {
+                ordered = false;
+                break;
             }
+            previous = z;
         }
+        if (ordered) {
+            return children;
+        }
+        var sorted = new ArrayList<>(children);
+        sorted.sort(
+                Comparator.comparingInt(child -> child.appliedBox().presence().zIndex()));
+        return sorted;
     }
 
     /// A box's own transform put where the box is, then composed under its
@@ -900,12 +942,19 @@ public final class RenderTree implements AutoCloseable {
     /// Returns the parent's matrix unchanged when this box has no transform,
     /// which is the path every box in an ordinary frame takes and which allocates
     /// nothing.
-    static Affine compose(Affine parent, Transform own, double left, double top, double width, double height) {
-
+    static Affine compose(Affine parent, Box box, double left, double top, double width, double height) {
+        var own = box.transform();
         if (own.isNone()) {
             return parent;
         }
-        var local = own.matrix(width, height);
+        // `transform-box: content-box` measures inside the border and the
+        // padding.
+        var content = own.box() == TransformBox.CONTENT_BOX ? BoxEdges.content(box, width, height) : null;
+        var local = content != null
+                ? own.matrix(
+                        width, height, (float) content.top(), (float) content.right(), (float) content.bottom(), (float)
+                                content.left())
+                : own.matrix(width, height);
         if (local.isIdentity()) {
             return parent;
         }
@@ -1003,7 +1052,7 @@ public final class RenderTree implements AutoCloseable {
         var layout = object.layout();
         var left = parentLeft + layout.left();
         var top = parentTop + layout.top();
-        var transform = compose(parentTransform, box.transform(), left, top, layout.width(), layout.height());
+        var transform = compose(parentTransform, box, left, top, layout.width(), layout.height());
 
         // **Through `transform`**, which is this node's own matrix and its
         // ancestors'. Measured with `Affine.IDENTITY` -- which is what the

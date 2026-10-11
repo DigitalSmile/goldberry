@@ -5,9 +5,11 @@ import org.jspecify.annotations.Nullable;
 import dev.goldberry.assets.BundledFont;
 import dev.goldberry.assets.Face;
 import dev.goldberry.css.value.CssLength;
+import dev.goldberry.text.font.FontVariation;
 
-/// Which face text is drawn with, and how big: family, size, weight, style and
-/// line height, as the cascade resolved them.
+/// Which face text is drawn with, and how big: family, size, weight, style,
+/// line height and the spacing between letters and words, as the cascade
+/// resolved them.
 ///
 /// ```css
 /// heading { font-family: Inter; font-size: 20px; font-weight: 600; line-height: 1.4 }
@@ -46,7 +48,17 @@ import dev.goldberry.css.value.CssLength;
 /// @param lineHeight the line box height in logical pixels, or a **negative**
 ///                   value meaning "a multiple of the size", stored negated —
 ///                   see [#resolvedLineHeight()]
-public record Typography(String family, double size, int weight, BundledFont.Style style, double lineHeight) {
+/// @param lettering  the spacing added to what the face sets
+/// @param variation  where a variable face is set beyond its weight:
+///                   `font-stretch` and `font-variation-settings`
+public record Typography(
+        String family,
+        double size,
+        int weight,
+        BundledFont.Style style,
+        double lineHeight,
+        Lettering lettering,
+        FontVariation variation) {
 
     /// The weight nobody wrote: CSS's `normal`.
     private static final int REGULAR = 400;
@@ -57,14 +69,21 @@ public record Typography(String family, double size, int weight, BundledFont.Sty
     /// window with no stylesheet at all should read as the design system, because
     /// the alternative is a toolkit whose out-of-the-box text is a size nobody
     /// chose.
-    public static final Typography INITIAL = new Typography("Inter", 13, REGULAR, BundledFont.Style.UPRIGHT, 18);
+    public static final Typography INITIAL =
+            new Typography("Inter", 13, REGULAR, BundledFont.Style.UPRIGHT, 18, Lettering.NONE, FontVariation.NONE);
 
     /// Written out so that the parameters taking null for a default can say so.
     ///
     /// @throws IllegalArgumentException if the size or the line height is not a
     ///         usable length, or the weight is outside 1 to 1000
     public Typography(
-            @Nullable String family, double size, int weight, BundledFont.@Nullable Style style, double lineHeight) {
+            @Nullable String family,
+            double size,
+            int weight,
+            BundledFont.@Nullable Style style,
+            double lineHeight,
+            @Nullable Lettering lettering,
+            @Nullable FontVariation variation) {
         if (family == null || family.isBlank()) {
             family = "Inter";
         }
@@ -83,6 +102,25 @@ public record Typography(String family, double size, int weight, BundledFont.Sty
         this.weight = weight;
         this.style = style;
         this.lineHeight = lineHeight;
+        this.lettering = lettering == null ? Lettering.NONE : lettering;
+        this.variation = variation == null ? FontVariation.NONE : variation;
+    }
+
+    /// A face at a size, with spacing added and no variation beyond the weight.
+    public Typography(
+            @Nullable String family,
+            double size,
+            int weight,
+            BundledFont.@Nullable Style style,
+            double lineHeight,
+            @Nullable Lettering lettering) {
+        this(family, size, weight, style, lineHeight, lettering, FontVariation.NONE);
+    }
+
+    /// A face at a size, with nothing added to its spacing.
+    public Typography(
+            @Nullable String family, double size, int weight, BundledFont.@Nullable Style style, double lineHeight) {
+        this(family, size, weight, style, lineHeight, Lettering.NONE, FontVariation.NONE);
     }
 
     /// One of the two named weights; null is regular.
@@ -124,11 +162,11 @@ public record Typography(String family, double size, int weight, BundledFont.Sty
     }
 
     public Typography family(String value) {
-        return new Typography(value, size, weight, style, lineHeight);
+        return new Typography(value, size, weight, style, lineHeight, lettering, variation);
     }
 
     public Typography size(double value) {
-        return new Typography(family, value, weight, style, lineHeight);
+        return new Typography(family, value, weight, style, lineHeight, lettering, variation);
     }
 
     /// This, with every length multiplied by `factor` — the design system's
@@ -151,14 +189,21 @@ public record Typography(String family, double size, int weight, BundledFont.Sty
         if (factor == 1) {
             return this;
         }
-        return new Typography(family, size * factor, weight, style, lineHeight < 0 ? lineHeight : lineHeight * factor);
+        return new Typography(
+                family,
+                size * factor,
+                weight,
+                style,
+                lineHeight < 0 ? lineHeight : lineHeight * factor,
+                lettering.scaled(factor),
+                variation);
     }
 
     /// This, at a CSS weight.
     ///
     /// @throws IllegalArgumentException if it is outside 1 to 1000
     public Typography weight(int value) {
-        return new Typography(family, size, value, style, lineHeight);
+        return new Typography(family, size, value, style, lineHeight, lettering, variation);
     }
 
     /// This, at one of the two named weights.
@@ -168,12 +213,12 @@ public record Typography(String family, double size, int weight, BundledFont.Sty
 
     /// This, upright or italic — `font-style`.
     public Typography style(BundledFont.Style value) {
-        return new Typography(family, size, weight, value, lineHeight);
+        return new Typography(family, size, weight, value, lineHeight, lettering, variation);
     }
 
     /// An absolute line height, in logical pixels.
     public Typography lineHeight(double value) {
-        return new Typography(family, size, weight, style, value);
+        return new Typography(family, size, weight, style, value, lettering, variation);
     }
 
     /// A line height as a multiple of the font size — CSS's bare-number form.
@@ -181,7 +226,17 @@ public record Typography(String family, double size, int weight, BundledFont.Sty
         if (!Double.isFinite(ratio) || ratio <= 0) {
             throw new IllegalArgumentException("a line-height ratio must be positive, not " + ratio);
         }
-        return new Typography(family, size, weight, style, -ratio);
+        return new Typography(family, size, weight, style, -ratio, lettering, variation);
+    }
+
+    /// This, with `lettering` added to what the face sets.
+    public Typography lettering(Lettering value) {
+        return new Typography(family, size, weight, style, lineHeight, value, variation);
+    }
+
+    /// This, set along a variable face's axes as `value` says.
+    public Typography variation(FontVariation value) {
+        return new Typography(family, size, weight, style, lineHeight, lettering, value);
     }
 
     @Override

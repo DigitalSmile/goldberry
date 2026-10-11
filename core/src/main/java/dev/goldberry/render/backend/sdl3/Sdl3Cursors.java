@@ -52,6 +52,9 @@ final class Sdl3Cursors implements AutoCloseable {
 
     private Map<Cursor, CursorPictures> pictures = Map.of();
 
+    /// Whether the pointer is hidden, by [Cursor#NONE].
+    private boolean hidden;
+
     /// @param videoDriver the video driver SDL is running, by SDL's name for it
     Sdl3Cursors(String videoDriver) {
         this.pixelForPixel = drawsPixelForPixel(videoDriver);
@@ -83,6 +86,17 @@ final class Sdl3Cursors implements AutoCloseable {
         if (sdl == null) {
             return;
         }
+        if (shape == Cursor.NONE) {
+            if (!hidden) {
+                sdl.hide();
+                hidden = true;
+            }
+            return;
+        }
+        if (hidden) {
+            sdl.show();
+            hidden = false;
+        }
         var picture = pictures.get(shape);
         if (picture != null) {
             var sizes = sizes(picture, pixelForPixel, scale);
@@ -105,25 +119,30 @@ final class Sdl3Cursors implements AutoCloseable {
     /// The platform shape for a toolkit one, when the application gave it no
     /// picture.
     ///
-    /// Two of the toolkit's shapes have no system cursor anywhere: `grab` and
+    /// Some of the toolkit's shapes have no system cursor anywhere: `grab` and
     /// `grabbing` are a CSS invention that X11's cursor font, Win32's `IDC_*`
     /// set and `SDL_SystemCursor` all lack. Without a picture they fall back to
     /// `move`, which says "this can be dragged" less precisely rather than
-    /// saying nothing.
+    /// saying nothing, and the rest of CSS's keywords to the nearest shape each
+    /// as [Cursor] lists.
     static SdlSystemCursor systemShape(Cursor cursor) {
         return switch (cursor) {
             case DEFAULT -> SdlSystemCursor.DEFAULT;
             case POINTER -> SdlSystemCursor.POINTER;
             case TEXT -> SdlSystemCursor.TEXT;
-            case MOVE, GRAB, GRABBING -> SdlSystemCursor.MOVE;
+            case MOVE, GRAB, GRABBING, ALL_SCROLL -> SdlSystemCursor.MOVE;
             case WAIT -> SdlSystemCursor.WAIT;
             case PROGRESS -> SdlSystemCursor.PROGRESS;
-            case CROSSHAIR -> SdlSystemCursor.CROSSHAIR;
-            case NOT_ALLOWED -> SdlSystemCursor.NOT_ALLOWED;
-            case EW_RESIZE -> SdlSystemCursor.EW_RESIZE;
-            case NS_RESIZE -> SdlSystemCursor.NS_RESIZE;
-            case NESW_RESIZE -> SdlSystemCursor.NESW_RESIZE;
-            case NWSE_RESIZE -> SdlSystemCursor.NWSE_RESIZE;
+            case CROSSHAIR, CELL, ZOOM_IN, ZOOM_OUT -> SdlSystemCursor.CROSSHAIR;
+            case NOT_ALLOWED, NO_DROP -> SdlSystemCursor.NOT_ALLOWED;
+            case EW_RESIZE, COL_RESIZE, E_RESIZE, W_RESIZE -> SdlSystemCursor.EW_RESIZE;
+            case NS_RESIZE, ROW_RESIZE, N_RESIZE, S_RESIZE -> SdlSystemCursor.NS_RESIZE;
+            case NESW_RESIZE, NE_RESIZE, SW_RESIZE -> SdlSystemCursor.NESW_RESIZE;
+            case NWSE_RESIZE, NW_RESIZE, SE_RESIZE -> SdlSystemCursor.NWSE_RESIZE;
+            case HELP, CONTEXT_MENU, ALIAS, COPY -> SdlSystemCursor.DEFAULT;
+            case VERTICAL_TEXT -> SdlSystemCursor.TEXT;
+            // Never asked for: `show` hides the pointer instead.
+            case NONE -> SdlSystemCursor.DEFAULT;
         };
     }
 

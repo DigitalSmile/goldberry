@@ -21,6 +21,7 @@ import dev.goldberry.Host;
 import dev.goldberry.RendererRequirement;
 import dev.goldberry.css.Stylesheet;
 import dev.goldberry.css.Theme;
+import dev.goldberry.css.cascade.CascadeLayer;
 import dev.goldberry.html.view.HtmlView;
 import dev.goldberry.input.PointerRouter;
 import dev.goldberry.input.event.KeyEvent;
@@ -193,6 +194,36 @@ class SelectionTest {
     private void release(LogicalRect rect) {
         router.pointerReleased(
                 rect.left() + rect.width() / 2, rect.top() + rect.height() / 2, PointerEvent.Button.PRIMARY, 1);
+    }
+
+    /// The same document under the toolkit's sheets and `css`.
+    private void restyled(String css) {
+        var sheets = new ArrayList<Stylesheet>(Controls.stylesheets(Theme.NORD_DARK));
+        sheets.add(MarkdownStyles.stylesheet());
+        sheets.add(Stylesheet.parse(CascadeLayer.APPLICATION, css));
+        renderer = new WidgetRenderer(sheets, fonts);
+        mount(MarkdownView.of(DOCUMENT).id("note"));
+        // A second frame, so the host has read its style before the first press.
+        frame();
+    }
+
+    @Test
+    @DisplayName("user-select: none keeps a drag from selecting")
+    void userSelectNone() {
+        restyled("#note { user-select: none }");
+        press(rectOf(1), 1);
+        moveTo(rectOf(2));
+        release(rectOf(2));
+        assertEquals("", state().selectedText());
+    }
+
+    @Test
+    @DisplayName("user-select: all selects the whole document at a click")
+    void userSelectAll() {
+        restyled("#note { user-select: all }");
+        press(rectOf(1), 1);
+        release(rectOf(1));
+        assertEquals("The quick brown fox\njumps over it", state().selectedText());
     }
 
     @Test

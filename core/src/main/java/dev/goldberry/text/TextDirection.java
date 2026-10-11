@@ -18,8 +18,8 @@ public enum TextDirection {
 
     /// Right to left.
     ///
-    /// Shaping a run this way is not bidirectional text: real bidi is splitting a
-    /// paragraph into runs and ordering them, which the toolkit does not do. This
-    /// is the direction one run is shaped in.
+    /// The direction one run is shaped in. Bidirectional text is a paragraph
+    /// split into such runs and placed in visual order, which [Paragraph] does
+    /// with the levels in `dev.goldberry.text.bidi`.
     RTL
 }

@@ -303,7 +303,7 @@ already supports.
 
 | Item | State | Where |
 |---|---|---|
-| This analysis | done 2026-10-10 | this file |
-| Findings 1–4 | open, not filed | here; `book/src/TODO.md` when one is picked up |
-| Guide corrections (finding 2) | open, waits for the release | to be parked in `docs/snapshot/` when written |
-| Suggested order, items 1–19 | not scheduled | each gets an ADR when it is decided |
+| This analysis | done 2026-10-10; one correction: the media range forms `(400px <= width)` and `(400px <= width <= 800px)` are refused, only `name op value` is read (CSS-34) | this file |
+| Findings 1–4 | 1 and 2 done 2026-10-10; 3 and 4 planned | finding 1 is CSS-01, 2 the plan's *Guide corrections*, 3 and 4 are CSS-15 |
+| Guide corrections (finding 2) | written 2026-10-10, waits for the release | `docs/snapshot/guide-styling-css-subset.md` |
+| Suggested order, items 1–19 | planned 2026-10-10, not started | `docs/css-plan.md`, as CSS-00 to CSS-49; an ADR where a decision is made |

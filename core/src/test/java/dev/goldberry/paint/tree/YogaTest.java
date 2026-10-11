@@ -70,9 +70,12 @@ class YogaTest {
     }
 
     @Test
-    @DisplayName("every overflow translates to the one with its own name")
+    @DisplayName("every overflow translates to the one with its own name, and clip to hidden")
     void overflows() {
-        assertNamesMatch(Overflow.values(), Yoga::overflow, Enum::name);
+        for (var overflow : Overflow.values()) {
+            var expected = overflow == Overflow.CLIP ? "HIDDEN" : overflow.name();
+            assertEquals(expected, Yoga.overflow(overflow).name(), overflow::name);
+        }
     }
 
     @Test

@@ -117,12 +117,12 @@ class MediaQueriesTest {
         @ParameterizedTest
         @ValueSource(
                 strings = {
-                    "(hover: hover)",
-                    "(min-resolution: 2dppx)",
+                    "(scripting: enabled)",
+                    "(update: fast)",
                     "(min-width: 30vw)",
                     "tv-ish and (min-width: 1px)",
                     "(min-width 600px)",
-                    "(min-width: 600px) and (max-width: 900px) or (hover: none)",
+                    "(min-width: 600px) and (max-width: 900px) or (scripting: none)",
                 })
         @DisplayName("never holds, with a reason, and is never rescued by not")
         void neverHolds(String prelude) {
@@ -136,7 +136,7 @@ class MediaQueriesTest {
         @Test
         @DisplayName("one unreadable query in a list leaves the others counting, as CSS says")
         void listKeepsTheRest() {
-            var condition = parse("(hover: hover), (min-width: 600px)");
+            var condition = parse("(scripting: enabled), (min-width: 600px)");
             assertTrue(condition.matches(WIDE));
             assertFalse(condition.matches(NARROW));
             assertTrue(MediaCondition.unsupported(condition).isPresent(), "and it is still reported");

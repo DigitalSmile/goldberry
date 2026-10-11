@@ -1111,9 +1111,10 @@ class TextAreaTest {
             return (TextAreaState) tree.root().state().orElseThrow();
         }
 
-        /// Where the text stops: the padding, then ten lines.
+        /// Where the text stops: the 1px border, the 6px padding, then ten
+        /// lines.
         private float bottom(ElementTree tree) {
-            return (float) (6 + TextArea.DEFAULT_MAX_ROWS * state(tree).lineHeight());
+            return (float) (1 + 6 + TextArea.DEFAULT_MAX_ROWS * state(tree).lineHeight());
         }
 
         @Test

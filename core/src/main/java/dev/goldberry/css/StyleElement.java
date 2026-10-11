@@ -1,11 +1,14 @@
 package dev.goldberry.css;
 
+import java.util.List;
 import java.util.Set;
 
 import org.jspecify.annotations.Nullable;
 
 import dev.goldberry.css.cascade.StyleResolver;
+import dev.goldberry.css.container.QueryContainer;
 import dev.goldberry.css.parse.Token;
+import dev.goldberry.css.select.PseudoElement;
 import dev.goldberry.css.select.Selector;
 
 /// What the cascade needs to know about a node to style it: its type, id,
@@ -16,13 +19,11 @@ import dev.goldberry.css.select.Selector;
 /// can ask, so that matching and the cascade depend on nothing else about the
 /// tree.
 ///
-/// It is also the reason the selector subset stops where it does. An element
-/// says where it sits among its siblings, [#indexInParent()] of
-/// [#siblingCount()], which is what `:first-child` and `:nth-child` read; it
-/// does not hand out its siblings, so `+`, `~` and `:has()` cannot be expressed.
-/// A position is a number the tree already knows when it reconciles a list of
-/// children, and the tree invalidates the children whose position changed. A
-/// sibling's content is not.
+/// An element says where it sits among its siblings, [#indexInParent()] of
+/// [#siblingCount()], which is what `:first-child` and `:nth-child` read, and
+/// hands out its [#siblings()] and [#children()], which is what `+`, `~` and
+/// `:has()` walk. A tree that answers the last two is a tree that restyles an
+/// element when a sibling or a descendant changes, under sheets that ask.
 ///
 /// Read more: [Styling](https://goldberry.dev/docs/guide/styling.html#selectors).
 public interface StyleElement {
@@ -96,6 +97,45 @@ public interface StyleElement {
     /// root.
     default int siblingCount() {
         return 1;
+    }
+
+    /// This element's position among its parent's children of its own
+    /// [#type()], from 0, for `:first-of-type` and the rest. The default
+    /// answers as [#indexInParent()] does.
+    default int indexOfType() {
+        return 0;
+    }
+
+    /// How many of its parent's children share this element's type, this one
+    /// included: 1 for a root.
+    default int typeCount() {
+        return 1;
+    }
+
+    /// Its parent's children, this one among them, in order: what
+    /// `:nth-child(An+B of S)` counts the matching ones of. A root, and an
+    /// element that does not say, is alone.
+    default List<? extends StyleElement> siblings() {
+        return List.of(this);
+    }
+
+    /// Its children, in order: what `:has()` searches. An element that does
+    /// not say has none.
+    default List<? extends StyleElement> children() {
+        return List.of();
+    }
+
+    /// The pseudo-element this element stands for, `::placeholder` say, or
+    /// null for an element that stands for none, which is nearly all of them.
+    default @Nullable PseudoElement pseudoElement() {
+        return null;
+    }
+
+    /// What this element is as a query container, and the size it was last
+    /// laid out at, or null when it is not one or has not been laid out.
+    /// `@container` asks it of an element's ancestors.
+    default @Nullable QueryContainer queryContainer() {
+        return null;
     }
 
     /// Whether a state pseudo-class currently holds.
