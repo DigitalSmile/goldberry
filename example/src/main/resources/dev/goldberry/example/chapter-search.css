@@ -1,0 +1,178 @@
+/*
+ * The search palette. Package `ui.search`.
+ *
+ * A dialog with no title and a list in it: the field across the top, the kinds
+ * under it, the results, and a row of key hints. Every size of text is a token,
+ * so the reading size reaches it.
+ */
+
+/* The palette's dialog: wider than a question, and as tall as its list. */
+#search {
+  width: 680px;
+  padding: 16px;
+  gap: 12px;
+}
+
+palette-keys {
+  flex-direction: column;
+}
+
+#search-palette {
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* The field, with the glass before it. */
+row.palette-input {
+  align-items: center;
+  gap: 10px;
+}
+
+/* The field takes the row. A descendant rather than a child selector: the
+   `text-input` that is styled sits under the stateful one that holds the text. */
+row.palette-input text-input {
+  flex-grow: 1;
+  flex-shrink: 1;
+  height: 40px;
+  font-size: var(--gb-font-heading);
+}
+
+/* The kinds: four small pressables, one of them marked. */
+row.palette-kinds {
+  gap: 6px;
+}
+
+pressable.palette-kind {
+  flex-direction: row;
+  align-items: center;
+  height: 28px;
+  padding: 0 12px;
+  border-radius: 14px;
+  color: var(--gb-text-muted);
+  border: 1px solid var(--gb-border);
+  font-size: var(--gb-font-caption);
+  line-height: var(--gb-line-caption);
+  transition: background var(--gb-motion-fast), color var(--gb-motion-fast);
+}
+
+pressable.palette-kind:hover {
+  color: var(--gb-text);
+  background: var(--gb-overlay-hover);
+}
+
+pressable.palette-kind.selected {
+  color: var(--gb-text);
+  background: var(--gb-selection);
+  border-color: var(--gb-accent);
+}
+
+/* The list's viewport. A definite height, so the dialog does not jump as the
+   list shortens under the reader's typing. */
+scroll.palette-results {
+  height: 420px;
+  flex-grow: 0;
+  flex-shrink: 0;
+}
+
+column.palette-results.empty {
+  height: 420px;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+text.palette-empty {
+  color: var(--gb-text);
+}
+
+column.palette-list {
+  flex-direction: column;
+  gap: 2px;
+  padding-right: 8px;
+}
+
+/* A result: the icon, a title over a line of detail, and where it is. */
+pressable.palette-result {
+  flex-direction: row;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  transition: background var(--gb-motion-fast);
+}
+
+pressable.palette-result:hover {
+  background: var(--gb-overlay-hover);
+}
+
+/* The marked result: what Enter opens. */
+pressable.palette-result.active {
+  background: var(--gb-selection);
+}
+
+icon.palette-icon {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  color: var(--gb-text-muted);
+}
+
+pressable.palette-result.active icon.palette-icon {
+  color: var(--gb-accent);
+}
+
+column.palette-text {
+  flex-direction: column;
+  flex-grow: 1;
+  flex-shrink: 1;
+  min-width: 0;
+  gap: 2px;
+}
+
+rich-text.palette-title {
+  color: var(--gb-text);
+  font-size: var(--gb-font-body);
+  line-height: var(--gb-line-body);
+  font-weight: var(--gb-weight-strong);
+}
+
+/* The letters that matched, in the accent's ink. */
+run.mark {
+  color: var(--gb-accent);
+}
+
+text.palette-detail {
+  color: var(--gb-text-muted);
+  font-size: var(--gb-font-caption);
+  line-height: var(--gb-line-caption);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+}
+
+text.palette-tag {
+  flex-shrink: 0;
+  color: var(--gb-text-muted);
+  font-size: var(--gb-font-caption);
+  line-height: var(--gb-line-caption);
+}
+
+/* The hints along the bottom. */
+row.palette-foot {
+  align-items: center;
+  gap: 16px;
+  padding-top: 8px;
+  border-top: 1px solid var(--gb-border);
+}
+
+row.palette-hint {
+  align-items: center;
+  gap: 6px;
+}
+
+text.palette-count {
+  margin-left: auto;
+  color: var(--gb-text-muted);
+  font-size: var(--gb-font-caption);
+  line-height: var(--gb-line-caption);
+}

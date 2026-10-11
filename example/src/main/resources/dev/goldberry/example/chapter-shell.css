@@ -1,0 +1,445 @@
+/*
+ * The window around the screens: the top bar, the sidebar, the page head and
+ * the footer. Package `ui.shell`.
+ *
+ * Every colour is a token, so both lights and both densities reach it; every
+ * size of text is a token, so the reading size does.
+ */
+
+/* --- the top bar ------------------------------------------------------------ */
+
+/* One bar, hard against the top edge. `flex-shrink: 0`, because chrome does not
+   give up height: if a screen does not fit, the screen is what scrolls. */
+#top-bar {
+  flex-direction: row;
+  align-items: center;
+  flex-shrink: 0;
+  gap: 12px;
+  height: 56px;
+  padding: 0 16px 0 12px;
+  background: var(--gb-surface);
+  border-bottom: 1px solid var(--gb-border);
+}
+
+/* The name, as a word mark: the product in the text's own ink and what this
+   window is in the muted one, a size down. */
+row.brand {
+  align-items: baseline;
+  gap: 6px;
+  flex-shrink: 0;
+  min-width: 160px;
+}
+
+#title {
+  color: var(--gb-text);
+  font-size: var(--gb-font-heading);
+  line-height: var(--gb-line-heading);
+  font-weight: var(--gb-weight-strong);
+}
+
+text.brand-sub {
+  color: var(--gb-text-muted);
+  font-size: var(--gb-font-body);
+  line-height: var(--gb-line-body);
+}
+
+/* The search field. A `pressable` drawn as a field, because the typing happens
+   in the palette it opens: a field's surface and edge, a glass, the hint, and
+   the key that opens it at the far end. */
+#search-field, pressable.search-field {
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+  flex-grow: 1;
+  flex-shrink: 1;
+  max-width: 560px;
+  height: 38px;
+  padding: 0 8px 0 12px;
+  background: var(--gb-bg);
+  border: 1px solid var(--gb-border);
+  border-radius: 10px;
+  cursor: text;
+  transition: border-color var(--gb-motion-fast), background var(--gb-motion-fast);
+}
+
+#search-field:hover, pressable.search-field:hover {
+  border-color: var(--gb-border-strong);
+}
+
+icon.search-glyph {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  color: var(--gb-text-muted);
+}
+
+text.search-placeholder {
+  flex-shrink: 1;
+  color: var(--gb-text-muted);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+}
+
+/* A key, written the way a keyboard's legend is: small, on a plate. */
+text.kbd {
+  flex-shrink: 0;
+  padding: 1px 6px;
+  color: var(--gb-text-muted);
+  font-size: var(--gb-font-caption);
+  line-height: var(--gb-line-caption);
+  background: var(--gb-surface-2);
+  border: 1px solid var(--gb-border);
+  border-radius: 6px;
+}
+
+/* An icon and nothing else, pressed: the sidebar's switch, the light, Back and
+   Forward. Square, with the wash a ghost button has. */
+pressable.icon-button {
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  color: var(--gb-text-muted);
+  transition: background var(--gb-motion-fast), color var(--gb-motion-fast);
+}
+
+pressable.icon-button:hover {
+  background: var(--gb-overlay-hover);
+  color: var(--gb-text);
+}
+
+pressable.icon-button:active {
+  background: var(--gb-overlay-active);
+}
+
+pressable.icon-button:disabled {
+  color: var(--gb-text-placeholder);
+}
+
+pressable.icon-button icon {
+  width: 20px;
+  height: 20px;
+}
+
+/* The overflow menu: one heading at the end of the bar. */
+#app-menu {
+  flex-shrink: 0;
+  background: transparent;
+}
+
+/* --- the body: the sidebar beside the content ------------------------------- */
+
+#body {
+  flex-direction: row;
+  flex-grow: 1;
+  flex-shrink: 1;
+  min-height: 0;
+}
+
+/* The sidebar's viewport. Wide, it holds a label per row; as a rail, an icon. */
+/* `flex-grow: 0` against `scroll`'s own 1: a viewport grows by default, and a
+   sidebar that took a share of the window's width came out as wide as the
+   longest label wanted plus whatever was left. */
+scroll.sidebar {
+  flex-grow: 0;
+  flex-shrink: 0;
+  width: 248px;
+  min-width: 248px;
+  max-width: 248px;
+  background: var(--gb-surface);
+  border-right: 1px solid var(--gb-border);
+}
+
+scroll.sidebar.rail {
+  width: 64px;
+  min-width: 64px;
+  max-width: 64px;
+}
+
+column.nav-list {
+  flex-direction: column;
+  gap: 2px;
+  padding: 12px 10px 24px 10px;
+}
+
+/* A row of the sidebar: an icon, the screen's name, how many cards it holds. */
+pressable.nav-item {
+  flex-direction: row;
+  align-items: center;
+  gap: 12px;
+  height: 36px;
+  padding: 0 10px;
+  border-radius: 8px;
+  color: var(--gb-text-muted);
+  transition: background var(--gb-motion-fast), color var(--gb-motion-fast);
+}
+
+pressable.nav-item:hover {
+  background: var(--gb-overlay-hover);
+  color: var(--gb-text);
+}
+
+/* The screen showing: the accent's tint behind it and the text's own ink, so
+   it is found by colour and by weight rather than by one of them. */
+pressable.nav-item.selected {
+  background: var(--gb-selection);
+  color: var(--gb-text);
+}
+
+pressable.nav-item.selected text.nav-label {
+  font-weight: var(--gb-weight-strong);
+}
+
+pressable.nav-item.selected icon.nav-icon {
+  color: var(--gb-accent);
+}
+
+scroll.sidebar.rail pressable.nav-item {
+  justify-content: center;
+  padding: 0;
+}
+
+icon.nav-icon {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+text.nav-label {
+  flex-grow: 1;
+  flex-shrink: 1;
+  font-size: var(--gb-font-body);
+  line-height: var(--gb-line-body);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+}
+
+text.nav-count {
+  flex-shrink: 0;
+  color: var(--gb-text-muted);
+  font-size: var(--gb-font-caption);
+  line-height: var(--gb-line-caption);
+}
+
+/* A section's heading: small capitals' worth of tracking, muted, with the fold
+   before it. */
+pressable.nav-section {
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  margin-top: 12px;
+  padding: 0 8px;
+  border-radius: 6px;
+  color: var(--gb-text-muted);
+}
+
+pressable.nav-section:hover {
+  color: var(--gb-text);
+}
+
+icon.nav-chevron {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+}
+
+text.nav-section-title {
+  font-size: var(--gb-font-caption);
+  line-height: var(--gb-line-caption);
+  font-weight: var(--gb-weight-strong);
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+}
+
+/* As a rail a section is a rule between two runs of icons. */
+column.nav-rule {
+  height: 1px;
+  margin: 10px 8px;
+  background: var(--gb-border);
+}
+
+/* The content beside the sidebar: the page head over the showing screen. */
+#content {
+  flex-direction: column;
+  flex-grow: 1;
+  flex-shrink: 1;
+  min-width: 0;
+}
+
+/* --- the page head ----------------------------------------------------------- */
+
+#page-head {
+  flex-direction: row;
+  align-items: center;
+  flex-shrink: 0;
+  gap: 4px;
+  height: 48px;
+  padding: 0 24px 0 20px;
+}
+
+/* The trail gives way first in a narrow window: each step shrinks to an
+   ellipsis before Back, Forward, Previous or Next lose a pixel. */
+text.crumb, pressable.crumb {
+  flex-shrink: 1;
+  min-width: 0;
+  color: var(--gb-text-muted);
+  font-size: var(--gb-font-body);
+  line-height: var(--gb-line-body);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+}
+
+pressable.crumb {
+  padding: 2px 6px;
+  border-radius: 6px;
+}
+
+pressable.crumb > text {
+  min-width: 0;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+}
+
+pressable.crumb:hover {
+  background: var(--gb-overlay-hover);
+  color: var(--gb-text);
+}
+
+text.crumb.current {
+  color: var(--gb-text);
+  font-weight: var(--gb-weight-strong);
+}
+
+text.crumb-separator {
+  flex-shrink: 0;
+  color: var(--gb-text-placeholder);
+  padding: 0 2px;
+}
+
+text.crumb {
+  padding: 2px 6px;
+}
+
+/* Previous and Next: quiet text buttons at the far end. */
+pressable.page-step {
+  flex-direction: row;
+  align-items: center;
+  flex-shrink: 0;
+  height: 32px;
+  padding: 0 12px;
+  border-radius: 8px;
+  color: var(--gb-text-muted);
+  transition: background var(--gb-motion-fast), color var(--gb-motion-fast);
+}
+
+pressable.page-step:hover {
+  background: var(--gb-overlay-hover);
+  color: var(--gb-text);
+}
+
+/* --- on this page -------------------------------------------------------------- */
+
+/* One line of chips under the page head, scrolling sideways when the screen has
+   more cards than fit. A definite height and no growing: it is chrome. */
+scroll.jump-bar {
+  flex-grow: 0;
+  flex-shrink: 0;
+  height: 40px;
+}
+
+row.jump-row {
+  align-items: center;
+  gap: 6px;
+  padding: 0 32px 6px 32px;
+}
+
+text.jump-label {
+  flex-shrink: 0;
+  padding-right: 6px;
+  color: var(--gb-text-muted);
+  font-size: var(--gb-font-caption);
+  line-height: var(--gb-line-caption);
+  font-weight: var(--gb-weight-strong);
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+}
+
+pressable.jump-chip {
+  flex-direction: row;
+  align-items: center;
+  flex-shrink: 0;
+  height: 28px;
+  padding: 0 12px;
+  border-radius: 14px;
+  color: var(--gb-text-muted);
+  background: var(--gb-surface);
+  border: 1px solid var(--gb-border);
+  font-size: var(--gb-font-caption);
+  line-height: var(--gb-line-caption);
+  white-space: nowrap;
+  transition: border-color var(--gb-motion-fast), color var(--gb-motion-fast);
+}
+
+pressable.jump-chip:hover {
+  color: var(--gb-text);
+  border-color: var(--gb-accent);
+}
+
+/* The showing screen. Growing into what the page head leaves, so a screen
+   that fills it has a height to fill. */
+scroll.page, column.page {
+  flex-grow: 1;
+  flex-shrink: 1;
+  min-height: 0;
+}
+
+column.page.fills {
+  flex-direction: column;
+}
+
+/* A screen that fills the content area rather than sitting in a viewport is
+   inset the way a scrolled one is. */
+column.page.fills > .screen {
+  flex-grow: 1;
+}
+
+/* --- the footer -------------------------------------------------------------- */
+
+/* The run's readings, quiet along the bottom edge. */
+#bar {
+  flex-direction: row;
+  align-items: center;
+  flex-shrink: 0;
+  gap: 12px;
+  height: 32px;
+  padding: 0 16px;
+  background: var(--gb-surface);
+  border-top: 1px solid var(--gb-border);
+}
+
+#startup, #status {
+  color: var(--gb-text-muted);
+  font-size: var(--gb-font-caption);
+  line-height: var(--gb-line-caption);
+}
+
+/* --- the spotlight ----------------------------------------------------------- */
+
+/* The ring search draws around a card it has scrolled to. The window under it
+   shows through; only the ring is drawn. */
+spotlight {
+  background: transparent;
+}
+
+spotlight-ring {
+  background: transparent;
+  border: 3px solid var(--gb-accent);
+  border-radius: 14px;
+}

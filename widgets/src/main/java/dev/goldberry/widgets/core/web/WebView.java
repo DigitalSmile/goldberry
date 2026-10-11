@@ -415,11 +415,13 @@ public record WebView(WebPage page, @Nullable WebViewController controller, Attr
                 // frame's hit-test snapshot, so there is nothing to find until
                 // this widget has been painted once.
                 LOG.debug("web-view \"{}\" has not been painted yet, so there is no box to put a page over", id);
+                waitForABox();
                 return;
             }
             var r = region.get();
             var bounds = LogicalRect.of(r.left(), r.top(), r.width(), r.height());
             if (bounds.size().width() <= 0 || bounds.size().height() <= 0) {
+                waitForABox();
                 return;
             }
             if (page == null) {
@@ -649,6 +651,30 @@ public record WebView(WebPage page, @Nullable WebViewController controller, Attr
             LOG.warn("web-view: {}", refusal.log());
             show(refusal.notice());
         }
+
+        /// Asks for the frame that finds the box, while there is no page yet.
+        ///
+        /// The box is read from the **last** frame, so the frame that first
+        /// paints this widget never finds it, and nothing else asks for another:
+        /// a screen opened into an idle window painted once, and the page opened
+        /// only when something unrelated moved — the pointer, or a second visit
+        /// to the screen. So the frame is asked for, a bounded number of times:
+        /// a box that is still not there after that is a box with no size, which
+        /// a layout change will bring back here anyway.
+        private void waitForABox() {
+            if (page != null || attempted || waited >= BOX_WAITS) {
+                return;
+            }
+            waited++;
+            pollAgain();
+        }
+
+        /// How many frames [#waitForABox] asks for before it leaves the page to
+        /// the next frame something else causes.
+        static final int BOX_WAITS = 8;
+
+        /// How many it has asked for.
+        private int waited;
 
         /// Asks for a frame that runs [#sync] again: a **rebuild**, not a
         /// repaint.

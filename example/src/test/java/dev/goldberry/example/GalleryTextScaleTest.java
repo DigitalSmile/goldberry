@@ -18,6 +18,7 @@ import dev.goldberry.css.Theme;
 import dev.goldberry.example.ui.AppMenu;
 import dev.goldberry.example.ui.Screen;
 import dev.goldberry.example.ui.gallery.Gallery;
+import dev.goldberry.example.ui.shell.ReadingSize;
 import dev.goldberry.golden.ScaleInvariance;
 import dev.goldberry.golden.TextScaleAudit;
 import dev.goldberry.html.view.HtmlStyles;
@@ -127,9 +128,10 @@ class GalleryTextScaleTest {
                 inflater,
                 plus,
                 () -> {},
+                () -> {},
                 new AppMenu(
                         actions,
-                        new AppMenu.Handlers(() -> {}, () -> {}, () -> {}, () -> {}, () -> {}, () -> {}),
+                        new AppMenu.Handlers(() -> {}, () -> {}, () -> {}, () -> {}, () -> {}, () -> {}, () -> {}),
                         plus));
     }
 
@@ -142,6 +144,11 @@ class GalleryTextScaleTest {
         all.add(HtmlStyles.stylesheet());
         all.add(MediaStyles.stylesheet());
         all.addAll(ShowcaseStyles.sheets());
+        // The toolkit's own type scale, which is what the renderer's 90%–150%
+        // promise is made about. The showcase reads at 15px and a reader may ask
+        // for 17px, both inside 150% of the toolkit's 13; 150% of 15 would be
+        // auditing a size nothing offers.
+        all.add(ReadingSize.SMALL.stylesheet());
         return all;
     }
 

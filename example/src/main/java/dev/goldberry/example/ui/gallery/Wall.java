@@ -10,6 +10,7 @@ import dev.goldberry.widget.BuildContext;
 import dev.goldberry.widget.Widget;
 import dev.goldberry.widget.attr.Attributes;
 import dev.goldberry.widgets.core.Column;
+import dev.goldberry.widgets.panel.card.Card;
 import dev.goldberry.widgets.panel.masonry.Masonry;
 
 /// What most screens in the gallery **are**: a [ScreenHeader], then a wall of
@@ -49,7 +50,7 @@ public record Wall(
         implements Widget.Stateless {
 
     /// The width a wall's columns may narrow to when a screen does not say.
-    public static final int COLUMN_WIDTH = 360;
+    public static final int COLUMN_WIDTH = 440;
 
     /// Written out so that the parameters taking null for a default can say so.
     public Wall(
@@ -76,6 +77,20 @@ public record Wall(
         return new Wall(id, title, summary, doc, Masonry.UNSET, COLUMN_WIDTH, List.copyOf(cards));
     }
 
+    /// The width a wall of wide cards may narrow to: a table whose columns are
+    /// fixed, or a strip of steps that does not wrap.
+    public static final int WIDE_COLUMN_WIDTH = 560;
+
+    /// A wall of cards that need the width, counting its own columns: one
+    /// beside the sidebar in a window at its restored size, two in a wide one.
+    ///
+    /// Better than a fixed count of two, which was right for a window the
+    /// gallery had to itself and cut the cards' rows once a sidebar took a
+    /// quarter of it.
+    public static Wall wide(String id, String title, String summary, DocLink doc, List<? extends Widget> cards) {
+        return new Wall(id, title, summary, doc, Masonry.UNSET, WIDE_COLUMN_WIDTH, List.copyOf(cards));
+    }
+
     /// A wall of exactly `columns` columns, for cards that need the width: a table
     /// whose columns are fixed, or a strip of steps that does not wrap.
     public static Wall inColumns(
@@ -96,16 +111,45 @@ public record Wall(
         return new Wall(id, title, summary, doc, document.columns(), document.minColumnWidth(), cards);
     }
 
+    /// Whether `card` belongs in the wide wall: a [WideCard], or a card that
+    /// carries [ShowcaseCard#WIDE].
+    public static boolean isWide(Widget card) {
+        return switch (card) {
+            case WideCard _ -> true;
+            case Card built -> built.attributes().classes().contains(ShowcaseCard.WIDE);
+            default -> false;
+        };
+    }
+
+    /// The header, the wall, and — when any card asked for one — a second wall
+    /// of wide columns under it for the cards a reader types into.
+    ///
+    /// Under rather than among: a masonry's columns are one width, and a text
+    /// area in a column sized for a row of buttons is a text area a sentence
+    /// wide. The wide wall has as many columns as fit at [#WIDE_COLUMN_WIDTH] —
+    /// one beside the sidebar at the window's restored size, two on a wide
+    /// screen.
     @Override
     public Widget build(BuildContext context) {
-        return new Column(
-                List.of(
-                        new ScreenHeader(title, summary, doc),
-                        new Masonry(
-                                cards,
-                                columns,
-                                minColumnWidth,
-                                Attributes.NONE.id(id + "-wall").classes("wall"))),
-                Attributes.NONE.id("screen-" + id).classes("screen"));
+        var regular = new ArrayList<Widget>(cards.size());
+        var wide = new ArrayList<Widget>();
+        for (var card : cards) {
+            (isWide(card) ? wide : regular).add(card);
+        }
+        var children = new ArrayList<Widget>(3);
+        children.add(new ScreenHeader(title, summary, doc));
+        children.add(new Masonry(
+                regular,
+                columns,
+                minColumnWidth,
+                Attributes.NONE.id(id + "-wall").classes("wall")));
+        if (!wide.isEmpty()) {
+            children.add(new Masonry(
+                    wide,
+                    Masonry.UNSET,
+                    WIDE_COLUMN_WIDTH,
+                    Attributes.NONE.id(id + "-wide-wall").classes("wall", "wide-wall")));
+        }
+        return new Column(children, Attributes.NONE.id("screen-" + id).classes("screen"));
     }
 }

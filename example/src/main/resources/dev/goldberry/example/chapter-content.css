@@ -24,6 +24,13 @@
   flex-grow: 1;
 }
 
+/* The captions keep their line. Text shrinks by default, and a pane whose
+   viewport asks for every pixel took the height out of the two captions over
+   it until they were drawn on top of each other. */
+.markdown-pane > text {
+  flex-shrink: 0;
+}
+
 /* A `text-area`'s height is its rows, so what grows is the box round it;
    `flex-shrink` lets the pair fit a short window. */
 #markdown-source,

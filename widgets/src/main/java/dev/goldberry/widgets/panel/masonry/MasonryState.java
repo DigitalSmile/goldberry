@@ -126,6 +126,7 @@ final class MasonryState extends State<Masonry> implements MasonryBox.Ruler {
         for (var bucket : buckets) {
             wrapped.add(new MasonryColumn(List.copyOf(bucket)));
         }
-        return new MasonryBox(List.copyOf(wrapped), masonry.attributes(), this);
+        return new MasonryBox(
+                List.copyOf(wrapped), masonry.attributes(), this, masonry.responsive() ? masonry.minColumnWidth() : 0);
     }
 }

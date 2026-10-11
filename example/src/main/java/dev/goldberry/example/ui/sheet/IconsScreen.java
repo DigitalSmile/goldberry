@@ -143,10 +143,10 @@ public record IconsScreen(ShowcaseModel model, ShowcaseModel.Actions actions) im
 
     /// What to assume before the first frame has said how wide the sheet is.
     ///
-    /// Seven, which is what the window opens at — so the first frame is right
-    /// rather than merely legal, and the settling frame `Measured` costs is one
-    /// nobody sees at the default size.
-    public static final int DEFAULT_COLUMNS = 7;
+    /// Six, which is what fits beside the sidebar in a window at its restored
+    /// size — so the first frame is right rather than merely legal, and the
+    /// settling frame `Measured` costs is one nobody sees at that size.
+    public static final int DEFAULT_COLUMNS = 6;
 
     /// The size every icon on this sheet is built at.
     ///

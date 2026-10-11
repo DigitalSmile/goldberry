@@ -250,7 +250,7 @@ class ShowcaseDocumentsTest {
         var byName = new ArrayList<Widget>();
         collectBoundTo(new ElementTree(wall("choices.kdl")).root(), theme, byName);
         var asFlag = new ArrayList<Widget>();
-        collectBoundTo(new ElementTree(bar()).root(), Models.observable(model, "app.light"), asFlag);
+        collectBoundTo(new ElementTree(wall("choices.kdl")).root(), Models.observable(model, "app.light"), asFlag);
 
         var pickers = byName.stream().map(w -> w.getClass().getSimpleName()).toList();
         assertTrue(
@@ -259,7 +259,7 @@ class ShowcaseDocumentsTest {
         assertEquals(
                 List.of("Toggle"),
                 asFlag.stream().map(w -> w.getClass().getSimpleName()).toList(),
-                "and the bar's switch reads the same fact as a boolean, because a switch"
+                "and the card's switch reads the same fact as a boolean, because a switch"
                         + " falls back to its own flag for anything that is not one");
     }
 
@@ -341,8 +341,7 @@ class ShowcaseDocumentsTest {
         var ids = new ArrayList<String>();
         collectIds(new ElementTree(bar()).root(), ids);
 
-        for (var id : List.of(
-                "bar", "title", "clicks", "startup", "status", "light-switch", "dark-label", "light-label", "theme")) {
+        for (var id : List.of("bar", "clicks", "startup", "status", "presentation")) {
             assertTrue(ids.contains(id), () -> "showcase.css styles #" + id + " and the bar does not build it: " + ids);
         }
     }

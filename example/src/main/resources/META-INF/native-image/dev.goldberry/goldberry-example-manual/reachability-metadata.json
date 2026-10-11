@@ -37,7 +37,10 @@
     "src/main/resources can see it, and it is declared here by hand.",
     "",
     "media/* is the Media screen's sample clips, which ShowcaseMedia reads with",
-    "getResourceAsStream when a source is picked -- never during the trace."
+    "getResourceAsStream when a source is picked -- never during the trace.",
+    "",
+    "search/index.tsv is the search palette's list of cards, which SearchIndex",
+    "reads the first time the palette opens or a sidebar row shows its count."
   ],
   "resources": [
     {
@@ -54,6 +57,10 @@
     {
       "module": "dev.goldberry.example",
       "glob": "dev/goldberry/example/catalog/*.txt"
+    },
+    {
+      "module": "dev.goldberry.example",
+      "glob": "dev/goldberry/example/search/*.tsv"
     },
     {
       "module": "dev.goldberry.example",

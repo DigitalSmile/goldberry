@@ -50,6 +50,7 @@ final class SheetCards {
                                 + " dropped with a warning and the rest is kept. The toolkit's own sheets are strict"
                                 + " and refuse. Pick a mode and read the sheet.",
                         DocLink.to(CHAPTER, "strict-and-lenient-sheets"))
+                .wide()
                 .of(new SheetProbe("probe-modes", AMBITIOUS_SHEET));
     }
 
@@ -61,6 +62,7 @@ final class SheetCards {
                                 + " read, does nothing and is warned about once. The lint names each such"
                                 + " declaration: edit the sheet and read it again.",
                         DocLink.to(CHAPTER, "properties"))
+                .wide()
                 .of(new SheetProbe("probe-properties", UNKNOWN_PROPERTIES));
     }
 

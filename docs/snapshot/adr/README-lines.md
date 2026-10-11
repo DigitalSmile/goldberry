@@ -65,3 +65,7 @@ Appended to the index when the records move in, in this order.
 - [ADR-0621 Container queries are answered by a second layout, at most](0621-container-queries-are-answered-by-a-second-layout-at-most.md)
 - [ADR-0622 A paragraph is split into directional runs and placed in visual order](0622-a-paragraph-is-split-into-directional-runs-and-placed-in-visual-order.md)
 - [ADR-0623 The showcase rebuilds a familiar product from the stock widgets](0623-the-showcase-rebuilds-a-familiar-product-from-the-stock-widgets.md)
+- [ADR-0624 The showcase is a sidebar of sections, not a strip of tabs](0624-the-showcase-is-a-sidebar-of-sections-not-a-strip-of-tabs.md)
+- [ADR-0625 Showcase search runs over an index a test writes](0625-showcase-search-runs-over-an-index-a-test-writes.md)
+- [ADR-0626 The showcase reads at 15px, and the reader picks the size](0626-the-showcase-reads-at-15px-and-the-reader-picks-the-size.md)
+- [ADR-0627 A masonry that is a frame stale wraps rather than squeezes](0627-a-masonry-that-is-a-frame-stale-wraps-rather-than-squeezes.md)

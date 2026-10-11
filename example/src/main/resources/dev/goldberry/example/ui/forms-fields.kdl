@@ -68,7 +68,7 @@ masonry id="forms-document" min-column-width=360 {
     text-input id="selectable" value="Press, hold and move: a drag is a selection."
   }
 
-  card id="forms-text-area" class="wall-card" {
+  card id="forms-text-area" class="wall-card wide-card" {
     row class="card-head" {
       text class="card-title" "More than one line"
       spacer
@@ -78,7 +78,7 @@ masonry id="forms-document" min-column-width=360 {
     text-area id="bio" bind="app.bio" change="app.set-bio" rows=3 max-rows=6
   }
 
-  card id="gutter-card" class="wall-card" {
+  card id="gutter-card" class="wall-card wide-card" {
     row class="card-head" {
       text class="card-title" "Numbered lines"
       spacer

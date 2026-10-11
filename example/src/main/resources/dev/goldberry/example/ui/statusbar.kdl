@@ -1,13 +1,10 @@
-// The bar under the window's menu: **what this run cost**, and the one switch
-// that changes the light everywhere.
+// The footer along the bottom of the window: **what this run cost**.
 //
-// Four bound readings and one control, all of them `bind=`/`change=` and no Java
-// at all — which is why it is a document. The startup line comes off a background
-// job's continuation and the count off the Basic screen's buttons; neither knows
-// this file exists, and this file names no widget that either of them holds.
+// Four bound readings, all of them `bind=` and no Java at all, which is why it
+// is a document. The startup line comes off a background job's continuation
+// and the count off the Buttons screen; neither knows this file exists, and
+// this file names no widget that either of them holds.
 row id="bar" {
-
-  text id="title" "Goldberry"
 
   // The leagues walked, in the one place on screen that is never scrolled away.
   badge id="clicks" class="accent" bind="app.clicks"
@@ -18,35 +15,14 @@ row id="bar" {
   text id="startup" class="caption" bind="app.startup"
   text id="status" class="caption" bind="app.status"
 
+  // `spacer`, which is `flex-grow: 1` with a name. A document has no stylesheet
+  // of its own to put a margin in, so markup's answer to "push the rest to the
+  // far end" is a node.
+  spacer
+
   // Where the frames go: through the GPU, or on the CPU and why. A badge, so it
   // reads as a fact about this run rather than as one more caption, and bound,
   // so it changes when the window does: a GPU that fails, or `auto` taking the
   // GPU for a layer.
   badge id="presentation" class="info" bind="app.presentation"
-
-  // `spacer`, which is `flex-grow: 1` with a name. The catalog itself does
-  // not use one any more -- `margin-left: auto` says the same thing as a
-  // declaration rather than as a node -- but the widget is markup's
-  // answer to the same question, and a document has no stylesheet of its own to
-  // put a margin in. The notice bar on the Overlays screen is the other half of
-  // the comparison: same shape, done with a margin.
-  spacer
-
-  // The theme's "global switch from dark to light". A `toggle` and not a `button`,
-  // because the two lights are a *state* and not a step: a switch says which one
-  // you are in without being pressed, and reports the state it was dragged to
-  // rather than "the other one".
-  //
-  // Labelled on both sides by the two `text` nodes around it, because a switch's
-  // own label sits after the track and "Lothlórien" alone would leave the off
-  // position unnamed — which is the rule about never carrying meaning in
-  // position alone.
-  text id="dark-label" class="caption" "Moria"
-  toggle id="light-switch" bind="app.light" change="app.set-light" ""
-  text id="light-label" class="caption" "Lothlórien"
-
-  // And the same property a third way, with an icon on it: the switch, this, the
-  // File menu, the tray, the Basic screen's three pickers and Ctrl+T are seven
-  // routes to one value and not one of them owns it.
-  button id="theme" class="ghost" icon="palette" press="app.toggle-theme" "Switch"
 }

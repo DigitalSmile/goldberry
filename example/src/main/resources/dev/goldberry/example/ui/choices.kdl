@@ -48,12 +48,12 @@ decides whether it is on. These pick the window's light, and the third is disabl
 
   card id="theme-card" class="wall-card" {
     row class="card-head" {
-      text class="card-title" "One value, three controls"
+      text class="card-title" "One value, four controls"
       spacer
       link class="card-docs" href="https://goldberry.dev/docs/components/choices.html#segmented" "Docs"
     }
     text class="card-summary" "A segmented bar is a radio group drawn as one bar, with Left and Right as its keys. The \
-bar, the radios and the select here all read one value, so any of them, or Ctrl+T, moves the others."
+bar, the radios, the select and the switch all read one light, so any of them, or Ctrl+T, moves the others."
     segmented id="theme-bar" bind="app.theme" change="app.pick-theme" {
       option value="dark" "Moria"
       option value="light" "Lórien"
@@ -66,5 +66,10 @@ bar, the radios and the select here all read one value, so any of them, or Ctrl+
       option value="dark" "Moria, the dark"
       option value="light" "Lothlórien, the light"
     }
+    // The same fact as a boolean: `app.light` rather than `app.theme`'s name,
+    // because a switch reports the state it was dragged to rather than "the
+    // other one". It sat in the window's bar until the bar became a top bar
+    // with a sun on it.
+    toggle id="light-switch" bind="app.light" change="app.set-light" "Lothlórien"
   }
 }

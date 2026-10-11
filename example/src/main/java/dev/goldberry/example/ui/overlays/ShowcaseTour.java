@@ -2,6 +2,7 @@ package dev.goldberry.example.ui.overlays;
 
 import java.util.List;
 
+import dev.goldberry.example.ui.shell.Sidebar;
 import dev.goldberry.widgets.overlay.tour.Stop;
 
 /// The guided tour the Help menu and the Overlays screen start: which screen it
@@ -21,7 +22,7 @@ public final class ShowcaseTour {
 
     /// The stops, in order: each names a widget by id, a title and a line of text.
     ///
-    /// All but the last are on the Overlays screen; the last is the strip.
+    /// All but the last are on the Overlays screen; the last is the sidebar.
     public static List<Stop> stops() {
         return List.of(
                 new Stop(
@@ -37,9 +38,9 @@ public final class ShowcaseTour {
                         "Messages",
                         "Banners that are part of the layout. They stay until the application stops describing them."),
                 new Stop(
-                        "gallery",
-                        "The gallery strip",
-                        "One screen per chapter of the guide. Ctrl and a digit opens the first ten, and Edit ▸ Go to"
-                                + " opens any of them."));
+                        Sidebar.ID,
+                        "The screens",
+                        "One screen per chapter of the guide, grouped by section. Ctrl+K searches every screen, card"
+                                + " and command; Ctrl and a digit opens the first ten."));
     }
 }

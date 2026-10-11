@@ -392,7 +392,7 @@
 /* The screen's viewports, each a fixed height so the wall fits a window
    without a scroller of its own around them. */
 #screen-scrolling .scroll-demo {
-  height: 220px;
+  height: 200px;
 }
 
 /* A viewport on both axes is a column, which would stretch its content to its

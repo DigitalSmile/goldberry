@@ -19,9 +19,17 @@ import dev.goldberry.bind.runtime.Models;
 import dev.goldberry.css.Stylesheet;
 import dev.goldberry.example.brand.ShowcaseCursors;
 import dev.goldberry.example.brand.ShowcaseIcon;
+import dev.goldberry.example.docs.DocLink;
 import dev.goldberry.example.ui.AppMenu;
 import dev.goldberry.example.ui.Screen;
+import dev.goldberry.example.ui.home.GuideParts;
+import dev.goldberry.example.ui.home.HomeScreen;
 import dev.goldberry.example.ui.overlays.ShowcaseTour;
+import dev.goldberry.example.ui.search.SearchCatalog;
+import dev.goldberry.example.ui.search.SearchEntry;
+import dev.goldberry.example.ui.search.SearchIndex;
+import dev.goldberry.example.ui.search.SearchPalette;
+import dev.goldberry.example.ui.shell.CardSpotlight;
 import dev.goldberry.html.view.HtmlStyles;
 import dev.goldberry.icon.Icon;
 import dev.goldberry.image.Image;
@@ -99,6 +107,10 @@ public final class Showcase implements Application {
 
     private static final float ICON_SIZE = 20;
 
+    /// How long after picking a screen its widgets can be found: one frame and
+    /// some, as the tour waits.
+    private static final Duration SCREEN_BUILT = Duration.ofMillis(80);
+
     /// The window's own stylesheets, read from `showcase.css` and the screens'
     /// sheets beside this class — the layout of *this* window and nothing about how
     /// a button looks.
@@ -137,6 +149,12 @@ public final class Showcase implements Application {
     /// [#toggleHud]. Whether it is up is *also* on the model, because the Help
     /// menu draws a tick beside it and a menu row's `checked` is a constant.
     private @Nullable Overlay hud;
+
+    /// The search palette: one per window, and what was picked from it lately.
+    private final SearchPalette search = new SearchPalette();
+
+    /// What takes the reader to a card search picked.
+    private final CardSpotlight spotlight = new CardSpotlight();
 
     /// The context menu, while it is open. Null when it is not.
     ///
@@ -240,6 +258,9 @@ public final class Showcase implements Application {
         // And the media module's, for `audio-player` and `media-player`.
         sheets.add(MediaStyles.stylesheet());
         sheets.addAll(styles);
+        // The reading size last: it is the type scale's tokens, and it has to
+        // win over the theme's and anything this window's sheets said.
+        sheets.add(model.readingSize().stylesheet());
         return sheets;
     }
 
@@ -278,6 +299,7 @@ public final class Showcase implements Application {
                         models().toArray()),
                 plusIcon,
                 this::startTour,
+                this::openSearch,
                 // The window's menu bar. Its four window commands arrive as
                 // handlers because only a `Host` can open a dialog, float a HUD or
                 // close a window -- and a widget has none.
@@ -289,7 +311,8 @@ public final class Showcase implements Application {
                                 this::raiseToast,
                                 this::startTour,
                                 this::openAbout,
-                                () -> host.window().close()),
+                                () -> host.window().close(),
+                                this::openSearch),
                         paletteIcon));
 
         // No `repaint()` and no `restyle()` here. `models()` below hands both
@@ -309,8 +332,19 @@ public final class Showcase implements Application {
         // The four rows in the File and Edit menus that are not the model's.
         host.shortcut(Mod.CTRL.and(Key.O), this::openDialog);
         host.shortcut(Mod.CTRL.and(Key.Q), () -> host.window().close());
-        host.shortcut(Mod.CTRL.and(Key.K), actions::click);
+        host.shortcut(Mod.CTRL.and(Key.L), actions::click);
         host.shortcut(Mod.CTRL.and(Key.Z), actions::undo);
+
+        // Finding a screen: search, the sidebar's rail, history, and the next
+        // screen down the sidebar. Then the reading size.
+        host.shortcut(Mod.CTRL.and(Key.K), this::openSearch);
+        host.shortcut(Mod.CTRL.and(Key.B), actions::toggleSidebar);
+        host.shortcut(Mod.ALT.and(Key.LEFT), actions::back);
+        host.shortcut(Mod.ALT.and(Key.RIGHT), actions::forward);
+        host.shortcut(Mod.CTRL.and(Key.PAGE_UP), actions::previousScreen);
+        host.shortcut(Mod.CTRL.and(Key.PAGE_DOWN), actions::nextScreen);
+        host.shortcut(Mod.CTRL.and(Key.EQUALS), actions::largerText);
+        host.shortcut(Mod.CTRL.and(Key.MINUS), actions::smallerText);
 
         // One accelerator per screen — three ways to set one property rather
         // than three copies of a selection: the strip, these keys, and Edit ▸ Go
@@ -361,6 +395,14 @@ public final class Showcase implements Application {
                                         new Item("Quit", () -> host.window().close())),
                                 Attributes.NONE)));
         LOG.info("tray {}", tray.isPresent() ? "shown" : "unavailable on this desktop");
+
+        // The list search runs over, read now rather than on the first Ctrl+K:
+        // the sidebar's counts are read from it on the first frame anyway.
+        var index = SearchIndex.shipped();
+        LOG.info(
+                "search covers {} cards on {} screens",
+                index.cards().size(),
+                index.counts().size());
 
         host.window().onResize(size -> LOG.info("resized to {}", size));
         host.window().onScaleChange(scale -> LOG.info("scale is now {}", scale));
@@ -590,6 +632,70 @@ public final class Showcase implements Application {
         }
     }
 
+    /// Opens the search palette over every screen, card and command.
+    ///
+    /// The application's rather than a widget's, for the tour's reason: a
+    /// palette is a dialog, and a dialog needs the window.
+    private void openSearch() {
+        search.open(host, SearchCatalog.entries(SearchIndex.shipped(), commands()), this::go);
+    }
+
+    /// What choosing a result does: a screen opens, a card opens its screen and
+    /// is scrolled to and ringed, and a command runs.
+    private void go(SearchEntry entry) {
+        switch (entry) {
+            case SearchEntry.Screen screen -> actions.pickScreen(screen.tab().name());
+            case SearchEntry.Card card -> {
+                actions.pickScreen(card.screen().name());
+                // After the frame that builds the screen, so the card exists to
+                // be found -- the same wait the tour makes.
+                host.after(SCREEN_BUILT, () -> {
+                    if (!spotlight.show(host, card.card().id())) {
+                        LOG.info(
+                                "search picked the card #{}, which its screen did not build",
+                                card.card().id());
+                    }
+                });
+            }
+            case SearchEntry.Command command -> command.run().run();
+        }
+    }
+
+    /// The commands search offers: the window's menu rows that do something
+    /// rather than go somewhere, each with its accelerator.
+    private List<SearchEntry.Command> commands() {
+        var commands = new ArrayList<SearchEntry.Command>(windowCommands());
+        // The guide's reading chapters, which Home lists as links: found by name
+        // here too, and opened in the browser as the links are.
+        GuideParts.PARTS.stream()
+                .flatMap(part -> part.chapters().stream())
+                .map(chapter -> new SearchEntry.Command(
+                        "Guide: " + chapter.title(),
+                        "",
+                        () -> host.openExternal(DocLink.page(chapter.page()).url())))
+                .forEach(commands::add);
+        return commands;
+    }
+
+    /// The window's own commands, each with its accelerator.
+    private List<SearchEntry.Command> windowCommands() {
+        return List.of(
+                new SearchEntry.Command("Switch the light", "Ctrl+T", actions::toggleTheme),
+                new SearchEntry.Command("Switch the density", "Ctrl+D", actions::toggleDensity),
+                new SearchEntry.Command("Always show scroll bars", "", actions::toggleScrollbars),
+                new SearchEntry.Command("Larger text", "Ctrl+=", actions::largerText),
+                new SearchEntry.Command("Smaller text", "Ctrl+-", actions::smallerText),
+                new SearchEntry.Command("Sidebar as icons", "Ctrl+B", actions::toggleSidebar),
+                new SearchEntry.Command("Home", "", () -> actions.pickScreen(HomeScreen.NAME)),
+                new SearchEntry.Command("Frame rate", "Ctrl+F", this::toggleHud),
+                new SearchEntry.Command("Take the tour", "", this::startTour),
+                new SearchEntry.Command("Unsaved changes dialog", "Ctrl+O", this::openDialog),
+                new SearchEntry.Command("Send word (a toast)", "", this::raiseToast),
+                new SearchEntry.Command("March a league", "Ctrl+L", actions::click),
+                new SearchEntry.Command("About Goldberry", "", this::openAbout),
+                new SearchEntry.Command("Quit", "Ctrl+Q", () -> host.window().close()));
+    }
+
     /// Starts the `tour` described by [ShowcaseTour].
     ///
     /// The application's rather than the screen's, because starting one needs a
@@ -602,7 +708,7 @@ public final class Showcase implements Application {
         actions.pickScreen(ShowcaseTour.SCREEN);
         // After the frame that switches screens, so the targets exist to be
         // found: the screen has to be *built* before any of it can be anchored to.
-        host.after(Duration.ofMillis(80), () -> Tours.start(host, ShowcaseTour.stops()));
+        host.after(SCREEN_BUILT, () -> Tours.start(host, ShowcaseTour.stops()));
     }
 
     /// Puts a `hud` in the window's overlay layer, or takes it away again.

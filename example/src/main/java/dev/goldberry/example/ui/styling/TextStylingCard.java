@@ -6,6 +6,7 @@ import java.util.Locale;
 
 import dev.goldberry.example.docs.DocLink;
 import dev.goldberry.example.ui.gallery.ShowcaseCard;
+import dev.goldberry.example.ui.gallery.WideCard;
 import dev.goldberry.text.flow.TextAlign;
 import dev.goldberry.widget.BuildContext;
 import dev.goldberry.widget.State;
@@ -53,16 +54,17 @@ import dev.goldberry.widgets.text.Text;
 /// draws upright code: matching is family, then style, then weight.
 ///
 /// Read more: [Typography](https://goldberry.dev/docs/guide/styling.html#typography).
-public record TextStylingCard() implements Widget.Stateful {
+public record TextStylingCard() implements Widget.Stateful, WideCard {
 
     /// The card's head and summary.
     static final ShowcaseCard CARD = new ShowcaseCard(
-            "styling-card",
-            "Every text property, one field",
-            "Size, weight, style, family, alignment and decoration, each a class over one text area. The caret"
-                    + " and the selection follow the glyphs wherever the rules put them: change one, then click"
-                    + " into a word and type.",
-            DocLink.to("guide/styling", "typography"));
+                    "styling-card",
+                    "Every text property, one field",
+                    "Size, weight, style, family, alignment and decoration, each a class over one text area. The caret"
+                            + " and the selection follow the glyphs wherever the rules put them: change one, then click"
+                            + " into a word and type.",
+                    DocLink.to("guide/styling", "typography"))
+            .wide();
 
     /// Four lines of deliberately different lengths, so an alignment has something
     /// to show: every line of a centred paragraph is indented by its *own* share of

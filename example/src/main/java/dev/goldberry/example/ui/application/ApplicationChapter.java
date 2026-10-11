@@ -127,6 +127,7 @@ public record ApplicationChapter(GalleryContext context) implements Widget.State
                         "Widgets.inflater(icons, models) turns parsed nodes into widgets resolved against your"
                                 + " models. Edit the document: it is parsed and inflated again on every keystroke.",
                         DocLink.to(APPLICATIONS, "inflating-a-document"))
+                .wide()
                 .of(new LivePreview("inflate", INFLATE_SOURCE, context)));
         cards.add(new ShowcaseCard(
                         "application-shipping-a-widget",
@@ -165,6 +166,7 @@ public record ApplicationChapter(GalleryContext context) implements Widget.State
                         "KDL 2.0: a node is a name, arguments, properties and a child block. Keywords are"
                                 + " #true and #false, /- comments out a node. Try a bare true and see it refused.",
                         DocLink.to(MARKUP, "the-syntax-as-goldberry-reads-it"))
+                .wide()
                 .of(new LivePreview("syntax", SYNTAX_SOURCE, context)));
         cards.add(new ShowcaseCard(
                         "markup-parsing",
@@ -182,6 +184,7 @@ public record ApplicationChapter(GalleryContext context) implements Widget.State
                                 + " button that silently does nothing is the hardest bug to notice. Fix the typo"
                                 + " to app.click.",
                         DocLink.to(MARKUP, "strict-by-default"))
+                .wide()
                 .of(new LivePreview("strict", STRICT_SOURCE, context)));
         cards.add(new ShowcaseCard(
                         "markup-bind-path",
@@ -189,6 +192,7 @@ public record ApplicationChapter(GalleryContext context) implements Widget.State
                         "A binding is a name or names joined by dots, never an expression. Negation, formatting"
                                 + " and arithmetic stay in Java. Take the ! out and the text follows app.light.",
                         DocLink.to(MARKUP, "bind-is-a-path-and-nothing-else"))
+                .wide()
                 .of(new LivePreview("path", PATH_SOURCE, context)));
         cards.add(take(byId, "markup-every-node"));
         cards.add(new ShowcaseCard(

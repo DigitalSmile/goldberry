@@ -63,6 +63,9 @@ public record ShowcaseCard(String id, String title, String summary, DocLink doc,
     /// A card with no demonstration.
     public static final String REFERENCE = "reference-card";
 
+    /// A card that needs a wide column — see [WideCard].
+    public static final String WIDE = "wide-card";
+
     public ShowcaseCard {
         Objects.requireNonNull(doc, "doc");
         if (id.isBlank() || title.isBlank()) {
@@ -82,6 +85,12 @@ public record ShowcaseCard(String id, String title, String summary, DocLink doc,
         var all = new LinkedHashSet<>(classes);
         all.addAll(List.of(more));
         return new ShowcaseCard(id, title, summary, doc, all);
+    }
+
+    /// This card in a wall of wide columns, for a text area or an editor — see
+    /// [WideCard].
+    public ShowcaseCard wide() {
+        return classed(WIDE);
     }
 
     /// The card, holding `content` under its head and summary.

@@ -23,8 +23,8 @@ import dev.goldberry.widgets.menu.Item;
 import dev.goldberry.widgets.menu.MenuBar;
 import dev.goldberry.widgets.menu.Separator;
 
-/// The window's three bands: how it opens, what its menu bar says, and that the
-/// gallery's fourteen screens are named in one place.
+/// The window's three bands: how it opens, what its overflow menu says, and that the
+/// gallery's screens are named in one place.
 ///
 /// None of it is a thing a golden image can show: every picture in
 /// [GalleryGoldenTest] is drawn at a size the test chose, so a window that opened
@@ -71,23 +71,26 @@ class ShowcaseShellTest {
 
     // --- the gallery ---------------------------------------------------------
 
-    /// A screen per chapter of the guide, in the guide's order, then the
-    /// Lookalike screen, and a Guide screen last. Ten have a digit, which are the
-    /// first ten in strip order; the rest are reached by the strip, the arrows
-    /// inside it, and Edit ▸ Go to.
+    /// A screen per chapter of the guide, section by section in the sidebar's
+    /// order, the guide's order within a section, then the Lookalike screen
+    /// last. The chapters with nothing to try are Home's, as links. Ten have a
+    /// digit, which are the first ten in sidebar order; the rest are reached by
+    /// the sidebar, search, and Edit ▸ Go to.
     ///
     /// Written out rather than read from [dev.goldberry.example.ui.gallery.Gallery],
     /// because what this pins is the order a reader of the guide meets: a screen
     /// moved in the list moves a digit, and that is a change worth seeing in a
     /// diff.
     @Test
-    @DisplayName("a screen per chapter, in the guide's order; the first ten have a digit")
+    @DisplayName("a screen per chapter, in the sidebar's order; the first ten have a digit")
     void theGallery() {
         assertEquals(
                 List.of(
                         "layout",
                         "scrolling",
                         "text",
+                        "styling",
+                        "design",
                         "buttons",
                         "choices",
                         "values",
@@ -97,26 +100,23 @@ class ShowcaseShellTest {
                         "navigation",
                         "menus",
                         "overlays",
+                        "windows",
                         "charts",
                         "drawing",
                         "icons",
                         "emoji",
+                        "gpu",
+                        "audio",
+                        "video",
                         "markdown",
                         "html",
                         "web",
-                        "audio",
-                        "video",
-                        "gpu",
-                        "styling",
-                        "design",
                         "input",
-                        "windows",
                         "diagnostics",
                         "application",
-                        "lookalike",
-                        "guide"),
+                        "lookalike"),
                 Screen.GALLERY);
-        assertEquals("navigation", Screen.GALLERY.get(9), "Ctrl+0 is the tenth screen");
+        assertEquals("panels", Screen.GALLERY.get(9), "Ctrl+0 is the tenth screen");
     }
 
     @Test
@@ -139,7 +139,7 @@ class ShowcaseShellTest {
     /// One counter per window command, so a test can press a row and ask which
     /// handler ran.
     ///
-    /// Six [Runnable]s of one type is exactly the shape a positional slip hides
+    /// Seven [Runnable]s of one type is exactly the shape a positional slip hides
     /// in — Help ▸ Take the tour selected a screen and Help ▸ About opened the
     /// unsaved-changes dialog until the 2026-09-18 review read the rows against
     /// their names. So the counters are named and every row is pressed.
@@ -149,10 +149,12 @@ class ShowcaseShellTest {
             AtomicInteger toasts,
             AtomicInteger tours,
             AtomicInteger abouts,
-            AtomicInteger quits) {
+            AtomicInteger quits,
+            AtomicInteger searches) {
 
         Presses() {
             this(
+                    new AtomicInteger(),
                     new AtomicInteger(),
                     new AtomicInteger(),
                     new AtomicInteger(),
@@ -168,12 +170,14 @@ class ShowcaseShellTest {
                     toasts::incrementAndGet,
                     tours::incrementAndGet,
                     abouts::incrementAndGet,
-                    quits::incrementAndGet);
+                    quits::incrementAndGet,
+                    searches::incrementAndGet);
         }
 
         /// What every counter reads, in the order the record declares them.
         List<Integer> counts() {
-            return List.of(dialogs.get(), huds.get(), toasts.get(), tours.get(), abouts.get(), quits.get());
+            return List.of(
+                    dialogs.get(), huds.get(), toasts.get(), tours.get(), abouts.get(), quits.get(), searches.get());
         }
     }
 
@@ -193,20 +197,30 @@ class ShowcaseShellTest {
                 .toList();
     }
 
+    /// The four menus, under one overflow heading.
+    private static List<Item> menusOf(MenuBar bar) {
+        return itemsOf(bar).getFirst().submenu().stream()
+                .filter(Item.class::isInstance)
+                .map(Item.class::cast)
+                .toList();
+    }
+
     @Test
-    @DisplayName("the bar is File, Edit and Help, and every one of them has a submenu")
-    void theBarIsThree() {
+    @DisplayName("the bar is one overflow heading holding File, Edit, View and Help")
+    void theBarIsAnOverflow() {
         var bar = menu(new Presses()).bar(false);
 
-        var titles = itemsOf(bar).stream().map(Item::label).toList();
-        assertEquals(List.of("File", "Edit", "Help"), titles);
-        for (var item : itemsOf(bar)) {
+        assertEquals(
+                List.of(AppMenu.HEADING), itemsOf(bar).stream().map(Item::label).toList());
+        var titles = menusOf(bar).stream().map(Item::label).toList();
+        assertEquals(List.of("File", "Edit", "View", "Help"), titles);
+        for (var item : menusOf(bar)) {
             assertFalse(item.submenu().isEmpty(), () -> item.label() + " is a heading with nothing under it");
         }
     }
 
     @Test
-    @DisplayName("the window's six commands are reachable from the bar and nowhere else")
+    @DisplayName("the window's seven commands are reachable from the bar and nowhere else")
     void theWindowCommandsAreWired() {
         var presses = new Presses();
         var bar = menu(presses).bar(false);
@@ -219,7 +233,9 @@ class ShowcaseShellTest {
         press(bar, "Take the tour");
         press(bar, "About Goldberry");
         press(bar, "Quit");
+        press(bar, "Search…");
 
+        assertEquals(1, presses.searches().get(), "View ▸ Search… opens no palette");
         assertEquals(1, presses.dialogs().get(), "File ▸ Unsaved changes… opens no dialog");
         assertEquals(1, presses.huds().get(), "Help ▸ Frame rate floats no HUD");
         assertEquals(1, presses.toasts().get(), "Edit ▸ Send word raises no toast");
@@ -238,12 +254,13 @@ class ShowcaseShellTest {
     @Test
     @DisplayName("every Help row runs its own handler and nobody else's")
     void eachRowRunsItsOwnHandler() {
-        assertEquals(List.of(0, 0, 0, 1, 0, 0), pressedAlone("Take the tour"));
-        assertEquals(List.of(0, 0, 0, 0, 1, 0), pressedAlone("About Goldberry"));
-        assertEquals(List.of(0, 1, 0, 0, 0, 0), pressedAlone("Frame rate"));
-        assertEquals(List.of(1, 0, 0, 0, 0, 0), pressedAlone("Unsaved changes…"));
-        assertEquals(List.of(0, 0, 1, 0, 0, 0), pressedAlone("Send word"));
-        assertEquals(List.of(0, 0, 0, 0, 0, 1), pressedAlone("Quit"));
+        assertEquals(List.of(0, 0, 0, 1, 0, 0, 0), pressedAlone("Take the tour"));
+        assertEquals(List.of(0, 0, 0, 0, 1, 0, 0), pressedAlone("About Goldberry"));
+        assertEquals(List.of(0, 1, 0, 0, 0, 0, 0), pressedAlone("Frame rate"));
+        assertEquals(List.of(1, 0, 0, 0, 0, 0, 0), pressedAlone("Unsaved changes…"));
+        assertEquals(List.of(0, 0, 1, 0, 0, 0, 0), pressedAlone("Send word"));
+        assertEquals(List.of(0, 0, 0, 0, 0, 1, 0), pressedAlone("Quit"));
+        assertEquals(List.of(0, 0, 0, 0, 0, 0, 1), pressedAlone("Search…"));
     }
 
     private List<Integer> pressedAlone(String label) {
@@ -286,7 +303,7 @@ class ShowcaseShellTest {
     void theDestructiveRowsAreFenced() {
         var bar = menu(new Presses()).bar(false);
 
-        var file = itemsOf(bar).getFirst().submenu();
+        var file = menusOf(bar).getFirst().submenu();
         var quit = file.getLast();
         assertTrue(quit instanceof Item item && "Quit".equals(item.label()), "Quit is not the last row of File");
 
@@ -299,6 +316,18 @@ class ShowcaseShellTest {
             }
         }
         assertTrue(lastRule >= 0 && lastRule < file.size() - 2, "nothing separates Quit from the rows above it");
+    }
+
+    @Test
+    @DisplayName("View ticks the reading size in force and the rail, and greys Back when there is no way back")
+    void theViewMenuFollowsTheModel() {
+        var bar = menu(new Presses()).bar(false);
+
+        assertEquals(Boolean.TRUE, row(bar, "Medium text").checked());
+        assertEquals(Boolean.FALSE, row(bar, "Large text").checked());
+        assertEquals(Boolean.FALSE, row(bar, "Sidebar as icons").checked());
+        assertTrue(row(bar, "Back").disabled(), "a window that has just opened has nowhere to go back to");
+        assertEquals("Ctrl+K", row(bar, "Search…").accelerator());
     }
 
     /// The one row in the whole bar that is disabled, and stays disabled: the
@@ -319,7 +348,7 @@ class ShowcaseShellTest {
     /// [Showcase#start], which wants a real [dev.goldberry.Host]
     /// to hang eleven accelerators off.
     @Test
-    @DisplayName("the window is a menu bar, a bar and a gallery, in that order")
+    @DisplayName("the window is a top bar, a body of sidebar and content, and a footer")
     void theWindowIsThreeBands() {
         dev.goldberry.RendererRequirement.enforce();
         var model = showcase.models().stream()
@@ -338,24 +367,28 @@ class ShowcaseShellTest {
                     model.named(),
                     dev.goldberry.widgets.Icons.strict().bind("palette", plus).bind("plus", plus),
                     showcase.models().toArray());
-            var screen = new Screen(model, actions, inflater, plus, () -> {}, menu(new Presses()));
+            var screen = new Screen(model, actions, inflater, plus, () -> {}, () -> {}, menu(new Presses()));
 
             // `#root` and not the tree's root: `Screen` is stateful, so the
             // element at the top is the widget and the column it builds is under
             // it.
             var root = byId(new ElementTree(screen).root(), "root");
             assertNotNull(root, "the window has no #root column");
-            // By widget class rather than by id: `MenuBar` and `Tabs` are
-            // stateful, so the element at this level is the widget itself and the
-            // `#app-menu` / `#gallery` ids land on the box its state builds one
-            // level further down.
             var bands = new ArrayList<String>();
             root.children().forEach(child -> bands.add(child.widget().getClass().getSimpleName()));
 
             assertEquals(
-                    List.of("MenuBar", "Row", "Tabs"),
+                    List.of("TopBar", "Row", "Row"),
                     bands,
-                    "the menu is above the bar and the bar above the gallery");
+                    "the top bar is above the body and the body above the footer");
+            var body = root.children().get(1);
+            assertEquals("body", body.id());
+            assertEquals(
+                    List.of("Sidebar", "Column"),
+                    body.children().stream()
+                            .map(child -> child.widget().getClass().getSimpleName())
+                            .toList(),
+                    "the sidebar is beside the content");
         }
     }
 

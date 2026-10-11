@@ -87,9 +87,10 @@ public final class ShowcaseScene implements AutoCloseable {
                 inflater,
                 plus,
                 () -> {},
+                () -> {},
                 new AppMenu(
                         actions,
-                        new AppMenu.Handlers(() -> {}, () -> {}, () -> {}, () -> {}, () -> {}, () -> {}),
+                        new AppMenu.Handlers(() -> {}, () -> {}, () -> {}, () -> {}, () -> {}, () -> {}, () -> {}),
                         plus),
                 CAPABILITIES);
     }
@@ -105,6 +106,7 @@ public final class ShowcaseScene implements AutoCloseable {
         sheets.add(HtmlStyles.stylesheet());
         sheets.add(MediaStyles.stylesheet());
         sheets.addAll(ShowcaseStyles.sheets());
+        sheets.add(model.readingSize().stylesheet());
         return sheets;
     }
 

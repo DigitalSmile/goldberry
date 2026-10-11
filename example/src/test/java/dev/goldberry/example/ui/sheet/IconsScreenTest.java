@@ -292,8 +292,8 @@ class IconsScreenTest {
 
         /// The measurement is what decides it, not the default.
         ///
-        /// `DEFAULT_COLUMNS` is seven and a 720-wide window fits four, so a screen
-        /// that never read its width would come out at seven here — and the
+        /// `DEFAULT_COLUMNS` is six and a 720-wide window fits four, so a screen
+        /// that never read its width would come out at six here — and the
         /// picture would look plausible, because a row with more tiles than fit
         /// simply makes them narrower.
         @Test

@@ -190,13 +190,18 @@ covers golden images, accessibility queries and the virtual clock.
 
 ## See it run
 
-The showcase has a screen for every chapter of the documentation:
+The showcase has a screen for every chapter of the documentation, grouped
+into sections in a sidebar:
 
 ```sh
 git clone https://github.com/DigitalSmile/goldberry.git
 cd goldberry
 ./gradlew run
 ```
+
+`Ctrl+K` searches every screen, card and command. `Ctrl+B` folds the sidebar
+to icons, `Alt+←` and `Alt+→` go back and forward, and `Ctrl+=` and `Ctrl+-`
+change the text size.
 
 Building from source needs CMake 3.28 or newer, Ninja and a C/C++ toolchain.
 [Building from source](https://goldberry.dev/docs/contributing/building.html)

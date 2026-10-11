@@ -1,9 +1,10 @@
-package dev.goldberry.example.ui.guide;
+package dev.goldberry.example.ui.home;
 
 import java.util.List;
 
-/// The chapters of the guide the Guide screen links, in the book's parts and
-/// order.
+/// The chapters of the guide that are read rather than tried, in the book's
+/// parts and order: what Home lists under **Read the guide**, and what search
+/// offers to open in the browser.
 ///
 /// Each summary is the chapter's opening, shortened. The layout part is not
 /// here: the Layout screen's header links it.

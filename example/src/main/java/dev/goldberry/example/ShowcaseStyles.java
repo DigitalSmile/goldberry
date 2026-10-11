@@ -39,7 +39,9 @@ public final class ShowcaseStyles {
             "diagnostics",
             "application",
             "lookalike",
-            "guide");
+            "shell",
+            "search",
+            "home");
 
     private ShowcaseStyles() {}
 

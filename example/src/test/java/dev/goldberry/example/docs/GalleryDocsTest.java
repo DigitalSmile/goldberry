@@ -29,10 +29,12 @@ import dev.goldberry.example.ui.gallery.Gallery;
 import dev.goldberry.example.ui.gallery.GalleryTab;
 import dev.goldberry.example.ui.gallery.ScreenHeader;
 import dev.goldberry.example.ui.gallery.Summaries;
+import dev.goldberry.example.ui.home.HomeScreen;
 import dev.goldberry.offscreen.Offscreen;
 import dev.goldberry.text.font.Fonts;
 import dev.goldberry.widget.Element;
 import dev.goldberry.widgets.panel.card.Card;
+import dev.goldberry.widgets.text.Link;
 import dev.goldberry.widgets.text.Text;
 
 /// That the gallery shows the guide: every screen opens with a header linking its
@@ -62,6 +64,25 @@ class GalleryDocsTest {
         fonts = Fonts.bundled();
         for (var tab : Gallery.TABS) {
             SCREENS.put(tab.name(), mount(tab));
+        }
+        HOME.addAll(guideLinks());
+    }
+
+    /// The guide's chapters Home links under **Read the guide**: links, not
+    /// cards, and they count towards the guide being shown all the same.
+    private static final Set<DocLink> HOME = new LinkedHashSet<>();
+
+    private static List<DocLink> guideLinks() {
+        try (var session = Offscreen.of(1280, 900)
+                .stylesheets(scene.stylesheets(Theme.NORD_DARK))
+                .fonts(fonts)
+                .session(scene.root(HomeScreen.NAME))) {
+            return walk(session.byId("home-guide").orElseThrow())
+                    .map(Element::widget)
+                    .filter(widget -> widget instanceof Link link
+                            && link.attributes().classes().contains("guide-link"))
+                    .map(widget -> DocLink.parse(((Link) widget).href()).orElseThrow())
+                    .toList();
         }
     }
 
@@ -143,7 +164,7 @@ class GalleryDocsTest {
     @Test
     @DisplayName("shows every section of the guide that needs a card")
     void everySectionHasACard() {
-        var links = new LinkedHashSet<DocLink>();
+        var links = new LinkedHashSet<DocLink>(HOME);
         for (var mounted : SCREENS.values()) {
             mounted.headers().forEach(header -> links.add(header.doc()));
             mounted.cards().forEach(card -> CardShape.link(card).ifPresent(links::add));
@@ -168,13 +189,16 @@ class GalleryDocsTest {
     @Test
     @DisplayName("links nothing the guide does not have")
     void everyLinkResolves() {
-        Set<DocLink> broken = SCREENS.values().stream()
-                .flatMap(mounted -> Stream.concat(
-                        mounted.headers().stream().map(ScreenHeader::doc),
-                        mounted.cards().stream().flatMap(card -> CardShape.link(card).stream())))
+        Set<DocLink> broken = Stream.concat(
+                        HOME.stream(),
+                        SCREENS.values().stream()
+                                .flatMap(mounted -> Stream.concat(
+                                        mounted.headers().stream().map(ScreenHeader::doc),
+                                        mounted.cards().stream().flatMap(card -> CardShape.link(card).stream()))))
                 .filter(link -> !BookSections.resolves(link))
                 .collect(Collectors.toCollection(LinkedHashSet::new));
         assertFalse(SCREENS.isEmpty());
+        assertFalse(HOME.isEmpty(), "Home links none of the guide's chapters");
         assertEquals(Set.of(), broken);
     }
 }

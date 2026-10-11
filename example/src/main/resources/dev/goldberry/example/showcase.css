@@ -10,9 +10,9 @@
  * theme and control sheets this way, an application should be able to as well,
  * and CSS wrapped in Java quotes is CSS no editor will highlight.
  *
- * The window is three bands and seven screens, and this file is in the same
- * order: the chrome, then what every screen has in common, then the handful of
- * rules a particular screen needs.
+ * The window is a top bar, a sidebar, the screen and a footer, and the
+ * chrome is `chapter-shell.css`'s. This file is what every screen has in
+ * common, then the handful of rules a particular screen needs.
  */
 
 /* --- the window ------------------------------------------------------------ */
@@ -30,68 +30,12 @@
   color: var(--gb-text);
 }
 
-/* The window's menu bar, hard against the top edge. `flex-shrink: 0` for the
-   bar's reason below, and no radius: it is an edge of the window rather than a
-   thing sitting on one. */
-#app-menu {
-  flex-shrink: 0;
-  padding: 0 8px;
-  background: var(--gb-surface);
-}
-
-/* The bar under it: what this run cost, and the switch.
- *
- * `flex-shrink: 0`, and it is not tidiness. Yoga's children shrink by default, so
- * a window whose content asks for more height than there is takes it out of
- * whatever will give -- and a bar with a definite height is the most willing
- * thing in the tree. The symptom was a bar that was 44px tall on six screens and
- * half that on the seventh. Chrome does not shrink: if the content does not fit,
- * the content is what scrolls. */
-#bar {
-  height: 44px;
-  flex-shrink: 0;
-  padding: 0 16px;
-  gap: 12px;
-  align-items: center;
-  background: var(--gb-surface-2);
-  border: 1px solid var(--gb-border);
-}
-
-#title {
-  color: var(--gb-text);
-  font-weight: var(--gb-weight-strong);
-}
-
-/* The two startup readings. Muted and at `caption`, because what they say is a
-   fact about the process rather than content -- and 8px apart rather than the
-   bar's 12, because they are two halves of one sentence. */
-#startup, #status {
-  color: var(--gb-text-muted);
-  font-size: var(--gb-font-caption);
-  line-height: var(--gb-line-caption);
-}
-
-/* The switch and the two words that name its ends. Meaning is never carried by
-   one cue alone, again: a switch whose
-   only label is "Lothlórien" leaves the off position unnamed, so the state has
-   to be read out of the thumb's position alone. */
-#dark-label, #light-label {
-  color: var(--gb-text-muted);
-  font-size: var(--gb-font-caption);
-  line-height: var(--gb-line-caption);
-}
-
-/* The gallery: a strip of screens filling everything under the bar. `flex-grow`
-   on the strip and on its panel is what makes a screen as tall as the window
-   rather than as tall as its contents. */
-#gallery {
-  flex-grow: 1;
-  padding: 0 16px 16px 16px;
-}
+/* The top bar, the sidebar, the page head and the footer are the shell's, in
+   `chapter-shell.css`; this file is what every screen has in common. */
 
 /* --- what every screen has ------------------------------------------------- */
 
-/* Every screen is a heading, a line of prose and a wall, with the spacing ramp's 16 between
+/* Every screen is a heading, a line of prose and a wall, with the spacing ramp's 24 between
    them -- whether it came from a document or from Java, which is the point of the
    split being about *expressions* rather than about appearance.
 
@@ -101,8 +45,8 @@
    there is no remaining height for a child to claim. */
 .screen {
   flex-direction: column;
-  gap: 16px;
-  padding-top: 16px;
+  gap: 24px;
+  padding: 8px 32px 32px 32px;
 }
 
 /* And the Markdown screen, for the same reason and one more: its preview pane owns
@@ -147,16 +91,26 @@
    longer fit inside its own border. */
 .wall-card {
   flex-direction: column;
-  gap: 8px;
+  gap: 12px;
   flex-shrink: 0;
+  padding: 20px;
+  transition: border-color var(--gb-motion-base);
 }
 
-/* A card's own heading: the type scale's `caption` size at the strong weight,
-   muted, above the thing it names. */
+/* A card under the pointer takes a firmer edge: a wall of thirty cards is
+   scanned with the pointer, and the edge says which one it is on. */
+.wall-card:hover {
+  border-color: var(--gb-border-strong);
+}
+
+/* A card's own heading: body size at the strong weight, in the text's own ink.
+   It was a muted caption, which made thirty cards a wall of grey labels nobody
+   could scan; a heading a reader looks for has to be the darkest thing on the
+   card. */
 .card-title {
-  color: var(--gb-text-muted);
-  font-size: var(--gb-font-caption);
-  line-height: var(--gb-line-caption);
+  color: var(--gb-text);
+  font-size: var(--gb-font-body);
+  line-height: var(--gb-line-body);
   font-weight: var(--gb-weight-strong);
 }
 
@@ -189,10 +143,14 @@
 }
 
 /* What the card shows, in a sentence or two: body text in the muted ink, so it
-   reads as a note about the card rather than as part of the demonstration. */
+   reads as a note about the card rather than as part of the demonstration.
+   The line height is the body's, said again because a summary is the longest
+   text on most cards and the one a reader actually reads. */
 .card-summary {
   flex-shrink: 0;
   color: var(--gb-text-muted);
+  font-size: var(--gb-font-body);
+  line-height: var(--gb-line-body);
 }
 
 /* A card with nothing to click: its head and its summary are all of it, and the
@@ -209,6 +167,13 @@
   flex-shrink: 0;
 }
 
+/* A line of prose stops at about seventy characters. A paragraph that ran the
+   width of a maximized window was a line the eye could not find its way back
+   along, which is most of what "long text is hard to read" was. */
+.screen-intro > .prose {
+  max-width: 760px;
+}
+
 .screen-head {
   flex-direction: row;
   align-items: center;
@@ -222,36 +187,31 @@
   flex-grow: 1;
 }
 
-/* A screen's heading. The type scale's `heading` is the token for exactly this -- 15/20 at
-   600. It used to be `font-weight: 600` and nothing else, which made a screen
-   title `body-strong`: the same 13px as the prose under it, told apart only by
-   weight. On a wide gallery screen that reads as a page with no headings at all,
-   which is what "the paragraph text looks tiny" actually is -- not a size that
-   shrank, but a hierarchy that was never there. */
+/* A screen's heading, at the type scale's `title` rank. It was `heading`, a
+   step above the prose; at the reading sizes the prose is set at now, the
+   screen's name has to be the one thing on it that is unmistakably larger. */
 section-header {
   padding: 0;
-  /* A heading is not something to take height out of. The Navigation screen is
-     the one the gallery does not put in a viewport, so when its cards ask for
-     more room than the window has, Yoga takes it from whatever will give -- and
-     the first thing that gave was the heading and the paragraph under it, which
-     clipped mid-word. */
+  /* A heading is not something to take height out of. A screen that fills the
+     content area rather than sitting in a viewport gives up height when its
+     content asks for more than there is, and the first thing that gave was the
+     heading and the paragraph under it, which clipped mid-word. */
   flex-shrink: 0;
   color: var(--gb-text);
-  font-size: var(--gb-font-heading);
-  line-height: var(--gb-line-heading);
+  font-size: var(--gb-font-title);
+  line-height: var(--gb-line-title);
   font-weight: var(--gb-weight-strong);
 }
 
-/* Prose is not UI. The type scale's `body` is 13/18 and is the right size for a label
-   beside a control; a paragraph set at it across the width of this window is
-   technically correct and hard to read, which is the difference between a type
-   scale for chrome and one for text. `heading`'s 15/20 is the largest thing in
-   the scale that is still body copy, so the prose is set at it. */
+/* Prose at the body size. It used to borrow `heading`'s 15/20, because body
+   text was 13px and a paragraph at 13px across this window was hard to read;
+   the reading size is what sets body text now, so prose is body text again and
+   grows with the rest. */
 .prose, #prose {
   flex-shrink: 0;
   color: var(--gb-text);
-  font-size: var(--gb-font-heading);
-  line-height: var(--gb-line-heading);
+  font-size: var(--gb-font-body);
+  line-height: var(--gb-line-body);
 }
 
 .caption {

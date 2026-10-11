@@ -7,9 +7,17 @@
   margin-bottom: 12px;
 }
 
-/* A 16:9 stage for the samples, which are 320x180. */
+/* The stage follows the window's height: most of what is left under the
+   chrome and the card's head, so the picture is the screen's subject rather
+   than a strip across it. 360px was a third of a 1080p window, and the player
+   card spans the whole content width, so a fixed height left a wide letterbox
+   with a small picture in it. Bounded below, so a short window still shows
+   the controls. No `max-height`: the id lands on the player and on the stage
+   inside it, and a ceiling the stage met before the player did left a band of
+   empty card under the controls. */
 #video-player {
-  height: 360px;
+  height: 60vh;
+  min-height: 360px;
 }
 
 /* The bare `video-view` has no size of its own and grows into what it is given,

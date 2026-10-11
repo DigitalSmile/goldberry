@@ -5,7 +5,6 @@ import java.util.List;
 import dev.goldberry.example.docs.DocLink;
 import dev.goldberry.example.ui.gallery.GalleryContext;
 import dev.goldberry.example.ui.gallery.ScreenHeader;
-import dev.goldberry.example.ui.gallery.Wall;
 import dev.goldberry.widget.BuildContext;
 import dev.goldberry.widget.Widget;
 import dev.goldberry.widget.attr.Attributes;
@@ -27,6 +26,11 @@ public record ScrollingChapter(GalleryContext context) implements Widget.Statele
     /// The chapter this screen mirrors.
     static final DocLink CHAPTER = DocLink.page("layout/scroll");
 
+    /// Narrower than a wall's usual column, so the three viewports sit side by
+    /// side beside the sidebar: stacked, they would be taller than the window,
+    /// and this screen has no viewport of its own to scroll them in.
+    static final int COLUMN_WIDTH = 300;
+
     @Override
     public Widget build(BuildContext buildContext) {
         return new Column(
@@ -39,7 +43,7 @@ public record ScrollingChapter(GalleryContext context) implements Widget.Statele
                         new Masonry(
                                 List.of(new ScrollingCard(), new ViewportCard(context.actions()), new ConsoleCard()),
                                 Masonry.UNSET,
-                                Wall.COLUMN_WIDTH,
+                                COLUMN_WIDTH,
                                 Attributes.NONE.id("scrolling-wall").classes("wall"))),
                 Attributes.NONE.id("screen-scrolling").classes("screen", "fills"));
     }

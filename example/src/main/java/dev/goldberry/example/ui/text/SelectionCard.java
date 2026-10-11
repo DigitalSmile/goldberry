@@ -2,6 +2,7 @@ package dev.goldberry.example.ui.text;
 
 import dev.goldberry.example.docs.DocLink;
 import dev.goldberry.example.ui.gallery.ShowcaseCard;
+import dev.goldberry.example.ui.gallery.WideCard;
 import dev.goldberry.widget.BuildContext;
 import dev.goldberry.widget.State;
 import dev.goldberry.widget.Widget;
@@ -18,7 +19,7 @@ import dev.goldberry.widgets.text.Text;
 /// reads them.
 ///
 /// Read more: [Selection and editing](https://goldberry.dev/docs/guide/text.html#selection-and-editing).
-public record SelectionCard() implements Widget.Stateful {
+public record SelectionCard() implements Widget.Stateful, WideCard {
 
     /// What the read-only field holds.
     static final String QUOTE = "Not all those who wander are lost.";
@@ -51,6 +52,7 @@ public record SelectionCard() implements Widget.Stateful {
                                     + " redo, cut, copy and paste. Static text cannot be selected, so copy from the"
                                     + " read-only field and paste into the one below it.",
                             DocLink.to(TextChapter.GUIDE.page(), "selection-and-editing"))
+                    .wide()
                     .of(
                             caption("Read-only: select with the pointer or Shift+arrows, then Ctrl+C."),
                             new TextInput(QUOTE, _ -> {})

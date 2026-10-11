@@ -24,14 +24,13 @@ public record CollectionsChapter(GalleryContext context) implements Widget.State
 
     @Override
     public Widget build(BuildContext buildContext) {
-        // Two columns, not as many as fit: the cards on this screen hold rows that
+        // Wide columns, as many as fit: the cards on this screen hold rows that
         // do not wrap, and a narrow column cuts them at a large text scale.
-        return Wall.inColumns(
+        return Wall.wide(
                 "collections",
                 "Collections",
                 SUMMARY,
                 CHAPTER,
-                2,
                 List.of(new LeaguesCard(), new CompanyCard(), new RealmsCard(), new SlotCard()));
     }
 }

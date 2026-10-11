@@ -21,6 +21,8 @@ import dev.goldberry.css.cascade.CascadeLayer;
 import dev.goldberry.input.PointerRouter;
 import dev.goldberry.input.hit.HitTest;
 import dev.goldberry.kdl.KdlParser;
+import dev.goldberry.layout.Length;
+import dev.goldberry.layout.Wrap;
 import dev.goldberry.paint.Box;
 import dev.goldberry.paint.BoxPainter;
 import dev.goldberry.paint.TestFrames;
@@ -355,6 +357,39 @@ class MasonryTest {
             try (var harness = new Harness(wall, heights, 652)) {
                 assertEquals(1, columnCount(harness.frame()), "nothing has measured it yet");
                 assertEquals(2, columnCount(harness.frame()), "652 holds two 320s and the 12 between them");
+            }
+        }
+
+        /// The guard for the frame after a window got narrower: the count is
+        /// last frame's, and a column squeezed below its minimum put every
+        /// card's fixed-width content past the card. Held at the minimum and
+        /// allowed to wrap, a stale column goes to a second line instead.
+        @Test
+        @DisplayName("holds each column at its minimum and lets the row wrap, so a stale count cannot squeeze")
+        void aStaleCountWrapsRatherThanSqueezes() {
+            var heights = List.of(40, 40, 40, 40);
+            var wall = new Masonry(cards(heights.size()), Masonry.UNSET, 320, wallId());
+            try (var harness = new Harness(wall, heights, 652)) {
+                harness.frame();
+                var box = harness.frame();
+
+                assertEquals(Wrap.WRAP, box.wrap());
+                for (var column : box.children()) {
+                    assertEquals(Length.points(320), column.limits().minWidth());
+                }
+            }
+        }
+
+        @Test
+        @DisplayName("a wall given a fixed count neither wraps nor holds a minimum")
+        void aFixedCountDoesNotWrap() {
+            var heights = List.of(40, 40);
+            try (var harness = new Harness(wall(heights.size(), 2), heights)) {
+                var box = harness.frame();
+
+                assertEquals(Wrap.NO_WRAP, box.wrap());
+                assertEquals(
+                        Length.UNDEFINED, box.children().getFirst().limits().minWidth());
             }
         }
 

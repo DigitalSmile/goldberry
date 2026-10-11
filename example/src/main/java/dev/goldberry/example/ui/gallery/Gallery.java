@@ -1,5 +1,13 @@
 package dev.goldberry.example.ui.gallery;
 
+import static dev.goldberry.example.ui.gallery.Section.BASICS;
+import static dev.goldberry.example.ui.gallery.Section.CONTENT;
+import static dev.goldberry.example.ui.gallery.Section.CONTROLS;
+import static dev.goldberry.example.ui.gallery.Section.DEMOS;
+import static dev.goldberry.example.ui.gallery.Section.GRAPHICS;
+import static dev.goldberry.example.ui.gallery.Section.PLATFORM;
+import static dev.goldberry.example.ui.gallery.Section.STRUCTURE;
+
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -19,7 +27,6 @@ import dev.goldberry.example.ui.drawing.DrawingChapter;
 import dev.goldberry.example.ui.forms.FormsChapter;
 import dev.goldberry.example.ui.gallery.GalleryTab.Fit;
 import dev.goldberry.example.ui.gpu.GpuChapter;
-import dev.goldberry.example.ui.guide.GuideChapter;
 import dev.goldberry.example.ui.input.InputChapter;
 import dev.goldberry.example.ui.layout.LayoutChapter;
 import dev.goldberry.example.ui.layout.ScrollingChapter;
@@ -37,60 +44,70 @@ import dev.goldberry.example.ui.styling.StylingChapter;
 import dev.goldberry.example.ui.text.TextChapter;
 import dev.goldberry.example.ui.windows.WindowsChapter;
 
-/// Every screen in the gallery, in the order the guide has its chapters.
+/// Every screen in the gallery, grouped into the sidebar's [Section]s.
 ///
-/// **The one list.** The strip is built from it, `Ctrl+1`… are bound off it in
-/// this order, and the Edit ▸ Go to submenu and the tray's Screens submenu name
-/// what it names. A screen added here arrives in all four places.
+/// **The one list.** The sidebar is built from it, `Ctrl+1`… are bound off it in
+/// this order, the search index names its screens, and the Edit ▸ Go to submenu
+/// and the tray's Screens submenu name what it names. A screen added here
+/// arrives in all of them.
 ///
-/// The order is the book's: the layout part, then the components chapter by
-/// chapter, then the developer guide's chapters, then a familiar product rebuilt
-/// from the stock widgets, then a screen of reference cards for the chapters
-/// with nothing to click. A reader who has a chapter of the guide
-/// open finds the same screen one tab along from the last.
+/// The screens are listed section by section, so the next screen down the
+/// sidebar is the next screen in this list. Within a section the order is the
+/// guide's.
 ///
 /// Read more: [The catalogue](https://goldberry.dev/docs/components/index.html).
 public final class Gallery {
 
-    /// The tabs, in the strip's order.
+    /// The screens, section by section, in the sidebar's order.
     public static final List<GalleryTab> TABS = List.of(
-            new GalleryTab("layout", "Layout", Fit.SCROLLED, LayoutChapter::new),
-            new GalleryTab("scrolling", "Scrolling", Fit.FILLS, ScrollingChapter::new),
-            new GalleryTab("text", "Text", Fit.SCROLLED, TextChapter::new),
-            new GalleryTab("buttons", "Buttons", Fit.SCROLLED, ButtonsChapter::new),
-            new GalleryTab("choices", "Choices", Fit.SCROLLED, ChoicesChapter::new),
-            new GalleryTab("values", "Values", Fit.SCROLLED, ValuesChapter::new),
-            new GalleryTab("forms", "Forms", Fit.SCROLLED, FormsChapter::new),
-            new GalleryTab("panels", "Panels", Fit.SCROLLED, PanelsChapter::new),
-            new GalleryTab("collections", "Collections", Fit.SCROLLED, CollectionsChapter::new),
-            new GalleryTab("navigation", "Navigation", Fit.SCROLLED, NavigationChapter::new),
-            new GalleryTab("menus", "Menus", Fit.SCROLLED, MenusChapter::new),
-            new GalleryTab("overlays", "Overlays", Fit.SCROLLED, OverlaysChapter::new),
-            new GalleryTab("charts", "Charts", Fit.SCROLLED, ChartsChapter::new),
-            new GalleryTab("drawing", "Drawing", Fit.SCROLLED, DrawingChapter::new),
-            new GalleryTab("icons", "Icons", Fit.FILLS, context -> new IconsScreen(context.model(), context.actions())),
-            new GalleryTab("emoji", "Emoji", Fit.FILLS, context -> new EmojiScreen(context.model(), context.actions())),
-            new GalleryTab("markdown", "Markdown", Fit.FILLS, MarkdownChapter::new),
-            new GalleryTab("html", "HTML", Fit.FILLS, HtmlChapter::new),
-            new GalleryTab("web", "Web view", Fit.FILLS, WebChapter::new),
-            new GalleryTab("audio", "Audio", Fit.SCROLLED, AudioChapter::new),
-            new GalleryTab("video", "Video", Fit.SCROLLED, VideoChapter::new),
-            new GalleryTab("gpu", "GPU", Fit.SCROLLED, GpuChapter::new),
-            new GalleryTab("styling", "Styling", Fit.SCROLLED, StylingChapter::new),
-            new GalleryTab("design", "Design system", Fit.SCROLLED, DesignChapter::new),
-            new GalleryTab("input", "Input", Fit.SCROLLED, InputChapter::new),
-            new GalleryTab("windows", "Windows", Fit.SCROLLED, WindowsChapter::new),
-            new GalleryTab("diagnostics", "Diagnostics", Fit.SCROLLED, DiagnosticsChapter::new),
-            new GalleryTab("application", "Application", Fit.SCROLLED, ApplicationChapter::new),
-            new GalleryTab("lookalike", "Lookalike", Fit.FILLS, LookalikeChapter::new),
-            new GalleryTab("guide", "Guide", Fit.SCROLLED, GuideChapter::new));
+            new GalleryTab("layout", "Layout", BASICS, "layout-dashboard", Fit.SCROLLED, LayoutChapter::new),
+            new GalleryTab("scrolling", "Scrolling", BASICS, "scroll-text", Fit.FILLS, ScrollingChapter::new),
+            new GalleryTab("text", "Text", BASICS, "type", Fit.SCROLLED, TextChapter::new),
+            new GalleryTab("styling", "Styling", BASICS, "palette", Fit.SCROLLED, StylingChapter::new),
+            new GalleryTab("design", "Design system", BASICS, "swatch-book", Fit.SCROLLED, DesignChapter::new),
+            new GalleryTab("buttons", "Buttons", CONTROLS, "mouse-pointer-click", Fit.SCROLLED, ButtonsChapter::new),
+            new GalleryTab("choices", "Choices", CONTROLS, "list-checks", Fit.SCROLLED, ChoicesChapter::new),
+            new GalleryTab("values", "Values", CONTROLS, "sliders-horizontal", Fit.SCROLLED, ValuesChapter::new),
+            new GalleryTab("forms", "Forms", CONTROLS, "text-cursor-input", Fit.SCROLLED, FormsChapter::new),
+            new GalleryTab("panels", "Panels", STRUCTURE, "panels-top-left", Fit.SCROLLED, PanelsChapter::new),
+            new GalleryTab("collections", "Collections", STRUCTURE, "rows-3", Fit.SCROLLED, CollectionsChapter::new),
+            new GalleryTab("navigation", "Navigation", STRUCTURE, "compass", Fit.SCROLLED, NavigationChapter::new),
+            new GalleryTab("menus", "Menus", STRUCTURE, "menu", Fit.SCROLLED, MenusChapter::new),
+            new GalleryTab("overlays", "Overlays", STRUCTURE, "layers", Fit.SCROLLED, OverlaysChapter::new),
+            new GalleryTab("windows", "Windows", STRUCTURE, "app-window", Fit.SCROLLED, WindowsChapter::new),
+            new GalleryTab("charts", "Charts", GRAPHICS, "chart-line", Fit.SCROLLED, ChartsChapter::new),
+            new GalleryTab("drawing", "Drawing", GRAPHICS, "pen-tool", Fit.SCROLLED, DrawingChapter::new),
+            new GalleryTab(
+                    "icons",
+                    "Icons",
+                    GRAPHICS,
+                    "shapes",
+                    Fit.FILLS,
+                    context -> new IconsScreen(context.model(), context.actions())),
+            new GalleryTab(
+                    "emoji",
+                    "Emoji",
+                    GRAPHICS,
+                    "face-grinning",
+                    Fit.FILLS,
+                    context -> new EmojiScreen(context.model(), context.actions())),
+            new GalleryTab("gpu", "GPU", GRAPHICS, "cpu", Fit.SCROLLED, GpuChapter::new),
+            new GalleryTab("audio", "Audio", GRAPHICS, "music", Fit.SCROLLED, AudioChapter::new),
+            new GalleryTab("video", "Video", GRAPHICS, "video", Fit.SCROLLED, VideoChapter::new),
+            new GalleryTab("markdown", "Markdown", CONTENT, "file-text", Fit.FILLS, MarkdownChapter::new),
+            new GalleryTab("html", "HTML", CONTENT, "code", Fit.FILLS, HtmlChapter::new),
+            new GalleryTab("web", "Web view", CONTENT, "globe", Fit.FILLS, WebChapter::new),
+            new GalleryTab("input", "Input", PLATFORM, "keyboard", Fit.SCROLLED, InputChapter::new),
+            new GalleryTab("diagnostics", "Diagnostics", PLATFORM, "activity", Fit.SCROLLED, DiagnosticsChapter::new),
+            new GalleryTab("application", "Application", PLATFORM, "boxes", Fit.SCROLLED, ApplicationChapter::new),
+            new GalleryTab("lookalike", "Lookalike", DEMOS, "headphones", Fit.FILLS, LookalikeChapter::new));
 
     private static final Map<String, GalleryTab> BY_NAME =
             TABS.stream().collect(Collectors.toUnmodifiableMap(GalleryTab::name, Function.identity()));
 
     private Gallery() {}
 
-    /// The screens' names, in the strip's order.
+    /// The screens' names, in the sidebar's order.
     public static List<String> names() {
         return TABS.stream().map(GalleryTab::name).toList();
     }
@@ -103,5 +120,26 @@ public final class Gallery {
             throw new IllegalArgumentException("no screen is called \"" + name + "\"; the gallery is " + names());
         }
         return tab;
+    }
+
+    /// The screens listed under `section`, in the sidebar's order.
+    public static List<GalleryTab> in(Section section) {
+        return TABS.stream().filter(tab -> tab.section() == section).toList();
+    }
+
+    /// The screen `steps` along from `name` in the sidebar's order, wrapping at
+    /// either end; the first screen for a name that is not a screen, such as
+    /// Home.
+    public static String step(String name, int steps) {
+        var at = names().indexOf(name);
+        if (at < 0) {
+            return steps >= 0 ? TABS.getFirst().name() : TABS.getLast().name();
+        }
+        return TABS.get(Math.floorMod(at + steps, TABS.size())).name();
+    }
+
+    /// Whether `name` is one of the gallery's screens.
+    public static boolean has(String name) {
+        return BY_NAME.containsKey(name);
     }
 }

@@ -281,15 +281,17 @@ class FrameBudgetBenchmark {
                 inflater,
                 plus,
                 () -> {},
+                () -> {},
                 new AppMenu(
                         actions,
-                        new AppMenu.Handlers(() -> {}, () -> {}, () -> {}, () -> {}, () -> {}, () -> {}),
+                        new AppMenu.Handlers(() -> {}, () -> {}, () -> {}, () -> {}, () -> {}, () -> {}, () -> {}),
                         plus)));
     }
 
     private WidgetRenderer rendererFor() {
         var sheets = new ArrayList<Stylesheet>(Controls.stylesheets(Theme.NORD_DARK, model.density()));
         sheets.add(Stylesheet.resource(CascadeLayer.APPLICATION, Showcase.class, "showcase.css"));
+        sheets.add(model.readingSize().stylesheet());
         return new WidgetRenderer(sheets, font).clock(dev.goldberry.motion.Clock.virtual());
     }
 
