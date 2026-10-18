@@ -3567,7 +3567,12 @@ is the `scroll` box's.
   document says how big it is and what it sits on, and the drawing is Java.
   Naming a painter from markup needs the registry indirection `icon` and `action`
   use, and the shape of that registry depends on whether a painter is a value or
-  a method. Filed rather than guessed at.
+  a method. Filed rather than guessed at. **Answered 2026-10-18** (ADR-0645, parked
+  in `docs/snapshot/adr`): a painter is a value, and `canvas painter="name"
+  input="name"` resolve through `Named` as `canvas3d renderer=` does. A still
+  canvas under `isolation: isolate` is drawn once and copied after, a styled one
+  included (ADR-0646). An `Editor` told its `viewportHeight` scrolls with its
+  caret (ADR-0647).
 - **`sparkline` is built, and `statistic` has its child.** §11's first chart and
   its smallest: no axes, no legend, no tooltip — a shape beside a number, read
   for its direction. It is **one series, so it takes `color`**, exactly like

@@ -86,3 +86,6 @@ Appended to the index when the records move in, in this order.
 - [ADR-0642 A list's rows take the arrows, and the focused row stays built](0642-a-lists-rows-take-the-arrows-and-the-focused-row-stays-built.md)
 - [ADR-0643 A segmented bar is as wide as its widest segment](0643-a-segmented-bar-is-as-wide-as-its-widest-segment.md)
 - [ADR-0644 `render` is not handed a width, and `Measured` stays](0644-render-is-not-handed-a-width-and-measured-stays.md)
+- [ADR-0645 Markup names a canvas painter the application bound](0645-markup-names-a-canvas-painter-the-application-bound.md)
+- [ADR-0646 A canvas is cached by `isolation`, and a styled painter compares equal](0646-a-canvas-is-cached-by-isolation-and-a-styled-painter-compares-equal.md)
+- [ADR-0647 An editor scrolls inside the box it is told about](0647-an-editor-scrolls-inside-the-box-it-is-told-about.md)

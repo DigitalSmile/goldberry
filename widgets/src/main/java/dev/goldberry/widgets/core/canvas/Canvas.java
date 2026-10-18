@@ -34,6 +34,7 @@ import dev.goldberry.widget.semantics.Semantics;
 import dev.goldberry.widget.style.Paints;
 import dev.goldberry.widget.style.Styled;
 import dev.goldberry.widgets.markup.Markup;
+import dev.goldberry.widgets.markup.Named;
 import dev.goldberry.widgets.markup.Wiring;
 
 /// A surface the application draws on itself, with a painter written in Java.
@@ -51,7 +52,7 @@ import dev.goldberry.widgets.markup.Wiring;
 /// ```
 ///
 /// ```kdl
-/// canvas id="plot" class="chart"
+/// canvas id="plot" class="chart" painter="app.revenue"
 /// ```
 ///
 /// **The escape hatch, and the substrate.** Every chart in the catalogue is built
@@ -143,13 +144,27 @@ import dev.goldberry.widgets.markup.Wiring;
 /// The widgets arrive a frame after the canvas is first laid out, because the
 /// size they are placed by is the one the last frame measured.
 ///
-/// ## Markup names no painter yet
+/// ## Markup names a painter the application bound
 ///
-/// A `canvas` node inflates to a styled, sized surface that draws nothing. The
-/// painter is Java, and naming one from a document would need the indirection
-/// `icon` and `action` use — a registry the application owns. There is no such
-/// registry yet, because its shape depends on whether a painter is a value or a
-/// method and nothing has needed one.
+/// The painter is Java, so a document names one rather than writing it:
+/// `painter=` and `input=` name objects the application bound in its [Named]
+/// registry, as `canvas3d renderer=` and `field validator=` do. A painter is a
+/// value there, not a method on a model, because what a document wants is the
+/// drawing and the drawing is an object the application already holds. A
+/// `canvas` that names neither is a styled, sized surface that draws nothing.
+///
+/// ```java
+/// var named = Named.strict().bind("app.revenue", (Painter) chart::paint);
+/// ```
+///
+/// ## It can be cached, by its stylesheet
+///
+/// A painter is called whenever its box is painted, which is right for a
+/// drawing whose data changed and wasteful for a still one that is expensive to
+/// draw. `isolation: isolate` makes the canvas a group with a raster of its own,
+/// kept for as long as the canvas is unchanged: the painter draws once and later
+/// frames copy what it drew. A canvas that is [#animating(Predicate)] draws on
+/// every frame either way, because its time has moved.
 ///
 /// Read more: [Canvas, images and QR codes](https://goldberry.dev/docs/components/drawing.html#canvas).
 ///
@@ -414,7 +429,9 @@ public record Canvas(
     /// during the paint pass would answer for whichever node rendered last.
     @Override
     public Box render(ComputedStyle style, List<Box> children, Context context) {
-        var painting = painter instanceof StyledPainter styled ? styled.bound(context.canvasStyle(style)) : painter;
+        var painting = painter instanceof StyledPainter styled
+                ? new BoundPainter(styled, context.canvasStyle(style), animating == null)
+                : painter;
         var box = Box.of().style(style);
         // A box paints nothing until told otherwise, so a canvas with no painter
         // (one from markup) is that box -- `Box.painting` does not take null yet.
@@ -451,10 +468,17 @@ public record Canvas(
         return animating != null && animating.test(context.canvasStyle(style));
     }
 
-    /// Builds a `canvas` from markup — see the class note on why it names no
-    /// painter.
+    /// `canvas painter="name" input="name"`: both name objects the application
+    /// bound, and both are optional.
+    ///
+    /// @throws IllegalArgumentException when a name is bound to something that is
+    ///                                  not a painter or not an input, or is unknown
+    ///                                  to a strict registry
     @SuppressWarnings("unused")
     public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
-        return new Canvas(null, null, Attributes.of(node));
+        return new Canvas(
+                wiring.handle(node, "painter", Painter.class),
+                wiring.handle(node, "input", Input.class),
+                Attributes.of(node));
     }
 }

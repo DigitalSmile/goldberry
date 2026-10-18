@@ -108,6 +108,11 @@ page for a change to `site/` alone (ADR-0590), and GB-034, written 2026-10-10
 | `adr/0644-…` | `book/src/adr/` | `render` is not handed a width and `Measured` stays; a width known without layout is read from text at render time. Amends ADR-0117 and ADR-0167. Contiguous with 0643 |
 | `components-collections-list-keyboard.md` | `book/src/components/collections.md`, `## `list``: one sentence after the virtualization paragraph, two keyboard rows | ADR-0642, two pieces |
 | `components-choices-segmented-width.md` | `book/src/components/choices.md`, `## `segmented``: one sentence replaced | ADR-0643 |
+| `adr/0645-…` | `book/src/adr/` | `canvas painter=` and `input=` name objects bound in `Named`, as `canvas3d renderer=` does: a painter is a value. Amends ADR-0043. Contiguous with 0644 |
+| `adr/0646-…` | `book/src/adr/` | A canvas is cached by `isolation: isolate`; a styled painter is bound as `BoundPainter`, equal across frames when still (time left out). Amends ADR-0071. Contiguous with 0645 |
+| `adr/0647-…` | `book/src/adr/` | An `Editor` told its `viewportHeight` keeps a `scrollTop` that follows the caret, paints clipped to the box, `scrollBy` for a wheel; points stay in text space. Amends ADR-0167. Contiguous with 0646 |
+| `components-drawing-canvas-painter.md` | `book/src/components/drawing.md`, `## `canvas``: the "Markup names no painter" paragraph, two attribute rows, one styling paragraph | ADR-0645 and ADR-0646, three pieces |
+| `guide-text-editor-scrolls.md` | `book/src/guide/text.md`, `## Selection and editing`: one paragraph | ADR-0647 |
 | `components-menus-tray-changes.md` | `book/src/components/menus.md`, `## The tray icon`: the sample, two table rows, the paragraph after the table | ADR-0639 and ADR-0640, three pieces |
 | `contributing-testing-ci-matrix.md`, item 5 | `book/src/contributing/testing.md` | ADR-0641, one paragraph and one clause |
 | (no file) | `book/src/components/overlays.md`, the tour sample under `## Tours` | Its last `Stop("gallery", "The gallery strip", …)` names a strip the showcase no longer has; the showcase's own tour now ends on `Stop("sidebar", "The screens", …)` (ADR-0624). Reword the sample or leave it as an illustration |

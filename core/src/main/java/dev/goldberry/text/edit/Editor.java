@@ -58,8 +58,19 @@ import dev.goldberry.text.font.Font;
 ///
 /// Points handed to [#pointerAt] and rectangles handed back are in the text's
 /// own space: `(0, 0)` is the top-left of the first line. A caller drawing at an
-/// offset subtracts it first, which is why this class has no notion of padding,
-/// scrolling or a canvas transform.
+/// offset subtracts it first, which is why this class has no notion of padding
+/// or a canvas transform.
+///
+/// ## It scrolls, once it knows how tall its box is
+///
+/// Tell it [#viewportHeight(double)] and it keeps a [#scrollTop()] that follows
+/// the caret: a keystroke, a click or a drag that carries the caret past the
+/// box's top or bottom edge moves the text by the least that brings the caret's
+/// line back into it. [#paint] draws from there, clipped to the box, and draws
+/// only the lines that reach into it. A wheel is the caller's to hear and is one
+/// call, [#scrollBy(double)]. Points stay in the text's own space, so a caller
+/// converting a pointer adds the scroll back: `pointerAt(px - x, py - top +
+/// editor.scrollTop(), …)`. An editor told no height is never scrolled.
 ///
 /// Used on the UI thread, like everything else that touches input. Nothing here
 /// is closed: the [Font] is the caller's, and a shaped paragraph holds no native
@@ -119,6 +130,17 @@ public final class Editor {
     /// How tall the caller's viewport is, in the text's own space, or `NaN` when
     /// it has not said — [#viewportHeight(double)].
     private double viewportHeight = Double.NaN;
+
+    /// How far the text is scrolled down inside the viewport, in the text's own
+    /// space — [#scrollTop()].
+    private double scrollTop;
+
+    /// The edit and the composition [#scrollTop] last followed the caret for, so
+    /// that a caret that has not moved since leaves a scroll the caller made
+    /// alone.
+    private @Nullable TextEdit followed;
+
+    private String followedPreedit = "";
 
     /// The column a run of `Up`/`Down` is keeping, or NaN when the last thing the
     /// caret did was not vertical.
@@ -180,8 +202,12 @@ public final class Editor {
     /// Leave it unset — or pass `NaN`, `0` or a negative — and a page is ten
     /// lines, the only defensible answer for a caller that has not said.
     ///
+    /// It is also what turns scrolling on ([#scrollTop()]): a box with a height
+    /// is a box the caret can leave.
+    ///
     /// Nothing is invalidated: how tall the viewport is does not change where a
-    /// line breaks or where a caret goes, only what one key means.
+    /// line breaks or where a caret goes, only what one key means and how far the
+    /// text is scrolled.
     public Editor viewportHeight(double height) {
         this.viewportHeight = height;
         return this;
@@ -190,6 +216,64 @@ public final class Editor {
     /// See [#viewportHeight(double)] — `NaN` when the caller has not said.
     public double viewportHeight() {
         return viewportHeight;
+    }
+
+    /// How far the text is scrolled down inside the viewport, in the text's own
+    /// space: the y of the text that is drawn at the viewport's top edge.
+    ///
+    /// **It follows the caret.** When the caret has moved or the text has
+    /// changed since this was last asked, the scroll moves by the least that
+    /// brings the caret's line inside the viewport. It is always between zero and
+    /// however far the text reaches below the viewport. Zero for an editor told
+    /// no [#viewportHeight(double)], which is never scrolled.
+    public double scrollTop() {
+        if (!scrolls()) {
+            return 0;
+        }
+        if (!edit.equals(followed) || !preedit.equals(followedPreedit)) {
+            followed = edit;
+            followedPreedit = preedit;
+            var caret = caret();
+            if (caret.top() < scrollTop) {
+                scrollTop = caret.top();
+            } else if (caret.top() + caret.height() > scrollTop + viewportHeight) {
+                scrollTop = caret.top() + caret.height() - viewportHeight;
+            }
+        }
+        scrollTop = Math.clamp(scrollTop, 0, Math.max(0, contentHeight() - viewportHeight));
+        return scrollTop;
+    }
+
+    /// Scrolls to `value`, clamped as [#scrollTop()] is, and leaves the caret
+    /// where it is: the caller moved the view and not the caret, so the view
+    /// stays where it was put until the caret next moves.
+    public Editor scrollTop(double value) {
+        if (!scrolls()) {
+            return this;
+        }
+        followed = edit;
+        followedPreedit = preedit;
+        scrollTop = Math.clamp(value, 0, Math.max(0, contentHeight() - viewportHeight));
+        return this;
+    }
+
+    /// Scrolls by `dy`, what a wheel asks for.
+    ///
+    /// @return whether the text moved, which is whether to consume the wheel —
+    ///         an editor at its end leaves the wheel to whatever is around it
+    public boolean scrollBy(double dy) {
+        var before = scrollTop();
+        scrollTop(before + dy);
+        return scrollTop != before;
+    }
+
+    /// How tall the text is, every visual line of it, in the text's own space.
+    public double contentHeight() {
+        return lines().size() * font.lineHeight();
+    }
+
+    private boolean scrolls() {
+        return viewportHeight > 0;
     }
 
     /// The width the text wraps at, in logical units.
@@ -532,7 +616,9 @@ public final class Editor {
         };
     }
 
-    /// The pointer went down, or was dragged, at a point in the text's own space.
+    /// The pointer went down, or was dragged, at a point in the text's own space —
+    /// a scrolled editor's caller adds [#scrollTop()] to the pointer's y. A drag
+    /// past the viewport's edge carries the caret there, and the scroll follows.
     ///
     /// @param extend     whether this extends the selection — `Shift` on a press,
     ///                   and always on a drag
@@ -772,6 +858,39 @@ public final class Editor {
     public void paint(Frame frame, double x, double top, Ink ink, boolean caretVisible, double caretWidth) {
         Objects.requireNonNull(frame, "frame");
         Objects.requireNonNull(ink, "ink");
+        if (!scrolls()) {
+            paintAt(frame, x, top, ink, caretVisible, caretWidth, Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY);
+            return;
+        }
+        // Clipped to the viewport's height, and across as far as anything the
+        // editor draws can reach: its width is the wrap width when it has one and
+        // unknowable when it does not, so the clip is a band.
+        var reach = Double.isFinite(wrapWidth) ? wrapWidth + 2 * caretWidth : HORIZONTAL_REACH;
+        frame.save();
+        try {
+            frame.clipTo(x - caretWidth, top, reach, viewportHeight);
+            paintAt(frame, x, top - scrollTop(), ink, caretVisible, caretWidth, top, top + viewportHeight);
+        } finally {
+            frame.restore();
+        }
+    }
+
+    /// How far across a scrolled editor with no wrap width is clipped, in logical
+    /// units: further than any line of a field is drawn, and finite, because a
+    /// clip is a rectangle.
+    private static final double HORIZONTAL_REACH = 100_000;
+
+    /// [#paint] with the text's top at `top`, drawing only the hard lines that
+    /// reach between `visibleTop` and `visibleBottom`.
+    private void paintAt(
+            Frame frame,
+            double x,
+            double top,
+            Ink ink,
+            boolean caretVisible,
+            double caretWidth,
+            double visibleTop,
+            double visibleBottom) {
 
         for (var rect : selectionRects()) {
             frame.fillRect(
@@ -792,7 +911,7 @@ public final class Editor {
                     rect.height(),
                     ink.selection());
         }
-        paintText(frame, x, top, ink.text());
+        paintText(frame, x, top, ink.text(), visibleTop, visibleBottom);
         // And the underline, in front of them, which is the mark every platform
         // uses for "this is not text yet". One logical unit, like the caret.
         for (var rect : composingRects()) {
@@ -822,18 +941,26 @@ public final class Editor {
     /// of a wrapped line are consecutive, so the y of hard line `k` is the number
     /// of visual lines above it times the line height.
     ///
-    /// Every line is drawn, in the document's order. Drawing only a screenful
-    /// needs to know which rows are on screen, and that is the caller's scroll
-    /// offset and the caller's transform; an editor asked to paint at `(x, top)`
-    /// knows only where it was told to start. A caller with a viewport clips, as
-    /// it already must.
-    private void paintText(Frame frame, double x, double top, int argb) {
+    /// Only the hard lines that reach between `visibleTop` and `visibleBottom`
+    /// are drawn, which for an editor told no viewport height is all of them.
+    /// The rows only go down, so the walk stops at the first line below the
+    /// viewport.
+    private void paintText(Frame frame, double x, double top, int argb, double visibleTop, double visibleBottom) {
         var shaped = document();
         var rows = lines();
         var lineHeight = font.lineHeight();
         var flow = breaking.textAlign(textAlign);
-        for (var k = 0; k < shaped.hardLineCount(); k++) {
-            shaped.paragraphOf(k).paint(frame, x, top + rows.firstVisualOf(k) * lineHeight, wrapWidth, argb, flow);
+        var count = shaped.hardLineCount();
+        for (var k = 0; k < count; k++) {
+            var lineTop = top + rows.firstVisualOf(k) * lineHeight;
+            if (lineTop >= visibleBottom) {
+                break;
+            }
+            var nextRow = k + 1 < count ? rows.firstVisualOf(k + 1) : rows.size();
+            if (top + nextRow * lineHeight <= visibleTop) {
+                continue;
+            }
+            shaped.paragraphOf(k).paint(frame, x, lineTop, wrapWidth, argb, flow);
         }
     }
 

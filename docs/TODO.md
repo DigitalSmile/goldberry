@@ -83,38 +83,18 @@ description had no effect.
   (`goldberry.tray.required`, ADR-0641). This entry moves to *Answered* when a
   push has run both green.
 ## `canvas`, and what a document cannot say
-- **Markup cannot name a painter.** A `canvas` node inflates to a styled, sized
-  surface that draws nothing; the drawing is Java. `icon` solved the same problem
-  with a registry the application owns
-  ([ADR-0043](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0043-icons-are-stroked-paths.md)) and `action` with another, so
-  the shape is known — what is not known is whether a painter is a *value* a
-  registry holds or a *method* on a model, which is the same question `@Action`
-  answered for commands and would have to answer again here. Nothing has needed
-  it: every consumer so far is written in Java — the chart widgets, `web-view`'s
-  placeholder and the showcase's tile floor.
-- **A canvas has no intrinsic size**, so one in a `row` with nothing else to size
-  it is zero wide and silently invisible. A measure function that guessed would be
-  a number the toolkit invented and the application drew into; a diagnostic when a
-  canvas is laid out to nothing would be noise in the collapsed-split-pane case,
-  which is legitimate. Left as a documented sharp edge.
-- **A painter is called on every paint of its box**, not only when it says
-  something changed. That is what immediate-mode means and it is right for a
-  chart whose data changed; it is wasteful for a canvas whose drawing is static
-  and expensive. The seam for fixing it exists — a canvas that wants caching is a
-  repaint boundary with a `Layer`
-  ([ADR-0071](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0071-a-layer-is-a-subtrees-raster.md)) — and nothing has
-  measured a case that needs it.
+
+Nothing open since 2026-10-18. A painter named from markup, the size a canvas
+does not have and caching a still drawing are under [Answered](#answered)
+(ADR-0645, ADR-0646).
 ## Images, and what the primitive is not
-- **`Image.decode` is still synchronous.** A large JPEG is tens of milliseconds,
-  and a `canvas` painter that decodes pays it on the UI thread. The `image` widget
-  does not: it decodes on a virtual thread through `ImageLoader` (ADR-0358), and
-  that is the seam a painter should use too. Nothing has measured a painter that
-  needs it.
+
+Nothing open since 2026-10-18. Decoding off the UI thread is under
+[Answered](#answered).
 ## Editing text
-- **An `Editor` does not scroll.** It draws where it is told and does not know it
-  has been clipped. A canvas with a long document moves its own transform, which
-  it is already doing for everything else on it; a *widget* wanting this is
-  `text-area`, which has a viewport.
+
+Nothing open since 2026-10-18. An `Editor` scrolls now; see
+[Answered](#answered) (ADR-0647).
 ## Content modules
 
 `docs/content-widgets.md`'s table has thirteen rows, and **four of them are
@@ -642,6 +622,76 @@ way back is a consumer asking, not a date.
 Kept rather than deleted: each is a trap somebody hit, and the reasoning that got
 out of it is usually worth more than the fact that it is fixed.
 
+- ~~**Markup cannot name a painter.**~~ A `canvas` node inflates to a styled, sized
+  surface that draws nothing; the drawing is Java. `icon` solved the same problem
+  with a registry the application owns
+  ([ADR-0043](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0043-icons-are-stroked-paths.md)) and `action` with another, so
+  the shape is known — what is not known is whether a painter is a *value* a
+  registry holds or a *method* on a model, which is the same question `@Action`
+  answered for commands and would have to answer again here. Nothing has needed
+  it: every consumer so far is written in Java — the chart widgets, `web-view`'s
+  placeholder and the showcase's tile floor.
+
+  **Closed (2026-10-18): a painter is a value, named as `canvas3d` names its
+  renderer** (ADR-0645, parked in `docs/snapshot/adr`). The value-or-method
+  question had been answered three times since this was written: `field
+  validator=`, `form controller=` and `canvas3d renderer=` all resolve a named
+  object through `Wiring.handle`. `canvas painter="name" input="name"` does the
+  same, a `StyledPainter` included. `CanvasTest`.
+- ~~**A canvas has no intrinsic size**~~, so one in a `row` with nothing else to size
+  it is zero wide and silently invisible. A measure function that guessed would be
+  a number the toolkit invented and the application drew into; a diagnostic when a
+  canvas is laid out to nothing would be noise in the collapsed-split-pane case,
+  which is legitimate. Left as a documented sharp edge.
+
+  **Closed (2026-10-18): a decision, kept.** HTML's `<canvas>` is the precedent
+  for a default (300 by 150), and it does not carry over: an HTML canvas is a
+  bitmap with a size of its own, and this one draws into whatever it is given,
+  so a default would be a size the toolkit invented for the application to draw
+  into. The class note and the guide both say a canvas has no size of its own,
+  and the fix for the zero-wide case is one line of stylesheet.
+- ~~**A painter is called on every paint of its box**~~, not only when it says
+  something changed. That is what immediate-mode means and it is right for a
+  chart whose data changed; it is wasteful for a canvas whose drawing is static
+  and expensive. The seam for fixing it exists — a canvas that wants caching is a
+  repaint boundary with a `Layer`
+  ([ADR-0071](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0071-a-layer-is-a-subtrees-raster.md)) — and nothing has
+  measured a case that needs it.
+
+  **Closed (2026-10-18): `isolation: isolate` caches it** (ADR-0646, parked in
+  `docs/snapshot/adr`). The seam was reachable from CSS all along, since
+  `isolation` promotes a leaf too, but only for a plain painter. Over five frames
+  of an unchanged tree an isolated `Painter` ran once and an isolated
+  `StyledPainter` five times: binding the style made a new lambda on every render,
+  so the box was never equal to last frame's. The canvas now binds it as
+  `BoundPainter`, equal across frames while the canvas is still, and an animating
+  canvas still draws every frame. `CanvasCacheTest`.
+- ~~**`Image.decode` is still synchronous.**~~ A large JPEG is tens of milliseconds,
+  and a `canvas` painter that decodes pays it on the UI thread. The `image` widget
+  does not: it decodes on a virtual thread through `ImageLoader` (ADR-0358), and
+  that is the seam a painter should use too. Nothing has measured a painter that
+  needs it.
+
+  **Closed (2026-10-18): the seam is public, and the decoder says so.**
+  `Image.decode`'s note now says it decodes on the calling thread and shows the
+  one line that moves it off the UI thread: `Goldberry.async`, which completes on
+  the UI thread where a canvas can be rebuilt with the picture. `ImageLoader` is
+  the same with a cache in front. Decoding stays synchronous, because an
+  asynchronous decode would be that same virtual thread behind a second API.
+- ~~**An `Editor` does not scroll.**~~ It draws where it is told and does not know it
+  has been clipped. A canvas with a long document moves its own transform, which
+  it is already doing for everything else on it; a *widget* wanting this is
+  `text-area`, which has a viewport.
+
+  **Closed (2026-10-18): it scrolls inside the box it is told about** (ADR-0647,
+  parked in `docs/snapshot/adr`). Moving its own transform left a caller to watch
+  the caret, keep an offset, shift the pointer and clip, and `PageDown` already
+  took the box's height and moved the caret out of it. Told `viewportHeight`, an
+  editor keeps a `scrollTop` that follows the caret by the least move, paints
+  clipped to the box and skips the lines outside it, and takes a wheel as
+  `scrollBy`. Points stay in the text's own space. An editor told no height is
+  never scrolled, so the sticky and every existing caller draw as before.
+  `EditorScrollTest`.
 - ~~**A field's scroll offset uses the previous frame's width.**~~ ADR-0116 already
   decided that is what a viewport does, and it is wrong for one frame after a
   resize — invisible, because a resize is followed immediately by another frame.

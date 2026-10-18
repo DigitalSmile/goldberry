@@ -4,6 +4,8 @@ import static dev.goldberry.widgets.TestAttributes.id;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
@@ -21,13 +23,16 @@ import dev.goldberry.golden.GoldenImage;
 import dev.goldberry.kdl.KdlParser;
 import dev.goldberry.paint.BoxPainter;
 import dev.goldberry.paint.Painter;
+import dev.goldberry.paint.StyledPainter;
 import dev.goldberry.widget.ElementTree;
 import dev.goldberry.widget.Widget;
 import dev.goldberry.widget.WidgetRenderer;
 import dev.goldberry.widgets.Controls;
+import dev.goldberry.widgets.Icons;
 import dev.goldberry.widgets.Widgets;
 import dev.goldberry.widgets.controls.TestFont;
 import dev.goldberry.widgets.core.Column;
+import dev.goldberry.widgets.markup.Named;
 
 /// The `canvas` primitive, as a widget.
 ///
@@ -59,17 +64,53 @@ class CanvasTest {
     }
 
     @Test
-    @DisplayName("markup writes one, and it names no painter")
+    @DisplayName("markup writes one, and with nothing named it draws nothing")
     void inflatesFromKdl() {
         var widget =
                 Widgets.inflater().inflate(KdlParser.parse("canvas id=\"plot\"").getFirst());
 
         var canvas = assertInstanceOfCanvas(widget);
         assertEquals("plot", canvas.id());
-        // Deliberate, and documented on the class: a painter is Java, and naming
-        // one from a document needs the registry indirection `icon` uses. A
-        // document can still say how big it is and what it sits on.
         assertNull(canvas.painter());
+        assertNull(canvas.input());
+    }
+
+    @Test
+    @DisplayName("markup names a painter and an input the application bound")
+    void markupNamesAPainter() {
+        Painter painter = (frame, size) -> {};
+        var input = new Input() {};
+        var named = Named.strict().bind("app.plot", painter).bind("app.plot-input", input);
+
+        var canvas = assertInstanceOfCanvas(Widgets.inflater(named, Icons.none())
+                .inflate(KdlParser.parse("canvas painter=\"app.plot\" input=\"app.plot-input\"")
+                        .getFirst()));
+
+        assertSame(painter, canvas.painter());
+        assertSame(input, canvas.input());
+    }
+
+    @Test
+    @DisplayName("a styled painter is a painter, so markup names one the same way")
+    void markupNamesAStyledPainter() {
+        StyledPainter painter = (frame, size, style) -> {};
+        var named = Named.strict().bind("app.plot", painter);
+
+        var canvas = assertInstanceOfCanvas(Widgets.inflater(named, Icons.none())
+                .inflate(KdlParser.parse("canvas painter=\"app.plot\"").getFirst()));
+
+        assertSame(painter, canvas.painter());
+    }
+
+    @Test
+    @DisplayName("a name bound to something that is not a painter is refused")
+    void aNameThatIsNotAPainter() {
+        var named = Named.strict().bind("app.plot", "not a painter");
+
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> Widgets.inflater(named, Icons.none())
+                        .inflate(KdlParser.parse("canvas painter=\"app.plot\"").getFirst()));
     }
 
     private static Canvas assertInstanceOfCanvas(Widget widget) {

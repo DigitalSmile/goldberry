@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
+import dev.goldberry.Goldberry;
 import dev.goldberry.image.gif.GifDecoder;
 import dev.goldberry.image.gif.GifFormatException;
 import dev.goldberry.image.png.PngEncoder;
@@ -113,6 +114,19 @@ public final class Image {
     /// worth fetching a library for, and GIF is a nine-page format worth writing.
     ///
     /// An **animated** GIF decodes to its first frame. See [GifDecoder].
+    ///
+    /// **It decodes on the thread that calls it**, and a large JPEG takes tens of
+    /// milliseconds. So a `canvas` painter does not call it: the painter runs on
+    /// the UI thread inside a frame. Decode off it and hand the painter the
+    /// picture when it arrives, which [Goldberry#async] does in one line,
+    /// completing on the UI thread where the canvas can be rebuilt with it:
+    ///
+    /// ```java
+    /// Goldberry.async(() -> Image.decode(bytes)).thenAccept(picture -> setState(() -> this.picture = picture));
+    /// ```
+    ///
+    /// The `image` widget's `ImageLoader` is the same thing with a cache in
+    /// front, and a painter's owner can load through it too.
     ///
     /// @throws ImageDecodeException if no codec recognises the bytes, or the image
     ///         is malformed
