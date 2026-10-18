@@ -122,10 +122,20 @@ final class GoldberryRuntime {
     }
 
     static synchronized void shutdown() {
-        if (instance == null) {
+        if (instance != null) {
+            shutdown(instance);
+        }
+    }
+
+    /// Shuts `runtime` down if it is still the current one.
+    ///
+    /// For [Goldberry#run()], whose loop may have been outlived: a handler that
+    /// called [Goldberry#shutdown()] and then opened a window started a second
+    /// runtime, and that one is not this loop's to close.
+    static synchronized void shutdown(GoldberryRuntime runtime) {
+        if (instance != runtime) {
             return;
         }
-        var runtime = instance;
         instance = null;
         LOG.debug("shutting the Goldberry runtime down");
         runtime.loop.close();

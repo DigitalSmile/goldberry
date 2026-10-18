@@ -304,8 +304,10 @@ final class Launcher {
         // focus-gained for the popup itself.
         GoldberryRuntime.get().onFocusChange(this::focusMayHaveLeft);
 
+        // The runtime's loop and not `Goldberry.run()`, which shuts the backend
+        // down as it returns: the trees and the fonts have to go first.
         try {
-            Goldberry.run();
+            GoldberryRuntime.get().run();
         } finally {
             shutDown();
         }

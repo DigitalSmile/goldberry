@@ -141,19 +141,12 @@
 
 /* --------------------------------------------------------- inline marks -- */
 
-/* **A faux oblique, and it is now a compromise nothing forces.** It was written
-   when the toolkit bundled two upright faces and there was no italic to set
-   emphasis in; there is one now -- `font-style: italic`, a drawn face
-   rather than a lean -- and `text-decoration` exists too.
-
-   The declaration is left as it is deliberately: swapping it changes every
-   Markdown golden, so it is a *picture* decision to take on purpose rather than a
-   side effect of the faces existing. One line replaces it when that is taken:
-   `font-style: italic` for the skew. Skewing the word is what every renderer
-   without an italic face does; `transform` does not affect layout, so the word
-   stays where it was and only the glyphs lean. */
+/* Emphasis is set in the italic face, a drawn face rather than a lean. The
+   bundled family carries one at both weights, so `*a **b** c*` sets its middle
+   word in semibold italic. Unlike a `transform`, the face has its own advances,
+   so an emphasised word takes the room it needs. */
 .md-em {
-  transform: skewX(-10deg);
+  font-style: italic;
 }
 
 .md-strong {

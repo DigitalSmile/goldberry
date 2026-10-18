@@ -264,9 +264,11 @@ on, which in four cases is the same thing.
     They still build a row of words, so moving them over is toolkit work and not
     an engine's. Selection and links would have to move with them. Only
     **hyphenation** still needs an engine.
-  - **Emphasis is a faux oblique** — `transform: skewX(-10deg)` — because §6.1
-    ships two upright faces. A third face is an asset decision rather than a code
-    one, and `:assets` is where it would be made.
+
+    **Later, by choice (2026-10-18).** Moving the two views onto the shaped
+    run is a large change: word geometry, selection and link hit-testing all
+    move with it, and justification alone does not pay for that yet. It stays
+    open as toolkit work, scheduled after the release.
   - **`src="…"` is not a thing on either view.** Reading a file from markup means
     deciding what a relative path is relative to and what a missing one does —
     three answers `Icons` and the stylesheets each needed a resolver for. An
@@ -543,26 +545,6 @@ on, which in four cases is the same thing.
   two unreliable ways to ask for a headless run. Reproducing this deliberately costs the
   developer their session, so it is not something to iterate on casually. gnome-shell
   46.0-0ubuntu6~24.04.14, Ubuntu 24.04, under VirtualBox/vmwgfx.
-- **The toolkit never shut SDL down, and a compositor died of it.**
-  `Sdl3Backend.close()` destroys every window and calls `SDL_Quit`; nothing called it.
-  `Goldberry.run()` returning does not shut the runtime down — its contract says so —
-  and `Goldberry.stop()` ends the loop with the window still open, so the showcase
-  exited with a live Wayland surface and let the socket close. GNOME 46's Mutter then
-  crashed unwinding the connection, in `wl_client_destroy` → its destroy listener →
-  `g_signal_handler_disconnect`, on a GObject already freed. **That is a compositor
-  bug** — every killed process disconnects abruptly and a compositor has to survive it —
-  but disconnecting properly is right regardless, and the showcase now calls
-  `Goldberry.shutdown()`. Open: whether `run()` should shut down on return, which would
-  change a documented contract. Seen once, on GNOME 46.0 under VirtualBox/vmwgfx, after
-  SDL3 moved from `release-3.2.0` to `release-3.4.14` in the same session. —
-  [ADR-0022](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0022-window-is-the-front-door.md)
-
-  **Narrowed since:** `Goldberry.launch()`, the documented front door
-  ([ADR-0093](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0093-an-application-is-a-root-widget.md)), owns the
-  runtime and calls `Goldberry.shutdown()` itself, so the showcase no longer has to.
-  The open question is now only about `run()`, whose contract still says
-  `shutdown()` is rarely needed, and so only about applications that assemble the
-  loop by hand.
 - **No CI leg exercises Wayland.** `showcase.yml` runs under
   `xvfb-run`, which is X11, where the window manager decorates the window and libdecor
   is never reached — which is why two consecutive decoration bugs shipped without a
@@ -693,6 +675,12 @@ on, which in four cases is the same thing.
   classifiers**, because `NativeLibrary` picks at run time and the
   one-platform form is the one that fails quietly for somebody building on
   macOS for Linux.
+
+  **Later, by choice (2026-10-18).** The plugin is a new published artifact
+  with a release surface of its own, so it waits until after the release. The
+  README's snippet now lists all four natives classifiers as the installing
+  chapter does, and says that `goldberry-media` takes an `ffmpeg-<platform>`
+  classifier the same way.
 ## On hold: the accessibility bridge
 
 **On hold —
@@ -763,6 +751,47 @@ way back is a consumer asking, not a date.
 Kept rather than deleted: each is a trap somebody hit, and the reasoning that got
 out of it is usually worth more than the fact that it is fixed.
 
+- ~~**The toolkit never shut SDL down, and a compositor died of it.**~~
+  `Sdl3Backend.close()` destroys every window and calls `SDL_Quit`; nothing called it.
+  `Goldberry.run()` returning does not shut the runtime down — its contract says so —
+  and `Goldberry.stop()` ends the loop with the window still open, so the showcase
+  exited with a live Wayland surface and let the socket close. GNOME 46's Mutter then
+  crashed unwinding the connection, in `wl_client_destroy` → its destroy listener →
+  `g_signal_handler_disconnect`, on a GObject already freed. **That is a compositor
+  bug** — every killed process disconnects abruptly and a compositor has to survive it —
+  but disconnecting properly is right regardless, and the showcase now calls
+  `Goldberry.shutdown()`. Open: whether `run()` should shut down on return, which would
+  change a documented contract. Seen once, on GNOME 46.0 under VirtualBox/vmwgfx, after
+  SDL3 moved from `release-3.2.0` to `release-3.4.14` in the same session. —
+  [ADR-0022](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0022-window-is-the-front-door.md)
+
+  **Narrowed since:** `Goldberry.launch()`, the documented front door
+  ([ADR-0093](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0093-an-application-is-a-root-widget.md)), owns the
+  runtime and calls `Goldberry.shutdown()` itself, so the showcase no longer has to.
+  The open question is now only about `run()`, whose contract still says
+  `shutdown()` is rarely needed, and so only about applications that assemble the
+  loop by hand.
+
+  **Closed (2026-10-18): `run()` shuts down too** (ADR-0635, parked in
+  `docs/snapshot/adr`). It closes what is still open and releases the backend
+  in a `finally` around the loop, so `stop()` and a handler that throws leave
+  nothing behind. A call from the wrong thread, or a second `run()` from inside
+  the loop, is refused before the `try` and touches nothing. The launcher runs
+  the runtime's loop directly, because its trees and fonts have to go before
+  the backend. The contract change is listed in the breaking changes.
+- ~~**Emphasis in `markdown-view` and `html-view` is a faux oblique**~~ —
+  `transform: skewX(-10deg)` — because §6.1 shipped two upright faces. A third
+  face was an asset decision rather than a code one. ADR-0323 then added the
+  italic at both weights, and both stylesheets kept the skew only so the
+  goldens would not move as a side effect.
+
+  **Closed (2026-10-18): emphasis is set in the italic face** (ADR-0636, parked
+  in `docs/snapshot/adr`). Every class a browser sets in italic declares
+  `font-style: italic` and nothing else, and `MarkdownStylesTest` and
+  `HtmlStylesTest` hold them to it. Five `:html` goldens, the two gallery
+  goldens and eight book pictures moved, only on the lines with an emphasised
+  word. Strikethrough is still a muted colour, the same kind of picture
+  decision, not taken.
 - ~~**A native image resolves a host name before `main`.**~~ About 50 ms of its 70 ms
   before the toolkit's first line is a lookup through `libnss_mdns4_minimal`
   (`/etc/nsswitch.conf`, `/etc/hosts`, then the wait). The JVM does no such thing

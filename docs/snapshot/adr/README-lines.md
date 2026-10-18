@@ -76,3 +76,5 @@ Appended to the index when the records move in, in this order.
 - [ADR-0632 A popup window has room for its panel's shadow](0632-a-popup-window-has-room-for-its-panels-shadow.md)
 - [ADR-0633 CI runs the showcase under a headless Wayland compositor](0633-ci-runs-the-showcase-under-a-headless-wayland-compositor.md)
 - [ADR-0634 The showcase hands logback its file](0634-the-showcase-hands-logback-its-file.md)
+- [ADR-0635 `Goldberry.run()` shuts the runtime down when it returns](0635-run-shuts-the-runtime-down-when-it-returns.md)
+- [ADR-0636 Emphasis is set in the italic face](0636-emphasis-is-set-in-the-italic-face.md)

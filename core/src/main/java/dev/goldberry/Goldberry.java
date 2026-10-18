@@ -74,19 +74,37 @@ public final class Goldberry {
         return PlatformCapabilities.get();
     }
 
-    /// Runs until every window has closed.
+    /// Runs until every window has closed, then shuts the runtime down.
     ///
     /// The calling thread becomes the UI thread and stays here. It is idle
     /// whenever nothing is happening — an application that draws nothing costs
     /// nothing.
     ///
+    /// When the loop ends — the last window closed, [#stop()] was called, or a
+    /// handler threw — every window still open is closed and the backend is
+    /// released, as [#shutdown()] would. [#stop()] ends the loop with windows
+    /// still on screen, and a process that exits holding them leaves the
+    /// compositor to clean up a surface nobody handed back. A window opened
+    /// after `run()` returns starts a fresh runtime.
+    ///
     /// @throws BackendException if no
-    ///         window has been opened, or if called off the UI thread
+    ///         window has been opened, if called off the UI thread, or if the
+    ///         loop is already running; the runtime is left as it was
     public static void run() {
         if (!GoldberryRuntime.isStarted()) {
             throw GoldberryRuntime.notStarted();
         }
-        GoldberryRuntime.get().run();
+        var runtime = GoldberryRuntime.get();
+        // Both refusals before the `try`: a second `run()` from inside a handler,
+        // or one from the wrong thread, must not take down the loop that is
+        // already running.
+        runtime.loop().ui().requireUiThread();
+        runtime.loop().requireNotRunning();
+        try {
+            runtime.run();
+        } finally {
+            GoldberryRuntime.shutdown(runtime);
+        }
     }
 
     /// Asks the loop to finish. Safe from any thread.
@@ -162,11 +180,11 @@ public final class Goldberry {
         new Launcher(application, Launcher.Options.NONE).run();
     }
 
-    /// Closes every window and releases the backend.
+    /// Closes every window and releases the backend. Safe to call more than once.
     ///
-    /// Rarely needed: [#run()] returns once the last window closes, and the
-    /// process usually exits after that. It exists for applications that outlive
-    /// their windows.
+    /// Rarely needed: [#run()] and [#launch] both do it when their loop ends. It
+    /// is for an application that opened a window and then never ran the loop —
+    /// one that failed between the two, say.
     public static void shutdown() {
         GoldberryRuntime.shutdown();
     }

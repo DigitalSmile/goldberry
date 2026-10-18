@@ -57,13 +57,17 @@ API, and needs no JNI, no bundled browser and no platform widgets.
 ## Install
 
 Goldberry needs **JDK 25** or newer. Add the BOM, the toolkit, and the native
-library for each platform you ship:
+library for each platform you ship. The right one is picked at run time, so
+listing all four is the safe default:
 
 ```groovy
 dependencies {
     implementation platform('dev.goldberry:goldberry-bom:2026.2')
     implementation 'dev.goldberry:goldberry'
-    runtimeOnly 'dev.goldberry:goldberry-natives::linux-x64'   // linux-aarch64, macos-aarch64, windows-x64
+    runtimeOnly 'dev.goldberry:goldberry-natives::linux-x64'
+    runtimeOnly 'dev.goldberry:goldberry-natives::linux-aarch64'
+    runtimeOnly 'dev.goldberry:goldberry-natives::macos-aarch64'
+    runtimeOnly 'dev.goldberry:goldberry-natives::windows-x64'
 }
 ```
 
@@ -87,6 +91,7 @@ dependencies {
     <groupId>dev.goldberry</groupId>
     <artifactId>goldberry</artifactId>
   </dependency>
+  <!-- One per platform: linux-x64, linux-aarch64, macos-aarch64, windows-x64. -->
   <dependency>
     <groupId>dev.goldberry</groupId>
     <artifactId>goldberry-natives</artifactId>
@@ -99,7 +104,8 @@ dependencies {
 </details>
 
 Markdown and HTML views, audio and video, and the GPU canvas are optional
-modules. [Installing](https://goldberry.dev/docs/getting-started/installing.html)
+modules, and `goldberry-media` takes an `ffmpeg-<platform>` classifier the same
+way. [Installing](https://goldberry.dev/docs/getting-started/installing.html)
 lists them.
 
 ## Hello, Goldberry

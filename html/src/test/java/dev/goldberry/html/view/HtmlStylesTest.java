@@ -16,6 +16,7 @@ import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import dev.goldberry.css.Declaration;
 import dev.goldberry.css.cascade.CascadeLayer;
 
 /// The stylesheet, and the descriptor that decides whether anything can read it.
@@ -78,6 +79,22 @@ class HtmlStylesTest {
         // sheets an application adds separately, and a `md-` selector in here would
         // mean one of them was restyling the other.
         assertFalse(HtmlStyles.source().contains(".md-"), "html.css should not name the Markdown view's classes");
+    }
+
+    @Test
+    @DisplayName("sets every italic element in the italic face rather than leaning it")
+    void emphasisIsTheItalicFace() {
+        var italic = List.of(".html-em", ".html-i", ".html-cite", ".html-dfn", ".html-var", ".html-address");
+        for (var name : italic) {
+            var declared = HtmlStyles.stylesheet().rules().stream()
+                    .filter(rule ->
+                            rule.selectors().stream().anyMatch(s -> s.toString().equals(name)))
+                    .flatMap(rule -> rule.declarations().stream())
+                    .map(Declaration::toString)
+                    .toList();
+
+            assertEquals(List.of("font-style: italic"), declared, () -> name + " declares the face and nothing else");
+        }
     }
 
     @Test

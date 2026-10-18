@@ -26,8 +26,9 @@ Where each piece goes:
    <a class="gb-card" href="text.html"><strong>Text and links</strong><span>text, link, rich-text, run</span></a>
 
 4. **In `book/src/overview/limitations.md`**, the `Rich text` row's note loses
-   "A paragraph has one style." The rest of the row stands: Markdown emphasis is
-   still a faux oblique, and `markdown-view` is still a row of words.
+   "A paragraph has one style." and, since ADR-0636, "Markdown emphasis is a faux
+   oblique, and". What stands is that `markdown-view` and `html-view` lay out a
+   line of mixed faces as a row of words rather than one shaped run.
 5. **The picture**: `rich-text-light.webp` and `rich-text-dark.webp` do not
    exist yet. `BookPicturesTest` takes them from the `kdl` sample once the
    section is in the book (`:example:test` with the golden update flag).

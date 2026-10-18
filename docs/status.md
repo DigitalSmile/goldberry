@@ -7732,7 +7732,8 @@ them have no Gradle subproject, no artifact and no line of code.
   word is a `word` part now rather than a `text` widget — same count, same box, same
   cache.
 - **What they deliberately still do not do**: emphasis is a faux oblique because
-  the system ships two upright faces, a hard break inside a paragraph does nothing,
+  the system ships two upright faces (set in the italic face since ADR-0636,
+  2026-10-18), a hard break inside a paragraph does nothing,
   and a line of mixed faces is a row of words rather than one shaped run — so no
   justification and no hyphenation, which is what an engine would still buy.
 - **`html-view` is built, and litehtml is not what it is built on** (ADR-0298).

@@ -28,6 +28,12 @@ Everything below is measured against 2026.2 (tag commit d3eacfdc).
   `switch` over the constants do not. Use `Easing.BUILT_IN` for the list,
   `cssName()` for the name, and switch over the three kinds of curve.
   <!-- ADR-0600 -->
+- `Goldberry.run()` shuts the runtime down when its loop ends, as
+  `Goldberry.shutdown()` does: every window still open is closed and the
+  backend is released. An application that showed the same windows again after
+  `run()` returned opens new ones; a window opened afterwards starts a fresh
+  runtime. `Goldberry.launch()` is unchanged.
+  <!-- ADR-0635 -->
 - `Paragraph.isBidiApproximate()` is removed: a paragraph places right-to-left
   text in reading order now. Use `isBidirectional()`, and `directionAt(offset)`
   or `directionality()` for which way it reads.

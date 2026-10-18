@@ -10,10 +10,12 @@ import java.lang.module.ModuleDescriptor;
 import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import dev.goldberry.css.Declaration;
 import dev.goldberry.css.cascade.CascadeLayer;
 
 /// The stylesheet, and the descriptor that decides whether anything can read it.
@@ -65,6 +67,19 @@ class MarkdownStylesTest {
         }) {
             assertTrue(css.contains(name), () -> "markdown.css has no rule for " + name);
         }
+    }
+
+    @Test
+    @DisplayName("sets emphasis in the italic face rather than leaning the word")
+    void emphasisIsTheItalicFace() {
+        var declared = MarkdownStyles.stylesheet().rules().stream()
+                .filter(rule ->
+                        rule.selectors().stream().anyMatch(s -> s.toString().equals(".md-em")))
+                .flatMap(rule -> rule.declarations().stream())
+                .map(Declaration::toString)
+                .toList();
+
+        assertEquals(List.of("font-style: italic"), declared, "`.md-em` declares the face and nothing else");
     }
 
     @Test

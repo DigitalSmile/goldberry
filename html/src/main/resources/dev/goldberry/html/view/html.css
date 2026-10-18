@@ -136,15 +136,12 @@
 
 /* --------------------------------------------------------- inline marks -- */
 
-/* **A faux oblique, and a compromise nothing forces any more.** It was written when
-   the toolkit bundled two upright faces and there was no italic to set `em` in;
-   there is one now, and `text-decoration` exists too. The
-   declaration stays until the picture change is taken on purpose -- it moves every
-   HTML golden -- and `font-style: italic` is the one line that replaces it.
-   Skewing the word is what every renderer without an italic face does; `transform`
-   does not affect layout, so the word stays where it was and only the glyphs lean. */
+/* The elements a browser sets in italic are set in the italic face, a drawn face
+   rather than a lean. The bundled family carries one at both weights, so `em`
+   inside `strong` is semibold italic. Unlike a `transform`, the face has its own
+   advances, so an emphasised word takes the room it needs. */
 .html-em, .html-i, .html-cite, .html-dfn, .html-var, .html-address {
-  transform: skewX(-10deg);
+  font-style: italic;
 }
 
 .html-strong, .html-b {

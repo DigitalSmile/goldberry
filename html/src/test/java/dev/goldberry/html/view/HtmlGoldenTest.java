@@ -23,13 +23,13 @@ import dev.goldberry.widgets.Controls;
 ///
 /// `HtmlViewTest` checks which widgets are built and which classes they carry, and no
 /// assertion about a class can say whether the result **reads as a page**: that a
-/// heading is bigger than its paragraph, that emphasis leans, that a `pre` is a block
+/// heading is bigger than its paragraph, that emphasis is italic, that a `pre` is a block
 /// of monospace on a sunken panel, that a link looks like a link rather than like a
 /// button somebody forgot to colour in. That is a picture, and this is the picture.
 ///
 /// It is also the only test that exercises `html.css` at all. Every rule in that file
 /// is a claim about the cascade — `button.html-a` taking a control's height back down
-/// to its line, `transform: skewX` on a word, a quotation's bar — and a rule the
+/// to its line, `font-style: italic` on a word, a quotation's bar — and a rule the
 /// parser dropped silently would be invisible everywhere else.
 ///
 /// `./gradlew :html:test -Dgoldberry.golden.update=true` rewrites them. Read more:

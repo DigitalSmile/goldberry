@@ -31,13 +31,13 @@ import dev.goldberry.widgets.Controls;
 ///
 /// [MarkdownViewTest] checks which widgets are built and which classes they carry, and
 /// no assertion about a class can say whether the result **reads as a document**: that
-/// a heading is bigger than its paragraph, that emphasis leans, that a fence is a
+/// a heading is bigger than its paragraph, that emphasis is italic, that a fence is a
 /// block of monospace on a sunken panel, that a table's rules line up. That is a
 /// picture, and this is the picture.
 ///
 /// It is also the only test that exercises `markdown.css` at all. Every rule in that
 /// file is a claim about the cascade — `em` resolving against the inherited font size,
-/// `border-left` on a quote and between cells, `transform: skewX` on a word — and a rule that the parser
+/// `border-left` on a quote and between cells, `font-style: italic` on a word — and a rule that the parser
 /// dropped silently would be invisible everywhere else.
 ///
 /// `./gradlew :html:test -Dgoldberry.golden.update=true` rewrites them. Read more:
