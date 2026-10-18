@@ -16,7 +16,7 @@ page is the other half: it says what works and what it cost to find out.
 | [M3 — Shell](#m3--shell) | **started** | **The whole of §7**, §9's `tray-icon`, `menubar`, §5's containers, the whole `scroll` family and §4's fields — with the clipboard, text input, a focus trap and a third rank of every semantic hue that nothing had asked for. §3's `chip` and §6's `breadcrumbs` are built, which opens the `nav` package. The showcase is a menu bar, a bar and **seventeen** screens, two of them searchable sheets — all 1544 bundled icons, and the 1212 emoji of the face `goldberry-emoji` ships, each grouped by its upstream's own categories with a chip row to choose one, and each tile opening a dialog of the glyph at five sizes ([ADR-0386](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0386-a-sheet-of-emoji-is-the-fonts-own-contents.md), [ADR-0457](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0457-a-sheet-is-grouped-by-its-upstreams-own-categories.md)) — in a window that opens maximized and stops at 640×480 |
 | [M3.5 — the `:natives` seal](#m35--the-natives-seal) | **done** | Drawing, layout and shaping are the toolkit's own vocabulary; Blend2D's, Yoga's and HarfBuzz's packages are sealed to `:core` by the module descriptor, and the last method closed with ADR-0290. A `canvas` hears input, draws an image, takes a caret and pastes one; a scene renders with no window |
 | [M4 — GPU](#m4--gpu) | **started** | Windows present through the GPU by default and on the CPU where it cannot ([ADR-0480](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0480-windows-present-through-the-gpu-by-default-and-on-the-cpu-where-it-cannot.md)); GPU layers in paint order, `canvas3d`, and `video-view` through a GPU layer ([ADR-0484](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0484-video-view-shows-its-pictures-through-a-gpu-layer-when-gpu-is-present.md)). `docs/gpu-plan.md`'s phases 1–6 have met their exits on Metal; the composited path has also run on Linux under X11, and the lavapipe lane has run twice and failed before its first test |
-| [M5 — Hardening](#m5--hardening) | **started** | Text editing depth, IME preedit, docs, the first release — **snapshots have gone to Central since run 17, and no release has run, because there is no tag** — and the three-platform frame evidence M1 is waiting on. The AccessKit bridge was this milestone's last toolkit item and is **on hold** ([ADR-0440](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0440-the-accessibility-bridge-is-on-hold-and-the-semantics-tree-stays.md)) |
+| [M5 — Hardening](#m5--hardening) | **started** | Text editing depth, IME preedit, docs, the first release — **`v2026.2` is on Central since 2026-10-02, with the native showcase on its GitHub Release** — and the three-platform frame evidence M1 is waiting on. The AccessKit bridge was this milestone's last toolkit item and is **on hold** ([ADR-0440](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0440-the-accessibility-bridge-is-on-hold-and-the-semantics-tree-stays.md)) |
 | [Content modules](#content-modules) | **started** | The first of the eleven is built **whole**: `:html` parses Markdown through md4c and HTML in Java, serves Markdown as HTML, and renders both as widgets — `markdown-view` and `html-view`, neither with an engine under it. **`:emoji` is the second**, and is a font rather than a widget: Noto Color Emoji's COLRv1 build ships there, drawn from its paint graphs, and `:core` loads the face through a service ([ADR-0384](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0384-the-emoji-face-is-an-artifact-an-application-opts-into.md), [ADR-0456](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0456-the-emoji-face-is-noto-drawn-from-its-paint-graphs.md)). **`:media` is the third**: audio and video over FFmpeg driven from Java, with the operating system's decoders behind the same SPI, published as an optional snapshot ([ADR-0460](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0460-media-is-ffmpeg-driven-from-java-not-libvlc.md), [ADR-0493](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0493-the-platform-decoders-are-part-of-media.md), [ADR-0495](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0495-media-is-published-and-snapshots-publish-again.md)). The web engine turned out not to be a module: `web-view` is a widget in `:widgets` where the window system allows a child window ([ADR-0442](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0442-a-page-is-a-child-window-where-the-window-system-allows-one.md)). The other seven are unscheduled |
 
 ## Foundation
@@ -7574,7 +7574,7 @@ declared (ADR-0160's rule, applied to the stylesheet and the documents and not t
 the pictures). Declared now, and `DeclaredResourcesTest` holds the manual list to
 every file under the showcase's resources.
 
-### Releasing — snapshots go out, and a release has never run
+### Releasing — snapshots go out, and `v2026.2` went to Central
 
 [ADR-0333](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0333-a-version-is-a-year-and-a-count.md),
 [ADR-0334](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0334-central-is-fed-once-per-run.md),
@@ -7586,12 +7586,15 @@ every file under the showcase's resources.
 **Snapshots have gone to Central since run 17 (2026-09-19)**, which went out and
 failed partway, leaving `:widgets` and `:html` off that snapshot; `check`
 generates the javadoc since, so the same mistake fails on Linux four minutes in
-([ADR-0405](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0405-check-generates-the-published-javadoc.md)). **A release has
-never run**, because there is no tag. `goldberry-media` is published too, and a
-release refuses it until FFmpeg is built for `windows-x64` and `linux-aarch64`,
-which the Media workflow does not do yet; the LGPL's corresponding-source offer
-is still to be decided
-([ADR-0495](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0495-media-is-published-and-snapshots-publish-again.md)).
+([ADR-0405](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0405-check-generates-the-published-javadoc.md)). **The first
+release is out:** `release.yml` ran on tag `v2026.2` (`d3eacfdc`) on 2026-10-02,
+at the second attempt, and published every module through one Central Portal
+deployment. `goldberry-media` went with it and carried all four
+`ffmpeg-<target>` classifiers, because `media.yml` builds `windows-x64` and
+`linux-aarch64` as well since that day. FFmpeg's corresponding source goes beside
+them as the `ffmpeg-sources` classifier
+([ADR-0508](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0508-ffmpegs-source-is-published-beside-its-binaries-from-the-same-place.md)).
+Showcase run #26 attached the three native images to the release.
 
 - **Calendar versions.** `goldberryVersion=2026.1` is the line being worked
   towards and never carries `-SNAPSHOT`; the build adds it, and drops it only for
@@ -7910,9 +7913,9 @@ seven of its phases are done on macOS, GPU present among them as M4's phase 6.
 - **It is published, optional**
   ([ADR-0495](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0495-media-is-published-and-snapshots-publish-again.md)), as
   `goldberry-media`, with FFmpeg as its `ffmpeg-<target>` classifier jars. A
-  snapshot carries the targets the Media workflow builds, `macos-aarch64` and
-  `linux-x64`; a release refuses to publish without all four. `media.yml` is
-  written and has not run on a runner yet.
+  snapshot carries the targets the Media workflow builds, all four since
+  2026-10-02, and a release refuses to publish without them. `media.yml` has
+  been green since its sixth run, and `v2026.2` shipped the four classifiers.
 
 ## Module layout
 

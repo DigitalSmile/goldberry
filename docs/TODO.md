@@ -77,16 +77,6 @@ other entry was a cost nobody had measured, and measuring it was the answer.
   [ADR-0144](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0144-a-popup-goes-away-when-the-application-does.md)
 ## The catalog: specified and unbuilt
 
-- **The inflater accepts a property nothing reads.** `KdlInflater` refuses an
-  unknown node name, and `Attributes.of` reads `id`, `class`, `tooltip`,
-  `context-menu` and `name`; a property a widget's `inflate` never asks for is
-  dropped in silence. `row gap=8` draws a row with no gap, and both `Row`'s own
-  sample and `docs/core-widgets.md` §1 write exactly that. The guide's
-  `BookMarkupTest` inflates every `kdl` sample and therefore cannot catch a
-  misspelt attribute either. What it would take is a node that records which
-  properties were read and an inflater that warns, or refuses, on the rest. —
-  [ADR-0511](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0511-the-book-is-a-guide-first-and-the-log-is-its-last-part.md)
-
 ### `text-input`, and what §4 still owes
 - **A field's scroll offset uses the previous frame's width.** ADR-0116 already
   decided that is what a viewport does, and it is wrong for one frame after a
@@ -95,6 +85,13 @@ other entry was a cost nobody had measured, and measuring it was the answer.
   `render` cannot have, and a third would be an argument for handing the width to
   `render` rather than to `Measured`. —
   [ADR-0167](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0167-a-field-owns-its-caret-and-the-model-is-told.md)
+
+  **The third widget came, and then eleven more (counted 2026-10-18).** Fourteen
+  boxes implement `Measured` now, among them `TextAreaBox`, `ScrollViewport`,
+  `MasonryBox`, `MeasuredRow`, `CanvasLayer`, `SplitPaneView` and `TableHead`.
+  So the argument this entry anticipated is due: should `render` be handed the
+  width rather than `Measured` banking it for a frame later? Nobody has made it,
+  because none of the fourteen shows its one-frame lag.
 - **Nothing re-places the caret when the font changes under it.** A restyle that
   changes `font-size` reshapes the paragraph and the caret follows, because both
   are computed in the same `render`. A *density* change does the same. Neither is
@@ -135,6 +132,12 @@ other entry was a cost nobody had measured, and measuring it was the answer.
   Every other consumer reads its own box. It obeys the third rule by construction for
   the same reason the scrollbar does — a reflow is a `transform`, so the box it moves
   is laid out where it always was.
+
+  **No longer the only one (2026-10-18).** A masonry places each cell by the
+  heights of the cells before it (`MasonryBox`, `MasonryCell`). A list whose rows
+  vary measures each row as it builds it and keeps the reader's line (`MeasuredRow`,
+  ADR-0597, parked in `docs/snapshot/adr`). "Every other consumer reads its own
+  box" was true when written and is not any more.
 - **A virtual list can have its focused row scrolled out of existence.** Wheel
   far from the focus ring and the focused row leaves the window, is unmounted,
   and the router drops it — which is ADR-0180's rule doing exactly what it should
@@ -230,13 +233,6 @@ description had no effect.
   that is the seam a painter should use too. Nothing has measured a painter that
   needs it.
 ## Editing text
-- ~~**No bidi caret.**~~ **There is one** (2026-10-11, CSS-50 of
-  `docs/css-plan.md`, ADR-0622 parked in `docs/snapshot/adr`). A paragraph is
-  split into level runs, each shaped its own way and placed in visual order;
-  `Paragraph.caretX`, `offsetAt` and `stretchesOf` answer in that order, the
-  editors draw a selection across a change of direction as a piece on each
-  side, and the arrow keys move logically, mirrored in a right-to-left
-  paragraph. `isBidiApproximate` is gone.
 - **An `Editor` does not scroll.** It draws where it is told and does not know it
   has been clipped. A canvas with a long document moves its own transform, which
   it is already doing for everything else on it; a *widget* wanting this is
@@ -272,41 +268,22 @@ on, which in four cases is the same thing.
     (ADR-0300) and text selection
     ([ADR-0301](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0301-a-selection-is-geometry-the-frame-already-had.md)) all
     used to be on this list and none of them needed one.
-  - **Dragging a selection past the edge of a viewport does not scroll on.** Both
-    views select, copy and highlight
-    ([ADR-0301](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0301-a-selection-is-geometry-the-frame-already-had.md)); what a
-    drag to the bottom of a pane does is stop selecting rather than carry the
-    viewport with it. The same want a `text-area` has, and neither has it — an
-    auto-scroll is a timer plus a clamp, and the interesting part is deciding what
-    it does on a touchpad's fractional deltas.
 
-    *Closed by
-    [ADR-0500](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0500-a-drag-held-at-the-edge-carries-the-viewport-on.md):*
-    a drag held past the edge carries the viewport on at a speed set by how far
-    past it the pointer is, through `EdgeScroll`, which `text-area` shares. There
-    were two faults rather than one — the selection also froze at the edge,
-    because every word is clipped to the viewport and a pointer below it was over
-    none. The touchpad answer is that the speed comes from the pointer's distance
-    and never from the wheel; a wheel mid-drag scrolls as usual, and the
-    fractional steps are applied unrounded.
+    **Narrower than it reads (2026-10-18).** The toolkit can now shape a line of
+    mixed faces as one run: `rich-text` shapes each run in its own font and joins
+    them into one paragraph, and a justified line is respaced at paint time
+    (ADR-0615, parked in `docs/snapshot/adr`). The two views do not use it yet.
+    They still build a row of words, so moving them over is toolkit work and not
+    an engine's. Selection and links would have to move with them. Only
+    **hyphenation** still needs an engine.
   - **Emphasis is a faux oblique** — `transform: skewX(-10deg)` — because §6.1
     ships two upright faces. A third face is an asset decision rather than a code
     one, and `:assets` is where it would be made.
-  - ~~**A hard break inside a paragraph does nothing.**~~ A wrapping row has no widget
-    meaning "start a new line here", and a `spacer` with `flex-grow` — the obvious
-    trick — makes the line before it look justified. *Closed by ADR-0426, below.*
-  - **A table's cells have no rules between them, and a fence does not scroll
-    sideways.** Both are the CSS subset: `border` is uniform, so there is no
-    `border-left`, and horizontal `scroll` is not in §10 either.
-    *The rules are closed by
-    [ADR-0505](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0505-a-border-has-four-sides-and-takes-no-room.md):* a border
-    has four sides now, a row draws the rule above it and a cell the rule before
-    it. Two things the entry could not have said: a border has never taken layout
-    room here — it is drawn over the padding, and every bordered widget counts on
-    that — and the first render's vertical rules stepped at every row, because
-    each row sized its columns by its own content, so the cells are
-    `flex-basis: 0` now. The quotation bar became the `border-left` it always
-    meant, with no pixel moved. **A fence still does not scroll sideways.**
+  - **A fence does not scroll sideways.** A long line in a code block ends in an
+    ellipsis. When this entry was written horizontal `scroll` was not in §10's
+    subset; `ScrollAxis.HORIZONTAL` and `overflow-x` both exist now, so what is
+    left is the fence using them. Table rules, which this entry also covered,
+    are in [Answered](#answered).
   - **`src="…"` is not a thing on either view.** Reading a file from markup means
     deciding what a relative path is relative to and what a missing one does —
     three answers `Icons` and the stylesheets each needed a resolver for. An
@@ -315,28 +292,12 @@ on, which in four cases is the same thing.
     and neither is a `<script>` run. The cascade an `html-view` is under is the
     application's stylesheets, which is what makes a page follow the theme; an
     author's own colours would fight it (ADR-0298).
-  - **A keystroke re-parses and rebuilds the whole preview** (ADR-0296). Right for
-    a note in a pane, and the widget count is what bites first on anything longer —
-    ADR-0295 put it at roughly one per word. An incremental parse is md4c's to
-    offer and it does not; a rebuild bounded by what the viewport shows is the
-    `list` virtualization argument applied to a document, and nothing needs it yet.
-
-  **Closed —
-  [ADR-0426](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0426-a-paragraph-is-one-row-of-words-until-somebody-ends-a-line.md).**
-  A hard break is now its own `Words.Piece`, and a paragraph with one becomes
-  a column of line rows; with none it builds exactly the single row it built
-  before, which is why no `:html` golden moved. The CSS split is the decision:
-  `.md-prose` and `.html-prose` are declaration-less paragraph hooks now, the
-  row geometry moved to `.md-line` / `.html-line`, and the column carries the
-  **same** `0.25em` gap so a typed break and a width break sit at the same
-  leading. **A break inside a link deliberately does not split** — one
-  `button.link` is one Tab stop and one hover — so it becomes a space in the
-  label. Three things the entry could not have said: a *trailing* hard break
-  is unwritable in Markdown (md4c strips the two spaces), two in a row come
-  from a lone backslash and do survive as an empty line, and a table cell
-  provably cannot hold one. `gallery-markdown` moved, because the showcase's
-  own sample says "Two spaces at the end of a line / are a hard break" and now
-  demonstrates it.
+  - **A keystroke re-parses the whole preview** (ADR-0296). The rebuild is no
+    longer whole: blocks the edit did not touch keep their widgets (`BlockMemo`,
+    [ADR-0389](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0389-a-block-nobody-typed-in-keeps-its-widget.md)).
+    The parse still is. An incremental parse is md4c's to offer and it does not.
+    A rebuild bounded by what the viewport shows is the `list` virtualization
+    argument applied to a document, and nothing needs it yet.
 - **A code editor is `goldberry-code`, and that module does not exist.** The
   Markdown screen's editor is a `text-area` in the code face: a caret, a selection,
   undo, the clipboard and an input method. It has **line numbers** now
@@ -394,7 +355,7 @@ on, which in four cases is the same thing.
   ([ADR-0462](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0462-media-audio-leaves-through-a-sink-and-sdl.md)), with SDL's
   ALSA and PulseAudio drivers required on Linux
   ([ADR-0488](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0488-the-linux-build-fails-without-the-audio-headers.md)). Of
-  the 149 `SDL_*` entries on the list, 56 are `SDL_GPU` and 9 are audio. Still
+  the 176 `SDL_*` entries on the list (counted 2026-10-18), 71 are `SDL_GPU` and 9 are audio. Still
   missing: every camera and recording symbol, and the core `Sound` API, so
   `goldberry-camera` and `goldberry-mic` begin at the same file as before.
 - **The backend SPI has no PTY.** `goldberry-terminal` needs
@@ -445,7 +406,13 @@ on, which in four cases is the same thing.
   outside the box that casts it — would fall entirely outside the window and be
   clipped: a run of fills that draws nothing. What it needs is a popup sized to
   the panel *plus* the shadow's reach with the extra transparent, which wants the
-  same transparent-popup compositor support the rounded corners are waiting on.
+  same transparent-popup support the rounded corners were waiting on.
+
+  **The X11 half of that support exists now (2026-10-11).** A popup window on X11
+  is created with the screen's 32-bit visual, so its transparent clear survives
+  (ADR-0628, parked in `docs/snapshot/adr`). Wayland, Windows and macOS honour the
+  transparency flag themselves. What is left is the popup code itself: a window
+  as large as the panel plus the shadow's reach.
   `--gb-elevation-3` is unused and stays so: it is the level for a thing the
   pointer is dragging, and nothing here is dragged. —
   [ADR-0312](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0312-the-catalog-puts-the-two-new-properties-on.md),
@@ -455,6 +422,15 @@ on, which in four cases is the same thing.
   the platform leaves there. The fallback that always works — filling the frame
   with the panel's own colour, for square corners — is kept in reserve. —
   [ADR-0111](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0111-a-text-box-is-painted-inside-its-padding.md)
+
+  **X11 was broken even with a compositor, and is fixed.** SDL's X11 driver gives
+  a transparent window a 32-bit visual only for OpenGL. The popups present through
+  a window surface, so they got the default 24-bit visual, the alpha was dropped
+  and the corners came out black. `SdlVideo.createPopupWindow` now names the
+  32-bit TrueColor visual through `SDL_VIDEO_X11_WINDOW_VISUALID`, and
+  `Sdl3PopupTest.popupIsSeeThroughOnX11` reads the corners back as `00000000`
+  (ADR-0628, parked in `docs/snapshot/adr`). Windows and macOS are still unverified
+  by eye.
 ## Rendering and performance
 - **Opening a long note still shapes all of it, on the frame that opens it.** A
   keystroke into a 500 kB `text-area` costs what a keystroke into a 2 kB one
@@ -552,7 +528,7 @@ on, which in four cases is the same thing.
   they cost — `linux-x64` 302 frames and 75 late, `macos-aarch64` 300 and 200 —
   which are the first numbers any leg has produced, and two samples locate a
   ceiling no better than none. What is missing now is a **budget somebody
-  measured**, on a display somebody chose, and there is still no tag. The caveat travels with the numbers: GitHub's runners are GPU-less VMs,
+  measured**, on a display somebody chose. The caveat travels with the numbers: GitHub's runners are GPU-less VMs,
   so what this can prove is that three platforms' *drivers* hold the budget, not
   that hardware does. —
   [ADR-0045](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0045-a-frame-is-not-a-benchmark-iteration.md),
@@ -677,33 +653,17 @@ on, which in four cases is the same thing.
   Then Snapshot runs 32 and 33 were red on every OS in `:natives:gpuTest`, whose
   teardowns called SDL after a missing library had skipped their setup. That fix
   ([ADR-0495](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0495-media-is-published-and-snapshots-publish-again.md)) passes
-  here and has not been through a CI run: `master` has not been pushed since.
-- **Two workflows are written and have not passed.** `media.yml` builds FFmpeg and
-  runs `:media:check` with FFmpeg and the platform decoders required on
-  `macos-aarch64` and `linux-x64`, with GStreamer's plugins on the Linux runner
-  (`docs/media-plan.md`, phases 1 and 5). The GPU lane in `linux.yml` runs
-  lavapipe under the `offscreen` driver on both Linux targets with a device
-  required, and asks the macOS runners without requiring them
-  (`docs/gpu-plan.md`, 2026-09-24). Which runners can host a GPU device at all is
-  still the open question in `gpu-plan.md`'s measurements table. Both are
-  answered by a push. —
-  [ADR-0495](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0495-media-is-published-and-snapshots-publish-again.md),
-  [ADR-0480](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0480-windows-present-through-the-gpu-by-default-and-on-the-cpu-where-it-cannot.md)
-
-  **The GPU lane had run, twice, and is repaired —
-  [ADR-0503](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0503-the-gpu-lane-finds-lavapipe-a-device-goes-before-sdl-and-a-gpu-golden-has-its-own-tolerance.md).**
-  "Never run" was this list's mistake: Snapshot runs 32 and 33 both stopped at
-  the lane's own ICD check, because Mesa names the file `lvp_icd.json` now. Run
-  here on lavapipe, the lane then found a real bug — a test destroying a GPU
-  device after `SDL_Quit`, the `VULKAN_DestroyDevice` segfault that had been put
-  down to this machine's NVIDIA driver — and a golden blessed on Metal that no
-  other driver draws to the pixel. All three are fixed, and the lane passes here
-  as CI runs it. `media.yml` has still never run.
-- **Media on Windows and on `linux-aarch64` is written and untested.** The
-  superbuild and the loader cover all four targets, and linux-x64 and
-  macos-aarch64 are the only two that have run. D3D11VA is on by default on
-  Windows and has no runner to prove it; VAAPI is off by default on Linux, on
-  purpose, because it makes `libavutil` link `libva`. —
+  here and has been through CI since: the Snapshots after it and the `v2026.2`
+  release ran on it (checked 2026-10-18).
+- **Media on Windows decodes on the CPU in every run anybody has made.** All four
+  targets build and pass `:media:check` in `media.yml` (2026-10-12), so the
+  entry's old title is out of date: `linux-aarch64` passed on its first run, and
+  `windows-x64` after four fixes. What is left is a hardware path no runner has.
+  D3D11VA is on by default on Windows, and the Windows runner has no GPU, so
+  it has only ever fallen back. VAAPI is off by default on Linux, on purpose,
+  because it makes `libavutil` link `libva`. The Media Foundation decoders are
+  held back from Windows
+  ([ADR-0520](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0520-media-foundation-is-held-back-from-2026-2.md)). —
   [ADR-0486](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0486-ffmpeg-and-dav1d-are-built-at-o2-to-fit-the-size-gate.md),
   `docs/media-plan.md`
 ## The native build and its bindings
@@ -718,23 +678,6 @@ on, which in four cases is the same thing.
   platform at once and never an error. —
   [ADR-0010](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0010-hand-written-ffm-bindings.md),
   [ADR-0029](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0029-yogas-node-api-and-who-owns-a-node.md)
-- **`VideoPlaybackTest` has two races, and one of them fails alone.**
-  `statistics` ("expected 4 shown, got 5") was believed to fail only when
-  `:media:test` and `:media:testWithoutGpu` ran side by side; on 2026-10-01 it
-  failed once in three runs on its own. `playsToTheEnd` failed in a full `check`
-  with `[BUFFERING, PLAYING, ENDED]` where it expects `OPENING` first — a status
-  listener attached after the first transition. Both are the test's clock and
-  the video thread meeting in an order the assertion does not allow, not a
-  player defect anybody has seen; and both make a red `check` mean less than it
-  should. ~~Both are open.~~ Both were the test's: `OPENING` is published
-  before the engine's threads start (45145b77), `statistics` waits for the last
-  picture to be prepared before asking for it (the same commit), and the
-  end-of-playback sequence allows the one stall and recovery a starved demux
-  thread produces. On 2026-10-04 the class ran in a wall-clock lane for a day,
-  until the lane went with the last clock bound; `docs/flaky-tests.md` is where
-  a recurrence is written down. —
-  [ADR-0463](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0463-video-is-converted-as-it-is-decoded-and-paced-by-the-picture.md),
-  [ADR-0559](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0559-the-tests-that-read-a-wall-clock-run-in-a-lane-of-their-own.md)
 ## Build, artifacts and release
 - **A build with no network cannot produce a usable `goldberry-core`.** The bundled
   fonts and icons are fetched from upstream releases and cached, so this bites once per
@@ -743,13 +686,6 @@ on, which in four cases is the same thing.
   native superbuild, so no new constraint; it is written down because the failure is far
   from its cause. —
   [ADR-0033](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0033-assets-are-fetched-and-compiled-not-committed.md)
-- **A release has never run against Central.** ~~The publishing chain has never
-  run against Central.~~ Central's side is done — the namespace, snapshots enabled
-  for it, the token, the key and the secrets — and snapshots have gone out since
-  run 17 on 2026-09-19. What has never run is `release.yml` → `publish.yml` → a
-  Central Portal deployment, which waits on the first tag.
-  `docs/releasing.md` is the list. —
-  [ADR-0334](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0334-central-is-fed-once-per-run.md)
 - **The macOS and Windows native showcases are built from unreviewed traces.** The
   checked-in reachability metadata was traced on linux-x64 and is reviewed as source;
   CI traces the other two headlessly before building, for 120 frames, and uses what it
@@ -790,23 +726,11 @@ on, which in four cases is the same thing.
   and those are registered on the **consumer's** schema, where a producer
   cannot put one. So a Gradle plugin is the whole of the answer, which is what
   JavaFX, LWJGL and sqlite-jdbc each ship. It is not built: it is a new
-  published artifact with its own release surface, on a release path that
-  has never run. **`:media` has the same problem since ADR-0495**: an application
+  published artifact with its own release surface. **`:media` has the same problem since ADR-0495**: an application
   picks `goldberry-media`'s `ffmpeg-<target>` classifier by hand too. What did change is the documented snippet — **all four
   classifiers**, because `NativeLibrary` picks at run time and the
   one-platform form is the one that fails quietly for somebody building on
   macOS for Linux.
-- **The release job has never uploaded to a GitHub Release.** ADR-0340 attaches the
-  three native images to the tag's draft release with `gh release`; the first `v*` tag
-  is its first run, and a manual dispatch exercises everything but that step. —
-  [ADR-0340](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0340-the-showcase-is-a-release-artifact-not-a-package.md)
-- **A release refuses to publish `goldberry-media` with two of its four FFmpeg
-  builds missing.** `media.yml` builds `macos-aarch64` and `linux-x64`, so a
-  snapshot carries those two `ffmpeg-<target>` classifiers, and the release path
-  requires `windows-x64` and `linux-aarch64` as well. Both are written in the
-  superbuild and neither has been built. —
-  [ADR-0495](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0495-media-is-published-and-snapshots-publish-again.md)
-
 - **A native image resolves a host name before `main`.** About 50 ms of its 70 ms
   before the toolkit's first line is a lookup through `libnss_mdns4_minimal`
   (`/etc/nsswitch.conf`, `/etc/hosts`, then the wait). The JVM does no such thing
@@ -894,6 +818,170 @@ way back is a consumer asking, not a date.
 Kept rather than deleted: each is a trap somebody hit, and the reasoning that got
 out of it is usually worth more than the fact that it is fixed.
 
+- ~~**The inflater accepts a property nothing reads.**~~ `KdlInflater` refuses an
+  unknown node name, and `Attributes.of` reads `id`, `class`, `tooltip`,
+  `context-menu` and `name`; a property a widget's `inflate` never asks for is
+  dropped in silence. `row gap=8` draws a row with no gap, and both `Row`'s own
+  sample and `docs/core-widgets.md` §1 write exactly that. The guide's
+  `BookMarkupTest` inflates every `kdl` sample and therefore cannot catch a
+  misspelt attribute either. What it would take is a node that records which
+  properties were read and an inflater that warns, or refuses, on the rest. —
+  [ADR-0511](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0511-the-book-is-a-guide-first-and-the-log-is-its-last-part.md)
+
+  **Closed — ADR-0587 (parked in `docs/snapshot/adr`), commit e93b8f83.** The
+  entry's fix, and stricter than it allowed: the inflater refuses rather than
+  warns. `KdlNode`'s accessors note every key a factory asks for while a
+  document is built, and a property nobody asked for fails the document like an
+  unknown node name, with its line and column. `UnreadPolicy.WARN` and `IGNORE`
+  exist for a caller who wants the old leniency. There is no schema, so the
+  check is the calls the factories actually make. The first run found the
+  samples the entry named, `row gap=8` among them, and they were corrected
+  rather than allowed.
+- ~~**No bidi caret.**~~ 
+
+  **Closed — there is one** (2026-10-11, CSS-50 of
+  `docs/css-plan.md`, ADR-0622 parked in `docs/snapshot/adr`). A paragraph is
+  split into level runs, each shaped its own way and placed in visual order;
+  `Paragraph.caretX`, `offsetAt` and `stretchesOf` answer in that order, the
+  editors draw a selection across a change of direction as a piece on each
+  side, and the arrow keys move logically, mirrored in a right-to-left
+  paragraph. `isBidiApproximate` is gone.
+- ~~**A hard break inside a paragraph does nothing.**~~ A wrapping row has no widget
+  meaning "start a new line here", and a `spacer` with `flex-grow` — the obvious
+  trick — makes the line before it look justified.
+
+  **Closed —
+  [ADR-0426](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0426-a-paragraph-is-one-row-of-words-until-somebody-ends-a-line.md).**
+  A hard break is now its own `Words.Piece`, and a paragraph with one becomes
+  a column of line rows; with none it builds exactly the single row it built
+  before, which is why no `:html` golden moved. The CSS split is the decision:
+  `.md-prose` and `.html-prose` are declaration-less paragraph hooks now, the
+  row geometry moved to `.md-line` / `.html-line`, and the column carries the
+  **same** `0.25em` gap so a typed break and a width break sit at the same
+  leading. **A break inside a link deliberately does not split** — one
+  `button.link` is one Tab stop and one hover — so it becomes a space in the
+  label. Three things the entry could not have said: a *trailing* hard break
+  is unwritable in Markdown (md4c strips the two spaces), two in a row come
+  from a lone backslash and do survive as an empty line, and a table cell
+  provably cannot hold one. `gallery-markdown` moved, because the showcase's
+  own sample says "Two spaces at the end of a line / are a hard break" and now
+  demonstrates it.
+- ~~**Dragging a selection past the edge of a viewport does not scroll on.**~~ Both
+  views select, copy and highlight
+  ([ADR-0301](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0301-a-selection-is-geometry-the-frame-already-had.md)); what a
+  drag to the bottom of a pane does is stop selecting rather than carry the
+  viewport with it. The same want a `text-area` has, and neither has it — an
+  auto-scroll is a timer plus a clamp, and the interesting part is deciding what
+  it does on a touchpad's fractional deltas.
+
+  *Closed by
+  [ADR-0500](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0500-a-drag-held-at-the-edge-carries-the-viewport-on.md):*
+  a drag held past the edge carries the viewport on at a speed set by how far
+  past it the pointer is, through `EdgeScroll`, which `text-area` shares. There
+  were two faults rather than one — the selection also froze at the edge,
+  because every word is clipped to the viewport and a pointer below it was over
+  none. The touchpad answer is that the speed comes from the pointer's distance
+  and never from the wheel; a wheel mid-drag scrolls as usual, and the
+  fractional steps are applied unrounded.
+- ~~**A table's cells have no rules between them**~~, and a fence does not scroll
+  sideways. Both are the CSS subset: `border` is uniform, so there is no
+  `border-left`, and horizontal `scroll` is not in §10 either.
+  *The rules are closed by
+  [ADR-0505](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0505-a-border-has-four-sides-and-takes-no-room.md):* a border
+  has four sides now, a row draws the rule above it and a cell the rule before
+  it. Two things the entry could not have said: a border has never taken layout
+  room here — it is drawn over the padding, and every bordered widget counts on
+  that — and the first render's vertical rules stepped at every row, because
+  each row sized its columns by its own content, so the cells are
+  `flex-basis: 0` now. The quotation bar became the `border-left` it always
+  meant, with no pixel moved. **A fence still does not scroll sideways.**
+
+  **Since then (2026-10-11), the border half reads differently.** "A border has
+  never taken layout room here" stopped being true with the CSS batch: a border
+  takes room and `box-sizing` is `border-box` (ADR-0620, parked in
+  `docs/snapshot/adr`). The rules kept their places, because the cells' padding
+  was rebalanced in the same change. The sideways fence is still open, above.
+- ~~**`VideoPlaybackTest` has two races, and one of them fails alone.**~~
+  `statistics` ("expected 4 shown, got 5") was believed to fail only when
+  `:media:test` and `:media:testWithoutGpu` ran side by side; on 2026-10-01 it
+  failed once in three runs on its own. `playsToTheEnd` failed in a full `check`
+  with `[BUFFERING, PLAYING, ENDED]` where it expects `OPENING` first — a status
+  listener attached after the first transition. Both are the test's clock and
+  the video thread meeting in an order the assertion does not allow, not a
+  player defect anybody has seen; and both make a red `check` mean less than it
+  should. ~~Both are open.~~ Both were the test's: `OPENING` is published
+  before the engine's threads start (45145b77), `statistics` waits for the last
+  picture to be prepared before asking for it (the same commit), and the
+  end-of-playback sequence allows the one stall and recovery a starved demux
+  thread produces. On 2026-10-04 the class ran in a wall-clock lane for a day,
+  until the lane went with the last clock bound; `docs/flaky-tests.md` is where
+  a recurrence is written down. —
+  [ADR-0463](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0463-video-is-converted-as-it-is-decoded-and-paced-by-the-picture.md),
+  [ADR-0559](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0559-the-tests-that-read-a-wall-clock-run-in-a-lane-of-their-own.md)
+- ~~**A release has never run against Central.**~~ ~~The publishing chain has never
+  run against Central.~~ Central's side is done — the namespace, snapshots enabled
+  for it, the token, the key and the secrets — and snapshots have gone out since
+  run 17 on 2026-09-19. What has never run is `release.yml` → `publish.yml` → a
+  Central Portal deployment, which waits on the first tag.
+  `docs/releasing.md` is the list. —
+  [ADR-0334](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0334-central-is-fed-once-per-run.md)
+
+  **Closed — by the release itself.** `release.yml` ran on tag `v2026.2`
+  (`d3eacfdc`) on 2026-10-02 and published every module to Central through one
+  Portal deployment, `goldberry-media` and its four `ffmpeg-<target>` jars
+  included. It was the second attempt; the first stopped before uploading, and
+  `docs/releasing.md` records why.
+- ~~**The release job has never uploaded to a GitHub Release.**~~ ADR-0340 attaches the
+  three native images to the tag's draft release with `gh release`; the first `v*` tag
+  is its first run, and a manual dispatch exercises everything but that step. —
+  [ADR-0340](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0340-the-showcase-is-a-release-artifact-not-a-package.md)
+
+  **Closed — by the first tag.** Showcase run #26 on `v2026.2` built the three
+  native images and `gh release upload` attached them. The release "Goldberry
+  2026.2" was published on 2026-10-03 with
+  `goldberry-showcase-native-linux-x64.tar.gz`, `…-macos-aarch64.tar.gz` and
+  `…-windows-x64.exe` (32, 30 and 72 MB), checked on 2026-10-18.
+- ~~**A release refuses to publish `goldberry-media` with two of its four FFmpeg
+  builds missing.**~~ `media.yml` builds `macos-aarch64` and `linux-x64`, so a
+  snapshot carries those two `ffmpeg-<target>` classifiers, and the release path
+  requires `windows-x64` and `linux-aarch64` as well. Both are written in the
+  superbuild and neither has been built. —
+  [ADR-0495](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0495-media-is-published-and-snapshots-publish-again.md)
+
+  **Closed — e84aba8f (2026-10-02).** `media.yml` builds all four targets.
+  `linux-aarch64` passed on its first run and `windows-x64` after four fixes (the
+  C runtime, the d3d11va hwaccels, `AVIOContext`'s C `long` and a GPU-less
+  Direct3D). Windows ships without its Media Foundation decoders, which are held
+  back
+  ([ADR-0520](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0520-media-foundation-is-held-back-from-2026-2.md)).
+  The release carried all four classifiers.
+- ~~**Two workflows are written and have not passed.**~~ `media.yml` builds FFmpeg and
+  runs `:media:check` with FFmpeg and the platform decoders required on
+  `macos-aarch64` and `linux-x64`, with GStreamer's plugins on the Linux runner
+  (`docs/media-plan.md`, phases 1 and 5). The GPU lane in `linux.yml` runs
+  lavapipe under the `offscreen` driver on both Linux targets with a device
+  required, and asks the macOS runners without requiring them
+  (`docs/gpu-plan.md`, 2026-09-24). Which runners can host a GPU device at all is
+  still the open question in `gpu-plan.md`'s measurements table. Both are
+  answered by a push. —
+  [ADR-0495](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0495-media-is-published-and-snapshots-publish-again.md),
+  [ADR-0480](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0480-windows-present-through-the-gpu-by-default-and-on-the-cpu-where-it-cannot.md)
+
+  **The GPU lane had run, twice, and is repaired —
+  [ADR-0503](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0503-the-gpu-lane-finds-lavapipe-a-device-goes-before-sdl-and-a-gpu-golden-has-its-own-tolerance.md).**
+  "Never run" was this list's mistake: Snapshot runs 32 and 33 both stopped at
+  the lane's own ICD check, because Mesa names the file `lvp_icd.json` now. Run
+  here on lavapipe, the lane then found a real bug — a test destroying a GPU
+  device after `SDL_Quit`, the `VULKAN_DestroyDevice` segfault that had been put
+  down to this machine's NVIDIA driver — and a golden blessed on Metal that no
+  other driver draws to the pixel. All three are fixed, and the lane passes here
+  as CI runs it. `media.yml` has still never run.
+
+  **Closed — `media.yml` went green on its sixth run (2026-10-02)**, on all four
+  targets with FFmpeg required, and it has run in every Snapshot since. The GPU
+  lane passes too (above). Still open, and kept in `docs/gpu-plan.md`, is which
+  runners can host a real GPU device. Both lanes run on software or GPU-less
+  machines.
 - ~~**The LGPL corresponding-source offer for FFmpeg is not decided.**~~ The licence
   texts, `NOTICE` and `ffmpeg-NOTICE.txt` with the tag and configure line ship
   with the natives jar, and relinking is `-Dgoldberry.media.libdir`. What
