@@ -2,6 +2,7 @@ package dev.goldberry.platform;
 
 import java.util.Collections;
 import java.util.EnumSet;
+import java.util.Map;
 import java.util.Set;
 
 import org.slf4j.Logger;
@@ -20,7 +21,10 @@ import dev.goldberry.render.web.WebViewEngine;
 ///
 /// Asked once and kept. The answer is a compile-time constant on the other side
 /// of the boundary — a build either has the platform integration or it does not,
-/// and nothing that happens afterwards changes which.
+/// and nothing that happens afterwards changes which. The two members that are a
+/// second library being there, [Capability#WEB_VIEW] and
+/// [Capability#NOTIFICATIONS], are each asked the first time somebody asks about
+/// that one, so a start that never asks does not open WebKit.
 ///
 /// Read more:
 /// [Logging and diagnostics](https://goldberry.dev/docs/guide/logging.html#what-this-build-can-do).
@@ -29,7 +33,11 @@ public final class PlatformCapabilities {
     private static final Logger LOG = Logs.of(PlatformCapabilities.class);
 
     private static final class Holder {
-        private static final Set<Capability> INSTANCE = read();
+        private static final Set<Capability> INSTANCE = new LazyCapabilities(
+                PlatformCapabilities::readBits,
+                Map.of(
+                        Capability.WEB_VIEW, PlatformCapabilities::hasWebView,
+                        Capability.NOTIFICATIONS, PlatformCapabilities::hasNotifications));
     }
 
     private PlatformCapabilities() {}
@@ -41,6 +49,9 @@ public final class PlatformCapabilities {
     /// on the headless backend. That is the same answer as a library that can do
     /// none of it, and deliberately so: both mean an application must not expect
     /// any of these to work here.
+    ///
+    /// `contains` asks only about the one capability; iterating the set asks
+    /// about all of them, a web view included.
     public static Set<Capability> get() {
         return Holder.INSTANCE;
     }
@@ -95,8 +106,8 @@ public final class PlatformCapabilities {
     /// the boundary. [Capability#WEB_VIEW] is the presence of a second library —
     /// `libgoldberry-webview`, which exists so that GTK and WebKit are not
     /// load-time dependencies of the toolkit — and answering it means trying to
-    /// open that library, which is why it is asked here, once, rather than on
-    /// every call.
+    /// open that library, which is why it is asked once, and only when somebody
+    /// asks about it.
     ///
     /// Package-private and taken as a parameter by [#read] so a test can ask what
     /// the set looks like both ways without a native library of either kind.
@@ -146,16 +157,11 @@ public final class PlatformCapabilities {
         }
     }
 
-    private static Set<Capability> read() {
-        // Asked ONCE, outside the try, and never again on the way out of it. A
-        // class initialiser that throws is poisoned for the life of the JVM: the
-        // first call reports the real cause and every later one gets a bare
-        // `NoClassDefFoundError`. So a second ask in the catch below would turn a
-        // handled absence into an unhandled error -- which is what it did.
-        var webView = hasWebView();
-        var notifications = hasNotifications();
+    /// The bits `libgoldberry` was compiled with, in the toolkit's words. An
+    /// absent library is an ordinary state and answers nothing, not a failure.
+    private static Set<Capability> readBits() {
         try {
-            var capabilities = read(NativeCapabilities.get(), webView, notifications);
+            var capabilities = translate(NativeCapabilities.get());
             // The line that answers "why is this application in the wrong theme
             // on my machine" without rebuilding anything. `debug` rather than
             // `info`: a complete build has nothing to report here, and the backend
@@ -163,21 +169,17 @@ public final class PlatformCapabilities {
             LOG.debug("platform capabilities: {}", capabilities);
             return capabilities;
         } catch (LinkageError e) {
-            // No library, which is an ordinary state: `./gradlew build` skips the
-            // superbuild, and the headless backend needs none of this. Not a
-            // warning, because nothing is wrong.
+            // No library: `./gradlew build` skips the superbuild, and the headless
+            // backend needs none of this. Not a warning, because nothing is wrong.
             //
             // `LinkageError` rather than `UnsatisfiedLinkError`: the same absence
             // arrives as either, depending on who asked first. A library too old
             // to export the function lands here too, and reports the same thing it
-            // can do -- none of this, as far as anything can tell.
+            // can do -- none of this, as far as anything can tell. The web view and
+            // notifications are asked on their own, so a process that has one of
+            // those libraries and not this one still reports it.
             LOG.debug("no platform capabilities from libgoldberry: {}", e.getMessage());
-            // Not `Set.of()`. The two libraries are independent — a web view is
-            // the one thing here that does not come out of `libgoldberry` — so a
-            // process that has one and not the other can still open a page, and
-            // saying otherwise would be the "asked and was told nothing" mistake
-            // this class exists to avoid.
-            return read(Set.of(), webView, notifications);
+            return Set.of();
         }
     }
 }

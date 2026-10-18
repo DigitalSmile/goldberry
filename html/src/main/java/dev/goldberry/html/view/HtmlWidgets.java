@@ -24,6 +24,8 @@ import dev.goldberry.widget.attr.Attributes;
 import dev.goldberry.widgets.controls.button.Button;
 import dev.goldberry.widgets.core.Column;
 import dev.goldberry.widgets.core.Row;
+import dev.goldberry.widgets.core.scroll.Scroll;
+import dev.goldberry.widgets.core.scroll.ScrollAxis;
 
 /// The page, as widgets.
 ///
@@ -331,7 +333,14 @@ final class HtmlWidgets {
             // zero high.
             lines.add(words.whole(line.isEmpty() ? " " : line, Set.of("html-code-line")));
         }
-        return new Column(lines, classesOf(element, "html-pre"));
+        // In a viewport that moves sideways, so a long line is scrolled to rather
+        // than cut short; one child, because a horizontal viewport is a row.
+        var scroll = new Scroll(
+                        List.of(new Column(lines, classes("html-code-lines"))),
+                        ScrollAxis.HORIZONTAL,
+                        classes("html-code-scroll"))
+                .tabStopOnlyWhenScrollable();
+        return new Column(List.of(scroll), classesOf(element, "html-pre"));
     }
 
     // --- tables ----------------------------------------------------------------

@@ -27,6 +27,8 @@ import dev.goldberry.widget.attr.Attributes;
 import dev.goldberry.widgets.controls.button.Button;
 import dev.goldberry.widgets.core.Column;
 import dev.goldberry.widgets.core.Row;
+import dev.goldberry.widgets.core.scroll.Scroll;
+import dev.goldberry.widgets.core.scroll.ScrollAxis;
 import dev.goldberry.widgets.markup.Wiring;
 
 /// `html-view`, as the tree of widgets it builds.
@@ -195,6 +197,28 @@ class HtmlViewTest {
                     List.of("a", " ", "  b"),
                     wordsOf(withClass(elements, "html-code-line")),
                     "a blank line is a line of the program, and an empty text measures zero high");
+        }
+
+        @Test
+        @DisplayName("a pre's lines in a viewport that scrolls sideways, rather than cut short")
+        void preformattedScrollsSideways() {
+            var elements = mount("<pre><code>" + "x".repeat(400) + "\nb</code></pre>");
+
+            var scrolls = withClass(elements, "html-code-scroll");
+            assertEquals(1, scrolls.size());
+            // The class lands on the viewport the `scroll` builds; the record
+            // itself is the element above it.
+            var records = elements.stream()
+                    .map(Element::widget)
+                    .filter(Scroll.class::isInstance)
+                    .map(Scroll.class::cast)
+                    .toList();
+            assertEquals(1, records.size());
+            var scroll = records.getFirst();
+            assertEquals(ScrollAxis.HORIZONTAL, scroll.axis());
+            assertFalse(scroll.tabStopWhenFits(), "a block that fits is not a Tab stop");
+            assertEquals(1, scroll.children().size(), "one column, since a horizontal viewport is a row");
+            assertEquals(List.of("x".repeat(400), "b"), wordsOf(List.of(scrolls.getFirst())));
         }
 
         @Test

@@ -2,6 +2,7 @@ package dev.goldberry.natives.metadata;
 
 import static java.lang.foreign.ValueLayout.ADDRESS;
 import static java.lang.foreign.ValueLayout.JAVA_BYTE;
+import static java.lang.foreign.ValueLayout.JAVA_FLOAT;
 import static java.lang.foreign.ValueLayout.JAVA_INT;
 import static java.lang.foreign.ValueLayout.JAVA_LONG;
 import static org.junit.jupiter.api.Assertions.assertAll;
@@ -11,11 +12,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
 import java.lang.foreign.FunctionDescriptor;
-import java.lang.foreign.MemoryLayout;
+import java.lang.foreign.MemorySegment;
 import java.lang.foreign.StructLayout;
-import java.lang.foreign.ValueLayout;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodType;
+import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -30,6 +31,11 @@ import org.junit.jupiter.api.Test;
 
 import dev.goldberry.natives.CompiledClasses;
 import dev.goldberry.natives.Downcalls;
+import dev.goldberry.natives.glib.GlibLog;
+import dev.goldberry.natives.layout.Layouts;
+import dev.goldberry.natives.sdl.SdlLog;
+import dev.goldberry.natives.sdl.desktop.SdlClipboard;
+import dev.goldberry.natives.sdl.desktop.SdlTray;
 
 /// [ForeignSurface] is complete or it is worthless: a holder it does not
 /// initialise is a `MissingForeignRegistrationError` on somebody's desktop, on
@@ -91,7 +97,7 @@ class ForeignSurfaceTest {
             // The address comes first on an unbound handle; the C arguments after.
             var type = handle.type().dropParameterTypes(0, 1);
             if (downcalls.stream()
-                    .noneMatch(descriptor -> carriersOf(descriptor).equals(type))) {
+                    .noneMatch(descriptor -> ForeignSurface.carriers(descriptor).equals(type))) {
                 uncovered.add(name + " " + type);
             }
         }
@@ -146,6 +152,85 @@ class ForeignSurfaceTest {
                 () -> assertTrue(
                         upcalls.contains(FunctionDescriptor.ofVoid(ADDRESS, JAVA_BYTE, ADDRESS)),
                         "the notification permission block"));
+    }
+
+    /// Every owner's stub is made over a method looked up by name, and the
+    /// image answers that lookup only for a registered method. An owner with no
+    /// matching method would mean its target lives somewhere this cannot see.
+    @Test
+    @DisplayName("finds the method behind every upcall owner's stub")
+    void everyOwnerHasATarget() {
+        var targets = ForeignSurface.upcallTargets();
+        var owners = new TreeSet<String>();
+        for (var target : targets) {
+            owners.add(target.getDeclaringClass().getName());
+        }
+        var expected = new TreeSet<String>();
+        for (var owner : ForeignSurface.UPCALL_OWNERS) {
+            expected.add(owner.getName());
+        }
+        assertAll(
+                () -> assertEquals(expected, owners),
+                () -> assertTrue(names(targets, GlibLog.class).containsAll(List.of("handle", "write")), "GLib's two"),
+                () -> assertEquals(List.of("output"), names(targets, SdlLog.class), "SDL's one"),
+                () -> assertTrue(names(targets, SdlClipboard.class).containsAll(List.of("forget", "provide"))),
+                () -> assertTrue(names(targets, SdlTray.class).contains("invoke"), "bound to its entry first"),
+                () -> assertTrue(targets.stream().noneMatch(Method::isSynthetic), "a lambda is never a stub's target"));
+    }
+
+    private static List<String> names(List<Method> targets, Class<?> owner) {
+        return targets.stream()
+                .filter(target -> target.getDeclaringClass() == owner)
+                .map(Method::getName)
+                .toList();
+    }
+
+    @Test
+    @DisplayName("takes a method whose leading arguments are bound before the stub is made")
+    void boundArguments() throws NoSuchMethodException {
+        var shape = MethodType.methodType(void.class, MemorySegment.class, MemorySegment.class);
+        var exact = Targets.class.getDeclaredMethod("exact", MemorySegment.class, MemorySegment.class);
+        var bound = Targets.class.getDeclaredMethod("bound", int.class, MemorySegment.class, MemorySegment.class);
+        var swapped = Targets.class.getDeclaredMethod("swapped", MemorySegment.class, int.class);
+        var returns = Targets.class.getDeclaredMethod("returns", MemorySegment.class, MemorySegment.class);
+        var nothing = Targets.class.getDeclaredMethod("nothing");
+        assertAll(
+                () -> assertTrue(ForeignSurface.isTarget(exact, shape)),
+                () -> assertTrue(ForeignSurface.isTarget(bound, shape)),
+                () -> assertFalse(ForeignSurface.isTarget(swapped, shape)),
+                () -> assertFalse(ForeignSurface.isTarget(returns, shape)),
+                () -> assertTrue(ForeignSurface.isTarget(nothing, MethodType.methodType(void.class))),
+                () -> assertFalse(
+                        ForeignSurface.isTarget(bound, MethodType.methodType(void.class)),
+                        "an empty shape is not a suffix of everything"));
+    }
+
+    /// Methods shaped like stub targets, and like near misses.
+    @SuppressWarnings("unused")
+    private static final class Targets {
+        static void exact(MemorySegment a, MemorySegment b) {}
+
+        static void bound(int index, MemorySegment a, MemorySegment b) {}
+
+        static void swapped(MemorySegment a, int b) {}
+
+        static int returns(MemorySegment a, MemorySegment b) {
+            return 0;
+        }
+
+        static void nothing() {}
+    }
+
+    @Test
+    @DisplayName("reads a descriptor's carriers, a struct by value as a segment")
+    void carriers() {
+        assertAll(
+                () -> assertEquals(
+                        MethodType.methodType(void.class, MemorySegment.class, int.class),
+                        ForeignSurface.carriers(FunctionDescriptor.ofVoid(ADDRESS, JAVA_INT))),
+                () -> assertEquals(
+                        MethodType.methodType(MemorySegment.class, float.class),
+                        ForeignSurface.carriers(FunctionDescriptor.of(Layouts.YG_SIZE.layout(), JAVA_FLOAT))));
     }
 
     /// The holders that bind a **system** library, which is the case
@@ -316,18 +401,5 @@ class ForeignSurfaceTest {
             }
         }
         return null;
-    }
-
-    private static MethodType carriersOf(FunctionDescriptor descriptor) {
-        var parameters = descriptor.argumentLayouts().stream()
-                .map(ForeignSurfaceTest::carrierOf)
-                .toList();
-        var returned =
-                descriptor.returnLayout().map(ForeignSurfaceTest::carrierOf).orElse(void.class);
-        return MethodType.methodType(returned, parameters);
-    }
-
-    private static Class<?> carrierOf(MemoryLayout layout) {
-        return layout instanceof ValueLayout value ? value.carrier() : java.lang.foreign.MemorySegment.class;
     }
 }

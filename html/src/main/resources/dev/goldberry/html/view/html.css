@@ -301,11 +301,15 @@ picture {
   font-size: var(--gb-font-code);
   line-height: var(--gb-line-code);
   color: var(--gb-text);
-  /* A long line is clipped rather than wrapped: a wrapped program is a program with
-     lines nobody wrote. Scrolling a fence sideways waits on a horizontal `scroll`,
-     which is in TODO.md. */
+  /* A long line is scrolled to rather than wrapped: a wrapped program is a program
+     with lines nobody wrote. The lines sit in a horizontal `scroll`. */
   white-space: nowrap;
-  text-overflow: ellipsis;
+}
+
+/* The viewport the lines move in. Not grown: a block is as tall as its lines, and
+   the base `scroll` rule's `flex-grow` would hand it the page's free height. */
+scroll.html-code-scroll {
+  flex-grow: 0;
 }
 
 /* ----------------------------------------------------------------- rules -- */

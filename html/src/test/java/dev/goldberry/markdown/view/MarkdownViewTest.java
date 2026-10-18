@@ -1,5 +1,6 @@
 package dev.goldberry.markdown.view;
 
+import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
@@ -36,6 +37,8 @@ import dev.goldberry.widget.ElementTree;
 import dev.goldberry.widget.attr.Attributes;
 import dev.goldberry.widgets.core.Column;
 import dev.goldberry.widgets.core.Row;
+import dev.goldberry.widgets.core.scroll.Scroll;
+import dev.goldberry.widgets.core.scroll.ScrollAxis;
 import dev.goldberry.widgets.markup.Wiring;
 
 /// `markdown-view`, as the tree of widgets it builds.
@@ -254,6 +257,33 @@ class MarkdownViewTest {
                     List.of("a", " ", "b"),
                     wordsOf(withClass(elements, "md-code-line")),
                     "a blank line is a line of the program, and an empty text measures zero high");
+        }
+
+        /// A long line is scrolled to rather than cut off with an ellipsis: the
+        /// lines move in a horizontal viewport, and the language label above them
+        /// stays where it is.
+        @Test
+        @DisplayName("a fence's lines in a viewport that scrolls sideways, the language outside it")
+        void codeBlockScrollsSideways() {
+            var elements = mount("```java\n" + "x".repeat(400) + "\nb\n```\n");
+            var scrolls = withClass(elements, "md-code-scroll");
+            assertEquals(1, scrolls.size());
+            // The class lands on the viewport the `scroll` builds; the record
+            // itself is the element above it.
+            var scroll = elements.stream()
+                    .map(Element::widget)
+                    .filter(Scroll.class::isInstance)
+                    .map(Scroll.class::cast)
+                    .toList()
+                    .getFirst();
+            assertAll(
+                    () -> assertEquals(ScrollAxis.HORIZONTAL, scroll.axis()),
+                    () -> assertFalse(scroll.tabStopWhenFits(), "a fence that fits is not a Tab stop"),
+                    () -> assertEquals(1, scroll.children().size(), "one column, since a horizontal viewport is a row"),
+                    () -> assertEquals(
+                            List.of("x".repeat(400), "b"),
+                            wordsOf(withClass(walk(scrolls.getFirst()), "md-code-line"))),
+                    () -> assertEquals(List.of(), withClass(walk(scrolls.getFirst()), "md-code-language")));
         }
 
         @Test

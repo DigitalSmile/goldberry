@@ -9,13 +9,17 @@ import java.lang.foreign.SequenceLayout;
 import java.lang.foreign.StructLayout;
 import java.lang.foreign.UnionLayout;
 import java.lang.foreign.ValueLayout;
+import java.lang.reflect.Method;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Arrays;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.stream.Collectors;
 
 /// Writes the `foreign` section of a `reachability-metadata.json` from
-/// [ForeignSurface], in the spelling GraalVM's own tracing agent uses.
+/// [ForeignSurface], in the spelling GraalVM's own tracing agent uses, and the
+/// `reflection` entries for the methods the upcall stubs are made over.
 ///
 /// Run by `:natives:foreignMetadata` before the jar is built, and the file
 /// travels inside the jar under `META-INF/native-image/`, where `native-image`
@@ -43,16 +47,44 @@ public final class ForeignMetadata {
         }
         var target = Path.of(args[0]);
         Files.createDirectories(target.toAbsolutePath().getParent());
-        Files.writeString(target, render(ForeignSurface.downcalls(), ForeignSurface.upcalls()));
+        Files.writeString(
+                target, render(ForeignSurface.downcalls(), ForeignSurface.upcalls(), ForeignSurface.upcallTargets()));
     }
 
-    /// The whole file: one `foreign` object with its two arrays.
-    static String render(List<FunctionDescriptor> downcalls, List<FunctionDescriptor> upcalls) {
-        return "{\n  \"foreign\": {\n    \"downcalls\": [\n"
+    /// The whole file: the stub targets under `reflection`, then one `foreign`
+    /// object with its two arrays.
+    static String render(List<FunctionDescriptor> downcalls, List<FunctionDescriptor> upcalls, List<Method> targets) {
+        return "{\n  \"reflection\": [\n"
+                + reflection(targets)
+                + "  ],\n  \"foreign\": {\n    \"downcalls\": [\n"
                 + entries(downcalls)
                 + "    ],\n    \"upcalls\": [\n"
                 + entries(upcalls)
                 + "    ]\n  }\n}\n";
+    }
+
+    /// One entry per declaring class, its methods in the order given.
+    private static String reflection(List<Method> targets) {
+        if (targets.isEmpty()) {
+            return "";
+        }
+        var byType = targets.stream()
+                .collect(Collectors.groupingBy(
+                        method -> method.getDeclaringClass().getName(), LinkedHashMap::new, Collectors.toList()));
+        return byType.entrySet().stream()
+                .map(type -> "    {\"type\": \"" + type.getKey() + "\", \"methods\": ["
+                        + type.getValue().stream().map(ForeignMetadata::method).collect(Collectors.joining(", "))
+                        + "]}")
+                .collect(Collectors.joining(",\n", "", "\n"));
+    }
+
+    /// One method, by name and parameter types in the spelling `Class.getTypeName`
+    /// and the agent share: `int`, `java.lang.foreign.MemorySegment`, `byte[]`.
+    static String method(Method method) {
+        var parameters = Arrays.stream(method.getParameterTypes())
+                .map(type -> "\"" + type.getTypeName() + "\"")
+                .collect(Collectors.joining(", "));
+        return "{\"name\": \"" + method.getName() + "\", \"parameterTypes\": [" + parameters + "]}";
     }
 
     private static String entries(List<FunctionDescriptor> descriptors) {

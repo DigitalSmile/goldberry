@@ -1,5 +1,8 @@
 package dev.goldberry.markdown.view;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import java.util.List;
 
 import org.junit.jupiter.api.DisplayName;
@@ -151,6 +154,46 @@ class MarkdownGoldenTest {
         }
 
         GoldenImage.assertMatches("markdown-selection", 420, 560, 1.0f, frame -> {
+            try (var render = RenderTree.create()) {
+                tree.flush();
+                render.update(frame, renderer.render(tree));
+                render.paint(frame);
+            }
+        });
+    }
+
+    /// A fence with a line longer than its pane. The line runs to the pane's edge
+    /// and is cut there, with no ellipsis, and a sideways wheel over it brings the
+    /// rest into view. A wheel down the page is not the fence's to take.
+    @Test
+    @DisplayName("a fence wider than its pane scrolls sideways, and a wheel down the page passes it by")
+    void fenceScrollsSideways() {
+        RendererRequirement.enforce();
+        var tree = new ElementTree(MarkdownView.of(Markdown.parse("""
+                ```
+                short
+                var document = Markdown.parse(source).withTheLongestNameAnybodyHasEverGivenAVariable();
+                ```
+                """)));
+        var renderer = renderer(Theme.NORD_DARK);
+        var router = new PointerRouter();
+        router.focusRoot(tree.root());
+        router.windowBounds(LogicalRect.of(0, 0, 300, 110));
+
+        var warm = TestFrames.of(300, 110, 1.0f, 0);
+        try (var render = RenderTree.create()) {
+            for (var i = 0; i < 2; i++) {
+                tree.flush();
+                render.update(warm.frame(), renderer.render(tree));
+                router.updateRegions(HitTest.capture(render));
+            }
+            assertFalse(router.pointerWheel(150, 50, 0, 3), "a wheel down the page went into the fence");
+            assertTrue(router.pointerWheel(150, 50, 30, 0), "a sideways wheel over a long line moved nothing");
+        } finally {
+            warm.end();
+        }
+
+        GoldenImage.assertMatches("markdown-fence-scrolled", 300, 110, 1.0f, frame -> {
             try (var render = RenderTree.create()) {
                 tree.flush();
                 render.update(frame, renderer.render(tree));

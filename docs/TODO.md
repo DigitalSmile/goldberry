@@ -92,12 +92,6 @@ other entry was a cost nobody had measured, and measuring it was the answer.
   So the argument this entry anticipated is due: should `render` be handed the
   width rather than `Measured` banking it for a frame later? Nobody has made it,
   because none of the fourteen shows its one-frame lag.
-- **Nothing re-places the caret when the font changes under it.** A restyle that
-  changes `font-size` reshapes the paragraph and the caret follows, because both
-  are computed in the same `render`. A *density* change does the same. Neither is
-  broken; what is untested is a font-family fallback swapping mid-edit, which no
-  test can currently provoke. —
-  [ADR-0167](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0167-a-field-owns-its-caret-and-the-model-is-told.md)
 - **`isModal` has one consumer**, which is one fewer than a mechanism should
   have. `sheet` is the plausible second, and it is not built. **A `wizard` is
   not**: §6 makes its content a focus-scope, and a wizard written inline that
@@ -279,11 +273,6 @@ on, which in four cases is the same thing.
   - **Emphasis is a faux oblique** — `transform: skewX(-10deg)` — because §6.1
     ships two upright faces. A third face is an asset decision rather than a code
     one, and `:assets` is where it would be made.
-  - **A fence does not scroll sideways.** A long line in a code block ends in an
-    ellipsis. When this entry was written horizontal `scroll` was not in §10's
-    subset; `ScrollAxis.HORIZONTAL` and `overflow-x` both exist now, so what is
-    left is the fence using them. Table rules, which this entry also covered,
-    are in [Answered](#answered).
   - **`src="…"` is not a thing on either view.** Reading a file from markup means
     deciding what a relative path is relative to and what a missing one does —
     three answers `Icons` and the stylesheets each needed a resolver for. An
@@ -503,14 +492,6 @@ on, which in four cases is the same thing.
   need per-frame state a widget cannot have, and excluding the overlay subtree
   from the timings would report a frame the window did not paint. —
   [ADR-0152](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0152-the-cascade-looks-at-rules-that-could-match.md)
-- **`libgoldberry-webview` is opened at start-up, and WebKitGTK with it.** The
-  backend asks it whether `Capability.WEB_VIEW` holds, and opening it maps
-  WebKitGTK and GTK 3: 26 ms of a 520 ms native start, before any page is asked
-  for. `docs/content-widgets.md` §11 calls the library "opened on demand"; the
-  capability question is the demand. Answering it without the library — a build
-  fact, like ADR-0422's — or on first use would take it off every start. —
-  [ADR-0506](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0506-start-up-is-timed-from-the-kernels-clock-and-a-native-window-is-up-in-a-tenth-of-a-second.md),
-  [ADR-0441](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0441-a-web-page-is-a-window-not-a-box.md)
 ## Platform, compositor and CI
 - **The 60 fps claim is measured on one machine, and closing M1 is a CI job.**
   §16's M1 asks for a styled wrapped paragraph *resized* at 60 fps on Linux,
@@ -740,14 +721,6 @@ on, which in four cases is the same thing.
   build with symbols, or an `InetAddressResolverProvider` that prints its caller
   (which found nothing on the JVM), would. —
   [ADR-0506](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0506-start-up-is-timed-from-the-kernels-clock-and-a-native-window-is-up-in-a-tenth-of-a-second.md)
-- **The native image cannot install the GLib log handler.** It logs "no handle
-  to bind a GLib callback to", and GLib's messages go to stderr there — what
-  ADR-0443 routes into the logger everywhere else. An upcall the image's
-  foreign-call registrations do not cover, which ADR-0339's rule says cannot
-  happen: every upcall owner is registered from the bindings. —
-  [ADR-0506](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0506-start-up-is-timed-from-the-kernels-clock-and-a-native-window-is-up-in-a-tenth-of-a-second.md),
-  [ADR-0339](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0339-a-foreign-call-is-registered-because-it-exists-not-because-a-run-reached-it.md)
-
 ## On hold: the accessibility bridge
 
 **On hold —
@@ -818,6 +791,78 @@ way back is a consumer asking, not a date.
 Kept rather than deleted: each is a trap somebody hit, and the reasoning that got
 out of it is usually worth more than the fact that it is fixed.
 
+- ~~**The native image cannot install the GLib log handler.**~~ It logs "no handle
+  to bind a GLib callback to", and GLib's messages go to stderr there — what
+  ADR-0443 routes into the logger everywhere else. An upcall the image's
+  foreign-call registrations do not cover, which ADR-0339's rule says cannot
+  happen: every upcall owner is registered from the bindings. —
+  [ADR-0506](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0506-start-up-is-timed-from-the-kernels-clock-and-a-native-window-is-up-in-a-tenth-of-a-second.md),
+  [ADR-0339](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0339-a-foreign-call-is-registered-because-it-exists-not-because-a-run-reached-it.md)
+
+  **Closed (2026-10-18).** ADR-0339's rule held for the stubs and not for the
+  lookups before them. The foreign registrations cover the stub, but each owner
+  finds its target with `MethodHandles.Lookup.findStatic` or `findVirtual`, and a
+  native image answers that only for a method registered for reflection. The
+  showcase's trace happened to register the five older owners' targets and none
+  of the five added since: `SdlLog`, `GlibLog`, `Webview`, `MacMenuBar` and
+  `MacNotifier`. So the SDL bridge, a page's script callbacks and the macOS menu
+  bar and notifications were missing in an image as well, not only GLib.
+  `ForeignMetadata` now writes a `reflection` section beside the `foreign` one,
+  from `ForeignSurface.upcallTargets()`: every method an upcall owner declares
+  whose signature *ends in* the carriers of a declared upcall shape. "Ends in",
+  because a tray entry's `invoke` has its index bound in front by
+  `insertArguments`, the way `bindTo` binds a receiver. `ForeignSurfaceTest`
+  holds every owner to at least one target, and `ForeignMetadataTest` holds the
+  written file to all of them. A native build here logs both bridges installed,
+  and libayatana's GLib deprecation warning now arrives on the logger.
+- ~~**`libgoldberry-webview` is opened at start-up, and WebKitGTK with it.**~~ The
+  backend asks it whether `Capability.WEB_VIEW` holds, and opening it maps
+  WebKitGTK and GTK 3: 26 ms of a 520 ms native start, before any page is asked
+  for. `docs/content-widgets.md` §11 calls the library "opened on demand"; the
+  capability question is the demand. Answering it without the library — a build
+  fact, like ADR-0422's — or on first use would take it off every start. —
+  [ADR-0506](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0506-start-up-is-timed-from-the-kernels-clock-and-a-native-window-is-up-in-a-tenth-of-a-second.md),
+  [ADR-0441](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0441-a-web-page-is-a-window-not-a-box.md)
+
+  **Closed (2026-10-18), on first use.** `PlatformCapabilities` hands out a
+  `LazyCapabilities` set: the `libgoldberry` bits are read once, and the two
+  members that are a second library being there, `WEB_VIEW` and `NOTIFICATIONS`,
+  are each probed the first time somebody asks about that one. `contains` is
+  narrow, so the backend's start-up questions about the system theme and the
+  input method no longer open WebKit. Iterating, sizing or printing the set asks
+  every probe, so whatever the set says is still the whole truth.
+  `LazyCapabilitiesTest` counts the probes: none for another capability, one for
+  any number of questions, one for sixteen threads asking at once.
+- ~~**Nothing re-places the caret when the font changes under it.**~~ A restyle that
+  changes `font-size` reshapes the paragraph and the caret follows, because both
+  are computed in the same `render`. A *density* change does the same. Neither is
+  broken; what is untested is a font-family fallback swapping mid-edit, which no
+  test can currently provoke. —
+  [ADR-0167](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0167-a-field-owns-its-caret-and-the-model-is-told.md)
+
+  **Closed (2026-10-18) by a test that found nothing broken.** Per-character
+  fallback (ADR-0595, parked in `docs/snapshot/adr`) made the case provokable.
+  `EditorFallbackTest` types Latin in the field's face and then Han or Arabic
+  that only a stand-in fallback has. After every keystroke the caret stands where
+  the borrowed glyph ends, in the field's units, and a click on it lands on the
+  same offset, or on the same place where two bidi runs meet. A borrowed
+  character inserted inside Latin and then deleted again moves the caret both
+  ways. The caret follows for the reason the entry gave: it is computed from the
+  same shaped paragraph in the same pass.
+- ~~**A fence does not scroll sideways.**~~ A long line in a code block ends in an
+  ellipsis. When this entry was written horizontal `scroll` was not in §10's
+  subset; `ScrollAxis.HORIZONTAL` and `overflow-x` both exist now, so what is
+  left is the fence using them. Table rules, which this entry also covered,
+  are in [Answered](#answered).
+
+  **Closed (2026-10-18).** Both views put a fence's lines in a horizontal
+  `scroll` (`md-code-scroll`, `html-code-scroll`) holding one column, because a
+  horizontal viewport lays out a row. The language label stays above it, and
+  `text-overflow: ellipsis` is gone from the line rules. The viewport is a Tab
+  stop only while something is out of sight, and it is not grown, so a fence is
+  as tall as its lines. A wheel down the page passes it by, and a sideways
+  wheel scrolls it: the `markdown-fence-scrolled` golden shows the end of a
+  long line. No existing golden moved.
 - ~~**The inflater accepts a property nothing reads.**~~ `KdlInflater` refuses an
   unknown node name, and `Attributes.of` reads `id`, `class`, `tooltip`,
   `context-menu` and `name`; a property a widget's `inflate` never asks for is

@@ -46,6 +46,8 @@ import dev.goldberry.widget.attr.Attributes;
 import dev.goldberry.widgets.controls.button.Button;
 import dev.goldberry.widgets.core.Column;
 import dev.goldberry.widgets.core.Row;
+import dev.goldberry.widgets.core.scroll.Scroll;
+import dev.goldberry.widgets.core.scroll.ScrollAxis;
 
 /// The document, as widgets.
 ///
@@ -421,12 +423,13 @@ final class MarkdownWidgets implements BlockMemo.Fold<Block> {
     /// — which is also what tells a reader that `goldberry-code` would have
     /// highlighted it.
     private Widget codeBlock(CodeBlock block) {
-        var lines = new ArrayList<Widget>();
+        var parts = new ArrayList<Widget>(2);
         var language = block.language();
         if (language != null && !language.isBlank()) {
             minter.block();
-            lines.add(words.whole(language, Set.of("md-code-language")));
+            parts.add(words.whole(language, Set.of("md-code-language")));
         }
+        var lines = new ArrayList<Widget>(block.lines().size());
         for (var line : block.lines()) {
             minter.block();
             // An empty line still gets a widget: it is a line of the program, and a
@@ -435,7 +438,16 @@ final class MarkdownWidgets implements BlockMemo.Fold<Block> {
             // because a `text` with nothing in it measures zero high.
             lines.add(words.whole(line.isEmpty() ? " " : line, Set.of("md-code-line")));
         }
-        return new Column(lines, classes("md-code-block"));
+        parts.add(sideways(new Column(lines, classes("md-code-lines")), "md-code-scroll"));
+        return new Column(parts, classes("md-code-block"));
+    }
+
+    /// The lines of a fence in a viewport that moves sideways, so a line longer
+    /// than the pane is scrolled to rather than cut short. One child, because a
+    /// horizontal viewport lays its children out in a row. A Tab stop only while
+    /// something is out of sight, so a fence that fits costs the keyboard nothing.
+    private static Widget sideways(Widget lines, String name) {
+        return new Scroll(List.of(lines), ScrollAxis.HORIZONTAL, classes(name)).tabStopOnlyWhenScrollable();
     }
 
     // --- tables ----------------------------------------------------------------

@@ -3,10 +3,17 @@ package dev.goldberry.natives.metadata;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.lang.foreign.FunctionDescriptor;
+import java.lang.foreign.MemoryLayout;
+import java.lang.foreign.MemorySegment;
+import java.lang.foreign.ValueLayout;
+import java.lang.invoke.MethodType;
+import java.lang.reflect.Method;
 import java.net.URISyntaxException;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Arrays;
+import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Stream;
 
@@ -98,6 +105,61 @@ public final class ForeignSurface {
             initialise(owner.getName());
         }
         return Upcalls.declared();
+    }
+
+    /// The methods the upcall stubs are made over: every method an owner declares
+    /// whose Java signature ends in the carriers of a declared upcall shape,
+    /// sorted by owner, name and parameters.
+    ///
+    /// "Ends in", because a target may take more than the shape passes: a tray
+    /// entry's `invoke` takes the entry's index first, and `insertArguments`
+    /// binds it before the stub is made, the way `bindTo` binds a receiver.
+    ///
+    /// A stub's target is found by name through `MethodHandles.Lookup`, and a
+    /// native image answers that only for a method it was told about. The
+    /// foreign registration covers the stub and not the lookup, so without these
+    /// the image fails one step earlier, with no handle to bind. Matching on the
+    /// signature, rather than listing names, is what keeps an owner added
+    /// tomorrow registered tomorrow. A method that matches and is never a target
+    /// costs one reflective registration and nothing else.
+    public static List<Method> upcallTargets() {
+        var shapes = upcalls().stream().map(ForeignSurface::carriers).toList();
+        return UPCALL_OWNERS.stream()
+                .flatMap(owner -> Arrays.stream(owner.getDeclaredMethods()))
+                .filter(method -> !method.isSynthetic())
+                .filter(method -> shapes.stream().anyMatch(shape -> isTarget(method, shape)))
+                .sorted(Comparator.comparing(
+                                (Method method) -> method.getDeclaringClass().getName())
+                        .thenComparing(Method::getName)
+                        .thenComparing(method -> Arrays.toString(method.getParameterTypes())))
+                .toList();
+    }
+
+    /// Whether a stub of `shape` can be made over `method`, once its leading
+    /// arguments are bound. A shape that takes nothing matches only a method
+    /// that takes nothing, or every method of the right return would be one.
+    static boolean isTarget(Method method, MethodType shape) {
+        var parameters = List.of(method.getParameterTypes());
+        var passed = shape.parameterList();
+        var bound = parameters.size() - passed.size();
+        return method.getReturnType() == shape.returnType()
+                && bound >= 0
+                && (bound == 0 || !passed.isEmpty())
+                && parameters.subList(bound, parameters.size()).equals(passed);
+    }
+
+    /// The Java signature a stub's target has for `descriptor`: every scalar is
+    /// its carrier, and every address or struct by value a `MemorySegment`.
+    static MethodType carriers(FunctionDescriptor descriptor) {
+        var returned = descriptor.returnLayout().map(ForeignSurface::carrier).orElse(void.class);
+        var parameters = descriptor.argumentLayouts().stream()
+                .<Class<?>>map(ForeignSurface::carrier)
+                .toList();
+        return MethodType.methodType(returned, parameters);
+    }
+
+    private static Class<?> carrier(MemoryLayout layout) {
+        return layout instanceof ValueLayout value ? value.carrier() : MemorySegment.class;
     }
 
     /// The binary names of every class in a `…calls` package of this module,

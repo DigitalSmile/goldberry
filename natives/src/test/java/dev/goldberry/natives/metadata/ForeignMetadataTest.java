@@ -16,6 +16,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.io.IOException;
 import java.lang.foreign.FunctionDescriptor;
 import java.lang.foreign.MemoryLayout;
+import java.lang.foreign.MemorySegment;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.LinkedHashSet;
@@ -25,6 +26,7 @@ import java.util.regex.Pattern;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 import dev.goldberry.natives.CompiledClasses;
 import dev.goldberry.natives.layout.Layouts;
@@ -88,13 +90,18 @@ class ForeignMetadataTest {
     }
 
     @Test
-    @DisplayName("renders the file as one foreign object with its two lists")
-    void renders() {
+    @DisplayName("renders the file as the stub targets and one foreign object with its two lists")
+    void renders() throws NoSuchMethodException {
+        var target = Sample.class.getDeclaredMethod("callback", MemorySegment.class, int.class, byte[].class);
         var text = ForeignMetadata.render(
                 List.of(FunctionDescriptor.of(JAVA_INT), FunctionDescriptor.ofVoid(ADDRESS)),
-                List.of(FunctionDescriptor.ofVoid(ADDRESS, ADDRESS)));
+                List.of(FunctionDescriptor.ofVoid(ADDRESS, ADDRESS)),
+                List.of(target));
         assertEquals("""
                 {
+                  "reflection": [
+                    {"type": "dev.goldberry.natives.metadata.ForeignMetadataTest$Sample", "methods": [{"name": "callback", "parameterTypes": ["java.lang.foreign.MemorySegment", "int", "byte[]"]}]}
+                  ],
                   "foreign": {
                     "downcalls": [
                       {"returnType": "jint", "parameterTypes": []},
@@ -106,6 +113,30 @@ class ForeignMetadataTest {
                   }
                 }
                 """, text);
+    }
+
+    @Test
+    @DisplayName("renders an empty reflection list when there are no stub targets")
+    void rendersNoTargets() {
+        var text = ForeignMetadata.render(List.of(), List.of(), List.of());
+        assertTrue(text.startsWith("{\n  \"reflection\": [\n  ],\n  \"foreign\""), text);
+    }
+
+    /// What the plan's fix is for: the file the jar carries registers every
+    /// method a stub is made over, the log bridges' among them. Before, the
+    /// image found `GlibLog.handle` unregistered and logged "no handle to bind".
+    @Test
+    @DisplayName("writes a file that registers every upcall target, the log bridges' included")
+    void writesTheTargets(@TempDir Path directory) throws IOException {
+        var file = directory.resolve("META-INF/reachability-metadata.json");
+        ForeignMetadata.main(new String[] {file.toString()});
+        var text = Files.readString(file);
+        for (var target : ForeignSurface.upcallTargets()) {
+            assertTrue(text.contains(ForeignMetadata.method(target)), target.toString());
+        }
+        assertAll(
+                () -> assertTrue(text.contains("{\"type\": \"dev.goldberry.natives.glib.GlibLog\""), text),
+                () -> assertTrue(text.contains("{\"type\": \"dev.goldberry.natives.sdl.SdlLog\""), text));
     }
 
     /// The agent's own record of a run is the reference: every shape it saw has
@@ -149,5 +180,12 @@ class ForeignMetadataTest {
     private static Path repositoryRoot() {
         var main = CompiledClasses.mainClassesBeside(ForeignMetadataTest.class);
         return main.getParent().getParent().getParent().getParent().getParent();
+    }
+
+    /// A stand-in owner, so the rendered entry is pinned without depending on
+    /// which owners the module has.
+    private static final class Sample {
+        @SuppressWarnings("unused")
+        private static void callback(MemorySegment pointer, int flags, byte[] bytes) {}
     }
 }
