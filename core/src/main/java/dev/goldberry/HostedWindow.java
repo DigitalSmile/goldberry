@@ -1423,7 +1423,8 @@ final class HostedWindow implements WindowHost {
                 () -> popups.removeIf(open -> !open.isOpen()),
                 margin,
                 // A press in a shadow is a press on nothing, here as in the owner.
-                this::dismissPopups);
+                this::dismissPopups,
+                GoldberryRuntime.get().backend().seeThroughPopups(window.backendWindow()));
         // A popup's own frame can change the chain another one was opened from:
         // a submenu hangs off a row of the menu under it.
         popup.afterPaint(this::followOpeners);

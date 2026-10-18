@@ -214,6 +214,7 @@ public final class GoldenImage {
         Png.write(FAILURE_DIR.resolve(name + "-actual.png"), actual);
         Png.write(FAILURE_DIR.resolve(name + "-diff.png"), comparison.diff());
         throw new AssertionFailedError("\"" + name + "\" does not match its golden: " + comparison.describe()
+                + ". Rasterized on " + SimdPath.describe()
                 + ". Expected, actual and diff images are in " + FAILURE_DIR.toAbsolutePath());
     }
 

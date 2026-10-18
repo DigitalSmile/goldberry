@@ -240,98 +240,15 @@ on, which in four cases is the same thing.
   check for something that is neither a font nor a library.
   `./gradlew checkLicenses` knows about artifacts.
 ## Style, colour and motion
-- **A popup's transparent corners need a compositor**, and are unverified on
-  Windows and macOS. Without one the flag is ignored and the corners are whatever
-  the platform leaves there. The fallback that always works — filling the frame
-  with the panel's own colour, for square corners — is kept in reserve. —
-  [ADR-0111](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0111-a-text-box-is-painted-inside-its-padding.md)
 
-  **X11 was broken even with a compositor, and is fixed.** SDL's X11 driver gives
-  a transparent window a 32-bit visual only for OpenGL. The popups present through
-  a window surface, so they got the default 24-bit visual, the alpha was dropped
-  and the corners came out black. `SdlVideo.createPopupWindow` now names the
-  32-bit TrueColor visual through `SDL_VIDEO_X11_WINDOW_VISUALID`, and
-  `Sdl3PopupTest.popupIsSeeThroughOnX11` reads the corners back as `00000000`
-  (ADR-0628, parked in `docs/snapshot/adr`). Windows and macOS are still unverified
-  by eye.
-
-  **The toolkit can tell now (2026-10-18).** `Backend.seeThroughPopups` answers
-  whether a popup's transparent pixels will be seen through, which on X11 is
-  whether `_NET_WM_CM_S<n>` has an owner (ADR-0632). The shadow's room is
-  withheld where it would be black. The square-corner fallback this entry keeps
-  in reserve could be keyed on the same answer; nothing does that yet.
+Nothing open since 2026-10-18. A popup's corners without a compositor are
+under [Answered](#answered) (ADR-0648).
 ## Rendering and performance
-- **Opening a long note still shapes all of it, on the frame that opens it.** A
-  keystroke into a 500 kB `text-area` costs what a keystroke into a 2 kB one
-  costs now, because the text is shaped one hard line at a time and only the rows
-  on screen are drawn. The first frame is not: 499 079 characters, 78 to 95 ms
-  across runs on this machine, and again whenever the cascade resolves a
-  different face. It is irreducible in
-  the shape the control has — how far the content scrolls is a fact about every
-  line, and nothing knows a line's height without shaping it — so closing it
-  means shaping the lines below the fold **off** the frame and filling in the
-  scroll range as they arrive, which is a different control and a different
-  promise about what the scrollbar means. Nobody has reported it: the downstream
-  editor's complaint was the keystroke, and `TextAreaFrameBenchmark` is where the
-  number would have to come from first (ADR-0045). —
-  [ADR-0388](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0388-a-note-is-shaped-a-line-at-a-time.md)
-- **The scale-invariance thresholds are calibrated on one CPU.** The worst honest
-  disagreement measured over the corpus is 0.332% of pixels against a 1.2% limit, and
-  Blend2D JITs its antialiasing for the CPU it finds (ADR-0030) — so the margin on
-  AVX-512, on Apple Silicon and under MSVC is answered by the next CI run rather than
-  by argument, exactly as the goldens' own tolerance is.
-  `-Dgoldberry.golden.scales.report=true` prints what every check measured, which is
-  how a runner pressing against the limit would say so in numbers. —
-  [ADR-0162](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0162-a-golden-is-checked-at-every-scale.md)
 
-  **Partly answered by CI, as it said it would be.** The golden suites run on
-  `windows-x64` under MSVC and on `macos-aarch64`'s NEON path
-  (`windows.yml`, `macos.yml`), and both are green. What is still unmeasured is
-  AVX-512, and the thresholds themselves were still set on one machine.
-- **The rounded corners and the transforms have not been rasterized on AVX-512.**
-  Blend2D JITs its pipelines per CPU. The goldens now run on Apple Silicon's NEON
-  path and under MSVC in CI, and they pass there; the four cubics and the eleventh
-  golden's rotations and skews on AVX-512 are still answered by a future run
-  rather than by argument — which is what the golden images'
-  per-channel *and* area tolerance is for. The transform half also rests on `BLMatrix2D`
-  being six consecutive doubles in the order `matrix(a, b, c, d, e, f)` writes them,
-  which the layout probe now checks against the compiled library on every target because
-  the operand crosses as `void*` and a reordered union would produce a skewed frame and
-  `BL_SUCCESS`. — [ADR-0064](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0064-a-rounded-rectangle-is-four-cubics.md),
-  [ADR-0068](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0068-the-transform-stack-is-java-side.md),
-  [ADR-0050](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0050-golden-images-have-a-tolerance.md)
-- **The units between the two text libraries are a convention, not a checked fact.**
-  HarfBuzz reports positions in whatever scale its font was set to; Blend2D multiplies
-  them by `size / units-per-em`. Both are right, and applying a size on both sides
-  applies it twice — 128&times; for Inter at 16 points — which draws text off the edge
-  of the window and returns `BL_SUCCESS`. The layout table cannot catch this: it is an
-  agreement *between* two libraries, not a fact about either. What holds it is `Font`
-  owning both objects and never scaling the shaper, plus a test that compares the inked
-  span against the measured width. Anything that builds a `ShapedFont` and a `BlendFont`
-  by hand can still get it wrong. —
-  [ADR-0034](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0034-one-size-and-the-design-unit-crossing.md)
-- **A line boundary keeps a kern it should drop.** Each line is a slice of the whole
-  paragraph's single shaping, so the kern between the last character of one line and the
-  first of the next is included where a per-line shaping would drop it. A fraction of a
-  pixel at the end of a line, in exchange for wrapping that costs no shaping at all.
-  Re-shaping only the final lines, and only for painting, is the fix if it ever shows. —
-  [ADR-0036](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0036-the-paragraph-is-shaped-once-and-wrapped-many-times.md)
-- **`Element.update` invalidates a subtree only when the cascade could see the
-  change.** ADR-0149 narrowed the *state* path and ADR-0315 narrowed this one: a
-  rebuilt widget throws away what is below it when `matchesDiffer` says its
-  identity to the cascade moved — its type, its classes or its id — and
-  invalidates its own style alone when it did not. What is left is the case where
-  the identity *did* move, which still costs the subtree and which nothing has
-  measured as a problem. —
-  [ADR-0149](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0149-a-state-invalidates-what-it-can-reach.md),
-  [ADR-0315](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0315-a-rebuild-is-not-a-restyle.md)
-- **A HUD costs about three shaped paragraphs a frame, and reports the cost as
-  its own.** Its readings are strings that change every frame, so no cache keyed
-  on the string can hold them. The caption says so rather than hiding it, and the
-  ways out are all worse than the disclosure: refreshing the text at 10 Hz would
-  need per-frame state a widget cannot have, and excluding the overlay subtree
-  from the timings would report a frame the window did not paint. —
-  [ADR-0152](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0152-the-cascade-looks-at-rules-that-could-match.md)
+Nothing open since 2026-10-18. The two AVX-512 entries are answered by a golden
+suite that names its instruction set (ADR-0649). The units between the text
+libraries are checked from the bytecode, and the four documented costs are
+closed as decisions under [Answered](#answered).
 ## Platform, compositor and CI
 - **The 60 fps claim is measured on one machine, and closing M1 is a CI job.**
   §16's M1 asks for a styled wrapped paragraph *resized* at 60 fps on Linux,
@@ -622,6 +539,150 @@ way back is a consumer asking, not a date.
 Kept rather than deleted: each is a trap somebody hit, and the reasoning that got
 out of it is usually worth more than the fact that it is fixed.
 
+- ~~**A popup's transparent corners need a compositor**~~, and are unverified on
+  Windows and macOS. Without one the flag is ignored and the corners are whatever
+  the platform leaves there. The fallback that always works — filling the frame
+  with the panel's own colour, for square corners — is kept in reserve. —
+  [ADR-0111](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0111-a-text-box-is-painted-inside-its-padding.md)
+
+  **X11 was broken even with a compositor, and is fixed.** SDL's X11 driver gives
+  a transparent window a 32-bit visual only for OpenGL. The popups present through
+  a window surface, so they got the default 24-bit visual, the alpha was dropped
+  and the corners came out black. `SdlVideo.createPopupWindow` now names the
+  32-bit TrueColor visual through `SDL_VIDEO_X11_WINDOW_VISUALID`, and
+  `Sdl3PopupTest.popupIsSeeThroughOnX11` reads the corners back as `00000000`
+  (ADR-0628, parked in `docs/snapshot/adr`). Windows and macOS are still unverified
+  by eye.
+
+  **The toolkit can tell now (2026-10-18).** `Backend.seeThroughPopups` answers
+  whether a popup's transparent pixels will be seen through, which on X11 is
+  whether `_NET_WM_CM_S<n>` has an owner (ADR-0632). The shadow's room is
+  withheld where it would be black. The square-corner fallback this entry keeps
+  in reserve could be keyed on the same answer; nothing does that yet.
+
+  **Closed (2026-10-18): where nobody can see through a popup, its corners are
+  square** (ADR-0648, parked in `docs/snapshot/adr`). The fallback came out of
+  reserve, keyed on `seeThroughPopups` as the shadow already was. It squares the
+  panel's radii rather than filling the frame under them, so the background and
+  the border fill the whole window and nothing is left to come out black.
+  `PopupShadowTest` holds both answers. Windows and macOS answer true and still
+  have not been looked at by eye.
+- ~~**Opening a long note still shapes all of it, on the frame that opens it.**~~ A
+  keystroke into a 500 kB `text-area` costs what a keystroke into a 2 kB one
+  costs now, because the text is shaped one hard line at a time and only the rows
+  on screen are drawn. The first frame is not: 499 079 characters, 78 to 95 ms
+  across runs on this machine, and again whenever the cascade resolves a
+  different face. It is irreducible in
+  the shape the control has — how far the content scrolls is a fact about every
+  line, and nothing knows a line's height without shaping it — so closing it
+  means shaping the lines below the fold **off** the frame and filling in the
+  scroll range as they arrive, which is a different control and a different
+  promise about what the scrollbar means. Nobody has reported it: the downstream
+  editor's complaint was the keystroke, and `TextAreaFrameBenchmark` is where the
+  number would have to come from first (ADR-0045). —
+  [ADR-0388](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0388-a-note-is-shaped-a-line-at-a-time.md)
+
+  **Closed (2026-10-18): a decision, kept until a report or a number says
+  otherwise.** The keystroke was the complaint, and it is answered. The first
+  frame is the price of a scrollbar that tells the truth about a document from
+  the moment it opens. Shaping below the fold off the frame would make the
+  scroll range grow under the reader, which is a different control with a
+  different promise. What reopens this is a user reporting the open, or
+  `TextAreaFrameBenchmark` showing the first frame over a budget somebody chose.
+- ~~**The scale-invariance thresholds are calibrated on one CPU.**~~ The worst honest
+  disagreement measured over the corpus is 0.332% of pixels against a 1.2% limit, and
+  Blend2D JITs its antialiasing for the CPU it finds (ADR-0030) — so the margin on
+  AVX-512, on Apple Silicon and under MSVC is answered by the next CI run rather than
+  by argument, exactly as the goldens' own tolerance is.
+  `-Dgoldberry.golden.scales.report=true` prints what every check measured, which is
+  how a runner pressing against the limit would say so in numbers. —
+  [ADR-0162](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0162-a-golden-is-checked-at-every-scale.md)
+
+  **Partly answered by CI, as it said it would be.** The golden suites run on
+  `windows-x64` under MSVC and on `macos-aarch64`'s NEON path
+  (`windows.yml`, `macos.yml`), and both are green. What is still unmeasured is
+  AVX-512, and the thresholds themselves were still set on one machine.
+
+  **Closed (2026-10-18): answered by the suite, which now says what it ran on**
+  (ADR-0649, parked in `docs/snapshot/adr`). Every golden failure and every line of
+  the scale report names the architecture and vector level, read from HotSpot's
+  `UseAVX`: `x86-64, AVX2`, `x86-64, AVX-512` or `aarch64, NEON`. A runner with
+  AVX-512 that disagrees past the thresholds turns red and says so, and one that
+  agrees says so in the report. This machine is a Haswell with no AVX-512, so it
+  cannot answer by itself.
+- ~~**The rounded corners and the transforms have not been rasterized on AVX-512.**~~
+  Blend2D JITs its pipelines per CPU. The goldens now run on Apple Silicon's NEON
+  path and under MSVC in CI, and they pass there; the four cubics and the eleventh
+  golden's rotations and skews on AVX-512 are still answered by a future run
+  rather than by argument — which is what the golden images'
+  per-channel *and* area tolerance is for. The transform half also rests on `BLMatrix2D`
+  being six consecutive doubles in the order `matrix(a, b, c, d, e, f)` writes them,
+  which the layout probe now checks against the compiled library on every target because
+  the operand crosses as `void*` and a reordered union would produce a skewed frame and
+  `BL_SUCCESS`. — [ADR-0064](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0064-a-rounded-rectangle-is-four-cubics.md),
+  [ADR-0068](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0068-the-transform-stack-is-java-side.md),
+  [ADR-0050](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0050-golden-images-have-a-tolerance.md)
+
+  **Closed (2026-10-18): answered by the suite** (ADR-0649, parked in
+  `docs/snapshot/adr`), with the previous entry. The goldens that hold the cubics
+  and the transforms name the vector level they were drawn on when they fail. The
+  layout probe checks `BLMatrix2D`'s order on every target, and the tolerance is
+  what decides AVX-512 as it decides every other path.
+- ~~**The units between the two text libraries are a convention, not a checked fact.**~~
+  HarfBuzz reports positions in whatever scale its font was set to; Blend2D multiplies
+  them by `size / units-per-em`. Both are right, and applying a size on both sides
+  applies it twice — 128&times; for Inter at 16 points — which draws text off the edge
+  of the window and returns `BL_SUCCESS`. The layout table cannot catch this: it is an
+  agreement *between* two libraries, not a fact about either. What holds it is `Font`
+  owning both objects and never scaling the shaper, plus a test that compares the inked
+  span against the measured width. Anything that builds a `ShapedFont` and a `BlendFont`
+  by hand can still get it wrong. —
+  [ADR-0034](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0034-one-size-and-the-design-unit-crossing.md)
+
+  **Closed (2026-10-18): a checked fact now, inside `:core` and out.** Outside,
+  the `:natives` seal already made it one: the HarfBuzz and Blend2D packages are
+  exported to `dev.goldberry.core` alone, so no other module can build either
+  font. Inside, `FontUnitsAgreementTest` reads every class `:core` compiles with
+  the class-file API. It holds that nothing calls `ShapedFont.setScale`, that the
+  shaping font is built only in `FontFace`, and that the drawing font is built
+  only in `GlyphPen`.
+- ~~**A line boundary keeps a kern it should drop.**~~ Each line is a slice of the whole
+  paragraph's single shaping, so the kern between the last character of one line and the
+  first of the next is included where a per-line shaping would drop it. A fraction of a
+  pixel at the end of a line, in exchange for wrapping that costs no shaping at all.
+  Re-shaping only the final lines, and only for painting, is the fix if it ever shows. —
+  [ADR-0036](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0036-the-paragraph-is-shaped-once-and-wrapped-many-times.md)
+
+  **Closed (2026-10-18): a decision, kept.** A fraction of a pixel at a line's
+  end, in exchange for wrapping that never shapes again. Nobody has seen it in a
+  golden or a report. The fix is still the one named, if it ever shows.
+- ~~**`Element.update` invalidates a subtree only when the cascade could see the
+  change.**~~ ADR-0149 narrowed the *state* path and ADR-0315 narrowed this one: a
+  rebuilt widget throws away what is below it when `matchesDiffer` says its
+  identity to the cascade moved — its type, its classes or its id — and
+  invalidates its own style alone when it did not. What is left is the case where
+  the identity *did* move, which still costs the subtree and which nothing has
+  measured as a problem. —
+  [ADR-0149](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0149-a-state-invalidates-what-it-can-reach.md),
+  [ADR-0315](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0315-a-rebuild-is-not-a-restyle.md)
+
+  **Closed (2026-10-18): a decision, kept.** When a widget's type, classes or id
+  change, what matches below it can change, so its subtree has to be resolved
+  again. That is correctness, not a cost to narrow. Nothing has measured it as a
+  problem, and the cascade's own counters (`docs/ARCHITECTURE.md`'s numbers for a
+  wheel notch) are where a measurement would come from.
+- ~~**A HUD costs about three shaped paragraphs a frame, and reports the cost as
+  its own.**~~ Its readings are strings that change every frame, so no cache keyed
+  on the string can hold them. The caption says so rather than hiding it, and the
+  ways out are all worse than the disclosure: refreshing the text at 10 Hz would
+  need per-frame state a widget cannot have, and excluding the overlay subtree
+  from the timings would report a frame the window did not paint. —
+  [ADR-0152](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0152-the-cascade-looks-at-rules-that-could-match.md)
+
+  **Closed (2026-10-18): disclosed, and that is the answer.** A HUD's readings
+  change every frame, so no string-keyed cache can hold them. Reporting the cost
+  inside the frame it measures is more honest than any of the ways around it, and
+  the caption says so.
 - ~~**Markup cannot name a painter.**~~ A `canvas` node inflates to a styled, sized
   surface that draws nothing; the drawing is Java. `icon` solved the same problem
   with a registry the application owns

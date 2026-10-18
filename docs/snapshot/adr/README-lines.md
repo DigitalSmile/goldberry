@@ -89,3 +89,5 @@ Appended to the index when the records move in, in this order.
 - [ADR-0645 Markup names a canvas painter the application bound](0645-markup-names-a-canvas-painter-the-application-bound.md)
 - [ADR-0646 A canvas is cached by `isolation`, and a styled painter compares equal](0646-a-canvas-is-cached-by-isolation-and-a-styled-painter-compares-equal.md)
 - [ADR-0647 An editor scrolls inside the box it is told about](0647-an-editor-scrolls-inside-the-box-it-is-told-about.md)
+- [ADR-0648 A popup nobody can see through has square corners](0648-a-popup-nobody-can-see-through-has-square-corners.md)
+- [ADR-0649 A golden says which instruction set it was rasterized with](0649-a-golden-says-which-instruction-set-it-was-rasterized-with.md)

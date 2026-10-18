@@ -83,6 +83,7 @@ class PopupShadowTest {
             return List.of(Stylesheet.parse(CascadeLayer.APPLICATION, """
                     page { flex-grow: 1; background: #204060 }
                     panel { width: 100px; height: 40px; background: #eceff4;
+                            border-radius: 8px;
                             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5) }
                     """));
         }
@@ -223,5 +224,28 @@ class PopupShadowTest {
         var seen = open(true, window -> backend.post(new BackendEvent.PointerPressed(window, 66, 28, 1, 1, 0)));
 
         assertTrue(seen.open());
+    }
+
+    @Test
+    @Timeout(20)
+    @DisplayName("where the platform cannot see through a popup, its panel has square corners")
+    void squareCornersWithoutTransparency() {
+        var seen = open(false, window -> {});
+        var frame = Objects.requireNonNull(seen.frame());
+
+        assertEquals(255, alphaAt(frame, 0, 0), "the corner outside the radius was left transparent, which is black");
+    }
+
+    @Test
+    @Timeout(20)
+    @DisplayName("and where it can, the corners stay round")
+    void roundCornersWithTransparency() {
+        var seen = open(true, window -> {});
+        var frame = Objects.requireNonNull(seen.frame());
+        var panelLeft = (int) (seen.bounds().left() - seen.window().x());
+        var panelTop = (int) (seen.bounds().top() - seen.window().y());
+
+        assertTrue(alphaAt(frame, panelLeft, panelTop) < 255, "the panel's corner was squared on a see-through popup");
+        assertEquals(255, alphaAt(frame, panelLeft + 50, panelTop + 20), "the panel itself");
     }
 }

@@ -170,7 +170,7 @@ public final class ScaleInvariance {
         for (var multiplier : multipliers()) {
             var result = measure(width, height, scale, multiplier, scene, reference);
             if (Boolean.getBoolean(REPORT_PROPERTY)) {
-                System.out.println("scale-invariance " + name + " " + result.describe());
+                System.out.println("scale-invariance [" + SimdPath.describe() + "] " + name + " " + result.describe());
             }
             if (result.matches()) {
                 continue;
@@ -184,6 +184,7 @@ public final class ScaleInvariance {
             Png.write(FAILURE_DIR.resolve(stem + "-diff.png"), result.diff());
             throw new AssertionFailedError("\"" + name + "\" does not draw the same picture at " + label(multiplier)
                     + "x its scale: " + result.describe()
+                    + ", rasterized on " + SimdPath.describe()
                     + ". A difference this size is geometry rather than antialiasing —"
                     + " something is using a physical size where a logical one belongs,"
                     + " or the other way round. The 1x render, the"

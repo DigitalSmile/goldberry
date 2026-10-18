@@ -9,6 +9,7 @@ import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import dev.goldberry.css.Corners;
 import dev.goldberry.css.select.SelectorChain;
 import dev.goldberry.input.PointerRouter;
 import dev.goldberry.input.event.PointerEvent;
@@ -95,6 +96,9 @@ public final class Popup implements AutoCloseable {
     /// The room around the panel its shadow is drawn in; see the class note.
     private final PopupMargin margin;
 
+    /// Whether the platform shows what is outside the panel's rounded corners.
+    private final boolean seeThrough;
+
     /// What a press in [#margin] does: whatever a press outside every popup does
     /// in the owner window.
     private final Runnable pressedOutside;
@@ -131,11 +135,16 @@ public final class Popup implements AutoCloseable {
             RenderTree render,
             Supplier<WidgetRenderer> renderer,
             Runnable onClosed) {
-        this(backend, window, tree, render, renderer, onClosed, PopupMargin.NONE, () -> {});
+        this(backend, window, tree, render, renderer, onClosed, PopupMargin.NONE, () -> {}, true);
     }
 
-    /// The same, with room for a shadow around the panel and what a press in that
-    /// room does.
+    /// The same, with room for a shadow around the panel, what a press in that
+    /// room does, and whether the platform shows what is outside the panel's
+    /// rounded corners.
+    ///
+    /// @param seeThrough whether the popup's transparent pixels are seen through.
+    ///                   Where they are not, the panel is drawn with square
+    ///                   corners ([#squared]).
     Popup(
             BackendPopup backend,
             Window window,
@@ -144,7 +153,9 @@ public final class Popup implements AutoCloseable {
             Supplier<WidgetRenderer> renderer,
             Runnable onClosed,
             PopupMargin margin,
-            Runnable pressedOutside) {
+            Runnable pressedOutside,
+            boolean seeThrough) {
+        this.seeThrough = seeThrough;
         this.margin = Objects.requireNonNull(margin, "margin");
         this.pressedOutside = Objects.requireNonNull(pressedOutside, "pressedOutside");
         this.backend = Objects.requireNonNull(backend, "backend");
@@ -421,7 +432,8 @@ public final class Popup implements AutoCloseable {
     /// The panel, inside a box that pads it by the shadow's room, or the panel
     /// itself when there is no room. The padding box has no owner, so nothing in
     /// the room is hit.
-    private Box inset(Box panel) {
+    private Box inset(Box drawn) {
+        var panel = seeThrough ? drawn : squared(drawn);
         if (margin.isNone()) {
             return panel;
         }
@@ -432,6 +444,18 @@ public final class Popup implements AutoCloseable {
                         Length.points(margin.bottom()),
                         Length.points(margin.left())))
                 .children(panel);
+    }
+
+    /// The panel with square corners, for a platform that would paint what is
+    /// outside rounded ones black.
+    ///
+    /// A popup's frame is cleared to transparent, and with no compositor to see
+    /// through it the four corners outside the radius are whatever the platform
+    /// leaves there: black on an uncomposited X11 desktop. Square corners fill
+    /// the whole window with the panel's own drawing, its border included. The
+    /// shadow is already withheld on the same answer.
+    private static Box squared(Box panel) {
+        return panel.decoration(panel.decoration().corners(Corners.SQUARE));
     }
 
     /// One frame of this popup, painted by the same renderer as its owner.
