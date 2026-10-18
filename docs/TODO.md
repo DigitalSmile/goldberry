@@ -693,15 +693,6 @@ on, which in four cases is the same thing.
   classifiers**, because `NativeLibrary` picks at run time and the
   one-platform form is the one that fails quietly for somebody building on
   macOS for Linux.
-- **A native image resolves a host name before `main`.** About 50 ms of its 70 ms
-  before the toolkit's first line is a lookup through `libnss_mdns4_minimal`
-  (`/etc/nsswitch.conf`, `/etc/hosts`, then the wait). The JVM does no such thing
-  — its one `nsswitch.conf` read is for the user's name — and logback resolves
-  `HOSTNAME` lazily and this configuration never asks, so it is not logback's
-  `ContextBase`. The image is stripped, so the stack did not say whose it is; a
-  build with symbols, or an `InetAddressResolverProvider` that prints its caller
-  (which found nothing on the JVM), would. —
-  [ADR-0506](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0506-start-up-is-timed-from-the-kernels-clock-and-a-native-window-is-up-in-a-tenth-of-a-second.md)
 ## On hold: the accessibility bridge
 
 **On hold —
@@ -772,6 +763,26 @@ way back is a consumer asking, not a date.
 Kept rather than deleted: each is a trap somebody hit, and the reasoning that got
 out of it is usually worth more than the fact that it is fixed.
 
+- ~~**A native image resolves a host name before `main`.**~~ About 50 ms of its 70 ms
+  before the toolkit's first line is a lookup through `libnss_mdns4_minimal`
+  (`/etc/nsswitch.conf`, `/etc/hosts`, then the wait). The JVM does no such thing
+  — its one `nsswitch.conf` read is for the user's name — and logback resolves
+  `HOSTNAME` lazily and this configuration never asks, so it is not logback's
+  `ContextBase`. The image is stripped, so the stack did not say whose it is; a
+  build with symbols, or an `InetAddressResolverProvider` that prints its caller
+  (which found nothing on the JVM), would. —
+  [ADR-0506](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0506-start-up-is-timed-from-the-kernels-clock-and-a-native-window-is-up-in-a-tenth-of-a-second.md)
+
+  **Closed (2026-10-18): it was logback, by another door** (ADR-0634, parked in
+  `docs/snapshot/adr`). An strace named the host: `dev.goldberry.example`, the
+  showcase's module, asked twice of the DNS stub and answered NXDOMAIN after
+  about 36 ms each. logback's default search, having found `logback.xml`,
+  counts the copies by putting every URL for it into a `HashSet`, and
+  `URL.hashCode` resolves the host, which in a native image is the module's
+  name. The showcase now hands logback its file through a `Configurator`
+  (`ShowcaseLogging`), so the search never runs. Traced again, nothing is
+  resolved, and under strace the time before the first line went from 146 ms
+  to 14 ms.
 - ~~**Nothing in the catalog wears an elevation yet.**~~ **Five surfaces do**
   ([ADR-0312](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0312-the-catalog-puts-the-two-new-properties-on.md)): `card` at
   §1.5's level 1 and lifting to level 2 on `card.interactive:hover`, `dialog`,

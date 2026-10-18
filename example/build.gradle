@@ -66,6 +66,11 @@ dependencies {
     // that call looks like.
     // https://goldberry.dev/docs/guide/logging.html#a-logback-configuration
     runtimeOnly libs.logback.classic
+    // And at compile time for one class: `ShowcaseLogging` hands logback the
+    // showcase's own file, so its default search never resolves a resource
+    // URL's host in a native image. Still not exported or required by anything
+    // the toolkit ships.
+    compileOnly libs.logback.classic
 }
 
 // ============================================================================

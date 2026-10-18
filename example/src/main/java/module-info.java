@@ -53,6 +53,14 @@ module dev.goldberry.example {
     requires jdk.httpserver;
     requires org.slf4j;
 
+    // For `ShowcaseLogging` alone, and present at run time because the build puts
+    // logback there; see the class for why the showcase configures it itself.
+    requires static ch.qos.logback.classic;
+    requires static ch.qos.logback.core;
+
+    provides ch.qos.logback.classic.spi.Configurator with
+            dev.goldberry.example.logging.ShowcaseLogging;
+
     /// So the toolkit can read `showcase.css` and the seven KDL documents.
     ///
     /// JPMS encapsulates **resources** as well as classes: a file inside a
