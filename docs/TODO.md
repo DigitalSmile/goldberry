@@ -526,7 +526,8 @@ on, which in four cases is the same thing.
   application author uses. —
   [ADR-0039](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0039-macos-needs-the-first-thread.md)
 - **The compositor still dies, and shutting down cleanly did not stop it — the core dump
-  says whose bug it is.** The entry below concluded that exiting with a live Wayland
+  says whose bug it is.** *The toolkit never shut SDL down* (now under
+  [Answered](#answered)) concluded that exiting with a live Wayland
   surface was the trigger and that `Goldberry.shutdown()` was the fix. The showcase has
   called `shutdown()` ever since, and GNOME Shell crashed twice more on 2026-08-17.
   `/var/crash` had the core, and it names the frame: ```text wl_event_loop_dispatch
@@ -541,10 +542,16 @@ on, which in four cases is the same thing.
   frame is `meta_xwayland_signal`, 2.2 KB back, so the crashing function is a static one
   in Mutter's Xwayland area — suggestive, not conclusive, and not enough to file
   upstream on its own. What is left for this repository is **not** a fix but a defence:
-  nothing should be able to open a real surface by accident. See the entry below on the
-  two unreliable ways to ask for a headless run. Reproducing this deliberately costs the
+  nothing should be able to open a real surface by accident. See *Both ways to run the
+  showcase headlessly were broken*, under [Answered](#answered). Reproducing this deliberately costs the
   developer their session, so it is not something to iterate on casually. gnome-shell
   46.0-0ubuntu6~24.04.14, Ubuntu 24.04, under VirtualBox/vmwgfx.
+
+  **Unchanged by `run()` shutting down (2026-10-18).** Since ADR-0635 a
+  hand-assembled loop hands its windows back as `launch()` always did, so every
+  path out of the toolkit now disconnects cleanly. That closes our side and
+  leaves this entry where it was: the crash is in Mutter's teardown of a client
+  that disconnected properly.
 - **No CI leg exercises Wayland.** `showcase.yml` runs under
   `xvfb-run`, which is X11, where the window manager decorates the window and libdecor
   is never reached — which is why two consecutive decoration bugs shipped without a
