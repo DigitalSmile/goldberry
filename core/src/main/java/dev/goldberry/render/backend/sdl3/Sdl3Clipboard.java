@@ -1,7 +1,12 @@
 package dev.goldberry.render.backend.sdl3;
 
+import java.util.List;
+import java.util.Map;
+
+import dev.goldberry.bind.Subscription;
 import dev.goldberry.natives.sdl.desktop.SdlClipboard;
 import dev.goldberry.render.clipboard.Clipboard;
+import dev.goldberry.render.clipboard.ClipboardListeners;
 
 /// [Clipboard] over SDL3.
 ///
@@ -16,6 +21,19 @@ import dev.goldberry.render.clipboard.Clipboard;
 final class Sdl3Clipboard implements Clipboard {
 
     private final SdlClipboard clipboard = SdlClipboard.get();
+
+    private final ClipboardListeners listeners = new ClipboardListeners();
+
+    /// `SDL_EVENT_CLIPBOARD_UPDATE` arrived: somebody, this process included,
+    /// changed what the clipboard holds.
+    void changed() {
+        listeners.changed();
+    }
+
+    @Override
+    public Subscription onChange(Runnable listener) {
+        return listeners.add(listener);
+    }
 
     @Override
     public boolean hasText() {
@@ -43,12 +61,12 @@ final class Sdl3Clipboard implements Clipboard {
     }
 
     @Override
-    public java.util.List<String> types() {
+    public List<String> types() {
         return clipboard.types();
     }
 
     @Override
-    public boolean write(java.util.Map<String, byte[]> byMime) {
+    public boolean write(Map<String, byte[]> byMime) {
         return clipboard.write(byMime);
     }
 

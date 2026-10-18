@@ -231,12 +231,6 @@ description had no effect.
   has been clipped. A canvas with a long document moves its own transform, which
   it is already doing for everything else on it; a *widget* wanting this is
   `text-area`, which has a viewport.
-## The clipboard
-- **Nothing watches it.** There is no "the clipboard changed" notification, so a
-  paste button cannot grey itself out until its menu opens and asks
-  ([ADR-0286](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0286-a-clipboard-write-is-an-offer.md)). X11 and Wayland both
-  deliver ownership changes and Windows has a viewer chain; what is missing is a
-  consumer worth the plumbing.
 ## Content modules
 
 `docs/content-widgets.md`'s table has thirteen rows, and **four of them are
@@ -791,6 +785,22 @@ way back is a consumer asking, not a date.
 Kept rather than deleted: each is a trap somebody hit, and the reasoning that got
 out of it is usually worth more than the fact that it is fixed.
 
+- ~~**Nothing watches it.**~~ *(The clipboard.)* There is no "the clipboard changed" notification, so a
+  paste button cannot grey itself out until its menu opens and asks
+  ([ADR-0286](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0286-a-clipboard-write-is-an-offer.md)). X11 and Wayland both
+  deliver ownership changes and Windows has a viewer chain; what is missing is a
+  consumer worth the plumbing.
+
+  **Closed (2026-10-18), with the consumer built beside it** (ADR-0631, parked
+  in `docs/snapshot/adr`). There was no stock text menu, so a paste button
+  had nothing to grey out. Now `text-input` and `text-area` open Cut, Copy,
+  Paste and Select all on a secondary click, the menu key or `Shift+F10`,
+  through a `ContextMenuOwner` the context-menu walk asks after any name an
+  application wrote. `Clipboard.onChange` says when the clipboard changed:
+  SDL's `SDL_EVENT_CLIPBOARD_UPDATE` on a desktop, every accepted write on the
+  headless backend. While the menu is open it rebuilds its rows through
+  `Menus.show`'s `ShownMenu`, so Paste enables when another application copies.
+  `TextFieldMenuTest` drives all of it through the real launcher.
 - ~~**The native image cannot install the GLib log handler.**~~ It logs "no handle
   to bind a GLib callback to", and GLib's messages go to stderr there — what
   ADR-0443 routes into the logger everywhere else. An upcall the image's

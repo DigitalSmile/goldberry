@@ -165,7 +165,13 @@ interface TextEditor {
     /// whole reason both exist: a caret is placed from a width, and a popover of
     /// suggestions is anchored to a *position* that no widget can compute and
     /// only the painted frame knows. Autocomplete is what needed it.
-    void located(dev.goldberry.render.model.LogicalRect self, dev.goldberry.render.model.LogicalRect clip);
+    void located(LogicalRect self, LogicalRect clip);
+
+    /// A secondary click, the menu key or `Shift+F10` asked for this field's own
+    /// menu at `anchor`, in the window's coordinates.
+    ///
+    /// @return whether a menu opened; a disabled field opens none
+    boolean openContextMenu(LogicalRect anchor);
 
     /// A frame is being described: here is the paragraph the field's text shaped
     /// into, and how far in from the left edge the text starts.

@@ -211,6 +211,12 @@ interface AreaEditor {
     /// another. A scroll view answers the same question the same way.
     double contentWidth();
 
+    /// A secondary click, the menu key or `Shift+F10` asked for this area's own
+    /// menu at `anchor`, in the window's coordinates.
+    ///
+    /// @return whether a menu opened; a disabled area opens none
+    boolean openContextMenu(LogicalRect anchor);
+
     /// `Ctrl+C`, `Ctrl+X`, `Ctrl+V`, `Ctrl+Z`, `Ctrl+Y`.
     boolean copy();
 

@@ -19,6 +19,7 @@ import dev.goldberry.css.media.MediaContext;
 import dev.goldberry.frame.FrameSequence;
 import dev.goldberry.input.PointerRouter;
 import dev.goldberry.input.event.PointerEvent;
+import dev.goldberry.input.handler.ContextMenuOwner;
 import dev.goldberry.input.handler.Selects;
 import dev.goldberry.input.hit.HitTest;
 import dev.goldberry.input.key.Key;
@@ -828,10 +829,6 @@ final class HostedWindow implements WindowHost {
     /// button is that button's menu" — and a second copy of it would be a second
     /// chance for the two to disagree about which ancestor wins.
     private boolean openContextMenu(@Nullable Element from, LogicalRect anchor) {
-
-        if (contextMenus == null) {
-            return false;
-        }
         // The deepest widget on the walk that can make itself the subject, held
         // rather than told: a menu that never opens must not move a selection,
         // because a selection that changed with nothing to show for it is a
@@ -843,7 +840,9 @@ final class HostedWindow implements WindowHost {
             }
             var named =
                     node.widget() instanceof Attributed<?> a ? a.attributes().contextMenu() : null;
-            if (named != null) {
+            // Without a handler a name opens nothing, and the walk carries on to
+            // a widget that can open its own menu.
+            if (named != null && contextMenus != null) {
                 // Before the menu, so the row is already drawn as the selection
                 // in the frame the menu opens over — and so an application
                 // building the menu from its own selection reads the new one.
@@ -852,6 +851,17 @@ final class HostedWindow implements WindowHost {
                 }
                 contextMenus.open(named, anchor);
                 return true;
+            }
+            // A widget with a menu of its own, after a name on the same widget:
+            // what an application wrote wins over the stock answer. Focused first,
+            // so the command acts where the caret then shows.
+            if (node.widget() instanceof ContextMenuOwner owner) {
+                if (router.focused() != node) {
+                    router.focus(node, false);
+                }
+                if (owner.openContextMenu(anchor)) {
+                    return true;
+                }
             }
         }
         return false;

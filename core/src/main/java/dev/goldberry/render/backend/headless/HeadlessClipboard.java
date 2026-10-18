@@ -8,7 +8,9 @@ import java.util.function.Supplier;
 
 import org.jspecify.annotations.Nullable;
 
+import dev.goldberry.bind.Subscription;
 import dev.goldberry.render.clipboard.Clipboard;
+import dev.goldberry.render.clipboard.ClipboardListeners;
 
 /// The session clipboard a headless test gets — in memory, **lazy**, and able to
 /// refuse.
@@ -55,6 +57,13 @@ import dev.goldberry.render.clipboard.Clipboard;
 /// A refused write changes nothing. What was on the clipboard is still on it,
 /// which is what a declined offer leaves behind.
 ///
+/// ## Every accepted write is a change
+///
+/// [Clipboard#onChange] listeners are told after every write that was accepted —
+/// text, an offer, a clear — and never after a refused one, which changed
+/// nothing. A desktop tells them on another application's copy too; here that
+/// is a test calling [#text(String)], since a copy is a copy whoever makes it.
+///
 /// Confined to the UI thread, like the rest of this backend.
 ///
 /// Read more: [Text, fonts and icons](https://goldberry.dev/docs/guide/text.html#the-clipboard).
@@ -75,6 +84,8 @@ public final class HeadlessClipboard implements Clipboard {
     private final Map<String, Supplier<byte @Nullable []>> offered = new LinkedHashMap<>();
 
     private boolean refusing;
+
+    private final ClipboardListeners listeners = new ClipboardListeners();
 
     HeadlessClipboard(HeadlessBackend backend) {
         this.backend = Objects.requireNonNull(backend, "backend");
@@ -101,6 +112,7 @@ public final class HeadlessClipboard implements Clipboard {
         offered.clear();
         byMime.forEach((mime, supplier) ->
                 offered.put(Objects.requireNonNull(mime, "mime"), Objects.requireNonNull(supplier, "supplier")));
+        listeners.changed();
         return true;
     }
 
@@ -147,6 +159,7 @@ public final class HeadlessClipboard implements Clipboard {
         }
         text.setLength(0);
         text.append(value == null ? "" : value);
+        listeners.changed();
         return true;
     }
 
@@ -202,7 +215,14 @@ public final class HeadlessClipboard implements Clipboard {
         }
         offered.clear();
         text.setLength(0);
+        listeners.changed();
         return true;
+    }
+
+    @Override
+    public Subscription onChange(Runnable listener) {
+        backend.requireUiThread();
+        return listeners.add(listener);
     }
 
     @Override

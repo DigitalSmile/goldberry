@@ -8,6 +8,7 @@ import dev.goldberry.Host;
 import dev.goldberry.input.hit.Extent;
 import dev.goldberry.layout.Direction;
 import dev.goldberry.render.event.EventLoop;
+import dev.goldberry.render.model.LogicalRect;
 import dev.goldberry.text.Paragraph;
 import dev.goldberry.text.edit.EditHistory;
 import dev.goldberry.text.edit.TextEdit;
@@ -16,6 +17,8 @@ import dev.goldberry.widget.BuildContext;
 import dev.goldberry.widget.State;
 import dev.goldberry.widget.Widget;
 import dev.goldberry.widgets.controls.selectlist.SelectList;
+import dev.goldberry.widgets.form.edit.TextCommands;
+import dev.goldberry.widgets.form.edit.TextMenu;
 import dev.goldberry.widgets.form.parts.Composing;
 import dev.goldberry.widgets.form.parts.MaxLength;
 import dev.goldberry.widgets.form.parts.Preedit;
@@ -48,7 +51,7 @@ import dev.goldberry.widgets.form.parts.Preedit;
 /// SDL delivers no committed text until a window asks, and asking is what raises
 /// an on-screen keyboard, so it is turned on when focus arrives here and off when
 /// it leaves. A window whose fields are all unfocused has it off.
-final class TextInputState extends State<TextInput> implements TextEditor {
+final class TextInputState extends State<TextInput> implements TextEditor, TextCommands {
 
     /// How long each half of the blink lasts.
     ///
@@ -60,6 +63,9 @@ final class TextInputState extends State<TextInput> implements TextEditor {
 
     private TextEdit edit = TextEdit.EMPTY;
     private final EditHistory history = new EditHistory();
+
+    /// The stock menu, made the first time it is asked for; see [#openContextMenu].
+    private @Nullable TextMenu menu;
 
     /// The window, captured in `build` and used only from a handler — which is
     /// what [BuildContext#host()] allows.
@@ -328,6 +334,9 @@ final class TextInputState extends State<TextInput> implements TextEditor {
         // because a popup is not a value and is not collected with the tree.
         closeSuggestions();
         stopBlinking();
+        if (menu != null) {
+            menu.close();
+        }
         // The platform's text input is **not** turned off here any more. It is
         // the router's now, and the router is the one that knows what
         // has the focus *after* this field has gone: a field that turned it off
@@ -739,6 +748,42 @@ final class TextInputState extends State<TextInput> implements TextEditor {
         offset = Math.clamp(offset, 0, Math.max(0, textWidth - room));
         scrollOffset = offset;
         return shift();
+    }
+
+    @Override
+    public boolean openContextMenu(LogicalRect anchor) {
+        if (host == null || widget().disabled()) {
+            return false;
+        }
+        if (menu == null) {
+            menu = new TextMenu(host, this);
+        }
+        return menu.open(anchor);
+    }
+
+    @Override
+    public boolean canCut() {
+        return canCopy() && !widget().readOnly();
+    }
+
+    @Override
+    public boolean canCopy() {
+        // A password field lets nothing out, by key or by menu.
+        return edit.hasSelection() && !widget().password() && !widget().disabled();
+    }
+
+    @Override
+    public boolean canPaste() {
+        var input = widget();
+        return host != null
+                && !input.disabled()
+                && !input.readOnly()
+                && host.clipboard().hasText();
+    }
+
+    @Override
+    public boolean canSelectAll() {
+        return !edit.isEmpty() && !(edit.start() == 0 && edit.end() == edit.length()) && !widget().disabled();
     }
 
     @Override

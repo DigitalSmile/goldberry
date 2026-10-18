@@ -157,6 +157,27 @@ public final class Menus {
         return open(host, anchor, menu, Placement.BELOW, new ArrayList<>(), null, null);
     }
 
+    /// Opens `menu` against a rectangle, as [#open(Host, LogicalRect, Menu)]
+    /// does, and answers a handle that can give the open menu new rows.
+    ///
+    /// For a menu whose rows follow something that changes while it is open: a
+    /// text field's Paste, which enables itself when another application copies.
+    /// Any submenu that was open closes when the rows change.
+    public static Optional<ShownMenu> show(Host host, LogicalRect anchor, Menu menu) {
+        Objects.requireNonNull(host, "host");
+        Objects.requireNonNull(anchor, "anchor");
+        Objects.requireNonNull(menu, "menu");
+        return openMenu(
+                        host,
+                        menu,
+                        new ArrayList<>(),
+                        null,
+                        null,
+                        content -> host.popup(content, anchor, Placement.BELOW, 0, VIEWPORT))
+                .map(open ->
+                        new ShownMenu(Objects.requireNonNull(open.self, "set when the popup opened"), open::replace));
+    }
+
     /// What the two arrows that leave a menu mean to whoever opened it.
     ///
     /// A `menubar` supplies one and nothing else does. Both halves are optional:
@@ -216,6 +237,17 @@ public final class Menus {
             @Nullable OpenMenu parent,
             @Nullable Siblings siblings,
             Function<Widget, Optional<Popup>> opener) {
+        return openMenu(host, menu, stack, parent, siblings, opener).map(open -> open.self);
+    }
+
+    /// The same, answering the open menu rather than its popup, for [#show].
+    private static Optional<OpenMenu> openMenu(
+            Host host,
+            Menu menu,
+            List<Popup> stack,
+            @Nullable OpenMenu parent,
+            @Nullable Siblings siblings,
+            Function<Widget, Optional<Popup>> opener) {
 
         var open = new OpenMenu(host, menu, stack, parent, siblings);
         var opened = opener.apply(menu.withAttributes(menu.attributes()).children(open.describe()));
@@ -223,7 +255,7 @@ public final class Menus {
             open.self = popup;
             stack.add(popup);
         });
-        return opened;
+        return opened.map(_ -> open);
     }
 
     /// A menu longer than the screen becomes a menu of the screen's height with
@@ -281,7 +313,9 @@ public final class Menus {
     private static final class OpenMenu {
 
         private final Host host;
-        private final Menu menu;
+
+        /// What it shows. Replaced by [#replace] for a menu opened with [#show].
+        private Menu menu;
 
         /// Every popup opened from this root, shared with the whole stack.
         private final List<Popup> stack;
@@ -415,6 +449,21 @@ public final class Menus {
                     openSubmenu(item, index);
                 }
             });
+        }
+
+        /// Gives this menu new rows in place: what a [ShownMenu] asks for.
+        ///
+        /// Any submenu closes first, because the row it hung off may not be in
+        /// the new rows, or may not lead anywhere now.
+        void replace(Menu next) {
+            if (self == null || !self.isOpen()) {
+                return;
+            }
+            cancelPending();
+            closeAfter(stack, self);
+            openIndex = -1;
+            menu = next;
+            self.content(menu.children(describe()));
         }
 
         /// Closes everything this menu had open, leaving the menu itself.

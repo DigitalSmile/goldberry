@@ -119,6 +119,13 @@ public enum SdlEventType {
     /// which on every desktop with a sunset schedule is once a day.
     SYSTEM_THEME_CHANGED(0x108),
 
+    /// The clipboard's contents changed — `SDL_EVENT_CLIPBOARD_UPDATE`.
+    ///
+    /// Not a window event either. Sent when another application takes the
+    /// clipboard and when this one writes it, so it means "ask again", not
+    /// "somebody else copied".
+    CLIPBOARD_UPDATE(0x900),
+
     /// One file of a drag-and-drop gesture was dropped on a window —
     /// `SDL_EVENT_DROP_FILE`.
     ///

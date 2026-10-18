@@ -115,7 +115,7 @@ public final class Sdl3Backend implements Backend {
     private final Thread uiThread = Thread.currentThread();
     private final Map<Integer, Sdl3Window> windowsById = new LinkedHashMap<>();
     private final SdlEventBuffer eventBuffer = new SdlEventBuffer();
-    private final Clipboard clipboard = new Sdl3Clipboard();
+    private final Sdl3Clipboard clipboard = new Sdl3Clipboard();
 
     /// The primary selection, where the video driver has one, and null where it
     /// does not — decided once, from the driver SDL chose ([#hasPrimarySelection]).
@@ -985,6 +985,13 @@ public final class Sdl3Backend implements Backend {
     private float dropY;
 
     private void translate(int type, int windowId, List<BackendEvent> out) {
+        if (type == SdlEventType.CLIPBOARD_UPDATE.value()) {
+            // The session's, like the theme: no window, and nothing to queue.
+            // The clipboard tells its own listeners, on this thread, which is
+            // the UI thread a listener is promised.
+            clipboard.changed();
+            return;
+        }
         if (type == SdlEventType.SYSTEM_THEME_CHANGED.value()) {
             // No window of its own either: the desktop changed, so every window
             // this application has open is being told -- a `Host` is per window,

@@ -281,4 +281,61 @@ class HeadlessClipboardTest {
             assertTrue(failure.get() instanceof BackendException, "a seam is still an SPI call: " + failure.get());
         }
     }
+
+    /// What the stock text menu's Paste row listens to: every accepted write is a
+    /// change, and a refused one is not.
+    @Nested
+    @DisplayName("says when it changed")
+    class Changes {
+
+        @Test
+        @DisplayName("tells a listener on text, an offer, a write and a clear")
+        void everyAcceptedWrite() {
+            var told = new AtomicInteger();
+            clipboard.onChange(told::incrementAndGet);
+
+            clipboard.text("copied");
+            clipboard.offer(Map.of(SHAPE, () -> new byte[] {1}));
+            clipboard.write(Map.of(SHAPE, new byte[] {2}));
+            clipboard.clear();
+
+            assertEquals(4, told.get());
+        }
+
+        @Test
+        @DisplayName("says nothing about a write it refused, which changed nothing")
+        void notARefusal() {
+            var told = new AtomicInteger();
+            clipboard.onChange(told::incrementAndGet);
+            clipboard.refuseWrites(true);
+
+            clipboard.text("refused");
+            clipboard.offer(Map.of(SHAPE, () -> new byte[] {1}));
+            clipboard.clear();
+
+            assertEquals(0, told.get());
+        }
+
+        @Test
+        @DisplayName("stops telling once the subscription is closed")
+        void closed() {
+            var told = new AtomicInteger();
+            clipboard.onChange(told::incrementAndGet).close();
+
+            clipboard.text("after");
+
+            assertEquals(0, told.get());
+        }
+
+        @Test
+        @DisplayName("a listener reads the new contents")
+        void readsTheNewValue() {
+            var seen = new AtomicReference<String>();
+            clipboard.onChange(() -> seen.set(clipboard.text()));
+
+            clipboard.text("fresh");
+
+            assertEquals("fresh", seen.get());
+        }
+    }
 }

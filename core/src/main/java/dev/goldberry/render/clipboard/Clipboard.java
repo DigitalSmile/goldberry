@@ -3,6 +3,7 @@ package dev.goldberry.render.clipboard;
 import java.util.List;
 import java.util.Map;
 
+import dev.goldberry.bind.Subscription;
 import dev.goldberry.render.Backend;
 
 /// The session's clipboard, as the toolkit sees it: read the text, write the
@@ -48,14 +49,15 @@ import dev.goldberry.render.Backend;
 /// the platform has one — so `Ctrl+C` and `Ctrl+V` here mean the same thing on
 /// every platform, and a selection never replaces what was copied.
 ///
-/// ## Not a `Property`, and not watched
+/// ## Told when it changes, and still not a `Property`
 ///
-/// Nothing here reports a change. X11 and Wayland deliver clipboard ownership
-/// changes and Windows has a viewer chain, so "the clipboard changed" is
-/// knowable — but the only thing that would use it is a paste button greying
-/// itself out, and a paste button that asks [#hasText()] when its menu opens gets
-/// the same answer for none of the machinery. A widget that wants the current
-/// text asks for it.
+/// [#onChange] says *that* the clipboard changed — this application copied, or
+/// another one did — and not what it now holds. X11 and Wayland deliver ownership
+/// changes, Windows has a viewer chain, and SDL turns all of them into one event.
+/// The first consumer is the stock text menu's Paste row, which enables itself
+/// when something is copied while the menu is open. It is not a `Property`,
+/// because the value would be a round trip per change: a listener that wants the
+/// text asks for it, and most want only [#hasText()].
 ///
 /// ## Reads are not cheap
 ///
@@ -89,6 +91,17 @@ public interface Clipboard {
     ///         rather than an exception — a compositor can decline, and a copy
     ///         that did not happen must not take the window down with it.
     boolean text(String text);
+
+    /// Tells `listener` every time the clipboard's contents change, whoever
+    /// changed them, until the subscription is closed.
+    ///
+    /// On the UI thread. Says nothing about what changed; ask [#hasText()] or
+    /// [#types()]. A copy by this application is a change too. A backend that
+    /// cannot tell never calls it, which is what this default does, so a paste
+    /// command that asks again when it is shown is never wrong.
+    default Subscription onChange(Runnable listener) {
+        return () -> {};
+    }
 
     // --- bytes under a MIME type ---------------------------------------------
 

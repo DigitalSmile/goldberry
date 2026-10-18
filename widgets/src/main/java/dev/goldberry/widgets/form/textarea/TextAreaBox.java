@@ -13,6 +13,7 @@ import dev.goldberry.input.event.KeyEvent;
 import dev.goldberry.input.event.PointerEvent;
 import dev.goldberry.input.event.PreeditEvent;
 import dev.goldberry.input.event.TextEvent;
+import dev.goldberry.input.handler.ContextMenuOwner;
 import dev.goldberry.input.handler.Handles;
 import dev.goldberry.input.handler.Measured;
 import dev.goldberry.input.hit.Extent;
@@ -167,7 +168,13 @@ record TextAreaBox(
         Attributes attributes,
         @Nullable ScrollBar scrollbar,
         AreaEditor editor)
-        implements Widget.Leaf, Styled, Paints, Handles, Measured, Semantics {
+        implements Widget.Leaf, Styled, Paints, Handles, Measured, Semantics, ContextMenuOwner {
+
+    /// Its own menu: Cut, Copy, Paste and Select all, opened by the state.
+    @Override
+    public boolean openContextMenu(LogicalRect anchor) {
+        return editor.openContextMenu(anchor);
+    }
 
     /// How many lines a wheel notch moves. Three, which is what every scroll view
     /// on every desktop does and what `scroll` itself uses —

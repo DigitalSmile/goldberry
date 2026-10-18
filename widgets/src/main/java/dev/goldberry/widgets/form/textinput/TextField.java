@@ -10,6 +10,7 @@ import dev.goldberry.input.event.KeyEvent;
 import dev.goldberry.input.event.PointerEvent;
 import dev.goldberry.input.event.PreeditEvent;
 import dev.goldberry.input.event.TextEvent;
+import dev.goldberry.input.handler.ContextMenuOwner;
 import dev.goldberry.input.handler.Handles;
 import dev.goldberry.input.handler.Measured;
 import dev.goldberry.input.hit.Extent;
@@ -19,6 +20,7 @@ import dev.goldberry.layout.Position;
 import dev.goldberry.paint.Box;
 import dev.goldberry.paint.tree.ContainingBlock;
 import dev.goldberry.render.Cursor;
+import dev.goldberry.render.model.LogicalRect;
 import dev.goldberry.text.Paragraph;
 import dev.goldberry.text.Stretch;
 import dev.goldberry.text.edit.TextEdit;
@@ -99,7 +101,20 @@ record TextField(
         boolean readOnly,
         Attributes attributes,
         TextEditor editor)
-        implements Widget.Leaf, Styled, Paints, Handles, Measured, dev.goldberry.input.handler.Located, Semantics {
+        implements Widget.Leaf,
+                Styled,
+                Paints,
+                Handles,
+                Measured,
+                dev.goldberry.input.handler.Located,
+                Semantics,
+                ContextMenuOwner {
+
+    /// Its own menu: Cut, Copy, Paste and Select all, opened by the state.
+    @Override
+    public boolean openContextMenu(LogicalRect anchor) {
+        return editor.openContextMenu(anchor);
+    }
 
     /// Where the frame put this, handed straight to the state — which uses it
     /// only to anchor a popover, so [dev.goldberry.input.handler.Located]'s

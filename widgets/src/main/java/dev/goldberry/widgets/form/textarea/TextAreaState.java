@@ -26,6 +26,8 @@ import dev.goldberry.widget.Widget;
 import dev.goldberry.widgets.core.scroll.EdgeScroll;
 import dev.goldberry.widgets.core.scroll.ScrollAxis;
 import dev.goldberry.widgets.core.scroll.ScrollBar;
+import dev.goldberry.widgets.form.edit.TextCommands;
+import dev.goldberry.widgets.form.edit.TextMenu;
 import dev.goldberry.widgets.form.parts.Composing;
 import dev.goldberry.widgets.form.parts.MaxLength;
 import dev.goldberry.widgets.form.parts.Preedit;
@@ -47,7 +49,7 @@ import dev.goldberry.widgets.form.parts.Preedit;
 /// So the x is captured on the first vertical move of a run and kept until
 /// something horizontal happens. "Something horizontal" is every other operation,
 /// which is why it is cleared in one place rather than in each of them.
-final class TextAreaState extends State<TextArea> implements AreaEditor {
+final class TextAreaState extends State<TextArea> implements AreaEditor, TextCommands {
 
     /// Each half of the caret's blink — `text-input`'s interval, and its
     /// reasoning: a caret changes twice a second, so a timer produces two frames
@@ -59,6 +61,9 @@ final class TextAreaState extends State<TextArea> implements AreaEditor {
     private final EditHistory history = new EditHistory();
 
     private @Nullable Host host;
+
+    /// The stock menu, made the first time it is asked for; see [#openContextMenu].
+    private @Nullable TextMenu menu;
     private boolean focused;
     private boolean caretShown = true;
     private EventLoop.@Nullable Timer blink;
@@ -193,6 +198,9 @@ final class TextAreaState extends State<TextArea> implements AreaEditor {
     @Override
     protected void dispose() {
         stopBlinking();
+        if (menu != null) {
+            menu.close();
+        }
         if (focused && host != null) {
             host.textInput(false);
         }
@@ -810,6 +818,41 @@ final class TextAreaState extends State<TextArea> implements AreaEditor {
         // its hard lines, the second frame wraps it properly, and the wrong
         // answer is wrong in the direction nobody sees.
         return Paragraph.UNCONSTRAINED;
+    }
+
+    @Override
+    public boolean openContextMenu(LogicalRect anchor) {
+        if (host == null || widget().disabled()) {
+            return false;
+        }
+        if (menu == null) {
+            menu = new TextMenu(host, this);
+        }
+        return menu.open(anchor);
+    }
+
+    @Override
+    public boolean canCut() {
+        return canCopy() && !widget().readOnly();
+    }
+
+    @Override
+    public boolean canCopy() {
+        return edit.hasSelection() && !widget().disabled();
+    }
+
+    @Override
+    public boolean canPaste() {
+        var area = widget();
+        return host != null
+                && !area.disabled()
+                && !area.readOnly()
+                && host.clipboard().hasText();
+    }
+
+    @Override
+    public boolean canSelectAll() {
+        return !edit.isEmpty() && !(edit.start() == 0 && edit.end() == edit.length()) && !widget().disabled();
     }
 
     @Override
