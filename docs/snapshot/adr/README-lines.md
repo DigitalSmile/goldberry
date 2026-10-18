@@ -80,3 +80,6 @@ Appended to the index when the records move in, in this order.
 - [ADR-0636 Emphasis is set in the italic face](0636-emphasis-is-set-in-the-italic-face.md)
 - [ADR-0637 A popup is styled from the widget that opened it](0637-a-popup-is-styled-from-the-widget-that-opened-it.md)
 - [ADR-0638 No popup has the platform's focus, so none gives it back](0638-no-popup-has-the-platforms-focus-so-none-gives-it-back.md)
+- [ADR-0639 A tray's menu changes in place, and its rows are the truth](0639-a-trays-menu-changes-in-place-and-its-rows-are-the-truth.md)
+- [ADR-0640 A tray row's accelerator is bound on the window that showed it](0640-a-tray-rows-accelerator-is-bound-on-the-window-that-showed-it.md)
+- [ADR-0641 A tray click runs on the UI thread, and CI clicks a real tray](0641-a-tray-click-runs-on-the-ui-thread-and-ci-clicks-a-real-tray.md)

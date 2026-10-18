@@ -27,3 +27,17 @@ code. `SiteOnlyChangeTest` holds every workflow to both rules.
 4. In the `linux.yml` row's last cell, after "and `:example`'s tests, against
    the libraries it downloaded", add (ADR-0633): "then the showcase for 120
    frames under weston's headless Wayland compositor".
+
+5. (ADR-0641) After the paragraph that ends "fails rather than skips if the
+   library does not load, report the right ABI and bind.", add:
+
+A tray needs a notification area, which a virtual X server does not have, so
+the live tray tests skip on Linux. The Windows and macOS runners have a desktop
+session: `windows.yml` passes `-Pgoldberry.tray.required=true` to its build and
+`macos.yml` to its GPU lane, where the tests run on the first thread Cocoa's
+status bar needs. There they open a real tray, click its rows as the shell
+would, and change its menu while the icon is up.
+
+   And in the `macos.yml`, `windows.yml` row's last cell, after "with
+   `native.required` and `webview.required`", add: ", and `tray.required` on
+   Windows".

@@ -107,10 +107,15 @@ jobs:
       #
       # Cocoa, which a Metal device needs, starts only on the first thread; the
       # gpuTest tasks start their JVM with -XstartOnFirstThread for that.
+      #
+      # The tray's live tests run in this lane too (SdlTrayFirstThreadTest), for
+      # the same reason: the status bar is the first thread's. Required, since a
+      # macOS session always has a menu bar to put an icon in.
       - name: GPU tests, on Metal if the runner has it
         run: |
           ./gradlew :natives:gpuTest :gpu:gpuTest --no-daemon \
-            -Pgoldberry.native.required=true
+            -Pgoldberry.native.required=true \
+            -Pgoldberry.tray.required=true
           cat natives/build/gpu-test/summary.txt gpu/build/gpu-test/summary.txt
 
       # Both libraries, into one artifact: publish.yml copies the directory into

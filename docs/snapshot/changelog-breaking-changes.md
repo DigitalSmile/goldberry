@@ -34,6 +34,14 @@ Everything below is measured against 2026.2 (tag commit d3eacfdc).
   `run()` returned opens new ones; a window opened afterwards starts a fresh
   runtime. `Goldberry.launch()` is unchanged.
   <!-- ADR-0635 -->
+- `Trays.show` returns `Optional<ShownTray>` rather than
+  `Optional<BackendTray>`. `ShownTray` is a `BackendTray`, so code that only
+  calls `close`, `icon` or `tooltip` on it still compiles; a field declared
+  `Optional<BackendTray>` changes its type.
+  <!-- ADR-0639 -->
+- `BackendTray` has a new abstract method, `rows(List<TrayItem>)`. A class that
+  implements it, such as a test double, must implement it.
+  <!-- ADR-0639 -->
 - `Paragraph.isBidiApproximate()` is removed: a paragraph places right-to-left
   text in reading order now. Use `isBidirectional()`, and `directionAt(offset)`
   or `directionality()` for which way it reads.
@@ -153,12 +161,12 @@ Everything below is measured against 2026.2 (tag commit d3eacfdc).
 
 #### Native libraries
 
-- `libgoldberry`'s ABI is 24 (2026.2's was 18), and this release's jars refuse a
+- `libgoldberry`'s ABI is 25 (2026.2's was 18), and this release's jars refuse a
   library built for an older one. Take `goldberry-natives` at the same version
   as the other artifacts (the BOM does). An application that loads its own build
   through `-Dgoldberry.native.library` builds it again from this release's
   sources, and a GraalVM native image is built again from matching jars.
-  <!-- ADR-0562, ADR-0573, ADR-0580, ADR-0589, ADR-0615, ADR-0620 -->
+  <!-- ADR-0562, ADR-0573, ADR-0580, ADR-0589, ADR-0615, ADR-0620, ADR-0639 -->
 - `goldberry-media` refuses an `ffmpeg-<target>` jar built before this release,
   because the FFmpeg layout it checks has new fields. Take the `ffmpeg-<target>`
   jars at the same version as `goldberry-media`; an application's own FFmpeg

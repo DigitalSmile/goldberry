@@ -284,6 +284,11 @@ SDL_HasPrimarySelectionText
 #
 # SDL_GetTrayEntryChecked is the one read-back: SDL toggles a checkbox itself
 # before it calls back, so it is the only way to learn what the user chose.
+#
+# The four setters change a menu while the icon is up, in place and without the
+# flicker of a new icon: a label, a tick, whether a row is offered, and a row
+# taken out. SDL_ClickTrayEntry chooses a row as the shell would, for a test on
+# a real desktop (ABI 25).
 SDL_CreateTray
 SDL_DestroyTray
 SDL_SetTrayIcon
@@ -293,6 +298,11 @@ SDL_CreateTraySubmenu
 SDL_InsertTrayEntryAt
 SDL_SetTrayEntryCallback
 SDL_GetTrayEntryChecked
+SDL_SetTrayEntryLabel
+SDL_SetTrayEntryChecked
+SDL_SetTrayEntryEnabled
+SDL_RemoveTrayEntry
+SDL_ClickTrayEntry
 
 # A surface over pixels of ours, which the tray icon is: SDL wants an
 # SDL_Surface and Goldberry has a painted BGRA buffer. Nothing is copied -- the

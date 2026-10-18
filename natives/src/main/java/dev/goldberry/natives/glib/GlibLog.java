@@ -8,11 +8,14 @@ import java.lang.foreign.MemorySegment;
 import java.lang.foreign.ValueLayout;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
+import java.util.List;
 
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 
 import dev.goldberry.log.Logs;
 import dev.goldberry.log.bridge.NativeLogBridge;
+import dev.goldberry.log.bridge.NativeLogLevel;
 import dev.goldberry.natives.Upcalls;
 import dev.goldberry.natives.glib.calls.GlibLogCalls;
 
@@ -272,7 +275,28 @@ public final class GlibLog {
     /// level bits to SLF4J level, domain to logger name — is testable without a
     /// GLib, a display or a native library of any kind.
     static void report(String domain, int flags, String message) {
-        NativeLogBridge.log(SOURCE, domain, GlibLogLevel.of(flags).level(), message);
+        NativeLogBridge.log(SOURCE, domain, levelOf(flags, message), message);
+    }
+
+    /// Notices a library writes every time it is loaded, which nobody running
+    /// an application can act on, so they are heard at debug rather than at the
+    /// level they were written at.
+    ///
+    /// `libayatana-appindicator` is the one there is: the distribution's library
+    /// warns that it is deprecated in favour of a `-glib` successor that SDL does
+    /// not look for, and it says so as SDL opens it for a tray.
+    static final List<String> KNOWN_NOTICES = List.of("libayatana-appindicator is deprecated");
+
+    /// The level `message` is heard at: GLib's own, unless it is one of the
+    /// [#KNOWN_NOTICES] and not fatal, which is debug.
+    static NativeLogLevel levelOf(int flags, @Nullable String message) {
+        var level = GlibLogLevel.of(flags).level();
+        if (message != null
+                && !GlibLogLevel.isFatal(flags)
+                && KNOWN_NOTICES.stream().anyMatch(message::startsWith)) {
+            return NativeLogLevel.DEBUG;
+        }
+        return level;
     }
 
     /// An upcall stub over the private static method named `name`.

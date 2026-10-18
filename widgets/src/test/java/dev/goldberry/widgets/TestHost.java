@@ -30,6 +30,7 @@ import dev.goldberry.render.event.EventLoop;
 import dev.goldberry.render.model.LogicalPoint;
 import dev.goldberry.render.model.LogicalRect;
 import dev.goldberry.render.model.LogicalSize;
+import dev.goldberry.render.tray.AndThenTray;
 import dev.goldberry.render.web.WebLoad;
 import dev.goldberry.render.window.BackendWindow;
 import dev.goldberry.stats.FrameStats;
@@ -649,7 +650,7 @@ public class TestHost implements Host {
         // test host that skipped it would pass the one thing the real one got
         // wrong: a tray row arrives with no event behind it, so nothing asks for
         // a frame unless the row does.
-        return trayBackend.createTray(spec.andThen(this::repaint));
+        return trayBackend.createTray(spec.andThen(this::repaint)).map(tray -> AndThenTray.of(tray, this::repaint));
     }
 
     /// The trays this host's backend has up, for a test whose handle is not the

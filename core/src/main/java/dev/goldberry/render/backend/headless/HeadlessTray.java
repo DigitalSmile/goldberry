@@ -27,7 +27,7 @@ import dev.goldberry.render.tray.TraySpec;
 public final class HeadlessTray implements BackendTray {
 
     private final HeadlessBackend backend;
-    private final List<TrayItem> items;
+    private List<TrayItem> items;
 
     /// The checkbox states, keyed by the path that reaches the row. Held here
     /// rather than in the item because a `TrayItem` is a value that a caller may
@@ -56,9 +56,20 @@ public final class HeadlessTray implements BackendTray {
         }
     }
 
-    /// The menu, as it was described.
+    /// The menu, as it was last described.
     public List<TrayItem> items() {
         return items;
+    }
+
+    /// Takes new rows, and every tick they describe: the rows are the truth,
+    /// whatever a click did, as on a real desktop.
+    @Override
+    public void rows(List<TrayItem> rows) {
+        backend.requireUiThread();
+        requireOpen();
+        items = List.copyOf(rows);
+        checked.clear();
+        markInitiallyChecked("", items);
     }
 
     /// The icon currently set, or empty if the platform's default was asked for.

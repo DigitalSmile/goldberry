@@ -98,8 +98,8 @@ class TraysTest {
     void showingAndChoosing() {
         var host = new TestHost();
 
-        var tray = (HeadlessTray)
-                Trays.show(host, TrayIcon.of("Goldberry", menu())).orElseThrow();
+        Trays.show(host, TrayIcon.of("Goldberry", menu())).orElseThrow();
+        var tray = host.trays().getFirst();
 
         tray.choose("Open");
         tray.choose("Recent/report.pdf");
@@ -112,8 +112,8 @@ class TraysTest {
     @DisplayName("runs a checkbox's command whichever way the platform toggled it")
     void checkboxesRunTheirCommand() {
         var host = new TestHost();
-        var tray = (HeadlessTray)
-                Trays.show(host, TrayIcon.of("Goldberry", menu())).orElseThrow();
+        Trays.show(host, TrayIcon.of("Goldberry", menu())).orElseThrow();
+        var tray = host.trays().getFirst();
 
         // Described as ticked, so the shell's first click unticks it -- and the
         // item's command runs either way, because an `Item`'s command takes no
@@ -134,14 +134,119 @@ class TraysTest {
         // a frame and a tray row asks for no frame. Quit worked because closing
         // a window is a platform effect rather than a model change.
         var host = new TestHost();
-        var tray = (HeadlessTray)
-                Trays.show(host, TrayIcon.of("Goldberry", menu())).orElseThrow();
+        Trays.show(host, TrayIcon.of("Goldberry", menu())).orElseThrow();
+        var tray = host.trays().getFirst();
         var before = host.repaints();
 
         tray.choose("Open");
         tray.choose("Recent/report.pdf");
 
         assertEquals(before + 2, host.repaints());
+    }
+
+    // -- Changing the menu while the icon is up --------------------------------
+
+    @Test
+    @DisplayName("takes a new menu under the same icon, and the rows run the new commands")
+    void aNewMenuUnderTheSameIcon() {
+        var host = new TestHost();
+        var shown = Trays.show(host, TrayIcon.of("Goldberry", menu())).orElseThrow();
+        var tray = host.trays().getFirst();
+
+        shown.menu(new Menu(
+                List.of(new Item("Open again", () -> chosen.add("again")), new Item("Quit", () -> chosen.add("Q"))),
+                Attributes.NONE));
+        tray.choose("Open again");
+
+        assertEquals(List.of("again"), chosen);
+        assertEquals(1, host.trays().size(), "the same tray: no second icon was put up");
+        assertFalse(tray.isClosed());
+    }
+
+    @Test
+    @DisplayName("lets a command decline a click by describing the tick as it was")
+    void aCommandDeclinesTheTick() {
+        var host = new TestHost();
+        var holder = new ArrayList<ShownTray>();
+        // A command that says no: it puts the tick back by describing the menu
+        // again, which is the only way a command with no argument can answer.
+        Runnable decline = () -> holder.getFirst().menu(notifications(true, () -> {}));
+        var shown = Trays.show(host, TrayIcon.of("Goldberry", notifications(true, decline)))
+                .orElseThrow();
+        holder.add(shown);
+        var tray = host.trays().getFirst();
+
+        tray.choose("Notifications");
+
+        assertTrue(tray.isChecked("Notifications"), "the shell unticked it and the command put it back");
+    }
+
+    @Test
+    @DisplayName("keeps the shell's tick when the command accepts and describes the new one")
+    void aCommandAcceptsTheTick() {
+        var host = new TestHost();
+        var holder = new ArrayList<ShownTray>();
+        Runnable accept = () -> holder.getFirst().menu(notifications(false, () -> {}));
+        holder.add(Trays.show(host, TrayIcon.of("Goldberry", notifications(true, accept)))
+                .orElseThrow());
+        var tray = host.trays().getFirst();
+
+        tray.choose("Notifications");
+
+        assertFalse(tray.isChecked("Notifications"));
+    }
+
+    @Test
+    @DisplayName("asks for a frame from the rows of a new menu too")
+    void aNewMenuStillAsksForFrames() {
+        var host = new TestHost();
+        var shown = Trays.show(host, TrayIcon.of("Goldberry", menu())).orElseThrow();
+        var tray = host.trays().getFirst();
+        shown.menu(new Menu(List.of(new Item("Later", () -> chosen.add("Later"))), Attributes.NONE));
+        var before = host.repaints();
+
+        tray.choose("Later");
+
+        assertEquals(before + 1, host.repaints());
+    }
+
+    // -- Accelerators ------------------------------------------------------------
+
+    @Test
+    @DisplayName("binds a row's accelerator on the window that showed the tray, and gives it back on close")
+    void acceleratorsAreBound() {
+        var host = new TestHost();
+        var shown = Trays.show(host, TrayIcon.of("Goldberry", menu())).orElseThrow();
+
+        assertTrue(host.press("Ctrl+Q"), "Quit's Ctrl+Q is bound");
+        assertEquals(List.of("Quit"), chosen);
+
+        shown.close();
+        assertFalse(host.press("Ctrl+Q"), "and given back with the tray");
+    }
+
+    @Test
+    @DisplayName("moves the accelerators with the menu")
+    void acceleratorsFollowTheMenu() {
+        var host = new TestHost();
+        var shown = Trays.show(host, TrayIcon.of("Goldberry", menu())).orElseThrow();
+
+        shown.menu(new Menu(
+                List.of(new Item("Hide", () -> chosen.add("Hide")).accelerator("Ctrl+H")), Attributes.NONE));
+
+        assertFalse(host.press("Ctrl+Q"), "the old menu's key went with it");
+        assertTrue(host.press("Ctrl+H"));
+        assertEquals(List.of("Hide"), chosen);
+    }
+
+    private Menu notifications(boolean checked, Runnable command) {
+        return new Menu(
+                List.of(new Item("Notifications", () -> {
+                            chosen.add("Notifications");
+                            command.run();
+                        })
+                        .checked(checked)),
+                Attributes.NONE);
     }
 
     @Test
@@ -289,8 +394,8 @@ class TraysTest {
                 .orElseThrow();
         host.systemTheme(SystemTheme.DARK);
 
-        assertSame(onlyTray(host), tray, "a tray with one picture needs no handle of its own");
-        assertSame(forLightShell, onlyTray(host).icon().orElseThrow());
+        assertFalse(tray.isClosed());
+        assertSame(forLightShell, onlyTray(host).icon().orElseThrow(), "a dark shell changed nothing");
         assertEquals(0, host.systemThemeListenerCount());
     }
 }

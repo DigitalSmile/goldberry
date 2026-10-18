@@ -90,13 +90,17 @@ jobs:
       # DLL, checks its ABI and binds every call; loading needs only Windows' own
       # DLLs, since WebView2Loader is opened when a page is, not when the
       # library is.
+      # `tray.required`: SdlTrayLiveTest opens a real tray in the runner's
+      # session, clicks its rows with SDL_ClickTrayEntry and changes its menu
+      # while the icon is up, which is the tray's only check on Windows.
       # https://goldberry.dev/docs/contributing/testing.html#with-and-without-the-library
       - name: Build and test against it
         run: |
           ./gradlew build --no-daemon --continue \
             -x gpuTest \
             -Pgoldberry.native.required=true \
-            -Pgoldberry.webview.required=true
+            -Pgoldberry.webview.required=true \
+            -Pgoldberry.tray.required=true
 
       # Both libraries, into one artifact: publish.yml copies the directory into
       # the layout :natives packages. After the tests, so what is published is

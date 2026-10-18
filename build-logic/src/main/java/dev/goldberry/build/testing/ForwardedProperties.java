@@ -38,6 +38,7 @@ public final class ForwardedProperties {
             // A job whose purpose is a library turns its skip into a failure.
             "goldberry.native.required",
             "goldberry.webview.required",
+            "goldberry.tray.required",
             "goldberry.media.required",
             "goldberry.platform.required",
             "goldberry.gpu.required",

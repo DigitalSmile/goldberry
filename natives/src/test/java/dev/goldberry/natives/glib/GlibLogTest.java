@@ -72,6 +72,24 @@ class GlibLogTest {
         }
 
         @Test
+        @DisplayName("and hears a known upstream notice at debug, unless it is fatal")
+        void demotesAKnownNotice() {
+            var notice = "libayatana-appindicator is deprecated. Please use libayatana-appindicator-glib"
+                    + " in newly written code.";
+
+            assertEquals(NativeLogLevel.DEBUG, GlibLog.levelOf(GlibLogLevel.WARNING.bit(), notice));
+            assertEquals(
+                    NativeLogLevel.WARN,
+                    GlibLog.levelOf(GlibLogLevel.WARNING.bit(), "libayatana-appindicator could not find a tray"),
+                    "only the notice itself, not every word from that library");
+            assertEquals(
+                    NativeLogLevel.WARN,
+                    GlibLog.levelOf(GlibLogLevel.WARNING.bit() | GlibLogLevel.FATAL, notice),
+                    "a fatal one is about to abort the process, and keeps its own level");
+            assertEquals(NativeLogLevel.WARN, GlibLog.levelOf(GlibLogLevel.WARNING.bit(), null));
+        }
+
+        @Test
         @DisplayName("and knows when GLib is about to abort")
         void reportsFatal() {
             assertTrue(GlibLogLevel.isFatal(GlibLogLevel.ERROR.bit()), "G_LOG_LEVEL_ERROR is always fatal");

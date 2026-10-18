@@ -46,6 +46,7 @@ import dev.goldberry.render.model.LogicalRect;
 import dev.goldberry.render.model.LogicalSize;
 import dev.goldberry.render.popup.PopupKind;
 import dev.goldberry.render.popup.PopupSpec;
+import dev.goldberry.render.tray.AndThenTray;
 import dev.goldberry.render.tray.BackendTray;
 import dev.goldberry.render.tray.TraySpec;
 import dev.goldberry.render.web.BackendWebView;
@@ -1733,7 +1734,12 @@ final class HostedWindow implements WindowHost {
     /// one call site that has to say so.
     @Override
     public Optional<BackendTray> tray(TraySpec spec) {
-        return GoldberryRuntime.get().backend().createTray(spec.andThen(app::repaintAll));
+        // `AndThenTray` as well as the spec's `andThen`: the rows a tray is given
+        // while it is up ask for a frame too.
+        return GoldberryRuntime.get()
+                .backend()
+                .createTray(spec.andThen(app::repaintAll))
+                .map(tray -> AndThenTray.of(tray, app::repaintAll));
     }
 
     /// Opens a web page in a window of the engine's own.

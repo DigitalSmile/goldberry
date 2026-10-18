@@ -132,38 +132,27 @@ description had no effect.
   [ADR-0056](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0056-the-wheel-is-lines-and-the-sign-is-ours.md) declined when the
   wheel wanted it; the workable answer is a first row that means "open the window",
   which is what most tray applications ship anyway.
-- **A checkbox's tick can end up disagreeing with the application.** The shell
-  toggles it *before* the handler runs and an `Item`'s command takes no argument,
-  so a handler that declines leaves the platform showing a tick nobody believes
-  in. `SDL_SetTrayEntryChecked` is deliberately unbound — correcting one row would
-  be the only mutation in an otherwise rebuilt-from-a-description menu — so the
-  way to say no is to close the tray and show it again.
-- **The menu cannot change while the icon is up.** `BackendTray` sets the icon and
-  the tooltip and nothing else: its rows are platform objects the shell may have
-  open, and replacing one would mean re-inserting entries underneath a user. A
-  declarative caller closes and reopens, which is correct and is also a flicker
-  in the notification area on some shells.
-- **An accelerator on a tray row is dropped**, with a warning. A shortcut is bound
-  to a window and a tray has none. The same `Item` in a `menubar` still registers
-  one, which makes this the first place in the catalog where one value means two
-  different things depending on who draws it.
-- **The deprecation warning on Linux is SDL's to fix.** Loading a tray prints
-  `libayatana-appindicator is deprecated. Please use libayatana-appindicator-glib`,
-  from the distribution's library as SDL opens it. SDL's `appindicator_names` list
-  holds `libayatana-appindicator3.so.1` and `libappindicator3.so.1` and not the
-  successor, so the only ways out are a patched SDL or a newer pinned one —
-  neither worth doing for a line on stderr that no user of an application ever
-  sees.
+
+  **Waits for SDL 3.6.0 (2026-10-18).** SDL's main branch adds
+  `SDL_CreateTrayWithProperties` with `SDL_PROP_TRAY_CREATE_LEFTCLICK_CALLBACK_POINTER`,
+  and the right- and middle-click ones, "available since SDL 3.6.0". The
+  newest release is 3.4.18, and the build stays on a released SDL by choice.
+  When 3.6.0 ships, this is one property on `SdlTray.open` and an `onActivate`
+  on `TrayIcon`.
 - **Windows and macOS are unverified.** The Linux path ran for real — in
   `SdlTrayTest` against this machine's session and in the showcase — and the other
   two are SDL's code, compiled and never looked at. A tray is the one widget CI
   cannot cover: there is no notification area on a runner and no golden image of a
   GTK popup.
-- **A tray callback arriving off the UI thread is logged, not handled.** Every
-  platform dispatches it from inside the pump the UI thread is already in, so the
-  warning in `SdlTray.invoke` is the only evidence there would be if one ever does
-  not. Doing better means posting to the loop, which is a second delivery path
-  for one hypothetical.
+
+  **Written, not yet run (2026-10-18).** The runners do have a desktop session.
+  `SdlTrayLiveTest` opens a real tray and clicks its rows with
+  `SDL_ClickTrayEntry`, which every platform implements in the shell's order,
+  and changes the menu while the icon is up. `windows.yml` requires a tray in
+  its build step, and `macos.yml` in its GPU lane, where
+  `SdlTrayFirstThreadTest` runs the same tests on the first thread Cocoa needs
+  (`goldberry.tray.required`, ADR-0641). This entry moves to *Answered* when a
+  push has run both green.
 ## `canvas`, and what a document cannot say
 - **Markup cannot name a painter.** A `canvas` node inflates to a styled, sized
   surface that draws nothing; the drawing is Java. `icon` solved the same problem
@@ -724,6 +713,71 @@ way back is a consumer asking, not a date.
 Kept rather than deleted: each is a trap somebody hit, and the reasoning that got
 out of it is usually worth more than the fact that it is fixed.
 
+- ~~**A checkbox's tick can end up disagreeing with the application.**~~ The shell
+  toggles it *before* the handler runs and an `Item`'s command takes no argument,
+  so a handler that declines leaves the platform showing a tick nobody believes
+  in. `SDL_SetTrayEntryChecked` is deliberately unbound — correcting one row would
+  be the only mutation in an otherwise rebuilt-from-a-description menu — so the
+  way to say no is to close the tray and show it again.
+
+  **Closed (2026-10-18): the rows are the truth** (ADR-0639, parked in
+  `docs/snapshot/adr`). `SDL_SetTrayEntryChecked` is bound after all, but not
+  to correct one row: a tray takes new rows while it is up, and every checkbox
+  shows the tick its row describes. A command that declines a click gives the
+  menu again with the tick as it was (`ShownTray.menu`), and the change waits
+  until the command returns. SDL calls no row callback when a tick is set, on
+  any platform.
+- ~~**The menu cannot change while the icon is up.**~~ `BackendTray` sets the icon and
+  the tooltip and nothing else: its rows are platform objects the shell may have
+  open, and replacing one would mean re-inserting entries underneath a user. A
+  declarative caller closes and reopens, which is correct and is also a flicker
+  in the notification area on some shells.
+
+  **Closed (2026-10-18): it changes in place** (ADR-0639, parked in
+  `docs/snapshot/adr`). `BackendTray.rows` and `ShownTray.menu` give a tray new
+  rows under the same icon. The same shape is set entry by entry (label,
+  enabled, tick, handler) and another shape replaces the rows, so nothing
+  flickers either way. Native ABI 25 exports the setters. `SdlTrayLiveTest`
+  changed a real tray's menu on this machine, including from inside a row's own
+  click.
+- ~~**An accelerator on a tray row is dropped**~~, with a warning. A shortcut is bound
+  to a window and a tray has none. The same `Item` in a `menubar` still registers
+  one, which makes this the first place in the catalog where one value means two
+  different things depending on who draws it.
+
+  **Closed (2026-10-18): it is bound on the window that showed the tray**
+  (ADR-0640, parked in `docs/snapshot/adr`), through `Accelerators` as a
+  `menubar` binds its rows', and given back when the menu changes or the tray
+  closes. No platform draws it beside the row, so one `Item` now means the same
+  key wherever it is put, shown or not.
+- ~~**The deprecation warning on Linux is SDL's to fix.**~~ Loading a tray prints
+  `libayatana-appindicator is deprecated. Please use libayatana-appindicator-glib`,
+  from the distribution's library as SDL opens it. SDL's `appindicator_names` list
+  holds `libayatana-appindicator3.so.1` and `libappindicator3.so.1` and not the
+  successor, so the only ways out are a patched SDL or a newer pinned one —
+  neither worth doing for a line on stderr that no user of an application ever
+  sees.
+
+  **Closed (2026-10-18): heard at debug.** The library writes it through
+  `g_log`, and the backend's GLib bridge is installed before a tray loads it, so
+  `GlibLog` now lists it as a known notice and reports it at debug unless it is
+  fatal (`GlibLogTest`). Upstream, SDL's main branch replaces the Linux
+  appindicator path with a D-Bus StatusNotifierItem tray, due in 3.6.0, which
+  removes the library altogether. The notice did not appear in this machine's
+  test runs, which open a tray without the bridge, so the demotion is held by its
+  test rather than seen.
+- ~~**A tray callback arriving off the UI thread is logged, not handled.**~~ Every
+  platform dispatches it from inside the pump the UI thread is already in, so the
+  warning in `SdlTray.invoke` is the only evidence there would be if one ever does
+  not. Doing better means posting to the loop, which is a second delivery path
+  for one hypothetical.
+
+  **Closed (2026-10-18): it waits for the pump** (ADR-0641, parked in
+  `docs/snapshot/adr`). `Sdl3Backend.onUiThread` runs a row's handler at once on
+  the UI thread and, from any other, queues it, wakes the loop and runs it at
+  the start of the next pump, as a file dialog's answer is delivered. The second
+  delivery path the entry worried about is a queue of a dozen lines, and
+  `HandedOverTest` covers it.
 - ~~**A popup may not give the *platform's* keyboard focus back, and the widget
   layer has nothing to do with it**~~ — **the second half of this entry was wrong
   and has been measured.** A popup gets its own tree and its own router, and

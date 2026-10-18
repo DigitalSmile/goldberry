@@ -9,7 +9,9 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Queue;
 import java.util.ServiceLoader;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
@@ -121,6 +123,10 @@ public final class Sdl3Backend implements Backend {
     /// does not — decided once, from the driver SDL chose ([#hasPrimarySelection]).
     private final @Nullable PrimarySelection primarySelection;
     private final Sdl3FileDialogs fileDialogs = new Sdl3FileDialogs(this::wakeup);
+
+    /// Work a platform callback handed over from a thread that is not the UI
+    /// thread, run by the next pump. See [#onUiThread].
+    private final Queue<Runnable> handedOver = new ConcurrentLinkedQueue<>();
 
     /// The trays this application has up. Held so that closing the backend
     /// takes them down: a tray icon left in the notification area after the
@@ -692,6 +698,9 @@ public final class Sdl3Backend implements Backend {
         // thread and wakes this loop, and delivering its answer first is what
         // makes the repaint it asks for part of this pump rather than the next.
         var dialogAnswers = fileDialogs.deliverPending();
+        // And for the same reason, a tray click a platform delivered on a
+        // thread of its own.
+        dialogAnswers += runHandedOver();
 
         adoptDisplayRate();
 
@@ -1379,6 +1388,38 @@ public final class Sdl3Backend implements Backend {
             // what a caller does about them is the same.
             case UNKNOWN -> Optional.empty();
         };
+    }
+
+    /// Runs `work` on the UI thread: now, when called on it, or at the start of
+    /// the next pump, waking the loop for it, when called from anywhere else.
+    ///
+    /// For a platform callback. SDL calls a tray row back from inside its own
+    /// pump on every platform it ships, which is the UI thread; one that does not
+    /// waits for the pump rather than running beside it.
+    void onUiThread(Runnable work) {
+        Objects.requireNonNull(work, "work");
+        if (Thread.currentThread() == uiThread) {
+            work.run();
+            return;
+        }
+        handedOver.add(work);
+        wakeup();
+    }
+
+    /// Runs what [#onUiThread] queued, and answers how much there was.
+    private int runHandedOver() {
+        var ran = 0;
+        for (var work = handedOver.poll(); work != null; work = handedOver.poll()) {
+            ran++;
+            try {
+                work.run();
+            } catch (RuntimeException e) {
+                // A handler's own failure, as it would have been logged had the
+                // platform called on this thread in the first place.
+                LOG.warn("a platform callback handed over to the UI thread failed", e);
+            }
+        }
+        return ran;
     }
 
     @Override

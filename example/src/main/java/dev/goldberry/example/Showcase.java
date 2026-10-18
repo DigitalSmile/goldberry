@@ -59,6 +59,7 @@ import dev.goldberry.widgets.overlay.toast.Toast;
 import dev.goldberry.widgets.overlay.toast.ToastController;
 import dev.goldberry.widgets.overlay.toast.Toasts;
 import dev.goldberry.widgets.overlay.tour.Tours;
+import dev.goldberry.widgets.shell.tray.ShownTray;
 import dev.goldberry.widgets.shell.tray.TrayIcon;
 import dev.goldberry.widgets.shell.tray.Trays;
 import dev.goldberry.widgets.text.Text;
@@ -175,7 +176,7 @@ public final class Showcase implements Application {
     /// The `tray-icon`, while this desktop has one. Empty on a session with no
     /// notification area, which is an ordinary answer and not a failure — every
     /// platform's own guidance says an application must run without one.
-    private Optional<dev.goldberry.render.tray.BackendTray> tray = Optional.empty();
+    private Optional<ShownTray> tray = Optional.empty();
 
     // --- Application ---------------------------------------------------------
 

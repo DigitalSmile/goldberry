@@ -21,27 +21,29 @@ import dev.goldberry.widgets.menu.Separator;
 /// will draw.
 ///
 /// ```java
-/// Optional<BackendTray> tray = Trays.show(host, TrayIcon.of("Goldberry", menu));
-/// tray.ifPresent(BackendTray::close);   // in stop(): the tray outlives the process otherwise
+/// Optional<ShownTray> tray = Trays.show(host, TrayIcon.of("Goldberry", menu));
+/// tray.ifPresent(shown -> shown.menu(changedMenu));   // in place, under the same icon
+/// tray.ifPresent(ShownTray::close);   // in stop(): the tray outlives the process otherwise
 /// ```
 ///
 /// A `Menu` is a value and showing one is a separate call, the same split the
 /// `menu` package makes. The same value works here because what is short-lived
 /// about a menu is the popup, not the description, and a tray menu, which the
 /// platform holds for as long as the icon is up, is the longest-lived opening
-/// there is. The menu cannot be changed in place: close the tray and show a
-/// new one.
+/// there is. [ShownTray#menu] changes it while the icon is up.
 ///
 /// A tray row is a GTK menu item, an `NSMenuItem` or a Win32 popup entry. It
 /// has a label, an enabled state and a tick, and that is the whole vocabulary.
-/// So three things an author may reasonably have written on an [Item] are
+/// So two things an author may reasonably have written on an [Item] are
 /// **dropped here, with a warning**, rather than silently:
 ///
 ///   - an **icon**, which no platform's tray API takes;
-///   - an **accelerator**, which is a key bound to a window and a tray has no
-///     window — the same command in a `menubar` still registers one;
 ///   - any widget that is neither an `item` nor a `separator`, because a tray
 ///     menu has no place to put one.
+///
+/// An **accelerator** is not drawn beside the row, since no platform's tray
+/// menu draws one, but it is bound: on the window that showed the tray, as a
+/// `menubar` binds its rows' (see [ShownTray]).
 ///
 /// The warning is the point. A tray that quietly ignored half a description
 /// would be a menu an author kept editing without effect.
@@ -65,14 +67,14 @@ public final class Trays {
     ///
     /// @return the handle that takes it down, or empty when this session has no
     ///         notification area — see [Host#tray]
-    public static Optional<BackendTray> show(Host host, TrayIcon tray) {
+    public static Optional<ShownTray> show(Host host, TrayIcon tray) {
         Objects.requireNonNull(host, "host");
         Objects.requireNonNull(tray, "tray");
         var shown = host.tray(tray.spec(host.systemTheme()));
         if (tray.picture() instanceof TrayIcon.ThemePair pair) {
-            return shown.map(backend -> ThemedTray.follow(host, backend, pair));
+            shown = shown.<BackendTray>map(backend -> ThemedTray.follow(host, backend, pair));
         }
-        return shown;
+        return shown.map(backend -> ShownTray.of(host, backend, tray.menu()));
     }
 
     /// The rows of `menu`, as the platform's vocabulary.
@@ -107,13 +109,6 @@ public final class Trays {
         if (item.icon() != null) {
             LOG.warn("the tray row \"{}\" has an icon, which no platform's tray menu draws", item.label());
         }
-        if (item.accelerator() != null && !item.accelerator().isBlank()) {
-            LOG.warn(
-                    "the tray row \"{}\" names the accelerator {}, which is a key bound to a"
-                            + " window and a tray has none; it is not registered here",
-                    item.label(),
-                    item.accelerator());
-        }
         var row = row(item);
         return item.disabled() ? row.disabled() : row;
     }
@@ -126,11 +121,11 @@ public final class Trays {
         }
         var press = item.onPress();
         if (item.isCheckable()) {
-            // The tick the platform shows is **its own** after the click: SDL
-            // toggles a checkbox before it calls back, and nothing here can
-            // refuse that. An application whose handler declines has to rebuild
-            // the tray to say so, which is why `Menu` is a value it re-describes
-            // rather than a thing it mutates.
+            // The shell ticks a checkbox before it calls back, and nothing here
+            // can refuse that. An application whose command declines describes
+            // the menu again with the tick as it was (`ShownTray.menu`), which
+            // is why `Menu` is a value it re-describes rather than a thing it
+            // mutates.
             return TrayItem.checkbox(item.label(), item.isChecked(), checked -> run(press));
         }
         return TrayItem.command(item.label(), checked -> run(press));

@@ -33,18 +33,19 @@ final class Sdl3Tray implements BackendTray {
 
     /// Opens one, or reports that this desktop has no tray.
     static Optional<BackendTray> open(Sdl3Backend backend, TraySpec spec) {
-        return SdlTray.open(iconOf(spec.icon()), spec.tooltip(), itemsOf(spec.items()))
+        return SdlTray.open(iconOf(spec.icon()), spec.tooltip(), itemsOf(backend, spec.items()))
                 .<BackendTray>map(sdl -> new Sdl3Tray(backend, sdl));
     }
 
-    private static List<SdlTrayItem> itemsOf(List<TrayItem> items) {
-        return items.stream().map(Sdl3Tray::itemOf).toList();
+    private static List<SdlTrayItem> itemsOf(Sdl3Backend backend, List<TrayItem> items) {
+        return items.stream().map(item -> itemOf(backend, item)).toList();
     }
 
-    private static SdlTrayItem itemOf(TrayItem item) {
-        // The handler crosses as itself. Nothing is wrapped or posted: SDL calls
-        // back from inside its own pump, which is the pump this backend is in, so
-        // the row's handler runs on the UI thread like every other event handler.
+    private static SdlTrayItem itemOf(Sdl3Backend backend, TrayItem item) {
+        // On the UI thread, wherever the platform called back. SDL calls back
+        // from inside its own pump on every platform it ships, which is the pump
+        // this backend is in, so the handler runs at once; a click that arrives
+        // on another thread waits for the next pump rather than racing it.
         var kind = switch (item.kind()) {
             case COMMAND -> SdlTrayItem.Kind.COMMAND;
             case CHECKBOX -> SdlTrayItem.Kind.CHECKBOX;
@@ -56,8 +57,8 @@ final class Sdl3Tray implements BackendTray {
                 item.label(),
                 item.enabled(),
                 item.checked(),
-                item.kind() == TrayItem.Kind.SUBMENU ? null : item::choose,
-                itemsOf(item.children()));
+                item.kind() == TrayItem.Kind.SUBMENU ? null : checked -> backend.onUiThread(() -> item.choose(checked)),
+                itemsOf(backend, item.children()));
     }
 
     private static @Nullable SdlTrayIcon iconOf(@Nullable PixelBuffer icon) {
@@ -77,6 +78,12 @@ final class Sdl3Tray implements BackendTray {
     public void tooltip(String value) {
         backend.requireUiThread();
         tray.tooltip(value);
+    }
+
+    @Override
+    public void rows(List<TrayItem> rows) {
+        backend.requireUiThread();
+        tray.rows(itemsOf(backend, rows));
     }
 
     @Override

@@ -1,5 +1,7 @@
 package dev.goldberry.render.tray;
 
+import java.util.List;
+
 import dev.goldberry.render.PixelBuffer;
 
 /// An icon this application has put in the desktop's notification area.
@@ -22,6 +24,17 @@ public interface BackendTray extends AutoCloseable {
 
     /// Replaces the hover text. Null removes it, where the platform has one.
     void tooltip(String tooltip);
+
+    /// Gives the menu new rows, keeping the icon where it is.
+    ///
+    /// A menu of the same shape is changed in place, so nothing flickers in the
+    /// notification area. **The rows are the truth**: a checkbox shows the tick
+    /// they say, whatever a click did to it, so a handler that declines a click
+    /// gives the rows again with the tick as it was. Called from inside a row's
+    /// handler, the change is applied when the handler returns.
+    ///
+    /// @param rows the menu, as [TraySpec#items()] holds it
+    void rows(List<TrayItem> rows);
 
     /// Whether this tray has been taken down.
     boolean isClosed();

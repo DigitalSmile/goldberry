@@ -35,7 +35,12 @@ public record SdlTrayCalls(
         CreateTraySubmenu createTraySubmenu,
         InsertTrayEntryAt insertTrayEntryAt,
         SetTrayEntryCallback setTrayEntryCallback,
-        GetTrayEntryChecked getTrayEntryChecked) {
+        GetTrayEntryChecked getTrayEntryChecked,
+        SetTrayEntryLabel setTrayEntryLabel,
+        SetTrayEntryChecked setTrayEntryChecked,
+        SetTrayEntryEnabled setTrayEntryEnabled,
+        RemoveTrayEntry removeTrayEntry,
+        ClickTrayEntry clickTrayEntry) {
 
     /// Binds every function above.
     ///
@@ -50,7 +55,12 @@ public record SdlTrayCalls(
                 new CreateTraySubmenu(lookup),
                 new InsertTrayEntryAt(lookup),
                 new SetTrayEntryCallback(lookup),
-                new GetTrayEntryChecked(lookup));
+                new GetTrayEntryChecked(lookup),
+                new SetTrayEntryLabel(lookup),
+                new SetTrayEntryChecked(lookup),
+                new SetTrayEntryEnabled(lookup),
+                new RemoveTrayEntry(lookup),
+                new ClickTrayEntry(lookup));
     }
 
     /// Puts an icon in the tray.
@@ -314,6 +324,142 @@ public record SdlTrayCalls(
                 return (boolean) FD_SDL_GetTrayEntryChecked.invokeExact(address, entry);
             } catch (Throwable t) {
                 throw Downcalls.failure("SDL_GetTrayEntryChecked", t);
+            }
+        }
+    }
+
+    /// Renames a row in place. SDL copies the label, so the caller's memory may go
+    /// the moment this returns.
+    ///
+    /// `void SDL_SetTrayEntryLabel(void*, void*)`
+    public static final class SetTrayEntryLabel {
+
+        private static final MethodHandle FD_SDL_SetTrayEntryLabel =
+                Downcalls.link(FunctionDescriptor.ofVoid(ADDRESS, ADDRESS));
+
+        private final MemorySegment address;
+
+        SetTrayEntryLabel(SymbolLookup lookup) {
+            this.address = Downcalls.symbol(lookup, "SDL_SetTrayEntryLabel");
+        }
+
+        /// Calls `SDL_SetTrayEntryLabel`.
+        ///
+        /// @param entry the row
+        /// @param label NUL-terminated UTF-8
+        public void call(MemorySegment entry, MemorySegment label) {
+            try {
+                FD_SDL_SetTrayEntryLabel.invokeExact(address, entry, label);
+            } catch (Throwable t) {
+                throw Downcalls.failure("SDL_SetTrayEntryLabel", t);
+            }
+        }
+    }
+
+    /// Ticks or clears a checkbox. **Does not call the row's callback** on any
+    /// platform SDL ships, which is what lets an application say no to a click.
+    ///
+    /// `void SDL_SetTrayEntryChecked(void*, _Bool)`
+    public static final class SetTrayEntryChecked {
+
+        private static final MethodHandle FD_SDL_SetTrayEntryChecked =
+                Downcalls.link(FunctionDescriptor.ofVoid(ADDRESS, JAVA_BOOLEAN));
+
+        private final MemorySegment address;
+
+        SetTrayEntryChecked(SymbolLookup lookup) {
+            this.address = Downcalls.symbol(lookup, "SDL_SetTrayEntryChecked");
+        }
+
+        /// Calls `SDL_SetTrayEntryChecked`.
+        ///
+        /// @param entry   the row, which must be a checkbox; SDL ignores any other
+        /// @param checked whether it shows a tick
+        public void call(MemorySegment entry, boolean checked) {
+            try {
+                FD_SDL_SetTrayEntryChecked.invokeExact(address, entry, checked);
+            } catch (Throwable t) {
+                throw Downcalls.failure("SDL_SetTrayEntryChecked", t);
+            }
+        }
+    }
+
+    /// Greys a row out, or brings it back.
+    ///
+    /// `void SDL_SetTrayEntryEnabled(void*, _Bool)`
+    public static final class SetTrayEntryEnabled {
+
+        private static final MethodHandle FD_SDL_SetTrayEntryEnabled =
+                Downcalls.link(FunctionDescriptor.ofVoid(ADDRESS, JAVA_BOOLEAN));
+
+        private final MemorySegment address;
+
+        SetTrayEntryEnabled(SymbolLookup lookup) {
+            this.address = Downcalls.symbol(lookup, "SDL_SetTrayEntryEnabled");
+        }
+
+        /// Calls `SDL_SetTrayEntryEnabled`.
+        ///
+        /// @param entry   the row
+        /// @param enabled whether the shell offers it
+        public void call(MemorySegment entry, boolean enabled) {
+            try {
+                FD_SDL_SetTrayEntryEnabled.invokeExact(address, entry, enabled);
+            } catch (Throwable t) {
+                throw Downcalls.failure("SDL_SetTrayEntryEnabled", t);
+            }
+        }
+    }
+
+    /// Takes a row out of its menu, and a submenu's rows with it. The entry pointer
+    /// is freed; nothing may use it afterwards.
+    ///
+    /// `void SDL_RemoveTrayEntry(void*)`
+    public static final class RemoveTrayEntry {
+
+        private static final MethodHandle FD_SDL_RemoveTrayEntry = Downcalls.link(FunctionDescriptor.ofVoid(ADDRESS));
+
+        private final MemorySegment address;
+
+        RemoveTrayEntry(SymbolLookup lookup) {
+            this.address = Downcalls.symbol(lookup, "SDL_RemoveTrayEntry");
+        }
+
+        /// Calls `SDL_RemoveTrayEntry`.
+        ///
+        /// @param entry the row
+        public void call(MemorySegment entry) {
+            try {
+                FD_SDL_RemoveTrayEntry.invokeExact(address, entry);
+            } catch (Throwable t) {
+                throw Downcalls.failure("SDL_RemoveTrayEntry", t);
+            }
+        }
+    }
+
+    /// Chooses a row as the shell would: a checkbox is toggled, then the row's
+    /// callback runs. What a test on a real desktop clicks with, since nothing
+    /// can click a shell's menu from outside it.
+    ///
+    /// `void SDL_ClickTrayEntry(void*)`
+    public static final class ClickTrayEntry {
+
+        private static final MethodHandle FD_SDL_ClickTrayEntry = Downcalls.link(FunctionDescriptor.ofVoid(ADDRESS));
+
+        private final MemorySegment address;
+
+        ClickTrayEntry(SymbolLookup lookup) {
+            this.address = Downcalls.symbol(lookup, "SDL_ClickTrayEntry");
+        }
+
+        /// Calls `SDL_ClickTrayEntry`.
+        ///
+        /// @param entry the row
+        public void call(MemorySegment entry) {
+            try {
+                FD_SDL_ClickTrayEntry.invokeExact(address, entry);
+            } catch (Throwable t) {
+                throw Downcalls.failure("SDL_ClickTrayEntry", t);
             }
         }
     }

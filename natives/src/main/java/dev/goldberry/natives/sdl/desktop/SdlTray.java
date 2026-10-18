@@ -59,7 +59,25 @@ import dev.goldberry.natives.sdl.window.SdlPixelFormat;
 /// code must stop being able to call a stub before the memory holding it goes
 /// away.
 ///
-/// Confined to the thread that created it.
+/// ## Changing the menu
+///
+/// [#rows] gives the tray a new description while the icon is up. A menu of the
+/// same shape (the same kinds of row, in the same places) is changed in place:
+/// a label, a tick, whether a row is offered, and which handler a row runs. A
+/// menu of another shape replaces the rows under the same icon. Either way the
+/// icon stays where it is, so nothing flickers in the notification area.
+///
+/// **The description is the truth.** A checkbox shows the tick its description
+/// says, so a handler that declines a click describes the menu again with the
+/// tick as it was. A change asked for from inside a row's handler is applied
+/// when the handler returns, never under SDL's own callback.
+///
+/// Each shape of the menu has its own arena of upcall stubs. One a reshape
+/// leaves behind is closed at the next reshape or at [#close], never while a
+/// callback from it can still be on the stack.
+///
+/// Confined to the thread that created it, but for a row's handler, which runs
+/// on whatever thread the platform calls back on.
 ///
 /// Read more: [The native boundary](https://goldberry.dev/docs/overview/architecture.html#the-native-boundary).
 public final class SdlTray implements AutoCloseable {
@@ -79,13 +97,38 @@ public final class SdlTray implements AutoCloseable {
     /// A row that has a handler, paired with the pointer SDL knows it by.
     private record Row(MemorySegment entry, SdlTrayItem.Chosen onChosen, boolean checkbox) {}
 
+    /// One entry of the menu as it stands: SDL's pointer, the description it
+    /// was last given, and its submenu's entries.
+    private record Node(MemorySegment entry, SdlTrayItem item, List<Node> children) {}
+
     private final SdlTrayCalls trayCalls;
     private final SdlSurfaceCalls surfaceCalls;
-    private final Arena stubs = Arena.ofShared();
-    private final List<Row> rows = new ArrayList<>();
     private final Thread owner = Thread.currentThread();
 
     private final MemorySegment tray;
+    private final MemorySegment menu;
+
+    /// The stubs of the menu's current shape.
+    private Arena stubs = Arena.ofShared();
+
+    /// The stubs a reshape left behind, closed at the next one or at [#close].
+    private @Nullable Arena retired;
+
+    /// Which shape of the menu a stub was made for: a stub carries it, so one
+    /// left over from a shape that has gone can never run a row of the new one.
+    private int generation;
+
+    /// The handlers, by the index bound into each stub. Replaced whole rather
+    /// than changed, since the platform may call back on a thread of its own.
+    private volatile List<Row> rows = List.of();
+
+    private List<Node> nodes = List.of();
+
+    /// How deep the calls back into a row's handler are, on the owner's thread.
+    private int dispatching;
+
+    /// A description given from inside a handler, applied when it returns.
+    private @Nullable List<SdlTrayItem> pending;
 
     private boolean closed;
 
@@ -138,13 +181,15 @@ public final class SdlTray implements AutoCloseable {
         this.surfaceCalls = surfaceCalls;
         this.tray = tray;
         try {
-            var menu = trayCalls.createTrayMenu().call(tray);
+            this.menu = trayCalls.createTrayMenu().call(tray);
             if (MemorySegment.NULL.equals(menu)) {
                 throw new SdlException("SDL_CreateTrayMenu", Sdl.get().lastError());
             }
+            var handlers = new ArrayList<Row>();
             try (var scratch = Arena.ofConfined()) {
-                fill(menu, items, scratch);
+                nodes = fill(menu, items, scratch, handlers);
             }
+            rows = List.copyOf(handlers);
         } catch (RuntimeException | Error e) {
             // The tray is up and unusable at this point, so it comes down with
             // the stubs rather than being left in the notification area.
@@ -154,8 +199,11 @@ public final class SdlTray implements AutoCloseable {
         }
     }
 
-    /// Adds every row of `items` to `menu`, recursing into submenus.
-    private void fill(MemorySegment menu, List<SdlTrayItem> items, Arena scratch) {
+    /// Adds every row of `items` to `menu`, recursing into submenus, and answers
+    /// the entries it made. Each row with a handler is appended to `handlers`,
+    /// whose index its stub carries.
+    private List<Node> fill(MemorySegment menu, List<SdlTrayItem> items, Arena scratch, List<Row> handlers) {
+        var made = new ArrayList<Node>(items.size());
         for (var item : items) {
             var label =
                     item.kind() == SdlTrayItem.Kind.SEPARATOR ? MemorySegment.NULL : scratch.allocateFrom(item.label());
@@ -169,21 +217,169 @@ public final class SdlTray implements AutoCloseable {
                 if (MemorySegment.NULL.equals(submenu)) {
                     throw new SdlException("SDL_CreateTraySubmenu", Sdl.get().lastError());
                 }
-                fill(submenu, item.children(), scratch);
+                made.add(new Node(entry, item, fill(submenu, item.children(), scratch, handlers)));
                 continue;
             }
+            made.add(new Node(entry, item, List.of()));
             if (item.onChosen() == null) {
                 continue;
             }
-            var index = rows.size();
-            rows.add(new Row(entry, item.onChosen(), item.kind() == SdlTrayItem.Kind.CHECKBOX));
-            // One stub per row, with the row's index bound into it, rather than
-            // one stub reading an index out of `userdata`. The alternative would
-            // mean fabricating a pointer that is never a pointer, and SDL would
-            // hand it straight back -- correct, and a lie in the type.
-            var target = MethodHandles.insertArguments(INVOKE.bindTo(this), 0, index);
+            var index = handlers.size();
+            handlers.add(new Row(entry, item.onChosen(), item.kind() == SdlTrayItem.Kind.CHECKBOX));
+            // One stub per row, with the shape and the row's index bound into
+            // it, rather than one stub reading an index out of `userdata`. The
+            // alternative would mean fabricating a pointer that is never a
+            // pointer, and SDL would hand it straight back -- correct, and a lie
+            // in the type.
+            var target = MethodHandles.insertArguments(INVOKE.bindTo(this), 0, generation, index);
             trayCalls.setTrayEntryCallback().call(entry, upcallStub(target, stubs), MemorySegment.NULL);
         }
+        return List.copyOf(made);
+    }
+
+    /// Gives the menu a new description, keeping the icon where it is.
+    ///
+    /// The same shape is changed in place; another shape replaces the rows. Asked
+    /// from inside a row's handler, the change waits until the handler returns.
+    ///
+    /// @param items the menu's rows, as [#open] takes them
+    public void rows(List<SdlTrayItem> items) {
+        requireOwner();
+        requireOpen();
+        var described = List.copyOf(Objects.requireNonNull(items, "items"));
+        if (dispatching > 0) {
+            pending = described;
+            return;
+        }
+        apply(described);
+    }
+
+    private void apply(List<SdlTrayItem> items) {
+        if (sameShape(nodes, items)) {
+            var handlers = new ArrayList<Row>();
+            try (var scratch = Arena.ofConfined()) {
+                nodes = update(nodes, items, scratch, handlers);
+            }
+            rows = List.copyOf(handlers);
+            return;
+        }
+        // Another shape: the old rows out, then the new ones in, under the same
+        // icon. A removed submenu takes its own rows with it.
+        for (var node : nodes) {
+            trayCalls.removeTrayEntry().call(node.entry());
+        }
+        rows = List.of();
+        nodes = List.of();
+        if (retired != null) {
+            retired.close();
+        }
+        retired = stubs;
+        stubs = Arena.ofShared();
+        generation++;
+        var handlers = new ArrayList<Row>();
+        try (var scratch = Arena.ofConfined()) {
+            nodes = fill(menu, items, scratch, handlers);
+        }
+        rows = List.copyOf(handlers);
+    }
+
+    /// Whether `items` has the shape `nodes` was made from: the same kinds in the
+    /// same places, the same rows with a handler, the same submenus.
+    private static boolean sameShape(List<Node> nodes, List<SdlTrayItem> items) {
+        if (nodes.size() != items.size()) {
+            return false;
+        }
+        for (var i = 0; i < items.size(); i++) {
+            var was = nodes.get(i).item();
+            var now = items.get(i);
+            if (was.kind() != now.kind()
+                    || (was.onChosen() == null) != (now.onChosen() == null)
+                    || !sameShape(nodes.get(i).children(), now.children())) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /// Changes what differs between `nodes` and `items`, which have one shape,
+    /// and answers the entries as they now stand.
+    private List<Node> update(List<Node> nodes, List<SdlTrayItem> items, Arena scratch, List<Row> handlers) {
+        var made = new ArrayList<Node>(items.size());
+        for (var i = 0; i < items.size(); i++) {
+            var node = nodes.get(i);
+            var was = node.item();
+            var now = items.get(i);
+            var entry = node.entry();
+            if (now.kind() != SdlTrayItem.Kind.SEPARATOR) {
+                if (!Objects.equals(was.label(), now.label())) {
+                    trayCalls.setTrayEntryLabel().call(entry, scratch.allocateFrom(now.label()));
+                }
+                if (was.enabled() != now.enabled()) {
+                    trayCalls.setTrayEntryEnabled().call(entry, now.enabled());
+                }
+            }
+            // Against what the platform shows rather than what was described
+            // last: a click toggled it there, and the description is the truth.
+            if (now.kind() == SdlTrayItem.Kind.CHECKBOX
+                    && trayCalls.getTrayEntryChecked().call(entry) != now.checked()) {
+                trayCalls.setTrayEntryChecked().call(entry, now.checked());
+            }
+            var children = update(node.children(), now.children(), scratch, handlers);
+            if (now.onChosen() != null && now.kind() != SdlTrayItem.Kind.SUBMENU) {
+                handlers.add(new Row(entry, now.onChosen(), now.kind() == SdlTrayItem.Kind.CHECKBOX));
+            }
+            made.add(new Node(entry, now, children));
+        }
+        return List.copyOf(made);
+    }
+
+    /// Chooses the row at `path` as the desktop's shell would: a checkbox is
+    /// toggled, then the row's handler runs.
+    ///
+    /// For a test on a real desktop, where nothing can click the shell's menu
+    /// from outside it. Paths are the labels from the top of the menu down,
+    /// separated by `/`, as `"Recent/report.pdf"`.
+    ///
+    /// @throws IllegalArgumentException if no row is reached by that path
+    public void click(String path) {
+        requireOwner();
+        requireOpen();
+        var node = find(nodes, "", Objects.requireNonNull(path, "path"));
+        if (node == null) {
+            throw new IllegalArgumentException("no tray row at " + path);
+        }
+        trayCalls.clickTrayEntry().call(node.entry());
+    }
+
+    /// Whether the checkbox at `path` shows a tick, as the platform has it.
+    ///
+    /// @throws IllegalArgumentException if no checkbox is reached by that path
+    public boolean isChecked(String path) {
+        requireOwner();
+        requireOpen();
+        var node = find(nodes, "", Objects.requireNonNull(path, "path"));
+        if (node == null || node.item().kind() != SdlTrayItem.Kind.CHECKBOX) {
+            throw new IllegalArgumentException("no tray checkbox at " + path);
+        }
+        return trayCalls.getTrayEntryChecked().call(node.entry());
+    }
+
+    private static @Nullable Node find(List<Node> nodes, String prefix, String path) {
+        for (var node : nodes) {
+            var label = node.item().label();
+            if (label == null) {
+                continue;
+            }
+            var here = prefix.isEmpty() ? label : prefix + "/" + label;
+            if (here.equals(path)) {
+                return node;
+            }
+            var deeper = find(node.children(), here, path);
+            if (deeper != null) {
+                return deeper;
+            }
+        }
+        return null;
     }
 
     /// Replaces the icon. What a theme switch calls: the tray sits on the
@@ -231,36 +427,54 @@ public final class SdlTray implements AutoCloseable {
         try {
             trayCalls.destroyTray().call(tray);
         } finally {
-            rows.clear();
+            rows = List.of();
+            nodes = List.of();
+            pending = null;
             stubs.close();
+            if (retired != null) {
+                retired.close();
+                retired = null;
+            }
         }
     }
 
     /// The upcall target. Called by native code, so it must not throw.
-    private void invoke(int index, MemorySegment userdata, MemorySegment entry) {
+    ///
+    /// On whatever thread the platform calls back on, which is the owner's
+    /// everywhere SDL dispatches from inside the pump. Where it is not, the
+    /// handler is the caller's to move: `Sdl3Tray` hands it to the UI thread.
+    private void invoke(int shape, int index, MemorySegment userdata, MemorySegment entry) {
+        var onOwner = Thread.currentThread() == owner;
         try {
-            if (closed || index >= rows.size()) {
-                // A click that arrived while the tray was coming down. The shell
-                // owns the timing here, so this is a race to absorb rather than
-                // a state to forbid.
+            var current = rows;
+            if (closed || shape != generation || index >= current.size()) {
+                // A click that arrived while the tray, or this shape of its menu,
+                // was coming down. The shell owns the timing here, so this is a
+                // race to absorb rather than a state to forbid.
                 return;
             }
-            var row = rows.get(index);
+            var row = current.get(index);
             // SDL applies the toggle before it calls back, so the state is read
             // rather than computed -- and a non-checkbox is never asked, because
             // SDL_GetTrayEntryChecked on one is undefined.
             var checked = row.checkbox() && trayCalls.getTrayEntryChecked().call(row.entry());
-            if (Thread.currentThread() != owner) {
-                // Not refused, because refusing would lose the click and every
-                // platform dispatches this from inside the pump the UI thread is
-                // in. Said out loud because if it ever is not, this line is the
-                // only evidence there would be.
-                LOG.warn(
-                        "a tray entry was chosen on {} rather than on {}",
-                        Thread.currentThread().getName(),
-                        owner.getName());
+            if (onOwner) {
+                dispatching++;
             }
-            row.onChosen().chosen(checked);
+            try {
+                row.onChosen().chosen(checked);
+            } finally {
+                if (onOwner) {
+                    dispatching--;
+                }
+            }
+            // A description given from inside the handler, now that SDL's own
+            // callback is the only thing left on the stack above this one.
+            var next = pending;
+            if (onOwner && dispatching == 0 && next != null && !closed) {
+                pending = null;
+                apply(next);
+            }
         } catch (Throwable t) {
             // An exception escaping an upcall takes the process with it, and the
             // process here is somebody's application being closed from its own
@@ -296,7 +510,8 @@ public final class SdlTray implements AutoCloseable {
                     .findVirtual(
                             SdlTray.class,
                             "invoke",
-                            MethodType.methodType(void.class, int.class, MemorySegment.class, MemorySegment.class));
+                            MethodType.methodType(
+                                    void.class, int.class, int.class, MemorySegment.class, MemorySegment.class));
         } catch (ReflectiveOperationException e) {
             throw new ExceptionInInitializerError(e);
         }

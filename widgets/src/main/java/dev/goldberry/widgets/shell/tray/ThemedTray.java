@@ -1,5 +1,6 @@
 package dev.goldberry.widgets.shell.tray;
 
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -8,6 +9,7 @@ import dev.goldberry.bind.Subscription;
 import dev.goldberry.render.PixelBuffer;
 import dev.goldberry.render.desktop.SystemTheme;
 import dev.goldberry.render.tray.BackendTray;
+import dev.goldberry.render.tray.TrayItem;
 
 /// A tray whose picture follows the desktop's light-or-dark setting — the handle
 /// [Trays#show] gives back for a [TrayIcon.ThemePair].
@@ -78,6 +80,11 @@ final class ThemedTray implements BackendTray {
     @Override
     public void tooltip(String tooltip) {
         tray.tooltip(tooltip);
+    }
+
+    @Override
+    public void rows(List<TrayItem> rows) {
+        tray.rows(rows);
     }
 
     @Override
