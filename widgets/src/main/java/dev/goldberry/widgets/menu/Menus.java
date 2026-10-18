@@ -5,10 +5,12 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 import org.jspecify.annotations.Nullable;
 
 import dev.goldberry.Host;
+import dev.goldberry.OpenedFrom;
 import dev.goldberry.Placement;
 import dev.goldberry.Popup;
 import dev.goldberry.render.event.EventLoop;
@@ -504,7 +506,8 @@ public final class Menus {
             if (self == null || !self.isOpen()) {
                 return;
             }
-            var row = self.anchor(Objects.requireNonNull(item.attributes().id(), "prepare() gives every row an id"));
+            var rowId = Objects.requireNonNull(item.attributes().id(), "prepare() gives every row an id");
+            var row = self.anchor(rowId);
             if (row.isEmpty()) {
                 return;
             }
@@ -536,7 +539,10 @@ public final class Menus {
             //
             // No `Siblings`: a submenu is not on the bar, so `Left` in it goes
             // back to this menu rather than to the menu on the bar's left.
-            open(
+            //
+            // Opened from the row, so the window's selectors reach the submenu
+            // through it and through the menu it is in.
+            Supplier<Optional<Popup>> opening = () -> open(
                     host,
                     beside,
                     new Menu(item.submenu(), item.attributes().id(null)),
@@ -544,6 +550,9 @@ public final class Menus {
                     stack,
                     this,
                     null);
+            var _ = self.find(rowId)
+                    .map(opener -> OpenedFrom.call(opener, opening))
+                    .orElseGet(opening);
         }
     }
 }

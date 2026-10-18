@@ -78,3 +78,5 @@ Appended to the index when the records move in, in this order.
 - [ADR-0634 The showcase hands logback its file](0634-the-showcase-hands-logback-its-file.md)
 - [ADR-0635 `Goldberry.run()` shuts the runtime down when it returns](0635-run-shuts-the-runtime-down-when-it-returns.md)
 - [ADR-0636 Emphasis is set in the italic face](0636-emphasis-is-set-in-the-italic-face.md)
+- [ADR-0637 A popup is styled from the widget that opened it](0637-a-popup-is-styled-from-the-widget-that-opened-it.md)
+- [ADR-0638 No popup has the platform's focus, so none gives it back](0638-no-popup-has-the-platforms-focus-so-none-gives-it-back.md)

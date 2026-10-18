@@ -5,6 +5,7 @@ import java.time.Duration;
 import org.jspecify.annotations.Nullable;
 
 import dev.goldberry.Host;
+import dev.goldberry.OpenedFrom;
 import dev.goldberry.input.hit.Extent;
 import dev.goldberry.layout.Direction;
 import dev.goldberry.render.event.EventLoop;
@@ -284,12 +285,16 @@ final class TextInputState extends State<TextInput> implements TextEditor, TextC
         // At least as wide as the field, for `select`'s reason: a panel narrower
         // than the control it hangs off reads as a mistake.
         dev.goldberry.log.Logs.of(TextInputState.class).debug("suggestions anchored to {}", fieldBounds);
-        host.attachedPopup(
-                        list,
-                        fieldBounds,
-                        dev.goldberry.Placement.BELOW,
-                        fieldBounds.size().width(),
-                        VIEWPORT)
+        var window = host;
+        var anchor = fieldBounds;
+        OpenedFrom.call(
+                        context(),
+                        () -> window.attachedPopup(
+                                list,
+                                anchor,
+                                dev.goldberry.Placement.BELOW,
+                                anchor.size().width(),
+                                VIEWPORT))
                 .ifPresent(popup -> suggestions = popup.lightDismiss(true).takesFocus(false));
     }
 

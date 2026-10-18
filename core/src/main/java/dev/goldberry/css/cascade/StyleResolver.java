@@ -827,7 +827,7 @@ public final class StyleResolver {
             var rule = candidate.rule();
             if ((!rule.isConditional() || rule.media().matches(media))
                     && (!rule.isContained() || holds(rule, element))
-                    && matchesAny(rule, element)) {
+                    && matchesAny(rule, element, reachOf(candidate.layer()))) {
                 matched = true;
                 break;
             }
@@ -875,9 +875,18 @@ public final class StyleResolver {
         return substituted(element, declared, customPropertiesFor(element));
     }
 
-    private static boolean matchesAny(StyleRule rule, StyleElement element) {
+    /// How far up `layer`'s combinators walk: the toolkit's base sheet styles
+    /// a control's own parts and stays in the element's tree; every other
+    /// layer reaches into a popup from the element that opened it.
+    private static SelectorMatcher.Reach reachOf(CascadeLayer layer) {
+        return layer == CascadeLayer.TOOLKIT_BASE
+                ? SelectorMatcher.Reach.OWN_TREE
+                : SelectorMatcher.Reach.THROUGH_OPENER;
+    }
+
+    private static boolean matchesAny(StyleRule rule, StyleElement element, SelectorMatcher.Reach reach) {
         for (var selector : rule.selectors()) {
-            if (SelectorMatcher.matches(selector, element)) {
+            if (SelectorMatcher.matches(selector, element, reach)) {
                 return true;
             }
         }
@@ -1038,8 +1047,9 @@ public final class StyleResolver {
             // The most specific *matching* selector in the list is the one
             // that represents the rule, per the cascade.
             var best = -1;
+            var reach = reachOf(candidate.layer());
             for (var selector : rule.selectors()) {
-                if (SelectorMatcher.matches(selector, element)) {
+                if (SelectorMatcher.matches(selector, element, reach)) {
                     best = Math.max(best, selector.specificity());
                 }
             }

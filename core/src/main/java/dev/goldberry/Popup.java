@@ -1,14 +1,20 @@
 package dev.goldberry;
 
+import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.function.Supplier;
 
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import dev.goldberry.css.select.SelectorChain;
 import dev.goldberry.input.PointerRouter;
+import dev.goldberry.input.event.PointerEvent;
 import dev.goldberry.input.hit.HitTest;
+import dev.goldberry.input.key.Key;
+import dev.goldberry.input.key.Modifiers;
 import dev.goldberry.layout.Insets;
 import dev.goldberry.layout.Length;
 import dev.goldberry.paint.Box;
@@ -18,9 +24,12 @@ import dev.goldberry.render.model.LogicalPoint;
 import dev.goldberry.render.model.LogicalRect;
 import dev.goldberry.render.model.LogicalSize;
 import dev.goldberry.render.popup.BackendPopup;
+import dev.goldberry.widget.BuildContext;
+import dev.goldberry.widget.Element;
 import dev.goldberry.widget.ElementTree;
 import dev.goldberry.widget.Widget;
 import dev.goldberry.widget.WidgetRenderer;
+import dev.goldberry.widget.style.Styled;
 
 /// A widget tree in a platform window of its own — a menu, a dropdown, a
 /// tooltip.
@@ -96,12 +105,20 @@ public final class Popup implements AutoCloseable {
     /// Whether [#focusFirst] has run. See there.
     private boolean focused;
 
+    /// What a selector could read above this popup's root when it was last
+    /// styled: the opener and its ancestors, or nothing for a popup opened from
+    /// nothing. See [#followOpener()].
+    private SelectorChain openerChain;
+
+    /// Run after each frame of this popup, for its owner to look at the others.
+    private Runnable afterPaint = () -> {};
+
     /// Which node to put the keyboard on when this popup first paints, or null
     /// for "the first focusable one". See [#focusOn].
     private @Nullable String focusId;
 
     /// The last painted frame's geometry — see [#anchor].
-    private java.util.List<HitTest.Region> regions = java.util.List.of();
+    private List<HitTest.Region> regions = List.of();
 
     /// The trees are handed in rather than built here because the content has
     /// usually been **measured** already — that is how the popup got a size — and
@@ -135,6 +152,8 @@ public final class Popup implements AutoCloseable {
         this.renderer = Objects.requireNonNull(renderer, "renderer");
         this.onClosed = Objects.requireNonNull(onClosed, "onClosed");
         this.tree = Objects.requireNonNull(tree, "tree");
+        // As the content was measured, which is the styling it opens with.
+        this.openerChain = SelectorChain.of(tree.root().selectorParent());
         // A popup's tree paints into a popup's window, exactly as the owner's
         // does into its own — a `setState` in a menu item is as much a reason for
         // a frame as one in the application.
@@ -151,7 +170,7 @@ public final class Popup implements AutoCloseable {
         // is someone choosing an item, not dismissing the menu.
         window.inputWatcher(new Window.InputWatcher() {
             @Override
-            public boolean pressed(dev.goldberry.input.event.PointerEvent.@Nullable Button button, float x, float y) {
+            public boolean pressed(PointerEvent.@Nullable Button button, float x, float y) {
                 // A press in the shadow's room is on nothing the user can see,
                 // which is a press outside: taken, and treated as one.
                 if (!margin.isNone() && !margin.panelIn(window.size()).contains(new LogicalPoint(x, y))) {
@@ -163,9 +182,8 @@ public final class Popup implements AutoCloseable {
             }
 
             @Override
-            public boolean keyPressed(
-                    dev.goldberry.input.key.Key key, dev.goldberry.input.key.Modifiers modifiers, boolean repeat) {
-                if (key == dev.goldberry.input.key.Key.ESCAPE) {
+            public boolean keyPressed(Key key, Modifiers modifiers, boolean repeat) {
+                if (key == Key.ESCAPE) {
                     dismissedByInput();
                     return true;
                 }
@@ -192,20 +210,35 @@ public final class Popup implements AutoCloseable {
     /// item that opens a submenu has to ask the popup it is in — and the answer
     /// is translated by this popup's own offset, because that is the space
     /// `Host.popup` places in.
-    public java.util.Optional<LogicalRect> anchor(String id) {
+    public Optional<LogicalRect> anchor(String id) {
         Objects.requireNonNull(id, "id");
         for (var region : regions) {
-            if (region.owner() instanceof dev.goldberry.widget.Element element
-                    && element.widget() instanceof dev.goldberry.widget.style.Styled styled
+            if (region.owner() instanceof Element element
+                    && element.widget() instanceof Styled styled
                     && id.equals(styled.id())) {
                 // Where the item was **painted**, which for a menu tall enough
                 // to scroll is not where it was laid out.
                 var bounds = region.painted();
-                return java.util.Optional.of(
+                return Optional.of(
                         bounds.offsetBy(backend.offset().x(), backend.offset().y()));
             }
         }
-        return java.util.Optional.empty();
+        return Optional.empty();
+    }
+
+    /// The painted element with `id` in this popup: what a submenu names as the
+    /// widget it was opened from, through [OpenedFrom], so the window's
+    /// selectors reach it through the row it hangs off.
+    public Optional<BuildContext> find(String id) {
+        Objects.requireNonNull(id, "id");
+        for (var region : regions) {
+            if (region.owner() instanceof Element element
+                    && element.widget() instanceof Styled styled
+                    && id.equals(styled.id())) {
+                return Optional.of(element);
+            }
+        }
+        return Optional.empty();
     }
 
     /// This popup's whole rectangle, in the owner window's coordinates.
@@ -286,6 +319,33 @@ public final class Popup implements AutoCloseable {
         tree.update(Objects.requireNonNull(content, "content"));
         resizeToContent();
         window.repaint();
+    }
+
+    /// Restyles this popup when the chain it was opened from has changed since
+    /// it was last styled: a class on the opener, a state on one of its
+    /// ancestors, the opener replaced. Its owner asks after every frame that
+    /// could have changed it. Free for a popup opened from nothing.
+    ///
+    /// @return whether it restyled
+    boolean followOpener() {
+        if (!isOpen()) {
+            return false;
+        }
+        var now = SelectorChain.of(tree.root().selectorParent());
+        if (now.equals(openerChain)) {
+            return false;
+        }
+        openerChain = now;
+        tree.restyle();
+        // A rule that reaches in can change the size: a padding, a font.
+        resizeToContent();
+        window.repaint();
+        return true;
+    }
+
+    /// What to run after each frame of this popup.
+    void afterPaint(Runnable action) {
+        this.afterPaint = Objects.requireNonNull(action, "action");
     }
 
     /// Measures what the tree now describes and asks the window for that size.
@@ -422,17 +482,18 @@ public final class Popup implements AutoCloseable {
         if (current.isAnimating()) {
             window.repaint();
         }
+        afterPaint.run();
     }
 
     /// Handles a key the **owner** window received while this popup was open.
     ///
-    /// A popup may or may not have the platform's keyboard focus — SDL will give
-    /// a `POPUP_MENU` window focus on some drivers and not on others, and a
-    /// tooltip must never have it. So the owner forwards, and a menu is operable
-    /// by arrows either way.
+    /// A popup never has the platform's keyboard: every kind is created not
+    /// focusable, so keys keep arriving at the owner, which forwards them here.
+    /// That is how a menu is operable by arrows while the caret stays in the
+    /// field underneath.
     ///
     /// @return whether the popup's router did something with it
-    boolean handleKey(dev.goldberry.input.key.Key key, dev.goldberry.input.key.Modifiers modifiers, boolean repeat) {
+    boolean handleKey(Key key, Modifiers modifiers, boolean repeat) {
         if (!isOpen() || !keyboard) {
             // A panel is skipped by the forwarding rule, which is the half of
             // [#keyboard(boolean)] the owner cannot enforce for it: the launcher
@@ -572,9 +633,8 @@ public final class Popup implements AutoCloseable {
     /// A walk rather than a lookup in [#regions], which [#anchor] uses: focus is
     /// placed *before* anything asks where a node was painted, and a region
     /// carries a rectangle where this needs the element itself.
-    private static dev.goldberry.widget.@Nullable Element elementWithId(
-            dev.goldberry.widget.Element element, String id) {
-        if (element.widget() instanceof dev.goldberry.widget.style.Styled styled && id.equals(styled.id())) {
+    private static @Nullable Element elementWithId(Element element, String id) {
+        if (element.widget() instanceof Styled styled && id.equals(styled.id())) {
             return element;
         }
         for (var child : element.children()) {

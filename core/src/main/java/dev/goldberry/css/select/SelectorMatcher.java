@@ -21,11 +21,38 @@ public final class SelectorMatcher {
 
     private SelectorMatcher() {}
 
-    /// Whether `selector` matches `element`.
+    /// How far up a descendant or child combinator may walk.
+    public enum Reach {
+
+        /// Up [StyleElement#parent()]: the element's own tree and no further.
+        /// The toolkit's base sheet matches this way, because it styles a
+        /// control's own parts, and a popup is not a part of the control that
+        /// opened it.
+        OWN_TREE,
+
+        /// Up [StyleElement#selectorParent()], out of a popup into the element
+        /// that opened it: every other sheet's.
+        THROUGH_OPENER;
+
+        @Nullable
+        StyleElement up(StyleElement element) {
+            return this == OWN_TREE ? element.parent() : element.selectorParent();
+        }
+    }
+
+    /// Whether `selector` matches `element`, reaching into a popup from its
+    /// opener.
     public static boolean matches(Selector selector, StyleElement element) {
+        return matches(selector, element, Reach.THROUGH_OPENER);
+    }
+
+    /// Whether `selector` matches `element`, its combinators walking as far up
+    /// as `reach` lets them.
+    public static boolean matches(Selector selector, StyleElement element, Reach reach) {
         Objects.requireNonNull(selector, "selector");
         Objects.requireNonNull(element, "element");
-        return matchFrom(selector, 0, element, null);
+        Objects.requireNonNull(reach, "reach");
+        return matchFrom(selector, 0, element, null, reach);
     }
 
     /// Matches `parts[index]` against `element`, then everything to its left
@@ -43,9 +70,9 @@ public final class SelectorMatcher {
     ///               leftmost compound must stand against as its combinator
     ///               says; null for an ordinary selector
     private static boolean matchFrom(
-            Selector selector, int index, StyleElement element, @Nullable StyleElement anchor) {
+            Selector selector, int index, StyleElement element, @Nullable StyleElement anchor, Reach reach) {
         var parts = selector.parts();
-        if (!matchesCompound(parts.get(index).compound(), element)) {
+        if (!matchesCompound(parts.get(index).compound(), element, reach)) {
             return false;
         }
         // The combinator on this part joins it to the compound on its left,
@@ -56,13 +83,16 @@ public final class SelectorMatcher {
         }
         var next = index + 1;
         return switch (combinator) {
+            // Up as far as `reach` lets them, which out of a popup's root is
+            // into its opener; `placed` below keeps to `parent`, because a
+            // `:has()` argument is looked for in its anchor's own subtree.
             case CHILD -> {
-                var parent = element.parent();
-                yield parent != null && matchFrom(selector, next, parent, anchor);
+                var parent = reach.up(element);
+                yield parent != null && matchFrom(selector, next, parent, anchor, reach);
             }
             case DESCENDANT, PART, NONE -> {
-                for (var ancestor = element.parent(); ancestor != null; ancestor = ancestor.parent()) {
-                    if (matchFrom(selector, next, ancestor, anchor)) {
+                for (var ancestor = reach.up(element); ancestor != null; ancestor = reach.up(ancestor)) {
+                    if (matchFrom(selector, next, ancestor, anchor, reach)) {
                         yield true;
                     }
                 }
@@ -71,12 +101,12 @@ public final class SelectorMatcher {
             case NEXT_SIBLING -> {
                 var siblings = element.siblings();
                 var at = indexAmong(siblings, element);
-                yield at > 0 && matchFrom(selector, next, siblings.get(at - 1), anchor);
+                yield at > 0 && matchFrom(selector, next, siblings.get(at - 1), anchor, reach);
             }
             case SUBSEQUENT_SIBLING -> {
                 var siblings = element.siblings();
                 for (var at = indexAmong(siblings, element) - 1; at >= 0; at--) {
-                    if (matchFrom(selector, next, siblings.get(at), anchor)) {
+                    if (matchFrom(selector, next, siblings.get(at), anchor, reach)) {
                         yield true;
                     }
                 }
@@ -132,7 +162,7 @@ public final class SelectorMatcher {
     }
 
     /// Whether every simple selector in one compound holds for one element.
-    static boolean matchesCompound(Selector.Compound compound, StyleElement element) {
+    static boolean matchesCompound(Selector.Compound compound, StyleElement element, Reach reach) {
         if (compound.type() != null && !compound.type().equals(element.type())) {
             return false;
         }
@@ -170,10 +200,10 @@ public final class SelectorMatcher {
         }
         for (var functional : compound.functional()) {
             var holds = switch (functional) {
-                case Functional.Is(var arguments) -> any(arguments, element);
-                case Functional.Where(var arguments) -> any(arguments, element);
-                case Functional.Not(var arguments) -> !any(arguments, element);
-                case Functional.NthOf(var position, var arguments) -> nthOf(position, arguments, element);
+                case Functional.Is(var arguments) -> any(arguments, element, reach);
+                case Functional.Where(var arguments) -> any(arguments, element, reach);
+                case Functional.Not(var arguments) -> !any(arguments, element, reach);
+                case Functional.NthOf(var position, var arguments) -> nthOf(position, arguments, element, reach);
                 case Functional.Has(var arguments) -> has(arguments, element);
             };
             if (!holds) {
@@ -184,9 +214,9 @@ public final class SelectorMatcher {
     }
 
     /// Whether any of `selectors` matches `element`.
-    private static boolean any(List<Selector> selectors, StyleElement element) {
+    private static boolean any(List<Selector> selectors, StyleElement element, Reach reach) {
         for (var selector : selectors) {
-            if (matchFrom(selector, 0, element, null)) {
+            if (matchFrom(selector, 0, element, null, reach)) {
                 return true;
             }
         }
@@ -223,7 +253,9 @@ public final class SelectorMatcher {
     /// Whether `argument`, relative to `anchor`, matches `candidate` or
     /// anything under it.
     private static boolean within(Selector argument, StyleElement candidate, StyleElement anchor) {
-        if (matchFrom(argument, 0, candidate, anchor)) {
+        // Its own tree: an argument is looked for below its anchor, and the
+        // walk back up to the anchor never leaves the tree it started in.
+        if (matchFrom(argument, 0, candidate, anchor, Reach.OWN_TREE)) {
             return true;
         }
         for (var child : candidate.children()) {
@@ -236,8 +268,8 @@ public final class SelectorMatcher {
 
     /// `:nth-child(An+B of S)`: `element` matches `S`, and its place among the
     /// siblings that match `S` is one `position` names.
-    private static boolean nthOf(Structural.Nth position, List<Selector> filter, StyleElement element) {
-        if (!any(filter, element)) {
+    private static boolean nthOf(Structural.Nth position, List<Selector> filter, StyleElement element, Reach reach) {
+        if (!any(filter, element, reach)) {
             return false;
         }
         var index = -1;
@@ -246,7 +278,7 @@ public final class SelectorMatcher {
             if (sibling == element) {
                 index = count;
                 count++;
-            } else if (any(filter, sibling)) {
+            } else if (any(filter, sibling, reach)) {
                 count++;
             }
         }

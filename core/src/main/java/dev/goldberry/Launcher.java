@@ -300,8 +300,8 @@ final class Launcher {
         main.mount(application.root());
 
         // A popup goes away when the *application* does, which no platform
-        // reports: opening one sends a focus-lost for the window under it and a
-        // focus-gained for the popup itself.
+        // reports: it reports each window's focus, and moving between two of
+        // this application's windows is a focus-lost and a focus-gained.
         GoldberryRuntime.get().onFocusChange(this::focusMayHaveLeft);
 
         // The runtime's loop and not `Goldberry.run()`, which shuts the backend
@@ -538,23 +538,22 @@ final class Launcher {
 
     /// How long to wait before believing a focus-lost.
     ///
-    /// **Deferred rather than acted on**, and this is the whole mechanism. The
-    /// platform reports focus per window: opening a popup sends a lost for the
-    /// owner and then a gained for the popup, in that order, so a menu that
-    /// closed on the first of those would close as it opened. One turn of the
-    /// event loop later, the pair has been seen and the question "is any window
+    /// **Deferred rather than acted on.** The platform reports focus per window,
+    /// so focus moving between two of the application's own windows is a lost
+    /// and then a gained, which a compositor may deliver in two batches. One
+    /// turn of the event loop later the pair has been seen, and "is any window
     /// of ours focused" has its real answer.
     ///
-    /// Short enough not to leave a menu floating over another application while
-    /// anybody notices, long enough to cover a pair of events the compositor
-    /// delivers in two batches.
+    /// **Opening a popup is not such a pair.** It once was, and the delay was
+    /// sized for it, but no popup takes the platform's keyboard any more, and
+    /// SDL moves the keyboard to a popup only when it is focusable, on every
+    /// driver. So a menu cannot close as it opens whatever this is set to; the
+    /// delay is a debounce over the application's own windows and a window
+    /// manager's flicker, and its exact value matters little.
     ///
-    /// **60 ms is one number covering every driver**, and the first driver to
-    /// deliver that pair more slowly makes a menu look like it closes as it
-    /// opens. It cannot be derived — the pair is the compositor's own scheduling
-    /// and nothing reports what it will be — so what can be done about it is to
-    /// let it be told: [#SETTLE_PROPERTY] overrides it without a rebuild, which
-    /// is what turns "this driver is broken" into a flag somebody can set.
+    /// Short enough not to leave a menu floating over another application while
+    /// anybody notices. [#SETTLE_PROPERTY] still overrides it without a rebuild,
+    /// for a desktop that needs longer.
     ///
     /// **An instance field and not a constant**: read when the launcher is built
     /// rather than when the class is loaded, so a test that sets the property can

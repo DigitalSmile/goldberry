@@ -5,6 +5,7 @@ import java.time.LocalTime;
 import org.jspecify.annotations.Nullable;
 
 import dev.goldberry.Host;
+import dev.goldberry.OpenedFrom;
 import dev.goldberry.Placement;
 import dev.goldberry.Popup;
 import dev.goldberry.log.Logs;
@@ -153,8 +154,16 @@ final class TimePickerState extends State<TimePicker> implements PickerField.Pic
         if (host == null || bounds == null) {
             return false;
         }
-        var opened = host.attachedPopup(
-                columns(), bounds, Placement.BELOW, NO_MINIMUM_WIDTH, (content, measured, available) -> content);
+        var window = host;
+        var anchor = bounds;
+        var opened = OpenedFrom.call(
+                context(),
+                () -> window.attachedPopup(
+                        columns(),
+                        anchor,
+                        Placement.BELOW,
+                        NO_MINIMUM_WIDTH,
+                        (content, measured, available) -> content));
         if (opened.isEmpty()) {
             LOG.trace("this platform has no popup windows, so a time-picker cannot open its wheels");
             return false;

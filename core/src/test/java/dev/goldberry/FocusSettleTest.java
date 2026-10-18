@@ -14,12 +14,12 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 /// How long a focus-lost is disbelieved for, and why it can be told.
 ///
-/// The platform reports focus **per window**: opening a popup sends a lost for
-/// the owner and then a gained for the popup, in that order, so a menu that acted
-/// on the first of the pair would close as it opened. The way out is
-/// to wait, and the wait is one number covering every driver — which is a
-/// calibration nobody can derive, because the gap between the two events is the
-/// compositor's own scheduling and nothing reports what it will be.
+/// The platform reports focus **per window**, so focus moving between two of the
+/// application's own windows is a lost and then a gained, and a popup that
+/// closed on the first of the pair would close for nothing. The way out is to
+/// wait, and the wait is one number covering every driver. Opening a popup is no
+/// longer such a pair (no popup takes the keyboard), so the number is a
+/// debounce rather than a calibration.
 ///
 /// So it can be told instead. These are the rules around that: the default stands
 /// when nothing says otherwise, a number is honoured, and neither nonsense nor

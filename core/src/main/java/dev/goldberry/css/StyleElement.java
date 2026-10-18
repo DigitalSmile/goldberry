@@ -54,6 +54,23 @@ public interface StyleElement {
     @Nullable
     StyleElement parent();
 
+    /// The element a descendant or child combinator steps to from this one.
+    ///
+    /// [#parent()] everywhere but at the root of a popup's tree, which answers
+    /// the element that opened the popup. So `.toolbar > menu` matches a menu
+    /// opened from a toolbar, and `.sidebar item` an item in it, the way a
+    /// browser's `popover` is styled from where it sits in the document.
+    ///
+    /// Only the two combinators read it, and only in rules above the toolkit's
+    /// base layer: that sheet styles a control's own parts, and a popup is not
+    /// a part of the control that opened it. `:root`, inheritance, custom
+    /// properties, `:has()` and container queries stay inside the tree the
+    /// element is in, so a popup still resolves its own theme and inherits
+    /// nothing.
+    default @Nullable StyleElement selectorParent() {
+        return parent();
+    }
+
     /// The custom properties this element resolved last time, if they are still
     /// good for `resolver` and for the `inherited` map its parent handed down.
     ///

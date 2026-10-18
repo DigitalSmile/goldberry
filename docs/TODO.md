@@ -37,44 +37,10 @@ the mechanism the sentence named — while the entry itself sat on under
 other entry was a cost nobody had measured, and measuring it was the answer.
 
 ## Overlays, popups and windows
-- **A popup may not give the *platform's* keyboard focus back, and the widget
-  layer has nothing to do with it** — **the second half of this entry was wrong
-  and has been measured.** A popup gets its own tree and its own router, and
-  nothing in the open or close path touches the owner's: a probe through the real
-  launcher, with a widget logging every focus change, saw a menu open and close
-  over a focused control without that control losing focus once. So there is
-  nothing to remember and nothing to restore at the router level. What is left is
-  the platform's own window focus — SDL gives a `POPUP_MENU` window focus on some
-  drivers and not on others — which the headless backend cannot show and which no
-  test here can currently reach. —
-  [ADR-0180](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0180-the-keyboard-goes-back-where-it-was.md),
-  [ADR-0104](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0104-a-popup-is-measured-then-placed.md)
-- **A popup's contents inherit nothing from the widget that opened them, and the
-  answer this entry proposed is wrong for the widget it named.** They are the root
-  of a second element tree, so no `color`, no `font-size` and no descendant
-  selector reaches in. Right for a menu, whose items are a list rather than part
-  of a button's subtree. This used to add "a limitation for `tooltip`, which wants
-  the styling of the thing it describes, and the answer there is to pass the
-  anchor's resolved style in" — and `tooltip` **pins** its typography for a stated
-  reason, §1.4's `caption` rank being the one departure in its row that somebody
-  had thought about ([ADR-0263](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0263-three-numbers-in-one-row-and-nothing-watching.md)).
-  Inheriting the anchor's `font-size` would draw a tooltip on a `display`-ranked
-  heading at 28px. So the subject stands and the example does not: what is left is
-  a `popover` or a `menu` whose *application* wanted a descendant selector to
-  reach in, which nothing has asked for. —
-  [ADR-0263](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0263-three-numbers-in-one-row-and-nothing-watching.md),
-  [ADR-0103](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0103-a-popup-is-a-second-tree-in-a-second-window.md)
-- **60 ms is how long a focus-lost is disbelieved for, and it can now be told
-  otherwise.** Long enough to cover the focus-lost/focus-gained pair that opening
-  a popup produces, short enough that nobody sees a menu over another application.
-  It is still **one default covering every driver** and it cannot be derived — the
-  gap between the two events is the compositor's own scheduling and nothing
-  reports what it will be — so what changed is that `-Dgoldberry.popup.settle=250`
-  overrides it without a rebuild, clamped to 1–2000 ms because a delay of zero
-  acts on the first of the pair every driver sends and is the exact bug the delay
-  exists for. A driver that needs the flag will still *look* like a menu that
-  closes as it opens until somebody sets it. —
-  [ADR-0144](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0144-a-popup-goes-away-when-the-application-does.md)
+
+Nothing open since 2026-10-18. The platform's focus after a popup, the focus
+settle and styling a popup from its opener are under [Answered](#answered)
+(ADR-0637, ADR-0638).
 ## The catalog: specified and unbuilt
 
 ### `text-input`, and what §4 still owes
@@ -758,6 +724,73 @@ way back is a consumer asking, not a date.
 Kept rather than deleted: each is a trap somebody hit, and the reasoning that got
 out of it is usually worth more than the fact that it is fixed.
 
+- ~~**A popup may not give the *platform's* keyboard focus back, and the widget
+  layer has nothing to do with it**~~ — **the second half of this entry was wrong
+  and has been measured.** A popup gets its own tree and its own router, and
+  nothing in the open or close path touches the owner's: a probe through the real
+  launcher, with a widget logging every focus change, saw a menu open and close
+  over a focused control without that control losing focus once. So there is
+  nothing to remember and nothing to restore at the router level. What is left is
+  the platform's own window focus — SDL gives a `POPUP_MENU` window focus on some
+  drivers and not on others — which the headless backend cannot show and which no
+  test here can currently reach. —
+  [ADR-0180](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0180-the-keyboard-goes-back-where-it-was.md),
+  [ADR-0104](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0104-a-popup-is-measured-then-placed.md)
+
+  **Closed (2026-10-18): no popup ever has it** (ADR-0638, parked in
+  `docs/snapshot/adr`). Every popup has been `NOT_FOCUSABLE` since ADR-0189,
+  and SDL 3.4.18 moves the keyboard to a popup on show, and back to its parent
+  on hide, only when it is focusable. That holds on X11, Wayland, Windows and
+  Cocoa alike, and X11 popups are override-redirect besides. The platform's focus
+  never leaves the owner, so there is nothing to give back. The flags moved
+  into `PopupFlags`, and `PopupFlagsTest` holds every kind to `NOT_FOCUSABLE`,
+  which the headless backend could not.
+- ~~**A popup's contents inherit nothing from the widget that opened them, and the
+  answer this entry proposed is wrong for the widget it named.**~~ They are the root
+  of a second element tree, so no `color`, no `font-size` and no descendant
+  selector reaches in. Right for a menu, whose items are a list rather than part
+  of a button's subtree. This used to add "a limitation for `tooltip`, which wants
+  the styling of the thing it describes, and the answer there is to pass the
+  anchor's resolved style in" — and `tooltip` **pins** its typography for a stated
+  reason, §1.4's `caption` rank being the one departure in its row that somebody
+  had thought about ([ADR-0263](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0263-three-numbers-in-one-row-and-nothing-watching.md)).
+  Inheriting the anchor's `font-size` would draw a tooltip on a `display`-ranked
+  heading at 28px. So the subject stands and the example does not: what is left is
+  a `popover` or a `menu` whose *application* wanted a descendant selector to
+  reach in, which nothing has asked for. —
+  [ADR-0263](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0263-three-numbers-in-one-row-and-nothing-watching.md),
+  [ADR-0103](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0103-a-popup-is-a-second-tree-in-a-second-window.md)
+
+  **Closed (2026-10-18): selectors reach in from the opener** (ADR-0637, parked
+  in `docs/snapshot/adr`). A descendant or child combinator steps out of a
+  popup's root into the widget that opened it: the anchor for an id, the
+  right-clicked widget, the described one, a submenu's row, or what
+  `OpenedFrom.call` names, which `select`, the pickers and a field's suggestions
+  do for themselves. Properties are still not inherited, `:root` is still the
+  popup's own, and the toolkit's base sheet stays in its own tree. An audit
+  found four `controls.css` rules about a control's parts that would otherwise
+  have leaked in. A popup restyles when a class or state on its opener's chain
+  changes while it is open.
+- ~~**60 ms is how long a focus-lost is disbelieved for, and it can now be told
+  otherwise.**~~ Long enough to cover the focus-lost/focus-gained pair that opening
+  a popup produces, short enough that nobody sees a menu over another application.
+  It is still **one default covering every driver** and it cannot be derived — the
+  gap between the two events is the compositor's own scheduling and nothing
+  reports what it will be — so what changed is that `-Dgoldberry.popup.settle=250`
+  overrides it without a rebuild, clamped to 1–2000 ms because a delay of zero
+  acts on the first of the pair every driver sends and is the exact bug the delay
+  exists for. A driver that needs the flag will still *look* like a menu that
+  closes as it opens until somebody sets it. —
+  [ADR-0144](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0144-a-popup-goes-away-when-the-application-does.md)
+
+  **Closed (2026-10-18): the pair it was sized for no longer happens**
+  (ADR-0638, parked in `docs/snapshot/adr`). It covered a focus-lost for the
+  owner followed by a gained for a popup that had taken the keyboard. No popup
+  has been focusable since ADR-0189, and SDL focuses a popup only when it is, so
+  opening one sends no focus event at all and a menu cannot close as it opens
+  whatever the number is. The deferral stays as a debounce over the
+  application's own windows, whose focus still moves as a lost and a gained, and
+  so does the property.
 - ~~**The toolkit never shut SDL down, and a compositor died of it.**~~
   `Sdl3Backend.close()` destroys every window and calls `SDL_Quit`; nothing called it.
   `Goldberry.run()` returning does not shut the runtime down — its contract says so —

@@ -28,6 +28,7 @@ public final class TestElement implements StyleElement {
     private final Set<Selector.PseudoClass> states = new LinkedHashSet<>();
     private final List<TestElement> children = new ArrayList<>();
     private TestElement parent;
+    private StyleElement openedFrom;
     private PseudoElement pseudoElement;
     private QueryContainer container;
 
@@ -129,6 +130,34 @@ public final class TestElement implements StyleElement {
     @Override
     public StyleElement parent() {
         return parent;
+    }
+
+    /// Makes this the root of a popup opened from `opener`: its
+    /// [#selectorParent()] steps there, and its [#parent()] stays null.
+    public TestElement openedFrom(StyleElement opener) {
+        this.openedFrom = opener;
+        return this;
+    }
+
+    @Override
+    public StyleElement selectorParent() {
+        return parent != null ? parent : openedFrom;
+    }
+
+    /// Adds a class after the fact, as a rebuild would.
+    public TestElement addClass(String name) {
+        classes.add(name);
+        return this;
+    }
+
+    /// Turns a state on or off after the fact, as the pointer would.
+    public TestElement state(Selector.PseudoClass state, boolean on) {
+        if (on) {
+            states.add(state);
+        } else {
+            states.remove(state);
+        }
+        return this;
     }
 
     @Override

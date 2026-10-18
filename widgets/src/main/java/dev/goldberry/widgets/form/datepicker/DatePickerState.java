@@ -6,6 +6,7 @@ import java.time.YearMonth;
 import org.jspecify.annotations.Nullable;
 
 import dev.goldberry.Host;
+import dev.goldberry.OpenedFrom;
 import dev.goldberry.Placement;
 import dev.goldberry.Popup;
 import dev.goldberry.log.Logs;
@@ -202,8 +203,16 @@ final class DatePickerState extends State<DatePicker> implements PickerField.Pic
         // is the same size whatever is in it, so there is nothing to shrink.
         // `menu` and `select` hand over a `Fitted` because a list can be taller
         // than the screen; this cannot.
-        var opened = host.attachedPopup(
-                calendar(), bounds, Placement.BELOW, NO_MINIMUM_WIDTH, (content, measured, available) -> content);
+        var window = host;
+        var anchor = bounds;
+        var opened = OpenedFrom.call(
+                context(),
+                () -> window.attachedPopup(
+                        calendar(),
+                        anchor,
+                        Placement.BELOW,
+                        NO_MINIMUM_WIDTH,
+                        (content, measured, available) -> content));
         if (opened.isEmpty()) {
             LOG.trace("this platform has no popup windows, so a date-picker cannot open its calendar");
             return false;

@@ -49,9 +49,10 @@ final class GoldberryRuntime {
     /// rather than the event.
     ///
     /// A popup is dismissed when the *application* loses focus, and no platform
-    /// reports that: opening the popup itself sends a lost for the window under
-    /// it and a gained for the popup. Only something that can see every window
-    /// can tell the two apart, and that is the launcher.
+    /// reports that: it reports each window's, and focus moving from one of the
+    /// application's windows to another is a lost and a gained. Only something
+    /// that can see every window can tell that from leaving, and that is the
+    /// launcher.
     void onFocusChange(Runnable watcher) {
         this.focusWatcher = watcher;
     }

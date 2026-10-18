@@ -53,9 +53,15 @@ import dev.goldberry.widgets.markup.Wiring;
 /// ## It is the root of its own tree
 ///
 /// A popup's contents are a root and not a descendant, so **nothing inherits into
-/// this node** — not `color`, not `font-size`, and no descendant selector from
-/// the window that opened it. That is why `popover` carries its own surface and
-/// its own foreground rather than relying on an ancestor for either.
+/// this node** — not `color`, not `font-size`. That is why `popover` carries its
+/// own surface and its own foreground rather than relying on an ancestor for
+/// either.
+///
+/// Selectors do reach in, from the widget the popup was opened from: an
+/// application's `.toolbar > popover` matches a popover opened from a toolbar,
+/// and `.sidebar popover button` the buttons in one opened inside a sidebar.
+/// The toolkit's own stylesheet does not, so a control's rules for its parts
+/// stay its own.
 ///
 /// The `class="menu"` variant is the one this ships with: column direction, no
 /// padding of its own beyond a hairline, and items that fill the width.

@@ -899,6 +899,18 @@ public final class Element implements BuildContext, StyleElement {
         return parent;
     }
 
+    /// [#parent()], except at the root of a popup's tree, which steps to the
+    /// element the popup was opened from — unless that element has since left
+    /// its own tree, when there is nowhere to step.
+    @Override
+    public @Nullable StyleElement selectorParent() {
+        if (parent != null) {
+            return parent;
+        }
+        var opener = tree.openedFrom();
+        return opener instanceof Element element && !element.isMounted() ? null : opener;
+    }
+
     /// This node's running transitions, created on first use.
     ///
     /// Package-private: `WidgetRenderer` is the only caller, because starting a

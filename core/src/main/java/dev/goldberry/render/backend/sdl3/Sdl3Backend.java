@@ -638,45 +638,9 @@ public final class Sdl3Backend implements Backend {
             throw new IllegalStateException("cannot open a popup on a window that has closed");
         }
 
-        // Exactly one kind flag: SDL refuses a popup that claims to be both, and
-        // TOOLTIP alone does *not* stop a popup taking focus -- NOT_FOCUSABLE is
-        // a separate flag and is what keeps the caret in the field the tooltip is
-        // describing.
-        // **No popup of any kind takes the platform keyboard.**
-        //
-        // `NOT_FOCUSABLE` on all three, which reads like a restriction and is the
-        // opposite. A popup was never allowed to *rely* on having focus: SDL
-        // gives a `POPUP_MENU` window focus on some drivers and not others, so
-        // the owner forwards keys to whatever popup is open and a menu is
-        // operable by arrows either way. What varied by driver was
-        // therefore never the behaviour — only whether the application still
-        // looked focused to itself.
-        //
-        // And that is what `anyWindowFocused` reads to decide a popup has been
-        // left behind. A focusable popup could hold the answer true
-        // after the user had switched to another application entirely, so the
-        // menu stayed on screen over somebody else's window. Taking focus off all
-        // of them makes that check mean what it says: the application is focused
-        // exactly when one of its *own* windows is.
-        var flags = EnumSet.of(SdlWindowFlag.HIGH_PIXEL_DENSITY, SdlWindowFlag.HIDDEN, SdlWindowFlag.NOT_FOCUSABLE);
-        switch (spec.kind()) {
-            case MENU -> {
-                flags.add(SdlWindowFlag.POPUP_MENU);
-                flags.add(SdlWindowFlag.TRANSPARENT);
-            }
-            case ATTACHED -> {
-                // A menu window in everything the window manager cares about --
-                // it takes the pointer, which is what tells it apart from a
-                // tooltip. The keyboard is refused above, with
-                // everything else's.
-                flags.add(SdlWindowFlag.POPUP_MENU);
-                flags.add(SdlWindowFlag.TRANSPARENT);
-            }
-            case TOOLTIP -> {
-                flags.add(SdlWindowFlag.TOOLTIP);
-                flags.add(SdlWindowFlag.TRANSPARENT);
-            }
-        }
+        // Never focusable, of any kind: see PopupFlags for why that is the
+        // whole of how a popup leaves the platform's focus where it was.
+        var flags = PopupFlags.of(spec.kind());
 
         var handle = video.createPopupWindow(
                 parent.handle(),

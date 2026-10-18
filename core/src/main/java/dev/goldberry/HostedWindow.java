@@ -731,8 +731,20 @@ final class HostedWindow implements WindowHost {
             traceFrame(beganAt, builtAt, styledAt, laidOutAt, rasterizedAt, damage.size());
         }
 
+        followOpeners();
+
         painted++;
         afterPaint.run();
+    }
+
+    /// Restyles every open popup whose opener's chain changed since it was last
+    /// styled — a class toggled on the opener, a state on one of its ancestors.
+    /// After this window's frames and after each popup's, which between them
+    /// are every frame in which an element on such a chain can change.
+    private void followOpeners() {
+        for (var popup : List.copyOf(popups)) {
+            popup.followOpener();
+        }
     }
 
     /// One line per frame that did something, for `-Dgoldberry.trace.frames=true`.
@@ -849,7 +861,12 @@ final class HostedWindow implements WindowHost {
                 if (subject != null) {
                     subject.selectForContextMenu();
                 }
-                contextMenus.open(named, anchor);
+                var opener = node;
+                var handler = contextMenus;
+                OpenedFrom.unlessNamed(opener, () -> {
+                    handler.open(named, anchor);
+                    return null;
+                });
                 return true;
             }
             // A widget with a menu of its own, after a name on the same widget:
@@ -859,7 +876,8 @@ final class HostedWindow implements WindowHost {
                 if (router.focused() != node) {
                     router.focus(node, false);
                 }
-                if (owner.openContextMenu(anchor)) {
+                var opener = node;
+                if (OpenedFrom.unlessNamed(opener, () -> owner.openContextMenu(anchor))) {
                     return true;
                 }
             }
@@ -1045,7 +1063,8 @@ final class HostedWindow implements WindowHost {
         // by a press: a tooltip is dismissed by the pointer leaving, and a press
         // that closed it would close it in the same gesture that opened whatever
         // was clicked.
-        tooltip = tooltipPopup(new TooltipPanel(text), anchor.get()).orElse(null);
+        tooltip = OpenedFrom.unlessNamed(target, () -> tooltipPopup(new TooltipPanel(text), anchor.get()))
+                .orElse(null);
         tooltipOpenedAt = tooltip == null ? 0 : System.nanoTime();
     }
 
@@ -1364,8 +1383,17 @@ final class HostedWindow implements WindowHost {
     private Optional<Popup> popup(Widget content, LogicalPoint at, LogicalSize size, PopupKind kind) {
 
         Objects.requireNonNull(content, "content");
-        return open(
-                new ElementTree(content, this), RenderTree.create(), new PopupSpec(at, size, kind), PopupMargin.NONE);
+        return open(popupTree(content), RenderTree.create(), new PopupSpec(at, size, kind), PopupMargin.NONE);
+    }
+
+    /// A popup's element tree, opened from whatever [OpenedFrom] names for this
+    /// call: so the window's descendant and child selectors reach into it from
+    /// there. Set before anything measures, which is the first time anything is
+    /// styled.
+    private ElementTree popupTree(Widget content) {
+        var tree = new ElementTree(content, this);
+        tree.openedFrom(OpenedFrom.current().orElse(null));
+        return tree;
     }
 
     /// Asks the backend for the window and wires the trees to it.
@@ -1395,6 +1423,9 @@ final class HostedWindow implements WindowHost {
                 margin,
                 // A press in a shadow is a press on nothing, here as in the owner.
                 this::dismissPopups);
+        // A popup's own frame can change the chain another one was opened from:
+        // a submenu hangs off a row of the menu under it.
+        popup.afterPaint(this::followOpeners);
         popups.add(popup);
         return Optional.of(popup);
     }
@@ -1444,7 +1475,7 @@ final class HostedWindow implements WindowHost {
         // Built once and handed to the popup: measuring throws the layout away
         // otherwise, and the element tree is what carries state, so a second one
         // would also be a second lot of `initState`.
-        var tree = new ElementTree(content, this);
+        var tree = popupTree(content);
         var render = RenderTree.create();
         var size = measure(tree, render, minimumWidth);
 
@@ -1459,7 +1490,7 @@ final class HostedWindow implements WindowHost {
                 // and never comes in here.
                 tree.unmount();
                 render.close();
-                tree = new ElementTree(refitted, this);
+                tree = popupTree(refitted);
                 render = RenderTree.create();
                 size = measure(tree, render, minimumWidth);
             }
@@ -1539,7 +1570,12 @@ final class HostedWindow implements WindowHost {
         // always was and drawn a long way from there. The two are the same
         // rectangle for anything nothing transformed, which is nearly every
         // anchor.
-        var opened = placed(content, anchor.get().painted(), placement, PopupKind.MENU, minimumWidth, fit);
+        // Opened from the widget it is anchored to, unless the caller named
+        // another: `Menus.open(host, "more", menu)` reaches into the menu from
+        // the button, which is where the user sees it come from.
+        var opener = anchor.get().owner() instanceof Element element ? element : null;
+        var opened = OpenedFrom.unlessNamed(
+                opener, () -> placed(content, anchor.get().painted(), placement, PopupKind.MENU, minimumWidth, fit));
         // Upgraded from a rectangle to a **name**, which is what makes a resize
         // able to follow the anchor rather than merely re-clamp against the new
         // work area: the id is re-resolved against the frame the resize produced

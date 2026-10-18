@@ -9,6 +9,7 @@ import java.util.Set;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 
+import dev.goldberry.css.StyleElement;
 import dev.goldberry.log.Logs;
 
 /// The element tree, and the rebuild schedule that drives it.
@@ -93,6 +94,30 @@ public final class ElementTree {
 
     dev.goldberry.css.cascade.@Nullable StyleResolver styleResolver() {
         return styleResolver;
+    }
+
+    /// The element this tree was opened from, when it is a popup's.
+    private @Nullable StyleElement openedFrom;
+
+    /// Says which element opened this tree, so its root's
+    /// [StyleElement#selectorParent()] is that element and a descendant or
+    /// child combinator reaches in from the window underneath. Set before the
+    /// first frame styles anything; a later change wants [#restyle()].
+    ///
+    /// @param opener the element, or null for a tree opened from nothing
+    public void openedFrom(@Nullable StyleElement opener) {
+        this.openedFrom = opener;
+    }
+
+    /// The element this tree was opened from, or null.
+    public @Nullable StyleElement openedFrom() {
+        return openedFrom;
+    }
+
+    /// Drops every style this tree has resolved, so the next frame resolves
+    /// them again: for a change outside the tree that its selectors can read.
+    public void restyle() {
+        root.invalidateStyle();
     }
 
     /// What this frame did to the tree — see [FrameTrace]. Always present and

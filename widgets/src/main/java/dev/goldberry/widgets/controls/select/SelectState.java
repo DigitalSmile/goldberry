@@ -8,6 +8,7 @@ import java.util.Objects;
 import org.jspecify.annotations.Nullable;
 
 import dev.goldberry.Host;
+import dev.goldberry.OpenedFrom;
 import dev.goldberry.Placement;
 import dev.goldberry.Popup;
 import dev.goldberry.render.model.LogicalRect;
@@ -305,10 +306,14 @@ final class SelectState extends State<Select> {
         // A combobox's list is **attached** rather than a menu: it hangs off a
         // field the user is typing into, and a focusable window would take the
         // keyboard off it. Every other select opens a menu, which is what it is.
-        var opened = select.autocomplete()
-                ? host.attachedPopup(
-                        panel(), field, Placement.BELOW, field.size().width(), VIEWPORT)
-                : host.popup(panel(), field, Placement.BELOW, field.size().width(), VIEWPORT);
+        var window = host;
+        var opened = OpenedFrom.call(
+                context(),
+                () -> select.autocomplete()
+                        ? window.attachedPopup(
+                                panel(), field, Placement.BELOW, field.size().width(), VIEWPORT)
+                        : window.popup(
+                                panel(), field, Placement.BELOW, field.size().width(), VIEWPORT));
         // The anchor this was placed against, so a report of "it opened in the
         // wrong place" can be settled from a log rather than from guesses. The
         // rectangle is what the last frame *painted* the field as, which is the

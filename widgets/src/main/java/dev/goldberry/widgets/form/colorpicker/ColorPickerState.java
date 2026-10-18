@@ -3,6 +3,7 @@ package dev.goldberry.widgets.form.colorpicker;
 import org.jspecify.annotations.Nullable;
 
 import dev.goldberry.Host;
+import dev.goldberry.OpenedFrom;
 import dev.goldberry.Placement;
 import dev.goldberry.Popup;
 import dev.goldberry.log.Logs;
@@ -198,8 +199,12 @@ final class ColorPickerState extends State<ColorPicker> implements PickerField.P
         if (host == null || bounds == null) {
             return false;
         }
-        var opened = host.attachedPopup(
-                board(), bounds, Placement.BELOW, NO_MINIMUM_WIDTH, (content, measured, available) -> content);
+        var window = host;
+        var anchor = bounds;
+        var opened = OpenedFrom.call(
+                context(),
+                () -> window.attachedPopup(
+                        board(), anchor, Placement.BELOW, NO_MINIMUM_WIDTH, (content, measured, available) -> content));
         if (opened.isEmpty()) {
             LOG.trace("this platform has no popup windows, so a color-picker cannot open its board");
             return false;

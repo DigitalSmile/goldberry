@@ -446,9 +446,10 @@ class PopupLifecycleTest {
         assertFalse(stillOpen[0]);
     }
 
-    /// The other half, and the reason the check is deferred rather than
-    /// immediate: opening a popup **is** a focus-lost for the window under it.
-    /// A menu that closed on that would close as it opened.
+    /// The other half, and why the check is deferred rather than immediate: a
+    /// focus-lost followed by a gained on one of the application's own windows is
+    /// not leaving. No popup takes the keyboard any more, so opening one sends no
+    /// such pair; this keeps a popup that somehow did from closing as it opened.
     @Test
     @Timeout(20)
     @DisplayName("a popup that took the focus itself stays open")
