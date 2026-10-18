@@ -43,81 +43,10 @@ settle and styling a popup from its opener are under [Answered](#answered)
 (ADR-0637, ADR-0638).
 ## The catalog: specified and unbuilt
 
-### `text-input`, and what §4 still owes
-- **A field's scroll offset uses the previous frame's width.** ADR-0116 already
-  decided that is what a viewport does, and it is wrong for one frame after a
-  resize — invisible, because a resize is followed immediately by another frame.
-  Worth writing down because it is the second widget to need the measurement
-  `render` cannot have, and a third would be an argument for handing the width to
-  `render` rather than to `Measured`. —
-  [ADR-0167](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0167-a-field-owns-its-caret-and-the-model-is-told.md)
-
-  **The third widget came, and then eleven more (counted 2026-10-18).** Fourteen
-  boxes implement `Measured` now, among them `TextAreaBox`, `ScrollViewport`,
-  `MasonryBox`, `MeasuredRow`, `CanvasLayer`, `SplitPaneView` and `TableHead`.
-  So the argument this entry anticipated is due: should `render` be handed the
-  width rather than `Measured` banking it for a frame later? Nobody has made it,
-  because none of the fourteen shows its one-frame lag.
-- **`isModal` has one consumer**, which is one fewer than a mechanism should
-  have. `sheet` is the plausible second, and it is not built. **A `wizard` is
-  not**: §6 makes its content a focus-scope, and a wizard written inline that
-  trapped the keyboard and the pointer would lock the window around it. It is
-  tested in `:core` against bare widgets rather than through `dialog`, so the
-  second one finds a mechanism rather than a dialog-shaped hole. —
-  [ADR-0176](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0176-a-dialog-is-a-widget-and-showing-one-is-not.md),
-  [ADR-0356](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0356-a-connector-grows-from-where-you-were-and-an-entry-has-a-marker-slot.md)
-
-  **Read again on 2026-09-30, and it stands.** `DialogPanel` is still the only
-  widget that answers `isModal`. What is new is a *reader*: `web-view` asks
-  `Host.isModal` and parks its page while a modal is up
-  ([ADR-0444](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0444-a-page-stands-aside-for-a-modal.md)), which is a consumer
-  of the answer rather than a second thing that traps. (An "on hold" note for the
-  accessibility bridge sat here by mistake; this entry never waited on it.)
-- **There is no third text rank, and one was invented and taken back out.** A
-  tour's step counter wanted something quieter than `--gb-text-muted`;
-  `--gb-text-subtle` was added, resolved to `nord3`, and produced a counter
-  nobody could read on `nord1` — §1.2's contrast floor applies to metadata as
-  much as to prose, and the Nord palette has nothing between muted and the border
-  colour. The size carries the demotion instead. A real third rank would need a
-  colour the palette does not contain. —
-  [ADR-0121](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0121-a-tour-is-a-veil-and-a-sequence.md)
-- **A scrollbar's thumb stops being proportional on a very long document.** It is
-  floored at 24px, so past about four screens the thumb no longer says how much
-  is visible — only that there is a lot. The trade every scrollbar makes, named
-  here because it is a place the widget knowingly stops telling the truth. —
-  [ADR-0117](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0117-a-widget-may-be-told-what-it-measured.md)
-- **`Measured` has several consumers whose reason is a *sibling's* geometry**, which is new:
-  a toast stack banks how tall each toast came out so that it can move the survivors
-  by the height of the hole when one goes ([ADR-0178](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0178-a-stack-closes-its-own-hole.md)).
-  Every other consumer reads its own box. It obeys the third rule by construction for
-  the same reason the scrollbar does — a reflow is a `transform`, so the box it moves
-  is laid out where it always was.
-
-  **No longer the only one (2026-10-18).** A masonry places each cell by the
-  heights of the cells before it (`MasonryBox`, `MasonryCell`). A list whose rows
-  vary measures each row as it builds it and keeps the reader's line (`MeasuredRow`,
-  ADR-0597, parked in `docs/snapshot/adr`). "Every other consumer reads its own
-  box" was true when written and is not any more.
-- **A virtual list can have its focused row scrolled out of existence.** Wheel
-  far from the focus ring and the focused row leaves the window, is unmounted,
-  and the router drops it — which is ADR-0180's rule doing exactly what it should
-  to an element that has left the tree. Arrow keys are unaffected, because the
-  ring asks the viewport to follow it; only pointer-scrolling away and then
-  pressing one loses the place. Every recycling list has this unless it pins the
-  focused index, and pinning it would keep a row nobody is looking at built for
-  ever. —
-  [ADR-0213](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0213-a-virtual-list-is-two-spacers-and-a-window.md)
-- **A `table` focuses rows and not cells.** Right for §10's grid semantics and
-  wrong for a spreadsheet, which is a different widget rather than an option on
-  this one. Horizontal virtualization is absent for the same reason: it is a
-  different arithmetic, and it is worth it past about fifty columns, which is
-  past where a table is the right thing to be looking at. —
-  [ADR-0214](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0214-a-table-is-a-list-with-columns.md)
-- **A segmented control fills its parent when nothing gives it a width**, which is new
-  and is a real loss of convenience: in a toolbar beside other widgets it takes the
-  whole row until an author writes `width`. It buys the travelling indicator, and there
-  is no third option under flexbox — content-sized cells cannot be travelled between,
-  and a zero basis collapses the bar entirely.
+Nothing open since 2026-10-18. The field's measured width, the focused row of a
+virtual list and the segmented control's width are under [Answered](#answered)
+(ADR-0642, ADR-0643, ADR-0644), with the five documented limits closed beside
+them.
 ## The shell: the tray, and what it cannot say
 
 §9's `tray-icon` ships ([ADR-0191](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0191-a-tray-is-a-menu-somebody-else-draws.md)).
@@ -713,6 +642,137 @@ way back is a consumer asking, not a date.
 Kept rather than deleted: each is a trap somebody hit, and the reasoning that got
 out of it is usually worth more than the fact that it is fixed.
 
+- ~~**A field's scroll offset uses the previous frame's width.**~~ ADR-0116 already
+  decided that is what a viewport does, and it is wrong for one frame after a
+  resize — invisible, because a resize is followed immediately by another frame.
+  Worth writing down because it is the second widget to need the measurement
+  `render` cannot have, and a third would be an argument for handing the width to
+  `render` rather than to `Measured`. —
+  [ADR-0167](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0167-a-field-owns-its-caret-and-the-model-is-told.md)
+
+  **The third widget came, and then eleven more (counted 2026-10-18).** Fourteen
+  boxes implement `Measured` now, among them `TextAreaBox`, `ScrollViewport`,
+  `MasonryBox`, `MeasuredRow`, `CanvasLayer`, `SplitPaneView` and `TableHead`.
+  So the argument this entry anticipated is due: should `render` be handed the
+  width rather than `Measured` banking it for a frame later? Nobody has made it,
+  because none of the fourteen shows its one-frame lag.
+
+  **Closed (2026-10-18): `Measured` stays** (ADR-0644, parked in
+  `docs/snapshot/adr`). The width does not exist when `render` runs: `render`
+  builds the box tree that layout takes in, so handing it the width would mean
+  a second layout pass on every frame something could resize, to remove a lag
+  none of the fourteen shows. A width a widget can know without layout is read
+  from its own text at render time instead, as `select`'s field and now a
+  segmented bar do. A consumer that *shows* its lag reopens this; a fifteenth
+  that does not is no argument.
+- ~~**`isModal` has one consumer**~~, which is one fewer than a mechanism should
+  have. `sheet` is the plausible second, and it is not built. **A `wizard` is
+  not**: §6 makes its content a focus-scope, and a wizard written inline that
+  trapped the keyboard and the pointer would lock the window around it. It is
+  tested in `:core` against bare widgets rather than through `dialog`, so the
+  second one finds a mechanism rather than a dialog-shaped hole. —
+  [ADR-0176](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0176-a-dialog-is-a-widget-and-showing-one-is-not.md),
+  [ADR-0356](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0356-a-connector-grows-from-where-you-were-and-an-entry-has-a-marker-slot.md)
+
+  **Read again on 2026-09-30, and it stands.** `DialogPanel` is still the only
+  widget that answers `isModal`. What is new is a *reader*: `web-view` asks
+  `Host.isModal` and parks its page while a modal is up
+  ([ADR-0444](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0444-a-page-stands-aside-for-a-modal.md)), which is a consumer
+  of the answer rather than a second thing that traps. (An "on hold" note for the
+  accessibility bridge sat here by mistake; this entry never waited on it.)
+
+  **Closed (2026-10-18): one trapper is enough.** A second consumer was wanted
+  to prove the mechanism's shape, and the shape is proved without one: the trap
+  is tested in `:core` against bare widgets rather than through `dialog`, and
+  `web-view` reads the answer. A `sheet`, when one is built, is a second widget
+  answering `isModal` and no change to the mechanism. Nothing waits on it.
+- ~~**There is no third text rank, and one was invented and taken back out.**~~ A
+  tour's step counter wanted something quieter than `--gb-text-muted`;
+  `--gb-text-subtle` was added, resolved to `nord3`, and produced a counter
+  nobody could read on `nord1` — §1.2's contrast floor applies to metadata as
+  much as to prose, and the Nord palette has nothing between muted and the border
+  colour. The size carries the demotion instead. A real third rank would need a
+  colour the palette does not contain. —
+  [ADR-0121](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0121-a-tour-is-a-veil-and-a-sequence.md)
+
+  **Closed (2026-10-18): a decision, not a gap.** The size carries the
+  demotion, and a third colour rank needs a colour the palette does not have.
+  A theme with one can define its own token. The toolkit's sheets will not use
+  a rank they cannot fill with a readable value. Reopened only if the palette
+  changes.
+- ~~**A scrollbar's thumb stops being proportional on a very long document.**~~ It is
+  floored at 24px, so past about four screens the thumb no longer says how much
+  is visible — only that there is a lot. The trade every scrollbar makes, named
+  here because it is a place the widget knowingly stops telling the truth. —
+  [ADR-0117](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0117-a-widget-may-be-told-what-it-measured.md)
+
+  **Closed (2026-10-18): the floor stays.** A thumb thinner than 24px is one a
+  pointer cannot catch, and every desktop scrollbar makes the same trade. It is
+  a known limit, recorded here so that nobody files it as a bug.
+- ~~**`Measured` has several consumers whose reason is a *sibling's* geometry**~~, which is new:
+  a toast stack banks how tall each toast came out so that it can move the survivors
+  by the height of the hole when one goes ([ADR-0178](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0178-a-stack-closes-its-own-hole.md)).
+  Every other consumer reads its own box. It obeys the third rule by construction for
+  the same reason the scrollbar does — a reflow is a `transform`, so the box it moves
+  is laid out where it always was.
+
+  **No longer the only one (2026-10-18).** A masonry places each cell by the
+  heights of the cells before it (`MasonryBox`, `MasonryCell`). A list whose rows
+  vary measures each row as it builds it and keeps the reader's line (`MeasuredRow`,
+  ADR-0597, parked in `docs/snapshot/adr`). "Every other consumer reads its own
+  box" was true when written and is not any more.
+
+  **Closed (2026-10-18): out of date, and nothing to do.** It recorded a novelty
+  rather than a gap, and the novelty has become ordinary. Three widgets now
+  place a box by a sibling's height (the toast stack, the masonry and the
+  measured list), and the list's arithmetic is held by `ListMeasuredTest`'s
+  termination test.
+- ~~**A virtual list can have its focused row scrolled out of existence.**~~ Wheel
+  far from the focus ring and the focused row leaves the window, is unmounted,
+  and the router drops it — which is ADR-0180's rule doing exactly what it should
+  to an element that has left the tree. Arrow keys are unaffected, because the
+  ring asks the viewport to follow it; only pointer-scrolling away and then
+  pressing one loses the place. Every recycling list has this unless it pins the
+  focused index, and pinning it would keep a row nobody is looking at built for
+  ever. —
+  [ADR-0213](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0213-a-virtual-list-is-two-spacers-and-a-window.md)
+
+  **Closed (2026-10-18): the focused row stays built, and the rows take the
+  arrows** (ADR-0642, parked in `docs/snapshot/adr`). The entry was wrong about
+  arrow keys. Nothing asked the viewport to follow the focus, and inside a
+  `scroll` the viewport took `Up` and `Down` before the list's scope could
+  rove. So the arrows scrolled the rows past a focus that never moved, and
+  dropped it after about ten presses. Now the rows step by index, build the
+  row if they must and scroll it into view. The focused row is pinned, built
+  on its own between spacers however far the window moves, which costs one row
+  for as long as the focus lasts. `End` builds the last row and nothing in
+  between: it used to build all ten thousand for a frame. `table` inherits all
+  of it. `ListFocusedRowTest`.
+- ~~**A `table` focuses rows and not cells.**~~ Right for §10's grid semantics and
+  wrong for a spreadsheet, which is a different widget rather than an option on
+  this one. Horizontal virtualization is absent for the same reason: it is a
+  different arithmetic, and it is worth it past about fifty columns, which is
+  past where a table is the right thing to be looking at. —
+  [ADR-0214](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0214-a-table-is-a-list-with-columns.md)
+
+  **Closed (2026-10-18): by design.** A table focuses rows because it is a list
+  with columns. A spreadsheet's cell focus, and the horizontal virtualization
+  that comes with it, would be a different widget. Nothing in the catalog asks
+  for one.
+- ~~**A segmented control fills its parent when nothing gives it a width**~~, which is new
+  and is a real loss of convenience: in a toolbar beside other widgets it takes the
+  whole row until an author writes `width`. It buys the travelling indicator, and there
+  is no third option under flexbox — content-sized cells cannot be travelled between,
+  and a zero basis collapses the bar entirely.
+
+  **Closed (2026-10-18): it is as wide as its widest segment** (ADR-0643, parked
+  in `docs/snapshot/adr`). There was a third option. The widest label's natural
+  width is known at render time, which `select`'s field already relies on.
+  Every cell starts from it and grows or shrinks by the same amount, so the
+  cells stay a grid the pill travels on. A bar that nothing sizes is `n` times
+  the widest segment, a stretching column still fills, and a stylesheet `width`
+  still wins, with ellipsized labels. Eleven `segmented-*` goldens moved;
+  `segmented-stretched` did not.
 - ~~**A checkbox's tick can end up disagreeing with the application.**~~ The shell
   toggles it *before* the handler runs and an `Item`'s command takes no argument,
   so a handler that declines leaves the platform showing a tick nobody believes

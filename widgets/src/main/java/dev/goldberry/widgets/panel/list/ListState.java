@@ -1,5 +1,6 @@
 package dev.goldberry.widgets.panel.list;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashSet;
@@ -13,6 +14,7 @@ import dev.goldberry.Host;
 import dev.goldberry.input.key.Modifiers;
 import dev.goldberry.render.model.LogicalRect;
 import dev.goldberry.widget.BuildContext;
+import dev.goldberry.widget.Element;
 import dev.goldberry.widget.State;
 import dev.goldberry.widget.Widget;
 import dev.goldberry.widget.attr.Attributes;
@@ -114,52 +116,64 @@ final class ListState<T> extends State<ListView<T>> {
         }
         measured = null;
         rowHeight = list.rowHeightFromToken() ? context.token(ROW_HEIGHT_TOKEN, ROW_HEIGHT) : list.rowHeight();
-        var virtual = rowHeight > 0;
-        var from = virtual ? Math.min(first, items.size()) : 0;
-        var to = virtual ? Math.min(last, items.size()) : items.size();
+        var children = new ArrayList<Widget>();
+        if (rowHeight <= 0) {
+            for (var item : items) {
+                children.add(row(list, item, list.identity().apply(item), selectable, typeahead, 0));
+            }
+            return new ListBox(children, null, list.attributes());
+        }
+        var from = Math.min(first, items.size());
+        var to = Math.min(last, items.size());
+        var at = 0;
+        for (var run : BuiltRuns.of(from, to, items.size(), focusedIndex(), reaching)) {
+            if (run.from() > at) {
+                children.add(new ListBox.ListSpacer((run.from() - at) * rowHeight));
+            }
+            for (var index = run.from(); index < run.to(); index++) {
+                var item = items.get(index);
+                // The pitch the spacers are built from, so the row can say when
+                // its own height is not that number -- which nothing else is in
+                // a position to notice.
+                //
+                // On the **first** row of the window and zero on the rest.
+                // Every row resolves the same height, so asking all of them
+                // would be twenty identical answers per frame -- and the check
+                // has to be able to tell one frame from the next, which it
+                // cannot do if a single frame reports twenty times.
+                children.add(row(
+                        list, item, list.identity().apply(item), selectable, typeahead, index == from ? rowHeight : 0));
+            }
+            at = run.to();
+        }
+        if (at < items.size()) {
+            children.add(new ListBox.ListSpacer((items.size() - at) * rowHeight));
+        }
+        return new ListBox(children, this::located, list.attributes());
+    }
 
-        var children = new ArrayList<Widget>(to - from + 2);
-        if (virtual && from > 0) {
-            children.add(new ListBox.ListSpacer(from * rowHeight));
-        }
-        for (var index = from; index < to; index++) {
-            var item = items.get(index);
-            var id = list.identity().apply(item);
-            children.add(new ListRow(
-                    rowId(id),
-                    selectable,
-                    list.selected().contains(id),
-                    list.factory().apply(item),
-                    menuOf(item),
-                    modifiers -> select(id, modifiers),
-                    this::moveToEnd,
-                    typeahead ? text -> typeahead(id, text) : null,
-                    // The pitch the spacers above and below are built from, so
-                    // the row can say when its own height is not that number --
-                    // which nothing else is in a position to notice.
-                    //
-                    // On the **first** row of the window and zero on the rest.
-                    // Every row resolves the same height, so asking all of them
-                    // would be twenty identical answers per frame -- and the
-                    // check has to be able to tell one frame from the next,
-                    // which it cannot do if a single frame reports twenty times.
-                    //
-                    // Zero also when the list is not virtualizing, because then
-                    // every row is built and nothing depends on them agreeing.
-                    virtual && index == from ? rowHeight : 0));
-        }
-        if (virtual && to < items.size()) {
-            children.add(new ListBox.ListSpacer((items.size() - to) * rowHeight));
-        }
-        return new ListBox(children, virtual ? this::located : null, list.attributes());
+    /// One row, wired back to this list.
+    private ListRow row(ListView<T> list, T item, String id, boolean selectable, boolean typeahead, double pitch) {
+        return new ListRow(
+                rowId(id),
+                selectable,
+                list.selected().contains(id),
+                list.factory().apply(item),
+                menuOf(item),
+                modifiers -> select(id, modifiers),
+                this::moveToEnd,
+                direction -> step(id, direction),
+                focused -> focusChanged(id, focused),
+                typeahead ? text -> typeahead(id, text) : null,
+                pitch);
     }
 
     /// The rows a list virtualized over [RowHeights] has measured and the window
     /// it builds, or null for every other list.
     private @Nullable MeasuredWindow measured;
 
-    /// Where the frame last put a measured list and what clipped it, for a reach
-    /// that has to scroll from there.
+    /// Where the frame last put a virtual list and what clipped it, for a reach
+    /// or a step that has to scroll from there.
     private @Nullable LogicalRect lastSelf;
 
     private @Nullable LogicalRect lastClip;
@@ -179,28 +193,22 @@ final class ListState<T> extends State<ListView<T>> {
         var tops = window.tops();
         var from = window.first();
         var to = window.last();
-        var children = new ArrayList<Widget>(to - from + 2);
-        if (from > 0) {
-            children.add(new ListBox.ListSpacer(tops[from]));
+        var children = new ArrayList<Widget>();
+        var focused = focusedId == null ? -1 : window.index(focusedId);
+        var at = 0;
+        for (var run : BuiltRuns.of(from, to, items.size(), focused)) {
+            if (run.from() > at) {
+                children.add(new ListBox.ListSpacer(tops[run.from()] - tops[at]));
+            }
+            for (var index = run.from(); index < run.to(); index++) {
+                var id = window.id(index);
+                children.add(new MeasuredRow(
+                        row(list, items.get(index), id, selectable, typeahead, 0), height -> heightOf(id, height)));
+            }
+            at = run.to();
         }
-        for (var index = from; index < to; index++) {
-            var item = items.get(index);
-            var id = window.id(index);
-            children.add(new MeasuredRow(
-                    new ListRow(
-                            rowId(id),
-                            selectable,
-                            list.selected().contains(id),
-                            list.factory().apply(item),
-                            menuOf(item),
-                            modifiers -> select(id, modifiers),
-                            this::moveToEnd,
-                            typeahead ? text -> typeahead(id, text) : null,
-                            0),
-                    height -> heightOf(id, height)));
-        }
-        if (to < items.size()) {
-            children.add(new ListBox.ListSpacer(tops[items.size()] - tops[to]));
+        if (at < items.size()) {
+            children.add(new ListBox.ListSpacer(tops[items.size()] - tops[at]));
         }
         return new ListBox(children, this::locatedMeasured, list.attributes());
     }
@@ -238,28 +246,68 @@ final class ListState<T> extends State<ListView<T>> {
         lastSelf = self;
         lastClip = clip;
         follow(window.widthIs(self.size().width()));
-        var scope = ScrollScope.enclosing(context());
-        var preserving = scope.map(ScrollScope::preservesOnPrepend).orElse(false);
+        var preserving = ScrollScope.enclosing(context())
+                .map(ScrollScope::preservesOnPrepend)
+                .orElse(false);
         if (window.fit(clip.top() - self.top(), clip.size().height(), reaching, preserving)) {
             setState(() -> {});
         }
+        revealMeasured(window);
+    }
+
+    /// Brings [#revealing] whole into view once its height is known.
+    private void revealMeasured(MeasuredWindow window) {
         var shown = revealing;
-        if (shown != null && window.isMeasured(shown)) {
-            revealing = null;
-            var index = window.index(shown);
-            var tops = window.tops();
-            if (index >= 0) {
-                var top = self.top() + tops[index];
-                var dy = distance(
-                        top,
-                        self.top() + tops[index + 1],
-                        clip.top(),
-                        clip.top() + clip.size().height());
-                if (dy != 0) {
-                    scope.ifPresent(viewport -> viewport.nudge(0, dy));
-                }
-            }
+        if (shown == null || !window.isMeasured(shown)) {
+            return;
         }
+        revealing = null;
+        var index = window.index(shown);
+        if (index >= 0) {
+            var tops = window.tops();
+            revealSpan(tops[index], tops[index + 1]);
+        }
+    }
+
+    /// Scrolls the enclosing `scroll` the least it can to show the part of the
+    /// list from `top` to `bottom`, measured from the list's own top, at once.
+    ///
+    /// A nudge rather than a reveal, which glides: a held arrow key steps a row
+    /// per repeat, and a glide restarted on every one never arrives.
+    private void revealSpan(double top, double bottom) {
+        var self = lastSelf;
+        var clip = lastClip;
+        if (self == null || clip == null || !isMounted()) {
+            return;
+        }
+        var dy = distance(
+                self.top() + top,
+                self.top() + bottom,
+                clip.top(),
+                clip.top() + clip.size().height());
+        if (dy != 0) {
+            ScrollScope.enclosing(context()).ifPresent(viewport -> viewport.nudge(0, dy));
+        }
+    }
+
+    /// The same for a list that builds every row, whose rows are where the frame
+    /// painted them and nowhere this state could compute.
+    private void revealBuilt(String id) {
+        if (host == null) {
+            return;
+        }
+        host.anchor(rowId(id)).ifPresent(region -> {
+            var clip = region.clip();
+            if (clip.isNone() || !(region.owner() instanceof Element element)) {
+                return;
+            }
+            var painted = region.painted();
+            var dy = distance(
+                    painted.top(), painted.top() + painted.size().height(), clip.top(), clip.top() + clip.height());
+            if (dy != 0) {
+                ScrollScope.enclosing(element).ifPresent(viewport -> viewport.nudge(0, dy));
+            }
+        });
     }
 
     /// The row a reach scrolled to, until it has been measured and can be shown
@@ -296,8 +344,9 @@ final class ListState<T> extends State<ListView<T>> {
     /// what keeps it from oscillating: the spacers absorb every row the window
     /// leaves out, so the rectangle reported by the next frame is the one that
     /// produced this window.
-    private void located(dev.goldberry.render.model.LogicalRect self, dev.goldberry.render.model.LogicalRect clip) {
-
+    private void located(LogicalRect self, LogicalRect clip) {
+        lastSelf = self;
+        lastClip = clip;
         var list = widget();
         var height = rowHeight;
         if (height <= 0 || list.items().isEmpty()) {
@@ -307,12 +356,6 @@ final class ListState<T> extends State<ListView<T>> {
         var wantedFirst = (int) Math.max(0, Math.floor(above / height) - OVERSCAN);
         var visible = (int) Math.ceil(clip.size().height() / height) + 1 + 2 * OVERSCAN;
         var wantedLast = Math.min(list.items().size(), wantedFirst + visible);
-        // Widened, never narrowed, by whatever the keyboard is reaching for: a
-        // row that is being focused has to exist to be focused (see #reach).
-        if (reaching >= 0) {
-            wantedFirst = Math.min(wantedFirst, reaching);
-            wantedLast = Math.max(wantedLast, reaching + 1);
-        }
         if (wantedFirst == first && wantedLast == last) {
             return;
         }
@@ -333,8 +376,9 @@ final class ListState<T> extends State<ListView<T>> {
     /// `End` did nothing at all.
     ///
     /// So the move is two steps: build the row, then focus it. This holds the
-    /// index between them, and [#located] keeps the window over it so that a
-    /// frame arriving in the middle cannot take it away again.
+    /// index between them, and the build pins it ([BuiltRuns]) so that a frame
+    /// arriving in the middle cannot take it away again. The measured list's
+    /// window widens to it instead, in [MeasuredWindow#fit].
     private int reaching = -1;
 
     /// How many turns of the loop a reach will wait for its row to be built.
@@ -367,16 +411,27 @@ final class ListState<T> extends State<ListView<T>> {
             reachMeasured(window, id, window.index(id));
             return;
         }
-        var index = indexOf(id);
-        if (rowHeight <= 0 || (index >= first && index < last)) {
+        if (rowHeight <= 0) {
             host.focus(rowId(id), true);
+            revealBuilt(id);
             return;
         }
+        var index = id.equals(focusedId) ? focusedIndex() : indexOf(id);
+        if (index < 0) {
+            return;
+        }
+        if ((index >= first && index < last) || index == focusedIndex()) {
+            host.focus(rowId(id), true);
+            revealSpan(index * rowHeight, (index + 1) * rowHeight);
+            return;
+        }
+        // Pinned rather than reached by widening the window, which from the top
+        // of ten thousand rows to the last would build all of them for a frame.
+        // Where the row is does not wait for it to be built: it is `index`
+        // pitches down, so the viewport moves now and the window follows it.
         reaching = index;
-        setState(() -> {
-            first = Math.min(first, index);
-            last = Math.max(last, index + 1);
-        });
+        setState(() -> {});
+        revealSpan(index * rowHeight, (index + 1) * rowHeight);
         reachAgain(id, REACH_ATTEMPTS);
     }
 
@@ -395,8 +450,10 @@ final class ListState<T> extends State<ListView<T>> {
         if (index < 0) {
             return;
         }
-        if (index >= window.first() && index < window.last()) {
+        if ((index >= window.first() && index < window.last()) || id.equals(focusedId)) {
             focusing.focus(rowId(id), true);
+            revealing = id;
+            revealMeasured(window);
             return;
         }
         var self = lastSelf;
@@ -419,13 +476,76 @@ final class ListState<T> extends State<ListView<T>> {
     /// holding it would pin a row nobody is looking at in the window for ever.
     private void reachAgain(String id, int attemptsLeft) {
         var window = Objects.requireNonNull(host, "reach() goes on only with a host");
-        window.after(java.time.Duration.ZERO, () -> {
+        window.after(Duration.ZERO, () -> {
             if (window.focus(rowId(id), true) || attemptsLeft <= 1) {
                 reaching = -1;
                 return;
             }
             reachAgain(id, attemptsLeft - 1);
         });
+    }
+
+    /// `Up` and `Down`: the row before or after `id`, wrapping at the ends as the
+    /// scope's roving did.
+    private void step(String id, int direction) {
+        var items = widget().items();
+        if (items.isEmpty() || host == null) {
+            return;
+        }
+        var window = measured;
+        int here;
+        if (window != null) {
+            here = window.index(id);
+        } else {
+            here = id.equals(focusedId) ? focusedIndex() : indexOf(id);
+        }
+        if (here < 0) {
+            return;
+        }
+        var next = Math.floorMod(here + direction, items.size());
+        reach(window != null ? window.id(next) : widget().identity().apply(items.get(next)));
+    }
+
+    /// The identity of the row the keyboard is on, while it is on one of this
+    /// list's rows, and null otherwise.
+    ///
+    /// **The one row a virtual list keeps however far it is scrolled from.** A
+    /// wheel or a scrollbar can carry the focused row out of the window, and an
+    /// unmounted row is one the router lets go of, so the next arrow key went
+    /// nowhere. Pinned, it is built on its own between spacers ([BuiltRuns]):
+    /// one row, not the rows between it and the viewport.
+    private @Nullable String focusedId;
+
+    /// Where [#focusedId] was last found in the model, or -1. A guess checked
+    /// before it is used, so a model reordered underneath it costs one walk.
+    private int focusedAt = -1;
+
+    /// A row gained or lost the focus.
+    private void focusChanged(String id, boolean focused) {
+        if (focused) {
+            focusedId = id;
+            focusedAt = -1;
+        } else if (id.equals(focusedId)) {
+            focusedId = null;
+            focusedAt = -1;
+        }
+    }
+
+    /// Where the focused row is in the model, or -1.
+    private int focusedIndex() {
+        var id = focusedId;
+        if (id == null) {
+            return -1;
+        }
+        var items = widget().items();
+        var guess = focusedAt;
+        if (guess < 0
+                || guess >= items.size()
+                || !widget().identity().apply(items.get(guess)).equals(id)) {
+            guess = indexOf(id);
+            focusedAt = guess;
+        }
+        return guess;
     }
 
     /// The item's context menu, as attributes on the row.

@@ -83,3 +83,6 @@ Appended to the index when the records move in, in this order.
 - [ADR-0639 A tray's menu changes in place, and its rows are the truth](0639-a-trays-menu-changes-in-place-and-its-rows-are-the-truth.md)
 - [ADR-0640 A tray row's accelerator is bound on the window that showed it](0640-a-tray-rows-accelerator-is-bound-on-the-window-that-showed-it.md)
 - [ADR-0641 A tray click runs on the UI thread, and CI clicks a real tray](0641-a-tray-click-runs-on-the-ui-thread-and-ci-clicks-a-real-tray.md)
+- [ADR-0642 A list's rows take the arrows, and the focused row stays built](0642-a-lists-rows-take-the-arrows-and-the-focused-row-stays-built.md)
+- [ADR-0643 A segmented bar is as wide as its widest segment](0643-a-segmented-bar-is-as-wide-as-its-widest-segment.md)
+- [ADR-0644 `render` is not handed a width, and `Measured` stays](0644-render-is-not-handed-a-width-and-measured-stays.md)

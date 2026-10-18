@@ -1907,7 +1907,7 @@ knob-arc {
  *   `-- segmented-track       the grid: no padding of its own
  *       |-- segmented-divider ... absolute, at each 1/n boundary
  *       |-- segmented-indicator   absolute, 1/n wide, translated n cells along
- *       `-- option ...            each exactly 1/n, so the grid is regular
+ *       `-- option ...            each as wide as the widest, so the grid is regular
  *
  * **"radius 8 outer, 0 between" is what is drawn**. It was
  * deferred on two grounds and both are gone: `border-radius` resolves four
@@ -1921,9 +1921,11 @@ knob-arc {
  * end, and the radius they square stays here where a theme can change it.
  *
  * **The travelling indicator is drawn now**, which was deferred. What
- * unblocked it was not geometry: `flex-basis: 0` makes every segment exactly
- * 1/n of the track, so the distance to segment *k* is `k` times the pill's own
- * width — a percentage in a `transform`, which the painter resolves after Yoga.
+ * unblocked it was not geometry: every segment is the same width, so 1/n of the
+ * track, and the distance to segment *k* is `k` times the pill's own width — a
+ * percentage in a `transform`, which the painter resolves after Yoga. The cells
+ * start from the widest segment's natural width, so a bar nothing sizes is as
+ * wide as its labels rather than as its parent.
  */
 segmented {
   height: var(--gb-segmented-height);
@@ -1947,6 +1949,9 @@ segmented {
    the same box. `slider` grew a track for the same kind of reason. */
 segmented-track {
   flex-grow: 1;
+  /* And gives way, so a bar a stylesheet narrows below its segments' widths
+     shrinks the cells and cuts their labels rather than overflowing. */
+  flex-shrink: 1;
 }
 
 /* The pill. Its width and its travel are the two numbers a selector cannot
@@ -1994,10 +1999,10 @@ segmented-indicator {
  * weight by being a segment.
  *
  * **The width is not here**, and it is the one metric of this control that is
- * not. A cell is exactly 1/n of the track, n is the number of segments, and no
- * selector can count them -- so `SegmentedTrack` sizes the cells and this rule
- * says everything else about them. A row of content-sized cells is a row an
- * indicator cannot travel along without measuring each one.
+ * not. Every cell is as wide as the widest segment, and no selector can compare
+ * them -- so `SegmentedTrack` sizes the cells and this rule says everything else
+ * about them. A row of cells each sized to its own label is a row an indicator
+ * cannot travel along without measuring each one.
  *
  * A label longer than its cell is **cut with an ellipsis**, which took two
  * properties and three failed attempts to arrive at. `overflow: hidden` alone

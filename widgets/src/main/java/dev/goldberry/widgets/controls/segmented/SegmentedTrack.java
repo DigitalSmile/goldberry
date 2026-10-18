@@ -92,32 +92,43 @@ record SegmentedTrack(List<Widget> segments, int index) implements Widget.Leaf, 
         return (int) segments.stream().filter(Option.class::isInstance).count();
     }
 
-    /// The cells, all the same width, and the width is a **proportion**.
+    /// The cells, all the same width, and the width is the **widest segment's**.
     ///
     /// This is where the grid is made, and it is made here rather than in
-    /// `controls.css` because a stylesheet cannot count the segments. `flex-grow`
-    /// alone would not do it either: with a content basis each cell is its label
-    /// plus an equal *share* of the space left over, so three cells with three
-    /// different labels are three different widths and "one segment along" stops
-    /// being a distance anything can name.
+    /// `controls.css` because a stylesheet cannot count the segments or compare
+    /// their labels. `flex-grow` from each cell's own content would not do it:
+    /// each cell would be its label plus an equal *share* of the space left over,
+    /// so three cells with three different labels would be three different
+    /// widths and "one segment along" would stop being a distance anything can
+    /// name.
     ///
-    /// The consequence is worth stating where it happens: **a segmented control
-    /// has no width of its own.** A cell is a percentage, so the track's content
-    /// size is indefinite and the bar takes the width it is given — filling its
-    /// parent when nothing gives it one. That is the trade the travelling
-    /// indicator costs.
+    /// So every cell starts from one basis, the natural width of the widest
+    /// segment ([NaturalWidth]), and grows and shrinks by the same amount as the
+    /// others. The cells are equal whatever the bar is given, which is what the
+    /// travelling indicator needs, and where nothing gives it anything the bar is
+    /// as wide as its segments: it used to be a percentage of an indefinite
+    /// width, and filled its parent.
     @Override
     public Box render(ComputedStyle style, List<Box> children, Context context) {
         var count = optionCount();
         if (count == 0) {
             return Box.of().style(style).children(children.toArray(Box[]::new));
         }
-        var share = Length.percent((float) (100.0 / count));
         // The parts come first and size themselves: `count - 1` dividers, then
-        // the indicator, whose width is the same proportion written through
+        // the indicator, whose width is 1/n of this track written through
         // `restyle` so that the travel beside it can transition. Everything after
         // them is what the document wrote.
         var parts = count; // (count - 1) dividers, and one indicator
+        // Every cell starts from the widest segment's natural width and grows or
+        // shrinks from there by the same amount as every other, so the cells
+        // stay equal whatever the bar is given: n times the widest label where
+        // nothing sizes it, the whole row where a column stretches it, and less
+        // where a stylesheet narrows it, which cuts the labels with an ellipsis.
+        var widest = 0.0;
+        for (var i = parts; i < children.size(); i++) {
+            widest = Math.max(widest, NaturalWidth.of(children.get(i)));
+        }
+        var basis = Length.points((float) Math.ceil(widest));
         var cells = new ArrayList<Box>(children.size());
         var seen = 0;
         for (var i = 0; i < children.size(); i++) {
@@ -126,7 +137,8 @@ record SegmentedTrack(List<Widget> segments, int index) implements Widget.Leaf, 
                 cells.add(child);
                 continue;
             }
-            var cell = child.size(share, child.height());
+            var cell =
+                    child.size(Length.AUTO, child.height()).basis(basis).grow(1).shrink(1);
             if (segments.get(i - parts) instanceof Option) {
                 // Radius 8 on the outer corners and 0 between, on the segment: a
                 // cell is round only where the bar it is joined into is. Which

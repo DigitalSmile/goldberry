@@ -23,8 +23,8 @@ import dev.goldberry.widget.style.Styled;
 /// entirely in motion: two segments dim and brighten in place, and nothing
 /// moves. One box that translates is what a user sees as a selection moving,
 /// and it is only expressible because the segments are a **grid** — every one
-/// of them exactly `1/n` of the track, so the distance to segment *k* is `k`
-/// times this box's own width and needs no measurement at all.
+/// of them the same width, so `1/n` of the track, and the distance to segment
+/// *k* is `k` times this box's own width and needs no measurement at all.
 ///
 /// A `translate` between two arbitrary boxes would have to name the distance
 /// from the segment being left to the one being arrived at — a fact about two

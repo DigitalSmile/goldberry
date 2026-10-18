@@ -20,10 +20,10 @@ import dev.goldberry.widget.style.Styled;
 /// the `id` and classes the application wrote — the arrangement every stateful
 /// widget in this catalog uses.
 ///
-/// [FocusScope#VERTICAL], which is most of the keyboard: `Up` and `Down` rove
-/// between the rows, and the list is one Tab stop from outside.
+/// [FocusScope#VERTICAL], so the list is one Tab stop from outside. The arrows,
 /// `Home`, `End` and the typeahead are the rows' own for [ListRow]'s reason —
-/// each needs rows the focused one cannot see.
+/// each needs rows the focused one cannot see — so the scope roves only when a
+/// row has declined a key, which a row never does for these.
 ///
 /// Horizontal roving is absent for `menu`'s reason: a list is one column, and
 /// `Left` and `Right` are not its to take. Unlike a `tree`, which navigates

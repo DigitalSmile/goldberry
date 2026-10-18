@@ -110,6 +110,11 @@ record MeasuredRow(ListRow row, DoubleConsumer onHeight)
     }
 
     @Override
+    public void onFocusChanged(boolean focused, boolean fromKeyboard) {
+        row.onFocusChanged(focused, fromKeyboard);
+    }
+
+    @Override
     public Box render(ComputedStyle style, List<Box> boxes, Context context) {
         return row.render(style, boxes, context);
     }

@@ -46,11 +46,18 @@ import dev.goldberry.widget.style.Styled;
 ///
 /// ## The keyboard splits the same way a tree's does
 ///
-/// `Up` and `Down` are the scope's ([ListBox]). `Enter` chooses, which is
-/// `option`'s rule in a list and the same one: a set where the keyboard commits
-/// must not choose before it. `Home`, `End` and type-to-select all need rows this
-/// one cannot see, so each is a callback the list hands down, the same shape
-/// `TreeRow` has.
+/// `Enter` chooses, which is `option`'s rule in a list and the same one: a set
+/// where the keyboard commits must not choose before it. `Up`, `Down`, `Home`,
+/// `End` and type-to-select all need rows this one cannot see, so each is a
+/// callback the list hands down, the same shape `TreeRow` has.
+///
+/// `Up` and `Down` used to be the scope's ([ListBox]), and two things went wrong
+/// with that inside a `scroll`. The viewport is in the focused chain and takes
+/// both arrows for itself before any roving happens, so the arrows scrolled the
+/// rows past a focus that never moved. And on a virtual list the scope can only
+/// rove between the rows that are built, so the row after the window's last was
+/// unreachable. The list steps by index instead, builds the row if it has to and
+/// scrolls it into view.
 ///
 /// @param id         this row's focus name, already scoped to its list
 /// @param selectable whether it may be chosen — false when the list selects
@@ -62,6 +69,9 @@ import dev.goldberry.widget.style.Styled;
 ///                   `Ctrl` and `Shift` mean different things in a multi-select
 ///                   list, and only the list knows what they resolve to
 /// @param onEnd      asked to move to the first or last row
+/// @param onStep     asked to move one row up (-1) or down (1)
+/// @param onFocus    told when this row gains or loses the focus, so the list
+///                   can keep it built while it is scrolled out of view
 /// @param onType     what was typed, for type-to-select
 /// @param checkedPitch the pitch the list is spacing rows at, or 0 — set on
 ///                   **one** row of the window and zero on the rest, because the
@@ -76,6 +86,8 @@ record ListRow(
         Attributes attributes,
         Consumer<Modifiers> onSelect,
         IntConsumer onEnd,
+        IntConsumer onStep,
+        Consumer<Boolean> onFocus,
         @Nullable Consumer<String> onType,
         double checkedPitch)
         implements Widget.Leaf, Styled, Paints, Handles, Selects, Attributed<ListRow>, Semantics {
@@ -126,7 +138,8 @@ record ListRow(
 
     @Override
     public ListRow withAttributes(Attributes value) {
-        return new ListRow(id, selectable, selected, content, value, onSelect, onEnd, onType, checkedPitch);
+        return new ListRow(
+                id, selectable, selected, content, value, onSelect, onEnd, onStep, onFocus, onType, checkedPitch);
     }
 
     @Override
@@ -188,6 +201,14 @@ record ListRow(
             return;
         }
         switch (event.key()) {
+            case UP -> {
+                onStep.accept(-1);
+                event.consume();
+            }
+            case DOWN -> {
+                onStep.accept(1);
+                event.consume();
+            }
             // `Home`/`End`. To the ends of the **model** rather than of the
             // viewport, which is what every list means by it and what `Ctrl+End`
             // means in every document -- a list's own scrolling is a `scroll`
@@ -202,6 +223,11 @@ record ListRow(
             }
             default -> {}
         }
+    }
+
+    @Override
+    public void onFocusChanged(boolean focused, boolean fromKeyboard) {
+        onFocus.accept(focused);
     }
 
     /// Type-to-select, for a list whose items expose text.

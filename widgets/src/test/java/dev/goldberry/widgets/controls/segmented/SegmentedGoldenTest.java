@@ -122,7 +122,7 @@ class SegmentedGoldenTest {
     @Test
     @DisplayName("three segments with the middle one selected, on dark")
     void selectedDark() {
-        paint("segmented-dark", Theme.NORD_DARK, 220, bar("grid"));
+        paint("segmented-dark", Theme.NORD_DARK, 184, bar("grid"));
     }
 
     /// Nothing selected, which is a real state — a bar bound to a model that has
@@ -135,7 +135,7 @@ class SegmentedGoldenTest {
     @Test
     @DisplayName("nothing selected: no pill, and every hairline showing")
     void nothingSelected() {
-        paint("segmented-unset", Theme.NORD_DARK, 220, bar(null));
+        paint("segmented-unset", Theme.NORD_DARK, 184, bar(null));
     }
 
     /// The same bar on light, where every colour in it is a different token and
@@ -144,7 +144,7 @@ class SegmentedGoldenTest {
     @Test
     @DisplayName("the same bar on the light theme")
     void selectedLight() {
-        paint("segmented-light", Theme.NORD_LIGHT, 220, bar("list"));
+        paint("segmented-light", Theme.NORD_LIGHT, 184, bar("list"));
     }
 
     /// Resting, hovered, and the selected segment hovered — the third being the
@@ -155,11 +155,11 @@ class SegmentedGoldenTest {
     @Test
     @DisplayName("hover on an unselected segment, and on the selected one")
     void hover() {
-        paint("segmented-hover", Theme.NORD_DARK, 220, bar("grid"), new PseudoState(0, Selector.PseudoClass.HOVER));
+        paint("segmented-hover", Theme.NORD_DARK, 184, bar("grid"), new PseudoState(0, Selector.PseudoClass.HOVER));
         paint(
                 "segmented-hover-selected",
                 Theme.NORD_DARK,
-                220,
+                184,
                 bar("grid"),
                 new PseudoState(1, Selector.PseudoClass.HOVER));
     }
@@ -177,7 +177,7 @@ class SegmentedGoldenTest {
         paint(
                 "segmented-focus",
                 Theme.NORD_DARK,
-                220,
+                184,
                 bar("grid"),
                 new PseudoState(2, Selector.PseudoClass.FOCUS_VISIBLE));
     }
@@ -196,7 +196,7 @@ class SegmentedGoldenTest {
         paint(
                 "segmented-focus-light",
                 Theme.NORD_LIGHT,
-                220,
+                184,
                 bar("grid"),
                 new PseudoState(2, Selector.PseudoClass.FOCUS_VISIBLE));
     }
@@ -207,7 +207,7 @@ class SegmentedGoldenTest {
     @Test
     @DisplayName("a disabled bar fades once, not twice")
     void disabled() {
-        paint("segmented-disabled", Theme.NORD_DARK, 220, bar("grid").disabled(true));
+        paint("segmented-disabled", Theme.NORD_DARK, 184, bar("grid").disabled(true));
     }
 
     /// An icon before a label, and an icon-only segment beside it. A segment may
@@ -220,7 +220,7 @@ class SegmentedGoldenTest {
         paint(
                 "segmented-icons",
                 Theme.NORD_DARK,
-                260,
+                247,
                 new Segmented(
                         "grid",
                         List.of(
@@ -317,7 +317,7 @@ class SegmentedGoldenTest {
         var midway = renderer.render(tree);
         assertTrue(renderer.isAnimating(), "and has not arrived");
 
-        GoldenImage.assertMatches("segmented-travel", 280, 56, 1.0f, frame -> BoxPainter.paint(frame, midway));
+        GoldenImage.assertMatches("segmented-travel", 264, 56, 1.0f, frame -> BoxPainter.paint(frame, midway));
 
         clock.advance(120);
         renderer.render(tree);
@@ -370,7 +370,7 @@ class SegmentedGoldenTest {
 
         GoldenImage.assertMatches(
                 "segmented-on-surface",
-                220,
+                232,
                 56,
                 1.0f,
                 frame -> BoxPainter.paint(frame, renderer.render(new ElementTree(content))));

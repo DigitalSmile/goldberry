@@ -359,7 +359,10 @@ window, so it was built with M3's overlays and is written up there.
   both states on both backgrounds, which took four tokens out of each theme. The cost is
   stated in §3's row rather than discovered: **a segmented control now has no width of
   its own** and fills its parent when nothing gives it one, because its cells are
-  proportions ([ADR-0099](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0099-an-indicator-travels-on-a-grid.md)). Still to come:
+  proportions ([ADR-0099](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0099-an-indicator-travels-on-a-grid.md)).
+  Since 2026-10-18 it has one: every cell starts from the widest segment's natural
+  width, so a bar nothing sizes is as wide as its labels and the cells are still a
+  grid (ADR-0643, parked in `docs/snapshot/adr`). Still to come:
   `select` and custom image cursors
 
 ### Binding — §9's other half
@@ -4457,6 +4460,13 @@ is the `scroll` box's.
   because an interface would make the trivial list — strings drawn as text — the
   one that cost the most to write. `ListView.of(List<String>)` is that case in one
   call.
+- **The rows take `Up` and `Down`, and the focused row stays built** (2026-10-18,
+  ADR-0642, parked in `docs/snapshot/adr`). Inside a `scroll` the viewport had been
+  taking both arrows before the list's scope could rove, so they scrolled the rows
+  past a focus that never moved, and a virtual list then dropped it. The rows step
+  by index now and scroll the row they reach into view. The focused row is built on
+  its own between spacers however far the window moves, and `End` builds the last
+  row and nothing in between.
 - **`text` is optional and its absence turns type-to-select off**, which §10 asks
   for in as many words. The half that is not obvious is that the row must then
   **not consume** the keystroke: one that swallowed text it could not use would
