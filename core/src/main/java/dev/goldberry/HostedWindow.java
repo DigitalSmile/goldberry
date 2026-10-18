@@ -1364,11 +1364,15 @@ final class HostedWindow implements WindowHost {
     private Optional<Popup> popup(Widget content, LogicalPoint at, LogicalSize size, PopupKind kind) {
 
         Objects.requireNonNull(content, "content");
-        return open(new ElementTree(content, this), RenderTree.create(), new PopupSpec(at, size, kind));
+        return open(
+                new ElementTree(content, this), RenderTree.create(), new PopupSpec(at, size, kind), PopupMargin.NONE);
     }
 
     /// Asks the backend for the window and wires the trees to it.
-    private Optional<Popup> open(ElementTree tree, RenderTree render, PopupSpec spec) {
+    ///
+    /// @param margin the room around the panel for its shadow, already counted in
+    ///               `spec`'s position and size
+    private Optional<Popup> open(ElementTree tree, RenderTree render, PopupSpec spec, PopupMargin margin) {
 
         var backend = GoldberryRuntime.get().backend().createPopup(window.backendWindow(), spec);
         if (backend.isEmpty()) {
@@ -1387,7 +1391,10 @@ final class HostedWindow implements WindowHost {
                 tree,
                 render,
                 this::renderer,
-                () -> popups.removeIf(open -> !open.isOpen()));
+                () -> popups.removeIf(open -> !open.isOpen()),
+                margin,
+                // A press in a shadow is a press on nothing, here as in the owner.
+                this::dismissPopups);
         popups.add(popup);
         return Optional.of(popup);
     }
@@ -1458,8 +1465,11 @@ final class HostedWindow implements WindowHost {
             }
         }
 
+        // Placed by the panel's own size, and only then grown by the room its
+        // shadow needs: the margin is not part of what the anchor is told about.
         var placed = placement.place(anchor, size, placeableArea());
-        var opened = open(tree, render, new PopupSpec(placed.at(), size, kind));
+        var margin = shadowMargin(tree);
+        var opened = open(tree, render, new PopupSpec(margin.windowAt(placed.at()), margin.around(size), kind), margin);
         // Remembered so a resize can put it back — see [#replacePopups]. The id
         // half is filled in by the overloads that were given one, which is the
         // only place it is known.
@@ -1483,6 +1493,19 @@ final class HostedWindow implements WindowHost {
             return measure(liveTree, liveRender, floor);
         }));
         return opened;
+    }
+
+    /// The room a popup's panel needs around it for its `box-shadow`, or none
+    /// where the platform would paint that room black.
+    ///
+    /// Read from the panel, which is the root of the popup's tree: a menu, a
+    /// `popover`, a `tooltip`. A shadow cast by something inside the panel is
+    /// inside the panel and needs no room.
+    private PopupMargin shadowMargin(ElementTree tree) {
+        if (!GoldberryRuntime.get().backend().seeThroughPopups(window.backendWindow())) {
+            return PopupMargin.NONE;
+        }
+        return PopupMargin.of(renderer().render(tree).decoration().shadows());
     }
 
     /// A tooltip's popup: above by preference, never light-dismissed.

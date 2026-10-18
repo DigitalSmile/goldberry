@@ -3165,20 +3165,15 @@ hud-caption {
  * into it and every property it needs is written here. That includes `color`,
  * which everywhere else in the catalog comes from an ancestor.
  *
- * The elevation is a border rather than a shadow, and the reason has changed
- * without the rule changing. It used to be that the CSS subset had no `box-shadow`;
- * it has one now and this panel still cannot use it, because **a
- * popup window is created at exactly this panel's measured size**.
- * A shadow is drawn outside the box that casts it, so every pixel of one here
- * would fall outside the window and be clipped away — the toolkit would pay for
- * a run of fills and draw nothing at all.
- *
- * What it would take is a popup window sized to the panel *plus* the shadow's
- * reach, with the extra transparent, which needs a compositor that honours a
- * transparent popup on all three platforms — the same thing the rounded corners
- * are waiting on. Until then the edge is the elevation, and it is not a
- * placeholder: a floating panel with no edge at all disappears into a surface of
- * the same colour underneath it, which a shadow does not fix either.
+ * The elevation is an edge **and** a shadow, level 2. A shadow is drawn
+ * outside the box that casts it, so the popup window is the panel plus the room
+ * this shadow reaches, transparent, and the panel is painted inset by it; the
+ * placement still measures the panel, so it sits against its anchor as it would
+ * with no shadow. Where a desktop would paint that room black (X11 with no
+ * compositing manager) the window is the panel alone and the shadow falls
+ * outside it, unseen. The edge stays either way: a shadow says "nearer" by
+ * darkening what is underneath, and a floating panel over a surface of its own
+ * colour needs the edge to be seen at all.
  */
 popover {
   flex-direction: column;
@@ -3188,6 +3183,7 @@ popover {
   color: var(--gb-text);
   border: 1px solid var(--gb-border);
   border-radius: 8px;
+  box-shadow: var(--gb-elevation-2);
 }
 
 /* A menu's items fill the width and read from the leading edge — which is what
@@ -3234,13 +3230,18 @@ tooltip {
      it is read. That reading is now the type scale's to answer rather than this rule's. */
   font-size: var(--gb-font-caption);
   line-height: var(--gb-line-caption);
+  /* Level 1, below a `popover`'s 2: a tooltip is a label over the window, not a
+     surface lifted off it. Drawn in the popup's transparent room, as the
+     `popover` note says. */
+  box-shadow: var(--gb-elevation-1);
 }
 
 /* ------------------------------------------------------------------ menu --
  *
  * A menu is drawn in a popup window of its own, so —
  * like `popover` — it is the root of its own element tree and inherits nothing:
- * every property it needs is written here, `color` included.
+ * every property it needs is written here, `color` included. Its elevation is
+ * the `popover`'s, edge and shadow, for the reason given there.
  */
 menu {
   flex-direction: column;
@@ -3250,6 +3251,7 @@ menu {
   color: var(--gb-text);
   border: 1px solid var(--gb-border);
   border-radius: 8px;
+  box-shadow: var(--gb-elevation-2);
 }
 
 /* A row: tick column, optional icon, label, the growing gap, accelerator.

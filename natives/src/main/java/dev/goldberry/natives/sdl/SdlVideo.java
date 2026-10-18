@@ -8,6 +8,7 @@ import java.nio.ByteBuffer;
 import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.OptionalLong;
 
 import org.jspecify.annotations.Nullable;
@@ -29,6 +30,7 @@ import dev.goldberry.natives.sdl.window.SdlFlashOperation;
 import dev.goldberry.natives.sdl.window.SdlIconImage;
 import dev.goldberry.natives.sdl.window.SdlPixelFormat;
 import dev.goldberry.natives.sdl.window.SdlWindowFlag;
+import dev.goldberry.natives.x11.XlibCompositing;
 import dev.goldberry.natives.x11.XlibVisuals;
 
 /// SDL3's windowing, event and CPU presentation calls.
@@ -208,25 +210,48 @@ public final class SdlVideo {
         if (System.getenv(Sdl.X11_WINDOW_VISUALID_HINT) != null) {
             return OptionalLong.empty();
         }
-        var properties = sdlWindowCalls.getWindowProperties().call(parent.pointer());
-        if (properties == 0) {
+        var screen = x11Screen(parent);
+        if (screen.isEmpty()) {
             return OptionalLong.empty();
+        }
+        var visual =
+                XlibVisuals.alphaVisual(screen.get().display(), screen.get().screen());
+        if (visual.isEmpty()) {
+            LOG.debug("this X server has no 32-bit TrueColor visual; a popup's rounded corners will be black");
+        }
+        return visual;
+    }
+
+    /// Whether a compositing manager runs on the X11 screen `window` is on, so
+    /// that a transparent pixel in a popup is seen through rather than painted
+    /// black. False for a window that is not on X11. See `XlibCompositing`.
+    public boolean isCompositing(SdlWindowHandle window) {
+        Objects.requireNonNull(window, "window");
+        return x11Screen(window)
+                .map(screen -> XlibCompositing.isCompositing(screen.display(), screen.screen()))
+                .orElse(false);
+    }
+
+    /// The Xlib display and screen number SDL reports for `window`, if it is on
+    /// X11.
+    private record X11Screen(MemorySegment display, int screen) {}
+
+    private Optional<X11Screen> x11Screen(SdlWindowHandle window) {
+        var properties = sdlWindowCalls.getWindowProperties().call(window.pointer());
+        if (properties == 0) {
+            return Optional.empty();
         }
         try (var arena = Arena.ofConfined()) {
             var display = sdlWindowCalls
                     .getPointerProperty()
                     .call(properties, arena.allocateFrom("SDL.window.x11.display"), MemorySegment.NULL);
             if (MemorySegment.NULL.equals(display)) {
-                return OptionalLong.empty();
+                return Optional.empty();
             }
             var screen = (int) sdlWindowCalls
                     .getNumberProperty()
                     .call(properties, arena.allocateFrom("SDL.window.x11.screen"), 0L);
-            var visual = XlibVisuals.alphaVisual(display, screen);
-            if (visual.isEmpty()) {
-                LOG.debug("this X server has no 32-bit TrueColor visual; a popup's rounded corners will be black");
-            }
-            return visual;
+            return Optional.of(new X11Screen(display, screen));
         }
     }
 

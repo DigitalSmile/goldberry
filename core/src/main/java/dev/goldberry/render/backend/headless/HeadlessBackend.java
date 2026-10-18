@@ -142,6 +142,26 @@ public final class HeadlessBackend implements Backend {
     /// Whether windows may be placed — see [#placesWindows(boolean)].
     private boolean placesWindows = true;
 
+    /// Whether popups are see-through — see [#seeThroughPopups(boolean)].
+    private boolean seeThroughPopups;
+
+    /// Makes popups see-through, as on a compositing desktop, so a panel's shadow
+    /// gets a margin to be drawn in. Off by default, so a popup is exactly its
+    /// panel's size and every test that measures one keeps its numbers.
+    ///
+    /// @return this backend, for the fluent set-up the other seams read
+    public HeadlessBackend seeThroughPopups(boolean value) {
+        requireUiThread();
+        this.seeThroughPopups = value;
+        return this;
+    }
+
+    @Override
+    public boolean seeThroughPopups(BackendWindow owner) {
+        requireUiThread();
+        return seeThroughPopups;
+    }
+
     /// One display, `Headless`, whose usable bounds are [#workArea()] — or the
     /// ones a test set with [#displays(List)].
     @Override

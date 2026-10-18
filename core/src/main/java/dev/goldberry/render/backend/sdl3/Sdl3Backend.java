@@ -609,6 +609,22 @@ public final class Sdl3Backend implements Backend {
     }
 
     @Override
+    public boolean seeThroughPopups(BackendWindow owner) {
+        requireUiThread();
+        if (!(owner instanceof Sdl3Window parent) || !parent.isOpen()) {
+            return false;
+        }
+        // The three drivers that composite every window by design, and X11 only
+        // while a compositing manager owns the screen: without one the server
+        // shows a 32-bit window's transparent pixels as black.
+        return switch (Sdl.get().videoDriver()) {
+            case "wayland", "windows", "cocoa" -> true;
+            case "x11" -> video.isCompositing(parent.handle());
+            case null, default -> false;
+        };
+    }
+
+    @Override
     public Optional<BackendPopup> createPopup(BackendWindow owner, PopupSpec spec) {
         requireUiThread();
         requireOpen();

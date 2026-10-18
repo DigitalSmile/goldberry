@@ -84,7 +84,8 @@ public final class ForeignSurface {
             "dev.goldberry.natives.desktop.notify.Dbus",
             "dev.goldberry.natives.desktop.notify.WindowsNotifier",
             "dev.goldberry.natives.desktop.macos.ObjC",
-            "dev.goldberry.natives.x11.XlibVisuals");
+            "dev.goldberry.natives.x11.XlibVisuals",
+            "dev.goldberry.natives.x11.XlibCompositing");
 
     private ForeignSurface() {}
 

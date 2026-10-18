@@ -9,6 +9,9 @@ import org.slf4j.LoggerFactory;
 
 import dev.goldberry.input.PointerRouter;
 import dev.goldberry.input.hit.HitTest;
+import dev.goldberry.layout.Insets;
+import dev.goldberry.layout.Length;
+import dev.goldberry.paint.Box;
 import dev.goldberry.paint.Frame;
 import dev.goldberry.paint.tree.RenderTree;
 import dev.goldberry.render.model.LogicalPoint;
@@ -55,6 +58,15 @@ import dev.goldberry.widget.WidgetRenderer;
 /// dispatches to nothing, and light dismissal is exactly the case where nothing
 /// was hit.
 ///
+/// ## A shadow has room
+///
+/// Where the platform shows a popup's transparent pixels as transparent, the
+/// window is the panel plus the room its `box-shadow` reaches, and the panel is
+/// painted inset by that room. Nothing outside this class sees the room:
+/// [#offset()], [#bounds()], [#move] and [#resize] all speak of the panel, so a
+/// menu is placed against its anchor exactly as it would be without a shadow. A
+/// press in the room is a press outside the popup.
+///
 /// Confined to the UI thread, and closed either by [#close()] or by the window
 /// that owns it going away.
 ///
@@ -70,6 +82,13 @@ public final class Popup implements AutoCloseable {
     private final PointerRouter router;
     private final Supplier<WidgetRenderer> renderer;
     private final Runnable onClosed;
+
+    /// The room around the panel its shadow is drawn in; see the class note.
+    private final PopupMargin margin;
+
+    /// What a press in [#margin] does: whatever a press outside every popup does
+    /// in the owner window.
+    private final Runnable pressedOutside;
 
     private boolean lightDismiss = true;
     private boolean closed;
@@ -95,6 +114,22 @@ public final class Popup implements AutoCloseable {
             RenderTree render,
             Supplier<WidgetRenderer> renderer,
             Runnable onClosed) {
+        this(backend, window, tree, render, renderer, onClosed, PopupMargin.NONE, () -> {});
+    }
+
+    /// The same, with room for a shadow around the panel and what a press in that
+    /// room does.
+    Popup(
+            BackendPopup backend,
+            Window window,
+            ElementTree tree,
+            RenderTree render,
+            Supplier<WidgetRenderer> renderer,
+            Runnable onClosed,
+            PopupMargin margin,
+            Runnable pressedOutside) {
+        this.margin = Objects.requireNonNull(margin, "margin");
+        this.pressedOutside = Objects.requireNonNull(pressedOutside, "pressedOutside");
         this.backend = Objects.requireNonNull(backend, "backend");
         this.window = Objects.requireNonNull(window, "window");
         this.renderer = Objects.requireNonNull(renderer, "renderer");
@@ -117,6 +152,12 @@ public final class Popup implements AutoCloseable {
         window.inputWatcher(new Window.InputWatcher() {
             @Override
             public boolean pressed(dev.goldberry.input.event.PointerEvent.@Nullable Button button, float x, float y) {
+                // A press in the shadow's room is on nothing the user can see,
+                // which is a press outside: taken, and treated as one.
+                if (!margin.isNone() && !margin.panelIn(window.size()).contains(new LogicalPoint(x, y))) {
+                    Popup.this.pressedOutside.run();
+                    return true;
+                }
                 // A press inside a popup is somebody choosing an item.
                 return false;
             }
@@ -175,12 +216,13 @@ public final class Popup implements AutoCloseable {
     /// menu's, so a submenu anchored to the item overlaps the border of the menu
     /// it came from.
     public LogicalRect bounds() {
-        return new LogicalRect(backend.offset(), window.size());
+        return new LogicalRect(offset(), margin.within(window.size()));
     }
 
-    /// Where the popup sits, as an offset from its owner window's top-left.
+    /// Where the popup's panel sits, as an offset from its owner window's
+    /// top-left.
     public LogicalPoint offset() {
-        return backend.offset();
+        return margin.panelAt(backend.offset());
     }
 
     /// Moves the popup, in the owner's logical coordinates.
@@ -189,7 +231,7 @@ public final class Popup implements AutoCloseable {
     /// reopening, and it does not flicker.
     public void move(LogicalPoint position) {
         requireOpen();
-        backend.move(position);
+        backend.move(margin.windowAt(position));
         // The tree did not change and the pixels did not either, but every
         // rectangle a [dev.goldberry.input.handler.Located]
         // widget in here was told is now in the wrong place. A frame is the thing
@@ -197,13 +239,14 @@ public final class Popup implements AutoCloseable {
         window.repaint();
     }
 
-    /// Asks for the popup to be resized.
+    /// Asks for the popup's panel to be resized; the window grows by the shadow's
+    /// room around it.
     ///
     /// **A request.** The window manager decides when it happens, so the size may
     /// still be the old one immediately afterwards — see [BackendPopup#resize].
     public void resize(LogicalSize size) {
         requireOpen();
-        backend.resize(size);
+        backend.resize(margin.around(size));
         window.repaint();
     }
 
@@ -264,7 +307,7 @@ public final class Popup implements AutoCloseable {
             return;
         }
         var size = measurer.measure(tree, render);
-        if (size != null && !size.equals(window.size())) {
+        if (size != null && !size.equals(margin.within(window.size()))) {
             resize(size);
         }
     }
@@ -315,6 +358,22 @@ public final class Popup implements AutoCloseable {
         LOG.trace("popup closed");
     }
 
+    /// The panel, inside a box that pads it by the shadow's room, or the panel
+    /// itself when there is no room. The padding box has no owner, so nothing in
+    /// the room is hit.
+    private Box inset(Box panel) {
+        if (margin.isNone()) {
+            return panel;
+        }
+        return Box.of()
+                .padding(new Insets(
+                        Length.points(margin.top()),
+                        Length.points(margin.right()),
+                        Length.points(margin.bottom()),
+                        Length.points(margin.left())))
+                .children(panel);
+    }
+
     /// One frame of this popup, painted by the same renderer as its owner.
     private void paint(Frame frame) {
         // Before the flush, for `Launcher`'s reason: a build may ask the cascade
@@ -336,10 +395,10 @@ public final class Popup implements AutoCloseable {
         // what is outside them is nothing rather than black. It also stops a
         // shrinking popup leaving the previous frame in the margin.
         frame.fill(0x00000000);
-        render.update(frame, current.render(tree));
+        render.update(frame, inset(current.render(tree)));
         // `@container`, as a window's frame does it: once more at most.
         if (current.settleContainers(render)) {
-            render.update(frame, current.render(tree));
+            render.update(frame, inset(current.render(tree)));
         }
         // Full-frame, unlike the owner window's: a popup is small, it is repainted
         // only when something in it changed, and damage tracking would be

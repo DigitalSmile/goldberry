@@ -95,6 +95,23 @@ public interface Backend extends AutoCloseable {
         return Optional.empty();
     }
 
+    /// Whether a popup over `owner` shows what is under its transparent pixels,
+    /// rather than painting them black.
+    ///
+    /// What decides whether a popup may be larger than its panel: a panel's
+    /// `box-shadow` is drawn outside the panel, so the window has to reach past
+    /// it, and that margin is only invisible where transparency is honoured.
+    /// Asked once per popup, before it is created, because a compositing
+    /// manager can come and go while the application runs.
+    ///
+    /// False by default, which costs a backend that cannot tell its shadows and
+    /// nothing else: the panel opens at its own size, as every popup did before.
+    ///
+    /// @param owner the window the popup would belong to
+    default boolean seeThroughPopups(BackendWindow owner) {
+        return false;
+    }
+
     /// Puts an icon in the desktop's notification area.
     ///
     /// **Empty is a normal answer**, and it covers more than a missing feature

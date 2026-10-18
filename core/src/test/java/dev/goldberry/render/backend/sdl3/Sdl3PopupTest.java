@@ -170,6 +170,26 @@ class Sdl3PopupTest {
         });
     }
 
+    /// Whether a popup may be wider than its panel for a shadow is asked of the
+    /// window system, and on X11 that is two Xlib calls through the foreign
+    /// interface. A driver with no window system says no.
+    @Test
+    @DisplayName("says whether popups are see-through: yes on a compositing desktop, no where nothing composites")
+    void seeThroughPopups() {
+        assumeADisplay();
+        withBackend(null, (backend, window) -> {
+            var driver = Sdl.get().videoDriver();
+            var answer = backend.seeThroughPopups(window);
+            switch (driver) {
+                case "wayland", "windows", "cocoa" -> assertTrue(answer, driver + " composites every window");
+                // A GNOME or KDE session composites its X11 clients too, and the
+                // answer is asked again each time, so two questions agree.
+                case "x11" -> assertEquals(answer, backend.seeThroughPopups(window));
+                default -> assertFalse(answer, driver + " has no compositor to honour transparency");
+            }
+        });
+    }
+
     private static void assumeADisplay() {
         var x11 = System.getenv("DISPLAY");
         var wayland = System.getenv("WAYLAND_DISPLAY");

@@ -374,32 +374,6 @@ on, which in four cases is the same thing.
   check for something that is neither a font nor a library.
   `./gradlew checkLicenses` knows about artifacts.
 ## Style, colour and motion
-- ~~**Nothing in the catalog wears an elevation yet.**~~ **Five surfaces do**
-  ([ADR-0312](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0312-the-catalog-puts-the-two-new-properties-on.md)): `card` at
-  §1.5's level 1 and lifting to level 2 on `card.interactive:hover`, `dialog`,
-  `tour-card` and `toast` at level 2, and `affix:affixed` at level 1 with the
-  `transition: box-shadow` §1.7's motion table has asked for since before there
-  was a shadow. The edges all stay, for ADR-0166's reason: a shadow cast onto
-  another card falls on that card's own colour and says almost nothing, where the
-  rim says it exactly.
-
-  **`popover`, `menu` and `tooltip` are the ones still without**, and no longer
-  because the subset lacks the property. They are drawn in popup windows created
-  at the panel's own measured size (ADR-0104), so a shadow — which is drawn
-  outside the box that casts it — would fall entirely outside the window and be
-  clipped: a run of fills that draws nothing. What it needs is a popup sized to
-  the panel *plus* the shadow's reach with the extra transparent, which wants the
-  same transparent-popup support the rounded corners were waiting on.
-
-  **The X11 half of that support exists now (2026-10-11).** A popup window on X11
-  is created with the screen's 32-bit visual, so its transparent clear survives
-  (ADR-0628, parked in `docs/snapshot/adr`). Wayland, Windows and macOS honour the
-  transparency flag themselves. What is left is the popup code itself: a window
-  as large as the panel plus the shadow's reach.
-  `--gb-elevation-3` is unused and stays so: it is the level for a thing the
-  pointer is dragging, and nothing here is dragged. —
-  [ADR-0312](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0312-the-catalog-puts-the-two-new-properties-on.md),
-  [ADR-0166](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0166-a-raised-thing-is-told-apart-by-its-edge.md)
 - **A popup's transparent corners need a compositor**, and are unverified on
   Windows and macOS. Without one the flag is ignored and the corners are whatever
   the platform leaves there. The fallback that always works — filling the frame
@@ -414,6 +388,12 @@ on, which in four cases is the same thing.
   `Sdl3PopupTest.popupIsSeeThroughOnX11` reads the corners back as `00000000`
   (ADR-0628, parked in `docs/snapshot/adr`). Windows and macOS are still unverified
   by eye.
+
+  **The toolkit can tell now (2026-10-18).** `Backend.seeThroughPopups` answers
+  whether a popup's transparent pixels will be seen through, which on X11 is
+  whether `_NET_WM_CM_S<n>` has an owner (ADR-0632). The shadow's room is
+  withheld where it would be black. The square-corner fallback this entry keeps
+  in reserve could be keyed on the same answer; nothing does that yet.
 ## Rendering and performance
 - **Opening a long note still shapes all of it, on the frame that opens it.** A
   keystroke into a 500 kB `text-area` costs what a keystroke into a 2 kB one
@@ -785,6 +765,42 @@ way back is a consumer asking, not a date.
 Kept rather than deleted: each is a trap somebody hit, and the reasoning that got
 out of it is usually worth more than the fact that it is fixed.
 
+- ~~**Nothing in the catalog wears an elevation yet.**~~ **Five surfaces do**
+  ([ADR-0312](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0312-the-catalog-puts-the-two-new-properties-on.md)): `card` at
+  §1.5's level 1 and lifting to level 2 on `card.interactive:hover`, `dialog`,
+  `tour-card` and `toast` at level 2, and `affix:affixed` at level 1 with the
+  `transition: box-shadow` §1.7's motion table has asked for since before there
+  was a shadow. The edges all stay, for ADR-0166's reason: a shadow cast onto
+  another card falls on that card's own colour and says almost nothing, where the
+  rim says it exactly.
+
+  **`popover`, `menu` and `tooltip` are the ones still without**, and no longer
+  because the subset lacks the property. They are drawn in popup windows created
+  at the panel's own measured size (ADR-0104), so a shadow — which is drawn
+  outside the box that casts it — would fall entirely outside the window and be
+  clipped: a run of fills that draws nothing. What it needs is a popup sized to
+  the panel *plus* the shadow's reach with the extra transparent, which wants the
+  same transparent-popup support the rounded corners were waiting on.
+
+  **The X11 half of that support exists now (2026-10-11).** A popup window on X11
+  is created with the screen's 32-bit visual, so its transparent clear survives
+  (ADR-0628, parked in `docs/snapshot/adr`). Wayland, Windows and macOS honour the
+  transparency flag themselves. What is left is the popup code itself: a window
+  as large as the panel plus the shadow's reach.
+  `--gb-elevation-3` is unused and stays so: it is the level for a thing the
+  pointer is dragging, and nothing here is dragged. —
+  [ADR-0312](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0312-the-catalog-puts-the-two-new-properties-on.md),
+  [ADR-0166](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0166-a-raised-thing-is-told-apart-by-its-edge.md)
+
+  **Closed (2026-10-18): the three popup panels wear one too** (ADR-0632,
+  parked in `docs/snapshot/adr`). A popup window is now its panel plus the room
+  the panel's `box-shadow` reaches, wherever the desktop shows transparency:
+  Wayland, Windows and macOS, and X11 while a compositing manager owns the
+  screen (`XlibCompositing` asks `_NET_WM_CM_S<n>`). Placement still measures
+  the panel and `Popup`'s geometry still speaks of it, and a press in the room
+  dismisses as a press outside. `popover` and `menu` wear level 2 and `tooltip`
+  level 1. `PopupShadowTest` holds it on the headless backend. Wayland, Windows
+  and macOS were not checked by eye.
 - ~~**Nothing watches it.**~~ *(The clipboard.)* There is no "the clipboard changed" notification, so a
   paste button cannot grey itself out until its menu opens and asks
   ([ADR-0286](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0286-a-clipboard-write-is-an-offer.md)). X11 and Wayland both

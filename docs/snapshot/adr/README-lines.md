@@ -73,3 +73,4 @@ Appended to the index when the records move in, in this order.
 - [ADR-0629 The overlay scroll bar is a 4px thumb on an 8px bar](0629-the-overlay-scroll-bar-is-a-4px-thumb-on-an-8px-bar.md)
 - [ADR-0630 A golden admits a few stroke pixels in a hundred thousand](0630-a-golden-admits-a-few-stroke-pixels-in-a-hundred-thousand.md)
 - [ADR-0631 A text field has its own menu, and its Paste follows the clipboard](0631-a-text-field-has-its-own-menu-and-paste-follows-the-clipboard.md)
+- [ADR-0632 A popup window has room for its panel's shadow](0632-a-popup-window-has-room-for-its-panels-shadow.md)
