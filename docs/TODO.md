@@ -569,6 +569,13 @@ on, which in four cases is the same thing.
   single red tick. A Wayland leg needs a headless compositor in CI (`weston
   --backend=headless` or `sway --headless`), which is a job nobody has written yet. —
   [ADR-0084](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0084-the-gtk-plugin-cannot-decorate-a-jvms-window.md)
+
+  **Written, not yet run (2026-10-18).** `linux.yml`'s verify job starts
+  weston's headless backend and runs the showcase on the JVM for 120 frames
+  with `videoDriver=wayland` and no `DISPLAY`, gated on the launcher's
+  `painted 120 frame(s)` line (ADR-0633, parked in `docs/snapshot/adr`). No
+  machine here has a headless compositor, so the first CI run is the first run.
+  This entry moves to *Answered* when that run is green.
 - **Native decorations on Wayland need a launcher that embeds the VM.** The GTK plugin
   is the only thing that draws decorations matching the desktop, and its one requirement
   is `getpid() == gettid()`. The stock `java` launcher runs `main` on a thread it

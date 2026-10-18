@@ -23,3 +23,7 @@ not built into anything the library ships, so the workflows that build the
 library ignore it, and `pages.yml` runs `SiteTest` itself. A change to `book/` is
 never skipped, because `BookTest` and `BookMarkupTest` check the book against the
 code. `SiteOnlyChangeTest` holds every workflow to both rules.
+
+4. In the `linux.yml` row's last cell, after "and `:example`'s tests, against
+   the libraries it downloaded", add (ADR-0633): "then the showcase for 120
+   frames under weston's headless Wayland compositor".

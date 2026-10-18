@@ -436,6 +436,44 @@ jobs:
             -Dgoldberry.native.library="$PWD/native-lib/libgoldberry.so" \
             -Dgoldberry.native.required=true
 
+      # The one leg that runs the toolkit under a Wayland compositor. Every
+      # other check here is headless, X11 under Xvfb, or a desktop somebody has
+      # by hand, and the default driver on Linux is X11, so the Wayland driver,
+      # its popups and its frame callbacks reached CI only through the
+      # library's `WAYLAND` capability bit, which says the driver was compiled
+      # and nothing about whether it runs.
+      #
+      # weston's headless backend is a real compositor with no output: it speaks
+      # xdg-shell, places popups and sends frame callbacks, and paints into
+      # memory with pixman. Its own socket and runtime directory, so nothing
+      # else on the runner is a candidate, and no DISPLAY, so SDL cannot fall
+      # back to X11 and pass for the wrong reason. The gate is the launcher's
+      # own line after N presented frames, the one the native image's step
+      # greps for; a crash, a hang or a driver that will not start fails it.
+      # https://goldberry.dev/docs/contributing/testing.html#the-ci-matrix
+      - name: The showcase under Wayland (weston, headless)
+        if: matrix.target == 'linux-x64'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends weston
+          export XDG_RUNTIME_DIR="$(mktemp -d)"
+          chmod 700 "$XDG_RUNTIME_DIR"
+          weston --backend=headless --renderer=pixman --socket=wayland-goldberry \
+            --width=1920 --height=1200 --idle-time=0 > weston.log 2>&1 &
+          for _ in $(seq 50); do
+            [ -S "$XDG_RUNTIME_DIR/wayland-goldberry" ] && break
+            sleep 0.2
+          done
+          test -S "$XDG_RUNTIME_DIR/wayland-goldberry" \
+            || { cat weston.log; echo "::error::weston's headless compositor did not start"; exit 1; }
+          env -u DISPLAY WAYLAND_DISPLAY=wayland-goldberry \
+            ./gradlew :example:run --no-daemon \
+              -Dgoldberry.native.library="$PWD/native-lib/libgoldberry.so" \
+              -Dgoldberry.backend.videoDriver=wayland \
+              -Pgoldberry.example.frames=120 | tee wayland-run.log
+          grep -q "painted 120 frame(s); exiting" wayland-run.log \
+            || { cat weston.log; echo "::error::the showcase did not present 120 frames under Wayland"; exit 1; }
+
       - uses: actions/upload-artifact@v4
         if: failure()
         with:

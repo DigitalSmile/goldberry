@@ -74,3 +74,4 @@ Appended to the index when the records move in, in this order.
 - [ADR-0630 A golden admits a few stroke pixels in a hundred thousand](0630-a-golden-admits-a-few-stroke-pixels-in-a-hundred-thousand.md)
 - [ADR-0631 A text field has its own menu, and its Paste follows the clipboard](0631-a-text-field-has-its-own-menu-and-paste-follows-the-clipboard.md)
 - [ADR-0632 A popup window has room for its panel's shadow](0632-a-popup-window-has-room-for-its-panels-shadow.md)
+- [ADR-0633 CI runs the showcase under a headless Wayland compositor](0633-ci-runs-the-showcase-under-a-headless-wayland-compositor.md)
