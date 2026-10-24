@@ -146,7 +146,7 @@ public final class Folding {
         }
         var best = scalars.values()[0];
         for (var value : scalars.values()) {
-            if (Double.compare(value, best) * sign > 0) {
+            if (Integer.signum(Double.compare(value, best)) == sign) {
                 best = value;
             }
         }

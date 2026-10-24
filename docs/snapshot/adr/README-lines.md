@@ -91,3 +91,4 @@ Appended to the index when the records move in, in this order.
 - [ADR-0647 An editor scrolls inside the box it is told about](0647-an-editor-scrolls-inside-the-box-it-is-told-about.md)
 - [ADR-0648 A popup nobody can see through has square corners](0648-a-popup-nobody-can-see-through-has-square-corners.md)
 - [ADR-0649 A golden says which instruction set it was rasterized with](0649-a-golden-says-which-instruction-set-it-was-rasterized-with.md)
+- [ADR-0650 The Gradle action stays on its open-source major](0650-the-gradle-action-stays-on-its-open-source-major.md)

@@ -112,6 +112,10 @@ public final class Demuxer implements AutoCloseable {
     ///                        when `io` was closed during the open
     public static Demuxer open(Ffmpeg ffmpeg, Source source, MediaIO io) {
         var bridge = AvioBridge.open(ffmpeg, io);
+        // Not a try-with-resources: the arena outlives this method, owned by the
+        // demuxer it returns and closed by its close(). Every failure below
+        // closes it before rethrowing.
+        @SuppressWarnings("MustBeClosedChecker")
         var arena = Arena.ofShared();
         try {
             var context = ffmpeg.format().allocContext().call();

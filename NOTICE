@@ -38,7 +38,7 @@ And one is embedded in goldberry-emoji, which is an OPTIONAL artifact:
 
 Noto Color Emoji is in an artifact of its own because it is five megabytes an
 application that never draws an emoji should not carry.
-The face shipped is Google's COLRv1 build, release v2.051, unmodified. The
+The face shipped is Google's COLRv1 build, release v2.057, unmodified. The
 Apache-2.0 licence of Goldberry's own code is unaffected — the font is an
 embedded asset, not linked code.
 

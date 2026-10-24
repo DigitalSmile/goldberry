@@ -48,7 +48,7 @@ jobs:
     name: Build
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Install mdBook ${{ env.MDBOOK_VERSION }}
         run: |
@@ -68,11 +68,11 @@ jobs:
       # ignore site/, so a landing-page edit does not build three platforms and
       # publish a snapshot. build-logic is a build of its own and needs no
       # library, so this is a JDK and a few seconds of Gradle.
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: '25'
-      - uses: gradle/actions/setup-gradle@v4
+      - uses: gradle/actions/setup-gradle@v5
       - name: Check the landing page against the book
         run: ./gradlew -p build-logic test --tests 'dev.goldberry.build.site.*' --no-daemon
 

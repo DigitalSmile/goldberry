@@ -64,12 +64,12 @@ jobs:
     needs: [linux, windows, macos, media]
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: '25'
-      - uses: gradle/actions/setup-gradle@v4
+      - uses: gradle/actions/setup-gradle@v5
 
       # Guarded on the secret, the way qodana.yml guards on its token: until
       # somebody connects Central, a snapshot run rehearses into mavenLocal and

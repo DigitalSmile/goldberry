@@ -115,6 +115,7 @@ page for a change to `site/` alone (ADR-0590), and GB-034, written 2026-10-10
 | `guide-text-editor-scrolls.md` | `book/src/guide/text.md`, `## Selection and editing`: one paragraph | ADR-0647 |
 | `adr/0648-…` | `book/src/adr/` | A popup whose transparent pixels would not be seen through has its panel's radii squared, keyed on `seeThroughPopups` as the shadow's room is. Amends ADR-0632. Contiguous with 0647 |
 | `adr/0649-…` | `book/src/adr/` | Golden failures and the scale report name the architecture and vector level (`SimdPath`, HotSpot's `UseAVX`), which answers the two AVX-512 entries from the suite. Amends ADR-0050 and ADR-0162. Contiguous with 0648 |
+| `adr/0650-…` | `book/src/adr/` | The workflows set up Gradle with `setup-gradle` v5 and not v6, whose caching component is proprietary and takes Gradle's Terms of Use; the user's call in the 2026-10-24 dependency update. Contiguous with 0649 |
 | `components-menus-tray-changes.md` | `book/src/components/menus.md`, `## The tray icon`: the sample, two table rows, the paragraph after the table | ADR-0639 and ADR-0640, three pieces |
 | `contributing-testing-ci-matrix.md`, item 5 | `book/src/contributing/testing.md` | ADR-0641, one paragraph and one clause |
 | (no file) | `book/src/components/overlays.md`, the tour sample under `## Tours` | Its last `Stop("gallery", "The gallery strip", …)` names a strip the showcase no longer has; the showcase's own tour now ends on `Stop("sidebar", "The screens", …)` (ADR-0624). Reword the sample or leave it as an illustration |

@@ -7,6 +7,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Optional;
+import java.util.regex.Pattern;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -173,6 +175,63 @@ class AssetTest {
                         asset.licenceAs() == null,
                         () -> asset.name() + ": a licence URL and its destination go together");
             }
+        }
+
+        @Test
+        @DisplayName("a licence fetched from the asset's own repository comes from the same tag")
+        void theLicenceIsTheReleasesOwn() {
+            // A bump that moves the download and forgets the licence vendors the
+            // old release's text beside the new release's file, and nothing else
+            // notices: checkLicenses compares the file with the notice, not with
+            // the release.
+            var compared = 0;
+            for (var asset : Asset.all()) {
+                if (asset.licenceUrl() == null) {
+                    continue;
+                }
+                var download = GitHubRef.of(asset.url());
+                var licence = GitHubRef.of(asset.licenceUrl());
+                if (download.isEmpty()
+                        || licence.isEmpty()
+                        || !download.get().repository().equals(licence.get().repository())) {
+                    continue;
+                }
+                compared++;
+                assertEquals(
+                        download.get().ref(),
+                        licence.get().ref(),
+                        () -> asset.name() + ": the file and its licence are pinned to different tags");
+            }
+            assertTrue(compared >= 2, "Noto's and Lucide's licences are both fetched from their own repository");
+        }
+
+        @Test
+        @DisplayName("Unicode's emoji data is fetched from the directory of the version it says it is")
+        void theUnicodeVersionIsTheOneInItsPath() {
+            var asset = Asset.UNICODE_EMOJI;
+            assertTrue(
+                    asset.url().contains("/Public/" + asset.version() + ".0/emoji/"),
+                    () -> asset.url() + " is not Unicode " + asset.version() + "'s emoji-test.txt");
+        }
+    }
+
+    /// A repository and the tag or branch a GitHub URL reads from — a release
+    /// download or a raw file.
+    private record GitHubRef(String repository, String ref) {
+
+        private static final Pattern RAW =
+                Pattern.compile("https://raw\\.githubusercontent\\.com/([^/]+/[^/]+)/([^/]+)/.*");
+        private static final Pattern RELEASE =
+                Pattern.compile("https://github\\.com/([^/]+/[^/]+)/releases/download/([^/]+)/.*");
+
+        static Optional<GitHubRef> of(String url) {
+            for (var pattern : new Pattern[] {RAW, RELEASE}) {
+                var matcher = pattern.matcher(url);
+                if (matcher.matches()) {
+                    return Optional.of(new GitHubRef(matcher.group(1), matcher.group(2)));
+                }
+            }
+            return Optional.empty();
         }
     }
 }

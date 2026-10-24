@@ -42,6 +42,12 @@ class FoldingTest {
                 "min(10px, 2em, 30px)             | LENGTH | 10   | 0",
                 "max(10px, 2em, 15px)             | LENGTH | 20   | 0",
                 "min(20%, 30%)                    | LENGTH | 0    | 20",
+                "min(30px, 20px, 5px)             | LENGTH | 5    | 0",
+                "max(5px, 20px, 30px)             | LENGTH | 30   | 0",
+                "min(-3px, -1px, -2px)            | LENGTH | -3   | 0",
+                "max(-3px, -1px, -2px)            | LENGTH | -1   | 0",
+                "max(7px, 7px)                    | LENGTH | 7    | 0",
+                "min(4px)                         | LENGTH | 4    | 0",
                 "clamp(4px, 1em, 12px)            | LENGTH | 10   | 0",
                 "clamp(4px, 1px, 12px)            | LENGTH | 4    | 0",
                 "clamp(4px, 99px, 12px)           | LENGTH | 12   | 0",
@@ -71,6 +77,19 @@ class FoldingTest {
         assertEquals(kind, folded.kind(), text);
         assertEquals(value, folded.value(), 1e-9, text);
         assertEquals(percent, folded.percent(), 1e-9, text);
+    }
+
+    /// `Double.compare` orders -0 below 0, which is what CSS asks of `min()`
+    /// and `max()`: the two zeros are distinct values there, not a tie.
+    @Test
+    @DisplayName("min() and max() tell the two zeros apart")
+    void signedZero() {
+        var min = fold("min(0px, calc(-1 * 0px))");
+        var max = fold("max(calc(-1 * 0px), 0px)");
+        assertNotNull(min);
+        assertNotNull(max);
+        assertEquals(-0.0, min.value());
+        assertEquals(0.0, max.value());
     }
 
     @ParameterizedTest(name = "{0}")

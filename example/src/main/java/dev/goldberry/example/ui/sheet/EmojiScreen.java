@@ -69,7 +69,7 @@ import dev.goldberry.widgets.text.Text;
 ///
 /// ## Where the list comes from
 ///
-/// The face's own `cmap`, read by [FaceCoverage] — 1499 characters in Noto's
+/// The face's own `cmap`, read by [FaceCoverage] — 1508 characters in Noto's
 /// COLRv1 build — filtered to the ones whose **default presentation is
 /// emoji**, which is 1212 of them. Not a list transcribed into this file: a
 /// transcription is a second copy of the font's contents that goes stale the

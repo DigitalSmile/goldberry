@@ -124,7 +124,7 @@ vendor's or the distribution's.
 draws an emoji to inherit.
 
 What ships is Google's **COLRv1** build of Noto Color Emoji (`Noto-COLRv1.ttf`,
-release v2.051), **unmodified** — the toolkit draws its paint graphs itself and
+release v2.057), **unmodified** — the toolkit draws its paint graphs itself and
 does not re-theme, subset or rename the file. It is under the SIL Open Font
 License 1.1, like Inter and JetBrains Mono, so the obligations are theirs: the
 licence text travels with the font (`licenses/noto-emoji.txt`, and `NOTICE`),
@@ -145,7 +145,7 @@ category, from two tables compiled at build time (`PrepareCatalogs`):
 | Component | Licence | Upstream | Notes |
 |---|---|---|---|
 | Lucide icon metadata | ISC | <https://lucide.dev> | Each icon's categories, from the same pinned archive as the icons ([licence](licenses/lucide.txt)) |
-| [Unicode emoji data](licenses/unicode.txt) | Unicode License v3 | <https://unicode.org/Public/17.0.0/emoji/emoji-test.txt> | Each emoji's group, compiled from `emoji-test.txt` 17.0 |
+| [Unicode emoji data](licenses/unicode.txt) | Unicode License v3 | <https://unicode.org/Public/18.0.0/emoji/emoji-test.txt> | Each emoji's group, compiled from `emoji-test.txt` 18.0 |
 
 ## Not distributed
 

@@ -33,9 +33,9 @@ jobs:
     name: Analyze Java
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: '25'
@@ -51,7 +51,7 @@ jobs:
           # docs/testing.md runs the same file.
           queries: ./config/codeql/goldberry.qls
 
-      - uses: gradle/actions/setup-gradle@v4
+      - uses: gradle/actions/setup-gradle@v5
 
       # CodeQL needs to watch a real compilation. `--no-build-cache` because a
       # cache hit produces no compiler invocation for it to observe, and the

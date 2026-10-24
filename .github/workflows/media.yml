@@ -78,12 +78,12 @@ jobs:
         # Bash on Windows too, so `./gradlew` and the tool lines read the same.
         shell: bash
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: '25'
-      - uses: gradle/actions/setup-gradle@v4
+      - uses: gradle/actions/setup-gradle@v5
 
       - name: Install the superbuild's tools
         run: ${{ matrix.tools }}

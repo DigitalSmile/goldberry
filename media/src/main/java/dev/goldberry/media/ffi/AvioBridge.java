@@ -70,6 +70,10 @@ final class AvioBridge implements AutoCloseable {
     @SuppressWarnings("restricted")
     static AvioBridge open(Ffmpeg ffmpeg, MediaIO io) {
         var callbacks = new IoCallbacks(io, ffmpeg.constants());
+        // Not a try-with-resources: the upcall stubs live in it for as long as
+        // FFmpeg may call them, so the bridge it returns owns it and close()
+        // closes it. Every failure below closes it before rethrowing.
+        @SuppressWarnings("MustBeClosedChecker")
         var arena = Arena.ofShared();
         MemorySegment buffer = MemorySegment.NULL;
         try {

@@ -273,3 +273,69 @@ Each batch is one commit touching text files only, so `git revert <sha>` is the 
   GitHub release; treated as an unannotated patch above.
 - **AsmJit distance from HEAD**: the GitHub API is unavailable from this environment, so the number
   of commits between the pin and master could not be counted — only that they differ.
+
+---
+
+## Status — 2026-10-24
+
+Every SHOULD and OPTIONAL row in the table is applied, committed to `master` as one commit. Verified on
+linux-x64 (Temurin 25.0.4, NVIDIA under GNOME Wayland) with `libgoldberry` rebuilt from clean deps:
+`./gradlew build checkLicenses :natives:checkPinnedRefs -Pgoldberry.native.required=true
+-Pgoldberry.gpu.videoDriver=x11` ran **12,990 tests, 0 failures** once the emoji golden was re-blessed
+(144 skipped, all of them `:media` platform and hardware cases). Every `gpuTest` lane is green, and so are
+the `:build-logic` suite (420) and `./gradlew run` on the dummy driver. `:example:nativeImage` on GraalVM CE
+25.4.4.1 built in 3m 25s, and the image ran CI's walk under `xvfb-run` (`--frames=300 --resize=1580x1100`):
+`painted 300 frame(s); exiting`.
+
+| Step | State | What happened |
+|---|---|---|
+| 1 HarfBuzz 15.0.0 | done | `cleanNativeDeps` + `cmakeBuild`, and `hb-version.h` says 15.0.0. Nothing here binds `hb_font_set_face` or `hb_font_set_variation`, and the superbuild overrides no atomics. The layout probe passed, and no text golden moved: the one changed picture is the emoji sheet (step 4.1) |
+| 2.1 Error Prone 2.51.0 | done, **two findings the plan did not name** | `CompareToZero` in `css.value.calc.Folding#extreme` (`Double.compare(…) * sign > 0`), now `Integer.signum(…) == sign`, the same result for a sign of ±1. `FoldingTest` gains min/max rows with the winner last, negatives, a tie and one argument, plus a case pinning -0 below 0. `MustBeClosedChecker` now treats `Arena.ofShared()` as a resource: `Demuxer.open` and `AvioBridge.open` hand theirs to the object they return and close it on every failure path, so each local carries a commented `@SuppressWarnings("MustBeClosedChecker")`. `IfChainToSwitch` reported nothing, even under `-Werror` |
+| 2.2 NullAway 0.14.3 | done | No new findings, at error level |
+| 2.3 SpotBugs 4.10.5 + plugin 6.5.13 | done | Resolved as 4.10.5. Every module's report is clean, including the `VarHandle` users in `:natives` and `:media` |
+| 3.1 jqwik 1.10.2 | done | No change needed |
+| 3.2 PIT 1.30.1 | done | See the note below the table |
+| 3.3 Gradle 9.8.2 | done | `./gradlew wrapper --gradle-version 9.8.2` run twice (the second time on 9.8.2 itself). It also replaced `gradle-wrapper.jar` (SHA-256 `3b8a2577…`, which matches services.gradle.org's published checksum) and rewrote `gradlew.bat` from the newer template. `gradlew` is unchanged |
+| 3.4 CI actions | done, **one change from the plan** | Every workflow, not just `release.yml`: `actions/checkout` v4 → v7 (16 uses), `actions/setup-java` v4 → v6 (13), and `gradle/actions/setup-gradle` v4 → **v5** (13), not v6. v6's caching is a proprietary component under Gradle's Terms of Use, and v5 keeps v4's MIT caching on Node 24. That was the user's choice, recorded in `docs/snapshot/adr/0650-…` (parked). checkout v7's fork refusal touches only `pull_request_target`/`workflow_run` triggers, and no workflow has either. `actions/cache`, `upload-artifact`, `download-artifact` and the pages actions were not in the plan and keep their majors |
+| 4.1 Noto Color Emoji 2.057 | done, **pin was not where the plan looked** | The pin is `Asset.NOTO_EMOJI` in `:assets` (`dev.goldberry.assets.prepare.Asset`), not the `:emoji` build script. Upstream changed two things: tags are now named by date (`v2026-09-24-unicode18_0`), and the 2D fonts moved to `2D/fonts/`. The URL, licence URL and SHA-256 (`b8e25ea6…`, `head.fontRevision` 2.057) moved together. The `LICENSE` is byte-identical to the vendored `licenses/noto-emoji.txt`. `NOTICE` and `THIRD-PARTY-NOTICES.md` say v2.057. One golden re-blessed, `example/…/golden/gallery-emoji.png`: Noto redrew the smileys' shading, and layout and labels are pixel-identical. No book picture moved |
+| 4.2 Unicode emoji data 18.0 | done | `Asset.UNICODE_EMOJI`: the 18.0.0 URL, SHA-256 `8f3735cd…`, `# Version: 18.0`. `THIRD-PARTY-NOTICES.md` names the 18.0 path |
+
+**PIT (3.2):** only `:core` and `:widgets` have a `pitest` task (the conventions plugin's
+`--targetClasses`). PIT 1.30.1 ran on `:widgets` here in 6m 27s: 1553 mutants, 1192 killed (77%), line
+coverage 92% of the mutated classes, 12,965 test runs. There is no
+local baseline to compare a score with: the nightly's `pitest` artifact holds the last one, and the next
+nightly is where a drop would show.
+
+Beyond the plan:
+
+- `AssetTest` gains two drift guards for the next bump. A licence fetched from an asset's own repository
+  must come from the same tag as the asset (it compares Noto's and Lucide's). Unicode's `emoji-test.txt`
+  must come from the directory of the version the asset claims.
+- `EmojiScreen`'s doc comment said 1499 `cmap` characters; the new face has 1508. The 1212 shown is
+  unchanged.
+
+Found:
+
+- **The plan's Batch 4 check, "the showcase Emoji sheet groups the Unicode 18.0 additions", cannot
+  pass on Java 25.** The sheet is the face's `cmap` filtered by `Character.isEmojiPresentation`, and
+  Java 25's tables are Unicode 16.0. None of the 9 code points the new face adds is even
+  `Character.isDefined`. They are in the font and the 18.0 grouping table already has them, so the
+  sheet shows them when the JDK learns them, with no change here. `Asset.UNICODE_EMOJI`'s doc comment
+  says so.
+
+- **A local `:example:nativeImage` can package unwoven classes, and the image then dies at start-up
+  with `nothing is bound to "app.clicks"`.** This predates this update. `weaveModels` rewrites
+  `build/classes` in place and on purpose declares only a stamp as its output
+  (`goldberry.weave.gradle`). So when a `jar` built from unwoven classes already exists (any earlier
+  `build`), Gradle still sees the post-`compileJava` snapshot of the directory and reports
+  `:example:jar UP-TO-DATE` straight after the weave. Here the jar had 0 binding references in
+  `ShowcaseModel` against 324 in `build/classes`. Deleting the jar and building again gave a working
+  image. CI builds from a clean checkout, so it never sees this. Not fixed here. A candidate is to make
+  `jar` never up to date when `weaveModels` is in the task graph
+  (`gradle.taskGraph.whenReady`), which keeps the plain `jar` out of the model weaver.
+
+Open:
+
+- Push: the commit is local.
+- The first CI run on the new action majors, checkout v7 and setup-java v6 on all three OS lanes in particular.
+- HarfBuzz 15's layout probe on macOS, Windows and linux-aarch64: only linux-x64 was rebuilt here.

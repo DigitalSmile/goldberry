@@ -52,7 +52,7 @@ jobs:
             echo "No Qodana token is set — see https://goldberry.dev/docs/contributing/testing.html#static-analysis. Skipping." >> "$GITHUB_STEP_SUMMARY"
           fi
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         if: steps.gate.outputs.connected == 'true'
         with:
           # The pull request's own commit rather than the merge GitHub makes:

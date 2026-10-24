@@ -186,17 +186,20 @@ public record Asset(
     ///
     /// **A single file, not an archive.** The release has no assets and its
     /// source zip is the whole repository, so the font is pinned by the tag in
-    /// its URL and by its checksum ([Packaging#FILE]).
+    /// its URL and by its checksum ([Packaging#FILE]). Since the Unicode 18.0
+    /// release the tags are named by date and Unicode version, and the version
+    /// here is the 2D fonts' own (`head.fontRevision`); the 3D set beside them
+    /// is versioned apart and not used.
     ///
     /// SIL OFL 1.1 — the font's own `LICENSE`, fetched from the same tag.
     public static final Asset NOTO_EMOJI = new Asset(
             "noto-emoji",
-            "2.051",
-            "https://raw.githubusercontent.com/googlefonts/noto-emoji/v2.051/fonts/Noto-COLRv1.ttf",
-            "0ae57fe58645638523ba35f388d93739d292539a9acb84df5700c81b1e1a28d2",
+            "2.057",
+            "https://raw.githubusercontent.com/googlefonts/noto-emoji/v2026-09-24-unicode18_0/2D/fonts/Noto-COLRv1.ttf",
+            "b8e25ea68db82f9e4d0aee921f4420be2be39887bd5c893a2ad98710531f9d0c",
             Map.of("Noto-COLRv1.ttf", "fonts/NotoColorEmoji.ttf"),
             Map.of(),
-            "https://raw.githubusercontent.com/googlefonts/noto-emoji/v2.051/fonts/LICENSE",
+            "https://raw.githubusercontent.com/googlefonts/noto-emoji/v2026-09-24-unicode18_0/2D/fonts/LICENSE",
             "noto-emoji.txt",
             Packaging.FILE);
 
@@ -208,14 +211,15 @@ public record Asset(
     /// compiled by [CatalogCompiler] into a table of code point and group, and
     /// nothing is extracted.
     ///
-    /// Version 17.0, the Unicode version Noto's pinned release draws; the JDK's
-    /// own tables may be a version behind, which costs nothing — a code point
-    /// the JDK does not call an emoji is never looked up.
+    /// Version 18.0, the Unicode version Noto's pinned release draws. The JDK's
+    /// own tables may be behind it (Java 25's are Unicode 16.0), which costs
+    /// nothing: a code point the JDK does not call an emoji is never looked up,
+    /// so the sheet shows the newer emoji when the JDK learns them.
     public static final Asset UNICODE_EMOJI = new Asset(
             "unicode-emoji",
-            "17.0",
-            "https://unicode.org/Public/17.0.0/emoji/emoji-test.txt",
-            "1d8a944f88d7952f7ef7c5167fef3c67995bcae24543949710231b03a201acda",
+            "18.0",
+            "https://unicode.org/Public/18.0.0/emoji/emoji-test.txt",
+            "8f3735cda1f92a779d78af67cf86066bb1f07143dc22f2ac29394d9bc57ab21a",
             Map.of(),
             Map.of(),
             "https://www.unicode.org/license.txt",
