@@ -207,6 +207,17 @@ python3 -I fix-ogg-chapter.py "$out/tone-chapters.opus" "CHAPTER002=00:00:01.700
 $ff -i "$tone" -c:a flac "$out/tone-chapters.flac"
 python3 -I flac-chapters.py "$out/tone-chapters.flac"
 
+# --- Past the 8K cap: one flat picture each. 6000x6000 is 36 megapixels with
+# both sides within 8192; 8256 is one side past it.
+$ff -f lavfi -i "color=c=0x336699:s=6000x6000:r=25:d=0.04" -frames:v 1 -c:v libsvtav1 -preset 12 -crf 63 \
+    "$out/clip-av1-36mp.mkv"
+$ff -f lavfi -i "color=c=0x336699:s=8256x64:r=25:d=0.04" -frames:v 1 -c:v libsvtav1 -preset 12 -crf 63 \
+    "$out/clip-av1-8256-wide.mkv"
+$ff -f lavfi -i "color=c=0x336699:s=6000x6000:r=25:d=0.04" -frames:v 1 -c:v libvpx-vp9 -crf 63 -b:v 0 \
+    -deadline realtime -cpu-used 8 "$out/clip-vp9-36mp.webm"
+$ff -f lavfi -i "color=c=0x336699:s=8256x16:r=25:d=0.04" -frames:v 1 -c:v libvpx-vp9 -crf 63 -b:v 0 \
+    "$out/clip-vp9-8256-wide.webm"
+
 rm -r "$work"
 ls -l "$out"
 

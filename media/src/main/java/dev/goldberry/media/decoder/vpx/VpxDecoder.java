@@ -7,6 +7,7 @@ import static java.lang.foreign.ValueLayout.JAVA_INT;
 import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
 import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
 
 import org.jspecify.annotations.Nullable;
@@ -18,6 +19,7 @@ import dev.goldberry.media.codec.Decoder;
 import dev.goldberry.media.codec.DecoderRequest;
 import dev.goldberry.media.codec.Frame;
 import dev.goldberry.media.codec.Packet;
+import dev.goldberry.media.codec.PictureLimit;
 import dev.goldberry.media.codec.PixelFormat;
 import dev.goldberry.media.codec.Received;
 import dev.goldberry.media.codec.VideoFrame;
@@ -247,6 +249,9 @@ public final class VpxDecoder implements Decoder {
         var picture = image.reinterpret(IMAGE_SIZE);
         var width = picture.get(JAVA_INT, IMAGE_D_W);
         var height = picture.get(JAVA_INT, IMAGE_D_H);
+        // libvpx is built to refuse a side past the cap before it allocates;
+        // the pixels are held here, before a picture is converted.
+        PictureLimit.require(width, height, "a " + codec.ffmpegName().toUpperCase(Locale.ROOT) + " picture");
         var planes = planes(picture, width, height);
         var matrix = matrix(picture.get(JAVA_INT, IMAGE_CS), height);
         var fullRange = picture.get(JAVA_INT, IMAGE_RANGE) == constants.crFullRange();

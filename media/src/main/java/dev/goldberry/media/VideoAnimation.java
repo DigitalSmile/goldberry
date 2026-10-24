@@ -19,6 +19,7 @@ import dev.goldberry.log.Logs;
 import dev.goldberry.media.codec.Decoder;
 import dev.goldberry.media.codec.MediaType;
 import dev.goldberry.media.codec.Packet;
+import dev.goldberry.media.codec.PictureLimit;
 import dev.goldberry.media.codec.Received;
 import dev.goldberry.media.codec.TrackParams;
 import dev.goldberry.media.codec.VideoFrame;
@@ -277,6 +278,7 @@ public final class VideoAnimation implements MovingPicture, AutoCloseable {
                         || params.height() <= 0) {
                     throw new MediaException(new MediaError.InvalidData("the video has no size"));
                 }
+                PictureLimit.require(params.width(), params.height(), "the video");
                 demuxer.select(Set.of(track.index()));
                 var durationNanos = track.duration()
                         .or(info::duration)

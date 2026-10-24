@@ -25,6 +25,10 @@ is our own content and carries no third-party licence:
 | `tone-chapters.m4a` | MP4 | AAC; the same chapters as a QuickTime chapter track (`tref/chap`) and a Nero `chpl` | chapters: the chapter track is read, and is not a subtitle track |
 | `tone-chapters.mp3` | MP3 | MP3; the same chapters as ID3v2.4 `CHAP` frames titled by `TIT2` | chapters: a podcast's |
 | `tone-chapters.opus` | Ogg | Opus; the same chapters as `CHAPTERnnn` comments, Coda's time put back by `fix-ogg-chapter.py` | chapters: Xiph comments in `OpusTags` |
+| `clip-av1-36mp.mkv` | Matroska | AV1, one flat 6000×6000 picture: 36 megapixels, each side within 8192 | the 8K cap: dav1d's frame size limit refuses it before it allocates |
+| `clip-av1-8256-wide.mkv` | Matroska | AV1, one flat 8256×64 picture | the 8K cap: a side past 8192, refused as the picture comes out |
+| `clip-vp9-36mp.webm` | WebM | VP9, one flat 6000×6000 picture | the 8K cap: refused as the picture comes out, and by the player from the stated size |
+| `clip-vp9-8256-wide.webm` | WebM | VP9, one flat 8256×16 picture | the 8K cap: libvpx's size limit refuses it |
 | `tone-chapters.flac` | FLAC | FLAC; the same chapters as `CHAPTERnnn` comments, written by `flac-chapters.py` | chapters: the `VORBIS_COMMENT` block |
 | `clip-vp8.webm` | WebM | VP8, Opus | phase 3: decode, and the byte-exact goldens of S5 |
 | `clip-vp9.webm` | WebM | VP9, Opus | phase 3 |

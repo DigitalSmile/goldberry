@@ -256,6 +256,9 @@ set(GOLDBERRY_LIBVPX_CONFIGURE
     --disable-install-bins --disable-install-docs --disable-install-srcs
     --disable-vp8-encoder --disable-vp9-encoder
     --enable-vp9-highbitdepth
+    # The largest picture decoded is 8K (PictureLimit on the Java side): libvpx
+    # refuses a wider or taller one before it allocates it.
+    --size-limit=8192x8192
     --enable-pic --disable-shared --enable-static)
 if(_sanitize_flags)
     list(APPEND GOLDBERRY_LIBVPX_CONFIGURE

@@ -18,6 +18,7 @@ import dev.goldberry.media.codec.Decoder;
 import dev.goldberry.media.codec.DecoderRequest;
 import dev.goldberry.media.codec.Frame;
 import dev.goldberry.media.codec.Packet;
+import dev.goldberry.media.codec.PictureLimit;
 import dev.goldberry.media.codec.PixelFormat;
 import dev.goldberry.media.codec.Received;
 import dev.goldberry.media.codec.VideoFrame;
@@ -48,6 +49,13 @@ import dev.goldberry.media.ffm.calls.Dav1dCalls;
 public final class Dav1dDecoder implements Decoder {
 
     private static final long SETTINGS_N_THREADS = NativeStructs.DAV1D_SETTINGS.byteOffset(groupElement("n_threads"));
+    /// `DAV1D_ERR(ERANGE)`, which dav1d answers only for a frame past its frame
+    /// size limit. `ERANGE` is 34 in glibc, in macOS and in the Windows C
+    /// runtimes alike, so it is not one of the probed constants.
+    private static final int ERR_RANGE = -34;
+
+    private static final long SETTINGS_FRAME_SIZE_LIMIT =
+            NativeStructs.DAV1D_SETTINGS.byteOffset(groupElement("frame_size_limit"));
     private static final long DATA_SZ = NativeStructs.DAV1D_DATA.byteOffset(groupElement("sz"));
     private static final long DATA_TIMESTAMP =
             NativeStructs.DAV1D_DATA.byteOffset(groupElement("m"), groupElement("timestamp"));
@@ -94,6 +102,9 @@ public final class Dav1dDecoder implements Decoder {
             var settings = arena.allocate(NativeStructs.DAV1D_SETTINGS);
             dav1d.defaultSettings().call(settings);
             settings.set(JAVA_INT, SETTINGS_N_THREADS, 0);
+            // dav1d refuses a frame of more pixels before it allocates one; the
+            // sides are held in Java, as the frame comes out.
+            settings.set(JAVA_INT, SETTINGS_FRAME_SIZE_LIMIT, (int) PictureLimit.MAX_PIXELS);
             this.contextHolder = arena.allocate(ADDRESS);
             var opened = dav1d.open().call(contextHolder, settings);
             if (opened < 0) {
@@ -222,6 +233,7 @@ public final class Dav1dDecoder implements Decoder {
     private VideoFrame frame() {
         var width = picture.get(JAVA_INT, PICTURE_W);
         var height = picture.get(JAVA_INT, PICTURE_H);
+        PictureLimit.require(width, height, "an AV1 picture");
         var layout = picture.get(JAVA_INT, PICTURE_LAYOUT);
         var bpc = picture.get(JAVA_INT, PICTURE_BPC);
         var format = format(layout, bpc);
@@ -292,7 +304,11 @@ public final class Dav1dDecoder implements Decoder {
     private MediaException failure(String function, int result) {
         var reason = result == constants.errInval()
                 ? "invalid data"
-                : result == constants.errNoMem() ? "out of memory" : "error " + result;
+                : result == constants.errNoMem()
+                        ? "out of memory"
+                        : result == ERR_RANGE
+                                ? "a frame past the largest picture decoded, " + PictureLimit.MAX_PIXELS + " pixels"
+                                : "error " + result;
         return new MediaException(new MediaError.InvalidData(function + ": " + reason));
     }
 

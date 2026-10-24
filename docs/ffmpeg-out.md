@@ -340,9 +340,13 @@ the theme tokens, the showcase screens and the HTTP cache all exist (see
       in `media/src/test/sanitizer/ubsan.supp`. The `sanitizer` job of
       `media.yml` is **written, not yet run**, and gates publishing as every
       Media job does.
-- [ ] Open: dav1d's `frame_size_limit` and libvpx's size limit are unset, so a
-      damaged header may ask for a picture up to 65536×65536. No mutation
-      reached it; a cap is a policy to choose.
+- [x] The 8K cap (ADR-0658 parked, 2026-10-25): dav1d's `frame_size_limit`
+      and libvpx's `--size-limit` were unset, so a damaged header could ask for
+      65536×65536. `codec.PictureLimit`: 8192 a side, 8192 × 4352 pixels (the
+      largest AV1 and VP9 level 6 picture), held by dav1d before it allocates,
+      by libvpx's build before it allocates, by the player from a stated size,
+      and by the video thread for every provider's picture. Four fixtures past
+      it, one per refusing layer.
 
 ### Next
 

@@ -16,6 +16,7 @@ import dev.goldberry.media.codec.Decoder;
 import dev.goldberry.media.codec.DecoderProvider;
 import dev.goldberry.media.codec.DecoderRequest;
 import dev.goldberry.media.codec.Frame;
+import dev.goldberry.media.codec.PictureLimit;
 import dev.goldberry.media.codec.Received;
 import dev.goldberry.media.codec.VideoFrame;
 import dev.goldberry.media.decoder.BuiltInDecoders;
@@ -37,9 +38,6 @@ final class DecodeHarness {
     /// How many calls a decoder gets to take a packet, or to run out of frames,
     /// before it is taken to be stuck: a thousand times what any fixture needs.
     private static final int PATIENCE = 4096;
-
-    /// The largest picture side the codecs here allow.
-    private static final int MAX_SIDE = 65_536;
 
     /// FLAC's highest rate, which is the highest of every codec here.
     private static final int MAX_RATE = 1_048_575;
@@ -196,8 +194,8 @@ final class DecodeHarness {
         switch (frame) {
             case VideoFrame video -> {
                 assertTrue(
-                        video.width() <= MAX_SIDE && video.height() <= MAX_SIDE,
-                        () -> context + ": a " + video.width() + "×" + video.height() + " picture");
+                        PictureLimit.allows(video.width(), video.height()),
+                        () -> context + ": a " + video.width() + "×" + video.height() + " picture past the cap");
                 var format = video.format();
                 for (var plane = 0; plane < format.planes(); plane++) {
                     var rows = format.planeRows(plane, video.height());

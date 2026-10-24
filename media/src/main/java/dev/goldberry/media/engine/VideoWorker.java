@@ -10,6 +10,7 @@ import dev.goldberry.media.MediaError;
 import dev.goldberry.media.MediaException;
 import dev.goldberry.media.codec.Decoder;
 import dev.goldberry.media.codec.Frame;
+import dev.goldberry.media.codec.PictureLimit;
 import dev.goldberry.media.codec.Received;
 import dev.goldberry.media.codec.VideoFrame;
 import dev.goldberry.media.container.Container;
@@ -315,6 +316,9 @@ final class VideoWorker {
                 return;
             }
             if (frame instanceof VideoFrame video) {
+                // Any provider's picture, an application's or the system's,
+                // is held to the cap the built-in decoders keep.
+                PictureLimit.require(video.width(), video.height(), "a picture");
                 picture(video);
             }
         }

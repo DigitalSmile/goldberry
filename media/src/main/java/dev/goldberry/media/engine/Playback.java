@@ -37,6 +37,8 @@ import dev.goldberry.media.codec.DecoderProvider;
 import dev.goldberry.media.codec.Frame;
 import dev.goldberry.media.codec.MediaType;
 import dev.goldberry.media.codec.Packet;
+import dev.goldberry.media.codec.PictureLimit;
+import dev.goldberry.media.codec.TrackParams;
 import dev.goldberry.media.container.Container;
 import dev.goldberry.media.container.Containers;
 import dev.goldberry.media.io.MediaIO;
@@ -801,6 +803,11 @@ public final class Playback implements AutoCloseable {
     /// Every track about to be played has a decoder, or the source fails naming
     /// every codec that has none.
     private void requireDecoders(Container opened, Optional<Track> audio, Optional<Track> video) {
+        video.ifPresent(track -> {
+            if (track.params() instanceof TrackParams.Video stated) {
+                PictureLimit.require(stated.width(), stated.height(), "video track " + track.index());
+            }
+        });
         var unsupported = new ArrayList<String>(2);
         for (var track : List.of(video, audio)) {
             track.filter(chosen -> !Decoders.supports(opened, chosen.index(), decoderProviders, hardwareDecoding))

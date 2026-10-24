@@ -99,3 +99,4 @@ Appended to the index when the records move in, in this order.
 - [ADR-0655 A source states its chapters, and the player steps through them](0655-a-source-states-its-chapters-and-the-player-steps-through-them.md)
 - [ADR-0656 Damaged media is fuzzed, and the decoders run under AddressSanitizer](0656-damaged-media-is-fuzzed-and-the-decoders-run-under-addresssanitizer.md)
 - [ADR-0657 A network source fetches half a minute of itself ahead](0657-a-network-source-fetches-half-a-minute-of-itself-ahead.md)
+- [ADR-0658 The largest picture decoded is 8K](0658-the-largest-picture-decoded-is-8k.md)

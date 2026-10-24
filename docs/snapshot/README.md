@@ -136,6 +136,8 @@ page for a change to `site/` alone (ADR-0590), and GB-034, written 2026-10-10
 | `adr/0655-…` | `book/src/adr/` | A source states its chapters and the player steps through them: `Chapter`, `MediaInfo.chapters()`, `nextChapter`/`previousChapter`, `Page Up`/`Page Down`, `Slider.marks`. Contiguous with 0654; relates to 0651, 0466, 0464 |
 | `adr/0656-…` | `book/src/adr/` | Damaged media is fuzzed and the decoders run under AddressSanitizer: `media.robustness`, `GOLDBERRY_MEDIA_SANITIZE`, `:media:sanitizerTest`, the `sanitizer` job of `media.yml`; six reader and decoder fixes. Contiguous with 0655; relates to 0651, 0560, 0517 |
 | `adr/0657-…` | `book/src/adr/` | A network source fetches half a minute of itself ahead: `MediaIO.readAhead`, sized from the bitrate by the Engine, kept by `HttpIO` between its floor and its cache. Contiguous with 0656; relates to 0651, 0465 |
+| `adr/0658-…` | `book/src/adr/` | The largest picture decoded is 8K: `PictureLimit` (8192 a side, 8192 × 4352 pixels), dav1d's frame size limit, libvpx's `--size-limit`, the stated size and every picture checked. Contiguous with 0657; relates to 0656, 0651 |
+| `components-media-picture-cap.md` | `book/src/components/media.md`, `### Bringing a codec`, after its first paragraph | ADR-0658, one piece |
 | `components-media-chapters.md` | `book/src/components/media.md` (`### A player`, `### Tracks, subtitles and the network`, and the `### Styling` and `### Keyboard` of `media-player`, `audio-player` and `media-controls`), `book/src/components/values.md` (`## slider`) | ADR-0655 and ADR-0657, seven pieces, each says where it goes |
 
 ## Doc comments that point at the guide
