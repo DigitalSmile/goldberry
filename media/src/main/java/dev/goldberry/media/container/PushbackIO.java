@@ -74,6 +74,11 @@ final class PushbackIO implements MediaIO {
     }
 
     @Override
+    public void readAhead(long bytes) {
+        io.readAhead(bytes);
+    }
+
+    @Override
     public void close() throws IOException {
         io.close();
     }

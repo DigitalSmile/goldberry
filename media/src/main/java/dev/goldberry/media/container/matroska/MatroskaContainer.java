@@ -20,6 +20,7 @@ import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 
 import dev.goldberry.log.Logs;
+import dev.goldberry.media.Chapter;
 import dev.goldberry.media.MediaError;
 import dev.goldberry.media.MediaException;
 import dev.goldberry.media.MediaInfo;
@@ -42,7 +43,8 @@ import dev.goldberry.media.io.Source;
 ///
 /// Opening reads the EBML header and the Segment's children up to the first
 /// Cluster: Info for the timestamp scale and the duration, Tracks for what is
-/// in the file, Cues and Attachments where they come before the clusters, and
+/// in the file, Cues, Attachments and Chapters where they come before the
+/// clusters, and
 /// the SeekHead for where they are when they come after, which a seekable
 /// source then visits. Reading walks the clusters, one block at a time, and
 /// hands each frame over as a packet whose bytes are native memory: a laced
@@ -52,8 +54,8 @@ import dev.goldberry.media.io.Source;
 /// What is honoured of the format: SimpleBlocks and BlockGroups, the three
 /// lacings, unknown-size Segments and Clusters (a live stream's), header
 /// stripping and zlib content encodings, BlockAdditions carrying a WebM alpha
-/// plane, image attachments as an attached-picture track, and Cues for
-/// seeking. A file without Cues seeks by starting over, which is correct and
+/// plane, image attachments as an attached-picture track, Chapters, and Cues
+/// for seeking. A file without Cues seeks by starting over, which is correct and
 /// slow; the Engine decodes from the keyframe and drops what is before the
 /// target either way.
 public final class MatroskaContainer implements Container {
@@ -111,6 +113,8 @@ public final class MatroskaContainer implements Container {
     private final Deque<Packet> pending = new ArrayDeque<>();
     private Cues cues = Cues.NONE;
     private boolean cuesRead;
+    private List<Chapter> chapters = List.of();
+    private boolean chaptersRead;
     private @Nullable Set<Integer> selected;
     private boolean inCluster;
     private long clusterEnd = -1;
@@ -169,6 +173,8 @@ public final class MatroskaContainer implements Container {
                 readCues(element);
             } else if (element.id() == MatroskaIds.ATTACHMENTS) {
                 readAttachments(element);
+            } else if (element.id() == MatroskaIds.CHAPTERS) {
+                readChapters(element);
             } else {
                 ebml.skip(element);
             }
@@ -185,6 +191,7 @@ public final class MatroskaContainer implements Container {
         if (in.isSeekable() && firstCluster >= 0) {
             visit(seekHead.get(MatroskaIds.CUES), MatroskaIds.CUES, !cuesRead);
             visit(seekHead.get(MatroskaIds.ATTACHMENTS), MatroskaIds.ATTACHMENTS, pictures.isEmpty());
+            visit(seekHead.get(MatroskaIds.CHAPTERS), MatroskaIds.CHAPTERS, !chaptersRead);
         }
 
         var duration = Double.isNaN(durationTicks) || durationTicks <= 0
@@ -206,7 +213,7 @@ public final class MatroskaContainer implements Container {
         for (var picture : pictures) {
             tracks.add(picture.track());
         }
-        this.info = new MediaInfo(source, duration, tracks, io.isSeekable(), io.isLive());
+        this.info = new MediaInfo(source, duration, tracks, io.isSeekable(), io.isLive(), chapters);
     }
 
     /// Opens a Matroska or WebM file over `io`, positioned at its start.
@@ -660,6 +667,8 @@ public final class MatroskaContainer implements Container {
                     readCues(element);
                 } else if (expectedId == MatroskaIds.ATTACHMENTS) {
                     readAttachments(element);
+                } else if (expectedId == MatroskaIds.CHAPTERS) {
+                    readChapters(element);
                 }
             }
         } catch (MediaException e) {
@@ -720,6 +729,15 @@ public final class MatroskaContainer implements Container {
         }
         cues = new Cues(points);
         cuesRead = true;
+    }
+
+    private void readChapters(Element element) {
+        if (!chaptersRead) {
+            chapters = MatroskaChapters.read(ebml, in, element);
+            chaptersRead = true;
+        } else {
+            ebml.skip(element);
+        }
     }
 
     private void readAttachments(Element attachments) {
@@ -911,12 +929,14 @@ public final class MatroskaContainer implements Container {
             return null;
         }
         var named = MatroskaCodecs.isPcm(codecId)
-                ? MatroskaCodecs.pcm(codecId, (int) bitDepth)
+                ? MatroskaCodecs.pcm(codecId, intOrUnknown(bitDepth))
                 : MatroskaCodecs.of(codecId);
         var params = switch (mediaType.get()) {
             case VIDEO ->
-                MatroskaCodecs.video(named.codec(), (int) width, (int) height, codecPrivate, defaultDuration, alpha);
-            case AUDIO -> MatroskaCodecs.audio(named.codec(), samplingFrequency, (int) channels, (int) bitDepth);
+                MatroskaCodecs.video(
+                        named.codec(), intOrUnknown(width), intOrUnknown(height), codecPrivate, defaultDuration, alpha);
+            case AUDIO ->
+                MatroskaCodecs.audio(named.codec(), samplingFrequency, intOrUnknown(channels), intOrUnknown(bitDepth));
             default -> new TrackParams.Subtitle();
         };
         var spoken = bcp47 != null && !bcp47.isEmpty() ? bcp47 : language;
@@ -979,6 +999,13 @@ public final class MatroskaContainer implements Container {
             throw new MediaException(new MediaError.InvalidData("a TimestampScale of " + scale + " ns"));
         }
         return new Rational((int) num, (int) den);
+    }
+
+    /// An unsigned element's value as an `int`, or 0, which a track's
+    /// parameters read as not stated, when it does not fit one: a size, a
+    /// channel count or a depth that no file states and a damaged one can.
+    static int intOrUnknown(long value) {
+        return value >= 0 && value <= Integer.MAX_VALUE ? (int) value : 0;
     }
 
     private static long gcd(long a, long b) {

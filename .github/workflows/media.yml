@@ -17,6 +17,13 @@
 # goldberry-media needs: the library for each rides it as a `natives-<target>`
 # classifier, and a release refuses to go with one missing.
 #
+# And `sanitizer`, beside them: the library built again with AddressSanitizer
+# in every upstream, and the decoders' tests and the robustness tests (damaged
+# packets and files, many rounds of them) run against it. A read past the end
+# of a buffer inside a codec stops the JVM with a report, and the job fails on
+# it. linux-x64 alone, on the runner itself: that build never ships, so it
+# needs no glibc floor, only the GCC whose libasan is preloaded into the JVM.
+#
 # The upstream checkouts are cached by the catalog's hash, the one file that
 # pins them: a pin that moves invalidates the cache, and nothing else does.
 name: Media
@@ -211,3 +218,46 @@ jobs:
           -Pgoldberry.skipNative=true -Pgoldberry.media.required=true
           -Pgoldberry.media.libdir="${{ github.workspace }}/media-natives"
           -Pgoldberry.platform.required=${{ matrix.platform-required }} --no-daemon
+
+  sanitizer:
+    name: libgoldberry-media under AddressSanitizer (linux-x64)
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '25'
+      - uses: gradle/actions/setup-gradle@v5
+
+      # Its own cache: these archives are instrumented, and the release build's
+      # must never be linked from them or they from it.
+      - uses: actions/cache@v4
+        with:
+          path: media/.deps/linux-x64-asan
+          key: media-deps-linux-x64-asan-${{ hashFiles('gradle/libs.versions.toml', 'media/src/main/cmake/**') }}
+
+      # The runner has CMake and GCC with its libasan; the rest of the
+      # superbuild's tools come from apt.
+      - name: Install the tools
+        run: sudo apt-get update && sudo apt-get install -y ninja-build meson nasm
+
+      # `sanitizerTest` requires the library, so a lane that could not load it
+      # fails rather than skips, and checks that what it loaded is the
+      # sanitized build. `sanitizerReport` runs after it either way and prints
+      # whatever the sanitizer wrote.
+      - name: Build the sanitizer library and run the lane
+        run: >-
+          ./gradlew :media:nativesBuildAsan :media:sanitizerTest
+          -Pgoldberry.skipNative=true --no-daemon
+
+      - name: Keep the sanitizer's reports
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: media-sanitizer-reports
+          path: media/build/sanitizer/
+          if-no-files-found: ignore

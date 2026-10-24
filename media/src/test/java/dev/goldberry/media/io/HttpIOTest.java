@@ -216,6 +216,25 @@ class HttpIOTest {
         }
 
         @Test
+        @DisplayName("a raised read-ahead fetches further at once, within its floor and the cache's room")
+        void raisedReadAhead() throws IOException {
+            var chunk = ReadAheadCache.CHUNK;
+            var small = FAST.withBuffer(2L * chunk, 8L * chunk);
+            open(pattern(2_000_000), small);
+            read(io, 100);
+            await(() -> !io.buffered().isEmpty() && io.buffered().getFirst().end() >= 2L * chunk);
+
+            io.readAhead(5L * chunk);
+            assertEquals(5L * chunk, io.currentReadAhead());
+            await(() -> io.buffered().getFirst().end() >= 5L * chunk);
+
+            io.readAhead(Long.MAX_VALUE);
+            assertEquals(6L * chunk, io.currentReadAhead(), "the cache less the two chunks it keeps free");
+            io.readAhead(1);
+            assertEquals(2L * chunk, io.currentReadAhead(), "never below what it was opened with");
+        }
+
+        @Test
         @DisplayName("a dropped connection resumes by Range at the byte where it broke")
         void resumesAfterADrop() throws IOException {
             server = new TestHttpServer(DATA);

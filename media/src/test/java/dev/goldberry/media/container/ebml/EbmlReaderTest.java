@@ -60,7 +60,7 @@ class EbmlReaderTest {
         assertEquals(EbmlReader.Element.UNKNOWN_SIZE, segment.size());
         var cluster = ebml.readHeader();
         assertFalse(cluster.sized());
-        assertThrows(IllegalStateException.class, cluster::dataEnd);
+        assertTrue(assertThrows(MediaException.class, cluster::dataEnd).error() instanceof MediaError.InvalidData);
         var e = assertThrows(MediaException.class, () -> ebml.skip(cluster));
         assertTrue(e.error() instanceof MediaError.InvalidData);
     }
@@ -93,6 +93,25 @@ class EbmlReaderTest {
         var ebml = over("00 81");
         var e = assertThrows(MediaException.class, ebml::readHeader);
         assertTrue(e.getMessage().contains("byte 0"), e.getMessage());
+    }
+
+    @Test
+    @DisplayName("a size of 2³¹ or more is read whole, never negative and never cut to its low 32 bits")
+    void wideSizes() {
+        // Read into an int, the first was negative and the second was 5, so a
+        // damaged size skipped backwards or misplaced the next element.
+        var ebml = over("A3 08 80000000" + "A3 01 00000100000005");
+        assertEquals(0x8000_0000L, ebml.readHeader().size());
+        assertEquals(0x1_0000_0005L, ebml.readHeader().size());
+    }
+
+    @Test
+    @DisplayName("an element that claims more bytes than the stream has is invalid data, not a heap's worth")
+    void sizeBeyondTheStream() {
+        var ebml = over("63A2 08 7FFFFFF0 0102");
+        var element = ebml.readHeader();
+        var e = assertThrows(MediaException.class, () -> ebml.readBytes(element));
+        assertTrue(e.error() instanceof MediaError.InvalidData);
     }
 
     @Test

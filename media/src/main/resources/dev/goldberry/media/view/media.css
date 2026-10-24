@@ -11,6 +11,10 @@
     --gb-media-volume-width: 72px;
     --gb-media-time-color: var(--gb-text-muted);
     --gb-media-error-color: var(--gb-danger);
+    /* The title of the chapter playing, beside the elapsed time. */
+    --gb-media-chapter-color: var(--gb-text);
+    /* The notch where a chapter starts on the seek bar: the theme's notch. */
+    --gb-media-chapter-mark: var(--gb-slider-mark-bg);
     /* What a live stream says is playing: its ICY StreamTitle. */
     --gb-media-now-playing-color: var(--gb-text);
     /* What shows around a letterboxed picture, and before the first one. */
@@ -51,6 +55,21 @@ media-controls {
 .media-time {
     color: var(--gb-media-time-color);
     font-family: "JetBrains Mono";
+}
+
+.media-seek slider-mark {
+    background: var(--gb-media-chapter-mark);
+}
+
+/* The chapter playing: one line, cut short rather than pushing the bar off. */
+.media-chapter {
+    color: var(--gb-media-chapter-color);
+    flex-shrink: 1;
+    min-width: 0;
+    max-width: 30%;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    overflow: hidden;
 }
 
 .media-live {

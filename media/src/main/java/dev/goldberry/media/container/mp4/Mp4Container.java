@@ -17,11 +17,13 @@ import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.OptionalLong;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 
 import dev.goldberry.log.Logs;
+import dev.goldberry.media.Chapter;
 import dev.goldberry.media.MediaError;
 import dev.goldberry.media.MediaException;
 import dev.goldberry.media.MediaInfo;
@@ -47,7 +49,9 @@ import dev.goldberry.media.io.Source;
 /// `trak` per track with its header, its edit list, its media header and
 /// handler, and the `stbl` sample tables, which are flattened into a
 /// [SampleTable] of one row per sample; `udta/meta/ilst/covr` is the cover
-/// art, reported as an attached-picture track after the others. A `moov` that
+/// art, reported as an attached-picture track after the others. The chapters
+/// are a chapter track's or `udta/chpl`'s ([Mp4Chapters]); a chapter track is
+/// not reported as a track. A `moov` that
 /// comes after the `mdat`, as every file that was not written with
 /// `faststart` has it, is seeked to; a source that cannot seek is refused
 /// then. A fragmented file's `moof` boxes are read as well, each `trun`
@@ -77,6 +81,10 @@ public final class Mp4Container implements Container {
     /// How far apart two tracks' decode times may be for the one earlier in
     /// the file to go first.
     private static final long INTERLEAVE_WINDOW_NANOS = 1_000_000_000L;
+
+    /// The most of a chapter track's sample read for its title: a 16-bit
+    /// length and the text, and none of the styling boxes after it.
+    private static final int MAX_CHAPTER_SAMPLE = 2 + 0xFFFF;
 
     /// The types a file's fifth to eighth bytes may be: the first box after its
     /// size field.
@@ -135,6 +143,8 @@ public final class Mp4Container implements Container {
         long mdhdDuration;
         Optional<String> language = Optional.empty();
         int handler;
+        /// The tracks a `tref/chap` names as this one's chapters.
+        final List<Long> chapterTracks = new ArrayList<>();
 
         @Nullable
         SampleEntry entry;
@@ -166,6 +176,7 @@ public final class Mp4Container implements Container {
     private long movieDuration;
     private final List<TrackBoxes> trackBoxes = new ArrayList<>();
     private final Map<Long, Defaults> defaults = new HashMap<>();
+    private List<Chapter> neroChapters = List.of();
 
     private Mp4Container(Source source, MediaIO io) {
         this.source = source;
@@ -209,8 +220,19 @@ public final class Mp4Container implements Container {
                             ? "a fragmented MP4 whose fragments name no track of its moov: " + source.uri()
                             : "a fragmented MP4 is not read from a source that cannot seek: " + source.uri()));
         }
+        var chapterTrackIds = trackBoxes.stream()
+                .flatMap(track -> track.chapterTracks.stream())
+                .collect(Collectors.toUnmodifiableSet());
+        var chapters = neroChapters;
         for (var track : trackBoxes) {
-            addEntry(track);
+            if (chapterTrackIds.contains(track.trackId)) {
+                var read = chapterTrack(track);
+                if (!read.isEmpty()) {
+                    chapters = read;
+                }
+            } else {
+                addEntry(track);
+            }
         }
         if (entries.isEmpty()) {
             throw new MediaException(
@@ -246,7 +268,7 @@ public final class Mp4Container implements Container {
         for (var picture : pictures) {
             tracks.add(picture.track());
         }
-        this.info = new MediaInfo(source, duration, tracks, io.isSeekable(), io.isLive());
+        this.info = new MediaInfo(source, duration, tracks, io.isSeekable(), io.isLive(), chapters);
     }
 
     /// Opens an MP4 or QuickTime file over `io`, positioned at its start.
@@ -463,6 +485,8 @@ public final class Mp4Container implements Container {
                     track.tkhdDuration = 0;
                 }
                 boxes.skip(box);
+            } else if (box.type() == BoxTypes.TREF) {
+                readTref(box, track);
             } else if (box.type() == BoxTypes.EDTS) {
                 readEdts(box, track);
             } else if (box.type() == BoxTypes.MDIA) {
@@ -475,6 +499,53 @@ public final class Mp4Container implements Container {
         track.table = track.stbl.build();
         track.nextDecodeTime = track.table.totalDuration();
         trackBoxes.add(track);
+    }
+
+    private void readTref(Box tref, TrackBoxes track) {
+        while (boxes.hasNext(tref.end())) {
+            var box = boxes.next(tref.end());
+            if (box.type() == BoxTypes.CHAP) {
+                while (box.end() - in.position() >= 4) {
+                    track.chapterTracks.add(in.u32());
+                }
+            }
+            boxes.skip(box);
+        }
+        boxes.seekTo(tref.end());
+    }
+
+    /// The chapters a chapter track's samples state, one a sample, timed by its
+    /// table. Read only where the source seeks: the samples are in the `mdat`,
+    /// which a source read forward has not reached when the moov is read.
+    private List<Chapter> chapterTrack(TrackBoxes track) {
+        var table = track.table;
+        if (!in.isSeekable() || track.timescale <= 0 || track.timescale > Integer.MAX_VALUE) {
+            return List.of();
+        }
+        var timeBase = new Rational(1, (int) track.timescale);
+        var shift = track.edits.shift(track.timescale, movieTimescale);
+        var back = in.position();
+        var chapters = new ArrayList<Chapter>(table.count());
+        try {
+            for (var i = 0; i < table.count(); i++) {
+                in.seek(table.offset(i));
+                var title = Mp4Chapters.text(in.bytes(Math.min(table.size(i), MAX_CHAPTER_SAMPLE)));
+                var start = table.presentationTime(i) + shift;
+                if (start < 0) {
+                    continue;
+                }
+                var end = table.duration(i) > 0
+                        ? Optional.of(timeBase.toDuration(start + table.duration(i)))
+                        : Optional.<Duration>empty();
+                chapters.add(new Chapter(timeBase.toDuration(start), end, title));
+            }
+        } catch (MediaException e) {
+            LOG.debug("{}: the chapter track {} could not be read: {}", source.uri(), track.trackId, e.getMessage());
+            return List.of();
+        } finally {
+            in.seek(back);
+        }
+        return List.copyOf(chapters);
     }
 
     private void readEdts(Box edts, TrackBoxes track) {
@@ -577,9 +648,12 @@ public final class Mp4Container implements Container {
                 boxes.fullBox();
                 var sampleSize = in.u32();
                 // With one size for every sample the box holds no table, so its
-                // size says nothing about the count.
-                var count =
-                        sampleSize != 0 ? checkedCount(in.u32(), Integer.MAX_VALUE, box) : checkedCount(in.u32(), box);
+                // size says nothing about the count; the file's does, since every
+                // sample is that many of its bytes. Without that bound a damaged
+                // count of two billion asks for the tables of two billion samples.
+                var count = sampleSize != 0
+                        ? checkedCount(in.u32(), uniformCountBound(checkedSize(sampleSize, box)), box)
+                        : checkedCount(in.u32(), box);
                 var sizes = new int[count];
                 if (sampleSize != 0) {
                     Arrays.fill(sizes, checkedSize(sampleSize, box));
@@ -660,6 +734,14 @@ public final class Mp4Container implements Container {
         return (int) count;
     }
 
+    /// The most samples of `sampleSize` bytes each the source can hold: its
+    /// size over theirs, or as many as a table can index when the size is not
+    /// known.
+    private long uniformCountBound(int sampleSize) {
+        var size = in.size();
+        return size.isPresent() && sampleSize > 0 ? size.getAsLong() / sampleSize : Integer.MAX_VALUE;
+    }
+
     private static int checkedSize(long size, Box box) {
         if (size > Integer.MAX_VALUE) {
             throw new MediaException(new MediaError.InvalidData(
@@ -673,6 +755,9 @@ public final class Mp4Container implements Container {
             var box = boxes.next(udta.end());
             if (box.type() == BoxTypes.META) {
                 readMeta(box);
+            } else if (box.type() == BoxTypes.CHPL) {
+                neroChapters = Mp4Chapters.chpl(boxes.payload(box));
+                boxes.skip(box);
             } else {
                 boxes.skip(box);
             }

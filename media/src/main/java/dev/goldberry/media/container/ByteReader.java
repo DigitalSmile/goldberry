@@ -9,6 +9,7 @@ import java.nio.ByteBuffer;
 import java.nio.channels.AsynchronousCloseException;
 import java.nio.channels.ClosedChannelException;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.Objects;
 import java.util.OptionalLong;
 
@@ -78,10 +79,14 @@ public final class ByteReader {
 
     /// Moves to `position`.
     ///
-    /// @throws MediaException when the stream cannot seek, or the seek fails
+    /// @throws MediaException when the stream cannot seek, or the seek fails;
+    ///                        [MediaError.InvalidData] for a negative position,
+    ///                        which only a structure's damaged offset or size
+    ///                        makes
     public void seek(long position) {
         if (position < 0) {
-            throw new IllegalArgumentException("position " + position);
+            throw new MediaException(new MediaError.InvalidData(
+                    "a structure at byte " + position() + " points to byte " + position + ", before the start"));
         }
         if (position >= bufferStart && position <= bufferStart + bufferLength) {
             bufferPosition = (int) (position - bufferStart);
@@ -103,9 +108,13 @@ public final class ByteReader {
 
     /// Passes over `count` bytes: a seek where the stream seeks, a read and
     /// discard where it does not.
+    ///
+    /// @throws MediaException [MediaError.InvalidData] for a negative count:
+    ///                        a size the container's own arithmetic made
+    ///                        negative, which only damaged bytes do
     public void skip(long count) {
         if (count < 0) {
-            throw new IllegalArgumentException("count " + count);
+            throw invalidCount("skips", count);
         }
         var target = position() + count;
         if (io.isSeekable() || target <= bufferStart + bufferLength) {
@@ -178,9 +187,35 @@ public final class ByteReader {
     }
 
     /// The next `count` bytes, copied to the heap.
+    ///
+    /// `count` is a size a container read from the stream, so it is not
+    /// trusted with an allocation: a count larger than what is left of a stream
+    /// of known size fails before anything is allocated, and on a stream of
+    /// unknown size the bytes are gathered as they arrive, so that a count the
+    /// stream does not hold fails at its end rather than taking the heap.
+    ///
+    /// @throws MediaException [MediaError.InvalidData] for a negative count, or
+    ///                        one the stream does not hold
     public byte[] bytes(int count) {
-        var out = new byte[count];
-        readFully(out, 0, count);
+        if (count < 0) {
+            throw invalidCount("reads", count);
+        }
+        requireHeld(count);
+        if (count <= BUFFER_SIZE) {
+            var out = new byte[count];
+            readFully(out, 0, count);
+            return out;
+        }
+        var out = new byte[BUFFER_SIZE];
+        var filled = 0;
+        while (filled < count) {
+            if (filled == out.length) {
+                out = Arrays.copyOf(out, (int) Math.min(count, 2L * out.length));
+            }
+            var step = out.length - filled;
+            readFully(out, filled, step);
+            filled += step;
+        }
         return out;
     }
 
@@ -195,7 +230,25 @@ public final class ByteReader {
     }
 
     /// The next `count` bytes, copied into native memory of `arena`.
+    ///
+    /// Not trusted with an allocation either, as [#bytes] is not: a count
+    /// beyond a stream of known size fails first, and on a stream of unknown
+    /// size one beyond what the buffer holds is gathered on the heap before it
+    /// is copied out.
+    ///
+    /// @throws MediaException [MediaError.InvalidData] for a negative count, or
+    ///                        one the stream does not hold
     public MemorySegment segment(Arena arena, long count) {
+        if (count < 0) {
+            throw invalidCount("reads", count);
+        }
+        requireHeld(count);
+        if (io.size().isEmpty() && count > BUFFER_SIZE) {
+            if (count > Integer.MAX_VALUE - 8) {
+                throw invalidCount("reads", count);
+            }
+            return arena.allocateFrom(ValueLayout.JAVA_BYTE, bytes((int) count));
+        }
         var segment = arena.allocate(count);
         var left = count;
         var offset = 0L;
@@ -222,6 +275,21 @@ public final class ByteReader {
             at += step;
             left -= step;
         }
+    }
+
+    /// Fails when the stream says its size and holds fewer than `count` more
+    /// bytes.
+    private void requireHeld(long count) {
+        var size = io.size();
+        if (size.isPresent() && count > size.getAsLong() - position()) {
+            throw new MediaException(new MediaError.InvalidData("a structure at byte " + position() + " promises "
+                    + count + " bytes, and the stream has " + Math.max(0, size.getAsLong() - position()) + " left"));
+        }
+    }
+
+    private MediaException invalidCount(String what, long count) {
+        return new MediaException(new MediaError.InvalidData(
+                "a structure at byte " + position() + " " + what + " " + count + " bytes, which no stream holds"));
     }
 
     /// Makes sure at least one byte is buffered, reading if it must.

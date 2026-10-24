@@ -686,6 +686,80 @@ class SliderTest {
     }
 
     @Nested
+    @DisplayName("marks: points of the range notched in the groove")
+    class Marks {
+
+        @Test
+        @DisplayName("none unless asked for, and a slider without them is the slider it always was")
+        void noneByDefault() {
+            var plain = slider(0, 100, 25, 0);
+            assertEquals(List.of(), plain.marks());
+            assertEquals(plain, plain.marks(List.of()));
+            assertEquals(plain, plain.spans(List.of()).marks(List.of()), "the withers keep each other's components");
+        }
+
+        @Test
+        @DisplayName("come after the fill and before the thumb, so they show over the fill and under the thumb")
+        void afterTheFill() {
+            var slider = slider(0, 200, 50, 0)
+                    .spans(List.of(new Slider.Span(0, 100)))
+                    .marks(List.of(50.0, 150.0));
+            var parts = groove(slider).children();
+            assertEquals(6, parts.size());
+            assertInstanceOf(SliderSpan.class, parts.get(0));
+            assertInstanceOf(SliderFill.class, parts.get(1));
+            assertEquals(new SliderMark(0.25, false, false), parts.get(2));
+            assertEquals(new SliderMark(0.75, false, false), parts.get(3));
+            assertInstanceOf(SliderThumb.class, parts.get(4));
+            assertInstanceOf(SliderRest.class, parts.get(5));
+        }
+
+        @Test
+        @DisplayName("only those strictly inside the range, in order and once, through the scale")
+        void inside() {
+            var slider = slider(0, 100, 50, 0).marks(List.of(70.0, 0.0, 30.0, 100.0, -5.0, 30.0, 400.0));
+            assertEquals(List.of(0.3, 0.7), slider.markFractions());
+            var fader =
+                    new Slider(0, 1, 0.5, 0, 0, null, Scale.decibels(), null, null, false, null).marks(List.of(0.5));
+            assertEquals(
+                    fader.fraction(), fader.markFractions().getFirst(), 1e-9, "a mark at the value is under the thumb");
+        }
+
+        @Test
+        @DisplayName("a mark is out of flow, both insets meeting at its point: along the row, or up a fader")
+        void placedByInsets() {
+            var style = styleOf(slider(0, 100, 50, 0).marks(List.of(50.0)), 0, 0, 1);
+            var across = new SliderMark(0.25, false, false).render(style, List.of(), new TokenContext(16));
+            assertEquals(Position.ABSOLUTE, across.position());
+            assertEquals(
+                    new Insets(Length.points(0), Length.percent(75), Length.points(0), Length.percent(25)),
+                    across.inset());
+            var up = new SliderMark(0.25, true, false).render(style, List.of(), new TokenContext(16));
+            assertEquals(
+                    new Insets(Length.percent(75), Length.points(0), Length.percent(25), Length.points(0)), up.inset());
+        }
+
+        @Test
+        @DisplayName("the theme colours them, unlike the groove they cut")
+        void themed() {
+            var slider = slider(0, 100, 50, 0).marks(List.of(50.0));
+            var mark = styleOf(slider, 0, 0, 1);
+            var groove = styleOf(slider, 0, 0);
+            assertNotEquals(0, mark.background() >>> 24, "a mark with no colour would say nothing");
+            assertNotEquals(groove.background(), mark.background());
+            assertEquals("slider-mark", new SliderMark(0.5, false, true).cssType());
+            assertTrue(new SliderMark(0.5, false, true).isDisabled());
+        }
+
+        @Test
+        @DisplayName("a mark that is not a number is refused")
+        void refused() {
+            assertThrows(
+                    IllegalArgumentException.class, () -> slider(0, 1, 0, 0).marks(List.of(Double.NaN)));
+        }
+    }
+
+    @Nested
     @DisplayName("the parts")
     class Parts {
 

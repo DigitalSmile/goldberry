@@ -141,6 +141,9 @@ import dev.goldberry.widgets.markup.Wiring;
 /// @param spans    stretches of the range to mark in the groove, under the fill
 ///                 and the thumb: what a media player has buffered, say. In the
 ///                 slider's own units; empty for none
+/// @param marks    points of the range to notch in the groove, over the fill and
+///                 under the thumb: where a media player's chapters start, say.
+///                 In the slider's own units; empty for none
 @Markup("slider")
 public record Slider(
         double min,
@@ -155,7 +158,8 @@ public record Slider(
         boolean disabled,
         Attributes attributes,
         @Nullable DoubleConsumer onCommit,
-        List<Span> spans)
+        List<Span> spans,
+        List<Double> marks)
         implements Widget.Stateful, Attributed<Slider>, Bindable<Slider> {
 
     /// A stretch of a slider's range, `from` up to `to`, in the slider's units.
@@ -184,7 +188,8 @@ public record Slider(
             boolean disabled,
             @Nullable Attributes attributes,
             @Nullable DoubleConsumer onCommit,
-            @Nullable List<Span> spans) {
+            @Nullable List<Span> spans,
+            @Nullable List<Double> marks) {
         if (!Double.isFinite(min) || !Double.isFinite(max) || max <= min) {
             throw new IllegalArgumentException("a slider needs max > min, not min=" + min + " max=" + max);
         }
@@ -208,6 +213,12 @@ public record Slider(
         }
         attributes = attributes == null ? Attributes.NONE : attributes;
         spans = spans == null ? List.of() : List.copyOf(spans);
+        marks = marks == null ? List.of() : List.copyOf(marks);
+        for (var mark : marks) {
+            if (!Double.isFinite(mark)) {
+                throw new IllegalArgumentException("not a mark: " + mark);
+            }
+        }
         this.min = min;
         this.max = max;
         this.value = value;
@@ -221,6 +232,40 @@ public record Slider(
         this.attributes = attributes;
         this.onCommit = onCommit;
         this.spans = spans;
+        this.marks = marks;
+    }
+
+    /// Every component but [#marks()]: the canonical form before marks existed,
+    /// which every slider that notches nothing still uses.
+    public Slider(
+            double min,
+            double max,
+            double value,
+            double step,
+            int ticks,
+            @Nullable String format,
+            @Nullable Scale scale,
+            @Nullable Observable<?> source,
+            @Nullable DoubleConsumer onChange,
+            boolean disabled,
+            @Nullable Attributes attributes,
+            @Nullable DoubleConsumer onCommit,
+            @Nullable List<Span> spans) {
+        this(
+                min,
+                max,
+                value,
+                step,
+                ticks,
+                format,
+                scale,
+                source,
+                onChange,
+                disabled,
+                attributes,
+                onCommit,
+                spans,
+                null);
     }
 
     /// Every component but [#spans()]: the canonical form before spans existed,
@@ -357,7 +402,20 @@ public record Slider(
     /// `step`.
     public Slider ticks(int ticks) {
         return new Slider(
-                min, max, value, step, ticks, format, scale, source, onChange, disabled, attributes, onCommit, spans);
+                min,
+                max,
+                value,
+                step,
+                ticks,
+                format,
+                scale,
+                source,
+                onChange,
+                disabled,
+                attributes,
+                onCommit,
+                spans,
+                marks);
     }
 
     /// This slider with a value label, as a `String.format` pattern.
@@ -366,13 +424,39 @@ public record Slider(
     /// of a control have to be `equals` and two lambdas never are.
     public Slider format(String format) {
         return new Slider(
-                min, max, value, step, ticks, format, scale, source, onChange, disabled, attributes, onCommit, spans);
+                min,
+                max,
+                value,
+                step,
+                ticks,
+                format,
+                scale,
+                source,
+                onChange,
+                disabled,
+                attributes,
+                onCommit,
+                spans,
+                marks);
     }
 
     /// This slider on a [Scale] — `fader`'s decibel mapping.
     public Slider scale(Scale scale) {
         return new Slider(
-                min, max, value, step, ticks, format, scale, source, onChange, disabled, attributes, onCommit, spans);
+                min,
+                max,
+                value,
+                step,
+                ticks,
+                format,
+                scale,
+                source,
+                onChange,
+                disabled,
+                attributes,
+                onCommit,
+                spans,
+                marks);
     }
 
     /// This slider, telling `value` what the user settled on each time a drag or a
@@ -381,7 +465,20 @@ public record Slider(
     /// @param value the handler, or null for none
     public Slider onCommit(@Nullable DoubleConsumer value) {
         return new Slider(
-                min, max, this.value, step, ticks, format, scale, source, onChange, disabled, attributes, value, spans);
+                min,
+                max,
+                this.value,
+                step,
+                ticks,
+                format,
+                scale,
+                source,
+                onChange,
+                disabled,
+                attributes,
+                value,
+                spans,
+                marks);
     }
 
     /// This slider marking `spans` in its groove, in its own units: a media seek
@@ -389,7 +486,52 @@ public record Slider(
     /// wholly outside it is not drawn.
     public Slider spans(List<Span> spans) {
         return new Slider(
-                min, max, value, step, ticks, format, scale, source, onChange, disabled, attributes, onCommit, spans);
+                min,
+                max,
+                value,
+                step,
+                ticks,
+                format,
+                scale,
+                source,
+                onChange,
+                disabled,
+                attributes,
+                onCommit,
+                spans,
+                marks);
+    }
+
+    /// This slider notching `marks` in its groove, in its own units: where a
+    /// media seek bar's chapters start. Each is drawn where it falls in the
+    /// range; one outside it, or at either end, is not drawn.
+    public Slider marks(List<Double> marks) {
+        return new Slider(
+                min,
+                max,
+                value,
+                step,
+                ticks,
+                format,
+                scale,
+                source,
+                onChange,
+                disabled,
+                attributes,
+                onCommit,
+                spans,
+                marks);
+    }
+
+    /// The marks as fractions of the groove, `0..1`, through the [#scale()]:
+    /// those strictly inside the range, in order, each once.
+    List<Double> markFractions() {
+        return marks.stream()
+                .filter(mark -> mark > min && mark < max)
+                .map(mark -> scale.toFraction(mark, min, max))
+                .distinct()
+                .sorted()
+                .toList();
     }
 
     /// The spans as fractions of the groove, `0..1`, through the [#scale()],
@@ -409,13 +551,39 @@ public record Slider(
     @Override
     public Slider bound(Observable<?> source) {
         return new Slider(
-                min, max, value, step, ticks, format, scale, source, onChange, disabled, attributes, onCommit, spans);
+                min,
+                max,
+                value,
+                step,
+                ticks,
+                format,
+                scale,
+                source,
+                onChange,
+                disabled,
+                attributes,
+                onCommit,
+                spans,
+                marks);
     }
 
     @Override
     public Slider withAttributes(Attributes attributes) {
         return new Slider(
-                min, max, value, step, ticks, format, scale, source, onChange, disabled, attributes, onCommit, spans);
+                min,
+                max,
+                value,
+                step,
+                ticks,
+                format,
+                scale,
+                source,
+                onChange,
+                disabled,
+                attributes,
+                onCommit,
+                spans,
+                marks);
     }
 
     @Override

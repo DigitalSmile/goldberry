@@ -37,9 +37,14 @@ public final class EbmlReader {
         }
 
         /// Where the payload ends, for a sized element.
+        ///
+        /// @throws MediaException [MediaError.InvalidData] for an element of
+        ///                        unknown size: a reader asks this only of the
+        ///                        elements that must have one, so the bytes
+        ///                        are not what the container promised
         public long dataEnd() {
             if (!sized()) {
-                throw new IllegalStateException("element " + Long.toHexString(id) + " has no known size");
+                throw unsized(this);
             }
             return dataStart + size;
         }
@@ -101,7 +106,8 @@ public final class EbmlReader {
             throw new MediaException(new MediaError.InvalidData(
                     "not an EBML size at byte " + (in.position() - 1) + ": 0x" + Integer.toHexString(first)));
         }
-        var value = first & (0xFF >>> length);
+        // A long: a size is up to 56 bits, and an int would drop the high ones.
+        var value = (long) (first & (0xFF >>> length));
         var allOnes = value == (0xFF >>> length);
         for (var i = 1; i < length; i++) {
             var next = in.u8();

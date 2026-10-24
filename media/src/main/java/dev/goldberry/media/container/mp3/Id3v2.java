@@ -3,6 +3,7 @@ package dev.goldberry.media.container.mp3;
 import java.io.ByteArrayOutputStream;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -11,6 +12,7 @@ import java.util.Optional;
 
 import org.jspecify.annotations.Nullable;
 
+import dev.goldberry.media.Chapter;
 import dev.goldberry.media.codec.CodecId;
 import dev.goldberry.media.container.ByteReader;
 
@@ -19,10 +21,12 @@ import dev.goldberry.media.container.ByteReader;
 ///
 /// Versions 2.2, 2.3 and 2.4 are read: the tag's syncsafe size and footer,
 /// the extended header, unsynchronisation of the whole tag (2.3) or of a frame
-/// (2.4), and the `APIC` frame, `PIC` in 2.2. Text frames such as the title
-/// and the artist are passed over: nothing here has a place for them yet. A
-/// frame that is compressed or encrypted is skipped. Every other frame is
-/// skipped by its size, so an unknown one costs nothing.
+/// (2.4), the `APIC` frame, `PIC` in 2.2, and the `CHAP` frames of the ID3v2
+/// chapter addendum, a podcast's chapters, each titled by the `TIT2` frame
+/// inside it. Other text frames such as the title and the artist are passed
+/// over: nothing here has a place for them yet. A frame that is compressed or
+/// encrypted is skipped. Every other frame is skipped by its size, so an
+/// unknown one costs nothing.
 final class Id3v2 {
 
     private static final int HEADER = 10;
@@ -48,7 +52,11 @@ final class Id3v2 {
     ///
     /// @param end      the stream position just after the tag, footer included
     /// @param pictures its pictures, in tag order
-    record Tag(long end, List<Picture> pictures) {}
+    /// @param chapters its `CHAP` frames, in tag order
+    record Tag(long end, List<Picture> pictures, List<Chapter> chapters) {}
+
+    /// A `CHAP` frame's millisecond count that means "not stated".
+    private static final long UNSTATED = 0xFFFFFFFFL;
 
     private Id3v2() {}
 
@@ -81,7 +89,7 @@ final class Id3v2 {
         var footer = (flags & FLAG_FOOTER) != 0 ? HEADER : 0;
         if (size > LARGEST_READ || major < 2 || major > 4) {
             in.skip(size + footer);
-            return new Tag(in.position(), List.of());
+            return new Tag(in.position(), List.of(), List.of());
         }
         var body = in.bytes(size);
         in.skip(footer);
@@ -89,7 +97,7 @@ final class Id3v2 {
         var unsynchronised = (flags & FLAG_UNSYNCHRONISED) != 0;
         if (major == 2 && (flags & FLAG_EXTENDED_HEADER) != 0) {
             // In 2.2 that bit means the tag is compressed, which nobody wrote.
-            return new Tag(end, List.of());
+            return new Tag(end, List.of(), List.of());
         }
         if (unsynchronised && major <= 3) {
             body = resynchronise(body);
@@ -99,6 +107,36 @@ final class Id3v2 {
             offset = major == 3 ? 4 + (int) u32(body, 0) : syncsafe(body, 0);
         }
         var pictures = new ArrayList<Picture>();
+        var chapters = new ArrayList<Chapter>();
+        for (var frame : frames(major, body, offset)) {
+            switch (frame.id()) {
+                case "APIC", "PIC" -> {
+                    var picture = picture(major, frame.data());
+                    if (picture != null) {
+                        pictures.add(picture);
+                    }
+                }
+                case "CHAP" -> {
+                    var chapter = chapter(major, frame.data());
+                    if (chapter != null) {
+                        chapters.add(chapter);
+                    }
+                }
+                default -> {}
+            }
+        }
+        return new Tag(end, List.copyOf(pictures), List.copyOf(chapters));
+    }
+
+    /// One frame: its ID and its data, with the frame's own flags undone.
+    @SuppressWarnings("ArrayRecordComponent")
+    private record Frame(String id, byte[] data) {}
+
+    /// The frames of `body` from `offset`, up to the padding or the first frame
+    /// that runs past the end. A frame whose data cannot be read, compressed or
+    /// encrypted, is left out.
+    private static List<Frame> frames(int major, byte[] body, int offset) {
+        var frames = new ArrayList<Frame>();
         var idLength = major == 2 ? 3 : 4;
         var frameHeader = major == 2 ? 6 : 10;
         while (offset >= 0 && offset + frameHeader <= body.length && body[offset] != 0) {
@@ -112,21 +150,19 @@ final class Id3v2 {
             if (frameSize < 0 || dataStart + frameSize > body.length) {
                 break;
             }
-            if (id.equals("APIC") || id.equals("PIC")) {
-                var picture = picture(major, body, dataStart, frameSize, major == 2 ? 0 : body[offset + 9] & 0xFF);
-                if (picture != null) {
-                    pictures.add(picture);
-                }
+            var data = frameData(major, body, dataStart, frameSize, major == 2 ? 0 : body[offset + 9] & 0xFF);
+            if (data != null) {
+                frames.add(new Frame(id, data));
             }
             offset = dataStart + frameSize;
         }
-        return new Tag(end, List.copyOf(pictures));
+        return frames;
     }
 
-    /// The picture of an `APIC` or `PIC` frame whose data is
-    /// `body[start..start+size)`, or null when the frame cannot be read or
-    /// holds neither a PNG nor a JPEG.
-    private static @Nullable Picture picture(int major, byte[] body, int start, int size, int formatFlags) {
+    /// The data of the frame at `body[start..start+size)` with its format
+    /// flags undone, or null when they make it unreadable here: compressed,
+    /// encrypted.
+    private static byte @Nullable [] frameData(int major, byte[] body, int start, int size, int formatFlags) {
         var data = Arrays.copyOfRange(body, start, start + size);
         if (major == 3 && (formatFlags & 0xC0) != 0) {
             return null;
@@ -136,7 +172,7 @@ final class Id3v2 {
                 return null;
             }
             var skip = ((formatFlags & 0x40) != 0 ? 1 : 0) + ((formatFlags & 0x01) != 0 ? 4 : 0);
-            if (skip >= data.length) {
+            if (skip > data.length) {
                 return null;
             }
             data = Arrays.copyOfRange(data, skip, data.length);
@@ -149,6 +185,52 @@ final class Id3v2 {
             }
             data = Arrays.copyOfRange(data, 1, data.length);
         }
+        return data;
+    }
+
+    /// The chapter a `CHAP` frame states: an element ID, NUL-terminated, the
+    /// start and end in milliseconds, two byte offsets nothing here needs, and
+    /// frames of its own, of which `TIT2` is the title. Null when it is too
+    /// short to hold its times, or states no start.
+    private static @Nullable Chapter chapter(int major, byte[] data) {
+        var nul = indexOf(data, 0, (byte) 0);
+        if (nul < 0 || nul + 1 + 16 > data.length) {
+            return null;
+        }
+        var at = nul + 1;
+        var start = u32(data, at);
+        var end = u32(data, at + 4);
+        if (start == UNSTATED) {
+            return null;
+        }
+        Optional<String> title = Optional.empty();
+        for (var frame : frames(major, data, at + 16)) {
+            if ((frame.id().equals("TIT2") || frame.id().equals("TT2")) && title.isEmpty()) {
+                title = text(frame.data());
+            }
+        }
+        return new Chapter(
+                Duration.ofMillis(start),
+                end == UNSTATED || end <= start ? Optional.empty() : Optional.of(Duration.ofMillis(end)),
+                title);
+    }
+
+    /// The string of a text frame: an encoding byte, then the text, which may
+    /// end in a NUL or hold several separated by them; the first is taken.
+    private static Optional<String> text(byte[] data) {
+        if (data.length < 2) {
+            return Optional.empty();
+        }
+        var encoding = data[0] & 0xFF;
+        var wide = encoding == 1 || encoding == 2;
+        var stop = wide ? indexOfWideNul(data, 1) : indexOf(data, 1, (byte) 0);
+        var text = new String(data, 1, (stop < 0 ? data.length : stop) - 1, charset(encoding)).strip();
+        return text.isEmpty() ? Optional.empty() : Optional.of(text);
+    }
+
+    /// The picture of an `APIC` or `PIC` frame's data, or null when the frame
+    /// cannot be read or holds neither a PNG nor a JPEG.
+    private static @Nullable Picture picture(int major, byte[] data) {
         if (data.length < 2) {
             return null;
         }

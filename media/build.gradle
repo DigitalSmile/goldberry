@@ -138,57 +138,96 @@ def checkMediaToolchain = tasks.register('checkMediaToolchain') {
     }
 }
 
-def nativesConfigure = tasks.register('nativesConfigure', Exec) {
-    group = 'native'
-    description = "Configures the libgoldberry-media superbuild for ${hostTargetId}."
-    dependsOn checkMediaToolchain
+// One configure task and one build task per flavour of the library: the one
+// that ships, and the sanitizer build below, each with a work directory, an
+// install directory and a deps directory of its own.
+def registerSuperbuild = { String suffix, String flavour, workDir, installDir, deps, List<String> extraArguments ->
+    def configure = tasks.register("nativesConfigure${suffix}", Exec) {
+        group = 'native'
+        description = "Configures the libgoldberry-media superbuild for ${hostTargetId}${flavour}."
+        dependsOn checkMediaToolchain
 
-    inputs.dir superbuildSource
-    inputs.file catalogFile
-    inputs.property 'targetId', hostTargetId
-    outputs.file superbuildWorkDir.map { it.file('CMakeCache.txt') }
+        inputs.dir superbuildSource
+        inputs.file catalogFile
+        inputs.property 'targetId', hostTargetId
+        inputs.property 'extraArguments', extraArguments
+        outputs.file workDir.map { it.file('CMakeCache.txt') }
 
-    def arguments = [
-            '-S', superbuildSource.asFile.absolutePath,
-            '-B', superbuildWorkDir.get().asFile.absolutePath,
-            '-G', 'Ninja',
-            '-DCMAKE_BUILD_TYPE=Release',
-            "-DCMAKE_INSTALL_PREFIX=${superbuildInstallDir.get().asFile.absolutePath}".toString(),
-            "-DGOLDBERRY_TARGET_ID=${hostTargetId}".toString(),
-            "-DGOLDBERRY_MEDIA_DEPS_DIR=${depsDir.get().absolutePath}".toString(),
-    ]
-    // Handed over by path so the superbuild's ExternalProjects run the same
-    // executables this build checked, rather than searching a PATH of their own.
-    [ninja: 'CMAKE_MAKE_PROGRAM', meson: 'GOLDBERRY_MESON', make: 'GOLDBERRY_MAKE', sh: 'GOLDBERRY_SH']
-            .each { tool, variable ->
-                if (superbuildTools[tool] != null) {
-                    arguments << "-D${variable}=${superbuildTools[tool].absolutePath}".toString()
+        def arguments = [
+                '-S', superbuildSource.asFile.absolutePath,
+                '-B', workDir.get().asFile.absolutePath,
+                '-G', 'Ninja',
+                '-DCMAKE_BUILD_TYPE=Release',
+                "-DCMAKE_INSTALL_PREFIX=${installDir.get().asFile.absolutePath}".toString(),
+                "-DGOLDBERRY_TARGET_ID=${hostTargetId}".toString(),
+                "-DGOLDBERRY_MEDIA_DEPS_DIR=${deps.get().absolutePath}".toString(),
+        ] + extraArguments
+        // Handed over by path so the superbuild's ExternalProjects run the same
+        // executables this build checked, rather than searching a PATH of their own.
+        [ninja: 'CMAKE_MAKE_PROGRAM', meson: 'GOLDBERRY_MESON', make: 'GOLDBERRY_MAKE', sh: 'GOLDBERRY_SH']
+                .each { tool, variable ->
+                    if (superbuildTools[tool] != null) {
+                        arguments << "-D${variable}=${superbuildTools[tool].absolutePath}".toString()
+                    }
                 }
+        commandLine([superbuildTools.cmake?.absolutePath ?: 'cmake'] + arguments)
+
+        doFirst {
+            if (!new File(deps.get(), 'dav1d-src').isDirectory()) {
+                logger.lifecycle("""\
+                    goldberry-media: first media superbuild for ${hostTargetId}${flavour}.
+
+                    Cloning dav1d, libvpx, Opus, libogg, libvorbis, FLAC, libyuv and minimp3 into
+                      ${deps.get()}
+                    and compiling them -- several minutes the first time.""".stripIndent())
             }
-    commandLine([superbuildTools.cmake?.absolutePath ?: 'cmake'] + arguments)
-
-    doFirst {
-        if (!new File(depsDir.get(), 'dav1d-src').isDirectory()) {
-            logger.lifecycle("""\
-                goldberry-media: first media superbuild for ${hostTargetId}.
-
-                Cloning dav1d, libvpx, Opus, libogg, libvorbis, FLAC, libyuv and minimp3 into
-                  ${depsDir.get()}
-                and compiling them -- several minutes the first time.""".stripIndent())
         }
+    }
+
+    tasks.register("nativesBuild${suffix}", Exec) {
+        group = 'native'
+        description = "Builds libgoldberry-media for ${hostTargetId}${flavour}, with the layout probe" +
+                (extraArguments.isEmpty() ? ' and the size gate.' : '.')
+        dependsOn configure
+        inputs.dir superbuildSource
+        outputs.dir installDir
+        commandLine superbuildTools.cmake?.absolutePath ?: 'cmake',
+                '--build', workDir.get().asFile.absolutePath,
+                '--target', 'install'
     }
 }
 
-tasks.register('nativesBuild', Exec) {
-    group = 'native'
-    description = "Builds libgoldberry-media for ${hostTargetId}, with the layout probe and the size gate."
-    dependsOn nativesConfigure
-    inputs.dir superbuildSource
-    outputs.dir superbuildInstallDir
-    commandLine superbuildTools.cmake?.absolutePath ?: 'cmake',
-            '--build', superbuildWorkDir.get().asFile.absolutePath,
-            '--target', 'install'
-}
+registerSuperbuild('', '', superbuildWorkDir, superbuildInstallDir, depsDir, [])
+
+// ============================================================================
+// The sanitizer build
+// https://goldberry.dev/docs/components/media.html#the-module
+//
+// libgoldberry-media with AddressSanitizer compiled into every upstream and
+// into our own file: what `sanitizerTest` below runs the decoders against, so
+// that a read past the end of a packet or a picture is reported where it
+// happens rather than wherever the corruption surfaces. Linux only, with GCC's
+// runtime preloaded into the test JVM. Its own work, install and deps
+// directories: nothing of it can reach the library that ships.
+//
+//   ./gradlew :media:nativesBuildAsan [-Pgoldberry.media.sanitize=address,undefined]
+// ============================================================================
+def sanitizers = providers.gradleProperty('goldberry.media.sanitize').getOrElse('address')
+// linux-x64-asan, linux-x64-asan-ubsan: each combination builds apart, so
+// trying UBSan does not throw away the AddressSanitizer build.
+def sanitizerFlavour = sanitizers.split(',')
+        .collect { it.trim() == 'address' ? 'asan' : it.trim() == 'undefined' ? 'ubsan' : it.trim() }
+        .sort()
+        .join('-')
+def asanTargetId = "${hostTargetId}-${sanitizerFlavour}"
+def asanWorkDir = layout.buildDirectory.dir("media-natives/${asanTargetId}/cmake")
+def asanInstallDir = layout.buildDirectory.dir("media-natives/${asanTargetId}/install")
+def asanDepsDir = providers.gradleProperty('goldberry.media.asanDepsDir')
+        .map { file(it) }
+        .orElse(layout.projectDirectory.dir(".deps/${asanTargetId}").asFile)
+
+registerSuperbuild('Asan', " with -fsanitize=${sanitizers}", asanWorkDir, asanInstallDir, asanDepsDir,
+        ["-DGOLDBERRY_MEDIA_SANITIZE=${sanitizers}".toString()])
 
 // ============================================================================
 // The natives jar: goldberry-media's `natives-<target>`
@@ -328,6 +367,8 @@ tasks.register('cleanMediaDeps', Delete) {
 def libraryDirectory = providers.systemProperty('goldberry.media.libdir')
         .orElse(providers.gradleProperty('goldberry.media.libdir'))
         .orElse(superbuildInstallDir.map { it.dir('lib').asFile.absolutePath })
+def asanLibraryDirectory = providers.gradleProperty('goldberry.media.asanLibdir')
+        .orElse(asanInstallDir.map { it.dir('lib').asFile.absolutePath })
 
 def skipNative = providers.gradleProperty('goldberry.skipNative').map { Boolean.parseBoolean(it) }.getOrElse(false)
 
@@ -344,18 +385,29 @@ tasks.withType(Test).configureEach {
     environment 'SDL_AUDIO_DRIVER', 'dummy'
 
     // Not for the jar test below, whose whole point is that nothing names a
-    // directory and the library is found on the class path.
+    // directory and the library is found on the class path, nor for the
+    // sanitizer lane, which names the sanitizer build's.
+    def testedLibrary = name == 'sanitizerTest' ? asanLibraryDirectory : libraryDirectory
     if (name != 'testNativesJar') {
-        systemProperty 'goldberry.media.libdir', libraryDirectory.get()
+        systemProperty 'goldberry.media.libdir', testedLibrary.get()
     }
     if (ffmpegLibraryDirectory.isDirectory()) {
         systemProperty 'goldberry.media.ffmpegLibdir', ffmpegLibraryDirectory.absolutePath
     }
 
+    // How hard the robustness tests mutate: rounds per fixture and kind of
+    // damage, and the seed they start from. The sanitizer lane raises the rounds.
+    ['goldberry.media.fuzz.rounds', 'goldberry.media.fuzz.seed'].each { property ->
+        var value = providers.systemProperty(property).orElse(providers.gradleProperty(property))
+        if (value.present) {
+            systemProperty property, value.get()
+        }
+    }
+
     // The library is an input, so a rebuilt one re-runs the tests rather than
     // leaving them UP-TO-DATE and green against a library they never saw.
     inputs.files(providers.provider {
-        var directory = file(libraryDirectory.get())
+        var directory = file(testedLibrary.get())
         directory.isDirectory() ? fileTree(directory) : files()
     }).withPropertyName('mediaNatives').optional()
 }
@@ -432,7 +484,9 @@ def testWithoutGpu = tasks.register('testWithoutGpu', Test) {
     testClassesDirs = sourceSets.test.output.classesDirs
     def gpuBuild = layout.settingsDirectory.dir('gpu/build').asFile.toPath()
     classpath = sourceSets.test.runtimeClasspath.filter { !it.toPath().startsWith(gpuBuild) }
-    useJUnitPlatform { excludeTags 'natives-jar', 'gpu' }
+    // The robustness tests touch no widget and no GPU; running their thousands
+    // of mutated inputs a second time here would find nothing the first run did not.
+    useJUnitPlatform { excludeTags 'natives-jar', 'gpu', 'robustness' }
     // The GPU lane's classes name :gpu's types in their fields and methods'
     // signatures, and discovery reflects on them before any tag is read; they
     // are not loaded here.
@@ -469,4 +523,119 @@ tasks.named('check') { dependsOn testNativesJar }
 // The conventions read every .exec in build/jacoco, so the reports have to run
 // after both.
 tasks.withType(JacocoReportBase).configureEach { dependsOn testNativesJar, 'testWithoutGpu' }
+
+// ============================================================================
+// The sanitizer lane
+// https://goldberry.dev/docs/components/media.html#the-module
+//
+// The decoders' tests and the robustness tests, whose mutated packets and
+// files are what an untrusted download feeds the codecs, against the sanitizer
+// build (`nativesBuildAsan` above), with many more rounds of mutation than
+// `test` runs. Not part of `check`: it needs that build, and GCC's libasan to
+// preload. Linux only.
+//
+//   ./gradlew :media:nativesBuildAsan :media:sanitizerTest [-Pgoldberry.media.fuzz.rounds=64]
+//
+// The JVM is not instrumented, so libasan has to be first in the process
+// (LD_PRELOAD) and has to leave alone the signals HotSpot uses itself: SIGSEGV
+// for its null checks and safepoint polls, SIGBUS, SIGFPE for division by
+// zero, SIGILL. Leak detection is off, since the JVM's own allocations are
+// never freed at exit. A finding stops the JVM, and its report is written
+// under build/sanitizer/, which `sanitizerReport` prints and fails on.
+//
+// With `-Pgoldberry.media.sanitize=address,undefined`, UBSan's reports are fatal
+// too, except the upstreams' own in src/test/sanitizer/ubsan.supp. GCC's UBSan
+// beside ASan writes to the JVM's standard error, not to a file, so its report
+// is in the task's output.
+// ============================================================================
+def sanitizerReports = layout.buildDirectory.dir('sanitizer')
+def sanitizerRounds = providers.systemProperty('goldberry.media.fuzz.rounds')
+        .orElse(providers.gradleProperty('goldberry.media.fuzz.rounds'))
+        .getOrElse('48')
+def asanRuntime = providers.gradleProperty('goldberry.media.asanRuntime')
+        .orElse(providers.exec { commandLine 'gcc', '-print-file-name=libasan.so' }
+                .standardOutput.asText.map { it.trim() })
+
+def sanitizerReport = tasks.register('sanitizerReport') {
+    group = 'verification'
+    description = 'Prints what the sanitizer lane reported, and fails when it reported anything.'
+    def reports = sanitizerReports
+    def lane = tasks.named('sanitizerTest')
+    doLast {
+        def found = reports.get().asFile.listFiles()?.findAll { it.isFile() && it.length() > 0 } ?: []
+        if (!found.isEmpty()) {
+            found.each { report -> logger.error("${report.name}:\n${report.text}") }
+            throw new GradleException("The sanitizers reported ${found.size()} finding(s); see above, " +
+                    "or ${reports.get().asFile}.")
+        }
+        if (lane.get().state.failure != null) {
+            logger.lifecycle('The sanitizers wrote no report file. A UBSan finding goes to the test JVM\'s ' +
+                    'standard error instead: look for "runtime error" in sanitizerTest\'s output above.')
+        } else {
+            logger.lifecycle('The sanitizers reported nothing.')
+        }
+    }
+}
+
+tasks.register('sanitizerTest', Test) {
+    group = 'verification'
+    description = 'Runs the decoders and the robustness tests against the sanitizer build of libgoldberry-media.'
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+    useJUnitPlatform { excludeTags 'natives-jar', 'gpu' }
+    filter {
+        includeTestsMatching 'dev.goldberry.media.robustness.*'
+        includeTestsMatching 'dev.goldberry.media.decoder.*'
+        includeTestsMatching 'dev.goldberry.media.ffm.*'
+    }
+    // A lane whose whole purpose is the library fails rather than skips without it.
+    systemProperty 'goldberry.media.required', 'true'
+    systemProperty 'goldberry.media.fuzz.rounds', sanitizerRounds
+    // What `SanitizerLaneTest` checks the process for: the lane is only as good
+    // as the library it really loaded.
+    systemProperty 'goldberry.media.sanitizer', sanitizers
+    // Run in one invocation with the build, as CI does, the build goes first;
+    // run alone, the lane tests what is there.
+    mustRunAfter 'nativesBuildAsan'
+    finalizedBy sanitizerReport
+
+    def reports = sanitizerReports
+    def runtime = asanRuntime
+    def address = sanitizers.contains('address')
+    def suppressions = layout.projectDirectory.file('src/test/sanitizer/ubsan.supp')
+    inputs.file(suppressions).withPropertyName('ubsanSuppressions')
+    doFirst {
+        if (!System.getProperty('os.name', '').toLowerCase(Locale.ROOT).contains('linux')) {
+            throw new GradleException('The sanitizer lane runs on Linux.')
+        }
+        def directory = reports.get().asFile
+        directory.deleteDir()
+        directory.mkdirs()
+        if (address) {
+            def runtimeFile = new File(runtime.get())
+            if (!runtimeFile.isAbsolute() || !runtimeFile.exists()) {
+                throw new GradleException("No libasan at '${runtime.get()}'; pass -Pgoldberry.media.asanRuntime=<path>.")
+            }
+            environment 'LD_PRELOAD', runtimeFile.canonicalPath
+        }
+        environment 'ASAN_OPTIONS', [
+                'detect_leaks=0',
+                'handle_segv=0',
+                'handle_sigbus=0',
+                'handle_sigfpe=0',
+                'handle_sigill=0',
+                'allow_user_segv_handler=1',
+                'detect_stack_use_after_return=0',
+                'allocator_may_return_null=1',
+                'halt_on_error=1',
+                "log_path=${new File(directory, 'asan')}",
+        ].join(':')
+        environment 'UBSAN_OPTIONS', [
+                'print_stacktrace=1',
+                'halt_on_error=1',
+                "suppressions=${suppressions.asFile.absolutePath}",
+                "log_path=${new File(directory, 'ubsan')}",
+        ].join(':')
+    }
+}
 

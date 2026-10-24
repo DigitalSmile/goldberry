@@ -428,6 +428,11 @@
   /* A marked stretch of the groove (Slider.spans): an alpha over the groove it
      lies on, so a step darker than the groove and well short of the accent. */
   --gb-slider-span-bg: rgba(46, 52, 64, 0.25);
+  /* A notch in the groove (Slider.marks). Not the surface, as on nord-dark: a
+     gap of nord5 or nord6 in a nord4 groove is under 1.2:1 and a seek bar's
+     chapters vanished in it. The thumb's edge colour instead, nord3, which is
+     5.46:1 on the groove and still shows on the accent fill. */
+  --gb-slider-mark-bg: var(--nord3);
   --gb-slider-thumb-bg: #ffffff;
   --gb-slider-thumb-bg-hover: var(--nord5);
   --gb-slider-thumb-bg-active: var(--nord4);

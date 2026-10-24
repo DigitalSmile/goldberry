@@ -96,3 +96,6 @@ Appended to the index when the records move in, in this order.
 - [ADR-0652 Audio before zero is priming, and a frame within rounding follows the last](0652-audio-before-zero-is-priming-and-a-frame-within-rounding-follows-the-last.md)
 - [ADR-0653 CPU present interpolates chroma as the GPU does](0653-cpu-present-interpolates-chroma-as-the-gpu-does.md)
 - [ADR-0654 Hardware decoding reaches the decoders](0654-hardware-decoding-reaches-the-decoders.md)
+- [ADR-0655 A source states its chapters, and the player steps through them](0655-a-source-states-its-chapters-and-the-player-steps-through-them.md)
+- [ADR-0656 Damaged media is fuzzed, and the decoders run under AddressSanitizer](0656-damaged-media-is-fuzzed-and-the-decoders-run-under-addresssanitizer.md)
+- [ADR-0657 A network source fetches half a minute of itself ahead](0657-a-network-source-fetches-half-a-minute-of-itself-ahead.md)

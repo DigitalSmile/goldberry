@@ -93,6 +93,16 @@ public interface MediaIO extends Closeable {
         return List.of();
     }
 
+    /// How far past the reader to fetch, in bytes: a hint the Engine gives once
+    /// the source is open and its bitrate known, so that a fast stream has as
+    /// many seconds in hand as a slow one.
+    ///
+    /// Ignored by default, and by a local file, where there is nothing to
+    /// fetch. `HttpIO` keeps it between its [HttpIO.Options#readAhead()] and
+    /// what its cache leaves room for. Called from any thread, while another
+    /// reads.
+    default void readAhead(long bytes) {}
+
     /// What the stream says is playing now, when it says: the `StreamTitle` of an
     /// ICY radio stream, for instance. Empty for a stream that carries no such
     /// line.

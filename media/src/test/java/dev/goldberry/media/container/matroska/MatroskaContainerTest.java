@@ -27,6 +27,7 @@ import dev.goldberry.media.codec.Packet;
 import dev.goldberry.media.codec.Rational;
 import dev.goldberry.media.codec.TrackParams;
 import dev.goldberry.media.container.ClipFixtures;
+import dev.goldberry.media.io.MemoryIO;
 
 /// The Matroska demuxer against what FFmpeg's read of the same files said:
 /// `ffprobe`'s packet list is the fixture, so the two demuxers are held to the
@@ -244,6 +245,41 @@ class MatroskaContainerTest {
             packets.reversed().forEach(Packet::close);
             packets.forEach(Packet::close);
         }
+    }
+
+    @Test
+    @DisplayName("a PixelHeight wider than an int is a height not stated, not a track that cannot be described")
+    void heightBeyondAnInt() {
+        // The sticker's PixelHeight (BA 81 40) and FlagInterlaced (9A 81 02),
+        // six bytes, rewritten as one four-byte PixelHeight of 2³¹ + 64, the
+        // robustness tests' find: cast to an int it was negative, and the track's
+        // parameters refused it with an IllegalArgumentException.
+        var bytes = ClipFixtures.bytes("sticker-vp9-alpha.webm");
+        var at = indexOf(bytes, new byte[] {(byte) 0xBA, (byte) 0x81, 0x40, (byte) 0x9A, (byte) 0x81, 0x02});
+        System.arraycopy(new byte[] {(byte) 0xBA, (byte) 0x84, (byte) 0x80, 0, 0, 0x40}, 0, bytes, at, 6);
+        try (var container = MatroskaContainer.open(ClipFixtures.source("sticker"), new MemoryIO(bytes))) {
+            var picture = assertInstanceOf(
+                    TrackParams.Video.class,
+                    container.info().tracks().getFirst().params());
+            assertEquals(64, picture.width());
+            assertEquals(0, picture.height());
+        }
+        assertEquals(0, MatroskaContainer.intOrUnknown(1L << 32));
+        assertEquals(0, MatroskaContainer.intOrUnknown(-1));
+        assertEquals(1080, MatroskaContainer.intOrUnknown(1080));
+    }
+
+    private static int indexOf(byte[] bytes, byte[] pattern) {
+        outer:
+        for (var i = 0; i + pattern.length <= bytes.length; i++) {
+            for (var j = 0; j < pattern.length; j++) {
+                if (bytes[i + j] != pattern[j]) {
+                    continue outer;
+                }
+            }
+            return i;
+        }
+        throw new AssertionError("pattern not in the fixture");
     }
 
     @Test

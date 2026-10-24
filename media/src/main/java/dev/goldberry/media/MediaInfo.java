@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
+import dev.goldberry.media.chapter.ChapterList;
 import dev.goldberry.media.codec.MediaType;
 import dev.goldberry.media.io.Source;
 
@@ -19,15 +20,35 @@ import dev.goldberry.media.io.Source;
 /// @param live     whether the source is live, such as an internet radio
 ///                 station: it has only a "now", and a player shows `LIVE` for it
 ///                 ([dev.goldberry.media.io.MediaIO#isLive()])
+/// @param chapters the source's chapters in order of their starts, each with its
+///                 end filled in where the container left it out; none when the
+///                 container states none
 ///
 /// Read more: [A player](https://goldberry.dev/docs/components/media.html#a-player).
 public record MediaInfo(
-        Source source, Optional<Duration> duration, List<Track> tracks, boolean seekable, boolean live) {
+        Source source,
+        Optional<Duration> duration,
+        List<Track> tracks,
+        boolean seekable,
+        boolean live,
+        List<Chapter> chapters) {
 
     public MediaInfo {
         Objects.requireNonNull(source, "source");
         Objects.requireNonNull(duration, "duration");
         tracks = List.copyOf(tracks);
+        chapters = ChapterList.settle(chapters, duration);
+    }
+
+    /// A source with no chapters: every component but those.
+    public MediaInfo(Source source, Optional<Duration> duration, List<Track> tracks, boolean seekable, boolean live) {
+        this(source, duration, tracks, seekable, live, List.of());
+    }
+
+    /// The chapter playing at `position`, when the source has chapters and one
+    /// covers it.
+    public Optional<Chapter> chapterAt(Duration position) {
+        return ChapterList.at(chapters, position);
     }
 
     /// The tracks of one kind, in container order.

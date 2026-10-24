@@ -14,6 +14,7 @@ import dev.goldberry.media.MediaError;
 import dev.goldberry.media.MediaException;
 import dev.goldberry.media.bitstream.OpusPackets;
 import dev.goldberry.media.bitstream.XiphLacing;
+import dev.goldberry.media.chapter.VorbisComments;
 import dev.goldberry.media.codec.CodecId;
 import dev.goldberry.media.codec.MediaType;
 import dev.goldberry.media.codec.Rational;
@@ -37,6 +38,9 @@ final class OggStream {
     private static final byte[] OPUS_HEAD = "OpusHead".getBytes(StandardCharsets.US_ASCII);
     private static final byte[] FLAC_MAPPING = {0x7F, 'F', 'L', 'A', 'C'};
     private static final byte[] SKELETON = "fishead".getBytes(StandardCharsets.US_ASCII);
+    private static final byte[] OPUS_TAGS = "OpusTags".getBytes(StandardCharsets.US_ASCII);
+    /// The FLAC metadata block type of a Vorbis comment block.
+    private static final int FLAC_VORBIS_COMMENT = 4;
 
     /// The sample position of a packet nobody has timed yet.
     static final long UNKNOWN = Long.MIN_VALUE;
@@ -62,6 +66,7 @@ final class OggStream {
     private int headersLeft;
     private PacketTiming timing;
     private byte[] extradata;
+    private List<String> comments = List.of();
 
     /// The head of a packet that continues on the next page.
     byte @Nullable [] fragment;
@@ -227,9 +232,11 @@ final class OggStream {
                 headersLeft = 0;
                 return false;
             }
+            readComments(packet);
             return true;
         }
         headersLeft--;
+        readComments(packet);
         if (vorbis != null) {
             headers.add(packet);
             if (headersLeft == 0) {
@@ -244,6 +251,24 @@ final class OggStream {
             }
         }
         return true;
+    }
+
+    /// Keeps the comments of `packet` when it is this codec's comment header:
+    /// Opus's `OpusTags`, Vorbis's type 3, FLAC's `VORBIS_COMMENT` block.
+    private void readComments(byte[] packet) {
+        if (codec == CodecId.OPUS && startsWith(packet, OPUS_TAGS)) {
+            comments = VorbisComments.parse(packet, OPUS_TAGS.length);
+        } else if (codec == CodecId.VORBIS && VorbisHeaders.isHeader(packet, VorbisHeaders.COMMENT)) {
+            comments = VorbisComments.parse(packet, 7);
+        } else if (codec == CodecId.FLAC && packet.length > 4 && (packet[0] & 0x7F) == FLAC_VORBIS_COMMENT) {
+            comments = VorbisComments.parse(packet, 4);
+        }
+    }
+
+    /// The comments the stream's comment header carried, in order: none before
+    /// it is read, or without one.
+    List<String> comments() {
+        return comments;
     }
 
     /// Whether every header has been read: the packets from here on are audio.

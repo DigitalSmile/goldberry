@@ -7,11 +7,14 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.ByteArrayOutputStream;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
+import java.util.List;
 import java.util.Optional;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import dev.goldberry.media.Chapter;
 import dev.goldberry.media.codec.CodecId;
 import dev.goldberry.media.container.ByteReader;
 import dev.goldberry.media.io.MemoryIO;
@@ -223,5 +226,62 @@ class Id3v2Test {
         assertEquals(future.length, tag.end());
         assertTrue(tag.pictures().isEmpty());
         assertEquals(0xFF, in.u8());
+    }
+
+    /// A `CHAP` body: the element ID, the start and end in milliseconds, two
+    /// unused offsets, and `frames`.
+    private static byte[] chap(String element, long startMillis, long endMillis, byte[] frames) {
+        var out = new ByteArrayOutputStream();
+        out.writeBytes(latin1(element));
+        for (var value : new long[] {startMillis, endMillis, 0xFFFFFFFFL, 0xFFFFFFFFL}) {
+            out.write((int) (value >> 24));
+            out.write((int) (value >> 16));
+            out.write((int) (value >> 8));
+            out.write((int) value);
+        }
+        out.writeBytes(frames);
+        return out.toByteArray();
+    }
+
+    @Test
+    @DisplayName("2.3 CHAP frames: start, end, the TIT2 inside each; an unstated end is none")
+    void chapters23() {
+        var frames = concat(
+                frame(
+                        3,
+                        "CHAP",
+                        0,
+                        chap("ch0", 0, 1500, frame(3, "TIT2", 0, concat(new byte[] {0}, latin1("Opening"))))),
+                frame(
+                        3,
+                        "CHAP",
+                        0,
+                        chap(
+                                "ch1",
+                                1500,
+                                0xFFFFFFFFL,
+                                frame(
+                                        3,
+                                        "TIT2",
+                                        0,
+                                        concat(new byte[] {1}, "\uFEFFSecond".getBytes(StandardCharsets.UTF_16LE))))),
+                frame(3, "CHAP", 0, chap("ch2", 4000, 5000, new byte[0])));
+        var tag = Id3v2.read(reader(tag(3, 0, frames)));
+        assertEquals(
+                List.of(
+                        new Chapter(Duration.ZERO, Optional.of(Duration.ofMillis(1500)), Optional.of("Opening")),
+                        new Chapter(Duration.ofMillis(1500), Optional.empty(), Optional.of("Second")),
+                        new Chapter(Duration.ofSeconds(4), Optional.of(Duration.ofSeconds(5)), Optional.empty())),
+                tag.chapters());
+    }
+
+    @Test
+    @DisplayName("a CHAP frame too short for its times, or with no start, states no chapter")
+    void brokenChapters() {
+        var frames = concat(
+                frame(4, "CHAP", 0, concat(latin1("ch0"), new byte[] {0, 0, 0})),
+                frame(4, "CHAP", 0, chap("ch1", 0xFFFFFFFFL, 10, new byte[0])),
+                frame(4, "CHAP", 0, new byte[] {'n', 'o', 'n', 'u', 'l'}));
+        assertEquals(List.of(), Id3v2.read(reader(tag(4, 0, frames))).chapters());
     }
 }

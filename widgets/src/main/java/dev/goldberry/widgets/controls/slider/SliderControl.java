@@ -113,7 +113,12 @@ record SliderControl(Slider slider, double thumb, DoubleConsumer onSized)
     public List<Widget> children() {
         var children = new ArrayList<Widget>(2);
         children.add(new SliderTrack(
-                slider.fraction(), slider.ticks(), slider.disabled(), slider.spanFractions(), slider.isVertical()));
+                slider.fraction(),
+                slider.ticks(),
+                slider.disabled(),
+                slider.spanFractions(),
+                slider.markFractions(),
+                slider.isVertical()));
         if (slider.format() != null) {
             children.add(new SliderValue(
                     Objects.requireNonNull(slider.text(), "a slider with a format has a label"), slider.disabled()));

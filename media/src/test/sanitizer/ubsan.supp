@@ -1,0 +1,15 @@
+# UBSan's run-time suppressions for the sanitizer lane, built with
+# -Pgoldberry.media.sanitize=address,undefined. Every other report is fatal.
+#
+# Each line is undefined behaviour in an upstream's own C, found by the lane,
+# that every compiler here turns into the two's-complement arithmetic the code
+# means. They are the upstreams' to fix; a line comes out when a pin that
+# fixes it goes in.
+
+# libvorbis 1.3.7, vorbis_book_init_decode: `i << (32 - dec_firsttablen)` on an
+# int, for the decode table of every codebook of a valid stream.
+shift-base:sharedbook.c
+
+# libFLAC 1.5.0, FLAC__lpc_restore_signal: the 32-bit LPC sum of a damaged
+# frame overflows. The frame fails its CRC either way.
+signed-integer-overflow:lpc.c

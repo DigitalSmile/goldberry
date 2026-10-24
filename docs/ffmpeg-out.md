@@ -2,7 +2,9 @@
 
 Status: **in progress** since 2026-10-24; supersedes the FFmpeg-direct design in
 `goldberry-media.md`. The decision is ADR-0651 (parked in `docs/snapshot/adr/`).
-The log at the end says what is built and what is next.
+Phases 0 to 3 are built and green on linux-x64; the first CI run of the new
+workflows and phase 4 are what is left. The log at the end says what is built
+and what is next.
 
 ## 1. Decision
 
@@ -52,7 +54,10 @@ Build notes for `:natives`:
 - `Matroska` — EBML reader, Segment/Tracks/Cluster/SimpleBlock/BlockGroup, Cues for seek, lacing. Covers `.webm` and `.mkv`.
 - `Mp4` — ISOBMFF boxes: ftyp/moov/trak/stbl (stts, stsc, stsz, stco/co64, stss, ctts), fragmented MP4 (moof/traf/trun) for streaming, `av01`/`vp09`/`Opus`/`fLaC`/`mp4a` sample entries. Also used for HW path (`avc1`/`hvc1` extradata pass-through).
 - `Ogg` — pages, packets, granulepos; Opus/Vorbis/FLAC-in-Ogg.
-- `Adts` / raw frame streams for MP3/AAC passthrough to OS decoders.
+- ~~`Adts` / raw frame streams for MP3/AAC passthrough to OS decoders.~~ MP3's
+  raw stream is `container.mp3`. A bare ADTS `.aac` is not read: AAC reaches the
+  system decoders inside MP4 and Matroska, which is where it is met, and the line
+  was dropped on 2026-10-24 rather than scheduled.
   Each exposes `Track` metadata + `Packet(pts, dts, duration, keyframe, data)`. Seeking: index-based where present, bisection on keyframes otherwise.
 
 ### 4.2 Decoder SPI (`media.spi`)
@@ -172,7 +177,7 @@ Kept as the work lands. "Done" means built, tested and green on this machine
   byte. The go/no-go of §6 Phase 0 is go: the superbuild, not vcpkg; it needs
   no package manager on the runners and the same recipe on all four targets.
 
-### Phase 1 — core pipeline: in progress
+### Phase 1 — core pipeline: done 2026-10-24 (linux-x64; the CI run is open below)
 
 - [x] Opus decoder (`decoder.opus`): libopus, the `OpusHead` record, pre-skip,
       gain, the multistream decoder for a channel mapping; held to the sine
@@ -255,10 +260,11 @@ Kept as the work lands. "Done" means built, tested and green on this machine
       plan's `DecoderHints.preferHardware`, under the name the API already
       had. ADR-0654 parked. VideoToolbox's half is written, and the Mac lane is
       its first run.
-- [ ] `README.md` still names the `ffmpeg-<platform>` classifier: it describes
-      the release, so the change is parked in `docs/snapshot/README.md`.
+- [x] `README.md` still names the `ffmpeg-<platform>` classifier: it describes
+      the release, so the change is parked in `docs/snapshot/README.md`, and
+      moves in with the release.
 
-### Phase 2 — codec breadth: in progress
+### Phase 2 — codec breadth: done 2026-10-24
 
 - [x] libvpx (`decoder.vpx`): VP9 and VP8, 8- and 10-bit, 4:2:2/4:4:4
       subsampled to 4:2:0 through libyuv, the WebM alpha stream in a second
@@ -280,3 +286,68 @@ Kept as the work lands. "Done" means built, tested and green on this machine
 - [x] Bare FLAC (`container.flac`): frames found by sync and CRC-8, PICTURE
       blocks, SEEKTABLE or an estimate that backs off
 - [x] WAV (`container.wav`) and raw PCM in Java (`decoder.pcm`)
+- [x] `DecoderHints`, provider ordering and the codec-not-found UX, which the
+      plan lists here, are the API the engine already had under other names:
+      `HardwareDecoding` in every `DecoderRequest` (ADR-0654), `engine.Decoders`
+      asking the application's providers before the built-in ones, and
+      `MediaError.UnsupportedCodec` ("no decoder for h264, aac"), which the
+      player reports as a status and the showcase shows.
+
+### Phase 3 — player UX: done 2026-10-24
+
+What the plan asks for was built before it, but for two pieces: the four
+widgets, the keyboard map, track menus, SubRip/WebVTT/ASS/`mov_text` subtitles,
+the theme tokens, the showcase screens and the HTTP cache all exist (see
+`goldberry-media.md` §4 and §6).
+
+- [x] Chapters (ADR-0655 parked): `Chapter` and `MediaInfo.chapters()`, read
+      from Matroska `Chapters`, an MP4 chapter track or `chpl`, ID3v2 `CHAP`
+      frames, and the `CHAPTERnnn` comments of Ogg and FLAC, settled once by
+      `chapter.ChapterList`. `MediaPlayer.nextChapter()`/`previousChapter()`,
+      `Page Up`/`Page Down` in the transport, notches on the seek bar through a
+      new `Slider.marks` (`slider-mark`, `--gb-slider-mark-bg`), and the title
+      of the chapter playing as `.media-chapter`. Five fixtures
+      (`tone-chapters.*`); FFmpeg writes the Ogg one a second late and the FLAC
+      one not at all, so two scripts beside `make-fixtures.sh` put them right.
+- [x] The prefetch window (ADR-0657 parked): `HttpIO`'s read-ahead was a fixed
+      8 MB, three seconds of a 20 Mbit/s film. The Engine now asks
+      for 30 s at the source's mean bitrate once it opens
+      (`MediaIO.readAhead`, `engine.PrefetchWindow`), and `HttpIO` keeps it
+      between its configured read-ahead and its cache's room.
+
+### §8's risks: the sanitizer lane and the robustness tests
+
+- [x] Robustness tests (ADR-0656 parked): `media.robustness` feeds every
+      container damaged files (bit flips, overwrites, size fields, truncation
+      at every header length, noise; through short-chunk, unknown-size and
+      unseekable sources) and every built-in decoder damaged packets and
+      configurations, seeded, 8 rounds in `test` and 48 in the lane; "frames,
+      or a `MediaException`, and the reading ends". What they found, each
+      with a regression test: EBML sizes added up in an `int`; sizes read from
+      a file trusted with allocations (`ByteReader` now refuses a count past a
+      known end before allocating); an unknown-size element where a sized one
+      is required threw `IllegalStateException`; Matroska pixel sizes,
+      channels and depths wider than an `int` went negative; MP4 `stsz` with
+      one size had an unbounded count. Read, not fuzzed: libFLAC's 8- and
+      12-bit samples were handed over unshifted, 256 and 16 times too quiet.
+- [x] The sanitizer lane: `GOLDBERRY_MEDIA_SANITIZE=address[,undefined]` builds
+      every upstream with the sanitizers (`:media:nativesBuildAsan`, its own
+      deps and output directories; the release build is unchanged), and
+      `:media:sanitizerTest` runs the robustness, decoder and `ffm` tests
+      against it under `LD_PRELOAD` libasan. Green here, ASan silent; a planted
+      overflow through minimp3 was caught, so the lane sees. UBSan found two
+      things upstream (libvorbis `sharedbook.c`, libFLAC `lpc.c`), suppressed
+      in `media/src/test/sanitizer/ubsan.supp`. The `sanitizer` job of
+      `media.yml` is **written, not yet run**, and gates publishing as every
+      Media job does.
+- [ ] Open: dav1d's `frame_size_limit` and libvpx's size limit are unset, so a
+      damaged header may ask for a picture up to 65536×65536. No mutation
+      reached it; a cap is a policy to choose.
+
+### Next
+
+1. Push, and run `media.yml` (with its new `sanitizer` job) and `publish.yml`
+   on the four runners; the Windows lane is the likeliest to need a round.
+2. Phase 4: zero-copy import of the system decoders' surfaces (Linux's
+   DMA-BUF first), Media Foundation on by default once its lane is green,
+   and the `ffmpeg-cli` provider.

@@ -14,6 +14,9 @@ import java.lang.foreign.MemorySegment;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
+import java.util.OptionalInt;
+import java.util.OptionalLong;
 import java.util.Set;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -29,7 +32,10 @@ import dev.goldberry.media.codec.Decoder;
 import dev.goldberry.media.codec.DecoderRequest;
 import dev.goldberry.media.codec.Frame;
 import dev.goldberry.media.codec.Packet;
+import dev.goldberry.media.codec.Rational;
+import dev.goldberry.media.codec.Received;
 import dev.goldberry.media.codec.SampleFormat;
+import dev.goldberry.media.codec.TrackParams;
 import dev.goldberry.media.container.ClipFixtures;
 import dev.goldberry.media.container.matroska.MatroskaContainer;
 import dev.goldberry.media.decoder.FrameHashes;
@@ -247,5 +253,87 @@ class FlacDecoderTest {
                 assertTone(drain(container, decoder), 440, 1);
             }
         }
+    }
+
+    @Test
+    @DisplayName("8-bit samples come out at full scale in 16 bits, not 256 times too quiet")
+    void eightBitAtFullScale() {
+        byte[] samples = {0, 1, -1, 127, -128, 64, -64, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+        try (var arena = Arena.ofConfined()) {
+            var request = new DecoderRequest(
+                    CodecId.FLAC,
+                    "flac",
+                    new TrackParams.Audio(44_100, 1, Optional.of("s16"), OptionalInt.empty(), OptionalLong.empty()),
+                    arena.allocateFrom(JAVA_BYTE, eightBitStreamInfo(samples.length)),
+                    new Rational(1, 44_100));
+            var frame = eightBitVerbatimFrame(samples);
+            try (var decoder = provider.open(request);
+                    var packet = Packet.of(
+                            arena.allocateFrom(JAVA_BYTE, frame), 0, 0, 0, samples.length, true, request.timeBase())) {
+                assertTrue(decoder.send(packet));
+                var decoded = copy(assertInstanceOf(Received.Decoded.class, decoder.receive())
+                        .frame());
+                var expected = new short[samples.length];
+                for (var i = 0; i < samples.length; i++) {
+                    expected[i] = (short) (samples[i] << 8);
+                }
+                assertArrayEquals(expected, decoded.planes().getFirst());
+            }
+        }
+    }
+
+    /// The STREAMINFO body of a mono 8-bit stream at 44.1 kHz of one block of
+    /// `blocksize` samples.
+    private static byte[] eightBitStreamInfo(int blocksize) {
+        var info = new byte[FlacDecoder.STREAMINFO_SIZE];
+        info[1] = (byte) blocksize;
+        info[3] = (byte) blocksize;
+        // 20 bits of rate, 3 of channels - 1, 5 of bits - 1, 36 of total samples.
+        var packed = (44_100L << 44) | (7L << 36) | blocksize;
+        for (var i = 0; i < 8; i++) {
+            info[10 + i] = (byte) (packed >>> (56 - 8 * i));
+        }
+        return info;
+    }
+
+    /// One FLAC frame of `samples`, mono, 8 bits, in a VERBATIM subframe: the
+    /// frame header with its CRC-8, the subframe, and the frame's CRC-16.
+    private static byte[] eightBitVerbatimFrame(byte[] samples) {
+        var frame = new byte[6 + 1 + 1 + samples.length + 2];
+        frame[0] = (byte) 0xFF;
+        frame[1] = (byte) 0xF8; // sync, fixed blocking
+        frame[2] = 0x69; // block size from the end of the header; 44.1 kHz
+        frame[3] = 0x02; // mono; 8 bits a sample
+        frame[4] = 0; // frame number 0
+        frame[5] = (byte) (samples.length - 1);
+        frame[6] = (byte) crc8(frame, 6);
+        frame[7] = 0x02; // VERBATIM, no wasted bits
+        System.arraycopy(samples, 0, frame, 8, samples.length);
+        var crc = crc16(frame, frame.length - 2);
+        frame[frame.length - 2] = (byte) (crc >>> 8);
+        frame[frame.length - 1] = (byte) crc;
+        return frame;
+    }
+
+    private static int crc8(byte[] bytes, int length) {
+        var crc = 0;
+        for (var i = 0; i < length; i++) {
+            crc ^= bytes[i] & 0xFF;
+            for (var bit = 0; bit < 8; bit++) {
+                crc = (crc & 0x80) != 0 ? ((crc << 1) ^ 0x07) & 0xFF : (crc << 1) & 0xFF;
+            }
+        }
+        return crc;
+    }
+
+    private static int crc16(byte[] bytes, int length) {
+        var crc = 0;
+        for (var i = 0; i < length; i++) {
+            crc ^= (bytes[i] & 0xFF) << 8;
+            for (var bit = 0; bit < 8; bit++) {
+                crc = (crc & 0x8000) != 0 ? ((crc << 1) ^ 0x8005) & 0xFFFF : (crc << 1) & 0xFFFF;
+            }
+        }
+        return crc;
     }
 }

@@ -133,6 +133,10 @@ page for a change to `site/` alone (ADR-0590), and GB-034, written 2026-10-10
 | (no file) | `README.md`, the paragraph under the dependency snippet | `goldberry-media` takes a `natives-<platform>` classifier, not `ffmpeg-<platform>` (ADR-0651). The README describes the released version until then |
 | `adr/0653-…` | `book/src/adr/` | CPU present interpolates chroma as the GPU does: libyuv main's bilinear `…MatrixFilter`, `LIBYUV_UNLIMITED_DATA`, one Java reference for both paths. Contiguous with 0652; relates to 0651, 0483, 0484 |
 | `adr/0654-…` | `book/src/adr/` | Hardware decoding reaches the decoders: `DecoderRequest.hardware`, GStreamer passes over `Hardware`-class decoders and VideoToolbox asks for software under `OFF`. Contiguous with 0653; relates to 0651, 0470, 0472, 0489 |
+| `adr/0655-…` | `book/src/adr/` | A source states its chapters and the player steps through them: `Chapter`, `MediaInfo.chapters()`, `nextChapter`/`previousChapter`, `Page Up`/`Page Down`, `Slider.marks`. Contiguous with 0654; relates to 0651, 0466, 0464 |
+| `adr/0656-…` | `book/src/adr/` | Damaged media is fuzzed and the decoders run under AddressSanitizer: `media.robustness`, `GOLDBERRY_MEDIA_SANITIZE`, `:media:sanitizerTest`, the `sanitizer` job of `media.yml`; six reader and decoder fixes. Contiguous with 0655; relates to 0651, 0560, 0517 |
+| `adr/0657-…` | `book/src/adr/` | A network source fetches half a minute of itself ahead: `MediaIO.readAhead`, sized from the bitrate by the Engine, kept by `HttpIO` between its floor and its cache. Contiguous with 0656; relates to 0651, 0465 |
+| `components-media-chapters.md` | `book/src/components/media.md` (`### A player`, `### Tracks, subtitles and the network`, and the `### Styling` and `### Keyboard` of `media-player`, `audio-player` and `media-controls`), `book/src/components/values.md` (`## slider`) | ADR-0655 and ADR-0657, seven pieces, each says where it goes |
 
 ## Doc comments that point at the guide
 

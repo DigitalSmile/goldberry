@@ -8,6 +8,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.ServiceLoader;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
@@ -17,6 +18,7 @@ import org.slf4j.Logger;
 import dev.goldberry.log.Logs;
 import dev.goldberry.media.audio.AudioSink;
 import dev.goldberry.media.audio.SdlAudioSink;
+import dev.goldberry.media.chapter.ChapterList;
 import dev.goldberry.media.codec.DecoderProvider;
 import dev.goldberry.media.engine.Playback;
 import dev.goldberry.media.io.MediaIOProvider;
@@ -413,6 +415,36 @@ public final class MediaPlayer implements AutoCloseable {
     /// usually one. Read as a picture is, on every frame that paints.
     public List<Cue> currentSubtitles() {
         return current().map(Playback::showingCues).orElse(List.of());
+    }
+
+    /// Seeks to the start of the next chapter ([MediaInfo#chapters()]): the
+    /// `Page Down` of a player.
+    ///
+    /// @return false when there is none to go to: no chapters, the last one
+    ///         playing, or a source that cannot seek
+    public boolean nextChapter() {
+        return seekToChapter(ChapterList::next);
+    }
+
+    /// Seeks to the start of the chapter playing, once it has played for a few
+    /// seconds, else to the start of the one before it: the `Page Up` of a
+    /// player, which pressed twice goes back two.
+    ///
+    /// @return false when there is none to go to: no chapters, or a source that
+    ///         cannot seek
+    public boolean previousChapter() {
+        return seekToChapter(ChapterList::previous);
+    }
+
+    private boolean seekToChapter(BiFunction<List<Chapter>, Duration, Optional<Duration>> target) {
+        var status = status();
+        if (!status.seekable()) {
+            return false;
+        }
+        var chapters = status.info().map(MediaInfo::chapters).orElse(List.of());
+        var start = target.apply(chapters, status.position());
+        start.ifPresent(this::seek);
+        return start.isPresent();
     }
 
     /// Moves `count` pictures on, or back for a negative count, and pauses there:

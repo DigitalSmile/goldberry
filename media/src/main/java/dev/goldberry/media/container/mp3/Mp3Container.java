@@ -17,6 +17,7 @@ import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 
 import dev.goldberry.log.Logs;
+import dev.goldberry.media.Chapter;
 import dev.goldberry.media.MediaError;
 import dev.goldberry.media.MediaException;
 import dev.goldberry.media.MediaInfo;
@@ -140,8 +141,10 @@ public final class Mp3Container implements Container {
     private Mp3Container(Source source, MediaIO io) {
         this.source = source;
         this.in = new ByteReader(io);
+        var chapters = new ArrayList<Chapter>();
         while (Id3v2.starts(in)) {
             var tag = Id3v2.read(in);
+            chapters.addAll(tag.chapters());
             for (var picture : tag.pictures()) {
                 var index = 1 + pictures.size();
                 var track = new Track(
@@ -195,7 +198,7 @@ public final class Mp3Container implements Container {
         for (var picture : pictures) {
             tracks.add(picture.track());
         }
-        this.info = new MediaInfo(source, duration, tracks, io.isSeekable(), io.isLive());
+        this.info = new MediaInfo(source, duration, tracks, io.isSeekable(), io.isLive(), chapters);
     }
 
     /// Opens an MP3 over `io`, positioned at its start.

@@ -127,6 +127,26 @@ class SliderGoldenTest {
         paint("slider-spans-light", Theme.NORD_LIGHT, 300, 140, new Column(spanned(), id("scene")));
     }
 
+    /// Chapter starts notched in the groove, as a media seek bar marks them: one
+    /// in the fill, one under the thumb, two ahead of it, over a buffered span.
+    private static List<Widget> marked() {
+        return List.of(
+                at(0.5, "a").marks(List.of(20.0, 50.0, 70.0, 90.0)),
+                at(0.3, "b").spans(List.of(new Slider.Span(0, 60))).marks(List.of(10.0, 45.0, 80.0)));
+    }
+
+    @Test
+    @DisplayName("marks cut the groove and the fill, under the thumb")
+    void marks() {
+        paint("slider-marks", Theme.NORD_DARK, 300, 100, new Column(marked(), id("scene")));
+    }
+
+    @Test
+    @DisplayName("marks on light")
+    void marksLight() {
+        paint("slider-marks-light", Theme.NORD_LIGHT, 300, 100, new Column(marked(), id("scene")));
+    }
+
     @Test
     @DisplayName("the same on light, which is a different set of tokens")
     void light() {

@@ -367,6 +367,33 @@ class Mp4ContainerTest {
     }
 
     @Test
+    @DisplayName("an stsz of one size for two billion samples is invalid data, not a heap's worth of tables")
+    void uniformSizesBeyondTheFile() {
+        // The robustness tests' find: with a sample size the box holds no
+        // table, and its count went unchecked into the sample tables' arrays.
+        var bytes = ClipFixtures.bytes("clip-av1.mp4");
+        var stsz = indexOf(bytes, "stsz".getBytes(StandardCharsets.US_ASCII));
+        // After the type: version and flags, then sample_size and sample_count.
+        System.arraycopy(new byte[] {0, 0, 0, 1, 0x7F, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF}, 0, bytes, stsz + 8, 8);
+        var e = assertThrows(
+                MediaException.class, () -> Mp4Container.open(ClipFixtures.source("x.mp4"), new MemoryIO(bytes)));
+        assertInstanceOf(MediaError.InvalidData.class, e.error());
+    }
+
+    private static int indexOf(byte[] bytes, byte[] pattern) {
+        outer:
+        for (var i = 0; i + pattern.length <= bytes.length; i++) {
+            for (var j = 0; j < pattern.length; j++) {
+                if (bytes[i + j] != pattern[j]) {
+                    continue outer;
+                }
+            }
+            return i;
+        }
+        throw new AssertionError("pattern not in the fixture");
+    }
+
+    @Test
     @DisplayName("closing is idempotent, and a read after it is a programming error")
     void closes() {
         var container = open("tone-flac.mp4");

@@ -20,6 +20,10 @@ Everything below is measured against 2026.2 (tag commit d3eacfdc).
 ### Breaking changes
 
 #### Java API
+
+- `Slider` has a fourteenth component, `marks`; the thirteen-argument
+  constructor stays and means none. A record pattern over `Slider` names
+  fourteen components. <!-- ADR-0655 -->
 #### goldberry-media: FFmpeg left the module
 
 - The natives classifiers are `natives-<target>`, not `ffmpeg-<target>`:
@@ -40,6 +44,14 @@ Everything below is measured against 2026.2 (tag commit d3eacfdc).
   passes over NVDEC, VA-API and V4L2; VideoToolbox is asked for its software
   decoder), and a provider with only hardware should say it does not support
   the track. The built-in decoders are software either way. <!-- ADR-0654 -->
+- `MediaInfo` has a sixth component, `chapters`; the five-argument
+  constructor stays and means none. A record pattern over `MediaInfo` names
+  six components. <!-- ADR-0655 -->
+- An MP4's QuickTime chapter track is the source's chapters, and is no longer
+  listed among its tracks as a subtitle track. <!-- ADR-0655 -->
+- `MediaIO` has a default method, `readAhead(long)`. An application's
+  `MediaIO` that wraps another forwards it, or the wrapped source keeps its
+  first read-ahead. <!-- ADR-0657 -->
 - The system property `goldberry.media.ffmpegLog` is gone.
   `goldberry.media.libdir` still names a directory holding the library and its
   `media-layout.properties`. <!-- ADR-0651 -->

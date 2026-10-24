@@ -1108,6 +1108,21 @@ slider-span {
   background: var(--gb-slider-span-bg);
 }
 
+/* A point the application notches in the groove -- where a media seek bar's
+   chapters start (Slider.marks). Placed by the widget as a span is, out of flow,
+   with both insets meeting at the point: a box of no width, which the negative
+   margins widen to 2px, one each way, so it stays centred on the point. Over
+   the fill and under the thumb, in the colour of what the groove sits on, so it
+   reads as a gap in the groove rather than a mark on it. */
+slider-mark {
+  margin: 0 -1px;
+  background: var(--gb-slider-mark-bg);
+}
+
+slider.vertical slider-mark {
+  margin: -1px 0;
+}
+
 /* The row's thumb 16 at `full` radius -- `border-radius: 50%` of whatever size the
    token gives it, through the four cubics the painter already ships, so no native
    symbol and no new drawing code. It carries no transform at all, which is the whole difference from

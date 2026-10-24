@@ -24,6 +24,7 @@ import dev.goldberry.media.MediaError;
 import dev.goldberry.media.MediaException;
 import dev.goldberry.media.MediaInfo;
 import dev.goldberry.media.Track;
+import dev.goldberry.media.chapter.VorbisComments;
 import dev.goldberry.media.codec.CodecId;
 import dev.goldberry.media.codec.DecoderRequest;
 import dev.goldberry.media.codec.Packet;
@@ -137,7 +138,12 @@ public final class OggContainer implements Container {
             tracks.add(new Track(
                     stream.index, stream.codec, stream.name, stream.params, duration, stream.index == 0, false));
         }
-        this.info = new MediaInfo(source, longest, tracks, io.isSeekable(), io.isLive());
+        var chapters = streams.stream()
+                .map(stream -> VorbisComments.chapters(stream.comments()))
+                .filter(stated -> !stated.isEmpty())
+                .findFirst()
+                .orElse(List.of());
+        this.info = new MediaInfo(source, longest, tracks, io.isSeekable(), io.isLive(), chapters);
     }
 
     /// Opens an Ogg file over `io`, positioned at its start.

@@ -17,6 +17,8 @@ import org.jspecify.annotations.Nullable;
 import dev.goldberry.icon.Icon;
 import dev.goldberry.input.event.KeyEvent;
 import dev.goldberry.input.key.Mod;
+import dev.goldberry.media.Chapter;
+import dev.goldberry.media.MediaInfo;
 import dev.goldberry.media.MediaPlayer;
 import dev.goldberry.media.PlaybackState;
 import dev.goldberry.media.PlayerStatus;
@@ -68,6 +70,13 @@ import dev.goldberry.widgets.text.Text;
 /// shows after the rate and stops it when pressed; a player that is not looping
 /// shows none, so it looks as it always did.
 ///
+/// ## Chapters
+///
+/// A source with chapters ([MediaInfo#chapters()]) notches the seek bar where
+/// each starts but the first ([Slider#marks()]), shows the title of the one
+/// playing after the elapsed time (`.media-chapter`), and answers `Page Up` and
+/// `Page Down`. A source without shows none of it.
+///
 /// ## What is buffered
 ///
 /// A network source's [PlayerStatus#bufferedRanges()] are the seek bar's
@@ -84,6 +93,7 @@ import dev.goldberry.widgets.text.Text;
 /// | `M` | mute or unmute |
 /// | `L` | play the source over and over, or stop |
 /// | `Home` | back to the start |
+/// | `Page Up` / `Page Down` | the chapter before, or the next ([MediaPlayer#previousChapter]) |
 /// | `,` / `.` | a picture back or on, pausing |
 /// | `<` / `>` (`Shift`+`,` / `.`) | slower or faster, through [#RATES] |
 /// | `F` | fullscreen, or back (`media-player`, where the host has a window) |
@@ -169,6 +179,7 @@ final class Transport {
                 !status.state().hasMedia(),
                 Attributes.NONE.classes("media-play")));
         controls.add(new Text(MediaTime.format(status.position()), Attributes.NONE.classes("media-time")));
+        chapterTitle(status).ifPresent(controls::add);
         var duration = status.duration().filter(length -> !length.isZero());
         if (status.state().hasMedia() && status.seekable() && duration.isPresent()) {
             var total = seconds(duration.get());
@@ -176,6 +187,7 @@ final class Transport {
                     new Slider(0, total, Math.min(seconds(status.position()), total), 0, value -> scrub(player, value))
                             .onCommit(value -> settle(player, value))
                             .spans(buffered(status))
+                            .marks(chapterMarks(status))
                             .withAttributes(Attributes.NONE.classes("media-seek")));
             controls.add(new Text(
                     MediaTime.remaining(status.position(), duration.get()), Attributes.NONE.classes("media-time")));
@@ -231,6 +243,32 @@ final class Transport {
         return status.bufferedRanges().stream()
                 .map(range -> new Slider.Span(seconds(range.start()), seconds(range.end())))
                 .toList();
+    }
+
+    /// Where the source's chapters start, as the seek bar's marks, in seconds;
+    /// the first is left out where it starts at zero, which is the bar's own end.
+    static List<Double> chapterMarks(PlayerStatus status) {
+        return chapters(status).stream()
+                .map(Chapter::start)
+                .filter(start -> !start.isZero())
+                .map(Transport::seconds)
+                .toList();
+    }
+
+    /// The title of the chapter playing, as a label: none for a source without
+    /// chapters, or a chapter without a title.
+    static Optional<Widget> chapterTitle(PlayerStatus status) {
+        if (!status.state().hasMedia()) {
+            return Optional.empty();
+        }
+        return status.info()
+                .flatMap(info -> info.chapterAt(status.position()))
+                .flatMap(Chapter::title)
+                .map(title -> new Text(title, Attributes.NONE.classes("media-chapter")));
+    }
+
+    private static List<Chapter> chapters(PlayerStatus status) {
+        return status.info().map(MediaInfo::chapters).orElse(List.of());
     }
 
     /// The audio track menu, when the source has more than one audio track to
@@ -416,6 +454,8 @@ final class Transport {
                 }
                 yield true;
             }
+            case PAGE_UP -> player.previousChapter();
+            case PAGE_DOWN -> player.nextChapter();
             case F -> {
                 if (fullscreen == null) {
                     yield false;

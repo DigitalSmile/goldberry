@@ -5,15 +5,15 @@
 # 1. Copies the library into OUT under its own name. Any library already in OUT
 #    goes first: the natives jar packs the whole directory, and a library under
 #    a name no longer built would ship beside the new one.
-# 2. Strips it.
+# 2. Strips it, unless STRIP is empty: a sanitizer build keeps its symbols.
 # 3. Fails the build when it is larger than SIZE_LIMIT (target 5 MB, fail
-#    above 6).
+#    above 6). A SIZE_LIMIT of 0, a sanitizer build's, gates nothing.
 # 4. Writes media-NOTICE.txt: what was built, from which tags, under which
 #    licences. Every upstream is BSD or CC0, so the notice is the whole of what
 #    their licences ask for; the texts themselves travel in licenses/ as they
 #    do for libgoldberry's upstreams.
 #
-# In: LIBRARY, OUT, SYSTEM, STRIP, SIZE_LIMIT, DAV1D_REF, LIBVPX_REF, OPUS_REF,
+# In: LIBRARY, OUT, SYSTEM, STRIP, SIZE_LIMIT, SANITIZE, DAV1D_REF, LIBVPX_REF, OPUS_REF,
 #     OGG_REF, VORBIS_REF, FLAC_REF, LIBYUV_REF, MINIMP3_REF, TARGET_ID.
 # ============================================================================
 cmake_minimum_required(VERSION 3.28)
@@ -38,7 +38,7 @@ endif()
 file(SIZE "${OUT}/${_name}" _size)
 math(EXPR _kb "${_size} / 1024")
 message(STATUS "libgoldberry-media for ${TARGET_ID}: ${_name} (${_kb} KB)")
-if(_size GREATER SIZE_LIMIT)
+if(SIZE_LIMIT GREATER 0 AND _size GREATER SIZE_LIMIT)
     math(EXPR _limit_kb "${SIZE_LIMIT} / 1024")
     message(FATAL_ERROR
         "libgoldberry-media for ${TARGET_ID} is ${_kb} KB, over the ${_limit_kb} KB gate.\n"
@@ -67,3 +67,8 @@ above, which gradle/libs.versions.toml pins.
 
 Library: ${_name} (${_kb} KB)
 ")
+if(SANITIZE)
+    file(APPEND "${OUT}/media-NOTICE.txt" "
+Built with -fsanitize=${SANITIZE} for testing; not for distribution.
+")
+endif()

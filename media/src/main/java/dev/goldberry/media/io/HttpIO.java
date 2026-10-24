@@ -39,7 +39,9 @@ import org.jspecify.annotations.Nullable;
 ///   plays front to back.
 /// - **A read-ahead cache** ([ReadAheadCache]). A fetcher thread reads ahead of
 ///   the demuxer, up to [Options#readAhead()] past it, into a cache of
-///   [Options#cacheSize()]. A read the cache can answer never touches the
+///   [Options#cacheSize()]. The Engine raises the read-ahead to half a minute
+///   of the stream once it knows the bitrate ([#readAhead(long)]), as far as
+///   the cache has room. A read the cache can answer never touches the
 ///   network, and a seek into what is cached opens no connection. A seek
 ///   outside it abandons the connection in hand and opens one at the new
 ///   position. [#buffered()] is what the cache holds.
@@ -193,6 +195,9 @@ public final class HttpIO implements MediaIO {
     private final Thread fetcher;
 
     // Guarded by `lock`.
+    /// How far past the reader the fetcher reads: the options' read-ahead,
+    /// until [#readAhead(long)] raises it.
+    private long readAhead;
     private long position;
     private long size;
     /// Where a body of unknown length ended, or -1.
@@ -226,6 +231,7 @@ public final class HttpIO implements MediaIO {
         this.live = first.icy() || (!first.ranged() && first.total() < 0);
         this.radio = first.icy();
         this.cache = new ReadAheadCache(options.cacheSize());
+        this.readAhead = options.readAhead();
         var stream = wrap(first);
         this.body = stream;
         this.lastProgress = System.nanoTime();
@@ -383,6 +389,31 @@ public final class HttpIO implements MediaIO {
         }
     }
 
+    /// Fetches `bytes` past the reader from now on, kept at or above
+    /// [Options#readAhead()] and at most what the cache holds beyond two chunks,
+    /// the room [Options] already insists on. The fetcher is woken, so a raise
+    /// takes effect at once.
+    @Override
+    public void readAhead(long bytes) {
+        lock.lock();
+        try {
+            readAhead = Math.clamp(bytes, options.readAhead(), options.cacheSize() - 2L * ReadAheadCache.CHUNK);
+            changed.signalAll();
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    /// How far past the reader the fetcher reads now.
+    long currentReadAhead() {
+        lock.lock();
+        try {
+            return readAhead;
+        } finally {
+            lock.unlock();
+        }
+    }
+
     /// The last `StreamTitle` at or before the reader's position, when the
     /// server sends ICY metadata and the title is not blank.
     @Override
@@ -532,7 +563,7 @@ public final class HttpIO implements MediaIO {
             if (failure == null) {
                 var want = seekable ? cache.firstMissing(position) : fetchPosition;
                 var beforeEnd = (size < 0 || want < size) && (endAt < 0 || want < endAt);
-                if (beforeEnd && want - position < options.readAhead()) {
+                if (beforeEnd && want - position < readAhead) {
                     return want;
                 }
             }
@@ -597,7 +628,7 @@ public final class HttpIO implements MediaIO {
             while (true) {
                 lock.lock();
                 try {
-                    while (!closed && connection == generation && at - position >= options.readAhead()) {
+                    while (!closed && connection == generation && at - position >= readAhead) {
                         waitingForRoom = true;
                         changed.await();
                     }

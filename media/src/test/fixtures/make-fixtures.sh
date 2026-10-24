@@ -174,6 +174,39 @@ $ff -i "$tone" -c:a libmp3lame -b:a 128k -f avi "$out/tone-mp3.avi"
 $ff -f lavfi -i "$tiny" -i "$tone" -t 0.2 -c:v mpeg2video -c:a mp2 -f mpegts "$out/clip-mpeg2.ts"
 $ff -f lavfi -i "$tiny" -c:v flv1 -an -f flv "$out/clip-flv1.flv"
 
+# --- Chapters: the tone with three, Intro at 0, Middle at 0.3 s and Coda at
+# 0.7 s, in every container that states chapters. Matroska and the M4A (a
+# QuickTime chapter track and a Nero chpl both) from FFmpeg; the MP3's are
+# ID3v2 CHAP frames. Ogg and FLAC write them as CHAPTERnnn comments: FFmpeg
+# writes the Ogg Opus one a second late for Coda, which fix-ogg-chapter.py
+# puts back, and does not write FLAC's at all, which flac-chapters.py does.
+cat > "$work/chapters.txt" <<'META'
+;FFMETADATA1
+[CHAPTER]
+TIMEBASE=1/1000
+START=0
+END=300
+title=Intro
+[CHAPTER]
+TIMEBASE=1/1000
+START=300
+END=700
+title=Middle
+[CHAPTER]
+TIMEBASE=1/1000
+START=700
+END=1000
+title=Coda
+META
+chapters="-i $work/chapters.txt -map_metadata 1 -map_chapters 1"
+$ff -i "$tone" $chapters -c:a flac "$out/tone-chapters.mkv"
+$ff -i "$tone" $chapters -c:a aac -b:a 32k "$out/tone-chapters.m4a"
+$ff -i "$tone" $chapters -c:a libmp3lame -b:a 64k "$out/tone-chapters.mp3"
+$ff -i "$tone" $chapters -c:a libopus -b:a 32k "$out/tone-chapters.opus"
+python3 -I fix-ogg-chapter.py "$out/tone-chapters.opus" "CHAPTER002=00:00:01.700" "CHAPTER002=00:00:00.700"
+$ff -i "$tone" -c:a flac "$out/tone-chapters.flac"
+python3 -I flac-chapters.py "$out/tone-chapters.flac"
+
 rm -r "$work"
 ls -l "$out"
 

@@ -21,6 +21,11 @@ is our own content and carries no third-party licence:
 | `tone.ogg` | Ogg | Vorbis | |
 | `tone.mp3` | MP3 | MP3 | |
 | `tone-cover.mp3` | MP3 | MP3, PNG cover art | the attached-picture track |
+| `tone-chapters.mkv` | Matroska | FLAC; three chapters, Intro 0–0.3 s, Middle 0.3–0.7 s, Coda 0.7–1 s, in `Chapters` | chapters: an edition's atoms, their ends and titles |
+| `tone-chapters.m4a` | MP4 | AAC; the same chapters as a QuickTime chapter track (`tref/chap`) and a Nero `chpl` | chapters: the chapter track is read, and is not a subtitle track |
+| `tone-chapters.mp3` | MP3 | MP3; the same chapters as ID3v2.4 `CHAP` frames titled by `TIT2` | chapters: a podcast's |
+| `tone-chapters.opus` | Ogg | Opus; the same chapters as `CHAPTERnnn` comments, Coda's time put back by `fix-ogg-chapter.py` | chapters: Xiph comments in `OpusTags` |
+| `tone-chapters.flac` | FLAC | FLAC; the same chapters as `CHAPTERnnn` comments, written by `flac-chapters.py` | chapters: the `VORBIS_COMMENT` block |
 | `clip-vp8.webm` | WebM | VP8, Opus | phase 3: decode, and the byte-exact goldens of S5 |
 | `clip-vp9.webm` | WebM | VP9, Opus | phase 3 |
 | `clip-av1.mkv` | Matroska | AV1, Opus | phase 3 (dav1d) |

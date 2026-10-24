@@ -126,6 +126,19 @@ public final class MatroskaIds {
     public static final long FILE_MEDIA_TYPE = 0x4660;
     public static final long FILE_DATA = 0x465C;
 
+    // ---- Chapters ------------------------------------------------------------
+
+    public static final long EDITION_ENTRY = 0x45B9;
+    public static final long EDITION_FLAG_HIDDEN = 0x45BD;
+    public static final long EDITION_FLAG_DEFAULT = 0x45DB;
+    public static final long CHAPTER_ATOM = 0xB6;
+    public static final long CHAPTER_TIME_START = 0x91;
+    public static final long CHAPTER_TIME_END = 0x92;
+    public static final long CHAPTER_FLAG_HIDDEN = 0x98;
+    public static final long CHAPTER_FLAG_ENABLED = 0x4598;
+    public static final long CHAPTER_DISPLAY = 0x80;
+    public static final long CHAP_STRING = 0x85;
+
     /// Whether `id` is one of the Segment's direct children, which is how a
     /// Cluster of unknown size is known to have ended.
     public static boolean isTopLevel(long id) {

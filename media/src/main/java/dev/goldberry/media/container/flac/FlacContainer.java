@@ -15,10 +15,12 @@ import java.util.Set;
 
 import org.jspecify.annotations.Nullable;
 
+import dev.goldberry.media.Chapter;
 import dev.goldberry.media.MediaError;
 import dev.goldberry.media.MediaException;
 import dev.goldberry.media.MediaInfo;
 import dev.goldberry.media.Track;
+import dev.goldberry.media.chapter.VorbisComments;
 import dev.goldberry.media.codec.CodecId;
 import dev.goldberry.media.codec.DecoderRequest;
 import dev.goldberry.media.codec.Packet;
@@ -39,7 +41,8 @@ import dev.goldberry.media.io.Source;
 /// there is one, says where some samples' frames start, and a seek without one
 /// estimates the byte from the sample count and walks to the next frame. A
 /// PICTURE block is the cover art, an attached-picture track handed over as
-/// one packet.
+/// one packet, and the VORBIS_COMMENT block's `CHAPTERnnn` comments are the
+/// chapters.
 ///
 /// Timestamps are sample counts (time base `1 / rate`), from the frame header's
 /// own number: the frame's index times the fixed block size, or the sample
@@ -50,6 +53,10 @@ public final class FlacContainer implements Container {
     private static final byte[] MARKER = "fLaC".getBytes(StandardCharsets.US_ASCII);
     private static final int BLOCK_STREAMINFO = 0;
     private static final int BLOCK_SEEKTABLE = 3;
+    private static final int BLOCK_VORBIS_COMMENT = 4;
+    /// A comment block longer than this is skipped unread: chapters and tags
+    /// are a few kilobytes, and the block is held on the heap while it is read.
+    private static final int LARGEST_COMMENTS = 1024 * 1024;
     private static final int BLOCK_PICTURE = 6;
     private static final int STREAMINFO_SIZE = 34;
     /// The most a frame can be, when STREAMINFO does not say: FLAC's own bound.
@@ -87,6 +94,7 @@ public final class FlacContainer implements Container {
         byte[] streamInfo = null;
         var points = new ArrayList<SeekPoint>();
         Picture cover = null;
+        List<Chapter> chapters = List.of();
         var last = false;
         while (!last) {
             var header = in.u8();
@@ -112,6 +120,13 @@ public final class FlacContainer implements Container {
                         }
                     }
                     in.skip(length - count * 18L);
+                }
+                case BLOCK_VORBIS_COMMENT -> {
+                    if (length <= LARGEST_COMMENTS) {
+                        chapters = VorbisComments.chapters(VorbisComments.parse(in.bytes(length), 0));
+                    } else {
+                        in.skip(length);
+                    }
                 }
                 case BLOCK_PICTURE -> {
                     var end = in.position() + length;
@@ -192,7 +207,7 @@ public final class FlacContainer implements Container {
         if (cover != null) {
             tracks.add(cover.track());
         }
-        this.info = new MediaInfo(source, duration, tracks, io.isSeekable(), io.isLive());
+        this.info = new MediaInfo(source, duration, tracks, io.isSeekable(), io.isLive(), chapters);
     }
 
     /// Opens a FLAC file over `io`, positioned at its start.

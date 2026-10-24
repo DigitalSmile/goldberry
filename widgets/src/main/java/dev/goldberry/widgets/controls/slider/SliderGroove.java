@@ -42,18 +42,22 @@ import dev.goldberry.widget.style.Styled;
 ///
 /// The slider's [Slider#spans()] come first, as [SliderSpan]s placed out of flow,
 /// so they take no part in the ratio and are painted under the fill and the
-/// thumb.
+/// thumb. Its [Slider#marks()] come after the fill, as [SliderMark]s placed the
+/// same way, so a notch shows over the filled part too and the thumb still
+/// covers it.
 ///
 /// @param fraction where the thumb sits, `0..1`
 /// @param disabled inherited from the slider, so a part is selectable without a
 ///                 descendant combinator
 /// @param spans    stretches to mark, as fractions of the groove
-/// @param vertical whether it runs bottom to top, which the spans' insets follow
-record SliderGroove(double fraction, boolean disabled, List<Slider.Span> spans, boolean vertical)
+/// @param marks    points to notch, as fractions of the groove
+/// @param vertical whether it runs bottom to top, which the insets follow
+record SliderGroove(double fraction, boolean disabled, List<Slider.Span> spans, List<Double> marks, boolean vertical)
         implements Widget.Leaf, Styled, Paints {
 
     SliderGroove {
         spans = List.copyOf(spans);
+        marks = List.copyOf(marks);
     }
 
     @Override
@@ -73,11 +77,14 @@ record SliderGroove(double fraction, boolean disabled, List<Slider.Span> spans, 
 
     @Override
     public List<Widget> children() {
-        var children = new ArrayList<Widget>(spans.size() + 3);
+        var children = new ArrayList<Widget>(spans.size() + marks.size() + 3);
         for (var span : spans) {
             children.add(new SliderSpan(span.from(), span.to(), vertical, disabled));
         }
         children.add(new SliderFill(fraction, disabled));
+        for (var mark : marks) {
+            children.add(new SliderMark(mark, vertical, disabled));
+        }
         children.add(new SliderThumb(disabled));
         children.add(new SliderRest(1 - fraction));
         return List.copyOf(children);

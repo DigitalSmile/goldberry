@@ -31,12 +31,15 @@ import dev.goldberry.widget.style.Styled;
 /// @param disabled inherited from the slider, so a part is selectable without a
 ///                 descendant combinator
 /// @param spans    the slider's spans as fractions of the groove, passed to it
+/// @param marks    the slider's marks as fractions of the groove, passed to it
 /// @param vertical whether the groove runs bottom to top
-record SliderTrack(double fraction, int ticks, boolean disabled, List<Slider.Span> spans, boolean vertical)
+record SliderTrack(
+        double fraction, int ticks, boolean disabled, List<Slider.Span> spans, List<Double> marks, boolean vertical)
         implements Widget.Leaf, Styled, Paints {
 
     SliderTrack {
         spans = List.copyOf(spans);
+        marks = List.copyOf(marks);
     }
 
     @Override
@@ -57,7 +60,7 @@ record SliderTrack(double fraction, int ticks, boolean disabled, List<Slider.Spa
     @Override
     public List<Widget> children() {
         var children = new ArrayList<Widget>(2);
-        children.add(new SliderGroove(fraction, disabled, spans, vertical));
+        children.add(new SliderGroove(fraction, disabled, spans, marks, vertical));
         if (ticks >= 2) {
             children.add(new SliderTicks(ticks, disabled));
         }

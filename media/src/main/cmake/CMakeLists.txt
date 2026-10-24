@@ -71,8 +71,44 @@ set(GOLDBERRY_MAKE "make" CACHE FILEPATH "make, for libvpx")
 # MSYS2's sh.
 set(GOLDBERRY_SH "sh" CACHE FILEPATH "a POSIX sh, for libvpx's configure on Windows")
 
-# The size gate: target 5 MB, fail above 6.
+# The sanitizer build: empty for the library that ships; `address`, or
+# `address,undefined`, for the one the sanitizer lane tests against
+# (`:media:nativesBuildAsan`). Everything native is compiled with it: every
+# upstream, libyuv, minimp3 and the file of our own, so that a read past the end
+# of a packet or a picture inside a decoder is reported where it happens, not
+# after it has corrupted something. The library is kept with its symbols and
+# not size-gated, and it must be built into an install prefix and a deps
+# directory of its own: the upstreams' builds are cached there, and a
+# sanitized archive linked into the release library would need the runtime.
+set(GOLDBERRY_MEDIA_SANITIZE "" CACHE STRING
+    "Sanitizers to build with (-fsanitize=), e.g. address or address,undefined; empty for a release build")
+if(GOLDBERRY_MEDIA_SANITIZE)
+    if(NOT GOLDBERRY_MEDIA_SANITIZE MATCHES "^(address|undefined|address,undefined|undefined,address)$")
+        message(FATAL_ERROR "GOLDBERRY_MEDIA_SANITIZE is '${GOLDBERRY_MEDIA_SANITIZE}'; "
+            "it takes address, undefined or address,undefined.")
+    endif()
+    if(WIN32 OR APPLE)
+        message(FATAL_ERROR "The sanitizer build is a Linux build: GCC's libasan, preloaded into the JVM.")
+    endif()
+    # -g for the reports' stack traces; the frame pointer for the fast unwinder.
+    # UBSan's checks stay recoverable, GCC's default, because only a recoverable
+    # report can be suppressed at run time: two upstreams have undefined
+    # behaviour of their own (media/src/test/sanitizer/ubsan.supp), and the lane
+    # makes every other report fatal with halt_on_error.
+    set(_sanitize_flags "-fsanitize=${GOLDBERRY_MEDIA_SANITIZE} -fno-omit-frame-pointer -g")
+    message(STATUS "goldberry-media: sanitizer build (${_sanitize_flags})")
+else()
+    set(_sanitize_flags "")
+endif()
+
+# The size gate: target 5 MB, fail above 6. A sanitizer build is several times
+# the size and is never shipped, so it has none.
 set(GOLDBERRY_MEDIA_SIZE_LIMIT 6291456 CACHE STRING "Largest size of the stripped library, in bytes")
+if(GOLDBERRY_MEDIA_SANITIZE)
+    set(_size_limit 0)
+else()
+    set(_size_limit ${GOLDBERRY_MEDIA_SIZE_LIMIT})
+endif()
 
 # ----------------------------------------------------------------------------
 # Pins, read from gradle/libs.versions.toml and nowhere else. The
@@ -143,6 +179,9 @@ set(_cflags "-O2 -fPIC")
 if(APPLE AND CMAKE_OSX_DEPLOYMENT_TARGET)
     string(APPEND _cflags " -mmacosx-version-min=${CMAKE_OSX_DEPLOYMENT_TARGET}")
 endif()
+if(_sanitize_flags)
+    string(APPEND _cflags " ${_sanitize_flags}")
+endif()
 set(_cmake_common
     -G Ninja
     -DCMAKE_BUILD_TYPE=Release
@@ -158,6 +197,13 @@ set(_cmake_common
     "-DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}"
     "-DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}"
     "-DCMAKE_MAKE_PROGRAM=${CMAKE_MAKE_PROGRAM}")
+if(_sanitize_flags)
+    # The upstreams' own configure checks link test programs, which need the
+    # runtime the instrumented objects call.
+    list(APPEND _cmake_common
+        "-DCMAKE_EXE_LINKER_FLAGS=-fsanitize=${GOLDBERRY_MEDIA_SANITIZE}"
+        "-DCMAKE_SHARED_LINKER_FLAGS=-fsanitize=${GOLDBERRY_MEDIA_SANITIZE}")
+endif()
 if(APPLE AND CMAKE_OSX_DEPLOYMENT_TARGET)
     list(APPEND _cmake_common "-DCMAKE_OSX_DEPLOYMENT_TARGET=${CMAKE_OSX_DEPLOYMENT_TARGET}")
 endif()
@@ -169,6 +215,13 @@ endif()
 # trim_dsp. Needs nasm on x86; its arm64 assembly is GNU as.
 # ----------------------------------------------------------------------------
 goldberry_source(dav1d https://code.videolan.org/videolan/dav1d.git ${GOLDBERRY_DAV1D_REF} _dav1d_source)
+set(_dav1d_sanitize "")
+if(_sanitize_flags)
+    # As compiler arguments rather than meson's b_sanitize, so that the flags
+    # are the very ones every other upstream gets; meson splits them like a shell.
+    set(_dav1d_sanitize "-Dc_args=${_sanitize_flags}" "-Dc_link_args=-fsanitize=${GOLDBERRY_MEDIA_SANITIZE}"
+        -Db_lundef=false)
+endif()
 ExternalProject_Add(dav1d
     ${_dav1d_source}
     PREFIX "${GOLDBERRY_MEDIA_DEPS_DIR}/dav1d"
@@ -178,6 +231,7 @@ ExternalProject_Add(dav1d
         --buildtype=release -Doptimization=2 --default-library=static
         -Db_staticpic=true
         -Denable_tools=false -Denable_tests=false -Denable_examples=false -Denable_docs=false
+        ${_dav1d_sanitize}
     BUILD_COMMAND ${GOLDBERRY_MESON} compile -C <BINARY_DIR>
     INSTALL_COMMAND ${GOLDBERRY_MESON} install -C <BINARY_DIR>
     BUILD_BYPRODUCTS "${_stage}/lib/libdav1d.a"
@@ -202,8 +256,13 @@ set(GOLDBERRY_LIBVPX_CONFIGURE
     --disable-install-bins --disable-install-docs --disable-install-srcs
     --disable-vp8-encoder --disable-vp9-encoder
     --enable-vp9-highbitdepth
-    --enable-pic --disable-shared --enable-static
-    --extra-cflags=-O2)
+    --enable-pic --disable-shared --enable-static)
+if(_sanitize_flags)
+    list(APPEND GOLDBERRY_LIBVPX_CONFIGURE
+        "--extra-cflags=-O2 ${_sanitize_flags}" "--extra-cxxflags=-O2 ${_sanitize_flags}")
+else()
+    list(APPEND GOLDBERRY_LIBVPX_CONFIGURE --extra-cflags=-O2)
+endif()
 if(CMAKE_SYSTEM_PROCESSOR MATCHES "^(x86_64|AMD64|amd64)$")
     list(APPEND GOLDBERRY_LIBVPX_CONFIGURE --as=nasm)
 endif()
@@ -217,11 +276,17 @@ if(WIN32)
 else()
     set(_vpx_configure <SOURCE_DIR>/configure)
 endif()
+# configure links its test programs with LDFLAGS, which a sanitized object
+# needs the runtime for.
+set(_vpx_ldflags "")
+if(_sanitize_flags)
+    set(_vpx_ldflags "LDFLAGS=-fsanitize=${GOLDBERRY_MEDIA_SANITIZE}")
+endif()
 ExternalProject_Add(libvpx
     ${_libvpx_source}
     PREFIX "${GOLDBERRY_MEDIA_DEPS_DIR}/libvpx"
     BINARY_DIR "${GOLDBERRY_MEDIA_DEPS_DIR}/libvpx-build"
-    CONFIGURE_COMMAND ${CMAKE_COMMAND} -E env "CC=${CMAKE_C_COMPILER}" "CXX=${CMAKE_CXX_COMPILER}"
+    CONFIGURE_COMMAND ${CMAKE_COMMAND} -E env "CC=${CMAKE_C_COMPILER}" "CXX=${CMAKE_CXX_COMPILER}" ${_vpx_ldflags}
         ${_vpx_configure} ${GOLDBERRY_LIBVPX_CONFIGURE}
     BUILD_COMMAND ${GOLDBERRY_MAKE} -j${_jobs}
     INSTALL_COMMAND ${GOLDBERRY_MAKE} install
@@ -331,6 +396,14 @@ target_include_directories(goldberry_media PRIVATE
     "${libyuv_SOURCE_DIR}/include"
     "${minimp3_SOURCE_DIR}")
 target_compile_options(goldberry_media PRIVATE -O2)
+if(_sanitize_flags)
+    separate_arguments(_sanitize_list UNIX_COMMAND "${_sanitize_flags}")
+    target_compile_options(goldberry_media PRIVATE ${_sanitize_list})
+    # GCC links its sanitizer runtimes as shared libraries, so the library
+    # names libasan (and libubsan) and `-z defs` is satisfied. The process that
+    # loads it must have libasan first: the JVM gets it through LD_PRELOAD.
+    target_link_options(goldberry_media PRIVATE "-fsanitize=${GOLDBERRY_MEDIA_SANITIZE}")
+endif()
 target_compile_definitions(goldberry_media PRIVATE
     # libyuv's SVE and SME paths need a compiler that knows them; NEON is the
     # arm64 path here, on every arm64 toolchain.
@@ -443,6 +516,12 @@ if(WIN32)
 endif()
 
 set(_out "${CMAKE_INSTALL_PREFIX}/lib")
+# A sanitizer build keeps its symbols, which its reports name frames by.
+if(_sanitize_flags)
+    set(_strip "")
+else()
+    set(_strip "${CMAKE_STRIP}")
+endif()
 
 add_custom_target(media_package ALL
     COMMAND ${CMAKE_COMMAND} -E make_directory "${_out}"
@@ -457,8 +536,9 @@ add_custom_target(media_package ALL
         -DLIBRARY=$<TARGET_FILE:goldberry_media>
         -DOUT=${_out}
         -DSYSTEM=${CMAKE_SYSTEM_NAME}
-        -DSTRIP=${CMAKE_STRIP}
-        -DSIZE_LIMIT=${GOLDBERRY_MEDIA_SIZE_LIMIT}
+        -DSTRIP=${_strip}
+        -DSIZE_LIMIT=${_size_limit}
+        -DSANITIZE=${GOLDBERRY_MEDIA_SANITIZE}
         -DDAV1D_REF=${GOLDBERRY_DAV1D_REF}
         -DLIBVPX_REF=${GOLDBERRY_LIBVPX_REF}
         -DOPUS_REF=${GOLDBERRY_OPUS_REF}

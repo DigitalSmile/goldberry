@@ -767,6 +767,7 @@ public final class Playback implements AutoCloseable {
             }
             var described = opened.info();
             info = described;
+            PrefetchWindow.bytes(described, bytes.size()).ifPresent(bytes::readAhead);
             var audio = described.defaultTrack(MediaType.AUDIO);
             var video = described.defaultTrack(MediaType.VIDEO);
             if (audio.isEmpty() && video.isEmpty()) {

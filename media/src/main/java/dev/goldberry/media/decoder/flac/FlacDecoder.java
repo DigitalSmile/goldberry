@@ -53,10 +53,10 @@ import dev.goldberry.media.ffm.calls.FlacCalls;
 /// end-of-stream only when the queue is empty, which a whole frame never
 /// provokes; a packet that does provoke it was not a frame, and is an error.
 ///
-/// Samples up to 16 bits wide come out as [SampleFormat#S16_PLANAR] as they
-/// are; wider ones as [SampleFormat#S32_PLANAR], shifted up to the top of the
-/// word so that the later conversion to float is one division by 2³¹ whatever
-/// the depth.
+/// Samples up to 16 bits wide come out as [SampleFormat#S16_PLANAR], wider ones
+/// as [SampleFormat#S32_PLANAR], each shifted up to the top of its word so that
+/// the later conversion to float is one division by 2¹⁵ or 2³¹ whatever the
+/// depth.
 public final class FlacDecoder implements Decoder {
 
     /// `FLAC__StreamDecoderReadStatus (*)(const FLAC__StreamDecoder *, FLAC__byte buffer[], size_t *bytes, void
@@ -457,14 +457,16 @@ public final class FlacDecoder implements Decoder {
             var pointers = buffer.reinterpret(channels * ADDRESS.byteSize());
             var planeLength = format.planeSize(channels, blocksize);
             ensurePlanes(channels, (long) blocksize * Integer.BYTES);
-            var shift = 32 - bits;
+            // To the top of the sample: an 8- or 12-bit sample is as loud in 16
+            // bits as it was in its own, as FFmpeg's decoder makes it.
+            var shift = (format == SampleFormat.S16_PLANAR ? 16 : 32) - bits;
             var frames = new ArrayList<MemorySegment>(channels);
             for (var channel = 0; channel < channels; channel++) {
                 var source = pointers.getAtIndex(ADDRESS, channel).reinterpret((long) blocksize * Integer.BYTES);
                 var plane = planes[channel];
                 if (format == SampleFormat.S16_PLANAR) {
                     for (var i = 0; i < blocksize; i++) {
-                        plane.setAtIndex(JAVA_SHORT, i, (short) source.getAtIndex(JAVA_INT, i));
+                        plane.setAtIndex(JAVA_SHORT, i, (short) (source.getAtIndex(JAVA_INT, i) << shift));
                     }
                 } else {
                     for (var i = 0; i < blocksize; i++) {

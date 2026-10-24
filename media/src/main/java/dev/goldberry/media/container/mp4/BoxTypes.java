@@ -20,6 +20,8 @@ final class BoxTypes {
     static final int TREX = fourcc("trex");
     static final int TRAK = fourcc("trak");
     static final int TKHD = fourcc("tkhd");
+    static final int TREF = fourcc("tref");
+    static final int CHAP = fourcc("chap");
     static final int EDTS = fourcc("edts");
     static final int ELST = fourcc("elst");
     static final int MDIA = fourcc("mdia");
@@ -40,6 +42,7 @@ final class BoxTypes {
     static final int META = fourcc("meta");
     static final int ILST = fourcc("ilst");
     static final int COVR = fourcc("covr");
+    static final int CHPL = fourcc("chpl");
     static final int DATA = fourcc("data");
     static final int TRAF = fourcc("traf");
     static final int TFHD = fourcc("tfhd");
