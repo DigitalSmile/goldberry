@@ -50,7 +50,7 @@ public record MediaLibrary(
 
     /// The ABI these bindings are written against: `goldberry_media_abi()` has to
     /// answer it, and `media_layout.c` writes it as `abi=`.
-    public static final int ABI = 1;
+    public static final int ABI = 2;
 
     public MediaLibrary {
         Objects.requireNonNull(lookup, "lookup");

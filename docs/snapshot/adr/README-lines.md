@@ -94,3 +94,4 @@ Appended to the index when the records move in, in this order.
 - [ADR-0650 The Gradle action stays on its open-source major](0650-the-gradle-action-stays-on-its-open-source-major.md)
 - [ADR-0651 Media decodes with the reference codecs bound directly, and FFmpeg leaves](0651-media-decodes-with-the-reference-codecs-bound-directly-and-ffmpeg-leaves.md)
 - [ADR-0652 Audio before zero is priming, and a frame within rounding follows the last](0652-audio-before-zero-is-priming-and-a-frame-within-rounding-follows-the-last.md)
+- [ADR-0653 CPU present interpolates chroma as the GPU does](0653-cpu-present-interpolates-chroma-as-the-gpu-does.md)

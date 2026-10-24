@@ -18,11 +18,9 @@ import java.util.Objects;
 /// Chroma is sited centred by default ([Siting#CENTRED]): a chroma sample
 /// midway between its two luma columns and its two rows, which is where a
 /// texel's centre already is, so the sampler reads it with no offset. CPU
-/// present's conversion takes it there too, each chroma sample covering its
-/// two-by-two block of luma; it repeats the sample over the block where the
-/// sampler here interpolates, so the two agree where chroma is flat and part
-/// at its edges. [Siting#LEFT], MPEG-2's, is a quarter of a chroma texel to
-/// the left.
+/// present's conversion sites and interpolates it the same way, so the two
+/// present paths draw the same picture to a level of rounding. [Siting#LEFT],
+/// MPEG-2's, is a quarter of a chroma texel to the left.
 ///
 /// @param layout    how the planes are stored
 /// @param matrix    the picture's matrix
@@ -58,7 +56,7 @@ public record YuvConversion(YuvLayout layout, YuvMatrix matrix, boolean fullRang
     /// Where a chroma sample sits among the luma samples it covers.
     public enum Siting {
         /// Midway between its two luma columns: JPEG's and MPEG-1's, and where
-        /// CPU present's conversion to BGRA takes it.
+        /// CPU present's conversion to BGRA interpolates it from.
         CENTRED(0),
         /// On its first luma column: MPEG-2's, H.264's and HEVC's default.
         LEFT(0.25f);

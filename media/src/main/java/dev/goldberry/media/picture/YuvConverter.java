@@ -1,5 +1,6 @@
 package dev.goldberry.media.picture;
 
+import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
 import java.util.Objects;
 
@@ -25,8 +26,14 @@ import dev.goldberry.media.ffm.calls.YuvCalls;
 ///
 /// The picture's colour is honoured: the matrix and range it was tagged with
 /// pick one of libyuv's six constant tables (BT.601, BT.709 and BT.2020, each in
-/// limited and full range), and RGB is always full range. Chroma is not
-/// interpolated: each chroma sample colours its 2×2 block.
+/// limited and full range), and RGB is always full range.
+///
+/// **Chroma is interpolated as GPU present interpolates it**: bilinearly, each
+/// chroma sample at the centre of its 2×2 block of luma (libyuv's
+/// `kFilterBilinear`, weights 9:3:3:1, edges repeated), which is what a GPU
+/// sampler does with the planes. The two present paths then draw the same
+/// picture, to a level of rounding. NV12 has no filtered conversion in libyuv,
+/// so its chroma is split into two planes first and converted as I420.
 ///
 /// **Alpha is premultiplied here.** A picture with alpha
 /// ([dev.goldberry.media.codec.PixelFormat#I420A]) is converted with libyuv's attenuation on the way out,
@@ -36,13 +43,15 @@ import dev.goldberry.media.ffm.calls.YuvCalls;
 ///
 /// Nothing is kept between pictures: libyuv has no context to build, so a
 /// converter is the library and six addresses, and may be used from any thread,
-/// by one at a time or several.
+/// by one at a time or several. An NV12 picture borrows two chroma planes for
+/// the length of its conversion.
 public final class YuvConverter implements AutoCloseable {
 
     /// libyuv's `attenuate` argument: 1 premultiplies the colour by the alpha.
     private static final int ATTENUATE = 1;
 
     private final YuvCalls yuv;
+    private final int bilinear;
     private final MemorySegment bt601Limited;
     private final MemorySegment bt601Full;
     private final MemorySegment bt709Limited;
@@ -77,6 +86,7 @@ public final class YuvConverter implements AutoCloseable {
     YuvConverter(MediaLibrary library, boolean exact) {
         Objects.requireNonNull(library, "library");
         this.yuv = library.yuv();
+        this.bilinear = library.constants().yuv().filterBilinear();
         this.bt601Limited = library.symbol("kYuvI601Constants");
         this.bt601Full = library.symbol("kYuvJPEGConstants");
         this.bt709Limited = library.symbol("kYuvH709Constants");
@@ -118,7 +128,7 @@ public final class YuvConverter implements AutoCloseable {
         var height = frame.height();
         var result = switch (frame.format()) {
             case I420 ->
-                yuv.i420ToArgbMatrix()
+                yuv.i420ToArgbMatrixFilter()
                         .call(
                                 planes.get(0),
                                 stride(frame, 0),
@@ -130,21 +140,11 @@ public final class YuvConverter implements AutoCloseable {
                                 targetStride,
                                 matrix,
                                 width,
-                                height);
-            case NV12 ->
-                yuv.nv12ToArgbMatrix()
-                        .call(
-                                planes.get(0),
-                                stride(frame, 0),
-                                planes.get(1),
-                                stride(frame, 1),
-                                target,
-                                targetStride,
-                                matrix,
-                                width,
-                                height);
+                                height,
+                                bilinear);
+            case NV12 -> nv12(frame, target, targetStride, matrix);
             case I010 ->
-                yuv.i010ToArgbMatrix()
+                yuv.i010ToArgbMatrixFilter()
                         .call(
                                 planes.get(0),
                                 stride(frame, 0),
@@ -156,9 +156,10 @@ public final class YuvConverter implements AutoCloseable {
                                 targetStride,
                                 matrix,
                                 width,
-                                height);
+                                height,
+                                bilinear);
             case P010 ->
-                yuv.p010ToArgbMatrix()
+                yuv.p010ToArgbMatrixFilter()
                         .call(
                                 planes.get(0),
                                 stride(frame, 0),
@@ -168,9 +169,10 @@ public final class YuvConverter implements AutoCloseable {
                                 targetStride,
                                 matrix,
                                 width,
-                                height);
+                                height,
+                                bilinear);
             case I420A ->
-                yuv.i420AlphaToArgbMatrix()
+                yuv.i420AlphaToArgbMatrixFilter()
                         .call(
                                 planes.get(0),
                                 stride(frame, 0),
@@ -185,7 +187,8 @@ public final class YuvConverter implements AutoCloseable {
                                 matrix,
                                 width,
                                 height,
-                                ATTENUATE);
+                                ATTENUATE,
+                                bilinear);
         };
         if (result != 0) {
             throw new MediaException(new MediaError.InvalidData(
@@ -200,6 +203,35 @@ public final class YuvConverter implements AutoCloseable {
     @Override
     public void close() {
         closed = true;
+    }
+
+    /// An NV12 picture: its interleaved chroma split into two planes, then
+    /// converted as I420, which has the filtered conversion NV12 lacks.
+    private int nv12(VideoFrame frame, MemorySegment target, int targetStride, MemorySegment matrix) {
+        var planes = frame.planes();
+        var chromaWidth = (frame.width() + 1) / 2;
+        var chromaHeight = (frame.height() + 1) / 2;
+        var plane = (long) chromaWidth * chromaHeight;
+        try (var arena = Arena.ofConfined()) {
+            var u = arena.allocate(plane);
+            var v = arena.allocate(plane);
+            yuv.splitUvPlane()
+                    .call(planes.get(1), stride(frame, 1), u, chromaWidth, v, chromaWidth, chromaWidth, chromaHeight);
+            return yuv.i420ToArgbMatrixFilter()
+                    .call(
+                            planes.get(0),
+                            stride(frame, 0),
+                            u,
+                            chromaWidth,
+                            v,
+                            chromaWidth,
+                            target,
+                            targetStride,
+                            matrix,
+                            frame.width(),
+                            frame.height(),
+                            bilinear);
+        }
     }
 
     /// The constant table for the matrix and range `frame` was tagged with.

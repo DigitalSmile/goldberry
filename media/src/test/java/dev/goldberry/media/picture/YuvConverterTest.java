@@ -13,13 +13,16 @@ import java.nio.ByteOrder;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Stream;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.EnumSource;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import dev.goldberry.media.MediaNativesRequirement;
 import dev.goldberry.media.codec.PixelFormat;
@@ -27,7 +30,8 @@ import dev.goldberry.media.codec.VideoFrame;
 import dev.goldberry.media.ffm.MediaNatives;
 
 /// libyuv through [YuvConverter], on pictures written by hand: flat fields whose
-/// RGB is known from the matrices, and patterns whose layouts must agree.
+/// RGB is known from the matrices, patterns whose layouts must agree, and a
+/// test card held to [YuvReference], the arithmetic GPU present is held to too.
 @DisplayName("YuvConverter")
 class YuvConverterTest {
 
@@ -36,6 +40,19 @@ class YuvConverterTest {
 
     private static final int WIDTH = 6;
     private static final int HEIGHT = 4;
+
+    /// The test card's size: wide enough for chroma blocks that change every
+    /// three chroma samples, both ways.
+    private static final int CARD_WIDTH = 36;
+    private static final int CARD_HEIGHT = 12;
+
+    /// How far libyuv's fixed point may land from the reference's floating
+    /// point, a channel.
+    private static final int REFERENCE_TOLERANCE = 2;
+
+    /// The same for a ten-bit layout: libyuv's ten-bit path truncates its last
+    /// shift where the eight-bit one rounds, a level more.
+    private static final int TEN_BIT_REFERENCE_TOLERANCE = 3;
 
     /// A picture's colour and layout, for the flat fields: 8-bit values; the
     /// 16-bit layouts scale them to ten bits.
@@ -136,11 +153,59 @@ class YuvConverterTest {
         try (var converter = new YuvConverter(MediaNatives.get())) {
             var i010 = convert(converter, pattern(PixelFormat.I010, 0));
             var p010 = convert(converter, pattern(PixelFormat.P010, 16));
-            assertArrayEquals(i010, p010);
+            // P010's chroma is interpolated on its samples as stored, ten bits
+            // high, and I010's on ten-bit codes: a level apart where it changes.
+            for (var i = 0; i < i010.length; i++) {
+                assertClose(i010[i], p010[i], 1);
+            }
             var i420 = convert(converter, pattern(PixelFormat.I420, 0));
             for (var i = 0; i < i420.length; i++) {
-                assertClose(i420[i], i010[i], 2);
+                assertClose(i420[i], i010[i], TEN_BIT_REFERENCE_TOLERANCE);
             }
+        }
+    }
+
+    static Stream<Arguments> everyReading() {
+        var all = Stream.<Arguments>builder();
+        for (var format : PixelFormat.values()) {
+            for (var matrix : VideoFrame.ColorMatrix.values()) {
+                for (var fullRange : new boolean[] {false, true}) {
+                    all.add(Arguments.of(format, matrix, fullRange));
+                }
+            }
+        }
+        return all.build();
+    }
+
+    @ParameterizedTest(name = "{0} {1} full range {2}")
+    @MethodSource("everyReading")
+    @DisplayName("converts as GPU present does: chroma blended at its centre, the tagged matrix and range")
+    void asGpuPresent(PixelFormat format, VideoFrame.ColorMatrix matrix, boolean fullRange) {
+        try (var converter = new YuvConverter(MediaNatives.get())) {
+            var frame = card(format, matrix, fullRange);
+            var tolerance = format.bytesPerSample() == 2 ? TEN_BIT_REFERENCE_TOLERANCE : REFERENCE_TOLERANCE;
+            YuvDiagnosis.assertReadsAsTagged(
+                    YuvSource.of(frame), convert(converter, frame), tolerance, format + " " + matrix);
+        }
+    }
+
+    @Test
+    @DisplayName("chroma is blended across a hard edge, not repeated over each 2×2 block")
+    void blendsChroma() {
+        try (var converter = new YuvConverter(MediaNatives.get())) {
+            var frame = card(PixelFormat.I420, VideoFrame.ColorMatrix.BT601, false);
+            var source = YuvSource.of(frame);
+            var actual = convert(converter, frame);
+            var repeated = YuvReference.argb(
+                    source,
+                    new YuvReference.Reading(
+                            VideoFrame.ColorMatrix.BT601, false, YuvReference.Chroma.REPEATED, false, false));
+            assertTrue(
+                    YuvReference.worst(repeated, actual) > 40,
+                    "the card's chroma edges must tell blended from repeated");
+            assertEquals(
+                    YuvReference.Chroma.BLENDED,
+                    YuvDiagnosis.closest(source, actual).reading().chroma());
         }
     }
 
@@ -186,11 +251,13 @@ class YuvConverterTest {
     void tenBitStrideInSamples() {
         try (var converter = new YuvConverter(MediaNatives.get())) {
             var tight = convert(converter, pattern(PixelFormat.I010, 0));
+            var tightP010 = convert(converter, pattern(PixelFormat.P010, 0));
             // The padding is filled with a value no sample has, so a stride taken
             // in bytes would read it as picture from the second row on.
             for (var padding : new int[] {2, 10, 64}) {
                 assertArrayEquals(tight, convert(converter, pattern(PixelFormat.I010, padding)), "I010 + " + padding);
-                assertArrayEquals(tight, convert(converter, pattern(PixelFormat.P010, padding)), "P010 + " + padding);
+                assertArrayEquals(
+                        tightP010, convert(converter, pattern(PixelFormat.P010, padding)), "P010 + " + padding);
             }
             var rows = new int[HEIGHT];
             for (var y = 0; y < HEIGHT; y++) {
@@ -296,6 +363,27 @@ class YuvConverterTest {
             case I420, I010 -> plane == 0 ? fill.y() : plane == 1 ? fill.u() : fill.v();
             case NV12, P010 -> plane == 0 ? fill.y() : (x & 1) == 0 ? fill.u() : fill.v();
             case I420A -> plane == 0 ? fill.y() : plane == 1 ? fill.u() : plane == 2 ? fill.v() : fill.alpha();
+        });
+    }
+
+    /// A [#CARD_WIDTH]`×`[#CARD_HEIGHT] picture of `format` whose chroma is
+    /// saturated blocks with hard edges between them, an odd number of luma
+    /// columns into each, and luma a gradient: what tells every reading of a
+    /// picture apart. Opaque, where the layout has alpha.
+    private VideoFrame card(PixelFormat format, VideoFrame.ColorMatrix matrix, boolean fullRange) {
+        return frame(format, CARD_WIDTH, CARD_HEIGHT, matrix, fullRange, 6, (plane, x, y) -> {
+            if (plane == 0) {
+                return 20 + x * 6 + (y & 1) * 5;
+            }
+            var semiPlanar = format == PixelFormat.NV12 || format == PixelFormat.P010;
+            var component = semiPlanar ? 1 + (x & 1) : plane;
+            var column = semiPlanar ? x / 2 : x;
+            var block = column / 3 + (y / 2) * 7;
+            return switch (component) {
+                case 1 -> 30 + (block * 53) % 196;
+                case 2 -> 226 - (block * 71) % 196;
+                default -> 255;
+            };
         });
     }
 

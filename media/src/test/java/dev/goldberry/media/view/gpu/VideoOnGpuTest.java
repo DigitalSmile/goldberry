@@ -42,6 +42,9 @@ import dev.goldberry.media.picture.Picture;
 import dev.goldberry.media.picture.PictureForm;
 import dev.goldberry.media.picture.VideoPicture;
 import dev.goldberry.media.picture.VideoPlanes;
+import dev.goldberry.media.picture.YuvDiagnosis;
+import dev.goldberry.media.picture.YuvReference;
+import dev.goldberry.media.picture.YuvSource;
 import dev.goldberry.media.view.MediaStyles;
 import dev.goldberry.media.view.VideoView;
 import dev.goldberry.natives.sdl.gpu.GpuTestLauncher;
@@ -63,10 +66,10 @@ import dev.goldberry.widgets.core.image.Fit;
 /// is shown, and for converted pictures again where a frame has no GPU.
 ///
 /// The view is 160×90, the clip's own size, so a picture is drawn 1:1: BGRA
-/// comes through exactly, and planes differ from swscale's conversion only by
-/// rounding. Both interpolate chroma bilinearly from centred samples; which is
-/// how swscale sites chroma was found here, and corrected in the shader's
-/// uniforms.
+/// comes through exactly, and planes differ from libyuv's conversion only by
+/// rounding. Both interpolate chroma bilinearly from centred samples, 9:3:3:1,
+/// so the two present paths draw the same picture. A picture off by more is
+/// put down to the misreading that would have drawn it ([YuvDiagnosis]).
 @Tag(GpuTestLauncher.TAG)
 @DisplayName("video-view on the GPU")
 class VideoOnGpuTest {
@@ -76,14 +79,18 @@ class VideoOnGpuTest {
             Path.of("src", "test", "resources", "golden", "video", "clip-vp9-webm-400ms.png");
 
     /// The most a channel of the planes' picture may differ from the Java
-    /// reference of the same arithmetic ([PlanesReference]): the rounding of a
+    /// reference of the same arithmetic ([YuvReference]): the rounding of a
     /// linear sampler's weights and of the shader's floats.
     static final int REFERENCE_TOLERANCE = 2;
 
-    /// The most a channel of the planes' picture may differ from swscale's, CPU
+    /// The most a channel of the planes' picture may differ from libyuv's, CPU
     /// present's: the same arithmetic in floats on the GPU and in fixed point
-    /// in swscale. Measured on Metal: 1, at 77 dB.
+    /// in libyuv, each within rounding of the reference.
     static final int CPU_TOLERANCE = 2;
+
+    /// The same for a ten-bit picture: libyuv's ten-bit path truncates its last
+    /// shift where the eight-bit one rounds, a level more.
+    static final int TEN_BIT_CPU_TOLERANCE = 3;
 
     record Memory(byte[] data) implements MediaIOProvider {
         @Override
@@ -230,7 +237,8 @@ class VideoOnGpuTest {
 
             // Exact to the arithmetic: the GPU against the same conversion and
             // chroma sampling in Java.
-            var reference = PlanesReference.argb(planes);
+            var source = YuvSource.of(planes);
+            var reference = YuvReference.argb(source);
             var worstFromReference = 0;
             for (var y = 0; y < 90; y++) {
                 for (var x = 0; x < 160; x++) {
@@ -257,15 +265,36 @@ class VideoOnGpuTest {
             var psnr = 10 * Math.log10(255.0 * 255.0 / (squares / (160 * 90 * 3)));
             System.out.printf(
                     "video-view on the GPU, clip-vp9 at 400 ms: %d from the Java reference;"
-                            + " from swscale's picture %d at worst, PSNR %.1f dB%n",
+                            + " from CPU present's picture %d at worst, PSNR %.1f dB%n",
                     worstFromReference, worstFromCpu, psnr);
-            assertTrue(
-                    worstFromReference <= REFERENCE_TOLERANCE,
-                    "the GPU differs from its reference by " + worstFromReference + " levels");
+            YuvDiagnosis.assertReadsAsTagged(source, pixels(readBack), REFERENCE_TOLERANCE, "GPU present");
             assertTrue(
                     worstFromCpu <= CPU_TOLERANCE,
-                    "the GPU's picture differs from the CPU's by " + worstFromCpu + " levels, at " + psnr + " dB");
+                    "the GPU's picture differs from the CPU's by " + worstFromCpu + " levels, at " + psnr + " dB; "
+                            + diagnose(source, readBack, golden));
         }
+    }
+
+    /// Both pictures against the reference, in words: which present path is
+    /// off, and as what.
+    private static String diagnose(YuvSource source, Image gpu, Image cpu) {
+        return "GPU present: "
+                + YuvDiagnosis.mismatch(source, pixels(gpu), REFERENCE_TOLERANCE)
+                        .orElse("matches the reference")
+                + "; CPU present: "
+                + YuvDiagnosis.mismatch(source, pixels(cpu), TEN_BIT_CPU_TOLERANCE)
+                        .orElse("matches the reference");
+    }
+
+    /// `image`'s pixels as `0xAARRGGBB`, row by row.
+    private static int[] pixels(Image image) {
+        var pixels = new int[image.width() * image.height()];
+        for (var y = 0; y < image.height(); y++) {
+            for (var x = 0; x < image.width(); x++) {
+                pixels[y * image.width() + x] = image.argb(x, y);
+            }
+        }
+        return pixels;
     }
 
     /// The largest difference of any colour channel between two pixels.
@@ -332,9 +361,11 @@ class VideoOnGpuTest {
             System.out.printf(
                     "GPU present, %s (%s %s%s) at %d ms: %d from CPU present%n",
                     fixture, planes.format(), planes.matrix(), planes.fullRange() ? " full" : "", millis, difference);
+            var tolerance = planes.format().bytesPerSample() == 2 ? TEN_BIT_CPU_TOLERANCE : CPU_TOLERANCE;
             assertTrue(
-                    difference <= CPU_TOLERANCE,
-                    fixture + " at " + millis + " ms differs from CPU present by " + difference + " levels");
+                    difference <= tolerance,
+                    fixture + " at " + millis + " ms differs from CPU present by " + difference + " levels; "
+                            + diagnose(YuvSource.of(planes), readBack, golden));
         }
     }
 

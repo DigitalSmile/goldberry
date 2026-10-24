@@ -39,6 +39,8 @@
 #define MINIMP3_NO_STDIO
 #include "minimp3.h"
 
+#include <libyuv/scale.h>
+
 #ifndef GOLDBERRY_MEDIA_ABI
 #error "GOLDBERRY_MEDIA_ABI is set by the superbuild"
 #endif
@@ -356,6 +358,9 @@ int main(int argc, char **argv) {
     FIELD(mp3dec_frame_info_t, bitrate_kbps);
     CONST(MINIMP3_MAX_SAMPLES_PER_FRAME);
     printf("const.MINIMP3_SAMPLE_BYTES=%zu\n", sizeof(mp3d_sample_t));
+
+    /* ---- libyuv ------------------------------------------------------ */
+    CONST(kFilterBilinear);
 
     return 0;
 }

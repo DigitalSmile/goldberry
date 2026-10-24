@@ -80,7 +80,7 @@ by name. The demuxers, the clock and the I/O are Java and link nothing.
 | [libogg](licenses/libogg.txt) | BSD-3-Clause | <https://xiph.org/ogg> | libvorbis's bit reader and packet type; Ogg framing is read in Java |
 | [libvorbis](licenses/libvorbis.txt) | BSD-3-Clause | <https://xiph.org/vorbis> | Vorbis decoder, the synthesis half |
 | [FLAC](licenses/FLAC.txt) | BSD-3-Clause | <https://xiph.org/flac> | libFLAC's stream decoder; the GPL tools are not built |
-| [libyuv](licenses/libyuv.txt) | BSD-3-Clause | <https://chromium.googlesource.com/libyuv/libyuv> | YUV to BGRA conversion and scaling on the CPU |
+| [libyuv](licenses/libyuv.txt) | BSD-3-Clause | <https://chromium.googlesource.com/libyuv/libyuv> | YUV to BGRA conversion on the CPU |
 | [minimp3](licenses/minimp3.txt) | CC0-1.0 | <https://github.com/lieff/minimp3> | MP3 decoder, a header instantiated once |
 
 Nothing here is under a copyleft licence. Every upstream asks only that its

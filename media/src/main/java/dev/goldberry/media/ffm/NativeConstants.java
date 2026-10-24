@@ -13,7 +13,8 @@ import java.util.Objects;
 /// @param opus  libopus's
 /// @param flac  libFLAC's
 /// @param mp3   minimp3's
-public record NativeConstants(Dav1d dav1d, Vpx vpx, Opus opus, Flac flac, Mp3 mp3) {
+/// @param yuv   libyuv's
+public record NativeConstants(Dav1d dav1d, Vpx vpx, Opus opus, Flac flac, Mp3 mp3, Yuv yuv) {
 
     public NativeConstants {
         Objects.requireNonNull(dav1d, "dav1d");
@@ -21,6 +22,7 @@ public record NativeConstants(Dav1d dav1d, Vpx vpx, Opus opus, Flac flac, Mp3 mp
         Objects.requireNonNull(opus, "opus");
         Objects.requireNonNull(flac, "flac");
         Objects.requireNonNull(mp3, "mp3");
+        Objects.requireNonNull(yuv, "yuv");
     }
 
     /// Every group, from `layout`.
@@ -28,7 +30,12 @@ public record NativeConstants(Dav1d dav1d, Vpx vpx, Opus opus, Flac flac, Mp3 mp
     /// @throws IllegalArgumentException when the probe did not report one of them
     public static NativeConstants from(NativeLayout layout) {
         return new NativeConstants(
-                Dav1d.from(layout), Vpx.from(layout), Opus.from(layout), Flac.from(layout), Mp3.from(layout));
+                Dav1d.from(layout),
+                Vpx.from(layout),
+                Opus.from(layout),
+                Flac.from(layout),
+                Mp3.from(layout),
+                Yuv.from(layout));
     }
 
     /// dav1d's pixel layouts, matrix coefficients and error codes.
@@ -177,6 +184,14 @@ public record NativeConstants(Dav1d dav1d, Vpx vpx, Opus opus, Flac flac, Mp3 mp
 
         static Mp3 from(NativeLayout layout) {
             return new Mp3(i(layout, "MINIMP3_MAX_SAMPLES_PER_FRAME"), i(layout, "MINIMP3_SAMPLE_BYTES"));
+        }
+    }
+
+    /// libyuv's filter for chroma upsampling: bilinear, at each sample's centre.
+    public record Yuv(int filterBilinear) {
+
+        static Yuv from(NativeLayout layout) {
+            return new Yuv(i(layout, "kFilterBilinear"));
         }
     }
 

@@ -131,6 +131,7 @@ page for a change to `site/` alone (ADR-0590), and GB-034, written 2026-10-10
 | `components-media-engine.md` | `book/src/components/media.md` (`## The module`, `### Bringing a codec`), `book/src/overview/concept.md`, `overview/architecture.md`, `overview/limitations.md`, `getting-started/installing.md`, `guide/logging.md`, `contributing/releasing.md`, `contributing/repository.md` | ADR-0651: FFmpeg left `goldberry-media`; eight pieces, each says where it goes. The classifier is `natives-<target>` and there is no `ffmpeg-sources` |
 | `adr/0652-…` | `book/src/adr/` | Audio before zero is priming (an MP3's LAME delay, an MP4 edit list's), and a frame within 2 ms of the last one's end follows it. Contiguous with 0651; relates to 0651 |
 | (no file) | `README.md`, the paragraph under the dependency snippet | `goldberry-media` takes a `natives-<platform>` classifier, not `ffmpeg-<platform>` (ADR-0651). The README describes the released version until then |
+| `adr/0653-…` | `book/src/adr/` | CPU present interpolates chroma as the GPU does: libyuv main's bilinear `…MatrixFilter`, `LIBYUV_UNLIMITED_DATA`, one Java reference for both paths. Contiguous with 0652; relates to 0651, 0483, 0484 |
 
 ## Doc comments that point at the guide
 

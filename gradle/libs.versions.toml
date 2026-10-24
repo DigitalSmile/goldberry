@@ -130,8 +130,9 @@ ogg = "v1.3.6"
 vorbis = "v1.3.7"
 flac = "1.5.0"
 # libyuv and minimp3 cut no releases: pinned by commit, as Blend2D is.
-# libyuv's is the head of its `stable` branch; minimp3's its master.
-libyuv = "eb6e7bb63738e29efd82ea3cf2a115238a89fa51"
+# libyuv's is its main branch (version 1974), for the bilinear conversions
+# CPU present needs to match the GPU's; minimp3's its master.
+libyuv = "47ba8e2160b71a7cf95c0720cd8944ab771e533e"
 minimp3 = "ea99364f61c14656440e8d77e9c233ccf3124633"
 # The commit dav1d's tag names: the superbuild refuses a clone that is not at it,
 # because a tag can be moved. Moving the tag above means moving this too.

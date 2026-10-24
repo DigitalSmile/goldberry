@@ -131,35 +131,16 @@ FLAC__StreamDecoderStateString
 FLAC__StreamDecoderInitStatusString
 FLAC__StreamDecoderErrorStatusString
 
-# --- libyuv: the conversions and scalers the CPU present path uses --------
-I420ToARGB
-I420ToARGBMatrix
-I422ToARGBMatrix
-I444ToARGBMatrix
-I010ToARGBMatrix
-I210ToARGBMatrix
-I410ToARGBMatrix
-I012ToARGBMatrix
-NV12ToARGB
-NV12ToARGBMatrix
-NV21ToARGBMatrix
-P010ToARGBMatrix
-P210ToARGBMatrix
-I420AlphaToARGBMatrix
-I010AlphaToARGBMatrix
+# --- libyuv: the conversions the CPU present path uses, chroma interpolated -
+I420ToARGBMatrixFilter
+I010ToARGBMatrixFilter
+P010ToARGBMatrixFilter
+I420AlphaToARGBMatrixFilter
+SplitUVPlane
 I444ToI420
 I422ToI420
 I410ToI010
 I210ToI010
-ARGBAttenuate
-ARGBUnattenuate
-ARGBCopy
-ARGBScale
-I420Scale
-I420Scale_16
-ScalePlane
-CopyPlane
-Convert16To8Plane
 kYuvI601Constants
 kYuvJPEGConstants
 kYuvH709Constants

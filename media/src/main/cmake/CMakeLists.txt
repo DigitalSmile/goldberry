@@ -335,8 +335,14 @@ target_compile_definitions(goldberry_media PRIVATE
     # libyuv's SVE and SME paths need a compiler that knows them; NEON is the
     # arm64 path here, on every arm64 toolchain.
     LIBYUV_DISABLE_SVE LIBYUV_DISABLE_SME
+    # The exact blue gain of limited-range BT.601, BT.709 and BT.2020. Without
+    # it libyuv caps the coefficient at 128/64 so its SIMD can multiply in
+    # signed bytes, and a saturated blue lands up to 12 levels short of what
+    # GPU present draws; with it the SIMD multiplies unsigned, the range libyuv's
+    # own tests run with.
+    LIBYUV_UNLIMITED_DATA
     # The version the probe and the loader agree on: goldberry_media_abi().
-    GOLDBERRY_MEDIA_ABI=1)
+    GOLDBERRY_MEDIA_ABI=2)
 if(WIN32)
     # FLAC's header exports its API for a DLL unless told the library is static.
     target_compile_definitions(goldberry_media PRIVATE FLAC__NO_DLL)
@@ -430,8 +436,8 @@ endif()
 # ----------------------------------------------------------------------------
 add_executable(media_layout media_layout.c)
 add_dependencies(media_layout dav1d libvpx opus ogg vorbis flac)
-target_include_directories(media_layout PRIVATE "${_stage}/include" "${minimp3_SOURCE_DIR}")
-target_compile_definitions(media_layout PRIVATE GOLDBERRY_MEDIA_ABI=1)
+target_include_directories(media_layout PRIVATE "${_stage}/include" "${libyuv_SOURCE_DIR}/include" "${minimp3_SOURCE_DIR}")
+target_compile_definitions(media_layout PRIVATE GOLDBERRY_MEDIA_ABI=2)
 if(WIN32)
     target_compile_definitions(media_layout PRIVATE FLAC__NO_DLL)
 endif()

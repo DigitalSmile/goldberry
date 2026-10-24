@@ -2,12 +2,12 @@ libyuv
 SPDX-License-Identifier: BSD-3-Clause
 Upstream:      https://chromium.googlesource.com/libyuv/libyuv
 Licence file:  LICENSE (and PATENTS, below)
-Bundled as:    statically linked into libgoldberry-media, goldberry-media's natives-<target> jars (docs/ffmpeg-out.md) -- YUV to BGRA conversion and scaling for the CPU present path
+Bundled as:    statically linked into libgoldberry-media, goldberry-media's natives-<target> jars (docs/ffmpeg-out.md) -- YUV to BGRA conversion for the CPU present path
 
 BSD-3-Clause requires the copyright notice, the conditions and the disclaimer to
 travel with a binary redistribution, which is what this file is for.
 
---- LICENSE (and PATENTS, below) at eb6e7bb63738e29efd82ea3cf2a115238a89fa51 (the stable branch), verbatim ---
+--- LICENSE (and PATENTS, below) at 47ba8e2160b71a7cf95c0720cd8944ab771e533e (main, version 1974), verbatim ---
 
 Copyright 2011 The LibYuv Project Authors. All rights reserved.
 
@@ -39,7 +39,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
---- PATENTS at eb6e7bb63738e29efd82ea3cf2a115238a89fa51, verbatim ---
+--- PATENTS at 47ba8e2160b71a7cf95c0720cd8944ab771e533e, verbatim ---
 
 Additional IP Rights Grant (Patents)
 

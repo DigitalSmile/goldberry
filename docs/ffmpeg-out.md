@@ -142,7 +142,7 @@ Kept as the work lands. "Done" means built, tested and green on this machine
 
 - The superbuild (`media/src/main/cmake`) replaces FFmpeg's with **one shared
   library, `libgoldberry-media`**, that links dav1d 1.5.4, libvpx v1.17.0, Opus
-  v1.6.1, libogg 1.3.6, libvorbis 1.3.7, FLAC 1.5.0, libyuv (`stable`) and
+  v1.6.1, libogg 1.3.6, libvorbis 1.3.7, FLAC 1.5.0, libyuv (main, 1974) and
   minimp3 statically and exports their own C APIs: 144 symbols, listed in
   `exports/goldberry-media.symbols`, checked post-link by `check_exports.cmake`.
   One library rather than seven because the FFmpeg-era `-goldberry` soname
@@ -182,8 +182,9 @@ Kept as the work lands. "Done" means built, tested and green on this machine
 - [x] CPU conversion over libyuv (`picture.YuvConverter`), replacing swscale:
       the six matrices by `ColorMatrix` × range, I420/NV12/I010/P010/I420A,
       premultiplied through libyuv's attenuate; 16-bit strides in samples.
-      libyuv's chroma upsampling is nearest-neighbour where swscale's was
-      bilinear, so every BGRA golden of a decoded clip is retaken.
+      libyuv's chroma upsampling was nearest-neighbour where swscale's was
+      bilinear, so every BGRA golden of a decoded clip was retaken (and again
+      once it interpolated; see below).
 - [x] Audio conversion in Java (`audio.PcmConverter`), replacing swresample:
       every sample format to interleaved f32, the usual downmix, a linear
       resampler kept as the fallback for a sink that answered another rate.
@@ -227,15 +228,18 @@ Kept as the work lands. "Done" means built, tested and green on this machine
       image walks no media screen and carries no media natives.
 - [x] `goldberry-media.md` describes this engine (§2–§10 rewritten; §11 kept
       as history); the GPU siting doc says libyuv where it said swscale.
-- [ ] **`:media:gpuTest` is red**: `VideoOnGpuTest.parity` and
-      `planesMatchTheCpu` hold GPU present to CPU present's goldens, and since
-      libyuv replaced swscale they differ by 146–174 levels (PSNR 24.7 dB on
-      clip-vp9): libyuv repeats each chroma sample over its 2×2 block, the
-      shader interpolates. The pinned libyuv (`stable`, April 2021) has no
-      bilinear `…MatrixFilter` conversions. Either CPU present upsamples chroma
-      bilinearly (a newer libyuv, or `ScalePlane` to 4:4:4 first; an ABI bump
-      and every CPU golden retaken again), or the test's tolerance becomes
-      what nearest against bilinear implies.
+- [x] `:media:gpuTest` was red: `VideoOnGpuTest` holds GPU present to CPU
+      present's goldens, and libyuv repeated each chroma sample over its 2×2
+      block where the shader interpolates (146–174 levels, PSNR 24.7 dB).
+      libyuv moved from its 2021 `stable` branch to main (version 1974) for
+      the bilinear `…MatrixFilter` conversions, and is built with
+      `LIBYUV_UNLIMITED_DATA`: the shared reference showed its default caps
+      the blue gain of limited-range BT.709 and BT.2020 at 2.0, 12 levels
+      short on a saturated blue. CPU and GPU now agree within 2 levels (3 for
+      10-bit), PSNR 54.9 dB; native ABI 2. Both are held to one Java reference
+      (`picture.YuvReference`), and a mismatch is put down to the misreading
+      that would draw it: swapped planes, wrong matrix, range or siting
+      (`picture.YuvDiagnosis`). ADR-0653 parked.
 - [x] FFmpeg-era comments swept from `:media`'s sources and tests;
       `BuiltInDecoders` and `MediaCapabilities` say PCM decodes without the
       library.
