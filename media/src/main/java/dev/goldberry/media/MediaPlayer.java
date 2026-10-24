@@ -128,6 +128,7 @@ public final class MediaPlayer implements AutoCloseable {
             next.setAudioDelay(audioDelay.toNanos());
             next.setPictureForm(pictureForm);
             next.setLooping(looping);
+            next.setHardwareDecoding(hardwareDecoding);
             playback = next;
         }
         if (previous != null) {
@@ -348,7 +349,7 @@ public final class MediaPlayer implements AutoCloseable {
 
     /// Whether a provider may decode video on the platform's video engine: what
     /// [Builder#hardwareDecoding] set, or [#setHardwareDecoding]. The built-in
-    /// decoders are software and do not read it.
+    /// decoders are software either way.
     public HardwareDecoding hardwareDecoding() {
         return hardwareDecoding;
     }
@@ -644,9 +645,9 @@ public final class MediaPlayer implements AutoCloseable {
         }
 
         /// Whether a provider may decode video on the platform's video engine.
-        /// [HardwareDecoding#AUTO] unless set. The built-in decoders are software
-        /// and do not read it; [HardwareDecoding#OFF] is for a provider that does,
-        /// in a test that compares pictures byte for byte.
+        /// [HardwareDecoding#AUTO] unless set; [HardwareDecoding#OFF] keeps the
+        /// system's decoders in software. The built-in decoders are software
+        /// either way.
         public Builder hardwareDecoding(HardwareDecoding mode) {
             this.hardwareDecoding = Objects.requireNonNull(mode, "mode");
             return this;

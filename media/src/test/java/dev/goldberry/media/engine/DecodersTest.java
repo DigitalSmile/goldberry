@@ -1,10 +1,14 @@
 package dev.goldberry.media.engine;
 
+import static dev.goldberry.media.HardwareDecoding.AUTO;
+import static dev.goldberry.media.HardwareDecoding.OFF;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import org.junit.jupiter.api.DisplayName;
@@ -86,11 +90,11 @@ class DecodersTest {
             var second = new Fake("second", 0, CodecId.AV1, true);
             assertEquals(
                     "first",
-                    Decoders.open(container, 0, List.of(second, first), 0).provider());
+                    Decoders.open(container, 0, List.of(second, first), 0, AUTO).provider());
             assertEquals(
                     "second",
-                    Decoders.open(container, 0, List.of(second, first), 1).provider());
-            assertTrue(Decoders.supports(container, 0, List.of(first)));
+                    Decoders.open(container, 0, List.of(second, first), 1, AUTO).provider());
+            assertTrue(Decoders.supports(container, 0, List.of(first), AUTO));
         }
     }
 
@@ -103,7 +107,7 @@ class DecodersTest {
             // Stream 1 is Opus: the AV1 fakes do not apply, the Opus fake does.
             assertEquals(
                     "opus-only",
-                    Decoders.open(container, 1, List.of(broken, opus), 0).provider());
+                    Decoders.open(container, 1, List.of(broken, opus), 0, AUTO).provider());
             // Past every candidate for a track nothing else decodes without the natives.
             var e = assertThrows(
                     MediaException.class,
@@ -111,7 +115,8 @@ class DecodersTest {
                             container,
                             1,
                             List.of(opus),
-                            1 + BuiltInDecoders.providers().size()));
+                            1 + BuiltInDecoders.providers().size(),
+                            AUTO));
             var error = assertInstanceOf(MediaError.UnsupportedCodec.class, e.error());
             assertEquals(List.of("opus"), error.codecs());
         }
@@ -123,10 +128,55 @@ class DecodersTest {
         try (var container = av1()) {
             var none = new Fake("none", 0, CodecId.VP8, true);
             MediaNativesRequirement.enforce();
-            assertTrue(Decoders.supports(container, 0, List.of(none)), "dav1d is built in");
-            var resolved = Decoders.open(container, 0, List.of(none), 0);
+            assertTrue(Decoders.supports(container, 0, List.of(none), AUTO), "dav1d is built in");
+            var resolved = Decoders.open(container, 0, List.of(none), 0, AUTO);
             assertEquals(BuiltInDecoders.DAV1D, resolved.provider());
             resolved.decoder().close();
+        }
+    }
+
+    /// A provider with only a hardware decoder for AV1, which says no to a
+    /// request that is software only, and remembers every request it saw.
+    private record HardwareOnly(List<DecoderRequest> seen) implements DecoderProvider {
+
+        @Override
+        public String name() {
+            return "hardware-only";
+        }
+
+        @Override
+        public boolean supports(DecoderRequest request) {
+            seen.add(request);
+            return request.codec() == CodecId.AV1 && !request.softwareOnly();
+        }
+
+        @Override
+        public Decoder open(DecoderRequest request) {
+            seen.add(request);
+            return new Fake(name(), 0, CodecId.AV1, true).open(request);
+        }
+    }
+
+    @Test
+    @DisplayName("hands the player's hardware setting to every provider, in supports and in open")
+    void handsTheSettingOn() {
+        try (var container = av1()) {
+            var seen = new ArrayList<DecoderRequest>();
+            var provider = new HardwareOnly(seen);
+            assertTrue(Decoders.supports(container, 0, List.of(provider), AUTO));
+            assertEquals(
+                    "hardware-only",
+                    Decoders.open(container, 0, List.of(provider), 0, AUTO).provider());
+            assertTrue(seen.stream().allMatch(request -> request.hardware() == AUTO), seen.toString());
+            seen.clear();
+            // Off: the provider says no, and without it nothing but the built-in
+            // decoder is left.
+            assertFalse(provider.supports(container.request(0).withHardware(OFF)));
+            MediaNativesRequirement.enforce();
+            var resolved = Decoders.open(container, 0, List.of(provider), 0, OFF);
+            assertEquals(BuiltInDecoders.DAV1D, resolved.provider(), "the software decoder takes over");
+            resolved.decoder().close();
+            assertTrue(seen.stream().allMatch(DecoderRequest::softwareOnly), seen.toString());
         }
     }
 }

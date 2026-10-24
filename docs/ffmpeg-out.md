@@ -246,9 +246,15 @@ Kept as the work lands. "Done" means built, tested and green on this machine
 - [ ] `media.yml` and `publish.yml` have not been through CI; the Windows lane
       (MinGW, `-static`, the `.def` export) is the one most likely to need a
       round.
-- [ ] `HardwareDecoding` is API that nothing built in reads. Either it orders
-      the system providers against the built-in decoders (the plan's
-      `DecoderHints.preferHardware`), or it is deprecated.
+- [x] `HardwareDecoding` was stored and never read: no provider could see it.
+      It is in every `DecoderRequest` now (`hardware`, `softwareOnly()`), and
+      the system decoders honour `OFF`: GStreamer passes over the decoders
+      whose class says `Hardware` (on this machine `nvh264dec`, for
+      `avdec_h264`), VideoToolbox asks for its software decoder, and Media
+      Foundation's synchronous transforms were software already. This is the
+      plan's `DecoderHints.preferHardware`, under the name the API already
+      had. ADR-0654 parked. VideoToolbox's half is written, and the Mac lane is
+      its first run.
 - [ ] `README.md` still names the `ffmpeg-<platform>` classifier: it describes
       the release, so the change is parked in `docs/snapshot/README.md`.
 

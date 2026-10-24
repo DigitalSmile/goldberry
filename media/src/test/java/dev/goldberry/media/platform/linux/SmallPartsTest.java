@@ -43,6 +43,29 @@ class SmallPartsTest {
         return new DecoderRequest(codec, codec.ffmpegName(), params, segment, new Rational(1, 1000));
     }
 
+    @ParameterizedTest(name = "{0}: {1}")
+    @CsvSource({
+        "Codec/Decoder/Video/Hardware, true",
+        "Codec/Decoder/Video, false",
+        "Hardware, true",
+        "Codec/Decoder/Video/HardwareAccelerated, false",
+        "'', false",
+    })
+    @DisplayName("a decoder is hardware when one segment of its class is Hardware, GStreamer's own test")
+    void hardwareClass(String klass, boolean hardware) {
+        assertEquals(hardware, Gst.Candidate.isHardware(klass));
+    }
+
+    @Test
+    @DisplayName("a software-only list keeps the software decoders, in their order")
+    void softwareCandidates() {
+        var nvdec = new Gst.Candidate("nvh264dec", 384, true);
+        var libav = new Gst.Candidate("avdec_h264", 256, false);
+        var openh264 = new Gst.Candidate("openh264dec", 64, false);
+        assertEquals(List.of(libav, openh264), Gst.Candidate.software(List.of(nvdec, libav, openh264)));
+        assertFalse(new Gst.Candidate("faad", 128).hardware(), "a candidate is software unless marked");
+    }
+
     @Test
     @DisplayName("the five codecs, each with its parser, and nothing else")
     void codecs() {

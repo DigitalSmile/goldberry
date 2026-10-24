@@ -160,7 +160,7 @@ final class VideoWorker {
     void play() {
         Decoder decoder;
         try {
-            var resolved = Decoders.open(demuxer, stream, playback.decoderProviders(), 0);
+            var resolved = Decoders.open(demuxer, stream, playback.decoderProviders(), 0, playback.hardwareDecoding());
             decoder = resolved.decoder();
             report(resolved.provider());
         } catch (MediaException e) {
@@ -286,7 +286,7 @@ final class VideoWorker {
         LOG.warn("video decoder failed mid-stream; trying the next", failure);
         failed.close();
         skip++;
-        var resolved = Decoders.open(demuxer, stream, playback.decoderProviders(), skip);
+        var resolved = Decoders.open(demuxer, stream, playback.decoderProviders(), skip, playback.hardwareDecoding());
         report(resolved.provider());
         awaitingKeyframe = true;
         playback.reseek(resumeNanos());

@@ -56,6 +56,8 @@ final class CoreFoundation {
 
     private final MemorySegment typeDictionaryValueCallBacks;
 
+    private final MemorySegment booleanFalse;
+
     CoreFoundation(SymbolLookup lookup) {
         var f = Framework.CORE_FOUNDATION;
         this.cfRelease = f.symbol(lookup, "CFRelease");
@@ -67,6 +69,12 @@ final class CoreFoundation {
         this.typeArrayCallBacks = f.symbol(lookup, "kCFTypeArrayCallBacks");
         this.typeDictionaryKeyCallBacks = f.symbol(lookup, "kCFTypeDictionaryKeyCallBacks");
         this.typeDictionaryValueCallBacks = f.symbol(lookup, "kCFTypeDictionaryValueCallBacks");
+        this.booleanFalse = f.constant(lookup, "kCFBooleanFalse");
+    }
+
+    /// `kCFBooleanFalse`.
+    MemorySegment falseValue() {
+        return booleanFalse;
     }
 
     /// Releases `object`. NULL is passed over, where `CFRelease` would crash.

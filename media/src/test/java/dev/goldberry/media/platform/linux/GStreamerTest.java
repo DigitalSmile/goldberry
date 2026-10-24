@@ -14,6 +14,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import dev.goldberry.media.HardwareDecoding;
 import dev.goldberry.media.codec.MediaType;
 import dev.goldberry.media.codec.VideoFrame;
 import dev.goldberry.media.platform.fixtures.Fixtures;
@@ -45,6 +46,51 @@ class GStreamerTest {
                 .decoders("video/x-h264, width=(int)160, height=(int)90", true)
                 .isEmpty());
         assertTrue(gs.gst().decoders("video/x-goldberry-no-such-codec", true).isEmpty());
+    }
+
+    @Test
+    @DisplayName("marks the decoders whose class says Hardware, and a software-only request gets none of them")
+    void hardwareDecoders() {
+        var all = gs.gst().decoders("video/x-h264, width=(int)1280, height=(int)720", true);
+        assertTrue(all.stream().anyMatch(candidate -> !candidate.hardware()), "a software H.264 decoder: " + all);
+        assertTrue(Gst.Candidate.software(all).stream().noneMatch(Gst.Candidate::hardware));
+        // NVIDIA's decoder, where the machine has one, is the hardware one.
+        all.stream()
+                .filter(candidate -> candidate.name().equals("nvh264dec"))
+                .forEach(candidate -> assertTrue(candidate.hardware(), candidate.toString()));
+    }
+
+    @Test
+    @DisplayName("with hardware decoding off, the provider opens a software decoder, which decodes every picture")
+    void softwareOnly() {
+        var hardware = gs.gst().decoders("video/x-h264, width=(int)1280, height=(int)720", true).stream()
+                .filter(Gst.Candidate::hardware)
+                .map(Gst.Candidate::name)
+                .toList();
+        var provider = new GStreamerVideoProvider();
+        var chosen = new ArrayList<String>();
+        var pictures = new ArrayList<VideoFrame>();
+        Fixtures.decode(
+                "clip-h264-720p.mp4",
+                MediaType.VIDEO,
+                request -> {
+                    var decoder = (GstVideoDecoder) provider.open(request.withHardware(HardwareDecoding.OFF));
+                    chosen.add(decoder.decoder());
+                    return decoder;
+                },
+                frame -> pictures.add((VideoFrame) frame));
+        assertEquals(1, chosen.size());
+        assertFalse(hardware.contains(chosen.getFirst()), chosen.getFirst() + " is one of " + hardware);
+        assertEquals(5, pictures.size(), "0.2 s at 25 fps");
+        if (!hardware.isEmpty()) {
+            // Allowed, the machine's video engine is GStreamer's first choice.
+            try (var demuxer = Fixtures.demux("clip-h264-720p.mp4")) {
+                var track = demuxer.info().defaultTrack(MediaType.VIDEO).orElseThrow();
+                try (var auto = (GstVideoDecoder) provider.open(demuxer.request(track.index()))) {
+                    assertTrue(hardware.contains(auto.decoder()), auto.decoder() + " with hardware allowed");
+                }
+            }
+        }
     }
 
     @Test

@@ -69,11 +69,12 @@ record GStreamer(GLib glib, Gst gst, GstApp app, GstVideo video) {
 
     /// The decoder elements this system has for `request`'s track in `codec`,
     /// highest rank first, when it also has the codec's parser; empty when either
-    /// is missing.
+    /// is missing. A request that is software only gets the software ones.
     List<Gst.Candidate> decoders(GstCodec codec, DecoderRequest request) {
         var caps = codec.decoderCaps(request);
-        return DECODERS.computeIfAbsent(
+        var all = DECODERS.computeIfAbsent(
                 caps, c -> gst.hasElement(codec.parser()) ? gst.decoders(c, codec.video()) : List.of());
+        return request.softwareOnly() ? Gst.Candidate.software(all) : all;
     }
 
     /// Opens, initialises and checks GStreamer. Package-private for the tests,

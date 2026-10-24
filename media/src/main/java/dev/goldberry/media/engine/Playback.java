@@ -20,6 +20,7 @@ import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 
 import dev.goldberry.log.Logs;
+import dev.goldberry.media.HardwareDecoding;
 import dev.goldberry.media.MediaClock;
 import dev.goldberry.media.MediaError;
 import dev.goldberry.media.MediaException;
@@ -264,6 +265,9 @@ public final class Playback implements AutoCloseable {
     private volatile long seekingToNanos = Frame.NO_PTS;
     /// Whether the source starts over at its end; set by [#setLooping].
     private volatile boolean looping;
+    /// What the decoders may use of the video engine; set by
+    /// [#setHardwareDecoding] before [#start()].
+    private volatile HardwareDecoding hardwareDecoding = HardwareDecoding.AUTO;
     /// How long one pass over a looping source is, once the demux thread has
     /// wrapped around once; 0 before.
     private volatile long loopPeriodNanos;
@@ -378,6 +382,18 @@ public final class Playback implements AutoCloseable {
     public void setLooping(boolean looping) {
         this.looping = looping;
         signal();
+    }
+
+    /// Says what the decoders may use of the platform's video engine. Read when a
+    /// track's decoder is opened, so it is set before [#start()]; a decoder
+    /// already open keeps what it was opened with.
+    public void setHardwareDecoding(HardwareDecoding mode) {
+        this.hardwareDecoding = Objects.requireNonNull(mode, "mode");
+    }
+
+    /// What the decoders may use of the platform's video engine.
+    public HardwareDecoding hardwareDecoding() {
+        return hardwareDecoding;
     }
 
     /// Whether the source starts over when it ends.
@@ -786,7 +802,7 @@ public final class Playback implements AutoCloseable {
     private void requireDecoders(Container opened, Optional<Track> audio, Optional<Track> video) {
         var unsupported = new ArrayList<String>(2);
         for (var track : List.of(video, audio)) {
-            track.filter(chosen -> !Decoders.supports(opened, chosen.index(), decoderProviders))
+            track.filter(chosen -> !Decoders.supports(opened, chosen.index(), decoderProviders, hardwareDecoding))
                     .ifPresent(chosen -> unsupported.add(chosen.codecName()));
         }
         if (!unsupported.isEmpty()) {
@@ -944,7 +960,7 @@ public final class Playback implements AutoCloseable {
     /// Whether `track` can be decoded, and if not the warning that `current`
     /// plays on. One message for the audio switch and the video one.
     private boolean decodes(Container opened, Track track, Track current) {
-        if (Decoders.supports(opened, track.index(), decoderProviders)) {
+        if (Decoders.supports(opened, track.index(), decoderProviders, hardwareDecoding)) {
             return true;
         }
         LOG.warn("no decoder for {} on track {}; track {} plays on", track.codecName(), track.index(), current.index());

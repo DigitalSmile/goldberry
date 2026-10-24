@@ -33,9 +33,13 @@ Everything below is measured against 2026.2 (tag commit d3eacfdc).
   `matroska`, `webm`, `mp4`, `ogg`, `mp3`. <!-- ADR-0651 -->
 - AVI is no longer demuxed: an `.avi` opens as `UnsupportedContainer("AVI")`,
   as MPEG-TS and FLV already did. <!-- ADR-0651 -->
-- `HardwareDecoding` and `MediaPlayer.setHardwareDecoding` are kept and do
-  nothing: the built-in decoders are software, and the system providers are
-  the hardware path for the codecs the system decodes. <!-- ADR-0651 -->
+- `HardwareDecoding` reaches the decoders: `DecoderRequest` has a sixth
+  component, `hardware`, and `softwareOnly()`. The five-argument constructor
+  stays and means `AUTO`; a record pattern over `DecoderRequest` names six
+  components. With `OFF` the system decoders decode in software (GStreamer
+  passes over NVDEC, VA-API and V4L2; VideoToolbox is asked for its software
+  decoder), and a provider with only hardware should say it does not support
+  the track. The built-in decoders are software either way. <!-- ADR-0654 -->
 - The system property `goldberry.media.ffmpegLog` is gone.
   `goldberry.media.libdir` still names a directory holding the library and its
   `media-layout.properties`. <!-- ADR-0651 -->

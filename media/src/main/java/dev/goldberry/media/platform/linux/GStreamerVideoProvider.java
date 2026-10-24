@@ -13,7 +13,10 @@ import dev.goldberry.media.codec.DecoderRequest;
 /// stream is 8- or 10-bit 4:2:0 (the same claim the macOS provider makes), and
 /// the system has the codec's parser and a decoder for it. The decoder is the
 /// one GStreamer ranks highest: `avdec_h264` and `avdec_h265` from gst-libav, a
-/// VA-API decoder where the machine has one, `openh264dec`.
+/// VA-API decoder where the machine has one, `openh264dec`. With
+/// [dev.goldberry.media.HardwareDecoding#OFF] the hardware decoders (whose
+/// class says `Hardware`: NVDEC, VA-API, V4L2) are passed over, and a system
+/// with only those does not support the track.
 ///
 /// The distribution licenses the decoders it ships, so a Goldberry application
 /// that plays these codecs through this provider brings no codec of its own.

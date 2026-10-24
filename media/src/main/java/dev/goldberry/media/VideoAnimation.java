@@ -283,8 +283,8 @@ public final class VideoAnimation implements MovingPicture, AutoCloseable {
                         .map(Duration::toNanos)
                         .filter(nanos -> nanos > 0)
                         .orElseGet(() -> lengthOfPackets(demuxer));
-                var decoder =
-                        Decoders.open(demuxer, track.index(), List.of(), 0).decoder();
+                var decoder = Decoders.open(demuxer, track.index(), List.of(), 0, HardwareDecoding.AUTO)
+                        .decoder();
                 return new Reel(
                         new Natives(demuxer, decoder, new YuvConverter(false)),
                         params.width(),

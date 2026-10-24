@@ -8,6 +8,7 @@ import java.util.Objects;
 import org.slf4j.Logger;
 
 import dev.goldberry.log.Logs;
+import dev.goldberry.media.HardwareDecoding;
 import dev.goldberry.media.MediaError;
 import dev.goldberry.media.MediaException;
 import dev.goldberry.media.codec.Decoder;
@@ -46,12 +47,14 @@ public final class Decoders {
 
     private Decoders() {}
 
-    /// Whether anything decodes `stream` of `container`: a provider that says
-    /// it supports it, or a built-in decoder. Nothing is opened. The Engine asks
-    /// this for every track it is about to play before it plays any of them, so
-    /// that a file with two codecs it cannot play names both.
-    public static boolean supports(Container container, int stream, List<? extends DecoderProvider> providers) {
-        var request = container.request(stream);
+    /// Whether anything decodes `stream` of `container` as `hardware` allows: a
+    /// provider that says it supports it, or a built-in decoder. Nothing is
+    /// opened. The Engine asks this for every track it is about to play before
+    /// it plays any of them, so that a file with two codecs it cannot play names
+    /// both.
+    public static boolean supports(
+            Container container, int stream, List<? extends DecoderProvider> providers, HardwareDecoding hardware) {
+        var request = container.request(stream).withHardware(hardware);
         for (var provider : ordered(providers)) {
             if (supports(provider, request)) {
                 return true;
@@ -68,10 +71,17 @@ public final class Decoders {
     ///                  the first open, and one more for each decoder that has
     ///                  failed mid-stream on this track, which walks the fallback
     ///                  ladder
+    /// @param hardware  what the player allows of the video engine, handed to
+    ///                  every provider in its request
     /// @throws MediaException [MediaError.UnsupportedCodec] when no candidate is
     ///                        left
-    public static Resolved open(Container container, int stream, List<? extends DecoderProvider> providers, int skip) {
-        var request = container.request(stream);
+    public static Resolved open(
+            Container container,
+            int stream,
+            List<? extends DecoderProvider> providers,
+            int skip,
+            HardwareDecoding hardware) {
+        var request = container.request(stream).withHardware(hardware);
         var remaining = skip;
         for (var provider : ordered(providers)) {
             if (!supports(provider, request)) {

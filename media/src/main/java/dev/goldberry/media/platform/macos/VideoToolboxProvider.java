@@ -13,7 +13,10 @@ import dev.goldberry.media.codec.DecoderRequest;
 /// container gave its configuration record (`avcC` or `hvcC`, which MP4 and
 /// Matroska both do), and the stream is 8- or 10-bit 4:2:0. VideoToolbox picks
 /// the media engine where the Mac has one for the stream, and its software
-/// decoder otherwise; either way the pictures arrive as NV12 or P010.
+/// decoder otherwise; either way the pictures arrive as NV12 or P010. With
+/// [dev.goldberry.media.HardwareDecoding#OFF] the session asks for the software
+/// decoder (`kVTVideoDecoderSpecification_EnableHardwareAcceleratedVideoDecoder`
+/// false).
 ///
 /// Apple licenses both codecs for the decoders it ships, so a Goldberry
 /// application that plays them through this provider brings no codec of its own.

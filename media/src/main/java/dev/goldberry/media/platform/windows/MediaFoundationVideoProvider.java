@@ -15,7 +15,10 @@ import dev.goldberry.media.codec.DecoderRequest;
 /// Matroska both do), the stream is 8- or 10-bit 4:2:0, and the system has a
 /// decoder for the codec: H.264's ships with Windows, and HEVC's is the HEVC
 /// Video Extensions a machine may or may not have. The pictures arrive as NV12
-/// or P010.
+/// or P010. The decoders are the synchronous software transforms, with no
+/// Direct3D device handed to them, so [dev.goldberry.media.HardwareDecoding]
+/// changes nothing here yet: decoding on the GPU comes with importing its
+/// surfaces.
 ///
 /// Microsoft licenses both codecs for the decoders it ships, so a Goldberry
 /// application that plays them through this provider brings no codec of its own.

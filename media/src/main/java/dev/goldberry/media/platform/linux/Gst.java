@@ -57,13 +57,18 @@ final class Gst {
     /// `GST_PAD_SINK`.
     static final int PAD_SINK = 2;
 
+    /// `GST_ELEMENT_METADATA_KLASS`: the metadata key of an element's class,
+    /// such as `Codec/Decoder/Video/Hardware`.
+    static final String METADATA_KLASS = "klass";
+
     /// `gboolean gst_init_check(int *argc, char ***argv, GError **error)`
     private static final MethodHandle FD_gst_init_check =
             GstLibrary.link(FunctionDescriptor.of(JAVA_INT, ADDRESS, ADDRESS, ADDRESS));
 
     /// `GstElement *gst_parse_launch(const gchar *pipeline_description, GError **error)`,
-    /// `GstElement *gst_bin_get_by_name(GstBin *bin, const gchar *name)` and
-    /// `const gchar *gst_structure_get_string(const GstStructure *structure, const gchar *fieldname)`
+    /// `GstElement *gst_bin_get_by_name(GstBin *bin, const gchar *name)`,
+    /// `const gchar *gst_structure_get_string(const GstStructure *structure, const gchar *fieldname)` and
+    /// `const gchar *gst_element_factory_get_metadata(GstElementFactory *factory, const gchar *key)`
     private static final MethodHandle FD_pointer_pointer_pointer =
             GstLibrary.link(FunctionDescriptor.of(ADDRESS, ADDRESS, ADDRESS));
 
@@ -144,6 +149,7 @@ final class Gst {
     private final MemorySegment capsFromString;
     private final MemorySegment capsGetStructure;
     private final MemorySegment structureGetString;
+    private final MemorySegment factoryGetMetadata;
     private final MemorySegment structureGetInt;
     private final MemorySegment elementFactoryFind;
     private final MemorySegment factoryListGetElements;
@@ -180,6 +186,7 @@ final class Gst {
         this.featureListFree = l.symbol(lookup, "gst_plugin_feature_list_free");
         this.featureGetRank = l.symbol(lookup, "gst_plugin_feature_get_rank");
         this.objectGetName = l.symbol(lookup, "gst_object_get_name");
+        this.factoryGetMetadata = l.symbol(lookup, "gst_element_factory_get_metadata");
     }
 
     /// Initialises GStreamer: loads the registry of plugins, scanning them the
@@ -426,7 +433,8 @@ final class Gst {
         var parsed = caps(caps);
         MemorySegment all = MemorySegment.NULL;
         MemorySegment matching = MemorySegment.NULL;
-        try {
+        try (var arena = Arena.ofConfined()) {
+            var klassKey = arena.allocateFrom(METADATA_KLASS);
             all = (MemorySegment)
                     FD_gst_element_factory_list_get_elements.invokeExact(factoryListGetElements, type, RANK_MARGINAL);
             matching = (MemorySegment)
@@ -436,7 +444,9 @@ final class Gst {
                 var factory = GLib.data(node);
                 var rank = (int) FD_gst_plugin_feature_get_rank.invokeExact(featureGetRank, factory);
                 var name = glib.takeString(pointer(objectGetName, factory, "gst_object_get_name"));
-                candidates.add(new Candidate(name, rank));
+                var klass =
+                        (MemorySegment) FD_pointer_pointer_pointer.invokeExact(factoryGetMetadata, factory, klassKey);
+                candidates.add(new Candidate(name, rank, Candidate.isHardware(borrowed(klass))));
             }
             return Candidate.ranked(candidates);
         } catch (Throwable t) {
@@ -479,11 +489,41 @@ final class Gst {
         }
     }
 
+    /// A C string GStreamer keeps, read without taking it; "" for NULL.
+    @SuppressWarnings("restricted")
+    private static String borrowed(MemorySegment string) {
+        return string.equals(MemorySegment.NULL)
+                ? ""
+                : string.reinterpret(Long.MAX_VALUE).getString(0);
+    }
+
     /// A decoder element GStreamer has for some caps.
     ///
-    /// @param name the element's factory name, as a pipeline description names it
-    /// @param rank its `GstRank`: higher is preferred
-    record Candidate(String name, int rank) {
+    /// @param name     the element's factory name, as a pipeline description
+    ///                 names it
+    /// @param rank     its `GstRank`: higher is preferred
+    /// @param hardware whether it decodes on the video engine: its class says
+    ///                 `Hardware`, as NVDEC's, VA-API's and V4L2's do
+    record Candidate(String name, int rank, boolean hardware) {
+
+        /// A software decoder.
+        Candidate(String name, int rank) {
+            this(name, rank, false);
+        }
+
+        /// Whether an element of class `klass` (`Codec/Decoder/Video/Hardware`)
+        /// decodes on hardware: GStreamer's own test, one segment of the class
+        /// being `Hardware`.
+        static boolean isHardware(String klass) {
+            return ("/" + klass + "/").contains("/Hardware/");
+        }
+
+        /// `candidates` without the hardware decoders.
+        static List<Candidate> software(List<Candidate> candidates) {
+            return candidates.stream()
+                    .filter(candidate -> !candidate.hardware())
+                    .toList();
+        }
 
         /// `candidates`, highest rank first; equal ranks by name, so the choice is
         /// the same on every run.

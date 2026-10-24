@@ -103,7 +103,7 @@ final class AudioWorker {
             // Opened here, on the thread that will use it: the SPI promises a
             // decoder one thread (the track's decode thread), and a provider may
             // hold thread-confined state.
-            var resolved = Decoders.open(demuxer, stream, playback.decoderProviders(), 0);
+            var resolved = Decoders.open(demuxer, stream, playback.decoderProviders(), 0, playback.hardwareDecoding());
             decoder = resolved.decoder();
             playback.audioDecoder(resolved.provider());
         } catch (MediaException e) {
@@ -216,7 +216,8 @@ final class AudioWorker {
             LOG.warn("audio decoder failed mid-stream; trying the next", e);
             decoder().close();
             skip++;
-            var resolved = Decoders.open(demuxer, stream, playback.decoderProviders(), skip);
+            var resolved =
+                    Decoders.open(demuxer, stream, playback.decoderProviders(), skip, playback.hardwareDecoding());
             decoder = resolved.decoder();
             playback.audioDecoder(resolved.provider());
             return pts;

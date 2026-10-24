@@ -67,6 +67,7 @@ final class VideoToolbox {
     private final MemorySegment waitForAsynchronousFrames;
     private final MemorySegment invalidate;
     private final MemorySegment isHardwareDecodeSupported;
+    private final MemorySegment enableHardwareDecoderKey;
 
     VideoToolbox(SymbolLookup lookup) {
         var f = Framework.VIDEO_TOOLBOX;
@@ -76,17 +77,28 @@ final class VideoToolbox {
         this.waitForAsynchronousFrames = f.symbol(lookup, "VTDecompressionSessionWaitForAsynchronousFrames");
         this.invalidate = f.symbol(lookup, "VTDecompressionSessionInvalidate");
         this.isHardwareDecodeSupported = f.symbol(lookup, "VTIsHardwareDecodeSupported");
+        this.enableHardwareDecoderKey =
+                f.constant(lookup, "kVTVideoDecoderSpecification_EnableHardwareAcceleratedVideoDecoder");
+    }
+
+    /// The decoder specification key that, set to false, asks for the software
+    /// decoder rather than the media engine.
+    MemorySegment enableHardwareDecoderKey() {
+        return enableHardwareDecoderKey;
     }
 
     /// A new session decoding `format` into pictures with `attributes` (a
-    /// `CFDictionary`), each handed to `callbackRecord`'s callback.
+    /// `CFDictionary`), each handed to `callbackRecord`'s callback, with the
+    /// decoder `specification` asks for (a `CFDictionary`, or NULL for the
+    /// system's choice).
     ///
     /// @throws OsStatus.Failure when the system has no decoder for the stream
-    MemorySegment createSession(MemorySegment format, MemorySegment attributes, MemorySegment callbackRecord) {
+    MemorySegment createSession(
+            MemorySegment format, MemorySegment specification, MemorySegment attributes, MemorySegment callbackRecord) {
         try (var arena = Arena.ofConfined()) {
             var out = arena.allocate(ADDRESS);
             var status = (int) FD_VTDecompressionSessionCreate.invokeExact(
-                    sessionCreate, MemorySegment.NULL, format, MemorySegment.NULL, attributes, callbackRecord, out);
+                    sessionCreate, MemorySegment.NULL, format, specification, attributes, callbackRecord, out);
             OsStatus.check("VTDecompressionSessionCreate", status);
             return out.get(ADDRESS, 0);
         } catch (Throwable t) {

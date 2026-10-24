@@ -110,7 +110,8 @@ abstract sealed class GstDecoder implements Decoder permits GstVideoDecoder, Gst
                 arena.allocate(Math.max(extradata.byteSize(), 1))
                         .asSlice(0, extradata.byteSize())
                         .copyFrom(extradata),
-                request.timeBase());
+                request.timeBase(),
+                request.hardware());
         this.map = arena.allocate(GstLayout.MAP_INFO);
         try {
             this.pipeline = startFrom(0, null);

@@ -15,6 +15,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
+import dev.goldberry.media.HardwareDecoding;
 import dev.goldberry.media.codec.CodecId;
 import dev.goldberry.media.codec.MediaType;
 import dev.goldberry.media.codec.PixelFormat;
@@ -71,6 +72,20 @@ class VideoToolboxDecodeTest {
             assertEquals(expected.get(i).ptsNanos(), frame.ptsNanos(), 1_000_000, "the time of picture " + i);
             assertEquals(expected.get(i).md5(), hashes.get(i), "the bytes of picture " + i);
         }
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @CsvSource({"clip-h264-720p.mp4", "clip-hevc.mp4"})
+    @DisplayName("with hardware decoding off, the software decoder hands over the same pictures, byte for byte")
+    void softwareOnly(String name) {
+        var expected = Fixtures.frameHashes(name);
+        var hashes = new ArrayList<String>();
+        Fixtures.decode(
+                name,
+                MediaType.VIDEO,
+                request -> provider.open(request.withHardware(HardwareDecoding.OFF)),
+                frame -> hashes.add(Fixtures.md5(assertInstanceOf(VideoFrame.class, frame))));
+        assertEquals(expected.stream().map(Fixtures.FrameHash::md5).toList(), hashes);
     }
 
     @Test

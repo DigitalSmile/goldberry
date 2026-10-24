@@ -109,6 +109,11 @@ final class VideoToolboxDecoder implements Decoder {
     @SuppressWarnings("UnusedAssignment")
     private MemorySegment attributes = MemorySegment.NULL;
 
+    /// The decoder specification: NULL for the system's choice, or a dictionary
+    /// asking for the software decoder when the request is software only.
+    @SuppressWarnings("UnusedAssignment")
+    private MemorySegment specification = MemorySegment.NULL;
+
     @SuppressWarnings("UnusedAssignment")
     private MemorySegment session = MemorySegment.NULL;
 
@@ -146,7 +151,12 @@ final class VideoToolboxDecoder implements Decoder {
                             configuration.parameterSets(),
                             configuration.nalLengthSize());
             this.attributes = imageAttributes(shape.bitDepth() > 8);
-            this.session = fw.vt().createSession(format, attributes, callbackRecord);
+            this.specification = request.softwareOnly()
+                    ? fw.cf().dictionary(new MemorySegment[] {fw.vt().enableHardwareDecoderKey()}, new MemorySegment[] {
+                        fw.cf().falseValue()
+                    })
+                    : MemorySegment.NULL;
+            this.session = fw.vt().createSession(format, specification, attributes, callbackRecord);
         } catch (RuntimeException e) {
             close();
             throw e;
@@ -157,7 +167,7 @@ final class VideoToolboxDecoder implements Decoder {
                 displayWidth,
                 displayHeight,
                 shape.reorderDepth(),
-                fw.vt().hardwareDecodes(codecType) ? "on the media engine" : "in software");
+                !request.softwareOnly() && fw.vt().hardwareDecodes(codecType) ? "on the media engine" : "in software");
     }
 
     @Override
@@ -246,6 +256,8 @@ final class VideoToolboxDecoder implements Decoder {
         releaseAll(reorder.clear());
         fw.cf().release(attributes);
         attributes = MemorySegment.NULL;
+        fw.cf().release(specification);
+        specification = MemorySegment.NULL;
         fw.cf().release(format);
         format = MemorySegment.NULL;
         if (arena.scope().isAlive()) {
@@ -295,7 +307,7 @@ final class VideoToolboxDecoder implements Decoder {
         session = MemorySegment.NULL;
         collect();
         releaseAll(reorder.clear());
-        session = fw.vt().createSession(format, attributes, callbackRecord);
+        session = fw.vt().createSession(format, specification, attributes, callbackRecord);
     }
 
     /// Moves what the callback queued into the reorder buffer, in the order it

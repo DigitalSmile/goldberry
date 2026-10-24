@@ -22,9 +22,12 @@ The paragraph "The published natives decode royalty-free codecs only" stays
 as it is; it is still true. Under `### Bringing a codec`, replace the last
 paragraph ("Hardware decoding is a rung of the built-in decoder…") with:
 
-> The built-in decoders are software. Hardware decoding is what the system
-> providers do, for the codecs the system decodes; `setHardwareDecoding` is
-> kept for an application that set it and chooses nothing today.
+> The built-in decoders are software. Hardware decoding is what the system's
+> own decoders do, for the codecs the system decodes, on by default.
+> `setHardwareDecoding(HardwareDecoding.OFF)` keeps them in software too,
+> applied from the next source opened: what an application's "disable
+> hardware acceleration" switch sets. A provider an application brings is
+> handed the same setting with each track it is offered.
 
 ## `book/src/overview/concept.md`, the natives table
 
