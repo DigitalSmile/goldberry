@@ -10,12 +10,15 @@ import java.lang.foreign.UnionLayout;
 import java.lang.foreign.ValueLayout;
 import java.util.List;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+import dev.goldberry.media.ffm.DowncallShape;
 
 /// How `reachability-metadata.json` spells a foreign call: the tracing agent's
 /// grammar (`jint`, `void*`, `struct(…)`), which is what a native image reads.
 ///
-/// One copy for the module: FFmpeg's generator and the system decoders' share
-/// it. `:natives`' `ForeignMetadata` keeps a copy of its own, because `:natives`
+/// One copy for the module: `MediaForeignMetadata` spells the media bindings'
+/// shapes and the system decoders' with it. `:natives`' `ForeignMetadata` keeps a copy of its own, because `:natives`
 /// exports its internals to `:core` and to nobody else.
 public final class MetadataGrammar {
 
@@ -24,31 +27,44 @@ public final class MetadataGrammar {
     /// The whole file: a `resources` section when `resourceGlobs` is not empty,
     /// then every downcall and every upcall.
     public static String render(
-            List<String> resourceGlobs, List<FunctionDescriptor> downcalls, List<FunctionDescriptor> upcalls) {
+            List<String> resourceGlobs, List<DowncallShape> downcalls, List<FunctionDescriptor> upcalls) {
         var resources = resourceGlobs.isEmpty()
                 ? ""
                 : resourceGlobs.stream()
                         .map(glob -> "    {\"glob\": \"" + glob + "\"}")
                         .collect(Collectors.joining(",\n", "  \"resources\": [\n", "\n  ],\n"));
         return "{\n" + resources + "  \"foreign\": {\n    \"downcalls\": [\n"
-                + entries(downcalls)
+                + lines(downcalls.stream().map(MetadataGrammar::entry))
                 + "    ],\n    \"upcalls\": [\n"
-                + entries(upcalls)
+                + lines(upcalls.stream().map(MetadataGrammar::entry))
                 + "    ]\n  }\n}\n";
     }
 
-    private static String entries(List<FunctionDescriptor> descriptors) {
-        return descriptors.stream().map(d -> "      " + entry(d)).collect(Collectors.joining(",\n", "", "\n"));
+    private static String lines(Stream<String> entries) {
+        return entries.map(entry -> "      " + entry).collect(Collectors.joining(",\n", "", "\n"));
     }
 
     /// One descriptor, as the tracing agent writes it.
     public static String entry(FunctionDescriptor descriptor) {
+        return "{" + types(descriptor) + "}";
+    }
+
+    /// One downcall, as the tracing agent writes it: a variadic one with the
+    /// option that says where its `...` begins.
+    public static String entry(DowncallShape shape) {
+        return shape.firstVariadic().isPresent()
+                ? "{" + types(shape.descriptor()) + ", \"options\": {\"firstVariadicArg\": "
+                        + shape.firstVariadic().getAsInt() + "}}"
+                : entry(shape.descriptor());
+    }
+
+    private static String types(FunctionDescriptor descriptor) {
         var parameters = descriptor.argumentLayouts().stream()
                 .map(layout -> "\"" + spell(layout) + "\"")
                 .collect(Collectors.joining(", "));
-        return "{\"returnType\": \""
+        return "\"returnType\": \""
                 + descriptor.returnLayout().map(MetadataGrammar::spell).orElse("void")
-                + "\", \"parameterTypes\": [" + parameters + "]}";
+                + "\", \"parameterTypes\": [" + parameters + "]";
     }
 
     /// A layout in the metadata's grammar.

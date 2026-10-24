@@ -33,8 +33,8 @@ class VideoAnimationTest {
     private static final int BLUE = 0xFF0000FF;
 
     @BeforeEach
-    void requireFfmpeg() {
-        FfmpegRequirement.enforce();
+    void requireNatives() {
+        MediaNativesRequirement.enforce();
     }
 
     static byte[] fixture(String name) {

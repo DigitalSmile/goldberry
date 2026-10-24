@@ -64,43 +64,38 @@ same artifact as the four above and is disclosed beside them. `html-view`
 was built without an engine under it — the HTML parser is Java — so no second
 native library and no second notice file were needed after all.
 
-## Dynamically linked, in `goldberry-media`'s `ffmpeg-<platform>` classifiers
+## Statically linked into `libgoldberry-media`, in `goldberry-media`'s `natives-<platform>` classifiers
 
-The media engine's libraries. They are
-**not** in `libgoldberry` and not in any artifact an application gets without
-asking: they ship in the `ffmpeg-<platform>` classifier jars of the optional
-`goldberry-media`, which an application adds by name.
+The media engine's decoders and its colour conversion, in one shared library
+of their own. They are **not** in `libgoldberry` and not in any artifact an
+application gets without asking: they ship in the `natives-<platform>`
+classifier jars of the optional `goldberry-media`, which an application adds
+by name. The demuxers, the clock and the I/O are Java and link nothing.
 
 | Component | Licence | Upstream | Notes |
 |---|---|---|---|
-| [FFmpeg](licenses/ffmpeg.txt) | LGPL-2.1-or-later | <https://ffmpeg.org> | `avformat`, `avcodec`, `avutil`, `swresample`, `swscale`, shared and replaceable |
-| [dav1d](licenses/dav1d.txt) | BSD-2-Clause | <https://code.videolan.org/videolan/dav1d> | Software AV1 decoder, linked statically into `libavcodec` |
+| [dav1d](licenses/dav1d.txt) | BSD-2-Clause | <https://code.videolan.org/videolan/dav1d> | AV1 decoder |
+| [libvpx](licenses/libvpx.txt) | BSD-3-Clause | <https://chromium.googlesource.com/webm/libvpx> | VP9 and VP8 decoders; the encoders are not built |
+| [Opus](licenses/opus.txt) | BSD-3-Clause | <https://opus-codec.org> | Opus decoder; the machine-learning extensions are off |
+| [libogg](licenses/libogg.txt) | BSD-3-Clause | <https://xiph.org/ogg> | libvorbis's bit reader and packet type; Ogg framing is read in Java |
+| [libvorbis](licenses/libvorbis.txt) | BSD-3-Clause | <https://xiph.org/vorbis> | Vorbis decoder, the synthesis half |
+| [FLAC](licenses/FLAC.txt) | BSD-3-Clause | <https://xiph.org/flac> | libFLAC's stream decoder; the GPL tools are not built |
+| [libyuv](licenses/libyuv.txt) | BSD-3-Clause | <https://chromium.googlesource.com/libyuv/libyuv> | YUV to BGRA conversion and scaling on the CPU |
+| [minimp3](licenses/minimp3.txt) | CC0-1.0 | <https://github.com/lieff/minimp3> | MP3 decoder, a header instantiated once |
 
-FFmpeg is the only component here under a copyleft licence, and the whole
-arrangement is shaped by it: dynamic linking, a library directory an end user
-can point elsewhere (`-Dgoldberry.media.libdir`), and a `ffmpeg-NOTICE.txt` in
-every natives jar quoting the exact tag and configure line, so that "the same
-library, rebuilt" is something a user can actually produce. An application
-that ships those classifier jars owes its users the LGPL notice and that
-replaceability; it owes no patent review for codecs, because none from a patent
-pool is built.
-
-**The source.** LGPL-2.1 §4 has FFmpeg's object code distributed only with its
-complete corresponding source, or with equivalent access to copy it from the
-same place. That place is `goldberry-media`'s `ffmpeg-sources` classifier
-(`goldberry-media-<version>-ffmpeg-sources.jar`), published beside the binaries
-under the same coordinates, snapshots included: FFmpeg and dav1d at exactly the
-pinned tags and commits, the media superbuild that compiled them, the licence
-texts, and a `README.txt` on rebuilding and relinking. Publication refuses an
-`ffmpeg-<platform>` classifier without it. An application that
-redistributes the binaries takes the same obligation on with them, and shipping
-that jar beside them is the plain way to meet it.
+Nothing here is under a copyleft licence. Every upstream asks only that its
+notice travel with a binary redistribution: `licenses/` carries each text, and
+every natives jar carries a `media-NOTICE.txt` under `META-INF/` naming the
+eight at the tags and commits that were built. An application that ships
+those classifier jars owes its users those notices and nothing more; it owes
+no patent review for codecs, because none from a patent pool is built, and
+libvpx's and libyuv's own patent grants are reproduced in their files.
 
 ### The platform decoders bundle nothing
 
 `goldberry-media`'s system decoders (once the separate `goldberry-media-platform`
 module, now part of `goldberry-media`) decode the patent-pool codecs
-FFmpeg's build leaves out — H.264, HEVC, AAC, AC-3 and E-AC-3 — by calling the
+the published natives leave out — H.264, HEVC, AAC, AC-3 and E-AC-3 — by calling the
 decoders the operating system already has: VideoToolbox, AudioToolbox and Core
 Audio on macOS, the GStreamer libraries and plugins a Linux distribution
 installs, and Media Foundation on Windows. They are bound with FFM from Java;

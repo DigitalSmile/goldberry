@@ -14,14 +14,13 @@ import dev.goldberry.log.Logs;
 import dev.goldberry.media.MediaError;
 import dev.goldberry.media.MediaException;
 import dev.goldberry.media.audio.AudioFormat;
+import dev.goldberry.media.audio.PcmConverter;
 import dev.goldberry.media.codec.AudioFrame;
 import dev.goldberry.media.codec.Decoder;
 import dev.goldberry.media.codec.Frame;
 import dev.goldberry.media.codec.Packet;
 import dev.goldberry.media.codec.Received;
-import dev.goldberry.media.ffi.Decoders;
-import dev.goldberry.media.ffi.Demuxer;
-import dev.goldberry.media.ffi.Resampler;
+import dev.goldberry.media.container.Container;
 
 /// The audio decode thread of one [Playback].
 ///
@@ -56,7 +55,7 @@ final class AudioWorker {
     private static final Logger LOG = Logs.of(AudioWorker.class);
 
     private final Playback playback;
-    private final Demuxer demuxer;
+    private final Container demuxer;
     private final int stream;
     private final PacketQueue queue;
     private final AudioFormat format;
@@ -77,7 +76,7 @@ final class AudioWorker {
     /// writes nothing more, and reports nothing more.
     private volatile boolean retired;
 
-    AudioWorker(Playback playback, Demuxer demuxer, int stream, PacketQueue queue, AudioFormat format) {
+    AudioWorker(Playback playback, Container demuxer, int stream, PacketQueue queue, AudioFormat format) {
         this.playback = playback;
         this.demuxer = demuxer;
         this.stream = stream;
@@ -104,16 +103,18 @@ final class AudioWorker {
             // Opened here, on the thread that will use it: the SPI promises a
             // decoder one thread (the track's decode thread), and a provider may
             // hold thread-confined state.
-            var resolved = Decoders.open(playback.ffmpeg(), demuxer, stream, playback.decoderProviders(), 0);
+            var resolved = Decoders.open(demuxer, stream, playback.decoderProviders(), 0);
             decoder = resolved.decoder();
             playback.audioDecoder(resolved.provider());
         } catch (MediaException e) {
             playback.fail(e.error(), e);
             return;
         }
-        var discardBeforeNanos = Frame.NO_PTS;
+        // Nothing before zero plays: an encoder's priming, which a container
+        // hands over at negative times (an MP4 edit list's, a LAME tag's).
+        var discardBeforeNanos = 0L;
         var nextPts = 0L;
-        try (var resampler = new Resampler(playback.ffmpeg(), format.sampleRate(), format.channels());
+        try (var resampler = new PcmConverter(format.sampleRate(), format.channels());
                 var arena = Arena.ofConfined()) {
             var output = new OutputBuffer(arena, format);
             while (running()) {
@@ -202,7 +203,7 @@ final class AudioWorker {
     ///
     /// @return the stream time after the last sample written
     private long decode(
-            Packet packet, Resampler resampler, OutputBuffer output, long discardBeforeNanos, long nextPts) {
+            Packet packet, PcmConverter resampler, OutputBuffer output, long discardBeforeNanos, long nextPts) {
         var pts = nextPts;
         try {
             while (!decoder().send(packet)) {
@@ -215,7 +216,7 @@ final class AudioWorker {
             LOG.warn("audio decoder failed mid-stream; trying the next", e);
             decoder().close();
             skip++;
-            var resolved = Decoders.open(playback.ffmpeg(), demuxer, stream, playback.decoderProviders(), skip);
+            var resolved = Decoders.open(demuxer, stream, playback.decoderProviders(), skip);
             decoder = resolved.decoder();
             playback.audioDecoder(resolved.provider());
             return pts;
@@ -228,7 +229,7 @@ final class AudioWorker {
     }
 
     /// A seek: the decoder, the resampler and the sink start over at the target.
-    private void flushTo(PacketQueue.Item.Flush flush, Resampler resampler) {
+    private void flushTo(PacketQueue.Item.Flush flush, PcmConverter resampler) {
         serial = flush.serial();
         offsetNanos = 0;
         seamNanos = Frame.NO_PTS;
@@ -242,7 +243,7 @@ final class AudioWorker {
     /// Receives every frame the decoder has, converts, trims and writes each.
     ///
     /// @return the stream time after the last sample written
-    private long drainFrames(Resampler resampler, OutputBuffer output, long discardBeforeNanos, long nextPts) {
+    private long drainFrames(PcmConverter resampler, OutputBuffer output, long discardBeforeNanos, long nextPts) {
         var pts = nextPts;
         while (running()) {
             var received = decoder().receive();
@@ -252,7 +253,10 @@ final class AudioWorker {
             if (!(frame instanceof AudioFrame audio)) {
                 continue;
             }
-            var framePts = audio.ptsNanos() == Frame.NO_PTS ? pts : audio.ptsNanos() + offsetNanos;
+            var framePts = AudioPlacement.place(
+                    audio.ptsNanos() == Frame.NO_PTS ? Frame.NO_PTS : audio.ptsNanos() + offsetNanos,
+                    pts,
+                    seamNanos != Frame.NO_PTS);
             var startSample = format.samples(framePts);
             if (seamNanos != Frame.NO_PTS) {
                 fillGap(output, format.samples(seamNanos), startSample);

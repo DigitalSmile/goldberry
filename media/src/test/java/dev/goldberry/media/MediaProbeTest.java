@@ -28,15 +28,15 @@ import dev.goldberry.media.io.Source;
 ///
 /// The input is a WAV written by [Wav] rather than a fixture file, so its
 /// duration, rate and channel count are known exactly.
-@DisplayName("MediaProbe, against FFmpeg")
+@DisplayName("MediaProbe, against the media natives")
 class MediaProbeTest {
 
     @TempDir
     Path directory;
 
     @BeforeEach
-    void requireFfmpeg() {
-        FfmpegRequirement.enforce();
+    void requireNatives() {
+        MediaNativesRequirement.enforce();
     }
 
     @Test

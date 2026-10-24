@@ -33,7 +33,7 @@ import dev.goldberry.media.subtitle.Cue;
 ///
 /// The clip is video only, so its clock is a hand-moved [MediaClock] and "what
 /// shows at 0.2 s" is exact.
-@DisplayName("MediaPlayer showing subtitles, against FFmpeg")
+@DisplayName("MediaPlayer showing subtitles, against the media natives")
 class SubtitlePlaybackTest {
 
     private final AtomicLong now = new AtomicLong(1_000_000_000L);
@@ -54,7 +54,7 @@ class SubtitlePlaybackTest {
 
     @BeforeEach
     void open() {
-        FfmpegRequirement.enforce();
+        MediaNativesRequirement.enforce();
         var srt = """
                 1
                 00:00:00,000 --> 00:00:00,800

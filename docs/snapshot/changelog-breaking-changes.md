@@ -20,6 +20,26 @@ Everything below is measured against 2026.2 (tag commit d3eacfdc).
 ### Breaking changes
 
 #### Java API
+#### goldberry-media: FFmpeg left the module
+
+- The natives classifiers are `natives-<target>`, not `ffmpeg-<target>`:
+  `runtimeOnly 'dev.goldberry:goldberry-media::natives-linux-x64'`. There is
+  no `ffmpeg-sources` classifier any more; nothing in the module is LGPL.
+  <!-- ADR-0651 -->
+- A player's status names the decoder that plays: `dav1d`, `libvpx`, `opus`,
+  `vorbis`, `flac` or `minimp3` where it said `ffmpeg`, and
+  `MediaCapabilities.decoders()` lists codec names the built-in decoders have.
+  `MediaCapabilities.demuxers()` names the containers read in Java:
+  `matroska`, `webm`, `mp4`, `ogg`, `mp3`. <!-- ADR-0651 -->
+- AVI is no longer demuxed: an `.avi` opens as `UnsupportedContainer("AVI")`,
+  as MPEG-TS and FLV already did. <!-- ADR-0651 -->
+- `HardwareDecoding` and `MediaPlayer.setHardwareDecoding` are kept and do
+  nothing: the built-in decoders are software, and the system providers are
+  the hardware path for the codecs the system decodes. <!-- ADR-0651 -->
+- The system property `goldberry.media.ffmpegLog` is gone.
+  `goldberry.media.libdir` still names a directory holding the library and its
+  `media-layout.properties`. <!-- ADR-0651 -->
+
 
 - `Easing` is a sealed interface over `CubicBezier`, `Steps` and
   `PiecewiseLinear` (in `dev.goldberry.motion.easing`), not an enum.

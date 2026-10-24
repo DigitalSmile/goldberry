@@ -21,7 +21,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import dev.goldberry.icon.Icon;
 import dev.goldberry.junit.HeadlessRuntime;
 import dev.goldberry.kdl.KdlParser;
-import dev.goldberry.media.FfmpegRequirement;
+import dev.goldberry.media.MediaNativesRequirement;
 import dev.goldberry.media.MediaPlayer;
 import dev.goldberry.media.PlaybackState;
 import dev.goldberry.media.PlayerStatus;
@@ -94,7 +94,7 @@ class AudioPlayerTest {
     }
 
     private void open(MediaIOProvider protocol, boolean instant) {
-        FfmpegRequirement.enforce();
+        MediaNativesRequirement.enforce();
         sink = new VirtualSink(AudioFormat.DEFAULT, instant);
         player = MediaPlayer.builder()
                 .sink(() -> sink)

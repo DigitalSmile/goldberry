@@ -127,6 +127,10 @@ page for a change to `site/` alone (ADR-0590), and GB-034, written 2026-10-10
 | `guide-text-font-face.md` | `book/src/guide/text.md`, `### Shipping a face`, after its first paragraph | CSS-32: a face shipped from a stylesheet |
 | (no file) | `docs/TODO.md`, the font-fallback entry and the `progress` cap that squares off | G57 and G58 answer them: a line each, citing ADR-0595 and ADR-0596. Back the file up first |
 | (no file) | `docs/TODO.md` | The entry **The inflater accepts a property nothing reads**, under *The catalog: specified and unbuilt*, moves to *Answered* with a closing paragraph citing ADR-0587. Back the file up first |
+| `adr/0651-…` | `book/src/adr/` | FFmpeg leaves goldberry-media: Java demuxers, the reference decoders bound directly in one `libgoldberry-media`, SDL and libyuv for the rest. Contiguous with 0650; renumber with the rest if records landed in between. It supersedes 0460's choice of engine, and relates to 0493 and 0649 |
+| `components-media-engine.md` | `book/src/components/media.md` (`## The module`, `### Bringing a codec`), `book/src/overview/concept.md`, `overview/architecture.md`, `overview/limitations.md`, `getting-started/installing.md`, `guide/logging.md`, `contributing/releasing.md`, `contributing/repository.md` | ADR-0651: FFmpeg left `goldberry-media`; eight pieces, each says where it goes. The classifier is `natives-<target>` and there is no `ffmpeg-sources` |
+| `adr/0652-…` | `book/src/adr/` | Audio before zero is priming (an MP3's LAME delay, an MP4 edit list's), and a frame within 2 ms of the last one's end follows it. Contiguous with 0651; relates to 0651 |
+| (no file) | `README.md`, the paragraph under the dependency snippet | `goldberry-media` takes a `natives-<platform>` classifier, not `ffmpeg-<platform>` (ADR-0651). The README describes the released version until then |
 
 ## Doc comments that point at the guide
 

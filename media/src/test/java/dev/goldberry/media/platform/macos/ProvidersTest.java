@@ -24,8 +24,8 @@ import dev.goldberry.media.codec.Rational;
 import dev.goldberry.media.codec.TrackParams;
 import dev.goldberry.media.platform.PlatformDecoders;
 
-/// What the providers claim, from requests made up here: no FFmpeg, and for the
-/// refusals no Mac either.
+/// What the providers claim, from requests made up here: no native library, and
+/// for the refusals no Mac either.
 @DisplayName("The providers' claims")
 class ProvidersTest {
 

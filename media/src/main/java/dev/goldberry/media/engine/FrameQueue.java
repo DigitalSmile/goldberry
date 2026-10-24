@@ -73,7 +73,7 @@ final class FrameQueue {
     /// and the one being prepared.
     static final int MAX_PICTURES = CAPACITY + HANDED_OUT + 2;
 
-    /// Rows start on this boundary, which swscale's vector paths like, and so
+    /// Rows start on this boundary, which libyuv's vector paths like, and so
     /// do the planes of a [PictureForm#PLANES] slot.
     private static final int ALIGN = 64;
 
@@ -199,7 +199,7 @@ final class FrameQueue {
 
         /// Copies `frame`'s planes into this slot's, row by row, and its colour:
         /// the [PictureForm#PLANES] preparation, which costs a copy where
-        /// converting would cost a pass of swscale.
+        /// converting would cost a pass of libyuv.
         ///
         /// @throws IllegalArgumentException when `frame` is not of this slot's
         ///                                  shape

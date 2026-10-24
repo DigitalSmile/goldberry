@@ -19,7 +19,7 @@ import dev.goldberry.media.codec.TrackParams;
 /// A [DecoderProvider] written by this application: 16-bit PCM, decoded in
 /// Java.
 ///
-/// It is a demonstration of the SPI rather than something worth doing: FFmpeg
+/// It is a demonstration of the SPI rather than something worth doing: the built-in PCM decoder
 /// decodes PCM perfectly well. It exists because the SPI's real use (an OS H.264
 /// decoder, or a licensed AAC one) cannot be shown in a showcase that ships only
 /// royalty-free natives. It shows that a provider is asked first, that it hands
@@ -27,7 +27,7 @@ import dev.goldberry.media.codec.TrackParams;
 /// resampling, the clock, seeking.
 ///
 /// It claims PCM only while [#enabled] is on, so the screen's switch decides
-/// whether a WAV plays through here or through FFmpeg. The Status card names
+/// whether a WAV plays through here or through the built-in one. The Status card names
 /// whichever it was.
 public final class JavaPcmDecoder implements DecoderProvider {
 

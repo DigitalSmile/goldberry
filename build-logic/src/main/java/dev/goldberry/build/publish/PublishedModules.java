@@ -37,8 +37,8 @@ public final class PublishedModules {
             new Library("html", Inclusion.OPTIONAL),
             new Library("emoji", Inclusion.OPTIONAL),
             new Library("gpu", Inclusion.OPTIONAL),
-            // Audio and video over FFmpeg, and the operating system's decoders.
-            // FFmpeg itself rides as `ffmpeg-<target>` classifiers,
+            // Audio and video: Java demuxers, the reference decoders, and the
+            // operating system's. The natives ride as `natives-<target>` classifiers,
             // as libgoldberry rides `goldberry-natives`.
             new Library("media", Inclusion.OPTIONAL),
             new Bom(),

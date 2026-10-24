@@ -11,13 +11,10 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-import dev.goldberry.media.FfmpegRequirement;
-import dev.goldberry.media.HardwareDecoding;
 import dev.goldberry.media.MediaClock;
+import dev.goldberry.media.MediaNativesRequirement;
 import dev.goldberry.media.audio.AudioFormat;
 import dev.goldberry.media.audio.VirtualSink;
-import dev.goldberry.media.ffi.FfmpegLibraries;
-import dev.goldberry.media.ffi.Hardware;
 import dev.goldberry.media.io.Source;
 
 /// The position while a seek waits to run: the target, whatever the audio
@@ -35,13 +32,11 @@ class SeekTargetTest {
 
     @BeforeEach
     void open() {
-        FfmpegRequirement.enforce();
+        MediaNativesRequirement.enforce();
         playback = new Playback(
-                FfmpegLibraries.get(),
                 Source.of(URI.create("mem:///never-opened.webm")),
                 List.of(),
                 List.of(),
-                Hardware.of(HardwareDecoding.OFF),
                 new VirtualSink(FORMAT, false),
                 MediaClock.system(),
                 Playback.HIGH_WATER_NANOS,

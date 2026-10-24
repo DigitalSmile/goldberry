@@ -12,7 +12,7 @@ import dev.goldberry.media.audio.AudioFormat;
 import dev.goldberry.media.audio.VirtualSink;
 
 /// How a [MediaPlayer] decides the [PictureForm] from the views attached to it.
-/// Nothing is opened, so no FFmpeg: what a playback
+/// Nothing is opened, so no native library: what a playback
 /// does with the form is in `VideoPlaybackTest`.
 @DisplayName("MediaPlayer's picture form")
 class PictureFormTest {

@@ -1,5 +1,11 @@
 # goldberry-media — implementation plan
 
+> **History.** This plan built the FFmpeg-direct engine of 2026-09-23 to
+> 2026-10-02. On 2026-10-24 FFmpeg started leaving the module (ADR-0651); the
+> move is tracked in `ffmpeg-out.md`. Everything below is kept as the record of
+> what was built and why; the rows about FFmpeg, its superbuild, its natives
+> jars and the LGPL source are no longer the state of the tree.
+
 Working notes for building `docs/goldberry-media.md` as the `:media` module. That
 document is the design; this one tracks the work. One ADR per decision, in
 `book/src/adr/`.

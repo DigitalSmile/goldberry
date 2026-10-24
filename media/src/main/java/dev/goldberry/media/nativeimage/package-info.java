@@ -1,4 +1,4 @@
-/// The native-image metadata of the module's foreign calls: FFmpeg's and every
+/// The native-image metadata of the module's foreign calls: the media bindings' and every
 /// system decoder's, written from the bindings into one
 /// `reachability-metadata.json`. A foreign call is registered because it
 /// exists, not because a traced run reached it.

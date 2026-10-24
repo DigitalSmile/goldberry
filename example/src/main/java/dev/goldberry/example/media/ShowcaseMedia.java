@@ -26,9 +26,9 @@ import dev.goldberry.media.platform.PlatformDecoders;
 /// Where the **Audio** and **Video** screens' sounds and pictures come from, and
 /// the players that play them.
 ///
-/// Every sample is reached through a [MediaIOProvider], which is the point: FFmpeg
-/// performs no I/O in Goldberry, so a protocol is something an application
-/// writes in a few lines. Four schemes are served here:
+/// Every sample is reached through a [MediaIOProvider], which is the point: no
+/// native code performs any I/O in Goldberry, so a protocol is something an
+/// application writes in a few lines. Four schemes are served here:
 ///
 /// - `showcase:` is a clip bundled in this jar, read as a seekable stream.
 /// - `live:` is the same clip read **front to back only**, with no length: what
@@ -106,7 +106,7 @@ public final class ShowcaseMedia implements MediaIOProvider {
                     "java",
                     "Decoded in Java",
                     "A chime written as PCM in a WAV, and decoded by this application's own DecoderProvider"
-                            + " rather than by FFmpeg. The Status card names the decoder.",
+                            + " rather than by the built-in one. The Status card names the decoder.",
                     Source.of(URI.create("generated:///chime.wav"))),
             new Sample(
                     "broken",
@@ -197,7 +197,7 @@ public final class ShowcaseMedia implements MediaIOProvider {
                 .build();
     }
 
-    /// The Video screen's player: every protocol above, FFmpeg's decoders and the
+    /// The Video screen's player: every protocol above, the built-in decoders and the
     /// operating system's (H.264, HEVC, AAC and the AC-3 pair on macOS), and the
     /// GPU's video engine where there is one, which the screen's Hardware card
     /// switches off and on.

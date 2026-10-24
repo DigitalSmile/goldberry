@@ -9,12 +9,11 @@ import java.util.Arrays;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import dev.goldberry.media.FfmpegRequirement;
+import dev.goldberry.media.MediaNativesRequirement;
 import dev.goldberry.media.codec.PixelFormat;
 import dev.goldberry.media.codec.VideoFrame;
-import dev.goldberry.media.ffi.FfmpegLibraries;
-import dev.goldberry.media.ffi.VideoConverter;
 import dev.goldberry.media.picture.PictureForm;
+import dev.goldberry.media.picture.YuvConverter;
 
 /// What the video thread pays to prepare one 4K picture in each [PictureForm]:
 /// the plane copy the planes form makes, against the swscale pass to BGRA the
@@ -38,8 +37,8 @@ class PlaneCopyBenchmark {
     private static final double BUDGET_MS = 1000.0 / 60;
 
     @BeforeEach
-    void requireFfmpeg() {
-        FfmpegRequirement.enforce();
+    void requireNatives() {
+        MediaNativesRequirement.enforce();
     }
 
     /// A 4K picture of `format` whose rows are `padding` bytes longer than they
@@ -81,7 +80,7 @@ class PlaneCopyBenchmark {
                 "Preparing one %d×%d picture on the video thread, median of %d (a picture at 60 fps is %.1f ms)%n",
                 WIDTH, HEIGHT, RUNS, BUDGET_MS);
         try (var arena = Arena.ofConfined();
-                var converter = new VideoConverter(FfmpegLibraries.get())) {
+                var converter = new YuvConverter()) {
             for (var format : PixelFormat.values()) {
                 var tight = frame(arena, format, 0);
                 var padded = frame(arena, format, 32);

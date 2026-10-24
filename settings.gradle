@@ -48,11 +48,13 @@ rootProject.name = 'goldberry'
 // `docs/TODO.md` says which symbols. An application opts in; nothing in
 // :core or :widgets depends on it.
 //
-// :media is `goldberry-media`: audio and video over FFmpeg driven from Java,
+// :media is `goldberry-media`: audio and video, demuxed in Java and decoded by
+// the reference codecs bound directly,
 // https://goldberry.dev/docs/components/media.html#the-module. It is the one module
-// besides :natives that binds a native library itself, and its libraries are
-// FFmpeg's own shared objects rather than libgoldberry, built by a superbuild of
-// its own in media/src/main/cmake. The operating system's own decoders --
+// besides :natives that binds a native library itself, and its library is
+// libgoldberry-media rather than libgoldberry -- dav1d, libvpx, Opus, Vorbis,
+// FLAC, minimp3 and libyuv in one shared object, built by a superbuild of its
+// own in media/src/main/cmake. The operating system's own decoders --
 // VideoToolbox and AudioToolbox, GStreamer, Media Foundation -- are part of it
 // too, behind the same Decoder SPI.
 //

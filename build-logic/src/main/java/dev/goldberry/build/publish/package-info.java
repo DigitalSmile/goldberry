@@ -6,10 +6,9 @@
  * list, and applying {@code goldberry.publish} to a project that is not on it fails the
  * build.
  *
- * <p>FFmpeg rides {@code goldberry-media} as classifier jars, and LGPL-2.1 has its
- * object code published only beside its complete source: {@link UpstreamSource}
- * takes that source from git at the pinned tags, and {@link CorrespondingSource}
- * refuses a publication without it.
+ * <p>{@code goldberry-media}'s natives ride it as {@code natives-<target>}
+ * classifier jars; every upstream in them is BSD or CC0, so nothing more than
+ * the notice travels with them.
  *
  * <p>Read more: <a href="https://goldberry.dev/docs/contributing/releasing.html#where-things-go">Where
  * things go</a>.

@@ -17,7 +17,7 @@ import dev.goldberry.css.Stylesheet;
 import dev.goldberry.css.Theme;
 import dev.goldberry.css.cascade.CascadeLayer;
 import dev.goldberry.golden.GoldenImage;
-import dev.goldberry.media.FfmpegRequirement;
+import dev.goldberry.media.MediaNativesRequirement;
 import dev.goldberry.media.MediaPlayer;
 import dev.goldberry.media.PlaybackState;
 import dev.goldberry.media.PlayerStatus;
@@ -63,7 +63,7 @@ class AudioPlayerGoldenTest {
     @BeforeEach
     void setUp() {
         RendererRequirement.enforce();
-        FfmpegRequirement.enforce();
+        MediaNativesRequirement.enforce();
         font = Font.bundled(BundledFont.UI, 13);
     }
 

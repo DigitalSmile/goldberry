@@ -36,7 +36,7 @@ import dev.goldberry.widgets.controls.select.Select;
 import dev.goldberry.widgets.controls.toggle.Toggle;
 import dev.goldberry.widgets.text.Text;
 
-/// The Audio and Video screens without a window, and with **no FFmpeg**: this
+/// The Audio and Video screens without a window, and with **no media natives**: this
 /// module's test task pins `goldberry.media.libdir` to a directory that cannot
 /// exist, so every machine sees the same screens. What that state must still do
 /// is say why, and keep everything that needs no decoding working.
@@ -113,7 +113,7 @@ class MediaWallTest {
     }
 
     @Test
-    @DisplayName("has every card, and This build says FFmpeg is not loaded and how to build it")
+    @DisplayName("has every card, and This build says the natives are not loaded and how to build them")
     void cards() {
         var elements = mount();
         for (var id : List.of(
@@ -130,19 +130,19 @@ class MediaWallTest {
             assertTrue(elements.stream().anyMatch(e -> id.equals(e.id())), "no #" + id);
         }
         var capabilities = textsUnder(elements, "audio-capabilities");
-        assertTrue(capabilities.contains("FFmpeg is not loaded"), capabilities);
-        assertTrue(capabilities.contains(":media:ffmpegBuild"), capabilities);
+        assertTrue(capabilities.contains("The media natives are not loaded"), capabilities);
+        assertTrue(capabilities.contains(":media:nativesBuild"), capabilities);
     }
 
     @Test
-    @DisplayName("picking a source without FFmpeg says why, and leaves the player idle")
-    void pickWithoutFfmpeg() {
+    @DisplayName("picking a source without the natives says why, and leaves the player idle")
+    void pickWithoutNatives() {
         var tree = new ElementTree(audioScreen());
         widget(walk(tree.root()), "audio-source", Select.class).onChange().accept("opus");
         assertEquals(PlaybackState.IDLE, player.status().state());
         tree.flush();
         var note = textsUnder(walk(tree.root()), "audio-sources");
-        assertTrue(note.contains("FFmpeg is not available"), note);
+        assertTrue(note.contains("The media natives are not available"), note);
     }
 
     @Test

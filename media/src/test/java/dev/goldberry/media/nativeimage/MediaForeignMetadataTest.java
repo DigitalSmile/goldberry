@@ -13,24 +13,26 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
-import dev.goldberry.media.ffi.FfmpegDescriptors;
+import dev.goldberry.media.ffm.DowncallShape;
+import dev.goldberry.media.ffm.MediaDescriptors;
 
-/// The one file an image of this module is built from: FFmpeg's shapes and the
-/// system decoders', and the natives jar's resources. A foreign call is
+/// The one file an image of this module is built from: the media bindings'
+/// shapes and the system decoders', and the natives jar's resources. A foreign call is
 /// registered because it exists, not because a traced run reached it.
 @DisplayName("MediaForeignMetadata")
 class MediaForeignMetadataTest {
 
     @Test
-    @DisplayName("holds FFmpeg's shapes and every system decoder's, each once")
+    @DisplayName("holds the media bindings' shapes and every system decoder's, each once")
     void bothHalves() {
         var downcalls = MediaForeignMetadata.downcalls();
         assertEquals(downcalls.size(), new HashSet<>(downcalls).size());
-        assertTrue(downcalls.containsAll(FfmpegDescriptors.downcalls()));
-        assertTrue(downcalls.containsAll(PlatformDescriptors.downcalls()));
+        assertTrue(downcalls.containsAll(MediaDescriptors.downcalls()));
+        assertTrue(downcalls.containsAll(
+                PlatformDescriptors.downcalls().stream().map(DowncallShape::of).toList()));
 
         var upcalls = MediaForeignMetadata.upcalls();
-        assertTrue(upcalls.containsAll(FfmpegDescriptors.UPCALLS));
+        assertTrue(upcalls.containsAll(MediaDescriptors.UPCALLS));
         assertTrue(upcalls.containsAll(PlatformDescriptors.UPCALLS));
     }
 
@@ -42,6 +44,9 @@ class MediaForeignMetadataTest {
 
         var json = Files.readString(target);
         assertTrue(json.contains("{\"glob\": \"" + MediaForeignMetadata.NATIVES_GLOB + "\"}"), json);
+        for (var downcall : MediaForeignMetadata.downcalls()) {
+            assertTrue(json.contains(MetadataGrammar.entry(downcall)), downcall::toString);
+        }
         for (var upcall : MediaForeignMetadata.upcalls()) {
             assertTrue(json.contains(MetadataGrammar.entry(upcall)), upcall::toString);
         }

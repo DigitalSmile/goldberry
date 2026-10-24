@@ -84,7 +84,7 @@ public record Source(URI uri, Map<String, String> headers, Duration timeout) {
 
     /// The last segment of the URI's path, when there is one.
     ///
-    /// Handed to FFmpeg as the stream's name. The demuxer probes content first
+    /// Kept as the stream's name. A container is chosen by its content first
     /// and reads the extension only as a hint, which settles the formats whose
     /// first bytes say nothing: a bare MP3 with no ID3 tag, or a subtitle file.
     public Optional<String> fileName() {

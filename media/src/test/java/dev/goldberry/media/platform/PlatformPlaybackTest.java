@@ -18,10 +18,10 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-import dev.goldberry.media.FfmpegRequirement;
 import dev.goldberry.media.HardwareDecoding;
 import dev.goldberry.media.MediaCapabilities;
 import dev.goldberry.media.MediaError;
+import dev.goldberry.media.MediaNativesRequirement;
 import dev.goldberry.media.MediaPlayer;
 import dev.goldberry.media.PlaybackState;
 import dev.goldberry.media.PlayerStatus;
@@ -82,7 +82,7 @@ class PlatformPlaybackTest {
 
     @BeforeEach
     void requirements() {
-        FfmpegRequirement.enforce();
+        MediaNativesRequirement.enforce();
         if (!PlatformDecoders.available() && !Boolean.getBoolean("goldberry.platform.required")) {
             Assumptions.abort(PlatformDecoders.unavailableReason().orElseThrow());
         }

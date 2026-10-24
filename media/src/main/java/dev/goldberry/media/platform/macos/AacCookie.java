@@ -6,8 +6,8 @@ import java.io.ByteArrayOutputStream;
 /// elementary stream descriptor (`ES_Descriptor`, ISO/IEC 14496-1 §7.2.6.5)
 /// around the track's `AudioSpecificConfig`.
 ///
-/// A container hands over the `AudioSpecificConfig` alone: FFmpeg's `mov`
-/// demuxer takes it out of `esds`, and Matroska's `CodecPrivate` is only that.
+/// A container hands over the `AudioSpecificConfig` alone: the MP4 reader
+/// takes it out of `esds`, and Matroska's `CodecPrivate` is only that.
 /// AudioToolbox wants the whole descriptor, so it is built back here, as
 /// FFmpeg's own `audiotoolboxdec.c` does.
 final class AacCookie {

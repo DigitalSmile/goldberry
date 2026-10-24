@@ -16,8 +16,8 @@ import dev.goldberry.media.codec.VideoFrame;
 /// The planes are the decoder's, copied as they were decoded, in one of the
 /// frame contract's four layouts ([PixelFormat]), and tagged with the matrix and
 /// range the picture was encoded with. Nothing has been converted, scaled or
-/// rounded, so a shader that converts them is compared with swscale on the same
-/// bytes CPU present converts.
+/// rounded, so a shader that converts them is compared with libyuv
+/// ([YuvConverter]) on the same bytes CPU present converts.
 ///
 /// **Borrowed**, like a [VideoPicture]. The planes live in a buffer the Engine
 /// reuses. A picture handed out by [MediaPlayer#shownPicture()] keeps its planes

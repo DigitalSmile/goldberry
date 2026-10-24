@@ -14,7 +14,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
-/// The values the Decoder SPI is written in. None of them needs FFmpeg.
+/// The values the Decoder SPI is written in. None of them needs a native library.
 @DisplayName("Decoder SPI values")
 class SpiValuesTest {
 

@@ -11,11 +11,13 @@ is our own content and carries no third-party licence:
 | File | Container | Codecs | Used for |
 |------|-----------|--------|----------|
 | `tone.flac` | FLAC | FLAC | sample-exact decode and seek |
+| `tone-cover.flac` | FLAC | FLAC, the 64×64 PNG as a PICTURE block | the bare FLAC container's cover art |
 | `tone-flac.mp4` | MP4 | FLAC | the `mov` demuxer, losslessly |
 | `tone-flac.mkv` | Matroska | FLAC | the `matroska` demuxer, losslessly |
 | `tone-opus.mp4` | MP4 | Opus | |
 | `tone.opus` | Ogg | Opus | the `ogg` demuxer |
 | `tone-opus.webm` | WebM | Opus | |
+| `tone-flac.oga` | Ogg | FLAC | the `ogg` demuxer's FLAC mapping: `ffmpeg -i tone.flac -c copy tone-flac.oga` |
 | `tone.ogg` | Ogg | Vorbis | |
 | `tone.mp3` | MP3 | MP3 | |
 | `tone-cover.mp3` | MP3 | MP3, PNG cover art | the attached-picture track |
@@ -23,9 +25,13 @@ is our own content and carries no third-party licence:
 | `clip-vp9.webm` | WebM | VP9, Opus | phase 3 |
 | `clip-av1.mkv` | Matroska | AV1, Opus | phase 3 (dav1d) |
 | `clip-av1.mp4` | MP4 | AV1, FLAC | phase 3 |
+| `clip-av1-fragmented.mp4` | MP4, fragmented | the AV1 and FLAC of `clip-av1.mp4`, remuxed with `empty_moov` into five `moof` fragments | the MP4 demuxer's `moof/traf/trun` path |
+| `tone-flac-faststart.mp4` | MP4, `moov` before `mdat` | the FLAC of `tone-flac.mp4` | the MP4 demuxer on a source that cannot seek |
+| `tone-cover.m4a` | MP4 | the Opus of `tone-opus.mp4`, the PNG cover of `tone-cover.mp3` in `udta/meta/ilst/covr` | the MP4 demuxer's attached-picture track |
 | `clip-vp9-long-gop.webm` | WebM | VP9 `testsrc2` at 32×18, one keyframe, at zero; Opus sine; ten seconds | a paused accurate seek 9.5 s past its keyframe, in a source with audio |
 | `clip-vp9-444.webm` | WebM | VP9 profile 1 (4:4:4), 0.2 s, silent | the built-in decoder's conversion to I420 |
 | `clip-vp9-10bit.webm` | WebM | VP9 profile 2 (10-bit 4:2:0), 0.2 s, silent | I010, and video with no audio on the free-running clock |
+| `clip-vp9-444-10bit.webm` | WebM | VP9 profile 3 (10-bit 4:4:4), 0.2 s, silent | the built-in decoder's subsampling of 16-bit planes to I010 |
 | `clip-vp9-709.webm` | WebM | VP9, tagged BT.709, limited range, 0.2 s, silent | GPU present's parity for the HD matrix (ADR-0484) |
 | `clip-vp9-2020-10bit.webm` | WebM | VP9 profile 2, tagged BT.2020 (non-constant luminance), limited range, 0.2 s, silent | GPU present's parity for the UHD matrix in 10 bits |
 | `clip-vp9-full.webm` | WebM | VP9, tagged BT.601 (SMPTE 170M), full range, 0.2 s, silent | GPU present's parity for full-range pictures |

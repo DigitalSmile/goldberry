@@ -27,7 +27,7 @@ import dev.goldberry.media.codec.Rational;
 import dev.goldberry.media.codec.TrackParams;
 
 /// What the Media Foundation providers claim, from requests made up here: no
-/// FFmpeg, and for the refusals no Windows either.
+/// native library, and for the refusals no Windows either.
 @DisplayName("The Media Foundation providers' claims")
 class ProvidersTest {
 

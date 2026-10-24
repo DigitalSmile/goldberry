@@ -41,8 +41,6 @@ import dev.goldberry.media.codec.PixelFormat;
 import dev.goldberry.media.codec.Received;
 import dev.goldberry.media.codec.SampleFormat;
 import dev.goldberry.media.codec.VideoFrame;
-import dev.goldberry.media.ffi.FfmpegLibraries;
-import dev.goldberry.media.ffi.VideoConverter;
 import dev.goldberry.media.io.MediaIO;
 import dev.goldberry.media.io.MediaIOProvider;
 import dev.goldberry.media.io.MemoryIO;
@@ -51,8 +49,9 @@ import dev.goldberry.media.picture.Picture;
 import dev.goldberry.media.picture.PictureForm;
 import dev.goldberry.media.picture.VideoPicture;
 import dev.goldberry.media.picture.VideoPlanes;
+import dev.goldberry.media.picture.YuvConverter;
 
-/// The Engine playing video, end to end against FFmpeg.
+/// The Engine playing video, end to end against the media natives.
 ///
 /// - **Deterministic goldens**: the master clock is moved by hand, through
 ///   a [VirtualSink] where the source has audio and a [MediaClock] where it does
@@ -71,7 +70,7 @@ import dev.goldberry.media.picture.VideoPlanes;
 ///
 /// The clips are `fixtures/`'s `testsrc2` at 160×90, 25 fps: one picture every
 /// 40 ms, and a single keyframe at zero.
-@DisplayName("MediaPlayer playing video, against FFmpeg")
+@DisplayName("MediaPlayer playing video, against the media natives")
 class VideoPlaybackTest {
 
     private static final AudioFormat FORMAT = AudioFormat.DEFAULT;
@@ -100,8 +99,8 @@ class VideoPlaybackTest {
     private MediaPlayer.Attachment view;
 
     @BeforeEach
-    void requireFfmpeg() {
-        FfmpegRequirement.enforce();
+    void requireNatives() {
+        MediaNativesRequirement.enforce();
     }
 
     @AfterEach
@@ -222,7 +221,7 @@ class VideoPlaybackTest {
                 planes.ptsNanos());
         var stride = planes.width() * 4;
         var pixels = ByteBuffer.allocateDirect(stride * planes.height());
-        try (var converter = new VideoConverter(FfmpegLibraries.get())) {
+        try (var converter = new YuvConverter()) {
             converter.toBgra(frame, MemorySegment.ofBuffer(pixels), stride);
         }
         return new VideoPicture(planes.width(), planes.height(), stride, pixels, planes.ptsNanos());
@@ -290,8 +289,8 @@ class VideoPlaybackTest {
                 seen.subList(3, seen.size() - 1).stream()
                         .allMatch(state -> state == PlaybackState.BUFFERING || state == PlaybackState.PLAYING),
                 "only a stall and its recovery between playing and the end: " + seen);
-        assertEquals("ffmpeg", ended.audioDecoder().orElseThrow());
-        assertEquals("ffmpeg", ended.videoDecoder().orElseThrow());
+        assertEquals("opus", ended.audioDecoder().orElseThrow());
+        assertEquals("libvpx", ended.videoDecoder().orElseThrow());
         assertTrue(ended.hasVideo());
         assertEquals(24 * FRAME, player.currentPicture().orElseThrow().ptsNanos(), "the last picture stays up");
     }
@@ -529,7 +528,7 @@ class VideoPlaybackTest {
         var drift =
                 player.status().position().minusNanos(10 * FRAME + FRAME / 2).abs();
         assertTrue(drift.compareTo(Duration.ofMillis(1)) <= 0, "the clock moved " + drift + " on the switch");
-        assertEquals("ffmpeg", player.status().videoDecoder().orElseThrow());
+        assertEquals("libvpx", player.status().videoDecoder().orElseThrow());
         playAudioTo(4 * FRAME);
         awaitPicture(14 * FRAME, VideoPlaybackTest::close);
 
@@ -746,7 +745,7 @@ class VideoPlaybackTest {
         assertEquals(HardwareDecoding.OFF, player.hardwareDecoding());
         player.open(Source.of(URI.create("mem:///clip-vp9.webm")));
         var ended = await(status -> status.state() == PlaybackState.ENDED);
-        assertEquals("ffmpeg", ended.videoDecoder().orElseThrow(), "decoded in software, as set before the open");
+        assertEquals("libvpx", ended.videoDecoder().orElseThrow(), "decoded in software, as set before the open");
         assertThrows(NullPointerException.class, () -> player.setHardwareDecoding(null));
     }
 
@@ -758,6 +757,16 @@ class VideoPlaybackTest {
         var cover = playing.info().orElseThrow().attachedPicture().orElseThrow();
         assertThrows(IllegalArgumentException.class, () -> player.selectTrack(cover));
         assertEquals(Optional.empty(), player.status().videoTrack());
+    }
+
+    @Test
+    @DisplayName("an MP3's priming and padding are not played: a second of tone is 48 000 samples")
+    void mp3PlaysGapless() {
+        open("tone.mp3", true);
+        await(status -> status.state() == PlaybackState.ENDED);
+        // 43 frames of 1152 decode to 49 536; the LAME tag's delay, the
+        // decoder's 529 and the padding are what is not music.
+        assertEquals(FORMAT.sampleRate(), sink.capturedSamples(), "samples played");
     }
 
     @Test

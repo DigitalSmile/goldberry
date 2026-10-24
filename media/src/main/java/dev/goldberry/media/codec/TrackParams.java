@@ -5,8 +5,8 @@ import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.OptionalLong;
 
-/// What a decoder needs to know about a track before it sees a packet: what
-/// FFmpeg's `AVCodecParameters` holds, in Goldberry's words.
+/// What a decoder needs to know about a track before it sees a packet: what the
+/// container states about the codec, in Goldberry's words.
 ///
 /// Sealed, one record per kind of stream, so a caller switches over it and the
 /// compiler checks that every kind is handled:
@@ -22,7 +22,7 @@ import java.util.OptionalLong;
 /// }
 /// ```
 ///
-/// A value FFmpeg reports as unknown is empty here rather than FFmpeg's sentinel:
+/// A value the container does not state is empty here rather than a sentinel:
 /// no `-99` for a profile, and no zero for a bit rate.
 ///
 /// Read more: [Bringing a codec](https://goldberry.dev/docs/components/media.html#bringing-a-codec).
@@ -43,9 +43,9 @@ public sealed interface TrackParams {
     /// @param level       the codec level number, when known
     /// @param bitRate     the average bit rate in bits per second, when known
     /// @param frameRate   how many pictures a second, when the container or the
-    ///                    codec says: the average rate, else the rate the
-    ///                    codec's headers state, else the base rate FFmpeg
-    ///                    finds the timestamps on
+    ///                    codec says: the rate the container states, such as
+    ///                    Matroska's `DefaultDuration`, else the rate the
+    ///                    codec's headers state
     /// @param alpha       whether the container says the pictures carry alpha
     ///                    beside them, as a WebM track with `AlphaMode` does in
     ///                    each packet's [Packet#alpha()]

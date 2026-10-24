@@ -21,9 +21,9 @@ record JavaDecoderCard(MediaKind kind, boolean enabled, MediaDesk desk) implemen
         return new ShowcaseCard(
                         kind.id("java-decoder"),
                         "A decoder written in Java",
-                        "An application brings a codec as a DecoderProvider, asked before FFmpeg. This one decodes"
+                        "An application brings a codec as a DecoderProvider, asked before the built-in decoders. This one decodes"
                                 + " 16-bit PCM in Java: play the chime, then switch it off and the same file plays"
-                                + " through FFmpeg. The Status card names the decoder.",
+                                + " through the built-in PCM decoder. The Status card names the decoder.",
                         MediaDocs.CODEC)
                 .of(
                         new Toggle("Decode PCM in Java", enabled, desk::setJavaDecoder).id(kind.id("java-toggle")),

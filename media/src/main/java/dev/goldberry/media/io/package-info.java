@@ -1,7 +1,7 @@
 /// Where the bytes come from.
 ///
-/// FFmpeg is built with no network layer and no protocols. Every byte it demuxes
-/// is read through a [dev.goldberry.media.io.MediaIO]. A
+/// No native code reads a byte. Every byte a container demuxes is read through
+/// a [dev.goldberry.media.io.MediaIO]. A
 /// [dev.goldberry.media.io.Source] names what to open, and
 /// [dev.goldberry.media.io.MediaIOs] picks the protocol that
 /// opens it, by URI scheme. Built in are `file:` and, over the JDK's HTTP client,

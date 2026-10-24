@@ -28,7 +28,7 @@ import dev.goldberry.media.picture.PictureForm;
 import dev.goldberry.media.picture.VideoPicture;
 import dev.goldberry.media.picture.VideoPlanes;
 
-/// The frame queue's rules with no FFmpeg: a full queue makes [FrameQueue#obtain]
+/// The frame queue's rules with no native library: a full queue makes [FrameQueue#obtain]
 /// wait, and the three ways to end that wait. Only [FrameQueue#releaseWaiters()]
 /// leaves the queue working, which is what lets a video track switch hand it from
 /// one video thread to the next. And its slots' two forms: converted BGRA, and

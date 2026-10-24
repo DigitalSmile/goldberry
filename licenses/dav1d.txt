@@ -2,13 +2,11 @@ dav1d
 SPDX-License-Identifier: BSD-2-Clause
 Upstream:      https://code.videolan.org/videolan/dav1d
 Licence file:  COPYING
-Bundled as:    linked statically into libavcodec in the
-               goldberry-ffmpeg-natives-<platform> jar -- FFmpeg's software AV1
-               decoder (docs/goldberry-media.md §2)
+Bundled as:    statically linked into libgoldberry-media, goldberry-media's natives-<target> jars (docs/ffmpeg-out.md) -- the AV1 decoder
 
 BSD-2-Clause asks that the copyright notice, the conditions and the disclaimer
 travel with a binary redistribution, which is why this file is verbatim and why
-the natives jar carries it as well.
+the natives jar carries a notice naming it as well.
 
 --- COPYING at 1.5.4 (54706fc6bc0cdecab7e9593974a4039cc038fca7), verbatim ---
 

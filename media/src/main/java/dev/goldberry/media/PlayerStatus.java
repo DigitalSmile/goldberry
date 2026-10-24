@@ -16,8 +16,9 @@ import java.util.Optional;
 /// @param volume         the linear volume, 0 to 1
 /// @param muted          whether the output is silenced
 /// @param rate           how fast it plays: 1 as recorded, 2 twice as fast
-/// @param audioDecoder   which decoder plays the audio: a provider's name, or
-///                       `ffmpeg` for the built-in one
+/// @param audioDecoder   which decoder plays the audio: its provider's name,
+///                       the built-in ones' included (`opus`, `dav1d`,
+///                       `libvpx`)
 /// @param videoDecoder   which decoder plays the video, named the same way
 /// @param bufferedAhead  how much is demuxed past the position: what plays on
 ///                       if the source stops delivering now. Zero before the

@@ -17,7 +17,6 @@ import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
-import dev.goldberry.media.FfmpegRequirement;
 import dev.goldberry.media.codec.Decoder;
 import dev.goldberry.media.codec.DecoderRequest;
 import dev.goldberry.media.codec.Frame;
@@ -25,14 +24,14 @@ import dev.goldberry.media.codec.MediaType;
 import dev.goldberry.media.codec.PixelFormat;
 import dev.goldberry.media.codec.Received;
 import dev.goldberry.media.codec.VideoFrame;
-import dev.goldberry.media.ffi.Demuxer;
-import dev.goldberry.media.ffi.FfmpegLibraries;
+import dev.goldberry.media.container.Container;
+import dev.goldberry.media.container.Containers;
 import dev.goldberry.media.io.MemoryIO;
 import dev.goldberry.media.io.Source;
 
 /// The clips of `fixtures/` (made by `src/test/fixtures/make-platform-fixtures.sh`), and
-/// the loop that feeds one track of a clip to a decoder: `:media`'s FFmpeg
-/// demuxes, and the decoder under test decodes.
+/// the loop that feeds one track of a clip to a decoder: `:media`'s own
+/// containers demux, and the decoder under test decodes.
 public final class Fixtures {
 
     private static final String DIRECTORY = "/dev/goldberry/media/platform/fixtures/";
@@ -145,10 +144,9 @@ public final class Fixtures {
         return out;
     }
 
-    /// Opens `name` with `:media`'s demuxer, or skips without FFmpeg.
-    public static Demuxer demux(String name) {
-        FfmpegRequirement.enforce();
-        return Demuxer.open(FfmpegLibraries.get(), Source.of(URI.create("mem:///" + name)), new MemoryIO(bytes(name)));
+    /// Opens `name` with `:media`'s containers, which need no native library.
+    public static Container demux(String name) {
+        return Containers.open(Source.of(URI.create("mem:///" + name)), new MemoryIO(bytes(name)));
     }
 
     /// Decodes the default `type` track of `name` from start to end with the
@@ -166,7 +164,7 @@ public final class Fixtures {
     }
 
     /// Runs the Engine's decode loop until the decoder ends.
-    public static void run(Demuxer demuxer, Decoder decoder, Consumer<Frame> consumer) {
+    public static void run(Container demuxer, Decoder decoder, Consumer<Frame> consumer) {
         var ended = false;
         while (!ended) {
             switch (decoder.receive()) {

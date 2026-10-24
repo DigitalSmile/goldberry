@@ -184,7 +184,7 @@ class GalleryGoldenTest {
     /// property.
     ///
     /// Web, Audio and Video are the state every machine sees: the web view's
-    /// library and FFmpeg are pinned off by this module's test task, because
+    /// library and the media natives are pinned off by this module's test task, because
     /// whether a machine has them is not something a golden may photograph.
     @TestFactory
     @DisplayName("every screen")

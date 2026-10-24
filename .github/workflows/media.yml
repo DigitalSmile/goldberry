@@ -1,27 +1,24 @@
-# goldberry-media: the FFmpeg + dav1d superbuild, and the module's tests against
-# what it built. The system decoders' tests
-# run in the same task: they demux with that FFmpeg, and decode with the
-# system's decoders, VideoToolbox on macOS and GStreamer on Linux.
+# goldberry-media: the libgoldberry-media superbuild, and the module's tests
+# against what it built. The system decoders' tests run in the same task: they
+# demux in Java and decode with the system's decoders, VideoToolbox on macOS
+# and GStreamer on Linux.
 # https://goldberry.dev/docs/components/media.html#the-module
 #
 # Separate from linux.yml and macos.yml, because this build has its own
-# toolchain (meson, pkg-config, make, nasm) and its own natives, and a pull
-# request that touches neither should not pay for compiling FFmpeg.
+# toolchain (meson, make, nasm) and its own natives, and a pull request that
+# touches neither should not pay for compiling six codecs.
 #
-# All four targets, which a release of goldberry-media needs: FFmpeg for each
-# rides it as an `ffmpeg-<target>` classifier, and a release refuses to go
-# with one missing.
+# Two jobs. `natives` builds the library on each target where it will run: the
+# Linux targets inside the manylinux_2_28 container that pins the glibc floor,
+# as linux.yml builds libgoldberry; macOS on the arm64 runner; Windows with
+# MinGW-w64 from MSYS2's UCRT64 environment, the one toolchain libvpx's
+# configure and the rest all accept. `test` then runs :media's check on a plain
+# runner with a JDK against the artifact. All four targets, which a release of
+# goldberry-media needs: the library for each rides it as a `natives-<target>`
+# classifier, and a release refuses to go with one missing.
 #
-# Windows builds with MSVC, as the superbuild's Windows branch says: FFmpeg's
-# configure and make run under MSYS2, dav1d under meson, both with cl.exe from
-# the Visual Studio environment. Two things in MSYS2 would quietly break it,
-# and both are handled below: its coreutils `link.exe` shadows MSVC's linker,
-# and its own pkg-config splits PKG_CONFIG_PATH at the colon of `D:/`, so the
-# MINGW64 pkgconf, a native Windows program, is the one handed to configure.
-#
-# The FFmpeg and dav1d checkouts are cached by the catalog's hash, the one file
-# that pins them: a pin that moves invalidates the cache, and nothing
-# else does.
+# The upstream checkouts are cached by the catalog's hash, the one file that
+# pins them: a pin that moves invalidates the cache, and nothing else does.
 name: Media
 
 on:
@@ -34,48 +31,155 @@ on:
   workflow_dispatch:
 
 jobs:
-  ffmpeg:
-    name: FFmpeg and :media (${{ matrix.target }})
+  natives:
+    name: libgoldberry-media (${{ matrix.target }})
     strategy:
       fail-fast: false
       matrix:
         include:
+          - target: linux-x64
+            runner: ubuntu-24.04
+            image: quay.io/pypa/manylinux_2_28_x86_64
+          - target: linux-aarch64
+            runner: ubuntu-24.04-arm
+            image: quay.io/pypa/manylinux_2_28_aarch64
           - target: macos-aarch64
             runner: macos-14
-            platform-required: true
-            tools: brew install meson pkg-config nasm ninja
+            image: ''
+          - target: windows-x64
+            runner: windows-2022
+            image: ''
+    runs-on: ${{ matrix.runner }}
+    container: ${{ matrix.image }}
+    defaults:
+      run:
+        # Bash everywhere; the Windows steps that need MSYS2 say so.
+        shell: bash
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/cache@v4
+        with:
+          path: media/.deps/${{ matrix.target }}
+          key: media-deps-${{ matrix.target }}-${{ hashFiles('gradle/libs.versions.toml', 'media/src/main/cmake/**') }}
+
+      # AlmaLinux 8's cmake is older than the 3.28 the superbuild requires, so
+      # cmake, ninja and meson come from pip; nasm, make and git from dnf.
+      - name: Install the tools (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          for attempt in 1 2 3; do
+            dnf install -y nasm make git && break
+            [ "$attempt" -lt 3 ] || exit 1
+            echo "::warning::dnf install failed, attempt $attempt of 3; fresh metadata in 30 s"
+            dnf clean metadata
+            sleep 30
+          done
+          /opt/python/cp312-cp312/bin/pip install --upgrade cmake ninja meson
+          echo /opt/python/cp312-cp312/bin >> $GITHUB_PATH
+
+      - name: Install the tools (macOS)
+        if: runner.os == 'macOS'
+        run: brew install meson nasm ninja
+
+      # The whole toolchain from one environment: GCC, CMake, Ninja, meson and
+      # nasm as UCRT64 packages, make and git from MSYS2 itself.
+      - name: Install the tools (Windows)
+        if: runner.os == 'Windows'
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: UCRT64
+          update: false
+          install: >-
+            make git diffutils
+            mingw-w64-ucrt-x86_64-toolchain mingw-w64-ucrt-x86_64-cmake
+            mingw-w64-ucrt-x86_64-ninja mingw-w64-ucrt-x86_64-meson
+            mingw-w64-ucrt-x86_64-nasm
+
+      - name: Configure and build (Linux, macOS)
+        if: runner.os != 'Windows'
+        run: |
+          cmake -S media/src/main/cmake -B build/media \
+            -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_INSTALL_PREFIX=$PWD/build/media-install \
+            -DGOLDBERRY_TARGET_ID=${{ matrix.target }} \
+            -DGOLDBERRY_MEDIA_DEPS_DIR=$PWD/media/.deps/${{ matrix.target }}
+          cmake --build build/media --target install
+
+      - name: Configure and build (Windows)
+        if: runner.os == 'Windows'
+        shell: msys2 {0}
+        run: |
+          # libvpx's configure is a shell script, and with CRLF checkouts it is
+          # not one sh can run.
+          git config --global core.autocrlf false
+          cmake -S media/src/main/cmake -B build/media \
+            -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++ \
+            -DCMAKE_INSTALL_PREFIX=$PWD/build/media-install \
+            -DGOLDBERRY_TARGET_ID=${{ matrix.target }} \
+            -DGOLDBERRY_MEDIA_DEPS_DIR=$PWD/media/.deps/${{ matrix.target }} \
+            -DGOLDBERRY_SH=/usr/bin/sh -DGOLDBERRY_MAKE=/usr/bin/make
+          cmake --build build/media --target install
+
+      # When libvpx's or dav1d's configure stops, the reason is in its log.
+      - name: What the configure steps saw
+        if: failure()
+        run: |
+          tail -n 60 media/.deps/${{ matrix.target }}/libvpx-build/config.log 2>/dev/null || true
+          tail -n 60 media/.deps/${{ matrix.target }}/dav1d-build/meson-logs/meson-log.txt 2>/dev/null || true
+
+      - name: Check the glibc floor
+        if: runner.os == 'Linux'
+        run: |
+          # The reason for the container. Anything above 2.28 here means the
+          # artifact is not portable and the container is not doing its job.
+          objdump -T build/media-install/lib/libgoldberry-media.so \
+            | grep -o 'GLIBC_[0-9.]*' | sort -uV | tail -5
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: media-natives-${{ matrix.target }}
+          path: build/media-install/lib/
+          if-no-files-found: error
+
+  test:
+    name: ':media (${{ matrix.target }})'
+    needs: natives
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
           - target: linux-x64
             runner: ubuntu-24.04
             platform-required: true
-            # GStreamer's runtime and its decoders, for the system decoders: base has
-            # appsrc, appsink and the converters, good the audio parsers, bad the
-            # H.264 and HEVC parsers, and libav the decoders. No
-            # development package: the providers bind the libraries with FFM.
+            # GStreamer's runtime and its decoders, for the system decoders: base
+            # has appsrc, appsink and the converters, good the audio parsers, bad
+            # the H.264 and HEVC parsers, and libav the decoders.
             tools: >-
-              sudo apt-get update && sudo apt-get install -y meson ninja-build nasm pkg-config make
+              sudo apt-get update && sudo apt-get install -y
               gstreamer1.0-plugins-base gstreamer1.0-plugins-good gstreamer1.0-plugins-bad gstreamer1.0-libav
           - target: linux-aarch64
             runner: ubuntu-24.04-arm
             platform-required: true
-            # The same as linux-x64; dav1d's arm64 assembly is GNU as, so nasm is
-            # not needed here and is installed only to keep the two lines alike.
             tools: >-
-              sudo apt-get update && sudo apt-get install -y meson ninja-build nasm pkg-config make
+              sudo apt-get update && sudo apt-get install -y
               gstreamer1.0-plugins-base gstreamer1.0-plugins-good gstreamer1.0-plugins-bad gstreamer1.0-libav
+          - target: macos-aarch64
+            runner: macos-14
+            platform-required: true
+            tools: 'true'
           - target: windows-x64
             runner: windows-2022
             # Media Foundation's decoders are held back in this release, off unless
             # -Dgoldberry.media.mediaFoundation=true, so there is nothing to require.
             platform-required: false
-            # meson and ninja from pip, nasm from Chocolatey; MSYS2 and MSVC are
-            # steps of their own below.
-            tools: >-
-              pip install meson ninja && choco install nasm -y --no-progress
-              && echo "C:\\Program Files\\NASM" >> "$GITHUB_PATH"
+            tools: 'true'
     runs-on: ${{ matrix.runner }}
     defaults:
       run:
-        # Bash on Windows too, so `./gradlew` and the tool lines read the same.
         shell: bash
     steps:
       - uses: actions/checkout@v7
@@ -85,57 +189,17 @@ jobs:
           java-version: '25'
       - uses: gradle/actions/setup-gradle@v5
 
-      - name: Install the superbuild's tools
+      - name: Install the system decoders
         run: ${{ matrix.tools }}
 
-      - name: MSYS2, for FFmpeg's configure and make
-        if: runner.os == 'Windows'
-        id: msys2
-        uses: msys2/setup-msys2@v2
+      - uses: actions/download-artifact@v4
         with:
-          msystem: MINGW64
-          update: false
-          path-type: inherit
-          install: make diffutils mingw-w64-x86_64-pkgconf
+          name: media-natives-${{ matrix.target }}
+          path: media-natives
 
-      - name: Hand the MSYS2 tools to the build
-        if: runner.os == 'Windows'
-        env:
-          MSYS2: ${{ steps.msys2.outputs.msys2-location }}
-        run: |
-          # coreutils' link.exe would be found before MSVC's linker.
-          rm -f "$MSYS2/usr/bin/link.exe"
-          # configure needs sed, awk and the rest. The Visual Studio
-          # environment, set after this, goes in front, so cl and link are MSVC's.
-          echo "$MSYS2/usr/bin" >> "$GITHUB_PATH"
-          # The superbuild clones FFmpeg and dav1d itself; with CRLF checkouts,
-          # configure is not a script sh can run.
-          git config --global core.autocrlf false
-          echo "MEDIA_TOOLS=-Pgoldberry.sh=$MSYS2/usr/bin/sh.exe -Pgoldberry.make=$MSYS2/usr/bin/make.exe -Pgoldberry.pkg-config=$MSYS2/mingw64/bin/pkgconf.exe" >> "$GITHUB_ENV"
-
-      - name: The Visual Studio environment
-        if: runner.os == 'Windows'
-        uses: ilammy/msvc-dev-cmd@v1
-        with:
-          arch: x64
-
-      - uses: actions/cache@v4
-        with:
-          path: media/.deps/${{ matrix.target }}
-          key: media-deps-${{ matrix.target }}-${{ hashFiles('gradle/libs.versions.toml', 'media/src/main/cmake/**') }}
-
-      - name: Build FFmpeg and dav1d, with the layout probe and the size gate
-        run: ./gradlew :media:ffmpegBuild -Pgoldberry.skipNative=true $MEDIA_TOOLS --no-daemon
-
-      # When FFmpeg's configure stops, the reason is in its log, not in the step's
-      # output, which ends at "not found".
-      - name: What FFmpeg's configure saw
-        if: failure()
-        run: tail -n 120 "media/.deps/${{ matrix.target }}/ffmpeg-build/ffbuild/config.log" || true
-
-      # `required`, so a test that could not load FFmpeg fails rather than skips:
-      # a verification job that skips is a green tick over nothing.
-      # `check` includes the natives-jar test.
+      # `required`, so a test that could not load the library fails rather than
+      # skips: a verification job that skips is a green tick over nothing.
+      # `check` includes the natives-jar test, which packages this directory.
       #
       # Each job requires its own system's decoders too: VideoToolbox and
       # AudioToolbox on macOS, GStreamer on Linux; not Media Foundation on
@@ -145,10 +209,5 @@ jobs:
         run: >-
           ./gradlew :media:check
           -Pgoldberry.skipNative=true -Pgoldberry.media.required=true
-          -Pgoldberry.platform.required=${{ matrix.platform-required }} $MEDIA_TOOLS --no-daemon
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: ffmpeg-${{ matrix.target }}
-          path: media/build/ffmpeg/${{ matrix.target }}/install/lib/
-          if-no-files-found: error
+          -Pgoldberry.media.libdir="${{ github.workspace }}/media-natives"
+          -Pgoldberry.platform.required=${{ matrix.platform-required }} --no-daemon

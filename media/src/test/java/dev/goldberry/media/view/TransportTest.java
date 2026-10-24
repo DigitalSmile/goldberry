@@ -18,8 +18,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
 import dev.goldberry.junit.HeadlessRuntime;
-import dev.goldberry.media.FfmpegRequirement;
 import dev.goldberry.media.MediaInfo;
+import dev.goldberry.media.MediaNativesRequirement;
 import dev.goldberry.media.MediaPlayer;
 import dev.goldberry.media.PlaybackState;
 import dev.goldberry.media.PlayerStatus;
@@ -103,7 +103,7 @@ class TransportTest {
     @Test
     @DisplayName("over HTTP, the audio player's seek bar marks what has been fetched")
     void overHttp() throws IOException {
-        FfmpegRequirement.enforce();
+        MediaNativesRequirement.enforce();
         var rate = AudioFormat.DEFAULT.sampleRate();
         try (var server = new TestHttpServer(Wav.silence(rate, 2, rate * 4));
                 var player = MediaPlayer.builder()
@@ -170,7 +170,7 @@ class TransportTest {
     @Test
     @DisplayName("the audio track menu is there for two tracks or more, and chooses through the player")
     void menu() {
-        FfmpegRequirement.enforce();
+        MediaNativesRequirement.enforce();
         try (var player = MediaPlayer.builder()
                 .sink(() -> new VirtualSink(AudioFormat.DEFAULT, false))
                 .ioProviders(List.of(new MediaIOProvider() {
@@ -220,7 +220,7 @@ class TransportTest {
     @DisplayName(
             "the video track menu is there for two video tracks, only beside a picture, and chooses through the player")
     void videoMenu() {
-        FfmpegRequirement.enforce();
+        MediaNativesRequirement.enforce();
         try (var player = MediaPlayer.builder()
                 .sink(() -> new VirtualSink(AudioFormat.DEFAULT, false))
                 .ioProviders(List.of(new MediaIOProvider() {

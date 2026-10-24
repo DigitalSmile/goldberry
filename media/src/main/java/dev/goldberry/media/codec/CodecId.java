@@ -7,10 +7,11 @@ import java.util.stream.Collectors;
 
 /// A codec, in Goldberry's own vocabulary.
 ///
-/// The Decoder SPI is written in these, so a provider never sees an FFmpeg type.
-/// The mapping from FFmpeg goes **by codec name**, the string `avcodec_get_name`
-/// returns, and never by `AVCodecID` number. The numbers belong to one FFmpeg
-/// major, and the names have not changed in fifteen years.
+/// The Decoder SPI is written in these, so a provider never sees a native
+/// library's type. The names are FFmpeg's codec names, kept as the vocabulary
+/// because applications and error messages already speak it, and they have not
+/// changed in fifteen years; each container maps its own identifiers onto them
+/// (Matroska's `CodecID`, MP4's sample entry four-character codes).
 ///
 /// The list names every codec the published natives decode, and the patented ones
 /// they **deliberately do not** decode. Those are listed so that an
@@ -42,7 +43,7 @@ public enum CodecId {
 
     // --- Cover art --------------------------------------------------------------
     // An attached picture is one PNG or JPEG packet. It is decoded by the toolkit's
-    // own image decoder rather than by FFmpeg, which is why neither decoder is built.
+    // own image decoder rather than by the media natives, which build neither.
     PNG("png", MediaType.VIDEO, true),
     MJPEG("mjpeg", MediaType.VIDEO, true),
 

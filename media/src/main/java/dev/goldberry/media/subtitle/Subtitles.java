@@ -20,7 +20,7 @@ import dev.goldberry.media.io.Source;
 /// Text subtitles, read in Java: an external
 /// `.srt` or `.vtt` file, and the packets of a subtitle track in a container.
 ///
-/// No FFmpeg is involved. The text formats are text, a container's subtitle
+/// No native code is involved. The text formats are text, a container's subtitle
 /// packet is one cue's worth of it with the times in the packet, and the result
 /// is plain lines ([Cue]) that Goldberry draws itself. Bitmap subtitles (PGS,
 /// DVB) are not text and are not read.
@@ -130,7 +130,7 @@ public final class Subtitles {
     /// `start` to `end`: the packet's own times.
     ///
     /// - SubRip and WebVTT: the payload is the cue's text.
-    /// - ASS, as FFmpeg's demuxers hand it over: `ReadOrder,Layer,Style,Name,
+    /// - ASS, as a Matroska block stores it: `ReadOrder,Layer,Style,Name,
     ///   MarginL,MarginR,MarginV,Effect,Text`, and the text is the ninth field on.
     /// - MP4's `mov_text`: a big-endian 16-bit length, then that much UTF-8, then
     ///   style boxes, which are passed over.
@@ -162,7 +162,7 @@ public final class Subtitles {
         for (var commas = 0; commas < 8; commas++) {
             at = event.indexOf(',', at);
             if (at < 0) {
-                // Not the packet shape FFmpeg promises: take it all as text.
+                // Not the block shape Matroska specifies: take it all as text.
                 return event;
             }
             at++;

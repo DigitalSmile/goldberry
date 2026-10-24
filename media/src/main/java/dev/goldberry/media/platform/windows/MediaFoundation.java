@@ -22,8 +22,8 @@ import dev.goldberry.log.Logs;
 /// **Off unless asked for.** The decoders have not yet passed their tests on a
 /// Windows machine, so they are held back: on Windows too the state is
 /// [State.Unavailable] until `-Dgoldberry.media.mediaFoundation=true`
-/// ([#ENABLE_PROPERTY]) turns them on. Without them, Windows plays what FFmpeg
-/// decodes.
+/// ([#ENABLE_PROPERTY]) turns them on. Without them, Windows plays what the
+/// built-in decoders decode.
 ///
 /// COM has to be initialised on every thread that calls into it, and a decoder
 /// is opened on one thread and used on another: [#enterThread] does it, once

@@ -92,3 +92,5 @@ Appended to the index when the records move in, in this order.
 - [ADR-0648 A popup nobody can see through has square corners](0648-a-popup-nobody-can-see-through-has-square-corners.md)
 - [ADR-0649 A golden says which instruction set it was rasterized with](0649-a-golden-says-which-instruction-set-it-was-rasterized-with.md)
 - [ADR-0650 The Gradle action stays on its open-source major](0650-the-gradle-action-stays-on-its-open-source-major.md)
+- [ADR-0651 Media decodes with the reference codecs bound directly, and FFmpeg leaves](0651-media-decodes-with-the-reference-codecs-bound-directly-and-ffmpeg-leaves.md)
+- [ADR-0652 Audio before zero is priming, and a frame within rounding follows the last](0652-audio-before-zero-is-priming-and-a-frame-within-rounding-follows-the-last.md)

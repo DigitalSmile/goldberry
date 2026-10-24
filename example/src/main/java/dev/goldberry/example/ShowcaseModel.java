@@ -1163,7 +1163,7 @@ public final class ShowcaseModel {
                 .bind("video.player", videoPlayer);
     }
 
-    /// The Audio screen's player. Made here and not opened: nothing loads FFmpeg or
+    /// The Audio screen's player. Made here and not opened: nothing loads the media natives or
     /// opens an audio device until a source is picked.
     public dev.goldberry.media.MediaPlayer audioPlayer() {
         return audioPlayer;

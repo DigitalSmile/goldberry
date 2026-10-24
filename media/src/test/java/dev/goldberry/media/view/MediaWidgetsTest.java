@@ -32,8 +32,8 @@ import dev.goldberry.input.key.Key;
 import dev.goldberry.input.key.Modifiers;
 import dev.goldberry.junit.HeadlessRuntime;
 import dev.goldberry.kdl.KdlParser;
-import dev.goldberry.media.FfmpegRequirement;
 import dev.goldberry.media.HardwareDecoding;
+import dev.goldberry.media.MediaNativesRequirement;
 import dev.goldberry.media.MediaPlayer;
 import dev.goldberry.media.PlaybackState;
 import dev.goldberry.media.PlayerStatus;
@@ -86,8 +86,8 @@ class MediaWidgetsTest {
     private MediaPlayer player;
 
     @BeforeEach
-    void requireFfmpeg() {
-        FfmpegRequirement.enforce();
+    void requireNatives() {
+        MediaNativesRequirement.enforce();
     }
 
     @AfterEach

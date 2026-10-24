@@ -88,7 +88,8 @@ final class AudioFormats {
     /// No remapping follows: Windows orders the channels of a buffer by their
     /// bit in the mask, low to high (FL, FR, FC, LFE, BL, BR, …, BC, SL, SR), and
     /// FFmpeg's `AV_CH_…` bits are the same bits in the same order, so a layout
-    /// comes out of Media Foundation in the order FFmpeg's decoders give it.
+    /// comes out of Media Foundation in FFmpeg's default order, the one an
+    /// [dev.goldberry.media.codec.AudioFrame] promises.
     static int channelMask(int channels) {
         return switch (channels) {
             case 1 -> 0x4; // FC

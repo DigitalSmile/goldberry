@@ -376,6 +376,14 @@ public record MediaWall(
         private void play(Source source) {
             current = source;
             subtitleMessage = "";
+            var missing = MediaCapabilities.nativesUnavailableReason();
+            if (missing.isPresent() && !source.uri().getPath().endsWith(".wav")) {
+                // Said here rather than by a status: without the natives the
+                // player would open the source and report the codec unsupported,
+                // which is true and not the reason.
+                setState(() -> message = "The media natives are not available: " + missing.get());
+                return;
+            }
             try {
                 widget().player().open(source);
             } catch (MediaException e) {

@@ -43,13 +43,13 @@ import dev.goldberry.media.io.MemoryIO;
 import dev.goldberry.media.io.Source;
 
 /// The Engine, end to end: open, buffer, play, seek, pause, end and fail, against
-/// FFmpeg and a [VirtualSink].
+/// the Engine's own WAV container and PCM decoder, and a [VirtualSink].
 ///
 /// The sources are WAVs from [Wav], served by an in-memory `mem:` protocol, so
 /// every sample the sink receives is known. At 48 kHz stereo there is no resample
 /// between the file and the sink, and PCM s16 → f32 is exact, so "the first
 /// sample after a seek" can be checked to the sample.
-@DisplayName("MediaPlayer, against FFmpeg")
+@DisplayName("MediaPlayer, against the media natives")
 class MediaPlayerTest {
 
     private static final AudioFormat FORMAT = AudioFormat.DEFAULT;
@@ -73,8 +73,8 @@ class MediaPlayerTest {
     private VirtualSink sink;
 
     @BeforeEach
-    void requireFfmpeg() {
-        FfmpegRequirement.enforce();
+    void requireNatives() {
+        MediaNativesRequirement.enforce();
     }
 
     @AfterEach
@@ -209,7 +209,7 @@ class MediaPlayerTest {
         assertEquals(
                 List.of(PlaybackState.OPENING, PlaybackState.BUFFERING, PlaybackState.PLAYING, PlaybackState.ENDED),
                 List.copyOf(states));
-        assertEquals("ffmpeg", ended.audioDecoder().orElseThrow());
+        assertEquals("pcm", ended.audioDecoder().orElseThrow());
         assertTrue(ended.seekable());
     }
 
@@ -693,7 +693,7 @@ class MediaPlayerTest {
     void fallbackMidStream() {
         open(Wav.silence(FORMAT.sampleRate(), 2, FORMAT.sampleRate()), true, List.of(new FlakyProvider(3)));
         var ended = awaitState(PlaybackState.ENDED);
-        assertEquals("ffmpeg", ended.audioDecoder().orElseThrow());
+        assertEquals("pcm", ended.audioDecoder().orElseThrow());
         assertTrue(sink.capturedSamples() > 3 * 1024, "the built-in decoder carried on");
     }
 

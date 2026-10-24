@@ -36,10 +36,8 @@ import dev.goldberry.media.codec.DecoderProvider;
 import dev.goldberry.media.codec.Frame;
 import dev.goldberry.media.codec.MediaType;
 import dev.goldberry.media.codec.Packet;
-import dev.goldberry.media.ffi.Decoders;
-import dev.goldberry.media.ffi.Demuxer;
-import dev.goldberry.media.ffi.Ffmpeg;
-import dev.goldberry.media.ffi.Hardware;
+import dev.goldberry.media.container.Container;
+import dev.goldberry.media.container.Containers;
 import dev.goldberry.media.io.MediaIO;
 import dev.goldberry.media.io.MediaIOProvider;
 import dev.goldberry.media.io.MediaIOs;
@@ -58,7 +56,7 @@ import dev.goldberry.media.subtitle.Subtitles;
 ///
 /// **Demux** opens the source, chooses the tracks, checks that each can be
 /// decoded, opens the sink, and reads packets into one [PacketQueue] per track.
-/// It owns seeking: a request becomes `avformat_seek_file`, a new Serial and a
+/// It owns seeking: a request becomes the container's `seek`, a new Serial and a
 /// flush of every queue. Requests that arrive while one runs are coalesced, so
 /// only the latest runs. It stops reading only when **every** queue is full,
 /// so that one track's full queue cannot starve the other's decoder.
@@ -167,11 +165,9 @@ public final class Playback implements AutoCloseable {
     /// A seek waiting for the demux thread.
     private record SeekRequest(long targetNanos, boolean accurate) {}
 
-    private final Ffmpeg ffmpeg;
     private final Source source;
     private final @Nullable List<? extends MediaIOProvider> ioProviders;
     private final List<? extends DecoderProvider> decoderProviders;
-    private final Hardware hardware;
     private final AudioSink sink;
     private final Listener listener;
     private final MasterClock clock;
@@ -207,7 +203,6 @@ public final class Playback implements AutoCloseable {
     private volatile @Nullable MediaError error;
     private volatile @Nullable String audioDecoderName;
     private volatile @Nullable String videoDecoderName;
-    private volatile @Nullable Demuxer demuxer;
     /// The source's bytes, once opened: what the buffered ranges and the title
     /// come from.
     private volatile @Nullable MediaIO io;
@@ -293,17 +288,13 @@ public final class Playback implements AutoCloseable {
     ///
     /// @param ioProviders    the protocols, or null for the ones `ServiceLoader`
     ///                       finds
-    /// @param hardware       whether the built-in decoder tries a device for
-    ///                       video
     /// @param time           what a source with no audio is timed against
     /// @param highWaterNanos how far ahead to demux before playing, and before
     ///                       playing on after a stall
     public Playback(
-            Ffmpeg ffmpeg,
             Source source,
             @Nullable List<? extends MediaIOProvider> ioProviders,
             List<? extends DecoderProvider> decoderProviders,
-            Hardware hardware,
             AudioSink sink,
             MediaClock time,
             long highWaterNanos,
@@ -311,11 +302,9 @@ public final class Playback implements AutoCloseable {
         if (highWaterNanos < 0) {
             throw new IllegalArgumentException("highWaterNanos " + highWaterNanos);
         }
-        this.ffmpeg = Objects.requireNonNull(ffmpeg, "ffmpeg");
         this.source = Objects.requireNonNull(source, "source");
         this.ioProviders = ioProviders;
         this.decoderProviders = List.copyOf(decoderProviders);
-        this.hardware = Objects.requireNonNull(hardware, "hardware");
         this.sink = Objects.requireNonNull(sink, "sink");
         this.clock = new MasterClock(time);
         this.tail = new AudioTail(time);
@@ -346,12 +335,12 @@ public final class Playback implements AutoCloseable {
         return error;
     }
 
-    /// The decoder playing the audio: a provider's name, or `ffmpeg`.
+    /// The decoder playing the audio: the provider's name, `opus` or `flac` for a built-in one.
     public @Nullable String decoderName() {
         return audioDecoderName;
     }
 
-    /// The decoder playing the video: a provider's name, or `ffmpeg`.
+    /// The decoder playing the video: the provider's name, `dav1d` or `libvpx` for a built-in one.
     public @Nullable String videoDecoderName() {
         return videoDecoderName;
     }
@@ -699,10 +688,9 @@ public final class Playback implements AutoCloseable {
     /// Whether a seek can do anything: the bytes can be read out of order and the
     /// source is not live. A live stream has only a now, and a source that cannot
     /// seek has nowhere to go, so a seek on either is dropped and the stream plays
-    /// on. Handed to the demuxer, it would be FFmpeg's generic seek, which rewinds
-    /// to the last index entry it holds: inside the AVIO buffer that works, past
-    /// it the unseekable source refuses, and which of the two happened depended
-    /// on how far the demux thread had read. Before the source is open, nothing
+    /// on. Handed to the container, it would be refused by the source, or land
+    /// inside the read buffer by luck, depending on how far the demux thread
+    /// had read. Before the source is open, nothing
     /// is known and the request waits for [#seekTo], which asks again.
     private boolean canSeek() {
         var bytes = io;
@@ -736,16 +724,11 @@ public final class Playback implements AutoCloseable {
         closed = true;
         stopping = true;
         abortQueues();
-        var open = demuxer;
-        if (open != null) {
-            open.abort();
-        } else {
-            // Still opening: a network source may be waiting on a server. Closing
-            // its bytes ends a read FFmpeg is blocked in, and the interrupt ends a
-            // wait for the first response.
-            closeQuietly(io);
-            demuxThread.interrupt();
-        }
+        // Closing the bytes ends a read the container is blocked in, which it
+        // reports as Aborted, and the interrupt ends a wait for a network
+        // source's first response while it is still opening.
+        closeQuietly(io);
+        demuxThread.interrupt();
         signal();
         join(demuxThread);
         sink.close();
@@ -755,15 +738,14 @@ public final class Playback implements AutoCloseable {
 
     private void demux() {
         MediaIO bytes = null;
-        Demuxer opened = null;
+        Container opened = null;
         try {
             bytes = ioProviders == null ? MediaIOs.open(source) : MediaIOs.open(source, ioProviders);
             io = bytes;
             if (stopping) {
                 return;
             }
-            opened = Demuxer.open(ffmpeg, source, bytes);
-            demuxer = opened;
+            opened = Containers.open(source, bytes);
             if (stopping) {
                 return;
             }
@@ -801,10 +783,10 @@ public final class Playback implements AutoCloseable {
 
     /// Every track about to be played has a decoder, or the source fails naming
     /// every codec that has none.
-    private void requireDecoders(Demuxer opened, Optional<Track> audio, Optional<Track> video) {
+    private void requireDecoders(Container opened, Optional<Track> audio, Optional<Track> video) {
         var unsupported = new ArrayList<String>(2);
         for (var track : List.of(video, audio)) {
-            track.filter(chosen -> !Decoders.supports(ffmpeg, opened, chosen.index(), decoderProviders))
+            track.filter(chosen -> !Decoders.supports(opened, chosen.index(), decoderProviders))
                     .ifPresent(chosen -> unsupported.add(chosen.codecName()));
         }
         if (!unsupported.isEmpty()) {
@@ -812,7 +794,7 @@ public final class Playback implements AutoCloseable {
         }
     }
 
-    private void startWorkers(Demuxer opened, Optional<Track> audio, Optional<Track> video) {
+    private void startWorkers(Container opened, Optional<Track> audio, Optional<Track> video) {
         synchronized (gate) {
             hasAudio = audio.isPresent();
             hasVideo = video.isPresent();
@@ -845,7 +827,7 @@ public final class Playback implements AutoCloseable {
         workers.forEach(Thread::start);
     }
 
-    private void readPackets(Demuxer opened) {
+    private void readPackets(Container opened) {
         var ended = false;
         while (!stopping) {
             var track = pendingTrack.getAndSet(null);
@@ -935,7 +917,7 @@ public final class Playback implements AutoCloseable {
     /// Shows `track`'s cues in place of any subtitles showing: selects its stream
     /// in the demuxer and seeks to where playback is, so its packets around the
     /// position are read.
-    private void showTrack(Demuxer opened, Track track) {
+    private void showTrack(Container opened, Track track) {
         if (subtitles instanceof SubtitleSource.Embedded(var showing) && showing.index() == track.index()) {
             return;
         }
@@ -951,7 +933,7 @@ public final class Playback implements AutoCloseable {
     }
 
     /// An audio thread on `track`, reading `queue`: made, not started.
-    private Thread audioThread(Demuxer opened, Track track, PacketQueue queue) {
+    private Thread audioThread(Container opened, Track track, PacketQueue queue) {
         var worker = new AudioWorker(this, opened, track.index(), queue, format);
         var thread = Thread.ofPlatform().name("goldberry-media-audio").daemon().unstarted(worker::play);
         audioWorker = worker;
@@ -961,8 +943,8 @@ public final class Playback implements AutoCloseable {
 
     /// Whether `track` can be decoded, and if not the warning that `current`
     /// plays on. One message for the audio switch and the video one.
-    private boolean decodes(Demuxer opened, Track track, Track current) {
-        if (Decoders.supports(ffmpeg, opened, track.index(), decoderProviders)) {
+    private boolean decodes(Container opened, Track track, Track current) {
+        if (Decoders.supports(opened, track.index(), decoderProviders)) {
             return true;
         }
         LOG.warn("no decoder for {} on track {}; track {} plays on", track.codecName(), track.index(), current.index());
@@ -974,7 +956,7 @@ public final class Playback implements AutoCloseable {
     /// every queue starts over at one position and the new track comes in on the
     /// right sample. The sink plays what the old thread wrote until the seek's
     /// flush clears it, so the switch is not a silence.
-    private void switchAudio(Demuxer opened, Track track) {
+    private void switchAudio(Container opened, Track track) {
         var current = audioTrack;
         if (current == null || current.index() == track.index()) {
             return;
@@ -1013,7 +995,7 @@ public final class Playback implements AutoCloseable {
 
     /// A video thread on `track`, reading `queue` and filling `pictures`: made,
     /// not started.
-    private Thread videoThread(Demuxer opened, Track track, PacketQueue queue, FrameQueue pictures) {
+    private Thread videoThread(Container opened, Track track, PacketQueue queue, FrameQueue pictures) {
         var worker = new VideoWorker(this, opened, track.index(), queue, pictures);
         var thread = Thread.ofPlatform().name("goldberry-media-video").daemon().unstarted(worker::play);
         videoWorker = worker;
@@ -1026,7 +1008,7 @@ public final class Playback implements AutoCloseable {
     /// where playback is. The picture on screen stays up until the new track's
     /// first picture, the one covering the position, replaces it, so the switch
     /// is a cut and not a frame of black.
-    private void switchVideo(Demuxer opened, Track track) {
+    private void switchVideo(Container opened, Track track) {
         var current = videoTrack;
         var pictures = frames;
         if (current == null || pictures == null || current.index() == track.index()) {
@@ -1071,7 +1053,7 @@ public final class Playback implements AutoCloseable {
 
     /// Tells the demuxer to read the streams that play: the audio, the video and
     /// the subtitle track chosen now. The rest are discarded.
-    private void selectStreams(Demuxer opened) {
+    private void selectStreams(Container opened) {
         var selected = new HashSet<Integer>();
         for (var stream : List.of(audioStream, videoStream, subtitleStream)) {
             if (stream >= 0) {
@@ -1125,7 +1107,7 @@ public final class Playback implements AutoCloseable {
     /// @return false when the source cannot start over, and ends instead: it
     ///         cannot seek, it is live, nothing says how long it is, or nothing
     ///         was read since it last started over
-    private boolean wrap(Demuxer opened) {
+    private boolean wrap(Container opened) {
         var bytes = io;
         var described = info;
         var measured = passLength.nanos();
@@ -1151,7 +1133,7 @@ public final class Playback implements AutoCloseable {
         return true;
     }
 
-    private void seekTo(Demuxer opened, SeekRequest request) {
+    private void seekTo(Container opened, SeekRequest request) {
         if (!canSeek()) {
             // Asked while the source was still opening, and now known to be a
             // seek that cannot be made: dropped, and the position is the clock's.
@@ -1238,17 +1220,8 @@ public final class Playback implements AutoCloseable {
 
     // ------------------------------------------------- what the workers report
 
-    Ffmpeg ffmpeg() {
-        return ffmpeg;
-    }
-
     List<? extends DecoderProvider> decoderProviders() {
         return decoderProviders;
-    }
-
-    /// Whether the built-in decoder tries a device, for the video thread.
-    Hardware hardware() {
-        return hardware;
     }
 
     AudioSink sink() {

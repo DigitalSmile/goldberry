@@ -1,9 +1,6 @@
 import dev.goldberry.build.ToolResolver
 import dev.goldberry.build.natives.NativeTarget
-import dev.goldberry.build.publish.CorrespondingSource
 import dev.goldberry.build.toolchain.ToolLookup
-import dev.goldberry.build.publish.UpstreamSource
-import org.apache.tools.ant.filters.ReplaceTokens
 
 plugins {
     id 'goldberry.java-conventions'
@@ -12,26 +9,27 @@ plugins {
     // as :html's `markdown-view` is found.
     id 'goldberry.weave'
     // Published as goldberry-media, optional in the umbrella. It
-    // arrives together with its natives -- FFmpeg as `ffmpeg-<target>`
-    // classifiers, below -- because a goldberry-media with no FFmpeg to load is a
-    // jar that fails on every machine that adds it.
+    // arrives together with its natives -- libgoldberry-media as `natives-<target>`
+    // classifiers, below -- because a goldberry-media with no decoder to load is
+    // a jar that fails on every machine that adds it.
     id 'goldberry.publish'
     // The SDL audio sink's tests load libgoldberry.
     id 'goldberry.native-tests'
 }
 
-description = 'Goldberry media: audio and video playback over FFmpeg, driven from Java'
+description = 'Goldberry media: audio and video playback, demuxed in Java and decoded by the reference codecs'
 
 // ============================================================================
 // goldberry-media
 // https://goldberry.dev/docs/components/media.html#the-module
 //
 // The second module in the build that binds native code itself, and the only one
-// whose libraries are not libgoldberry. FFmpeg is LGPL-2.1+ and must stay
-// dynamically linked and replaceable, so it cannot be folded into the toolkit's
-// one static library the way md4c and libwebp were; it is five shared objects
-// built by a superbuild of its own (media/src/main/cmake), loaded by
-// `FfmpegLibraries`, and bound by hand in `…media.ffi`.
+// whose library is not libgoldberry: libgoldberry-media, the reference decoders
+// (dav1d, libvpx, Opus, Vorbis, FLAC, minimp3) and libyuv linked into one
+// shared object by a superbuild of its own (media/src/main/cmake), so that an
+// application which plays no media carries none of it. Loaded by
+// `MediaNatives`, and bound by hand in `…media.ffm`. The demuxers, the clock
+// and the I/O are Java.
 //
 // Nothing in :core or :widgets depends on this module. The engine packages use
 // none of the toolkit; `…media.view` builds its widgets from :widgets' controls.
@@ -71,25 +69,25 @@ dependencies {
 // The media superbuild
 // https://goldberry.dev/docs/components/media.html#bringing-a-codec
 //
-// FFmpeg and dav1d for THIS machine, the local development path -- the same
+// libgoldberry-media for THIS machine, the local development path -- the same
 // arrangement :natives has for libgoldberry. It is not part of
-// `./gradlew build`: it needs meson, pkg-config and make on top of CMake and
-// Ninja, and a first run compiles FFmpeg. Run it on purpose:
+// `./gradlew build`: it needs meson and make on top of CMake and Ninja, nasm on
+// x86, and a first run clones and compiles seven upstreams. Run it on purpose:
 //
-//   ./gradlew :media:ffmpegBuild
+//   ./gradlew :media:nativesBuild
 //
 // and the tests below find the result by themselves.
 // ============================================================================
 def hostTarget = nativeTests.host
 def hostTargetId = hostTarget.id()
 def superbuildSource = layout.projectDirectory.dir('src/main/cmake')
-def superbuildWorkDir = layout.buildDirectory.dir("ffmpeg/${hostTargetId}/cmake")
-// `NativeTarget.ffmpegInstallDir()`, which is where :example's `run` looks too.
-def superbuildInstallDir = layout.buildDirectory.dir(hostTarget.ffmpegInstallDir())
+def superbuildWorkDir = layout.buildDirectory.dir("media-natives/${hostTargetId}/cmake")
+// `NativeTarget.mediaInstallDir()`, which is where :example's `run` looks too.
+def superbuildInstallDir = layout.buildDirectory.dir(hostTarget.mediaInstallDir())
 def catalogFile = rootProject.layout.projectDirectory.file('gradle/libs.versions.toml')
 
-// Outside build/, like :natives' clones, so `clean` does not throw away a
-// FFmpeg checkout.
+// Outside build/, like :natives' clones, so `clean` does not throw away seven
+// checkouts.
 def depsDir = providers.gradleProperty('goldberry.media.depsDir')
         .map { file(it) }
         .orElse(layout.projectDirectory.dir(".deps/${hostTargetId}").asFile)
@@ -101,62 +99,53 @@ def tools = ToolLookup.from(providers)
 def resolveTool = { String name -> tools.fileOrNull(name) }
 
 def superbuildTools = [
-        cmake       : resolveTool('cmake'),
-        ninja       : resolveTool('ninja'),
-        meson       : resolveTool('meson'),
-        'pkg-config': resolveTool('pkg-config'),
-        make        : resolveTool('make'),
+        cmake: resolveTool('cmake'),
+        ninja: resolveTool('ninja'),
+        meson: resolveTool('meson'),
+        make : resolveTool('make'),
 ]
-// dav1d's x86 assembly is nasm's: without it meson's configure fails on an x64
-// host, long after this check could have said so.
+// dav1d's and libvpx's x86 assembly is nasm's: without it their configure steps
+// fail on an x64 host, long after this check could have said so.
 if (hostTargetId.endsWith('-x64')) {
     superbuildTools.nasm = resolveTool('nasm')
 }
-// FFmpeg's configure is a shell script, which Windows has to be told how to run.
+// libvpx's configure is a shell script, which Windows has to be told how to run.
 if (hostTargetId.startsWith('windows-')) {
     superbuildTools.sh = resolveTool('sh')
 }
 
 def checkMediaToolchain = tasks.register('checkMediaToolchain') {
     group = 'native'
-    description = 'Verifies that the tools the FFmpeg superbuild needs are installed.'
+    description = 'Verifies that the tools the media superbuild needs are installed.'
     doLast {
         def missing = superbuildTools.findAll { name, executable -> executable == null }.keySet()
         if (!missing.isEmpty()) {
             def hint = switch (ToolResolver.familyOf(System.getProperty('os.name', ''))) {
-                case ToolResolver.Family.MACOS -> 'brew install cmake ninja meson pkg-config nasm'
-                case ToolResolver.Family.WINDOWS -> 'install cmake, ninja, meson, pkg-config, nasm and make, e.g. through MSYS2 or Chocolatey'
-                default -> 'sudo apt install cmake ninja-build meson pkg-config nasm make    (Debian/Ubuntu)'
+                case ToolResolver.Family.MACOS -> 'brew install cmake ninja meson nasm'
+                case ToolResolver.Family.WINDOWS -> 'install MSYS2 and, in its UCRT64 shell, pacman -S mingw-w64-ucrt-x86_64-{toolchain,cmake,ninja,meson,nasm} make'
+                default -> 'sudo apt install cmake ninja-build meson nasm make    (Debian/Ubuntu)'
             }
             throw new GradleException("""\
-                Missing tools for the FFmpeg superbuild: ${missing.join(', ')}
+                Missing tools for the media superbuild: ${missing.join(', ')}
 
                   ${hint}
 
                 A tool installed somewhere unconventional can be named directly,
                 e.g. -Pgoldberry.meson=/path/to/meson.""".stripIndent())
         }
-        logger.lifecycle("FFmpeg superbuild toolchain OK for ${hostTargetId}:\n" +
+        logger.lifecycle("media superbuild toolchain OK for ${hostTargetId}:\n" +
                 superbuildTools.collect { name, executable -> "  ${name.padRight(11)} ${executable}" }.join('\n'))
     }
 }
 
-// The hardware decoders: on where they need nothing but the
-// OS (VideoToolbox, D3D11), off on Linux, where VAAPI would make libavutil need
-// libva. -Pgoldberry.media.hwaccel=true|false overrides either way.
-def hwaccel = providers.gradleProperty('goldberry.media.hwaccel')
-        .map { it.toBoolean() }
-        .getOrElse(!hostTargetId.startsWith('linux-'))
-
-def ffmpegConfigure = tasks.register('ffmpegConfigure', Exec) {
+def nativesConfigure = tasks.register('nativesConfigure', Exec) {
     group = 'native'
-    description = "Configures the FFmpeg + dav1d superbuild for ${hostTargetId}."
+    description = "Configures the libgoldberry-media superbuild for ${hostTargetId}."
     dependsOn checkMediaToolchain
 
     inputs.dir superbuildSource
     inputs.file catalogFile
     inputs.property 'targetId', hostTargetId
-    inputs.property 'hwaccel', hwaccel
     outputs.file superbuildWorkDir.map { it.file('CMakeCache.txt') }
 
     def arguments = [
@@ -167,12 +156,10 @@ def ffmpegConfigure = tasks.register('ffmpegConfigure', Exec) {
             "-DCMAKE_INSTALL_PREFIX=${superbuildInstallDir.get().asFile.absolutePath}".toString(),
             "-DGOLDBERRY_TARGET_ID=${hostTargetId}".toString(),
             "-DGOLDBERRY_MEDIA_DEPS_DIR=${depsDir.get().absolutePath}".toString(),
-            "-DGOLDBERRY_MEDIA_HWACCEL=${hwaccel ? 'ON' : 'OFF'}".toString(),
     ]
     // Handed over by path so the superbuild's ExternalProjects run the same
     // executables this build checked, rather than searching a PATH of their own.
-    [ninja: 'CMAKE_MAKE_PROGRAM', meson: 'GOLDBERRY_MESON', 'pkg-config': 'GOLDBERRY_PKG_CONFIG', make: 'GOLDBERRY_MAKE',
-     sh: 'GOLDBERRY_SH']
+    [ninja: 'CMAKE_MAKE_PROGRAM', meson: 'GOLDBERRY_MESON', make: 'GOLDBERRY_MAKE', sh: 'GOLDBERRY_SH']
             .each { tool, variable ->
                 if (superbuildTools[tool] != null) {
                     arguments << "-D${variable}=${superbuildTools[tool].absolutePath}".toString()
@@ -181,21 +168,21 @@ def ffmpegConfigure = tasks.register('ffmpegConfigure', Exec) {
     commandLine([superbuildTools.cmake?.absolutePath ?: 'cmake'] + arguments)
 
     doFirst {
-        if (!new File(depsDir.get(), 'ffmpeg-src').isDirectory()) {
+        if (!new File(depsDir.get(), 'dav1d-src').isDirectory()) {
             logger.lifecycle("""\
-                goldberry-media: first FFmpeg superbuild for ${hostTargetId}.
+                goldberry-media: first media superbuild for ${hostTargetId}.
 
-                Cloning FFmpeg and dav1d into
+                Cloning dav1d, libvpx, Opus, libogg, libvorbis, FLAC, libyuv and minimp3 into
                   ${depsDir.get()}
-                and compiling both -- several minutes the first time.""".stripIndent())
+                and compiling them -- several minutes the first time.""".stripIndent())
         }
     }
 }
 
-tasks.register('ffmpegBuild', Exec) {
+tasks.register('nativesBuild', Exec) {
     group = 'native'
-    description = "Builds FFmpeg + dav1d for ${hostTargetId}, with the layout probe and the size gate."
-    dependsOn ffmpegConfigure
+    description = "Builds libgoldberry-media for ${hostTargetId}, with the layout probe and the size gate."
+    dependsOn nativesConfigure
     inputs.dir superbuildSource
     outputs.dir superbuildInstallDir
     commandLine superbuildTools.cmake?.absolutePath ?: 'cmake',
@@ -204,14 +191,14 @@ tasks.register('ffmpegBuild', Exec) {
 }
 
 // ============================================================================
-// The natives jar: goldberry-media's `ffmpeg-<classifier>`
+// The natives jar: goldberry-media's `natives-<target>`
 // https://goldberry.dev/docs/contributing/releasing.html#where-things-go
 //
-// What `FfmpegLibraries` unpacks when no -Dgoldberry.media.libdir is set: the
-// five libraries and the layout file under
-// dev/goldberry/media/natives/<classifier>/ -- the literal
-// `FfmpegPlatform.resourceDirectory()` returns -- and ffmpeg-NOTICE.txt under
-// META-INF/, beside the licence texts every Goldberry jar carries.
+// What `MediaNatives` unpacks when no -Dgoldberry.media.libdir is set: the
+// library and the layout file under dev/goldberry/media/natives/<target>/ --
+// the literal `MediaPlatform.resourceDirectory()` returns -- and
+// media-NOTICE.txt under META-INF/, beside the licence texts every Goldberry
+// jar carries.
 //
 // One task per target, as `:natives` has. The host's reads the superbuild's
 // install directory; any target reads `-Pgoldberry.media.artifactsDir=<dir>/<id>`
@@ -220,15 +207,16 @@ tasks.register('ffmpegBuild', Exec) {
 def mediaTargets = NativeTarget.ALL.collect { it.id() }
 def mediaArtifactsDir = providers.gradleProperty('goldberry.media.artifactsDir').map { file(it) }
 def taskSuffix = { String id -> id.split('-').collect { it.capitalize() }.join('') }
+def layoutFileName = 'media-layout.properties'
 
 mediaTargets.each { target ->
-    tasks.register("ffmpegNativesJar${taskSuffix(target)}", Jar) {
+    tasks.register("nativesJar${taskSuffix(target)}", Jar) {
         group = 'native'
-        description = "Packages FFmpeg for ${target} as goldberry-media's ffmpeg-${target} classifier."
+        description = "Packages libgoldberry-media for ${target} as goldberry-media's natives-${target} classifier."
 
-        archiveBaseName = 'goldberry-ffmpeg-natives'
+        archiveBaseName = 'goldberry-media-natives'
         archiveClassifier = target
-        destinationDirectory = layout.buildDirectory.dir('ffmpeg-natives')
+        destinationDirectory = layout.buildDirectory.dir('media-natives-jars')
 
         def sourceDir = mediaArtifactsDir.isPresent()
                 ? mediaArtifactsDir.map { new File(it, target) }
@@ -236,186 +224,56 @@ mediaTargets.each { target ->
 
         if (sourceDir != null) {
             from(sourceDir) {
-                exclude 'ffmpeg-NOTICE.txt'
+                exclude 'media-NOTICE.txt'
                 into "dev/goldberry/media/natives/${target}"
             }
             from(sourceDir) {
-                include 'ffmpeg-NOTICE.txt'
+                include 'media-NOTICE.txt'
                 into 'META-INF'
             }
         }
-        // licenses/ffmpeg.txt and licenses/dav1d.txt arrive with the rest of
-        // licenses/, which the conventions put in every jar's META-INF.
+        // The licence texts arrive with the rest of licenses/, which the
+        // conventions put in every jar's META-INF.
 
         // An empty natives jar fails on a user's machine; a missing one fails here.
         doFirst {
-            if (sourceDir == null || !new File(sourceDir.get(), 'ffmpeg-layout.properties').isFile()) {
-                throw new GradleException("No FFmpeg build for ${target}. " +
+            if (sourceDir == null || !new File(sourceDir.get(), layoutFileName).isFile()) {
+                throw new GradleException("No libgoldberry-media build for ${target}. " +
                         (target == hostTargetId
-                                ? 'Run ./gradlew :media:ffmpegBuild first.'
+                                ? 'Run ./gradlew :media:nativesBuild first.'
                                 : "Build it on a ${target} runner and pass -Pgoldberry.media.artifactsDir=<dir>."))
             }
         }
     }
 }
 
-def hostNativesJar = tasks.named("ffmpegNativesJar${taskSuffix(hostTargetId)}")
+def hostNativesJar = tasks.named("nativesJar${taskSuffix(hostTargetId)}")
 
-// ============================================================================
-// The corresponding source: goldberry-media's `ffmpeg-sources`
-//
-// Section 4 of the LGPL-2.1 lets FFmpeg's object code be distributed only with its complete
-// corresponding source, or with equivalent access to it from the same place, and
-// a snapshot on Central is a distribution like a release. So the binaries above
-// never go out without this jar beside them, under the same coordinates:
-// FFmpeg and dav1d at exactly the pinned tags, the superbuild that compiles
-// them, the licence texts, and a README.txt on rebuilding and relinking.
-//
-// The trees come from git -- the repositories and tags the superbuild clones,
-// checked against the commits pinned beside the tags, which the superbuild
-// checks too -- so this is the source that was built and not a tarball that
-// shares a version number. It needs git and the network, once; it does not need
-// FFmpeg built, so the Java-only publishing job makes it.
-// ============================================================================
-// The clones outlive `clean`, as the superbuild's do;
-// -Pgoldberry.media.sourcesDir puts them elsewhere.
-def sourcesCloneDir = providers.gradleProperty('goldberry.media.sourcesDir')
-        .map { file(it) }
-        .orElse(layout.projectDirectory.dir('.deps/sources').asFile)
-def upstreamSources = [
-        new UpstreamSource('ffmpeg', 'https://git.ffmpeg.org/ffmpeg.git',
-                libs.versions.ffmpeg.get(), libs.versions.ffmpegCommit.get()),
-        new UpstreamSource('dav1d', 'https://code.videolan.org/videolan/dav1d.git',
-                libs.versions.dav1d.get(), libs.versions.dav1dCommit.get()),
-]
-def gitExecutable = resolveTool('git')?.absolutePath ?: 'git'
-
-def sourceArchives = upstreamSources.collectEntries { source ->
-    def archive = layout.buildDirectory.file("ffmpeg-sources/${source.directory()}.tar")
-    def clone = new File(sourcesCloneDir.get(), "${source.name()}.git")
-    def task = tasks.register("${source.name()}SourceArchive") {
-        group = 'native'
-        description = "Takes ${source.name()} ${source.tag()} from git as a tar, for the ffmpeg-sources classifier."
-        inputs.property 'repository', source.repository()
-        inputs.property 'tag', source.tag()
-        inputs.property 'commit', source.commit()
-        outputs.file archive
-        doLast {
-            source.archive(gitExecutable, clone.toPath(), archive.get().asFile.toPath())
-        }
-    }
-    [(task): archive]
-}
-
-// The targets whose notices this jar quotes: those packaged beside it.
-def noticeDir = { String target ->
-    mediaArtifactsDir.isPresent()
-            ? new File(mediaArtifactsDir.get(), target)
-            : (target == hostTargetId ? superbuildInstallDir.get().dir('lib').asFile : null)
-}
-def noticedTargets = mediaTargets.findAll {
-    noticeDir(it) != null && new File(noticeDir(it), 'ffmpeg-NOTICE.txt').isFile()
-}
-
-tasks.register('ffmpegSourcesJar', Jar) {
-    group = 'native'
-    description = "Packages FFmpeg's and dav1d's source and build recipe as goldberry-media's ffmpeg-sources classifier."
-
-    archiveBaseName = 'goldberry-media'
-    archiveClassifier = CorrespondingSource.SOURCES
-    destinationDirectory = layout.buildDirectory.dir('ffmpeg-sources')
-
-    def ffmpeg = upstreamSources[0]
-    def dav1d = upstreamSources[1]
-    def readme = [
-            VERSION      : project.version.toString(),
-            TARGETS      : noticedTargets.isEmpty()
-                    ? 'none packaged with this build of the jar'
-                    : noticedTargets.collect { "ffmpeg-${it}".toString() }.join(', '),
-            FFMPEG_TAG   : ffmpeg.tag(),
-            FFMPEG_COMMIT: ffmpeg.commit(),
-            FFMPEG_DIR   : ffmpeg.directory(),
-            DAV1D_TAG    : dav1d.tag(),
-            DAV1D_COMMIT : dav1d.commit(),
-            DAV1D_DIR    : dav1d.directory(),
-    ]
-    // A filter's tokens are not an input by themselves.
-    inputs.property 'readme', readme
-
-    sourceArchives.each { task, archive ->
-        dependsOn task
-        from(tarTree(archive))
-    }
-    // The trees keep the modes git gave them, because FFmpeg's configure and its
-    // helpers are scripts an `unzip` has to find executable. Everything else is
-    // 0644 whatever this machine's umask, so the jar is the same wherever it is
-    // made. (`useFileSystemPermissions()` cannot be scoped to one `from`: on a
-    // child spec it applies to the whole archive.)
-    useFileSystemPermissions()
-    dirPermissions { unix('rwxr-xr-x') }
-    def trees = upstreamSources.collect { it.directory() + '/' }
-    eachFile { details ->
-        if (!trees.any { details.path.startsWith(it) }) {
-            details.permissions { unix('rw-r--r--') }
-        }
-    }
-    // The one file not from git: FFmpeg's version.sh reads it where there is no
-    // .git, as its release tarballs do, so a rebuild reports the same version.
-    from(resources.text.fromString("${ffmpeg.tag()}\n")) {
-        rename { 'VERSION' }
-        into ffmpeg.directory()
-        eachFile { it.permissions { unix('rw-r--r--') } }
-    }
-    from(superbuildSource) { into 'recipe/media/src/main/cmake' }
-    from(catalogFile) { into 'recipe/gradle' }
-    from(rootProject.file('licenses')) {
-        include 'ffmpeg.txt', 'dav1d.txt'
-        into 'licenses'
-    }
-    noticedTargets.each { target ->
-        from(noticeDir(target)) {
-            include 'ffmpeg-NOTICE.txt'
-            into "notices/${target}"
-        }
-    }
-    from('src/ffmpeg-sources') {
-        include 'README.txt'
-        filter(ReplaceTokens, tokens: readme)
-    }
-}
-
-// The natives ride the goldberry-media publication as `ffmpeg-<target>`
+// The natives ride the goldberry-media publication as `natives-<target>`
 // classifiers, as libgoldberry rides goldberry-natives, but only when a run hands
-// over FFmpeg builds with -Pgoldberry.media.artifactsDir: publish.yml, once, with
-// every runner's build in hand.
+// over builds with -Pgoldberry.media.artifactsDir: publish.yml, once, with every
+// runner's build in hand.
 //
 // A snapshot carries the targets the Media workflow built. A release is
 // permanent, and one missing a target would leave that platform's users with a
-// player that cannot load FFmpeg under a version nobody can re-release, so it
-// refuses. Without -Pgoldberry.media.artifactsDir no classifier is attached,
+// player that cannot load its natives under a version nobody can re-release, so
+// it refuses. Without -Pgoldberry.media.artifactsDir no classifier is attached,
 // which is what `publishToMavenLocal` on a laptop wants.
 if (mediaArtifactsDir.isPresent()) {
-    def built = mediaTargets.findAll { new File(mediaArtifactsDir.get(), "${it}/ffmpeg-layout.properties").isFile() }
+    def built = mediaTargets.findAll { new File(mediaArtifactsDir.get(), "${it}/${layoutFileName}").isFile() }
     def missing = mediaTargets - built
     if (!project.version.toString().endsWith('-SNAPSHOT') && !missing.isEmpty()) {
-        throw new GradleException("A release of goldberry-media needs FFmpeg for every target; " +
+        throw new GradleException("A release of goldberry-media needs libgoldberry-media for every target; " +
                 "-Pgoldberry.media.artifactsDir has none for ${missing.join(', ')}.")
     }
     if (!missing.isEmpty()) {
-        logger.warn("goldberry-media: this snapshot carries FFmpeg for ${built.join(', ') ?: 'no target'}, " +
+        logger.warn("goldberry-media: this snapshot carries natives for ${built.join(', ') ?: 'no target'}, " +
                 "not for ${missing.join(', ')}")
     }
     publishing.publications.withType(MavenPublication).configureEach { publication ->
         built.each { target ->
-            publication.artifact(tasks.named("ffmpegNativesJar${taskSuffix(target)}")) {
-                classifier = "ffmpeg-${target}"
-            }
-        }
-        // And their source beside them, or `goldberry.publish` refuses the lot
-        // (CorrespondingSource).
-        if (!built.isEmpty()) {
-            publication.artifact(tasks.named('ffmpegSourcesJar')) {
-                classifier = CorrespondingSource.SOURCES
+            publication.artifact(tasks.named("nativesJar${taskSuffix(target)}")) {
+                classifier = "natives-${target}"
             }
         }
     }
@@ -427,8 +285,8 @@ if (mediaArtifactsDir.isPresent()) {
 //
 // Generated from the bindings rather than traced from a run, exactly as
 // `:natives:foreignMetadata` does: every holder is initialised, so every
-// descriptor is recorded, and none of it needs FFmpeg -- linking a descriptor
-// needs no library. The file travels in the jar under META-INF/native-image/.
+// descriptor is recorded, and none of it needs the library -- linking a
+// descriptor needs no library. The file travels in the jar under META-INF/native-image/.
 // ============================================================================
 def foreignMetadataDir = layout.buildDirectory.dir('generated/foreign-metadata')
 def foreignMetadataFile = foreignMetadataDir.map {
@@ -453,18 +311,19 @@ tasks.named('jar') {
 
 tasks.register('cleanMediaDeps', Delete) {
     group = 'native'
-    description = 'Discards the cached FFmpeg and dav1d sources.'
-    delete depsDir, sourcesCloneDir
+    description = 'Discards the cached upstream sources and their builds.'
+    delete depsDir
 }
 
 // ============================================================================
 // Tests
 //
-// Most of this module is testable with no FFmpeg at all -- the I/O SPI, the codec
-// vocabulary, the layout table against the committed probe output. What needs the
-// libraries skips without them, and says so; `-Pgoldberry.media.required=true`
-// turns the skip into a failure for a job whose purpose is to verify them, since a
-// verification that skips is a green tick over nothing.
+// Most of this module is testable with no natives at all -- the I/O SPI, the
+// demuxers, the codec vocabulary, the layout table against the committed probe
+// output. What needs the library skips without it, and says so;
+// `-Pgoldberry.media.required=true` turns the skip into a failure for a job whose
+// purpose is to verify it, since a verification that skips is a green tick over
+// nothing.
 // ============================================================================
 def libraryDirectory = providers.systemProperty('goldberry.media.libdir')
         .orElse(providers.gradleProperty('goldberry.media.libdir'))
@@ -473,30 +332,38 @@ def libraryDirectory = providers.systemProperty('goldberry.media.libdir')
 def skipNative = providers.gradleProperty('goldberry.skipNative').map { Boolean.parseBoolean(it) }.getOrElse(false)
 
 // libgoldberry, JEP 472 and the forwarded properties come from
-// `goldberry.native-tests`; FFmpeg is this module's own.
+// `goldberry.native-tests`; libgoldberry-media is this module's own.
+//
+// While FFmpeg is still being taken out, its bindings read
+// `goldberry.media.ffmpegLibdir`, pointed at what an earlier `ffmpegBuild` left
+// on this machine; their tests skip where there is none.
+def ffmpegLibraryDirectory = layout.buildDirectory.dir("ffmpeg/${hostTargetId}/install/lib").get().asFile
 tasks.withType(Test).configureEach {
     // SDL's dummy driver: it consumes audio in real time and plays nothing, so the
     // tests are silent, and they run on a CI runner with no sound card.
     environment 'SDL_AUDIO_DRIVER', 'dummy'
 
     // Not for the jar test below, whose whole point is that nothing names a
-    // directory and FFmpeg is found on the class path.
+    // directory and the library is found on the class path.
     if (name != 'testNativesJar') {
         systemProperty 'goldberry.media.libdir', libraryDirectory.get()
     }
+    if (ffmpegLibraryDirectory.isDirectory()) {
+        systemProperty 'goldberry.media.ffmpegLibdir', ffmpegLibraryDirectory.absolutePath
+    }
 
-    // The libraries are an input, so a rebuilt FFmpeg re-runs the tests rather
-    // than leaving them UP-TO-DATE and green against libraries they never saw.
+    // The library is an input, so a rebuilt one re-runs the tests rather than
+    // leaving them UP-TO-DATE and green against a library they never saw.
     inputs.files(providers.provider {
         var directory = file(libraryDirectory.get())
         directory.isDirectory() ? fileTree(directory) : files()
-    }).withPropertyName('ffmpegLibraries').optional()
+    }).withPropertyName('mediaNatives').optional()
 }
 
-// The tests tagged `natives-jar` load FFmpeg the way an application does: from
-// goldberry-media's FFmpeg classifier on the class path, unpacked into a temporary
-// directory, with no -Dgoldberry.media.libdir. A JVM of their own, because
-// `FfmpegLibraries` loads once per process and the ordinary test task has
+// The tests tagged `natives-jar` load the library the way an application does:
+// from goldberry-media's natives classifier on the class path, unpacked into a
+// temporary directory, with no -Dgoldberry.media.libdir. A JVM of their own,
+// because `MediaNatives` loads once per process and the ordinary test task has
 // already loaded from the install directory.
 tasks.named('test') {
     useJUnitPlatform { excludeTags 'natives-jar', 'gpu' }
@@ -506,7 +373,7 @@ tasks.named('test') {
 // The GPU lane
 // https://goldberry.dev/docs/contributing/testing.html#the-gpu-tests
 //
-// Video drawn through :gpu's layer on a real device: decoded by FFmpeg,
+// Video drawn through :gpu's layer on a real device: decoded in software,
 // composited and read back, against the CPU's goldens. Tagged `gpu`, and run
 // the way :gpu's and :natives' are, on the JVM's first thread, which macOS's
 // Cocoa needs for a Metal device. Without a device the tests skip,
@@ -515,10 +382,13 @@ tasks.named('test') {
 nativeTests.gpuTests('dev.goldberry.media').configure {
     environment 'SDL_AUDIO_DRIVER', 'dummy'
     systemProperty 'goldberry.media.libdir', libraryDirectory.get()
+    if (ffmpegLibraryDirectory.isDirectory()) {
+        systemProperty 'goldberry.media.ffmpegLibdir', ffmpegLibraryDirectory.absolutePath
+    }
     inputs.files(providers.provider {
         var directory = file(libraryDirectory.get())
         directory.isDirectory() ? fileTree(directory) : files()
-    }).withPropertyName('ffmpegLibraries').optional()
+    }).withPropertyName('mediaNatives').optional()
 }
 
 // The 4K60 run: a minute of 4K60 VP9 on the
@@ -540,6 +410,9 @@ nativeTests.probe('videoPresentProbe', 'dev.goldberry.media.view.VideoPresentPro
     workingDir = projectDir
     systemProperty 'logback.configurationFile', file('src/benchmark/probe/logback.xml').absolutePath
     systemProperty 'goldberry.media.libdir', libraryDirectory.get()
+    if (ffmpegLibraryDirectory.isDirectory()) {
+        systemProperty 'goldberry.media.ffmpegLibdir', ffmpegLibraryDirectory.absolutePath
+    }
     systemProperty 'goldberry.log.level', providers.gradleProperty('goldberry.log.level').getOrElse('info')
     ['goldberry.probe.clip', 'goldberry.gpu', 'goldberry.gpu.composite'].each { name ->
         var value = providers.systemProperty(name).orElse(providers.gradleProperty(name))
@@ -571,21 +444,21 @@ tasks.named('check') { dependsOn testWithoutGpu }
 
 // Decided when the build is configured, because the jar task it would depend on
 // refuses to package nothing -- which is right for a release and wrong for a
-// contributor who never built FFmpeg. The cost: `ffmpegBuild check` in one
+// contributor who never built the natives. The cost: `nativesBuild check` in one
 // invocation on a fresh machine skips this test; the next `check` runs it.
-def hostFfmpegBuilt = new File(libraryDirectory.get(), 'ffmpeg-layout.properties').isFile()
+def hostNativesBuilt = new File(libraryDirectory.get(), layoutFileName).isFile()
 
 def testNativesJar = tasks.register('testNativesJar', Test) {
     group = 'verification'
-    description = 'Loads FFmpeg from the host natives jar, as an application would.'
+    description = 'Loads libgoldberry-media from the host natives jar, as an application would.'
     testClassesDirs = sourceSets.test.output.classesDirs
     useJUnitPlatform { includeTags 'natives-jar' }
-    if (hostFfmpegBuilt) {
+    if (hostNativesBuilt) {
         dependsOn hostNativesJar
         classpath = sourceSets.test.runtimeClasspath + files(hostNativesJar.flatMap { it.archiveFile })
     } else {
         classpath = sourceSets.test.runtimeClasspath
-        onlyIf('the host FFmpeg has been built') { false }
+        onlyIf('the host media natives have been built') { false }
     }
 }
 

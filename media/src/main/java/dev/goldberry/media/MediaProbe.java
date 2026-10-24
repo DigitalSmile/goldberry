@@ -5,8 +5,7 @@ import java.util.List;
 
 import org.jspecify.annotations.Nullable;
 
-import dev.goldberry.media.ffi.FfmpegLibraries;
-import dev.goldberry.media.ffi.FfmpegProbe;
+import dev.goldberry.media.container.Containers;
 import dev.goldberry.media.io.MediaIO;
 import dev.goldberry.media.io.MediaIOProvider;
 import dev.goldberry.media.io.MediaIOs;
@@ -35,8 +34,9 @@ public final class MediaProbe {
 
     /// Opens `source` through [MediaIOs] and probes it.
     ///
-    /// @throws MediaException with [MediaError.NativesUnavailable] when FFmpeg is
-    ///                        not loaded, [MediaError.UnsupportedScheme] when no
+    /// Probing needs no native library: the containers are read in Java.
+    ///
+    /// @throws MediaException with [MediaError.UnsupportedScheme] when no
     ///                        protocol opens the source, [MediaError.Io] when it
     ///                        cannot be read, [MediaError.InvalidData] when it is
     ///                        not media, and [MediaError.Aborted] when it was
@@ -61,15 +61,14 @@ public final class MediaProbe {
     ///
     /// @throws MediaException as [#probe(Source)] does, less the scheme
     public static MediaInfo probe(Source source, MediaIO io) {
-        return FfmpegProbe.probe(FfmpegLibraries.get(), source, io);
+        try (var container = Containers.open(source, io)) {
+            return container.info();
+        }
     }
 
     private static MediaInfo open(Source source, @Nullable List<? extends MediaIOProvider> providers) {
-        // Loaded first, so a missing FFmpeg is reported before a source is opened
-        // for nothing.
-        var ffmpeg = FfmpegLibraries.get();
         try (MediaIO io = providers == null ? MediaIOs.open(source) : MediaIOs.open(source, providers)) {
-            return FfmpegProbe.probe(ffmpeg, source, io);
+            return probe(source, io);
         } catch (UnsupportedSchemeException e) {
             throw new MediaException(new MediaError.UnsupportedScheme(e.scheme()), e);
         } catch (IOException e) {

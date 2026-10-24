@@ -67,7 +67,7 @@ class NativeTargetTest {
                         Path.of("/repo/natives/build/native/linux-x64/install/lib/libgoldberry.so"),
                         linux.localLibrary(repository)),
                 () -> assertEquals(
-                        Path.of("/repo/media/build/ffmpeg/linux-x64/install/lib"), linux.localFfmpeg(repository)));
+                        Path.of("/repo/media/build/media-natives/linux-x64/install/lib"), linux.localMedia(repository)));
     }
 
     @Test
@@ -80,7 +80,7 @@ class NativeTargetTest {
                         "natives/build.gradle installs somewhere NativeTarget.localLibrary does not look"),
                 () -> assertTrue(
                         Repository.read("media/build.gradle")
-                                .contains("layout.buildDirectory.dir(hostTarget.ffmpegInstallDir())"),
-                        "media/build.gradle installs FFmpeg somewhere NativeTarget.localFfmpeg does not look"));
+                                .contains("layout.buildDirectory.dir(hostTarget.mediaInstallDir())"),
+                        "media/build.gradle installs libgoldberry-media somewhere NativeTarget.localMedia does not look"));
     }
 }

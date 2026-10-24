@@ -7,13 +7,13 @@ import java.util.List;
 import java.util.Optional;
 import java.util.OptionalLong;
 
-/// A readable, optionally seekable stream of bytes: everything FFmpeg ever reads.
+/// A readable, optionally seekable stream of bytes: everything a container
+/// ever reads.
 ///
-/// FFmpeg is built without its network layer and without a single protocol.
-/// The demuxer reads through a custom
-/// `AVIOContext` whose two callbacks land here, so a file, an HTTP response and an
-/// application's own encrypted container all look alike to it. Because of that,
-/// the JDK supplies TLS, proxies and HTTP/2, and a network test needs no server.
+/// No native code reads a byte. The demuxers are Java and read through this
+/// interface, so a file, an HTTP response and an application's own encrypted
+/// container all look alike to them. Because of that, the JDK supplies TLS,
+/// proxies and HTTP/2, and a network test needs no server.
 ///
 /// ## Threading
 ///
@@ -22,14 +22,14 @@ import java.util.OptionalLong;
 /// is blocked**, and it must make that read end. For a
 /// [java.nio.channels.FileChannel] this is automatic: closing it throws
 /// [java.nio.channels.AsynchronousCloseException] in the blocked reader. It is how
-/// the Engine aborts an open or a read that is waiting on the network. The pending
-/// callback then answers FFmpeg with `AVERROR_EXIT`.
+/// the Engine aborts an open or a read that is waiting on the network. The
+/// container then reports [dev.goldberry.media.MediaError.Aborted].
 ///
 /// ## Positions
 ///
 /// Positions are byte offsets from the start of the resource. [#seek(long)] is
-/// absolute. The relative seeks FFmpeg asks for are resolved against
-/// [#position()] before they reach an implementation.
+/// absolute; a demuxer that skips ahead seeks to where it worked out it wants
+/// to be.
 ///
 /// Read more:
 /// [Tracks and the network](https://goldberry.dev/docs/components/media.html#tracks-subtitles-and-the-network).
@@ -37,8 +37,8 @@ public interface MediaIO extends Closeable {
 
     /// Reads up to `target.remaining()` bytes into `target`, advancing its position.
     ///
-    /// May read fewer bytes than asked for, which is not an end of stream: FFmpeg
-    /// asks again. Blocks until at least one byte is available, the stream ends, or
+    /// May read fewer bytes than asked for, which is not an end of stream: the
+    /// reader asks again. Blocks until at least one byte is available, the stream ends, or
     /// the stream is closed.
     ///
     /// @return the number of bytes read, or `-1` at the end of the stream
@@ -58,16 +58,16 @@ public interface MediaIO extends Closeable {
 
     /// The total size in bytes, when it is known.
     ///
-    /// Empty for an endless stream or a response with no `Content-Length`. FFmpeg
-    /// asks for it with `AVSEEK_SIZE` to find a container's tail, where Matroska
-    /// and MP4 keep their indexes.
+    /// Empty for an endless stream or a response with no `Content-Length`. A
+    /// container asks for it to find its tail, where Matroska and MP4 may keep
+    /// their indexes.
     OptionalLong size();
 
     /// Whether [#seek] may be called.
     ///
     /// A live radio stream, or an HTTP server that ignores `Range`, is not
-    /// seekable. FFmpeg is then given no seek callback at all and plays the stream
-    /// front to back.
+    /// seekable. A container then reads the stream front to back and refuses a
+    /// seek.
     default boolean isSeekable() {
         return true;
     }

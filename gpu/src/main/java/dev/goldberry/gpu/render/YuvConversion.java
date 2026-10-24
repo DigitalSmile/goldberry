@@ -15,12 +15,14 @@ import java.util.Objects;
 /// - then `R = Y + 2(1-Kr) Cr`, `G = Y - 2Kb(1-Kb)/Kg Cb - 2Kr(1-Kr)/Kg Cr`,
 ///   `B = Y + 2(1-Kb) Cb`, clamped to 0 to 1.
 ///
-/// Chroma is sited as CPU present's swscale conversion sites it, by default
-/// ([Siting#CENTRED]): a chroma sample midway between its two luma columns and
-/// its two rows, which is where a texel's centre already is, so the sampler
-/// reads it with no offset. That was measured against swscale's own pictures,
-/// which showed it does not site chroma left as was first assumed.
-/// [Siting#LEFT], MPEG-2's, is a quarter of a chroma texel to the left.
+/// Chroma is sited centred by default ([Siting#CENTRED]): a chroma sample
+/// midway between its two luma columns and its two rows, which is where a
+/// texel's centre already is, so the sampler reads it with no offset. CPU
+/// present's conversion takes it there too, each chroma sample covering its
+/// two-by-two block of luma; it repeats the sample over the block where the
+/// sampler here interpolates, so the two agree where chroma is flat and part
+/// at its edges. [Siting#LEFT], MPEG-2's, is a quarter of a chroma texel to
+/// the left.
 ///
 /// @param layout    how the planes are stored
 /// @param matrix    the picture's matrix
@@ -55,8 +57,8 @@ public record YuvConversion(YuvLayout layout, YuvMatrix matrix, boolean fullRang
 
     /// Where a chroma sample sits among the luma samples it covers.
     public enum Siting {
-        /// Midway between its two luma columns: JPEG's and MPEG-1's, and what
-        /// swscale's conversion to BGRA does with no location given.
+        /// Midway between its two luma columns: JPEG's and MPEG-1's, and where
+        /// CPU present's conversion to BGRA takes it.
         CENTRED(0),
         /// On its first luma column: MPEG-2's, H.264's and HEVC's default.
         LEFT(0.25f);

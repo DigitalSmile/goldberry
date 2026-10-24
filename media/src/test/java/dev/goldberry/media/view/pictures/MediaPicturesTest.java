@@ -29,8 +29,8 @@ import dev.goldberry.css.Stylesheet;
 import dev.goldberry.css.Theme;
 import dev.goldberry.css.cascade.CascadeLayer;
 import dev.goldberry.golden.GoldenImage;
-import dev.goldberry.media.FfmpegRequirement;
 import dev.goldberry.media.HardwareDecoding;
+import dev.goldberry.media.MediaNativesRequirement;
 import dev.goldberry.media.MediaPlayer;
 import dev.goldberry.media.PlaybackState;
 import dev.goldberry.media.PlayerStatus;
@@ -126,7 +126,7 @@ class MediaPicturesTest {
     @BeforeAll
     void setUp() {
         RendererRequirement.enforce();
-        FfmpegRequirement.enforce();
+        MediaNativesRequirement.enforce();
         fonts = Fonts.bundled();
         player = MediaPlayer.builder()
                 .hardwareDecoding(HardwareDecoding.OFF)

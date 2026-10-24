@@ -22,7 +22,7 @@ import dev.goldberry.media.audio.VirtualSink;
 import dev.goldberry.media.io.Source;
 import dev.goldberry.media.picture.VideoPicture;
 
-/// A looping player, end to end against FFmpeg: the source plays over and over
+/// A looping player, end to end against the media natives: the source plays over and over
 /// with no pause at the seam, its pictures' times running on, the position
 /// within the source, and the state never `ENDED`.
 ///
@@ -30,7 +30,7 @@ import dev.goldberry.media.picture.VideoPicture;
 /// source has audio and a [MediaClock] where it does not. `clip-vp9.webm` is a
 /// second of `testsrc2` at 25 fps with an Opus tone, and `clip-vp9-10bit.webm`
 /// a fifth of a second with no audio: five pictures, 40 ms apart.
-@DisplayName("MediaPlayer looping a source, against FFmpeg")
+@DisplayName("MediaPlayer looping a source, against the media natives")
 class LoopingPlaybackTest {
 
     private static final AudioFormat FORMAT = AudioFormat.DEFAULT;
@@ -43,8 +43,8 @@ class LoopingPlaybackTest {
     private VirtualSink sink;
 
     @BeforeEach
-    void requireFfmpeg() {
-        FfmpegRequirement.enforce();
+    void requireNatives() {
+        MediaNativesRequirement.enforce();
     }
 
     @AfterEach

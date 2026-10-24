@@ -4,7 +4,7 @@ package dev.goldberry.media.codec;
 /// published natives do not build.
 ///
 /// Found by [java.util.ServiceLoader] and consulted **before** the built-in
-/// FFmpeg decoders, highest [#priority()] first. A module declares
+/// decoders, highest [#priority()] first. A module declares
 /// `provides dev.goldberry.media.codec.DecoderProvider with …`.
 /// The built-in decoders rank below every provider, whatever a provider answers
 /// here.

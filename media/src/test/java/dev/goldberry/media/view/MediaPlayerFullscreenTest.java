@@ -29,8 +29,8 @@ import dev.goldberry.input.event.KeyEvent;
 import dev.goldberry.input.key.Key;
 import dev.goldberry.input.key.Modifiers;
 import dev.goldberry.junit.HeadlessRuntime;
-import dev.goldberry.media.FfmpegRequirement;
 import dev.goldberry.media.HardwareDecoding;
+import dev.goldberry.media.MediaNativesRequirement;
 import dev.goldberry.media.MediaPlayer;
 import dev.goldberry.media.PlaybackState;
 import dev.goldberry.media.Wav;
@@ -139,7 +139,7 @@ class MediaPlayerFullscreenTest {
 
     @BeforeEach
     void openPlaying() {
-        FfmpegRequirement.enforce();
+        MediaNativesRequirement.enforce();
         player = MediaPlayer.builder()
                 .hardwareDecoding(HardwareDecoding.OFF)
                 .sink(() -> new VirtualSink(AudioFormat.DEFAULT, false))

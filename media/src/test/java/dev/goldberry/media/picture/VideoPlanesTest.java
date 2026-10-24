@@ -17,7 +17,7 @@ import dev.goldberry.media.codec.PixelFormat;
 import dev.goldberry.media.codec.VideoFrame;
 
 /// [VideoPlanes], the planes form of a [Picture]: what
-/// it accepts, and what it hands back. No FFmpeg.
+/// it accepts, and what it hands back. No native library.
 @DisplayName("VideoPlanes")
 class VideoPlanesTest {
 

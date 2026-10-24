@@ -66,7 +66,7 @@ The `headless` backend renders to `BLImage` and pumps synthetic events through t
   | `AxisLabellingBenchmark` | `:widgets` | One numeric and one time-axis labelling, against a third of a frame |
   | `MarkdownFrameBenchmark` | `:html` | The same keystroke through a `markdown-view`, with an md4c control row (ADR-0389) |
   | `PlaneCopyBenchmark` | `:media` | Copying and converting a 4K picture's planes, against a picture's time at 60 fps |
-  | `ReadPacketBenchmark` | `:media` | One `read_packet` through the upcall stub against a direct call |
+  | `DemuxBenchmark` | `:media` | Every packet of a one-second clip read out of memory by the Java containers, as packets a second |
   | `BindingSchemeBenchmark` | `:weaver` | The two ways of binding a model, against each other |
   | `BindingCodegenBenchmark` | `:weaver` | Whether a jar should generate its binding rather than reflect |
   | `DowncallBenchmark` | `:natives` | One foreign call, held both ways |

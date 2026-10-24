@@ -1,82 +1,78 @@
 # ============================================================================
-# The media superbuild: FFmpeg + dav1d for goldberry-media
+# The media superbuild: libgoldberry-media
 # https://goldberry.dev/docs/components/media.html#the-module
 #
-# Separate from the libgoldberry superbuild in natives/src/main/cmake, and on
-# purpose:
+# ONE shared library per target, with the reference decoders linked into it
+# statically, and nothing else of a media framework: the demuxers, the clock,
+# the I/O and the audio path are Java, and the colour conversion on the CPU is
+# libyuv's, in here. Separate from the libgoldberry superbuild in
+# natives/src/main/cmake, and on purpose:
 #
-#   - FFmpeg is LGPL-2.1+. It must stay a set of SHARED libraries that a user can
-#     replace, so it cannot be linked into libgoldberry the way every other upstream
-#     is.
-#   - Its build is autotools-style `configure` + make, and dav1d's is meson. Neither
-#     is a CMake project FetchContent can add_subdirectory, so both are
-#     ExternalProjects.
-#   - An application that plays no media should not need a toolchain that can
-#     build FFmpeg to build Goldberry.
+#   - An application that plays no media should carry none of this. libgoldberry
+#     is in every application; this library is in the ones that add
+#     goldberry-media, as its `natives-<target>` classifier.
+#   - dav1d's build is meson and libvpx's is a configure script. Neither is a
+#     CMake project FetchContent can add_subdirectory, so both are
+#     ExternalProjects, and the four Xiph libraries follow them for uniformity:
+#     every upstream installs into one stage, and the library below links the
+#     stage.
+#
+# Every upstream is BSD-2, BSD-3 or CC0: dav1d, libvpx, Opus, libogg, libvorbis,
+# FLAC, libyuv and minimp3. That is what lets them join one library and ship
+# under the project's own licence with a notice, where FFmpeg (LGPL) had to stay
+# five replaceable shared objects with its source published beside them.
+#
+# What crosses the boundary is the upstreams' own C APIs, named one per line in
+# exports/goldberry-media.symbols; nothing is wrapped. The one source file of
+# our own, goldberry_media.c, instantiates minimp3 (a header-only decoder) and
+# answers the versions. Everything not on the list stays local to the library,
+# so a process that also holds the distribution's dav1d or libvpx -- GStreamer's
+# plugins do -- sees no collision.
 #
 # Output, in ${CMAKE_INSTALL_PREFIX}/lib:
-#   the five libraries under the names they link against each other by
-#     (libavcodec-goldberry.62.dylib, libavcodec-goldberry.so.62,
-#     avcodec-goldberry-62.dll), stripped;
-#   ffmpeg-layout.properties, the layout probe's output for this target;
-#   ffmpeg-NOTICE.txt, with the tags and the configure line the LGPL asks for.
+#   libgoldberry-media.so / libgoldberry-media.dylib / goldberry-media.dll, stripped;
+#   media-layout.properties, the layout probe's output for this target;
+#   media-NOTICE.txt, naming what was built and from which tags.
 #
-# The same files, with gradle/libs.versions.toml, are the build recipe in the
-# `ffmpeg-sources` classifier. GOLDBERRY_FFMPEG_SOURCE_DIR and
-# GOLDBERRY_DAV1D_SOURCE_DIR build from that jar's source trees instead of
-# cloning, with nothing fetched.
-#
-# Driven from Gradle by `:media:ffmpegBuild` for the host. CI invokes it directly
-# per runner, like the libgoldberry superbuild.
+# Driven from Gradle by `:media:nativesBuild` for the host. CI invokes it directly
+# per runner, like the libgoldberry superbuild. On Windows it is built with
+# MinGW-w64 (MSYS2's UCRT64 environment), not MSVC: libvpx's configure wants a
+# POSIX shell and a GNU toolchain, and with one toolchain the Windows leg reads
+# like the Linux one. The DLL links its runtime support statically and depends
+# on the universal CRT alone.
 # ============================================================================
 cmake_minimum_required(VERSION 3.28)
-project(goldberry_media C)
+project(goldberry_media C CXX)
 
 include(ExternalProject)
+include(FetchContent)
 include(ProcessorCount)
+
+set(CMAKE_C_STANDARD 11)
+set(CMAKE_C_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+
+if(MSVC)
+    message(FATAL_ERROR
+        "libgoldberry-media is built with MinGW-w64 on Windows, not MSVC: libvpx's configure "
+        "needs a GNU toolchain, and one toolchain keeps the Windows leg like the others. "
+        "Configure from an MSYS2 UCRT64 shell, or pass -DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++.")
+endif()
 
 set(GOLDBERRY_TARGET_ID "host" CACHE STRING "Distribution target id, e.g. linux-x64")
 set(GOLDBERRY_MEDIA_DEPS_DIR "${CMAKE_BINARY_DIR}/deps" CACHE PATH
-    "Where FFmpeg and dav1d are cloned and built; kept outside build/ by Gradle")
+    "Where the upstreams are cloned and built; kept outside build/ by Gradle")
 set(GOLDBERRY_MESON "meson" CACHE FILEPATH "meson, for dav1d")
-set(GOLDBERRY_PKG_CONFIG "pkg-config" CACHE FILEPATH "pkg-config, for FFmpeg's configure to find dav1d")
-set(GOLDBERRY_MAKE "make" CACHE FILEPATH "make, for FFmpeg")
-# FFmpeg's configure is a shell script. CMake starts it directly everywhere but
+set(GOLDBERRY_MAKE "make" CACHE FILEPATH "make, for libvpx")
+# libvpx's configure is a shell script. CMake starts it directly everywhere but
 # Windows, where there is no kernel support for `#!` and it has to be handed to
 # MSYS2's sh.
-set(GOLDBERRY_SH "sh" CACHE FILEPATH "a POSIX sh, for FFmpeg's configure on Windows")
+set(GOLDBERRY_SH "sh" CACHE FILEPATH "a POSIX sh, for libvpx's configure on Windows")
 
-# Empty: clone each upstream at its pinned tag, as every build of the shipped
-# libraries does. A directory: build from that tree instead, which is how the
-# `ffmpeg-sources` classifier is rebuilt with no network (its README.txt).
-set(GOLDBERRY_FFMPEG_SOURCE_DIR "" CACHE PATH "An FFmpeg source tree to build instead of cloning one")
-set(GOLDBERRY_DAV1D_SOURCE_DIR "" CACHE PATH "A dav1d source tree to build instead of cloning one")
-
-# The VP9/AV1 hardware decoders. On by default where the
-# hwaccel needs only what the OS ships: VideoToolbox on macOS and D3D11 on
-# Windows are system frameworks. Off by default on Linux: VAAPI is libva, which
-# libavutil would then link directly, so a machine without libva could not load
-# FFmpeg at all, not even to play audio. `:media:ffmpegConfigure` passes the
-# value explicitly (-Pgoldberry.media.hwaccel), so a cached OFF from an older
-# build does not linger.
-if(APPLE OR WIN32)
-    set(_hwaccel_default ON)
-else()
-    set(_hwaccel_default OFF)
-endif()
-option(GOLDBERRY_MEDIA_HWACCEL "Build the VP9/AV1 hardware decoders (phase 5)" ${_hwaccel_default})
-
-# Every library's name carries this suffix: libavcodec-goldberry.so.62,
-# not libavcodec.so.62. A distribution's FFmpeg of the same major has the plain
-# names, and a process that loads both would otherwise get one of them twice:
-# glibc satisfies a DT_NEEDED with any library already loaded under that soname,
-# so GStreamer's gst-libav, loaded after this FFmpeg, linked against it and lost
-# its H.264 decoder. FfmpegPlatform.BUILD_SUFFIX is the other copy, and
-# FfmpegSuperbuildTest holds the two together.
-set(GOLDBERRY_FFMPEG_BUILD_SUFFIX "-goldberry")
-
-# The size gate: target 6 MB, fail above 7.
-set(GOLDBERRY_MEDIA_SIZE_LIMIT 7340032 CACHE STRING "Largest total size of the five stripped libraries, in bytes")
+# The size gate: target 5 MB, fail above 6.
+set(GOLDBERRY_MEDIA_SIZE_LIMIT 6291456 CACHE STRING "Largest size of the stripped library, in bytes")
 
 # ----------------------------------------------------------------------------
 # Pins, read from gradle/libs.versions.toml and nowhere else. The
@@ -97,7 +93,7 @@ function(goldberry_pin _key _out)
             # Saved before the next MATCHES, which resets CMAKE_MATCH_1 whether or
             # not it matches.
             set(_value "${CMAKE_MATCH_1}")
-            if(_value MATCHES "^(master|main|HEAD|latest|trunk)$")
+            if(_value MATCHES "^(master|main|HEAD|latest|trunk|stable)$")
                 message(FATAL_ERROR "gradle/libs.versions.toml pins ${_key} to '${_value}', which floats; pin a tag or a commit.")
             endif()
             set(${_out} "${_value}" PARENT_SCOPE)
@@ -107,78 +103,72 @@ function(goldberry_pin _key _out)
     message(FATAL_ERROR "gradle/libs.versions.toml has no `${_key} = \"...\"` under [versions].")
 endfunction()
 
-goldberry_pin(ffmpeg GOLDBERRY_FFMPEG_REF)
 goldberry_pin(dav1d GOLDBERRY_DAV1D_REF)
-# The commits those tags name: a clone that is not at them is refused,
-# so the `ffmpeg-sources` classifier, which is refused the same way, is the
-# source of what this builds.
-goldberry_pin(ffmpegCommit GOLDBERRY_FFMPEG_COMMIT)
 goldberry_pin(dav1dCommit GOLDBERRY_DAV1D_COMMIT)
-message(STATUS "goldberry-media pins: ffmpeg ${GOLDBERRY_FFMPEG_REF}, dav1d ${GOLDBERRY_DAV1D_REF}; target ${GOLDBERRY_TARGET_ID}")
+goldberry_pin(libvpx GOLDBERRY_LIBVPX_REF)
+goldberry_pin(opus GOLDBERRY_OPUS_REF)
+goldberry_pin(ogg GOLDBERRY_OGG_REF)
+goldberry_pin(vorbis GOLDBERRY_VORBIS_REF)
+goldberry_pin(flac GOLDBERRY_FLAC_REF)
+goldberry_pin(libyuv GOLDBERRY_LIBYUV_REF)
+goldberry_pin(minimp3 GOLDBERRY_MINIMP3_REF)
+message(STATUS "goldberry-media pins: dav1d ${GOLDBERRY_DAV1D_REF}, libvpx ${GOLDBERRY_LIBVPX_REF}, "
+    "opus ${GOLDBERRY_OPUS_REF}, ogg ${GOLDBERRY_OGG_REF}, vorbis ${GOLDBERRY_VORBIS_REF}, "
+    "flac ${GOLDBERRY_FLAC_REF}, libyuv ${GOLDBERRY_LIBYUV_REF}, minimp3 ${GOLDBERRY_MINIMP3_REF}; "
+    "target ${GOLDBERRY_TARGET_ID}")
 
 ProcessorCount(_jobs)
 if(_jobs EQUAL 0)
     set(_jobs 4)
 endif()
 
-# Both upstreams install here, and the probe compiles against these headers.
+# Every upstream installs here, and the probe compiles against these headers.
 set(_stage "${GOLDBERRY_MEDIA_DEPS_DIR}/stage")
 
-# Where each upstream's source comes from: a shallow clone at the pinned tag,
-# checked against the pinned commit once it is fetched, or a tree handed over.
-find_package(Git QUIET)
-function(goldberry_source _name _repository _ref _given _out)
-    if(_given)
-        if(NOT EXISTS "${_given}")
-            message(FATAL_ERROR "No ${_name} source at '${_given}'.")
-        endif()
-        set(${_out} SOURCE_DIR "${_given}" PARENT_SCOPE)
-    else()
-        set(${_out}
-            GIT_REPOSITORY ${_repository}
-            GIT_TAG ${_ref}
-            GIT_SHALLOW TRUE
-            SOURCE_DIR "${GOLDBERRY_MEDIA_DEPS_DIR}/${_name}-src"
-            PARENT_SCOPE)
-    endif()
+# Each upstream is a shallow clone at its pinned ref, kept beside the stage so
+# that `clean` does not throw it away.
+function(goldberry_source _name _repository _ref _out)
+    set(${_out}
+        GIT_REPOSITORY ${_repository}
+        GIT_TAG ${_ref}
+        GIT_SHALLOW TRUE
+        SOURCE_DIR "${GOLDBERRY_MEDIA_DEPS_DIR}/${_name}-src"
+        PARENT_SCOPE)
 endfunction()
 
-function(goldberry_verify_checkout _name _commit _given)
-    if(NOT _given)
-        ExternalProject_Add_Step(${_name} verify_commit
-            COMMAND ${CMAKE_COMMAND} -DGIT=${GIT_EXECUTABLE} -DSOURCE_DIR=<SOURCE_DIR>
-                -DNAME=${_name} -DCOMMIT=${_commit} -P "${CMAKE_CURRENT_SOURCE_DIR}/checkout.cmake"
-            DEPENDEES download
-            DEPENDERS configure
-            COMMENT "Checking that ${_name} is at the pinned commit")
-    endif()
-endfunction()
-
-goldberry_source(dav1d https://code.videolan.org/videolan/dav1d.git ${GOLDBERRY_DAV1D_REF}
-    "${GOLDBERRY_DAV1D_SOURCE_DIR}" _dav1d_source)
-goldberry_source(ffmpeg https://git.ffmpeg.org/ffmpeg.git ${GOLDBERRY_FFMPEG_REF}
-    "${GOLDBERRY_FFMPEG_SOURCE_DIR}" _ffmpeg_source)
-
-# ----------------------------------------------------------------------------
-# dav1d: the software AV1 decoder, built static and position-independent so it
-# links INTO libavcodec. One fewer file to ship and load, and BSD-2 asks nothing
-# of that arrangement but the notice.
-#
-# -O2 rather than release's -O3, like FFmpeg below: its hot paths are
-# assembly, so -O3 buys no speed and costs 255 KB on linux-x64. The buildtype
-# stays release, which keeps NDEBUG and trim_dsp.
-# ----------------------------------------------------------------------------
-# MSVC's runtime as a DLL, as libgoldberry and FFmpeg below link it: one C
-# runtime in the process, the one the JDK already carries in its bin directory.
-# Stated rather than left to meson's default, because a static library built
-# against the other one fails to link into FFmpeg with unresolved `__imp_`
-# symbols.
-if(WIN32)
-    set(_dav1d_crt -Db_vscrt=md)
-else()
-    set(_dav1d_crt "")
+# The flags every upstream is compiled with: -O2, position-independent, and no
+# symbol hidden. Visibility is decided once, at the final link, by the export
+# list: a symbol an upstream hid could not be exported from there.
+set(_cflags "-O2 -fPIC")
+if(APPLE AND CMAKE_OSX_DEPLOYMENT_TARGET)
+    string(APPEND _cflags " -mmacosx-version-min=${CMAKE_OSX_DEPLOYMENT_TARGET}")
+endif()
+set(_cmake_common
+    -G Ninja
+    -DCMAKE_BUILD_TYPE=Release
+    "-DCMAKE_INSTALL_PREFIX=${_stage}"
+    -DCMAKE_INSTALL_LIBDIR=lib
+    -DCMAKE_POSITION_INDEPENDENT_CODE=ON
+    -DBUILD_SHARED_LIBS=OFF
+    # libvorbis 1.3.7 still declares a CMake 2.8 minimum, which CMake 4 refuses
+    # without this floor; the others are unaffected by it.
+    -DCMAKE_POLICY_VERSION_MINIMUM=3.5
+    "-DCMAKE_C_FLAGS=${_cflags}"
+    "-DCMAKE_CXX_FLAGS=${_cflags}"
+    "-DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}"
+    "-DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}"
+    "-DCMAKE_MAKE_PROGRAM=${CMAKE_MAKE_PROGRAM}")
+if(APPLE AND CMAKE_OSX_DEPLOYMENT_TARGET)
+    list(APPEND _cmake_common "-DCMAKE_OSX_DEPLOYMENT_TARGET=${CMAKE_OSX_DEPLOYMENT_TARGET}")
 endif()
 
+# ----------------------------------------------------------------------------
+# dav1d: the AV1 decoder. meson, static, position-independent. -O2 rather than
+# release's -O3: its hot paths are assembly, so -O3 buys no speed and costs
+# 255 KB on linux-x64. The buildtype stays release, which keeps NDEBUG and
+# trim_dsp. Needs nasm on x86; its arm64 assembly is GNU as.
+# ----------------------------------------------------------------------------
+goldberry_source(dav1d https://code.videolan.org/videolan/dav1d.git ${GOLDBERRY_DAV1D_REF} _dav1d_source)
 ExternalProject_Add(dav1d
     ${_dav1d_source}
     PREFIX "${GOLDBERRY_MEDIA_DEPS_DIR}/dav1d"
@@ -186,141 +176,298 @@ ExternalProject_Add(dav1d
     CONFIGURE_COMMAND ${GOLDBERRY_MESON} setup <BINARY_DIR> <SOURCE_DIR>
         --prefix=${_stage} --libdir=lib
         --buildtype=release -Doptimization=2 --default-library=static
-        -Db_staticpic=true ${_dav1d_crt}
+        -Db_staticpic=true
         -Denable_tools=false -Denable_tests=false -Denable_examples=false -Denable_docs=false
     BUILD_COMMAND ${GOLDBERRY_MESON} compile -C <BINARY_DIR>
     INSTALL_COMMAND ${GOLDBERRY_MESON} install -C <BINARY_DIR>
+    BUILD_BYPRODUCTS "${_stage}/lib/libdav1d.a"
     UPDATE_DISCONNECTED TRUE)
-goldberry_verify_checkout(dav1d ${GOLDBERRY_DAV1D_COMMIT} "${GOLDBERRY_DAV1D_SOURCE_DIR}")
+find_package(Git QUIET)
+ExternalProject_Add_Step(dav1d verify_commit
+    COMMAND ${CMAKE_COMMAND} -DGIT=${GIT_EXECUTABLE} -DSOURCE_DIR=<SOURCE_DIR>
+        -DNAME=dav1d -DCOMMIT=${GOLDBERRY_DAV1D_COMMIT} -P "${CMAKE_CURRENT_SOURCE_DIR}/checkout.cmake"
+    DEPENDEES download
+    DEPENDERS configure
+    COMMENT "Checking that dav1d is at the pinned commit")
 
-if(WIN32)
-    # meson names a static library libdav1d.a with every compiler, and FFmpeg's
-    # MSVC toolchain turns pkg-config's -ldav1d into dav1d.lib. The copy is the
-    # name the linker looks for.
-    ExternalProject_Add_Step(dav1d msvc_library_name
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different "${_stage}/lib/libdav1d.a" "${_stage}/lib/dav1d.lib"
-        DEPENDEES install
-        COMMENT "Naming dav1d's static library the way MSVC's linker asks for it")
+# ----------------------------------------------------------------------------
+# libvpx: VP9 and VP8, decoders only. Its configure script, with the encoders,
+# the examples, the tools and the tests off, and the 10-bit VP9 profiles on.
+# `--as=nasm` on x86: its default assembler is yasm, which nobody else needs.
+# ----------------------------------------------------------------------------
+goldberry_source(libvpx https://chromium.googlesource.com/webm/libvpx ${GOLDBERRY_LIBVPX_REF} _libvpx_source)
+set(GOLDBERRY_LIBVPX_CONFIGURE
+    --prefix=${_stage}
+    --disable-examples --disable-tools --disable-docs --disable-unit-tests
+    --disable-install-bins --disable-install-docs --disable-install-srcs
+    --disable-vp8-encoder --disable-vp9-encoder
+    --enable-vp9-highbitdepth
+    --enable-pic --disable-shared --enable-static
+    --extra-cflags=-O2)
+if(CMAKE_SYSTEM_PROCESSOR MATCHES "^(x86_64|AMD64|amd64)$")
+    list(APPEND GOLDBERRY_LIBVPX_CONFIGURE --as=nasm)
 endif()
-
-# ----------------------------------------------------------------------------
-# FFmpeg: the configure line, in one list so that the
-# NOTICE can quote exactly what was built.
-#
-# --disable-autodetect is what keeps the result reproducible: without it configure
-# links whatever it finds on the build machine (iconv, SecureTransport, VAAPI,
-# zlib) and two runners produce two different libraries.
-#
-# --optflags=-O2 replaces configure's -O3. GCC's -O3 unrolls and
-# vectorises FFmpeg's C templates, and doubles swscale: 8976 KB on linux-x64,
-# over the 7 MB gate, against 6696 KB at -O2 with dav1d at -O2 too. Decoding
-# runs in hand-written assembly and measured the same at both.
-# ----------------------------------------------------------------------------
-set(GOLDBERRY_FFMPEG_CONFIGURE
-    --disable-everything --disable-programs --disable-doc --disable-network
-    --disable-avdevice --disable-avfilter --disable-autodetect
-    --enable-shared --disable-static --enable-pic --disable-debug --optflags=-O2
-    --build-suffix=${GOLDBERRY_FFMPEG_BUILD_SUFFIX}
-    --enable-demuxer=matroska,mov,avi,ogg,flac,mp3,wav,srt,webvtt,ass
-    --enable-decoder=vp8,vp9,av1,libdav1d,opus,vorbis,flac,mp3,pcm_s16le,pcm_s24le,pcm_f32le,subrip,ass,webvtt,mov_text
-    --enable-parser=vp8,vp9,av1,opus,vorbis,flac,mpegaudio
-    --enable-bsf=vp9_superframe,vp9_superframe_split,av1_frame_merge
-    --enable-libdav1d)
-
 if(APPLE)
-    # The five libraries find each other beside themselves, wherever they are
-    # unpacked, rather than at this machine's install prefix.
-    list(APPEND GOLDBERRY_FFMPEG_CONFIGURE --install-name-dir=@loader_path)
-    if(GOLDBERRY_MEDIA_HWACCEL)
-        list(APPEND GOLDBERRY_FFMPEG_CONFIGURE --enable-videotoolbox
-             --enable-hwaccel=vp9_videotoolbox,av1_videotoolbox)
-    endif()
-elseif(WIN32)
-    # Configure runs under MSYS2's shell with MSVC as the compiler, as the Media
-    # workflow sets it up. -MD is the runtime dav1d is built with above: cl's
-    # default is the static one, and the two do not link together.
-    list(APPEND GOLDBERRY_FFMPEG_CONFIGURE --toolchain=msvc --target-os=win64 --arch=x86_64 --extra-cflags=-MD)
-    # The d3d11va2 hwaccels are the ones used, and the d3d11va ones go with them:
-    # FFmpeg's Makefile adds dxva2_vp9.o and dxva2_av1.o, where both are defined,
-    # only under the d3d11va and dxva2 names, so the d3d11va2 ones alone link
-    # with their symbols missing.
-    if(GOLDBERRY_MEDIA_HWACCEL)
-        list(APPEND GOLDBERRY_FFMPEG_CONFIGURE --enable-d3d11va
-             --enable-hwaccel=vp9_d3d11va,vp9_d3d11va2,av1_d3d11va,av1_d3d11va2)
-    endif()
-else()
-    # No rpath: FfmpegLibraries loads the five in dependency order, and glibc
-    # resolves a DT_NEEDED against an already-loaded soname before it searches.
-    if(GOLDBERRY_MEDIA_HWACCEL)
-        list(APPEND GOLDBERRY_FFMPEG_CONFIGURE --enable-vaapi
-             --enable-hwaccel=vp8_vaapi,vp9_vaapi,av1_vaapi)
-    endif()
+    # configure's own detection names the SDK of the machine it runs on; the
+    # target is said so that the one built on a newer machine runs on the floor.
+    list(APPEND GOLDBERRY_LIBVPX_CONFIGURE --target=arm64-darwin20-gcc)
 endif()
-
-# Never --enable-gpl, --enable-nonfree or --enable-version3: the libraries stay
-# LGPL-2.1+. Checked rather than trusted, because the list above is edited by hand.
-foreach(_forbidden --enable-gpl --enable-nonfree --enable-version3)
-    if(_forbidden IN_LIST GOLDBERRY_FFMPEG_CONFIGURE)
-        message(FATAL_ERROR "${_forbidden} would change FFmpeg's licence away from LGPL-2.1+, which goldberry-media ships under.")
-    endif()
-endforeach()
-
-# The configure script, run the way this host can run it (see GOLDBERRY_SH).
 if(WIN32)
-    set(_configure ${GOLDBERRY_SH} <SOURCE_DIR>/configure)
+    set(_vpx_configure ${GOLDBERRY_SH} <SOURCE_DIR>/configure --target=x86_64-win64-gcc)
 else()
-    set(_configure <SOURCE_DIR>/configure)
+    set(_vpx_configure <SOURCE_DIR>/configure)
 endif()
-
-ExternalProject_Add(ffmpeg
-    DEPENDS dav1d
-    ${_ffmpeg_source}
-    PREFIX "${GOLDBERRY_MEDIA_DEPS_DIR}/ffmpeg"
-    BINARY_DIR "${GOLDBERRY_MEDIA_DEPS_DIR}/ffmpeg-build"
-    CONFIGURE_COMMAND ${CMAKE_COMMAND} -E env PKG_CONFIG_PATH=${_stage}/lib/pkgconfig
-        ${_configure} --prefix=${_stage}
-        --pkg-config=${GOLDBERRY_PKG_CONFIG} --pkg-config-flags=--static
-        ${GOLDBERRY_FFMPEG_CONFIGURE}
+ExternalProject_Add(libvpx
+    ${_libvpx_source}
+    PREFIX "${GOLDBERRY_MEDIA_DEPS_DIR}/libvpx"
+    BINARY_DIR "${GOLDBERRY_MEDIA_DEPS_DIR}/libvpx-build"
+    CONFIGURE_COMMAND ${CMAKE_COMMAND} -E env "CC=${CMAKE_C_COMPILER}" "CXX=${CMAKE_CXX_COMPILER}"
+        ${_vpx_configure} ${GOLDBERRY_LIBVPX_CONFIGURE}
     BUILD_COMMAND ${GOLDBERRY_MAKE} -j${_jobs}
     INSTALL_COMMAND ${GOLDBERRY_MAKE} install
+    BUILD_BYPRODUCTS "${_stage}/lib/libvpx.a"
     UPDATE_DISCONNECTED TRUE)
-goldberry_verify_checkout(ffmpeg ${GOLDBERRY_FFMPEG_COMMIT} "${GOLDBERRY_FFMPEG_SOURCE_DIR}")
 
 # ----------------------------------------------------------------------------
-# The layout probe (ffmpeg_layout.c): compiled against the headers FFmpeg just
-# installed, and run on this machine, since every value it prints is a
+# Opus. The machine-learning extensions (DRED, OSCE) stay off, which is the
+# default; they are weights nobody here plays.
+# ----------------------------------------------------------------------------
+goldberry_source(opus https://gitlab.xiph.org/xiph/opus.git ${GOLDBERRY_OPUS_REF} _opus_source)
+ExternalProject_Add(opus
+    ${_opus_source}
+    PREFIX "${GOLDBERRY_MEDIA_DEPS_DIR}/opus"
+    BINARY_DIR "${GOLDBERRY_MEDIA_DEPS_DIR}/opus-build"
+    CMAKE_ARGS ${_cmake_common}
+        -DOPUS_BUILD_SHARED_LIBRARY=OFF -DOPUS_BUILD_PROGRAMS=OFF -DOPUS_BUILD_TESTING=OFF
+        -DOPUS_INSTALL_PKG_CONFIG_MODULE=OFF -DOPUS_INSTALL_CMAKE_CONFIG_MODULE=OFF
+        -DOPUS_DRED=OFF -DOPUS_OSCE=OFF
+    BUILD_BYPRODUCTS "${_stage}/lib/libopus.a"
+    UPDATE_DISCONNECTED TRUE)
+
+# ----------------------------------------------------------------------------
+# libogg and libvorbis. Ogg's framing is read in Java; libogg is here because
+# libvorbis's bit reader is libogg's, and its `ogg_packet` is how a packet is
+# handed over. Vorbis finds Ogg in the stage, so Ogg installs first.
+# ----------------------------------------------------------------------------
+goldberry_source(ogg https://gitlab.xiph.org/xiph/ogg.git ${GOLDBERRY_OGG_REF} _ogg_source)
+ExternalProject_Add(ogg
+    ${_ogg_source}
+    PREFIX "${GOLDBERRY_MEDIA_DEPS_DIR}/ogg"
+    BINARY_DIR "${GOLDBERRY_MEDIA_DEPS_DIR}/ogg-build"
+    CMAKE_ARGS ${_cmake_common}
+        -DINSTALL_DOCS=OFF -DINSTALL_PKG_CONFIG_MODULE=OFF -DINSTALL_CMAKE_PACKAGE_MODULE=ON
+        -DBUILD_TESTING=OFF
+    BUILD_BYPRODUCTS "${_stage}/lib/libogg.a"
+    UPDATE_DISCONNECTED TRUE)
+
+goldberry_source(vorbis https://gitlab.xiph.org/xiph/vorbis.git ${GOLDBERRY_VORBIS_REF} _vorbis_source)
+ExternalProject_Add(vorbis
+    DEPENDS ogg
+    ${_vorbis_source}
+    PREFIX "${GOLDBERRY_MEDIA_DEPS_DIR}/vorbis"
+    BINARY_DIR "${GOLDBERRY_MEDIA_DEPS_DIR}/vorbis-build"
+    CMAKE_ARGS ${_cmake_common}
+        "-DCMAKE_PREFIX_PATH=${_stage}"
+        "-DOGG_INCLUDE_DIR=${_stage}/include" "-DOGG_LIBRARY=${_stage}/lib/libogg.a"
+        -DBUILD_TESTING=OFF -DINSTALL_CMAKE_PACKAGE_MODULE=OFF -DINSTALL_PKG_CONFIG_MODULE=OFF
+    BUILD_BYPRODUCTS "${_stage}/lib/libvorbis.a"
+    UPDATE_DISCONNECTED TRUE)
+
+# ----------------------------------------------------------------------------
+# FLAC: the stream decoder alone. No Ogg support: FLAC in Ogg is demuxed in
+# Java like FLAC in Matroska, and the decoder sees frames either way.
+# ----------------------------------------------------------------------------
+goldberry_source(flac https://gitlab.xiph.org/xiph/flac.git ${GOLDBERRY_FLAC_REF} _flac_source)
+ExternalProject_Add(flac
+    ${_flac_source}
+    PREFIX "${GOLDBERRY_MEDIA_DEPS_DIR}/flac"
+    BINARY_DIR "${GOLDBERRY_MEDIA_DEPS_DIR}/flac-build"
+    CMAKE_ARGS ${_cmake_common}
+        -DBUILD_CXXLIBS=OFF -DBUILD_PROGRAMS=OFF -DBUILD_EXAMPLES=OFF -DBUILD_TESTING=OFF
+        -DBUILD_DOCS=OFF -DINSTALL_MANPAGES=OFF -DINSTALL_PKGCONFIG_MODULES=OFF
+        -DINSTALL_CMAKE_CONFIG_MODULE=OFF -DWITH_OGG=OFF -DWITH_STACK_PROTECTOR=OFF
+        -DENABLE_MULTITHREADING=OFF -DWITH_FORTIFY_SOURCE=OFF
+    BUILD_BYPRODUCTS "${_stage}/lib/libFLAC.a"
+    UPDATE_DISCONNECTED TRUE)
+
+# ----------------------------------------------------------------------------
+# libyuv and minimp3 are compiled into the library directly: libyuv's CMake
+# project builds a shared copy and a converter tool nobody needs, and minimp3 is
+# one header. FetchContent populates them at configure time, into the same
+# deps directory, and nothing of theirs is configured.
+# ----------------------------------------------------------------------------
+FetchContent_Declare(libyuv
+    GIT_REPOSITORY https://chromium.googlesource.com/libyuv/libyuv
+    GIT_TAG ${GOLDBERRY_LIBYUV_REF}
+    SOURCE_DIR "${GOLDBERRY_MEDIA_DEPS_DIR}/libyuv-src"
+    SOURCE_SUBDIR does-not-exist)
+FetchContent_Declare(minimp3
+    GIT_REPOSITORY https://github.com/lieff/minimp3.git
+    GIT_TAG ${GOLDBERRY_MINIMP3_REF}
+    GIT_SHALLOW FALSE
+    SOURCE_DIR "${GOLDBERRY_MEDIA_DEPS_DIR}/minimp3-src"
+    SOURCE_SUBDIR does-not-exist)
+FetchContent_MakeAvailable(libyuv minimp3)
+
+file(GLOB _libyuv_sources CONFIGURE_DEPENDS "${libyuv_SOURCE_DIR}/source/*.cc")
+# The conversion tool's JPEG path and its tests are not library code.
+list(FILTER _libyuv_sources EXCLUDE REGEX "(mjpeg_decoder|convert_jpeg|_test)\\.cc$")
+
+# ----------------------------------------------------------------------------
+# The library.
+# ----------------------------------------------------------------------------
+add_library(goldberry_media SHARED goldberry_media.c ${_libyuv_sources})
+add_dependencies(goldberry_media dav1d libvpx opus ogg vorbis flac)
+set_target_properties(goldberry_media PROPERTIES
+    OUTPUT_NAME "goldberry-media"
+    C_VISIBILITY_PRESET default
+    CXX_VISIBILITY_PRESET default)
+if(WIN32)
+    # goldberry-media.dll, not libgoldberry-media.dll: System.mapLibraryName's name.
+    set_target_properties(goldberry_media PROPERTIES PREFIX "")
+endif()
+target_include_directories(goldberry_media PRIVATE
+    "${_stage}/include"
+    "${libyuv_SOURCE_DIR}/include"
+    "${minimp3_SOURCE_DIR}")
+target_compile_options(goldberry_media PRIVATE -O2)
+target_compile_definitions(goldberry_media PRIVATE
+    # libyuv's SVE and SME paths need a compiler that knows them; NEON is the
+    # arm64 path here, on every arm64 toolchain.
+    LIBYUV_DISABLE_SVE LIBYUV_DISABLE_SME
+    # The version the probe and the loader agree on: goldberry_media_abi().
+    GOLDBERRY_MEDIA_ABI=1)
+if(WIN32)
+    # FLAC's header exports its API for a DLL unless told the library is static.
+    target_compile_definitions(goldberry_media PRIVATE FLAC__NO_DLL)
+endif()
+
+# The static archives, dependants first: libvorbis needs libogg.
+set(_archives
+    "${_stage}/lib/libdav1d.a"
+    "${_stage}/lib/libvpx.a"
+    "${_stage}/lib/libopus.a"
+    "${_stage}/lib/libvorbis.a"
+    "${_stage}/lib/libogg.a"
+    "${_stage}/lib/libFLAC.a")
+target_link_libraries(goldberry_media PRIVATE ${_archives})
+if(NOT WIN32)
+    target_link_libraries(goldberry_media PRIVATE m pthread)
+endif()
+if(WIN32)
+    # libgcc, libwinpthread and libstdc++ inside the DLL: it depends on the
+    # universal CRT and the system libraries alone, like the JDK's own.
+    target_link_options(goldberry_media PRIVATE -static -static-libgcc -static-libstdc++)
+endif()
+
+# ----------------------------------------------------------------------------
+# The export list. exports/goldberry-media.symbols is the single, explicit list
+# of what crosses the boundary. For each symbol the build does two things:
+# forces the linker to pull it out of its static archive (-u), and marks it
+# exported in the platform's own dialect: an ELF version script, Mach-O's
+# -exported_symbols_list, a .def for the DLL. Nothing else escapes.
+# ----------------------------------------------------------------------------
+set(_symbols_file "${CMAKE_CURRENT_SOURCE_DIR}/exports/goldberry-media.symbols")
+# The export dialects below are written at configure time, so a changed list
+# reconfigures rather than relinking against the old one.
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${_symbols_file}")
+file(STRINGS "${_symbols_file}" _symbol_lines)
+set(GOLDBERRY_MEDIA_EXPORTED_SYMBOLS "")
+foreach(_line IN LISTS _symbol_lines)
+    string(STRIP "${_line}" _line)
+    if(_line STREQUAL "" OR _line MATCHES "^#")
+        continue()
+    endif()
+    if(NOT _line MATCHES "^[A-Za-z_][A-Za-z0-9_]*$")
+        message(FATAL_ERROR
+            "exports/goldberry-media.symbols: '${_line}' is not a valid symbol name.\n"
+            "Every non-comment line must be a C identifier.")
+    endif()
+    list(APPEND GOLDBERRY_MEDIA_EXPORTED_SYMBOLS "${_line}")
+endforeach()
+list(LENGTH GOLDBERRY_MEDIA_EXPORTED_SYMBOLS _symbol_count)
+message(STATUS "goldberry-media exports ${_symbol_count} native symbols")
+set_property(TARGET goldberry_media APPEND PROPERTY LINK_DEPENDS "${_symbols_file}")
+
+if(APPLE)
+    set(_export_list "${CMAKE_BINARY_DIR}/goldberry-media.exported_symbols")
+    set(_export_lines "")
+    foreach(_symbol IN LISTS GOLDBERRY_MEDIA_EXPORTED_SYMBOLS)
+        # Mach-O symbols carry a leading underscore.
+        string(APPEND _export_lines "_${_symbol}\n")
+        target_link_options(goldberry_media PRIVATE "LINKER:-u,_${_symbol}")
+    endforeach()
+    file(WRITE "${_export_list}" "${_export_lines}")
+    target_link_options(goldberry_media PRIVATE "LINKER:-exported_symbols_list,${_export_list}")
+    set_property(TARGET goldberry_media APPEND PROPERTY LINK_DEPENDS "${_export_list}")
+elseif(WIN32)
+    set(_def_file "${CMAKE_BINARY_DIR}/goldberry-media.def")
+    set(_def_lines "LIBRARY goldberry-media\nEXPORTS\n")
+    foreach(_symbol IN LISTS GOLDBERRY_MEDIA_EXPORTED_SYMBOLS)
+        string(APPEND _def_lines "    ${_symbol}\n")
+        target_link_options(goldberry_media PRIVATE "LINKER:-u,${_symbol}")
+    endforeach()
+    file(WRITE "${_def_file}" "${_def_lines}")
+    target_sources(goldberry_media PRIVATE "${_def_file}")
+else()
+    set(_version_script "${CMAKE_BINARY_DIR}/goldberry-media.map")
+    string(REPLACE ";" ";\n    " _sym_block "${GOLDBERRY_MEDIA_EXPORTED_SYMBOLS}")
+    file(WRITE "${_version_script}" "GOLDBERRY_MEDIA_1 {\n  global:\n    ${_sym_block};\n  local:\n    *;\n};\n")
+    foreach(_symbol IN LISTS GOLDBERRY_MEDIA_EXPORTED_SYMBOLS)
+        target_link_options(goldberry_media PRIVATE "LINKER:-u,${_symbol}")
+    endforeach()
+    target_link_options(goldberry_media PRIVATE
+        "LINKER:--version-script=${_version_script}"
+        "LINKER:--no-undefined"
+        "LINKER:-z,defs")
+    set_property(TARGET goldberry_media APPEND PROPERTY LINK_DEPENDS "${_version_script}")
+endif()
+
+# ----------------------------------------------------------------------------
+# The layout probe (media_layout.c): compiled against the headers the upstreams
+# just installed, and run on this machine, since every value it prints is a
 # compile-time constant of this target.
 # ----------------------------------------------------------------------------
-add_executable(ffmpeg_layout ffmpeg_layout.c)
-add_dependencies(ffmpeg_layout ffmpeg)
-target_include_directories(ffmpeg_layout PRIVATE "${_stage}/include")
-set_target_properties(ffmpeg_layout PROPERTIES C_STANDARD 11 C_STANDARD_REQUIRED ON)
+add_executable(media_layout media_layout.c)
+add_dependencies(media_layout dav1d libvpx opus ogg vorbis flac)
+target_include_directories(media_layout PRIVATE "${_stage}/include" "${minimp3_SOURCE_DIR}")
+target_compile_definitions(media_layout PRIVATE GOLDBERRY_MEDIA_ABI=1)
+if(WIN32)
+    target_compile_definitions(media_layout PRIVATE FLAC__NO_DLL)
+endif()
 
 set(_out "${CMAKE_INSTALL_PREFIX}/lib")
-string(REPLACE ";" " " _configure_line "${GOLDBERRY_FFMPEG_CONFIGURE}")
 
-add_custom_target(ffmpeg_package ALL
+add_custom_target(media_package ALL
     COMMAND ${CMAKE_COMMAND} -E make_directory "${_out}"
-    COMMAND ffmpeg_layout "${_out}/ffmpeg-layout.properties"
     COMMAND ${CMAKE_COMMAND}
-        -DSTAGE=${_stage}
+        -DLIBRARY=$<TARGET_FILE:goldberry_media>
+        -DSYMBOLS=${_symbols_file}
+        -DNM=${CMAKE_NM}
+        -DSYSTEM=${CMAKE_SYSTEM_NAME}
+        -P "${CMAKE_CURRENT_SOURCE_DIR}/check_exports.cmake"
+    COMMAND media_layout "${_out}/media-layout.properties"
+    COMMAND ${CMAKE_COMMAND}
+        -DLIBRARY=$<TARGET_FILE:goldberry_media>
         -DOUT=${_out}
         -DSYSTEM=${CMAKE_SYSTEM_NAME}
         -DSTRIP=${CMAKE_STRIP}
         -DSIZE_LIMIT=${GOLDBERRY_MEDIA_SIZE_LIMIT}
-        -DBUILD_SUFFIX=${GOLDBERRY_FFMPEG_BUILD_SUFFIX}
-        -DFFMPEG_REF=${GOLDBERRY_FFMPEG_REF}
         -DDAV1D_REF=${GOLDBERRY_DAV1D_REF}
-        -DFFMPEG_COMMIT=${GOLDBERRY_FFMPEG_COMMIT}
-        -DDAV1D_COMMIT=${GOLDBERRY_DAV1D_COMMIT}
-        "-DCONFIGURE_LINE=${_configure_line}"
+        -DLIBVPX_REF=${GOLDBERRY_LIBVPX_REF}
+        -DOPUS_REF=${GOLDBERRY_OPUS_REF}
+        -DOGG_REF=${GOLDBERRY_OGG_REF}
+        -DVORBIS_REF=${GOLDBERRY_VORBIS_REF}
+        -DFLAC_REF=${GOLDBERRY_FLAC_REF}
+        -DLIBYUV_REF=${GOLDBERRY_LIBYUV_REF}
+        -DMINIMP3_REF=${GOLDBERRY_MINIMP3_REF}
         -DTARGET_ID=${GOLDBERRY_TARGET_ID}
         -P "${CMAKE_CURRENT_SOURCE_DIR}/package.cmake"
-    DEPENDS ffmpeg ffmpeg_layout
+    DEPENDS goldberry_media media_layout
     VERBATIM
-    COMMENT "Packaging FFmpeg for ${GOLDBERRY_TARGET_ID}")
+    COMMENT "Packaging libgoldberry-media for ${GOLDBERRY_TARGET_ID}")
 
 # `cmake --build --target install` is what Gradle runs; the package target above
 # already wrote everything into the install prefix, so install() has nothing left
 # to do but exist.
-install(CODE "message(STATUS \"FFmpeg for ${GOLDBERRY_TARGET_ID} is in ${_out}\")")
+install(CODE "message(STATUS \"libgoldberry-media for ${GOLDBERRY_TARGET_ID} is in ${_out}\")")

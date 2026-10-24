@@ -20,7 +20,7 @@ import dev.goldberry.media.picture.VideoPicture;
 /// The goldens are PNGs under `src/test/resources/golden/video/`, lossless and
 /// reviewable. They are read and written by the golden harness's own [Png], in
 /// `java.base`, and not decoded by the rasterizer: a picture golden says what
-/// FFmpeg decoded, and the Media workflow's runners have FFmpeg and no
+/// the media natives decoded, and the Media workflow's runners have them and no
 /// `libgoldberry` to decode a PNG with; a lane without the library stays green.
 /// `-Dgoldberry.golden.update=true` rewrites them, which is a review step as it
 /// is for every golden. A mismatch writes the actual picture to

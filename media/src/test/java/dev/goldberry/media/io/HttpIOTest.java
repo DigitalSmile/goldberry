@@ -35,7 +35,7 @@ import org.junit.jupiter.api.Timeout;
 /// `HttpIO` against a local server: Range, the read-ahead cache, reconnects,
 /// stalls, timeouts, ICY, and the abort.
 ///
-/// No FFmpeg here: this is the byte stream the demuxer would read, checked byte
+/// No demuxer here: this is the byte stream the demuxer would read, checked byte
 /// for byte against what the server holds.
 ///
 /// Nothing here compares a measured duration with a bound. A read that must

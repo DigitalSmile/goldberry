@@ -7903,6 +7903,15 @@ And the two facts that make the first one cost more than it reads:
 `docs/goldberry-media.md` is the design and `docs/media-plan.md` the log: all
 seven of its phases are done on macOS, GPU present among them as M4's phase 6.
 
+**Since 2026-10-24 FFmpeg is leaving the module** (ADR-0651, parked in
+`docs/snapshot/adr/`; the log is `docs/ffmpeg-out.md` §9). The engine becomes
+Java demuxers over `MediaIO` plus the reference decoders — dav1d, libvpx, Opus,
+Vorbis, FLAC, minimp3 — and libyuv, linked into one `libgoldberry-media` per
+target and bound directly; everything in it is BSD or CC0, and the LGPL
+machinery below is gone from the build. What follows describes the FFmpeg
+engine as it was built, and stays true of the Engine above the container and
+decoder seams.
+
 - **FFmpeg's libraries, driven from Java**
   ([ADR-0460](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0460-media-is-ffmpeg-driven-from-java-not-libvlc.md)), in place
   of libVLC. `avformat`, `avcodec`, `avutil`, `swresample` and `swscale`, with

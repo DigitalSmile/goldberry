@@ -42,22 +42,23 @@ The face shipped is Google's COLRv1 build, release v2.057, unmodified. The
 Apache-2.0 licence of Goldberry's own code is unaffected — the font is an
 embedded asset, not linked code.
 
-The media engine's natives ship in goldberry-media's ffmpeg-<platform>
+The media engine's natives ship in goldberry-media's natives-<platform>
 classifier jars, which are also OPTIONAL: an application adds them by name,
-and nothing else needs them.
+and nothing else needs them. One shared library, libgoldberry-media,
+STATICALLY LINKS:
 
-  FFmpeg         LGPL-2.1-or-later https://ffmpeg.org            (DYNAMICALLY linked)
   dav1d          BSD-2-Clause      https://code.videolan.org/videolan/dav1d
-                                                    (statically linked into libavcodec)
+  libvpx         BSD-3-Clause      https://chromium.googlesource.com/webm/libvpx
+  Opus           BSD-3-Clause      https://opus-codec.org
+  libogg         BSD-3-Clause      https://xiph.org/ogg
+  libvorbis      BSD-3-Clause      https://xiph.org/vorbis
+  FLAC           BSD-3-Clause      https://xiph.org/flac          (libFLAC)
+  libyuv         BSD-3-Clause      https://chromium.googlesource.com/libyuv/libyuv
+  minimp3        CC0-1.0           https://github.com/lieff/minimp3
 
-FFmpeg's five libraries are loaded from a directory and replaceable with a
-user's own build of the same majors (-Dgoldberry.media.libdir). Each natives jar
-carries META-INF/ffmpeg-NOTICE.txt with the exact tags and configure line. Their
-complete corresponding source -- FFmpeg and dav1d at those tags, the build
-recipe, and how to rebuild and relink -- is published beside them, from the same
-place, as goldberry-media's ffmpeg-sources classifier
-(goldberry-media-<version>-ffmpeg-sources.jar). No patent-pool codec is built
-into them. goldberry-media's system decoders, which decode H.264, HEVC, AAC,
+Each natives jar carries META-INF/media-NOTICE.txt naming the eight at the tags
+and commits that were built. No patent-pool codec is built into them.
+goldberry-media's system decoders, which decode H.264, HEVC, AAC,
 AC-3 and E-AC-3, bundle nothing: they call the decoders the operating system
 has, under the licences those were installed under.
 

@@ -115,7 +115,7 @@ application {
     // showcase on the module path is what proves they are right.
     applicationDefaultJvmArgs = [
             '--enable-native-access=dev.goldberry.natives',
-            // goldberry-media binds FFmpeg itself, and the system's
+            // goldberry-media binds its codecs itself, and the system's
             // decoders.
             '--enable-native-access=dev.goldberry.media',
     ]
@@ -190,25 +190,25 @@ tasks.withType(Test).configureEach {
     systemProperty 'goldberry.webview.library', layout.buildDirectory
             .file('no-such-webview-library').get().asFile.absolutePath
 
-    // No FFmpeg either, for the same reason: the Media screen's Capabilities
-    // card photographs whether this machine ran `:media:ffmpegBuild`. A
-    // directory that cannot exist is reported through the loader's ordinary
-    // "not available" branch.
+    // No media natives either, for the same reason: the Media screen's
+    // Capabilities card photographs whether this machine ran
+    // `:media:nativesBuild`. A directory that cannot exist is reported through
+    // the loader's ordinary "not available" branch.
     systemProperty 'goldberry.media.libdir', layout.buildDirectory
-            .dir('no-such-ffmpeg').get().asFile.absolutePath
+            .dir('no-such-media-natives').get().asFile.absolutePath
 }
 
 tasks.named('run') {
-    // FFmpeg for the Media screen: an explicit directory wins, else what
-    // `:media:ffmpegBuild` produced on this machine. Without either the screen
-    // says FFmpeg is not available, which is a supported state.
+    // The media natives for the Media screen: an explicit directory wins, else
+    // what `:media:nativesBuild` produced on this machine. Without either the
+    // screen says the natives are not available, which is a supported state.
     def mediaLibdir = providers.systemProperty('goldberry.media.libdir')
             .orElse(providers.gradleProperty('goldberry.media.libdir'))
-    def builtFfmpeg = nativeTests.host.localFfmpeg(layout.settingsDirectory.asFile.toPath()).toFile()
+    def builtMedia = nativeTests.host.localMedia(layout.settingsDirectory.asFile.toPath()).toFile()
     if (mediaLibdir.present) {
         systemProperty 'goldberry.media.libdir', mediaLibdir.get()
-    } else if (builtFfmpeg.isDirectory()) {
-        systemProperty 'goldberry.media.libdir', builtFfmpeg.absolutePath
+    } else if (builtMedia.isDirectory()) {
+        systemProperty 'goldberry.media.libdir', builtMedia.absolutePath
     }
 
     // An explicitly supplied path wins, so CI can point at a downloaded
@@ -416,6 +416,7 @@ tasks.register('nativeImageMetadata', Exec) {
 
         def command = [graalTool('java'),
                        '--enable-native-access=dev.goldberry.natives',
+                       '--enable-native-access=dev.goldberry.media',
                        "-agentlib:native-image-agent=config-output-dir=${metadataDir.asFile.absolutePath}",
                        "-Dgoldberry.backend.videoDriver=${videoDriver}",
                        "-Dgoldberry.native.library=${hostLibrary.absolutePath}"]
@@ -510,8 +511,10 @@ tasks.register('nativeImage', Exec) {
                 '-cp', nativesJar.singleFile.absolutePath,
                 '--module', "${appModule}/dev.goldberry.example.Showcase",
                 '-o', new File(target.get().asFile, imageName).absolutePath,
-                // JEP 472, the same module the jar names.
+                // JEP 472, the same modules the run names: `goldberry-media`
+                // binds its codecs and the system's decoders itself.
                 '--enable-native-access=dev.goldberry.natives',
+                '--enable-native-access=dev.goldberry.media',
                 // No `--no-fallback`. It was here because a fallback image is a
                 // JVM in a trench coat, and GraalVM 25.4 -- the line CI pins --
                 // has no fallback images left to refuse: the flag reports

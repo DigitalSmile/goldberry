@@ -56,12 +56,23 @@ $ff -f lavfi -i "$pattern" -i "$tone" -c:v libsvtav1 -preset 12 -crf 45 -c:a lib
 $ff -f lavfi -i "$pattern" -i "$tone" -c:v libsvtav1 -preset 12 -crf 45 -c:a flac -shortest -f mp4 \
     "$out/clip-av1.mp4"
 
-# Two pictures outside 8-bit 4:2:0, silent and a fifth of a second each: VP9
-# profile 1 (4:4:4), which the built-in decoder converts to I420, and profile 2
-# (10-bit 4:2:0), which it lends as I010.
+# The MP4 demuxer's other shapes, remuxed from the clips above: the moov before
+# the mdat (a source that cannot seek reads it forward), the cover art in
+# udta/meta/ilst/covr, and a fragmented file of five moof boxes.
+$ff -i "$out/tone-flac.mp4" -c copy -strict -2 -movflags faststart -f mp4 "$out/tone-flac-faststart.mp4"
+$ff -i "$out/tone-opus.mp4" -i "$out/tone-cover.mp3" -map 0:a -map 1:v -c copy -disposition:v attached_pic \
+    -f mp4 "$out/tone-cover.m4a"
+$ff -i "$out/clip-av1.mp4" -c copy -strict -2 -movflags frag_keyframe+empty_moov+default_base_moof \
+    -frag_duration 200000 -f mp4 "$out/clip-av1-fragmented.mp4"
+
+# Three pictures outside 8-bit 4:2:0, silent and a fifth of a second each: VP9
+# profile 1 (4:4:4), which the built-in decoder converts to I420, profile 2
+# (10-bit 4:2:0), which it lends as I010, and profile 3 (10-bit 4:4:4), which
+# it converts to I010.
 short="testsrc2=s=160x90:r=25:d=0.2"
 $ff -f lavfi -i "$short" -c:v libvpx-vp9 -pix_fmt yuv444p -b:v 200k "$out/clip-vp9-444.webm"
 $ff -f lavfi -i "$short" -c:v libvpx-vp9 -pix_fmt yuv420p10le -b:v 200k "$out/clip-vp9-10bit.webm"
+$ff -f lavfi -i "$short" -c:v libvpx-vp9 -pix_fmt yuv444p10le -b:v 200k "$out/clip-vp9-444-10bit.webm"
 
 # Three pictures tagged with the colour GPU present has to honour,
 # silent and a fifth of a second each: BT.709, BT.2020 in
@@ -165,3 +176,6 @@ $ff -f lavfi -i "$tiny" -c:v flv1 -an -f flv "$out/clip-flv1.flv"
 
 rm -r "$work"
 ls -l "$out"
+
+# A bare FLAC with cover art: the tone again, and a small PNG as a PICTURE block.
+$ff -i "$out/tone.flac" -i "$work/cover.png" -map 0:a -map 1:v -c copy -disposition:v attached_pic -f flac "$out/tone-cover.flac"

@@ -14,7 +14,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-import dev.goldberry.media.FfmpegRequirement;
 import dev.goldberry.media.codec.MediaType;
 import dev.goldberry.media.codec.VideoFrame;
 import dev.goldberry.media.platform.fixtures.Fixtures;
@@ -122,10 +121,6 @@ class GStreamerTest {
     @Test
     @DisplayName("with no decoder that works, the open fails and names the codec")
     void noDecoder() {
-        // The clip is demuxed by FFmpeg. Asked here rather than left to the
-        // demuxer, which would abort inside `assertThrows` and read as the wrong
-        // exception instead of a skip.
-        FfmpegRequirement.enforce();
         var e = assertThrows(GstException.class, () -> decode(List.of(new Gst.Candidate("goldberry-nope", 1))));
         assertTrue(e.getMessage().contains("h264"), e.getMessage());
     }

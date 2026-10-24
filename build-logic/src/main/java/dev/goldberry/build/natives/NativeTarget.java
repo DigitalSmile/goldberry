@@ -138,13 +138,13 @@ public record NativeTarget(String id, String library, String webview, boolean we
     }
 
     /**
-     * Where {@code :media:ffmpegBuild} installs this target, relative to that
+     * Where {@code :media:nativesBuild} installs this target, relative to that
      * project's build directory.
      *
-     * @return {@code ffmpeg/<id>/install}
+     * @return {@code media-natives/<id>/install}
      */
-    public String ffmpegInstallDir() {
-        return "ffmpeg/" + id + "/install";
+    public String mediaInstallDir() {
+        return "media-natives/" + id + "/install";
     }
 
     /**
@@ -159,14 +159,14 @@ public record NativeTarget(String id, String library, String webview, boolean we
     }
 
     /**
-     * The directory a local {@code :media:ffmpegBuild} installs FFmpeg's libraries
-     * into, in a checkout rooted at {@code repository}.
+     * The directory a local {@code :media:nativesBuild} installs
+     * {@code libgoldberry-media} into, in a checkout rooted at {@code repository}.
      *
      * @param repository the directory holding {@code settings.gradle}
      * @return the directory, whether or not it has been built
      */
-    public Path localFfmpeg(Path repository) {
-        return repository.resolve("media/build").resolve(ffmpegInstallDir()).resolve("lib");
+    public Path localMedia(Path repository) {
+        return repository.resolve("media/build").resolve(mediaInstallDir()).resolve("lib");
     }
 
     private static String osToken(String osName) {

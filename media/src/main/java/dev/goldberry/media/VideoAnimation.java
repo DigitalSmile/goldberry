@@ -22,11 +22,11 @@ import dev.goldberry.media.codec.Packet;
 import dev.goldberry.media.codec.Received;
 import dev.goldberry.media.codec.TrackParams;
 import dev.goldberry.media.codec.VideoFrame;
-import dev.goldberry.media.ffi.Decoders;
-import dev.goldberry.media.ffi.Demuxer;
-import dev.goldberry.media.ffi.FfmpegLibraries;
-import dev.goldberry.media.ffi.VideoConverter;
+import dev.goldberry.media.container.Container;
+import dev.goldberry.media.container.Containers;
+import dev.goldberry.media.engine.Decoders;
 import dev.goldberry.media.io.Source;
+import dev.goldberry.media.picture.YuvConverter;
 import dev.goldberry.paint.Frame;
 import dev.goldberry.render.PixelBuffer;
 import dev.goldberry.render.model.PhysicalSize;
@@ -68,7 +68,7 @@ import dev.goldberry.render.model.PixelFormat;
 ///
 /// ## Native memory
 ///
-/// The decoders are FFmpeg's, in native memory, and are freed by [#close()],
+/// The decoder and the converter hold native memory, freed by [#close()],
 /// or once nothing refers to the animation any more. The copies [#loops(int)]
 /// makes share them, and one moment is decoded at a time: two views that show
 /// one animation at two moments decode it twice over, so a view of its own
@@ -93,8 +93,8 @@ public final class VideoAnimation implements MovingPicture, AutoCloseable {
     /// Reads a video from `webm`'s position to its limit, which are left where
     /// they were. The bytes are copied.
     ///
-    /// @throws MediaException with [MediaError.NativesUnavailable] when FFmpeg is
-    ///                        not loaded, and [MediaError.InvalidData],
+    /// @throws MediaException with [MediaError.NativesUnavailable] when the media
+    ///                        natives are not loaded, and [MediaError.InvalidData],
     ///                        [MediaError.UnsupportedContainer] or
     ///                        [MediaError.UnsupportedCodec] when the bytes are not
     ///                        a video this build decodes
@@ -265,10 +265,9 @@ public final class VideoAnimation implements MovingPicture, AutoCloseable {
 
         /// Opens a demuxer and a decoder over `bytes` and reads what they hold.
         static Reel open(byte[] bytes) {
-            var ffmpeg = FfmpegLibraries.get();
             var source = new Source(URI.create("memory:///sticker.webm"), Map.of(), Source.DEFAULT_TIMEOUT);
             var io = new BytesIO(bytes);
-            var demuxer = Demuxer.open(ffmpeg, source, io);
+            var demuxer = Containers.open(source, io);
             try {
                 var info = demuxer.info();
                 var track = info.defaultTrack(MediaType.VIDEO)
@@ -284,10 +283,10 @@ public final class VideoAnimation implements MovingPicture, AutoCloseable {
                         .map(Duration::toNanos)
                         .filter(nanos -> nanos > 0)
                         .orElseGet(() -> lengthOfPackets(demuxer));
-                var decoder = Decoders.open(ffmpeg, demuxer, track.index(), List.of(), 0)
-                        .decoder();
+                var decoder =
+                        Decoders.open(demuxer, track.index(), List.of(), 0).decoder();
                 return new Reel(
-                        new Natives(demuxer, decoder, new VideoConverter(ffmpeg, false)),
+                        new Natives(demuxer, decoder, new YuvConverter(false)),
                         params.width(),
                         params.height(),
                         params.alpha(),
@@ -300,7 +299,7 @@ public final class VideoAnimation implements MovingPicture, AutoCloseable {
 
         /// How long the selected track's packets last, read through once: for a
         /// container that records no duration.
-        private static long lengthOfPackets(Demuxer demuxer) {
+        private static long lengthOfPackets(Container demuxer) {
             var first = Long.MAX_VALUE;
             var last = Long.MIN_VALUE;
             for (var read = demuxer.read(); read != null; read = demuxer.read()) {
@@ -443,12 +442,12 @@ public final class VideoAnimation implements MovingPicture, AutoCloseable {
     /// decoder, and what converts its pictures for drawing.
     private static final class Natives implements Runnable {
 
-        private final Demuxer demuxer;
+        private final Container demuxer;
         private final Decoder decoder;
-        private final VideoConverter converter;
+        private final YuvConverter converter;
         private volatile boolean closed;
 
-        Natives(Demuxer demuxer, Decoder decoder, VideoConverter converter) {
+        Natives(Container demuxer, Decoder decoder, YuvConverter converter) {
             this.demuxer = demuxer;
             this.decoder = decoder;
             this.converter = converter;

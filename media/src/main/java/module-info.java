@@ -1,18 +1,20 @@
-/// Goldberry's media module: audio and video playback over FFmpeg, driven from
-/// Java.
+/// Goldberry's media module: audio and video playback, demuxed in Java and
+/// decoded by the reference codecs.
 ///
 /// An optional content module: an application opts in, and nothing in `:core`
-/// or `:widgets` knows this module exists. The engine is FFmpeg's demuxers and
-/// decoders and nothing else of it — no network layer, no filters, no devices —
-/// with the threads, the clock and every byte of I/O on the Java side. There is
-/// no libVLC and no JNI: FFmpeg is called through the Foreign Function and
-/// Memory API.
+/// or `:widgets` knows this module exists. The containers — Matroska and WebM,
+/// MP4, WAV, and the rest as they land — are read in Java, every byte through
+/// the I/O SPI, and the threads, the clock and the queues are Java too. What is
+/// native is the decoding: dav1d, libvpx, Opus, Vorbis, FLAC and minimp3, with
+/// libyuv for the CPU's colour conversion, linked into one `libgoldberry-media`
+/// per target and called through the Foreign Function and Memory API. There is
+/// no libVLC, no FFmpeg and no JNI.
 ///
 /// **This module binds native code itself**, which only `:natives` otherwise does.
-/// FFmpeg is LGPL-2.1+ and must stay a set of replaceable shared libraries, so it
-/// cannot join `libgoldberry`, and its bindings live beside the engine that is
-/// their only caller. What `:natives`' rule protects still holds here:
-/// `…media.ffi` is not exported, and no FFmpeg type appears in anything that is.
+/// Its library is its own so that an application which plays no media carries
+/// none of it, and the bindings live beside the engine that is their only
+/// caller. What `:natives`' rule protects still holds here: `…media.ffm` is not
+/// exported, and no upstream type appears in anything that is.
 ///
 /// **The operating system's own decoders are here too**, behind the same Decoder
 /// SPI: VideoToolbox and AudioToolbox on macOS, GStreamer on Linux, Media
@@ -68,13 +70,13 @@ module dev.goldberry.media {
     /// converted to BGRA, or its planes as decoded.
     exports dev.goldberry.media.picture;
 
-    /// What a track *is*, in Goldberry's words rather than FFmpeg's: the codec, the
+    /// What a track *is*, in Goldberry's words rather than a library's: the codec, the
     /// kind of stream and its parameters. It is also the vocabulary the Decoder SPI
     /// is written in (phase 2).
     exports dev.goldberry.media.codec;
 
-    /// Where the bytes come from. FFmpeg performs no I/O of its own. Every byte it
-    /// reads comes through a [dev.goldberry.media.io.MediaIO],
+    /// Where the bytes come from. No native code reads a byte. Every byte a
+    /// container reads comes through a [dev.goldberry.media.io.MediaIO],
     /// and an application adds a protocol by providing one.
     exports dev.goldberry.media.io;
 

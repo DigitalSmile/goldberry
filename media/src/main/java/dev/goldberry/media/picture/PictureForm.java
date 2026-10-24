@@ -14,7 +14,7 @@ import dev.goldberry.media.MediaPlayer;
 /// Read more: [`video-view`](https://goldberry.dev/docs/components/media.html#video-view).
 public enum PictureForm {
 
-    /// Premultiplied BGRA, converted by swscale on the video thread: a
+    /// Premultiplied BGRA, converted by libyuv on the video thread: a
     /// [VideoPicture]. What CPU present blits, and what a player with no view
     /// attached keeps.
     CONVERTED,

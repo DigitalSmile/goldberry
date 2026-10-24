@@ -52,8 +52,8 @@ class CodecFixturesTest {
     private VirtualSink sink;
 
     @BeforeEach
-    void requireFfmpeg() {
-        FfmpegRequirement.enforce();
+    void requireNatives() {
+        MediaNativesRequirement.enforce();
     }
 
     @AfterEach
@@ -206,7 +206,13 @@ class CodecFixturesTest {
         // MP3 may keep up to a frame of either.
         assertTrue(Math.abs(samples - FORMAT.sampleRate()) <= 2 * 1152, name + " gave " + samples + " samples");
         assertSine(sink.captured(), samples, name);
-        assertEquals("ffmpeg", ended.audioDecoder().orElseThrow());
+        assertEquals(builtInDecoder(name), ended.audioDecoder().orElseThrow());
+    }
+
+    /// The built-in decoder a clip's audio plays through: Opus, Vorbis in Ogg,
+    /// MP3 in MP3.
+    private static String builtInDecoder(String name) {
+        return name.endsWith(".ogg") ? "vorbis" : name.endsWith(".mp3") ? "minimp3" : "opus";
     }
 
     @ParameterizedTest(name = "{0}")
@@ -302,24 +308,13 @@ class CodecFixturesTest {
         return awaitState(PlaybackState.ERROR).error().orElseThrow();
     }
 
-    @Test
-    @DisplayName("an Xvid and AC-3 AVI opens, lists both tracks, and names both codecs it cannot decode")
-    void aviOfPatentPoolCodecs() {
-        var info = probe("clip-xvid-ac3.avi");
-        assertEquals("mpeg4", info.defaultTrack(MediaType.VIDEO).orElseThrow().codecName());
-        assertEquals("ac3", info.defaultTrack(MediaType.AUDIO).orElseThrow().codecName());
-        assertEquals(new MediaError.UnsupportedCodec(List.of("mpeg4", "ac3")), error("clip-xvid-ac3.avi"));
-    }
-
-    @Test
-    @DisplayName("MP3 in AVI plays to the end: the AVI demuxer is built")
-    void mp3InAvi() {
-        play("tone-mp3.avi", true);
-        assertSine(sink.captured(), sink.capturedSamples(), "MP3 in AVI");
-    }
-
     @ParameterizedTest(name = "{0} is {1}")
-    @CsvSource({"clip-mpeg2.ts, MPEG-TS", "clip-flv1.flv, FLV"})
+    @CsvSource({
+        "clip-mpeg2.ts, MPEG-TS",
+        "clip-flv1.flv, FLV",
+        "clip-xvid-ac3.avi, AVI",
+        "tone-mp3.avi, AVI",
+    })
     @DisplayName("a container this build has no demuxer for is named, not called invalid data")
     void unsupportedContainer(String name, String format) {
         var error = error(name);

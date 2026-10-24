@@ -28,8 +28,8 @@ import dev.goldberry.css.Theme;
 import dev.goldberry.css.cascade.CascadeLayer;
 import dev.goldberry.gpu.composite.CompositeHarness;
 import dev.goldberry.image.Image;
-import dev.goldberry.media.FfmpegRequirement;
 import dev.goldberry.media.HardwareDecoding;
+import dev.goldberry.media.MediaNativesRequirement;
 import dev.goldberry.media.MediaPlayer;
 import dev.goldberry.media.PlaybackState;
 import dev.goldberry.media.audio.AudioFormat;
@@ -156,7 +156,7 @@ class VideoOnGpuTest {
     }
 
     private void openPausedAt400() {
-        FfmpegRequirement.enforce();
+        MediaNativesRequirement.enforce();
         byte[] data;
         try (var in = getClass().getResourceAsStream("/dev/goldberry/media/fixtures/clip-vp9.webm")) {
             data = in.readAllBytes();
@@ -280,7 +280,7 @@ class VideoOnGpuTest {
     /// The picture of `fixture` at `millis`, as planes: paused on an accurate
     /// seek with a view of planes attached, so it is the same every run.
     private VideoPlanes planesAt(String fixture, int millis) {
-        FfmpegRequirement.enforce();
+        MediaNativesRequirement.enforce();
         byte[] data;
         try (var in = getClass().getResourceAsStream("/dev/goldberry/media/fixtures/" + fixture)) {
             data = in.readAllBytes();
@@ -341,7 +341,7 @@ class VideoOnGpuTest {
     @Test
     @DisplayName("a sticker's picture with alpha is drawn on the CPU over the background, where a frame shows layers")
     void stickerStaysOnTheCpu() {
-        FfmpegRequirement.enforce();
+        MediaNativesRequirement.enforce();
         byte[] data;
         try (var in = getClass().getResourceAsStream("/dev/goldberry/media/fixtures/sticker-vp9-alpha.webm")) {
             data = in.readAllBytes();

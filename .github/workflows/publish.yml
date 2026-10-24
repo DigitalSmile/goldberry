@@ -53,9 +53,9 @@ jobs:
   macos:
     uses: ./.github/workflows/macos.yml
 
-  # FFmpeg for goldberry-media's `ffmpeg-<target>` classifiers, built and tested
-  # by the Media workflow on every target it has a runner for. Each
-  # uploads its install as `ffmpeg-<target>`.
+  # libgoldberry-media for goldberry-media's `natives-<target>` classifiers,
+  # built and tested by the Media workflow on every target it has a runner
+  # for. Each uploads its install as `media-natives-<target>`.
   media:
     uses: ./.github/workflows/media.yml
 
@@ -146,25 +146,21 @@ jobs:
 
       - uses: actions/download-artifact@v4
         with:
-          pattern: ffmpeg-*
-          path: ffmpeg-downloads
+          pattern: media-natives-*
+          path: media-downloads
 
-      # `<target>/`, which :media's `ffmpegNativesJar*` tasks read. A snapshot
+      # `<target>/`, which :media's `nativesJar*` tasks read. A snapshot
       # carries the targets the Media workflow built; a release refuses to
-      # publish without all four (media/build.gradle). Either way the
-      # binaries go with the `ffmpeg-sources` classifier, FFmpeg's and dav1d's
-      # source, which Gradle fetches from git on this runner -- and refuses to
-      # publish them without, because the LGPL asks for the source beside the
-      # object code.
+      # publish without all four (media/build.gradle).
       - name: Flatten into the layout :media expects
         run: |
-          mkdir -p ffmpeg-artifacts
-          for dir in ffmpeg-downloads/ffmpeg-*; do
-            target="${dir#ffmpeg-downloads/ffmpeg-}"
-            mkdir -p "ffmpeg-artifacts/$target"
-            cp -R "$dir"/. "ffmpeg-artifacts/$target/"
+          mkdir -p media-artifacts
+          for dir in media-downloads/media-natives-*; do
+            target="${dir#media-downloads/media-natives-}"
+            mkdir -p "media-artifacts/$target"
+            cp -R "$dir"/. "media-artifacts/$target/"
           done
-          find ffmpeg-artifacts -type f | sort
+          find media-artifacts -type f | sort
 
       # Every licence file must carry its verbatim upstream text before a release
       # is published. A snapshot warns instead: it is a build of work in progress,
@@ -189,7 +185,7 @@ jobs:
           ./gradlew publishToMavenCentral --no-daemon \
             -Pgoldberry.skipNative=true \
             -Pgoldberry.artifactsDir="$PWD/artifacts" \
-            -Pgoldberry.media.artifactsDir="$PWD/ffmpeg-artifacts" \
+            -Pgoldberry.media.artifactsDir="$PWD/media-artifacts" \
             -Pgoldberry.centralAutoRelease=$AUTO_RELEASE \
             $VERSION_ARGS
 
@@ -201,7 +197,7 @@ jobs:
           ./gradlew publishToMavenLocal --no-daemon \
             -Pgoldberry.skipNative=true \
             -Pgoldberry.artifactsDir="$PWD/artifacts" \
-            -Pgoldberry.media.artifactsDir="$PWD/ffmpeg-artifacts" \
+            -Pgoldberry.media.artifactsDir="$PWD/media-artifacts" \
             $VERSION_ARGS
 
       - uses: actions/upload-artifact@v4

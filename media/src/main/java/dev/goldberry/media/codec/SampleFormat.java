@@ -5,7 +5,7 @@ package dev.goldberry.media.codec;
 /// A decoder hands frames over in whichever of these it decodes to. The Engine
 /// converts every one of them to what the audio device plays, in one pass.
 /// So a provider never converts formats itself,
-/// and the built-in decoder hands FFmpeg's buffers over without a copy.
+/// and a built-in decoder hands its library's buffers over without a copy.
 ///
 /// *Interleaved* formats keep every channel in one plane, frame after frame.
 /// *Planar* formats keep one plane per channel.

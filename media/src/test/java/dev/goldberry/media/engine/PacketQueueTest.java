@@ -20,7 +20,7 @@ import dev.goldberry.media.codec.Frame;
 import dev.goldberry.media.codec.Packet;
 import dev.goldberry.media.codec.Rational;
 
-/// The queue's rules, with no FFmpeg: bounded by duration and by bytes,
+/// The queue's rules, with no native library: bounded by duration and by bytes,
 /// Serial-aware, never blocking its producer, and abortable.
 @DisplayName("PacketQueue")
 class PacketQueueTest {

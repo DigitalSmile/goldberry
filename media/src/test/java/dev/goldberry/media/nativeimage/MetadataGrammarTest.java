@@ -21,6 +21,8 @@ import java.util.stream.Stream;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import dev.goldberry.media.ffm.DowncallShape;
+
 /// The tracing agent's grammar, which both halves of the module's metadata are
 /// written in.
 @DisplayName("MetadataGrammar")
@@ -39,6 +41,18 @@ class MetadataGrammarTest {
         assertEquals(
                 "struct(jlong,jint,jint,jlong)",
                 MetadataGrammar.spell(MemoryLayout.structLayout(JAVA_LONG, JAVA_INT, JAVA_INT, JAVA_LONG)));
+    }
+
+    @Test
+    @DisplayName("spells a variadic downcall with the option that says where its arguments begin")
+    void variadic() {
+        // opus_decoder_ctl(st, OPUS_RESET_STATE): no variadic argument at all.
+        var reset = FunctionDescriptor.of(JAVA_INT, ADDRESS, JAVA_INT);
+        assertEquals(
+                "{\"returnType\": \"jint\", \"parameterTypes\": [\"void*\", \"jint\"],"
+                        + " \"options\": {\"firstVariadicArg\": 2}}",
+                MetadataGrammar.entry(DowncallShape.variadic(reset, 2)));
+        assertEquals(MetadataGrammar.entry(reset), MetadataGrammar.entry(DowncallShape.of(reset)));
     }
 
     @Test
@@ -71,11 +85,11 @@ class MetadataGrammarTest {
     void resources() {
         var call = FunctionDescriptor.ofVoid(JAVA_LONG);
 
-        var without = MetadataGrammar.render(List.of(), List.of(call), List.of());
+        var without = MetadataGrammar.render(List.of(), List.of(DowncallShape.of(call)), List.of());
         assertTrue(without.startsWith("{\n  \"foreign\": {\n"), without);
         assertFalse(without.contains("resources"), without);
 
-        var with = MetadataGrammar.render(List.of("a/**", "b/**"), List.of(call), List.of(call));
+        var with = MetadataGrammar.render(List.of("a/**", "b/**"), List.of(DowncallShape.of(call)), List.of(call));
         assertTrue(
                 with.startsWith(
                         "{\n  \"resources\": [\n    {\"glob\": \"a/**\"},\n    {\"glob\": \"b/**\"}\n  ],\n  \"foreign\""),

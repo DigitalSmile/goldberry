@@ -25,9 +25,10 @@ public sealed interface MediaError {
     /// A sentence for a log or a developer, and not for an end user.
     String message();
 
-    /// FFmpeg could not be loaded. The natives jar is missing, the libraries are
-    /// the wrong major, or their structs do not match the ones this module was
-    /// written against. No struct is touched in any of these cases.
+    /// `libgoldberry-media` could not be loaded. The natives jar is missing, the
+    /// library is another ABI, or its structs do not match the ones this module
+    /// was written against. No struct is touched in any of these cases. The
+    /// containers still read, so a probe works; nothing decodes.
     ///
     /// @param detail what was expected and what was found
     record NativesUnavailable(String detail) implements MediaError {
@@ -37,7 +38,7 @@ public sealed interface MediaError {
 
         @Override
         public String message() {
-            return "FFmpeg is not available: " + detail;
+            return "the media natives are not available: " + detail;
         }
     }
 
@@ -58,7 +59,7 @@ public sealed interface MediaError {
     /// The tracks that would be played have no decoder: a patent-pool codec the
     /// published natives do not build, and no DecoderProvider claims it.
     ///
-    /// @param codecs FFmpeg's names for the codecs, such as `h264` or `aac`
+    /// @param codecs the codecs' names, FFmpeg's vocabulary, such as `h264` or `aac`
     record UnsupportedCodec(List<String> codecs) implements MediaError {
         public UnsupportedCodec {
             codecs = List.copyOf(codecs);
@@ -91,7 +92,7 @@ public sealed interface MediaError {
 
     /// The bytes are not media any demuxer here reads, or they are damaged.
     ///
-    /// @param detail FFmpeg's description of what went wrong
+    /// @param detail what went wrong, in the demuxer's or decoder's words
     record InvalidData(String detail) implements MediaError {
         public InvalidData {
             Objects.requireNonNull(detail, "detail");

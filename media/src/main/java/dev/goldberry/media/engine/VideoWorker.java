@@ -12,11 +12,9 @@ import dev.goldberry.media.codec.Decoder;
 import dev.goldberry.media.codec.Frame;
 import dev.goldberry.media.codec.Received;
 import dev.goldberry.media.codec.VideoFrame;
-import dev.goldberry.media.ffi.Decoders;
-import dev.goldberry.media.ffi.Demuxer;
-import dev.goldberry.media.ffi.FfmpegDecoder;
-import dev.goldberry.media.ffi.VideoConverter;
+import dev.goldberry.media.container.Container;
 import dev.goldberry.media.picture.PictureForm;
+import dev.goldberry.media.picture.YuvConverter;
 
 /// The video decode thread of one [Playback].
 ///
@@ -29,7 +27,7 @@ import dev.goldberry.media.picture.PictureForm;
 ///
 /// What a picture is prepared as is the playback's [PictureForm], read afresh
 /// for each picture. [PictureForm#CONVERTED] converts
-/// it to premultiplied BGRA with swscale, which CPU present only blits.
+/// it to premultiplied BGRA with libyuv, which CPU present only blits.
 /// [PictureForm#PLANES] copies its planes as they are, for a view that uploads
 /// them and converts them on the GPU, and the copy is the lighter of the two
 /// for this thread. The form changes between two pictures: a change to planes
@@ -71,15 +69,14 @@ import dev.goldberry.media.picture.PictureForm;
 /// reports nothing more, and closes its decoder and converter on the way out;
 /// the picture it showed last stays up until the new thread's first replaces it.
 ///
-/// ## Hardware, and falling back
+/// ## Falling back
 ///
-/// The decoder is opened with the playback's [dev.goldberry.media.ffi.Hardware],
-/// so the built-in one may decode on a device. What it reports as its
-/// name follows what it does: `ffmpeg (videotoolbox)` while pictures come from the
-/// device, `ffmpeg` once they do not.
+/// The decoder is a provider's, the application's first and the built-in ones
+/// after them; what it reports as its name is the provider's: `videotoolbox`,
+/// `libvpx`, `dav1d`.
 ///
 /// A decoder that fails mid-stream is closed and the next rung of the ladder
-/// opened, a provider's or the built-in one's, on the device or in software. The
+/// opened, a provider's or a built-in one. The
 /// next decoder cannot start from where the last one stopped, since it has none
 /// of the pictures the next one refers to, so the thread asks for an accurate
 /// seek to the position, and drops the packets queued before it. The demuxer
@@ -103,11 +100,11 @@ final class VideoWorker {
     static final long DEFAULT_FRAME_NANOS = 40_000_000L;
 
     private final Playback playback;
-    private final Demuxer demuxer;
+    private final Container demuxer;
     private final int stream;
     private final PacketQueue queue;
     private final FrameQueue frames;
-    private @Nullable VideoConverter converter;
+    private @Nullable YuvConverter converter;
 
     /// The Serial this thread is playing.
     private int serial;
@@ -137,7 +134,7 @@ final class VideoWorker {
     /// queues nothing more, and reports nothing more.
     private volatile boolean retired;
 
-    VideoWorker(Playback playback, Demuxer demuxer, int stream, PacketQueue queue, FrameQueue frames) {
+    VideoWorker(Playback playback, Container demuxer, int stream, PacketQueue queue, FrameQueue frames) {
         this.playback = playback;
         this.demuxer = demuxer;
         this.stream = stream;
@@ -163,8 +160,7 @@ final class VideoWorker {
     void play() {
         Decoder decoder;
         try {
-            var resolved = Decoders.open(
-                    playback.ffmpeg(), demuxer, stream, playback.decoderProviders(), playback.hardware(), 0);
+            var resolved = Decoders.open(demuxer, stream, playback.decoderProviders(), 0);
             decoder = resolved.decoder();
             report(resolved.provider());
         } catch (MediaException e) {
@@ -172,7 +168,7 @@ final class VideoWorker {
             return;
         }
         try {
-            converter = new VideoConverter(playback.ffmpeg());
+            converter = new YuvConverter();
             while (running()) {
                 if (playback.paused() && queuedSinceFlush) {
                     var flush = queue.takeFlush();
@@ -290,8 +286,7 @@ final class VideoWorker {
         LOG.warn("video decoder failed mid-stream; trying the next", failure);
         failed.close();
         skip++;
-        var resolved = Decoders.open(
-                playback.ffmpeg(), demuxer, stream, playback.decoderProviders(), playback.hardware(), skip);
+        var resolved = Decoders.open(demuxer, stream, playback.decoderProviders(), skip);
         report(resolved.provider());
         awaitingKeyframe = true;
         playback.reseek(resumeNanos());
@@ -321,9 +316,6 @@ final class VideoWorker {
             }
             if (frame instanceof VideoFrame video) {
                 picture(video);
-                if (decoder instanceof FfmpegDecoder builtIn) {
-                    report(builtIn.describe());
-                }
             }
         }
     }

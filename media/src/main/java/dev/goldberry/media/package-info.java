@@ -1,4 +1,5 @@
-/// Audio and video over FFmpeg, driven from Java.
+/// Audio and video: the containers read in Java, the reference decoders
+/// behind the Decoder SPI.
 ///
 /// [dev.goldberry.media.MediaPlayer] plays a source's audio
 /// and video, reports [dev.goldberry.media.PlayerStatus] values

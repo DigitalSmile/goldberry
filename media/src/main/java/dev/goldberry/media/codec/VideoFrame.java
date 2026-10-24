@@ -14,7 +14,7 @@ import java.util.Objects;
 /// at least, where [PixelFormat#planeRows] and [PixelFormat#planeRowBytes] say
 /// what the rows and row bytes are. A plane that is too small is refused here,
 /// before anything native reads past its end. Planes are native memory, never a
-/// heap array: the present path passes their addresses to swscale.
+/// heap array: the present path passes their addresses to libyuv.
 ///
 /// @param format    the plane layout
 /// @param width     width in pixels

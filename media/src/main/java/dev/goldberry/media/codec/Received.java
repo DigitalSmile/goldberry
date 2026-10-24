@@ -31,9 +31,9 @@ public sealed interface Received {
         }
     }
 
-    /// No frame until another packet is sent. FFmpeg's `EAGAIN`.
+    /// No frame until another packet is sent: a decoder's `EAGAIN`.
     record NeedsInput() implements Received {}
 
-    /// Every frame has been received after [Decoder#sendEnd]. FFmpeg's `EOF`.
+    /// Every frame has been received after [Decoder#sendEnd]: a decoder's `EOF`.
     record Ended() implements Received {}
 }

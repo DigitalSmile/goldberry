@@ -17,23 +17,24 @@ import dev.goldberry.widgets.text.Text;
 /// Read more: [The module](https://goldberry.dev/docs/components/media.html#the-module).
 ///
 /// @param kind         which screen
-/// @param capabilities what the loaded libraries answer, or null when FFmpeg did
-///                     not load
+/// @param capabilities what the build answers, or null when it could not be asked
 record CapabilitiesCard(MediaKind kind, @Nullable MediaCapabilities capabilities) implements Widget.Stateless {
 
     /// What the card says above the lines.
-    static final String SUMMARY = "goldberry-media drives FFmpeg from Java, with no JNI. The published natives"
-            + " decode royalty-free codecs; this is what the loaded libraries decode and demux, and which of the"
-            + " system's own decoders are here.";
+    static final String SUMMARY = "goldberry-media reads its containers in Java and decodes with the reference"
+            + " codecs in one native library, with no JNI. The published natives decode royalty-free codecs; this is"
+            + " what this build decodes and demuxes, and which of the system's own decoders are here.";
 
     @Override
     public Widget build(BuildContext context) {
         var card = new ShowcaseCard(kind.id("capabilities"), "This build", SUMMARY, MediaDocs.MODULE);
         var found = capabilities;
-        if (found == null) {
+        if (found == null || !MediaCapabilities.nativesAvailable()) {
             return card.of(
-                    new Text("FFmpeg is not loaded, so nothing can play.", Attributes.NONE.classes("media-error")),
-                    MediaLines.caption("Build the natives with ./gradlew :media:ffmpegBuild and run again. Picking a"
+                    new Text(
+                            "The media natives are not loaded, so nothing but PCM can play.",
+                            Attributes.NONE.classes("media-error")),
+                    MediaLines.caption("Build the natives with ./gradlew :media:nativesBuild and run again. Picking a"
                             + " source shows the loader's own reason."));
         }
         var providers = PlatformDecoders.providers().stream()

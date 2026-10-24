@@ -77,7 +77,7 @@ class PublishWorkflowsTest {
                 () -> assertTrue(text.contains("uses: ./.github/workflows/linux.yml")),
                 () -> assertTrue(text.contains("uses: ./.github/workflows/macos.yml")),
                 () -> assertTrue(text.contains("uses: ./.github/workflows/windows.yml")),
-                // FFmpeg for goldberry-media's classifiers.
+                // libgoldberry-media for goldberry-media's classifiers.
                 () -> assertTrue(text.contains("uses: ./.github/workflows/media.yml")),
                 () -> assertTrue(text.contains("needs: [linux, windows, macos, media]")),
                 () -> assertTrue(text.contains("-Pgoldberry.media.artifactsDir=")),

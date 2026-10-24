@@ -34,7 +34,7 @@ import dev.goldberry.media.io.Source;
 import dev.goldberry.media.io.TestHttpServer;
 
 /// The Engine over sources that stall, drop and never end: the water marks,
-/// progressive HTTP over a flaky link, and a live radio stream, against FFmpeg.
+/// progressive HTTP over a flaky link, and a live radio stream, against the media natives.
 ///
 /// The water marks are checked against a fake `MediaIO` that stalls where it is
 /// told, so the moment of the stall is exact; the link and the stream against a local HTTP
@@ -95,8 +95,8 @@ class NetworkPlaybackTest {
     }
 
     @BeforeEach
-    void requireFfmpeg() {
-        FfmpegRequirement.enforce();
+    void requireNatives() {
+        MediaNativesRequirement.enforce();
     }
 
     @AfterEach
@@ -220,9 +220,9 @@ class NetworkPlaybackTest {
         }
     }
 
-    /// FFmpeg reads about 4.4 s of a 48 kHz stereo WAV while it probes one
-    /// (`avformat_find_stream_info`), so a stall is set past that, where only the
-    /// demux thread's own reads reach it.
+    /// Where the stall is set: past anything opening the source reads (the WAV
+    /// container reads its header only), so only the demux thread's own reads
+    /// reach it.
     private static final double PAST_THE_PROBE = 6;
 
     @Test
@@ -239,8 +239,8 @@ class NetworkPlaybackTest {
         var stalled = playUntil(status -> status.state() == PlaybackState.BUFFERING);
         assertTrue(io.stalled());
         assertTrue(sink.paused());
-        // At the stall, less the part of a packet FFmpeg holds back until the
-        // rest of it arrives.
+        // At the stall, less the part of a packet the container holds back until
+        // the rest of it arrives.
         assertBetween(Duration.ofMillis(5_900), stalled.position(), Duration.ofSeconds(6));
         assertEquals(Duration.ZERO, stalled.bufferedAhead());
 

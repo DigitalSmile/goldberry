@@ -19,8 +19,6 @@ import dev.goldberry.media.audio.AudioSink;
 import dev.goldberry.media.audio.SdlAudioSink;
 import dev.goldberry.media.codec.DecoderProvider;
 import dev.goldberry.media.engine.Playback;
-import dev.goldberry.media.ffi.FfmpegLibraries;
-import dev.goldberry.media.ffi.Hardware;
 import dev.goldberry.media.io.MediaIOProvider;
 import dev.goldberry.media.io.Source;
 import dev.goldberry.media.picture.Picture;
@@ -107,13 +105,13 @@ public final class MediaPlayer implements AutoCloseable {
     ///
     /// Returns at once. The status goes [PlaybackState#OPENING], then
     /// [PlaybackState#BUFFERING], then [PlaybackState#PLAYING], or
-    /// [PlaybackState#ERROR] with the reason.
-    ///
-    /// @throws MediaException with [MediaError.NativesUnavailable] when FFmpeg is
-    ///                        not loaded. Every other failure arrives as a status
+    /// [PlaybackState#ERROR] with the reason. Every failure arrives as a status,
+    /// a missing `libgoldberry-media` too: a track only the built-in decoders
+    /// would play is then [MediaError.UnsupportedCodec], and a video track another
+    /// provider decodes is [MediaError.NativesUnavailable], since its pictures are
+    /// converted with libyuv.
     public void open(Source source) {
         Objects.requireNonNull(source, "source");
-        var ffmpeg = FfmpegLibraries.get();
         Playback previous;
         Playback next;
         synchronized (lock) {
@@ -125,15 +123,7 @@ public final class MediaPlayer implements AutoCloseable {
             newSink.setGain(gain());
             sink = newSink;
             next = new Playback(
-                    ffmpeg,
-                    source,
-                    ioProviders,
-                    decoderProviders,
-                    Hardware.of(hardwareDecoding),
-                    newSink,
-                    clock,
-                    highWaterMark.toNanos(),
-                    _ -> publish());
+                    source, ioProviders, decoderProviders, newSink, clock, highWaterMark.toNanos(), _ -> publish());
             next.setRate(rate);
             next.setAudioDelay(audioDelay.toNanos());
             next.setPictureForm(pictureForm);
@@ -356,16 +346,17 @@ public final class MediaPlayer implements AutoCloseable {
                 .orElse(Duration.ZERO);
     }
 
-    /// Whether the built-in decoder may decode video on the platform's video
-    /// engine: what [Builder#hardwareDecoding] set, or [#setHardwareDecoding].
+    /// Whether a provider may decode video on the platform's video engine: what
+    /// [Builder#hardwareDecoding] set, or [#setHardwareDecoding]. The built-in
+    /// decoders are software and do not read it.
     public HardwareDecoding hardwareDecoding() {
         return hardwareDecoding;
     }
 
-    /// Decodes video on the platform's video engine, or not, **from the next
-    /// source opened**: the decoder of the source playing now is
-    /// already chosen. To apply it at once, open the same source again and seek
-    /// to where it was.
+    /// Lets a provider decode video on the platform's video engine, or not,
+    /// **from the next source opened**: the decoder of the source playing now is
+    /// already chosen. The built-in decoders are software either way. To apply
+    /// it at once, open the same source again and seek to where it was.
     public void setHardwareDecoding(HardwareDecoding mode) {
         this.hardwareDecoding = Objects.requireNonNull(mode, "mode");
     }
@@ -652,11 +643,10 @@ public final class MediaPlayer implements AutoCloseable {
             return this;
         }
 
-        /// Whether the built-in decoder may decode video on the platform's video
-        /// engine. [HardwareDecoding#AUTO]
-        /// unless set: every failure on the device falls back to software without
-        /// the application seeing it. [HardwareDecoding#OFF] is for tests that
-        /// compare pictures byte for byte.
+        /// Whether a provider may decode video on the platform's video engine.
+        /// [HardwareDecoding#AUTO] unless set. The built-in decoders are software
+        /// and do not read it; [HardwareDecoding#OFF] is for a provider that does,
+        /// in a test that compares pictures byte for byte.
         public Builder hardwareDecoding(HardwareDecoding mode) {
             this.hardwareDecoding = Objects.requireNonNull(mode, "mode");
             return this;
