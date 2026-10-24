@@ -144,6 +144,22 @@ class NetworkPlaybackTest {
         return await(status -> status.state() == state);
     }
 
+    /// Waits for the listener to have been told of a status `condition` holds.
+    /// [#await] is not enough: `status()` shows a change before the listeners,
+    /// which run after it on the Engine's thread, have heard of it.
+    private void awaitPushed(Predicate<PlayerStatus> condition) {
+        awaitTrue(() -> {
+            synchronized (pushed) {
+                return pushed.stream().anyMatch(condition);
+            }
+        });
+    }
+
+    /// The same for the state sequence, which is recorded after `pushed`.
+    private void awaitHeard(PlaybackState state) {
+        awaitTrue(() -> states.contains(state));
+    }
+
     private static void awaitTrue(BooleanSupplier condition) {
         var deadline = System.nanoTime() + WAIT.toNanos();
         while (!condition.getAsBoolean()) {
@@ -246,6 +262,7 @@ class NetworkPlaybackTest {
         assertTrue(resumed.bufferedAhead().compareTo(Duration.ofSeconds(1)) >= 0, resumed.toString());
         assertFalse(sink.paused());
         playUntil(status -> status.state() == PlaybackState.ENDED);
+        awaitHeard(PlaybackState.ENDED);
         assertTrue(
                 saw(PlaybackState.PLAYING, PlaybackState.BUFFERING, PlaybackState.PLAYING, PlaybackState.ENDED),
                 states.toString());
@@ -321,7 +338,8 @@ class NetworkPlaybackTest {
         assertFalse(playing.seekable());
         assertTrue(playing.nowPlaying().orElseThrow().startsWith("Goldberry - "), playing.toString());
         assertEquals(List.of(), playing.bufferedRanges());
-        assertTrue(pushed.stream().anyMatch(status -> status.nowPlaying().isPresent()), "a title is pushed");
+        // A title is pushed, not only shown.
+        awaitPushed(status -> status.nowPlaying().isPresent());
 
         // A seek on a live stream does nothing, and the stream plays on.
         player.seek(Duration.ofSeconds(5));
@@ -371,7 +389,7 @@ class NetworkPlaybackTest {
         io.title = "After";
         // A new title is read after the next packet: play some to move it on.
         playUntil(status -> status.nowPlaying().equals(Optional.of("After")));
-        assertTrue(pushed.stream().anyMatch(status -> status.nowPlaying().equals(Optional.of("After"))));
+        awaitPushed(status -> status.nowPlaying().equals(Optional.of("After")));
     }
 
     @Test

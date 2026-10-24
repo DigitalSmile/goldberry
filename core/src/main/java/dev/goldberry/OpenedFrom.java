@@ -60,6 +60,15 @@ public final class OpenedFrom {
         return element == null || OPENER.isBound() ? open.get() : within(element, open);
     }
 
+    /// The same for an opening that answers nothing.
+    static void runUnlessNamed(@Nullable StyleElement element, Runnable open) {
+        if (element == null || OPENER.isBound()) {
+            open.run();
+        } else {
+            ScopedValue.where(OPENER, element).run(open);
+        }
+    }
+
     /// The opener named for the popup being opened now, if any.
     static Optional<StyleElement> current() {
         return OPENER.isBound() ? Optional.of(OPENER.get()) : Optional.empty();

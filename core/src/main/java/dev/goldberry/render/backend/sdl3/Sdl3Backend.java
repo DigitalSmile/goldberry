@@ -626,7 +626,7 @@ public final class Sdl3Backend implements Backend {
         return switch (Sdl.get().videoDriver()) {
             case "wayland", "windows", "cocoa" -> true;
             case "x11" -> video.isCompositing(parent.handle());
-            case null, default -> false;
+            default -> false;
         };
     }
 

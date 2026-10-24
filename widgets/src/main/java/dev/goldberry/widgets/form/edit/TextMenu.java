@@ -60,12 +60,6 @@ public final class TextMenu {
         return true;
     }
 
-    /// Whether this field's menu is on screen.
-    public boolean isOpen() {
-        var current = shown;
-        return current != null && current.isOpen();
-    }
-
     /// Closes the menu if it is open and stops listening. Idempotent.
     public void close() {
         stopWatching();

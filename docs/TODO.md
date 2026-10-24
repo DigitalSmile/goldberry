@@ -68,20 +68,6 @@ description had no effect.
   newest release is 3.4.18, and the build stays on a released SDL by choice.
   When 3.6.0 ships, this is one property on `SdlTray.open` and an `onActivate`
   on `TrayIcon`.
-- **Windows and macOS are unverified.** The Linux path ran for real — in
-  `SdlTrayTest` against this machine's session and in the showcase — and the other
-  two are SDL's code, compiled and never looked at. A tray is the one widget CI
-  cannot cover: there is no notification area on a runner and no golden image of a
-  GTK popup.
-
-  **Written, not yet run (2026-10-18).** The runners do have a desktop session.
-  `SdlTrayLiveTest` opens a real tray and clicks its rows with
-  `SDL_ClickTrayEntry`, which every platform implements in the shell's order,
-  and changes the menu while the icon is up. `windows.yml` requires a tray in
-  its build step, and `macos.yml` in its GPU lane, where
-  `SdlTrayFirstThreadTest` runs the same tests on the first thread Cocoa needs
-  (`goldberry.tray.required`, ADR-0641). This entry moves to *Answered* when a
-  push has run both green.
 ## `canvas`, and what a document cannot say
 
 Nothing open since 2026-10-18. A painter named from markup, the size a canvas
@@ -333,19 +319,6 @@ closed as decisions under [Answered](#answered).
   path out of the toolkit now disconnects cleanly. That closes our side and
   leaves this entry where it was: the crash is in Mutter's teardown of a client
   that disconnected properly.
-- **No CI leg exercises Wayland.** `showcase.yml` runs under
-  `xvfb-run`, which is X11, where the window manager decorates the window and libdecor
-  is never reached — which is why two consecutive decoration bugs shipped without a
-  single red tick. A Wayland leg needs a headless compositor in CI (`weston
-  --backend=headless` or `sway --headless`), which is a job nobody has written yet. —
-  [ADR-0084](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0084-the-gtk-plugin-cannot-decorate-a-jvms-window.md)
-
-  **Written, not yet run (2026-10-18).** `linux.yml`'s verify job starts
-  weston's headless backend and runs the showcase on the JVM for 120 frames
-  with `videoDriver=wayland` and no `DISPLAY`, gated on the launcher's
-  `painted 120 frame(s)` line (ADR-0633, parked in `docs/snapshot/adr`). No
-  machine here has a headless compositor, so the first CI run is the first run.
-  This entry moves to *Answered* when that run is green.
 - **Native decorations on Wayland need a launcher that embeds the VM.** The GTK plugin
   is the only thing that draws decorations matching the desktop, and its one requirement
   is `getpid() == gettid()`. The stock `java` launcher runs `main` on a thread it
@@ -538,6 +511,48 @@ way back is a consumer asking, not a date.
 
 Kept rather than deleted: each is a trap somebody hit, and the reasoning that got
 out of it is usually worth more than the fact that it is fixed.
+
+- ~~**Windows and macOS are unverified.**~~ The Linux path ran for real — in
+  `SdlTrayTest` against this machine's session and in the showcase — and the other
+  two are SDL's code, compiled and never looked at. A tray is the one widget CI
+  cannot cover: there is no notification area on a runner and no golden image of a
+  GTK popup.
+
+  **Written, not yet run (2026-10-18).** The runners do have a desktop session.
+  `SdlTrayLiveTest` opens a real tray and clicks its rows with
+  `SDL_ClickTrayEntry`, which every platform implements in the shell's order,
+  and changes the menu while the icon is up. `windows.yml` requires a tray in
+  its build step, and `macos.yml` in its GPU lane, where
+  `SdlTrayFirstThreadTest` runs the same tests on the first thread Cocoa needs
+  (`goldberry.tray.required`, ADR-0641). This entry moves to *Answered* when a
+  push has run both green.
+
+  **Closed (2026-10-19): both ran green** on Snapshot #70, the push of
+  `ba18aef1`. Windows ran `SdlTrayLiveTest` in its build step and macOS ran
+  `SdlTrayFirstThreadTest` in its GPU lane, both with `goldberry.tray.required`,
+  where a tray that does not open fails the test rather than skipping it. Every
+  test in both passed. The shell's own click is still not exercised:
+  `SDL_ClickTrayEntry` stands in for it on every platform.
+
+- ~~**No CI leg exercises Wayland.**~~ `showcase.yml` runs under
+  `xvfb-run`, which is X11, where the window manager decorates the window and libdecor
+  is never reached — which is why two consecutive decoration bugs shipped without a
+  single red tick. A Wayland leg needs a headless compositor in CI (`weston
+  --backend=headless` or `sway --headless`), which is a job nobody has written yet. —
+  [ADR-0084](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0084-the-gtk-plugin-cannot-decorate-a-jvms-window.md)
+
+  **Written, not yet run (2026-10-18).** `linux.yml`'s verify job starts
+  weston's headless backend and runs the showcase on the JVM for 120 frames
+  with `videoDriver=wayland` and no `DISPLAY`, gated on the launcher's
+  `painted 120 frame(s)` line (ADR-0633, parked in `docs/snapshot/adr`). No
+  machine here has a headless compositor, so the first CI run is the first run.
+  This entry moves to *Answered* when that run is green.
+
+  **Closed (2026-10-19): green on its first run**, Snapshot #70, the push of
+  `ba18aef1`. The showcase painted its 120 frames under weston's headless
+  backend in the linux-x64 verify job, which the step checks for in the
+  launcher's log. The leg runs on linux-x64 only; the aarch64 verify job skips
+  it with the example's tests.
 
 - ~~**A popup's transparent corners need a compositor**~~, and are unverified on
   Windows and macOS. Without one the flag is ignored and the corners are whatever
@@ -1220,7 +1235,7 @@ out of it is usually worth more than the fact that it is fixed.
   check is the calls the factories actually make. The first run found the
   samples the entry named, `row gap=8` among them, and they were corrected
   rather than allowed.
-- ~~**No bidi caret.**~~ 
+- ~~**No bidi caret.**~~
 
   **Closed — there is one** (2026-10-11, CSS-50 of
   `docs/css-plan.md`, ADR-0622 parked in `docs/snapshot/adr`). A paragraph is

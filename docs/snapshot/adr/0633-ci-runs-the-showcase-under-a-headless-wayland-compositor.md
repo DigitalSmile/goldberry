@@ -1,6 +1,6 @@
 # ADR-0633: CI runs the showcase under a headless Wayland compositor
 
-- **Status:** Accepted, not yet run
+- **Status:** Accepted
 - **Date:** 2026-10-18
 
 ## Context

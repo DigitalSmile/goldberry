@@ -48,11 +48,6 @@ public final class ShownMenu {
         popup.close();
     }
 
-    /// The popup it is in.
-    public Popup popup() {
-        return popup;
-    }
-
     @Override
     public String toString() {
         return "ShownMenu[" + (isOpen() ? "open" : "closed") + "]";

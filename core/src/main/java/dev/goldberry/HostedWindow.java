@@ -864,21 +864,18 @@ final class HostedWindow implements WindowHost {
                 }
                 var opener = node;
                 var handler = contextMenus;
-                OpenedFrom.unlessNamed(opener, () -> {
-                    handler.open(named, anchor);
-                    return null;
-                });
+                OpenedFrom.runUnlessNamed(opener, () -> handler.open(named, anchor));
                 return true;
             }
             // A widget with a menu of its own, after a name on the same widget:
             // what an application wrote wins over the stock answer. Focused first,
             // so the command acts where the caret then shows.
-            if (node.widget() instanceof ContextMenuOwner owner) {
+            if (node.widget() instanceof ContextMenuOwner menuOwner) {
                 if (router.focused() != node) {
                     router.focus(node, false);
                 }
                 var opener = node;
-                if (OpenedFrom.unlessNamed(opener, () -> owner.openContextMenu(anchor))) {
+                if (OpenedFrom.unlessNamed(opener, () -> menuOwner.openContextMenu(anchor))) {
                     return true;
                 }
             }
