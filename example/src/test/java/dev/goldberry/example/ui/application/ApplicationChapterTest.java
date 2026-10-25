@@ -89,7 +89,7 @@ class ApplicationChapterTest {
                             Button.class, session.byId("typed").orElseThrow().widget()));
 
             session.click("typed");
-            assertEquals(1, fixture.model().clicks(), "the typed button presses the application's action");
+            assertEquals(1, fixture.model().controls().clicks(), "the typed button presses the application's action");
 
             assertTrue(session.focus("strict-source"));
             session.key("Ctrl+A").type("button \"unclosed");
@@ -109,7 +109,7 @@ class ApplicationChapterTest {
             assertAll(
                     () -> assertEquals("2", says(session, "state-local")),
                     () -> assertEquals("1", says(session, "state-app")),
-                    () -> assertEquals(1, fixture.model().clicks()));
+                    () -> assertEquals(1, fixture.model().controls().clicks()));
         }
     }
 
@@ -133,7 +133,7 @@ class ApplicationChapterTest {
 
             session.click("marks-undo");
             fixture.refresh(session);
-            assertEquals(2, fixture.model().clicks());
+            assertEquals(2, fixture.model().controls().clicks());
         }
     }
 

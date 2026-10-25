@@ -1,5 +1,6 @@
-/// The Goldberry showcase: the application, what it knows, and the commands that
-/// belong to its window rather than to its model.
+/// The Goldberry showcase: the application, and the commands that belong to its
+/// window rather than to its model. What it knows is in `…example.model`, a
+/// package per part of the window.
 ///
 /// Not exported; the module is an application. Opened to `:core`, which reads
 /// `showcase.css` from it and binds the model's fields and actions reflectively at

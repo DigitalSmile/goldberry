@@ -28,8 +28,8 @@ public record ButtonsChapter(GalleryContext context) implements Widget.Stateless
     @Override
     public Widget build(BuildContext buildContext) {
         var document = context.documents().wall(FILE);
-        var model = context.model();
-        var actions = context.actions();
+        var model = context.model().controls();
+        var actions = context.actions().controls();
         return Wall.of(
                 "buttons",
                 "Buttons",

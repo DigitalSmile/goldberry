@@ -8,9 +8,9 @@ import dev.goldberry.bind.Action;
 /// Opening a popup, floating a HUD, showing a modal and raising a toast are facts
 /// about a window: every one of them needs a
 /// [dev.goldberry.Host], and a view model has none. So they
-/// are not `@Action`s on [ShowcaseModel] — they are here, in a record that holds
-/// four handlers and nothing else, and [Showcase] puts it in
-/// [Showcase#models()] beside the model.
+/// are not `@Action`s on any slice of [dev.goldberry.example.model.ShowcaseModel]
+/// — they are here, in a record that holds four handlers and nothing else, and
+/// [Showcase] puts it in [Showcase#models()] beside the slices.
 ///
 /// ## Why this exists when the menu bar does not need it
 ///

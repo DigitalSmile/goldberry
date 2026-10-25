@@ -83,14 +83,16 @@ public final class Gallery {
                     GRAPHICS,
                     "shapes",
                     Fit.FILLS,
-                    context -> new IconsScreen(context.model(), context.actions())),
+                    context -> new IconsScreen(
+                            context.model().sheets(), context.actions().sheets())),
             new GalleryTab(
                     "emoji",
                     "Emoji",
                     GRAPHICS,
                     "face-grinning",
                     Fit.FILLS,
-                    context -> new EmojiScreen(context.model(), context.actions())),
+                    context -> new EmojiScreen(
+                            context.model().sheets(), context.actions().sheets())),
             new GalleryTab("gpu", "GPU", GRAPHICS, "cpu", Fit.SCROLLED, GpuChapter::new),
             new GalleryTab("audio", "Audio", GRAPHICS, "music", Fit.SCROLLED, AudioChapter::new),
             new GalleryTab("video", "Video", GRAPHICS, "video", Fit.SCROLLED, VideoChapter::new),

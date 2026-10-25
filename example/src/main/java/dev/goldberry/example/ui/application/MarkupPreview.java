@@ -1,6 +1,7 @@
 package dev.goldberry.example.ui.application;
 
 import java.util.List;
+import java.util.stream.Stream;
 
 import dev.goldberry.example.ui.gallery.GalleryContext;
 import dev.goldberry.kdl.KdlInflater;
@@ -43,11 +44,14 @@ public record MarkupPreview(KdlInflater<Widget> inflater) {
     /// @param message what the toolkit said, shortened to [#MESSAGE_LIMIT]
     public record Refused(String message) implements Outcome {}
 
-    /// A preview whose documents resolve against the gallery's own model, its
-    /// actions, and the `plus` icon.
+    /// A preview whose documents resolve against the gallery's own model's
+    /// slices, their actions, and the `plus` icon.
     public static MarkupPreview of(GalleryContext context) {
-        return new MarkupPreview(
-                Widgets.inflater(Icons.strict().bind("plus", context.plus()), context.model(), context.actions()));
+        return new MarkupPreview(Widgets.inflater(
+                Icons.strict().bind("plus", context.plus()),
+                Stream.of(context.model().slices(), context.actions().slices())
+                        .flatMap(List::stream)
+                        .toArray()));
     }
 
     /// Parses and inflates `source`.

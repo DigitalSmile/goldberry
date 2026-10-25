@@ -7,10 +7,10 @@ import java.util.function.Predicate;
 import java.util.stream.Stream;
 
 import dev.goldberry.RendererRequirement;
-import dev.goldberry.bind.runtime.Models;
 import dev.goldberry.css.Theme;
-import dev.goldberry.example.ShowcaseModel;
 import dev.goldberry.example.ShowcaseScene;
+import dev.goldberry.example.ShowcaseWiring;
+import dev.goldberry.example.model.ShowcaseModel;
 import dev.goldberry.offscreen.Offscreen;
 import dev.goldberry.offscreen.Session;
 import dev.goldberry.text.font.Fonts;
@@ -55,7 +55,7 @@ public final class ChapterSession implements AutoCloseable {
 
     /// The value at `path` on the application's model.
     public Object value(String path) {
-        return Models.observable(model(), path).get();
+        return ShowcaseWiring.observable(model(), path).get();
     }
 
     /// The element with this id, or a failure that names it.

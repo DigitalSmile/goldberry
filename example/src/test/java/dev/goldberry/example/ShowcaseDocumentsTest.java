@@ -24,6 +24,8 @@ import org.junit.jupiter.api.Test;
 
 import dev.goldberry.RendererRequirement;
 import dev.goldberry.bind.runtime.Models;
+import dev.goldberry.example.model.ShowcaseActions;
+import dev.goldberry.example.model.ShowcaseModel;
 import dev.goldberry.example.ui.gallery.Documents;
 import dev.goldberry.icon.Icon;
 import dev.goldberry.kdl.KdlInflater;
@@ -51,16 +53,8 @@ class ShowcaseDocumentsTest {
 
     private final Showcase showcase = new Showcase();
 
-    private final ShowcaseModel model = modelOf(ShowcaseModel.class);
-    private final ShowcaseModel.Actions actions = modelOf(ShowcaseModel.Actions.class);
-
-    private <T> T modelOf(Class<T> type) {
-        return showcase.models().stream()
-                .filter(type::isInstance)
-                .map(type::cast)
-                .findFirst()
-                .orElseThrow(() -> new AssertionError("Showcase.models() has no " + type.getSimpleName()));
-    }
+    private final ShowcaseModel model = showcase.model();
+    private final ShowcaseActions actions = showcase.actions();
 
     /// The two icons the documents name, bound as the window binds them. A button
     /// with an icon and no label is only legal when the registry answers the name.
@@ -163,7 +157,7 @@ class ShowcaseDocumentsTest {
         var editor = editors.getFirst();
         assertNotNull(preview.binding(), "the preview follows a property or it is not live");
         assertSame(
-                Models.observable(model, "md.source"),
+                Models.observable(model.documents(), "md.source"),
                 preview.binding(),
                 "the preview should follow md.source, which is what the editor writes");
         assertSame(editor.binding(), preview.binding(), "one property, read twice");
@@ -213,7 +207,7 @@ class ShowcaseDocumentsTest {
         assertFalse(bound.isEmpty(), "nothing in the gallery's documents is bound");
         for (var path :
                 List.of("app.gain", "app.theme", "app.light", "app.status", "app.startup", "app.clicks", "app.prose")) {
-            var property = Models.observable(model, path);
+            var property = ShowcaseWiring.observable(model, path);
             assertTrue(bound.stream().anyMatch(w -> w.binding() == property), () -> "no control follows " + path);
         }
     }
@@ -229,7 +223,7 @@ class ShowcaseDocumentsTest {
     @DisplayName("the slider, the knob, the fader and the bar are on one property")
     void oneValueManyReaders() {
         var onGain = new ArrayList<String>();
-        collectOn(new ElementTree(wall("values.kdl")).root(), Models.observable(model, "app.gain"), onGain);
+        collectOn(new ElementTree(wall("values.kdl")).root(), Models.observable(model.controls(), "app.gain"), onGain);
 
         // Sorted, not in document order. What this asserts is *which four
         // controls* read one number; where they fall in the tree is the
@@ -246,11 +240,14 @@ class ShowcaseDocumentsTest {
     @Test
     @DisplayName("the light is picked four ways, on one property in two spellings")
     void theLightIsPickedFourWays() {
-        var theme = Models.observable(model, "app.theme");
+        var theme = Models.observable(model.appearance(), "app.theme");
         var byName = new ArrayList<Widget>();
         collectBoundTo(new ElementTree(wall("choices.kdl")).root(), theme, byName);
         var asFlag = new ArrayList<Widget>();
-        collectBoundTo(new ElementTree(wall("choices.kdl")).root(), Models.observable(model, "app.light"), asFlag);
+        collectBoundTo(
+                new ElementTree(wall("choices.kdl")).root(),
+                Models.observable(model.appearance(), "app.light"),
+                asFlag);
 
         var pickers = byName.stream().map(w -> w.getClass().getSimpleName()).toList();
         assertTrue(
@@ -373,11 +370,13 @@ class ShowcaseDocumentsTest {
     @Test
     @DisplayName("the generated registry exposes what the documents name")
     void registriesAreComplete() {
-        var bindings = Models.bindings(model);
-        var registry = Models.actions(actions);
+        var wiring = ShowcaseWiring.of(model, actions);
+        var bindings = wiring.bindings();
+        var registry = wiring.actions();
 
-        assertSame(Models.observable(model, "app.gain"), bindings.resolve("app.gain"));
-        assertSame(Models.observable(model, "app.startup"), bindings.resolve("app.startup"));
+        // Merged across the slices, and still the slices' own properties.
+        assertSame(Models.observable(model.controls(), "app.gain"), bindings.resolve("app.gain"));
+        assertSame(Models.observable(model.shell(), "app.startup"), bindings.resolve("app.startup"));
         assertNotNull(registry.resolve("app.toggle-theme"));
         assertNotNull(registry.resolveValued("app.set-gain"));
         assertNotNull(registry.resolve("app.submit-signup"));
@@ -386,16 +385,16 @@ class ShowcaseDocumentsTest {
     @Test
     @DisplayName("the registry reaches the model's private members")
     void privateMembersAreReachable() {
-        var bindings = Models.bindings(model);
-        var registry = Models.actions(actions);
+        var bindings = Models.bindings(model.appearance());
+        var registry = Models.actions(actions.appearance());
 
         // The field is private and the value is reached by path, which is the only
         // route markup has: a value is named one way.
-        assertSame(Models.observable(model, "app.theme"), bindings.resolve("app.theme"));
+        assertSame(Models.observable(model.appearance(), "app.theme"), bindings.resolve("app.theme"));
 
         // Called through the woven call site, with the value parsed on the way in.
         registry.resolveValued("app.pick-theme").accept("light");
-        assertEquals("light", Models.observable(model, "app.theme").get());
+        assertEquals("light", Models.observable(model.appearance(), "app.theme").get());
     }
 
     /// The two spellings of the light, which is the one place in the model where
@@ -407,15 +406,15 @@ class ShowcaseDocumentsTest {
     @Test
     @DisplayName("every route to the theme moves both spellings of it")
     void theTwoSpellingsAgree() {
-        var name = Models.observable(model, "app.theme");
-        var flag = Models.observable(model, "app.light");
+        var name = Models.observable(model.appearance(), "app.theme");
+        var flag = Models.observable(model.appearance(), "app.light");
 
         List<Runnable> routes = List.of(
-                actions::toggleTheme,
-                () -> actions.pickTheme("light"),
-                () -> actions.pickTheme("dark"),
-                () -> actions.setLight(true),
-                () -> actions.setLight(false));
+                actions.appearance()::toggleTheme,
+                () -> actions.appearance().pickTheme("light"),
+                () -> actions.appearance().pickTheme("dark"),
+                () -> actions.appearance().setLight(true),
+                () -> actions.appearance().setLight(false));
 
         Function<Object, Boolean> asFlag = value -> "light".equals(value);
         for (var route : routes) {
@@ -430,9 +429,13 @@ class ShowcaseDocumentsTest {
     @Test
     @DisplayName("a generated valued action parses the value it is handed")
     void generatedValuedActionParses() {
-        Models.actions(actions).resolveValued("app.set-gain").accept("62.5");
+        Models.actions(actions.controls()).resolveValued("app.set-gain").accept("62.5");
 
         assertEquals(
-                62.5, Models.observable(model, "app.gain", Number.class).get().doubleValue(), 1e-9);
+                62.5,
+                Models.observable(model.controls(), "app.gain", Number.class)
+                        .get()
+                        .doubleValue(),
+                1e-9);
     }
 }

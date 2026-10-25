@@ -69,7 +69,7 @@ class ShellGoldenTest {
     @Test
     @DisplayName("the sidebar folded to a rail of icons")
     void rail() {
-        scene.actions().toggleSidebar();
+        scene.actions().shell().toggleSidebar();
         var root = scene.root("buttons");
         var sheets = scene.stylesheets(Theme.NORD_LIGHT);
         GoldenImage.assertMatches(

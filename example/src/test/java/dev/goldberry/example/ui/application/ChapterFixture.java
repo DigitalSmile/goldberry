@@ -8,9 +8,10 @@ import java.util.stream.Stream;
 import dev.goldberry.bind.runtime.Models;
 import dev.goldberry.css.Theme;
 import dev.goldberry.example.Showcase;
-import dev.goldberry.example.ShowcaseModel;
 import dev.goldberry.example.ShowcaseScene;
 import dev.goldberry.example.docs.CardShape;
+import dev.goldberry.example.model.ShowcaseActions;
+import dev.goldberry.example.model.ShowcaseModel;
 import dev.goldberry.example.ui.gallery.Documents;
 import dev.goldberry.example.ui.gallery.GalleryContext;
 import dev.goldberry.icon.Icon;
@@ -33,18 +34,10 @@ public final class ChapterFixture implements AutoCloseable {
 
     private final ShowcaseScene scene = new ShowcaseScene();
     private final Showcase showcase = new Showcase();
-    private final ShowcaseModel model = only(ShowcaseModel.class);
-    private final ShowcaseModel.Actions actions = only(ShowcaseModel.Actions.class);
+    private final ShowcaseModel model = showcase.model();
+    private final ShowcaseActions actions = showcase.actions();
     private final Icon plus = Icon.bundled("plus", 16);
     private final Fonts fonts = Fonts.bundled();
-
-    private <T> T only(Class<T> type) {
-        return showcase.models().stream()
-                .filter(type::isInstance)
-                .map(type::cast)
-                .findFirst()
-                .orElseThrow();
-    }
 
     /// The model the context reads.
     public ShowcaseModel model() {
@@ -73,7 +66,7 @@ public final class ChapterFixture implements AutoCloseable {
     /// What the window does at the top of every frame: notices a change to the
     /// model made outside a document's action, and lets `session` draw it.
     public void refresh(Session session) {
-        Models.refresh(model);
+        model.slices().forEach(Models::refresh);
         session.advance(Duration.ofMillis(20));
     }
 

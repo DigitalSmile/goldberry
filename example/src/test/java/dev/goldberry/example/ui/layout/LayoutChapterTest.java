@@ -94,12 +94,12 @@ class LayoutChapterTest {
     @DisplayName("switches the window's density from the density card")
     void switchesTheDensity() {
         try (var session = session()) {
-            assertEquals(Density.REGULAR, scene.model().density());
+            assertEquals(Density.REGULAR, scene.model().appearance().density());
 
             assertTrue(session.focus("layout-switch-density"), "the density button takes no focus");
             session.key(Key.SPACE);
 
-            assertEquals(Density.COMPACT, scene.model().density());
+            assertEquals(Density.COMPACT, scene.model().appearance().density());
         }
     }
 }

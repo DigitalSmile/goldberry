@@ -3,7 +3,8 @@ package dev.goldberry.example.ui.gallery;
 import java.util.Set;
 
 import dev.goldberry.Goldberry;
-import dev.goldberry.example.ShowcaseModel;
+import dev.goldberry.example.model.ShowcaseActions;
+import dev.goldberry.example.model.ShowcaseModel;
 import dev.goldberry.icon.Icon;
 import dev.goldberry.platform.Capability;
 
@@ -27,7 +28,7 @@ import dev.goldberry.platform.Capability;
 ///                     golden may photograph
 public record GalleryContext(
         ShowcaseModel model,
-        ShowcaseModel.Actions actions,
+        ShowcaseActions actions,
         Documents documents,
         Icon plus,
         Runnable startTour,
@@ -39,7 +40,7 @@ public record GalleryContext(
 
     /// A context that reports what the loaded library answers.
     public GalleryContext(
-            ShowcaseModel model, ShowcaseModel.Actions actions, Documents documents, Icon plus, Runnable startTour) {
+            ShowcaseModel model, ShowcaseActions actions, Documents documents, Icon plus, Runnable startTour) {
         this(model, actions, documents, plus, startTour, Goldberry.capabilities());
     }
 }

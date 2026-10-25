@@ -27,8 +27,8 @@ public record StylingChapter(GalleryContext context) implements Widget.Stateless
 
     @Override
     public Widget build(BuildContext buildContext) {
-        var model = context.model();
-        var actions = context.actions();
+        var model = context.model().appearance();
+        var actions = context.actions().appearance();
         return Wall.of(
                 "styling",
                 "Styling",

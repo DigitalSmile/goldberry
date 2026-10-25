@@ -51,9 +51,15 @@ public record TwoCounters(GalleryContext context) implements Widget.Stateful {
                                     Attributes.NONE.classes("toolbar")),
                             new Row(
                                     List.of(
-                                            new Button("March a league", app.actions()::click).id("state-app-add"),
+                                            new Button(
+                                                            "March a league",
+                                                            app.actions().controls()::click)
+                                                    .id("state-app-add"),
                                             new Text("The application:", Attributes.NONE.classes("caption")),
-                                            Badge.of("0", Models.observable(app.model(), "app.clicks"))
+                                            Badge.of(
+                                                            "0",
+                                                            Models.observable(
+                                                                    app.model().controls(), "app.clicks"))
                                                     .id("state-app")),
                                     Attributes.NONE.classes("toolbar")),
                             new Text(

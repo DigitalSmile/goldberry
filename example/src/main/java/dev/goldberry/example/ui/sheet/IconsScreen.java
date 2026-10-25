@@ -13,8 +13,8 @@ import dev.goldberry.Overlay;
 import dev.goldberry.assets.BundledAssets;
 import dev.goldberry.bind.Subscription;
 import dev.goldberry.bind.runtime.Models;
-import dev.goldberry.example.ShowcaseModel;
 import dev.goldberry.example.docs.DocLink;
+import dev.goldberry.example.model.sheets.SheetsModel;
 import dev.goldberry.example.ui.Screen;
 import dev.goldberry.example.ui.gallery.ScreenHeader;
 import dev.goldberry.icon.Icon;
@@ -105,7 +105,7 @@ import dev.goldberry.widgets.text.Text;
 ///
 /// @param model   where the query lives, so a `text-input` can bind to it
 /// @param actions what the field reports to
-public record IconsScreen(ShowcaseModel model, ShowcaseModel.Actions actions) implements Widget.Stateful {
+public record IconsScreen(SheetsModel model, SheetsModel.Actions actions) implements Widget.Stateful {
 
     /// One tile's width, in logical pixels — the number the column count is
     /// divided out of, and the one `showcase.css` has to agree with.

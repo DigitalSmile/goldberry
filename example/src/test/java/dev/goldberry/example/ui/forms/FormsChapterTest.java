@@ -103,7 +103,9 @@ class FormsChapterTest {
             assertTrue(session.focus("model-first"));
             session.type("Samwise");
 
-            assertEquals("Samwise", Models.observable(scene.model(), "app.name").get());
+            assertEquals(
+                    "Samwise",
+                    Models.observable(scene.model().forms(), "app.name").get());
             assertEquals("Samwise", text(session, "name-echo"));
             assertEquals("Samwise", input(session, "model-second").resolved());
         });

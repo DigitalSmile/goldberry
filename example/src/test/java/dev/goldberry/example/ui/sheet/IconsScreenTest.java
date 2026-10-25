@@ -19,7 +19,6 @@ import dev.goldberry.assets.BundledAssets;
 import dev.goldberry.css.Stylesheet;
 import dev.goldberry.css.Theme;
 import dev.goldberry.example.Showcase;
-import dev.goldberry.example.ShowcaseModel;
 import dev.goldberry.example.ShowcaseStyles;
 import dev.goldberry.example.docs.DocLink;
 import dev.goldberry.example.ui.gallery.ScreenHeader;
@@ -101,9 +100,10 @@ class IconsScreenTest {
             renderer = new WidgetRenderer(sheets, fonts);
 
             var showcase = new Showcase();
-            var model = modelOf(showcase, ShowcaseModel.class);
-            var actions = modelOf(showcase, ShowcaseModel.Actions.class);
-            tree = new ElementTree(new IconsScreen(model, actions), host.host());
+            tree = new ElementTree(
+                    new IconsScreen(
+                            showcase.model().sheets(), showcase.actions().sheets()),
+                    host.host());
             render = RenderTree.create();
             router.focusRoot(tree.root());
             router.windowBounds(LogicalRect.of(0, 0, width, height));
@@ -223,14 +223,6 @@ class IconsScreenTest {
                     Modifiers.NONE);
             settle();
         }
-    }
-
-    private static <T> T modelOf(Showcase showcase, Class<T> type) {
-        return showcase.models().stream()
-                .filter(type::isInstance)
-                .map(type::cast)
-                .findFirst()
-                .orElseThrow();
     }
 
     private static Element find(Element from, String id) {

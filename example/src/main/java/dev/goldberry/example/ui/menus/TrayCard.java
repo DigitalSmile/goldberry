@@ -3,8 +3,8 @@ package dev.goldberry.example.ui.menus;
 import java.util.List;
 
 import dev.goldberry.bind.runtime.Models;
-import dev.goldberry.example.ShowcaseModel;
 import dev.goldberry.example.docs.DocLink;
+import dev.goldberry.example.model.appearance.AppearanceModel;
 import dev.goldberry.example.ui.gallery.ShowcaseCard;
 import dev.goldberry.widget.BuildContext;
 import dev.goldberry.widget.Widget;
@@ -23,7 +23,7 @@ import dev.goldberry.widgets.text.Text;
 ///
 /// @param model   what the two commands change
 /// @param actions the commands the tray's first two rows run
-record TrayCard(ShowcaseModel model, ShowcaseModel.Actions actions) implements Widget.Stateless {
+record TrayCard(AppearanceModel model, AppearanceModel.Actions actions) implements Widget.Stateless {
 
     private static final ShowcaseCard CARD = new ShowcaseCard(
             "menus-tray",

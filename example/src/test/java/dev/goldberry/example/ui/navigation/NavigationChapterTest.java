@@ -80,10 +80,10 @@ class NavigationChapterTest {
     @DisplayName("Go deeper lengthens the model's path, and the trail draws it")
     void deeper() {
         try (var session = session(scene.root("navigation"))) {
-            var before = scene.model().path().size();
+            var before = scene.model().navigation().path().size();
             session.click("go-deeper");
 
-            assertEquals(before + 1, scene.model().path().size());
+            assertEquals(before + 1, scene.model().navigation().path().size());
             assertTrue(session.byId("crumb-" + before).isPresent(), "the trail did not draw the step the model added");
         }
     }

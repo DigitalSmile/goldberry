@@ -15,6 +15,8 @@ import dev.goldberry.bind.Property;
 import dev.goldberry.bind.registry.ActionRegistry;
 import dev.goldberry.bind.registry.BindingRegistry;
 import dev.goldberry.bind.runtime.Models;
+import dev.goldberry.example.model.ShowcaseActions;
+import dev.goldberry.example.model.ShowcaseModel;
 
 /// What the binding schema costs, before and after a raw field was woven into
 /// a binding.
@@ -440,9 +442,10 @@ class BindingBenchmark {
     }
 
     /// The values and the actions are two objects since the actions became a
-    /// nested record (`ShowcaseModel.Actions`), so the click is resolved on the
-    /// record and the count is read off the model — the same pair `Showcase`
-    /// publishes. `ShowcaseActionsTest.theRoadsClickCounts` resolves these two
+    /// nested record, and the road is one slice of the model since the model was
+    /// split (`ControlsModel` and its `Actions`), so the click is resolved on the
+    /// slice's record and the count is read off the slice — the same pair
+    /// `Showcase` publishes. `ShowcaseActionsTest.theRoadsClickCounts` resolves these two
     /// names under `check`, because this class does not run there and the last
     /// rename went a week unseen: a benchmark's names are resolved under `check`.
     @Test
@@ -451,15 +454,15 @@ class BindingBenchmark {
         var model = new ShowcaseModel();
         // Held for the whole loop: a registry is a weak window onto its model
         // (RuntimeBinding), and a record built inline was collected mid-run.
-        var actions = new ShowcaseModel.Actions(model);
-        var click = Models.actions(actions).resolve("app.click");
-        Models.bindings(model).resolve("app.clicks").subscribe(_ -> {});
+        var actions = new ShowcaseActions(model);
+        var click = Models.actions(actions.controls()).resolve("app.click");
+        Models.bindings(model.controls()).resolve("app.clicks").subscribe(_ -> {});
 
         report("ShowcaseModel click, 1 listener", () -> {
             for (var i = 0; i < WRITES; i++) {
                 click.run();
             }
-            return (Integer) Models.observable(model, "app.clicks").get();
+            return (Integer) Models.observable(model.controls(), "app.clicks").get();
         });
         Reference.reachabilityFence(actions);
     }

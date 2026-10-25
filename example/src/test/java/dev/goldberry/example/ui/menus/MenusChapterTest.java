@@ -15,7 +15,6 @@ import org.junit.jupiter.api.Test;
 import dev.goldberry.RendererRequirement;
 import dev.goldberry.css.Theme;
 import dev.goldberry.example.Showcase;
-import dev.goldberry.example.ShowcaseModel;
 import dev.goldberry.example.ShowcaseScene;
 import dev.goldberry.offscreen.Offscreen;
 import dev.goldberry.offscreen.Session;
@@ -111,18 +110,9 @@ class MenusChapterTest {
     @Test
     @DisplayName("the tray card's buttons run the tray's own first two commands")
     void trayCommands() {
-        var models = new Showcase().models();
-        var model = models.stream()
-                .filter(ShowcaseModel.class::isInstance)
-                .map(ShowcaseModel.class::cast)
-                .findFirst()
-                .orElseThrow();
-        var actions = models.stream()
-                .filter(ShowcaseModel.Actions.class::isInstance)
-                .map(ShowcaseModel.Actions.class::cast)
-                .findFirst()
-                .orElseThrow();
-        try (var session = session(new TrayCard(model, actions))) {
+        var showcase = new Showcase();
+        var model = showcase.model().appearance();
+        try (var session = session(new TrayCard(model, showcase.actions().appearance()))) {
             var theme = model.theme();
             var density = model.density();
 

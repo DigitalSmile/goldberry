@@ -23,7 +23,7 @@ All five phases are done, and the second round below; committed to master on 202
 | 1 | Wider walls, prose at body size, a line-length cap | **done** | `Wall.COLUMN_WIDTH` 440, `Wall.wide`, `showcase.css` |
 | 2 | Sections, icons, the sidebar and its rail mode | **done** | `ui/gallery/Section`, `GalleryTab`, `ui/shell/Sidebar` |
 | 2 | Home screen | **done** | `ui/home/HomeScreen` |
-| 2 | History, next and previous screen | **done** | `ui/shell/NavHistory`, `ui/shell/PageHead`, `ShowcaseModel.Actions` |
+| 2 | History, next and previous screen | **done** | `ui/shell/NavHistory`, `ui/shell/PageHead`, `model/shell/ShellModel.Actions` (was `ShowcaseModel.Actions` before ADR-0665) |
 | 3 | Search index, built by a test and shipped as a resource | **done** | `ui/search/SearchIndex`, `search/index.tsv`, `SearchIndexTest` |
 | 3 | Matcher and ranking | **done** | `ui/search/FuzzyMatcher`, `SearchRanking` |
 | 3 | The palette, `Ctrl+K`, and the jump to a card | **done** | `ui/search/CommandPalette`, `SearchPalette`, `ui/shell/CardSpotlight` |

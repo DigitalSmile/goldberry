@@ -2,6 +2,7 @@ package dev.goldberry.example;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -182,12 +183,7 @@ class ShowcaseShellTest {
     }
 
     private AppMenu menu(Presses presses) {
-        var model = showcase.models().stream()
-                .filter(ShowcaseModel.Actions.class::isInstance)
-                .map(ShowcaseModel.Actions.class::cast)
-                .findFirst()
-                .orElseThrow();
-        return new AppMenu(model, presses.handlers(), null);
+        return new AppMenu(showcase.actions(), presses.handlers(), null);
     }
 
     private static List<Item> itemsOf(MenuBar bar) {
@@ -351,16 +347,8 @@ class ShowcaseShellTest {
     @DisplayName("the window is a top bar, a body of sidebar and content, and a footer")
     void theWindowIsThreeBands() {
         dev.goldberry.RendererRequirement.enforce();
-        var model = showcase.models().stream()
-                .filter(ShowcaseModel.class::isInstance)
-                .map(ShowcaseModel.class::cast)
-                .findFirst()
-                .orElseThrow();
-        var actions = showcase.models().stream()
-                .filter(ShowcaseModel.Actions.class::isInstance)
-                .map(ShowcaseModel.Actions.class::cast)
-                .findFirst()
-                .orElseThrow();
+        var model = showcase.model();
+        var actions = showcase.actions();
 
         try (var plus = dev.goldberry.icon.Icon.bundled("plus", 16)) {
             var inflater = dev.goldberry.widgets.Widgets.inflater(
@@ -423,18 +411,20 @@ class ShowcaseShellTest {
     @Test
     @DisplayName("the model and its actions are the same pair the documents see")
     void theModelsAreOneObject() {
-        var model = showcase.models().stream()
-                .filter(ShowcaseModel.class::isInstance)
-                .map(ShowcaseModel.class::cast)
-                .findFirst()
-                .orElseThrow();
-        var actions = showcase.models().stream()
-                .filter(ShowcaseModel.Actions.class::isInstance)
-                .map(ShowcaseModel.Actions.class::cast)
-                .findFirst()
-                .orElseThrow();
+        var model = showcase.model();
+        var actions = showcase.actions();
 
-        assertSame(model, actions.values(), "the actions write to a different model from the one the documents read");
+        assertTrue(actions.write(model), "the actions write to a different model from the one the documents read");
+        // And the documents see exactly those slices: every one of them, in
+        // order, and then the window's own commands.
+        var published = showcase.models();
+        var slices = new ArrayList<Object>(model.slices());
+        slices.addAll(actions.slices());
+        assertEquals(slices.size() + 1, published.size(), "the window publishes something besides its slices");
+        for (var i = 0; i < slices.size(); i++) {
+            assertSame(slices.get(i), published.get(i), "the documents read a different slice from the one Java reads");
+        }
+        assertInstanceOf(WindowActions.class, published.getLast());
     }
 
     // --- finding a row -------------------------------------------------------

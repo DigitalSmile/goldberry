@@ -7,8 +7,8 @@ import org.jspecify.annotations.Nullable;
 
 import dev.goldberry.bind.Subscription;
 import dev.goldberry.bind.runtime.Models;
-import dev.goldberry.example.ShowcaseModel;
 import dev.goldberry.example.docs.DocLink;
+import dev.goldberry.example.model.navigation.NavigationModel;
 import dev.goldberry.example.ui.gallery.ShowcaseCard;
 import dev.goldberry.widget.BuildContext;
 import dev.goldberry.widget.State;
@@ -36,7 +36,7 @@ import dev.goldberry.widgets.text.Text;
 ///
 /// @param model   what the strip reads
 /// @param actions what the strip asks of
-public record TabsCard(ShowcaseModel model, ShowcaseModel.Actions actions) implements Widget.Stateful {
+public record TabsCard(NavigationModel model, NavigationModel.Actions actions) implements Widget.Stateful {
 
     /// The card's id.
     static final String ID = "chapters-card";

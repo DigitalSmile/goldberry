@@ -171,20 +171,20 @@ class StylingChapterTest {
     @DisplayName("the theme, density and scroll-bar buttons ask the application, as Ctrl+T does")
     void themeButtons() {
         try (var session = open("styling")) {
-            var theme = scene.model().theme();
+            var theme = scene.model().appearance().theme();
             session.click("theme-switch");
-            assertNotEquals(theme, scene.model().theme(), "the light did not switch");
+            assertNotEquals(theme, scene.model().appearance().theme(), "the light did not switch");
 
-            var density = scene.model().density();
+            var density = scene.model().appearance().density();
             session.click("density-switch");
-            assertNotEquals(density, scene.model().density());
+            assertNotEquals(density, scene.model().appearance().density());
 
-            var bars = scene.model().scrollbars();
+            var bars = scene.model().appearance().scrollbars();
             session.click("scrollbars-switch");
-            assertNotEquals(bars, scene.model().scrollbars());
+            assertNotEquals(bars, scene.model().appearance().scrollbars());
 
             session.click("restyle-theme");
-            assertEquals(theme, scene.model().theme(), "the restyle card switches the same light back");
+            assertEquals(theme, scene.model().appearance().theme(), "the restyle card switches the same light back");
             assertTrue(text(session, "theme-now").startsWith("Nord"), text(session, "theme-now"));
         }
     }
@@ -192,7 +192,7 @@ class StylingChapterTest {
     @Test
     @DisplayName("the desktop card asks the capabilities it was given whether it can ask")
     void desktopCardReadsTheContext() {
-        var cannot = new ThemeCards.Desktop(scene.actions(), Set.of());
+        var cannot = new ThemeCards.Desktop(scene.actions().appearance(), Set.of());
         try (var session = Offscreen.of(480, 400)
                 .stylesheets(scene.stylesheets(Theme.NORD_DARK))
                 .fonts(fonts)
@@ -211,9 +211,9 @@ class StylingChapterTest {
     @DisplayName("the density card switches the density, and its controls keep their own values")
     void densityCard() {
         try (var session = open("design")) {
-            assertEquals(Density.REGULAR, scene.model().density());
+            assertEquals(Density.REGULAR, scene.model().appearance().density());
             session.click("design-density-switch");
-            assertEquals(Density.COMPACT, scene.model().density());
+            assertEquals(Density.COMPACT, scene.model().appearance().density());
         }
     }
 

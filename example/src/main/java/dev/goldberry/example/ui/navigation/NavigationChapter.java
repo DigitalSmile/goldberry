@@ -31,6 +31,10 @@ public record NavigationChapter(GalleryContext context) implements Widget.Statel
                 "Navigation",
                 SUMMARY,
                 CHAPTER,
-                List.of(new TrailCard(context.model(), context.actions()), new StepsCard(), new WizardCard()));
+                List.of(
+                        new TrailCard(
+                                context.model().navigation(), context.actions().navigation()),
+                        new StepsCard(),
+                        new WizardCard()));
     }
 }

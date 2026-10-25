@@ -12,8 +12,8 @@ import dev.goldberry.assets.BundledAssets;
 import dev.goldberry.assets.BundledFont;
 import dev.goldberry.bind.Subscription;
 import dev.goldberry.bind.runtime.Models;
-import dev.goldberry.example.ShowcaseModel;
 import dev.goldberry.example.docs.DocLink;
+import dev.goldberry.example.model.sheets.SheetsModel;
 import dev.goldberry.example.ui.gallery.ScreenHeader;
 import dev.goldberry.text.font.FaceCoverage;
 import dev.goldberry.widget.BuildContext;
@@ -95,7 +95,7 @@ import dev.goldberry.widgets.text.Text;
 ///
 /// @param model   where the query lives, so a `text-input` can bind to it
 /// @param actions what the field reports to
-public record EmojiScreen(ShowcaseModel model, ShowcaseModel.Actions actions) implements Widget.Stateful {
+public record EmojiScreen(SheetsModel model, SheetsModel.Actions actions) implements Widget.Stateful {
 
     /// The size the glyphs are drawn at, in logical pixels.
     ///

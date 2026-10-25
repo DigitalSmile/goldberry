@@ -41,7 +41,10 @@ public record ScrollingChapter(GalleryContext context) implements Widget.Statele
                                         + " the keyboard, its bars or Java. An affix pins a child to its edge.",
                                 CHAPTER),
                         new Masonry(
-                                List.of(new ScrollingCard(), new ViewportCard(context.actions()), new ConsoleCard()),
+                                List.of(
+                                        new ScrollingCard(),
+                                        new ViewportCard(context.actions().appearance()),
+                                        new ConsoleCard()),
                                 Masonry.UNSET,
                                 COLUMN_WIDTH,
                                 Attributes.NONE.id("scrolling-wall").classes("wall"))),

@@ -92,7 +92,8 @@ class ButtonsChapterTest {
 
         assertTrue(chapter.session().byId("tag-java").isEmpty(), "the java chip is gone");
         assertEquals(
-                List.of("kdl", "blend2d", "harfbuzz", "yoga"), chapter.model().tags());
+                List.of("kdl", "blend2d", "harfbuzz", "yoga"),
+                chapter.model().controls().tags());
 
         chapter.session().click("reset-tags");
 

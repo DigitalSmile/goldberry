@@ -2,8 +2,8 @@ package dev.goldberry.example.ui.controls;
 
 import dev.goldberry.bind.Subscription;
 import dev.goldberry.bind.runtime.Models;
-import dev.goldberry.example.ShowcaseModel;
 import dev.goldberry.example.docs.DocLink;
+import dev.goldberry.example.model.controls.ControlsModel;
 import dev.goldberry.example.ui.gallery.ShowcaseCard;
 import dev.goldberry.icon.Icon;
 import dev.goldberry.widget.BuildContext;
@@ -25,7 +25,7 @@ import dev.goldberry.widgets.text.Text;
 /// @param model   where the count is kept
 /// @param actions what the buttons ask for
 /// @param plus    the icon on March a league and on the bare `+`
-public record RoadCard(ShowcaseModel model, ShowcaseModel.Actions actions, Icon plus) implements Widget.Stateful {
+public record RoadCard(ControlsModel model, ControlsModel.Actions actions, Icon plus) implements Widget.Stateful {
 
     @Override
     public State<?> createState() {

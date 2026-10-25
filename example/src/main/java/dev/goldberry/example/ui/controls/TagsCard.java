@@ -4,8 +4,8 @@ import java.util.ArrayList;
 
 import dev.goldberry.bind.Subscription;
 import dev.goldberry.bind.runtime.Models;
-import dev.goldberry.example.ShowcaseModel;
 import dev.goldberry.example.docs.DocLink;
+import dev.goldberry.example.model.controls.ControlsModel;
 import dev.goldberry.example.ui.gallery.ShowcaseCard;
 import dev.goldberry.icon.Icon;
 import dev.goldberry.widget.BuildContext;
@@ -28,7 +28,7 @@ import dev.goldberry.widgets.text.Text;
 ///
 /// @param model   where the tags are kept
 /// @param actions what a × and Put them back ask for
-public record TagsCard(ShowcaseModel model, ShowcaseModel.Actions actions) implements Widget.Stateful {
+public record TagsCard(ControlsModel model, ControlsModel.Actions actions) implements Widget.Stateful {
 
     /// The leading icon on every tag. An icon is an immutable value, so one is
     /// built for the class and shared by every chip.

@@ -105,3 +105,4 @@ Appended to the index when the records move in, in this order.
 - [ADR-0661 A user-installed ffmpeg is the last rung for the patent-pool codecs](0661-a-user-installed-ffmpeg-is-the-last-rung-for-the-patent-pool-codecs.md)
 - [ADR-0662 A picture's planes are copied once, into the GPU's upload memory](0662-a-pictures-planes-are-copied-once-into-the-gpus-upload-memory.md)
 - [ADR-0663 Vulkan Video decodes on the GPU, with the headers read in Java](0663-vulkan-video-decodes-on-the-gpu-with-the-headers-read-in-java.md)
+- [ADR-0665 The showcase's model is a slice per part of the window](0665-the-showcases-model-is-a-slice-per-part-of-the-window.md)

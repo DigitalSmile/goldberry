@@ -41,7 +41,11 @@ public record PanelsChapter(GalleryContext context) implements Widget.Stateless 
                         + "placeholders, a labelled number, tabs and a timeline.",
                 CHAPTER,
                 context.documents().wall(DOCUMENT),
-                List.of(trend(), new TabsCard(context.model(), context.actions()), new TimelineCard()));
+                List.of(
+                        trend(),
+                        new TabsCard(
+                                context.model().navigation(), context.actions().navigation()),
+                        new TimelineCard()));
     }
 
     /// A statistic with a sparkline under its number.

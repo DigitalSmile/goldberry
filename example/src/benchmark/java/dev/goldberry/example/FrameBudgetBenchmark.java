@@ -20,6 +20,8 @@ import dev.goldberry.assets.BundledFont;
 import dev.goldberry.css.Stylesheet;
 import dev.goldberry.css.Theme;
 import dev.goldberry.css.cascade.CascadeLayer;
+import dev.goldberry.example.model.ShowcaseActions;
+import dev.goldberry.example.model.ShowcaseModel;
 import dev.goldberry.example.ui.AppMenu;
 import dev.goldberry.example.ui.Screen;
 import dev.goldberry.icon.Icon;
@@ -213,7 +215,7 @@ class FrameBudgetBenchmark {
 
     private Showcase showcase;
     private ShowcaseModel model;
-    private ShowcaseModel.Actions actions;
+    private ShowcaseActions actions;
     private Icon palette;
     private Icon plus;
     private Font font;
@@ -222,8 +224,8 @@ class FrameBudgetBenchmark {
     void setUp() {
         RendererRequirement.enforce();
         showcase = new Showcase();
-        model = modelOf(ShowcaseModel.class);
-        actions = modelOf(ShowcaseModel.Actions.class);
+        model = showcase.model();
+        actions = showcase.actions();
         palette = Icon.bundled("palette", 16);
         plus = Icon.bundled("plus", 16);
         font = Font.bundled(BundledFont.UI, 13);
@@ -242,14 +244,6 @@ class FrameBudgetBenchmark {
         }
     }
 
-    private <T> T modelOf(Class<T> type) {
-        return showcase.models().stream()
-                .filter(type::isInstance)
-                .map(type::cast)
-                .findFirst()
-                .orElseThrow();
-    }
-
     /// One screen's tree, wired to the application's own models.
     ///
     /// **The name is checked against the gallery**, and that is not defensive
@@ -265,7 +259,7 @@ class FrameBudgetBenchmark {
             throw new IllegalArgumentException("no screen is called \"" + screen
                     + "\"; measuring one would measure an empty gallery." + " The gallery is " + Screen.GALLERY);
         }
-        actions.pickScreen(screen);
+        actions.shell().pickScreen(screen);
         var inflater = Widgets.inflater(
                 // The objects the documents name -- the Forms screen's controller
                 // and the media screens' players -- as ShowcaseScene passes them.
@@ -289,9 +283,10 @@ class FrameBudgetBenchmark {
     }
 
     private WidgetRenderer rendererFor() {
-        var sheets = new ArrayList<Stylesheet>(Controls.stylesheets(Theme.NORD_DARK, model.density()));
+        var sheets = new ArrayList<Stylesheet>(
+                Controls.stylesheets(Theme.NORD_DARK, model.appearance().density()));
         sheets.add(Stylesheet.resource(CascadeLayer.APPLICATION, Showcase.class, "showcase.css"));
-        sheets.add(model.readingSize().stylesheet());
+        sheets.add(model.shell().readingSize().stylesheet());
         return new WidgetRenderer(sheets, font).clock(dev.goldberry.motion.Clock.virtual());
     }
 
@@ -626,7 +621,7 @@ class FrameBudgetBenchmark {
     /// What a settled frame of the icon sheet costs, with `query` typed into it.
     private SheetCost measureSheet(String query) {
         var target = TestFrames.of(1280, 900, 1.0f, 0);
-        actions.setIconQuery(query);
+        actions.sheets().setIconQuery(query);
         var tree = treeFor(SHEET);
         var renderer = rendererFor();
         try (var render = RenderTree.create()) {
@@ -652,7 +647,7 @@ class FrameBudgetBenchmark {
                     medianMillis(50, () -> render.update(target.frame(), boxes)),
                     medianMillis(30, () -> render.paint(target.frame())));
         } finally {
-            actions.setIconQuery("");
+            actions.sheets().setIconQuery("");
         }
     }
 

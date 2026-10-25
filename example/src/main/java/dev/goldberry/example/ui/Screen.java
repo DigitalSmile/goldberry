@@ -8,7 +8,8 @@ import dev.goldberry.Goldberry;
 import dev.goldberry.bind.Subscription;
 import dev.goldberry.bind.runtime.Models;
 import dev.goldberry.css.Theme;
-import dev.goldberry.example.ShowcaseModel;
+import dev.goldberry.example.model.ShowcaseActions;
+import dev.goldberry.example.model.ShowcaseModel;
 import dev.goldberry.example.ui.gallery.Documents;
 import dev.goldberry.example.ui.gallery.Gallery;
 import dev.goldberry.example.ui.gallery.GalleryContext;
@@ -81,7 +82,7 @@ import dev.goldberry.widgets.core.scroll.ScrollAxis;
 ///                 [GalleryContext#capabilities()]
 public record Screen(
         ShowcaseModel model,
-        ShowcaseModel.Actions actions,
+        ShowcaseActions actions,
         KdlInflater<Widget> inflater,
         Icon plus,
         Runnable startTour,
@@ -97,7 +98,7 @@ public record Screen(
     /// The window's screen, saying what the loaded library answers.
     public Screen(
             ShowcaseModel model,
-            ShowcaseModel.Actions actions,
+            ShowcaseActions actions,
             KdlInflater<Widget> inflater,
             Icon plus,
             Runnable startTour,
@@ -132,8 +133,8 @@ public record Screen(
     /// The subscriptions, the documents, and the window.
     static final class ScreenState extends State<Screen> {
 
-        /// The properties a rebuild follows.
-        private static final List<String> FOLLOWED = List.of("app.screen", "app.sidebar", "app.light", "app.hud");
+        /// The shell's properties a rebuild follows.
+        private static final List<String> FOLLOWED = List.of("app.screen", "app.sidebar", "app.hud");
 
         private final List<Subscription> watching = new ArrayList<>();
 
@@ -159,9 +160,12 @@ public record Screen(
                     widget().plus(),
                     widget().startTour(),
                     widget().capabilities());
+            var model = widget().model();
             for (var path : FOLLOWED) {
-                watching.add(Models.observable(widget().model(), path).subscribe(value -> setState(() -> {})));
+                watching.add(Models.observable(model.shell(), path).subscribe(value -> setState(() -> {})));
             }
+            // And the light, which is the appearance's: the bar's switch shows it.
+            watching.add(Models.observable(model.appearance(), "app.light").subscribe(value -> setState(() -> {})));
         }
 
         /// A property outlives the tree — it is the application's — so a listener
@@ -185,9 +189,9 @@ public record Screen(
             var actions = widget().actions();
             if (!Gallery.has(name)) {
                 var home = new HomeScreen(
-                        model.recentScreens(),
+                        model.shell().recentScreens(),
                         SearchIndex.shipped().counts(),
-                        actions::pickScreen,
+                        actions.shell()::pickScreen,
                         widget().openSearch(),
                         widget().startTour());
                 return scrolled(home, HomeScreen.NAME);
@@ -214,27 +218,28 @@ public record Screen(
         public Widget build(BuildContext buildContext) {
             var model = widget().model();
             var actions = widget().actions();
-            var showing = model.screen();
-            var wide = model.isSidebarWide();
+            var shell = model.shell();
+            var showing = shell.screen();
+            var wide = shell.isSidebarWide();
 
             var top = new TopBar(
                     wide,
-                    model.theme() == Theme.NORD_LIGHT,
-                    widget().menu().bar(model.isHudShown()),
-                    actions::toggleSidebar,
+                    model.appearance().theme() == Theme.NORD_LIGHT,
+                    widget().menu().bar(shell.isHudShown()),
+                    actions.shell()::toggleSidebar,
                     widget().openSearch(),
-                    actions::toggleTheme);
-            var sidebar = new Sidebar(showing, wide, SearchIndex.shipped().counts(), actions::pickScreen);
+                    actions.appearance()::toggleTheme);
+            var sidebar = new Sidebar(showing, wide, SearchIndex.shipped().counts(), actions.shell()::pickScreen);
             var head = new PageHead(
                     showing,
-                    model.canGoBack(),
-                    model.canGoForward(),
+                    shell.canGoBack(),
+                    shell.canGoForward(),
                     new PageHead.Moves(
-                            actions::back,
-                            actions::forward,
-                            actions::previousScreen,
-                            actions::nextScreen,
-                            () -> actions.pickScreen(HomeScreen.NAME)));
+                            actions.shell()::back,
+                            actions.shell()::forward,
+                            actions.shell()::previousScreen,
+                            actions.shell()::nextScreen,
+                            () -> actions.shell().pickScreen(HomeScreen.NAME)));
             var parts = new ArrayList<Widget>(3);
             parts.add(head);
             var cards = Gallery.has(showing) ? SearchIndex.shipped().cardsOn(showing) : List.<IndexedCard>of();

@@ -3,8 +3,8 @@ package dev.goldberry.example.ui.layout;
 import java.util.ArrayList;
 import java.util.List;
 
-import dev.goldberry.example.ShowcaseModel;
 import dev.goldberry.example.docs.DocLink;
+import dev.goldberry.example.model.appearance.AppearanceModel;
 import dev.goldberry.example.ui.gallery.ShowcaseCard;
 import dev.goldberry.widget.BuildContext;
 import dev.goldberry.widget.State;
@@ -31,7 +31,7 @@ import dev.goldberry.widgets.text.Text;
 ///
 /// @param actions where the scroll-bar switch goes, which is the window's choice
 ///                and not this card's
-public record ViewportCard(ShowcaseModel.Actions actions) implements Widget.Stateful {
+public record ViewportCard(AppearanceModel.Actions actions) implements Widget.Stateful {
 
     /// The grid's rows, one letter each.
     static final List<String> ROWS = List.of("A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L");

@@ -96,7 +96,9 @@ class PanelsChapterTest {
             press(session, only(session, "tab-new"));
 
             assertEquals(List.of("Rivendell", "Moria", "Bree"), labels(session));
-            assertEquals("Bree", Models.observable(scene.model(), "app.tab").get());
+            assertEquals(
+                    "Bree",
+                    Models.observable(scene.model().navigation(), "app.tab").get());
             assertTrue(
                     walk(session.byId("demo-tabs").orElseThrow())
                             .filter(element -> "tab-body".equals(element.id()))
@@ -147,7 +149,7 @@ class PanelsChapterTest {
     /// the model for what moved, and lets a tab finish arriving or leaving.
     private void press(Session session, Element element) {
         session.click(element);
-        Models.refresh(scene.model());
+        Models.refresh(scene.model().navigation());
         for (var frame = 0; frame < 30; frame++) {
             session.advance(Duration.ofMillis(50));
         }
@@ -156,7 +158,8 @@ class PanelsChapterTest {
     /// The labels of the demo strip's tabs, in the model's order, checked
     /// against the headers the strip is drawing.
     private List<String> labels(Session session) {
-        var names = Models.<List<String>>observable(scene.model(), "app.tabs").get();
+        var names = Models.<List<String>>observable(scene.model().navigation(), "app.tabs")
+                .get();
         assertEquals(names == null ? 0 : names.size(), headers(session).size());
         return names;
     }

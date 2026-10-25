@@ -7,8 +7,8 @@ import java.util.function.Function;
 import dev.goldberry.css.Stylesheet;
 import dev.goldberry.css.Theme;
 import dev.goldberry.example.Showcase;
-import dev.goldberry.example.ShowcaseModel;
 import dev.goldberry.example.ShowcaseStyles;
+import dev.goldberry.example.model.ShowcaseModel;
 import dev.goldberry.example.ui.gallery.Documents;
 import dev.goldberry.example.ui.gallery.GalleryContext;
 import dev.goldberry.html.view.HtmlStyles;
@@ -32,7 +32,7 @@ import dev.goldberry.widgets.Widgets;
 final class ContentFixture implements AutoCloseable {
 
     final Showcase showcase = new Showcase();
-    final ShowcaseModel model = modelOf(ShowcaseModel.class);
+    final ShowcaseModel model = showcase.model();
     private final Icon plus = Icon.bundled("plus", 16);
     private final Fonts fonts = Fonts.bundled();
     private final WidgetRenderer renderer;
@@ -47,18 +47,9 @@ final class ContentFixture implements AutoCloseable {
         renderer = new WidgetRenderer(sheets, fonts);
         var inflater = Widgets.inflater(
                 model.named(), Icons.lenient(), showcase.models().toArray());
-        var context = new GalleryContext(
-                model, modelOf(ShowcaseModel.Actions.class), new Documents(inflater), plus, () -> {});
+        var context = new GalleryContext(model, showcase.actions(), new Documents(inflater), plus, () -> {});
         tree = new ElementTree(screen.apply(context));
         frame();
-    }
-
-    private <T> T modelOf(Class<T> type) {
-        return showcase.models().stream()
-                .filter(type::isInstance)
-                .map(type::cast)
-                .findFirst()
-                .orElseThrow();
     }
 
     /// One frame: rebuild whatever is dirty, then render, as a window does.

@@ -70,8 +70,8 @@ class HtmlChapterTest {
 
         var after = screen.first(HtmlView.class).resolved();
         assertNotEquals(before, after, "the preview should not be showing the page it was showing");
-        var source =
-                String.valueOf(Models.observable(screen.model, "html.source").get());
+        var source = String.valueOf(
+                Models.observable(screen.model.documents(), "html.source").get());
         assertTrue(source.endsWith("<h2>Typed just now</h2>\n"), "the model holds what was typed, at the caret");
         assertEquals(
                 List.of("Typed just now"),
@@ -87,7 +87,7 @@ class HtmlChapterTest {
     void oneProperty() {
         var preview = screen.first(HtmlView.class);
         assertNotNull(preview.binding(), "a preview that follows nothing is a screenshot");
-        assertSame(Models.observable(screen.model, "html.source"), preview.binding());
+        assertSame(Models.observable(screen.model.documents(), "html.source"), preview.binding());
     }
 
     @Test
@@ -107,8 +107,8 @@ class HtmlChapterTest {
         link.onPress().run();
         screen.frame();
 
-        var followed =
-                String.valueOf(Models.observable(screen.model, "html.followed").get());
+        var followed = String.valueOf(
+                Models.observable(screen.model.documents(), "html.followed").get());
         assertTrue(
                 followed.startsWith("Followed: http"),
                 () -> "the application should have been handed the href, and was handed: " + followed);

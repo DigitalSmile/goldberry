@@ -148,6 +148,7 @@ page for a change to `site/` alone (ADR-0590), and GB-034, written 2026-10-10
 | `components-media-staged-planes.md` | `book/src/components/media.md` (`### video-view`), `book/src/components/gpu.md` (`### Uploads`) | ADR-0662, two pieces |
 | `adr/0664-…` | `book/src/adr/` | Media Foundation empties its output buffer, and its lane requires it: `Transform` resets the reused sample's length, a failed `ProcessOutput` fails the decoder with what the MFT was asked for, the Windows `:media` job runs the decoders on and required; the switch defaults to on once that job is green. Contiguous with 0663; relates to 0520, 0489, 0651. Moving it in, mark `book/src/adr/0520-…`'s status "Superseded by ADR-0664" |
 | `components-media-foundation.md` | `book/src/components/media.md` (the system decoders table), `book/src/overview/limitations.md` (the Windows codecs row) | ADR-0664, two pieces; the second supersedes `components-media-engine.md`'s sentence in the same row |
+| `adr/0665-…` | `book/src/adr/` | The showcase's model is a slice per part of the window: eight `@Model` slices under `dev.goldberry.example.model.*`, each with its `Actions` nested, `ShowcaseModel`/`ShowcaseActions` records of them, `ShowcasePlayers` for the players, every path unchanged. Contiguous with 0664; relates to 0136, 0137, 0139, 0110, 0547 |
 
 ## Doc comments that point at the guide
 

@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Stream;
 
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
@@ -20,6 +21,9 @@ import dev.goldberry.css.Stylesheet;
 import dev.goldberry.example.brand.ShowcaseCursors;
 import dev.goldberry.example.brand.ShowcaseIcon;
 import dev.goldberry.example.docs.DocLink;
+import dev.goldberry.example.media.ShowcaseMedia;
+import dev.goldberry.example.model.ShowcaseActions;
+import dev.goldberry.example.model.ShowcaseModel;
 import dev.goldberry.example.ui.AppMenu;
 import dev.goldberry.example.ui.Screen;
 import dev.goldberry.example.ui.home.GuideParts;
@@ -73,7 +77,8 @@ import dev.goldberry.widgets.text.Text;
 /// the four things a menu row can ask for that a view model cannot answer — and
 /// the accelerators. The window, the trees, the renderer, the router and the
 /// frame loop are [Goldberry#launch]'s; the state and the actions
-/// are [ShowcaseModel]'s; the widgets are [Screen]'s and the five `.kdl`
+/// are [ShowcaseModel]'s and [ShowcaseActions]', a slice per part of the
+/// window; the widgets are [Screen]'s and the five `.kdl`
 /// documents beside it.
 ///
 /// ## What the showcase exercises
@@ -118,7 +123,7 @@ public final class Showcase implements Application {
     private final List<Stylesheet> styles = ShowcaseStyles.sheets();
 
     private final ShowcaseModel model = new ShowcaseModel();
-    private final ShowcaseModel.Actions actions = new ShowcaseModel.Actions(model);
+    private final ShowcaseActions actions = new ShowcaseActions(model);
 
     /// The four commands `overlays.kdl` presses by name. Not on the model,
     /// because every one of them needs a [Host] — see [WindowActions].
@@ -245,7 +250,10 @@ public final class Showcase implements Application {
     /// density are one call because they are one list.
     @Override
     public List<Stylesheet> stylesheets() {
-        var sheets = new ArrayList<>(Controls.stylesheets(model.theme(), model.density(), model.scrollbars()));
+        var sheets = new ArrayList<>(Controls.stylesheets(
+                model.appearance().theme(),
+                model.appearance().density(),
+                model.appearance().scrollbars()));
         // An optional module brings its own rules, and adding them is the
         // application's -- `:widgets` does not know Markdown exists, so
         // `Controls.stylesheets` cannot include these. Before
@@ -261,7 +269,7 @@ public final class Showcase implements Application {
         sheets.addAll(styles);
         // The reading size last: it is the type scale's tokens, and it has to
         // win over the theme's and anything this window's sheets said.
-        sheets.add(model.readingSize().stylesheet());
+        sheets.add(model.shell().readingSize().stylesheet());
         return sheets;
     }
 
@@ -277,7 +285,7 @@ public final class Showcase implements Application {
         paletteIcon = Icon.bundled("palette", (float) Icons.SLOT);
         plusIcon = Icon.bundled("plus", ICON_SIZE);
 
-        // Two models and one icon registry, and that is the whole of the wiring.
+        // The models and one icon registry, and that is the whole of the wiring.
         // The paths and the action names come off the models themselves; the node
         // names come from every widget module on the path.
         // Icons stay explicit because building one costs: an icon is parsed from
@@ -324,8 +332,8 @@ public final class Showcase implements Application {
         // Accelerators are registered per window, on the host. Ctrl+D
         // is the interesting one: not a widget in this application mentions a
         // height, and every control still resizes.
-        host.shortcut(Mod.CTRL.and(Key.T), actions::toggleTheme);
-        host.shortcut(Mod.CTRL.and(Key.D), actions::toggleDensity);
+        host.shortcut(Mod.CTRL.and(Key.T), actions.appearance()::toggleTheme);
+        host.shortcut(Mod.CTRL.and(Key.D), actions.appearance()::toggleDensity);
         // Off by default, and deliberately: a HUD reports the frames the loop
         // was already painting, so the interesting time to switch it on is
         // *during* a resize or a drag, when there is something to watch.
@@ -333,24 +341,24 @@ public final class Showcase implements Application {
         // The four rows in the File and Edit menus that are not the model's.
         host.shortcut(Mod.CTRL.and(Key.O), this::openDialog);
         host.shortcut(Mod.CTRL.and(Key.Q), () -> host.window().close());
-        host.shortcut(Mod.CTRL.and(Key.L), actions::click);
-        host.shortcut(Mod.CTRL.and(Key.Z), actions::undo);
+        host.shortcut(Mod.CTRL.and(Key.L), actions.controls()::click);
+        host.shortcut(Mod.CTRL.and(Key.Z), actions.controls()::undo);
 
         // Finding a screen: search, the sidebar's rail, history, and the next
         // screen down the sidebar. Then the reading size.
         host.shortcut(Mod.CTRL.and(Key.K), this::openSearch);
-        host.shortcut(Mod.CTRL.and(Key.B), actions::toggleSidebar);
-        host.shortcut(Mod.ALT.and(Key.LEFT), actions::back);
-        host.shortcut(Mod.ALT.and(Key.RIGHT), actions::forward);
-        host.shortcut(Mod.CTRL.and(Key.PAGE_UP), actions::previousScreen);
-        host.shortcut(Mod.CTRL.and(Key.PAGE_DOWN), actions::nextScreen);
-        host.shortcut(Mod.CTRL.and(Key.EQUALS), actions::largerText);
-        host.shortcut(Mod.CTRL.and(Key.MINUS), actions::smallerText);
+        host.shortcut(Mod.CTRL.and(Key.B), actions.shell()::toggleSidebar);
+        host.shortcut(Mod.ALT.and(Key.LEFT), actions.shell()::back);
+        host.shortcut(Mod.ALT.and(Key.RIGHT), actions.shell()::forward);
+        host.shortcut(Mod.CTRL.and(Key.PAGE_UP), actions.shell()::previousScreen);
+        host.shortcut(Mod.CTRL.and(Key.PAGE_DOWN), actions.shell()::nextScreen);
+        host.shortcut(Mod.CTRL.and(Key.EQUALS), actions.shell()::largerText);
+        host.shortcut(Mod.CTRL.and(Key.MINUS), actions.shell()::smallerText);
 
         // One accelerator per screen — three ways to set one property rather
         // than three copies of a selection: the strip, these keys, and Edit ▸ Go
         // to.
-        screenShortcuts(host::shortcut, actions::pickScreen);
+        screenShortcuts(host::shortcut, actions.shell()::pickScreen);
 
         // The other half of context menus: `context-menu="…"` on any widget, and
         // one line to say what the names mean. The toolkit notices the right-click
@@ -373,7 +381,7 @@ public final class Showcase implements Application {
         var startOn = System.getProperty("goldberry.example.screen");
         if (startOn != null && !startOn.isBlank()) {
             LOG.info("starting on the \"{}\" screen, as -Dgoldberry.example.screen asked", startOn);
-            actions.pickScreen(startOn);
+            actions.shell().pickScreen(startOn);
         }
 
         tray = Trays.show(
@@ -382,15 +390,17 @@ public final class Showcase implements Application {
                         "Goldberry — showcase",
                         new Menu(
                                 List.of(
-                                        new Item("Switch the light", actions::toggleTheme),
-                                        new Item("Switch the density", actions::toggleDensity),
+                                        new Item("Switch the light", actions.appearance()::toggleTheme),
+                                        new Item("Switch the density", actions.appearance()::toggleDensity),
                                         new Separator(),
                                         // Every screen, off the one list -- so a screen added to the
                                         // gallery arrives in the tray without this file being touched.
                                         new Item("Screens")
                                                 .submenu(Screen.GALLERY.stream()
                                                         .map(name -> (Widget) new Item(
-                                                                Screen.title(name), () -> actions.pickScreen(name)))
+                                                                Screen.title(name),
+                                                                () -> actions.shell()
+                                                                        .pickScreen(name)))
                                                         .toArray(Widget[]::new)),
                                         new Separator(),
                                         new Item("Quit", () -> host.window().close())),
@@ -409,7 +419,7 @@ public final class Showcase implements Application {
         host.window().onScaleChange(scale -> LOG.info("scale is now {}", scale));
         // Into the bar, as it changes. The window logs each change itself, as a
         // line tagged [GPU] or [CPU]; this is the same fact on screen.
-        host.window().onPresentationChange(presentation -> actions.setPresentation(presentation.label()));
+        host.window().onPresentationChange(presentation -> actions.shell().setPresentation(presentation.label()));
         host.window().onCloseRequest(() -> {
             LOG.info("close requested");
             return true;
@@ -418,7 +428,7 @@ public final class Showcase implements Application {
         // What the bar's first reading is: how long this process took to get
         // here. Read on the UI thread and now, because `Startup` is measuring
         // *this* thread's journey and a background job would time its own.
-        actions.setStartup(describeStartup());
+        actions.shell().setStartup(describeStartup());
 
         // Work that is not instant belongs off the UI thread. It comes back on it
         // automatically, so touching the window here is safe.
@@ -427,14 +437,14 @@ public final class Showcase implements Application {
                     host.title("Goldberry — " + text);
                     // Nothing here reaches into the tree: the field is set, and the bar's
                     // line bound to it redraws itself.
-                    actions.setStatus(text);
+                    actions.shell().setStatus(text);
                     // The one place an application says this, and the reason it is here
                     // rather than in every method: `setStatus` is a plain Java call from
                     // a background job's continuation, so it is neither an action a
                     // document dispatched nor a write the toolkit had any reason to look
                     // for. A woven model notices it from inside the assignment and this
                     // returns false; a jar's model is swept here.
-                    Models.refresh(model);
+                    Models.refresh(model.shell());
                 })
                 .exceptionally(failure -> {
                     // Error Prone caught this: a `thenAccept` whose future nobody holds
@@ -444,8 +454,8 @@ public final class Showcase implements Application {
                     // application still has nothing to await, it simply has somewhere for
                     // the failure to go.
                     LOG.warn("could not describe the environment", failure);
-                    actions.setStatus("could not read the environment");
-                    Models.refresh(model);
+                    actions.shell().setStatus("could not read the environment");
+                    Models.refresh(model.shell());
                     return null;
                 });
     }
@@ -468,7 +478,7 @@ public final class Showcase implements Application {
     /// a real one.
     ///
     /// @param bind what to call for each accelerator — `host::shortcut`
-    /// @param pick what a key does — `actions::pickScreen`
+    /// @param pick what a key does — `actions.shell()::pickScreen`
     static void screenShortcuts(
             java.util.function.BiConsumer<Shortcut, Runnable> bind, java.util.function.Consumer<String> pick) {
 
@@ -489,18 +499,34 @@ public final class Showcase implements Application {
         }
     }
 
-    /// The two objects this window is driven by.
+    /// The objects this window is driven by.
     ///
-    /// The view model, its actions, and the window's own four commands.
+    /// Every slice of the view model, every slice's actions, and the window's own
+    /// four commands. A slice apiece rather than one model, because a slice is
+    /// what a screen reads; the toolkit merges their paths and refuses two
+    /// slices claiming one.
     ///
-    /// The third is there because a **document** names them: `press=` is a string
+    /// The window's commands are there because a **document** names them: `press=` is a string
     /// and only a registry can turn one into a call. The window's own menu bar
     /// needs no such thing — it is built in Java and holds its handlers directly.
     ///
     /// Read more: [Actions](https://goldberry.dev/docs/applications.html#actions).
     @Override
     public List<Object> models() {
-        return List.of(model, actions, window);
+        return Stream.<List<Object>>of(model.slices(), actions.slices(), List.of(window))
+                .flatMap(List::stream)
+                .toList();
+    }
+
+    /// The values this window shows: every slice [#models()] lists, and the
+    /// players.
+    public ShowcaseModel model() {
+        return model;
+    }
+
+    /// What this window's controls ask for, over [#model()]'s slices.
+    public ShowcaseActions actions() {
+        return actions;
     }
 
     @Override
@@ -547,7 +573,7 @@ public final class Showcase implements Application {
         toasts.show(
                 number % 3 == 0
                         ? new Toast("Word " + number + " sent to Rivendell.")
-                                .action("Recall it", () -> actions.setStatus("Recalled word " + number))
+                                .action("Recall it", () -> actions.shell().setStatus("Recalled word " + number))
                         : new Toast("Word " + number + " — a rider went out and did not wait."));
     }
 
@@ -595,7 +621,7 @@ public final class Showcase implements Application {
     /// question has been answered — and by the time this runs the panel has
     /// already faded.
     private void answered(String what) {
-        actions.setStatus(what);
+        actions.shell().setStatus(what);
         if (open != null) {
             open.remove();
             open = null;
@@ -645,9 +671,10 @@ public final class Showcase implements Application {
     /// is scrolled to and ringed, and a command runs.
     private void go(SearchEntry entry) {
         switch (entry) {
-            case SearchEntry.Screen chosen -> actions.pickScreen(chosen.tab().name());
+            case SearchEntry.Screen chosen ->
+                actions.shell().pickScreen(chosen.tab().name());
             case SearchEntry.Card card -> {
-                actions.pickScreen(card.screen().name());
+                actions.shell().pickScreen(card.screen().name());
                 // After the frame that builds the screen, so the card exists to
                 // be found -- the same wait the tour makes.
                 host.after(SCREEN_BUILT, () -> {
@@ -681,18 +708,18 @@ public final class Showcase implements Application {
     /// The window's own commands, each with its accelerator.
     private List<SearchEntry.Command> windowCommands() {
         return List.of(
-                new SearchEntry.Command("Switch the light", "Ctrl+T", actions::toggleTheme),
-                new SearchEntry.Command("Switch the density", "Ctrl+D", actions::toggleDensity),
-                new SearchEntry.Command("Always show scroll bars", "", actions::toggleScrollbars),
-                new SearchEntry.Command("Larger text", "Ctrl+=", actions::largerText),
-                new SearchEntry.Command("Smaller text", "Ctrl+-", actions::smallerText),
-                new SearchEntry.Command("Sidebar as icons", "Ctrl+B", actions::toggleSidebar),
-                new SearchEntry.Command("Home", "", () -> actions.pickScreen(HomeScreen.NAME)),
+                new SearchEntry.Command("Switch the light", "Ctrl+T", actions.appearance()::toggleTheme),
+                new SearchEntry.Command("Switch the density", "Ctrl+D", actions.appearance()::toggleDensity),
+                new SearchEntry.Command("Always show scroll bars", "", actions.appearance()::toggleScrollbars),
+                new SearchEntry.Command("Larger text", "Ctrl+=", actions.shell()::largerText),
+                new SearchEntry.Command("Smaller text", "Ctrl+-", actions.shell()::smallerText),
+                new SearchEntry.Command("Sidebar as icons", "Ctrl+B", actions.shell()::toggleSidebar),
+                new SearchEntry.Command("Home", "", () -> actions.shell().pickScreen(HomeScreen.NAME)),
                 new SearchEntry.Command("Frame rate", "Ctrl+F", this::toggleHud),
                 new SearchEntry.Command("Take the tour", "", this::startTour),
                 new SearchEntry.Command("Unsaved changes dialog", "Ctrl+O", this::openDialog),
                 new SearchEntry.Command("Send word (a toast)", "", this::raiseToast),
-                new SearchEntry.Command("March a league", "Ctrl+L", actions::click),
+                new SearchEntry.Command("March a league", "Ctrl+L", actions.controls()::click),
                 new SearchEntry.Command("About Goldberry", "", this::openAbout),
                 new SearchEntry.Command("Quit", "Ctrl+Q", () -> host.window().close()));
     }
@@ -706,7 +733,7 @@ public final class Showcase implements Application {
     /// nobody is looking at would skip every stop and end immediately — which is
     /// correct behaviour and a useless demonstration.
     private void startTour() {
-        actions.pickScreen(ShowcaseTour.SCREEN);
+        actions.shell().pickScreen(ShowcaseTour.SCREEN);
         // After the frame that switches screens, so the targets exist to be
         // found: the screen has to be *built* before any of it can be anchored to.
         host.after(SCREEN_BUILT, () -> Tours.start(host, ShowcaseTour.stops()));
@@ -733,7 +760,7 @@ public final class Showcase implements Application {
             // part of it is.
             hud = host.overlay(Hud.stages(), Corner.BOTTOM_END);
         }
-        actions.setHud(hud != null);
+        actions.shell().setHud(hud != null);
         LOG.info("hud {}", hud == null ? "off" : "on");
     }
 
@@ -749,15 +776,17 @@ public final class Showcase implements Application {
     /// application that had to remember it would eventually forget on one row.
     private Menu contextMenu() {
         return new Menu(
-                new Item("Switch the light", actions::toggleTheme)
+                new Item("Switch the light", actions.appearance()::toggleTheme)
                         .icon(paletteIcon)
                         .accelerator("Ctrl+T"),
-                new Item("Switch the density", actions::toggleDensity).accelerator("Ctrl+D"),
+                new Item("Switch the density", actions.appearance()::toggleDensity).accelerator("Ctrl+D"),
                 new Separator(),
-                new Item("Frame rate", this::toggleHud).accelerator("Ctrl+F").checked(model.isHudShown()),
+                new Item("Frame rate", this::toggleHud)
+                        .accelerator("Ctrl+F")
+                        .checked(model.shell().isHudShown()),
                 new Item("More")
                         .submenu(
-                                new Item("Begin again at Bag End", actions::reset),
+                                new Item("Begin again at Bag End", actions.controls()::reset),
                                 new Item("Nothing here", () -> {}).disabled(true)));
     }
 
@@ -778,9 +807,8 @@ public final class Showcase implements Application {
         paletteIcon.close();
         // Stops the engines' threads and closes the audio devices, if a source was
         // ever opened.
-        model.audioPlayer().close();
-        model.videoPlayer().close();
-        dev.goldberry.example.media.ShowcaseMedia.shutdown();
+        model.media().close();
+        ShowcaseMedia.shutdown();
     }
 
     // --- the process ---------------------------------------------------------

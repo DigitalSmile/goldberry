@@ -20,9 +20,9 @@ import dev.goldberry.assets.BundledFont;
 import dev.goldberry.css.Stylesheet;
 import dev.goldberry.css.Theme;
 import dev.goldberry.example.Showcase;
-import dev.goldberry.example.ShowcaseModel;
 import dev.goldberry.example.ShowcaseStyles;
 import dev.goldberry.example.docs.DocLink;
+import dev.goldberry.example.model.sheets.SheetsModel;
 import dev.goldberry.example.ui.gallery.ScreenHeader;
 import dev.goldberry.input.PointerRouter;
 import dev.goldberry.input.event.PointerEvent;
@@ -83,8 +83,8 @@ class EmojiScreenTest {
         private final WidgetRenderer renderer;
         private final PointerRouter router = new PointerRouter();
         private final RecordingTestHost host = new RecordingTestHost();
-        private final ShowcaseModel model;
-        private final ShowcaseModel.Actions actions;
+        private final SheetsModel model;
+        private final SheetsModel.Actions actions;
 
         Harness(int width, int height) {
             this(width, height, "");
@@ -105,8 +105,8 @@ class EmojiScreenTest {
             renderer = new WidgetRenderer(sheets, fonts);
 
             var showcase = new Showcase();
-            model = modelOf(showcase, ShowcaseModel.class);
-            actions = modelOf(showcase, ShowcaseModel.Actions.class);
+            model = showcase.model().sheets();
+            actions = showcase.actions().sheets();
             actions.setEmojiQuery(query);
             tree = new ElementTree(new EmojiScreen(model, actions), host.host());
             render = RenderTree.create();
@@ -192,14 +192,6 @@ class EmojiScreenTest {
             collect(tree.root(), type, found);
             return found;
         }
-    }
-
-    private static <T> T modelOf(Showcase showcase, Class<T> type) {
-        return showcase.models().stream()
-                .filter(type::isInstance)
-                .map(type::cast)
-                .findFirst()
-                .orElseThrow();
     }
 
     private static Element find(Element from, String id) {

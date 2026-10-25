@@ -11,6 +11,8 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import dev.goldberry.bind.runtime.Models;
+import dev.goldberry.example.model.ShowcaseActions;
+import dev.goldberry.example.model.ShowcaseModel;
 
 /// What the showcase's actions say when a document hands them something they
 /// cannot take.
@@ -20,13 +22,8 @@ import dev.goldberry.bind.runtime.Models;
 /// and the text, which is what a reader needs to find it.
 class ShowcaseActionsTest {
 
-    private static ShowcaseModel.Actions actions() {
-        return new Showcase()
-                .models().stream()
-                        .filter(ShowcaseModel.Actions.class::isInstance)
-                        .map(ShowcaseModel.Actions.class::cast)
-                        .findFirst()
-                        .orElseThrow(() -> new AssertionError("the showcase publishes its actions as a model"));
+    private static ShowcaseActions actions() {
+        return new Showcase().actions();
     }
 
     /// The two names `BindingBenchmark.showcaseModel` resolves, resolved here
@@ -39,9 +36,9 @@ class ShowcaseActionsTest {
     @DisplayName("the road's click is bound on the actions record and counts on the model")
     void theRoadsClickCounts() {
         var model = new ShowcaseModel();
-        var actions = new ShowcaseModel.Actions(model);
-        var click = Models.actions(actions).resolve("app.click");
-        var clicks = Models.observable(model, "app.clicks");
+        var actions = new ShowcaseActions(model);
+        var click = Models.actions(actions.controls()).resolve("app.click");
+        var clicks = Models.observable(model.controls(), "app.clicks");
 
         click.run();
         click.run();
@@ -55,16 +52,17 @@ class ShowcaseActionsTest {
     @DisplayName("a task ordinal that is not a number is refused by the action's name")
     void toggleTaskRefusesWords() {
         var actions = actions();
-        var before = Models.observable(actions.values(), "md.source").get();
+        var documents = actions.documents();
+        var before = Models.observable(documents.values(), "md.source").get();
 
         var refused = assertThrows(
                 IllegalArgumentException.class,
-                () -> Models.actions(actions).resolveValued("md.toggle-task").accept("first"));
+                () -> Models.actions(documents).resolveValued("md.toggle-task").accept("first"));
 
         assertTrue(refused.getMessage().contains("md.toggle-task"), refused.getMessage());
         assertTrue(refused.getMessage().contains("\"first\""), refused.getMessage());
         assertInstanceOf(NumberFormatException.class, refused.getCause());
         assertEquals(
-                before, Models.observable(actions.values(), "md.source").get(), "a refused toggle rewrote nothing");
+                before, Models.observable(documents.values(), "md.source").get(), "a refused toggle rewrote nothing");
     }
 }

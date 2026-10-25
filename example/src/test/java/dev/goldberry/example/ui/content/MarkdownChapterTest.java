@@ -51,7 +51,7 @@ class MarkdownChapterTest {
     }
 
     private Object source() {
-        return Models.observable(screen.model, "md.source").get();
+        return Models.observable(screen.model.documents(), "md.source").get();
     }
 
     /// The editor's box, which is the node that hears the keyboard.
@@ -128,6 +128,6 @@ class MarkdownChapterTest {
     void oneProperty() {
         var preview = screen.first(MarkdownView.class);
         assertNotNull(preview.binding(), "a preview that follows nothing is a screenshot");
-        assertSame(Models.observable(screen.model, "md.source"), preview.binding());
+        assertSame(Models.observable(screen.model.documents(), "md.source"), preview.binding());
     }
 }

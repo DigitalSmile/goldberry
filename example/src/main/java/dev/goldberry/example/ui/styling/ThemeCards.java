@@ -10,8 +10,8 @@ import org.jspecify.annotations.Nullable;
 import dev.goldberry.Host;
 import dev.goldberry.bind.Subscription;
 import dev.goldberry.css.Theme;
-import dev.goldberry.example.ShowcaseModel;
 import dev.goldberry.example.docs.DocLink;
+import dev.goldberry.example.model.appearance.AppearanceModel;
 import dev.goldberry.example.ui.gallery.ShowcaseCard;
 import dev.goldberry.platform.Capability;
 import dev.goldberry.render.desktop.SystemTheme;
@@ -40,14 +40,14 @@ final class ThemeCards {
     private ThemeCards() {}
 
     /// What the window is drawn in now, as a line a reader can check.
-    static String describe(ShowcaseModel model) {
+    static String describe(AppearanceModel model) {
         var theme = model.theme() == Theme.NORD_LIGHT ? "Nord light" : "Nord dark";
         var density = model.density() == Density.COMPACT ? "compact" : "regular";
         var bars = model.scrollbars() == Scrollbars.ALWAYS ? "scroll bars always shown" : "overlay scroll bars";
         return theme + ", " + density + ", " + bars + ".";
     }
 
-    static Widget restyle(ShowcaseModel model, ShowcaseModel.Actions actions) {
+    static Widget restyle(AppearanceModel model, AppearanceModel.Actions actions) {
         return new ShowcaseCard(
                         "styling-restyle",
                         "Restyle versus repaint",
@@ -65,7 +65,7 @@ final class ThemeCards {
                                 Attributes.NONE.id("restyle-now").classes("caption")));
     }
 
-    static Widget themes(ShowcaseModel model, ShowcaseModel.Actions actions) {
+    static Widget themes(AppearanceModel model, AppearanceModel.Actions actions) {
         return new ShowcaseCard(
                         "styling-themes",
                         "Themes, density and scrollbars",
@@ -100,7 +100,7 @@ final class ThemeCards {
     ///
     /// @param actions      where following the desktop is asked for
     /// @param capabilities what this build can do, which says whether it can ask
-    record Desktop(ShowcaseModel.Actions actions, Set<Capability> capabilities) implements Widget.Stateful {
+    record Desktop(AppearanceModel.Actions actions, Set<Capability> capabilities) implements Widget.Stateful {
 
         @Override
         public State<?> createState() {

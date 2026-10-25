@@ -101,14 +101,14 @@ class ScrollingChapterTest {
     @DisplayName("switches the window's scroll bars")
     void switchesTheBars() {
         try (var session = session()) {
-            var was = scene.model().scrollbars();
+            var was = scene.model().appearance().scrollbars();
 
             session.click("viewport-bars");
 
-            assertNotEquals(was, scene.model().scrollbars());
+            assertNotEquals(was, scene.model().appearance().scrollbars());
             assertEquals(
                     was == Scrollbars.OVERLAY ? Scrollbars.ALWAYS : Scrollbars.OVERLAY,
-                    scene.model().scrollbars());
+                    scene.model().appearance().scrollbars());
         }
     }
 }

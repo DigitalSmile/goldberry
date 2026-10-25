@@ -3,7 +3,7 @@ package dev.goldberry.example.ui;
 import java.util.ArrayList;
 import java.util.List;
 
-import dev.goldberry.example.ShowcaseModel;
+import dev.goldberry.example.model.ShowcaseActions;
 import dev.goldberry.example.ui.home.HomeScreen;
 import dev.goldberry.example.ui.shell.ReadingSize;
 import dev.goldberry.icon.Icon;
@@ -39,7 +39,7 @@ import dev.goldberry.widgets.menu.Separator;
 /// registry and could not have said `checked(hud != null)` at all.
 ///
 /// The rows that *are* the model's — the light, the density, the counter — are
-/// direct method references on [ShowcaseModel.Actions], which is the shorter half
+/// direct method references on [ShowcaseActions], which is the shorter half
 /// of the story and worth having one of in the showcase.
 ///
 /// Read more: [Menus and the tray](https://goldberry.dev/docs/components/menus.html#menubar).
@@ -47,7 +47,7 @@ import dev.goldberry.widgets.menu.Separator;
 /// @param actions   the model's half — the light, the density and the road
 /// @param window    the window's half — see [Handlers]
 /// @param palette   the icon on Switch the light
-public record AppMenu(ShowcaseModel.Actions actions, Handlers window, Icon palette) {
+public record AppMenu(ShowcaseActions actions, Handlers window, Icon palette) {
 
     /// The seven things a menu row can ask for that a view model cannot answer.
     ///
@@ -99,16 +99,16 @@ public record AppMenu(ShowcaseModel.Actions actions, Handlers window, Icon palet
     private Item file() {
         return new Item("File")
                 .submenu(
-                        new Item("March a league", actions::click).accelerator("Ctrl+L"),
+                        new Item("March a league", actions.controls()::click).accelerator("Ctrl+L"),
                         new Item("Unsaved changes…", window.openDialog()).accelerator("Ctrl+O"),
                         new Separator(),
-                        new Item("Switch the light", actions::toggleTheme)
+                        new Item("Switch the light", actions.appearance()::toggleTheme)
                                 .icon(palette)
                                 .accelerator("Ctrl+T"),
-                        new Item("Switch the density", actions::toggleDensity).accelerator("Ctrl+D"),
-                        new Item("Always show scroll bars", actions::toggleScrollbars),
+                        new Item("Switch the density", actions.appearance()::toggleDensity).accelerator("Ctrl+D"),
+                        new Item("Always show scroll bars", actions.appearance()::toggleScrollbars),
                         new Separator(),
-                        new Item("Begin again at Bag End", actions::reset),
+                        new Item("Begin again at Bag End", actions.controls()::reset),
                         new Item("Quit", window.quit()).accelerator("Ctrl+Q"));
     }
 
@@ -123,21 +123,24 @@ public record AppMenu(ShowcaseModel.Actions actions, Handlers window, Icon palet
     private Item edit() {
         return new Item("Edit")
                 .submenu(
-                        new Item("Turn back", actions::undo).accelerator("Ctrl+Z"),
-                        new Item("Press on", actions::click).disabled(true).accelerator("Ctrl+Y"),
+                        new Item("Turn back", actions.controls()::undo).accelerator("Ctrl+Z"),
+                        new Item("Press on", actions.controls()::click)
+                                .disabled(true)
+                                .accelerator("Ctrl+Y"),
                         new Separator(),
                         // Checked from the model rather than remembered here: the same
                         // box is on the Basic screen and the same switch beside it, and a
                         // menu that kept its own copy would disagree with both the moment
                         // either was used.
-                        new Item("Read the verse", actions::toggleProse)
-                                .checked(actions.values().isProseShown()),
+                        new Item("Read the verse", actions.controls()::toggleProse)
+                                .checked(actions.controls().values().isProseShown()),
                         new Item("Send word", window.raiseToast()),
                         new Separator(),
                         new Item("Go to")
                                 .submenu(Screen.GALLERY.stream()
-                                        .map(name ->
-                                                (Widget) new Item(Screen.title(name), () -> actions.pickScreen(name)))
+                                        .map(name -> (Widget) new Item(
+                                                Screen.title(name),
+                                                () -> actions.shell().pickScreen(name)))
                                         .toArray(Widget[]::new)));
     }
 
@@ -147,24 +150,27 @@ public record AppMenu(ShowcaseModel.Actions actions, Handlers window, Icon palet
     /// radio items, because a menu row's tick is the one mark a menu has, and
     /// three of them with one ticked reads as a choice.
     private Item view() {
-        var model = actions.values();
+        var model = actions.shell().values();
         var reading = model.readingSize();
         var rows = new ArrayList<Widget>();
         rows.add(new Item("Search…", window.search()).accelerator("Ctrl+K"));
-        rows.add(new Item("Home", () -> actions.pickScreen(HomeScreen.NAME)));
-        rows.add(new Item("Back", actions::back).accelerator("Alt+Left").disabled(!model.canGoBack()));
-        rows.add(new Item("Forward", actions::forward).accelerator("Alt+Right").disabled(!model.canGoForward()));
-        rows.add(new Item("Previous screen", actions::previousScreen).accelerator("Ctrl+PgUp"));
-        rows.add(new Item("Next screen", actions::nextScreen).accelerator("Ctrl+PgDn"));
+        rows.add(new Item("Home", () -> actions.shell().pickScreen(HomeScreen.NAME)));
+        rows.add(new Item("Back", actions.shell()::back).accelerator("Alt+Left").disabled(!model.canGoBack()));
+        rows.add(new Item("Forward", actions.shell()::forward)
+                .accelerator("Alt+Right")
+                .disabled(!model.canGoForward()));
+        rows.add(new Item("Previous screen", actions.shell()::previousScreen).accelerator("Ctrl+PgUp"));
+        rows.add(new Item("Next screen", actions.shell()::nextScreen).accelerator("Ctrl+PgDn"));
         rows.add(new Separator());
-        rows.add(new Item("Sidebar as icons", actions::toggleSidebar)
+        rows.add(new Item("Sidebar as icons", actions.shell()::toggleSidebar)
                 .accelerator("Ctrl+B")
                 .checked(!model.isSidebarWide()));
         rows.add(new Separator());
-        rows.add(new Item("Larger text", actions::largerText).accelerator("Ctrl+="));
-        rows.add(new Item("Smaller text", actions::smallerText).accelerator("Ctrl+-"));
+        rows.add(new Item("Larger text", actions.shell()::largerText).accelerator("Ctrl+="));
+        rows.add(new Item("Smaller text", actions.shell()::smallerText).accelerator("Ctrl+-"));
         for (var size : ReadingSize.values()) {
-            rows.add(new Item(size.title() + " text", () -> actions.pickReading(size.name())).checked(size == reading));
+            rows.add(new Item(size.title() + " text", () -> actions.shell().pickReading(size.name()))
+                    .checked(size == reading));
         }
         return new Item("View").submenu(rows.toArray(Widget[]::new));
     }

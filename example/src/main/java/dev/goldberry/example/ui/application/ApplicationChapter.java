@@ -248,10 +248,13 @@ public record ApplicationChapter(GalleryContext context) implements Widget.State
                                         new MarkupSnippet(
                                                 "badge id=\"views-markup\" bind=\"app.clicks\" \"0\"", context),
                                         new Text("In Java", Attributes.NONE.classes("caption")),
-                                        Badge.of("0", Models.observable(context.model(), "app.clicks"))
+                                        Badge.of(
+                                                        "0",
+                                                        Models.observable(
+                                                                context.model().controls(), "app.clicks"))
                                                 .id("views-java")),
                                 Attributes.NONE.classes("toolbar")),
-                        new Button("March a league", context.actions()::click).id("views-click"));
+                        new Button("March a league", context.actions().controls()::click).id("views-click"));
     }
 
     /// A button from a document beside a button from Java, both pressing one
@@ -267,8 +270,8 @@ public record ApplicationChapter(GalleryContext context) implements Widget.State
                         List.of(
                                 new MarkupSnippet(
                                         "button id=\"compose-markup\" press=\"app.click\" \"From markup\"", context),
-                                new Button("From Java", context.actions()::click).id("compose-java"),
-                                Badge.of("0", Models.observable(context.model(), "app.clicks"))
+                                new Button("From Java", context.actions().controls()::click).id("compose-java"),
+                                Badge.of("0", Models.observable(context.model().controls(), "app.clicks"))
                                         .id("compose-count")),
                         Attributes.NONE.classes("toolbar")));
     }

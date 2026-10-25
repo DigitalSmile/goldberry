@@ -15,11 +15,11 @@ public record AudioChapter(GalleryContext context) implements Widget.Stateless {
 
     @Override
     public Widget build(BuildContext buildContext) {
-        var model = context.model();
+        var players = context.model().media();
         return new MediaWall(
                 MediaKind.AUDIO,
-                model.audioPlayer(),
-                model.javaPcmDecoder(),
+                players.audioPlayer(),
+                players.javaPcmDecoder(),
                 context.documents().document("audio.kdl"));
     }
 }

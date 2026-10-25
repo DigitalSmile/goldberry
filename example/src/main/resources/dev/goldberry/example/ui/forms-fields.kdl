@@ -3,8 +3,8 @@
 // All of it is markup. A field holds its own text, caret and undo stack, so a
 // wall of them needs no more wiring than a wall of cards; the ones that are wired
 // are wired the way a real form is, `bind=` down and `change=` back up, to the
-// paths `ShowcaseModel` registers. The two objects a form names, its controller
-// and a validator, are in the model's `Named` registry.
+// paths `FormsModel` and `PickersModel` register. The two objects a form names,
+// its controller and a validator, are in the model's `Named` registry.
 //
 // The root is the wall's masonry, whose column width the screen keeps. The one
 // card the screen adds in Java is the `field` card, whose required field needs a

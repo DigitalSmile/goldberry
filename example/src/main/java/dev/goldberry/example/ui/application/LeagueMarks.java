@@ -44,8 +44,8 @@ public record LeagueMarks(GalleryContext context) implements Widget.Stateful {
 
         @Override
         protected void initState() {
-            watching =
-                    Models.observable(widget().context().model(), "app.clicks").subscribe(value -> setState(() -> {}));
+            watching = Models.observable(widget().context().model().controls(), "app.clicks")
+                    .subscribe(value -> setState(() -> {}));
         }
 
         /// The value outlives this widget, so a listener left on it would keep a
@@ -58,7 +58,7 @@ public record LeagueMarks(GalleryContext context) implements Widget.Stateful {
         @Override
         public Widget build(BuildContext context) {
             var app = widget().context();
-            var walked = app.model().clicks();
+            var walked = app.model().controls().clicks();
             var marks = new ArrayList<Widget>(MOST + 1);
             for (var league = 1; league <= Math.min(walked, MOST); league++) {
                 marks.add(new Badge(String.valueOf(league)).keyed(league));
@@ -74,8 +74,13 @@ public record LeagueMarks(GalleryContext context) implements Widget.Stateful {
                             new Row(marks, Attributes.NONE.id("league-marks").classes("league-marks")),
                             new Row(
                                     List.of(
-                                            new Button("March a league", app.actions()::click).id("marks-add"),
-                                            new Button("Turn back", app.actions()::undo)
+                                            new Button(
+                                                            "March a league",
+                                                            app.actions().controls()::click)
+                                                    .id("marks-add"),
+                                            new Button(
+                                                            "Turn back",
+                                                            app.actions().controls()::undo)
                                                     .disabled(walked == 0)
                                                     .id("marks-undo")),
                                     Attributes.NONE.classes("toolbar"))),

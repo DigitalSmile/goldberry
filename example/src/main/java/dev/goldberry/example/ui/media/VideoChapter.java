@@ -17,7 +17,7 @@ public record VideoChapter(GalleryContext context) implements Widget.Stateless {
     public Widget build(BuildContext buildContext) {
         return new MediaWall(
                 MediaKind.VIDEO,
-                context.model().videoPlayer(),
+                context.model().media().videoPlayer(),
                 null,
                 context.documents().document("video.kdl"));
     }

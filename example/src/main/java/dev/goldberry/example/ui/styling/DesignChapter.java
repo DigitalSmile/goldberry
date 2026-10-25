@@ -34,7 +34,7 @@ public record DesignChapter(GalleryContext context) implements Widget.Stateless 
                 List.of(
                         DesignCards.principles(),
                         TokenCards.palette(),
-                        TokenCards.aliases(context.actions()),
+                        TokenCards.aliases(context.actions().appearance()),
                         TokenCards.spacing(),
                         TokenCards.type(),
                         TokenCards.shape(),
@@ -43,8 +43,9 @@ public record DesignChapter(GalleryContext context) implements Widget.Stateless 
                         DesignCards.states(),
                         DesignCards.focus(),
                         DesignCards.keyboard(),
-                        DesignCards.density(context.model(), context.actions()),
-                        DesignCards.scrollbars(context.actions()),
+                        DesignCards.density(
+                                context.model().appearance(), context.actions().appearance()),
+                        DesignCards.scrollbars(context.actions().appearance()),
                         DesignCards.metrics(),
                         DesignCards.accessibility(),
                         DesignCards.governance()));

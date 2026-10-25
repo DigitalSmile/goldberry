@@ -3,8 +3,8 @@ package dev.goldberry.example.ui.styling;
 import java.util.ArrayList;
 import java.util.List;
 
-import dev.goldberry.example.ShowcaseModel;
 import dev.goldberry.example.docs.DocLink;
+import dev.goldberry.example.model.appearance.AppearanceModel;
 import dev.goldberry.example.ui.gallery.ShowcaseCard;
 import dev.goldberry.widget.Widget;
 import dev.goldberry.widget.attr.Attributes;
@@ -75,7 +75,7 @@ final class TokenCards {
                 List.of(Demo.caption(name), Demo.row(id, swatches)), Attributes.NONE.classes("styling-column"));
     }
 
-    static Widget aliases(ShowcaseModel.Actions actions) {
+    static Widget aliases(AppearanceModel.Actions actions) {
         var swatches = new ArrayList<Widget>(ALIASES.size());
         for (var alias : ALIASES) {
             swatches.add(Demo.swatch(alias, "alias-" + alias));

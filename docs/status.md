@@ -1582,6 +1582,17 @@ window, so it was built with M3's overlays and is written up there.
   row printed `style()`, and the over-budget golden came out with `style 4.80 /
   9.60 / 38.40 ms` drawn as though it were fine
   ([ADR-0154](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0154-a-reading-is-a-range.md))
+- **The showcase's model is a slice per part of the window** (2026-10-25,
+  ADR-0665, parked in `docs/snapshot/adr/`). `ShowcaseModel` had reached 1,192
+  lines — 44 bound values and 56 action methods in one class that every screen took
+  whole. It is eight `@Model` slices now, one package each under
+  `dev.goldberry.example.model` (`shell`, `appearance`, `controls`, `forms`,
+  `pickers`, `documents`, `navigation`, `sheets`), each with its `Actions` record
+  nested, and `ShowcaseModel`/`ShowcaseActions` are records of them; the players
+  are `ShowcasePlayers`. No path changed, so no document did: `Wiring.of` merges
+  the slices and refuses a name claimed twice. A card takes the slice it uses.
+  `ShowcaseModelTest` and a test per slice hold the split, including the
+  `opens` line each slice's package needs on the module path
 
 ## M3 — Shell
 

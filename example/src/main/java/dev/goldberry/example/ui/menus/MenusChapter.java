@@ -48,6 +48,7 @@ public record MenusChapter(GalleryContext context) implements Widget.Stateless {
                         new RowMenuCard(),
                         new AcceleratorsCard(),
                         MAC.reference(),
-                        new TrayCard(context.model(), context.actions())));
+                        new TrayCard(
+                                context.model().appearance(), context.actions().appearance())));
     }
 }

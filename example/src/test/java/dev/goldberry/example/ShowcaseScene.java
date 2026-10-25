@@ -8,6 +8,8 @@ import java.util.Set;
 import dev.goldberry.assets.BundledFont;
 import dev.goldberry.css.Stylesheet;
 import dev.goldberry.css.Theme;
+import dev.goldberry.example.model.ShowcaseActions;
+import dev.goldberry.example.model.ShowcaseModel;
 import dev.goldberry.example.ui.AppMenu;
 import dev.goldberry.example.ui.Screen;
 import dev.goldberry.html.view.HtmlStyles;
@@ -46,19 +48,11 @@ public final class ShowcaseScene implements AutoCloseable {
             Set.copyOf(EnumSet.complementOf(EnumSet.of(Capability.WEB_VIEW)));
 
     private final Showcase showcase = new Showcase();
-    private final ShowcaseModel model = modelOf(ShowcaseModel.class);
-    private final ShowcaseModel.Actions actions = modelOf(ShowcaseModel.Actions.class);
+    private final ShowcaseModel model = showcase.model();
+    private final ShowcaseActions actions = showcase.actions();
     private final Icon palette = Icon.bundled("palette", 16);
     private final Icon plus = Icon.bundled("plus", 16);
     private final Font font = Font.bundled(BundledFont.UI, 13);
-
-    private <T> T modelOf(Class<T> type) {
-        return showcase.models().stream()
-                .filter(type::isInstance)
-                .map(type::cast)
-                .findFirst()
-                .orElseThrow();
-    }
 
     /// The application's values.
     public ShowcaseModel model() {
@@ -66,13 +60,13 @@ public final class ShowcaseScene implements AutoCloseable {
     }
 
     /// What the application's controls ask for.
-    public ShowcaseModel.Actions actions() {
+    public ShowcaseActions actions() {
         return actions;
     }
 
     /// The whole window, switched to `screen`.
     public Widget root(String screen) {
-        actions.pickScreen(screen);
+        actions.shell().pickScreen(screen);
 
         var inflater = Widgets.inflater(
                 // The objects the Forms document names, so this image is the
@@ -97,7 +91,8 @@ public final class ShowcaseScene implements AutoCloseable {
 
     /// The stylesheets the window loads for `theme`, at the model's density.
     public List<Stylesheet> stylesheets(Theme theme) {
-        var sheets = new ArrayList<Stylesheet>(Controls.stylesheets(theme, model.density()));
+        var sheets = new ArrayList<Stylesheet>(
+                Controls.stylesheets(theme, model.appearance().density()));
         // The optional module's rules, exactly as `Showcase.stylesheets()` adds
         // them: the Panels wall holds a `markdown-view`, and a golden taken without
         // these would be a picture of a document the application never draws.
@@ -106,7 +101,7 @@ public final class ShowcaseScene implements AutoCloseable {
         sheets.add(HtmlStyles.stylesheet());
         sheets.add(MediaStyles.stylesheet());
         sheets.addAll(ShowcaseStyles.sheets());
-        sheets.add(model.readingSize().stylesheet());
+        sheets.add(model.shell().readingSize().stylesheet());
         return sheets;
     }
 

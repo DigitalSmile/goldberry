@@ -3,8 +3,8 @@ package dev.goldberry.example.ui.styling;
 import java.util.ArrayList;
 import java.util.List;
 
-import dev.goldberry.example.ShowcaseModel;
 import dev.goldberry.example.docs.DocLink;
+import dev.goldberry.example.model.appearance.AppearanceModel;
 import dev.goldberry.example.ui.gallery.ShowcaseCard;
 import dev.goldberry.icon.Icon;
 import dev.goldberry.input.key.Key;
@@ -157,7 +157,7 @@ final class DesignCards {
                         new Live.Check("Space ticks me, Enter does not", false, "keyboard-check"));
     }
 
-    static Widget density(ShowcaseModel model, ShowcaseModel.Actions actions) {
+    static Widget density(AppearanceModel model, AppearanceModel.Actions actions) {
         return new ShowcaseCard(
                         "design-density",
                         "Density",
@@ -177,7 +177,7 @@ final class DesignCards {
                                 Attributes.NONE.id("density-now").classes("caption")));
     }
 
-    static Widget scrollbars(ShowcaseModel.Actions actions) {
+    static Widget scrollbars(AppearanceModel.Actions actions) {
         var stops = new ArrayList<Widget>();
         for (var stop : List.of(
                 "Hobbiton",

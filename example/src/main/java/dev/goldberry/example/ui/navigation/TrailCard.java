@@ -5,8 +5,8 @@ import java.util.List;
 
 import dev.goldberry.bind.Subscription;
 import dev.goldberry.bind.runtime.Models;
-import dev.goldberry.example.ShowcaseModel;
 import dev.goldberry.example.docs.DocLink;
+import dev.goldberry.example.model.navigation.NavigationModel;
 import dev.goldberry.example.ui.gallery.ShowcaseCard;
 import dev.goldberry.widget.BuildContext;
 import dev.goldberry.widget.State;
@@ -30,7 +30,7 @@ import dev.goldberry.widgets.nav.breadcrumbs.Crumb;
 ///
 /// @param model   where the path is
 /// @param actions what a crumb and Go deeper ask for
-record TrailCard(ShowcaseModel model, ShowcaseModel.Actions actions) implements Widget.Stateful {
+record TrailCard(NavigationModel model, NavigationModel.Actions actions) implements Widget.Stateful {
 
     private static final ShowcaseCard CARD = new ShowcaseCard(
             "trail-card",

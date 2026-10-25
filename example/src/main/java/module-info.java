@@ -86,6 +86,18 @@ module dev.goldberry.example {
     /// line is the cost of not having to run a build step.
     opens dev.goldberry.example to dev.goldberry.core;
 
+    /// The model's slices, one package each, for the same reflective binder:
+    /// a package that holds a `@Model` and is not open to `:core` binds in a
+    /// woven build and fails in a jar.
+    opens dev.goldberry.example.model.appearance to dev.goldberry.core;
+    opens dev.goldberry.example.model.controls to dev.goldberry.core;
+    opens dev.goldberry.example.model.documents to dev.goldberry.core;
+    opens dev.goldberry.example.model.forms to dev.goldberry.core;
+    opens dev.goldberry.example.model.navigation to dev.goldberry.core;
+    opens dev.goldberry.example.model.pickers to dev.goldberry.core;
+    opens dev.goldberry.example.model.sheets to dev.goldberry.core;
+    opens dev.goldberry.example.model.shell to dev.goldberry.core;
+
     /// And the same for the panes' documents and the Canvas screen's sample
     /// image — one `opens` per package that keeps a resource, which is the
     /// granularity JPMS works at.

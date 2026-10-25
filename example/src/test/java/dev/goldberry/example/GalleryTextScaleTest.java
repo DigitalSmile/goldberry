@@ -15,6 +15,8 @@ import org.junit.jupiter.api.TestFactory;
 import dev.goldberry.RendererRequirement;
 import dev.goldberry.css.Stylesheet;
 import dev.goldberry.css.Theme;
+import dev.goldberry.example.model.ShowcaseActions;
+import dev.goldberry.example.model.ShowcaseModel;
 import dev.goldberry.example.ui.AppMenu;
 import dev.goldberry.example.ui.Screen;
 import dev.goldberry.example.ui.gallery.Gallery;
@@ -70,7 +72,7 @@ class GalleryTextScaleTest {
 
     private Showcase showcase;
     private ShowcaseModel model;
-    private ShowcaseModel.Actions actions;
+    private ShowcaseActions actions;
     private Icon palette;
     private Icon plus;
     private Fonts fonts;
@@ -79,8 +81,8 @@ class GalleryTextScaleTest {
     void setUp() {
         RendererRequirement.enforce();
         showcase = new Showcase();
-        model = modelOf(ShowcaseModel.class);
-        actions = modelOf(ShowcaseModel.Actions.class);
+        model = showcase.model();
+        actions = showcase.actions();
         palette = Icon.bundled("palette", 16);
         plus = Icon.bundled("plus", 16);
         // A book, and the whole test depends on it being one: `textScale` is
@@ -105,19 +107,11 @@ class GalleryTextScaleTest {
         }
     }
 
-    private <T> T modelOf(Class<T> type) {
-        return showcase.models().stream()
-                .filter(type::isInstance)
-                .map(type::cast)
-                .findFirst()
-                .orElseThrow();
-    }
-
     /// The application's own objects, built fresh per layout: a tree is mounted
     /// and unmounted inside an audit, so the 100% run and the 150% run cannot
     /// share one.
     private Widget screenOf(String screen) {
-        actions.pickScreen(screen);
+        actions.shell().pickScreen(screen);
         var inflater = Widgets.inflater(
                 model.named(),
                 Icons.strict().bind("palette", palette).bind("plus", plus),
@@ -139,7 +133,8 @@ class GalleryTextScaleTest {
     /// the cascade the application runs rather than a subset of it: the optional
     /// modules' sheets, `showcase.css` and every screen package's own sheet.
     private List<Stylesheet> sheets() {
-        var all = new ArrayList<Stylesheet>(Controls.stylesheets(Theme.NORD_DARK, model.density()));
+        var all = new ArrayList<Stylesheet>(
+                Controls.stylesheets(Theme.NORD_DARK, model.appearance().density()));
         all.add(MarkdownStyles.stylesheet());
         all.add(HtmlStyles.stylesheet());
         all.add(MediaStyles.stylesheet());
