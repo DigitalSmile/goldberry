@@ -463,8 +463,8 @@ The items, each "done" when built, tested and green here:
         a GPU that decodes AV1.
   - [x] The provider registered (`module-info`, `META-INF/services`), the
         Vulkan downcalls in the native image's foreign metadata.
-- [ ] Media Foundation on by default (after its CI lane): fixed and required by
-      the Windows lane, on by default once that is green; see "Media
+- [x] Media Foundation on by default (after its CI lane): fixed, green on the
+      Windows lane in Snapshot #75, on by default since; see "Media
       Foundation" at the end of this log
 - [x] `media.yml`, `publish.yml` and the sanitizer job green on the runners:
       Snapshot #74 on a1326bed, 2026-10-25
@@ -560,10 +560,21 @@ the transform's reused output sample kept its buffer's length, so the second
       and `-Pgoldberry.platform.required=true`; the switch is forwarded to the
       test JVM. Green here (290 platform tests on Linux, build-logic), which
       runs none of the Windows decoders.
-- [ ] The Windows `:media` job green with them, after the next push.
-- [ ] Then the switch defaults to on (`MediaFoundation.enabled()`, the
-      `PlatformDecoders` table, `WindowsRequirement`, the guide's media page
-      and limitations row, parked) and ADR-0664 says the hold-back is over.
+- [x] The Windows `:media` job green with them: Snapshot #75 on 54c7e1e5.
+      H.264 bit-exact on all four clips with the crop, colour and a flush, AAC
+      tone, timing, 5.1 and flush, the claims, and an H.264 and AAC file
+      through `ServiceLoader`; HEVC, AC-3 and E-AC-3 skipped, Windows Server
+      having none of their decoders.
+- [x] The switch defaults to on: `MediaFoundation.enabled()` unless
+      `-Dgoldberry.media.mediaFoundation=false`, which refuses them before a
+      library is opened; the `PlatformDecoders` table, `WindowsRequirement`,
+      `ProvidersTest` (`onByDefault`), the Windows job without the switch; the
+      guide's two rows parked in `docs/snapshot/components-media-foundation.md`;
+      ADR-0664 supersedes ADR-0520.
+
+Every item of phases 4 and 5 is done. Left, and not this plan's: AV1 on Vulkan
+Video has decoded no picture (no GPU here decodes AV1), and `:media:gpuTest`
+is not on CI (lavapipe misses 8 SDR parity cases by 3 levels against 2).
 
 Cleaned up beside it: the `goldberry.media.ffmpegLibdir` wiring in
 `media/build.gradle` (nothing read it since the bindings went), a comment on

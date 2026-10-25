@@ -134,15 +134,26 @@ class ProvidersTest {
     }
 
     @Test
-    @DisplayName("on Windows they are held back unless switched on, and refused before a library is opened")
-    void heldBackUnlessSwitchedOn() {
+    @DisplayName("on Windows, turned off, they are refused before a library is opened")
+    void refusedWhenTurnedOff() {
         var state =
                 assertInstanceOf(MediaFoundation.State.Unavailable.class, MediaFoundation.load("Windows 11", false));
         assertAll(
-                () -> assertTrue(state.reason().contains("held back"), state.reason()),
+                () -> assertTrue(state.reason().contains("turned off"), state.reason()),
                 () -> assertTrue(
-                        state.reason().contains("-D" + MediaFoundation.ENABLE_PROPERTY + "=true"), state.reason()),
+                        state.reason().contains("-D" + MediaFoundation.ENABLE_PROPERTY + "=false"), state.reason()),
                 () -> assertTrue(state.reason().contains("Windows"), state.reason()));
+    }
+
+    @Test
+    @DisplayName("they are on by default, and off only for false")
+    void onByDefault() {
+        assertAll(
+                () -> assertTrue(MediaFoundation.enabled(null), "unset"),
+                () -> assertTrue(MediaFoundation.enabled("true")),
+                () -> assertTrue(MediaFoundation.enabled("")),
+                () -> assertFalse(MediaFoundation.enabled("false")),
+                () -> assertFalse(MediaFoundation.enabled(" FALSE ")));
     }
 
     @Test

@@ -6,6 +6,7 @@ import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 
 import dev.goldberry.log.Logs;
@@ -19,11 +20,10 @@ import dev.goldberry.log.Logs;
 /// Media Feature Pack is installed), the state is [State.Unavailable] and every
 /// provider supports nothing.
 ///
-/// **Off unless asked for.** The decoders have not yet passed their tests on a
-/// Windows machine, so they are held back: on Windows too the state is
-/// [State.Unavailable] until `-Dgoldberry.media.mediaFoundation=true`
-/// ([#ENABLE_PROPERTY]) turns them on. Without them, Windows plays what the
-/// built-in decoders decode.
+/// **On unless turned off.** `-Dgoldberry.media.mediaFoundation=false`
+/// ([#ENABLE_PROPERTY]) turns the decoders off: on Windows too the state is then
+/// [State.Unavailable], refused before a library is opened, and Windows plays
+/// what the built-in decoders decode.
 ///
 /// COM has to be initialised on every thread that calls into it, and a decoder
 /// is opened on one thread and used on another: [#enterThread] does it, once
@@ -71,13 +71,19 @@ record MediaFoundation(MfPlat mfplat, Ole32 ole32) {
         return osName.toLowerCase(Locale.ROOT).startsWith("windows");
     }
 
-    /// The system property that turns the decoders on: they are held back until
-    /// they have passed their tests on a Windows machine.
+    /// The system property that turns the decoders off, set to `false`.
     static final String ENABLE_PROPERTY = "goldberry.media.mediaFoundation";
 
-    /// Whether [#ENABLE_PROPERTY] turns the decoders on in this process.
+    /// Whether the decoders are on in this process: unless [#ENABLE_PROPERTY]
+    /// says `false`.
     static boolean enabled() {
-        return Boolean.getBoolean(ENABLE_PROPERTY);
+        return enabled(System.getProperty(ENABLE_PROPERTY));
+    }
+
+    /// Whether `value`, the property's, leaves the decoders on: anything but
+    /// `false`, in any case, unset included.
+    static boolean enabled(@Nullable String value) {
+        return value == null || !value.strip().equalsIgnoreCase("false");
     }
 
     /// Opens the libraries and starts Media Foundation. Package-private for the
@@ -93,8 +99,8 @@ record MediaFoundation(MfPlat mfplat, Ole32 ole32) {
             return new State.Unavailable("the Media Foundation decoders are Windows's, and this is " + osName);
         }
         if (!enabled) {
-            return new State.Unavailable("the Media Foundation decoders are held back on Windows in this release; -D"
-                    + ENABLE_PROPERTY + "=true turns them on");
+            return new State.Unavailable(
+                    "the Media Foundation decoders are turned off on Windows by -D" + ENABLE_PROPERTY + "=false");
         }
         try {
             var ole32 = new Ole32(WindowsLibrary.OLE32.open());

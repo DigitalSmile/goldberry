@@ -36,12 +36,13 @@ import dev.goldberry.media.platform.windows.WindowsDecoders;
 /// | `audiotoolbox` | AAC (LC, HE, HEv2), AC-3, E-AC-3 | macOS |
 /// | `gstreamer-video` | H.264, HEVC (8- and 10-bit 4:2:0), with the decoders installed | Linux |
 /// | `gstreamer-audio` | AAC, AC-3, E-AC-3, with the decoders installed | Linux |
-/// | `mediafoundation-video` | H.264, HEVC (8- and 10-bit 4:2:0) | Windows, with
-/// `-Dgoldberry.media.mediaFoundation=true` |
-/// | `mediafoundation-audio` | AAC, AC-3, E-AC-3 | Windows, with `-Dgoldberry.media.mediaFoundation=true` |
+/// | `mediafoundation-video` | H.264, HEVC (8- and 10-bit 4:2:0), HEVC with the HEVC Video Extensions | Windows |
+/// | `mediafoundation-audio` | AAC, AC-3, E-AC-3, where Windows has their decoders | Windows |
 ///
-/// The Windows providers are held back in this release, off unless the property
-/// turns them on; without it a Windows track in these codecs fails as above.
+/// `-Dgoldberry.media.mediaFoundation=false` turns the Windows providers off;
+/// a Windows track in these codecs then fails as below. Windows Server has no
+/// HEVC, AC-3 or E-AC-3 decoder, and a provider claims only what the system
+/// decodes.
 ///
 /// Each provider supports nothing on another system, so a file in one of these
 /// codecs fails there with `UNSUPPORTED_CODEC` naming it, as it would with no

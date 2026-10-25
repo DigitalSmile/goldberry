@@ -366,9 +366,9 @@ closed as decisions under [Answered](#answered).
   `windows-x64` after four fixes. What is left is a hardware path no runner has.
   D3D11VA is on by default on Windows, and the Windows runner has no GPU, so
   it has only ever fallen back. VAAPI is off by default on Linux, on purpose,
-  because it makes `libavutil` link `libva`. The Media Foundation decoders are
-  held back from Windows
-  ([ADR-0520](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0520-media-foundation-is-held-back-from-2026-2.md)). —
+  because it makes `libavutil` link `libva`. The Media Foundation decoders, on
+  by default since 2026-10-25 (ADR-0664, parked), are the synchronous software
+  transforms, with no Direct3D device handed to them. —
   [ADR-0486](https://github.com/DigitalSmile/goldberry/blob/master/book/src/adr/0486-ffmpeg-and-dav1d-are-built-at-o2-to-fit-the-size-gate.md),
   `docs/media-plan.md`
 ## The native build and its bindings

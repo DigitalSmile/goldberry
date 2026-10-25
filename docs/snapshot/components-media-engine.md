@@ -59,6 +59,9 @@ and in the module table the row `| `:media` | `goldberry-media` and
 
 ## `book/src/overview/limitations.md`, the Windows codecs row
 
+Superseded: `components-media-foundation.md` replaces the whole row, this
+sentence included.
+
 The sentence "VP8, VP9, AV1, Opus, Vorbis, FLAC and MP3 play everywhere
 through FFmpeg" becomes "VP8, VP9, AV1, Opus, Vorbis, FLAC and MP3 play
 everywhere through the built-in decoders".

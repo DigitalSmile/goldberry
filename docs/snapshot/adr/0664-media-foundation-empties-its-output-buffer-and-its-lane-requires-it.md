@@ -1,6 +1,6 @@
 # ADR-0664: Media Foundation empties its output buffer, and its lane requires it
 
-- **Status:** Accepted; the default changes when the Windows lane is green (below)
+- **Status:** Accepted; supersedes ADR-0520
 - **Date:** 2026-10-25
 - **Relates to:** ADR-0520 (Media Foundation is held back from 2026.2), ADR-0489 (GStreamer and Media Foundation), ADR-0651 (FFmpeg leaves goldberry-media)
 
@@ -58,9 +58,23 @@ job turns the decoders on and requires them.**
   (forwarded to the test JVM like the `required` switches, and held there by
   `ForwardedPropertiesTest`) and `-Pgoldberry.platform.required=true`, so
   a decoder that cannot bind fails instead of skipping.
-- **When that job is green, the switch defaults to on**, ADR-0520's
-  hold-back ends, and this record says so. Until then the decoders stay off
-  unless asked for, as ADR-0520 decided.
+- **When that job is green, the switch defaults to on**, and ADR-0520's
+  hold-back ends.
+
+## Outcome
+
+Snapshot #75 (54c7e1e5, 2026-10-25) ran the Windows `:media` job with the
+decoders on and required, and it was green: H.264 matched FFmpeg's `framemd5`
+byte for byte on all four clips, with the crop, the colour and a flush;
+AAC's tone, timing, 5.1 order and flush passed; the claim test and an H.264
+and AAC file through `ServiceLoader` passed. HEVC, AC-3 and E-AC-3 skipped,
+Windows Server having none of their decoders. So the buffer was the fault, and
+the one fault.
+
+The switch now defaults to on: `MediaFoundation.enabled()` is true unless
+`-Dgoldberry.media.mediaFoundation=false`, which turns the decoders off and
+refuses them before a library is opened, as the hold-back did. The Windows job
+needs no switch and still requires them.
 
 ## Alternatives
 
