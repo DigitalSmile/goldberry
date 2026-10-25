@@ -521,5 +521,14 @@ of its own, so the `:media` job never ran:
       ADR-0662 (parked) says so; `StagedPlanesLayoutTest` holds the layout
       both ways. The row-at-a-time path was run here on Vulkan with the
       answer forced false.
+- [x] **Snapshot #73 on af34b92f**: the library built on all four targets,
+      the sanitizer job and Qodana #77 were green, and macOS's `:gpu:gpuTest`
+      passed with the row-at-a-time uploads. The `:media` job failed on all four
+      before any test ran: `nativesJar<host>` packaged the superbuild's install
+      directory, which `-Pgoldberry.skipNative` leaves empty, while the tests
+      read the runner's build from `-Pgoldberry.media.libdir`. The host's jar
+      now packages the library the tests load. And `testNativesJar` had run no
+      test since `NativesJarTest` left with FFmpeg: `ffm.MediaNativesJarTest`
+      loads the library from the jar, decodes, and finds the notices.
 - [ ] The next run: the `:media` job on four targets is the first time the
       tests meet each target's library.

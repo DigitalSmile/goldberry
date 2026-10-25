@@ -239,10 +239,16 @@ registerSuperbuild('Asan', " with -fsanitize=${sanitizers}", asanWorkDir, asanIn
 // media-NOTICE.txt under META-INF/, beside the licence texts every Goldberry
 // jar carries.
 //
-// One task per target, as `:natives` has. The host's reads the superbuild's
-// install directory; any target reads `-Pgoldberry.media.artifactsDir=<dir>/<id>`
+// One task per target, as `:natives` has. The host's reads the library the
+// tests load (below); any target reads `-Pgoldberry.media.artifactsDir=<dir>/<id>`
 // when CI hands over what every runner built.
 // ============================================================================
+// The library the tests load, and the host's natives jar packages: the one
+// -Pgoldberry.media.libdir names (CI hands over a runner's build that way, with
+// nothing built here), else the superbuild's.
+def libraryDirectory = providers.systemProperty('goldberry.media.libdir')
+        .orElse(providers.gradleProperty('goldberry.media.libdir'))
+        .orElse(superbuildInstallDir.map { it.dir('lib').asFile.absolutePath })
 def mediaTargets = NativeTarget.ALL.collect { it.id() }
 def mediaArtifactsDir = providers.gradleProperty('goldberry.media.artifactsDir').map { file(it) }
 def taskSuffix = { String id -> id.split('-').collect { it.capitalize() }.join('') }
@@ -259,7 +265,7 @@ mediaTargets.each { target ->
 
         def sourceDir = mediaArtifactsDir.isPresent()
                 ? mediaArtifactsDir.map { new File(it, target) }
-                : (target == hostTargetId ? superbuildInstallDir.map { it.dir('lib').asFile } : null)
+                : (target == hostTargetId ? libraryDirectory.map { file(it) } : null)
 
         if (sourceDir != null) {
             from(sourceDir) {
@@ -364,9 +370,6 @@ tasks.register('cleanMediaDeps', Delete) {
 // purpose is to verify it, since a verification that skips is a green tick over
 // nothing.
 // ============================================================================
-def libraryDirectory = providers.systemProperty('goldberry.media.libdir')
-        .orElse(providers.gradleProperty('goldberry.media.libdir'))
-        .orElse(superbuildInstallDir.map { it.dir('lib').asFile.absolutePath })
 def asanLibraryDirectory = providers.gradleProperty('goldberry.media.asanLibdir')
         .orElse(asanInstallDir.map { it.dir('lib').asFile.absolutePath })
 
