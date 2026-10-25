@@ -531,7 +531,7 @@ final class FrameHeaderReader {
         var latest = 0;
         for (var i = 0; i < NUM_REF_FRAMES; i++) {
             var hint = shifted[i];
-            if (!used[i] && (backward ? hint >= curFrameHint : hint < curFrameHint) && (ref < 0 || hint >= latest)) {
+            if (!used[i] && backward == (hint >= curFrameHint) && (ref < 0 || hint >= latest)) {
                 ref = i;
                 latest = hint;
             }
@@ -924,17 +924,18 @@ final class FrameHeaderReader {
 
     /// `read_global_param()` (§5.9.25).
     private int globalParam(int type, int ref, int idx, GlobalMotion previous, boolean allowHighPrecisionMv) {
-        var absBits = GM_ABS_ALPHA_BITS;
-        var precBits = GM_ALPHA_PREC_BITS;
-        if (idx < 2) {
-            if (type == GlobalMotion.TRANSLATION) {
-                var low = allowHighPrecisionMv ? 0 : 1;
-                absBits = GM_ABS_TRANS_ONLY_BITS - low;
-                precBits = GM_TRANS_ONLY_PREC_BITS - low;
-            } else {
-                absBits = GM_ABS_TRANS_BITS;
-                precBits = GM_TRANS_PREC_BITS;
-            }
+        int absBits;
+        int precBits;
+        if (idx < 2 && type == GlobalMotion.TRANSLATION) {
+            var low = allowHighPrecisionMv ? 0 : 1;
+            absBits = GM_ABS_TRANS_ONLY_BITS - low;
+            precBits = GM_TRANS_ONLY_PREC_BITS - low;
+        } else if (idx < 2) {
+            absBits = GM_ABS_TRANS_BITS;
+            precBits = GM_TRANS_PREC_BITS;
+        } else {
+            absBits = GM_ABS_ALPHA_BITS;
+            precBits = GM_ALPHA_PREC_BITS;
         }
         var precDiff = GlobalMotion.WARPEDMODEL_PREC_BITS - precBits;
         var round = idx % 3 == 2 ? 1 << GlobalMotion.WARPEDMODEL_PREC_BITS : 0;

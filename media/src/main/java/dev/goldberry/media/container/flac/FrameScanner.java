@@ -142,9 +142,7 @@ final class FrameScanner {
     private boolean ensure(int end) {
         while (windowEnd < end && !ended) {
             if (end > window.length) {
-                if (end > window.length) {
-                    window = Arrays.copyOf(window, Math.max(window.length * 2, end));
-                }
+                window = Arrays.copyOf(window, Math.max(window.length * 2, end));
             }
             var room = window.length - windowEnd;
             var count = Math.min(room, CHUNK);

@@ -1,7 +1,6 @@
 package dev.goldberry.media.decoder.av1;
 
 import static java.lang.foreign.MemoryLayout.PathElement.groupElement;
-import static java.lang.foreign.MemoryLayout.PathElement.sequenceElement;
 import static java.lang.foreign.ValueLayout.ADDRESS;
 import static java.lang.foreign.ValueLayout.JAVA_BYTE;
 import static java.lang.foreign.ValueLayout.JAVA_INT;
@@ -348,11 +347,5 @@ public final class Dav1dDecoder implements Decoder {
                                 ? "a frame past the largest picture decoded, " + PictureLimit.MAX_PIXELS + " pixels"
                                 : "error " + result;
         return new MediaException(new MediaError.InvalidData(function + ": " + reason));
-    }
-
-    /// Where a sequence's picture data starts for `index`, for a test that
-    /// checks the layout arithmetic.
-    static long dataOffset(int index) {
-        return NativeStructs.DAV1D_PICTURE.byteOffset(groupElement("data"), sequenceElement(index));
     }
 }

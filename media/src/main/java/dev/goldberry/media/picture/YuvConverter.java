@@ -264,7 +264,7 @@ public final class YuvConverter implements AutoCloseable {
     /// The stride of `plane` as libyuv counts it: bytes for an 8-bit plane, and
     /// 16-bit samples for a 16-bit one, since libyuv steps a `uint16_t*` by it.
     private static int stride(VideoFrame frame, int plane) {
-        var stride = frame.strides().get(plane);
+        int stride = frame.strides().get(plane);
         if (frame.format().bytesPerSample() == 1) {
             return stride;
         }

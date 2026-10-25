@@ -185,7 +185,10 @@ class VideoLayerTest {
             layer.show(uniform(PlaneLayout.NV12, ColorMatrix.BT709, false, codes));
             readBack(layer, WIDTH, HEIGHT);
             var planes = staging.obtain(PlaneLayout.NV12, WIDTH, HEIGHT).orElseThrow();
-            assertEquals(256, planes.stride(0), "rows padded to 256 bytes");
+            assertEquals(
+                    harness.device().uploadsPaddedRows() ? 256 : WIDTH,
+                    planes.stride(0),
+                    "rows padded to 256 bytes where the uploads take them, else packed");
             var writer = Thread.ofPlatform().start(() -> {
                 var luma = planes.plane(0);
                 var chroma = planes.plane(1);

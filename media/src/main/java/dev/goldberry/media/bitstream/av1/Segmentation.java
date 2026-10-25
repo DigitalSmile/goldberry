@@ -25,7 +25,6 @@ public record Segmentation(
     public static final int MAX_SEGMENTS = 8;
     public static final int SEG_LVL_MAX = 8;
     public static final int SEG_LVL_ALT_Q = 0;
-    public static final int SEG_LVL_REF_FRAME = 5;
 
     /// No segmentation, and no features: what `setup_past_independence()`
     /// leaves.
@@ -64,16 +63,5 @@ public record Segmentation(
             }
         }
         return 0;
-    }
-
-    /// `SegIdPreSkip`: whether a feature from the reference frame one on is
-    /// enabled, so that the segment id is read before the skip flag.
-    public boolean segIdPreSkip() {
-        for (var mask : featureEnabled) {
-            if ((mask >> SEG_LVL_REF_FRAME) != 0) {
-                return true;
-            }
-        }
-        return false;
     }
 }

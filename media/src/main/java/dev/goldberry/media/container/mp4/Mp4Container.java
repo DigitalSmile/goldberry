@@ -357,7 +357,7 @@ public final class Mp4Container implements Container {
         var table = tables.get(next.index());
         var sample = cursors[next.index()]++;
         goTo(table.offset(sample));
-        @SuppressWarnings("MustBeClosedChecker")
+        @SuppressWarnings({"MustBeClosedChecker", "resource"})
         var owned = Arena.ofShared();
         var data = in.segment(owned, table.size(sample));
         var dts = table.decodeTime(sample) + next.shift();
@@ -388,7 +388,7 @@ public final class Mp4Container implements Container {
     }
 
     private Packet picturePacket(Picture picture) {
-        @SuppressWarnings("MustBeClosedChecker")
+        @SuppressWarnings({"MustBeClosedChecker", "resource"})
         var owned = Arena.ofShared();
         var data = owned.allocateFrom(ValueLayout.JAVA_BYTE, picture.data());
         return Packet.owning(

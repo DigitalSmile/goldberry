@@ -1,8 +1,5 @@
 package dev.goldberry.media.container.ebml;
 
-import java.lang.foreign.Arena;
-import java.lang.foreign.MemorySegment;
-
 import dev.goldberry.media.MediaError;
 import dev.goldberry.media.MediaException;
 import dev.goldberry.media.container.ByteReader;
@@ -54,21 +51,6 @@ public final class EbmlReader {
 
     public EbmlReader(ByteReader in) {
         this.in = in;
-    }
-
-    /// The bytes under this reader.
-    public ByteReader bytes() {
-        return in;
-    }
-
-    /// Where the next header starts.
-    public long position() {
-        return in.position();
-    }
-
-    /// Whether the stream has no more elements.
-    public boolean atEnd() {
-        return in.atEnd();
     }
 
     /// Reads the next element's header; the stream is then at its payload.
@@ -161,14 +143,6 @@ public final class EbmlReader {
     public byte[] readBytes(Element element) {
         checkScalar(element, Integer.MAX_VALUE);
         return in.bytes((int) element.size());
-    }
-
-    /// The payload of `element`, copied into native memory of `arena`.
-    public MemorySegment readSegment(Element element, Arena arena) {
-        if (!element.sized()) {
-            throw unsized(element);
-        }
-        return in.segment(arena, element.size());
     }
 
     /// Passes over `element`'s payload.

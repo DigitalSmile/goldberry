@@ -501,7 +501,7 @@ public final class MatroskaContainer implements Container {
         }
         // One allocation for the block, shared by its packets: freed when the
         // last of them is closed, on whatever thread that is.
-        @SuppressWarnings("MustBeClosedChecker")
+        @SuppressWarnings({"MustBeClosedChecker", "resource"})
         var shared = Arena.ofShared();
         var remaining = new AtomicInteger(laces);
         Runnable release = () -> {
@@ -547,8 +547,7 @@ public final class MatroskaContainer implements Container {
             return out;
         }
         if (entry.zlib()) {
-            var inflater = new Inflater();
-            try {
+            try (var inflater = new Inflater()) {
                 inflater.setInput(bytes);
                 var out = new ByteArrayOutputStream(bytes.length * 4);
                 var chunk = new byte[8192];
@@ -563,15 +562,13 @@ public final class MatroskaContainer implements Container {
             } catch (DataFormatException e) {
                 throw new MediaException(
                         new MediaError.InvalidData("a zlib-compressed frame that does not inflate"), e);
-            } finally {
-                inflater.end();
             }
         }
         return bytes;
     }
 
     private Packet picturePacket(Picture picture) {
-        @SuppressWarnings("MustBeClosedChecker")
+        @SuppressWarnings({"MustBeClosedChecker", "resource"})
         var owned = Arena.ofShared();
         var data = owned.allocateFrom(ValueLayout.JAVA_BYTE, picture.data());
         return Packet.owning(data, picture.index(), 0, 0, 0, true, timeBase, owned::close);
@@ -1085,7 +1082,8 @@ public final class MatroskaContainer implements Container {
         var gcd = gcd(num, den);
         num /= gcd;
         den /= gcd;
-        if (num > Integer.MAX_VALUE || den > Integer.MAX_VALUE) {
+        // den divides 10⁹, so only num can be out of range.
+        if (num > Integer.MAX_VALUE) {
             throw new MediaException(new MediaError.InvalidData("a TimestampScale of " + scale + " ns"));
         }
         return new Rational((int) num, (int) den);

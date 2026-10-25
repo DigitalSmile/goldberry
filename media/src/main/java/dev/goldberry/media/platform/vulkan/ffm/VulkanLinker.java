@@ -22,7 +22,7 @@ public final class VulkanLinker {
     ///
     /// @throws VulkanException when the loader had none for `name`
     public static MemorySegment require(MemorySegment address, String name) {
-        if (address == null || MemorySegment.NULL.equals(address)) {
+        if (MemorySegment.NULL.equals(address)) {
             throw new VulkanException(name + " is not available from this Vulkan loader or driver");
         }
         return address;

@@ -22,7 +22,6 @@ public record ColorConfig(int bitDepth, int colorSpace, boolean fullRange, int s
     public static final int CS_SMPTE_170 = 3;
     public static final int CS_SMPTE_240 = 4;
     public static final int CS_BT_2020 = 5;
-    public static final int CS_RESERVED = 6;
     public static final int CS_RGB = 7;
 
     /// What an intra-only frame of profile 0 is, which states no colour:

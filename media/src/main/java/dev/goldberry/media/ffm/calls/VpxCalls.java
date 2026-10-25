@@ -15,9 +15,7 @@ import dev.goldberry.media.ffm.NativeTypes;
 /// and the decode deadline are C `long`s, 4 bytes on Windows and 8 elsewhere,
 /// so those two handles take a Java `long` and are adapted to the target's.
 public record VpxCalls(
-        VersionStr versionStr,
         ErrToString errToString,
-        ErrorText errorText,
         ErrorDetail errorDetail,
         Destroy destroy,
         DecInitVer decInitVer,
@@ -33,9 +31,7 @@ public record VpxCalls(
     /// @param lookup the loaded library
     public static VpxCalls bind(SymbolLookup lookup) {
         return new VpxCalls(
-                new VersionStr(lookup),
                 new ErrToString(lookup),
-                new ErrorText(lookup),
                 new ErrorDetail(lookup),
                 new Destroy(lookup),
                 new DecInitVer(lookup),
@@ -43,26 +39,6 @@ public record VpxCalls(
                 new GetFrame(lookup),
                 new Vp8Dx(lookup),
                 new Vp9Dx(lookup));
-    }
-
-    /// `const char *vpx_codec_version_str(void)`
-    public static final class VersionStr {
-
-        private static final MethodHandle FD_vpx_codec_version_str = Downcalls.link(FunctionDescriptor.of(ADDRESS));
-
-        private final MemorySegment address;
-
-        VersionStr(SymbolLookup lookup) {
-            this.address = Downcalls.symbol(lookup, "vpx_codec_version_str");
-        }
-
-        public MemorySegment call() {
-            try {
-                return (MemorySegment) FD_vpx_codec_version_str.invokeExact(address);
-            } catch (Throwable t) {
-                throw Downcalls.failure("vpx_codec_version_str", t);
-            }
-        }
     }
 
     /// `const char *vpx_codec_err_to_string(vpx_codec_err_t err)`
@@ -82,26 +58,6 @@ public record VpxCalls(
                 return (MemorySegment) FD_vpx_codec_err_to_string.invokeExact(address, error);
             } catch (Throwable t) {
                 throw Downcalls.failure("vpx_codec_err_to_string", t);
-            }
-        }
-    }
-
-    /// `const char *vpx_codec_error(const vpx_codec_ctx_t *ctx)`
-    public static final class ErrorText {
-
-        private static final MethodHandle FD_vpx_codec_error = Downcalls.link(FunctionDescriptor.of(ADDRESS, ADDRESS));
-
-        private final MemorySegment address;
-
-        ErrorText(SymbolLookup lookup) {
-            this.address = Downcalls.symbol(lookup, "vpx_codec_error");
-        }
-
-        public MemorySegment call(MemorySegment context) {
-            try {
-                return (MemorySegment) FD_vpx_codec_error.invokeExact(address, context);
-            } catch (Throwable t) {
-                throw Downcalls.failure("vpx_codec_error", t);
             }
         }
     }

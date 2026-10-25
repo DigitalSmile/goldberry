@@ -12,19 +12,16 @@ import dev.goldberry.media.ffm.Downcalls;
 import dev.goldberry.media.ffm.NativeTypes;
 
 /// The functions of dav1d the AV1 decoder calls: opening and closing a context,
-/// the send-data/get-picture loop, wrapping a packet's bytes without a copy, and
-/// releasing what was handed back.
+/// the send-data/get-picture loop, a packet's bytes in a buffer of dav1d's own,
+/// and releasing what was handed back.
 public record Dav1dCalls(
-        Version version,
         DefaultSettings defaultSettings,
         Open open,
         SendData sendData,
         GetPicture getPicture,
         Close close,
         Flush flush,
-        GetFrameDelay getFrameDelay,
         DataCreate dataCreate,
-        DataWrap dataWrap,
         DataUnref dataUnref,
         PictureUnref pictureUnref) {
 
@@ -35,38 +32,15 @@ public record Dav1dCalls(
     /// @param lookup the loaded library
     public static Dav1dCalls bind(SymbolLookup lookup) {
         return new Dav1dCalls(
-                new Version(lookup),
                 new DefaultSettings(lookup),
                 new Open(lookup),
                 new SendData(lookup),
                 new GetPicture(lookup),
                 new Close(lookup),
                 new Flush(lookup),
-                new GetFrameDelay(lookup),
                 new DataCreate(lookup),
-                new DataWrap(lookup),
                 new DataUnref(lookup),
                 new PictureUnref(lookup));
-    }
-
-    /// `const char *dav1d_version(void)`
-    public static final class Version {
-
-        private static final MethodHandle FD_dav1d_version = Downcalls.link(FunctionDescriptor.of(ADDRESS));
-
-        private final MemorySegment address;
-
-        Version(SymbolLookup lookup) {
-            this.address = Downcalls.symbol(lookup, "dav1d_version");
-        }
-
-        public MemorySegment call() {
-            try {
-                return (MemorySegment) FD_dav1d_version.invokeExact(address);
-            } catch (Throwable t) {
-                throw Downcalls.failure("dav1d_version", t);
-            }
-        }
     }
 
     /// `void dav1d_default_settings(Dav1dSettings *s)`
@@ -200,27 +174,6 @@ public record Dav1dCalls(
         }
     }
 
-    /// `int dav1d_get_frame_delay(const Dav1dSettings *s)`
-    public static final class GetFrameDelay {
-
-        private static final MethodHandle FD_dav1d_get_frame_delay =
-                Downcalls.link(FunctionDescriptor.of(JAVA_INT, ADDRESS));
-
-        private final MemorySegment address;
-
-        GetFrameDelay(SymbolLookup lookup) {
-            this.address = Downcalls.symbol(lookup, "dav1d_get_frame_delay");
-        }
-
-        public int call(MemorySegment settings) {
-            try {
-                return (int) FD_dav1d_get_frame_delay.invokeExact(address, settings);
-            } catch (Throwable t) {
-                throw Downcalls.failure("dav1d_get_frame_delay", t);
-            }
-        }
-    }
-
     /// `uint8_t *dav1d_data_create(Dav1dData *data, size_t sz)`
     ///
     /// A buffer of `sz` bytes dav1d owns, which `data` now references; null when out of memory.
@@ -240,29 +193,6 @@ public record Dav1dCalls(
                 return (MemorySegment) FD_dav1d_data_create.invokeExact(address, data, size);
             } catch (Throwable t) {
                 throw Downcalls.failure("dav1d_data_create", t);
-            }
-        }
-    }
-
-    /// `int dav1d_data_wrap(Dav1dData *data, const uint8_t *buf, size_t sz, void
-    /// (*free_callback)(const uint8_t *buf, void *cookie), void *cookie)`
-    public static final class DataWrap {
-
-        private static final MethodHandle FD_dav1d_data_wrap =
-                Downcalls.link(FunctionDescriptor.of(JAVA_INT, ADDRESS, ADDRESS, SIZE_T, ADDRESS, ADDRESS));
-
-        private final MemorySegment address;
-
-        DataWrap(SymbolLookup lookup) {
-            this.address = Downcalls.symbol(lookup, "dav1d_data_wrap");
-        }
-
-        public int call(
-                MemorySegment data, MemorySegment buffer, long size, MemorySegment freeCallback, MemorySegment cookie) {
-            try {
-                return (int) FD_dav1d_data_wrap.invokeExact(address, data, buffer, size, freeCallback, cookie);
-            } catch (Throwable t) {
-                throw Downcalls.failure("dav1d_data_wrap", t);
             }
         }
     }

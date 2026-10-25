@@ -218,7 +218,9 @@ public final class CopyPass {
     /// `source` at byte `offset`, its rows `rowBytes` apart: bytes written
     /// into upload memory elsewhere, recorded with no copy on this thread.
     /// `rowBytes` may be more than a row holds, as a multiple of a texel: rows
-    /// padded to 256 bytes are what Direct3D 12 copies from as they are.
+    /// padded to 256 bytes are what Direct3D 12 copies from as they are. On a
+    /// device that does not [upload padded rows][GpuDevice#uploadsPaddedRows]
+    /// in one go, such rows are recorded one at a time.
     ///
     /// @throws IllegalArgumentException when `destination` is block-compressed
     ///                                  or a depth texture, the rows are

@@ -35,6 +35,11 @@ stays on the device's thread.
   `CopyPass.upload(GpuTexture, UploadBuffer, offset, rowBytes)`, which records
   from it with rows padded (SDL's Direct3D 12 backend realigns unpadded rows
   with a CPU copy of its own; rows are padded to 256 bytes, planes to 512).
+  On Metal the rows are packed instead: SDL's Metal backend reads every
+  upload's rows as packed whatever `pixels_per_row` says (found on the first
+  macOS run, 2026-10-25), so `GpuDevice.uploadsPaddedRows()` answers false
+  there, the staging packs its rows, and a padded upload through the API is
+  recorded a row at a time.
 - `VideoLayer.staging()` is a `PlaneStaging`: a pool of mapped buffers per
   picture shape, `obtain` from any thread without waiting. A shape asked for is
   remembered, and the layer makes eight buffers of it on its next render; a

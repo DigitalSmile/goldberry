@@ -56,11 +56,6 @@ public record VideoCapabilities(
         int format,
         int usage) {
 
-    /// Whether the decoded picture buffer's images can be the output too.
-    public boolean dpbIsOutput() {
-        return (decodeFlags & VkConstants.VK_VIDEO_DECODE_CAPABILITY_DPB_AND_OUTPUT_COINCIDE_BIT_KHR) != 0;
-    }
-
     /// Whether a `width` by `height` picture is within the sizes.
     public boolean fits(int width, int height) {
         return width >= minWidth && height >= minHeight && width <= maxWidth && height <= maxHeight;

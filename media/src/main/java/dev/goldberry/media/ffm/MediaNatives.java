@@ -256,7 +256,8 @@ public final class MediaNatives {
 
     /// The two lookups `NativeLibrary` makes, for the same reason: a class in a
     /// named module searches only its own module, and the natives jar is a
-    /// different one.
+    /// different one. The caller closes the stream.
+    @SuppressWarnings("resource")
     private static @Nullable InputStream open(String resource) {
         var own = MediaNatives.class.getResourceAsStream(resource);
         return own != null ? own : ClassLoader.getSystemResourceAsStream(resource.substring(1));

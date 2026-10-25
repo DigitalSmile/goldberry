@@ -14,7 +14,6 @@ import dev.goldberry.media.ffm.Downcalls;
 /// header packets in, as `ogg_packet`s, then one frame at a time, and the picture
 /// out as three planes the decoder keeps until its next frame.
 public record TheoraCalls(
-        VersionString versionString,
         InfoInit infoInit,
         InfoClear infoClear,
         CommentInit commentInit,
@@ -31,7 +30,6 @@ public record TheoraCalls(
     /// @param lookup the loaded library
     public static TheoraCalls bind(SymbolLookup lookup) {
         return new TheoraCalls(
-                new VersionString(lookup),
                 new InfoInit(lookup),
                 new InfoClear(lookup),
                 new CommentInit(lookup),
@@ -42,26 +40,6 @@ public record TheoraCalls(
                 new DecodePacketin(lookup),
                 new DecodeYcbcrOut(lookup),
                 new DecodeFree(lookup));
-    }
-
-    /// `const char *th_version_string(void)`
-    public static final class VersionString {
-
-        private static final MethodHandle FD_th_version_string = Downcalls.link(FunctionDescriptor.of(ADDRESS));
-
-        private final MemorySegment address;
-
-        VersionString(SymbolLookup lookup) {
-            this.address = Downcalls.symbol(lookup, "th_version_string");
-        }
-
-        public MemorySegment call() {
-            try {
-                return (MemorySegment) FD_th_version_string.invokeExact(address);
-            } catch (Throwable t) {
-                throw Downcalls.failure("th_version_string", t);
-            }
-        }
     }
 
     /// `void th_info_init(th_info *_info)`

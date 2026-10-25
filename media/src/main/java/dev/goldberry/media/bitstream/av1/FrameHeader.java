@@ -82,8 +82,8 @@ import java.util.Objects;
 ///                                 from the primary reference when not coded
 /// @param cdef                     its CDEF
 /// @param loopRestoration          its loop restoration
-/// @param txMode                   `TxMode`: [#ONLY_4X4], [#TX_MODE_LARGEST]
-///                                 or [#TX_MODE_SELECT]
+/// @param txMode                   `TxMode`: [#ONLY_4X4], 1 (`TX_MODE_LARGEST`)
+///                                 or 2 (`TX_MODE_SELECT`)
 /// @param referenceSelect          `reference_select`
 /// @param skipModePresent          `skip_mode_present`
 /// @param skipModeFrames           `SkipModeFrame`: the two reference names
@@ -160,8 +160,6 @@ public record FrameHeader(
     public static final int SWITCHABLE = 4;
 
     public static final int ONLY_4X4 = 0;
-    public static final int TX_MODE_LARGEST = 1;
-    public static final int TX_MODE_SELECT = 2;
 
     public FrameHeader {
         Objects.requireNonNull(sequenceHeader, "sequenceHeader");

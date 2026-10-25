@@ -11,14 +11,12 @@ public record NalHeader(int type, int layerId, int temporalId) {
 
     public static final int TRAIL_N = 0;
     public static final int TRAIL_R = 1;
-    public static final int TSA_N = 2;
     public static final int RADL_N = 6;
     public static final int RADL_R = 7;
     public static final int RASL_N = 8;
     public static final int RASL_R = 9;
     public static final int RSV_VCL_N14 = 14;
     public static final int BLA_W_LP = 16;
-    public static final int BLA_W_RADL = 17;
     public static final int BLA_N_LP = 18;
     public static final int IDR_W_RADL = 19;
     public static final int IDR_N_LP = 20;
@@ -27,12 +25,7 @@ public record NalHeader(int type, int layerId, int temporalId) {
     public static final int VPS = 32;
     public static final int SPS = 33;
     public static final int PPS = 34;
-    public static final int AUD = 35;
     public static final int EOS = 36;
-    public static final int EOB = 37;
-    public static final int FD = 38;
-    public static final int PREFIX_SEI = 39;
-    public static final int SUFFIX_SEI = 40;
 
     /// The header at the start of `nal`.
     ///

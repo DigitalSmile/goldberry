@@ -194,7 +194,7 @@ public final class WavContainer implements Container {
             }
             bytes = (long) frames * blockAlign;
         }
-        @SuppressWarnings("MustBeClosedChecker")
+        @SuppressWarnings({"MustBeClosedChecker", "resource"})
         var arena = Arena.ofShared();
         var data = in.segment(arena, bytes);
         var pts = nextFrame;

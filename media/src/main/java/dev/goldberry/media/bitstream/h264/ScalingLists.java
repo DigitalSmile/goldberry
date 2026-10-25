@@ -69,7 +69,7 @@ public record ScalingLists(int present, int[][] lists4x4, int[][] lists8x8) {
                 present |= 1 << i;
             }
             var size = i < 6 ? 16 : 64;
-            int[] list = null;
+            int[] list;
             if (coded) {
                 list = new int[size];
                 var useDefault = list(r, list);

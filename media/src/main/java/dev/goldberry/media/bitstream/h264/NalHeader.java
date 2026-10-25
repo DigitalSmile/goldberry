@@ -9,15 +9,8 @@ public record NalHeader(int refIdc, int type) {
 
     public static final int SLICE = 1;
     public static final int IDR = 5;
-    public static final int SEI = 6;
     public static final int SPS = 7;
     public static final int PPS = 8;
-    public static final int AUD = 9;
-    public static final int END_OF_SEQUENCE = 10;
-    public static final int END_OF_STREAM = 11;
-    public static final int FILLER = 12;
-    public static final int SPS_EXTENSION = 13;
-    public static final int PREFIX = 14;
     public static final int SUBSET_SPS = 15;
     public static final int SLICE_EXTENSION = 20;
 

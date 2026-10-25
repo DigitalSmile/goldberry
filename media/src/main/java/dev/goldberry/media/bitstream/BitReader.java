@@ -158,15 +158,6 @@ public final class BitReader {
         return last > position;
     }
 
-    /// An unsigned value of `count` bytes, little-endian: AV1's `le(n)`.
-    public long littleEndian(int count) {
-        var value = 0L;
-        for (var i = 0; i < count; i++) {
-            value |= bitsLong(8) << (8 * i);
-        }
-        return value;
-    }
-
     /// AV1's `leb128()`: an unsigned value in groups of seven bits, least
     /// significant first, at most eight bytes.
     public long leb128() {

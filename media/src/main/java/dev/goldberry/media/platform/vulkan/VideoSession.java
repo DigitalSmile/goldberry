@@ -257,27 +257,6 @@ public final class VideoSession implements AutoCloseable {
         }
     }
 
-    /// The size the session decodes at, rounded to the device's granularity.
-    public int codedWidth() {
-        return codedWidth;
-    }
-
-    public int codedHeight() {
-        return codedHeight;
-    }
-
-    public int slots() {
-        return slots;
-    }
-
-    public VideoDevice device() {
-        return device;
-    }
-
-    public long session() {
-        return session;
-    }
-
     /// Session parameters made from `codecInfo`, the codec's
     /// `VkVideoDecode…SessionParametersCreateInfoKHR` chained to the create info.
     public long parameters(MemorySegment codecInfo) {

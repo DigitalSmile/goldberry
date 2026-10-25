@@ -38,18 +38,6 @@ public final class BuiltInDecoders {
 
     public static final String OPUS = "opus";
 
-    public static final String FLAC = FlacProvider.NAME;
-
-    public static final String LIBVPX = VpxProvider.NAME;
-
-    public static final String PCM = PcmProvider.NAME;
-
-    public static final String MINIMP3 = Mp3Provider.NAME;
-
-    public static final String VORBIS = VorbisProvider.NAME;
-
-    public static final String LIBTHEORA = TheoraProvider.NAME;
-
     private static final List<DecoderProvider> PROVIDERS = List.of(
             new Dav1dProvider(),
             new VpxProvider(),

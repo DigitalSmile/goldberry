@@ -86,11 +86,6 @@ public final class VulkanInstance {
         return loader.instanceProc(handle, name);
     }
 
-    /// The instance's handle.
-    public MemorySegment handle() {
-        return handle;
-    }
-
     /// Creates a logical device on `physicalDevice` from `info`, the handle
     /// written to `device`.
     public int createDevice(MemorySegment physicalDevice, MemorySegment info, MemorySegment device) {

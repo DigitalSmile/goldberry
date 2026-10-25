@@ -459,7 +459,7 @@ final class H265Parameters {
         s.set(JAVA_BYTE, StdVideoH265ShortTermRefPicSet.num_positive_pics, (byte) set.positive());
         var previous = 0;
         for (var i = 0; i < set.negative(); i++) {
-            var delta = set.deltaPocS0().get(i);
+            int delta = set.deltaPocS0().get(i);
             s.set(JAVA_SHORT, StdVideoH265ShortTermRefPicSet.delta_poc_s0_minus1 + 2L * i, (short)
                     (previous - delta - 1));
             previous = delta;

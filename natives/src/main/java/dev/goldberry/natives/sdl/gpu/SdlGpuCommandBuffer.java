@@ -1434,6 +1434,8 @@ public final class SdlGpuCommandBuffer {
         /// `pixelsPerRow` texels apart rather than packed: a picture's plane
         /// staged with its rows padded to the alignment Direct3D 12 copies from
         /// without realigning them first. Not for block-compressed formats.
+        /// Where the driver reads every upload's rows as packed
+        /// ([SdlGpuDevice#uploadsPaddedRows]), the rows are recorded one by one.
         ///
         /// @param cycle take fresh texture memory if the GPU still reads the old,
         ///              rather than wait for it
@@ -1463,13 +1465,25 @@ public final class SdlGpuCommandBuffer {
             if (offset + bytes > source.size()) {
                 throw new IllegalArgumentException(bytes + " bytes from offset " + offset + " do not fit " + source);
             }
+            var upload = device.calls().commands().uploadToGPUTexture();
             try (var arena = Arena.ofConfined()) {
+                if (pixelsPerRow != region.width() && !device.uploadsPaddedRows()) {
+                    // A row at a time, each packed. Only the first may cycle:
+                    // cycling again would drop the rows already recorded.
+                    var rowBytes = pixelsPerRow * format.bytesPerPixel();
+                    for (var row = 0; row < region.height(); row++) {
+                        var line = new SdlGpuRegion(region.x(), region.y() + row, region.width(), 1);
+                        upload.call(
+                                pass,
+                                transferInfo(arena, source, offset + row * rowBytes, destination, line),
+                                region(arena, destination, 0, 0, line),
+                                cycle && row == 0);
+                    }
+                    return;
+                }
                 var info = transferInfo(arena, source, offset, destination, region);
                 info.set(JAVA_INT, Layouts.SDL_GPU_TEXTURE_TRANSFER_INFO.offsetOf("pixels_per_row"), pixelsPerRow);
-                device.calls()
-                        .commands()
-                        .uploadToGPUTexture()
-                        .call(pass, info, region(arena, destination, 0, 0, region), cycle);
+                upload.call(pass, info, region(arena, destination, 0, 0, region), cycle);
             }
         }
 

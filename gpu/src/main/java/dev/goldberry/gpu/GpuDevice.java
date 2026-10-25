@@ -86,6 +86,13 @@ public final class GpuDevice {
         return sdl.driver();
     }
 
+    /// Whether [CopyPass#upload(GpuTexture, UploadBuffer, int, int)] copies
+    /// padded rows in one go. Where it does not (Metal), padded rows are
+    /// recorded one by one, and packed rows are what to stage.
+    public boolean uploadsPaddedRows() {
+        return sdl.uploadsPaddedRows();
+    }
+
     /// The shader formats it takes. A [ShaderCode] needs one of them.
     public Set<ShaderFormat> shaderFormats() {
         return shaderFormats;

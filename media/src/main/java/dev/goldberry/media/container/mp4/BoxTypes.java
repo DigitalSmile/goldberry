@@ -84,7 +84,6 @@ final class BoxTypes {
     static final int EC3 = fourcc("ec-3");
     static final int LPCM = fourcc("lpcm");
     static final int SOWT = fourcc("sowt");
-    static final int TWOS = fourcc("twos");
     static final int IPCM = fourcc("ipcm");
     static final int PCMC = fourcc("pcmC");
     static final int TX3G = fourcc("tx3g");

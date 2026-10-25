@@ -2,7 +2,6 @@ package dev.goldberry.media.bitstream.av1;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 
 import org.jspecify.annotations.Nullable;
 
@@ -16,9 +15,8 @@ import org.jspecify.annotations.Nullable;
 /// over. Each OBU comes back with the reference slots it was read against;
 /// a frame's are the ones its `ref_frame_idx` name, and the slots are updated
 /// (§7.20) as the frame's last tile group is read, or as a frame header shows
-/// an existing frame. The pieces are public too, for a caller that keeps the
-/// state itself: [Obu#split], [SequenceHeader#parse], [UncompressedHeader#parse],
-/// [TileGroup#parse], [Frame#parse] and [References#updated].
+/// an existing frame. [Obu#split], [SequenceHeader#parse] and
+/// [References#updated] are public too.
 ///
 /// Operating point 0 is decoded: an OBU of a layer it leaves out is
 /// [Unparsed]. Not thread-safe.
@@ -54,11 +52,6 @@ public final class Av1Parser {
     /// A parser that hands every syntax element it reads to `trace`.
     Av1Parser(Syntax.@Nullable Trace trace) {
         this.trace = trace;
-    }
-
-    /// The sequence header in force, once one was read.
-    public Optional<SequenceHeader> sequenceHeader() {
-        return Optional.ofNullable(sequenceHeader);
     }
 
     /// The reference slots the next frame is read against.

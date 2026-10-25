@@ -28,7 +28,6 @@ public record References(List<ReferenceFrame> slots) {
     /// `refresh_frame_flags` for every slot.
     public static final int ALL_FRAMES = (1 << NUM_REF_FRAMES) - 1;
 
-    public static final int INTRA_FRAME = 0;
     public static final int LAST_FRAME = 1;
     public static final int LAST2_FRAME = 2;
     public static final int LAST3_FRAME = 3;

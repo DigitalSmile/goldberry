@@ -30,17 +30,6 @@ public record TileGroup(boolean tileStartAndEndPresent, int tgStart, int tgEnd, 
         tiles = List.copyOf(tiles);
     }
 
-    /// The tile group OBU `obu` of `data`, of the frame `header` begins.
-    ///
-    /// @throws IllegalArgumentException when it is malformed, or its tiles run
-    ///                                  past its end
-    public static TileGroup parse(byte[] data, Obu obu, FrameHeader header) {
-        if (obu.header().type() != ObuHeader.TILE_GROUP) {
-            throw new IllegalArgumentException("OBU type " + obu.header().type() + " is not a tile group");
-        }
-        return read(obu.payload(data, null), data, obu, header);
-    }
-
     /// The tile group `s` is at, byte aligned, in the OBU `obu` of `data`.
     static TileGroup read(Syntax s, byte[] data, Obu obu, FrameHeader header) {
         s.heading("Tile Group");

@@ -208,7 +208,7 @@ public record ToneCurve(ColorDescription.Primaries primaries, ColorDescription.T
     /// The light of `encoded`, 0 to 1, in units of the reference white; for
     /// HLG, relative scene light.
     private double decode(double encoded) {
-        return switch (curve()) {
+        return switch (transfer) {
             case PQ -> pqDecode(encoded) / REFERENCE_WHITE;
             case HLG -> hlgInverseOetf(encoded);
             case SDR, UNSPECIFIED -> Math.pow(Math.clamp(encoded, 0, 1), SDR_GAMMA);

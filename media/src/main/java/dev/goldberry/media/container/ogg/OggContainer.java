@@ -380,7 +380,7 @@ public final class OggContainer implements Container {
         }
         // One allocation for the page, shared by its packets: freed when the
         // last of them is closed, on whatever thread that is.
-        @SuppressWarnings("MustBeClosedChecker")
+        @SuppressWarnings({"MustBeClosedChecker", "resource"})
         var shared = Arena.ofShared();
         var remaining = new AtomicInteger(kept);
         Runnable release = () -> {

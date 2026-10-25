@@ -143,17 +143,18 @@ public final class PlaneStaging {
                 free.computeIfAbsent(shapeOf(planes), _ -> new ArrayDeque<>()).addLast(planes);
             }
             retired.clear();
+            var alignment = StagedPlanes.rowAlignment(on);
             for (var shape : wanted) {
                 if (!made.containsKey(shape) && made.size() >= SHAPES) {
                     forget(made.keySet().iterator().next());
                 }
-                var count = made.getOrDefault(shape, 0);
-                var size = StagedPlanes.size(shape.layout(), shape.width(), shape.height());
+                int count = made.getOrDefault(shape, 0);
+                var size = StagedPlanes.size(shape.layout(), shape.width(), shape.height(), alignment);
                 var strides = new ArrayList<Integer>();
                 for (var plane = 0; plane < shape.layout().planes(); plane++) {
-                    strides.add(StagedPlanes.stride(shape.layout(), plane, shape.width()));
+                    strides.add(StagedPlanes.stride(shape.layout(), plane, shape.width(), alignment));
                 }
-                var offsets = StagedPlanes.offsets(shape.layout(), shape.width(), shape.height());
+                var offsets = StagedPlanes.offsets(shape.layout(), shape.width(), shape.height(), alignment);
                 for (; count < PER_SHAPE; count++) {
                     var buffer = on.createUploadBuffer(size);
                     var planes = new StagedPlanes(
@@ -223,9 +224,7 @@ public final class PlaneStaging {
         held.clear();
         retired.clear();
         // The shapes asked for stay: they are the stream's, not the device's.
-        for (var shape : made.keySet()) {
-            wanted.add(shape);
-        }
+        wanted.addAll(made.keySet());
         made.clear();
     }
 

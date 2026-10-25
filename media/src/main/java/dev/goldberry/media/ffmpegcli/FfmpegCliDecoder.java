@@ -86,7 +86,6 @@ final class FfmpegCliDecoder implements Decoder {
 
     private final String codecName;
     private final MatroskaWriter.Track track;
-    private final List<String> command;
     private final int maxDecoded;
     /// The layout pictures are asked for, or null for sound.
     private final @Nullable PixelFormat pictures;
@@ -96,6 +95,7 @@ final class FfmpegCliDecoder implements Decoder {
     /// microseconds, each to its exact time in nanoseconds.
     private final TreeMap<Long, Long> times = new TreeMap<>();
 
+    private final List<String> command;
     private @Nullable FfmpegProcess process;
     private @Nullable Packet lent;
     private boolean ending;
@@ -168,11 +168,6 @@ final class FfmpegCliDecoder implements Decoder {
         // holds a Cluster until it closes, by default 32 KB or a second of them.
         command.addAll(List.of("-cluster_size_limit", "1", "-flush_packets", "1", "-f", "matroska", "pipe:1"));
         return List.copyOf(command);
-    }
-
-    /// The command line this decoder runs.
-    List<String> command() {
-        return command;
     }
 
     @Override

@@ -191,6 +191,14 @@ public final class SdlGpuDevice implements AutoCloseable {
         return driver;
     }
 
+    /// Whether an upload from a transfer buffer takes rows longer than the
+    /// region it fills (`pixels_per_row`). SDL's Metal backend reads every
+    /// upload's rows as packed, whatever the length says; Vulkan and Direct3D
+    /// 12 take it.
+    public boolean uploadsPaddedRows() {
+        return !"metal".equals(driver);
+    }
+
     /// The shader formats this device accepts.
     public Set<SdlGpuShaderFormat> shaderFormats() {
         return shaderFormats;

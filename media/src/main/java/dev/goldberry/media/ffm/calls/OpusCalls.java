@@ -14,7 +14,6 @@ import dev.goldberry.media.ffm.Downcalls;
 /// and stereo, the multistream one for a channel mapping, and `ctl` in the two
 /// shapes that are used, since it is variadic.
 public record OpusCalls(
-        VersionString versionString,
         Strerror strerror,
         DecoderCreate decoderCreate,
         DecodeFloat decodeFloat,
@@ -25,15 +24,13 @@ public record OpusCalls(
         MultistreamDecodeFloat multistreamDecodeFloat,
         MultistreamDecoderCtl multistreamDecoderCtl,
         MultistreamDecoderCtlInt multistreamDecoderCtlInt,
-        MultistreamDecoderDestroy multistreamDecoderDestroy,
-        PacketGetNbSamples packetGetNbSamples) {
+        MultistreamDecoderDestroy multistreamDecoderDestroy) {
 
     /// Binds every function above.
     ///
     /// @param lookup the loaded library
     public static OpusCalls bind(SymbolLookup lookup) {
         return new OpusCalls(
-                new VersionString(lookup),
                 new Strerror(lookup),
                 new DecoderCreate(lookup),
                 new DecodeFloat(lookup),
@@ -44,28 +41,7 @@ public record OpusCalls(
                 new MultistreamDecodeFloat(lookup),
                 new MultistreamDecoderCtl(lookup),
                 new MultistreamDecoderCtlInt(lookup),
-                new MultistreamDecoderDestroy(lookup),
-                new PacketGetNbSamples(lookup));
-    }
-
-    /// `const char *opus_get_version_string(void)`
-    public static final class VersionString {
-
-        private static final MethodHandle FD_opus_get_version_string = Downcalls.link(FunctionDescriptor.of(ADDRESS));
-
-        private final MemorySegment address;
-
-        VersionString(SymbolLookup lookup) {
-            this.address = Downcalls.symbol(lookup, "opus_get_version_string");
-        }
-
-        public MemorySegment call() {
-            try {
-                return (MemorySegment) FD_opus_get_version_string.invokeExact(address);
-            } catch (Throwable t) {
-                throw Downcalls.failure("opus_get_version_string", t);
-            }
-        }
+                new MultistreamDecoderDestroy(lookup));
     }
 
     /// `const char *opus_strerror(int error)`
@@ -323,28 +299,6 @@ public record OpusCalls(
                 FD_opus_multistream_decoder_destroy.invokeExact(address, decoder);
             } catch (Throwable t) {
                 throw Downcalls.failure("opus_multistream_decoder_destroy", t);
-            }
-        }
-    }
-
-    /// `int opus_packet_get_nb_samples(const unsigned char packet[], opus_int32 len, opus_int32
-    /// Fs)`
-    public static final class PacketGetNbSamples {
-
-        private static final MethodHandle FD_opus_packet_get_nb_samples =
-                Downcalls.link(FunctionDescriptor.of(JAVA_INT, ADDRESS, JAVA_INT, JAVA_INT));
-
-        private final MemorySegment address;
-
-        PacketGetNbSamples(SymbolLookup lookup) {
-            this.address = Downcalls.symbol(lookup, "opus_packet_get_nb_samples");
-        }
-
-        public int call(MemorySegment packet, int length, int sampleRate) {
-            try {
-                return (int) FD_opus_packet_get_nb_samples.invokeExact(address, packet, length, sampleRate);
-            } catch (Throwable t) {
-                throw Downcalls.failure("opus_packet_get_nb_samples", t);
             }
         }
     }

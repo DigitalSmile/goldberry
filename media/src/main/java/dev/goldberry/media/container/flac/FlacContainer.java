@@ -236,7 +236,7 @@ public final class FlacContainer implements Container {
         requireOpen();
         if (picture != null && pictureSelected && !pictureSent) {
             pictureSent = true;
-            @SuppressWarnings("MustBeClosedChecker")
+            @SuppressWarnings({"MustBeClosedChecker", "resource"})
             var owned = Arena.ofShared();
             var data = owned.allocateFrom(ValueLayout.JAVA_BYTE, picture.data());
             return Packet.owning(data, picture.index(), 0, 0, 0, true, timeBase, owned::close);
@@ -248,7 +248,7 @@ public final class FlacContainer implements Container {
         if (frame == null) {
             return null;
         }
-        @SuppressWarnings("MustBeClosedChecker")
+        @SuppressWarnings({"MustBeClosedChecker", "resource"})
         var owned = Arena.ofShared();
         var data = owned.allocateFrom(ValueLayout.JAVA_BYTE, frame.bytes());
         return Packet.owning(

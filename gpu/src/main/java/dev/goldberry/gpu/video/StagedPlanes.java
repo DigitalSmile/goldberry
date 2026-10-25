@@ -8,6 +8,7 @@ import java.util.Objects;
 
 import org.jspecify.annotations.Nullable;
 
+import dev.goldberry.gpu.GpuDevice;
 import dev.goldberry.gpu.UploadBuffer;
 
 /// One picture's planes in a [VideoLayer]'s upload memory, from
@@ -16,7 +17,8 @@ import dev.goldberry.gpu.UploadBuffer;
 ///
 /// The planes lie one after another in one [UploadBuffer], each at an offset
 /// of a multiple of 512 bytes with rows a multiple of 256 bytes apart, which
-/// is what every driver copies from as it is. While the picture is held, its
+/// is what Direct3D 12 and Vulkan copy from as it is; on Metal, whose uploads
+/// read every row as packed, the rows are packed. While the picture is held, its
 /// planes are mapped: the holder writes them, and reads them, through
 /// [#plane]. [#release] gives the memory back to the staging, which maps it
 /// afresh before it is handed out again, so the next picture is never written
@@ -57,12 +59,20 @@ public final class StagedPlanes {
         this.strides = List.copyOf(strides);
     }
 
+    /// The multiple of bytes a staged row is rounded up to on `device`: 256
+    /// where its uploads take padded rows, else 1, packed.
+    static int rowAlignment(GpuDevice device) {
+        return device.uploadsPaddedRows() ? 256 : 1;
+    }
+
     /// The bytes a picture of `layout`, `width` by `height`, takes staged: each
-    /// plane's rows rounded up to 256 bytes, each plane's start to 512.
-    static int size(PlaneLayout layout, int width, int height) {
+    /// plane's rows rounded up to `rowAlignment` bytes, each plane's start to
+    /// 512.
+    static int size(PlaneLayout layout, int width, int height, int rowAlignment) {
         var total = 0L;
         for (var plane = 0; plane < layout.planes(); plane++) {
-            total = align(total, 512) + (long) stride(layout, plane, width) * layout.planeHeight(plane, height);
+            total = align(total, 512)
+                    + (long) stride(layout, plane, width, rowAlignment) * layout.planeHeight(plane, height);
         }
         if (total > Integer.MAX_VALUE) {
             throw new IllegalArgumentException("a " + width + "×" + height + " " + layout + " picture is past 2 GiB");
@@ -71,20 +81,20 @@ public final class StagedPlanes {
     }
 
     /// The bytes from one row of `plane` to the next, staged.
-    static int stride(PlaneLayout layout, int plane, int width) {
+    static int stride(PlaneLayout layout, int plane, int width, int rowAlignment) {
         var row = (long) layout.planeWidth(plane, width)
                 * layout.textureFormats().get(plane).bytesPerPixel();
-        return (int) align(row, 256);
+        return (int) align(row, rowAlignment);
     }
 
     /// Where each plane starts, staged.
-    static List<Integer> offsets(PlaneLayout layout, int width, int height) {
+    static List<Integer> offsets(PlaneLayout layout, int width, int height, int rowAlignment) {
         var offsets = new ArrayList<Integer>(layout.planes());
         var at = 0L;
         for (var plane = 0; plane < layout.planes(); plane++) {
             at = align(at, 512);
             offsets.add((int) at);
-            at += (long) stride(layout, plane, width) * layout.planeHeight(plane, height);
+            at += (long) stride(layout, plane, width, rowAlignment) * layout.planeHeight(plane, height);
         }
         return offsets;
     }

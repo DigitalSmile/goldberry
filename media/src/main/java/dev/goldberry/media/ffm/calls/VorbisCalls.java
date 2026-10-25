@@ -14,7 +14,6 @@ import dev.goldberry.media.ffm.Downcalls;
 /// header packets in, then one audio packet at a time through a block into the
 /// DSP state, and the float planes out.
 public record VorbisCalls(
-        VersionString versionString,
         InfoInit infoInit,
         InfoClear infoClear,
         CommentInit commentInit,
@@ -35,7 +34,6 @@ public record VorbisCalls(
     /// @param lookup the loaded library
     public static VorbisCalls bind(SymbolLookup lookup) {
         return new VorbisCalls(
-                new VersionString(lookup),
                 new InfoInit(lookup),
                 new InfoClear(lookup),
                 new CommentInit(lookup),
@@ -50,26 +48,6 @@ public record VorbisCalls(
                 new SynthesisBlockin(lookup),
                 new SynthesisPcmout(lookup),
                 new SynthesisRead(lookup));
-    }
-
-    /// `const char *vorbis_version_string(void)`
-    public static final class VersionString {
-
-        private static final MethodHandle FD_vorbis_version_string = Downcalls.link(FunctionDescriptor.of(ADDRESS));
-
-        private final MemorySegment address;
-
-        VersionString(SymbolLookup lookup) {
-            this.address = Downcalls.symbol(lookup, "vorbis_version_string");
-        }
-
-        public MemorySegment call() {
-            try {
-                return (MemorySegment) FD_vorbis_version_string.invokeExact(address);
-            } catch (Throwable t) {
-                throw Downcalls.failure("vorbis_version_string", t);
-            }
-        }
     }
 
     /// `void vorbis_info_init(vorbis_info *vi)`

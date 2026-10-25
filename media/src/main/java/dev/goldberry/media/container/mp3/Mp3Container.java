@@ -464,14 +464,14 @@ public final class Mp3Container implements Container {
         }
         var pts = nextPts;
         nextPts += header.samples();
-        @SuppressWarnings("MustBeClosedChecker")
+        @SuppressWarnings({"MustBeClosedChecker", "resource"})
         var owned = Arena.ofShared();
         var data = owned.allocateFrom(ValueLayout.JAVA_BYTE, frame.bytes());
         return Packet.owning(data, 0, pts, pts, duration, true, timeBase, owned::close);
     }
 
     private Packet picturePacket(Picture picture) {
-        @SuppressWarnings("MustBeClosedChecker")
+        @SuppressWarnings({"MustBeClosedChecker", "resource"})
         var owned = Arena.ofShared();
         var data = owned.allocateFrom(ValueLayout.JAVA_BYTE, picture.data());
         return Packet.owning(data, picture.index(), 0, 0, 0, true, timeBase, owned::close);

@@ -430,6 +430,16 @@ endif()
 file(GLOB _libyuv_sources CONFIGURE_DEPENDS "${libyuv_SOURCE_DIR}/source/*.cc")
 # The conversion tool's JPEG path and its tests are not library code.
 list(FILTER _libyuv_sources EXCLUDE REGEX "(mjpeg_decoder|convert_jpeg|_test)\\.cc$")
+# libyuv's arm64 kernels use the dot-product and i8mm instructions, which the
+# baseline -march of arm64 Linux refuses to assemble and Apple's M1 lacks half
+# of. libyuv's own CMake compiles these four files alone with the extensions
+# and picks a kernel at run time from what the CPU reports; the same here.
+if(CMAKE_SYSTEM_PROCESSOR MATCHES "^(aarch64|arm64|ARM64)$")
+    set(_libyuv_neon64 ${_libyuv_sources})
+    list(FILTER _libyuv_neon64 INCLUDE REGEX "_neon64\\.cc$")
+    set_source_files_properties(${_libyuv_neon64} PROPERTIES
+        COMPILE_OPTIONS "-march=armv8.2-a+dotprod+i8mm")
+endif()
 
 # ----------------------------------------------------------------------------
 # The library.
@@ -486,7 +496,9 @@ set(_archives
     "${_stage}/lib/libFLAC.a")
 target_link_libraries(goldberry_media PRIVATE ${_archives})
 if(NOT WIN32)
-    target_link_libraries(goldberry_media PRIVATE m pthread)
+    # dav1d looks up __pthread_get_minstack with dlsym, which glibc before 2.34
+    # (the manylinux floor's 2.28) keeps in libdl; empty on macOS.
+    target_link_libraries(goldberry_media PRIVATE m pthread ${CMAKE_DL_LIBS})
 endif()
 if(WIN32)
     # libgcc, libwinpthread and libstdc++ inside the DLL: it depends on the

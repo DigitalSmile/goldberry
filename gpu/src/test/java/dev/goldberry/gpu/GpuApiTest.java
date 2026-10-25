@@ -335,8 +335,10 @@ class GpuApiTest {
             try (var buffer = device.createUploadBuffer(512 + rowBytes * height);
                     var texture =
                             device.createTexture(TextureSpec.sampled(TextureFormat.R8G8B8A8_UNORM, width, height))) {
+                assertEquals(512 + rowBytes * height, buffer.size());
                 var mapped = buffer.map(true);
                 assertTrue(buffer.isMapped());
+                assertEquals(buffer.size(), mapped.capacity(), "the mapping is the whole buffer");
                 // The bytes are another thread's to write while it stays mapped.
                 var writer = Thread.ofPlatform().start(() -> mapped.put(512, image));
                 writer.join();

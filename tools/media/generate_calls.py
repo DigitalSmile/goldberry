@@ -126,27 +126,22 @@ mapping.""",[
  ('ToneMap','goldberry_media_tone_map','void goldberry_media_tone_map(const uint8_t *plane0, int stride0, const uint8_t *plane1, int stride1, const uint8_t *plane2, int stride2, int format, uint8_t *dst, int dst_stride, int width, int height, int flags, const float *tables)',None,[('plane0',P),('stride0',I),('plane1',P),('stride1',I),('plane2',P),('stride2',I),('format',I),('dst',P),('dstStride',I),('width',I),('height',I),('flags',I),('tables',P)],None,'Converts an opaque picture of planes to SDR BT.709 BGRA, mapping its HDR or wide gamut through the tables `ToneCurve` builds. Strides in bytes.'),
 ])
 files['Dav1dCalls']=("""The functions of dav1d the AV1 decoder calls: opening and closing a context,
-the send-data/get-picture loop, wrapping a packet's bytes without a copy, and
-releasing what was handed back.""",[
- ('Version','dav1d_version','const char *dav1d_version(void)',P,[]),
+the send-data/get-picture loop, a packet's bytes in a buffer of dav1d's own,
+and releasing what was handed back.""",[
  ('DefaultSettings','dav1d_default_settings','void dav1d_default_settings(Dav1dSettings *s)',None,[('settings',P)]),
  ('Open','dav1d_open','int dav1d_open(Dav1dContext **c_out, const Dav1dSettings *s)',I,[('contextOut',P),('settings',P)],None,'0 on success, a negative `DAV1D_ERR` otherwise.'),
  ('SendData','dav1d_send_data','int dav1d_send_data(Dav1dContext *c, Dav1dData *in)',I,[('context',P),('data',P)],None,'0 when the data was taken, `DAV1D_ERR(EAGAIN)` when a picture has to be fetched first; the data is then still the caller\'s.'),
  ('GetPicture','dav1d_get_picture','int dav1d_get_picture(Dav1dContext *c, Dav1dPicture *out)',I,[('context',P),('picture',P)],None,'0 with a picture in `out`, `DAV1D_ERR(EAGAIN)` when more data is needed.'),
  ('Close','dav1d_close','void dav1d_close(Dav1dContext **c_out)',None,[('contextOut',P)]),
  ('Flush','dav1d_flush','void dav1d_flush(Dav1dContext *c)',None,[('context',P)]),
- ('GetFrameDelay','dav1d_get_frame_delay','int dav1d_get_frame_delay(const Dav1dSettings *s)',I,[('settings',P)]),
  ('DataCreate','dav1d_data_create','uint8_t *dav1d_data_create(Dav1dData *data, size_t sz)',P,[('data',P),('size',SZ)],None,'A buffer of `sz` bytes dav1d owns, which `data` now references; null when out of memory.'),
- ('DataWrap','dav1d_data_wrap','int dav1d_data_wrap(Dav1dData *data, const uint8_t *buf, size_t sz, void (*free_callback)(const uint8_t *buf, void *cookie), void *cookie)',I,[('data',P),('buffer',P),('size',SZ),('freeCallback',P),('cookie',P)]),
  ('DataUnref','dav1d_data_unref','void dav1d_data_unref(Dav1dData *data)',None,[('data',P)]),
  ('PictureUnref','dav1d_picture_unref','void dav1d_picture_unref(Dav1dPicture *p)',None,[('picture',P)]),
 ])
 files['VpxCalls']=("""The functions of libvpx the VP9 and VP8 decoder calls. `vpx_codec_flags_t`
 and the decode deadline are C `long`s, 4 bytes on Windows and 8 elsewhere,
 so those two handles take a Java `long` and are adapted to the target's.""",[
- ('VersionStr','vpx_codec_version_str','const char *vpx_codec_version_str(void)',P,[]),
  ('ErrToString','vpx_codec_err_to_string','const char *vpx_codec_err_to_string(vpx_codec_err_t err)',P,[('error',I)]),
- ('ErrorText','vpx_codec_error','const char *vpx_codec_error(const vpx_codec_ctx_t *ctx)',P,[('context',P)]),
  ('ErrorDetail','vpx_codec_error_detail','const char *vpx_codec_error_detail(const vpx_codec_ctx_t *ctx)',P,[('context',P)],None,'Null when there is no detail.'),
  ('Destroy','vpx_codec_destroy','vpx_codec_err_t vpx_codec_destroy(vpx_codec_ctx_t *ctx)',I,[('context',P)]),
  ('DecInitVer','vpx_codec_dec_init_ver','vpx_codec_err_t vpx_codec_dec_init_ver(vpx_codec_ctx_t *ctx, vpx_codec_iface_t *iface, const vpx_codec_dec_cfg_t *cfg, vpx_codec_flags_t flags, int ver)',I,[('context',P),('iface',P),('config',P),('flags',CL),('version',I)],None,'`ver` is `VPX_DECODER_ABI_VERSION`, which the layout file reports.'),
@@ -158,7 +153,6 @@ so those two handles take a Java `long` and are adapted to the target's.""",[
 files['OpusCalls']=("""The functions of libopus the Opus decoder calls: the plain decoder for mono
 and stereo, the multistream one for a channel mapping, and `ctl` in the two
 shapes that are used, since it is variadic.""",[
- ('VersionString','opus_get_version_string','const char *opus_get_version_string(void)',P,[]),
  ('Strerror','opus_strerror','const char *opus_strerror(int error)',P,[('error',I)]),
  ('DecoderCreate','opus_decoder_create','OpusDecoder *opus_decoder_create(opus_int32 Fs, int channels, int *error)',P,[('sampleRate',I),('channels',I),('errorOut',P)]),
  ('DecodeFloat','opus_decode_float','int opus_decode_float(OpusDecoder *st, const unsigned char *data, opus_int32 len, float *pcm, int frame_size, int decode_fec)',I,[('decoder',P),('data',P),('length',I),('pcm',P),('frameSize',I),('decodeFec',I)],None,'The samples per channel decoded, or a negative error.'),
@@ -170,12 +164,10 @@ shapes that are used, since it is variadic.""",[
  ('MultistreamDecoderCtl','opus_multistream_decoder_ctl','int opus_multistream_decoder_ctl(OpusMSDecoder *st, int request, ...)',I,[('decoder',P),('request',I)],2),
  ('MultistreamDecoderCtlInt','opus_multistream_decoder_ctl','int opus_multistream_decoder_ctl(OpusMSDecoder *st, int request, opus_int32 value)',I,[('decoder',P),('request',I),('value',I)],2),
  ('MultistreamDecoderDestroy','opus_multistream_decoder_destroy','void opus_multistream_decoder_destroy(OpusMSDecoder *st)',None,[('decoder',P)]),
- ('PacketGetNbSamples','opus_packet_get_nb_samples','int opus_packet_get_nb_samples(const unsigned char packet[], opus_int32 len, opus_int32 Fs)',I,[('packet',P),('length',I),('sampleRate',I)]),
 ])
 files['VorbisCalls']=("""The synthesis half of libvorbis, which the Vorbis decoder calls: the three
 header packets in, then one audio packet at a time through a block into the
 DSP state, and the float planes out.""",[
- ('VersionString','vorbis_version_string','const char *vorbis_version_string(void)',P,[]),
  ('InfoInit','vorbis_info_init','void vorbis_info_init(vorbis_info *vi)',None,[('info',P)]),
  ('InfoClear','vorbis_info_clear','void vorbis_info_clear(vorbis_info *vi)',None,[('info',P)]),
  ('CommentInit','vorbis_comment_init','void vorbis_comment_init(vorbis_comment *vc)',None,[('comment',P)]),
@@ -194,7 +186,6 @@ DSP state, and the float planes out.""",[
 files['TheoraCalls']=("""The decoder half of libtheora, which the Theora decoder calls: the three
 header packets in, as `ogg_packet`s, then one frame at a time, and the picture
 out as three planes the decoder keeps until its next frame.""",[
- ('VersionString','th_version_string','const char *th_version_string(void)',P,[]),
  ('InfoInit','th_info_init','void th_info_init(th_info *_info)',None,[('info',P)]),
  ('InfoClear','th_info_clear','void th_info_clear(th_info *_info)',None,[('info',P)]),
  ('CommentInit','th_comment_init','void th_comment_init(th_comment *_tc)',None,[('comment',P)]),
@@ -216,7 +207,6 @@ both upcalls into Java (`FlacDecoder`).""",[
  ('InitStream','FLAC__stream_decoder_init_stream','FLAC__StreamDecoderInitStatus FLAC__stream_decoder_init_stream(FLAC__StreamDecoder *decoder, FLAC__StreamDecoderReadCallback read_callback, FLAC__StreamDecoderSeekCallback seek_callback, FLAC__StreamDecoderTellCallback tell_callback, FLAC__StreamDecoderLengthCallback length_callback, FLAC__StreamDecoderEofCallback eof_callback, FLAC__StreamDecoderWriteCallback write_callback, FLAC__StreamDecoderMetadataCallback metadata_callback, FLAC__StreamDecoderErrorCallback error_callback, void *client_data)',I,[('decoder',P),('read',P),('seek',P),('tell',P),('length',P),('eof',P),('write',P),('metadata',P),('error',P),('clientData',P)],None,'The seek, tell, length, eof and metadata callbacks may be null.'),
  ('Finish','FLAC__stream_decoder_finish','FLAC__bool FLAC__stream_decoder_finish(FLAC__StreamDecoder *decoder)',I,[('decoder',P)]),
  ('Flush','FLAC__stream_decoder_flush','FLAC__bool FLAC__stream_decoder_flush(FLAC__StreamDecoder *decoder)',I,[('decoder',P)]),
- ('Reset','FLAC__stream_decoder_reset','FLAC__bool FLAC__stream_decoder_reset(FLAC__StreamDecoder *decoder)',I,[('decoder',P)]),
  ('ProcessSingle','FLAC__stream_decoder_process_single','FLAC__bool FLAC__stream_decoder_process_single(FLAC__StreamDecoder *decoder)',I,[('decoder',P)],None,'Decodes one frame, or reads one metadata block, calling the callbacks. False means an error the error callback saw, or the end of the stream; `getState` says which.'),
  ('GetState','FLAC__stream_decoder_get_state','FLAC__StreamDecoderState FLAC__stream_decoder_get_state(const FLAC__StreamDecoder *decoder)',I,[('decoder',P)]),
  ('GetResolvedStateString','FLAC__stream_decoder_get_resolved_state_string','const char *FLAC__stream_decoder_get_resolved_state_string(const FLAC__StreamDecoder *decoder)',P,[('decoder',P)]),

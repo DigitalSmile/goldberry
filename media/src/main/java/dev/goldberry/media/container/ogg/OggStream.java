@@ -322,11 +322,6 @@ final class OggStream {
         return comments;
     }
 
-    /// Whether every header has been read: the packets from here on are audio.
-    boolean isReady() {
-        return headersLeft == 0;
-    }
-
     /// How a packet's length is known.
     PacketTiming timing() {
         return timing;

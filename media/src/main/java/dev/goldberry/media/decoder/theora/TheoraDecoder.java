@@ -309,6 +309,9 @@ public final class TheoraDecoder implements Decoder {
         var outY = out.asSlice(0, ySize);
         var outU = out.asSlice(ySize, uvSize);
         var outV = out.asSlice(ySize + uvSize, uvSize);
+        // The converted planes are packed: a row's stride is its width.
+        var outStride = width;
+        var outChromaStride = chromaWidth;
         int result;
         String function;
         if (sampling == Sampling.YUV444) {
@@ -322,11 +325,11 @@ public final class TheoraDecoder implements Decoder {
                             v,
                             chromaStride,
                             outY,
-                            width,
+                            outStride,
                             outU,
-                            chromaWidth,
+                            outChromaStride,
                             outV,
-                            chromaWidth,
+                            outChromaStride,
                             width,
                             height);
         } else {
@@ -340,11 +343,11 @@ public final class TheoraDecoder implements Decoder {
                             v,
                             chromaStride,
                             outY,
-                            width,
+                            outStride,
                             outU,
-                            chromaWidth,
+                            outChromaStride,
                             outV,
-                            chromaWidth,
+                            outChromaStride,
                             width,
                             height);
         }

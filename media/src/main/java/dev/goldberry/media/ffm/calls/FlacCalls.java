@@ -21,7 +21,6 @@ public record FlacCalls(
         InitStream initStream,
         Finish finish,
         Flush flush,
-        Reset reset,
         ProcessSingle processSingle,
         GetState getState,
         GetResolvedStateString getResolvedStateString) {
@@ -38,7 +37,6 @@ public record FlacCalls(
                 new InitStream(lookup),
                 new Finish(lookup),
                 new Flush(lookup),
-                new Reset(lookup),
                 new ProcessSingle(lookup),
                 new GetState(lookup),
                 new GetResolvedStateString(lookup));
@@ -206,27 +204,6 @@ public record FlacCalls(
                 return (int) FD_FLAC__stream_decoder_flush.invokeExact(address, decoder);
             } catch (Throwable t) {
                 throw Downcalls.failure("FLAC__stream_decoder_flush", t);
-            }
-        }
-    }
-
-    /// `FLAC__bool FLAC__stream_decoder_reset(FLAC__StreamDecoder *decoder)`
-    public static final class Reset {
-
-        private static final MethodHandle FD_FLAC__stream_decoder_reset =
-                Downcalls.link(FunctionDescriptor.of(JAVA_INT, ADDRESS));
-
-        private final MemorySegment address;
-
-        Reset(SymbolLookup lookup) {
-            this.address = Downcalls.symbol(lookup, "FLAC__stream_decoder_reset");
-        }
-
-        public int call(MemorySegment decoder) {
-            try {
-                return (int) FD_FLAC__stream_decoder_reset.invokeExact(address, decoder);
-            } catch (Throwable t) {
-                throw Downcalls.failure("FLAC__stream_decoder_reset", t);
             }
         }
     }

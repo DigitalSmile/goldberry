@@ -465,3 +465,61 @@ The items, each "done" when built, tested and green here:
         Vulkan downcalls in the native image's foreign metadata.
 - [ ] Media Foundation on by default (after its CI lane)
 - [ ] `media.yml`, `publish.yml` and the sanitizer job green on the runners
+
+### The first CI run: Snapshot #72 on b83be6c4 (2026-10-25)
+
+The whole of phases 0 to 5 reached the runners in one push. The sanitizer job
+went green; the library failed to build on all four targets, each for a reason
+of its own, so the `:media` job never ran:
+
+- [x] **linux-x64**: `undefined reference to 'dlsym'` from dav1d's
+      `dav1d_open` (it looks up `__pthread_get_minstack`). The manylinux_2_28
+      container's glibc 2.28 keeps `dlsym` in libdl, which merged into libc
+      only in 2.34, so a newer host links without it. The library links
+      `${CMAKE_DL_LIBS}`.
+- [x] **linux-aarch64** (`udot`, dot product) and **macos-aarch64** (i8mm):
+      libyuv's `*_neon64.cc` kernels use extensions the baseline `-march`
+      refuses. libyuv's own CMake builds those four files alone with
+      `-march=armv8.2-a+dotprod+i8mm` and picks a kernel at run time from the
+      CPU's features; the superbuild does the same now. Checked by configuring
+      as aarch64 here (the flag lands on the four files and nothing else);
+      there is no arm64 compiler on this machine, so the runners compile it
+      first.
+- [x] **windows-x64**: the DLL linked, and `check_exports.cmake` found none of
+      its 160 symbols. Binutils 2.39 and later print the export name table as
+      `[   0] +base[   1]  0000 name` under a column header, where the parser
+      expected `[   0] name`. It reads the last word of each line of the name
+      pointer table now, and takes `-DDUMP=` (a saved listing) in place of
+      running the tool, which `nativebuild.ExportCheckTest` uses to hold it to
+      ELF, Mach-O, both binutils layouts and CRLF output.
+- [x] **Qodana #76** on the same commit: 40 new High findings, all in the
+      phase 4–5 code. Packets that own their `Arena` carry Qodana's
+      `resource` beside Error Prone's `MustBeClosedChecker`; `VideoSession`,
+      `UploadBuffer` and `FfmpegProcess` join the profile's owned types; the
+      Matroska zlib `Inflater` is a try-with-resources (AutoCloseable since
+      JDK 25); conditions that could not change (FLAC's doubled bound,
+      Matroska's denominator, `AsynchronousCloseException` under
+      `ClosedChannelException`, a null `MemorySegment`, `ToneCurve`'s
+      unreachable `UNSPECIFIED`) are gone, AV1's `read_global_param` assigns
+      each width once, and the rest are boxing and naming.
+- [x] Its 80 `unused` notes: spec constants nothing reads, parser entry
+      points and accessors with no caller, and ten bindings never called
+      (dav1d's version, frame delay and `data_wrap`, the libraries' version
+      strings, `vpx_codec_error`, `opus_packet_get_nb_samples`, FLAC's reset)
+      are deleted; the export list keeps them, as it keeps the rest of the
+      upstream APIs. `SampleFormat.ffmpegSuffix()` goes (in the parked
+      breaking changes); `UploadBuffer.size()` and
+      `MediaCapabilities.canDemux` are public API and now tested. Four `.orig`
+      leftovers committed with b83be6c4 are deleted.
+- [x] **macos-aarch64, `:gpu:gpuTest`**: `GpuApiTest$Uploads.fromUploadMemory`
+      (row 1 wrong) and `VideoLayerTest.stagedPlanes`. SDL 3.4's
+      `METAL_UploadToTexture` passes `BytesPerRow(destination->w)` whatever
+      `pixels_per_row` says (its download honours it), so padded rows shear
+      on Metal. `SdlGpuDevice.uploadsPaddedRows()` (false on Metal, mirrored
+      by `GpuDevice`) makes a padded upload record a row at a time, and the
+      staging packs its rows there, so a picture is still one copy a plane.
+      ADR-0662 (parked) says so; `StagedPlanesLayoutTest` holds the layout
+      both ways. The row-at-a-time path was run here on Vulkan with the
+      answer forced false.
+- [ ] The next run: the `:media` job on four targets is the first time the
+      tests meet each target's library.

@@ -17,8 +17,6 @@ public record ObuHeader(int type, boolean extension, boolean hasSizeField, int t
     public static final int METADATA = 5;
     public static final int FRAME = 6;
     public static final int REDUNDANT_FRAME_HEADER = 7;
-    public static final int TILE_LIST = 8;
-    public static final int PADDING = 15;
 
     /// Its length in bytes: one, or two with the extension.
     public int length() {

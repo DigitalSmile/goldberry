@@ -41,11 +41,6 @@ public enum VulkanCodec {
         this.stdVersion = stdVersion;
     }
 
-    /// The SPI's codec.
-    public CodecId codec() {
-        return codec;
-    }
-
     /// `VkVideoCodecOperationFlagBitsKHR`.
     int operation() {
         return operation;

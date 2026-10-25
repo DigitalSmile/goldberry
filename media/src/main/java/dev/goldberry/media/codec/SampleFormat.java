@@ -12,27 +12,25 @@ package dev.goldberry.media.codec;
 ///
 /// Read more: [Bringing a codec](https://goldberry.dev/docs/components/media.html#bringing-a-codec).
 public enum SampleFormat {
-    U8(1, false, "U8"),
-    S16(2, false, "S16"),
-    S32(4, false, "S32"),
-    S64(8, false, "S64"),
-    F32(4, false, "FLT"),
-    F64(8, false, "DBL"),
-    U8_PLANAR(1, true, "U8P"),
-    S16_PLANAR(2, true, "S16P"),
-    S32_PLANAR(4, true, "S32P"),
-    S64_PLANAR(8, true, "S64P"),
-    F32_PLANAR(4, true, "FLTP"),
-    F64_PLANAR(8, true, "DBLP");
+    U8(1, false),
+    S16(2, false),
+    S32(4, false),
+    S64(8, false),
+    F32(4, false),
+    F64(8, false),
+    U8_PLANAR(1, true),
+    S16_PLANAR(2, true),
+    S32_PLANAR(4, true),
+    S64_PLANAR(8, true),
+    F32_PLANAR(4, true),
+    F64_PLANAR(8, true);
 
     private final int bytesPerSample;
     private final boolean planar;
-    private final String ffmpegSuffix;
 
-    SampleFormat(int bytesPerSample, boolean planar, String ffmpegSuffix) {
+    SampleFormat(int bytesPerSample, boolean planar) {
         this.bytesPerSample = bytesPerSample;
         this.planar = planar;
-        this.ffmpegSuffix = ffmpegSuffix;
     }
 
     /// Bytes per sample of one channel.
@@ -43,11 +41,6 @@ public enum SampleFormat {
     /// Whether each channel has a plane of its own.
     public boolean planar() {
         return planar;
-    }
-
-    /// The suffix of FFmpeg's `AV_SAMPLE_FMT_*` name for this format.
-    public String ffmpegSuffix() {
-        return ffmpegSuffix;
     }
 
     /// How many planes a frame of `channels` channels has in this format.

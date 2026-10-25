@@ -6,7 +6,6 @@ import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.ValueLayout;
 import java.nio.ByteBuffer;
-import java.nio.channels.AsynchronousCloseException;
 import java.nio.channels.ClosedChannelException;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
@@ -43,11 +42,6 @@ public final class ByteReader {
     public ByteReader(MediaIO io) {
         this.io = Objects.requireNonNull(io, "io");
         this.bufferStart = io.position();
-    }
-
-    /// The stream the bytes come from.
-    public MediaIO io() {
-        return io;
     }
 
     /// Where the next read starts, in bytes from the stream's start.
@@ -333,7 +327,8 @@ public final class ByteReader {
 
     /// What a failed `MediaIO` call is to the Engine.
     public static MediaException failure(IOException e) {
-        if (e instanceof ClosedChannelException || e instanceof AsynchronousCloseException) {
+        // AsynchronousCloseException, a close from another thread, is one too.
+        if (e instanceof ClosedChannelException) {
             return new MediaException(new MediaError.Aborted(), e);
         }
         if (e instanceof EOFException) {

@@ -56,6 +56,8 @@ Everything below is measured against 2026.2 (tag commit d3eacfdc).
   pixels than 8192 × 4352, fails the playback with `InvalidData`, from the
   stated size as the source opens or from the picture itself. `PictureLimit`
   holds the numbers. <!-- ADR-0658 -->
+- `SampleFormat.ffmpegSuffix()` is gone: it named FFmpeg's `AV_SAMPLE_FMT_*`
+  format, which nothing reads any more. <!-- ADR-0651 -->
 - The system property `goldberry.media.ffmpegLog` is gone.
   `goldberry.media.libdir` still names a directory holding the library and its
   `media-layout.properties`. <!-- ADR-0651 -->

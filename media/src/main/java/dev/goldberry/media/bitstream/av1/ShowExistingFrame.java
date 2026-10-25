@@ -21,20 +21,12 @@ public record ShowExistingFrame(
     }
 
     /// `frame_type`: the shown frame's.
-    @Override
     public int frameType() {
         return shown.frameType();
     }
 
     /// `refresh_frame_flags`: every slot when a key frame is shown, else none.
-    @Override
     public int refreshFrameFlags() {
         return shown.frameType() == FrameHeader.KEY_FRAME ? References.ALL_FRAMES : 0;
-    }
-
-    /// The grain to add to the frame shown, `load_grain_params()`'s: the
-    /// shown frame's own, its seed and all.
-    public FilmGrain filmGrain() {
-        return shown.filmGrain();
     }
 }

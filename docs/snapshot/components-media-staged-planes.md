@@ -20,5 +20,7 @@ record is ADR-0662. They say what is, and cite no record.
 > `CopyPass.upload(texture, buffer, offset, rowBytes)` records the upload
 > from it with no copy. Mapping, unmapping and uploading are the device's
 > thread's; only the bytes may be written elsewhere, and unmapping ends the
-> mapping for every thread. Rows padded to 256 bytes upload as they are on
-> every driver.
+> mapping for every thread. Rows padded to 256 bytes upload in one copy where
+> `GpuDevice.uploadsPaddedRows()` is true, Vulkan and Direct3D 12; Metal reads
+> an upload's rows as packed, so there padded rows are recorded one at a time
+> and packed rows are the ones to stage.

@@ -33,11 +33,6 @@ public final class MatroskaIds {
     public static final long CHAPTERS = 0x1043A770L;
     public static final long TAGS = 0x1254C367L;
 
-    /// Reserved space, and a checksum: skipped wherever they appear.
-    public static final long VOID = 0xEC;
-
-    public static final long CRC32 = 0xBF;
-
     // ---- SeekHead ------------------------------------------------------------
 
     public static final long SEEK = 0x4DBB;
@@ -66,7 +61,6 @@ public final class MatroskaIds {
     public static final long CODEC_ID = 0x86;
     public static final long CODEC_PRIVATE = 0x63A2;
     public static final long CODEC_DELAY = 0x56AA;
-    public static final long SEEK_PRE_ROLL = 0x56BB;
 
     public static final long VIDEO = 0xE0;
     public static final long PIXEL_WIDTH = 0xB0;
@@ -76,15 +70,12 @@ public final class MatroskaIds {
     public static final long UNCOMPRESSED_FOURCC = 0x2EB524;
     public static final long COLOUR = 0x55B0;
     public static final long MATRIX_COEFFICIENTS = 0x55B1;
-    public static final long BITS_PER_CHANNEL = 0x55B2;
     public static final long RANGE = 0x55B9;
     public static final long TRANSFER_CHARACTERISTICS = 0x55BA;
     public static final long PRIMARIES = 0x55BB;
     public static final long MAX_CLL = 0x55BC;
-    public static final long MAX_FALL = 0x55BD;
     public static final long MASTERING_METADATA = 0x55D0;
     public static final long LUMINANCE_MAX = 0x55D9;
-    public static final long LUMINANCE_MIN = 0x55DA;
 
     public static final long AUDIO = 0xE1;
     public static final long SAMPLING_FREQUENCY = 0xB5;
@@ -93,7 +84,6 @@ public final class MatroskaIds {
 
     public static final long CONTENT_ENCODINGS = 0x6D80;
     public static final long CONTENT_ENCODING = 0x6240;
-    public static final long CONTENT_ENCODING_SCOPE = 0x5032;
     public static final long CONTENT_ENCODING_TYPE = 0x5033;
     public static final long CONTENT_COMPRESSION = 0x5034;
     public static final long CONTENT_COMP_ALGO = 0x4254;

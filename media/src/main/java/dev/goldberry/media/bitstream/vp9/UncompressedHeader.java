@@ -126,11 +126,8 @@ public record UncompressedHeader(
     public static final int REFS_PER_FRAME = 3;
 
     /// The reference frames, as [#refFrameSignBias] and the loop filter's
-    /// deltas number them.
-    public static final int INTRA_FRAME = 0;
-
+    /// deltas number them; 0 is the intra frame.
     public static final int LAST_FRAME = 1;
-    public static final int GOLDEN_FRAME = 2;
     public static final int ALTREF_FRAME = 3;
 
     /// The interpolation filters, as Vulkan's
