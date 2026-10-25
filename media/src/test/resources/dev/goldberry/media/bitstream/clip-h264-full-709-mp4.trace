@@ -1,0 +1,215 @@
+Extradata
+nal_unit_type: 7(SPS), nal_ref_idc: 3
+nal_unit_type: 8(PPS), nal_ref_idc: 3
+4 bytes left at end of AVCC header.
+Sequence Parameter Set
+0           forbidden_zero_bit                                          0 = 0
+1           nal_ref_idc                                                11 = 3
+3           nal_unit_type                                           00111 = 7
+8           profile_idc                                          01100100 = 100
+16          constraint_set0_flag                                        0 = 0
+17          constraint_set1_flag                                        0 = 0
+18          constraint_set2_flag                                        0 = 0
+19          constraint_set3_flag                                        0 = 0
+20          constraint_set4_flag                                        0 = 0
+21          constraint_set5_flag                                        0 = 0
+22          reserved_zero_2bits                                        00 = 0
+24          level_idc                                            00001011 = 11
+32          seq_parameter_set_id                                        1 = 0
+33          chroma_format_idc                                         010 = 1
+36          bit_depth_luma_minus8                                       1 = 0
+37          bit_depth_chroma_minus8                                     1 = 0
+38          qpprime_y_zero_transform_bypass_flag                        0 = 0
+39          seq_scaling_matrix_present_flag                             0 = 0
+40          log2_max_frame_num_minus4                                   1 = 0
+41          pic_order_cnt_type                                          1 = 0
+42          log2_max_pic_order_cnt_lsb_minus4                         011 = 2
+45          max_num_ref_frames                                      00101 = 4
+50          gaps_in_frame_num_allowed_flag                              0 = 0
+51          pic_width_in_mbs_minus1                               0001010 = 9
+58          pic_height_in_map_units_minus1                          00110 = 5
+63          frame_mbs_only_flag                                         1 = 1
+64          direct_8x8_inference_flag                                   1 = 1
+65          frame_cropping_flag                                         1 = 1
+66          frame_crop_left_offset                                      1 = 0
+67          frame_crop_right_offset                                     1 = 0
+68          frame_crop_top_offset                                       1 = 0
+69          frame_crop_bottom_offset                                00100 = 3
+74          vui_parameters_present_flag                                 1 = 1
+75          aspect_ratio_info_present_flag                              1 = 1
+76          aspect_ratio_idc                                     00000001 = 1
+84          overscan_info_present_flag                                  0 = 0
+85          video_signal_type_present_flag                              1 = 1
+86          video_format                                              101 = 5
+89          video_full_range_flag                                       1 = 1
+90          colour_description_present_flag                             1 = 1
+91          colour_primaries                                     00000010 = 2
+99          transfer_characteristics                             00000010 = 2
+107         matrix_coefficients                                  00000001 = 1
+115         chroma_loc_info_present_flag                                0 = 0
+116         timing_info_present_flag                                    1 = 1
+117         num_units_in_tick            00000000000000000000000000000001 = 1
+149         time_scale                   00000000000000000000000000110010 = 50
+181         fixed_frame_rate_flag                                       0 = 0
+182         nal_hrd_parameters_present_flag                             0 = 0
+183         vcl_hrd_parameters_present_flag                             0 = 0
+184         pic_struct_present_flag                                     0 = 0
+185         bitstream_restriction_flag                                  1 = 1
+186         motion_vectors_over_pic_boundaries_flag                     1 = 1
+187         max_bytes_per_pic_denom                                     1 = 0
+188         max_bits_per_mb_denom                                       1 = 0
+189         log2_max_mv_length_horizontal                         0001010 = 9
+196         log2_max_mv_length_vertical                           0001010 = 9
+203         max_num_reorder_frames                                    011 = 2
+206         max_dec_frame_buffering                                 00101 = 4
+211         rbsp_stop_one_bit                                           1 = 1
+212         rbsp_alignment_zero_bit                                     0 = 0
+213         rbsp_alignment_zero_bit                                     0 = 0
+214         rbsp_alignment_zero_bit                                     0 = 0
+215         rbsp_alignment_zero_bit                                     0 = 0
+Picture Parameter Set
+0           forbidden_zero_bit                                          0 = 0
+1           nal_ref_idc                                                11 = 3
+3           nal_unit_type                                           01000 = 8
+8           pic_parameter_set_id                                        1 = 0
+9           seq_parameter_set_id                                        1 = 0
+10          entropy_coding_mode_flag                                    1 = 1
+11          bottom_field_pic_order_in_frame_present_flag                0 = 0
+12          num_slice_groups_minus1                                     1 = 0
+13          num_ref_idx_l0_default_active_minus1                      011 = 2
+16          num_ref_idx_l1_default_active_minus1                        1 = 0
+17          weighted_pred_flag                                          1 = 1
+18          weighted_bipred_idc                                        10 = 2
+20          pic_init_qp_minus26                                   0001000 = 4
+27          pic_init_qs_minus26                                         1 = 0
+28          chroma_qp_index_offset                                  00101 = -2
+33          deblocking_filter_control_present_flag                      1 = 1
+34          constrained_intra_pred_flag                                 0 = 0
+35          redundant_pic_cnt_present_flag                              0 = 0
+36          transform_8x8_mode_flag                                     1 = 1
+37          pic_scaling_matrix_present_flag                             0 = 0
+38          second_chroma_qp_index_offset                           00101 = -2
+43          rbsp_stop_one_bit                                           1 = 1
+44          rbsp_alignment_zero_bit                                     0 = 0
+45          rbsp_alignment_zero_bit                                     0 = 0
+46          rbsp_alignment_zero_bit                                     0 = 0
+47          rbsp_alignment_zero_bit                                     0 = 0
+Packet: 2076 bytes, key frame, pts 0, dts -1024, duration 512.
+nal_unit_type: 6(SEI), nal_ref_idc: 0
+nal_unit_type: 5(IDR), nal_ref_idc: 3
+Slice Header
+0           forbidden_zero_bit                                          0 = 0
+1           nal_ref_idc                                                11 = 3
+3           nal_unit_type                                           00101 = 5
+8           first_mb_in_slice                                           1 = 0
+9           slice_type                                            0001000 = 7
+16          pic_parameter_set_id                                        1 = 0
+17          frame_num                                                0000 = 0
+21          idr_pic_id                                                  1 = 0
+22          pic_order_cnt_lsb                                      000000 = 0
+28          no_output_of_prior_pics_flag                                0 = 0
+29          long_term_reference_flag                                    0 = 0
+30          slice_qp_delta                                        0001110 = 7
+37          disable_deblocking_filter_idc                               1 = 0
+38          slice_alpha_c0_offset_div2                                  1 = 0
+39          slice_beta_offset_div2                                      1 = 0
+Packet: 451 bytes, pts 2048, dts -512, duration 512.
+nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 2
+Slice Header
+0           forbidden_zero_bit                                          0 = 0
+1           nal_ref_idc                                                10 = 2
+3           nal_unit_type                                           00001 = 1
+8           first_mb_in_slice                                           1 = 0
+9           slice_type                                              00110 = 5
+14          pic_parameter_set_id                                        1 = 0
+15          frame_num                                                0001 = 1
+19          pic_order_cnt_lsb                                      001000 = 8
+25          num_ref_idx_active_override_flag                            1 = 1
+26          num_ref_idx_l0_active_minus1                                1 = 0
+27          ref_pic_list_modification_flag_l0                           0 = 0
+28          luma_log2_weight_denom                                      1 = 0
+29          chroma_log2_weight_denom                                    1 = 0
+30          luma_weight_l0_flag[0]                                      0 = 0
+31          chroma_weight_l0_flag[0]                                    0 = 0
+32          adaptive_ref_pic_marking_mode_flag                          0 = 0
+33          cabac_init_idc                                              1 = 0
+34          slice_qp_delta                                      000010110 = 11
+43          disable_deblocking_filter_idc                               1 = 0
+44          slice_alpha_c0_offset_div2                                  1 = 0
+45          slice_beta_offset_div2                                      1 = 0
+46          cabac_alignment_one_bit                                     1 = 1
+47          cabac_alignment_one_bit                                     1 = 1
+Packet: 254 bytes, pts 1024, dts 0, duration 512.
+nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 2
+Slice Header
+0           forbidden_zero_bit                                          0 = 0
+1           nal_ref_idc                                                10 = 2
+3           nal_unit_type                                           00001 = 1
+8           first_mb_in_slice                                           1 = 0
+9           slice_type                                              00111 = 6
+14          pic_parameter_set_id                                        1 = 0
+15          frame_num                                                0010 = 2
+19          pic_order_cnt_lsb                                      000100 = 4
+25          direct_spatial_mv_pred_flag                                 1 = 1
+26          num_ref_idx_active_override_flag                            1 = 1
+27          num_ref_idx_l0_active_minus1                                1 = 0
+28          num_ref_idx_l1_active_minus1                                1 = 0
+29          ref_pic_list_modification_flag_l0                           0 = 0
+30          ref_pic_list_modification_flag_l1                           0 = 0
+31          adaptive_ref_pic_marking_mode_flag                          0 = 0
+32          cabac_init_idc                                              1 = 0
+33          slice_qp_delta                                      000010100 = 10
+42          disable_deblocking_filter_idc                               1 = 0
+43          slice_alpha_c0_offset_div2                                  1 = 0
+44          slice_beta_offset_div2                                      1 = 0
+45          cabac_alignment_one_bit                                     1 = 1
+46          cabac_alignment_one_bit                                     1 = 1
+47          cabac_alignment_one_bit                                     1 = 1
+Packet: 206 bytes, pts 512, dts 512, duration 512.
+nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 0
+Slice Header
+0           forbidden_zero_bit                                          0 = 0
+1           nal_ref_idc                                                00 = 0
+3           nal_unit_type                                           00001 = 1
+8           first_mb_in_slice                                           1 = 0
+9           slice_type                                              00111 = 6
+14          pic_parameter_set_id                                        1 = 0
+15          frame_num                                                0011 = 3
+19          pic_order_cnt_lsb                                      000010 = 2
+25          direct_spatial_mv_pred_flag                                 1 = 1
+26          num_ref_idx_active_override_flag                            1 = 1
+27          num_ref_idx_l0_active_minus1                                1 = 0
+28          num_ref_idx_l1_active_minus1                              010 = 1
+31          ref_pic_list_modification_flag_l0                           0 = 0
+32          ref_pic_list_modification_flag_l1                           0 = 0
+33          cabac_init_idc                                              1 = 0
+34          slice_qp_delta                                      000010110 = 11
+43          disable_deblocking_filter_idc                               1 = 0
+44          slice_alpha_c0_offset_div2                                  1 = 0
+45          slice_beta_offset_div2                                      1 = 0
+46          cabac_alignment_one_bit                                     1 = 1
+47          cabac_alignment_one_bit                                     1 = 1
+Packet: 155 bytes, pts 1536, dts 1024, duration 512.
+nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 0
+Slice Header
+0           forbidden_zero_bit                                          0 = 0
+1           nal_ref_idc                                                00 = 0
+3           nal_unit_type                                           00001 = 1
+8           first_mb_in_slice                                           1 = 0
+9           slice_type                                              00111 = 6
+14          pic_parameter_set_id                                        1 = 0
+15          frame_num                                                0011 = 3
+19          pic_order_cnt_lsb                                      000110 = 6
+25          direct_spatial_mv_pred_flag                                 1 = 1
+26          num_ref_idx_active_override_flag                            1 = 1
+27          num_ref_idx_l0_active_minus1                              010 = 1
+30          num_ref_idx_l1_active_minus1                                1 = 0
+31          ref_pic_list_modification_flag_l0                           0 = 0
+32          ref_pic_list_modification_flag_l1                           0 = 0
+33          cabac_init_idc                                              1 = 0
+34          slice_qp_delta                                      000010110 = 11
+43          disable_deblocking_filter_idc                               1 = 0
+44          slice_alpha_c0_offset_div2                                  1 = 0
+45          slice_beta_offset_div2                                      1 = 0
+46          cabac_alignment_one_bit                                     1 = 1
+47          cabac_alignment_one_bit                                     1 = 1

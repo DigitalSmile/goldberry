@@ -1,6 +1,7 @@
 package dev.goldberry.media.view.gpu;
 
 import java.util.Objects;
+import java.util.Optional;
 import java.util.function.Consumer;
 
 import org.jspecify.annotations.Nullable;
@@ -8,6 +9,7 @@ import org.jspecify.annotations.Nullable;
 import dev.goldberry.gpu.video.VideoImage;
 import dev.goldberry.gpu.video.VideoLayer;
 import dev.goldberry.media.picture.Picture;
+import dev.goldberry.media.picture.PlaneStore;
 import dev.goldberry.media.picture.VideoPicture;
 import dev.goldberry.paint.Frame;
 import dev.goldberry.widgets.core.image.Fit;
@@ -22,6 +24,10 @@ import dev.goldberry.widgets.core.image.Fit;
 /// queued before the player's form changed, or all of them while another view
 /// on the player draws on the CPU -- as BGRA.
 ///
+/// While the player writes this view's planes into the layer's upload memory
+/// ([StagedPlaneStore]), its pictures are staged, and the layer uploads them
+/// with no copy on the UI thread.
+///
 /// A picture with alpha is declined, and the surface draws it on the CPU,
 /// blended over what is beneath it. The layer replaces the pixels under its
 /// rectangle, which for an opaque picture is the same thing and for a sticker is
@@ -29,6 +35,7 @@ import dev.goldberry.widgets.core.image.Fit;
 final class GpuVideoPresenter implements VideoPresenter {
 
     private final VideoLayer layer = new VideoLayer();
+    private final StagedPlaneStore store = new StagedPlaneStore(layer.staging());
     private final Consumer<Boolean> shownOnGpu;
     private @Nullable Picture picture;
     private @Nullable VideoImage image;
@@ -52,6 +59,13 @@ final class GpuVideoPresenter implements VideoPresenter {
         var placed = frame.gpuLayer(layer, placement.x(), placement.y(), placement.width(), placement.height());
         report(placed);
         return placed;
+    }
+
+    /// The layer's upload memory, which the player writes this presenter's
+    /// planes into while it is the one view.
+    @Override
+    public Optional<PlaneStore> planeStore() {
+        return Optional.of(store);
     }
 
     /// Tells the view whether pictures are on the GPU, when that has changed.

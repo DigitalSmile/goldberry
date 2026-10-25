@@ -18,7 +18,7 @@
 #     stage.
 #
 # Every upstream is BSD-2, BSD-3 or CC0: dav1d, libvpx, Opus, libogg, libvorbis,
-# FLAC, libyuv and minimp3. That is what lets them join one library and ship
+# libtheora, FLAC, libyuv and minimp3. That is what lets them join one library and ship
 # under the project's own licence with a notice, where FFmpeg (LGPL) had to stay
 # five replaceable shared objects with its source published beside them.
 #
@@ -146,11 +146,12 @@ goldberry_pin(opus GOLDBERRY_OPUS_REF)
 goldberry_pin(ogg GOLDBERRY_OGG_REF)
 goldberry_pin(vorbis GOLDBERRY_VORBIS_REF)
 goldberry_pin(flac GOLDBERRY_FLAC_REF)
+goldberry_pin(theora GOLDBERRY_THEORA_REF)
 goldberry_pin(libyuv GOLDBERRY_LIBYUV_REF)
 goldberry_pin(minimp3 GOLDBERRY_MINIMP3_REF)
 message(STATUS "goldberry-media pins: dav1d ${GOLDBERRY_DAV1D_REF}, libvpx ${GOLDBERRY_LIBVPX_REF}, "
     "opus ${GOLDBERRY_OPUS_REF}, ogg ${GOLDBERRY_OGG_REF}, vorbis ${GOLDBERRY_VORBIS_REF}, "
-    "flac ${GOLDBERRY_FLAC_REF}, libyuv ${GOLDBERRY_LIBYUV_REF}, minimp3 ${GOLDBERRY_MINIMP3_REF}; "
+    "theora ${GOLDBERRY_THEORA_REF}, flac ${GOLDBERRY_FLAC_REF}, libyuv ${GOLDBERRY_LIBYUV_REF}, minimp3 ${GOLDBERRY_MINIMP3_REF}; "
     "target ${GOLDBERRY_TARGET_ID}")
 
 ProcessorCount(_jobs)
@@ -315,7 +316,8 @@ ExternalProject_Add(opus
 # ----------------------------------------------------------------------------
 # libogg and libvorbis. Ogg's framing is read in Java; libogg is here because
 # libvorbis's bit reader is libogg's, and its `ogg_packet` is how a packet is
-# handed over. Vorbis finds Ogg in the stage, so Ogg installs first.
+# handed over, to libtheora as well. Vorbis finds Ogg in the stage, so Ogg
+# installs first.
 # ----------------------------------------------------------------------------
 goldberry_source(ogg https://gitlab.xiph.org/xiph/ogg.git ${GOLDBERRY_OGG_REF} _ogg_source)
 ExternalProject_Add(ogg
@@ -359,11 +361,19 @@ ExternalProject_Add(flac
     UPDATE_DISCONNECTED TRUE)
 
 # ----------------------------------------------------------------------------
-# libyuv and minimp3 are compiled into the library directly: libyuv's CMake
-# project builds a shared copy and a converter tool nobody needs, and minimp3 is
-# one header. FetchContent populates them at configure time, into the same
-# deps directory, and nothing of theirs is configured.
+# libtheora, libyuv and minimp3 are compiled here directly. libtheora's build is
+# autotools, which a clone has to bootstrap first (autoconf, automake, libtool:
+# three more tools on every runner) for a decoder of thirteen C files; libyuv's
+# CMake project builds a shared copy and a converter tool nobody needs; and
+# minimp3 is one header. FetchContent populates them at configure time, into
+# the same deps directory, and nothing of theirs is configured.
 # ----------------------------------------------------------------------------
+FetchContent_Declare(theora
+    GIT_REPOSITORY https://gitlab.xiph.org/xiph/theora.git
+    GIT_TAG ${GOLDBERRY_THEORA_REF}
+    GIT_SHALLOW TRUE
+    SOURCE_DIR "${GOLDBERRY_MEDIA_DEPS_DIR}/theora-src"
+    SOURCE_SUBDIR does-not-exist)
 FetchContent_Declare(libyuv
     GIT_REPOSITORY https://chromium.googlesource.com/libyuv/libyuv
     GIT_TAG ${GOLDBERRY_LIBYUV_REF}
@@ -375,7 +385,47 @@ FetchContent_Declare(minimp3
     GIT_SHALLOW FALSE
     SOURCE_DIR "${GOLDBERRY_MEDIA_DEPS_DIR}/minimp3-src"
     SOURCE_SUBDIR does-not-exist)
-FetchContent_MakeAvailable(libyuv minimp3)
+FetchContent_MakeAvailable(theora libyuv minimp3)
+
+# libtheora: the decoder alone, libtheoradec's sources as its lib/Makefile.am
+# lists them, less the two files of the pre-1.0 `theora_` API nothing here
+# calls. On x86-64 its MMX and SSE2 paths are GCC inline assembly, which
+# MinGW-w64 compiles as well; on arm64 its assembly is ARM's own syntax, run
+# through a Perl script by its configure, so the C paths are built there
+# instead (the decoder dispatches on what the CPU has either way, and decodes
+# the same pictures). A static archive of its own, so that only what the
+# exported functions reach is linked, like every upstream's.
+set(_theora_lib "${theora_SOURCE_DIR}/lib")
+add_library(theoradec STATIC
+    "${_theora_lib}/bitpack.c"
+    "${_theora_lib}/decinfo.c"
+    "${_theora_lib}/decode.c"
+    "${_theora_lib}/dequant.c"
+    "${_theora_lib}/fragment.c"
+    "${_theora_lib}/huffdec.c"
+    "${_theora_lib}/idct.c"
+    "${_theora_lib}/info.c"
+    "${_theora_lib}/internal.c"
+    "${_theora_lib}/quant.c"
+    "${_theora_lib}/state.c")
+if(CMAKE_SYSTEM_PROCESSOR MATCHES "^(x86_64|AMD64|amd64)$")
+    target_sources(theoradec PRIVATE
+        "${_theora_lib}/x86/x86cpu.c"
+        "${_theora_lib}/x86/mmxidct.c"
+        "${_theora_lib}/x86/mmxfrag.c"
+        "${_theora_lib}/x86/mmxstate.c"
+        "${_theora_lib}/x86/sse2idct.c"
+        "${_theora_lib}/x86/x86state.c")
+    target_compile_definitions(theoradec PRIVATE OC_X86_ASM OC_X86_64_ASM)
+endif()
+# libogg's headers, from the stage: ogg_packet is how a packet is handed over.
+add_dependencies(theoradec ogg)
+target_include_directories(theoradec PRIVATE "${theora_SOURCE_DIR}/include" "${_stage}/include")
+target_compile_options(theoradec PRIVATE -O2)
+if(_sanitize_flags)
+    separate_arguments(_theora_sanitize UNIX_COMMAND "${_sanitize_flags}")
+    target_compile_options(theoradec PRIVATE ${_theora_sanitize})
+endif()
 
 file(GLOB _libyuv_sources CONFIGURE_DEPENDS "${libyuv_SOURCE_DIR}/source/*.cc")
 # The conversion tool's JPEG path and its tests are not library code.
@@ -385,7 +435,7 @@ list(FILTER _libyuv_sources EXCLUDE REGEX "(mjpeg_decoder|convert_jpeg|_test)\\.
 # The library.
 # ----------------------------------------------------------------------------
 add_library(goldberry_media SHARED goldberry_media.c ${_libyuv_sources})
-add_dependencies(goldberry_media dav1d libvpx opus ogg vorbis flac)
+add_dependencies(goldberry_media dav1d libvpx opus ogg vorbis flac theoradec)
 set_target_properties(goldberry_media PROPERTIES
     OUTPUT_NAME "goldberry-media"
     C_VISIBILITY_PRESET default
@@ -396,6 +446,7 @@ if(WIN32)
 endif()
 target_include_directories(goldberry_media PRIVATE
     "${_stage}/include"
+    "${theora_SOURCE_DIR}/include"
     "${libyuv_SOURCE_DIR}/include"
     "${minimp3_SOURCE_DIR}")
 target_compile_options(goldberry_media PRIVATE -O2)
@@ -418,18 +469,19 @@ target_compile_definitions(goldberry_media PRIVATE
     # own tests run with.
     LIBYUV_UNLIMITED_DATA
     # The version the probe and the loader agree on: goldberry_media_abi().
-    GOLDBERRY_MEDIA_ABI=2)
+    GOLDBERRY_MEDIA_ABI=3)
 if(WIN32)
     # FLAC's header exports its API for a DLL unless told the library is static.
     target_compile_definitions(goldberry_media PRIVATE FLAC__NO_DLL)
 endif()
 
-# The static archives, dependants first: libvorbis needs libogg.
+# The static archives, dependants first: libvorbis and libtheora need libogg.
 set(_archives
     "${_stage}/lib/libdav1d.a"
     "${_stage}/lib/libvpx.a"
     "${_stage}/lib/libopus.a"
     "${_stage}/lib/libvorbis.a"
+    $<TARGET_FILE:theoradec>
     "${_stage}/lib/libogg.a"
     "${_stage}/lib/libFLAC.a")
 target_link_libraries(goldberry_media PRIVATE ${_archives})
@@ -512,8 +564,9 @@ endif()
 # ----------------------------------------------------------------------------
 add_executable(media_layout media_layout.c)
 add_dependencies(media_layout dav1d libvpx opus ogg vorbis flac)
-target_include_directories(media_layout PRIVATE "${_stage}/include" "${libyuv_SOURCE_DIR}/include" "${minimp3_SOURCE_DIR}")
-target_compile_definitions(media_layout PRIVATE GOLDBERRY_MEDIA_ABI=2)
+target_include_directories(media_layout PRIVATE "${_stage}/include" "${theora_SOURCE_DIR}/include"
+    "${libyuv_SOURCE_DIR}/include" "${minimp3_SOURCE_DIR}")
+target_compile_definitions(media_layout PRIVATE GOLDBERRY_MEDIA_ABI=3)
 if(WIN32)
     target_compile_definitions(media_layout PRIVATE FLAC__NO_DLL)
 endif()
@@ -547,6 +600,7 @@ add_custom_target(media_package ALL
         -DOPUS_REF=${GOLDBERRY_OPUS_REF}
         -DOGG_REF=${GOLDBERRY_OGG_REF}
         -DVORBIS_REF=${GOLDBERRY_VORBIS_REF}
+        -DTHEORA_REF=${GOLDBERRY_THEORA_REF}
         -DFLAC_REF=${GOLDBERRY_FLAC_REF}
         -DLIBYUV_REF=${GOLDBERRY_LIBYUV_REF}
         -DMINIMP3_REF=${GOLDBERRY_MINIMP3_REF}

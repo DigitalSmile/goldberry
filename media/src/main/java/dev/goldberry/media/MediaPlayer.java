@@ -25,6 +25,7 @@ import dev.goldberry.media.io.MediaIOProvider;
 import dev.goldberry.media.io.Source;
 import dev.goldberry.media.picture.Picture;
 import dev.goldberry.media.picture.PictureForm;
+import dev.goldberry.media.picture.PlaneStore;
 import dev.goldberry.media.picture.VideoPicture;
 import dev.goldberry.media.picture.VideoPlanes;
 import dev.goldberry.media.subtitle.Cue;
@@ -82,6 +83,9 @@ public final class MediaPlayer implements AutoCloseable {
     /// The views attached, and the form they decide on. Guarded by `lock`.
     private final List<Attachment> attachments = new ArrayList<>();
     private PictureForm pictureForm = PictureForm.CONVERTED;
+    /// The store planes are written into, decided with the form; guarded by
+    /// `lock`.
+    private @Nullable PlaneStore planeStore;
 
     private MediaPlayer(Builder builder) {
         this.sinks = builder.sinks != null ? builder.sinks : SdlAudioSink::new;
@@ -129,6 +133,7 @@ public final class MediaPlayer implements AutoCloseable {
             next.setRate(rate);
             next.setAudioDelay(audioDelay.toNanos());
             next.setPictureForm(pictureForm);
+            next.setPlaneStore(planeStore);
             next.setLooping(looping);
             next.setHardwareDecoding(hardwareDecoding);
             playback = next;
@@ -242,6 +247,15 @@ public final class MediaPlayer implements AutoCloseable {
         var planes = !attachments.isEmpty()
                 && attachments.stream().allMatch(attachment -> attachment.form == PictureForm.PLANES);
         var form = planes ? PictureForm.PLANES : PictureForm.CONVERTED;
+        // A view's store is used while it is the one view: two views of planes
+        // on two devices would each want the other's memory.
+        var store = planes && attachments.size() == 1 ? attachments.getFirst().store : null;
+        if (store != planeStore) {
+            planeStore = store;
+            if (playback != null) {
+                playback.setPlaneStore(store);
+            }
+        }
         if (form == pictureForm) {
             return;
         }
@@ -583,6 +597,7 @@ public final class MediaPlayer implements AutoCloseable {
         private final MediaPlayer player;
         /// Guarded by the player's lock.
         private PictureForm form;
+        private @Nullable PlaneStore store;
         private boolean closed;
 
         private Attachment(MediaPlayer player, PictureForm form) {
@@ -605,6 +620,19 @@ public final class MediaPlayer implements AutoCloseable {
                     return;
                 }
                 this.form = form;
+                player.decideFormLocked();
+            }
+        }
+
+        /// Offers `store`'s memory for this view's planes, or takes the offer
+        /// back with null: while this is the one view attached and draws planes,
+        /// the player writes them there ([PlaneStore]). Does nothing once closed.
+        public void setPlaneStore(@Nullable PlaneStore store) {
+            synchronized (player.lock) {
+                if (closed || this.store == store) {
+                    return;
+                }
+                this.store = store;
                 player.decideFormLocked();
             }
         }

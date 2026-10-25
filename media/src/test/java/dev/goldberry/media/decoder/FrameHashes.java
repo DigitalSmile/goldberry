@@ -26,7 +26,7 @@ import dev.goldberry.media.codec.Received;
 import dev.goldberry.media.codec.VideoFrame;
 import dev.goldberry.media.container.ClipFixtures;
 import dev.goldberry.media.container.Container;
-import dev.goldberry.media.container.matroska.MatroskaContainer;
+import dev.goldberry.media.container.Containers;
 
 /// What FFmpeg decoded from the same clips, as `ffmpeg -f framemd5` wrote it:
 /// one MD5 per picture over its planes, rows packed without stride padding, Y
@@ -86,7 +86,7 @@ public final class FrameHashes {
     /// Decodes every picture of `name`'s first video track through `provider`,
     /// handing each to `consumer` while it is still borrowed.
     public static void decodeVideo(String name, DecoderProvider provider, Consumer<VideoFrame> consumer) {
-        try (var container = MatroskaContainer.open(ClipFixtures.source(name), ClipFixtures.io(name))) {
+        try (var container = Containers.open(ClipFixtures.source(name), ClipFixtures.io(name))) {
             var track = container.info().defaultTrack(MediaType.VIDEO).orElseThrow();
             container.select(Set.of(track.index()));
             var request = container.request(track.index());

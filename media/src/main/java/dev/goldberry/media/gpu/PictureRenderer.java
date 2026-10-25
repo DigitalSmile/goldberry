@@ -14,9 +14,11 @@ import dev.goldberry.gpu.video.VideoLayer;
 import dev.goldberry.media.MediaPlayer;
 import dev.goldberry.media.picture.Picture;
 import dev.goldberry.media.picture.PictureForm;
+import dev.goldberry.media.picture.PlaneStore;
 import dev.goldberry.media.picture.VideoPicture;
 import dev.goldberry.media.picture.VideoPlanes;
 import dev.goldberry.media.view.gpu.Pictures;
+import dev.goldberry.media.view.gpu.StagedPlaneStore;
 import dev.goldberry.render.model.PhysicalRect;
 
 /// Draws a player's [Picture]s into a texture of the application's own, for a
@@ -54,6 +56,7 @@ import dev.goldberry.render.model.PhysicalRect;
 public final class PictureRenderer implements AutoCloseable {
 
     private final VideoLayer layer = new VideoLayer();
+    private final PlaneStore store = new StagedPlaneStore(layer.staging());
     private @Nullable Picture picture;
     private @Nullable VideoImage image;
     private boolean closed;
@@ -110,6 +113,15 @@ public final class PictureRenderer implements AutoCloseable {
         if (closed) {
             throw new IllegalStateException("this picture renderer is closed");
         }
+    }
+
+    /// This renderer's upload memory, for the player whose pictures it draws:
+    /// offered with [MediaPlayer.Attachment#setPlaneStore], each picture's planes
+    /// are copied there where they are decoded, and drawn with no copy on the
+    /// device's thread. Buffers of a picture's shape are made on the first
+    /// render that is asked for them.
+    public PlaneStore planeStore() {
+        return store;
     }
 
     /// Releases what it made on the device and lets go of the last picture.

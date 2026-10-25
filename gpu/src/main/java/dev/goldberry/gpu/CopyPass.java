@@ -214,6 +214,44 @@ public final class CopyPass {
         return (int) row;
     }
 
+    /// Uploads the whole of `destination`, level 0 of layer 0, from
+    /// `source` at byte `offset`, its rows `rowBytes` apart: bytes written
+    /// into upload memory elsewhere, recorded with no copy on this thread.
+    /// `rowBytes` may be more than a row holds, as a multiple of a texel: rows
+    /// padded to 256 bytes are what Direct3D 12 copies from as they are.
+    ///
+    /// @throws IllegalArgumentException when `destination` is block-compressed
+    ///                                  or a depth texture, the rows are
+    ///                                  shorter than its own or not whole
+    ///                                  texels, they do not fit `source`, or
+    ///                                  either is another device's or closed
+    /// @throws IllegalStateException    when `source` is mapped
+    public void upload(GpuTexture destination, UploadBuffer source, int offset, int rowBytes) {
+        Objects.requireNonNull(source, "source");
+        requireOpen();
+        var texture = destination.sdl(device);
+        var transfer = source.sdl(device);
+        var format = destination.format();
+        if (format.isDepth() || format.isCompressed()) {
+            throw new IllegalArgumentException(destination + " is not a plain colour texture");
+        }
+        var texel = format.bytesPerPixel();
+        if (rowBytes < format.bytesPerRow(destination.width()) || rowBytes % texel != 0) {
+            throw new IllegalArgumentException("rows of " + rowBytes + " bytes for " + destination);
+        }
+        if (transfer.isMapped()) {
+            throw new IllegalStateException(source + " is mapped; a copy pass uploads from unmapped memory");
+        }
+        var whole = destination.mipLevels() == 1 && destination.layers() == 1 && destination.depth() == 1;
+        sdl.upload(
+                transfer,
+                offset,
+                rowBytes / texel,
+                texture,
+                new SdlGpuRegion(0, 0, destination.width(), destination.height()),
+                whole);
+    }
+
     /// Uploads the remaining bytes of `source`, which is not moved, into
     /// `destination` from byte `offset`.
     ///

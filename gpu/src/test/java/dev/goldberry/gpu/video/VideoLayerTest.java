@@ -8,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.EnumSet;
 
 import org.junit.jupiter.api.AfterAll;
@@ -72,6 +73,11 @@ class VideoLayerTest {
     /// A picture of one colour, `codes` at the layout's depth, stored as the
     /// layout stores it, rows padded to show strides are honoured.
     private static VideoImage.Planes uniform(PlaneLayout layout, ColorMatrix matrix, boolean fullRange, int[] codes) {
+        return uniform(layout, matrix, fullRange, codes, ColorVolume.SDR);
+    }
+
+    private static VideoImage.Planes uniform(
+            PlaneLayout layout, ColorMatrix matrix, boolean fullRange, int[] codes, ColorVolume colour) {
         var wide = layout.yuv().bitDepth() > 8;
         var shift = layout == PlaneLayout.P010 ? 6 : 0;
         var planes = new ArrayList<ByteBuffer>();
@@ -100,7 +106,7 @@ class VideoLayerTest {
             planes.add(buffer);
             strides.add(stride);
         }
-        return new VideoImage.Planes(layout, WIDTH, HEIGHT, planes, strides, matrix, fullRange);
+        return new VideoImage.Planes(layout, WIDTH, HEIGHT, planes, strides, matrix, fullRange, colour);
     }
 
     @Test
@@ -133,6 +139,102 @@ class VideoLayerTest {
                 }
             }
         }
+    }
+
+    @Test
+    @DisplayName("maps HDR and wide gamut to SDR BT.709 as the reference does, within one step")
+    void mapsHdr() {
+        var volumes = new ColorVolume[] {
+            new ColorVolume(ColorVolume.Primaries.BT2020, ColorVolume.Transfer.PQ, 1000),
+            new ColorVolume(ColorVolume.Primaries.BT2020, ColorVolume.Transfer.PQ, 4000),
+            new ColorVolume(ColorVolume.Primaries.BT709, ColorVolume.Transfer.PQ, 150),
+            new ColorVolume(ColorVolume.Primaries.BT2020, ColorVolume.Transfer.HLG, 1000),
+            new ColorVolume(ColorVolume.Primaries.BT2020, ColorVolume.Transfer.SDR, 203),
+            new ColorVolume(ColorVolume.Primaries.DISPLAY_P3, ColorVolume.Transfer.SDR, 203)
+        };
+        var codes10 = new int[][] {{940, 512, 512}, {502, 512, 512}, {820, 312, 632}, {388, 460, 700}, {64, 512, 512}};
+        try (var layer = new VideoLayer()) {
+            for (var layout : new PlaneLayout[] {PlaneLayout.P010, PlaneLayout.I010, PlaneLayout.NV12}) {
+                for (var volume : volumes) {
+                    var conversion = new YuvConversion(layout.yuv(), ColorMatrix.BT2020.yuv(), false);
+                    var mapping = volume.toneMapping();
+                    for (var colour : codes10) {
+                        var shift = 10 - layout.yuv().bitDepth();
+                        var codes = new int[] {colour[0] >> shift, colour[1] >> shift, colour[2] >> shift};
+                        layer.show(uniform(layout, ColorMatrix.BT2020, false, codes, volume));
+                        var picture = readBack(layer, WIDTH, HEIGHT);
+                        var mapped = mapping.apply(conversion.toRgb(codes[0], codes[1], codes[2]));
+                        var argb = picture.argb(WIDTH / 2, HEIGHT / 2);
+                        var where = layout + " " + volume + " " + Arrays.toString(codes);
+                        assertEquals((int) Math.round(mapped[0] * 255), (argb >> 16) & 0xFF, 1, where + " red");
+                        assertEquals((int) Math.round(mapped[1] * 255), (argb >> 8) & 0xFF, 1, where + " green");
+                        assertEquals((int) Math.round(mapped[2] * 255), argb & 0xFF, 1, where + " blue");
+                    }
+                }
+            }
+        }
+    }
+
+    @Test
+    @DisplayName("staged planes, written on another thread, draw as planes do, and their memory comes back")
+    void stagedPlanes() throws InterruptedException {
+        var codes = new int[] {145, 54, 34};
+        try (var layer = new VideoLayer()) {
+            var staging = layer.staging();
+            assertTrue(staging.obtain(PlaneLayout.NV12, WIDTH, HEIGHT).isEmpty(), "nothing made before a render");
+            layer.show(uniform(PlaneLayout.NV12, ColorMatrix.BT709, false, codes));
+            readBack(layer, WIDTH, HEIGHT);
+            var planes = staging.obtain(PlaneLayout.NV12, WIDTH, HEIGHT).orElseThrow();
+            assertEquals(256, planes.stride(0), "rows padded to 256 bytes");
+            var writer = Thread.ofPlatform().start(() -> {
+                var luma = planes.plane(0);
+                var chroma = planes.plane(1);
+                for (var y = 0; y < HEIGHT; y++) {
+                    for (var x = 0; x < WIDTH; x++) {
+                        luma.put(y * planes.stride(0) + x, (byte) 200);
+                    }
+                }
+                for (var y = 0; y < HEIGHT / 2; y++) {
+                    for (var x = 0; x < WIDTH / 2; x++) {
+                        chroma.put(y * planes.stride(1) + 2 * x, (byte) 90);
+                        chroma.put(y * planes.stride(1) + 2 * x + 1, (byte) 160);
+                    }
+                }
+            });
+            writer.join();
+            layer.show(new VideoImage.Staged(planes, ColorMatrix.BT709, false, ColorVolume.SDR));
+            var picture = readBack(layer, WIDTH, HEIGHT);
+            var expected =
+                    new YuvConversion(PlaneLayout.NV12.yuv(), ColorMatrix.BT709.yuv(), false).toRgbBytes(200, 90, 160);
+            var argb = picture.argb(WIDTH / 2, HEIGHT / 2);
+            assertEquals(expected[0], (argb >> 16) & 0xFF, 1);
+            assertEquals(expected[1], (argb >> 8) & 0xFF, 1);
+            assertEquals(expected[2], argb & 0xFF, 1);
+            assertEquals(200, planes.plane(0).get(0) & 0xFF, "still readable after the upload");
+            assertTrue(planes.isAlive());
+
+            planes.release();
+            assertFalse(planes.isAlive());
+            readBack(layer, WIDTH, HEIGHT);
+            var again = staging.obtain(PlaneLayout.NV12, WIDTH, HEIGHT);
+            assertTrue(again.isPresent(), "released memory is handed out again after a render");
+            again.get().release();
+        }
+    }
+
+    @Test
+    @DisplayName("staged planes of a closed layer are no longer alive, and nothing more is handed out")
+    void stagingCloses() {
+        var layer = new VideoLayer();
+        var staging = layer.staging();
+        staging.obtain(PlaneLayout.I420, WIDTH, HEIGHT);
+        layer.show(uniform(PlaneLayout.I420, ColorMatrix.BT601, false, new int[] {81, 90, 240}));
+        readBack(layer, WIDTH, HEIGHT);
+        var planes = staging.obtain(PlaneLayout.I420, WIDTH, HEIGHT).orElseThrow();
+        layer.close();
+        assertFalse(planes.isAlive());
+        assertThrows(IllegalStateException.class, () -> planes.plane(0));
+        assertTrue(staging.obtain(PlaneLayout.I420, WIDTH, HEIGHT).isEmpty());
     }
 
     /// A BGRA picture whose left half is `left` and right half `right`.

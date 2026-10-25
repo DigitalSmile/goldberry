@@ -8,10 +8,12 @@ import org.slf4j.Logger;
 import dev.goldberry.log.Logs;
 import dev.goldberry.media.MediaError;
 import dev.goldberry.media.MediaException;
+import dev.goldberry.media.codec.ColorDescription;
 import dev.goldberry.media.codec.Decoder;
 import dev.goldberry.media.codec.Frame;
 import dev.goldberry.media.codec.PictureLimit;
 import dev.goldberry.media.codec.Received;
+import dev.goldberry.media.codec.TrackParams;
 import dev.goldberry.media.codec.VideoFrame;
 import dev.goldberry.media.container.Container;
 import dev.goldberry.media.picture.PictureForm;
@@ -86,6 +88,12 @@ import dev.goldberry.media.picture.YuvConverter;
 /// since a seek, which is how a device that has no engine for the codec fails,
 /// resumes from that seek's target, or from the start.
 ///
+/// ## Colour
+///
+/// A picture's colour description is the decoder's word, completed from the
+/// track's: VP9's bitstream signals no transfer function, and a system decoder
+/// may report none, where the container's `Colour` or `colr` does.
+///
 /// ## Late pictures
 ///
 /// A picture whose time has already passed by a whole frame is dropped before it
@@ -105,6 +113,9 @@ final class VideoWorker {
     private final int stream;
     private final PacketQueue queue;
     private final FrameQueue frames;
+    /// What the track states about its colour, which completes what a
+    /// decoder's picture leaves unspecified.
+    private final ColorDescription trackColour;
     private @Nullable YuvConverter converter;
 
     /// The Serial this thread is playing.
@@ -141,6 +152,9 @@ final class VideoWorker {
         this.stream = stream;
         this.queue = queue;
         this.frames = frames;
+        this.trackColour = demuxer.request(stream).params() instanceof TrackParams.Video video
+                ? video.colour()
+                : ColorDescription.UNSPECIFIED;
     }
 
     /// Stops this thread for good, from any thread: another video track plays now.
@@ -319,7 +333,7 @@ final class VideoWorker {
                 // Any provider's picture, an application's or the system's,
                 // is held to the cap the built-in decoders keep.
                 PictureLimit.require(video.width(), video.height(), "a picture");
-                picture(video);
+                picture(video.withColourFrom(trackColour));
             }
         }
     }
@@ -420,7 +434,7 @@ final class VideoWorker {
     /// BGRA, or its planes copied.
     private void prepare(VideoFrame frame, FrameQueue.Slot slot) {
         if (slot.shape().form() == PictureForm.PLANES) {
-            slot.copyPlanes(frame);
+            slot.copyPlanes(frame, playback.planeStore());
             return;
         }
         if (converter == null) {

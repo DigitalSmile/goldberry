@@ -13,6 +13,7 @@ import org.jspecify.annotations.Nullable;
 import dev.goldberry.media.MediaError;
 import dev.goldberry.media.MediaException;
 import dev.goldberry.media.bitstream.OpusPackets;
+import dev.goldberry.media.bitstream.TheoraHeaders;
 import dev.goldberry.media.bitstream.XiphLacing;
 import dev.goldberry.media.chapter.VorbisComments;
 import dev.goldberry.media.codec.CodecId;
@@ -26,13 +27,18 @@ import dev.goldberry.media.container.ogg.VorbisHeaders.Identification;
 /// resets.
 ///
 /// The first packet names the codec (RFC 7845 §5.1 `OpusHead`, Vorbis I §4.2
-/// `\x01vorbis`, the FLAC-to-Ogg mapping's `\x7FFLAC`) and how many header
-/// packets come after it: Opus one, the tags; Vorbis two, the comment and
-/// the setup; FLAC as many as its mapping header counts, or until the first
-/// frame when it counts none. What a decoder is handed as extradata is what
-/// Matroska hands it for the same codec, so one decoder reads both: the
-/// `OpusHead` packet whole, the three Vorbis headers Xiph-laced, and a FLAC
-/// stream header of `fLaC` and the `STREAMINFO` block.
+/// `\x01vorbis`, Theora I §6.2 `\x80theora`, the FLAC-to-Ogg mapping's
+/// `\x7FFLAC`) and how many header packets come after it: Opus one, the tags;
+/// Vorbis and Theora two, the comment and the setup; FLAC as many as its
+/// mapping header counts, or until the first frame when it counts none. What a
+/// decoder is handed as extradata is what Matroska hands it for the same codec,
+/// so one decoder reads both: the `OpusHead` packet whole, the three Vorbis or
+/// Theora headers Xiph-laced, and a FLAC stream header of `fLaC` and the
+/// `STREAMINFO` block.
+///
+/// A position here counts what the codec's granule counts: samples for the
+/// audio, frames for Theora, whose granule position is a keyframe's number
+/// shifted up with the frames since it below ([#position]).
 final class OggStream {
 
     private static final byte[] OPUS_HEAD = "OpusHead".getBytes(StandardCharsets.US_ASCII);
@@ -50,8 +56,8 @@ final class OggStream {
     final CodecId codec;
     final String name;
     final TrackParams params;
-    /// The granule rate: samples per second, Opus's 48 000 whatever the input.
-    final int rate;
+    /// One tick of a position: a sample at the stream's rate, Opus's 48 000
+    /// whatever the input, or a Theora frame.
     final Rational timeBase;
     /// Samples at the start the granule position counts and the decoder drops.
     final int preSkip;
@@ -60,6 +66,7 @@ final class OggStream {
     final boolean ignored;
 
     private @Nullable Identification vorbis;
+    private TheoraHeaders.@Nullable Identification theora;
     private final List<byte[]> headers = new ArrayList<>();
     /// Header packets still to come after the first, or -1 while they are told
     /// apart from frames by their first byte.
@@ -73,6 +80,9 @@ final class OggStream {
     /// Where the next packet starts, in samples of the granule's count, or
     /// [#UNKNOWN] until a page's granule position says.
     long next = UNKNOWN;
+    /// Whether a seek left this stream short of a keyframe: a Theora stream's
+    /// frames are passed over until the next one.
+    boolean awaitingKeyframe;
 
     private OggStream(
             long serial,
@@ -80,7 +90,7 @@ final class OggStream {
             CodecId codec,
             String name,
             TrackParams params,
-            int rate,
+            Rational timeBase,
             int preSkip,
             int headersLeft,
             PacketTiming timing,
@@ -91,8 +101,7 @@ final class OggStream {
         this.codec = codec;
         this.name = name;
         this.params = params;
-        this.rate = rate;
-        this.timeBase = new Rational(1, rate);
+        this.timeBase = timeBase;
         this.preSkip = preSkip;
         this.headersLeft = headersLeft;
         this.timing = timing;
@@ -111,6 +120,9 @@ final class OggStream {
         if (VorbisHeaders.isHeader(first, VorbisHeaders.IDENTIFICATION)) {
             return vorbis(serial, index, first);
         }
+        if (TheoraHeaders.isHeader(first, TheoraHeaders.IDENTIFICATION)) {
+            return theora(serial, index, first);
+        }
         if (startsWith(first, FLAC_MAPPING)) {
             return flac(serial, index, first);
         }
@@ -120,7 +132,7 @@ final class OggStream {
                 CodecId.UNKNOWN,
                 nameOf(first),
                 new TrackParams.Other(MediaType.DATA),
-                1_000_000,
+                Rational.MICROSECONDS,
                 0,
                 0,
                 new PacketTiming.None(),
@@ -145,7 +157,7 @@ final class OggStream {
                 CodecId.OPUS,
                 CodecId.OPUS.ffmpegName(),
                 params,
-                OpusPackets.SAMPLE_RATE,
+                new Rational(1, OpusPackets.SAMPLE_RATE),
                 preSkip,
                 1,
                 new PacketTiming.Opus(),
@@ -168,13 +180,45 @@ final class OggStream {
                 CodecId.VORBIS,
                 CodecId.VORBIS.ffmpegName(),
                 params,
-                parsed.rate(),
+                new Rational(1, parsed.rate()),
                 0,
                 2,
                 new PacketTiming.None(),
                 new byte[0],
                 false);
         stream.vorbis = parsed;
+        stream.headers.add(identification);
+        return stream;
+    }
+
+    private static OggStream theora(long serial, int index, byte[] identification) {
+        TheoraHeaders.Identification parsed;
+        try {
+            parsed = TheoraHeaders.identification(identification);
+        } catch (IllegalArgumentException e) {
+            throw invalid(e);
+        }
+        var params = new TrackParams.Video(
+                parsed.pictureWidth(),
+                parsed.pictureHeight(),
+                parsed.pixelFormatName(),
+                OptionalInt.empty(),
+                OptionalInt.empty(),
+                OptionalLong.empty(),
+                parsed.frameRate());
+        var stream = new OggStream(
+                serial,
+                index,
+                CodecId.THEORA,
+                CodecId.THEORA.ffmpegName(),
+                params,
+                parsed.timeBase(),
+                0,
+                2,
+                new PacketTiming.Frames(),
+                new byte[0],
+                false);
+        stream.theora = parsed;
         stream.headers.add(identification);
         return stream;
     }
@@ -211,7 +255,7 @@ final class OggStream {
                 CodecId.FLAC,
                 CodecId.FLAC.ffmpegName(),
                 params,
-                parsed.rate(),
+                new Rational(1, parsed.rate()),
                 0,
                 count == 0 ? -1 : count,
                 new PacketTiming.Flac(),
@@ -237,7 +281,12 @@ final class OggStream {
         }
         headersLeft--;
         readComments(packet);
-        if (vorbis != null) {
+        if (theora != null) {
+            headers.add(packet);
+            if (headersLeft == 0) {
+                extradata = XiphLacing.lace(headers);
+            }
+        } else if (vorbis != null) {
             headers.add(packet);
             if (headersLeft == 0) {
                 VorbisHeaders.Modes modes;
@@ -260,6 +309,8 @@ final class OggStream {
             comments = VorbisComments.parse(packet, OPUS_TAGS.length);
         } else if (codec == CodecId.VORBIS && VorbisHeaders.isHeader(packet, VorbisHeaders.COMMENT)) {
             comments = VorbisComments.parse(packet, 7);
+        } else if (codec == CodecId.THEORA && TheoraHeaders.isHeader(packet, TheoraHeaders.COMMENT)) {
+            comments = VorbisComments.parse(packet, TheoraHeaders.COMMENT_OFFSET);
         } else if (codec == CodecId.FLAC && packet.length > 4 && (packet[0] & 0x7F) == FLAC_VORBIS_COMMENT) {
             comments = VorbisComments.parse(packet, 4);
         }
@@ -286,11 +337,40 @@ final class OggStream {
         return extradata;
     }
 
-    /// Forgets the packet in progress and the position: after a seek.
+    /// Forgets the packet in progress and the position: after a seek, which
+    /// leaves a Theora stream waiting for its next keyframe.
     void reset() {
         fragment = null;
         next = UNKNOWN;
+        awaitingKeyframe = theora != null;
         timing.reset();
+    }
+
+    /// `granule`, a page's granule position, as a position: the samples it
+    /// counts, or for Theora the frames up to and including the last one the
+    /// page completes.
+    long position(long granule) {
+        var identification = theora;
+        return identification == null ? granule : identification.frames(granule);
+    }
+
+    /// The frame index of the keyframe `granule` refers back to, for Theora;
+    /// the position itself for any other codec, whose every packet stands alone.
+    long keyframe(long granule) {
+        var identification = theora;
+        return identification == null ? granule : Math.max(identification.keyframes(granule) - 1, 0);
+    }
+
+    /// Whether `packet`, one of this stream's after the headers, can be decoded
+    /// without the packets before it: every audio packet, and a Theora
+    /// keyframe.
+    boolean isKeyframe(byte[] packet) {
+        return theora == null || TheoraHeaders.isKeyframe(packet);
+    }
+
+    /// Whether this stream's packets need a keyframe to start from.
+    boolean hasKeyframes() {
+        return theora != null;
     }
 
     /// `position` in the granule's count as a packet timestamp: the pre-skip
@@ -301,7 +381,7 @@ final class OggStream {
     }
 
     /// A name for a stream nobody here decodes: the letters its first packet
-    /// starts with, `theora` or `Speex`.
+    /// starts with, `Speex` or `CELT`.
     private static String nameOf(byte[] first) {
         var out = new StringBuilder();
         for (var i = 0; i < Math.min(first.length, 8); i++) {

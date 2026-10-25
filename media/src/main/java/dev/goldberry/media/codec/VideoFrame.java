@@ -24,6 +24,10 @@ import java.util.Objects;
 /// @param matrix    the YUV→RGB matrix the picture was encoded with
 /// @param fullRange whether luma spans 0–255 (JPEG range) rather than 16–235
 /// @param ptsNanos  when the picture is presented, or [Frame#NO_PTS]
+/// @param colour    the primaries, transfer function and light levels the
+///                  decoder read from the stream, or
+///                  [ColorDescription#UNSPECIFIED]: the Engine completes what is
+///                  unspecified from the track's [TrackParams.Video#colour()]
 ///
 /// Read more: [Bringing a codec](https://goldberry.dev/docs/components/media.html#bringing-a-codec).
 public record VideoFrame(
@@ -34,7 +38,8 @@ public record VideoFrame(
         List<Integer> strides,
         ColorMatrix matrix,
         boolean fullRange,
-        long ptsNanos)
+        long ptsNanos,
+        ColorDescription colour)
         implements Frame {
 
     /// The YUV→RGB matrices the present path knows.
@@ -47,6 +52,7 @@ public record VideoFrame(
     public VideoFrame {
         Objects.requireNonNull(format, "format");
         Objects.requireNonNull(matrix, "matrix");
+        Objects.requireNonNull(colour, "colour");
         if (width <= 0 || height <= 0) {
             throw new IllegalArgumentException("size " + width + "×" + height);
         }
@@ -75,5 +81,28 @@ public record VideoFrame(
                                 + " bytes, and has " + planes.get(plane).byteSize());
             }
         }
+    }
+
+    /// A picture whose decoder reads no colour description: every component
+    /// but [#colour()], which is [ColorDescription#UNSPECIFIED].
+    public VideoFrame(
+            PixelFormat format,
+            int width,
+            int height,
+            List<MemorySegment> planes,
+            List<Integer> strides,
+            ColorMatrix matrix,
+            boolean fullRange,
+            long ptsNanos) {
+        this(format, width, height, planes, strides, matrix, fullRange, ptsNanos, ColorDescription.UNSPECIFIED);
+    }
+
+    /// This picture with what its description leaves unspecified taken from
+    /// `fallback`.
+    public VideoFrame withColourFrom(ColorDescription fallback) {
+        var completed = colour.orElse(fallback);
+        return completed.equals(colour)
+                ? this
+                : new VideoFrame(format, width, height, planes, strides, matrix, fullRange, ptsNanos, completed);
     }
 }

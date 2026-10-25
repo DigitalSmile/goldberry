@@ -65,6 +65,10 @@ final class GstLayout {
     static final long VIDEO_INFO_RANGE = 40;
     /// `GstVideoInfo.colorimetry.matrix`.
     static final long VIDEO_INFO_MATRIX = 44;
+    /// `GstVideoInfo.colorimetry.transfer`.
+    static final long VIDEO_INFO_TRANSFER = 48;
+    /// `GstVideoInfo.colorimetry.primaries`.
+    static final long VIDEO_INFO_PRIMARIES = 52;
     /// `GstVideoInfo.offset[0]`: four `gsize`s.
     static final long VIDEO_INFO_OFFSET = 72;
     /// `GstVideoInfo.stride[0]`: four `gint`s.
@@ -74,6 +78,10 @@ final class GstLayout {
 
     /// `GstVideoColorimetry.matrix`, after `range`.
     static final long COLORIMETRY_MATRIX = 4;
+    /// `GstVideoColorimetry.transfer`, after `matrix`.
+    static final long COLORIMETRY_TRANSFER = 8;
+    /// `GstVideoColorimetry.primaries`, after `transfer`.
+    static final long COLORIMETRY_PRIMARIES = 12;
 
     /// `GST_VIDEO_COLOR_RANGE_0_255`: full range.
     static final int RANGE_FULL = 1;
@@ -153,6 +161,24 @@ final class GstLayout {
                     "GST_VIDEO_COLOR_MATRIX_BT709",
                     MATRIX_BT709,
                     colorimetry.get(JAVA_INT, COLORIMETRY_MATRIX));
+            // HDR10's: PQ in BT.2020 primaries, which H.273 numbers 16 and 9.
+            video.colorimetry(colorimetry, "bt2100-pq");
+            expect(
+                    problems,
+                    "bt2100-pq's transfer function",
+                    16,
+                    video.transferToIso(colorimetry.get(JAVA_INT, COLORIMETRY_TRANSFER)));
+            expect(
+                    problems,
+                    "bt2100-pq's primaries",
+                    9,
+                    video.primariesToIso(colorimetry.get(JAVA_INT, COLORIMETRY_PRIMARIES)));
+            video.colorimetry(colorimetry, "bt2100-hlg");
+            expect(
+                    problems,
+                    "bt2100-hlg's transfer function",
+                    18,
+                    video.transferToIso(colorimetry.get(JAVA_INT, COLORIMETRY_TRANSFER)));
         } finally {
             gst.unrefMini(buffer);
         }

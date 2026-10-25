@@ -11,15 +11,17 @@ import java.util.Objects;
 /// @param dav1d dav1d's
 /// @param vpx   libvpx's
 /// @param opus  libopus's
+/// @param theora libtheora's
 /// @param flac  libFLAC's
 /// @param mp3   minimp3's
 /// @param yuv   libyuv's
-public record NativeConstants(Dav1d dav1d, Vpx vpx, Opus opus, Flac flac, Mp3 mp3, Yuv yuv) {
+public record NativeConstants(Dav1d dav1d, Vpx vpx, Opus opus, Theora theora, Flac flac, Mp3 mp3, Yuv yuv) {
 
     public NativeConstants {
         Objects.requireNonNull(dav1d, "dav1d");
         Objects.requireNonNull(vpx, "vpx");
         Objects.requireNonNull(opus, "opus");
+        Objects.requireNonNull(theora, "theora");
         Objects.requireNonNull(flac, "flac");
         Objects.requireNonNull(mp3, "mp3");
         Objects.requireNonNull(yuv, "yuv");
@@ -33,6 +35,7 @@ public record NativeConstants(Dav1d dav1d, Vpx vpx, Opus opus, Flac flac, Mp3 mp
                 Dav1d.from(layout),
                 Vpx.from(layout),
                 Opus.from(layout),
+                Theora.from(layout),
                 Flac.from(layout),
                 Mp3.from(layout),
                 Yuv.from(layout));
@@ -140,6 +143,40 @@ public record NativeConstants(Dav1d dav1d, Vpx vpx, Opus opus, Flac flac, Mp3 mp
                     i(layout, "OPUS_INVALID_PACKET"),
                     i(layout, "OPUS_RESET_STATE"),
                     i(layout, "OPUS_SET_GAIN_REQUEST"));
+        }
+    }
+
+    /// libtheora's result codes, colour spaces and pixel formats.
+    public record Theora(
+            int duplicateFrame,
+            int errFault,
+            int errBadHeader,
+            int errNotFormat,
+            int errVersion,
+            int errImpl,
+            int errBadPacket,
+            int csUnspecified,
+            int csItuRec470m,
+            int csItuRec470bg,
+            int pf420,
+            int pf422,
+            int pf444) {
+
+        static Theora from(NativeLayout layout) {
+            return new Theora(
+                    i(layout, "TH_DUPFRAME"),
+                    i(layout, "TH_EFAULT"),
+                    i(layout, "TH_EBADHEADER"),
+                    i(layout, "TH_ENOTFORMAT"),
+                    i(layout, "TH_EVERSION"),
+                    i(layout, "TH_EIMPL"),
+                    i(layout, "TH_EBADPACKET"),
+                    i(layout, "TH_CS_UNSPECIFIED"),
+                    i(layout, "TH_CS_ITU_REC_470M"),
+                    i(layout, "TH_CS_ITU_REC_470BG"),
+                    i(layout, "TH_PF_420"),
+                    i(layout, "TH_PF_422"),
+                    i(layout, "TH_PF_444"));
         }
     }
 

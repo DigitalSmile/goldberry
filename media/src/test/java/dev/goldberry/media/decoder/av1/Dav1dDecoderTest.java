@@ -6,13 +6,16 @@ import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
+import java.util.OptionalInt;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import dev.goldberry.media.MediaNativesRequirement;
+import dev.goldberry.media.codec.ColorDescription;
 import dev.goldberry.media.codec.MediaType;
 import dev.goldberry.media.codec.PixelFormat;
 import dev.goldberry.media.codec.Received;
@@ -102,5 +105,21 @@ class Dav1dDecoderTest {
             assertFalse(provider.supports(container.request(0)), "VP8 is not dav1d's");
         }
         assertTrue(MediaNatives.isAvailable());
+    }
+
+    @Test
+    @DisplayName("an HDR10 picture says so: PQ in BT.2020 from the sequence header, 1000 nits from the metadata OBUs")
+    void hdr10() {
+        var seen = new AtomicInteger();
+        FrameHashes.decodeVideo("clip-av1-pq.mkv", provider, frame -> {
+            assertEquals(PixelFormat.I010, frame.format());
+            assertEquals(VideoFrame.ColorMatrix.BT2020, frame.matrix());
+            assertEquals(ColorDescription.Primaries.BT2020, frame.colour().primaries());
+            assertEquals(ColorDescription.Transfer.PQ, frame.colour().transfer());
+            assertEquals(OptionalInt.of(1000), frame.colour().masteringPeak());
+            assertEquals(OptionalInt.of(1000), frame.colour().contentPeak());
+            seen.incrementAndGet();
+        });
+        assertEquals(5, seen.get());
     }
 }

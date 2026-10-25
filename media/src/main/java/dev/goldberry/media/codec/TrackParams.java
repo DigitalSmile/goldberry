@@ -49,6 +49,11 @@ public sealed interface TrackParams {
     /// @param alpha       whether the container says the pictures carry alpha
     ///                    beside them, as a WebM track with `AlphaMode` does in
     ///                    each packet's [Packet#alpha()]
+    /// @param colour      the primaries, transfer function and light levels the
+    ///                    container or the codec's configuration states, which a
+    ///                    picture's own description is completed from; for VP9,
+    ///                    whose bitstream signals no transfer function, the only
+    ///                    word on it
     record Video(
             int width,
             int height,
@@ -57,7 +62,8 @@ public sealed interface TrackParams {
             OptionalInt level,
             OptionalLong bitRate,
             Optional<FrameRate> frameRate,
-            boolean alpha)
+            boolean alpha,
+            ColorDescription colour)
             implements TrackParams {
 
         public Video {
@@ -69,9 +75,30 @@ public sealed interface TrackParams {
             Objects.requireNonNull(level, "level");
             Objects.requireNonNull(bitRate, "bitRate");
             Objects.requireNonNull(frameRate, "frameRate");
+            Objects.requireNonNull(colour, "colour");
         }
 
-        /// An opaque video track: every component but [#alpha()].
+        /// A video track whose colour nobody states: every component but
+        /// [#colour()].
+        public Video(
+                int width,
+                int height,
+                Optional<String> pixelFormat,
+                OptionalInt profile,
+                OptionalInt level,
+                OptionalLong bitRate,
+                Optional<FrameRate> frameRate,
+                boolean alpha) {
+            this(width, height, pixelFormat, profile, level, bitRate, frameRate, alpha, ColorDescription.UNSPECIFIED);
+        }
+
+        /// This track's parameters with `colour` stated.
+        public Video withColour(ColorDescription colour) {
+            return new Video(width, height, pixelFormat, profile, level, bitRate, frameRate, alpha, colour);
+        }
+
+        /// An opaque video track: every component but [#alpha()] and
+        /// [#colour()].
         public Video(
                 int width,
                 int height,
@@ -84,7 +111,7 @@ public sealed interface TrackParams {
         }
 
         /// An opaque video track whose frame rate is not known: every component
-        /// but those two.
+        /// but those three.
         public Video(
                 int width,
                 int height,

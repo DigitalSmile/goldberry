@@ -1,6 +1,9 @@
 package dev.goldberry.media.view.gpu;
 
+import java.util.Optional;
+
 import dev.goldberry.media.picture.Picture;
+import dev.goldberry.media.picture.PlaneStore;
 import dev.goldberry.paint.Frame;
 import dev.goldberry.widgets.core.image.Fit;
 
@@ -26,6 +29,13 @@ public interface VideoPresenter extends AutoCloseable {
     ///         layer (no GPU, `goldberry.gpu=off`, inside a group), and the
     ///         caller paints the picture on the CPU instead
     boolean place(Frame frame, Picture picture, Fit.Placement placement);
+
+    /// The memory this presenter's pictures may be written into where they are
+    /// decoded, offered to the player while it places them on the GPU; empty
+    /// for a presenter with none.
+    default Optional<PlaneStore> planeStore() {
+        return Optional.empty();
+    }
 
     /// Releases the layer and what it made on the device. Idempotent.
     @Override

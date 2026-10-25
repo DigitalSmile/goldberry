@@ -31,6 +31,7 @@ import dev.goldberry.media.audio.AudioFormat;
 import dev.goldberry.media.audio.VirtualSink;
 import dev.goldberry.media.codec.AudioFrame;
 import dev.goldberry.media.codec.CodecId;
+import dev.goldberry.media.codec.ColorDescription;
 import dev.goldberry.media.codec.Decoder;
 import dev.goldberry.media.codec.DecoderProvider;
 import dev.goldberry.media.codec.DecoderRequest;
@@ -201,8 +202,9 @@ class VideoPlaybackTest {
                 + ", status " + player.status());
     }
 
-    /// `planes` converted as CPU present converts a decoded picture: swscale,
-    /// bit-exact, from the same bytes. What a GPU's conversion is held to.
+    /// `planes` converted as CPU present converts a decoded picture: libyuv, or
+    /// the media natives' tone mapping for HDR, bit-exact, from the same bytes.
+    /// What a GPU's conversion is held to.
     static VideoPicture converted(VideoPlanes planes) {
         var segments = new ArrayList<MemorySegment>();
         var strides = new ArrayList<Integer>();
@@ -218,7 +220,8 @@ class VideoPlaybackTest {
                 strides,
                 planes.matrix(),
                 planes.fullRange(),
-                planes.ptsNanos());
+                planes.ptsNanos(),
+                planes.colour());
         var stride = planes.width() * 4;
         var pixels = ByteBuffer.allocateDirect(stride * planes.height());
         try (var converter = new YuvConverter()) {
@@ -295,6 +298,18 @@ class VideoPlaybackTest {
         assertEquals(24 * FRAME, player.currentPicture().orElseThrow().ptsNanos(), "the last picture stays up");
     }
 
+    @ParameterizedTest(name = "{0}")
+    @CsvSource({"clip-theora.ogv, vorbis", "clip-theora.mkv, opus"})
+    @DisplayName("plays Theora to the end through libtheora, in Ogg beside Vorbis and in Matroska beside Opus")
+    void playsTheora(String name, String audioDecoder) {
+        open(name, true);
+        var ended = await(status -> status.state() == PlaybackState.ENDED);
+        assertEquals(audioDecoder, ended.audioDecoder().orElseThrow());
+        assertEquals("libtheora", ended.videoDecoder().orElseThrow());
+        assertTrue(ended.hasVideo());
+        assertEquals(24 * FRAME, player.currentPicture().orElseThrow().ptsNanos(), "the last picture stays up");
+    }
+
     @ParameterizedTest(name = "{0} at {1} ms")
     @CsvSource({
         "clip-vp8.webm, 0",
@@ -304,6 +319,9 @@ class VideoPlaybackTest {
         "clip-vp9.webm, 960",
         "clip-av1.mkv, 0",
         "clip-av1.mkv, 400",
+        "clip-theora.ogv, 0",
+        "clip-theora.ogv, 400",
+        "clip-theora.mkv, 400",
     })
     @DisplayName("shows the same bytes at the same time on the audio clock")
     void goldenOnTheAudioClock(String name, int millis) {
@@ -631,6 +649,34 @@ class VideoPlaybackTest {
         assertEquals(format, planes.format());
         assertEquals(matrix, planes.matrix());
         assertEquals(fullRange, planes.fullRange());
+        PictureGolden.assertExact(golden, converted(planes));
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @CsvSource({
+        "clip-av1-pq.mkv, BT2020, PQ, 1000",
+        "clip-av1-pq.mp4, BT2020, PQ, 1000",
+        "clip-vp9-hlg.webm, BT2020, HLG, 1000",
+    })
+    @DisplayName("an HDR picture carries its description to a view of planes, and is tone-mapped when converted")
+    void hdrColour(String name, ColorDescription.Primaries primaries, ColorDescription.Transfer transfer, int peak) {
+        var golden = name.replace('.', '-') + "-80ms";
+        var now = new AtomicLong(1_000_000_000L);
+        open(name, false, now::get, List.of());
+        await(status -> status.state() == PlaybackState.PLAYING);
+        now.addAndGet(2 * FRAME + FRAME / 2);
+        PictureGolden.assertExact(golden, awaitPicture(2 * FRAME));
+        player.close();
+
+        attachAs = PictureForm.PLANES;
+        open(name, false, now::get, List.of());
+        await(status -> status.state() == PlaybackState.PLAYING);
+        now.addAndGet(2 * FRAME + FRAME / 2);
+        var planes = awaitShown(2 * FRAME, VideoPlanes.class);
+        assertEquals(PixelFormat.I010, planes.format());
+        assertEquals(primaries, planes.colour().primaries());
+        assertEquals(transfer, planes.colour().transfer());
+        assertEquals(peak, planes.colour().peakNits());
         PictureGolden.assertExact(golden, converted(planes));
     }
 

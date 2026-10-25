@@ -74,6 +74,48 @@ $ff -f lavfi -i "$short" -c:v libx265 -crf 30 -tag:v hvc1 -pix_fmt yuv420p10le -
     -colorspace bt2020nc -color_primaries bt2020 -color_trc smpte2084 \
     -x265-params "$x265" "$out/clip-hevc-10bit.mp4"
 framemd5 clip-hevc-10bit.mp4 p010le
+# HDR10 as x265 writes it: PQ in BT.2020 in the VUI, which x265 takes from its
+# own parameters and not FFmpeg's, a 1000-nit mastering display and MaxCLL 1000
+# in SEI.
+hdr10="colorprim=bt2020:transfer=smpte2084:colormatrix=bt2020nc:hdr10=1:max-cll=1000,400"
+hdr10="$hdr10:master-display=G(13250,34500)B(7500,3000)R(34000,16000)WP(15635,16450)L(10000000,1)"
+$ff -f lavfi -i "$short" -c:v libx265 -crf 30 -tag:v hvc1 -pix_fmt yuv420p10le -profile:v main10 \
+    -x265-params "$x265:$hdr10" "$out/clip-hevc-pq.mp4"
+
+# 256x144, over the 144x144 floor a GPU's HEVC decoder may have (Vulkan Video's
+# on NVIDIA): closed GOPs, then open ones whose CRA pictures lead RASL pictures,
+# then Main 10.
+wide="testsrc2=s=256x144:r=25:d=1"
+$ff -f lavfi -i "$wide" -c:v libx265 -crf 30 -tag:v hvc1 -x265-params "$x265" "$out/clip-hevc-256.mp4"
+framemd5 clip-hevc-256.mp4 nv12
+$ff -f lavfi -i "$wide" -c:v libx265 -crf 30 -tag:v hvc1 \
+    -x265-params "bframes=3:keyint=10:min-keyint=10:scenecut=0:open-gop=1:log-level=error" \
+    "$out/clip-hevc-256-open.mp4"
+framemd5 clip-hevc-256-open.mp4 nv12
+$ff -f lavfi -i "testsrc2=s=256x144:r=25:d=0.4" -c:v libx265 -crf 30 -tag:v hvc1 -pix_fmt yuv420p10le \
+    -profile:v main10 -x265-params "$x265" "$out/clip-hevc-256-10bit.mp4"
+framemd5 clip-hevc-256-10bit.mp4 p010le
+
+# --- VP9 for the GPU ---------------------------------------------------------
+# Royalty-free, and decoded by the built-in libvpx too; these are here for the
+# GPU's decoder, which wants 128x128 at least and hands over NV12 or P010. Two
+# passes with alt-ref frames, so hidden frames arrive in superframes.
+vp9="-c:v libvpx-vp9 -b:v 200k -g 10 -auto-alt-ref 1 -lag-in-frames 16 -row-mt 0"
+$ff -f lavfi -i "$wide" $vp9 -pass 1 -passlogfile "$work/vp9" -f null -
+$ff -f lavfi -i "$wide" $vp9 -pass 2 -passlogfile "$work/vp9" "$out/clip-vp9-256.webm"
+framemd5 clip-vp9-256.webm nv12
+$ff -f lavfi -i "testsrc2=s=256x144:r=25:d=0.4" $vp9 -pix_fmt yuv420p10le -profile:v 2 -pass 1 \
+    -passlogfile "$work/vp9-10" -f null -
+$ff -f lavfi -i "testsrc2=s=256x144:r=25:d=0.4" $vp9 -pix_fmt yuv420p10le -profile:v 2 -pass 2 \
+    -passlogfile "$work/vp9-10" "$out/clip-vp9-256-10bit.webm"
+framemd5 clip-vp9-256-10bit.webm p010le
+
+# --- AV1 for the GPU ---------------------------------------------------------
+# For a GPU that decodes AV1 (not every one does): Main profile without film
+# grain, which the built-in decoder applies, hashed as NV12.
+$ff -f lavfi -i "$wide" -c:v libaom-av1 -crf 40 -cpu-used 8 -g 10 -row-mt 0 -tiles 1x1 \
+    "$out/clip-av1-256.mkv"
+framemd5 clip-av1-256.mkv nv12
 
 # --- Audio -------------------------------------------------------------------
 # AAC in Matroska: the configuration arrives as CodecPrivate, not as `esds`.

@@ -6,6 +6,7 @@ import static java.lang.foreign.ValueLayout.ADDRESS;
 import static java.lang.foreign.ValueLayout.JAVA_BYTE;
 import static java.lang.foreign.ValueLayout.JAVA_INT;
 import static java.lang.foreign.ValueLayout.JAVA_LONG;
+import static java.lang.foreign.ValueLayout.JAVA_SHORT;
 
 import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
@@ -14,6 +15,7 @@ import java.util.Objects;
 
 import dev.goldberry.media.MediaError;
 import dev.goldberry.media.MediaException;
+import dev.goldberry.media.codec.ColorDescription;
 import dev.goldberry.media.codec.Decoder;
 import dev.goldberry.media.codec.DecoderRequest;
 import dev.goldberry.media.codec.Frame;
@@ -70,6 +72,16 @@ public final class Dav1dDecoder implements Decoder {
             NativeStructs.DAV1D_PICTURE.byteOffset(groupElement("p"), groupElement("bpc"));
     private static final long PICTURE_TIMESTAMP =
             NativeStructs.DAV1D_PICTURE.byteOffset(groupElement("m"), groupElement("timestamp"));
+    private static final long PICTURE_CONTENT_LIGHT =
+            NativeStructs.DAV1D_PICTURE.byteOffset(groupElement("content_light"));
+    private static final long PICTURE_MASTERING_DISPLAY =
+            NativeStructs.DAV1D_PICTURE.byteOffset(groupElement("mastering_display"));
+    private static final long CONTENT_LIGHT_MAX_CLL =
+            NativeStructs.DAV1D_CONTENT_LIGHT_LEVEL.byteOffset(groupElement("max_content_light_level"));
+    private static final long MASTERING_MAX_LUMINANCE =
+            NativeStructs.DAV1D_MASTERING_DISPLAY.byteOffset(groupElement("max_luminance"));
+    private static final long SEQ_PRI = NativeStructs.DAV1D_SEQUENCE_HEADER.byteOffset(groupElement("pri"));
+    private static final long SEQ_TRC = NativeStructs.DAV1D_SEQUENCE_HEADER.byteOffset(groupElement("trc"));
     private static final long SEQ_MTRX = NativeStructs.DAV1D_SEQUENCE_HEADER.byteOffset(groupElement("mtrx"));
     private static final long SEQ_COLOR_RANGE =
             NativeStructs.DAV1D_SEQUENCE_HEADER.byteOffset(groupElement("color_range"));
@@ -255,7 +267,33 @@ public final class Dav1dDecoder implements Decoder {
                 List.of(lumaStride, chromaStride, chromaStride),
                 matrix,
                 fullRange,
-                timestamp == Long.MIN_VALUE ? Frame.NO_PTS : timestamp);
+                timestamp == Long.MIN_VALUE ? Frame.NO_PTS : timestamp,
+                colour(sequence));
+    }
+
+    /// The sequence header's primaries and transfer function, which dav1d
+    /// numbers as AV1 does and AV1 as H.273 does, and the light levels of the
+    /// picture's HDR metadata OBUs: `MaxCLL`, and the mastering display's peak
+    /// in 24.8 fixed point.
+    @SuppressWarnings("restricted")
+    private ColorDescription colour(MemorySegment sequence) {
+        var described = ColorDescription.fromH273(sequence.get(JAVA_INT, SEQ_PRI), sequence.get(JAVA_INT, SEQ_TRC));
+        var masteringPeak = 0;
+        var mastering = picture.get(ADDRESS, PICTURE_MASTERING_DISPLAY);
+        if (!MemorySegment.NULL.equals(mastering)) {
+            var fixed = mastering
+                            .reinterpret(NativeStructs.DAV1D_MASTERING_DISPLAY.byteSize())
+                            .get(JAVA_INT, MASTERING_MAX_LUMINANCE)
+                    & 0xFFFF_FFFFL;
+            masteringPeak = (int) Math.min(100_000, fixed >> 8);
+        }
+        var contentPeak = 0;
+        var light = picture.get(ADDRESS, PICTURE_CONTENT_LIGHT);
+        if (!MemorySegment.NULL.equals(light)) {
+            contentPeak = Short.toUnsignedInt(light.reinterpret(NativeStructs.DAV1D_CONTENT_LIGHT_LEVEL.byteSize())
+                    .get(JAVA_SHORT, CONTENT_LIGHT_MAX_CLL));
+        }
+        return described.withLightLevels(masteringPeak, contentPeak);
     }
 
     @SuppressWarnings("restricted")

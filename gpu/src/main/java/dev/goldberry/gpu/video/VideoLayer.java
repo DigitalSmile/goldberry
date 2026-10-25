@@ -41,8 +41,10 @@ import dev.goldberry.render.model.PhysicalSize;
 /// **Planes** are uploaded into one texture each (`R8`, `R8G8`, `R16`,
 /// `R16G16`) and converted by `yuv2.frag` or `yuv3.frag` with the picture's
 /// matrix and range ([YuvConversion]), sampled linearly, which scales the
-/// picture to the box. **BGRA** is uploaded into one texture and drawn by
-/// `texture.frag`. Either way, the textures are kept between frames and
+/// picture to the box. **Staged** planes, written into the layer's own upload
+/// memory where they were decoded ([#staging()]), are uploaded the same way
+/// with no copy on this thread. **BGRA** is uploaded into one texture and
+/// drawn by `texture.frag`. Either way, the textures are kept between frames and
 /// uploaded to only when the image changes, so a paused video, or a frame
 /// repainted for something beside it, costs a draw at most.
 ///
@@ -73,7 +75,15 @@ public final class VideoLayer implements GpuLayer, AutoCloseable {
     private @Nullable GpuSampler sampler;
     private final Map<BuiltInShader, Shader> fragments = new EnumMap<>(BuiltInShader.class);
     private final Map<BuiltInShader, GraphicsPipeline> pipelines = new EnumMap<>(BuiltInShader.class);
+    private final PlaneStaging staging = new PlaneStaging();
     private boolean closed;
+
+    /// The upload memory a decoder may write this layer's planes into, from
+    /// any thread: buffers of a shape it is asked for are made on the next
+    /// render, on this layer's device ([PlaneStaging]).
+    public PlaneStaging staging() {
+        return staging;
+    }
 
     /// Shows the whole of `image` from the next render.
     public void show(VideoImage image) {
@@ -147,14 +157,29 @@ public final class VideoLayer implements GpuLayer, AutoCloseable {
             renderedSource = null;
             return;
         }
+        staging.maintain(current);
         if (shown != uploaded) {
-            upload(frame, current, shown);
-            uploaded = shown;
+            if (shown instanceof VideoImage.Staged staged && !staged.planes().isAlive()) {
+                // Staged on a device that is gone: the last picture stays up,
+                // if there is one to keep.
+                if (textures.isEmpty() || uploaded == null) {
+                    frame.renderPass(target, Load.clear(0, 0, 0, 1), _ -> {});
+                    rendered = shown;
+                    renderedSource = part;
+                    return;
+                }
+                shown = uploaded;
+            } else {
+                upload(frame, current, shown);
+                uploaded = shown;
+            }
         }
-        var fragment = switch (shown) {
-            case VideoImage.Planes planes -> planes.layout().yuv().shader();
-            case VideoImage.Bgra _ -> BuiltInShader.TEXTURE_FRAGMENT;
-        };
+        var conversion = conversion(shown);
+        var fragment = conversion == null
+                ? BuiltInShader.TEXTURE_FRAGMENT
+                : conversion.colour().isSdr()
+                        ? conversion.layout().yuv().shader()
+                        : conversion.layout().yuv().hdrShader();
         var pipeline = pipeline(current, fragment);
         var linear = sampler(current);
         var quad = Quad.of(
@@ -173,10 +198,14 @@ public final class VideoLayer implements GpuLayer, AutoCloseable {
         frame.renderPass(target, Load.dontCare(), pass -> {
             pass.bindPipeline(pipeline);
             pass.pushVertexUniforms(0, quad.uniforms());
-            if (shown instanceof VideoImage.Planes planes) {
-                var conversion =
-                        new YuvConversion(planes.layout().yuv(), planes.matrix().yuv(), planes.fullRange());
-                pass.pushFragmentUniforms(0, conversion.uniforms(planeTextures[1].width()));
+            if (conversion != null) {
+                var yuv = new YuvConversion(
+                        conversion.layout().yuv(), conversion.matrix().yuv(), conversion.fullRange());
+                pass.pushFragmentUniforms(0, yuv.uniforms(planeTextures[1].width()));
+                if (!conversion.colour().isSdr()) {
+                    pass.pushFragmentUniforms(
+                            1, conversion.colour().toneMapping().uniforms());
+                }
             }
             pass.bindFragmentSamplers(linear, planeTextures);
             pass.draw(Quad.VERTICES);
@@ -185,13 +214,63 @@ public final class VideoLayer implements GpuLayer, AutoCloseable {
         renderedSource = part;
     }
 
+    /// What a picture of planes is converted with: its layout, matrix, range
+    /// and colour volume. Null for BGRA, which is drawn as it is.
+    private record Conversion(PlaneLayout layout, ColorMatrix matrix, boolean fullRange, ColorVolume colour) {}
+
+    private static @Nullable Conversion conversion(VideoImage image) {
+        return switch (image) {
+            case VideoImage.Planes planes ->
+                new Conversion(planes.layout(), planes.matrix(), planes.fullRange(), planes.colour());
+            case VideoImage.Staged staged ->
+                new Conversion(staged.layout(), staged.matrix(), staged.fullRange(), staged.colour());
+            case VideoImage.Bgra _ -> null;
+        };
+    }
+
     /// Uploads `shown` into the textures, made anew when its layout or size
     /// changed. Whole textures, so the driver may give them fresh memory rather
-    /// than wait for a frame still sampling the last picture.
+    /// than wait for a frame still sampling the last picture. Staged planes are
+    /// unmapped for the instant the upload is recorded, and mapped again after.
     private void upload(GpuFrame frame, GpuDevice on, VideoImage shown) {
         var made = texturesFor(on, shown);
+        if (shown instanceof VideoImage.Staged staged && !staged.planes().stagedBy(staging)) {
+            // Another layer's memory: read from its mapping, and copied as
+            // planes are.
+            var planes = staged.planes();
+            frame.copyPass(copy -> {
+                for (var plane = 0; plane < made.size(); plane++) {
+                    var texture = made.get(plane);
+                    copy.upload(
+                            texture,
+                            planes.plane(plane),
+                            planes.stride(plane),
+                            List.of(new PhysicalRect(0, 0, texture.width(), texture.height())));
+                }
+            });
+            return;
+        }
+        if (shown instanceof VideoImage.Staged staged) {
+            var planes = staged.planes();
+            staging.unmapForUpload(planes);
+            try {
+                frame.copyPass(copy -> {
+                    for (var plane = 0; plane < made.size(); plane++) {
+                        copy.upload(
+                                made.get(plane),
+                                planes.buffer(),
+                                planes.offsets().get(plane),
+                                planes.stride(plane));
+                    }
+                });
+            } finally {
+                staging.remap(planes);
+            }
+            return;
+        }
         frame.copyPass(copy -> {
             switch (shown) {
+                case VideoImage.Staged _ -> throw new IllegalStateException("staged planes are uploaded above");
                 case VideoImage.Planes planes -> {
                     for (var plane = 0; plane < made.size(); plane++) {
                         var texture = made.get(plane);
@@ -217,6 +296,7 @@ public final class VideoLayer implements GpuLayer, AutoCloseable {
     private List<GpuTexture> texturesFor(GpuDevice on, VideoImage shown) {
         var key = switch (shown) {
             case VideoImage.Planes planes -> List.of(planes.layout(), planes.width(), planes.height());
+            case VideoImage.Staged staged -> List.of(staged.layout(), staged.width(), staged.height());
             case VideoImage.Bgra bgra -> List.of("BGRA", bgra.width(), bgra.height());
         };
         if (key.equals(texturesKey)) {
@@ -224,21 +304,23 @@ public final class VideoLayer implements GpuLayer, AutoCloseable {
         }
         closeTextures();
         switch (shown) {
-            case VideoImage.Planes planes -> {
-                var layout = planes.layout();
-                for (var plane = 0; plane < layout.planes(); plane++) {
-                    textures.add(on.createTexture(TextureSpec.sampled(
-                            layout.textureFormats().get(plane),
-                            layout.planeWidth(plane, planes.width()),
-                            layout.planeHeight(plane, planes.height()))));
-                }
-            }
+            case VideoImage.Planes planes -> planeTextures(on, planes.layout(), planes.width(), planes.height());
+            case VideoImage.Staged staged -> planeTextures(on, staged.layout(), staged.width(), staged.height());
             case VideoImage.Bgra bgra ->
                 textures.add(on.createTexture(
                         TextureSpec.sampled(TextureFormat.B8G8R8A8_UNORM, bgra.width(), bgra.height())));
         }
         texturesKey = key;
         return textures;
+    }
+
+    private void planeTextures(GpuDevice on, PlaneLayout layout, int width, int height) {
+        for (var plane = 0; plane < layout.planes(); plane++) {
+            textures.add(on.createTexture(TextureSpec.sampled(
+                    layout.textureFormats().get(plane),
+                    layout.planeWidth(plane, width),
+                    layout.planeHeight(plane, height))));
+        }
     }
 
     private GraphicsPipeline pipeline(GpuDevice on, BuiltInShader fragment) {
@@ -287,6 +369,7 @@ public final class VideoLayer implements GpuLayer, AutoCloseable {
         }
         closed = true;
         release();
+        staging.close();
         image = null;
         source = null;
     }

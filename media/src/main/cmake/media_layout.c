@@ -33,6 +33,7 @@
 #include <opus/opus_multistream.h>
 #include <vorbis/codec.h>
 #include <ogg/ogg.h>
+#include <theora/theoradec.h>
 #include <FLAC/stream_decoder.h>
 
 #define MINIMP3_FLOAT_OUTPUT
@@ -108,6 +109,16 @@ int main(int argc, char **argv) {
     FIELD(Dav1dPictureParameters, h);
     FIELD(Dav1dPictureParameters, layout);
     FIELD(Dav1dPictureParameters, bpc);
+
+    STRUCT(Dav1dContentLightLevel);
+    FIELD(Dav1dContentLightLevel, max_content_light_level);
+    FIELD(Dav1dContentLightLevel, max_frame_average_light_level);
+
+    STRUCT(Dav1dMasteringDisplay);
+    FIELD(Dav1dMasteringDisplay, primaries);
+    FIELD(Dav1dMasteringDisplay, white_point);
+    FIELD(Dav1dMasteringDisplay, max_luminance);
+    FIELD(Dav1dMasteringDisplay, min_luminance);
 
     STRUCT(Dav1dPicture);
     FIELD(Dav1dPicture, seq_hdr);
@@ -300,6 +311,58 @@ int main(int argc, char **argv) {
     CONST(OV_EBADPACKET);
     CONST(OV_EBADLINK);
     CONST(OV_ENOSEEK);
+
+    /* ---- libtheora --------------------------------------------------- */
+    /* No C long in any of these: the same shape on every target. th_ycbcr_buffer
+     * is three th_img_plane. */
+    STRUCT(th_info);
+    FIELD(th_info, version_major);
+    FIELD(th_info, version_minor);
+    FIELD(th_info, version_subminor);
+    FIELD(th_info, frame_width);
+    FIELD(th_info, frame_height);
+    FIELD(th_info, pic_width);
+    FIELD(th_info, pic_height);
+    FIELD(th_info, pic_x);
+    FIELD(th_info, pic_y);
+    FIELD(th_info, fps_numerator);
+    FIELD(th_info, fps_denominator);
+    FIELD(th_info, aspect_numerator);
+    FIELD(th_info, aspect_denominator);
+    FIELD(th_info, colorspace);
+    FIELD(th_info, pixel_fmt);
+    FIELD(th_info, target_bitrate);
+    FIELD(th_info, quality);
+    FIELD(th_info, keyframe_granule_shift);
+
+    STRUCT(th_comment);
+    FIELD(th_comment, user_comments);
+    FIELD(th_comment, comment_lengths);
+    FIELD(th_comment, comments);
+    FIELD(th_comment, vendor);
+
+    STRUCT(th_img_plane);
+    FIELD(th_img_plane, width);
+    FIELD(th_img_plane, height);
+    FIELD(th_img_plane, stride);
+    FIELD(th_img_plane, data);
+    printf("struct.th_ycbcr_buffer.sizeof=%zu\nstruct.th_ycbcr_buffer.alignof=%zu\n",
+           sizeof(th_ycbcr_buffer), _Alignof(th_img_plane));
+
+    CONST(TH_EFAULT);
+    CONST(TH_EINVAL);
+    CONST(TH_EBADHEADER);
+    CONST(TH_ENOTFORMAT);
+    CONST(TH_EVERSION);
+    CONST(TH_EIMPL);
+    CONST(TH_EBADPACKET);
+    CONST(TH_DUPFRAME);
+    CONST(TH_CS_UNSPECIFIED);
+    CONST(TH_CS_ITU_REC_470M);
+    CONST(TH_CS_ITU_REC_470BG);
+    CONST(TH_PF_420);
+    CONST(TH_PF_422);
+    CONST(TH_PF_444);
 
     /* ---- FLAC -------------------------------------------------------- */
     STRUCT(FLAC__FrameHeader);

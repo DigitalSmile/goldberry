@@ -19,6 +19,7 @@ import dev.goldberry.media.decoder.flac.FlacProvider;
 import dev.goldberry.media.decoder.mp3.Mp3Provider;
 import dev.goldberry.media.decoder.opus.OpusProvider;
 import dev.goldberry.media.decoder.pcm.PcmProvider;
+import dev.goldberry.media.decoder.theora.TheoraProvider;
 import dev.goldberry.media.decoder.vorbis.VorbisProvider;
 import dev.goldberry.media.decoder.vpx.VpxProvider;
 
@@ -47,9 +48,12 @@ public final class BuiltInDecoders {
 
     public static final String VORBIS = VorbisProvider.NAME;
 
+    public static final String LIBTHEORA = TheoraProvider.NAME;
+
     private static final List<DecoderProvider> PROVIDERS = List.of(
             new Dav1dProvider(),
             new VpxProvider(),
+            new TheoraProvider(),
             new OpusProvider(),
             new VorbisProvider(),
             new FlacProvider(),

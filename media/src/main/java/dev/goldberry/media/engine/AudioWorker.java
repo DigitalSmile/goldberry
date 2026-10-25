@@ -162,8 +162,15 @@ final class AudioWorker {
                         if (seamSerial != serial) {
                             continue;
                         }
-                        decoder().sendEnd();
-                        nextPts = drainFrames(resampler, output, discardBeforeNanos, nextPts);
+                        try {
+                            decoder().sendEnd();
+                            nextPts = drainFrames(resampler, output, discardBeforeNanos, nextPts);
+                        } catch (MediaException e) {
+                            throw e;
+                        } catch (RuntimeException e) {
+                            fallBackAtEnd(e);
+                            continue;
+                        }
                         decoder().flush();
                         offsetNanos = offset;
                         // The next pass begins where this one's sound ended: what
@@ -175,8 +182,15 @@ final class AudioWorker {
                         if (endSerial != serial) {
                             continue;
                         }
-                        decoder().sendEnd();
-                        nextPts = drainFrames(resampler, output, discardBeforeNanos, nextPts);
+                        try {
+                            decoder().sendEnd();
+                            nextPts = drainFrames(resampler, output, discardBeforeNanos, nextPts);
+                        } catch (MediaException e) {
+                            throw e;
+                        } catch (RuntimeException e) {
+                            fallBackAtEnd(e);
+                            continue;
+                        }
                         var tail = resampler.drain(output.segment(), output.capacity());
                         write(output.segment(), tail, format.samples(nextPts));
                         playOut();
@@ -222,6 +236,22 @@ final class AudioWorker {
             playback.audioDecoder(resolved.provider());
             return pts;
         }
+    }
+
+    /// The fallback ladder's rung for a decoder that fails while it drains, at
+    /// a seam or the end: the frames it held are lost with it, so the next
+    /// decoder starts from an accurate seek to where the clock is, as the video
+    /// thread's does, rather than from the next packet, of which there is none.
+    ///
+    /// @throws MediaException when no rung is left, which fails the playback
+    private void fallBackAtEnd(RuntimeException failure) {
+        LOG.warn("audio decoder failed as it drained; trying the next", failure);
+        decoder().close();
+        skip++;
+        var resolved = Decoders.open(demuxer, stream, playback.decoderProviders(), skip, playback.hardwareDecoding());
+        decoder = resolved.decoder();
+        playback.audioDecoder(resolved.provider());
+        playback.reseek(playback.presentationNanos());
     }
 
     /// The decoder [#play()] opened.

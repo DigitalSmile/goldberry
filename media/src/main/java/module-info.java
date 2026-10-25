@@ -5,10 +5,10 @@
 /// or `:widgets` knows this module exists. The containers — Matroska and WebM,
 /// MP4, WAV, and the rest as they land — are read in Java, every byte through
 /// the I/O SPI, and the threads, the clock and the queues are Java too. What is
-/// native is the decoding: dav1d, libvpx, Opus, Vorbis, FLAC and minimp3, with
-/// libyuv for the CPU's colour conversion, linked into one `libgoldberry-media`
-/// per target and called through the Foreign Function and Memory API. There is
-/// no libVLC, no FFmpeg and no JNI.
+/// native is the decoding: dav1d, libvpx, libtheora, Opus, Vorbis, FLAC and
+/// minimp3, with libyuv for the CPU's colour conversion, linked into one
+/// `libgoldberry-media` per target and called through the Foreign Function and
+/// Memory API. There is no libVLC, no FFmpeg and no JNI.
 ///
 /// **This module binds native code itself**, which only `:natives` otherwise does.
 /// Its library is its own so that an application which plays no media carries
@@ -103,6 +103,12 @@ module dev.goldberry.media {
     /// `…platform.windows`, are not exported.
     exports dev.goldberry.media.platform;
 
+    /// The last rung before a codec is unsupported: an `ffmpeg` program the user
+    /// installed, run per track and fed through pipes, named by
+    /// `-Dgoldberry.media.ffmpeg` or handed to
+    /// [dev.goldberry.media.ffmpegcli.FfmpegCliProvider#of]. Off unless one is.
+    exports dev.goldberry.media.ffmpegcli;
+
     /// Opened to `:core`, which reads `media.css` out of this package.
     opens dev.goldberry.media.view to
             dev.goldberry.core;
@@ -125,14 +131,17 @@ module dev.goldberry.media {
     /// The system decoders, each of which supports nothing off its own system.
     /// Found by `ServiceLoader` like an application's own, so a `MediaPlayer`
     /// built with the default providers plays H.264, HEVC, AAC, AC-3 and E-AC-3
-    /// wherever the system can.
+    /// wherever the system can. Then Vulkan Video on the GPU, then `ffmpeg-cli`, which supports nothing until
+    /// `-Dgoldberry.media.ffmpeg` names a program.
     provides dev.goldberry.media.codec.DecoderProvider with
             dev.goldberry.media.platform.macos.VideoToolboxProvider,
             dev.goldberry.media.platform.macos.AudioToolboxProvider,
             dev.goldberry.media.platform.linux.GStreamerVideoProvider,
             dev.goldberry.media.platform.linux.GStreamerAudioProvider,
             dev.goldberry.media.platform.windows.MediaFoundationVideoProvider,
-            dev.goldberry.media.platform.windows.MediaFoundationAudioProvider;
+            dev.goldberry.media.platform.windows.MediaFoundationAudioProvider,
+            dev.goldberry.media.platform.vulkan.VulkanVideoProvider,
+            dev.goldberry.media.ffmpegcli.FfmpegCliProvider;
 
     /// The default output device's latency, taken off the audio clock.
     provides dev.goldberry.media.audio.OutputLatency with

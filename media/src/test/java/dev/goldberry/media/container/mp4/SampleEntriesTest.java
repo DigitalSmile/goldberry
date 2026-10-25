@@ -5,7 +5,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
 import java.util.HexFormat;
+import java.util.Map;
 import java.util.Optional;
 import java.util.OptionalInt;
 
@@ -15,6 +17,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
 import dev.goldberry.media.MediaException;
+import dev.goldberry.media.codec.ColorDescription;
 import dev.goldberry.media.decoder.opus.OpusHead;
 
 /// The configuration boxes turned into what the decoders read: the records
@@ -131,5 +134,28 @@ class SampleEntriesTest {
     @DisplayName("no AudioSpecificConfig, no profile")
     void aacProfileEmpty() {
         assertEquals(OptionalInt.empty(), SampleEntries.aacProfile(new byte[0]));
+    }
+
+    @Test
+    @DisplayName("colr, then vpcC's colour, with mdcv's peak in ten-thousandths of a nit and clli's MaxCLL")
+    void colour() {
+        var children = new HashMap<Integer, byte[]>();
+        // nclx: primaries 9, transfer 16, matrix 9, limited range.
+        children.put(BoxTypes.COLR, hex("6e636c7800090010000900"));
+        // mdcv: six primaries and a white point, then 1000 nits and 0.0001.
+        children.put(BoxTypes.MDCV, hex("8a48395d1d4c0bb834bc1e1b7d1a3d13" + "00989680" + "00000001"));
+        children.put(BoxTypes.CLLI, hex("03e80190"));
+        var colour = SampleEntries.colour(children, new byte[0]);
+        assertEquals(ColorDescription.Primaries.BT2020, colour.primaries());
+        assertEquals(ColorDescription.Transfer.PQ, colour.transfer());
+        assertEquals(OptionalInt.of(1000), colour.masteringPeak());
+        assertEquals(OptionalInt.of(1000), colour.contentPeak());
+
+        // vpcC version 1: profile 2, level 31, 10-bit 4:2:0, primaries 9, transfer 18, matrix 9.
+        var vpcC = hex("01000000021f2009120900");
+        var hlg = SampleEntries.colour(Map.of(), vpcC);
+        assertEquals(ColorDescription.Transfer.HLG, hlg.transfer());
+        assertEquals(ColorDescription.Primaries.BT2020, hlg.primaries());
+        assertEquals(ColorDescription.UNSPECIFIED, SampleEntries.colour(Map.of(), new byte[0]));
     }
 }

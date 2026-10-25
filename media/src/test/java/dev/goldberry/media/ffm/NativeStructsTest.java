@@ -3,6 +3,7 @@ package dev.goldberry.media.ffm;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.lang.foreign.MemoryLayout;
 import java.util.List;
 
 import org.junit.jupiter.api.DisplayName;
@@ -52,21 +53,20 @@ class NativeStructsTest {
         assertEquals(
                 4,
                 NativeStructs.vpxCodecCtx(4)
-                        .select(java.lang.foreign.MemoryLayout.PathElement.groupElement("init_flags"))
+                        .select(MemoryLayout.PathElement.groupElement("init_flags"))
                         .byteSize());
         assertEquals(40, NativeStructs.oggPacket(4).byteSize());
-        assertEquals(
-                24,
-                NativeStructs.oggPacket(4)
-                        .byteOffset(java.lang.foreign.MemoryLayout.PathElement.groupElement("granulepos")));
+        assertEquals(24, NativeStructs.oggPacket(4).byteOffset(MemoryLayout.PathElement.groupElement("granulepos")));
         assertEquals(40, NativeStructs.vorbisInfo(4).byteSize());
-        assertEquals(
-                32,
-                NativeStructs.vorbisInfo(4)
-                        .byteOffset(java.lang.foreign.MemoryLayout.PathElement.groupElement("codec_setup")));
+        assertEquals(32, NativeStructs.vorbisInfo(4).byteOffset(MemoryLayout.PathElement.groupElement("codec_setup")));
         assertEquals(128, NativeStructs.vorbisDspState(4).byteSize());
         assertEquals(144, NativeStructs.vorbisBlock(4).byteSize());
-        assertTrue(NativeStructs.all(4).stream().allMatch(s -> s.byteAlignment() >= 4));
+        // Every struct of a pointer or an int aligns to four at least; the
+        // content light level, two shorts, aligns to two as C aligns it.
+        assertEquals(2, NativeStructs.DAV1D_CONTENT_LIGHT_LEVEL.byteAlignment());
+        assertTrue(NativeStructs.all(4).stream()
+                .filter(s -> s != NativeStructs.DAV1D_CONTENT_LIGHT_LEVEL)
+                .allMatch(s -> s.byteAlignment() >= 4));
     }
 
     @Test

@@ -128,6 +128,9 @@ libvpx = "v1.17.0"
 opus = "v1.6.1"
 ogg = "v1.3.6"
 vorbis = "v1.3.7"
+# The Theora decoder, libtheoradec's sources compiled into the library: 1.2.0 is
+# the first release since 1.1.1 (2009) and the newest.
+theora = "v1.2.0"
 flac = "1.5.0"
 # libyuv and minimp3 cut no releases: pinned by commit, as Blend2D is.
 # libyuv's is its main branch (version 1974), for the bilinear conversions

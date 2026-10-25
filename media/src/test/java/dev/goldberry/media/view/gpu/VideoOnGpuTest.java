@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.net.URI;
+import java.nio.ByteBuffer;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -26,6 +27,9 @@ import dev.goldberry.assets.BundledFont;
 import dev.goldberry.css.Stylesheet;
 import dev.goldberry.css.Theme;
 import dev.goldberry.css.cascade.CascadeLayer;
+import dev.goldberry.gpu.GpuTexture;
+import dev.goldberry.gpu.TextureFormat;
+import dev.goldberry.gpu.TextureSpec;
 import dev.goldberry.gpu.composite.CompositeHarness;
 import dev.goldberry.image.Image;
 import dev.goldberry.media.HardwareDecoding;
@@ -34,6 +38,7 @@ import dev.goldberry.media.MediaPlayer;
 import dev.goldberry.media.PlaybackState;
 import dev.goldberry.media.audio.AudioFormat;
 import dev.goldberry.media.audio.VirtualSink;
+import dev.goldberry.media.gpu.PictureRenderer;
 import dev.goldberry.media.io.MediaIO;
 import dev.goldberry.media.io.MediaIOProvider;
 import dev.goldberry.media.io.MemoryIO;
@@ -50,6 +55,7 @@ import dev.goldberry.media.view.VideoView;
 import dev.goldberry.natives.sdl.gpu.GpuTestLauncher;
 import dev.goldberry.offscreen.Offscreen;
 import dev.goldberry.paint.BoxPainter;
+import dev.goldberry.render.PixelBuffer;
 import dev.goldberry.render.window.GpuSurface;
 import dev.goldberry.text.font.Font;
 import dev.goldberry.widget.ElementTree;
@@ -199,6 +205,42 @@ class VideoOnGpuTest {
         throw new AssertionError("the picture never came; the last was " + last + ", " + player.status());
     }
 
+    /// How far apart two channels of a tone-mapped picture may be in light, as
+    /// a fraction of white, where they are dark: 0.004, under a nit of the 203
+    /// white is. Near black the encoding's `1 / 2.4` power is all but vertical,
+    /// so where the gamut conversion leaves a channel a hair above zero on one
+    /// path and clips it on the other, a GPU sampler's coarse filter weights at
+    /// a chroma edge read as a dozen levels and are a fraction of a nit.
+    private static final double HDR_DARK_LIGHT = 0.004;
+
+    /// How far GPU present may land from CPU present on a tone-mapped picture,
+    /// where they differ by more than [#HDR_DARK_LIGHT]: twice
+    /// [#TEN_BIT_CPU_TOLERANCE], since PQ's curve is up to twice as steep as
+    /// SDR's gamma in the mid-tones, so the sampler's rounding at a chroma
+    /// edge comes out twice as far. CPU present itself is held to the
+    /// reference within a level (`YuvConverterTest`).
+    private static final int HDR_TOLERANCE = 2 * TEN_BIT_CPU_TOLERANCE;
+
+    /// [#worst(Image, Image)] counting only the channels that differ by more
+    /// than [#HDR_DARK_LIGHT] in light: the levels a viewer can see.
+    private static int worstSeen(Image a, Image b) {
+        assertEquals(a.size(), b.size());
+        var worst = 0;
+        for (var y = 0; y < a.height(); y++) {
+            for (var x = 0; x < a.width(); x++) {
+                for (var shift = 0; shift < 24; shift += 8) {
+                    var first = (a.argb(x, y) >>> shift) & 0xFF;
+                    var second = (b.argb(x, y) >>> shift) & 0xFF;
+                    var light = Math.abs(Math.pow(first / 255.0, 2.4) - Math.pow(second / 255.0, 2.4));
+                    if (light > HDR_DARK_LIGHT) {
+                        worst = Math.max(worst, Math.abs(first - second));
+                    }
+                }
+            }
+        }
+        return worst;
+    }
+
     /// The largest difference of any channel between `a` and `b`.
     private static int worst(Image a, Image b) {
         assertEquals(a.size(), b.size());
@@ -331,6 +373,61 @@ class VideoOnGpuTest {
         return (VideoPlanes) awaitShown(picture -> picture instanceof VideoPlanes && picture.ptsNanos() == at);
     }
 
+    @Test
+    @DisplayName(
+            "a player offered a renderer's upload memory stages its planes there, and they draw as CPU present does")
+    void stagedPlanes() {
+        MediaNativesRequirement.enforce();
+        byte[] data;
+        try (var in = getClass().getResourceAsStream("/dev/goldberry/media/fixtures/clip-vp9-709.webm")) {
+            data = in.readAllBytes();
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+        player = MediaPlayer.builder()
+                .hardwareDecoding(HardwareDecoding.OFF)
+                .sink(() -> new VirtualSink(AudioFormat.DEFAULT, false))
+                .ioProviders(List.of(new Memory(data)))
+                .decoderProviders(List.of())
+                .build();
+        var golden = Image.decode(Path.of("src", "test", "resources", "golden", "video", "clip-vp9-709-webm-80ms.png"));
+        try (var renderer = new PictureRenderer();
+                var target = harness.device()
+                        .createTexture(TextureSpec.renderTarget(TextureFormat.B8G8R8A8_UNORM, 160, 90))) {
+            var attachment = player.attachView(PictureForm.PLANES);
+            attachment.setPlaneStore(renderer.planeStore());
+            player.open(Source.of(URI.create("mem:///clip-vp9-709.webm")));
+            var first = awaitShown(picture -> picture instanceof VideoPlanes);
+            // The first picture asks for memory of its shape; a render makes it.
+            draw(renderer, first, target);
+            assertTrue(((VideoPlanes) first).staged().isEmpty(), "nothing to stage into before a render");
+            player.pause();
+            player.seek(Duration.ofMillis(80));
+            var planes = (VideoPlanes)
+                    awaitShown(picture -> picture instanceof VideoPlanes && picture.ptsNanos() == 80_000_000L);
+            assertTrue(planes.staged().isPresent(), "staged in the renderer's memory");
+            var drawn = draw(renderer, planes, target);
+            var difference = worst(golden, drawn);
+            System.out.printf("staged planes, clip-vp9-709 at 80 ms: %d from CPU present%n", difference);
+            assertTrue(difference <= CPU_TOLERANCE, "staged planes differ from CPU present by " + difference);
+            assertEquals(YuvSource.of(planes).code(0, 10, 10), planes.sample(0, 10, 10), "still readable");
+        }
+    }
+
+    /// `picture` drawn by `renderer` into `target`, read back.
+    private static Image draw(PictureRenderer renderer, Picture picture, GpuTexture target) {
+        try (var frame = harness.device().beginFrame()) {
+            renderer.render(frame, picture, target);
+            var readback = frame.readback(target);
+            frame.submit();
+            var pixels = readback.awaitPixels();
+            var source = pixels.pixels();
+            var copy = ByteBuffer.allocateDirect(source.remaining()).order(source.order());
+            copy.put(0, source, source.position(), source.remaining());
+            return Image.of(new PixelBuffer(pixels.size(), pixels.format(), pixels.stride(), copy));
+        }
+    }
+
     @ParameterizedTest(name = "{0} at {1} ms")
     @CsvSource({
         "clip-vp8.webm, 0",
@@ -343,6 +440,8 @@ class VideoOnGpuTest {
         "clip-vp9-709.webm, 80",
         "clip-vp9-2020-10bit.webm, 80",
         "clip-vp9-full.webm, 80",
+        "clip-av1-pq.mkv, 80",
+        "clip-vp9-hlg.webm, 80",
     })
     @DisplayName("every fixture's planes on the GPU, composited and read back, match CPU present's golden")
     void parity(String fixture, int millis) {
@@ -362,6 +461,12 @@ class VideoOnGpuTest {
                     "GPU present, %s (%s %s%s) at %d ms: %d from CPU present%n",
                     fixture, planes.format(), planes.matrix(), planes.fullRange() ? " full" : "", millis, difference);
             var tolerance = planes.format().bytesPerSample() == 2 ? TEN_BIT_CPU_TOLERANCE : CPU_TOLERANCE;
+            if (!planes.colour().isPlainSdr()) {
+                // A tone-mapped picture is compared in light where it is dark:
+                // see HDR_DARK_LIGHT and HDR_TOLERANCE.
+                difference = worstSeen(golden, readBack);
+                tolerance = HDR_TOLERANCE;
+            }
             assertTrue(
                     difference <= tolerance,
                     fixture + " at " + millis + " ms differs from CPU present by " + difference + " levels; "

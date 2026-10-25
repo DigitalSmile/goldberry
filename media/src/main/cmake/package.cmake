@@ -14,7 +14,7 @@
 #    do for libgoldberry's upstreams.
 #
 # In: LIBRARY, OUT, SYSTEM, STRIP, SIZE_LIMIT, SANITIZE, DAV1D_REF, LIBVPX_REF, OPUS_REF,
-#     OGG_REF, VORBIS_REF, FLAC_REF, LIBYUV_REF, MINIMP3_REF, TARGET_ID.
+#     OGG_REF, VORBIS_REF, THEORA_REF, FLAC_REF, LIBYUV_REF, MINIMP3_REF, TARGET_ID.
 # ============================================================================
 cmake_minimum_required(VERSION 3.28)
 
@@ -57,6 +57,7 @@ directory of every Goldberry jar.
   Opus      ${OPUS_REF}     BSD-3-Clause  https://opus-codec.org
   libogg    ${OGG_REF}      BSD-3-Clause  https://xiph.org/ogg
   libvorbis ${VORBIS_REF}   BSD-3-Clause  https://xiph.org/vorbis
+  libtheora ${THEORA_REF}   BSD-3-Clause  https://theora.org (the decoder, libtheoradec)
   FLAC      ${FLAC_REF}     BSD-3-Clause  https://xiph.org/flac (libFLAC)
   libyuv    ${LIBYUV_REF}   BSD-3-Clause  https://chromium.googlesource.com/libyuv/libyuv
   minimp3   ${MINIMP3_REF}  CC0-1.0       https://github.com/lieff/minimp3

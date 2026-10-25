@@ -34,17 +34,20 @@ import dev.goldberry.media.container.Container;
 import dev.goldberry.media.io.MediaIO;
 import dev.goldberry.media.io.Source;
 
-/// Ogg (RFC 3533), read in Java: Opus (RFC 7845), Vorbis and FLAC in it.
+/// Ogg (RFC 3533), read in Java: Opus (RFC 7845), Vorbis, FLAC and Theora in it.
 ///
 /// Opening reads the BOS pages, one per logical stream, and names each
 /// stream by its first packet; then the header pages, until the first page
-/// that carries audio, which is where a seek to the start comes back to.
-/// Reading walks the pages, joins the segments into packets across page
-/// boundaries, and hands each audio packet over with a timestamp in samples
-/// of its stream's rate: a page's granule position is the sample count at
-/// the end of the last packet it completes, so the packets of the first page
-/// read are counted back from it by their lengths, and every packet after
-/// that counts on from the one before. An Opus stream's pre-skip is taken off
+/// that carries audio or video, which is where a seek to the start comes back
+/// to. Reading walks the pages, joins the segments into packets across page
+/// boundaries, and hands each packet over with a timestamp in samples of its
+/// stream's rate, or in frames for Theora: a page's granule position is the
+/// count at the end of the last packet it completes, so the packets of the
+/// first page read are counted back from it by their lengths, and every packet
+/// after that counts on from the one before. A Theora frame is one tick long,
+/// an empty one too (it repeats the frame before), and its granule position is
+/// read as FFmpeg reads it, a keyframe's number shifted up with the frames
+/// since it below, so the timestamps are the ones `ffprobe` lists. An Opus stream's pre-skip is taken off
 /// so that the sound starts at 0, and a stream's last page trims its last
 /// packet to the granule, as FFmpeg's reader times the same files.
 ///
@@ -52,8 +55,12 @@ import dev.goldberry.media.io.Source;
 /// seekable source; a seek bisects the pages by their granule positions and
 /// starts reading at the last page that ends at or before the target, so the
 /// first packet out is at or before it, within a page or two, and a Vorbis
-/// decoder gets the packet it needs to overlap with. A source that cannot
-/// seek has neither.
+/// decoder gets the packet it needs to overlap with. With a Theora stream
+/// among those read, the seek follows it instead: the page the target lands
+/// on names the keyframe its frames refer back to, a second bisection finds
+/// the page before that keyframe, and the Theora frames ahead of it are passed
+/// over, so the picture stream starts at a keyframe at or before the target.
+/// A source that cannot seek has neither.
 ///
 /// A stream of a codec this build does not name is a track with
 /// [CodecId#UNKNOWN], named by its first bytes, whose packets are not handed
@@ -126,7 +133,7 @@ public final class OggContainer implements Container {
         for (var stream : streams) {
             var granule = lastGranules.get(stream.serial);
             if (granule != null && stream.codec != CodecId.UNKNOWN) {
-                var duration = stream.timeBase.toDuration(Math.max(stream.pts(granule), 0));
+                var duration = stream.timeBase.toDuration(Math.max(stream.pts(stream.position(granule)), 0));
                 durations.put(stream.index, duration);
                 if (longest.isEmpty() || duration.compareTo(longest.get()) > 0) {
                     longest = Optional.of(duration);
@@ -221,15 +228,22 @@ public final class OggContainer implements Container {
         pending.clear();
         var target = dataStart;
         if (positionNanos > 0) {
+            // A stream that needs a keyframe leads, so that the others start no
+            // later than its keyframe; then the first stream read, then any.
             var stream = streams.stream()
-                    .filter(candidate -> candidate.codec != CodecId.UNKNOWN && isSelected(candidate.index))
+                    .filter(candidate -> candidate.hasKeyframes() && isSelected(candidate.index))
                     .findFirst()
+                    .or(() -> streams.stream()
+                            .filter(candidate -> candidate.codec != CodecId.UNKNOWN && isSelected(candidate.index))
+                            .findFirst())
                     .or(() -> streams.stream()
                             .filter(candidate -> candidate.codec != CodecId.UNKNOWN)
                             .findFirst());
             if (stream.isPresent()) {
-                var granule = stream.get().timeBase.fromNanos(positionNanos) + stream.get().preSkip;
-                target = bisect(stream.get(), granule);
+                var position = stream.get().timeBase.fromNanos(positionNanos) + stream.get().preSkip;
+                target = stream.get().hasKeyframes()
+                        ? bisectToKeyframe(stream.get(), position)
+                        : bisect(stream.get(), position);
             }
         }
         in.seek(target);
@@ -304,35 +318,36 @@ public final class OggContainer implements Container {
         }
         stream.fragment = tail.length > 0 ? tail : null;
 
-        var audio = new ArrayList<byte[]>(packets.size());
+        var data = new ArrayList<byte[]>(packets.size());
         for (var packet : packets) {
             if (!stream.header(packet)) {
-                audio.add(packet);
+                data.add(packet);
             }
         }
-        if (audio.isEmpty()) {
+        if (data.isEmpty()) {
             return;
         }
         if (stream.codec != CodecId.UNKNOWN) {
             dataSeen = true;
         }
-        var durations = new long[audio.size()];
+        var durations = new long[data.size()];
         var total = 0L;
-        for (var i = 0; i < audio.size(); i++) {
-            durations[i] = stream.timing().duration(audio.get(i));
+        for (var i = 0; i < data.size(); i++) {
+            durations[i] = stream.timing().duration(data.get(i));
             total += durations[i];
         }
-        if (stream.next == OggStream.UNKNOWN && page.granule() >= 0) {
-            stream.next = page.granule() - total;
+        var end = page.granule() >= 0 ? stream.position(page.granule()) : OggStream.UNKNOWN;
+        if (stream.next == OggStream.UNKNOWN && end != OggStream.UNKNOWN) {
+            stream.next = end - total;
         }
         var timed = stream.next != OggStream.UNKNOWN;
-        if (timed && page.isLast() && page.granule() >= 0) {
+        if (timed && page.isLast() && end != OggStream.UNKNOWN) {
             // The stream ends at the granule, whatever the last packet's own
             // length says: an encoder's padding.
             var at = stream.next;
             for (var i = 0; i < durations.length; i++) {
-                if (at + durations[i] > page.granule()) {
-                    durations[i] = Math.max(page.granule() - at, 0);
+                if (at + durations[i] > end) {
+                    durations[i] = Math.max(end - at, 0);
                 }
                 at += durations[i];
             }
@@ -344,32 +359,55 @@ public final class OggContainer implements Container {
             }
             return;
         }
+        // After a seek, a Theora stream's frames before its first keyframe are
+        // counted and passed over: nothing can decode them.
+        var keep = new boolean[data.size()];
+        var kept = 0;
+        for (var i = 0; i < data.size(); i++) {
+            if (stream.awaitingKeyframe && stream.isKeyframe(data.get(i))) {
+                stream.awaitingKeyframe = false;
+            }
+            keep[i] = !stream.awaitingKeyframe;
+            if (keep[i]) {
+                kept++;
+            }
+        }
+        if (kept == 0) {
+            if (timed) {
+                stream.next += Arrays.stream(durations).sum();
+            }
+            return;
+        }
         // One allocation for the page, shared by its packets: freed when the
         // last of them is closed, on whatever thread that is.
         @SuppressWarnings("MustBeClosedChecker")
         var shared = Arena.ofShared();
-        var remaining = new AtomicInteger(audio.size());
+        var remaining = new AtomicInteger(kept);
         Runnable release = () -> {
             if (remaining.decrementAndGet() == 0) {
                 shared.close();
             }
         };
         var size = 0L;
-        for (var packet : audio) {
-            size += packet.length;
+        for (var i = 0; i < data.size(); i++) {
+            size += keep[i] ? data.get(i).length : 0;
         }
         var block = shared.allocate(Math.max(size, 1));
         var offset = 0L;
-        for (var i = 0; i < audio.size(); i++) {
-            var payload = audio.get(i);
-            MemorySegment.copy(payload, 0, block, ValueLayout.JAVA_BYTE, offset, payload.length);
-            var data = block.asSlice(offset, payload.length);
-            offset += payload.length;
+        for (var i = 0; i < data.size(); i++) {
             var pts = timed ? stream.pts(stream.next) : Packet.NO_TIMESTAMP;
             if (timed) {
                 stream.next += durations[i];
             }
-            pending.add(Packet.owning(data, stream.index, pts, pts, durations[i], true, stream.timeBase, release));
+            if (!keep[i]) {
+                continue;
+            }
+            var payload = data.get(i);
+            MemorySegment.copy(payload, 0, block, ValueLayout.JAVA_BYTE, offset, payload.length);
+            var bytes = block.asSlice(offset, payload.length);
+            offset += payload.length;
+            pending.add(Packet.owning(
+                    bytes, stream.index, pts, pts, durations[i], stream.isKeyframe(payload), stream.timeBase, release));
         }
     }
 
@@ -434,11 +472,30 @@ public final class OggContainer implements Container {
         return found;
     }
 
+    /// Where reading starts for a seek to `position` in a stream whose frames
+    /// need a keyframe: before the page that completes the keyframe the target
+    /// refers back to. The page [#bisect] lands on names that keyframe in its
+    /// granule position; the keyframe's own packet is on that page or one
+    /// before it, so a second bisection finds the last page that ends before
+    /// the keyframe. Reading from there passes over the frames ahead of it.
+    private long bisectToKeyframe(OggStream stream, long position) {
+        var landing = bisect(stream, position);
+        if (landing <= dataStart) {
+            return dataStart;
+        }
+        in.seek(landing);
+        var page = pageOf(stream, Long.MAX_VALUE);
+        if (page == null) {
+            return landing;
+        }
+        return bisect(stream, stream.keyframe(page.granule()));
+    }
+
     /// The position of the last page of `stream` whose granule position is at
-    /// or before `granule`, or the first data page when none is. Bisects the
-    /// bytes between the two, reading the first page of the stream after each
-    /// midpoint.
-    private long bisect(OggStream stream, long granule) {
+    /// or before `position`, in the stream's own count, or the first data page
+    /// when none is. Bisects the bytes between the two, reading the first page
+    /// of the stream after each midpoint.
+    private long bisect(OggStream stream, long position) {
         var size = in.size();
         if (size.isEmpty()) {
             return dataStart;
@@ -453,7 +510,7 @@ public final class OggContainer implements Container {
             var page = pageOf(stream, high);
             if (page == null) {
                 high = mid;
-            } else if (page.granule() <= granule) {
+            } else if (stream.position(page.granule()) <= position) {
                 best = page.position();
                 landing = page;
                 low = page.end();

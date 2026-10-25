@@ -7,10 +7,13 @@ import java.util.stream.Stream;
 
 import dev.goldberry.media.platform.linux.LinuxBindings;
 import dev.goldberry.media.platform.macos.MacBindings;
+import dev.goldberry.media.platform.vulkan.ffm.VkCalls;
+import dev.goldberry.media.platform.vulkan.ffm.VulkanLoader;
 import dev.goldberry.media.platform.windows.WindowsBindings;
 
 /// Every foreign-call shape of the system decoders, on all three systems at
-/// once: VideoToolbox and AudioToolbox, GStreamer, and Media Foundation.
+/// once: VideoToolbox and AudioToolbox, GStreamer, Media Foundation, and Vulkan
+/// Video on Linux and Windows.
 ///
 /// An image is built for one system, but the metadata is the same file for all
 /// of them, and a shape an image never calls costs it nothing. Each system's
@@ -41,6 +44,8 @@ public final class PlatformDescriptors {
         all.addAll(MacBindings.downcalls());
         all.addAll(LinuxBindings.downcalls());
         all.addAll(WindowsBindings.downcalls());
+        all.add(VulkanLoader.procAddrDescriptor());
+        all.addAll(VkCalls.DESCRIPTORS);
         return List.copyOf(all);
     }
 }

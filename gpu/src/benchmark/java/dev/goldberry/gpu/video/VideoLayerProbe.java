@@ -38,6 +38,7 @@ final class VideoLayerProbe {
             System.out.println("|---|---|---|---|");
             for (var layout : new PlaneLayout[] {PlaneLayout.NV12, PlaneLayout.I420, PlaneLayout.P010}) {
                 run(harness, layout);
+                runStaged(harness, layout);
             }
         }
     }
@@ -98,6 +99,89 @@ final class VideoLayerProbe {
                 "| %s: upload rate while rendering | %.1f GB/s | | |%n",
                 label,
                 bytes / (median(render) / 1e9) / 1e9);
+    }
+
+    /// The same frames with the planes staged: another thread writes each
+    /// picture into the layer's upload memory, as the video thread does when
+    /// the view offered it, and the layer records the upload with no copy.
+    private static void runStaged(CompositeHarness harness, PlaneLayout layout) {
+        var device = harness.device();
+        var render = new long[FRAMES];
+        var write = new long[FRAMES];
+        try (var layer = new VideoLayer();
+                var target =
+                        device.createTexture(TextureSpec.renderTarget(TextureFormat.B8G8R8A8_UNORM, WIDTH, HEIGHT))) {
+            var staging = layer.staging();
+            staging.obtain(layout, WIDTH, HEIGHT);
+            // A render on the device makes the memory the shape was asked for.
+            layer.show(new VideoImage.Planes(
+                    layout, WIDTH, HEIGHT, planes(layout, 0), strides(layout), ColorMatrix.BT709, false));
+            try (var frame = device.beginFrame()) {
+                layer.render(frame, target);
+                frame.submit();
+            }
+            StagedPlanes previous = null;
+            for (var i = 0; i < FRAMES; i++) {
+                var staged = staging.obtain(layout, WIDTH, HEIGHT).orElseThrow();
+                var copy = i;
+                var written = new long[1];
+                var writer = Thread.ofPlatform().start(() -> {
+                    var started = System.nanoTime();
+                    for (var plane = 0; plane < layout.planes(); plane++) {
+                        var into = staged.plane(plane);
+                        for (var at = 0; at < into.capacity(); at += 4096) {
+                            into.put(at, (byte) (at * 31 + copy));
+                        }
+                    }
+                    written[0] = System.nanoTime() - started;
+                });
+                try {
+                    writer.join();
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    return;
+                }
+                write[i] = written[0];
+                layer.show(new VideoImage.Staged(staged, ColorMatrix.BT709, false, ColorVolume.SDR));
+                try (var frame = device.beginFrame()) {
+                    var started = System.nanoTime();
+                    layer.render(frame, target);
+                    render[i] = System.nanoTime() - started;
+                    var readback = frame.readback(target, PhysicalRect.of(0, 0, 1, 1));
+                    frame.submit();
+                    readback.awaitPixels();
+                }
+                if (previous != null) {
+                    previous.release();
+                }
+                previous = staged;
+            }
+        }
+        var label = "4K " + layout + " staged";
+        row(label + ": render (record, no copy)", render);
+        row(label + ": the writer's touch of each page", write);
+    }
+
+    private static List<Integer> strides(PlaneLayout layout) {
+        var strides = new ArrayList<Integer>();
+        for (var plane = 0; plane < layout.planes(); plane++) {
+            strides.add(layout.planeWidth(plane, WIDTH)
+                    * layout.textureFormats().get(plane).bytesPerPixel());
+        }
+        return strides;
+    }
+
+    private static List<ByteBuffer> planes(PlaneLayout layout, int seed) {
+        var strides = strides(layout);
+        var planes = new ArrayList<ByteBuffer>();
+        for (var plane = 0; plane < layout.planes(); plane++) {
+            var buffer = ByteBuffer.allocateDirect(strides.get(plane) * layout.planeHeight(plane, HEIGHT));
+            for (var i = 0; i < buffer.capacity(); i += 97) {
+                buffer.put(i, (byte) (i * 31 + seed));
+            }
+            planes.add(buffer);
+        }
+        return planes;
     }
 
     private static double median(long[] nanos) {

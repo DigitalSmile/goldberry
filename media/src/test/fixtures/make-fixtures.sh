@@ -56,6 +56,18 @@ $ff -f lavfi -i "$pattern" -i "$tone" -c:v libsvtav1 -preset 12 -crf 45 -c:a lib
 $ff -f lavfi -i "$pattern" -i "$tone" -c:v libsvtav1 -preset 12 -crf 45 -c:a flac -shortest -f mp4 \
     "$out/clip-av1.mp4"
 
+# Theora, the pattern in Ogg beside Vorbis (an .ogv as it is met) and in
+# Matroska beside Opus: a keyframe every ten frames, for the seeks. libtheora
+# codes the 160x90 picture in a 160x96 frame, the six rows to spare at the
+# bottom, so a decoder must crop. Then 4:4:4 and 4:2:2, silent and a fifth of
+# a second each, which the built-in decoder subsamples to I420.
+$ff -f lavfi -i "$pattern" -i "$tone" -c:v libtheora -q:v 7 -g 10 -c:a vorbis -strict experimental -ac 2 -q:a 3 \
+    -shortest "$out/clip-theora.ogv"
+$ff -f lavfi -i "$pattern" -i "$tone" -c:v libtheora -q:v 7 -g 10 -c:a libopus -b:a 64k -shortest \
+    "$out/clip-theora.mkv"
+$ff -f lavfi -i "testsrc2=s=160x90:r=25:d=0.2" -c:v libtheora -pix_fmt yuv444p -q:v 7 "$out/clip-theora-444.ogv"
+$ff -f lavfi -i "testsrc2=s=160x90:r=25:d=0.2" -c:v libtheora -pix_fmt yuv422p -q:v 7 "$out/clip-theora-422.ogv"
+
 # The MP4 demuxer's other shapes, remuxed from the clips above: the moov before
 # the mdat (a source that cannot seek reads it forward), the cover art in
 # udta/meta/ilst/covr, and a fragmented file of five moof boxes.
@@ -88,6 +100,22 @@ $ff -f lavfi -i "$short" -vf "scale=out_color_matrix=bt2020:out_range=tv,format=
 $ff -f lavfi -i "$short" -vf "scale=out_color_matrix=bt601:out_range=pc,format=yuv420p" \
     -c:v libvpx-vp9 -b:v 200k -colorspace smpte170m -color_primaries smpte170m -color_trc smpte170m \
     -color_range pc "$out/clip-vp9-full.webm"
+
+# --- Superframes: VP9 with hidden alternate reference frames, each packed with
+# the frame shown after it into one packet behind a superframe index (Annex B).
+# libvpx makes them in two passes only. 160x128 for 0.6 s, silent, with
+# variance AQ, so that segmentation is coded too (a map, temporal prediction,
+# feature data); 128 rows at least, which Vulkan Video's VP9 decode wants.
+# FFmpeg's sums of its fifteen pictures, I420, go beside the other VP9 clips'
+# in ../container/.
+for pass in 1 2; do
+    target=/dev/null
+    [ "$pass" = 2 ] && target="$out/clip-vp9-superframes.webm"
+    $ff -f lavfi -i "testsrc2=s=160x128:r=25:d=0.6" -c:v libvpx-vp9 -b:v 200k -auto-alt-ref 1 \
+        -lag-in-frames 16 -aq-mode 1 -pass "$pass" -passlogfile "$work/vp9-superframes" -f webm "$target"
+done
+$ff -i "$out/clip-vp9-superframes.webm" -map 0:v:0 -pix_fmt yuv420p -f framemd5 - | grep -v '^#' \
+    > ../resources/dev/goldberry/media/container/clip-vp9-superframes-webm.framemd5
 
 # --- A sticker: VP9 with an alpha channel, as Telegram sends one, 64x64 at 10 fps
 # for one second. Red everywhere; the alpha is the picture. In the top half an
@@ -207,6 +235,22 @@ python3 -I fix-ogg-chapter.py "$out/tone-chapters.opus" "CHAPTER002=00:00:01.700
 $ff -i "$tone" -c:a flac "$out/tone-chapters.flac"
 python3 -I flac-chapters.py "$out/tone-chapters.flac"
 
+# --- HDR: the colour description from the codec, from the container, and the
+# light levels. HDR10's AV1, 10-bit PQ in BT.2020, with a mastering display of
+# 1000 nits and MaxCLL 1000 in metadata OBUs, which SVT-AV1 writes from its own
+# parameters; the sequence header carries the primaries and transfer function.
+# The same stream in MP4, where FFmpeg writes them as `colr`. VP9 has no
+# transfer function in its bitstream, so HLG in BT.2020 is the WebM `Colour`
+# element's alone.
+pq="color-primaries=9:transfer-characteristics=16:matrix-coefficients=9"
+mastering="mastering-display=G(0.265,0.690)B(0.150,0.060)R(0.680,0.320)WP(0.3127,0.3290)L(1000,0.0001)"
+$ff -f lavfi -i "$short" -pix_fmt yuv420p10le -c:v libsvtav1 -preset 12 -crf 45 \
+    -svtav1-params "$pq:$mastering:content-light=1000,400" "$out/clip-av1-pq.mkv"
+$ff -i "$out/clip-av1-pq.mkv" -c copy "$out/clip-av1-pq.mp4"
+$ff -f lavfi -i "$short" \
+    -vf "format=yuv420p10le,setparams=color_primaries=bt2020:color_trc=arib-std-b67:colorspace=bt2020nc" \
+    -c:v libvpx-vp9 -profile:v 2 -b:v 200k "$out/clip-vp9-hlg.webm"
+
 # --- Past the 8K cap: one flat picture each. 6000x6000 is 36 megapixels with
 # both sides within 8192; 8256 is one side past it.
 $ff -f lavfi -i "color=c=0x336699:s=6000x6000:r=25:d=0.04" -frames:v 1 -c:v libsvtav1 -preset 12 -crf 63 \
@@ -218,8 +262,36 @@ $ff -f lavfi -i "color=c=0x336699:s=6000x6000:r=25:d=0.04" -frames:v 1 -c:v libv
 $ff -f lavfi -i "color=c=0x336699:s=8256x16:r=25:d=0.04" -frames:v 1 -c:v libvpx-vp9 -crf 63 -b:v 0 \
     "$out/clip-vp9-8256-wide.webm"
 
-rm -r "$work"
-ls -l "$out"
+# --- AV1 for the bitstream readers, which make-traces.sh holds to FFmpeg: the
+# frame header's coding tools that the pattern clips never use. A pan across a
+# noisy pattern at 320x180, so that libaom finds global motion and grain to
+# model. libaom, eight frames: 2x2 tiles, film grain, variance segmentation,
+# delta q and delta lf, quantizer matrices, loop restoration, global motion.
+# SVT-AV1, twelve frames: superres, each frame coded at 8/12 of its width, and
+# an open GOP, whose second GOP starts on an intra-only frame. libaom realtime,
+# error resilient, six frames: frame ids, every reference's order hint, tiles
+# of uneven sizes (two and three superblocks wide, one and two high), and each
+# frame's four tiles in two tile group OBUs after a frame header OBU.
+pan="testsrc2=s=480x270:r=25:d=1,crop=320:180:x='t*120':y='t*50'"
+$ff -f lavfi -i "testsrc2=s=480x270:r=25:d=1,noise=alls=14:allf=t,crop=320:180:x='t*120':y='t*50'" -frames:v 8 \
+    -pix_fmt yuv420p -c:v libaom-av1 -cpu-used 1 -crf 45 -tiles 2x2 -row-mt 0 -denoise-noise-level 12 \
+    -aq-mode variance -enable-restoration 1 -enable-global-motion 1 \
+    -aom-params "deltaq-mode=1:delta-lf-mode=1:enable-qm=1" "$out/clip-av1-tools.mkv"
+$ff -f lavfi -i "$pan" -frames:v 12 -g 6 -pix_fmt yuv420p -c:v libsvtav1 -preset 10 -crf 45 \
+    -svtav1-params "irefresh-type=1:superres-mode=1:superres-denom=12" "$out/clip-av1-superres.mkv"
+$ff -f lavfi -i "testsrc2=s=320x180:r=25:d=1" -frames:v 6 -pix_fmt yuv420p -c:v libaom-av1 -usage realtime \
+    -cpu-used 8 -crf 45 -error-resilience default -aom-params "tile-width=2,3:tile-height=1,2:num-tile-groups=2" \
+    "$out/clip-av1-resilient.mkv"
+# One lossless monochrome still picture, 64x64, with the reduced sequence
+# header; and three frames whose sequence header carries timing info and a
+# decoder model, so each frame header has its presentation and removal times.
+$ff -f lavfi -i "testsrc2=s=64x64:r=25:d=1" -frames:v 1 -pix_fmt gray -c:v libaom-av1 -still-picture 1 -crf 0 \
+    -cpu-used 6 "$out/clip-av1-still.mkv"
+$ff -f lavfi -i "testsrc2=s=64x64:r=25:d=1" -frames:v 3 -pix_fmt yuv420p -c:v libaom-av1 -cpu-used 6 -crf 50 \
+    -aom-params "timing-info=model" "$out/clip-av1-timing.mkv"
 
 # A bare FLAC with cover art: the tone again, and a small PNG as a PICTURE block.
 $ff -i "$out/tone.flac" -i "$work/cover.png" -map 0:a -map 1:v -c copy -disposition:v attached_pic -f flac "$out/tone-cover.flac"
+
+rm -r "$work"
+ls -l "$out"

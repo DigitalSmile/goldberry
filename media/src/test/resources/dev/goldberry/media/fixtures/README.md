@@ -34,6 +34,15 @@ is our own content and carries no third-party licence:
 | `clip-vp9.webm` | WebM | VP9, Opus | phase 3 |
 | `clip-av1.mkv` | Matroska | AV1, Opus | phase 3 (dav1d) |
 | `clip-av1.mp4` | MP4 | AV1, FLAC | phase 3 |
+| `clip-theora.ogv` | Ogg | Theora (160×90 in a 160×96 frame, a keyframe every ten frames, bitstream 3.2.1), Vorbis | the Ogg Theora mapping: granule positions, keyframes, seeks; libtheora against FFmpeg's `framemd5`, cropped |
+| `clip-theora.mkv` | Matroska | Theora as above, Opus | `V_THEORA` and its laced `CodecPrivate` |
+| `clip-theora-444.ogv` | Ogg | Theora 4:4:4, 0.2 s, silent | the built-in decoder's conversion to I420 |
+| `clip-theora-422.ogv` | Ogg | Theora 4:2:2, 0.2 s, silent | the same, from 4:2:2 |
+| `clip-av1-tools.mkv` | Matroska | AV1 (libaom), a pan across a noisy `testsrc2` at 320×180, eight frames, silent: 2×2 tiles, film grain, segmentation, delta q and lf, quantizer matrices, loop restoration, global motion | the AV1 frame header reader, against FFmpeg's `trace_headers` |
+| `clip-av1-superres.mkv` | Matroska | AV1 (SVT-AV1), the pan without noise, twelve frames, silent: superres at 8/12, an open GOP with an intra-only frame | the same: superres, frame sizes, intra-only frames |
+| `clip-av1-resilient.mkv` | Matroska | AV1 (libaom realtime, error resilient), `testsrc2` at 320×180, six frames, silent: frame ids, tiles of uneven sizes in two tile groups | the same: frame ids, reference order hints, uneven tiles, tile group OBUs |
+| `clip-av1-still.mkv` | Matroska | AV1 (libaom), one lossless monochrome still picture of `testsrc2` at 64×64, silent | the same: the reduced sequence header, monochrome, a lossless frame |
+| `clip-av1-timing.mkv` | Matroska | AV1 (libaom), three frames of `testsrc2` at 64×64 with timing info and a decoder model, silent | the same: presentation and buffer removal times |
 | `clip-av1-fragmented.mp4` | MP4, fragmented | the AV1 and FLAC of `clip-av1.mp4`, remuxed with `empty_moov` into five `moof` fragments | the MP4 demuxer's `moof/traf/trun` path |
 | `tone-flac-faststart.mp4` | MP4, `moov` before `mdat` | the FLAC of `tone-flac.mp4` | the MP4 demuxer on a source that cannot seek |
 | `tone-cover.m4a` | MP4 | the Opus of `tone-opus.mp4`, the PNG cover of `tone-cover.mp3` in `udta/meta/ilst/covr` | the MP4 demuxer's attached-picture track |
@@ -44,6 +53,7 @@ is our own content and carries no third-party licence:
 | `clip-vp9-709.webm` | WebM | VP9, tagged BT.709, limited range, 0.2 s, silent | GPU present's parity for the HD matrix (ADR-0484) |
 | `clip-vp9-2020-10bit.webm` | WebM | VP9 profile 2, tagged BT.2020 (non-constant luminance), limited range, 0.2 s, silent | GPU present's parity for the UHD matrix in 10 bits |
 | `clip-vp9-full.webm` | WebM | VP9, tagged BT.601 (SMPTE 170M), full range, 0.2 s, silent | GPU present's parity for full-range pictures |
+| `clip-vp9-superframes.webm` | WebM | VP9 `testsrc2` at 160×128, two-pass with hidden alternate reference frames: 15 packets, two of them superframes, 17 frames; variance AQ, so segmentation is coded; 0.6 s, silent. FFmpeg's sums, I420, in `container/clip-vp9-superframes-webm.framemd5` | VP9 headers against FFmpeg's `trace_headers`: superframe splitting, hidden frames, segmentation; at least 128×128 for Vulkan Video's VP9 decode |
 | `sticker-vp9-alpha.webm` | WebM | VP9 lossless with an alpha stream (`AlphaMode`, BlockAdditional), 64×64 at 10 fps, one second, silent: red, an opaque square moving 4 px a frame in the top half, half alpha in the bottom 24 rows | the video sticker: the side data, the alpha plane, premultiplied pictures, and a loop |
 | `tones-two-tracks.mkv` | Matroska | FLAC twice: 440 Hz tagged `eng` and titled "Concert pitch", 880 Hz tagged `fra`; two seconds each | track selection: a switch lands on the new track's sample, and a track menu's labels |
 | `clip-two-angles.mkv` | Matroska | VP9 `testsrc2` at 160×90 titled "Wide" (default), VP8 SMPTE bars at 96×54 titled "Close", Opus tone; one second | video track switching: which track shows is the picture's size |

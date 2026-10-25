@@ -10,6 +10,7 @@ import dev.goldberry.media.ffm.calls.FlacCalls;
 import dev.goldberry.media.ffm.calls.MediaCalls;
 import dev.goldberry.media.ffm.calls.Mp3Calls;
 import dev.goldberry.media.ffm.calls.OpusCalls;
+import dev.goldberry.media.ffm.calls.TheoraCalls;
 import dev.goldberry.media.ffm.calls.VorbisCalls;
 import dev.goldberry.media.ffm.calls.VpxCalls;
 import dev.goldberry.media.ffm.calls.YuvCalls;
@@ -28,6 +29,7 @@ import dev.goldberry.media.ffm.calls.YuvCalls;
 /// @param vpx       the VP9 and VP8 decoders
 /// @param opus      the Opus decoder
 /// @param vorbis    the Vorbis decoder
+/// @param theora    the Theora decoder
 /// @param flac      the FLAC decoder
 /// @param yuv       the conversions
 /// @param mp3       the MP3 decoder
@@ -41,6 +43,7 @@ public record MediaLibrary(
         VpxCalls vpx,
         OpusCalls opus,
         VorbisCalls vorbis,
+        TheoraCalls theora,
         FlacCalls flac,
         YuvCalls yuv,
         Mp3Calls mp3,
@@ -50,7 +53,7 @@ public record MediaLibrary(
 
     /// The ABI these bindings are written against: `goldberry_media_abi()` has to
     /// answer it, and `media_layout.c` writes it as `abi=`.
-    public static final int ABI = 2;
+    public static final int ABI = 3;
 
     public MediaLibrary {
         Objects.requireNonNull(lookup, "lookup");
@@ -59,6 +62,7 @@ public record MediaLibrary(
         Objects.requireNonNull(vpx, "vpx");
         Objects.requireNonNull(opus, "opus");
         Objects.requireNonNull(vorbis, "vorbis");
+        Objects.requireNonNull(theora, "theora");
         Objects.requireNonNull(flac, "flac");
         Objects.requireNonNull(yuv, "yuv");
         Objects.requireNonNull(mp3, "mp3");

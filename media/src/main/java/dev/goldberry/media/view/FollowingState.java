@@ -167,10 +167,13 @@ abstract class FollowingState<W extends Widget> extends State<W> {
     }
 
     /// Called from inside a paint when the presenter starts or stops placing
-    /// pictures on the GPU: planes while it does, converted while the CPU draws.
+    /// pictures on the GPU: planes while it does, written into the layer's upload
+    /// memory, and converted while the CPU draws.
     private void shownOnGpu(boolean onGpu) {
         var current = attachment;
         if (current != null) {
+            var gpu = presenter;
+            current.setPlaneStore(onGpu && gpu != null ? gpu.planeStore().orElse(null) : null);
             current.setForm(onGpu ? PictureForm.PLANES : PictureForm.CONVERTED);
         }
     }

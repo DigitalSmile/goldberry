@@ -1,5 +1,6 @@
 package dev.goldberry.media.container.matroska;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Locale;
 import java.util.Optional;
 import java.util.OptionalInt;
@@ -8,7 +9,9 @@ import java.util.OptionalLong;
 import org.jspecify.annotations.Nullable;
 
 import dev.goldberry.media.bitstream.ParameterSets;
+import dev.goldberry.media.bitstream.TheoraHeaders;
 import dev.goldberry.media.codec.CodecId;
+import dev.goldberry.media.codec.ColorDescription;
 import dev.goldberry.media.codec.FrameRate;
 import dev.goldberry.media.codec.MediaType;
 import dev.goldberry.media.codec.TrackParams;
@@ -20,8 +23,18 @@ import dev.goldberry.media.codec.TrackParams;
 /// The names are FFmpeg's, because [CodecId] is written in them and so is
 /// every application that read a track's `codecName` before: `vp9`, `opus`,
 /// `h264`. A codec this list does not know keeps its Matroska ID as its name,
-/// `V_MS/VFW/FOURCC`, and is [CodecId#UNKNOWN].
+/// `V_MS/VFW/FOURCC`, and is [CodecId#UNKNOWN]; so is `V_UNCOMPRESSED`, raw
+/// pictures, which goes by FFmpeg's name for them, `rawvideo`, and states its
+/// layout as a four-character code.
+///
+/// [#matroskaId] goes the other way, for [MatroskaWriter].
 public final class MatroskaCodecs {
+
+    /// The `CodecID` of raw pictures, whose layout `UncompressedFourCC` states.
+    public static final String UNCOMPRESSED = "V_UNCOMPRESSED";
+
+    /// FFmpeg's name for raw pictures, which a `V_UNCOMPRESSED` track goes by.
+    public static final String RAW_VIDEO = "rawvideo";
 
     private MatroskaCodecs() {}
 
@@ -37,6 +50,7 @@ public final class MatroskaCodecs {
             case "V_AV1" -> CodecId.AV1;
             case "V_VP9" -> CodecId.VP9;
             case "V_VP8" -> CodecId.VP8;
+            case "V_THEORA" -> CodecId.THEORA;
             case "V_MPEG4/ISO/AVC" -> CodecId.H264;
             case "V_MPEGH/ISO/HEVC" -> CodecId.HEVC;
             case "V_MPEG2" -> CodecId.MPEG2_VIDEO;
@@ -52,7 +66,62 @@ public final class MatroskaCodecs {
             case "S_TEXT/WEBVTT" -> CodecId.WEBVTT;
             default -> codecId.startsWith("A_AAC") ? CodecId.AAC : CodecId.UNKNOWN;
         };
+        if (codecId.equals(UNCOMPRESSED)) {
+            return new Named(CodecId.UNKNOWN, RAW_VIDEO);
+        }
         return new Named(codec, codec == CodecId.UNKNOWN ? codecId : codec.ffmpegName());
+    }
+
+    /// The `CodecID` a track of `codec` is written with, or empty for one
+    /// Matroska has none for: an attached picture, `mov_text`, or a codec this
+    /// list does not name. The PCM codecs share theirs, and a track's
+    /// `BitDepth` tells them apart.
+    public static Optional<String> matroskaId(CodecId codec) {
+        return Optional.ofNullable(
+                switch (codec) {
+                    case AV1 -> "V_AV1";
+                    case VP9 -> "V_VP9";
+                    case VP8 -> "V_VP8";
+                    case THEORA -> "V_THEORA";
+                    case H264 -> "V_MPEG4/ISO/AVC";
+                    case HEVC -> "V_MPEGH/ISO/HEVC";
+                    case MPEG2_VIDEO -> "V_MPEG2";
+                    case MPEG4 -> "V_MPEG4/ISO/ASP";
+                    case OPUS -> "A_OPUS";
+                    case VORBIS -> "A_VORBIS";
+                    case FLAC -> "A_FLAC";
+                    case MP3 -> "A_MPEG/L3";
+                    case AAC -> "A_AAC";
+                    case AC3 -> "A_AC3";
+                    case EAC3 -> "A_EAC3";
+                    case PCM_S16LE, PCM_S24LE -> "A_PCM/INT/LIT";
+                    case PCM_F32LE -> "A_PCM/FLOAT/IEEE";
+                    case SUBRIP -> "S_TEXT/UTF8";
+                    case ASS -> "S_TEXT/ASS";
+                    case WEBVTT -> "S_TEXT/WEBVTT";
+                    case MOV_TEXT, PNG, MJPEG, UNKNOWN -> null;
+                });
+    }
+
+    /// The parameters of a `V_UNCOMPRESSED` track: its size, and the pixel
+    /// format its `UncompressedFourCC` names, in FFmpeg's words, where it is one
+    /// this list knows (`NV12`, `I420`).
+    public static TrackParams.Video uncompressed(int width, int height, byte[] fourcc, long defaultDurationNanos) {
+        var code = new String(fourcc, StandardCharsets.US_ASCII);
+        var pixelFormat = switch (code) {
+            case "NV12" -> Optional.of("nv12");
+            case "I420", "IYUV" -> Optional.of("yuv420p");
+            default -> Optional.<String>empty();
+        };
+        return new TrackParams.Video(
+                width,
+                height,
+                pixelFormat,
+                OptionalInt.empty(),
+                OptionalInt.empty(),
+                OptionalLong.empty(),
+                frameRate(defaultDurationNanos),
+                false);
     }
 
     /// The PCM codec for `A_PCM/INT/LIT` and `A_PCM/FLOAT/IEEE` at `bitDepth`.
@@ -84,6 +153,9 @@ public final class MatroskaCodecs {
             case VP8 -> Optional.of("yuv420p");
             case VP9 -> vp9PixelFormat(codecPrivate);
             case AV1 -> av1PixelFormat(codecPrivate);
+            case THEORA ->
+                TheoraHeaders.identificationOfLaced(codecPrivate)
+                        .flatMap(TheoraHeaders.Identification::pixelFormatName);
             case H264, HEVC -> ParameterSets.pixelFormat(codec, codecPrivate);
             default -> Optional.<String>empty();
         };
@@ -94,8 +166,15 @@ public final class MatroskaCodecs {
                 profile(codec, codecPrivate),
                 level(codec, codecPrivate),
                 OptionalLong.empty(),
-                frameRate(defaultDurationNanos),
-                alpha);
+                frameRate(defaultDurationNanos)
+                        .or(() -> codec == CodecId.THEORA
+                                ? TheoraHeaders.identificationOfLaced(codecPrivate)
+                                        .flatMap(TheoraHeaders.Identification::frameRate)
+                                : Optional.empty()),
+                alpha,
+                codec == CodecId.H264 || codec == CodecId.HEVC
+                        ? ParameterSets.colour(codec, codecPrivate)
+                        : ColorDescription.UNSPECIFIED);
     }
 
     /// The parameters of an audio track.

@@ -2,6 +2,7 @@ package dev.goldberry.media.bitstream;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -33,6 +34,22 @@ class BitReaderTest {
         assertEquals(0xFFFF_FFFE, r.bits(32));
     }
 
+    @Test
+    @DisplayName("a reader of part of an array counts from the part's start and stops at its end")
+    void part() {
+        var data = new byte[] {(byte) 0xFF, (byte) 0b1010_0000, (byte) 0x80, (byte) 0xFF};
+        var r = new BitReader(data, 1, 2);
+        assertEquals(0b101, r.bits(3));
+        assertEquals(3, r.position());
+        assertEquals(13, r.remaining());
+        r.byteAlign();
+        assertEquals(8, r.position());
+        assertFalse(r.moreRbspData(), "the 1 of 0x80 is the stop bit; the 0xFF after the part is not read");
+        assertEquals(0x80, r.bits(8));
+        assertThrows(IllegalArgumentException.class, r::bit);
+        assertThrows(IndexOutOfBoundsException.class, () -> new BitReader(data, 3, 2));
+    }
+
     @ParameterizedTest(name = "{0} is ue {1}, se {2}")
     @CsvSource({"1, 0, 0", "010, 1, 1", "011, 2, -1", "00100, 3, 2", "00101, 4, -2", "0001000, 7, 4"})
     @DisplayName("reads Exp-Golomb codes, unsigned and signed")
@@ -54,6 +71,15 @@ class BitReaderTest {
             assertEquals(i - 150, r.se());
             assertEquals(i & 31, r.bits(5));
         }
+    }
+
+    @ParameterizedTest(name = "{0} is {1}")
+    @CsvSource({"0000010, 1", "0000011, -1", "1111110, 63", "1111111, -63", "0000000, 0", "0000001, 0"})
+    @DisplayName("reads VP9's su(6): six bits of magnitude, then the sign")
+    void signMagnitude(String code, int value) {
+        var r = new BitReader(bytes(code));
+        assertEquals(value, r.signMagnitude(6));
+        assertEquals(7, r.position());
     }
 
     @Test

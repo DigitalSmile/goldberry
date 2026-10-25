@@ -4,3 +4,5 @@ dev.goldberry.media.platform.linux.GStreamerVideoProvider
 dev.goldberry.media.platform.linux.GStreamerAudioProvider
 dev.goldberry.media.platform.windows.MediaFoundationVideoProvider
 dev.goldberry.media.platform.windows.MediaFoundationAudioProvider
+dev.goldberry.media.platform.vulkan.VulkanVideoProvider
+dev.goldberry.media.ffmpegcli.FfmpegCliProvider

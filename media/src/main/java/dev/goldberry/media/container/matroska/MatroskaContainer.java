@@ -1,16 +1,20 @@
 package dev.goldberry.media.container.matroska;
 
+import java.io.ByteArrayOutputStream;
 import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.ValueLayout;
 import java.time.Duration;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.OptionalInt;
+import java.util.OptionalLong;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.zip.DataFormatException;
@@ -27,6 +31,7 @@ import dev.goldberry.media.MediaInfo;
 import dev.goldberry.media.Track;
 import dev.goldberry.media.bitstream.OpusPackets;
 import dev.goldberry.media.codec.CodecId;
+import dev.goldberry.media.codec.ColorDescription;
 import dev.goldberry.media.codec.DecoderRequest;
 import dev.goldberry.media.codec.MediaType;
 import dev.goldberry.media.codec.Packet;
@@ -70,7 +75,7 @@ public final class MatroskaContainer implements Container {
 
     /// Whether `head`, a file's first bytes, begins a Matroska or WebM file.
     public static boolean isMagic(byte[] head) {
-        return head.length >= MAGIC.length && java.util.Arrays.equals(head, 0, MAGIC.length, MAGIC, 0, MAGIC.length);
+        return head.length >= MAGIC.length && Arrays.equals(head, 0, MAGIC.length, MAGIC, 0, MAGIC.length);
     }
 
     /// One track as the file declares it.
@@ -89,7 +94,23 @@ public final class MatroskaContainer implements Container {
             boolean zlib,
             boolean isDefault,
             Optional<String> language,
-            Optional<String> title) {}
+            Optional<String> title,
+            Colour colour) {}
+
+    /// What a video track's `Colour` element says of how its pixels are to be
+    /// read, in the numbers of ITU-T H.273 that Matroska borrows.
+    ///
+    /// @param matrixCoefficients `MatrixCoefficients`: 1 for BT.709, 5 or 6 for
+    ///                           BT.601, 9 for BT.2020, 2 when not stated
+    /// @param range              `Range`: 1 for limited, 2 for full, 0 when not
+    ///                           stated
+    /// @param description        the primaries, transfer function and light
+    ///                           levels
+    public record Colour(int matrixCoefficients, int range, ColorDescription description) {
+
+        /// A track that states nothing.
+        public static final Colour UNSPECIFIED = new Colour(2, 0, ColorDescription.UNSPECIFIED);
+    }
 
     /// An attachment the probe reports as a picture, handed over as one packet.
     @SuppressWarnings("ArrayRecordComponent")
@@ -250,6 +271,12 @@ public final class MatroskaContainer implements Container {
                         ? MemorySegment.NULL
                         : arena.allocateFrom(ValueLayout.JAVA_BYTE, entry.codecPrivate()));
         return new DecoderRequest(entry.codec(), entry.codecName(), entry.params(), record, timeBase);
+    }
+
+    /// What the video track at `stream` says of its colour, or
+    /// [Colour#UNSPECIFIED] for a track that does not say, or is not video.
+    public Colour colour(int stream) {
+        return entry(stream).colour();
     }
 
     /// The track at `stream`, which is not an attached picture.
@@ -523,7 +550,7 @@ public final class MatroskaContainer implements Container {
             var inflater = new Inflater();
             try {
                 inflater.setInput(bytes);
-                var out = new java.io.ByteArrayOutputStream(bytes.length * 4);
+                var out = new ByteArrayOutputStream(bytes.length * 4);
                 var chunk = new byte[8192];
                 while (!inflater.finished()) {
                     var n = inflater.inflate(chunk);
@@ -772,12 +799,7 @@ public final class MatroskaContainer implements Container {
                         codec.get(),
                         codec.get().ffmpegName(),
                         new TrackParams.Video(
-                                0,
-                                0,
-                                Optional.empty(),
-                                java.util.OptionalInt.empty(),
-                                java.util.OptionalInt.empty(),
-                                java.util.OptionalLong.empty()),
+                                0, 0, Optional.empty(), OptionalInt.empty(), OptionalInt.empty(), OptionalLong.empty()),
                         Optional.empty(),
                         false,
                         true,
@@ -786,6 +808,56 @@ public final class MatroskaContainer implements Container {
                 pictures.add(new Picture(index, track, data));
             }
         }
+    }
+
+    /// A video track's `Colour`: the matrix and range, the primaries and
+    /// transfer function as H.273 codes, and the light levels, the mastering
+    /// display's in nits as a float and the content's `MaxCLL` as an integer.
+    /// The built-in decoders read the matrix and range from the bitstream;
+    /// raw pictures, which have none, are read by the container's.
+    private Colour readColour(Element colourElement) {
+        var end = colourElement.dataEnd();
+        var matrix = (long) Colour.UNSPECIFIED.matrixCoefficients();
+        var range = (long) Colour.UNSPECIFIED.range();
+        var primaries = 2L;
+        var transfer = 2L;
+        var maxCll = 0L;
+        var luminanceMax = 0d;
+        while (in.position() < end) {
+            var leaf = ebml.readHeader();
+            if (leaf.id() == MatroskaIds.MATRIX_COEFFICIENTS) {
+                matrix = ebml.readUnsigned(leaf);
+            } else if (leaf.id() == MatroskaIds.RANGE) {
+                range = ebml.readUnsigned(leaf);
+            } else if (leaf.id() == MatroskaIds.PRIMARIES) {
+                primaries = ebml.readUnsigned(leaf);
+            } else if (leaf.id() == MatroskaIds.TRANSFER_CHARACTERISTICS) {
+                transfer = ebml.readUnsigned(leaf);
+            } else if (leaf.id() == MatroskaIds.MAX_CLL) {
+                maxCll = ebml.readUnsigned(leaf);
+            } else if (leaf.id() == MatroskaIds.MASTERING_METADATA) {
+                var masteringEnd = leaf.dataEnd();
+                while (in.position() < masteringEnd) {
+                    var part = ebml.readHeader();
+                    if (part.id() == MatroskaIds.LUMINANCE_MAX) {
+                        luminanceMax = ebml.readFloat(part);
+                    } else {
+                        ebml.skip(part);
+                    }
+                }
+            } else {
+                ebml.skip(leaf);
+            }
+        }
+        var description = ColorDescription.fromH273(intOrUnknown(primaries), intOrUnknown(transfer))
+                .withLightLevels(nits(luminanceMax), intOrUnknown(maxCll));
+        return new Colour(intOrUnknown(matrix), intOrUnknown(range), description);
+    }
+
+    /// `value` nits as a whole number, or 0 for one that is not a positive
+    /// brightness a display could have.
+    private static int nits(double value) {
+        return value >= 1 && value <= 100_000 ? (int) Math.round(value) : 0;
     }
 
     private void readTracks(Element tracks) {
@@ -819,6 +891,8 @@ public final class MatroskaContainer implements Container {
         var width = 0L;
         var height = 0L;
         var alpha = false;
+        var fourcc = new byte[0];
+        var colour = Colour.UNSPECIFIED;
         var samplingFrequency = 8000d;
         var channels = 1L;
         var bitDepth = 0L;
@@ -857,6 +931,10 @@ public final class MatroskaContainer implements Container {
                         height = ebml.readUnsigned(leaf);
                     } else if (leaf.id() == MatroskaIds.ALPHA_MODE) {
                         alpha = ebml.readUnsigned(leaf) == 1;
+                    } else if (leaf.id() == MatroskaIds.UNCOMPRESSED_FOURCC) {
+                        fourcc = ebml.readBytes(leaf);
+                    } else if (leaf.id() == MatroskaIds.COLOUR) {
+                        colour = readColour(leaf);
                     } else {
                         ebml.skip(leaf);
                     }
@@ -932,9 +1010,20 @@ public final class MatroskaContainer implements Container {
                 ? MatroskaCodecs.pcm(codecId, intOrUnknown(bitDepth))
                 : MatroskaCodecs.of(codecId);
         var params = switch (mediaType.get()) {
-            case VIDEO ->
-                MatroskaCodecs.video(
-                        named.codec(), intOrUnknown(width), intOrUnknown(height), codecPrivate, defaultDuration, alpha);
+            case VIDEO -> {
+                var stated = codecId.equals(MatroskaCodecs.UNCOMPRESSED)
+                        ? MatroskaCodecs.uncompressed(
+                                intOrUnknown(width), intOrUnknown(height), fourcc, defaultDuration)
+                        : MatroskaCodecs.video(
+                                named.codec(),
+                                intOrUnknown(width),
+                                intOrUnknown(height),
+                                codecPrivate,
+                                defaultDuration,
+                                alpha);
+                // The container's Colour first, then the codec's own.
+                yield stated.withColour(colour.description().orElse(stated.colour()));
+            }
             case AUDIO ->
                 MatroskaCodecs.audio(named.codec(), samplingFrequency, intOrUnknown(channels), intOrUnknown(bitDepth));
             default -> new TrackParams.Subtitle();
@@ -954,7 +1043,8 @@ public final class MatroskaContainer implements Container {
                 zlib,
                 isDefault,
                 spoken.isEmpty() || spoken.equals("und") ? Optional.empty() : Optional.of(spoken),
-                name == null || name.isEmpty() ? Optional.empty() : Optional.of(name));
+                name == null || name.isEmpty() ? Optional.empty() : Optional.of(name),
+                colour);
     }
 
     // ---- helpers -------------------------------------------------------------

@@ -2,8 +2,8 @@ package dev.goldberry.media.container.ogg;
 
 import dev.goldberry.media.bitstream.OpusPackets;
 
-/// How long a packet of one logical stream plays, in samples of its rate:
-/// what Ogg does not write and a page's granule position only sums.
+/// How long a packet of one logical stream plays, in samples of its rate or
+/// in frames: what Ogg does not write and a page's granule position only sums.
 ///
 /// Each codec says in its own way: Opus in the packet's first byte, FLAC in
 /// the frame header, and Vorbis by the block sizes of this packet and the
@@ -31,6 +31,15 @@ sealed interface PacketTiming {
         @Override
         public int duration(byte[] packet) {
             return FlacHeaders.blockSize(packet);
+        }
+    }
+
+    /// One frame a packet: Theora, whose every packet is a frame, an empty one
+    /// repeating the frame before.
+    record Frames() implements PacketTiming {
+        @Override
+        public int duration(byte[] packet) {
+            return 1;
         }
     }
 

@@ -1,0 +1,154 @@
+# What libgoldberry-media exports: the upstreams' own C APIs, one symbol a line,
+# and the two functions of goldberry_media.c. Everything else in the library is
+# local. Read by CMakeLists.txt, which forces each symbol out of its archive and
+# lists it in the platform's export dialect; a line that is not a C identifier
+# fails the configure step.
+#
+# The Java bindings under `dev.goldberry.media.ffm` name these and nothing
+# else: a symbol a binding looks up and this list lacks fails at load, by name.
+
+# --- goldberry_media.c -------------------------------------------------------
+goldberry_media_abi
+goldberry_media_versions
+goldberry_media_tone_map
+
+# --- dav1d -----------------------------------------------------------------
+dav1d_version
+dav1d_version_api
+dav1d_default_settings
+dav1d_open
+dav1d_parse_sequence_header
+dav1d_send_data
+dav1d_get_picture
+dav1d_apply_grain
+dav1d_close
+dav1d_flush
+dav1d_get_event_flags
+dav1d_get_decode_error_data_props
+dav1d_get_frame_delay
+dav1d_data_create
+dav1d_data_wrap
+dav1d_data_wrap_user_data
+dav1d_data_props_unref
+dav1d_data_unref
+dav1d_picture_unref
+
+# --- libvpx ----------------------------------------------------------------
+vpx_codec_version
+vpx_codec_version_str
+vpx_codec_build_config
+vpx_codec_iface_name
+vpx_codec_err_to_string
+vpx_codec_error
+vpx_codec_error_detail
+vpx_codec_destroy
+vpx_codec_get_caps
+vpx_codec_control_
+vpx_codec_dec_init_ver
+vpx_codec_peek_stream_info
+vpx_codec_get_stream_info
+vpx_codec_decode
+vpx_codec_get_frame
+vpx_codec_set_frame_buffer_functions
+vpx_codec_vp8_dx
+vpx_codec_vp9_dx
+vpx_codec_vp8_dx_algo
+vpx_codec_vp9_dx_algo
+
+# --- Opus ------------------------------------------------------------------
+opus_get_version_string
+opus_strerror
+opus_decoder_get_size
+opus_decoder_create
+opus_decoder_init
+opus_decode
+opus_decode_float
+opus_decoder_ctl
+opus_decoder_destroy
+opus_decoder_get_nb_samples
+opus_packet_get_bandwidth
+opus_packet_get_samples_per_frame
+opus_packet_get_nb_channels
+opus_packet_get_nb_frames
+opus_packet_get_nb_samples
+opus_multistream_decoder_get_size
+opus_multistream_decoder_create
+opus_multistream_decoder_init
+opus_multistream_decode
+opus_multistream_decode_float
+opus_multistream_decoder_ctl
+opus_multistream_decoder_destroy
+
+# --- libvorbis (the synthesis side), and what of libogg it hands over ------
+vorbis_version_string
+vorbis_info_init
+vorbis_info_clear
+vorbis_comment_init
+vorbis_comment_clear
+vorbis_synthesis_idheader
+vorbis_synthesis_headerin
+vorbis_synthesis_init
+vorbis_synthesis_restart
+vorbis_synthesis
+vorbis_synthesis_trackonly
+vorbis_synthesis_blockin
+vorbis_synthesis_pcmout
+vorbis_synthesis_lapout
+vorbis_synthesis_read
+vorbis_packet_blocksize
+vorbis_synthesis_halfrate
+vorbis_synthesis_halfrate_p
+vorbis_block_init
+vorbis_block_clear
+vorbis_dsp_clear
+vorbis_granule_time
+
+# --- FLAC (the stream decoder) ---------------------------------------------
+FLAC__VERSION_STRING
+FLAC__VENDOR_STRING
+FLAC__stream_decoder_new
+FLAC__stream_decoder_delete
+FLAC__stream_decoder_set_md5_checking
+FLAC__stream_decoder_set_metadata_respond
+FLAC__stream_decoder_set_metadata_respond_all
+FLAC__stream_decoder_set_metadata_ignore
+FLAC__stream_decoder_set_metadata_ignore_all
+FLAC__stream_decoder_get_state
+FLAC__stream_decoder_get_resolved_state_string
+FLAC__stream_decoder_get_channels
+FLAC__stream_decoder_get_channel_assignment
+FLAC__stream_decoder_get_bits_per_sample
+FLAC__stream_decoder_get_sample_rate
+FLAC__stream_decoder_get_blocksize
+FLAC__stream_decoder_init_stream
+FLAC__stream_decoder_finish
+FLAC__stream_decoder_flush
+FLAC__stream_decoder_reset
+FLAC__stream_decoder_process_single
+FLAC__stream_decoder_process_until_end_of_metadata
+FLAC__stream_decoder_process_until_end_of_stream
+FLAC__stream_decoder_skip_single_frame
+FLAC__StreamDecoderStateString
+FLAC__StreamDecoderInitStatusString
+FLAC__StreamDecoderErrorStatusString
+
+# --- libyuv: the conversions the CPU present path uses, chroma interpolated -
+I420ToARGBMatrixFilter
+I010ToARGBMatrixFilter
+P010ToARGBMatrixFilter
+I420AlphaToARGBMatrixFilter
+SplitUVPlane
+I444ToI420
+I422ToI420
+I410ToI010
+I210ToI010
+kYuvI601Constants
+kYuvJPEGConstants
+kYuvH709Constants
+kYuvF709Constants
+kYuv2020Constants
+kYuvV2020Constants
+
+# --- minimp3, instantiated in goldberry_media.c ----------------------------
+mp3dec_init
+mp3dec_decode_frame

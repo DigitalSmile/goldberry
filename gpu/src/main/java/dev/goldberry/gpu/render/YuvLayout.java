@@ -66,6 +66,12 @@ public enum YuvLayout {
         return chromaPlanes == 1 ? BuiltInShader.YUV2_FRAGMENT : BuiltInShader.YUV3_FRAGMENT;
     }
 
+    /// The fragment shader that reads the planes and maps their colour to SDR
+    /// BT.709 ([ToneMapping]).
+    public BuiltInShader hdrShader() {
+        return chromaPlanes == 1 ? BuiltInShader.YUV2_HDR_FRAGMENT : BuiltInShader.YUV3_HDR_FRAGMENT;
+    }
+
     /// What a sampled texel is multiplied by to become a code value over
     /// [#maxCode]: 1 when the texture is as wide as the code.
     public double sampleToCode() {

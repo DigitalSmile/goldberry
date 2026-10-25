@@ -13,10 +13,13 @@ import java.util.function.LongSupplier;
 
 import org.jspecify.annotations.Nullable;
 
+import dev.goldberry.media.codec.ColorDescription;
 import dev.goldberry.media.codec.PixelFormat;
 import dev.goldberry.media.codec.VideoFrame;
 import dev.goldberry.media.picture.Picture;
 import dev.goldberry.media.picture.PictureForm;
+import dev.goldberry.media.picture.PlaneBuffer;
+import dev.goldberry.media.picture.PlaneStore;
 import dev.goldberry.media.picture.VideoPicture;
 import dev.goldberry.media.picture.VideoPlanes;
 
@@ -112,15 +115,21 @@ final class FrameQueue {
     /// One reusable picture buffer, and what it holds now.
     ///
     /// One direct buffer holds every plane, each from an offset of its own with
-    /// rows [#ALIGN]ed; a converted picture is one plane of BGRA. Written by the
+    /// rows [#ALIGN]ed; a converted picture is one plane of BGRA. Made the first
+    /// time the slot keeps a picture itself: a [PictureForm#PLANES] slot whose
+    /// pictures all go to a view's [PlaneStore] never makes one. Written by the
     /// video thread alone, between [#obtain] and [#put].
     static final class Slot {
         private final Shape shape;
-        private final List<Integer> strides;
-        private final List<ByteBuffer> planes;
-        private final List<MemorySegment> segments;
+        private @Nullable List<Integer> strides;
+        private @Nullable List<ByteBuffer> planes;
+        private @Nullable List<MemorySegment> segments;
+        /// The store's memory the picture it holds is in, or null when it is
+        /// in the slot's own. Given back when the slot is.
+        private @Nullable PlaneBuffer staged;
         private VideoFrame.ColorMatrix matrix = VideoFrame.ColorMatrix.BT709;
         private boolean fullRange;
+        private ColorDescription description = ColorDescription.UNSPECIFIED;
         private boolean opaque = true;
         private @Nullable Picture picture;
         /// Whether the picture it holds has been handed out to a view.
@@ -128,6 +137,13 @@ final class FrameQueue {
 
         Slot(Shape shape) {
             this.shape = shape;
+        }
+
+        /// The slot's own memory, made the first time it is needed.
+        private void allocate() {
+            if (segments != null) {
+                return;
+            }
             var layout = shape.planes();
             var count = layout == null ? 1 : layout.planes();
             var strides = new ArrayList<Integer>(count);
@@ -174,21 +190,25 @@ final class FrameQueue {
         }
 
         /// Where plane `index` is written: the converter's BGRA for a converted
-        /// slot, which has one plane.
+        /// slot, which has one plane. In the slot's own memory.
         MemorySegment segment(int index) {
-            return segments.get(index);
+            allocate();
+            return Objects.requireNonNull(segments).get(index);
         }
 
-        /// Bytes from one row of plane `index` to the next.
+        /// Bytes from one row of plane `index` to the next, in the slot's own
+        /// memory.
         int stride(int index) {
-            return strides.get(index);
+            allocate();
+            return Objects.requireNonNull(strides).get(index);
         }
 
         /// Records the colour the picture was encoded with, which a
         /// [PictureForm#PLANES] picture carries to its shader.
-        void colour(VideoFrame.ColorMatrix matrix, boolean fullRange) {
+        void colour(VideoFrame.ColorMatrix matrix, boolean fullRange, ColorDescription description) {
             this.matrix = Objects.requireNonNull(matrix, "matrix");
             this.fullRange = fullRange;
+            this.description = Objects.requireNonNull(description, "description");
         }
 
         /// Records whether the converted picture this slot holds is opaque, or has
@@ -204,28 +224,69 @@ final class FrameQueue {
         /// @throws IllegalArgumentException when `frame` is not of this slot's
         ///                                  shape
         void copyPlanes(VideoFrame frame) {
+            copyPlanes(frame, null);
+        }
+
+        /// [#copyPlanes(VideoFrame)] into `store`'s memory when it has some to
+        /// give.
+        void copyPlanes(VideoFrame frame, @Nullable PlaneStore store) {
             var layout = shape.planes();
             if (layout == null || !Shape.of(frame, PictureForm.PLANES).equals(shape)) {
                 throw new IllegalArgumentException("a " + frame.format() + " " + frame.width() + "×" + frame.height()
                         + " picture does not fit " + shape);
             }
+            colour(frame.matrix(), frame.fullRange(), frame.colour());
+            if (store != null && copyStaged(frame, store, layout)) {
+                return;
+            }
             for (var plane = 0; plane < layout.planes(); plane++) {
-                var source = frame.planes().get(plane);
-                int sourceStride = frame.strides().get(plane);
-                var target = segments.get(plane);
-                int targetStride = strides.get(plane);
-                var rowBytes = rowBytes(plane);
-                var rows = rows(plane);
-                if (sourceStride == targetStride) {
-                    MemorySegment.copy(source, 0, target, 0, (long) sourceStride * (rows - 1) + rowBytes);
-                } else {
-                    for (var row = 0; row < rows; row++) {
-                        MemorySegment.copy(
-                                source, (long) row * sourceStride, target, (long) row * targetStride, rowBytes);
-                    }
+                copyPlane(frame, plane, segment(plane), stride(plane));
+            }
+        }
+
+        /// Copies `frame`'s planes into a buffer of `store`'s, if it gives one
+        /// that stays there while they are written.
+        private boolean copyStaged(VideoFrame frame, PlaneStore store, PixelFormat layout) {
+            var buffer = store.obtain(layout, shape.width(), shape.height()).orElse(null);
+            if (buffer == null) {
+                return false;
+            }
+            try {
+                for (var plane = 0; plane < layout.planes(); plane++) {
+                    copyPlane(frame, plane, MemorySegment.ofBuffer(buffer.plane(plane)), buffer.stride(plane));
+                }
+            } catch (IllegalStateException e) {
+                // The store's memory went with its device while it was written.
+                buffer.release();
+                return false;
+            }
+            staged = buffer;
+            return true;
+        }
+
+        private void copyPlane(VideoFrame frame, int plane, MemorySegment target, int targetStride) {
+            var source = frame.planes().get(plane);
+            int sourceStride = frame.strides().get(plane);
+            var rowBytes = rowBytes(plane);
+            var rows = rows(plane);
+            if (sourceStride == targetStride) {
+                MemorySegment.copy(source, 0, target, 0, (long) sourceStride * (rows - 1) + rowBytes);
+            } else {
+                for (var row = 0; row < rows; row++) {
+                    MemorySegment.copy(source, (long) row * sourceStride, target, (long) row * targetStride, rowBytes);
                 }
             }
-            colour(frame.matrix(), frame.fullRange());
+        }
+
+        /// Gives the store's memory back, if the picture was in it: the slot is
+        /// going back to the pool, or out of it.
+        void retire() {
+            var buffer = staged;
+            staged = null;
+            picture = null;
+            if (buffer != null) {
+                buffer.release();
+            }
         }
 
         boolean fits(Shape wanted) {
@@ -240,11 +301,31 @@ final class FrameQueue {
         /// The picture this slot holds, presented at `ptsNanos`.
         private Picture picture(long ptsNanos) {
             var layout = shape.planes();
-            return layout == null
-                    ? new VideoPicture(
-                            shape.width(), shape.height(), strides.getFirst(), planes.getFirst(), ptsNanos, opaque)
-                    : new VideoPlanes(
-                            layout, shape.width(), shape.height(), planes, strides, matrix, fullRange, ptsNanos);
+            if (layout == null) {
+                allocate();
+                return new VideoPicture(
+                        shape.width(),
+                        shape.height(),
+                        Objects.requireNonNull(strides).getFirst(),
+                        Objects.requireNonNull(planes).getFirst(),
+                        ptsNanos,
+                        opaque);
+            }
+            var buffer = staged;
+            if (buffer != null) {
+                return new VideoPlanes(buffer, matrix, fullRange, ptsNanos, description);
+            }
+            allocate();
+            return new VideoPlanes(
+                    layout,
+                    shape.width(),
+                    shape.height(),
+                    Objects.requireNonNull(planes),
+                    Objects.requireNonNull(strides),
+                    matrix,
+                    fullRange,
+                    ptsNanos,
+                    description);
         }
     }
 
@@ -287,6 +368,7 @@ final class FrameQueue {
                         if (slot.fits(shape)) {
                             return slot;
                         }
+                        slot.retire();
                         // The stream changed size, or the form changed: this
                         // buffer is the wrong one, and the collector has it.
                         created--;
@@ -321,7 +403,7 @@ final class FrameQueue {
         lock.lock();
         try {
             if (aborted || forSerial != serial) {
-                free.addLast(slot);
+                release(slot);
                 changed.signalAll();
                 return false;
             }
@@ -339,7 +421,7 @@ final class FrameQueue {
     void recycle(Slot slot) {
         lock.lock();
         try {
-            free.addLast(slot);
+            release(slot);
             changed.signalAll();
         } finally {
             lock.unlock();
@@ -387,7 +469,7 @@ final class FrameQueue {
             while (handedOut.size() > HANDED_OUT) {
                 var old = handedOut.pollFirst();
                 if (old != shown && !queue.contains(old)) {
-                    free.addLast(old);
+                    release(old);
                 }
             }
         }
@@ -402,8 +484,15 @@ final class FrameQueue {
         }
         shown = next;
         if (previous != null && previous != next && !handedOut.contains(previous)) {
-            free.addLast(previous);
+            release(previous);
         }
+    }
+
+    /// Puts `slot` back in the pool, giving back the store's memory its picture
+    /// was in. Under the lock.
+    private void release(Slot slot) {
+        slot.retire();
+        free.addLast(slot);
     }
 
     /// Drops the queued pictures and moves to `newSerial`. The picture shown stays
@@ -412,7 +501,7 @@ final class FrameQueue {
         lock.lock();
         try {
             serial = newSerial;
-            free.addAll(queue);
+            queue.forEach(this::release);
             queue.clear();
             shownStale = shown != null;
             changed.signalAll();

@@ -318,4 +318,85 @@ class FrameQueueTest {
         assertThrows(IllegalArgumentException.class, () -> FrameQueue.Shape.converted(0, 2));
         assertThrows(IllegalArgumentException.class, () -> new FrameQueue.Shape(PixelFormat.NV12, 4, -1));
     }
+
+    @Test
+    @DisplayName("with a store, a planes slot writes into the store's memory, and gives it back as it is reused")
+    void stagesIntoAStore() {
+        try (var arena = Arena.ofConfined()) {
+            var frame = frame(arena, PixelFormat.NV12, 6, 4, 3);
+            var frames = new FrameQueue();
+            var store = new FakePlaneStore(8);
+            var shape = FrameQueue.Shape.of(frame, PictureForm.PLANES);
+            var slot = frames.obtain(shape, 0, STOPPED);
+            assertNotNull(slot);
+            slot.copyPlanes(frame, store);
+            assertTrue(frames.put(slot, 0, 0));
+            var shown = assertInstanceOf(VideoPlanes.class, frames.present(0, true));
+            var staged =
+                    assertInstanceOf(FakePlaneStore.Buffer.class, shown.staged().orElseThrow());
+            assertEquals(256, shown.stride(0), "the store's rows");
+            assertSamples(frame, shown);
+            assertEquals(1, store.handedOut.get());
+
+            // Three newer pictures handed out: the first goes back to the pool,
+            // and its buffer to the store.
+            for (var i = 1; i <= 3; i++) {
+                var next = frames.obtain(shape, 0, STOPPED);
+                assertNotNull(next);
+                next.copyPlanes(frame, store);
+                assertTrue(frames.put(next, i * SECOND, 0));
+                frames.present(i * SECOND, true);
+            }
+            assertTrue(staged.released(), "the first picture's memory went back to the store");
+        }
+    }
+
+    @Test
+    @DisplayName("a store with nothing to give, or whose memory is gone, leaves the planes in the slot's own")
+    void storeFallsBack() {
+        try (var arena = Arena.ofConfined()) {
+            var frame = frame(arena, PixelFormat.I010, 5, 3, 0);
+            var frames = new FrameQueue();
+            var shape = FrameQueue.Shape.of(frame, PictureForm.PLANES);
+
+            var empty = new FakePlaneStore(0);
+            var slot = frames.obtain(shape, 0, STOPPED);
+            assertNotNull(slot);
+            slot.copyPlanes(frame, empty);
+            assertTrue(frames.put(slot, 0, 0));
+            var shown = assertInstanceOf(VideoPlanes.class, frames.present(0, true));
+            assertTrue(shown.staged().isEmpty());
+            assertSamples(frame, shown);
+
+            var lost = new FakePlaneStore(4);
+            lost.lost = true;
+            var other = frames.obtain(shape, 0, STOPPED);
+            assertNotNull(other);
+            other.copyPlanes(frame, lost);
+            assertTrue(frames.put(other, SECOND, 0));
+            var second = assertInstanceOf(VideoPlanes.class, frames.present(SECOND, true));
+            assertTrue(second.staged().isEmpty());
+            assertSamples(frame, second);
+        }
+    }
+
+    @Test
+    @DisplayName("a flush gives the queued pictures' memory back to the store")
+    void flushReleases() {
+        try (var arena = Arena.ofConfined()) {
+            var frame = frame(arena, PixelFormat.I420, 4, 2, 0);
+            var frames = new FrameQueue();
+            var store = new FakePlaneStore(8);
+            var shape = FrameQueue.Shape.of(frame, PictureForm.PLANES);
+            for (var i = 0; i < 3; i++) {
+                var slot = frames.obtain(shape, 0, STOPPED);
+                assertNotNull(slot);
+                slot.copyPlanes(frame, store);
+                assertTrue(frames.put(slot, (i + 1) * SECOND, 0));
+            }
+            assertEquals(3, store.handedOut.get());
+            frames.flush(1);
+            assertEquals(3, store.returned.get(), "every queued picture's memory");
+        }
+    }
 }

@@ -12,7 +12,10 @@ import java.util.Set;
 
 import org.jspecify.annotations.Nullable;
 
+import dev.goldberry.media.bitstream.hevc.SequenceParameterSet;
+import dev.goldberry.media.bitstream.hevc.Vui;
 import dev.goldberry.media.codec.CodecId;
+import dev.goldberry.media.codec.ColorDescription;
 import dev.goldberry.media.codec.DecoderRequest;
 import dev.goldberry.media.codec.TrackParams;
 
@@ -32,7 +35,9 @@ import dev.goldberry.media.codec.TrackParams;
 ///   presentation time. It is what FFmpeg calls `has_b_frames`, derived the way
 ///   FFmpeg derives it;
 /// - **the bit depth**, which picks NV12 or P010;
-/// - **the chroma format**, since the frame contract is 4:2:0 only.
+/// - **the chroma format**, since the frame contract is 4:2:0 only;
+/// - **the colour**, from the VUI: range, matrix, primaries and transfer
+///   function. HEVC's SPS is read whole for it, by [SequenceParameterSet].
 ///
 /// Only the fields up to those are parsed. Everything is bounds-checked, and a
 /// malformed record is [IllegalArgumentException].
@@ -111,22 +116,31 @@ public final class ParameterSets {
     }
 
     /// The colour a stream's VUI signals (ITU-T H.264 §E.2.1): whether luma
-    /// spans 0–255, and the matrix, as ITU-T H.273's `MatrixCoefficients`.
+    /// spans 0–255, the matrix, as ITU-T H.273's `MatrixCoefficients`, and the
+    /// primaries and transfer function.
     ///
     /// The stream's own word, which a decoder can lose on the way out: GStreamer's
     /// `nvh264dec` and `openh264dec` report every stream as limited range. Read
-    /// from H.264's SPS; HEVC's VUI lies behind structures this reader does not
-    /// parse, so an HEVC stream's signal is unspecified here.
+    /// from either codec's SPS.
     ///
     /// @param range              the range, or [Range#UNSPECIFIED]
     /// @param matrixCoefficients the matrix, or [#MATRIX_UNSPECIFIED]
-    public record Signal(Range range, int matrixCoefficients) {
+    /// @param colour             the primaries and transfer function, or
+    ///                           [ColorDescription#UNSPECIFIED]
+    public record Signal(Range range, int matrixCoefficients, ColorDescription colour) {
 
         /// `MatrixCoefficients` 2: unspecified.
         public static final int MATRIX_UNSPECIFIED = 2;
 
         /// A stream that signals nothing.
-        public static final Signal UNSPECIFIED = new Signal(Range.UNSPECIFIED, MATRIX_UNSPECIFIED);
+        public static final Signal UNSPECIFIED =
+                new Signal(Range.UNSPECIFIED, MATRIX_UNSPECIFIED, ColorDescription.UNSPECIFIED);
+
+        /// A stream that signals its range and matrix, and nothing of its
+        /// primaries or transfer function.
+        public Signal(Range range, int matrixCoefficients) {
+            this(range, matrixCoefficients, ColorDescription.UNSPECIFIED);
+        }
 
         /// Whether luma spans 0–255, if the stream says.
         public enum Range {
@@ -137,6 +151,7 @@ public final class ParameterSets {
 
         public Signal {
             Objects.requireNonNull(range, "range");
+            Objects.requireNonNull(colour, "colour");
         }
     }
 
@@ -181,6 +196,22 @@ public final class ParameterSets {
             // No record, or Annex B start codes rather than one: a stream whose
             // packets are not in the form the providers read.
             return Optional.empty();
+        }
+    }
+
+    /// The primaries and transfer function a `codec` track's decoder
+    /// configuration record signals in its first SPS's VUI: what a container
+    /// that states no colour of its own leaves to the stream. Unspecified for any
+    /// other codec, and for a record that does not read.
+    public static ColorDescription colour(CodecId codec, byte[] record) {
+        try {
+            return switch (codec) {
+                case H264 -> h264(record).shape().signal().colour();
+                case HEVC -> hevc(record).shape().signal().colour();
+                default -> ColorDescription.UNSPECIFIED;
+            };
+        } catch (IllegalArgumentException e) {
+            return ColorDescription.UNSPECIFIED;
         }
     }
 
@@ -280,7 +311,7 @@ public final class ParameterSets {
         }
         var heightMbs = (frameMbsOnly ? 1 : 2) * heightMapUnits;
 
-        var vui = r.flag() ? h264Vui(r) : Vui.NONE; // vui_parameters_present_flag
+        var vui = r.flag() ? h264Vui(r) : H264Vui.NONE; // vui_parameters_present_flag
         var restricted = vui.maxReorder();
 
         int depth;
@@ -331,8 +362,31 @@ public final class ParameterSets {
     }
 
     /// The shape of an HEVC stream, from the payload of its SPS
-    /// (ITU-T H.265 §7.3.2.2.1).
+    /// (ITU-T H.265 §7.3.2.2.1): read whole, VUI and all, for the colour; an
+    /// SPS the whole reading refuses (an extension it does not read) is read
+    /// as far as its reorder depth, with no colour.
     public static Shape hevcSps(byte[] rbsp) {
+        try {
+            var sps = SequenceParameterSet.parse(rbsp);
+            var signal = sps.vui()
+                    .filter(Vui::videoSignalTypePresent)
+                    .map(vui -> new Signal(
+                            vui.fullRange() ? Signal.Range.FULL : Signal.Range.LIMITED,
+                            vui.colourDescriptionPresent() ? vui.matrixCoefficients() : Signal.MATRIX_UNSPECIFIED,
+                            vui.colour()))
+                    .orElse(Signal.UNSPECIFIED);
+            return new Shape(
+                    Math.clamp(sps.highest().maxNumReorderPics(), 0, MAX_REORDER),
+                    sps.bitDepthLumaMinus8() + 8,
+                    sps.chromaFormatIdc(),
+                    signal);
+        } catch (IllegalArgumentException e) {
+            return hevcSpsOrdering(rbsp);
+        }
+    }
+
+    /// An HEVC SPS read as far as its reorder depth.
+    private static Shape hevcSpsOrdering(byte[] rbsp) {
         var r = new BitReader(rbsp);
         r.skip(4); // sps_video_parameter_set_id
         var maxSubLayersMinus1 = r.bits(3);
@@ -371,21 +425,21 @@ public final class ParameterSets {
     ///
     /// @param maxReorder `max_num_reorder_frames`, when the VUI gives it
     /// @param signal     the colour, when the VUI gives it
-    private record Vui(OptionalInt maxReorder, Signal signal) {
+    private record H264Vui(OptionalInt maxReorder, Signal signal) {
 
-        static final Vui NONE = new Vui(OptionalInt.empty(), Signal.UNSPECIFIED);
+        static final H264Vui NONE = new H264Vui(OptionalInt.empty(), Signal.UNSPECIFIED);
     }
 
     /// Reads the VUI as far as `max_num_reorder_frames`. A VUI cut short, which
     /// some encoders write, says nothing past where it stops, but the colour it
     /// gave before that still counts.
-    private static Vui h264Vui(BitReader r) {
+    private static H264Vui h264Vui(BitReader r) {
         var signal = Signal.UNSPECIFIED;
         try {
             signal = h264VuiSignal(r);
-            return new Vui(h264MaxReorder(r), signal);
+            return new H264Vui(h264MaxReorder(r), signal);
         } catch (IllegalArgumentException e) {
-            return new Vui(OptionalInt.empty(), signal);
+            return new H264Vui(OptionalInt.empty(), signal);
         }
     }
 
@@ -403,11 +457,14 @@ public final class ParameterSets {
             r.skip(3); // video_format
             var range = r.flag() ? Signal.Range.FULL : Signal.Range.LIMITED; // video_full_range_flag
             var matrix = Signal.MATRIX_UNSPECIFIED;
+            var colour = ColorDescription.UNSPECIFIED;
             if (r.flag()) { // colour_description_present_flag
-                r.skip(16); // colour_primaries, transfer_characteristics
+                var primaries = r.bits(8); // colour_primaries
+                var transfer = r.bits(8); // transfer_characteristics
                 matrix = r.bits(8); // matrix_coefficients
+                colour = ColorDescription.fromH273(primaries, transfer);
             }
-            return new Signal(range, matrix);
+            return new Signal(range, matrix, colour);
         }
         return Signal.UNSPECIFIED;
     }

@@ -118,10 +118,12 @@ def file(name, doc, holders):
 
 base=os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', 'media', 'src', 'main', 'java', 'dev', 'goldberry', 'media', 'ffm', 'calls') + os.sep
 files={}
-files['MediaCalls']=("""The two functions of libgoldberry-media's own (`goldberry_media.c`): the ABI
-number the loader checks first, and the upstream versions.""",[
+files['MediaCalls']=("""The three functions of libgoldberry-media's own (`goldberry_media.c`): the ABI
+number the loader checks first, the upstream versions, and CPU present's tone
+mapping.""",[
  ('Abi','goldberry_media_abi','int goldberry_media_abi(void)',I,[]),
  ('Versions','goldberry_media_versions','const char *goldberry_media_versions(void)',P,[]),
+ ('ToneMap','goldberry_media_tone_map','void goldberry_media_tone_map(const uint8_t *plane0, int stride0, const uint8_t *plane1, int stride1, const uint8_t *plane2, int stride2, int format, uint8_t *dst, int dst_stride, int width, int height, int flags, const float *tables)',None,[('plane0',P),('stride0',I),('plane1',P),('stride1',I),('plane2',P),('stride2',I),('format',I),('dst',P),('dstStride',I),('width',I),('height',I),('flags',I),('tables',P)],None,'Converts an opaque picture of planes to SDR BT.709 BGRA, mapping its HDR or wide gamut through the tables `ToneCurve` builds. Strides in bytes.'),
 ])
 files['Dav1dCalls']=("""The functions of dav1d the AV1 decoder calls: opening and closing a context,
 the send-data/get-picture loop, wrapping a packet's bytes without a copy, and
@@ -188,6 +190,21 @@ DSP state, and the float planes out.""",[
  ('SynthesisBlockin','vorbis_synthesis_blockin','int vorbis_synthesis_blockin(vorbis_dsp_state *v, vorbis_block *vb)',I,[('dsp',P),('block',P)]),
  ('SynthesisPcmout','vorbis_synthesis_pcmout','int vorbis_synthesis_pcmout(vorbis_dsp_state *v, float ***pcm)',I,[('dsp',P),('pcmOut',P)],None,'The samples per channel ready; `*pcm` then points at one float plane per channel.'),
  ('SynthesisRead','vorbis_synthesis_read','int vorbis_synthesis_read(vorbis_dsp_state *v, int samples)',I,[('dsp',P),('samples',I)]),
+])
+files['TheoraCalls']=("""The decoder half of libtheora, which the Theora decoder calls: the three
+header packets in, as `ogg_packet`s, then one frame at a time, and the picture
+out as three planes the decoder keeps until its next frame.""",[
+ ('VersionString','th_version_string','const char *th_version_string(void)',P,[]),
+ ('InfoInit','th_info_init','void th_info_init(th_info *_info)',None,[('info',P)]),
+ ('InfoClear','th_info_clear','void th_info_clear(th_info *_info)',None,[('info',P)]),
+ ('CommentInit','th_comment_init','void th_comment_init(th_comment *_tc)',None,[('comment',P)]),
+ ('CommentClear','th_comment_clear','void th_comment_clear(th_comment *_tc)',None,[('comment',P)]),
+ ('DecodeHeaderin','th_decode_headerin','int th_decode_headerin(th_info *_info, th_comment *_tc, th_setup_info **_setup, ogg_packet *_op)',I,[('info',P),('comment',P),('setupOut',P),('packet',P)],None,'A positive number when the packet was a header and was taken, 0 when it was the first frame, a negative `TH_E…` otherwise.'),
+ ('DecodeAlloc','th_decode_alloc','th_dec_ctx *th_decode_alloc(const th_info *_info, const th_setup_info *_setup)',P,[('info',P),('setup',P)],None,'Null when the headers do not describe a stream it can decode.'),
+ ('SetupFree','th_setup_free','void th_setup_free(th_setup_info *_setup)',None,[('setup',P)]),
+ ('DecodePacketin','th_decode_packetin','int th_decode_packetin(th_dec_ctx *_dec, const ogg_packet *_op, ogg_int64_t *_granpos)',I,[('decoder',P),('packet',P),('granuleOut',P)],None,'0 for a new picture, `TH_DUPFRAME` for a frame that repeats the last one, a negative `TH_E…` for a packet it refused.'),
+ ('DecodeYcbcrOut','th_decode_ycbcr_out','int th_decode_ycbcr_out(th_dec_ctx *_dec, th_ycbcr_buffer _ycbcr)',I,[('decoder',P),('buffer',P)],None,'Fills the three planes of the last picture: the whole coded frame, top row first, at a positive stride.'),
+ ('DecodeFree','th_decode_free','void th_decode_free(th_dec_ctx *_dec)',None,[('decoder',P)]),
 ])
 files['FlacCalls']=("""The stream decoder of libFLAC, which the FLAC decoder calls. It pulls its
 bytes through a read callback and hands each decoded block to a write callback,

@@ -275,6 +275,8 @@ class CodecFixturesTest {
         "clip-vp9.webm, VP9, OPUS",
         "clip-av1.mkv, AV1, OPUS",
         "clip-av1.mp4, AV1, FLAC",
+        "clip-theora.ogv, THEORA, VORBIS",
+        "clip-theora.mkv, THEORA, OPUS",
     })
     @DisplayName("probes the video clips: the picture's codec and size, and the sound's codec")
     void probesVideo(String name, CodecId video, CodecId audio) {
@@ -289,7 +291,7 @@ class CodecFixturesTest {
     }
 
     @ParameterizedTest(name = "{0}")
-    @ValueSource(strings = {"clip-vp9.webm", "clip-av1.mkv", "clip-av1.mp4"})
+    @ValueSource(strings = {"clip-vp9.webm", "clip-av1.mkv", "clip-av1.mp4", "clip-theora.ogv"})
     @DisplayName("plays a video clip's sound to the end (the picture is phase 3)")
     void playsVideoSound(String name) {
         play(name, true);

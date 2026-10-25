@@ -177,7 +177,7 @@ def registerSuperbuild = { String suffix, String flavour, workDir, installDir, d
                 logger.lifecycle("""\
                     goldberry-media: first media superbuild for ${hostTargetId}${flavour}.
 
-                    Cloning dav1d, libvpx, Opus, libogg, libvorbis, FLAC, libyuv and minimp3 into
+                    Cloning dav1d, libvpx, Opus, libogg, libvorbis, libtheora, FLAC, libyuv and minimp3 into
                       ${deps.get()}
                     and compiling them -- several minutes the first time.""".stripIndent())
             }

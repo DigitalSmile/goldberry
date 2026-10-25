@@ -36,6 +36,7 @@ class EndToEndFuzzTest {
             "clip-vp8.webm",
             "clip-vp9.webm",
             "sticker-vp9-alpha.webm",
+            "clip-theora.ogv",
             "tone-opus.webm",
             "tone.opus",
             "tone.ogg",

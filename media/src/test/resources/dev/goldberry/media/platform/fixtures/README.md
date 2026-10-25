@@ -25,6 +25,12 @@ hashed as its semi-planar twin (`Fixtures.md5`).
 | `clip-h264-720p.mp4` | MP4 | H.264 at 1280×720, untagged; 0.2 s | the media engine, and the BT.709 default |
 | `clip-hevc.mp4` | MP4 | HEVC Main (`hvc1`), B-frames | bit-exact HEVC, S8 end to end |
 | `clip-hevc-10bit.mp4` | MP4 | HEVC Main 10, BT.2020 in the VUI; 0.2 s | P010, colour from an HEVC stream |
+| `clip-hevc-256.mp4` | MP4 | HEVC Main at 256×144, B-frames, closed GOPs of 10 | GPU decoders with a 144×144 floor (Vulkan Video on NVIDIA) |
+| `clip-hevc-256-open.mp4` | MP4 | the same with open GOPs: CRA pictures leading RASL pictures | RASL pictures skipped after a seek onto a CRA |
+| `clip-hevc-256-10bit.mp4` | MP4 | HEVC Main 10 at 256×144; 0.4 s | P010 from a GPU decoder |
+| `clip-vp9-256.webm` | WebM | VP9 profile 0 at 256×144, two passes with alt-ref frames hidden in superframes, a keyframe every 10 | GPU decoders with a 128×128 floor, hashed as NV12 |
+| `clip-vp9-256-10bit.webm` | WebM | VP9 profile 2 at 256×144; 0.4 s | P010 from a GPU decoder |
+| `clip-av1-256.mkv` | Matroska | AV1 Main at 256×144, no film grain, a keyframe every 10 | a GPU that decodes AV1, hashed as NV12 |
 | `tone-aac.mkv` | Matroska | AAC | AAC configured from `CodecPrivate`; seeking |
 | `tone-eac3.mp4` | MP4 | E-AC-3 | E-AC-3 |
 | `tones-aac-5.1.mp4` | MP4 | AAC 5.1 | channel order |

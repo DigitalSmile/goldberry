@@ -11,6 +11,7 @@ import static java.lang.foreign.ValueLayout.JAVA_SHORT;
 
 import java.lang.foreign.MemoryLayout;
 import java.lang.foreign.StructLayout;
+import java.util.ArrayList;
 import java.util.List;
 
 /// The upstream structs the bindings allocate or read, declared by hand.
@@ -95,6 +96,22 @@ public final class NativeStructs {
                     JAVA_INT.withName("layout"),
                     JAVA_INT.withName("bpc"))
             .withName("Dav1dPictureParameters");
+
+    /// `Dav1dContentLightLevel`: an HDR picture's `MaxCLL` and `MaxFALL`, in nits.
+    public static final StructLayout DAV1D_CONTENT_LIGHT_LEVEL = structLayout(
+                    JAVA_SHORT.withName("max_content_light_level"),
+                    JAVA_SHORT.withName("max_frame_average_light_level"))
+            .withName("Dav1dContentLightLevel");
+
+    /// `Dav1dMasteringDisplay`: the mastering display's primaries and white
+    /// point in 0.16 fixed point, and its luminance range, the peak in 24.8 and
+    /// the floor in 18.14 fixed point nits.
+    public static final StructLayout DAV1D_MASTERING_DISPLAY = structLayout(
+                    sequenceLayout(6, JAVA_SHORT).withName("primaries"),
+                    sequenceLayout(2, JAVA_SHORT).withName("white_point"),
+                    JAVA_INT.withName("max_luminance"),
+                    JAVA_INT.withName("min_luminance"))
+            .withName("Dav1dMasteringDisplay");
 
     /// `Dav1dPicture`: a decoded picture, borrowed until `dav1d_picture_unref`.
     public static final StructLayout DAV1D_PICTURE = structLayout(
@@ -253,6 +270,56 @@ public final class NativeStructs {
     /// `vorbis_block` on this target.
     public static final StructLayout VORBIS_BLOCK = vorbisBlock(NativeTypes.C_LONG_SIZE);
 
+    // ---- libtheora -----------------------------------------------------------
+
+    /// `th_info`: what the identification header says, filled by
+    /// `th_decode_headerin`. Every member is a byte, a 32-bit integer or an enum,
+    /// so it has one shape on every target.
+    public static final StructLayout TH_INFO = structLayout(
+                    JAVA_BYTE.withName("version_major"),
+                    JAVA_BYTE.withName("version_minor"),
+                    JAVA_BYTE.withName("version_subminor"),
+                    paddingLayout(1),
+                    JAVA_INT.withName("frame_width"),
+                    JAVA_INT.withName("frame_height"),
+                    JAVA_INT.withName("pic_width"),
+                    JAVA_INT.withName("pic_height"),
+                    JAVA_INT.withName("pic_x"),
+                    JAVA_INT.withName("pic_y"),
+                    JAVA_INT.withName("fps_numerator"),
+                    JAVA_INT.withName("fps_denominator"),
+                    JAVA_INT.withName("aspect_numerator"),
+                    JAVA_INT.withName("aspect_denominator"),
+                    JAVA_INT.withName("colorspace"),
+                    JAVA_INT.withName("pixel_fmt"),
+                    JAVA_INT.withName("target_bitrate"),
+                    JAVA_INT.withName("quality"),
+                    JAVA_INT.withName("keyframe_granule_shift"))
+            .withName("th_info");
+
+    /// `th_comment`: filled by the comment header, never read.
+    public static final StructLayout TH_COMMENT = structLayout(
+                    ADDRESS.withName("user_comments"),
+                    ADDRESS.withName("comment_lengths"),
+                    JAVA_INT.withName("comments"),
+                    paddingLayout(4),
+                    ADDRESS.withName("vendor"))
+            .withName("th_comment");
+
+    /// `th_img_plane`: one plane of a decoded picture, borrowed from the decoder.
+    public static final StructLayout TH_IMG_PLANE = structLayout(
+                    JAVA_INT.withName("width"),
+                    JAVA_INT.withName("height"),
+                    JAVA_INT.withName("stride"),
+                    paddingLayout(4),
+                    ADDRESS.withName("data"))
+            .withName("th_img_plane");
+
+    /// `th_ycbcr_buffer`: an array of three planes, Y, Cb and Cr, which
+    /// `th_decode_ycbcr_out` fills.
+    public static final StructLayout TH_YCBCR_BUFFER =
+            structLayout(sequenceLayout(3, TH_IMG_PLANE)).withName("th_ycbcr_buffer");
+
     // ---- FLAC ----------------------------------------------------------------
 
     /// `FLAC__FrameHeader`: what the write callback's frame says about its block.
@@ -303,6 +370,8 @@ public final class NativeStructs {
             DAV1D_DATA_PROPS,
             DAV1D_DATA,
             DAV1D_PICTURE_PARAMETERS,
+            DAV1D_CONTENT_LIGHT_LEVEL,
+            DAV1D_MASTERING_DISPLAY,
             DAV1D_PICTURE,
             DAV1D_SEQUENCE_HEADER,
             VPX_CODEC_CTX,
@@ -314,6 +383,10 @@ public final class NativeStructs {
             VORBIS_COMMENT,
             VORBIS_DSP_STATE,
             VORBIS_BLOCK,
+            TH_INFO,
+            TH_COMMENT,
+            TH_IMG_PLANE,
+            TH_YCBCR_BUFFER,
             FLAC_FRAME_HEADER,
             FLAC_FRAME,
             MP3DEC,
@@ -330,6 +403,8 @@ public final class NativeStructs {
                 DAV1D_DATA_PROPS,
                 DAV1D_DATA,
                 DAV1D_PICTURE_PARAMETERS,
+                DAV1D_CONTENT_LIGHT_LEVEL,
+                DAV1D_MASTERING_DISPLAY,
                 DAV1D_PICTURE,
                 DAV1D_SEQUENCE_HEADER,
                 vpxCodecCtx(longSize),
@@ -341,6 +416,10 @@ public final class NativeStructs {
                 VORBIS_COMMENT,
                 vorbisDspState(longSize),
                 vorbisBlock(longSize),
+                TH_INFO,
+                TH_COMMENT,
+                TH_IMG_PLANE,
+                TH_YCBCR_BUFFER,
                 FLAC_FRAME_HEADER,
                 FLAC_FRAME,
                 MP3DEC,
@@ -362,7 +441,7 @@ public final class NativeStructs {
     /// the struct's own alignment.
     private static StructLayout padded(
             String name, List<MemoryLayout> head, List<MemoryLayout> tail, long tailAlignment) {
-        var members = new java.util.ArrayList<MemoryLayout>(head);
+        var members = new ArrayList<MemoryLayout>(head);
         var offset = head.stream().mapToLong(MemoryLayout::byteSize).sum();
         var gap = (tailAlignment - offset % tailAlignment) % tailAlignment;
         if (gap > 0) {

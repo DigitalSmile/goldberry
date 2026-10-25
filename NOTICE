@@ -52,11 +52,12 @@ STATICALLY LINKS:
   Opus           BSD-3-Clause      https://opus-codec.org
   libogg         BSD-3-Clause      https://xiph.org/ogg
   libvorbis      BSD-3-Clause      https://xiph.org/vorbis
+  libtheora      BSD-3-Clause      https://theora.org
   FLAC           BSD-3-Clause      https://xiph.org/flac          (libFLAC)
   libyuv         BSD-3-Clause      https://chromium.googlesource.com/libyuv/libyuv
   minimp3        CC0-1.0           https://github.com/lieff/minimp3
 
-Each natives jar carries META-INF/media-NOTICE.txt naming the eight at the tags
+Each natives jar carries META-INF/media-NOTICE.txt naming the nine at the tags
 and commits that were built. No patent-pool codec is built into them.
 goldberry-media's system decoders, which decode H.264, HEVC, AAC,
 AC-3 and E-AC-3, bundle nothing: they call the decoders the operating system

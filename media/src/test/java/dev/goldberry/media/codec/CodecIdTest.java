@@ -42,7 +42,8 @@ class CodecIdTest {
         for (var patented : new CodecId[] {CodecId.H264, CodecId.HEVC, CodecId.AAC, CodecId.AC3, CodecId.EAC3}) {
             assertFalse(patented.royaltyFree(), patented.name());
         }
-        for (var free : new CodecId[] {CodecId.VP9, CodecId.AV1, CodecId.OPUS, CodecId.FLAC, CodecId.MP3}) {
+        for (var free :
+                new CodecId[] {CodecId.VP9, CodecId.AV1, CodecId.THEORA, CodecId.OPUS, CodecId.FLAC, CodecId.MP3}) {
             assertTrue(free.royaltyFree(), free.name());
         }
     }

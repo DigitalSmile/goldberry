@@ -68,6 +68,11 @@ final class BoxTypes {
     static final int HVC1 = fourcc("hvc1");
     static final int HEV1 = fourcc("hev1");
     static final int HVCC = fourcc("hvcC");
+    static final int COLR = fourcc("colr");
+    static final int NCLX = fourcc("nclx");
+    static final int NCLC = fourcc("nclc");
+    static final int MDCV = fourcc("mdcv");
+    static final int CLLI = fourcc("clli");
     static final int MP4A = fourcc("mp4a");
     static final int ESDS = fourcc("esds");
     static final int OPUS = fourcc("Opus");

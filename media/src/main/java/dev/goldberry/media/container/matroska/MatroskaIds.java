@@ -1,10 +1,11 @@
 package dev.goldberry.media.container.matroska;
 
-/// The Matroska element IDs this demuxer reads (IETF Matroska, the element
-/// registry), with their length-marker bits as the specification writes them.
+/// The Matroska element IDs this demuxer reads and [MatroskaWriter] writes (IETF
+/// Matroska, the element registry), with their length-marker bits as the
+/// specification writes them.
 ///
-/// Only what is read is named. An element not here is skipped by size, which
-/// is how EBML is meant to be read forward through versions.
+/// Only what is read or written is named. An element not here is skipped by
+/// size, which is how EBML is meant to be read forward through versions.
 public final class MatroskaIds {
 
     private MatroskaIds() {}
@@ -12,8 +13,12 @@ public final class MatroskaIds {
     // ---- the header ----------------------------------------------------------
 
     public static final long EBML = 0x1A45DFA3L;
+    public static final long EBML_VERSION = 0x4286;
     public static final long EBML_READ_VERSION = 0x42F7;
+    public static final long EBML_MAX_ID_LENGTH = 0x42F2;
+    public static final long EBML_MAX_SIZE_LENGTH = 0x42F3;
     public static final long DOC_TYPE = 0x4282;
+    public static final long DOC_TYPE_VERSION = 0x4287;
     public static final long DOC_TYPE_READ_VERSION = 0x4285;
 
     // ---- the segment, and its top-level children ----------------------------
@@ -43,13 +48,17 @@ public final class MatroskaIds {
 
     public static final long TIMESTAMP_SCALE = 0x2AD7B1;
     public static final long DURATION = 0x4489;
+    public static final long MUXING_APP = 0x4D80;
+    public static final long WRITING_APP = 0x5741;
 
     // ---- Tracks --------------------------------------------------------------
 
     public static final long TRACK_ENTRY = 0xAE;
     public static final long TRACK_NUMBER = 0xD7;
+    public static final long TRACK_UID = 0x73C5;
     public static final long TRACK_TYPE = 0x83;
     public static final long FLAG_DEFAULT = 0x88;
+    public static final long FLAG_LACING = 0x9C;
     public static final long DEFAULT_DURATION = 0x23E383;
     public static final long NAME = 0x536E;
     public static final long LANGUAGE = 0x22B59C;
@@ -63,12 +72,19 @@ public final class MatroskaIds {
     public static final long PIXEL_WIDTH = 0xB0;
     public static final long PIXEL_HEIGHT = 0xBA;
     public static final long ALPHA_MODE = 0x53C0;
+    /// The four-character code of a `V_UNCOMPRESSED` track's pixels: `NV12`, `I420`.
+    public static final long UNCOMPRESSED_FOURCC = 0x2EB524;
     public static final long COLOUR = 0x55B0;
     public static final long MATRIX_COEFFICIENTS = 0x55B1;
     public static final long BITS_PER_CHANNEL = 0x55B2;
     public static final long RANGE = 0x55B9;
     public static final long TRANSFER_CHARACTERISTICS = 0x55BA;
     public static final long PRIMARIES = 0x55BB;
+    public static final long MAX_CLL = 0x55BC;
+    public static final long MAX_FALL = 0x55BD;
+    public static final long MASTERING_METADATA = 0x55D0;
+    public static final long LUMINANCE_MAX = 0x55D9;
+    public static final long LUMINANCE_MIN = 0x55DA;
 
     public static final long AUDIO = 0xE1;
     public static final long SAMPLING_FREQUENCY = 0xB5;

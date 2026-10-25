@@ -1,5 +1,6 @@
 package dev.goldberry.media.container.matroska;
 
+import static java.lang.foreign.ValueLayout.JAVA_BYTE;
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -8,6 +9,8 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.lang.foreign.ValueLayout;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
@@ -20,7 +23,10 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
+import dev.goldberry.media.bitstream.TheoraHeaders;
+import dev.goldberry.media.bitstream.XiphLacing;
 import dev.goldberry.media.codec.CodecId;
+import dev.goldberry.media.codec.ColorDescription;
 import dev.goldberry.media.codec.FrameRate;
 import dev.goldberry.media.codec.MediaType;
 import dev.goldberry.media.codec.Packet;
@@ -59,6 +65,7 @@ class MatroskaContainerTest {
     @ValueSource(
             strings = {
                 "clip-av1.mkv",
+                "clip-theora.mkv",
                 "clip-vp8.webm",
                 "clip-two-angles.mkv",
                 "clip-vp9-subs.mkv",
@@ -97,6 +104,25 @@ class MatroskaContainerTest {
     }
 
     @Test
+    @DisplayName("describes a Theora track: V_THEORA, its pixel format from the laced headers in CodecPrivate")
+    void describesTheora() {
+        try (var container = open("clip-theora.mkv")) {
+            var video = container.info().tracks().get(0);
+            assertEquals(CodecId.THEORA, video.codec());
+            assertEquals("theora", video.codecName());
+            var picture = assertInstanceOf(TrackParams.Video.class, video.params());
+            assertAll(
+                    () -> assertEquals(160, picture.width()),
+                    () -> assertEquals(90, picture.height()),
+                    () -> assertEquals(Optional.of("yuv420p"), picture.pixelFormat()),
+                    () -> assertEquals(Optional.of(new FrameRate(25, 1)), picture.frameRate()));
+            var headers = XiphLacing.split(container.request(0).extradata().toArray(JAVA_BYTE));
+            assertEquals(3, headers.size());
+            assertTrue(TheoraHeaders.isHeader(headers.getFirst(), TheoraHeaders.IDENTIFICATION));
+        }
+    }
+
+    @Test
     @DisplayName("describes an AV1 and Opus clip: codecs, size, frame rate, rate and channels, duration")
     void describesAv1() {
         try (var container = open("clip-av1.mkv")) {
@@ -131,8 +157,8 @@ class MatroskaContainerTest {
             assertEquals(
                     "OpusHead",
                     new String(
-                            request.extradata().asSlice(0, 8).toArray(java.lang.foreign.ValueLayout.JAVA_BYTE),
-                            java.nio.charset.StandardCharsets.US_ASCII));
+                            request.extradata().asSlice(0, 8).toArray(ValueLayout.JAVA_BYTE),
+                            StandardCharsets.US_ASCII));
             assertEquals(new Rational(1, 1000), request.timeBase());
         }
     }
@@ -174,9 +200,7 @@ class MatroskaContainerTest {
             try (cue) {
                 assertEquals(1, cue.streamIndex());
                 assertTrue(cue.duration() > 0, "a subtitle block carries its duration");
-                var text = new String(
-                        cue.data().toArray(java.lang.foreign.ValueLayout.JAVA_BYTE),
-                        java.nio.charset.StandardCharsets.UTF_8);
+                var text = new String(cue.data().toArray(ValueLayout.JAVA_BYTE), StandardCharsets.UTF_8);
                 assertFalse(text.isBlank());
             }
         }
@@ -288,5 +312,23 @@ class MatroskaContainerTest {
         assertEquals(new Rational(1, 1000), MatroskaContainer.timeBaseOf(1_000_000));
         assertEquals(new Rational(1, 1_000_000_000), MatroskaContainer.timeBaseOf(1));
         assertEquals(new Rational(11_111, 1_000_000_000), MatroskaContainer.timeBaseOf(11_111));
+    }
+
+    @Test
+    @DisplayName("a WebM track's Colour: HLG in BT.2020, which VP9's own bitstream cannot say")
+    void colour() {
+        try (var container = open("clip-vp9-hlg.webm")) {
+            var picture = assertInstanceOf(
+                    TrackParams.Video.class,
+                    container.info().tracks().getFirst().params());
+            assertEquals(ColorDescription.Primaries.BT2020, picture.colour().primaries());
+            assertEquals(ColorDescription.Transfer.HLG, picture.colour().transfer());
+        }
+        try (var container = open("clip-vp9.webm")) {
+            var picture = assertInstanceOf(
+                    TrackParams.Video.class,
+                    container.info().tracks().getFirst().params());
+            assertEquals(ColorDescription.UNSPECIFIED, picture.colour(), "a clip that states none");
+        }
     }
 }

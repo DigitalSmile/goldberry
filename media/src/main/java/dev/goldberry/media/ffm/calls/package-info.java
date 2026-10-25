@@ -1,7 +1,7 @@
 /// The downcall holders, one record per upstream library and one nested class
 /// per function: `Dav1dCalls`, `VpxCalls`, `OpusCalls`, `VorbisCalls`,
-/// `FlacCalls`, `YuvCalls`, `Mp3Calls`, and `MediaCalls` for the two functions
-/// of the library's own.
+/// `TheoraCalls`, `FlacCalls`, `YuvCalls`, `Mp3Calls`, and `MediaCalls` for the
+/// two functions of the library's own.
 ///
 /// Each holder keeps its unbound handle as a `private static final FD_<symbol>`
 /// and its address as a field, and has a `call` in ordinary Java types; its doc

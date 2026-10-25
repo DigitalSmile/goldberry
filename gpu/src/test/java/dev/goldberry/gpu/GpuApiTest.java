@@ -326,6 +326,47 @@ class GpuApiTest {
         }
 
         @Test
+        @DisplayName("from upload memory written on another thread, with padded rows, land as they were written")
+        void fromUploadMemory() throws InterruptedException {
+            var width = 20;
+            var height = 6;
+            var rowBytes = 256;
+            var image = random(rowBytes * height, 5);
+            try (var buffer = device.createUploadBuffer(512 + rowBytes * height);
+                    var texture =
+                            device.createTexture(TextureSpec.sampled(TextureFormat.R8G8B8A8_UNORM, width, height))) {
+                var mapped = buffer.map(true);
+                assertTrue(buffer.isMapped());
+                // The bytes are another thread's to write while it stays mapped.
+                var writer = Thread.ofPlatform().start(() -> mapped.put(512, image));
+                writer.join();
+                try (var frame = device.beginFrame()) {
+                    frame.copyPass(copy -> assertThrows(
+                            IllegalStateException.class, () -> copy.upload(texture, buffer, 512, rowBytes)));
+                    buffer.unmap();
+                    assertThrows(IllegalStateException.class, () -> mapped.get(0), "unmapping ends the mapping");
+                    frame.copyPass(copy -> {
+                        copy.upload(texture, buffer, 512, rowBytes);
+                        assertThrows(IllegalArgumentException.class, () -> copy.upload(texture, buffer, 512, 70));
+                        assertThrows(
+                                IllegalArgumentException.class, () -> copy.upload(texture, buffer, 1024, rowBytes));
+                    });
+                    var readback = frame.readback(texture);
+                    frame.submit();
+                    var back = bytes(readback.await());
+                    for (var y = 0; y < height; y++) {
+                        for (var x = 0; x < width * 4; x++) {
+                            assertEquals(image[y * rowBytes + x], back[y * width * 4 + x], "at " + x + "," + y);
+                        }
+                    }
+                }
+                // Mapped again without cycling, the bytes are still there to read.
+                assertEquals(image[0], buffer.map(false).get(512));
+                buffer.unmap();
+            }
+        }
+
+        @Test
         @DisplayName("refuse a region outside the texture, short rows, a short source and a depth texture")
         void refusals() {
             try (var texture = device.createTexture(TextureSpec.sampled(TextureFormat.R8_UNORM, 8, 8));

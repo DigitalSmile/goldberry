@@ -79,6 +79,7 @@ by name. The demuxers, the clock and the I/O are Java and link nothing.
 | [Opus](licenses/opus.txt) | BSD-3-Clause | <https://opus-codec.org> | Opus decoder; the machine-learning extensions are off |
 | [libogg](licenses/libogg.txt) | BSD-3-Clause | <https://xiph.org/ogg> | libvorbis's bit reader and packet type; Ogg framing is read in Java |
 | [libvorbis](licenses/libvorbis.txt) | BSD-3-Clause | <https://xiph.org/vorbis> | Vorbis decoder, the synthesis half |
+| [libtheora](licenses/libtheora.txt) | BSD-3-Clause | <https://theora.org> | Theora decoder, libtheoradec's sources; the encoder is not built |
 | [FLAC](licenses/FLAC.txt) | BSD-3-Clause | <https://xiph.org/flac> | libFLAC's stream decoder; the GPL tools are not built |
 | [libyuv](licenses/libyuv.txt) | BSD-3-Clause | <https://chromium.googlesource.com/libyuv/libyuv> | YUV to BGRA conversion on the CPU |
 | [minimp3](licenses/minimp3.txt) | CC0-1.0 | <https://github.com/lieff/minimp3> | MP3 decoder, a header instantiated once |
@@ -86,7 +87,7 @@ by name. The demuxers, the clock and the I/O are Java and link nothing.
 Nothing here is under a copyleft licence. Every upstream asks only that its
 notice travel with a binary redistribution: `licenses/` carries each text, and
 every natives jar carries a `media-NOTICE.txt` under `META-INF/` naming the
-eight at the tags and commits that were built. An application that ships
+nine at the tags and commits that were built. An application that ships
 those classifier jars owes its users those notices and nothing more; it owes
 no patent review for codecs, because none from a patent pool is built, and
 libvpx's and libyuv's own patent grants are reproduced in their files.

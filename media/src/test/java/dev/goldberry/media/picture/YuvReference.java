@@ -3,6 +3,7 @@ package dev.goldberry.media.picture;
 import java.util.Objects;
 
 import dev.goldberry.media.codec.VideoFrame;
+import dev.goldberry.media.picture.hdr.ToneCurve;
 
 /// What a picture of planes looks like in RGB, computed in Java: the arithmetic
 /// both present paths are held to, and, under a [Reading] that is not the
@@ -23,6 +24,11 @@ import dev.goldberry.media.codec.VideoFrame;
 /// three quarters of the nearer chroma sample and a quarter of the other, both
 /// ways, clamped at the edges. GPU present samples the planes so, and CPU
 /// present's libyuv interpolates so (9:3:3:1).
+///
+/// A picture whose [YuvSource#colour()] is HDR or in wider primaries is then
+/// mapped to SDR BT.709 by [ToneCurve#apply], from its R'G'B' before it is
+/// rounded: the curve's own tests hold it to SMPTE ST 2084, ARIB STD-B67 and
+/// BT.2390, and both present paths to it.
 public final class YuvReference {
 
     /// How chroma reaches a luma pixel.
@@ -80,6 +86,7 @@ public final class YuvReference {
         var chromaWidth = (width + 1) / 2;
         var chromaHeight = (height + 1) / 2;
         var cbPlane = reading.chromaSwapped() ? 1 : 0;
+        var curve = ToneCurve.of(source.colour());
         var out = new int[width * height];
         for (var y = 0; y < height; y++) {
             for (var x = 0; x < width; x++) {
@@ -94,7 +101,7 @@ public final class YuvReference {
                     cb = bilinear(source, cbPlane, cx, cy, chromaWidth, chromaHeight);
                     cr = bilinear(source, 1 - cbPlane, cx, cy, chromaWidth, chromaHeight);
                 }
-                var rgb = rgb(source.code(0, x, y), cb, cr, bits, reading);
+                var rgb = rgb(source.code(0, x, y), cb, cr, bits, reading, curve);
                 var red = reading.redBlueSwapped() ? rgb[2] : rgb[0];
                 var blue = reading.redBlueSwapped() ? rgb[0] : rgb[2];
                 out[y * width + x] = 0xFF000000 | red << 16 | rgb[1] << 8 | blue;
@@ -138,7 +145,7 @@ public final class YuvReference {
 
     /// R, G and B, 0 to 255, for luma code `y` and chroma codes `cb` and `cr`
     /// (between whole codes where chroma was blended) of a `bits`-bit picture.
-    private static int[] rgb(double y, double cb, double cr, int bits, Reading reading) {
+    private static int[] rgb(double y, double cb, double cr, int bits, Reading reading, ToneCurve curve) {
         var max = (1 << bits) - 1;
         var scale = 1 << (bits - 8);
         double luma;
@@ -156,11 +163,17 @@ public final class YuvReference {
         var kr = kr(reading.matrix());
         var kb = kb(reading.matrix());
         var kg = 1 - kr - kb;
-        return new int[] {
-            level(luma + 2 * (1 - kr) * red),
-            level(luma - 2 * kb * (1 - kb) / kg * blue - 2 * kr * (1 - kr) / kg * red),
-            level(luma + 2 * (1 - kb) * blue)
+        var encoded = new double[] {
+            clamp(luma + 2 * (1 - kr) * red),
+            clamp(luma - 2 * kb * (1 - kb) / kg * blue - 2 * kr * (1 - kr) / kg * red),
+            clamp(luma + 2 * (1 - kb) * blue)
         };
+        var drawn = curve.isIdentity() ? encoded : curve.apply(encoded);
+        return new int[] {level(drawn[0]), level(drawn[1]), level(drawn[2])};
+    }
+
+    private static double clamp(double value) {
+        return Math.max(0, Math.min(1, value));
     }
 
     private static double kr(VideoFrame.ColorMatrix matrix) {

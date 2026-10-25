@@ -85,6 +85,7 @@ class MediaNativesTest {
         assertTrue(library.versions().startsWith("dav1d 1.5.4"), library.versions());
         assertTrue(library.versions().contains("libvpx v1.17.0"), library.versions());
         assertTrue(library.versions().contains("opus"), library.versions());
+        assertTrue(library.versions().contains("theora Xiph.Org libtheora 1.2.0"), library.versions());
         assertTrue(library.versions().contains("FLAC 1.5.0"), library.versions());
     }
 }

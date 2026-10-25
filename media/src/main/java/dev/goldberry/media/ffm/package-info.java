@@ -2,8 +2,8 @@
 /// the engine, and nothing above it.
 ///
 /// `libgoldberry-media` is one shared library per target that links the
-/// reference decoders — dav1d, libvpx, Opus, libogg and libvorbis, FLAC,
-/// minimp3 — and libyuv statically, and exports their own C APIs. This package
+/// reference decoders — dav1d, libvpx, Opus, libogg and libvorbis, libtheora,
+/// FLAC, minimp3 — and libyuv statically, and exports their own C APIs. This package
 /// loads it ([dev.goldberry.media.ffm.MediaNatives]), checks the layout file the
 /// superbuild wrote beside it against the struct layouts declared here
 /// ([dev.goldberry.media.ffm.NativeStructs], [dev.goldberry.media.ffm.LayoutCheck]),

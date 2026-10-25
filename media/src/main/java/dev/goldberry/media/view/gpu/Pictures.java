@@ -4,8 +4,10 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 
 import dev.goldberry.gpu.video.ColorMatrix;
+import dev.goldberry.gpu.video.ColorVolume;
 import dev.goldberry.gpu.video.PlaneLayout;
 import dev.goldberry.gpu.video.VideoImage;
+import dev.goldberry.media.codec.ColorDescription;
 import dev.goldberry.media.codec.PixelFormat;
 import dev.goldberry.media.codec.VideoFrame;
 import dev.goldberry.media.picture.Picture;
@@ -31,6 +33,10 @@ public final class Pictures {
     public static VideoImage image(Picture picture) {
         return switch (picture) {
             case VideoPicture bgra -> new VideoImage.Bgra(bgra.width(), bgra.height(), bgra.stride(), bgra.pixels());
+            case VideoPlanes planes
+            when planes.staged().orElse(null) instanceof StagedPlaneStore.Staged staged ->
+                new VideoImage.Staged(
+                        staged.planes(), matrix(planes.matrix()), planes.fullRange(), volume(planes.colour()));
             case VideoPlanes planes -> {
                 var count = planes.format().planes();
                 var buffers = new ArrayList<ByteBuffer>(count);
@@ -46,9 +52,30 @@ public final class Pictures {
                         buffers,
                         strides,
                         matrix(planes.matrix()),
-                        planes.fullRange());
+                        planes.fullRange(),
+                        volume(planes.colour()));
             }
         };
+    }
+
+    /// The layer's colour volume for a picture's description: what is
+    /// unspecified is SDR in BT.709 primaries, and the peak is the one the
+    /// description gives an HDR picture.
+    static ColorVolume volume(ColorDescription colour) {
+        if (colour.isPlainSdr()) {
+            return ColorVolume.SDR;
+        }
+        var primaries = switch (colour.primaries()) {
+            case UNSPECIFIED, BT709 -> ColorVolume.Primaries.BT709;
+            case BT2020 -> ColorVolume.Primaries.BT2020;
+            case DISPLAY_P3 -> ColorVolume.Primaries.DISPLAY_P3;
+        };
+        var transfer = switch (colour.transfer()) {
+            case UNSPECIFIED, SDR -> ColorVolume.Transfer.SDR;
+            case PQ -> ColorVolume.Transfer.PQ;
+            case HLG -> ColorVolume.Transfer.HLG;
+        };
+        return new ColorVolume(primaries, transfer, colour.peakNits());
     }
 
     /// The layer's layout for a decoder's pixel format.

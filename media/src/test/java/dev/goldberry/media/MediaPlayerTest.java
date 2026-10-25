@@ -618,12 +618,18 @@ class MediaPlayerTest {
     }
 
     /// Decodes `good` packets as silence, then throws: a provider failing
-    /// mid-stream.
+    /// mid-stream; or, `atEnd`, every packet and then throws as it drains.
     static final class FlakyProvider implements DecoderProvider {
         private final int good;
+        private final boolean atEnd;
 
         FlakyProvider(int good) {
+            this(good, false);
+        }
+
+        FlakyProvider(int good, boolean atEnd) {
             this.good = good;
+            this.atEnd = atEnd;
         }
 
         @Override
@@ -652,7 +658,7 @@ class MediaPlayerTest {
 
                 @Override
                 public boolean send(Packet packet) {
-                    if (++sent > good) {
+                    if (++sent > good && !atEnd) {
                         throw new IllegalStateException("the flaky decoder gives up");
                     }
                     pending++;
@@ -661,6 +667,9 @@ class MediaPlayerTest {
 
                 @Override
                 public void sendEnd() {
+                    if (atEnd) {
+                        throw new IllegalStateException("the flaky decoder gives up as it drains");
+                    }
                     ending = true;
                 }
 
@@ -695,6 +704,14 @@ class MediaPlayerTest {
         var ended = awaitState(PlaybackState.ENDED);
         assertEquals("pcm", ended.audioDecoder().orElseThrow());
         assertTrue(sink.capturedSamples() > 3 * 1024, "the built-in decoder carried on");
+    }
+
+    @Test
+    @DisplayName("a provider that fails as it drains at the end hands over to the next, which plays the end")
+    void fallbackAtTheEnd() {
+        open(Wav.silence(FORMAT.sampleRate(), 2, FORMAT.sampleRate()), true, List.of(new FlakyProvider(0, true)));
+        var ended = awaitState(PlaybackState.ENDED);
+        assertEquals("pcm", ended.audioDecoder().orElseThrow(), "the built-in decoder took over");
     }
 
     @Test

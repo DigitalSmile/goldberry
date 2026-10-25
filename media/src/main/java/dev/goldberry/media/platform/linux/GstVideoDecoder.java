@@ -11,6 +11,7 @@ import java.util.Optional;
 import org.jspecify.annotations.Nullable;
 
 import dev.goldberry.media.bitstream.ParameterSets;
+import dev.goldberry.media.codec.ColorDescription;
 import dev.goldberry.media.codec.DecoderRequest;
 import dev.goldberry.media.codec.Frame;
 import dev.goldberry.media.codec.PixelFormat;
@@ -37,6 +38,7 @@ final class GstVideoDecoder extends GstDecoder {
     /// @param strides   bytes from one row of each plane to the next
     /// @param matrix    the YUV→RGB matrix
     /// @param fullRange whether luma spans 0–255
+    /// @param colour    the primaries and transfer function
     record Layout(
             PixelFormat format,
             int width,
@@ -44,7 +46,8 @@ final class GstVideoDecoder extends GstDecoder {
             List<Long> offsets,
             List<Integer> strides,
             VideoFrame.ColorMatrix matrix,
-            boolean fullRange) {
+            boolean fullRange,
+            ColorDescription colour) {
 
         Layout {
             offsets = List.copyOf(offsets);
@@ -55,6 +58,7 @@ final class GstVideoDecoder extends GstDecoder {
     private final int trackWidth;
     private final int trackHeight;
     private final ParameterSets.Signal signal;
+    private final ColorDescription trackColour;
     private final MemorySegment info;
     /// The caps [#layout] was read from, compared by address: a decoder hands out
     /// the same caps object until the stream changes.
@@ -75,6 +79,7 @@ final class GstVideoDecoder extends GstDecoder {
         }
         this.trackWidth = video.width();
         this.trackHeight = video.height();
+        this.trackColour = video.colour();
         this.signal = ParameterSets.of(request)
                 .map(configuration -> configuration.shape().signal())
                 .orElse(ParameterSets.Signal.UNSPECIFIED);
@@ -103,7 +108,8 @@ final class GstVideoDecoder extends GstDecoder {
                 layout.strides(),
                 layout.matrix(),
                 layout.fullRange(),
-                ptsNanos(buffer));
+                ptsNanos(buffer),
+                layout.colour());
     }
 
     private Layout read(MemorySegment caps) {
@@ -127,7 +133,46 @@ final class GstVideoDecoder extends GstDecoder {
                 offsets,
                 strides,
                 matrix(signal, info.get(JAVA_INT, GstLayout.VIDEO_INFO_MATRIX), height),
-                fullRange(signal, info.get(JAVA_INT, GstLayout.VIDEO_INFO_RANGE)));
+                fullRange(signal, info.get(JAVA_INT, GstLayout.VIDEO_INFO_RANGE)),
+                signal.colour().orElse(trackColour).orElse(capsColour()).orElse(capsLightLevels(caps)));
+    }
+
+    /// The light levels GStreamer's parsers put in the caps from the stream's
+    /// SEI: `mastering-display-info`, whose ninth number is the peak in
+    /// ten-thousandths of a nit, and `content-light-level`, `MaxCLL:MaxFALL`.
+    private ColorDescription capsLightLevels(MemorySegment caps) {
+        var gst = gs.gst();
+        var mastering = gst.capsString(caps, "mastering-display-info")
+                .map(info -> lightLevel(info, 8) / 10_000)
+                .orElse(0L);
+        var content = gst.capsString(caps, "content-light-level")
+                .map(info -> lightLevel(info, 0))
+                .orElse(0L);
+        return ColorDescription.UNSPECIFIED.withLightLevels(
+                (int) Math.min(100_000, mastering), (int) Math.min(100_000, content));
+    }
+
+    /// The `index`th of the colon-separated numbers in `info`, or 0.
+    static long lightLevel(String info, int index) {
+        var parts = info.split(":", -1);
+        if (index >= parts.length) {
+            return 0;
+        }
+        try {
+            return Math.max(0, Long.parseLong(parts[index].strip()));
+        } catch (NumberFormatException e) {
+            return 0;
+        }
+    }
+
+    /// The primaries and transfer function GStreamer's caps say, which the
+    /// stream's own VUI and the container go before: the caps of a decoder that
+    /// read no VUI carry GStreamer's guess from the picture's size.
+    private ColorDescription capsColour() {
+        var video = gs.video();
+        return ColorDescription.fromH273(
+                video.primariesToIso(info.get(JAVA_INT, GstLayout.VIDEO_INFO_PRIMARIES)),
+                video.transferToIso(info.get(JAVA_INT, GstLayout.VIDEO_INFO_TRANSFER)));
     }
 
     /// The frame contract's layout for GStreamer's format `name`, or empty for

@@ -25,6 +25,7 @@ import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.MethodSource;
 
 import dev.goldberry.media.MediaNativesRequirement;
+import dev.goldberry.media.codec.ColorDescription;
 import dev.goldberry.media.codec.PixelFormat;
 import dev.goldberry.media.codec.VideoFrame;
 import dev.goldberry.media.ffm.MediaNatives;
@@ -186,6 +187,55 @@ class YuvConverterTest {
             var tolerance = format.bytesPerSample() == 2 ? TEN_BIT_REFERENCE_TOLERANCE : REFERENCE_TOLERANCE;
             YuvDiagnosis.assertReadsAsTagged(
                     YuvSource.of(frame), convert(converter, frame), tolerance, format + " " + matrix);
+        }
+    }
+
+    /// How far an HDR picture lands from the reference, a channel: the
+    /// natives convert in floats, so what is left is the tables'
+    /// interpolation and the last rounding.
+    private static final int HDR_REFERENCE_TOLERANCE = 1;
+
+    static Stream<Arguments> hdrReadings() {
+        return Stream.of(
+                Arguments.of(PixelFormat.I010, ColorDescription.fromH273(9, 16).withLightLevels(1000, 0)),
+                Arguments.of(PixelFormat.P010, ColorDescription.fromH273(9, 16).withLightLevels(4000, 0)),
+                Arguments.of(PixelFormat.I010, ColorDescription.fromH273(9, 18)),
+                Arguments.of(PixelFormat.P010, ColorDescription.fromH273(9, 14)),
+                Arguments.of(PixelFormat.I420, ColorDescription.fromH273(12, 1)),
+                Arguments.of(PixelFormat.NV12, ColorDescription.fromH273(9, 16)));
+    }
+
+    @ParameterizedTest(name = "{0} {1}")
+    @MethodSource("hdrReadings")
+    @DisplayName("maps HDR and wide gamut to SDR BT.709 as the reference does")
+    void hdr(PixelFormat format, ColorDescription colour) {
+        try (var converter = new YuvConverter(MediaNatives.get())) {
+            var frame = card(format, VideoFrame.ColorMatrix.BT2020, false).withColourFrom(colour);
+            var tolerance = HDR_REFERENCE_TOLERANCE;
+            YuvDiagnosis.assertReadsAsTagged(
+                    YuvSource.of(frame), convert(converter, frame), tolerance, format + " " + colour);
+        }
+    }
+
+    @Test
+    @DisplayName("an HDR picture is not drawn as its SDR reading: the mapping is seen")
+    void hdrIsMapped() {
+        try (var converter = new YuvConverter(MediaNatives.get())) {
+            var sdr = card(PixelFormat.I010, VideoFrame.ColorMatrix.BT2020, false);
+            var pq = sdr.withColourFrom(ColorDescription.fromH273(9, 16));
+            assertTrue(
+                    YuvReference.worst(convert(converter, sdr), convert(converter, pq)) > 20,
+                    "PQ is drawn as PQ, not as the SDR the same codes would be");
+        }
+    }
+
+    @Test
+    @DisplayName("a picture with alpha is drawn as SDR whatever its description says")
+    void alphaStaysSdr() {
+        try (var converter = new YuvConverter(MediaNatives.get())) {
+            var plain = card(PixelFormat.I420A, VideoFrame.ColorMatrix.BT709, false);
+            var tagged = plain.withColourFrom(ColorDescription.fromH273(9, 16));
+            assertArrayEquals(convert(converter, plain), convert(converter, tagged));
         }
     }
 

@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.OptionalInt;
 import java.util.Set;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -16,6 +17,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
 import dev.goldberry.media.codec.CodecId;
+import dev.goldberry.media.codec.ColorDescription;
 import dev.goldberry.media.codec.MediaType;
 import dev.goldberry.media.codec.Received;
 import dev.goldberry.media.codec.VideoFrame;
@@ -97,6 +99,20 @@ class GStreamerVideoDecodeTest {
         for (var frame : frames) {
             assertEquals(matrix, frame.matrix());
             assertEquals(fullRange, frame.fullRange());
+        }
+    }
+
+    @Test
+    @DisplayName("an HDR10 stream's pictures say PQ in BT.2020, which tone-maps them")
+    void hdrColour() {
+        var frames = decodeAll("clip-hevc-pq.mp4", new ArrayList<>());
+        assertTrue(!frames.isEmpty());
+        for (var frame : frames) {
+            assertEquals(2, frame.format().bytesPerSample(), "ten bits, as P010 or I010 by the decoder");
+            assertEquals(ColorDescription.Primaries.BT2020, frame.colour().primaries());
+            assertEquals(ColorDescription.Transfer.PQ, frame.colour().transfer());
+            assertEquals(OptionalInt.of(1000), frame.colour().masteringPeak(), "from the SEI, through the caps");
+            assertEquals(OptionalInt.of(1000), frame.colour().contentPeak());
         }
     }
 

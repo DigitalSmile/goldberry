@@ -20,6 +20,7 @@ import dev.goldberry.natives.sdl.gpu.SdlGpuSamplerDescription;
 import dev.goldberry.natives.sdl.gpu.SdlGpuShaderCode;
 import dev.goldberry.natives.sdl.gpu.SdlGpuTexture;
 import dev.goldberry.natives.sdl.gpu.enums.SdlGpuSampleCount;
+import dev.goldberry.natives.sdl.gpu.enums.SdlGpuTransferUsage;
 
 /// The GPU: Metal on macOS, Direct3D 12 on Windows, Vulkan elsewhere. What
 /// textures, buffers, samplers, shaders and pipelines are made on, and what
@@ -189,6 +190,20 @@ public final class GpuDevice {
         var copy = Collections.unmodifiableSet(EnumSet.copyOf(usages));
         var buffer = call(() -> device.createBuffer(BufferUsage.sdl(copy), size));
         return new GpuBuffer(this, buffer, copy);
+    }
+
+    /// Makes `size` bytes of upload memory: what a producer on another thread
+    /// fills and a copy pass uploads from without copying ([UploadBuffer]).
+    ///
+    /// @throws IllegalArgumentException when the size is not positive
+    /// @throws GpuException             when the driver refuses
+    public UploadBuffer createUploadBuffer(int size) {
+        if (size <= 0) {
+            throw new IllegalArgumentException("upload buffer of " + size + " bytes");
+        }
+        var device = sdl();
+        var buffer = call(() -> device.createTransferBuffer(SdlGpuTransferUsage.UPLOAD, size));
+        return new UploadBuffer(this, buffer);
     }
 
     /// Makes a sampler.

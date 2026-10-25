@@ -312,13 +312,13 @@ class OggContainerTest {
         void unknownCodec() {
             var pages = List.of(
                     new OggWriter.Page(
-                            OggPage.BOS, 0, List.of("\u0080theora headers".getBytes(StandardCharsets.ISO_8859_1))),
+                            OggPage.BOS, 0, List.of("Speex   headers".getBytes(StandardCharsets.ISO_8859_1))),
                     new OggWriter.Page(0, 0, List.of(new byte[] {1, 2, 3})),
                     new OggWriter.Page(OggPage.EOS, 100, List.of(new byte[] {4, 5, 6})));
             try (var container = open(OggWriter.write(7, pages))) {
                 var track = container.info().tracks().getFirst();
                 assertEquals(CodecId.UNKNOWN, track.codec());
-                assertEquals("theora", track.codecName());
+                assertEquals("Speex", track.codecName());
                 assertEquals(MediaType.DATA, track.type());
                 assertNull(container.read());
             }

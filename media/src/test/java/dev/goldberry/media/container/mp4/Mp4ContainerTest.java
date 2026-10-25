@@ -31,6 +31,7 @@ import dev.goldberry.media.MediaException;
 import dev.goldberry.media.MediaNativesRequirement;
 import dev.goldberry.media.codec.AudioFrame;
 import dev.goldberry.media.codec.CodecId;
+import dev.goldberry.media.codec.ColorDescription;
 import dev.goldberry.media.codec.DecoderProvider;
 import dev.goldberry.media.codec.Frame;
 import dev.goldberry.media.codec.FrameRate;
@@ -466,5 +467,17 @@ class Mp4ContainerTest {
         // The pre-skip is dropped, so the first frame plays from zero: the
         // first packet's -312 and the head's 312 cancel.
         assertEquals(0L, firstPts.getFirst(), "first pts");
+    }
+
+    @Test
+    @DisplayName("a sample entry's colr box: PQ in BT.2020")
+    void colour() {
+        try (var container = open("clip-av1-pq.mp4")) {
+            var picture = assertInstanceOf(
+                    TrackParams.Video.class,
+                    container.info().tracks().getFirst().params());
+            assertEquals(ColorDescription.Primaries.BT2020, picture.colour().primaries());
+            assertEquals(ColorDescription.Transfer.PQ, picture.colour().transfer());
+        }
     }
 }

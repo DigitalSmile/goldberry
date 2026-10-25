@@ -109,6 +109,78 @@ final class OggWriter {
         return packets;
     }
 
+    /// The packets of the stream of `file` whose serial is `serial`, in order,
+    /// headers first: one stream out of an interleaved file.
+    static List<byte[]> packets(byte[] file, long serial) {
+        var packets = new ArrayList<byte[]>();
+        var at = 0;
+        var fragment = new ByteArrayOutputStream();
+        while (at < file.length) {
+            var count = file[at + 26] & 0xFF;
+            var body = at + OggPage.HEADER_SIZE + count;
+            var pageSerial = (file[at + 14] & 0xFFL)
+                    | (file[at + 15] & 0xFFL) << 8
+                    | (file[at + 16] & 0xFFL) << 16
+                    | (file[at + 17] & 0xFFL) << 24;
+            for (var i = 0; i < count; i++) {
+                var length = file[at + OggPage.HEADER_SIZE + i] & 0xFF;
+                if (pageSerial == serial) {
+                    fragment.write(file, body, length);
+                    if (length < 255) {
+                        packets.add(fragment.toByteArray());
+                        fragment.reset();
+                    }
+                }
+                body += length;
+            }
+            at = body;
+        }
+        return packets;
+    }
+
+    /// The serial of the stream `file`'s first page begins.
+    static long firstSerial(byte[] file) {
+        return (file[14] & 0xFFL) | (file[15] & 0xFFL) << 8 | (file[16] & 0xFFL) << 16 | (file[17] & 0xFFL) << 24;
+    }
+
+    /// An Ogg Theora stream of the first stream of `file`, which is Theora,
+    /// with `perPage` frames a page: the three headers on a page each, then
+    /// the frames, every page's granule position the last keyframe's number
+    /// shifted up by the header's shift, plus the frames since it. In bitstream
+    /// 3.2.1 a frame's number counts from one, in 3.2.0 from zero; `bitstream320`
+    /// writes the older one, its identification header's version and its
+    /// granules both.
+    static byte[] repagedTheora(byte[] file, int perPage, boolean bitstream320) {
+        var packets = new ArrayList<>(packets(file, firstSerial(file)));
+        var identification = packets.get(0).clone();
+        if (bitstream320) {
+            identification[9] = 0;
+        }
+        packets.set(0, identification);
+        var shift = ((identification[40] & 0xFF) << 8 | (identification[41] & 0xFF)) >>> 5 & 0x1F;
+        var base = bitstream320 ? 0 : 1;
+        var pages = new ArrayList<Page>();
+        pages.add(new Page(OggPage.BOS, 0, List.of(packets.get(0))));
+        pages.add(new Page(0, 0, List.of(packets.get(1))));
+        pages.add(new Page(0, 0, List.of(packets.get(2))));
+        var frames = packets.subList(3, packets.size());
+        var keyframe = 0;
+        for (var from = 0; from < frames.size(); from += perPage) {
+            var group = frames.subList(from, Math.min(from + perPage, frames.size()));
+            for (var i = 0; i < group.size(); i++) {
+                var packet = group.get(i);
+                if (packet.length > 0 && (packet[0] & 0x40) == 0) {
+                    keyframe = from + i;
+                }
+            }
+            var last = from + group.size() - 1;
+            var granule = ((long) (keyframe + base) << shift) + (last - keyframe);
+            var end = from + perPage >= frames.size();
+            pages.add(new Page(end ? OggPage.EOS : 0, granule, group));
+        }
+        return write(4321, pages);
+    }
+
     /// An Ogg Opus stream of `file`'s packets with `perPage` audio packets a
     /// page: the two headers on a page each, then the audio, every page's
     /// granule the samples played by its end plus the pre-skip, and the last

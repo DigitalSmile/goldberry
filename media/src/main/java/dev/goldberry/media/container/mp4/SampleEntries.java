@@ -11,6 +11,7 @@ import java.util.OptionalLong;
 import dev.goldberry.media.MediaError;
 import dev.goldberry.media.MediaException;
 import dev.goldberry.media.codec.CodecId;
+import dev.goldberry.media.codec.ColorDescription;
 import dev.goldberry.media.codec.FrameRate;
 import dev.goldberry.media.codec.MediaType;
 import dev.goldberry.media.codec.TrackParams;
@@ -57,7 +58,8 @@ final class SampleEntries {
                             video.level(),
                             video.bitRate(),
                             frameRate,
-                            video.alpha()),
+                            video.alpha(),
+                            video.colour()),
                     extradata);
         }
     }
@@ -147,9 +149,54 @@ final class SampleEntries {
         } else {
             var described = MatroskaCodecs.video(codec, width, height, record, 0, false);
             params = new TrackParams.Video(
-                    width, height, described.pixelFormat(), described.profile(), described.level(), bitRate);
+                            width, height, described.pixelFormat(), described.profile(), described.level(), bitRate)
+                    .withColour(described.colour());
         }
+        var vpcC = codec == CodecId.VP9 || codec == CodecId.VP8 ? record : NO_BYTES;
+        // The sample entry's boxes first, then the codec's own configuration.
+        params = params.withColour(colour(children, vpcC).orElse(params.colour()));
         return new SampleEntry(codec, codec == CodecId.UNKNOWN ? entry.name() : codec.ffmpegName(), params, record);
+    }
+
+    /// The colour a visual sample entry states: the primaries and transfer
+    /// function of its `colr` box (`nclx`, or QuickTime's `nclc`), else of a
+    /// VP codec's `vpcC`; the mastering display's peak from `mdcv`, which
+    /// counts in ten-thousandths of a nit; and `MaxCLL` from `clli`.
+    static ColorDescription colour(Map<Integer, byte[]> children, byte[] vpcC) {
+        var described = ColorDescription.UNSPECIFIED;
+        var colr = children.get(BoxTypes.COLR);
+        if (colr != null && colr.length >= 10) {
+            var kind = u32(colr, 0);
+            if (kind == BoxTypes.NCLX || kind == BoxTypes.NCLC) {
+                described = ColorDescription.fromH273(u16(colr, 4), u16(colr, 6));
+            }
+        }
+        if (described.equals(ColorDescription.UNSPECIFIED) && vpcC.length >= 10 && vpcC[0] == 1) {
+            described = ColorDescription.fromH273(vpcC[7] & 0xFF, vpcC[8] & 0xFF);
+        }
+        var masteringPeak = 0;
+        var mdcv = children.get(BoxTypes.MDCV);
+        if (mdcv != null && mdcv.length >= 24) {
+            var tenThousandths = u32(mdcv, 16) & 0xFFFF_FFFFL;
+            masteringPeak = (int) Math.min(100_000, Math.round(tenThousandths / 10_000.0));
+        }
+        var contentPeak = 0;
+        var clli = children.get(BoxTypes.CLLI);
+        if (clli != null && clli.length >= 4) {
+            contentPeak = u16(clli, 0);
+        }
+        return described.withLightLevels(masteringPeak, contentPeak);
+    }
+
+    private static int u16(byte[] bytes, int at) {
+        return (bytes[at] & 0xFF) << 8 | (bytes[at + 1] & 0xFF);
+    }
+
+    private static int u32(byte[] bytes, int at) {
+        return (bytes[at] & 0xFF) << 24
+                | (bytes[at + 1] & 0xFF) << 16
+                | (bytes[at + 2] & 0xFF) << 8
+                | (bytes[at + 3] & 0xFF);
     }
 
     /// FFmpeg's name for the pixel format a `vpcC` box states (VP Codec ISO

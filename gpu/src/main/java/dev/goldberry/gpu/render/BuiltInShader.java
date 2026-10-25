@@ -21,7 +21,13 @@ public enum BuiltInShader {
     /// ([YuvConversion]).
     YUV2_FRAGMENT("yuv2.frag", SdlGpuShaderStage.FRAGMENT, 2, 1),
     /// Y'CbCr to RGB from three planes: I420, I010 ([YuvConversion]).
-    YUV3_FRAGMENT("yuv3.frag", SdlGpuShaderStage.FRAGMENT, 3, 1);
+    YUV3_FRAGMENT("yuv3.frag", SdlGpuShaderStage.FRAGMENT, 3, 1),
+    /// [#YUV2_FRAGMENT], then HDR or wide-gamut R'G'B' to SDR BT.709 from a
+    /// second uniform block ([ToneMapping]).
+    YUV2_HDR_FRAGMENT("yuv2hdr.frag", SdlGpuShaderStage.FRAGMENT, 2, 2),
+    /// [#YUV3_FRAGMENT], then HDR or wide-gamut R'G'B' to SDR BT.709 from a
+    /// second uniform block ([ToneMapping]).
+    YUV3_HDR_FRAGMENT("yuv3hdr.frag", SdlGpuShaderStage.FRAGMENT, 3, 2);
 
     private final String fileName;
     private final SdlGpuShaderStage stage;

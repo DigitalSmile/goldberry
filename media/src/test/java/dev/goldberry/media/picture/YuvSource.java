@@ -3,6 +3,7 @@ package dev.goldberry.media.picture;
 import java.lang.foreign.ValueLayout;
 import java.nio.ByteOrder;
 
+import dev.goldberry.media.codec.ColorDescription;
 import dev.goldberry.media.codec.PixelFormat;
 import dev.goldberry.media.codec.VideoFrame;
 
@@ -23,6 +24,12 @@ public interface YuvSource {
     VideoFrame.ColorMatrix matrix();
 
     boolean fullRange();
+
+    /// The primaries, transfer function and light levels: an HDR or wide-gamut
+    /// picture is read through them to SDR BT.709.
+    default ColorDescription colour() {
+        return ColorDescription.UNSPECIFIED;
+    }
 
     /// The code of plane `plane`'s sample at (`column`, `row`), counted in
     /// samples: an interleaved chroma plane's Cb and Cr are two columns.
@@ -63,6 +70,11 @@ public interface YuvSource {
             }
 
             @Override
+            public ColorDescription colour() {
+                return planes.colour();
+            }
+
+            @Override
             public int code(int plane, int column, int row) {
                 var sample = planes.sample(plane, column, row);
                 return planes.format() == PixelFormat.P010 ? sample >>> 6 : sample;
@@ -97,6 +109,11 @@ public interface YuvSource {
             @Override
             public boolean fullRange() {
                 return frame.fullRange();
+            }
+
+            @Override
+            public ColorDescription colour() {
+                return frame.colour();
             }
 
             @Override

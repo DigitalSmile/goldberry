@@ -100,3 +100,8 @@ Appended to the index when the records move in, in this order.
 - [ADR-0656 Damaged media is fuzzed, and the decoders run under AddressSanitizer](0656-damaged-media-is-fuzzed-and-the-decoders-run-under-addresssanitizer.md)
 - [ADR-0657 A network source fetches half a minute of itself ahead](0657-a-network-source-fetches-half-a-minute-of-itself-ahead.md)
 - [ADR-0658 The largest picture decoded is 8K](0658-the-largest-picture-decoded-is-8k.md)
+- [ADR-0659 HDR and wide-gamut video is tone-mapped to SDR](0659-hdr-and-wide-gamut-video-is-tone-mapped-to-sdr.md)
+- [ADR-0660 Theora is decoded by libtheora](0660-theora-is-decoded-by-libtheora.md)
+- [ADR-0661 A user-installed ffmpeg is the last rung for the patent-pool codecs](0661-a-user-installed-ffmpeg-is-the-last-rung-for-the-patent-pool-codecs.md)
+- [ADR-0662 A picture's planes are copied once, into the GPU's upload memory](0662-a-pictures-planes-are-copied-once-into-the-gpus-upload-memory.md)
+- [ADR-0663 Vulkan Video decodes on the GPU, with the headers read in Java](0663-vulkan-video-decodes-on-the-gpu-with-the-headers-read-in-java.md)

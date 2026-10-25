@@ -40,7 +40,7 @@ Two threads per playing stream: demux+video-decode, audio-decode. Audio is the m
 | minimp3  | MP3                | CC0     | C header | —     | mp3float              |
 | libyuv   | CSC / scale (CPU path only) | BSD-3 | C++ | CMake | swscale             |
 
-Not shipped: libavformat (Java demuxers), swresample (SDL_AudioStream), libaom (dav1d is better), libtheora (out of scope unless requested).
+Not shipped: libavformat (Java demuxers), swresample (SDL_AudioStream), libaom (dav1d is better). libtheora, out of scope unless requested, was requested on 2026-10-25 (ADR-0660).
 
 Build notes for `:natives`:
 - dav1d via `ExternalProject_Add` with meson; `-Denable_tools=false -Denable_tests=false`. Needs nasm on x86.
@@ -122,7 +122,7 @@ Escape hatch: `goldberry-media-ffmpeg-cli` — a provider that spawns a user-sup
 - `goldberry-media-ffmpeg-cli` provider.
 
 **Phase 5 — nice-to-have**
-- HDR (P010, PQ/HLG tone-map shader), 10-bit AV1/VP9 end-to-end, Vulkan Video provider, Theora if anyone asks.
+- HDR (P010, PQ/HLG tone-map shader), 10-bit AV1/VP9 end-to-end, Vulkan Video provider, Theora if anyone asks. (All four taken up on 2026-10-25; see §9.)
 
 ## 7. Removed / changed in existing docs
 
@@ -355,3 +355,113 @@ the theme tokens, the showcase screens and the HTTP cache all exist (see
 2. Phase 4: zero-copy import of the system decoders' surfaces (Linux's
    DMA-BUF first), Media Foundation on by default once its lane is green,
    and the `ffmpeg-cli` provider.
+
+### Phases 4 and 5: the plan of 2026-10-25
+
+Decided with the user on 2026-10-25:
+
+- **No SDL patch, so no zero-copy import.** SDL 3.4.18's GPU API wraps no
+  outside texture on any backend; upstream's PR #14157 (D3D12 and Metal only,
+  open, contested) is the place for it. Instead one CPU copy goes: GPU present
+  stages a picture's planes into the device's upload memory on the video
+  thread, and the render thread records the upload without copying. Copy-back
+  stays the system decoders' contract.
+- **Vulkan Video, all four codecs** (H.264, HEVC, VP9, AV1), on a Vulkan
+  device of its own, copied back like the system decoders; the parameter sets,
+  slice headers and the picture buffer kept in Java. This machine's GTX 1660 Ti
+  decodes H.264, HEVC and VP9; AV1 is held to parsing tests only here.
+- **Theora** is built: libtheora in `libgoldberry-media`, Ogg and Matroska.
+- **CI runs from master** (changed 2026-10-25: no work branch): the work is
+  committed to master and the user pushes it, which runs `snapshot.yml` and,
+  through `publish.yml`, every platform lane and `media.yml`; Media Foundation
+  goes on by default once its lane is green.
+
+The items, each "done" when built, tested and green here:
+
+- [x] HDR (ADR-0659 parked, 2026-10-25): `codec.ColorDescription` (H.273
+      primaries and transfer function, mastering and content peaks) on
+      `TrackParams.Video`, `VideoFrame` and `VideoPlanes`, read from dav1d's
+      sequence header and metadata OBUs, Matroska `Colour`, MP4
+      `colr`/`vpcC`/`mdcv`/`clli`, H.264's VUI, HEVC's VUI through a new full
+      parameter set reader (`bitstream.hevc`, held to FFmpeg's `trace_headers`),
+      and GStreamer's caps; completed from the track by the video thread.
+      Tone-mapped to SDR BT.709 (BT.2390 EETF to 203 nits, hue kept) by
+      `yuv2hdr`/`yuv3hdr` on the GPU and by `goldberry_media_tone_map`, a float
+      pass in the library's own C, on the CPU: libyuv's AR30 was measured half a
+      percent short at white, a dozen levels after PQ. Native ABI 3. CPU within
+      a level of the reference, GPU within six of CPU where visible in light
+      (NVIDIA and lavapipe). The DXIL of the two new shaders is signed: this
+      machine's DXC 1.9.2609 has `libdxil.so`.
+- [x] 10-bit end to end: was already so for I010 (dav1d, VP9 profile 2) and
+      P010 (GStreamer's NVDEC, VideoToolbox), through both present paths
+      (`VideoPlaybackTest.tenBitPlanes`, `VideoOnGpuTest` parity); 10-bit AV1
+      now has a fixture of its own (`clip-av1-pq.mkv`) with a golden and GPU
+      parity, and the HDR10 HEVC fixture checks GStreamer's 10-bit output.
+- [x] The `ffmpeg-cli` provider (ADR-0661 parked, 2026-10-25): `ffmpegcli.FfmpegCliProvider`,
+      off unless `-Dgoldberry.media.ffmpeg` names a program or the application
+      calls `FfmpegCliProvider.of`. It claims the patent-pool codecs Matroska
+      names, and twelve `UNKNOWN` Matroska `CodecID`s, wherever `ffmpeg -codecs`
+      flags them `D`, at priority −100, below the system decoders. The track
+      goes in as Matroska (`container.matroska.MatroskaWriter`, µs timestamps,
+      shifted 1000 s), and frames come back as Matroska that `MatroskaContainer`
+      reads over the pipe: NV12 `V_UNCOMPRESSED`, P010 `V_MS/VFW/FOURCC`, f32
+      PCM. Times are put back from the packets that went in, colour comes from
+      the output `Colour`, and a seek restarts the program. All six video
+      fixtures match `framemd5` byte for byte, with and without hardware; 39
+      tests, which skip without an `ffmpeg`. The audio thread's missing fallback
+      while it drains at the end, which this found, is fixed in the Engine.
+- [x] Theora (ADR-0660 parked, 2026-10-25): libtheora 1.2.0's decoder compiled
+      into the library (11 exports, +48 KB, 3.8 MB), `decoder.theora` behind
+      `libtheora`, the Ogg mapping (granules as FFmpeg reads them, 3.2.0 too;
+      seeks land on a keyframe) and Matroska's `V_THEORA`; four fixtures held to
+      `framemd5` and `ffprobe`; native ABI 3.
+- [x] Staged planes (ADR-0662 parked, 2026-10-25): the video thread copies
+      a picture's planes into the view's upload memory (`VideoLayer.staging()`,
+      a pool of mapped `UploadBuffer`s cycled on the device's thread), and the
+      UI thread records the upload with no copy. `PlaneStore`/`PlaneBuffer`
+      in the SPI, `Attachment.setPlaneStore`, `PictureRenderer.planeStore()`.
+      4K on the UI thread: NV12 2.6 → 0.5 ms, P010 5.1 → 0.5 ms
+      (`:gpu:videoLayerProbe`, NVIDIA). GPU tests green on NVIDIA and
+      lavapipe; staged pictures draw within 2 levels of CPU present.
+- [x] Vulkan Video (ADR-0663, parked, 2026-10-25): `platform.vulkan.VulkanVideoProvider`,
+      priority −10 (below the system decoders, above `ffmpeg-cli`), off under
+      `HardwareDecoding.OFF`; `-Dgoldberry.media.vulkanVideo=off|auto|all`,
+      `auto` claiming H.264 and HEVC. FFM bindings generated from the system's
+      Vulkan 1.4.341 headers (`tools/media/generate_vulkan.py`), one
+      `VideoDevice` a process, one `VideoSession` a stream, decode → semaphore →
+      copy-back.
+  - [x] H.264 (`platform.vulkan.h264`): POC types 0–2, sliding window, MMCO
+        1–6, `frame_num` gaps, output by reorder depth; progressive 8-bit
+        4:2:0. All four fixtures match `framemd5` on the GTX 1660 Ti, with crop,
+        Matroska, a seek and a flush after the end.
+  - [x] HEVC (`platform.vulkan.hevc`): VPS/SPS/PPS as `StdVideoH265*`, POC,
+        the reference picture set (short- and long-term, a missing picture as
+        no slot), RASL pictures skipped after a CRA that starts afresh, output
+        by reorder depth and latency, Main and Main 10 (P010). Three new
+        256×144 fixtures (NVIDIA decodes HEVC from 144×144): closed GOP, open
+        GOP, Main 10; all match `framemd5`, and a seek onto a CRA is exact.
+  - [x] VP9 (`bitstream.vp9`, `platform.vulkan.vp9`): the uncompressed header
+        and superframe index, held to `trace_headers` on five clips and a
+        hand-made IVF (show-existing, intra-only, error-resilient, tile rows,
+        ±63 deltas); eight reference slots on nine session slots, hidden
+        frames decoded and not shown, `show_existing_frame` read back with no
+        decode, a keyframe of another size makes the session again; profiles 0
+        and 2. Two new 256×144 fixtures (NVIDIA decodes VP9 from 128×128):
+        both match `framemd5`, and so do a seek and a show-existing frame put
+        into the stream. Only under `-Dgoldberry.media.vulkanVideo=all`.
+  - [x] AV1 (`bitstream.av1`, `platform.vulkan.av1`): OBUs, the sequence
+        header (from `av1C` too), frame headers with every derived value
+        (`set_frame_refs`, `load_previous`, skip mode, global motion), tile
+        groups and the reference update (§7.20/§7.21), held to `trace_headers`
+        on seven fixtures, five of them new (tools, superres, error-resilient,
+        a still, timing). The sequence header as session parameters, each
+        frame's header and tile offsets in its temporal unit, eight reference
+        slots on nine, a shown key frame loaded everywhere. Film grain and
+        superres are left to dav1d (not claimed, or refused). **Not decoded
+        here**: the GTX 1660 Ti has no AV1; the picture info is checked
+        against four streams without a device, and `clip-av1-256.mkv` waits for
+        a GPU that decodes AV1.
+  - [x] The provider registered (`module-info`, `META-INF/services`), the
+        Vulkan downcalls in the native image's foreign metadata.
+- [ ] Media Foundation on by default (after its CI lane)
+- [ ] `media.yml`, `publish.yml` and the sanitizer job green on the runners

@@ -46,8 +46,9 @@ class DecoderFuzzTest {
 
     /// The fixtures, one per decoder and per path through it: dav1d from
     /// Matroska and MP4; libvpx in VP8, 8- and 10-bit VP9, 4:4:4 VP9 (the
-    /// subsampling path), and VP9 with alpha; Opus from Ogg and WebM, Vorbis,
-    /// FLAC with each of the three header records, MP3, and PCM.
+    /// subsampling path), and VP9 with alpha; libtheora from Ogg and Matroska,
+    /// and in 4:4:4; Opus from Ogg and WebM, Vorbis, FLAC with each of the three
+    /// header records, MP3, and PCM.
     static final List<Fixture> FIXTURES = List.of(
             new Fixture("clip-av1.mkv", MediaType.VIDEO),
             new Fixture("clip-av1.mp4", MediaType.VIDEO),
@@ -57,6 +58,9 @@ class DecoderFuzzTest {
             new Fixture("clip-vp9-444.webm", MediaType.VIDEO),
             new Fixture("clip-vp9-444-10bit.webm", MediaType.VIDEO),
             new Fixture("sticker-vp9-alpha.webm", MediaType.VIDEO),
+            new Fixture("clip-theora.ogv", MediaType.VIDEO),
+            new Fixture("clip-theora.mkv", MediaType.VIDEO),
+            new Fixture("clip-theora-444.ogv", MediaType.VIDEO),
             new Fixture("tone.opus", MediaType.AUDIO),
             new Fixture("tone-opus.webm", MediaType.AUDIO),
             new Fixture("tone.ogg", MediaType.AUDIO),

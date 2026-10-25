@@ -17,6 +17,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
 import dev.goldberry.media.codec.CodecId;
+import dev.goldberry.media.codec.ColorDescription;
 
 /// The configuration records of the fixtures, and made-up SPSs for the cases
 /// the fixtures do not reach.
@@ -70,10 +71,16 @@ public class ParameterSetsTest {
 
     @ParameterizedTest(name = "{0}-bit")
     @CsvSource({"8", "10"})
-    @DisplayName("HEVC: VPS, SPS and PPS in that order, the SPS's reorder depth and bit depth")
+    @DisplayName("HEVC: VPS, SPS and PPS in that order, the SPS's reorder depth, bit depth and VUI signal")
     void hevc(int bitDepth) {
         var configuration = ParameterSets.hevc(bitDepth == 8 ? HVCC_MAIN : HVCC_MAIN10);
-        assertEquals(new ParameterSets.Shape(2, bitDepth, 1), configuration.shape());
+        // x265 writes video_signal_type with limited range; the 10-bit clip
+        // also names BT.2020's matrix, and no primaries or transfer function.
+        var signal = new ParameterSets.Signal(
+                ParameterSets.Signal.Range.LIMITED,
+                bitDepth == 8 ? ParameterSets.Signal.MATRIX_UNSPECIFIED : 9,
+                ColorDescription.UNSPECIFIED);
+        assertEquals(new ParameterSets.Shape(2, bitDepth, 1, signal), configuration.shape());
         assertEquals(4, configuration.nalLengthSize());
         var types = configuration.parameterSets().stream()
                 .map(set -> (set[0] >> 1) & 0x3F)

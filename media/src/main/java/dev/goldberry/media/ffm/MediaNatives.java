@@ -24,6 +24,7 @@ import dev.goldberry.media.ffm.calls.FlacCalls;
 import dev.goldberry.media.ffm.calls.MediaCalls;
 import dev.goldberry.media.ffm.calls.Mp3Calls;
 import dev.goldberry.media.ffm.calls.OpusCalls;
+import dev.goldberry.media.ffm.calls.TheoraCalls;
 import dev.goldberry.media.ffm.calls.VorbisCalls;
 import dev.goldberry.media.ffm.calls.VpxCalls;
 import dev.goldberry.media.ffm.calls.YuvCalls;
@@ -201,6 +202,7 @@ public final class MediaNatives {
                     VpxCalls.bind(lookup),
                     OpusCalls.bind(lookup),
                     VorbisCalls.bind(lookup),
+                    TheoraCalls.bind(lookup),
                     FlacCalls.bind(lookup),
                     YuvCalls.bind(lookup),
                     Mp3Calls.bind(lookup),

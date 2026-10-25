@@ -37,7 +37,7 @@ class ContainerFuzzTest {
 
     /// Every container fixture: Matroska and WebM with video, audio, subtitles
     /// and two tracks; MP4 plain, fragmented, fast-start and as M4A with a
-    /// cover; Ogg with Vorbis, Opus and FLAC; raw FLAC and MP3 with and without
+    /// cover; Ogg with Vorbis, Opus, FLAC and Theora; raw FLAC and MP3 with and without
     /// a cover; WAV; and the containers this build names and refuses.
     static final List<String> FIXTURES = List.of(
             "clip-av1.mkv",
@@ -56,6 +56,7 @@ class ContainerFuzzTest {
             "tone.ogg",
             "tone.opus",
             "tone-flac.oga",
+            "clip-theora.ogv",
             "tone.flac",
             "tone-cover.flac",
             "tone.mp3",

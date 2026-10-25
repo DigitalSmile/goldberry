@@ -25,6 +25,7 @@ public enum CodecId {
     VP8("vp8", MediaType.VIDEO, true),
     VP9("vp9", MediaType.VIDEO, true),
     AV1("av1", MediaType.VIDEO, true),
+    THEORA("theora", MediaType.VIDEO, true),
 
     // --- Audio, royalty-free or patent-expired --------------------------------
     OPUS("opus", MediaType.AUDIO, true),

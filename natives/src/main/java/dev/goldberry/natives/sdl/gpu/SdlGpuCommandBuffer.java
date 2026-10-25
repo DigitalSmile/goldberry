@@ -1429,6 +1429,50 @@ public final class SdlGpuCommandBuffer {
             }
         }
 
+        /// Records a copy of `region`'s pixels into level 0 of layer 0 of
+        /// `destination` from byte `offset` of `source`, whose rows are
+        /// `pixelsPerRow` texels apart rather than packed: a picture's plane
+        /// staged with its rows padded to the alignment Direct3D 12 copies from
+        /// without realigning them first. Not for block-compressed formats.
+        ///
+        /// @param cycle take fresh texture memory if the GPU still reads the old,
+        ///              rather than wait for it
+        /// @throws IllegalArgumentException when the region is outside the
+        ///                                  texture, the rows are shorter than
+        ///                                  the region, or the rows do not fit
+        ///                                  `source`
+        public void upload(
+                SdlGpuTransferBuffer source,
+                int offset,
+                int pixelsPerRow,
+                SdlGpuTexture destination,
+                SdlGpuRegion region,
+                boolean cycle) {
+            requireOpen();
+            check(source, SdlGpuTransferUsage.UPLOAD, offset, destination, 0, 0, region);
+            var format = destination.format();
+            if (format.blockWidth() != 1 || format.blockHeight() != 1) {
+                throw new IllegalArgumentException(destination + " is block-compressed; its rows are packed");
+            }
+            if (pixelsPerRow < region.width()) {
+                throw new IllegalArgumentException(
+                        "rows of " + pixelsPerRow + " texels are shorter than " + region.width());
+            }
+            var bytes = (long) pixelsPerRow * format.bytesPerPixel() * (region.height() - 1)
+                    + (long) region.width() * format.bytesPerPixel();
+            if (offset + bytes > source.size()) {
+                throw new IllegalArgumentException(bytes + " bytes from offset " + offset + " do not fit " + source);
+            }
+            try (var arena = Arena.ofConfined()) {
+                var info = transferInfo(arena, source, offset, destination, region);
+                info.set(JAVA_INT, Layouts.SDL_GPU_TEXTURE_TRANSFER_INFO.offsetOf("pixels_per_row"), pixelsPerRow);
+                device.calls()
+                        .commands()
+                        .uploadToGPUTexture()
+                        .call(pass, info, region(arena, destination, 0, 0, region), cycle);
+            }
+        }
+
         /// Records a copy of `region` of level 0 of layer 0 of `source` into
         /// `destination` from byte `offset`, packed row after row. The bytes
         /// are there once the command buffer's fence has signalled.

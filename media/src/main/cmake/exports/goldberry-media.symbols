@@ -10,6 +10,7 @@
 # --- goldberry_media.c -------------------------------------------------------
 goldberry_media_abi
 goldberry_media_versions
+goldberry_media_tone_map
 
 # --- dav1d -----------------------------------------------------------------
 dav1d_version
@@ -101,6 +102,19 @@ vorbis_block_init
 vorbis_block_clear
 vorbis_dsp_clear
 vorbis_granule_time
+
+# --- libtheora (the decoder, libtheoradec) ---------------------------------
+th_version_string
+th_info_init
+th_info_clear
+th_comment_init
+th_comment_clear
+th_decode_headerin
+th_decode_alloc
+th_setup_free
+th_decode_packetin
+th_decode_ycbcr_out
+th_decode_free
 
 # --- FLAC (the stream decoder) ---------------------------------------------
 FLAC__VERSION_STRING

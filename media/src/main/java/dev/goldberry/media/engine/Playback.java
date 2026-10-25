@@ -48,6 +48,7 @@ import dev.goldberry.media.io.Source;
 import dev.goldberry.media.io.UnsupportedSchemeException;
 import dev.goldberry.media.picture.Picture;
 import dev.goldberry.media.picture.PictureForm;
+import dev.goldberry.media.picture.PlaneStore;
 import dev.goldberry.media.picture.VideoPicture;
 import dev.goldberry.media.subtitle.Cue;
 import dev.goldberry.media.subtitle.Subtitles;
@@ -227,6 +228,9 @@ public final class Playback implements AutoCloseable {
     private final LongAdder videoLate = new LongAdder();
     /// What the video thread prepares each picture as; set by [#setPictureForm].
     private volatile PictureForm pictureForm = PictureForm.CONVERTED;
+    /// Where planes are written, when a view offered its memory; set by
+    /// [#setPlaneStore].
+    private volatile @Nullable PlaneStore planeStore;
     private volatile AudioFormat format = AudioFormat.DEFAULT;
     private volatile boolean paused;
     private volatile boolean stopping;
@@ -637,6 +641,18 @@ public final class Playback implements AutoCloseable {
         if (flush && frames != null && !stopping) {
             reseek(presentationNanos());
         }
+    }
+
+    /// The memory planes are written into from the next picture on, or none:
+    /// the player's own. A picture already prepared keeps its memory.
+    public void setPlaneStore(@Nullable PlaneStore store) {
+        planeStore = store;
+    }
+
+    /// Where the video thread writes planes now, or null.
+    @Nullable
+    PlaneStore planeStore() {
+        return planeStore;
     }
 
     /// How long until a picture that is not yet due falls due, in nanoseconds of

@@ -26,6 +26,10 @@ final class GstVideo {
     private static final MethodHandle FD_gst_video_format_from_string =
             GstLibrary.link(FunctionDescriptor.of(JAVA_INT, ADDRESS));
 
+    /// `guint gst_video_transfer_function_to_iso(GstVideoTransferFunction func)`, and
+    /// `guint gst_video_color_primaries_to_iso(GstVideoColorPrimaries primaries)`
+    private static final MethodHandle FD_int_int = GstLibrary.link(FunctionDescriptor.of(JAVA_INT, JAVA_INT));
+
     /// `void gst_video_info_init(GstVideoInfo *info)`
     private static final MethodHandle FD_gst_video_info_init = GstLibrary.link(FunctionDescriptor.ofVoid(ADDRESS));
 
@@ -34,6 +38,8 @@ final class GstVideo {
     private final MemorySegment infoInit;
     private final MemorySegment formatFromString;
     private final MemorySegment colorimetryFromString;
+    private final MemorySegment transferToIso;
+    private final MemorySegment primariesToIso;
 
     GstVideo(SymbolLookup lookup) {
         var l = GstLibrary.GST_VIDEO;
@@ -42,6 +48,26 @@ final class GstVideo {
         this.infoInit = l.symbol(lookup, "gst_video_info_init");
         this.formatFromString = l.symbol(lookup, "gst_video_format_from_string");
         this.colorimetryFromString = l.symbol(lookup, "gst_video_colorimetry_from_string");
+        this.transferToIso = l.symbol(lookup, "gst_video_transfer_function_to_iso");
+        this.primariesToIso = l.symbol(lookup, "gst_video_color_primaries_to_iso");
+    }
+
+    /// The H.273 `TransferCharacteristics` code of a `GstVideoTransferFunction`.
+    int transferToIso(int transfer) {
+        try {
+            return (int) FD_int_int.invokeExact(transferToIso, transfer);
+        } catch (Throwable t) {
+            throw GstLibrary.failure("gst_video_transfer_function_to_iso", t);
+        }
+    }
+
+    /// The H.273 `ColourPrimaries` code of a `GstVideoColorPrimaries`.
+    int primariesToIso(int primaries) {
+        try {
+            return (int) FD_int_int.invokeExact(primariesToIso, primaries);
+        } catch (Throwable t) {
+            throw GstLibrary.failure("gst_video_color_primaries_to_iso", t);
+        }
     }
 
     /// Fills `info`, a [GstLayout#VIDEO_INFO]-sized segment, from raw video `caps`.

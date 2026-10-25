@@ -10,6 +10,8 @@ import dev.goldberry.media.codec.VideoFrame;
 import dev.goldberry.media.ffm.MediaLibrary;
 import dev.goldberry.media.ffm.MediaNatives;
 import dev.goldberry.media.ffm.calls.YuvCalls;
+import dev.goldberry.media.picture.hdr.ToneCurve;
+import dev.goldberry.media.picture.hdr.ToneMapper;
 
 /// Converts pictures with libyuv: CPU present's one pass from a decoded
 /// [VideoFrame] to the toolkit's premultiplied BGRA.
@@ -35,15 +37,24 @@ import dev.goldberry.media.ffm.calls.YuvCalls;
 /// picture, to a level of rounding. NV12 has no filtered conversion in libyuv,
 /// so its chroma is split into two planes first and converted as I420.
 ///
+/// **HDR and wide gamut are mapped to SDR BT.709**, as GPU present's shader
+/// maps them ([ToneCurve]): a picture whose [VideoFrame#colour()] is PQ, HLG,
+/// or in BT.2020 or P3 primaries is converted by the media natives' own pass,
+/// in floats with the same chroma interpolation, since libyuv's fixed point
+/// rounds before the mapping and PQ magnifies it. A picture with alpha is drawn
+/// as SDR whatever it says: tone-mapping premultiplied colour would darken its
+/// edges.
+///
 /// **Alpha is premultiplied here.** A picture with alpha
 /// ([dev.goldberry.media.codec.PixelFormat#I420A]) is converted with libyuv's attenuation on the way out,
 /// `(c × a + 128) >> 8` a channel, so the toolkit blits it as it blits its own
 /// premultiplied images. A picture without alpha is opaque, so premultiplied and
 /// straight are the same bytes.
 ///
-/// Nothing is kept between pictures: libyuv has no context to build, so a
-/// converter is the library and six addresses, and may be used from any thread,
-/// by one at a time or several. An NV12 picture borrows two chroma planes for
+/// Nothing is kept between pictures but the tone mapping's tables, built once
+/// a curve: libyuv has no context to build, so a converter is the library, six
+/// addresses and those tables, and may be used from any thread, by one at a
+/// time or several. An NV12 picture borrows two chroma planes for
 /// the length of its conversion.
 public final class YuvConverter implements AutoCloseable {
 
@@ -51,6 +62,7 @@ public final class YuvConverter implements AutoCloseable {
     private static final int ATTENUATE = 1;
 
     private final YuvCalls yuv;
+    private final ToneMapper toneMapper;
     private final int bilinear;
     private final MemorySegment bt601Limited;
     private final MemorySegment bt601Full;
@@ -86,6 +98,7 @@ public final class YuvConverter implements AutoCloseable {
     YuvConverter(MediaLibrary library, boolean exact) {
         Objects.requireNonNull(library, "library");
         this.yuv = library.yuv();
+        this.toneMapper = new ToneMapper(library.media());
         this.bilinear = library.constants().yuv().filterBilinear();
         this.bt601Limited = library.symbol("kYuvI601Constants");
         this.bt601Full = library.symbol("kYuvJPEGConstants");
@@ -126,6 +139,11 @@ public final class YuvConverter implements AutoCloseable {
         var planes = frame.planes();
         var width = frame.width();
         var height = frame.height();
+        var curve = ToneCurve.of(frame.colour());
+        if (!curve.isIdentity() && ToneMapper.converts(frame.format())) {
+            toneMapper.convert(curve, frame, target, targetStride);
+            return;
+        }
         var result = switch (frame.format()) {
             case I420 ->
                 yuv.i420ToArgbMatrixFilter()

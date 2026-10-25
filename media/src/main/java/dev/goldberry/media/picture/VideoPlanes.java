@@ -5,8 +5,12 @@ import java.nio.ByteOrder;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
+
+import org.jspecify.annotations.Nullable;
 
 import dev.goldberry.media.MediaPlayer;
+import dev.goldberry.media.codec.ColorDescription;
 import dev.goldberry.media.codec.PixelFormat;
 import dev.goldberry.media.codec.VideoFrame;
 
@@ -15,7 +19,9 @@ import dev.goldberry.media.codec.VideoFrame;
 ///
 /// The planes are the decoder's, copied as they were decoded, in one of the
 /// frame contract's four layouts ([PixelFormat]), and tagged with the matrix and
-/// range the picture was encoded with. Nothing has been converted, scaled or
+/// range the picture was encoded with, and its [ColorDescription]: an HDR or
+/// wide-gamut picture is tone-mapped by the shader that converts it. Nothing
+/// has been converted, scaled or
 /// rounded, so a shader that converts them is compared with libyuv
 /// ([YuvConverter]) on the same bytes CPU present converts.
 ///
@@ -26,6 +32,11 @@ import dev.goldberry.media.codec.VideoFrame;
 ///
 /// Each plane is read-only and little-endian, which is the byte order of the
 /// 16-bit samples of [PixelFormat#P010] and [PixelFormat#I010].
+///
+/// **Staged**: a view that offered the player a [PlaneStore] is handed
+/// pictures whose planes are in the store's memory ([#staged()]). They read
+/// the same, with one difference: the store may take the memory away with its
+/// device, and [#plane] then throws [IllegalStateException].
 ///
 /// Read more: [`video-view`](https://goldberry.dev/docs/components/media.html#video-view).
 public final class VideoPlanes implements Picture {
@@ -38,6 +49,8 @@ public final class VideoPlanes implements Picture {
     private final VideoFrame.ColorMatrix matrix;
     private final boolean fullRange;
     private final long ptsNanos;
+    private final ColorDescription colour;
+    private final @Nullable PlaneBuffer staged;
 
     /// A picture over `planes`.
     ///
@@ -52,6 +65,8 @@ public final class VideoPlanes implements Picture {
     ///                  rather than the limited one
     /// @param ptsNanos  when the picture is presented, in nanoseconds of stream
     ///                  time
+    /// @param colour    the primaries, transfer function and light levels, with
+    ///                  what is unspecified drawn as SDR in BT.709
     /// @throws IllegalArgumentException when the size is not positive, the
     ///                                  planes or strides are not as many as
     ///                                  `format` has, a stride is shorter than
@@ -65,8 +80,10 @@ public final class VideoPlanes implements Picture {
             List<Integer> strides,
             VideoFrame.ColorMatrix matrix,
             boolean fullRange,
-            long ptsNanos) {
+            long ptsNanos,
+            ColorDescription colour) {
         Objects.requireNonNull(format, "format");
+        Objects.requireNonNull(colour, "colour");
         Objects.requireNonNull(planes, "planes");
         Objects.requireNonNull(strides, "strides");
         Objects.requireNonNull(matrix, "matrix");
@@ -102,6 +119,51 @@ public final class VideoPlanes implements Picture {
         this.matrix = matrix;
         this.fullRange = fullRange;
         this.ptsNanos = ptsNanos;
+        this.colour = colour;
+        this.staged = null;
+    }
+
+    /// A picture whose planes are in a store's memory: `staged`'s.
+    ///
+    /// @throws IllegalArgumentException when the size is not positive
+    public VideoPlanes(
+            PlaneBuffer staged,
+            VideoFrame.ColorMatrix matrix,
+            boolean fullRange,
+            long ptsNanos,
+            ColorDescription colour) {
+        this.staged = Objects.requireNonNull(staged, "staged");
+        this.format = staged.format();
+        this.width = staged.width();
+        this.height = staged.height();
+        if (width <= 0 || height <= 0) {
+            throw new IllegalArgumentException("size " + width + "×" + height);
+        }
+        this.planes = List.of();
+        this.strides = new int[format.planes()];
+        for (var index = 0; index < strides.length; index++) {
+            strides[index] = staged.stride(index);
+        }
+        this.matrix = Objects.requireNonNull(matrix, "matrix");
+        this.fullRange = fullRange;
+        this.ptsNanos = ptsNanos;
+        this.colour = Objects.requireNonNull(colour, "colour");
+    }
+
+    /// A picture over `planes` in SDR, BT.709 primaries: every argument but
+    /// the colour description, which is [ColorDescription#UNSPECIFIED].
+    ///
+    /// @throws IllegalArgumentException as the canonical constructor
+    public VideoPlanes(
+            PixelFormat format,
+            int width,
+            int height,
+            List<ByteBuffer> planes,
+            List<Integer> strides,
+            VideoFrame.ColorMatrix matrix,
+            boolean fullRange,
+            long ptsNanos) {
+        this(format, width, height, planes, strides, matrix, fullRange, ptsNanos, ColorDescription.UNSPECIFIED);
     }
 
     /// The plane layout.
@@ -124,7 +186,18 @@ public final class VideoPlanes implements Picture {
     ///
     /// @throws IndexOutOfBoundsException for a plane [#format()] does not have
     public ByteBuffer plane(int index) {
+        var store = staged;
+        if (store != null) {
+            Objects.checkIndex(index, strides.length);
+            return store.plane(index).asReadOnlyBuffer().order(ByteOrder.LITTLE_ENDIAN);
+        }
         return planes.get(index).duplicate().order(ByteOrder.LITTLE_ENDIAN).clear();
+    }
+
+    /// The store's memory the planes are in, for the view that offered it; empty
+    /// for planes the player keeps itself.
+    public Optional<PlaneBuffer> staged() {
+        return Optional.ofNullable(staged);
     }
 
     /// Bytes from one row of plane `index` to the next.
@@ -150,6 +223,12 @@ public final class VideoPlanes implements Picture {
         return ptsNanos;
     }
 
+    /// The primaries, transfer function and light levels the picture was
+    /// encoded with.
+    public ColorDescription colour() {
+        return colour;
+    }
+
     /// One stored sample of plane `index`, unsigned: what a test compares.
     /// `column` counts samples along the row, so in the interleaved chroma plane
     /// of [PixelFormat#NV12] and [PixelFormat#P010], Cb is at `2 × x` and Cr at
@@ -164,7 +243,7 @@ public final class VideoPlanes implements Picture {
             throw new IndexOutOfBoundsException("(" + column + ", " + row + ") is outside plane " + index + " of a "
                     + width + "×" + height + " " + format + " picture");
         }
-        var plane = planes.get(index);
+        var plane = plane(index);
         var at = row * strides[index] + column * bytes;
         return bytes == 1 ? Byte.toUnsignedInt(plane.get(at)) : Short.toUnsignedInt(plane.getShort(at));
     }
@@ -172,6 +251,7 @@ public final class VideoPlanes implements Picture {
     @Override
     public String toString() {
         return "VideoPlanes[" + format + " " + width + "×" + height + " " + matrix + (fullRange ? " full" : " limited")
-                + " at " + ptsNanos + " ns]";
+                + (colour.isPlainSdr() ? "" : " " + colour.primaries() + " " + colour.transfer()) + " at " + ptsNanos
+                + " ns]";
     }
 }
