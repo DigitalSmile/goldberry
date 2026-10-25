@@ -7,6 +7,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import dev.goldberry.render.window.PresentMode;
+
 /// [FrameRing], which is what a `hud` reads.
 ///
 /// Every test here hands it timestamps rather than sleeping, which is the whole
@@ -15,6 +17,28 @@ import org.junit.jupiter.api.Test;
 class FrameRingTest {
 
     private static final long MS = 1_000_000L;
+
+    @Test
+    @DisplayName("keeps the pacing it was told, and judges a frame by the cap where the cap is slower")
+    void pacing() {
+        var ring = new FrameRing();
+        assertEquals(PresentMode.VSYNC, ring.presentMode(), "until told");
+        assertEquals(0, ring.frameCap());
+        ring.displayHertz(144);
+        assertEquals(144, ring.budgetHertz(), "no cap: the display's");
+        ring.pacing(PresentMode.VSYNC, 60);
+        assertEquals(60, ring.budgetHertz(), "a cap below the display");
+        ring.pacing(PresentMode.VSYNC, 240);
+        assertEquals(144, ring.budgetHertz(), "a cap above it changes nothing while waiting for the display");
+        ring.pacing(PresentMode.MAILBOX, 240);
+        assertEquals(240, ring.budgetHertz(), "not waiting for the display, the cap is the rate");
+        assertEquals(PresentMode.MAILBOX, ring.presentMode());
+        ring.displayHertz(0);
+        assertEquals(240, ring.budgetHertz(), "no display rate: the cap's");
+        ring.pacing(PresentMode.IMMEDIATE, -5);
+        assertEquals(0, ring.frameCap(), "a negative cap is none");
+        assertEquals(0, ring.budgetHertz(), "nothing known");
+    }
 
     @Test
     @DisplayName("nothing recorded reports nothing, not zero-as-a-measurement")

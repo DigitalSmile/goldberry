@@ -708,8 +708,7 @@ public final class Sdl3Backend implements Backend {
         // frame comes due rather than at the loop's one-second heartbeat. Zeroed
         // when a dialog answered while this was being set up, so its consumer is
         // not made to wait out a second of quiet.
-        var wait =
-                fileDialogs.hasPending() ? Duration.ZERO : pacer.capWait(timeout, anyFramePending(), System.nanoTime());
+        var wait = fileDialogs.hasPending() ? Duration.ZERO : frameWait(timeout, System.nanoTime());
 
         // One blocking wait, then drain whatever else is queued. Waiting per
         // event would sleep between two events that arrived together.
@@ -844,25 +843,49 @@ public final class Sdl3Backend implements Backend {
         // holds nothing back; after one that presented nothing -- no damage, so
         // no swapchain texture was waited for -- this is all that stops the loop
         // painting unseen frames at a thousand a second.
-        if (!pacer.isDue(now)) {
-            return 0;
-        }
         var frames = new ArrayList<BackendEvent>();
+        var paced = false;
         for (var window : windowsById.values()) {
+            // A window presenting in MAILBOX or IMMEDIATE does not wait for
+            // the display, and is held by its own cap alone.
+            var waits = window.presentMode().waitsForTheDisplay();
+            if (!pacer.isDue(now, window.cap(), waits)) {
+                continue;
+            }
             // Read before the request is consumed and before the pacer is
             // stamped, because both of those are what lateness is measured
-            // against.
-            var pendingSince = window.framePendingSince();
+            // against. A frame the cap held back was held, not late, so it is
+            // late from when the cap let it go.
+            var pendingSince = Math.max(window.framePendingSince(), window.cap().dueAt());
             if (window.takeFrameRequest()) {
                 frames.add(new BackendEvent.FrameDue(window));
-                window.frameWasLate(pacer.missedRefreshes(pendingSince, now));
+                window.cap().frameEmitted(now);
+                if (waits) {
+                    window.frameWasLate(pacer.missedRefreshes(pendingSince, now));
+                    paced = true;
+                }
             }
         }
         if (frames.isEmpty()) {
             return 0;
         }
-        pacer.frameEmitted(now);
+        if (paced) {
+            pacer.frameEmitted(now);
+        }
         return deliver(sink, frames);
+    }
+
+    /// The wait a pump should use: `timeout`, shortened to when the first
+    /// frame that is held back comes due, by the display or by its window's
+    /// cap. Without it a held frame would wait for the loop's heartbeat.
+    private Duration frameWait(Duration timeout, long now) {
+        var wait = timeout;
+        for (var window : windowsById.values()) {
+            if (window.isFramePending()) {
+                wait = pacer.capWait(wait, window.cap(), window.presentMode().waitsForTheDisplay(), now);
+            }
+        }
+        return wait;
     }
 
     /// Installs the watch that keeps frames coming during a resize drag.
@@ -949,17 +972,6 @@ public final class Sdl3Backend implements Backend {
         if (pacer.useDisplayRate(fastest)) {
             LOG.info("pacing the frame loop to {} Hz, one frame per {}", fastest, pacer.interval());
         }
-    }
-
-    /// Whether any window is waiting for a frame. Only asked when pacing, and
-    /// only to decide how long the next wait may be.
-    private boolean anyFramePending() {
-        for (var window : windowsById.values()) {
-            if (window.isFramePending()) {
-                return true;
-            }
-        }
-        return false;
     }
 
     /// Where the drag currently in progress last was, in the window's own

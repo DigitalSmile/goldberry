@@ -67,6 +67,7 @@ public final class GpuDevice {
     private final Thread owner;
     private final Set<ShaderFormat> shaderFormats;
     private @Nullable StagingBuffer upload;
+    private @Nullable GpuFeatures features;
 
     private GpuDevice(SdlGpuDevice sdl, Thread owner) {
         this.sdl = sdl;
@@ -95,6 +96,20 @@ public final class GpuDevice {
     public GpuAdapter adapter() {
         var adapter = call(sdl()::adapter);
         return new GpuAdapter(adapter.name(), adapter.driverName(), adapter.driverVersion(), adapter.driverInfo());
+    }
+
+    /// What it can do: sample counts, stencil and compressed formats, float
+    /// targets, its adapter. Asked of the driver the first time, and kept, since
+    /// none of it changes while the device lives.
+    ///
+    /// @throws GpuException when the driver will not describe itself
+    public GpuFeatures features() {
+        var known = features;
+        if (known == null) {
+            known = GpuFeatures.of(this);
+            features = known;
+        }
+        return known;
     }
 
     /// Blocks until the GPU has finished every frame submitted to this device:

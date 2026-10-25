@@ -7,6 +7,7 @@ import dev.goldberry.render.DamageRect;
 import dev.goldberry.render.GpuPlacement;
 import dev.goldberry.render.PixelBuffer;
 import dev.goldberry.render.PresentTimings;
+import dev.goldberry.render.window.PresentMode;
 
 /// A window a [Compositor] has claimed: its painted frames are uploaded to the
 /// GPU, damage only, and composited onto its swapchain.
@@ -43,6 +44,22 @@ public interface CompositedWindow extends AutoCloseable {
     /// What the last [#present] cost, for a frame loop's statistics:
     /// [PresentTimings#NONE] when it presented nothing, for want of damage.
     PresentTimings lastPresent();
+
+    /// Whether the swapchain can present in `mode`. [PresentMode#VSYNC] always
+    /// can, and is what a window is claimed in.
+    default boolean supports(PresentMode mode) {
+        return mode == PresentMode.VSYNC;
+    }
+
+    /// Presents in `mode` from the next frame.
+    ///
+    /// @throws IllegalArgumentException when the swapchain cannot
+    /// @throws RuntimeException         when the GPU refuses
+    default void presentMode(PresentMode mode) {
+        if (!supports(mode)) {
+            throw new IllegalArgumentException("this window cannot present in " + mode);
+        }
+    }
 
     /// SDL's name for the GPU driver this window presents through: `vulkan`,
     /// `metal`, `direct3d12`. For the log and `Window.presentation()`.

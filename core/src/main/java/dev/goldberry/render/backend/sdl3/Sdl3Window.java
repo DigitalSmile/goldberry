@@ -36,6 +36,7 @@ import dev.goldberry.render.window.Attention;
 import dev.goldberry.render.window.BackendWindow;
 import dev.goldberry.render.window.GpuSurface;
 import dev.goldberry.render.window.IconImage;
+import dev.goldberry.render.window.PresentMode;
 import dev.goldberry.render.window.Presentation;
 import dev.goldberry.render.window.WindowSpec;
 
@@ -98,6 +99,19 @@ sealed class Sdl3Window implements BackendWindow permits Sdl3Popup {
     /// The compositor's hold on this window while it presents through the GPU,
     /// and null while it presents through its window surface.
     private @Nullable CompositedWindow composited;
+
+    /// The present mode asked for, kept while the window cannot have it: what a
+    /// claim applies. `goldberry.backend.vsync=false` makes it
+    /// [PresentMode#MAILBOX] at launch.
+    private PresentMode requestedMode = launchPresentMode();
+
+    /// The present mode in effect: what the swapchain was set to while
+    /// composited, and the window surface's own while on the CPU.
+    private PresentMode presentMode = surfacePresentMode();
+
+    /// This window's own frame cap, which the backend asks before handing it a
+    /// frame.
+    private final FrameCap cap = new FrameCap();
 
     /// Why this window presents on the CPU whatever the policy says, once
     /// something has decided it must: a claim refused, a present that failed, a
@@ -405,6 +419,9 @@ sealed class Sdl3Window implements BackendWindow permits Sdl3Popup {
         switch (compositor.get().claim(handle)) {
             case Claim.Claimed(var window) -> {
                 composited = window;
+                // A swapchain is claimed in VSYNC, whatever the surface did.
+                presentMode = PresentMode.VSYNC;
+                applyPresentMode();
                 // Said at INFO by `Window`, once the first frame has gone
                 // through: one tagged line per change, for every backend.
                 LOG.debug("\"{}\" claimed for the GPU", title);
@@ -423,6 +440,7 @@ sealed class Sdl3Window implements BackendWindow permits Sdl3Popup {
         cpuOnly = reason;
         var gpu = composited;
         composited = null;
+        presentMode = surfacePresentMode();
         layers = List.of();
         lastPresent = PresentTimings.NONE;
         if (gpu != null) {
@@ -886,6 +904,79 @@ sealed class Sdl3Window implements BackendWindow permits Sdl3Popup {
         }
         backend.forget(this);
         video().destroyWindow(handle);
+    }
+
+    @Override
+    public PresentMode requestPresentMode(PresentMode mode) {
+        backend.requireUiThread();
+        requestedMode = Objects.requireNonNull(mode, "mode");
+        applyPresentMode();
+        return presentMode;
+    }
+
+    @Override
+    public PresentMode presentMode() {
+        return presentMode;
+    }
+
+    @Override
+    public void frameCap(double hertz) {
+        backend.requireUiThread();
+        cap.rate(hertz);
+    }
+
+    @Override
+    public double frameCap() {
+        return cap.rate();
+    }
+
+    /// The window's own cap, for the backend's frame loop.
+    FrameCap cap() {
+        return cap;
+    }
+
+    /// Sets the swapchain to the requested mode, or the nearest of its
+    /// fallbacks the window has, while composited. On the CPU the window
+    /// surface presents as it was set up to at launch, and the request waits.
+    private void applyPresentMode() {
+        var gpu = composited;
+        if (gpu == null) {
+            presentMode = surfacePresentMode();
+            return;
+        }
+        for (var mode : requestedMode.fallbacks()) {
+            if (mode == presentMode && gpu.supports(mode)) {
+                return;
+            }
+            if (!gpu.supports(mode)) {
+                continue;
+            }
+            try {
+                gpu.presentMode(mode);
+                presentMode = mode;
+                if (mode != requestedMode) {
+                    LOG.debug("\"{}\" presents in {}, having no {}", title, mode, requestedMode);
+                }
+                return;
+            } catch (RuntimeException e) {
+                LOG.debug("\"{}\" was refused {}", title, mode, e);
+            }
+        }
+    }
+
+    /// What `goldberry.backend.vsync` asks of a window at launch.
+    private static PresentMode launchPresentMode() {
+        return pacedAtLaunch() ? PresentMode.VSYNC : PresentMode.MAILBOX;
+    }
+
+    /// How the window surface presents, which is set once, before SDL starts:
+    /// paced to the display, or not when `goldberry.backend.vsync=false`.
+    private static PresentMode surfacePresentMode() {
+        return pacedAtLaunch() ? PresentMode.VSYNC : PresentMode.IMMEDIATE;
+    }
+
+    private static boolean pacedAtLaunch() {
+        return Boolean.parseBoolean(System.getProperty(Sdl3Backend.VSYNC_PROPERTY, "true"));
     }
 
     /// Whether a frame has been asked for and not yet handed out. Read by the

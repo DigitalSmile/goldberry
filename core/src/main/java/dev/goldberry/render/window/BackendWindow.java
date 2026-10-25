@@ -130,6 +130,37 @@ public interface BackendWindow extends AutoCloseable {
         return new Presentation.Cpu("this backend has no GPU path");
     }
 
+    /// Asks the window to present in `mode` from its next frame, or in the
+    /// nearest of its [PresentMode#fallbacks] it can. The request is kept: a
+    /// window that cannot have it now, on the CPU, takes it when it can.
+    ///
+    /// @return the mode it presents in now
+    default PresentMode requestPresentMode(PresentMode mode) {
+        return presentMode();
+    }
+
+    /// The mode this window presents in now. [PresentMode#VSYNC] by default,
+    /// which is a backend whose present waits for nothing or for the display.
+    default PresentMode presentMode() {
+        return PresentMode.VSYNC;
+    }
+
+    /// Holds this window to at most `hertz` frames a second, or lifts the cap
+    /// for zero. Ignored by a backend whose frames are not paced, as a
+    /// headless one's are not.
+    ///
+    /// @throws IllegalArgumentException when `hertz` is negative or not finite
+    default void frameCap(double hertz) {
+        if (!(hertz >= 0) || Double.isInfinite(hertz)) {
+            throw new IllegalArgumentException("a frame cap of " + hertz + " frames a second");
+        }
+    }
+
+    /// The frame cap, in frames a second, or zero for none.
+    default double frameCap() {
+        return 0;
+    }
+
     /// How this window shows GPU layers now, or empty when it cannot show them
     /// at all.
     ///

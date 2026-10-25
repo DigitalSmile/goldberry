@@ -110,3 +110,4 @@ Appended to the index when the records move in, in this order.
 - [ADR-0667 A moving scene rebuilds its top level, and shadows come back a byte a pixel](0667-a-moving-scene-rebuilds-its-top-level-and-shadows-come-back-a-byte-a-pixel.md)
 - [ADR-0668 Lavapipe at 128-bit vectors is refused for ray tracing](0668-lavapipe-at-128-bit-vectors-is-refused-for-ray-tracing.md)
 - [ADR-0669 Indirect draws, the stencil test and GPU copies join the GPU API](0669-indirect-draws-the-stencil-test-and-gpu-copies-join-the-gpu-api.md)
+- [ADR-0670 A window presents in the mode asked for, and a frame cap is its own](0670-a-window-presents-in-the-mode-asked-for-and-a-frame-cap-is-its-own.md)

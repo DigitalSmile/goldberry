@@ -232,6 +232,25 @@ submitted has finished. `texture.setDebugName(name)` and
 resource as.
 
 
+## What a device can do
+
+`device.features()` answers the questions an options screen asks before it
+offers a choice: the colour and depth sample counts (`colorSampleCounts()`,
+ascending from 1 and not always every one, since some devices have 4 and 8 but
+no 2), the depth formats with a stencil (`stencilFormat()` picks the smaller
+one the device has), the block-compressed formats it samples, whether it
+renders half-float targets, and the adapter's name. It is asked once and kept.
+
+```java
+var features = device.features();
+var antiAliasing = features.colorSampleCounts();
+var outlines = features.stencilFormat().isPresent();
+```
+
+Ray tracing is asked separately, with `RayTracer.availability()`, because it
+runs on a device of its own that is only looked for when something asks.
+
+
 ## Rendering offscreen
 
 A test of a scene with a `canvas3d` in it opens an `OffscreenGpu` and hands

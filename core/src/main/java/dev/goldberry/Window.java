@@ -41,6 +41,7 @@ import dev.goldberry.render.window.Attention;
 import dev.goldberry.render.window.BackendWindow;
 import dev.goldberry.render.window.IconImage;
 import dev.goldberry.render.window.Ownership;
+import dev.goldberry.render.window.PresentMode;
 import dev.goldberry.render.window.Presentation;
 import dev.goldberry.render.window.WindowSpec;
 import dev.goldberry.stats.FrameRing;
@@ -537,6 +538,45 @@ public final class Window implements AutoCloseable {
         return this;
     }
 
+    /// The present mode this window is in now: what a swapchain was set to,
+    /// which is the mode asked for or the nearest the driver has, or how the
+    /// window surface presents while the window is on the CPU.
+    public PresentMode presentMode() {
+        return window.presentMode();
+    }
+
+    /// Asks this window to present in `mode`, from its next frame: a game's
+    /// vertical-sync setting. A driver without `mode` gets the nearest it has
+    /// ([PresentMode#fallbacks]), and [#presentMode()] says which. A window on
+    /// the CPU keeps the request and takes it when it moves to the GPU.
+    ///
+    /// `goldberry.backend.vsync=false` makes [PresentMode#MAILBOX] the
+    /// request a window opens with; this changes it from then on.
+    public Window presentMode(PresentMode mode) {
+        Objects.requireNonNull(mode, "mode");
+        window.requestPresentMode(mode);
+        return this;
+    }
+
+    /// The frame cap, in frames a second, or zero for none.
+    public double frameCap() {
+        return window.frameCap();
+    }
+
+    /// Holds this window to at most `hertz` frames a second, from its next
+    /// frame, or lifts the cap for zero: a game's frame-rate limit.
+    ///
+    /// A window in [PresentMode#VSYNC] is painted at most once a refresh, so
+    /// a cap above the display's rate changes nothing there; in
+    /// [PresentMode#MAILBOX] or [PresentMode#IMMEDIATE] the cap is the only
+    /// limit. A frame the cap holds back is not counted late.
+    ///
+    /// @throws IllegalArgumentException when `hertz` is negative or not finite
+    public Window frameCap(double hertz) {
+        window.frameCap(hertz);
+        return this;
+    }
+
     /// Where this window's frames went over its life: how many through the GPU
     /// and how many on the CPU.
     public PresentationTally presentations() {
@@ -1027,6 +1067,9 @@ public final class Window implements AutoCloseable {
         // when the window moves monitors, and a `hud` needs it to know what a
         // frame's budget actually is.
         frames.displayHertz(window.refreshRate());
+        // The pacing the frame was held to, which a `hud` shows and judges
+        // the frame's budget by.
+        frames.pacing(window.presentMode(), window.frameCap());
 
         var frameSize = size;
         try {

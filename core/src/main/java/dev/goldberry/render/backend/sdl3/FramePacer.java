@@ -128,6 +128,15 @@ final class FramePacer {
         return nanosUntilDue(nowNanos) == 0L;
     }
 
+    /// Whether a window may have a frame now: the display wants one, if the
+    /// window waits for it, and the window's own cap allows one.
+    ///
+    /// @param waitsForTheDisplay whether the window presents in a mode that
+    ///                           waits for the vertical blank
+    boolean isDue(long nowNanos, FrameCap cap, boolean waitsForTheDisplay) {
+        return (!waitsForTheDisplay || isDue(nowNanos)) && cap.isDue(nowNanos);
+    }
+
     /// Records that a frame was handed out at `nowNanos`.
     ///
     /// Stamped when the frame is *emitted* rather than when it is presented, so
@@ -183,11 +192,21 @@ final class FramePacer {
     /// `SDL_WaitEventTimeout` until something unrelated woke it — on an idle
     /// window, up to the event loop's one-second heartbeat. The frame would be
     /// held for a second rather than for the rest of its interval.
-    Duration capWait(Duration timeout, boolean framePending, long nowNanos) {
-        if (!isPacing() || !framePending) {
+    ///
+    /// Asked once for each window with a frame pending, the wait shortened by
+    /// each in turn. The window's frame is due when the display wants one, if
+    /// it waits for the display, and when its own cap allows, whichever is
+    /// later. A frame that nothing holds back is left to the wakeup its
+    /// request pushed, which ends the wait by itself.
+    ///
+    /// @param waitsForTheDisplay whether the window presents in a mode that
+    ///                           waits for the vertical blank
+    Duration capWait(Duration timeout, FrameCap cap, boolean waitsForTheDisplay, long nowNanos) {
+        var paced = waitsForTheDisplay && isPacing();
+        if (!paced && !cap.isCapped()) {
             return timeout;
         }
-        var until = nanosUntilDue(nowNanos);
+        var until = Math.max(paced ? nanosUntilDue(nowNanos) : 0L, cap.nanosUntilDue(nowNanos));
         return until < timeout.toNanos() ? Duration.ofNanos(until) : timeout;
     }
 

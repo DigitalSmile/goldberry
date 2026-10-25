@@ -18,6 +18,7 @@ import dev.goldberry.css.Theme;
 import dev.goldberry.css.cascade.CascadeLayer;
 import dev.goldberry.kdl.KdlParser;
 import dev.goldberry.paint.Box;
+import dev.goldberry.render.window.PresentMode;
 import dev.goldberry.stats.FrameStats;
 import dev.goldberry.widget.ElementTree;
 import dev.goldberry.widget.WidgetRenderer;
@@ -255,6 +256,71 @@ class HudTest {
         // And a HUD with no loop over it is not reporting a healthy one: dashes
         // in red would be an alarm about nothing.
         assertTrue(new HudReading(Reading.LATE).classes(FrameStats.none()).contains("ok"));
+    }
+
+    /// Fixed numbers held to a present mode and a frame cap, as a window's
+    /// statistics are.
+    private record Paced(FrameStats base, PresentMode presentMode, double frameCap) implements FrameStats {
+
+        @Override
+        public int capacity() {
+            return base.capacity();
+        }
+
+        @Override
+        public long count() {
+            return base.count();
+        }
+
+        @Override
+        public double fps() {
+            return base.fps();
+        }
+
+        @Override
+        public double frameMillis() {
+            return base.frameMillis();
+        }
+
+        @Override
+        public double paintMillis() {
+            return base.paintMillis();
+        }
+
+        @Override
+        public double displayHertz() {
+            return base.displayHertz();
+        }
+    }
+
+    @Test
+    @DisplayName("`pacing` says the present mode in effect, and the cap where there is one, uncoloured")
+    void pacing() {
+        var sixty = FrameStats.of(60, 16.7, 2.1, 500, 0, 0, 0, 0, 60);
+        var box = renderer(new Paced(sixty, PresentMode.MAILBOX, 144))
+                .render(new ElementTree(new Hud(Reading.FPS, Reading.PACING)));
+        assertEquals(List.of("60 fps", "pacing mailbox, cap 144"), readings(box));
+        assertEquals("pacing vsync", Reading.PACING.render(new Paced(sixty, PresentMode.VSYNC, 0)));
+        assertEquals("pacing —", Reading.PACING.render(FrameStats.none()));
+        assertTrue(new HudReading(Reading.PACING)
+                .classes(new Paced(sixty, PresentMode.IMMEDIATE, 30))
+                .contains("ok"));
+        assertEquals(Reading.PACING, Reading.parse("pacing"));
+    }
+
+    @Test
+    @DisplayName(
+            "a capped window's budget is a share of the cap, where the cap is slower or the display is not waited for")
+    void cappedBudget() {
+        var sixty = FrameStats.of(60, 16.7, 2, 9, 0, 0, 0, 0, 60);
+        assertEquals(16.67, Reading.PAINT.budgetMillis(new Paced(sixty, PresentMode.VSYNC, 30)), 0.01, "half of 33 ms");
+        assertEquals(8.33, Reading.PAINT.budgetMillis(new Paced(sixty, PresentMode.VSYNC, 240)), 0.01, "the display's");
+        assertEquals(2.08, Reading.PAINT.budgetMillis(new Paced(sixty, PresentMode.MAILBOX, 240)), 0.01, "the cap's");
+        assertTrue(
+                new HudReading(Reading.PAINT)
+                        .classes(new Paced(sixty, PresentMode.VSYNC, 30))
+                        .contains("ok"),
+                "9 ms is over half a 60 Hz frame and well inside half a 30 Hz one");
     }
 
     @Test

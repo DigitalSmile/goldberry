@@ -21,6 +21,7 @@ import dev.goldberry.render.PixelBuffer;
 import dev.goldberry.render.backend.sdl3.Sdl3Backend;
 import dev.goldberry.render.model.LogicalSize;
 import dev.goldberry.render.model.PixelFormat;
+import dev.goldberry.render.window.PresentMode;
 import dev.goldberry.render.window.Presentation;
 import dev.goldberry.render.window.WindowSpec;
 
@@ -70,6 +71,44 @@ class CompositedBackendTest {
             // And says so, naming the driver it presents through.
             var presentation = assertInstanceOf(Presentation.Gpu.class, window.presentation());
             assertTrue(SdlGpuDevice.compiledDrivers().contains(presentation.driver()), presentation::toString);
+            window.close();
+        }
+    }
+
+    @Test
+    @DisplayName("presents in the mode it is asked for, or the nearest fallback its driver has, and keeps the cap")
+    void presentModes() {
+        try (var backend = new Sdl3Backend()) {
+            var window = backend.createWindow(WindowSpec.of("present modes", LogicalSize.of(120, 80)));
+            var size = window.physicalSize();
+            var frame = PixelBuffer.allocate(size, PixelFormat.BGRA32_PREMULTIPLIED);
+            window.acquireFrame();
+            window.present(frame, List.of(DamageRect.all(size)));
+            assertInstanceOf(
+                    Presentation.Gpu.class, window.presentation(), "composited, so the mode is the swapchain's");
+            assertEquals(PresentMode.VSYNC, window.presentMode(), "claimed in VSYNC");
+            for (var mode : PresentMode.values()) {
+                var inEffect = window.requestPresentMode(mode);
+                assertTrue(mode.fallbacks().contains(inEffect), mode + " came out as " + inEffect);
+                assertEquals(inEffect, window.presentMode());
+                window.acquireFrame();
+                window.present(frame, List.of(DamageRect.all(size)));
+            }
+            window.frameCap(30);
+            assertEquals(30, window.frameCap());
+            window.requestPresentMode(PresentMode.VSYNC);
+            window.close();
+        }
+    }
+
+    @Test
+    @DisplayName("on the CPU, keeps the mode asked for and presents as its surface does")
+    void presentModeOnTheCpu() {
+        System.setProperty("goldberry.gpu", "off");
+        try (var backend = new Sdl3Backend()) {
+            var window = backend.createWindow(WindowSpec.of("on the CPU", LogicalSize.of(120, 80)));
+            assertEquals(
+                    PresentMode.VSYNC, window.requestPresentMode(PresentMode.MAILBOX), "the surface's, as launched");
             window.close();
         }
     }

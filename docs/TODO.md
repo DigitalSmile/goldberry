@@ -259,8 +259,11 @@ closed as decisions under [Answered](#answered).
   **Phase 1, the unbound SDL_GPU calls, is done** (ADR-0669, parked,
   2026-10-25): native ABI 26, indirect draws and dispatches, a stencil test,
   constant blending, GPU-to-GPU copies, compute samplers, vertex storage
-  textures, the adapter's name. Next in the plan: phase 2 (`GpuFeatures`,
-  present mode and frame cap at run time), then the software tier (phase 3).
+  textures, the adapter's name. **Phase 2 is done too** (ADR-0670, parked, the
+  same day): `Window.presentMode`/`frameCap` at run time, the loop holding a
+  window that does not wait for the display by its cap, the `hud`'s `pacing`
+  reading, `GpuDevice.features()`. Next in the plan: the software tier (phase
+  3), or render scale and FSR 1 (phase 5).
 ## Platform, compositor and CI
 - **The 60 fps claim is measured on one machine, and closing M1 is a CI job.**
   §16's M1 asks for a styled wrapped paragraph *resized* at 60 fps on Linux,

@@ -7467,6 +7467,15 @@ a painted frame reaches the screen, and what else can be on it.
   `GpuDevice.adapter()`. `GpuGameFeaturesTest` (15) checks each against what it
   draws, on lavapipe and on the GTX 1660 Ti. A texture both sampled and read as
   storage by a draw is now refused in Java, where SDL used to abort.
+- **A window's vsync and frame cap change while it runs** (ADR-0670, parked,
+  2026-10-25; the gaming plan's phase 2). `Window.presentMode(PresentMode)`
+  sets the swapchain to VSYNC, MAILBOX or IMMEDIATE, or the nearest the driver
+  has, and `presentMode()` says which is in effect. `Window.frameCap(hertz)`
+  holds a window to a rate of its own. The frame loop holds a window in MAILBOX
+  or IMMEDIATE by its cap alone. The `hud` shows both as `pacing` and judges
+  budgets by the cap. `GpuDevice.features()` answers sample counts, stencil and
+  compressed formats, float targets and the adapter. Green on lavapipe and the
+  GTX 1660 Ti, CI not yet run.
 
 **What is not proven.** Everything above was built and measured on Metal. On
 Linux the composited path has run on this project's machine, under X11 on

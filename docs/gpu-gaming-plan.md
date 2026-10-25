@@ -14,8 +14,10 @@ tier (phase 4) is built and tested, with scene updates, compaction and a
 packed shadow mask (ADR-0667), and its CI lane runs on the x64 leg (lavapipe
 at 128-bit vectors is refused, ADR-0668). **Phase 1 is done** (ADR-0669):
 native ABI 26 binds the SDL_GPU calls a game needs, and `:gpu` has indirect
-draws, a stencil test, constant blending and GPU-to-GPU copies. The rest of the
-plan is open. The next free ADR number is 0670.
+draws, a stencil test, constant blending and GPU-to-GPU copies. **Phase 2 is
+done** (ADR-0670): a window's present mode and frame cap change at run time,
+the `hud` shows them, and `GpuDevice.features()` answers what a device can do.
+The rest of the plan is open. The next free ADR number is 0671.
 
 ## 1. Where things stand
 
@@ -141,7 +143,10 @@ until there is a patch or upstream support.
 
 **Built with phase 4 (ADR-0666)** as two answers, `Unavailable(reason)` and
 `Hardware(device)`; `Software` joins when phase 3 does. The mode has `OFF`,
-`AUTO` and `HARDWARE` until then.
+`AUTO` and `HARDWARE` until then. **Changed with phase 2 (ADR-0670):**
+`GpuDevice.features()` does not carry it. `RayTracer.availability()` stays the
+one answer, because it opens a Vulkan device on first ask and its package
+already depends on `dev.goldberry.gpu`.
 
 ```java
 public sealed interface RayTracing permits RayTracing.None, RayTracing.Software, RayTracing.Hardware {
@@ -203,9 +208,9 @@ numbers in front of them.
 
 | Item | Status |
 |------|--------|
-| `GpuFeatures` record from the device: driver, adapter name (`GetGPUDeviceProperties`), sample counts, anisotropy, indirect first instance, HDR compositions, `RayTracing` (D4) | open |
-| `PresentMode` and a frame cap on `Window`, changed at run time; `goldberry.backend.vsync` stays as the launch default | open |
-| `hud` readings for the present mode and the cap | open |
+| `GpuFeatures` record from the device: driver, adapter name (`GetGPUDeviceProperties`), sample counts, anisotropy, indirect first instance, HDR compositions, `RayTracing` (D4) | done (ADR-0670), as `GpuDevice.features()`, asked once and kept: driver, adapter, shader formats, colour and depth sample counts (**not contiguous**: lavapipe has 1, 4, 8), stencil formats, compressed formats, float targets. Left out: anisotropy and indirect first instance, which SDL does not report; HDR compositions, which are a window's (`SdlGpuWindow.supports`, phase 6); `RayTracing`, which stays `RayTracer.availability()` (D4 changed) |
+| `PresentMode` and a frame cap on `Window`, changed at run time; `goldberry.backend.vsync` stays as the launch default | done (ADR-0670): `dev.goldberry.render.window.PresentMode` with fallbacks; `Window.presentMode(mode)`/`presentMode()` and `frameCap(hertz)`/`frameCap()`; `Sdl3Window` applies the request at the claim and on each change, keeps it on the CPU; the compositor claims in VSYNC and no longer reads the property; `FrameCap` per window, and the loop holds a window in MAILBOX/IMMEDIATE by its cap alone (`FramePacer.isDue(now, cap, waits)`, `capWait` per window); capped frames are held, not late |
+| `hud` readings for the present mode and the cap | done: `FrameStats.presentMode()`, `frameCap()`, `budgetHertz()`; the `pacing` reading (`pacing mailbox, cap 144`); every budget a share of `budgetHertz()` |
 
 ### Phase 3 — software ray queries
 
@@ -292,7 +297,9 @@ Taken up first, on 2026-10-25, once D3 was decided.
 | `docs/snapshot/components-gpu.md` `## Indirect draws, stencil and copies` | the guide section for phase 1 | done (2026-10-25), parked |
 | `docs/status.md` M4 | each phase as it closes | phase 1 and phase 4 written; the rest open |
 | `docs/snapshot/components-gpu.md` | settings, render scale; moved to the book at release | open; ray tracing and phase 1 written |
-| `docs/snapshot/changelog-breaking-changes.md` | `PipelineSpec`'s and `DepthTarget`'s new components, the new constants, the refused texture, ABI 26 | done (2026-10-25) |
+| `docs/snapshot/changelog-breaking-changes.md` | `PipelineSpec`'s and `DepthTarget`'s new components, the new constants, the refused texture, ABI 26 | done (2026-10-25); phase 2's unpaced MAILBOX and the `pacing` reading added |
+| `docs/snapshot/adr/0670-…` | phase 2: present mode and frame cap per window, `GpuFeatures` | done (2026-10-25) |
+| `docs/snapshot/guide-windows-present-mode.md`, `components-overlays-hud-pacing.md`, `components-gpu.md` `## What a device can do` | phase 2's guide pieces | done (2026-10-25), parked |
 | `gpu/src/main/java/module-info.java` | the new exported package | done: `exports dev.goldberry.gpu.raytrace` |
 | `THIRD-PARTY-NOTICES.md` | FSR 1 (MIT) | open |
 | `docs/gpu-plan.md` §2 "Not in M4" | HDR swapchains, compute in the public API: link here | open |
@@ -308,3 +315,4 @@ Taken up first, on 2026-10-25, once D3 was decided.
 | 2026-10-25 | Phase 0's runner question, as far as it can be answered without a run: noble-updates has Mesa 25.2.8, and lavapipe has had ray tracing since 24.1, so both legs should have the extensions. The verify job got a "Ray tracing on lavapipe" step that prints them and requires the ray tracer's tests where both are listed (phase 4's lane row). Local `vulkaninfo` is not installed, so the step's extension check was tested against a fake; testing it that way caught a prefix match, now anchored with `\b`. The contributor guide's piece is parked as item 6 of `docs/snapshot/contributing-testing-ci-matrix.md`. Open: the run itself |
 | 2026-10-25 | Snapshot 76 and Qodana 80, the first runs of the ray tracer. Phase 0's runner question is answered: both legs' lavapipe has the extensions, and x64 passes required. Three failures, all the ray tracer's. (1) `RayTracerTest` closed a tracer it never opened when it skipped, so the Java job, which has no device, failed all 15 skips; reproduced with `-Dgoldberry.raytracing.device=no-such-device`. (2) On arm64, lavapipe at 128-bit vectors crashes the JVM in its acceleration-structure build; reproduced on x86 with `LP_NATIVE_VECTOR_WIDTH=128` (Mesa 26.0.8), and no build flag or scratch size avoids it, so `RayDevice` refuses it (ADR-0668) and the CI step requires the tests on x64 alone. (3) Qodana: `DeviceBuffer` and `ShowcasePlayers` join the owned types in `profile.yaml`, the extension lookup is a set, the two log lines differ, and `Hits.height()` and `Ray.at()` are tested. Outside the plan, Windows failed `:example:prepareCatalogs` because two builds fetched one archive on a cold cache; `AssetCache` keeps the other build's archive when its own move is refused (`AssetCacheTest`) |
 | 2026-10-25 | **Phase 1 built** (ADR-0669). Native ABI 26 exports the fourteen SDL_GPU calls §1 names plus `SDL_GetStringProperty`, probes their five structs, and binds them in the existing `…calls` records. Two of the plan's assumptions were wrong: `BufferUsage.INDIRECT` was not mapped, and a stencil reference and blend constants needed pipelines that read them, so a `StencilTest`, the two depth-stencil formats and `BlendMode.CONSTANT` joined the phase. The first lavapipe run of the new tests ended in an SDL assertion (a texture both `SAMPLER` and `GRAPHICS_STORAGE_READ`), which `TextureSpec` let through and now refuses. `GpuGameFeaturesTest` draws a command a compute pass wrote, a stencil mask, a constant mix, GPU copies, a sampled compute pass and a mesh displaced by a storage texture; green on lavapipe and the 1660 Ti. Not yet run by CI. Next: phase 2 |
+| 2026-10-25 | **Phase 2 built** (ADR-0670). Present mode belongs to the window as a request and as the mode in effect: the claim is made in VSYNC and the window sets the swapchain to the request or its nearest fallback, keeping the request while on the CPU. The frame loop stops holding windows in MAILBOX or IMMEDIATE to the display; a per-window `FrameCap` holds them instead, with lateness counted from when the cap lets a frame go. `FrameStats.budgetHertz()` makes every `hud` budget a share of the cap where it is slower, and `pacing` shows both. `GpuDevice.features()` landed without ray tracing (D4 changed). The first lavapipe run found sample counts with a gap (1, 4, 8). Green on lavapipe and the 1660 Ti (`:gpu:gpuTest` 120); CI not yet run |

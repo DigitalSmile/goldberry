@@ -23,6 +23,7 @@ import dev.goldberry.render.window.Attention;
 import dev.goldberry.render.window.BackendWindow;
 import dev.goldberry.render.window.GpuSurface;
 import dev.goldberry.render.window.IconImage;
+import dev.goldberry.render.window.PresentMode;
 import dev.goldberry.render.window.Presentation;
 import dev.goldberry.render.window.WindowSpec;
 
@@ -129,6 +130,36 @@ public sealed class HeadlessWindow implements BackendWindow permits HeadlessPopu
         // Deliberately does NOT clear framePending -- see frameDelivered(). A
         // painter that asks for the next frame while painting this one must keep
         // its request, or an animation runs exactly once.
+    }
+
+    /// The present mode last asked for, which this backend keeps and does not
+    /// apply: its frames go nowhere to be paced.
+    private PresentMode requestedMode = PresentMode.VSYNC;
+
+    private double frameCap;
+
+    @Override
+    public PresentMode requestPresentMode(PresentMode mode) {
+        backend.requireUiThread();
+        requestedMode = Objects.requireNonNull(mode, "mode");
+        return presentMode();
+    }
+
+    /// The present mode last asked for: what a test of an options screen
+    /// checks, since the mode in effect here is always [PresentMode#VSYNC].
+    public PresentMode requestedPresentMode() {
+        return requestedMode;
+    }
+
+    @Override
+    public void frameCap(double hertz) {
+        BackendWindow.super.frameCap(hertz);
+        frameCap = hertz;
+    }
+
+    @Override
+    public double frameCap() {
+        return frameCap;
     }
 
     @Override

@@ -58,7 +58,7 @@ class FramePacerTest {
             var pacer = new FramePacer(0L);
             var timeout = Duration.ofSeconds(1);
 
-            assertEquals(timeout, pacer.capWait(timeout, true, 0L));
+            assertEquals(timeout, pacer.capWait(timeout, new FrameCap(), true, 0L));
         }
     }
 
@@ -191,7 +191,7 @@ class FramePacerTest {
             var pacer = atSixtyHz();
             pacer.frameEmitted(0L);
 
-            var capped = pacer.capWait(Duration.ofSeconds(1), true, SIXTY_HZ / 2);
+            var capped = pacer.capWait(Duration.ofSeconds(1), new FrameCap(), true, SIXTY_HZ / 2);
 
             // Without this the held frame would sit until the event loop's
             // one-second heartbeat rather than until it was due.
@@ -199,15 +199,15 @@ class FramePacerTest {
         }
 
         @Test
-        @DisplayName("the wait is left alone when no frame is waiting")
-        void noPendingFrameLeavesTheWaitAlone() {
+        @DisplayName("the wait is left alone for a window that does not wait for the display and has no cap")
+        void anUnheldFrameLeavesTheWaitAlone() {
             var pacer = atSixtyHz();
             pacer.frameEmitted(0L);
             var timeout = Duration.ofSeconds(1);
 
-            // An idle window must still block for a full heartbeat; shortening
-            // it here would spin the loop at the frame rate forever.
-            assertEquals(timeout, pacer.capWait(timeout, false, 0L));
+            // Its request pushed a wakeup, which ends the wait; shortening it
+            // here as well would only spin the loop.
+            assertEquals(timeout, pacer.capWait(timeout, new FrameCap(), false, 0L));
         }
 
         @Test
@@ -217,7 +217,7 @@ class FramePacerTest {
             pacer.frameEmitted(0L);
             var shorter = Duration.ofNanos(1_000L);
 
-            assertEquals(shorter, pacer.capWait(shorter, true, 0L));
+            assertEquals(shorter, pacer.capWait(shorter, new FrameCap(), true, 0L));
         }
 
         @Test

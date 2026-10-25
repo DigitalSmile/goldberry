@@ -1,6 +1,7 @@
 package dev.goldberry.stats;
 
 import dev.goldberry.paint.Layer;
+import dev.goldberry.render.window.PresentMode;
 
 /// What the frame loop has been doing lately: the frame rate, where each frame's
 /// time went, and how many refreshes were missed, averaged over the last few
@@ -166,6 +167,33 @@ public interface FrameStats {
     /// rather than a hard-coded 16.7.
     default double displayHertz() {
         return 0;
+    }
+
+    /// The present mode the window was in: whether a frame waited for the
+    /// display. [PresentMode#VSYNC] for a source that does not say.
+    default PresentMode presentMode() {
+        return PresentMode.VSYNC;
+    }
+
+    /// The window's frame cap, in frames a second, or zero for none, which is
+    /// also what a source that does not say reports.
+    default double frameCap() {
+        return 0;
+    }
+
+    /// The rate a frame's budget is a share of: the display's, or the cap's
+    /// where that is lower, or where the window does not wait for the display.
+    /// Zero when neither is known.
+    default double budgetHertz() {
+        var cap = frameCap();
+        var display = displayHertz();
+        if (cap <= 0) {
+            return display;
+        }
+        if (display <= 0 || !presentMode().waitsForTheDisplay()) {
+            return cap;
+        }
+        return Math.min(cap, display);
     }
 
     /// [#paintMillis] as a range over the retained window.

@@ -154,6 +154,14 @@ Everything below is measured against 2026.2 (tag commit d3eacfdc).
   A `TextureSpec` that is both `SAMPLER` and `GRAPHICS_STORAGE_READ` is
   refused; SDL aborted the process on it before.
   <!-- ADR-0669 -->
+- A window in `MAILBOX` or `IMMEDIATE` is no longer held to the display's rate:
+  it is painted as fast as it asks, unless `Window.frameCap` limits it.
+  `goldberry.backend.vsync=false` therefore unpaces composited windows'
+  frame loops as well as their presents. The `hud` gains the `pacing` reading:
+  an exhaustive `switch` over `Reading` gains a case, and the `stages` preset
+  is unchanged. `BackendWindow`, `CompositedWindow` and `FrameStats` gain
+  default methods.
+  <!-- ADR-0670 -->
 
 #### Markup
 

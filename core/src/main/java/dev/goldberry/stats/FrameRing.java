@@ -1,7 +1,10 @@
 package dev.goldberry.stats;
 
+import java.util.Objects;
+
 import dev.goldberry.Window;
 import dev.goldberry.render.PresentTimings;
+import dev.goldberry.render.window.PresentMode;
 
 /// A [Window]'s own record of its frame loop: the last [#CAPACITY] frames and
 /// nothing older, plus the totals a run reports at exit.
@@ -179,6 +182,29 @@ public final class FrameRing implements FrameStats {
     @Override
     public double displayHertz() {
         return displayHertz;
+    }
+
+    /// The present mode and frame cap the window was in for the last frame;
+    /// see [FrameStats#presentMode] and [FrameStats#frameCap].
+    private PresentMode presentMode = PresentMode.VSYNC;
+
+    private double frameCap;
+
+    /// Sets the present mode and frame cap the window is held to, as the
+    /// backend reported them.
+    public void pacing(PresentMode mode, double cap) {
+        this.presentMode = Objects.requireNonNull(mode, "mode");
+        this.frameCap = Math.max(0, cap);
+    }
+
+    @Override
+    public PresentMode presentMode() {
+        return presentMode;
+    }
+
+    @Override
+    public double frameCap() {
+        return frameCap;
     }
 
     /// Adds a frame.

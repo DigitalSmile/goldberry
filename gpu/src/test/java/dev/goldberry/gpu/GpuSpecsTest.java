@@ -9,6 +9,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -458,6 +459,53 @@ class GpuSpecsTest {
                     shadow.withAddressMode(AddressMode.REPEAT).addressMode());
             assertEquals(
                     shadow.compare(), shadow.withAddressMode(AddressMode.REPEAT).compare(), "kept");
+        }
+    }
+
+    @Nested
+    @DisplayName("a device's features")
+    class Features {
+
+        private static final GpuAdapter ADAPTER = new GpuAdapter("llvmpipe", "llvmpipe", "Mesa 26.0.8", "");
+
+        private static GpuFeatures features(List<Integer> colour, Set<TextureFormat> stencil) {
+            return new GpuFeatures(
+                    "vulkan",
+                    ADAPTER,
+                    EnumSet.of(ShaderFormat.SPIRV),
+                    colour,
+                    List.of(1),
+                    stencil,
+                    EnumSet.of(TextureFormat.BC7_RGBA_UNORM),
+                    true);
+        }
+
+        @Test
+        @DisplayName("offer the highest sample count, and the smaller stencil format where there are both")
+        void answers() {
+            var both = features(
+                    List.of(1, 2, 4, 8), EnumSet.of(TextureFormat.D24_UNORM_S8_UINT, TextureFormat.D32_FLOAT_S8_UINT));
+            assertEquals(8, both.maxColorSamples());
+            assertEquals(Optional.of(TextureFormat.D24_UNORM_S8_UINT), both.stencilFormat());
+            var apple = features(List.of(1, 2, 4), EnumSet.of(TextureFormat.D32_FLOAT_S8_UINT));
+            assertEquals(Optional.of(TextureFormat.D32_FLOAT_S8_UINT), apple.stencilFormat(), "no D24S8 on Apple's");
+            assertEquals(Optional.empty(), features(List.of(1), Set.of()).stencilFormat());
+        }
+
+        @Test
+        @DisplayName("refuse sample counts that do not rise from 1, and formats in the wrong set, and take gaps")
+        void refusals() {
+            var none = Set.<TextureFormat>of();
+            assertThrows(IllegalArgumentException.class, () -> features(List.of(), none));
+            assertThrows(IllegalArgumentException.class, () -> features(List.of(2, 4), none));
+            assertThrows(IllegalArgumentException.class, () -> features(List.of(1, 8, 4), none), "descending");
+            assertThrows(IllegalArgumentException.class, () -> features(List.of(1, 3), none), "no such count");
+            assertEquals(8, features(List.of(1, 4, 8), none).maxColorSamples(), "lavapipe has no 2, and that is fine");
+            assertThrows(
+                    IllegalArgumentException.class, () -> features(List.of(1), EnumSet.of(TextureFormat.D32_FLOAT)));
+            assertThrows(
+                    UnsupportedOperationException.class,
+                    () -> features(List.of(1), none).stencilFormats().add(TextureFormat.D32_FLOAT_S8_UINT));
         }
     }
 

@@ -39,6 +39,7 @@ import dev.goldberry.render.PresentTimings;
 import dev.goldberry.render.composite.Claim;
 import dev.goldberry.render.model.PhysicalSize;
 import dev.goldberry.render.model.PixelFormat;
+import dev.goldberry.render.window.PresentMode;
 
 /// The composited window's GPU half — the seam `:core` declares and `:gpu`
 /// provides — on a real device.
@@ -203,6 +204,26 @@ class CompositorTest {
                     }
                 }
             }
+            claimed.close();
+        }
+
+        @Test
+        @DisplayName("presents in VSYNC always, switches to every mode it says it has, and refuses the rest")
+        void presentModes() {
+            var claimed = claimed(compositor, window);
+            assertTrue(claimed.supports(PresentMode.VSYNC));
+            for (var mode : PresentMode.values()) {
+                if (claimed.supports(mode)) {
+                    claimed.presentMode(mode);
+                    claimed.present(
+                            frame(premultiplied(8, 8, 3), 8, 8),
+                            List.of(DamageRect.all(new PhysicalSize(8, 8))),
+                            List.of());
+                } else {
+                    assertThrows(IllegalArgumentException.class, () -> claimed.presentMode(mode), mode::toString);
+                }
+            }
+            claimed.presentMode(PresentMode.VSYNC);
             claimed.close();
         }
 

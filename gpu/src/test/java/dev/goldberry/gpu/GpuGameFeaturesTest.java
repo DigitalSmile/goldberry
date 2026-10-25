@@ -3,6 +3,7 @@ package dev.goldberry.gpu;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -10,6 +11,7 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.EnumSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Random;
 import java.util.Set;
 import java.util.function.Consumer;
@@ -585,6 +587,34 @@ class GpuGameFeaturesTest {
             buffer.close();
             assertThrows(IllegalStateException.class, () -> texture.setDebugName("after"));
             assertThrows(IllegalStateException.class, () -> buffer.setDebugName("after"));
+        }
+    }
+
+    @Nested
+    @DisplayName("the device's features")
+    class Features {
+
+        @Test
+        @DisplayName("are what the device answers each question with, asked once and kept")
+        void asked() {
+            var features = device.features();
+            assertEquals(device.driver(), features.driver());
+            assertEquals(device.adapter(), features.adapter());
+            assertEquals(device.shaderFormats(), features.shaderFormats());
+            assertEquals(1, features.colorSampleCounts().getFirst());
+            assertEquals(
+                    device.maxSamples(TextureFormat.B8G8R8A8_UNORM, 8),
+                    features.maxColorSamples(),
+                    "the highest anti-aliasing to offer");
+            for (var format : features.stencilFormats()) {
+                assertTrue(device.supports(format, EnumSet.of(TextureUsage.DEPTH_TARGET)), format::toString);
+            }
+            assertEquals(Optional.of(stencilFormat()), features.stencilFormat(), "what the stencil tests here used");
+            for (var format : features.compressedFormats()) {
+                assertTrue(device.supports(format, EnumSet.of(TextureUsage.SAMPLER)), format::toString);
+            }
+            assertTrue(features.floatTargets(), "every desktop driver the lane runs renders half floats");
+            assertSame(features, device.features(), "kept");
         }
     }
 

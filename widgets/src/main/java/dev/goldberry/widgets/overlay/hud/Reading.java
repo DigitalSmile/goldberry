@@ -87,6 +87,38 @@ public enum Reading {
         }
     },
 
+    /// How the window's frames are held: `pacing vsync`, `pacing mailbox, cap
+    /// 144`.
+    ///
+    /// Its present mode, and its frame cap where it has one: the two settings a
+    /// game's options screen changes, read back from the window that is held to
+    /// them. The mode is the one **in effect**, which is not always the one asked
+    /// for: a driver without mailbox presents in the nearest it has, and a window
+    /// on the CPU presents as its surface does.
+    ///
+    /// **Never coloured**: a setting is not over or under anything. It is beside
+    /// the numbers because it decides what they are judged against, a capped
+    /// frame's budget being a share of the cap.
+    PACING("pacing") {
+        @Override
+        String text(FrameStats stats) {
+            var mode = stats.presentMode().name().toLowerCase(Locale.ROOT);
+            return stats.frameCap() > 0
+                    ? String.format(Locale.ROOT, "pacing %s, cap %.0f", mode, stats.frameCap())
+                    : "pacing " + mode;
+        }
+
+        @Override
+        Level level(FrameStats stats) {
+            return Level.OK;
+        }
+
+        @Override
+        double value(FrameStats stats) {
+            return stats.frameCap();
+        }
+    },
+
     /// Frames that were wanted and never seen: `late 3`.
     ///
     /// **The only reading here that is not a measurement of a frame that
@@ -396,7 +428,7 @@ public enum Reading {
             }
         }
         throw new IllegalArgumentException("\"" + text + "\" is not a hud reading. Use one of:"
-                + " fps, refresh, late, paint, build, style, layout, raster, upload, acquire, submit");
+                + " fps, refresh, pacing, late, paint, build, style, layout, raster, upload, acquire, submit");
     }
 
     /// This reading of `stats`, assuming there is something to read.
@@ -442,13 +474,14 @@ public enum Reading {
         return 0;
     }
 
-    /// How long one frame of the display lasts, in milliseconds.
+    /// How long one frame lasts, in milliseconds: one of the display's, or of
+    /// the frame cap's where that is slower or the window does not wait for the
+    /// display ([FrameStats#budgetHertz]).
     ///
-    /// 16.7 when the platform will not say what the display does — a headless
-    /// backend, or a mode SDL cannot describe. A stated assumption rather than a
-    /// hidden one.
+    /// 16.7 when nothing says — a headless backend, or a mode SDL cannot
+    /// describe. A stated assumption rather than a hidden one.
     static double frameBudget(FrameStats stats) {
-        var hertz = stats.displayHertz();
+        var hertz = stats.budgetHertz();
         return hertz > 0 ? 1_000.0 / hertz : 1_000.0 / 60;
     }
 
@@ -500,6 +533,7 @@ public enum Reading {
             return switch (this) {
                 case FPS -> "— fps";
                 case REFRESH -> "refresh —";
+                case PACING -> "pacing —";
                 case LATE -> "late —";
                 case PAINT -> "paint —";
                 case BUILD -> "build —";

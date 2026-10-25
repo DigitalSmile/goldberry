@@ -12,7 +12,6 @@ import dev.goldberry.log.Startup;
 import dev.goldberry.natives.sdl.SdlException;
 import dev.goldberry.natives.sdl.SdlWindowHandle;
 import dev.goldberry.natives.sdl.gpu.SdlGpuDevice;
-import dev.goldberry.natives.sdl.gpu.enums.SdlGpuPresentMode;
 import dev.goldberry.render.composite.Claim;
 import dev.goldberry.render.composite.Compositor;
 import dev.goldberry.render.composite.ReadbackSurface;
@@ -40,10 +39,6 @@ public final class SdlCompositor implements Compositor {
     /// so it is this class's decision.
     static final int FRAMES_IN_FLIGHT = 2;
 
-    /// `goldberry.backend.vsync`, which the sdl3 backend reads for the window
-    /// surface: `false` presents unpaced here too.
-    static final String VSYNC_PROPERTY = "goldberry.backend.vsync";
-
     private @Nullable SdlGpuDevice device;
     private @Nullable GpuDevice api;
     private @Nullable StagingBuffer staging;
@@ -64,15 +59,9 @@ public final class SdlCompositor implements Compositor {
         }
         var gpu = requireDevice();
         try {
+            // Claimed in VSYNC; the window sets the mode it was asked for,
+            // `goldberry.backend.vsync=false`'s at launch among them.
             var claimed = gpu.claimWindow(window);
-            if (!Boolean.parseBoolean(System.getProperty(VSYNC_PROPERTY, "true"))) {
-                for (var mode : new SdlGpuPresentMode[] {SdlGpuPresentMode.MAILBOX, SdlGpuPresentMode.IMMEDIATE}) {
-                    if (claimed.supports(mode)) {
-                        claimed.setPresentMode(mode);
-                        break;
-                    }
-                }
-            }
             return new Claim.Claimed(
                     new SdlCompositedWindow(gpu, requireApi(), claimed, requireStaging(), requireComposite()));
         } catch (SdlException | IllegalStateException e) {

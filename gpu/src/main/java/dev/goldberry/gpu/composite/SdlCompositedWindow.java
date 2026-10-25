@@ -14,6 +14,7 @@ import dev.goldberry.natives.sdl.gpu.SdlGpuDevice;
 import dev.goldberry.natives.sdl.gpu.SdlGpuRegion;
 import dev.goldberry.natives.sdl.gpu.SdlGpuTexture;
 import dev.goldberry.natives.sdl.gpu.SdlGpuWindow;
+import dev.goldberry.natives.sdl.gpu.enums.SdlGpuPresentMode;
 import dev.goldberry.natives.sdl.gpu.enums.SdlGpuTextureFormat;
 import dev.goldberry.natives.sdl.gpu.enums.SdlGpuTextureUsage;
 import dev.goldberry.natives.sdl.gpu.enums.SdlGpuTransferUsage;
@@ -24,6 +25,7 @@ import dev.goldberry.render.PresentTimings;
 import dev.goldberry.render.composite.CompositedWindow;
 import dev.goldberry.render.model.PhysicalSize;
 import dev.goldberry.render.model.PixelFormat;
+import dev.goldberry.render.window.PresentMode;
 
 /// A window [SdlCompositor] claimed: each painted frame's damage uploaded into
 /// the window's UI texture, its GPU layers rendered, then the composite pass
@@ -206,6 +208,24 @@ final class SdlCompositedWindow implements CompositedWindow {
     @Override
     public PresentTimings lastPresent() {
         return last;
+    }
+
+    @Override
+    public boolean supports(PresentMode mode) {
+        return window.supports(sdl(mode));
+    }
+
+    @Override
+    public void presentMode(PresentMode mode) {
+        window.setPresentMode(sdl(mode));
+    }
+
+    private static SdlGpuPresentMode sdl(PresentMode mode) {
+        return switch (mode) {
+            case VSYNC -> SdlGpuPresentMode.VSYNC;
+            case MAILBOX -> SdlGpuPresentMode.MAILBOX;
+            case IMMEDIATE -> SdlGpuPresentMode.IMMEDIATE;
+        };
     }
 
     @Override
